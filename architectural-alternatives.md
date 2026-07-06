@@ -1,4 +1,4 @@
-# Generational Directions (non-normative)
+# Evaluated Architectural Alternatives (non-normative)
 
 > Externalized from [verification-maximal-os.md](verification-maximal-os.md). This document records evaluated architectural alternatives and their disposition; it is **not** part of the normative spec. Cross-references of the form §N point to sections of that specification.
 
