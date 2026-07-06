@@ -3,6 +3,8 @@
 **Goals:** hyper-secure, extensively formally verified, transactional/stateless, reliable — with no requirement for broad software or hardware compatibility, and performance deliberately subordinated to security. Engineering effort is treated as free; **trust is the scarce resource**. Every decision answers one question: *how small is the set of things that must be trusted, and how deep is the proof over it?*
 
 > **Revision history.** The per-version revision notes live in [revision-history.md](revision-history.md).
+>
+> **Inspirations & prior art.** The systems and research artifacts this design descends from are cataloged in [inspirations.md](inspirations.md); the architectural *alternatives* it evaluated and rejected live in [generational-directions.md](generational-directions.md).
 
 ## 1. Goals
 
