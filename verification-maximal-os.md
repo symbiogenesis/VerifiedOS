@@ -349,4 +349,4 @@ Two requirements never trade: the verified TCB, and capabilities as the sole aut
 
 ## 19. Generational Directions (non-normative)
 
-This section is **non-normative** and now lives in its own document — see **[Generational Directions](generational-directions.md)**. It records evaluated architectural alternatives and their disposition (belt/Mill-class and EDGE/block-atomic; HexFive MultiZone and PMP's two roles; seL4 vs. CertiKOS; crypto verification depth; sound WCET derivation; binary-level constant-time verification), kept out of the normative spec body while remaining part of the living document.
+This section is **non-normative** and now lives in its own document — see **[Generational Directions](generational-directions.md)**. It records evaluated architectural alternatives and their disposition. Kept out of the normative spec body while remaining part of the living document.
