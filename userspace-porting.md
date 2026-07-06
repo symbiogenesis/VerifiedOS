@@ -1,0 +1,63 @@
+# Userspace Porting Targets (non-normative)
+
+> Externalized companion to [verification-maximal-os.md](verification-maximal-os.md). This is a **non-normative roadmap**, not part of the specification: a curated list of the first userspace applications slated for porting, each mapped to the normative mechanism (§N of that document) it must be re-targeted onto. It is the userland analogue of [Generational Directions](generational-directions.md), and, like it, carries no normative weight — every target still enters through the Tier-2/Tier-1 admission discipline of §13, and a name on this list is a *statement of intent*, not a grant of exception.
+
+"Porting" here is a term of art. There is **no Linux-personality shim and no legacy VM** (§2, §14): a foreign binary does not run, ever. Every entry below is therefore a **source-level re-target** — recompiled against the WASI-shaped capability libc (§14) straight to native RV64+CHERI, its ambient-authority assumptions stripped and re-expressed as explicit capabilities (§8), admitted only once it carries the proof its tier demands (§13). The selection is **uniformly Rust** by design: safe Rust is memory-safe by construction (§5, §14), so a `#![forbid(unsafe_code)]` port is the cheapest path to the mandatory Tier-2 memory-safety certificate (§13) — the certifying Rust→RV64+CHERI toolchain (§18) discharges it automatically, and rustc/LLVM never enter the trust base.
+
+## Roster
+
+- **COSMIC Desktop** — the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
+- **Zed** — the reference editor/IDE; a software-rendered Tier-2 app.
+- uutil's implementation of **coreutils / findutils / diffutils** — the seed corpus for §14's capability-native core utilities (Tier-2).
+- **Servo** — the contained, per-origin browser engine of §14 (Tier-2 origin compartments).
+- **GGUF inference runtime** — a *new* build: the concrete instantiation of §12's optional inference server on the M-class cores (Tier-1).
+
+## The porting discipline — four obstacles every target meets
+
+Independent of the application, the same four substrate mismatches are re-targeted the same way, so they are stated once here and referenced per target below:
+
+1. **`unsafe` must go.** FFI shims, GPU bindings, and hand-rolled synchronization are inadmissible in app logic (§5): each `unsafe` site is either deleted with the POSIX/GPU assumption that motivated it or routed through the formally verified HAL (§5). A dependency that cannot shed its `unsafe` — a C library behind a `-sys` crate — is itself a sub-port.
+2. **GPU dependence becomes software compute.** There is no fixed-function GPU, no Vulkan/Metal/wgpu path, no CUDA (§15). Rendering, compositing, and codecs move to software on the V-class cores; matrix/AI work moves to the M-class GEMM units (§15) — both under the §12 display/inference model, never a driver.
+3. **Ambient POSIX authority becomes explicit capabilities.** No `fork`/`exec`, no uid/gid, no `/proc`, no CWD-relative path resolution (§2, §8). Process trees become the service manager's static supervision tree (§12); path-based file access becomes a manifest-backed private namespace (§14); "spawn a helper" becomes a capability-delegated compartment reached over a ring (§12).
+4. **No JIT outside the toolchain compartment.** Runtime code generation lives only in the toolchain compartment, and nothing network-facing may JIT (§14): any embedded script/Wasm engine runs **pure-interpreter**.
+
+## Targets
+
+### COSMIC Desktop — the shell, and the reference compositor
+
+System76's Rust desktop — the `libcosmic`/`iced` toolkit, the `cosmic-comp` compositor on smithay, cosmic-text — assumes Wayland-over-Linux: DRM/KMS scanout, a GPU through wgpu/OpenGL, evdev/libinput. Re-targeted, **`cosmic-comp` becomes the reference §12 display server**: it already embodies the "surfaces are plain memory, input and output are mediated" model that §12 mandates, so Wayland's global-registry ambient objects are replaced by **per-surface and per-input capabilities** (keylogging and screen-scraping become unexpressible, §12), DRM/KMS is replaced by the firmware-free scanout controller behind a static IOMMU window (§12, §15), and the wgpu/OpenGL renderer falls back to **software compositing on V-class cores** (§12, obstacle 2). Because the compositor mediates between mutually distrusting clients — many origins' and apps' surfaces and input events — it is a cross-domain **Tier-1** server carrying the §13 information-flow theorems that decide which surface may observe which input; the panel, launcher, settings, and applets are ordinary **Tier-2** apps built on `libcosmic`. libinput/evdev collapse to register-slave scan drivers (§12), and `fork`-spawned session helpers become supervision-tree compartments (obstacle 3).
+
+**Disposition:** adopt `cosmic-comp` as the reference display-server seed and `libcosmic`/`iced` as the app toolkit; the GPU renderer is the single largest rewrite (software rasterization on V-class cores), and the Wayland surface model is kept as *vocabulary* while its enforcement moves to capabilities.
+
+### Zed — the reference editor/IDE
+
+Zed Industries' Rust editor rides the GPUI framework, which is GPU-first (Metal / `blade` / Vulkan) over a platform `unsafe` layer; Zed spawns language servers as subprocesses, drives syntax with tree-sitter (a C library), and ships networked collaboration. Re-targeted: GPUI's renderer moves to **software on V-class cores** — the same substrate COSMIC and Servo need, built once and shared — and its platform `unsafe` routes through the verified HAL (§5, obstacle 1). The LSP subprocess model has no `fork`/`exec` (§2): each language server becomes a **capability-delegated Tier-2 compartment reached over a ring** (§12), started by the service manager's static supervision tree (§12), not by the editor's ambient authority (obstacle 3). tree-sitter's C core is a `-sys` FFI dependency and thus inadmissible as-is — either contained behind the verified HAL or replaced by a pure-Rust grammar runtime; note that parsing *local* source is **not** the §5 attacker-facing-wire mandate (which governs remote formats), so tree-sitter stays ordinary contained code, not a Narcissus obligation. Collaboration rides the §12 IPv6/TLS network stack; file and clipboard access is powerbox-mediated (§14).
+
+**Disposition:** Tier-2, gated on the shared software-render substrate and on shedding the tree-sitter and GPU `-sys` crates; the editor core — rope, multi-buffer, diagnostics, git — ports as clean safe Rust.
+
+### uutil's implemenation of coreutils / findutils / diffutils — the capability-native core utilities
+
+These reimplement GNU coreutils/findutils/diffutils in Rust — yet §14 mandates core utilities **reimplemented, not ported**, and that tension is the whole story. Their pure-computation core — the `sort`/`wc`/`cut`/`cat` byte plumbing, `diff`'s Myers algorithm, `find`'s predicate matcher — is exactly reusable safe Rust and transfers verbatim. Everything that assumes POSIX ambient authority does not: `chmod`/`chown`/`id`/`groups` (no uid/gid, §2/§8), `kill`/`ps`/`nice` (no ambient process table or signals, §2), `mount`/`mknod`/symlink semantics against a global VFS (the "filesystem" is a manifest-backed private namespace, §14), and every `nix`/`libc` `unsafe` FFI call that reaches for a syscall (§5, obstacle 1) — all are **deleted or re-expressed** as capability operations (obstacle 3). So the three projects are adopted not as a *port* but as the **seed corpus** for §14's capability-native reimplementation: their algorithms populate the utilities while their POSIX surface is discarded, which honors "reimplemented, not ported" by construction rather than by exception.
+
+**Disposition:** Tier-2; harvest the computational core, drop the ambient-authority commands wholesale, and re-issue the survivors against the capability libc — the closest thing on this list to a clean lift, precisely because the hard part is subtraction.
+
+### Servo — the contained browser engine
+
+The Rust browser engine is §14's browser made real. Its per-origin architecture — the constellation, per-origin script and layout — maps directly onto §14's **per-origin capability compartments**, so an origin RCE yields only that origin's authority and nothing else. Three obstacles dominate. **(1) The JS engine is the gating sub-project.** Servo embeds SpiderMonkey (`mozjs`) — C++, JIT, and a vast `unsafe` binding surface — and §14 forbids JIT on anything network-facing (interpreters run pure, obstacle 4). SpiderMonkey-in-interpreter-mode is still unverifiable C++ that cannot carry the Tier-2 safe-Rust certificate, so the spec-coherent target is a **pure-Rust, interpreter-only engine** (Boa-lineage), accepting its web-incompleteness as the honest cost; `mozjs` restricted to its C interpreter behind CHERI containment is the pragmatic, *non-conforming* interim. This is the browser's defining unresolved tension, recorded rather than hidden. **(2) WebRender is GPU-first** and falls back to software rendering on C/V-class cores under §12 (§14, obstacle 2). **(3) Content parsers stay contained, not verified.** html5ever, the CSS parser, and the JS front end all consume attacker-controlled input, but §14's stance is that the browser is *unverifiable, therefore maximally contained* — so these remain memory-safe Rust inside the origin compartment; the §5 Narcissus mandate binds the *network wire* (TLS/HTTP, §12), not the DOM. File and clipboard access is powerbox-only (§14).
+
+**Disposition:** Tier-2 per-origin compartments; adopt Servo's engine and compartment model, treat the pure-interpreter JS engine as the hard gating dependency, and reuse the shared software-render substrate.
+
+### GGUF inference runtime — the M-class inference server
+
+Unlike the others this is a **new build, not a port** — the request's *GGUL* is read as **GGUF** (llama.cpp's GPT-Generated Unified Format, the de facto container for quantized local models), and llama.cpp itself (C++, with CUDA/Metal/Vulkan backends and heavy `unsafe`) is rejected as a base on every §5/§15 axis, which is exactly why a fresh safe-Rust runtime is the path. It is the concrete instantiation of §12's optional **inference server**: a Tier-1 compartment that owns the M-class cores (§15: systolic 32×32 int8 / 16×16 bf16 GEMM, VLEN=1024, software-managed scratchpad), exposes quantized-inference sessions over rings (§12), takes GGUF models as content-addressed store objects (§10), and zeroizes per-session memory on teardown (§12). Two spec hooks are load-bearing. **(a) The GGUF container parser is attacker-facing** — a downloaded model is untrusted input — so its header/metadata/tensor-map decode is a §5 **verified copy-once parser** (Narcissus), *unlike* the browser's deliberately-contained content parsers. **(b) Timing.** Dense-GEMM decode over a fixed model geometry is naturally data-independent (favorable for the §15 `Zkt`/`Zvkt` posture), but token-dependent sampling, KV-cache-length-dependent work, and any mixture-of-experts routing are genuine data-dependent channels; a session carrying secret-labeled prompts (§8/§13) therefore either scopes a constant-time obligation onto exactly those paths, or the flow theorems (§8, §13) must forbid secret material from reaching it. No CUDA/GPU path exists (§15); throughput is the honest M-class envelope (§15 capacity honesty), not datacenter-class.
+
+**Disposition:** build new in safe Rust as the reference §12 inference server; verify the GGUF parser (§5), route all matrix work through the M-class capability-operand movers (§15, no private DMA), and treat sampling/routing data-dependence as the residual to bound or label-fence.
+
+## Shared prerequisites
+
+All five gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
+
+- **The certifying Rust→RV64+CHERI toolchain (§18)** is the hard, no-fallback prerequisite for *building or admitting any of them* — userspace availability gates on it exactly as desktop instantiation gates on CHERI silicon (§18).
+- **A software rendering/compositing library on V-class cores** — the substrate COSMIC's compositor, Zed's GPUI, and Servo's WebRender all collapse onto — is built once under the §12 display model and shared across the three GUI targets.
+- **The WASI-shaped capability libc (§14)** and its manifest-backed namespace is the common on-ramp every source-level re-target compiles against.
+- **The reference display server** (COSMIC's `cosmic-comp`, above) that the other GUI apps present surfaces to under per-surface / per-input capabilities (§12).
