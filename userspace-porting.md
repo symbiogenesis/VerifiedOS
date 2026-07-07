@@ -20,7 +20,7 @@ Independent of the application, the same four substrate mismatches are re-target
 1. **`unsafe` must go.** FFI shims, GPU bindings, and hand-rolled synchronization are inadmissible in app logic (§5): each `unsafe` site is either deleted with the POSIX/GPU assumption that motivated it or routed through the formally verified HAL (§5). A dependency that cannot shed its `unsafe` — a C library behind a `-sys` crate — is itself a sub-port.
 2. **GPU dependence becomes software compute.** There is no fixed-function GPU, no Vulkan/Metal/wgpu path, no CUDA (§15). Rendering, compositing, and codecs move to software on the V-class cores; matrix/AI work moves to the M-class GEMM units (§15) — both under the §12 display/inference model, never a driver.
 3. **Ambient POSIX authority becomes explicit capabilities.** No `fork`/`exec`, no uid/gid, no `/proc`, no CWD-relative path resolution (§2, §8). Process trees become the service manager's static supervision tree (§12); path-based file access becomes a manifest-backed private namespace (§14); "spawn a helper" becomes a capability-delegated compartment reached over a ring (§12).
-4. **No JIT outside the toolchain compartment.** Runtime code generation lives only in the toolchain compartment, and nothing network-facing may JIT (§14): any embedded script/Wasm engine runs **pure-interpreter**.
+4. **No runtime code generation, anywhere.** Compilation is an off-device build step (the certifying toolchain, §5/§18), never an on-device service; nothing on the device JITs (§14), so any embedded script/Wasm engine runs **pure-interpreter**.
 
 ## Targets
 
