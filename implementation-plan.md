@@ -78,9 +78,9 @@ Minimal verified M-mode firmware, quiescent after boot (§6, §7) — no trap de
 
 - **Language** — Coq/Gallina.
 - **Toolchain** — **CertiCoq → Wasm** host-side for the boot-logic exercise; on-device, GC-free **CompCert-C through CHERI-CompCert** (§0) — this firmware is tiny, quiescent, low-level register programming with no heap, so it never wants a managed runtime.
-- **Start from** — *no port.* Use **OpenSBI** only as a functional checklist of what M-mode must do (PMP setup and lockdown, boot handoff); write the behavior fresh in Gallina. The surface is small.
+- **Start from** — *no port.* Use **OpenSBI** only as a functional checklist of what M-mode must do (initial capability distribution, boot handoff — no PMP setup, §15); write the behavior fresh in Gallina. The surface is small.
 - **Compiler target** — RV64GV+CHERI (M-mode), purecap.
-- **Plan** — specify in Gallina: the **`Smepmp` self-lockdown** and the **static subtractive PMP backstop** (§15) — immutable-text/W^X, per-core physical-partition bounds, crown-jewel secret windows — programmed once and **locked before the kernel runs**; the boot handoff that launches one Machine-mode kernel instance per core (single privilege mode, no trap delegation). Lower GC-free to purecap RV64+CHERI; it is the first image the die emulator executes after the RoT releases it.
+- **Plan** — specify in Gallina: the **initial capability distribution** — deriving each core's partition-bounded root capability and the read-execute-only capabilities for kernel and firmware text (CHERI W^X, §14), with **no PMP or `Smepmp`** (CHERI is the sole memory-protection mechanism, §15); the boot handoff that launches one Machine-mode kernel instance per core (single privilege mode, no trap delegation). Lower GC-free to purecap RV64+CHERI; it is the first image the die emulator executes after the RoT releases it.
 
 ---
 
@@ -107,7 +107,7 @@ The capability microkernel — seL4's design, re-expressed in Gallina — instan
 - **Plan** —
   1. Translate the seL4 executable spec's object types (dropping the VSpace/page-table/frame-mapping classes — single-address-space, §7 — and the MCS scheduling-context classes — a static cyclic executive replaces them, §7/§11), capability derivation tree, endpoint/notification IPC, and the cyclic-executive schedule into Gallina as an executable state machine.
   2. Exercise it host-side via the Wasm build (create/derive/revoke capabilities, IPC round-trips, slot-overrun faults) — the fastest way to shake out the logic.
-  3. Refine the Gallina spec to GC-free CompCert-C (CHERI-seL4 is the existing purecap C implementation to start from), compile through CHERI-CompCert, and boot **one instance per emulated core** with strictly disjoint state (the multikernel is the *sequential* kernel duplicated, §7), physical partitions enforced by the M-mode PMP backstop (§3).
+  3. Refine the Gallina spec to GC-free CompCert-C (CHERI-seL4 is the existing purecap C implementation to start from), compile through CHERI-CompCert, and boot **one instance per emulated core** with strictly disjoint state (the multikernel is the *sequential* kernel duplicated, §7), physical partitions enforced by **CHERI capability bounds** — each instance's partition-bounded root capability (§7), no PMP.
   4. Defer only the *proofs*: the functional-refinement proof (C ⊑ Gallina spec) and the non-interference theorem (§8), layered on later without changing the Gallina spec or the C. Purecap, GC-free compilation is **not** deferred — the §0 prerequisite backend means the kernel is purecap and managed-runtime-free from first boot.
 
 ---
