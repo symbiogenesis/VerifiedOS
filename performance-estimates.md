@@ -18,7 +18,8 @@
 | Core µarch | Fixed modest clocks, no turbo/DVFS (§15 power) | Substituted | **−15% to −40% burst; −0% to −15% sustained** | burst/interactive latency | Frequency effect, not IPC; turbo never helps thermally-bound sustained load. |
 | Core µarch | No JIT — interpret-only dynamic languages (§2, §14) | Removed | **−60% to −90%** | JS / Wasm / dynamic-language code only | Native AOT code unaffected; hits the browser hardest. |
 | ISA removed | No C / compressed extension (§15) | Removed | **−2% to −12%** | fetch / I-cache-bound | +25–30% code size → I-cache & bandwidth pressure. |
-| ISA removed | Fixed-latency DIV / FPU, no early-out, subnormal-safe (§15) | Substituted | **−1% to −6%** | divide / sqrt / FP-heavy | Price of the constant-time mandate. |
+| ISA removed | Fixed-latency integer DIV and vector FPU, no early-out, subnormal-safe (§15) | Substituted | **−1% to −6%** | divide / sqrt / FP-heavy | Price of the constant-time mandate. |
+| ISA removed | No scalar `F`/`D` — scalar float folded onto the vector FPU (§15) | Substituted | **−2% to −15%** | scalar-float-bound code | VL=1 vector ops + soft-float-register ABI setup; well-vectorized FP is unaffected (runs on RVV). |
 | ISA removed | No prefetch / non-temporal hints — Zicbop/Zihintntl (§15) | Removed | **−3% to −15%** | memory-bound streaming | Explicit loads only. |
 | ISA removed | Misaligned accesses trap (§15) | Substituted | **−0% to −5%** | code with unaligned access | Well-aligned code ≈ 0. |
 | ISA removed | `Zaamo`-only — no LR/SC, no CAS (§15) | Removed | **−0% to −3%** | lock-free / atomic-heavy | Spec argues no consumer exists above a share-nothing kernel; near-zero in practice. |
