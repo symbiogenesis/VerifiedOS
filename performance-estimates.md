@@ -46,6 +46,7 @@
 | **Gain — added** | Matrix / systolic GEMM units — M-class (§15) | Added | **+900% to +9900% (10–100×)** | dense GEMM / AI inference | Vs scalar; "early-NPU-class" per the spec's own honesty. |
 | **Gain — added** | Scalar + vector crypto — Zkne/Zknd/Zknh, Zvkned/Zvknhb/Zvkg/Zvbb/Zvbc (§15) | Added | **+400% to +2000% (5–20×)** | AES / SHA-2 / GHASH | Table-free; *also* deletes the cache-timing side channel. |
 | **Gain — added** | Bit-manip Zba/Zbb/Zbs, fixed-latency (§15) | Added | **+2% to +12%** | bit / integer-heavy | Broad integer uplift. |
+| **Gain — added** | Macro-op fusion — decoder-stage, architecturally transparent (§2, §15) | Added | **+3% to +10%** | dependent scalar-integer / address-gen / compare-branch | Recovers issue efficiency lost to no-C and static-only prediction; a fused pair is one fixed-latency entry (tightens WCET), architecturally transparent so it costs no proof. |
 | **Gain — added** | `Zicond` branchless select (§15) | Added | **+0% to +4%** | data-dependent branches | "Doubly load-bearing": also dodges the static-predictor mispredict. |
 | **Gain — added** | `Zicboz` (cbo.zero) (§15) | Added | **+0% to +3%** | zeroing / context-switch | Makes eager-zeroize nearly free. |
 | **Gain — added** | bf16 (Zvfbfwma), `Zaamo` fixed-latency AMO (§15) | Added | **small, workload-specific** | ML / atomic paths | — |
