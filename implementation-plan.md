@@ -13,6 +13,7 @@ The entire base system is written in exactly two languages, and each yields an e
     - **Refine the Gallina spec to CompCert-C (VST/Iris), through CHERI-CompCert** — for the kernel (§5), the low-level M-mode firmware (§3), and the heap-churning storage layers (§6 object store, §7 filesystem). This *is* the spec's stated end-state (seL4's design via CompCert/SECOMP, §5; verified C with no managed runtime, §10) and the CertiKOS/VST method the plan already cites; for the golden model the GC-free C comes first and its full refinement *proof* is deferred (below).
     - **GC-free extraction with region/arena allocation** — for the allocation-light, arena-shaped components (the static init tree §8; **not** the admission checker §9, which is TCB whose binary nothing re-checks, so it takes the verified-compilation route above): **MetaCoq → Rust with `bumpalo` arenas** onto the certifying Rust→RV64+CHERI compiler (a priority-zero item the spec already commits to, §18), with **MCQC** (Gallina→C++, RAII — MIT-PDOS lineage, the group behind the §7 SFSCQ/DiskSec work) the standing precedent that push-button GC-free Gallina extraction exists.
     - **Fiat/Bedrock correct-by-construction synthesis to imperative Clight** — where explicit-memory code is wanted directly; already the platform's method for wire parsers (Narcissus, §5) and field arithmetic (Fiat-Crypto, §4).
+    - **Vélus (Lustre → Clight)** — for the §12 server *control planes* (supervision trees, protocol state machines, mode/timing sequencing): a **Coq-verified** synchronous-dataflow compiler emitting CompCert Clight, so control-plane logic rides the same CHERI-CompCert path as the verified C, statically allocated (**no GC by construction**), with WCET, determinism, and causality structural (§5, §12). Like Narcissus and Fiat-Crypto it is a Coq-verified DSL, **not a third trust language** — the two languages are the trust bases (Sail + Coq), and Lustre's meaning *and* its compilation are both Coq objects.
 
 **The two golden models are validated independently first, then composed.** The Sail-C emulator is exercised by assembly/ISA tests; the Gallina components are exercised as Wasm host-side; then the components are lowered **GC-free** to purecap RV64+CHERI (above) and run *on* the emulator for the composed, full-system golden model.
 
@@ -127,15 +128,15 @@ The four-layer verified storage stack (§10): L0 journal, L1 CoW B-tree index, L
 
 ---
 
-## 8. Init system — the static supervision tree (Coq)
+## 8. Init system — the static supervision tree (Lustre via Vélus)
 
-The service manager: a static supervision tree with declarative units, no ambient authority, capability re-grant on restart (§12, §16). The spec assigns this to contained safe Rust; for the **single-language golden model it is written in Gallina** like the rest of the base.
+The service manager: a static supervision tree with declarative units, no ambient authority, capability re-grant on restart (§12, §16). The spec assigns this **control plane to Lustre compiled by the Coq-verified Vélus compiler** (§5, §12) — a synchronous state machine whose WCET, determinism, and causality are structural. Because Vélus is Coq-verified and emits CompCert Clight, it rides the golden model's Coq/Clight discipline directly (Vélus → Clight → CHERI-CompCert, §0), with a Gallina model of the same machine kept host-side as the differential-testing oracle.
 
-- **Language** — Coq/Gallina.
-- **Toolchain** — CertiCoq → Wasm host-side; on-device, **GC-free** — the supervision tree is static (no dynamic allocation after start-up), so it extracts via **MetaCoq→Rust with an arena** onto the certifying Rust→CHERI compiler (§18), or refines to CompCert-C through CHERI-CompCert.
-- **Start from** — *no port.* The design references are systemd's unit/supervision *shape* minus ambient authority (§12) and Erlang/OTP supervisor semantics (static tree, restart strategy, backoff); write it fresh in Gallina over the **compiled, typed, signed configuration objects** of §10 (no runtime text parsing).
-- **Compiler target** — RV64GV+CHERI purecap (and Wasm).
-- **Plan** — model in Gallina: the static component graph loaded from the signed config generation, ordered capability-granting bring-up, crash detection, restart-with-backoff, and capability re-grant on restart. It consumes the object system (§6) for its config generation and the kernel (§5) for capability operations. In the golden model it is the first S-mode/U-mode process the kernel starts, and it brings up the remaining (reference) components.
+- **Language** — Lustre (the control plane), with a Gallina reference model of the same state machine.
+- **Toolchain** — **Vélus (Lustre → Clight) → CHERI-CompCert** on-device: a synchronous node is statically allocated, so it is **GC-free by construction** (no arena or managed runtime needed). CertiCoq → Wasm host-side runs the Gallina reference model for fast differential testing.
+- **Start from** — *no port.* The design references are systemd's unit/supervision *shape* minus ambient authority (§12) and Erlang/OTP supervisor semantics (static tree, restart strategy, backoff) — a natural fit for a synchronous state machine; write it fresh in Lustre over the **compiled, typed, signed configuration objects** of §10 (no runtime text parsing).
+- **Compiler target** — RV64GV+CHERI purecap (and, for the Gallina reference model, Wasm).
+- **Plan** — model as a Lustre state machine (with a Gallina reference): the static component graph loaded from the signed config generation, ordered capability-granting bring-up, crash detection, restart-with-backoff, and capability re-grant on restart. It consumes the object system (§6) for its config generation and the kernel (§5) for capability operations. In the golden model it is the first S-mode/U-mode process the kernel starts, and it brings up the remaining (reference) components.
 
 ---
 
