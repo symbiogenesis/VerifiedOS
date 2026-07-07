@@ -48,6 +48,8 @@ Capacitive touch controllers universally run tuned DSP firmware;the register-sla
 
 Biometric matching (implied by the credential-vault language) has no compartment assignment.
 
+CHERI's headline intra-app use — compartmentalizing a linked third-party library so a malicious or buggy dependency is confined to the capabilities it actually needs — is unbooked: the finest compartment the spec draws is one-per-app (§14), so a linked library sits *inside* that single compartment with the app's full authority. The Tier-2 whole-app memory-safety certificate (§13) plus `#![forbid(unsafe_code)]` and the ban on `-sys` C libraries delete the *memory-safety* dimension of a bad dependency but not the *authority* one — a memory-safe-but-malicious library (the xz/liblzma logic-backdoor archetype) reaches everything the app can. The fix needs no new mechanism: the CHERIoT switcher, sealed capabilities, and per-compartment manifests are all present, just never applied below the app line. Relatedly, "software supply-chain tampering" is listed as Defended (§3) but the named mechanism is build-pipeline integrity (reproducible builds + DDC + proof objects + SBOM) — artifact tampering-in-transit, not runtime confinement of a subverted-but-memory-safe upstream.
+
 And the RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP ASN.1 into Coq moves the vulnerability from the parser to your transcription of thousands of pages of grammar.
 
 Finally, a document-engineering point that is itself a goal violation: §5 makes independent spec review a release gate, but 133 KB of multi-hundred-word single bullets with ten-deep cross-reference chains is engineered to defeat review; normative content needs decomposition into numbered atomic requirements.
