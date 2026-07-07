@@ -50,6 +50,14 @@ The "fusion processor with an on-die iGPU" is, in this architecture, a single di
   4. **Add the timing annotations** the spec's §15 mandates name (fixed-latency DIV/FPU/AMO, mask-independent vector timing, static-fetch timing) as an annotated layer on the model, so the *same* Sail source is ready for later WCET/CT/Ztso obligations — but treat them as documentation in bring-up, checked by measurement.
   5. **Generate the emulator** and freeze it as the executable ISA reference. Every software image below runs on this.
 
+### Choosing the frozen parameters — a proof-aware design-space exploration
+
+The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs — issue width and pipeline depth, the LLC/way-coloring split, the DRAM (sub-)channel-to-island map, software-scratchpad and integrity-tree-node cache sizes, and the TDM-NoC schedule — are not guessed. They are chosen by a **design-space exploration (DSE)** run off-model, ahead of RTL and silicon, whose utility function is **multi-objective: performance, area, power, WCET, and — as a first-class term — *proof simplicity*** (main-spec §15).
+
+- **Proof simplicity is an explicit objective, not an afterthought.** A smaller, more regular microarchitecture is a smaller Sail model and a cheaper **RTL ⊑ Sail** refinement (the FPGA/silicon arrow of §11; deferred, main-spec §18 — the least-built layer of the stack), so the DSE that improves performance can *reduce* the verification surface at the same time. The term is a proxy — estimated Sail-surface size, decode/state complexity, and per-candidate refinement effort — cheap to score inside the search loop.
+- **The admission test is a hard constraint, not an objective.** Every candidate must clear the five-part admission test and the non-interference / schedulability obligations (main-spec §15, §8, §11) to enter the Pareto front; infeasible points are pruned, so the search ranges only over the proven-safe envelope. Its output is one frozen configuration that the per-class RTL ⊑ Sail proof then actually discharges — the proxy costs search quality, never soundness.
+- **Tooling and staging.** An off-the-shelf multi-objective optimizer (NSGA-II-class) or an SMT/ILP feasibility oracle wrapping the admission predicate, over a parameterized cost model — **untrusted evidence-producing machinery, like the compilers and analyzers**: its output is re-modeled in Sail and re-checked, so it joins no trust base (§0, main-spec §6). Deferred like the other hardening (§11): bring-up runs on hand-chosen parameters, and the DSE is layered on once the Sail cost model and per-class RTL exist. It is the concrete home of the *"search over the instantiation, never the specification"* discipline.
+
 ---
 
 ## 2. Root of Trust (Sail scalar RV64+CHERI core + Coq firmware)
