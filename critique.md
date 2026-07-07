@@ -36,7 +36,7 @@ Overall: this is unusually internally disciplined for an early-stage spec — th
 
 **16. Anti-rollback for mutable user data is unworked.** The user-data root sealed to the RoT with a monotonic counter implies counter updates at CoW-commit frequency; OTP counters can't sustain that and flash-backed counters need their own freshness story. High-rate authenticated freshness is a known-hard problem the spec waves at in one clause.
 
-**17. Orphaned mechanism: Zacas.** The spec's own arguments establish that nothing uses general CAS — share-nothing kernel, SPSC rings on single-writer load/store, no capabilities in shared memory. By profile parsimony, an extension with no consumer is dead Sail surface (the ShangMi standard); either name the consumer or cut Zacas and the 128-bit CAS coherence-point complexity with it. Relatedly, admission-test clause 2 is vacuous as written — anything passes by self-exclusion from the CT list.
+✅ **17. Orphaned mechanism: Zacas.** The spec's own arguments establish that nothing uses general CAS — share-nothing kernel, SPSC rings on single-writer load/store, no capabilities in shared memory. By profile parsimony, an extension with no consumer is dead Sail surface (the ShangMi standard); either name the consumer or cut Zacas and the 128-bit CAS coherence-point complexity with it. Relatedly, admission-test clause 2 is vacuous as written — anything passes by self-exclusion from the CT list.
 
 ## Gaps (not contradictions, but unbooked)
 
