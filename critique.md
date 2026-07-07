@@ -32,7 +32,7 @@ Overall: this is unusually internally disciplined for an early-stage spec — th
 
 ✅ **14. FPCC pedigree-independence vs. a mandated build path.** §5 declares verification a property of the artifact, not its pedigree and §13 calls admission language-agnostic — while §5 simultaneously makes the certifying toolchain a mandatory build path, not bare rustc/LLVM. If certificates are artifact-checked, any producer of a valid certificate must be admissible by definition; mandating the toolchain is pedigree enforcement. Trivial fix, but the text currently asserts both.
 
-**15. seL4-NI lineage is thinner than implied.** The upstream non-interference proof exists only for non-MCS, unicore, static-partition configurations and is the least-maintained layer of l4v. NI over MCS + multikernel + purecap CHERI-C + powerbox dynamics is a new theorem wearing an old name; the maturity transfer claimed in §5/§8 applies to none of it.
+**15. seL4-NI lineage is thinner than implied.** The upstream non-interference proof exists only for non-MCS, unicore, static-partition configurations and is the least-maintained layer of l4v. NI over multikernel + purecap CHERI-C + powerbox dynamics is a new theorem wearing an old name; the maturity transfer claimed in §5/§8 applies to none of it.
 
 **16. Anti-rollback for mutable user data is unworked.** The user-data root sealed to the RoT with a monotonic counter implies counter updates at CoW-commit frequency; OTP counters can't sustain that and flash-backed counters need their own freshness story. High-rate authenticated freshness is a known-hard problem the spec waves at in one clause.
 
@@ -56,7 +56,7 @@ Finally, a document-engineering point that is itself a goal violation: §5 makes
 
 The biggest: **TCB item 3 is oversized by its own logic.** The system-integrity path needs only Merkle read-verify plus a two-slot atomic root flip and anti-rollback check — not the full L0–L3 journal/B^ε-tree/FS stack. Move the entire four-layer filesystem wholly non-TCB and put a ~10× smaller verified reader/transactor in its place; this is a pure TCB shrink the spec's organizing principle demands.
 
-Second: with non-work-conserving static partitioning across all confidentiality boundaries, MCS donation machinery and Prosa are mostly dead weight — a table-driven cyclic executive per core makes schedulability an interval-arithmetic check and deletes the hardest, least-verified part of seL4 (MCS) from the re-proof.
+✅ Second: with non-work-conserving static partitioning across all confidentiality boundaries, MCS donation machinery and Prosa are mostly dead weight — a table-driven cyclic executive per core makes schedulability an interval-arithmetic check and deletes the hardest, least-verified part of seL4 (MCS) from the re-proof.
 
 ✅ Third: **freeze page tables at composition** (kernel never writes PTs at runtime), which deletes the kernel VM subsystem, the Svade handler, and most walker/TLB reasoning — or go further per rearchitecture A.
 
