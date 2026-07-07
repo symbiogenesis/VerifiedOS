@@ -40,11 +40,31 @@ Overall: this is unusually internally disciplined for an early-stage spec — th
 
 ## Gaps (not contradictions, but unbooked)
 
-BLE link-layer timing (150 µs T_IFS) in software under TDM scheduling is arguably harder than LTE HARQ and is nowhere addressed despite BT L2CAP/GATT appearing in §12. USB-PD negotiation is a firmware-controller function everywhere today and escapes the EC-dissolution list. Capacitive touch controllers universally run tuned DSP firmware; the register-slave-scan claim implies a net-new raw-AFE + host-DSP co-design, unbooked. Biometric matching (implied by the credential-vault language) has no compartment assignment. And the RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP ASN.1 into Coq moves the vulnerability from the parser to your transcription of thousands of pages of grammar. Finally, a document-engineering point that is itself a goal violation: §5 makes independent spec review a release gate, but 133 KB of multi-hundred-word single bullets with ten-deep cross-reference chains is engineered to defeat review; normative content needs decomposition into numbered atomic requirements.
+BLE link-layer timing (150 µs T_IFS) in software under TDM scheduling is arguably harder than LTE HARQ and is nowhere addressed despite BT L2CAP/GATT appearing in §12.
+
+USB-PD negotiation is a firmware-controller function everywhere today and escapes the EC-dissolution list.
+
+Capacitive touch controllers universally run tuned DSP firmware;the register-slave-scan claim implies a net-new raw-AFE + host-DSP co-design, unbooked.
+
+Biometric matching (implied by the credential-vault language) has no compartment assignment.
+
+And the RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP ASN.1 into Coq moves the vulnerability from the parser to your transcription of thousands of pages of grammar.
+
+Finally, a document-engineering point that is itself a goal violation: §5 makes independent spec review a release gate, but 133 KB of multi-hundred-word single bullets with ten-deep cross-reference chains is engineered to defeat review; normative content needs decomposition into numbered atomic requirements.
 
 ## Low-hanging simplifications
 
-The biggest: **TCB item 3 is oversized by its own logic.** The system-integrity path needs only Merkle read-verify plus a two-slot atomic root flip and anti-rollback check — not the full L0–L3 journal/B^ε-tree/FS stack. Move the entire four-layer filesystem wholly non-TCB and put a ~10× smaller verified reader/transactor in its place; this is a pure TCB shrink the spec's organizing principle demands. Second: with non-work-conserving static partitioning across all confidentiality boundaries, MCS donation machinery and Prosa are mostly dead weight — a table-driven cyclic executive per core makes schedulability an interval-arithmetic check and deletes the hardest, least-verified part of seL4 (MCS) from the re-proof. Third: **freeze page tables at composition** (kernel never writes PTs at runtime), which deletes the kernel VM subsystem, the Svade handler, and most walker/TLB reasoning — or go further per rearchitecture A. Fourth: you carry two verified constant-time compilation paths (Jasmin-CHERI *and* CompCert-CT); with performance subordinated, one suffices — dropping the net-new Jasmin backend is the cheaper cut. Fifth: **ship v1 Wi-Fi-only.** This deletes the eUICC (achieving literally zero foreign computers), carrier certification risk, the HARQ hard-real-time class, and AKA key hierarchy, while still demonstrating the dissolved-radio thesis against the 802.11 attack surface. Sixth: defer the browser — it's the largest porting program in the roster and orthogonal to proving the OS thesis.
+The biggest: **TCB item 3 is oversized by its own logic.** The system-integrity path needs only Merkle read-verify plus a two-slot atomic root flip and anti-rollback check — not the full L0–L3 journal/B^ε-tree/FS stack. Move the entire four-layer filesystem wholly non-TCB and put a ~10× smaller verified reader/transactor in its place; this is a pure TCB shrink the spec's organizing principle demands.
+
+Second: with non-work-conserving static partitioning across all confidentiality boundaries, MCS donation machinery and Prosa are mostly dead weight — a table-driven cyclic executive per core makes schedulability an interval-arithmetic check and deletes the hardest, least-verified part of seL4 (MCS) from the re-proof.
+
+Third: **freeze page tables at composition** (kernel never writes PTs at runtime), which deletes the kernel VM subsystem, the Svade handler, and most walker/TLB reasoning — or go further per rearchitecture A.
+
+Fourth: you carry two verified constant-time compilation paths (Jasmin-CHERI *and* CompCert-CT); with performance subordinated, one suffices — dropping the net-new Jasmin backend is the cheaper cut.
+
+Fifth: **ship v1 Wi-Fi-only.** This deletes the eUICC (achieving literally zero foreign computers), carrier certification risk, the HARQ hard-real-time class, and AKA key hierarchy, while still demonstrating the dissolved-radio thesis against the 802.11 attack surface.
+
+Sixth: defer the browser — it's the largest porting program in the roster and orthogonal to proving the OS thesis.
 
 ## Existing projects for open workstreams
 
