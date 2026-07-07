@@ -77,7 +77,6 @@ Sixth: defer the browser — it's the largest porting program in the roster and 
 - **smoltcp, rustls (custom crypto provider), hickory-dns, roughenough**: the §12 network compartments, unnamed in the spec, are mostly assembled from these.
 - **tiny-skia + cosmic-text/swash today, Linebender's CPU-renderer work as it matures**: the shared software-render substrate; note no viable no-JIT software 3D exists (llvmpipe JITs), so an RVV rasterizer is genuinely net-new.
 - **wasmi** (pure-Rust interpreter) for the sanctioned plugin engines; **Boa/Nova** for the Servo JS gate.
-- **candle/burn/mistral.rs**: replaces the new-build GGUF runtime with a re-target plus custom M-class backend.
 - **Cranelift + Crocus-verified ISLE lowerings**: a pragmatic (SMT-trust) interim for the certifying Rust→CHERI compiler while the Coq-native one is built — same slot as Binsec/Rel and aiT in your interim taxonomy.
 - **CompCert-CT** (Barthe/Blazy lineage) exists as a fork — worth naming as the concrete artifact §5 leans on.
 
