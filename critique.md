@@ -23,14 +23,6 @@ The broader point stands: that criterion should be hoisted into a standing admis
 
 ---
 
-## Internal contradictions
-
-**15. seL4-NI lineage is thinner than implied.**
-The upstream non-interference proof exists only for non-MCS, unicore, static-partition configurations and is the least-maintained layer of l4v.
-NI over multikernel + purecap CHERI-C + powerbox dynamics is a new theorem wearing an old name; the maturity transfer claimed in §5/§8 applies to none of it.
-
----
-
 ## Gaps (not contradictions, but unbooked)
 
 The RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP ASN.1 into Coq moves the vulnerability from the parser to your transcription of thousands of pages of grammar.
