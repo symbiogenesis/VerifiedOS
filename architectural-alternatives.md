@@ -85,6 +85,63 @@ Both remain non-normative; **VLIW as a whole imports nothing**, and ranks below 
 
 ---
 
+## Minimal-ISA extremes — OISC and transport-triggered architectures — parsimony past the point the substrate and the proof survive
+
+The proposal pushes the profile's own parsimony instinct — delete the C extension for unambiguous decode, curate `A` to `Zaamo`, fold scalar float onto the vector unit (§15) — to its absolute limit: a **one-instruction-set computer** (OISC — a single instruction such as *subtract-and-branch-if-≤0*, from which all computation is synthesized) or a **transport-triggered architecture** (TTA / the MOVE machine — the only operation is a register-to-functional-unit-port move, and arithmetic is a *side effect* of moving operands to a unit's input ports).
+The pitch is a decode surface and a formal model small enough to hold on a page — the smallest thing a Sail model and an RTL ⊑ Sail proof could describe.
+
+**The steelman — one real card.**
+A minimal ISA is a minimal Sail model, a minimal decoder, and the least surface for the least-built arrow (RTL ⊑ Sail, §18) to refine — exactly the scarce axis the platform spends engineering to shrink, and the same argument that deleted the C extension.
+
+**Why it fails — the EPIC disqualifier, plus an inverted proof-shrink.**
+- **It abandons RISC-V for a dead ecosystem — the EPIC/Wasm cost verbatim.**
+  OISC and TTA are not RV64 extensions; they fork the CHERI-RISC-V Sail model, CHERI itself, CHERI-CompCert, Cerise, Islaris, and **re-mint every FPCC / memory-safety / constant-time certificate**, all stated *at binary level against the CHERI-RISC-V Sail model* (§5, §6, §13) — the exact cost the Itanium/EPIC entry ruled fatal, into an ecosystem with no CHERI, no verified compiler, and no RVV to inherit.
+- **TTA re-couples the binary to the microarchitecture.**
+  A transport-triggered schedule encodes the *specific* functional-unit ports and latencies it was compiled against, so a pipeline change forces a recompile — the VLIW binary-portability curse (the EPIC entry's third count), violating §15's *"one base ISA, one parameterized model; classes differ only in datapath"* property.
+- **Minimal *instruction count* is not minimal *proof surface* — the shrink inverts.**
+  An OISC moves complexity out of the decoder and into gigantic synthesized instruction *counts* and control flow; once capabilities, DMA, interrupts, and the timing contract are expressed, the Sail model is not smaller — and the verified compiler must now target a pathological ISA (an OISC has no register file to allocate, a TTA exposes the pipeline the compiler must schedule against by hand), *enlarging* the CHERI-CompCert proof rather than shrinking it, the same inversion the EPIC entry found ("VLIW deletes nothing here; it *adds* a mechanism").
+
+**The distilled atom — already banked.**
+ISA parsimony as a proof-shrink lever is the whole §15 curation posture — unambiguous 4-byte decode (no C extension), `Zaamo`-only atomics, no scalar FP, `Zifencei` dropped — extracting *real* Sail-model and decode savings **inside** RV64, where the CHERI / CompCert / Cerise substrate is kept.
+The minimal-ISA entries add nothing but substrate abandonment on top of a parsimony the design already practices.
+
+**Where it ranks.**
+Beside EPIC on the "abandon RISC-V" scale and below the belt and EDGE — more radical in decode-minimalism than any of them, but into a *deader* ecosystem (OISC/TTA never shipped an application platform, let alone a verified one) and *inverting* the proof-shrink it promises, so it clears none of the bars the belt's spiller or EDGE's block-atomic commit clear.
+
+**Disposition:** rejected as a substrate — OISC/TTA abandon RV64 and re-mint every artifact stated against its Sail model (the EPIC disqualifier), TTA re-couples binary to microarchitecture, and neither actually shrinks the proof surface once capabilities, DMA, interrupts, and timing are modeled; the genuine parsimony atom — minimal decode, curated extensions — is already banked **inside** RISC-V (§15).
+The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend*: parsimony is spent where it shrinks the proof without forfeiting the substrate, not past the point the substrate and the proof survive.
+Non-normative; no spec-body change.
+
+---
+
+## Asynchronous (clockless) logic — rejected at the timing axiom; data-dependent latency is the channel the profile is built to forbid
+
+The proposal is to implement the datapath as **self-timed / clockless** logic — delay-insensitive or bundled-data asynchronous circuits with handshake-driven completion — rather than a globally-clocked synchronous pipeline, trading worst-case for **average-case** completion and shedding the clock-distribution network, with lower power and electromagnetic emission as the draw.
+
+**The steelman.**
+Asynchronous logic completes in *average*-case time (a carry chain that resolves early finishes early), radiates less (no clock spectral peak), and dissolves clock-tree design — a genuine power/EMI story, and the EMI angle even grazes the side-channel surface the platform cares about.
+
+**Why it is structurally inadmissible here.**
+- **Average-case completion *is* a data-dependent timing channel — admission test 2, by construction.**
+  A self-timed unit's latency is a function of its *operands* (the early-terminating carry chain, the fast-resolving comparison); that is precisely the data-dependent latency the `Zkt`/`Zvkt` data-independent-timing contract, the constant-time layer (§5), and the whole timing-channel argument (§15, §17) exist to forbid.
+  Where the fixed-latency mandate makes timing *independent* of data, asynchronous logic makes it a *function* of data — the direct negation, and a channel that under any secret-touching operation carries the secret.
+- **It falsifies WCET soundness at the root.**
+  The §11 temporal-admission edifice consumes per-(class, OPP) *fixed-latency* tables made sound to the metal by RTL ⊑ Sail; a clockless datapath has no fixed per-operation latency to tabulate, so its worst case is a separate and harder bound and the average-case dividend is worthless to a worst-case-scheduled, non-work-conserving system (§11).
+- **The trade is on the wrong axes.**
+  The power/EMI win lands on the freely-spent axis (*performance and efficiency deliberately subordinated*, §2); the cost — a new timing-channel class and a broken WCET model — lands on the scarce one.
+
+**The distilled atom — none.**
+The security posture *wants* latency independent of data, which is the synchronous fixed-latency, in-order, non-speculative profile's defining choice (§15); asynchronous logic is that choice's structural opposite, so there is nothing to distill — importing any of it would reintroduce the exact channel the profile deletes.
+
+**Where it ranks.**
+Off the abandon-substrate scale — it is a circuit-implementation style, not an ISA — and it fails for the same reason the dynamic predictor, the LR/SC reservation set, and the EPIC ALAT do: hidden, data-dependent timing behavior the admission test rejects, here one layer below the ISA, in the gates themselves.
+
+**Disposition:** rejected — self-timed logic makes latency data-dependent by construction (admission test 2) and destroys the fixed-latency WCET tables the temporal-admission and timing-channel arguments consume (§11, §15, §17), spending the freely-available power/EMI axis to buy a cost on the scarce timing-determinism one.
+The synchronous, fixed-latency, in-order profile is the deliberate opposite, chosen for exactly this reason.
+Non-normative; no spec-body change.
+
+---
+
 ## CHERI-Wasm as a hardware ISA — the interface half is already imported (WIT → §12), the execution half is the substrate §14 deletes
 
 "Should the hardware natively target CHERI-based Wasm" bundles three separable proposals, resolved individually against the §15 admission test and the import discipline — the same decomposition that logged the belt's spiller and EPIC's NaR while rejecting the rest.
@@ -131,6 +188,69 @@ Non-normative; no spec-body change.
 
 ---
 
+## Language-based isolation — Singularity, Verve, Tock — the software-safety pole; already banked as the contained-code discipline, CHERI kept for the unverified residual
+
+The proposal is to isolate *not* with hardware — no MMU, no capabilities, no rings — but with a **type-safe language and a trusted runtime**: Microsoft **Singularity** (Software-Isolated Processes in Sing#, one physical address space, ring 0, isolation by language safety plus verified channel contracts), its machine-checked successor **Verve** (Yang/Hawblitzel, PLDI '10, *"Safe to the Last Instruction"* — a verified type-safe kernel over a typed-assembly nucleus), and the embedded lineage **Tock** (Rust *capsules* isolated by the borrow checker atop a thin MPU).
+The radical claim: if every instruction is type-safe, hardware memory protection is redundant.
+It decomposes into three separable parts: (a) language safety as the isolation *mechanism*; (b) the *typed-assembly* carrier that pushes source types to the binary (Verve); (c) the trusted *runtime* the guarantee rests on.
+
+**The steelman — the purest reading of the platform's own axiom.**
+It is *"trust is the scarce resource"* taken further than this design takes it: delete the MMU **and** the capability hardware, spend only language safety.
+The design already deletes the MMU (the MMU-deletion entry above); this would delete CHERI too.
+And the design already banks the language half wholesale — `#![forbid(unsafe_code)]` safe-Rust data planes, Coq-verified Lustre/Vélus control planes, verified C, definite-initialization (§5) — so most of Singularity's SIP guarantee is *already* a property of contained code here, and Verve's verified typed-assembly kernel is the direct ancestor of the CHERI-TAL admission discipline (below).
+
+**Why language safety cannot be the *sole* mechanism.**
+- **It has no bound on unverified native code — the platform's defining case.**
+  Singularity's isolation holds only for code its trusted compiler certified; one `unsafe` block, one miscompilation, or one wholly-unverified binary breaches the shared single address space with *nothing beneath it*.
+  This platform's defining property is the hardware universal contract (Cerise-style, §13) that bounds **arbitrary unverified code** — precisely what language safety cannot reach — and CHERI is kept for exactly that residual.
+  This is *verify rather than hedge* applied to the software-safety pole: the proof establishes safety where it can, and the one verified hardware mechanism bounds the code the proof does not cover — the drop-PMP logic (above) with language safety, not PMP, as the layer being reasoned about.
+- **The trusted runtime is a TCB the design already refuses.**
+  Singularity's SIPs and Verve's kernel rest on a trusted language runtime (and, for Singularity, a garbage collector); the platform bans the GC (§10) and drives contained code to GC-free lowering (Vélus, verified C, arena extraction), so that runtime is a *foreign trust base*, not an import.
+- **Verve's prover is declined; its design is carried — the seL4 move.**
+  Verve is verified with Boogie/Z3, the same SMT trust-base widening the platform declines for F\*/Z3 and EasyCrypt (§5); its *design* (a verified TAL kernel) is carried onto RV64+CHERI and Coq as the CHERI-TAL discipline (below), its *prover* is not — adopt the design, re-home the proof, exactly as with seL4.
+
+**The distilled atoms — both already banked.**
+Following the belt→spiller / EPIC→NaR / Mon CHÉRI→Write-before-Read discipline: (1) **language safety at the source** is safe Rust ⋈ Vélus ⋈ verified C (§5) — the SIP guarantee for contained code, established by proof rather than by a trusted runtime; (2) **typed assembly carrying source types to the binary** is the CHERI-TAL admission discipline (below) — Verve's TAL idea, re-homed onto RV64+CHERI and the one prover, with CHERI discharging the spatial half in hardware so the types carry only the temporal / CFI residual.
+The *"both, not either"* position — language safety proves it at source, CHERI enforces it on the artifact and backstops the unverified residual — is the design's, made explicit.
+
+**Where it ranks.**
+It is the **software-mechanism dual of the deletion trilogy** (MMU / privilege / PMP): where those delete a hardware mechanism and keep the verified one, this would delete the hardware and keep only language safety.
+The platform takes the *converse* — keep the one deeply-verified hardware mechanism *and* add the proof — because hardware must bound code the proof does not cover; off the abandon-RISC-V ranking, since it changes no ISA.
+
+**Disposition:** rejected as the *sole* isolation mechanism — language safety leaves unverified native code unbounded and leans on a trusted runtime / GC the platform refuses; its two atoms are already present — language safety at source (safe Rust / Vélus / verified C, §5) and typed assembly at the binary (CHERI-TAL, below) — and Verve's verified-TAL *design* corroborates the CHERI-TAL route while its Boogie/Z3 prover is declined (the seL4 discipline).
+The platform axiom decides it as ever — *verify rather than hedge*: the proof carries safety as far as it reaches, CHERI bounds the rest.
+Non-normative; no spec-body change.
+
+---
+
+## Exokernel and unikernel structure — already converged; secure bindings are the powerbox, the type-safe image is the compartment
+
+The proposal is a radical OS *structure*: the **exokernel** (MIT; Engler/Kaashoek, SOSP '95 — a minimal kernel that only *securely multiplexes* hardware, exposing resources to application-linked **library OSes** rather than abstracting them), or the **unikernel** (MirageOS — a single application compiled with only the library-OS pieces it needs into one type-safe image, in OCaml).
+Both collapse the kernel/user boundary the classical OS erects, for the same reason the platform values — less trusted mechanism between the application and the metal.
+
+**Already converged — the design sits between the two poles.**
+- The kernel is a minimal **capability multiplexer** (§7), not an abstraction layer — the exokernel's *"securely expose, don't abstract"* thesis, realized with capabilities rather than with software TLBs and packet filters.
+- The exokernel's **secure bindings** — the mechanism that lets a library OS use a resource without the kernel interpreting each access — *are* the capability + **powerbox** model (§8, §12): authority handed out once at compose time, checked cheaply by the hardware thereafter.
+- The unikernel's **single-purpose type-safe image** *is* the per-app compartment with its private manifest namespace (§14), linked against only the contained servers it needs (§12) and specialized at build time by static composition (§7) — MirageOS's whole-program specialization, reached from capabilities.
+
+**What does not import.**
+- **The exokernel leaves protection to the library OS; the platform proves it.**
+  Exokernel minimality pushes safety *up* into unverified library OSes; the platform instead makes the kernel the *verified* capability enforcer and adds the hardware universal contract (§13) — minimal in *mechanism* but maximal in *assurance*, the opposite of the exokernel's trust posture (which optimized performance, the freely-spent axis).
+- **MirageOS is OCaml on an unverified runtime with a GC** (§10) — a foreign trust base — so the *artifact* is declined; the *structure* (specialized type-safe image) is the compartment model, built from safe Rust / Vélus (§5) instead.
+
+**The distilled atom — already banked.**
+Minimal-multiplexer kernel → §7; secure binding → capability / powerbox (§8, §12); single-purpose type-safe image → per-app compartment (§14).
+Nothing new imports; the two lineages are the OS-structure *names* for decisions the design already took from the capability side.
+
+**Where it ranks.**
+Off the abandon-substrate scale (no ISA change) — a convergent-structure entry like the Mill single-address-space cross-reference: the design is *already* an exokernel-style multiplexer running unikernel-shaped applications, reached from capabilities and static composition rather than from resource-exposure minimalism, and reaching *higher* assurance by verifying the multiplexer the exokernel left thin.
+
+**Disposition:** no import — the exokernel's secure multiplexing and the unikernel's specialized type-safe image are already the capability kernel (§7), the powerbox (§8, §12), and the per-app compartment (§14); the OCaml / library-OS *artifacts* carry a foreign runtime and GC the platform declines.
+The structure is convergent, the assurance is higher (the multiplexer is verified, not merely minimal), and nothing lifts.
+Non-normative; no spec-body change.
+
+---
+
 ## HexFive MultiZone — already covered, strictly dominated, nothing to import
 
 MultiZone is a policy-driven separation kernel: a small nanokernel orchestrating standard RISC-V **PMP** to isolate zones, a no-shared-memory messenger between zones, and a configurator fusing linked zone binaries + policy + kernel into a signed image (running unmodified code by trap-and-emulate of privileged instructions).
@@ -159,6 +279,57 @@ The domination verdict above is specific to PMP as a *primary, fine-grained comp
 A tempting alternative *banks* PMP in a *secondary, coarse, sub-kernel backstop* role (immutable-text/W^X, per-core partition bound, crown-jewel secret fencing) on the ground that, being CHERI-disjoint, it would hedge a CHERI *logic* fault no in-band mechanism otherwise could.
 **That backstop is dropped too** (the drop-PMP entry below): with CHERI formally verified (the Oxford/Google CHERIoT-Ibex conformance proof; the RTL ⊑ Sail workstream, §18) and application-class silicon removing PMP on exactly this ground (Codasip's A730 — PMP *"can be removed and replaced by more power- and area-efficient circuits"*), the disjoint hedge is judged redundant Sail surface, and the three roles collapse onto CHERI monotonicity (§7, §14), the crypto core's hardware boundary, and TME (§15).
 So the full disposition is unqualified: nothing of MultiZone's *architecture* imports, the base does not descend to it, and PMP is not retained even as a backstop — CHERI is the sole in-band spatial mechanism, hedged by its own verification rather than by a coarse subset of itself.
+
+---
+
+## Historical capability machines — iAPX 432, System/38 → AS/400, KeyKOS/EROS, the M-Machine — the ancestry CHERI and seL4 already distill; orthogonal persistence is the one distinct idea, and it is declined
+
+Before CHERI and seL4 there was a lineage of capability *hardware* and capability *operating systems* this design descends from, and completeness asks whether any of it imports beyond what CHERI and seL4 already carry.
+The machines: Intel's **iAPX 432** (capability-based, microcoded, famously ruinous in performance); IBM's **System/38 → AS/400** (a capability-addressed **single-level store** behind a technology-independent machine interface); the **KeyKOS → EROS → Coyotos** capability-OS line (capabilities with orthogonal persistence); the Cambridge **CAP** and **Plessey System 250**; and the MIT **M-Machine**'s **guarded pointers** (Carter/Keckler/Dally, ASPLOS '94 — an in-register capability scheme, the direct hardware ancestor of CHERI).
+
+**Already distilled — the lineage is the substrate, not an alternative to it.**
+- **Capability addressing** — unforgeable, bounded references as the sole naming mechanism — is CHERI (§1, §8), byte-granular and formally modeled, strictly exceeding the coarse segment / descriptor capabilities of the 432 and System/38.
+- **The capability-OS design** — untyped memory, endpoints, a derivation tree, revocation — is seL4 (§7, §8), itself a KeyKOS/EROS descendant, re-proved in Coq (the seL4 entry below).
+- The 432's **lesson** — capability checks on the critical path in *microcode* are fatal to performance — is answered by CHERI doing them in *fixed silicon* on the fast path, which is why the design can rest on capabilities where the 432 collapsed under them.
+
+**The one genuinely distinct idea — and why it is declined.**
+- **Orthogonal persistence / single-level store** (AS/400, EROS) erases the memory/storage distinction: objects simply persist, transparently, with no serialize/load boundary — tempting against a single-address-space design whose MMU is *already* gone.
+  It is declined because it collides with three adopted invariants.
+  The **crash-only** model with explicit, re-initializable state (§12, §16) wants a clean state boundary that transparent persistence dissolves; **eager-zeroize** and the **Write-before-Read** initialization plane (§7, §15) assume memory starts *empty*, not silently repopulated from a persistent image; and the **verified storage stack** (§10) is a content-addressed CoW B-tree with an *explicit, provable* crash-refinement semantics that orthogonal persistence would replace with an implicit one no theorem covers.
+  Persistence here is **explicit and verified** (§10), not orthogonal — the crash-safety proof *needs* the boundary the single-level store deletes.
+
+**Where it ranks.**
+Ancestry, not an alternative — off every ranking; the entry grounds the capability lineage the way the Mill entry grounds single-address-space, recording that the capability-machine tradition is **distilled into CHERI ⋈ seL4** rather than imported as a machine, and that its one separable idea (orthogonal persistence) is actively *incompatible* with the verified-crash-refinement storage the design chose.
+
+**Disposition:** no import as an architecture — capability addressing is CHERI (§1, §8) and the capability-OS design is seL4 (§7, §8), both exceeding their ancestors, and the 432's microcode-checking failure is exactly what CHERI's fixed-silicon checks avoid; the single distinct idea, orthogonal persistence / single-level store (AS/400, EROS), is **declined** because it dissolves the explicit state boundary the crash-only model (§12, §16), eager-zeroize / Write-before-Read (§7, §15), and the verified crash-refinement storage stack (§10) each depend on.
+Non-normative; no spec-body change.
+
+---
+
+## Enclave architectures — Sanctum, MI6, Keystone — defending against the speculation and sharing this design already deleted
+
+The proposal is hardware **enclaves** — a privileged security monitor carving isolated, attested execution environments out of a shared machine: MIT's **Sanctum** (SGX-class isolation with a small monitor; Costan/Lebedev/Devadas, USENIX Security '16), **MI6** (enclaves on a *speculative, out-of-order* core; Bourgeat et al., MICRO '19 — from the same MIT group as Kôika), and **Keystone** (a RISC-V enclave framework built on **PMP**; EuroSys '20).
+The pitch is strong isolation for mutually-distrusting workloads on shared silicon, with a small trusted monitor and remote attestation.
+
+**Why it is already subsumed — the threats it fights are deleted, not defended.**
+- **Enclaves exist to claw isolation back from mechanisms this platform removed.**
+  MI6's hard problem is isolating enclaves on a *speculative, out-of-order, cache-sharing* core; the platform is **in-order, non-speculative**, with **partitioned caches and coherence islands** (§15), so the transient-execution and shared-microarchitecture channels enclaves are engineered to close are absent by construction — the same reason the design needs no enclave-grade speculation fences.
+- **Keystone's isolation *is* PMP** — dropped here (the drop-PMP entry above) for CHERI as the sole spatial mechanism; a PMP-region enclave is exactly the coarse mechanism CHERI byte-granularly exceeds.
+- **The attested, isolated compartment is already the platform's compartment.**
+  A per-app compartment with its own manifest, capability-bounded, attested through the measured root and the sealing service (§9, §12, §14), *is* an enclave — reached from capabilities and single-address-space isolation rather than from a monitor carving regions out of a shared VM.
+- **The small *verified* monitor idea is taken further.**
+  Sanctum's minimal monitor beside an unverified OS becomes the *whole* verified microkernel (§7) plus the RoT (§9) — not a trusted monitor next to untrusted supervision, but a verified supervisor throughout.
+
+**The distilled atom — already banked; the shared lineage is the HDL, not the product.**
+Strong isolated attested execution = the CHERI compartment ⋈ measured root ⋈ sealing (§9, §12, §14); the verified-monitor idea = the verified kernel ⋈ RoT (§7, §9).
+The MI6/Kôika author overlap is worth naming: the **formal-semantics HDL** lineage (Kami/Kôika) the platform uses to close RTL ⊑ Sail (§18) is *shared* with the enclave-hardware group — but it is the *verification vehicle* that transfers, not the enclave *product*, which addresses threats (speculation, cache-sharing) the profile does not have.
+
+**Where it ranks.**
+Off the abandon-substrate scale — a convergent / subsumed entry: the design is an *all-enclave machine* (every compartment is one) *without an enclave mechanism*, because it removed the shared-and-speculative substrate enclaves were invented to partition, and it verifies the monitor enclaves keep small-but-trusted.
+
+**Disposition:** no import — hardware enclaves defend against transient-execution and shared-microarchitecture channels the in-order, non-speculative, cache-partitioned, single-address-space profile deletes (§15), and their coarse PMP realization (Keystone) is the mechanism CHERI exceeds (drop-PMP, above); the attested isolated compartment and the small verified monitor are already the CHERI compartment ⋈ measured root (§9, §12, §14) and the verified kernel ⋈ RoT (§7, §9).
+The MI6/Kôika formal-HDL lineage is shared as a *verification* vehicle (§18); the enclave product is not needed.
+Non-normative; no spec-body change.
 
 ---
 
@@ -656,6 +827,63 @@ The FPCC discipline's own principle is *"verification is a property of the artif
   Binsec/Rel does exactly the binary-level job: **relational symbolic execution for constant-time and secret-erasure, directly on the binary against a leakage model**, and it scales to production crypto (BearSSL, OpenSSL, HACL\*, libsodium — finding real violations).
   It is the better-fit tool for this path because the FPCC statement is *binary-level against the Sail model* and Binsec/Rel is binary-level.
   But it is **not Coq** (OCaml + SMT) and is **path-bounded** symbolic execution — so, exactly like **riscv-formal BMC** and **aiT**, it is adopted as the **unverified complement / bring-up gate**, bounded evidence and untrusted evidence-producing machinery, with the relational-Sail-logic certificate the unbounded close.
+
+---
+
+## Gate-level information-flow tracking and IFT-typed HDLs — GLIFT, SecVerilog — the hyperproperty half by another route; a bounded complement, not the Coq close
+
+The proposal targets the same non-interference and timing-channel obligation the RTL ⊑ Sail *hyperproperty* half and the constant-time layer already carry, but via a **hardware information-flow method**: **GLIFT** (gate-level information-flow tracking; Tiwari/Wassel/Mao/Chong/Sherwood/Kastner, ASPLOS '09 — track every bit's influence, including implicit and timing flows, from the gates up), and the information-flow-*typed* hardware-description languages that grew from it — **Caisson** (PLDI '11), **Sapper** (ASPLOS '14), and especially **SecVerilog** (Zhang/Wang/Suh/Myers, ASPLOS '15 — Verilog with information-flow *types* that statically prove **timing-sensitive** non-interference at synthesis).
+
+**The steelman — genuinely on target.**
+It attacks a crown-jewel obligation directly: SecVerilog proves *timing-sensitive* non-interference — exactly the property the `Zkt`/`Zvkt` leakage model, the constant-time layer (§5), and the timing-annotated Sail model exist to establish — but at the **RTL**, where the transceiver, crypto core, and cache/NoC-partition logic actually live, and GLIFT catches the implicit and timing flows a *functional* refinement does not carry (the same hyperproperty gap the CT and WCET entries name).
+It is an HDL / synthesis discipline, so it could sit on the very RTL the RTL ⊑ Sail arrow refines.
+
+**Why it is a complement, not the closing vehicle.**
+- **Trust base.**
+  SecVerilog discharges via a type system plus **Z3**; Caisson/Sapper via their own checkers; GLIFT via logic synthesis — **none is Coq**.
+  By the single-prover rule the platform applies to Binsec/Rel, EasyCrypt, aiT, and riscv-formal, an SMT / typed-HDL information-flow tool is a **trust-base widening**, admissible as bounded bring-up *evidence*, never the closing axiom.
+- **The close is already chosen and Coq-native.**
+  The timing-annotated Sail model ⋈ the **relational-Sail-logic constant-time certificate** (§5, §15, the binary-CT entry above) discharge the *same* hyperproperty in the one prover, at binary level against the model the silicon refines — so SecVerilog would duplicate, in a second trust base, a property already closed in the first.
+- **The profile has less to track than GLIFT assumes.**
+  GLIFT's shadow-logic (a tag bit per wire propagated in added gates) is priced for the *out-of-order, speculative* designs it was built to tame; the in-order, non-speculative, fixed-latency datapath (§15) gets timing-determinism *structurally* (no predictor state, fixed-latency units), so the flows GLIFT would instrument are largely designed out, not tracked.
+
+**The distilled atom — the method, imported as a complement.**
+Following the aiT / Binsec/Rel / riscv-formal pattern: *information flow as a hyperproperty discharged against a leakage model* is already the design's frame (the CT and RTL ⊑ Sail entries), and **SecVerilog-style IFT typing of the transceiver, crypto-core, and cache/NoC-partition RTL is logged as a bounded cross-check** in the same slot — bring-up evidence that flags a leak *before* the Coq relational proof closes it, exactly as riscv-formal BMC gates the functional refinement it does not prove.
+
+**Where it ranks.**
+Off the abandon-substrate scale — a verification *technique*, not an architecture — ranking alongside aiT, Binsec/Rel, and riscv-formal as an unverified complement to a Coq-native close: the *hardware-IFT sibling* of the binary-level constant-time tooling.
+
+**Disposition:** logged as a bounded **complement** — SecVerilog-style IFT types (and GLIFT gate-level tracking) as a bring-up cross-check on the transceiver, crypto-core, and cache/NoC-partition RTL — **not** the closing axiom; the timing-sensitive non-interference obligation is closed Coq-native by the relational-Sail-logic certificate over the timing-annotated model (§5, §15), and a Z3 / typed-HDL information-flow tool is the same trust-base widening the platform books for Binsec/Rel and aiT.
+It rides the existing hyperproperty slot, so nothing new imports.
+Non-normative; no spec-body change.
+
+---
+
+## zkVM and proof-carrying execution — the rhyme with FPCC, and why static proof over the smaller trusted set wins
+
+The proposal is **verifiable computation** — a zero-knowledge virtual machine (RISC Zero, SP1, Jolt, Valida; several are RISC-V zkVMs) that emits a succinct cryptographic proof that a *specific execution* ran faithfully to the ISA, checkable by a party who never saw the run.
+It is a genuinely different meaning of *"verification"*: not *"the program is correct for all inputs"* (static, ahead of time) but *"this run produced this output"* (dynamic, per-execution, cryptographic).
+
+**The steelman — the rhyme is real.**
+It shares FPCC's headline shape — a proof travels with the artifact, checking is cheap and local, the producer is untrusted (§5, §6) — so a single-prover project that already thinks in proof-carrying terms is looking at a proof-carrying *execution* model, and several instances are RISC-V-native, so it abandons no substrate.
+It would add *remote* verifiability of a computation to a mutually-distrusting third party — something the local admission check does not directly provide.
+
+**Why it does not import as a substrate.**
+- **It buys a property outside the threat model, at the scarce-currency price.**
+  zk-proving carries **10³–10⁶× execution overhead**; the platform spends performance freely, but not by six orders of magnitude, and the property bought — *a third party can check a run happened* — is not the platform's problem: the attested measured-boot root ⋈ reference integrity manifest (§9) already give a remote party a **reproduced-not-asserted** account of *what* is running, and FPCC gives the *static* guarantee it is correct **for all inputs** — strictly stronger, per input, than a per-execution transcript.
+- **Per-execution proof is weaker than ahead-of-time proof for local security.**
+  A zk-proof that *this* run was faithful to the ISA says nothing about whether the program is memory-safe, constant-time, or non-interfering *across* runs; the FPCC / CHERI-TAL stack (§13, below) proves those for **all** runs.
+  And *"the machine executed the bytecode faithfully"* is exactly what **RTL ⊑ Sail** (§18) already establishes for the real silicon — once, structurally — without a per-run proof.
+
+**The distilled atom — already banked.**
+Proof-carrying *artifact* is the FPCC discipline (§5, §6); attested *what-is-running* is the measured root ⋈ reference manifest (§9).
+The zk primitives themselves (a SNARK/STARK verifier) are ordinary contained crypto the platform could run as an *application* if a specific need ever arose — verifying an untrusted third party's *off-device* computation, say — an app-level tool, never a system execution substrate.
+
+**Where it ranks.**
+Rejected on **motivation**, one level above cost — like Wasm-as-substrate, it trades for a property the Goals do not seek (third-party verifiability of a remote execution) that FPCC ⋈ attestation already exceed for the local threat model; off the ILP ranking entirely, since it is not an ILP play.
+
+**Disposition:** rejected as an execution substrate — the FPCC discipline already banks proof-carrying artifacts *statically and per-input* (stronger than a per-execution transcript), attestation already gives a remote party a reproduced account of what runs (§9), and RTL ⊑ Sail already proves the machine executes the ISA faithfully (§18); a zk verifier is admissible only as an ordinary **application-level tool** for checking a specific untrusted third-party computation, never a system execution model, and its six-order overhead is the wrong trade on the one axis the platform spends.
+Non-normative; no spec-body change.
 
 ---
 
