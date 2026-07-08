@@ -25,9 +25,7 @@ The broader point stands: that criterion should be hoisted into a standing admis
 
 ## Gaps (not contradictions, but unbooked)
 
-The RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP ASN.1 into Coq moves the vulnerability from the parser to your transcription of thousands of pages of grammar.
-
-Finally, a document-engineering point that is itself a goal violation: §5 makes independent spec review a release gate, but 133 KB of multi-hundred-word single bullets with ten-deep cross-reference chains is engineered to defeat review; normative content needs decomposition into numbered atomic requirements.
+A document-engineering point that is itself a goal violation: §5 makes independent spec review a release gate, but 133 KB of multi-hundred-word single bullets with ten-deep cross-reference chains is engineered to defeat review; normative content needs decomposition into numbered atomic requirements.
 
 ---
 
@@ -46,8 +44,6 @@ Sixth: defer the browser — it's the largest porting program in the roster and 
 - **RefinedC and CN** (both Coq/Iris-adjacent, CN already exercised against CHERI C): existing foundational C-verification front ends that substitute for inventing the Goose-for-C / CompCert-C-plus-VST(Iris) workstream; BlueRock's BRiCk is the industrial-scale reference point.
 - **Katamaran**: separation logic over Sail for exactly the Cerise-style universal-contract statements — the missing tool between Isla and Islaris in your G3 stack.
 - **Microkit + LionsOS + sDDF** (Trustworthy Systems): the nearest living whole-system relative of §7 static composition + §12 rings; you cite the sDDF idiom but not the composition tooling, which is directly harvestable for the init/composition artifact.
-- **asn1scc** (ESA's open uPER compiler) + 3GPP's machine-readable .asn modules: build a small verified ASN.1→Narcissus front end consuming published modules, so the crown jewel shrinks to that compiler rather than hand transcription; asn1scc doubles as the differential oracle.
-- **srsRAN/srsUE and OpenAirInterface UE** (cellular L2/L3 reference), **openwifi** (802.11 PHY/MAC — including open FPGA RTL usable under your open-RTL mandate; its FPGA fixed-function low-MAC meeting the 10 µs SIFS ACK turnaround is the firmware-free start-from for the §15 split-MAC link-layer timing sequencer), **GNSS-SDR**, **aff3ct** (FEC oracle): the radio stack currently has no named start-froms at all.
 - **smoltcp, rustls (custom crypto provider), hickory-dns, roughenough**: the §12 network compartments, unnamed in the spec, are mostly assembled from these.
 - **tiny-skia + cosmic-text/swash today, Linebender's CPU-renderer work as it matures**: the shared software-render substrate; note no viable no-JIT software 3D exists (llvmpipe JITs), so an RVV rasterizer is genuinely net-new.
 - **wasmi** (pure-Rust interpreter) for the sanctioned plugin engines; **Boa/Nova** for the Servo JS gate.
