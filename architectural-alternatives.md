@@ -4,8 +4,7 @@
 > This document records evaluated architectural alternatives and their disposition; it is **not** part of the normative spec.
 > Cross-references of the form §N point to sections of that specification.
 
-This section records evaluated architectural alternatives and their disposition.
-It is **not** part of the normative spec; it exists so the living document carries the reasoning behind what was *not* adopted.
+It exists so the living document carries the reasoning behind what was *not* adopted.
 
 ## Belt / Mill-class architecture — deferred to a hypothetical gen-2, on one ground
 
