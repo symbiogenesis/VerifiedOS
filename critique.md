@@ -9,7 +9,7 @@ What remains are contradictions in the *axioms*, a handful of hard technical inc
 The axiom is invoked to force the expensive choices — re-proving seL4's design end-to-end in Coq rather than inheriting the Isabelle proof, [github](architectural-alternatives.md) re-proving VeriBetrFS's B^ε-tree in Coq/Iris, [github](verification-maximal-os.md) SSProve over EasyCrypt — and then suspended wherever schedule pressure appears: libcrux/HACL* as an explicit interim F*/Z3 widening, EasyCrypt adopted where it accelerates delivery, aiT and Binsec/Rel as unverified complements.
 [github](verification-maximal-os.md) If engineering is free, interim widenings are incoherent — you'd simply wait for the Coq-native artifact.
 If interim widenings are necessary, the axiom is false and the seL4/VeriBetrFS/SSProve re-proof decisions must be re-litigated under a real cost model, where inheriting Isabelle may win.
-Right now the spec runs two cost models and picks per decision.
+The spec runs two cost models and picks per decision.
 
 **3. Proof-gated updates versus hyper-security has an unpriced MTTR.**
 Every fix to the most-attacked surface (RRC/NAS parsers) must re-derive a Narcissus parser, re-prove Tier-1 flow theorems, pass generation admission, and possibly clear delta re-certification when protocol behavior changes.
@@ -18,7 +18,7 @@ For a live remote zero-day, time-to-remediation is a first-class security proper
 This is a genuine G1/G2-versus-process contradiction, and it's the same argument the spec itself deploys against fusing the radio (immutability belongs at the RF envelope because a fully fused radio could never patch its most-attacked surface) [github](verification-maximal-os.md) — applied one level up, it indicts proof-gating without a fast-path.
 
 **5. Defense-in-depth admissibility is case law, not statute.**
-The PMP backstop was admitted as a disjoint failure domain while MTE, shadow stacks, and Harvard split were rejected as redundant-with-CHERI — an inconsistency since resolved by dropping PMP too (redundant against formally-verified CHERI; the drop-PMP disposition, which articulates the missing criterion as *verify rather than hedge*).
+A coarse PMP backstop would be exactly the kind of disjoint failure domain worth admitting, while MTE, shadow stacks, and Harvard split are rejected as redundant-with-CHERI — an inconsistency the drop-PMP disposition settles by declining PMP too (redundant against formally-verified CHERI), articulating the missing criterion as *verify rather than hedge*.
 The broader point stands: that criterion should be hoisted into a standing admission-test clause rather than left as per-case litigation.
 
 ---
@@ -61,7 +61,7 @@ The biggest: **TCB item 3 is oversized by its own logic.**
 The system-integrity path needs only Merkle read-verify plus a two-slot atomic root flip and anti-rollback check — not the full L0–L3 journal/B^ε-tree/FS stack.
 Move the entire four-layer filesystem wholly non-TCB and put a ~10× smaller verified reader/transactor in its place; this is a pure TCB shrink the spec's organizing principle demands.
 
-Fifth: **ship v1 Wi-Fi-only.**
+Fifth: **ship Wi-Fi-only first.**
 This deletes the eUICC (achieving literally zero foreign computers), carrier certification risk, the HARQ hard-real-time class, and AKA key hierarchy, while still demonstrating the dissolved-radio thesis against the 802.11 attack surface.
 
 Sixth: defer the browser — it's the largest porting program in the roster and orthogonal to proving the OS thesis.

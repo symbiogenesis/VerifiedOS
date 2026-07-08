@@ -92,7 +92,7 @@ This — not mutating the spec — is the correct reading of "run a search over 
   Under no-JIT (§14) the browser runs downloaded JS and Wasm *interpreted* — Boa/Nova for JS, wasmi for Wasm (both pure-Rust, per [critique.md](critique.md)) — because web content is dynamic and W^X (§14) forbids on-device codegen.
   Claw the overhead back with threaded / computed-goto dispatch, superinstructions, and **data-plane inline caches** (caches as *data*, never generated code).
   *Keeps it pure:* no runtime codegen — the W^X invariant (§14) holds by construction.
-  *No off-device AOT shortcut exists:* web-delivered Wasm is dynamic content and installed apps compile straight to native RV64+CHERI, so Wasm is never an execution target (§14) — the former "Wasm AOT" item was a category error and is removed.
+  *No off-device AOT shortcut exists:* web-delivered Wasm is dynamic content and installed apps compile straight to native RV64+CHERI, so Wasm is never an execution target (§14) — a "Wasm AOT" lever would be a category error, so none is listed.
 
 ---
 
