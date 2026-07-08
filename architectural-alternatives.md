@@ -188,6 +188,49 @@ Non-normative; no spec-body change.
 
 ---
 
+## High-level-language computer architectures (HLLCA) — the semantic gap belongs to the verified compiler; the one hardware atom is already CHERI
+
+A high-level-language computer architecture makes the machine's ISA *directly execute* a high-level language — closing the "semantic gap" (Wulf) in silicon rather than in a compiler.
+It is the genus of which the **CHERI-Wasm entry above** is one species (Wasm-as-ISA = a structured stack machine executed in hardware), and completeness asks whether the broader tradition imports anything that entry did not already settle.
+The lineage: the **Lisp machines** (Symbolics, LMI — hardware-tagged cells, hardware-assisted GC, microcoded `car`/`cdr`); the **Burroughs B5000/B6500** (an ALGOL stack machine, descriptor-addressed, arguably the first HLLCA); Intel's **iAPX 432** (Ada objects in microcode — its *capability* axis is the historical-capability-machines entry below, its *language-machine* axis is here); the **Java processors** (Sun picoJava, ARM Jazelle — bytecode in silicon); and the **graph-reduction machines** (Reduceron for lazy Haskell, SKIM, the Rekursiv, SOAR).
+The RISC reaction — Patterson/Ditzel's "The Case for the Reduced Instruction Set Computer," and the general verdict that a compiler bridges the semantic gap better than microcode — is the historical judgment this entry restates in the platform's own currency.
+
+**The three separable claims** (the import discipline, as for Wasm and EPIC): (1) **language-as-ISA** — the instruction set *is* the language's execution model (stack machine, graph reduction, tagged Lisp cells, object dispatch); (2) **safety-by-hardware-typing** — the hardware enforces the language's memory and type discipline (tagged memory, typed references, descriptor bounds); (3) **semantic-gap closure** — the hardware executes source constructs directly, deleting the compiler's lowering pass.
+
+**The steelman — it is spec-sympathetic in spirit, not ILP bait.**
+Unlike the belt/EPIC targets the appeal is not parallelism; it is *safety and formalization by construction*, which rhymes with this design.
+(a) The platform is itself a *mild* HLLCA — CHERI puts a **language-level abstraction (the bounded, unforgeable reference) into the ISA**, exactly the HLLCA move of hardware-enforcing a high-level memory model.
+(b) A tagged, typed machine has a **Coq-friendly formal story** — the SAFE/micro-policies lineage mechanized precisely such machines (the tagged-architecture entry below).
+(c) The strongest modern form — a machine for a *typed or proof-carrying* language — grazes a single-Coq-prover design that calls specifications the crown jewels (§5).
+
+**Why it fails for *this* design — four load-bearing objections.**
+- **The safety atom (2) is already CHERI, and the tag-monitor entry already settled it.**
+  Hardware-tagged Lisp cells, Java typed references, and 432 object descriptors are all *tagged metadata checked in the datapath* — the SAFE/micro-policies genus the tagged-architecture entry (below) dispositions: CHERI **is** a fixed-policy tagged architecture, byte-granular and universal, with the Write-before-Read initialization plane (§15) a second fixed tag plane, strictly exceeding any HLLCA's per-object typing.
+  Card (a) of the steelman is the concession, not the case for import — the design already took the one HLLCA atom that survives.
+- **The language-ISA claim (1) is the Wasm/EPIC substrate-cost disqualifier, verbatim.**
+  A Lisp/bytecode/graph-reduction ISA is a *distinct instruction set*, not an RV64+CHERI extension, so it forks the RISC-V Sail model, the CHERI-CompCert backend, Cerise, and Islaris, and **re-mints every FPCC, memory-safety, and constant-time certificate** — all stated at binary level against the CHERI-RISC-V Sail model (§5, §6, §13) — and the one-language execution target is the cross-ISA portability the **Goals declare a non-goal** (§2).
+- **The semantic-gap closure (3) belongs to the verified compiler — the load-bearing inversion.**
+  The platform's thesis is that verification is *"a property of the artifact, not its pedigree"* (FPCC, §5), and **CHERI-TAL** (below) makes the compiler carry source-level types down to the binary as a checkable typing derivation — so the gap is closed by a **Coq-theorem'd compiler over a small, frozen, verified RV64+CHERI**, not by enlarging the ISA.
+  HLLCA closes the same gap in *hardware*, spending the scarce currency (a large language-semantics Sail model, a re-minted proof stack) to buy a language front end the verified compiler already provides on the free axis — the RISC verdict recast: the compiler bridges the gap at lower cost on the axis this platform counts.
+- **The managed-runtime realizations fail admission test 5 outright.**
+  The Lisp- and Java-machine branch drags **hardware-assisted garbage collection** into silicon — an autonomous, address-dependent memory-walking-and-updating engine, the exact shape admission test 5 bans (the ground the Sv39 walker and Itanium's RSE are deleted on) — whose unbounded pauses falsify the §11 WCET tables, and §10 bans the managed runtime outright.
+  The 432's other lesson — capability and type checks on the critical path in *microcode* were ruinous — is the fatal-performance verdict the historical-capability-machines entry (below) already books; CHERI does those checks in fixed silicon instead.
+
+**The distilled atom — already banked (the belt→spiller / EPIC→NaR discipline).**
+The single non-redundant HLLCA idea is *put the high-level safety type into the hardware as a fixed, frozen, verified tag* — and it is already present twice: **CHERI** (bounded references, a language abstraction in the ISA) and the **WIT-derived §12 IDL** (the interface/type calculus taken as a type layer, the bytecode/execution model deliberately dropped — the same split the Wasm entry above makes).
+The maximal move — the whole *language* in silicon — is rejected exactly as Wasm-as-ISA and the programmable PUMP are (the tagged-architecture entry below): **frozen-minimal-verified beats expressive-general**.
+And the tempting Coq-native extreme — *a machine that executes a proof or dependently-typed language natively* — fails hardest of all: CIC/Gallina is **not an execution target**, the design *compiles* every artifact to RV64+CHERI and *checks* proofs against the Sail model; executing a proof language in silicon would re-import the semantic-gap-in-hardware mistake at the one layer the design most wants small.
+
+**Where it ranks.**
+With Wasm — off the EDGE ≻ belt ≻ EPIC ILP ranking, because the motivation is language-affinity and safety-by-construction, not ILP, so it is rejected one level up, on *motivation* and substrate cost.
+It is the genus over three entries already present: **CHERI-Wasm** (above) is its one live species, **historical capability machines** (below) takes the 432's capability axis, and **language-based isolation** (below) is its *software* pole; this entry records that the hardware-language-machine tradition distills, like the capability tradition, into **CHERI ⋈ the verified compiler ⋈ the §12 IDL** rather than importing as a machine.
+
+**Disposition:** rejected as an architecture — the safety atom is already CHERI ⋈ the WIT-derived §12 IDL (byte-granular and universal, exceeding any HLLCA's typed memory), the semantic-gap closure is the verified compiler's job (FPCC ⋈ CHERI-TAL, §5), and the language-as-ISA realizations fork the whole Sail/proof substrate (the Wasm/EPIC disqualifier) while their managed-runtime forms bring the hardware GC and microcode-path checks the admission test and §10/§11 delete.
+Nothing imports.
+Non-normative; no spec-body change.
+
+---
+
 ## Language-based isolation — Singularity, Verve, Tock — the software-safety pole; already banked as the contained-code discipline, CHERI kept for the unverified residual
 
 The proposal is to isolate *not* with hardware — no MMU, no capabilities, no rings — but with a **type-safe language and a trusted runtime**: Microsoft **Singularity** (Software-Isolated Processes in Sing#, one physical address space, ring 0, isolation by language safety plus verified channel contracts), its machine-checked successor **Verve** (Yang/Hawblitzel, PLDI '10, *"Safe to the Last Instruction"* — a verified type-safe kernel over a typed-assembly nucleus), and the embedded lineage **Tock** (Rust *capsules* isolated by the borrow checker atop a thin MPU).
