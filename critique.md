@@ -33,10 +33,6 @@ Finally, a document-engineering point that is itself a goal violation: §5 makes
 
 ## Low-hanging simplifications
 
-The biggest: **TCB item 3 is oversized by its own logic.**
-The system-integrity path needs only Merkle read-verify plus a two-slot atomic root flip and anti-rollback check — not the full L0–L3 journal/B^ε-tree/FS stack.
-Move the entire four-layer filesystem wholly non-TCB and put a ~10× smaller verified reader/transactor in its place; this is a pure TCB shrink the spec's organizing principle demands.
-
 Fifth: **ship Wi-Fi-only first.**
 This deletes the eUICC (achieving literally zero foreign computers), carrier certification risk, the HARQ hard-real-time class, and AKA key hierarchy, while still demonstrating the dissolved-radio thesis against the 802.11 attack surface.
 
