@@ -58,7 +58,7 @@ It is the roads-taken counterpart to the rejected-alternative MMU analysis: the 
 
 ## Fedora Atomic — immutability as the base-image discipline
 
-Fedora Atomic (rpm-ostree; Silverblue / Kinoite / CoreOS) is the desktop-scale demonstration that the base OS can be an **immutable, versioned, atomically-updated, rollback-capable image** rather than a mutable pile of packages — libostree being, in effect, a content-addressed *"git-for-binaries"* object store with A/B deployments.
+Fedora Atomic (rpm-ostree; Silverblue / Kinoite / CoreOS) is the desktop-scale demonstration that the base OS can be an **immutable, versioned, atomically-updated, rollback-capable image** rather than a mutable pile of packages, layered on the content-addressed libostree object store the **OSTree** entry below covers.
 §10's **immutable base** and §11's **image-based atomic A/B updates with health-gated auto-rollback** are that discipline, and §10's **statelessness** (running system = immutable image + compiled config + enumerated mutable volumes, everything else tmpfs) is its logical endpoint.
 The spec then hardens it past what a Linux image can offer: the image is **content-addressed Merkle, signed, and runtime-verified against the boot-attested root** (§9, §10), reproducible bit-for-bit, with the **anti-rollback floor sealed to the RoT monotonic counter** (§9, §11).
 Immutability stops being a *deployment convenience* and becomes an *attestable integrity property*.
