@@ -8,6 +8,7 @@
 There is **no Linux-personality shim and no legacy VM** (§2, §14): a foreign binary does not run, ever.
 Every entry below is therefore a **source-level re-target** — recompiled against the WASI-shaped capability libc (§14) straight to native RV64+CHERI, its ambient-authority assumptions stripped and re-expressed as explicit capabilities (§8), admitted only once it carries the proof its tier demands (§13).
 The selection is **uniformly Rust** by design: safe Rust is memory-safe by construction (§5, §14), so a `#![forbid(unsafe_code)]` port is the cheapest path to the mandatory Tier-2 memory-safety certificate (§13) — the certifying Rust→RV64+CHERI toolchain (§18) discharges it automatically, and rustc/LLVM never enter the trust base.
+This is a selection *economy*, not a language mandate: admission gates on the binary-level certificate, not the source (§13), so a formally-verified non-Rust component — Project Everest (miTLS, HACL\*/EverCrypt) and the F\*/Low\* lineage (§5) — is admissible on equal terms, its foreign-prover verification bonus assurance that never enters the trust base.
 
 ## Roster
 
@@ -17,6 +18,7 @@ The selection is **uniformly Rust** by design: safe Rust is memory-safe by const
 - **gitoxide** — the pure-Rust Git, re-targeted as the capability-native version-control engine; its object store re-homes onto §10's verified CoW B-tree (native dedup, reflinks, snapshots — Git's packfiles and `gc` shed) and its pack/wire decoders are a §5 Narcissus obligation (Tier-2).
 - **Servo** — the contained, per-origin browser engine of §14 (Tier-2 origin compartments).
 - **GGUF inference runtime** — the §12 optional inference server on the M-class cores: the `burn` deep-learning framework re-targeted onto a net-new M-class GEMM backend (`burn`'s pluggable backend trait is the clean seam), not a from-scratch build (Tier-1).
+- **Network stack** — the §12 IPv6/TLS/DNS/Roughtime compartments (**smoltcp**, **hickory-dns**, **roughenough**) retargeted onto the rings, every wire format a §5 Narcissus obligation; the TLS compartment prefers a Rust-native **hax**-verified stack (**Bertie**) over the mature F\*/Low\* **miTLS**, and the DNS/TCP compartments gate on SPARK/HOL4 differential oracles that enter no trust base (Tier-1).
 
 ---
 
@@ -121,11 +123,26 @@ No CUDA/GPU path exists (§15); throughput is the honest M-class envelope (§15 
 **Disposition:** adopt `burn` as the safe-Rust framework and write the M-class GEMM engine as a custom `burn` backend — the single net-new artifact, the systolic units having no existing backend — shedding `burn`'s training/autodiff; verify the GGUF parser (§5), route all matrix work through the M-class capability-operand movers (§15, no private DMA), and treat sampling/routing data-dependence as the residual to bound or label-fence.
 `candle`/`mistral.rs` are the rejected re-target alternatives — GGUF-native but enum-baked backends, `mistral.rs` maximizing the very data-dependent surface (b).
 
+### Network stack — the verified-wire network compartments
+
+§12's network is not one program but a handful of contained compartments — the TCP/IP stack (**smoltcp**), the resolver (**hickory-dns**), the Roughtime client (**roughenough**), and TLS 1.3 (below) — each retargeted onto the rings (§18) as Tier-1 servers.
+Being neither GUI nor JIT hosts they clear obstacles 2 and 4 for free; what remains is obstacle 1 — the `unsafe` in the packet-buffer and socket layers routes through the verified HAL (§5) — and obstacle 3 — the ambient BSD-socket/`connect` API becomes capability-delegated ring endpoints, the NIC reachable only by capability (§12).
+What sets this target apart from the coreutils-shaped lifts is that **every one of these compartments faces the wire**, so the §5 Narcissus mandate is load-bearing rather than incidental: the TCP/IP headers, the DNS message grammar, the Roughtime request/response, and the TLS record/handshake framing are all attacker-controlled remote formats, so each is a **verified copy-once parser** (Narcissus) — the class the radio L2/L3 parsers occupy, pointedly *unlike* Servo's deliberately-contained content parsers.
+
+**TLS is the one compartment where a *verified protocol* is preferred, not merely a verified parser.**
+The two formally-verified options rank by the project's own criteria (§5): the trust-base-uniform target is a Rust-native, **hax**-verified TLS (the **Bertie** lineage, Cryspen) — it stays in the default Rust lane, its **hax**-extracted proofs can ride the single Coq prover (SSProve, already §5's crypto-reduction base), and its crypto is **libcrux**, already the §5 PQ interim; **miTLS** (Project Everest, F\*/Low\*) is the more mature option but rides F\*/Z3 and needs the Low\*→C lift.
+Either way the protocol proof is *bonus* over the binary-level memory-safety floor every contained binary already carries (§13), never trust base, and the crypto binds to the §5 verified core rather than a bundled provider.
+
+**Where no Coq-native verified peer exists — the resolver and the TCP stack — mature verified artifacts in *other* provers serve as differential-test oracles that enter no trust base**, exactly as §5's radio parsers cross-check against asn1scc and the Wireshark dissectors: **IRONSIDES** (SPARK/Ada verified DNS) for hickory-dns, and **AdaCore's** SPARK-verified TCP stack with Cambridge's **Huginn-TCP** conformance suite (Netsem-lineage) for smoltcp — cross-checking parse-correctness and protocol conformance on captured and fuzzed corpora (the deterministic-simulation-testing gate below).
+Roughtime has no verified peer in any prover, so roughenough rides the Narcissus-parser-and-§5-crypto discipline alone.
+
+**Disposition:** Tier-1 — the crypto- and secret-touching compartments (TLS, the DNS-over-TLS path) carry the §13 constant-time and information-flow obligations, the packet plumbing is Tier-1 safe Rust; adopt smoltcp/hickory-dns/roughenough as start-froms, prefer the Bertie-lineage **hax**-verified TLS with **miTLS** the mature alternative, make every wire format a §5 Narcissus obligation, bind all crypto to the §5 core, and gate bring-up on the SPARK/HOL4 differential oracles (which never enter the trust base).
+
 ---
 
 ## Shared prerequisites
 
-All six gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
+All seven gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
 
 - **The certifying Rust→RV64+CHERI toolchain (§18)** is the hard, no-fallback prerequisite for *building or admitting any of them* — userspace availability gates on it exactly as desktop instantiation gates on CHERI silicon (§18).
 - **A software rendering/compositing library on V-class cores** — the substrate COSMIC's compositor, Zed's GPUI, and Servo's WebRender all collapse onto — is built once under the §12 display model and shared across the three GUI targets.
@@ -147,7 +164,7 @@ Four properties of the machine make it unusually amenable:
    The invariants worth asserting are written down as theorems: the §8/§13 information-flow properties (no surface observes another's input, no secret reaches a data-dependent path), §10 RefFS linearizability ⋈ liveness, and §12 capability confinement.
    A run that violates one is a defect with a deterministic witness, not a symptom to be chased.
 3. **Fault injection has native hooks.**
-   Crash-consistency is exercised against §10's Perennial-verified journal crash semantics; toxic-wire robustness is exercised by fuzzing the §5 Narcissus decoders — gitoxide's pack/pkt-line/idx stream, the GGUF container header — the empirical complement to the copy-once proof, aimed at exactly the attacker-facing surfaces that proof governs.
+   Crash-consistency is exercised against §10's Perennial-verified journal crash semantics; toxic-wire robustness is exercised by fuzzing the §5 Narcissus decoders — gitoxide's pack/pkt-line/idx stream, the GGUF container header, and the network stack's DNS, TLS, and TCP/IP wire (cross-checked against the SPARK/HOL4 differential oracles) — the empirical complement to the copy-once proof, aimed at exactly the attacker-facing surfaces that proof governs.
 4. **The oracle is free and doubled.**
    The same workload runs on both golden models — CertiCoq→Wasm host-side ⋈ purecap-on-Sail — and any divergence between them is itself a defect; the safe-Rust targets additionally take source-level `cargo-fuzz` and property testing *before* re-target, upstream of the substrate entirely.
 
