@@ -25,12 +25,6 @@ The broader point stands: that criterion should be hoisted into a standing admis
 
 ## Internal contradictions
 
-**6. Static composition + NI-over-a-fixed-graph vs. the powerbox.**
-§7 mandates a fixed, machine-checked component graph with no dynamic privilege creation in the base, [github](verification-maximal-os.md) and §8 states non-interference as a theorem over that fixed graph [github](verification-maximal-os.md) — while §8 also routes dynamic grants through a trusted-UI powerbox [github](verification-maximal-os.md) and §12's service manager performs capability re-grant on restart.
-[github](verification-maximal-os.md) Runtime user grants mutate the flow policy; either the NI theorem quantifies over all potential powerbox edges (weakening it to near-vacuity for user data) or every user-granted channel sits outside the proven policy — the dominant real-world leak path.
-Worse, the powerbox and the supervision tree are authority-minting components that don't appear in the exhaustive TCB: [github](verification-maximal-os.md) a compromised init re-grants everything; a compromised compositor (Tier-1, non-TCB) spoofs consent UI.
-"Secure-path UI" is asserted with no mechanism, and any mechanism puts the compositor or a sub-component into the consent TCB.
-
 **15. seL4-NI lineage is thinner than implied.**
 The upstream non-interference proof exists only for non-MCS, unicore, static-partition configurations and is the least-maintained layer of l4v.
 NI over multikernel + purecap CHERI-C + powerbox dynamics is a new theorem wearing an old name; the maturity transfer claimed in §5/§8 applies to none of it.
