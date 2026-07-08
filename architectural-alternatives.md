@@ -130,8 +130,11 @@ Asynchronous logic completes in *average*-case time (a carry chain that resolves
 - **The trade is on the wrong axes.**
   The power/EMI win lands on the freely-spent axis (*performance and efficiency deliberately subordinated*, §2); the cost — a new timing-channel class and a broken WCET model — lands on the scarce one.
 
-**The distilled atom — none.**
-The security posture *wants* latency independent of data, which is the synchronous fixed-latency, in-order, non-speculative profile's defining choice (§15); asynchronous logic is that choice's structural opposite, so there is nothing to distill — importing any of it would reintroduce the exact channel the profile deletes.
+**The distilled atom — none in the gates; the one admissible cousin, GALS, is already banked.**
+The security posture *wants* latency independent of data, which is the synchronous fixed-latency, in-order, non-speculative profile's defining choice (§15); asynchronous logic *in the datapath* is that choice's structural opposite, so there is nothing to distill from the gates — importing any of it would reintroduce the exact channel the profile deletes.
+The one structurally-adjacent idea that *is* admissible — dropping the *single global clock* so the machine is not one lock-stepped timing domain — the design already took, in its **globally-asynchronous, locally-synchronous (GALS)** form: the coherence islands share no coherence and communicate only by message-passing across the TDM NoC (§15), so they are independent timing domains by construction (per-island DRAM (sub-)channels and per-(class, OPP) operating points already imply the islands need not run at one frequency), yet each island stays *internally* synchronous — which is exactly what keeps its fixed-latency WCET tables and its RTL ⊑ Sail refinement tractable.
+The asynchrony is therefore confined to the **island boundary** — ring message-passing with explicit cache-management fences under Ztso (§12, §15) — where the sole metastability obligation is the ordinary clock-domain-crossing synchronizer, not a datapath whose latency has become data-dependent.
+So the platform already banks the admissible half of the idea (system-level timing-domain decoupling) while rejecting the inadmissible half (data-dependent completion in the logic): **GALS *between* islands, synchronous fixed-latency *within* them** — the split this entry turns on.
 
 **Where it ranks.**
 Off the abandon-substrate scale — it is a circuit-implementation style, not an ISA — and it fails for the same reason the dynamic predictor, the LR/SC reservation set, and the EPIC ALAT do: hidden, data-dependent timing behavior the admission test rejects, here one layer below the ISA, in the gates themselves.
