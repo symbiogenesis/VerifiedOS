@@ -16,6 +16,8 @@ Every decision answers one question: *how small is the set of things that must b
 - **G4** Stateless, atomic, transactional, rollback-friendly.
 - **G5** Reliability: fault isolation, crash-only components, health-gated recovery.
 
+---
+
 ## 2. Non-Goals (deliberate)
 
 - No POSIX/Linux compatibility in any form: no `fork()`, no uid/gid, no ambient authority, **no Linux-personality shim, and no legacy VM**.
@@ -28,11 +30,15 @@ Every decision answers one question: *how small is the set of things that must b
 - No legacy: no BIOS/MBR, UEFI, ACPI, IPv4, 32-bit modes, or compressed-instruction ambiguity (no C extension, §15).
 - No proprietary firmware black boxes — **named exhaustively: ME/PSP/SMM-class management processors, baseband processors, Wi-Fi/BT controller firmware, SSD controller firmware, embedded controllers, PMU microcontrollers (Pcode/SCP/AOP-class), discrete GPU/accelerator firmware, and DRAM-side processing (PIM)** — excluded by platform mandate, not mitigated.
 
+---
+
 ## 3. Threat Model
 
 **Defended:** remote network attackers **including hostile radio infrastructure (rogue base stations and access points attacking the cellular/Wi-Fi stacks)**; hostile web content; malicious or compromised apps, servers, and drivers; malicious DMA peripherals; evil-maid physical access (measured boot + attestation + FDE + authenticated memory encryption with DRAM-wide integrity and anti-replay, §15); software supply-chain attack in both forms — **tampering** (corrupted artifacts or a trusting-trust compiler: reproducible builds + DDC + proof objects, §13) and **subversion** (a malicious-but-memory-safe upstream dependency, xz/liblzma-shaped: confined at runtime by intra-app library compartmentalization, §13/§14).
 
 **Residual (§17):** timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; invasive physical attack; malicious silicon fabrication; carrier/certification-body acceptance of an open cellular stack (a commercial risk, not a technical or — post-January-2026 — legal one).
+
+---
 
 ## 4. Organizing Principle
 
@@ -55,6 +61,8 @@ Every function conventionally delegated to a firmware-running coprocessor is eit
 A component that fetches and executes instructions outside this discipline does not go on the die or the board.
 The single tolerated exception is the eUICC (§12) — a carrier-mandated foreign trust domain — contained as a register-slave crypto oracle with zero platform authority.
 Consequences: the device allowlist collapses toward transducers; N vendor firmware-update channels collapse into the one proof-checked generation mechanism (§11); attestation coverage becomes total, radio included.
+
+---
 
 ## 5. Languages & Verification
 
@@ -130,6 +138,8 @@ Consequences: the device allowlist collapses toward transducers; N vendor firmwa
 - **Specifications and policy statements are the crown jewels.**
   Independent spec review is a release gate: a proof against a wrong spec verifies perfectly.
 
+---
+
 ## 6. Trusted Computing Base (exhaustive)
 
 1. Capability microkernel (~10k LoC verified C)
@@ -156,6 +166,8 @@ Everything else — drivers, filesystems, network, display, radio, userland — 
 
 Required but untrusted build artifacts — hard prerequisites except where noted: (1) **CompCert with a CHERI-RISC-V backend** (memory model widened to capabilities and provenance) **satisfying the secure-compilation criterion of §5** (robust preservation of compartment isolation), not only functional correctness — it does not exist yet, and the platform is purecap-only (§15), so nothing boots without it; and (2) a **certifying Rust→RV64+CHERI compiler that emits per-binary memory-safety certificates** (§5) for the raised Tier-2 admission floor (§13), likewise nonexistent off the shelf and adopted as an in-scope workstream (§18); and (3) a **CryptOpt-style verified translation-validation toolchain** for the crypto core's field arithmetic (§5) — an untrusted randomized-search superoptimizer plus a Coq-verified assembly↔Fiat-Crypto equivalence checker over the CHERI-RISC-V Sail model; CryptOpt targets x86-64 today, so the CHERI-RISC-V retarget is net-new — but, alone among these, it is **not a hard prerequisite**: the field arithmetic is already functionally correct *and* constant-time on CompCert-CT (Fiat-Crypto emits straight-line code), so this is a **deferrable performance-recovery workstream** that only speeds the hot path, and it is a small verified checker reusing the one Sail model, not a second optimizing-compiler backend (§18); and (4) a **Coq-verified WCET estimator** (§5, §11) — verified IPET + loop bounds on the CompCert IR, consuming the timing-annotated Sail model (§15) as its low-level latency model and emitting per-task WCET certificates for the §11 schedulability proof — retargeted to RV64IMV+CHERI, likewise net-new (§18); and (5) a **binary-level constant-time verifier** for secret-touching binaries off the CompCert-CT *preservation* path (§5, §13) — a Coq-native relational (2-safety) program logic over the leakage-annotated Sail model emitting constant-time certificates, with **Binsec/Rel** the unverified binary-level complement, likewise net-new (§18); like the WCET estimator it degrades gracefully (bounded Binsec/Rel evidence carries bring-up, the relational-logic certificate closes it).
 All five are untrusted evidence-producing machinery: a compromised compiler or analyzer cannot mint a valid certificate for a property its output lacks, so each drops out of the consumer-side TCB, leaving only the two admission checkers (§6 item 6), the CHERI-TAL soundness metatheorem, the Sail model, and the spec statements as axioms — with the single named exception that the checkers' *own* binaries, being the admitters no certificate covers, keep their verified-compilation bootstrap (CompCert + reproducible build + DDC + RoT measurement, item 6) in the root.
+
+---
 
 ## 7. Kernel
 
@@ -212,6 +224,8 @@ All five are untrusted evidence-producing machinery: a compromised compiler or a
   This is the **CheriOS/CHERIoT-lineage single-address-space realization** of seL4's capability design; it shrinks the kernel below the ≤ 10k-line target rather than adding to it, and frames become capability-bounded physical ranges delegated from untyped memory.
   Rationale and the defense-in-depth trade are in [Evaluated Architectural Alternatives](architectural-alternatives.md).
 
+---
+
 ## 8. Authority Model
 
 - **Capabilities are the sole authority.**
@@ -241,6 +255,8 @@ All five are untrusted evidence-producing machinery: a compromised compiler or a
   Dynamic grants flow through a trusted-UI powerbox, not permission dialogs.
 - Sandboxing, portals, and container isolation are **obviated by construction**, not reimplemented.
 
+---
+
 ## 9. Boot & Root of Trust
 
 - OpenTitan-class RoT (integrated on-die, §15): measured boot, key storage, TRNG, monotonic counters, boot-attempt counting.
@@ -266,6 +282,8 @@ All five are untrusted evidence-producing machinery: a compromised compiler or a
   What differs from a vendor RIM is the *source of trust*: because the base image is bit-for-bit reproducible from source (§10), the reference values are **reproduced, not asserted** — any party regenerates the golden set from source and DDC bounds trusting-trust (§6), so the manifest is trusted by reconstruction rather than by a manufacturer's signature over opaque golden blobs.
   Per-generation and ML-DSA-signed, it rides the A/B signed-generation machinery (§10, §11); the sealing & attestation service (§12) serves it to relying parties beside the quote.
 - A/B images, RoT boot counting with automatic revert, monotonic anti-rollback floor for security updates.
+
+---
 
 ## 10. Storage & State
 
@@ -309,6 +327,8 @@ All five are untrusted evidence-producing machinery: a compromised compiler or a
 - **Deterministic layout as a proof input.**
   Because control-flow prediction is static (§15), hot-path fall-through layout (profile-guided) is a reproducible property of the signed image, not a runtime-learned predictor state — it feeds WCET and reproducibility without introducing per-core learned history.
 
+---
+
 ## 11. Updates
 
 - Image-based, atomic, A/B; health-gated auto-rollback; deltas fall out of content addressing; the running base is never mutated.
@@ -325,6 +345,8 @@ All five are untrusted evidence-producing machinery: a compromised compiler or a
   **WCET tables are per (class, operating point):** the admission proof selects each partition's OPP (slowest point meeting deadlines) and emits the OPP assignment, the TDM NoC schedule, and the watchdog windows as one artifact.
   **Global mode schedules ("performance," "battery," "docked") are each independently admission-proved complete schedules;** switching between them is a rare, RoT-attested global transition on explicit authority (§15) — never load-following.
   Tasks using vector/matrix instructions carry those units' bounded worst-case latencies — deterministic dataflow, in-order, non-speculative, **statically-predicted control flow (no predictor-state variance)**, schedule-fixed frequency, **fixed-latency divide/FPU and fixed-latency atomic RMW (`Zaamo` only, no CAS or LR/SC retry loop) per the §15 timing mandates** — into the WCET inputs; eager vector/matrix save-and-zeroize costs (§7) enter the partition-switch terms.
+
+---
 
 ## 12. System Servers (contained Rust, outside the TCB)
 
@@ -396,6 +418,8 @@ The *data plane* — bulk I/O, ring processing, vector/matrix math, wire parsing
   Consumes the native sensor grid — CHERI validity- and initialization-tag traps (§15), slot-overrun faults, IOMMU denials, health heartbeats, ECC/PRAC and NoC error telemetry, thermal sensors, radio-limit-register violation traps.
   Detection latency is a proved bound under any load; responses (restart, revoke, roll back) run under the same guarantees.
 
+---
+
 ## 13. Packaging & Supply Chain
 
 - A package = content + capability manifest + **proof object**.
@@ -429,6 +453,8 @@ The *data plane* — bulk I/O, ring processing, vector/matrix math, wire parsing
   So on-device admission is the TAL type-check plus install-time capability wiring, with the CIC kernel reserved for the base image and the few certificate-carrying installs.
 - SBOM + proof artifacts ship with every release.
 
+---
+
 ## 14. Userland
 
 - Capability-native core utilities: reimplemented, not ported.
@@ -458,6 +484,8 @@ The *data plane* — bulk I/O, ring processing, vector/matrix math, wire parsing
   An app may embed an interpreter-mode Wasm engine as its private plugin mechanism; that is an application-internal choice, invisible to the architecture.
 - **Concrete porting targets (non-normative).**
   The first userspace applications slated for source-level re-targeting — COSMIC Desktop, Zed, the Rust uutils/findutils/diffutils utilities, Servo, and a new GGUF inference runtime — are enumerated, each mapped to the mechanism it lands on, in [Userspace Porting Targets](userspace-porting.md).
+
+---
 
 ## 15. Hardware Platform
 
@@ -793,6 +821,8 @@ SMM's use cases map onto RoT + sentinel + fail-stop; its mechanism (invisible pr
     **ASLR, shadow stacks, CFI/landing-pads** (obviated by proof + CHERI; fight reproducibility and schedulability).
   - **Speculation-derived and hidden-state ISA features generally**, per the profile admission test — the standing rule that decides future extensions.
 
+---
+
 ## 16. Reliability
 
 - Fault isolation as the foundation: any driver or server crash is contained and supervisor-restarted; the kernel is never implicated.
@@ -804,6 +834,8 @@ SMM's use cases map onto RoT + sentinel + fail-stop; its mechanism (invisible pr
   Thermal fail-stop (§15) rides the same transactional safety.
 - Deterministic builds → deterministic failure reproduction; diagnostics are capability-scoped.
   Schedule-fixed frequencies, fixed-latency divide/FPU, **fixed-latency atomic RMW (`Zaamo` only — no CAS, no LR/SC spurious-failure retries)**, **static-only control-flow prediction (no learned predictor state to perturb reproduction)**, and Ztso ordering (§15) extend determinism to timing-sensitive failure reproduction.
+
+---
 
 ## 17. Residual Risks — the Honest Ceiling
 
@@ -910,6 +942,8 @@ SMM's use cases map onto RoT + sentinel + fail-stop; its mechanism (invisible pr
   Verified RTL ≠ verified fab — the largest residual once software is done, and single-die integration concentrates it: one mask set carries the RoT, all core classes, the NoC, the memory path, and the radio.
   Open RTL and multi-sourcing are partial mitigations; none is complete.
 
+---
+
 ## 18. Realization (mid-2026)
 
 Silicon is the binding constraint: RV64 application-class CHERI exists only as licensable IP and FPGA soft cores; Morello is ARM, speculative, loan-only.
@@ -963,6 +997,8 @@ Software existence proofs (srsRAN/OpenAirInterface, openwifi) anchor feasibility
 
 Two requirements never trade: the verified TCB, and capabilities as the sole authority.
 Everything else — including ship date, core counts, radio bandwidth, and acceleration — bends around them.
+
+---
 
 ## 19. Evaluated Architectural Alternatives (non-normative)
 

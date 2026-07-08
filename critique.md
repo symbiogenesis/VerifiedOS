@@ -1,73 +1,67 @@
+# Critique of the Specification
+
 Overall: this is unusually internally disciplined for an early-stage spec — the admission-test framework and the "delete rather than defend" rule are applied consistently enough that most cheap contradictions are already gone.
 What remains are contradictions in the *axioms*, a handful of hard technical inconsistencies the cross-reference machinery has papered over, and several places where the spec's own logic demands a simplification it doesn't take.
 
 ## Self-contradictory goals
 
-**1.
-"Engineering is free" is double-booked.**
+**1. "Engineering is free" is double-booked.**
 The axiom is invoked to force the expensive choices — re-proving seL4's design end-to-end in Coq rather than inheriting the Isabelle proof, [github](architectural-alternatives.md) re-proving VeriBetrFS's B^ε-tree in Coq/Iris, [github](verification-maximal-os.md) SSProve over EasyCrypt — and then suspended wherever schedule pressure appears: libcrux/HACL* as an explicit interim F*/Z3 widening, EasyCrypt adopted where it accelerates delivery, aiT and Binsec/Rel as unverified complements.
 [github](verification-maximal-os.md) If engineering is free, interim widenings are incoherent — you'd simply wait for the Coq-native artifact.
 If interim widenings are necessary, the axiom is false and the seL4/VeriBetrFS/SSProve re-proof decisions must be re-litigated under a real cost model, where inheriting Isabelle may win.
 Right now the spec runs two cost models and picks per decision.
 
-✅ **2.
-Prover-count minimization contradicts the crown-jewel doctrine.**
+✅ **2. Prover-count minimization contradicts the crown-jewel doctrine.**
 The spec's own ranking says specification error is the failure mode proofs cannot catch, [github](verification-maximal-os.md) i.e., spec scrutiny dominates checker soundness in the risk model.
 The single-prover rule trades scrutinized artifacts for fresh ones: the alternatives doc concedes the Coq re-verification is a fresh proof and spec mechanization, as unbattle-tested as CertiKOS's, [github](architectural-alternatives.md) while the argument for seL4 rests on its spec having had the most independent eyes of any kernel spec.
 [github](architectural-alternatives.md) But those eyes looked at the Isabelle/Haskell artifacts; the artifact in *your* trust base is a fresh hand transcription.
 Two mature checkers (Isabelle + Coq) over battle-tested proofs plausibly carry less total risk than one checker over 100% fresh proof mass, because checker bugs are empirically rarer than spec-transcription bugs — which your own residual list ranks first.
 At minimum, the transcription must be mechanical (see hs-to-coq below), or the "seL4 maturity" argument mostly evaporates.
 
-**3.
-Proof-gated updates versus hyper-security has an unpriced MTTR.**
+**3. Proof-gated updates versus hyper-security has an unpriced MTTR.**
 Every fix to the most-attacked surface (RRC/NAS parsers) must re-derive a Narcissus parser, re-prove Tier-1 flow theorems, pass generation admission, and possibly clear delta re-certification when protocol behavior changes.
 [github](verification-maximal-os.md) Patch latency = proof latency.
 For a live remote zero-day, time-to-remediation is a first-class security property; the spec budgets detection latency (sentinel) but never remediation latency.
 This is a genuine G1/G2-versus-process contradiction, and it's the same argument the spec itself deploys against fusing the radio (immutability belongs at the RF envelope because a fully fused radio could never patch its most-attacked surface) [github](verification-maximal-os.md) — applied one level up, it indicts proof-gating without a fast-path.
 
-✅ **4.
-Deep-sleep-as-reboot contradicts cellular reachability.**
+✅ **4. Deep-sleep-as-reboot contradicts cellular reachability.**
 No resume path exists outside the measured chain [github](verification-maximal-os.md) is incompatible with a phone-shaped device: paging DRX requires the radio island live on a ~1.28 s cadence indefinitely.
 So real standby is "everything gated except the radio island + enough of the platform to service it" — a long-lived partial-power state the boot-chain-variant doctrine doesn't cover, and the dominant battery mode is precisely the one the power architecture never specifies.
 Either specify an attested partial-sleep mode or drop the always-reachable-cellular ambition.
 
-**5.
-Defense-in-depth admissibility is case law, not statute.**
+**5. Defense-in-depth admissibility is case law, not statute.**
 The PMP backstop was admitted as a disjoint failure domain while MTE, shadow stacks, and Harvard split were rejected as redundant-with-CHERI — an inconsistency since resolved by dropping PMP too (redundant against formally-verified CHERI; the drop-PMP disposition, which articulates the missing criterion as *verify rather than hedge*).
 The broader point stands: that criterion should be hoisted into a standing admission-test clause rather than left as per-case litigation.
 
+---
+
 ## Internal contradictions
 
-**6.
-Static composition + NI-over-a-fixed-graph vs. the powerbox.**
+**6. Static composition + NI-over-a-fixed-graph vs. the powerbox.**
 §7 mandates a fixed, machine-checked component graph with no dynamic privilege creation in the base, [github](verification-maximal-os.md) and §8 states non-interference as a theorem over that fixed graph [github](verification-maximal-os.md) — while §8 also routes dynamic grants through a trusted-UI powerbox [github](verification-maximal-os.md) and §12's service manager performs capability re-grant on restart.
 [github](verification-maximal-os.md) Runtime user grants mutate the flow policy; either the NI theorem quantifies over all potential powerbox edges (weakening it to near-vacuity for user data) or every user-granted channel sits outside the proven policy — the dominant real-world leak path.
 Worse, the powerbox and the supervision tree are authority-minting components that don't appear in the exhaustive TCB: [github](verification-maximal-os.md) a compromised init re-grants everything; a compromised compositor (Tier-1, non-TCB) spoofs consent UI.
 "Secure-path UI" is asserted with no mechanism, and any mechanism puts the compositor or a sub-component into the consent TCB.
 
-✅ **7.
-Content-addressed dedup is incompatible with the AEAD/key-custody construction as written.**
+✅ **7. Content-addressed dedup is incompatible with the AEAD/key-custody construction as written.**
 §10 requires simultaneously: dedup as content-addressed extent sharing, [github](verification-maximal-os.md) per-extent AEAD with a per-extent nonce whose tag is the stored checksum, [github](verification-maximal-os.md) and keys resident only in the crypto core with the FS handling ciphertext only.
 [github](verification-maximal-os.md) Nonce-randomized ciphertexts of equal plaintexts differ, so the tag cannot be the content address; content addressing needs a plaintext hash, which a ciphertext-only FS cannot compute.
 You must either extend the crypto-core interface to return plaintext digests (a within-domain content-equality oracle held by the FS, and new TCB interface surface), move dedup client-side pre-seal, or adopt convergent encryption (which you've implicitly rejected cross-domain and should reject within-domain too).
 Pick one and say so; the current text proves three mutually inconsistent properties.
 
-✅ **8.
-The W^X theorem vs. the toolchain compartment, and on-device AOT vs. off-device proving.**
+✅ **8. The W^X theorem vs. the toolchain compartment, and on-device AOT vs. off-device proving.**
 §14 claims W^X as an invariant of the entire derivation forest from a machine-checked absence of Store∧Execute in the initial distribution, [github](verification-maximal-os.md) then grants the toolchain compartment runtime codegen.
 Under capability monotonicity, the toolchain cannot derive executable caps over written memory from a Store∧Execute-free root without a kernel-mediated re-derivation primitive — which is unspecified and is exactly a hole in the theorem.
 Separately, §13 says shaders are AOT-compiled by the toolchain compartment [github](verification-maximal-os.md) carrying Tier-2 certificates, while also stating checking is cheap and local, proving stays off-device.
 [github](verification-maximal-os.md) On-device compilation entails on-device certificate production.
 One of the three claims must yield.
 
-✅ **9.
-The admission test indicts hardware you kept.**
+✅ **9. The admission test indicts hardware you kept.**
 Test 5 bans hardware walkers [github](verification-maximal-os.md) — and Sv39's page-table walker is an autonomous, address-dependent memory-reading walker with associated TLB and walk-cache state that appears nowhere in the fence.t flush-set discussion, the WCET model, or the partitioning story.
 Svadu was excluded on exactly this ground while the read-side walker got a silent exemption.
 Either state the exemption principle or take the simplification in the next section.
 
-✅ **10.
-PRAC is a reactive feedback loop on the most-shared resource.**
+✅ **10. PRAC is a reactive feedback loop on the most-shared resource.**
 The power architecture's organizing move is delete the hidden feedback loop from workload to performance state, [github](verification-maximal-os.md) yet Rowhammer posture *relies* on PRAC activation counting with alert/back-off [github](verification-maximal-os.md) — a load-reactive, vendor-proprietary, un-modeled feedback loop inside the DRAM die that modulates timing observable across whatever shares that die.
 The graded sub-channel hierarchy books the coupling but not the principle violation.
 The consistent fix is deterministic refresh management (fixed RFM cadence sized for worst-case activation) at a bandwidth cost, with ABO demoted to a fail-stop telemetry event; otherwise state explicitly that the DRAM die is exempt from the admission test and why "no foreign computers" tolerates an autonomous vendor state machine there.
@@ -75,25 +69,21 @@ The consistent fix is deterministic refresh management (fixed RFM cadence sized 
 Rowhammer mitigation is now **RFM at a fixed cadence sized for the worst-case activation rate** (a composition-time static schedule, §15) plus on-die ECC, and **PRAC's ALERT/back-off (ABO) is demoted to a fail-stop sentinel event** (§12/§16) — the same *fail-stop, not modulation* treatment the thermal trip gets and the same static-not-reactive pin the DRAM DVFSL/dynamic-efficiency modes already carry, so the hidden workload-to-timing feedback loop is deleted here too, not exempted.
 The surviving PRAC counter is a passive tripwire (tolerated like on-die ECC, not a foreign computer); the graded-hierarchy die-internal coupling narrows from a load-reactive loop to a deterministic cadence, and the worst-case-refresh bandwidth cost is booked (§17 Physical, performance-estimates.md), address- not data-dependent so it opens no timing channel.
 
-✅ **11.
-Optional TME integrity contradicts the evil-maid claim on socketed memory.**
+✅ **11. Optional TME integrity contradicts the evil-maid claim on socketed memory.**
 You chose CAMM2 sockets for serviceability and made integrity/anti-replay optional outside the sealed root and key material. [github](verification-maximal-os.md) A physical adversary with module access can splice or replay previously captured ciphertext (with matching inline-ECC) at chosen addresses — controlled-ish corruption and state rollback in live memory, against a threat model that lists evil-maid as defended.
 Either mandate integrity + anti-replay DRAM-wide (and eat the bandwidth), or scope the physical-adversary claim to confidentiality-only and say the integrity story is CHERI-tag-avalanche-probabilistic.
 
-✅ **12.
-The checker's own provenance violates §5.**
+✅ **12. The checker's own provenance violates §5.**
 §5's rule is trusted code is verified C under verified compilation — yet the plan builds the one axiomatic TCB component, the admission checker, via MetaCoq→Rust arena extraction onto the certifying Rust→CHERI compiler: an *unverified* extraction backend feeding an *untrusted* toolchain, for the component whose binary cannot be bootstrapped by its own certificate.
 Its trust rests on reproducible build + DDC — fine, but then the §6 claim that only checker/model/specs are axioms undercounts: the checker's compilation pipeline is an axiom too.
 The spec-coherent route is CertiCoq (verified extraction) or a VST-refined C checker.
 
-✅ **13.
-The 10³-line checker claim is not credible for CIC.**
+✅ **13. The 10³-line checker claim is not credible for CIC.**
 MetaCoq's verified checker is tens of thousands of lines and its correctness story has historically axiomatized the guard/termination condition; a full CIC term checker (universes, inductives, guard, conversion) at ~1 kLoC does not exist.
 Also, "checking is cheap" is false for Tier-0: seL4-scale refinement proofs take machine-hours to check in anger.
 Either accept a much larger checker as the axiom, or restructure admission around a genuinely tiny logic (see rearchitecture C/D).
 
-✅ **14.
-FPCC pedigree-independence vs. a mandated build path.**
+✅ **14. FPCC pedigree-independence vs. a mandated build path.**
 §5 declares verification a property of the artifact, not its pedigree and §13 calls admission language-agnostic — while §5 simultaneously makes the certifying toolchain a mandatory build path, not bare rustc/LLVM.
 If certificates are artifact-checked, any producer of a valid certificate must be admissible by definition; mandating the toolchain is pedigree enforcement.
 Trivial fix, but the text currently asserts both.
@@ -102,16 +92,16 @@ Trivial fix, but the text currently asserts both.
 The upstream non-interference proof exists only for non-MCS, unicore, static-partition configurations and is the least-maintained layer of l4v.
 NI over multikernel + purecap CHERI-C + powerbox dynamics is a new theorem wearing an old name; the maturity transfer claimed in §5/§8 applies to none of it.
 
-**16.
-Anti-rollback for mutable user data is unworked.**
+**16. Anti-rollback for mutable user data is unworked.**
 The user-data root sealed to the RoT with a monotonic counter implies counter updates at CoW-commit frequency; OTP counters can't sustain that and flash-backed counters need their own freshness story.
 High-rate authenticated freshness is a known-hard problem the spec waves at in one clause.
 
-✅ **17.
-Orphaned mechanism: Zacas.**
+✅ **17. Orphaned mechanism: Zacas.**
 The spec's own arguments establish that nothing uses general CAS — share-nothing kernel, SPSC rings on single-writer load/store, no capabilities in shared memory.
 By profile parsimony, an extension with no consumer is dead Sail surface (the ShangMi standard); either name the consumer or cut Zacas and the 128-bit CAS coherence-point complexity with it.
 Relatedly, admission-test clause 2 is vacuous as written — anything passes by self-exclusion from the CT list.
+
+---
 
 ## Gaps (not contradictions, but unbooked)
 
@@ -137,6 +127,8 @@ And the RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP
 
 Finally, a document-engineering point that is itself a goal violation: §5 makes independent spec review a release gate, but 133 KB of multi-hundred-word single bullets with ten-deep cross-reference chains is engineered to defeat review; normative content needs decomposition into numbered atomic requirements.
 
+---
+
 ## Low-hanging simplifications
 
 The biggest: **TCB item 3 is oversized by its own logic.**
@@ -160,6 +152,8 @@ This deletes the eUICC (achieving literally zero foreign computers), carrier cer
 
 Sixth: defer the browser — it's the largest porting program in the roster and orthogonal to proving the OS thesis.
 
+---
+
 ## Existing projects for open workstreams
 
 - **hs-to-coq** (Penn): mechanically translate seL4's Haskell executable spec to Gallina — directly replaces the plan's hand-translated step and repairs contradiction #2's scrutiny-transfer problem.
@@ -176,35 +170,34 @@ Sixth: defer the browser — it's the largest porting program in the roster and 
 - **CryptOpt** (PLDI 2023; Fiat-Crypto / MIT-Adelaide) — a randomized-search superoptimizer whose emitted assembly a **Coq-verified equivalence checker** validates back to the Fiat-Crypto spec, beating GCC/Clang at top optimization and at times hand-written asm.
   It is the concrete vehicle for field-arithmetic performance *without* a Jasmin-style verified backend — the trusted artifact is a small checker, not a second compiler (straight-line field arithmetic only; x86-64 today, CHERI-RISC-V retarget net-new).
 
+---
+
 ## Radical rearchitecture candidates
 
-✅ **A.
-Delete the MMU — purecap single-address-space.**
+✅ **A. Delete the MMU — purecap single-address-space.**
 CHERI + PMP-per-core backstop + IOMMU + coherence islands already supply spatial isolation, physical bounding, and DMA confinement; Sv39 buys you a second in-band mechanism at the cost of the walker/TLB state indicted in #9, the entire kernel VM subsystem, and real Sail surface.
 CheriOS/CHERIoT are the existence proofs at small scale.
 The honest counterargument is losing an MMU-disjoint intra-core isolation layer against a CHERI logic fault; if that wins, the fallback is composition-frozen page tables (simplification #3), which captures most of the proof shrink.
 
-✅ **B.
-Kernel-in-gateware.**
+✅ **B. Kernel-in-gateware.**
 The multikernel instance is a sequential, event-driven state machine with roughly a dozen frozen invocations and zero post-boot allocation — i.e., a synthesizable object.
 Since RTL ⊑ Sail must be proven anyway, expressing the capability/endpoint/scheduler machine directly in Kôika collapses the Machine-mode software TCB on application cores toward zero and merges the kernel proof into the hardware refinement.
 The self-refuting caveat: your own radio argument — never fuse the most-attacked, most-likely-buggy layer — cuts against it, so this is only coherent if the kernel spec is genuinely frozen forever.
 
-✅ **C.
-CHERI-TAL admission.**
+✅ **C. CHERI-TAL admission.**
 Replace bespoke per-property certificate formats with a typed assembly language for RV64+CHERI: Tier-2 admission becomes type-checking annotated binaries, compilers emit type derivations rather than proof terms, the checker stays small and genuinely language-agnostic, and the certifying-compiler workstream shrinks to "target the TAL."
 This is the Necula→Morrisett FPCC arc, considerably easier on a machine where CHERI already discharges spatial safety — and it's the structural fix to #13/#14.
 
-✅ **D.
-Synchronous control plane via Vélus.**
+✅ **D. Synchronous control plane via Vélus.**
 You've already imposed TDM, static schedules, bounded IDL, and crash-only servers — the control planes of §12 are morally synchronous dataflow.
 Vélus is a Coq-verified Lustre compiler emitting Clight into CompCert: writing server control logic in Lustre gets verified compilation, structural WCET, and causality/determinism by construction at zero new prover, with Rust retained for data planes only.
 This is the one rearchitecture that *reduces* net-new tooling.
 
-**E.
-Physical bifurcation of the radio.**
+**E. Physical bifurcation of the radio.**
 Instead of coherence islands on one die absorbing the booked residuals (shared die power/thermal/refresh/PRAC coupling, shared mask set), put the radio stack on a second, identical, attested instance of the same die linked by a ring-over-SerDes — not a foreign computer, a second copy of the one computer.
 It deletes the highest-value cross-domain residuals outright and simplifies the island machinery on the main die, at the cost of a package and the inter-die link becoming a new (but IDL-shaped, Narcissus-parsed) boundary.
+
+---
 
 ## Goal-aligned refinements (cheaper proofs, cheaper performance, better tooling)
 

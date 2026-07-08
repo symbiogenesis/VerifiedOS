@@ -32,6 +32,8 @@ EDGE is even less mature than Mill, so it is a research program, not a spec.
 **Disposition:** gen-2 candidate iff ILP-without-speculation becomes the binding constraint and a formal/toolchain ecosystem can be built around the target; **block-atomic (EDGE) is the preferred "abandon the register file" direction** over the belt for this design, on transactional-coherence grounds.
 Both remain non-normative.
 
+---
+
 ## Itanium / EPIC / VLIW — ILP without a belt, but the substrate cost *is* the belt's; the one importable atom is already NaR
 
 "Itanium-style VLIW" is not one mechanism but four separable ones, and the import discipline resolves them individually against the §15 admission test — the same decomposition that logged the belt's spiller while rejecting its backless memory.
@@ -82,6 +84,8 @@ A belt is a clever operand-lifetime trick and EDGE a transactional pipeline; EPI
 **Two non-redundant atoms are distilled and kept inside RISC-V:** (1) **NaR/NaT deferred-fault poison loads** — separable from both belt and bundle, admissible as a *small* extension, the genuine "ILP without speculation" lever, logged here as the sharper form of the belt entry's metadata-speculation argument and the first candidate should that constraint bind; and (2) **wider in-order superscalar + verified static scheduling on plain RV64** — already licensed by §15's *in-order single/dual-issue* C-class and ideally served by the bespoke compiler, the actual answer to "the in-order path is slow," strictly *before* any ISA fork.
 Both remain non-normative; **VLIW as a whole imports nothing**, and ranks below both the belt and EDGE as an abandon-the-register-file target.
 
+---
+
 ## CHERI-Wasm as a hardware ISA — the interface half is already imported (WIT → §12), the execution half is the substrate §14 deletes
 
 "Should the hardware natively target CHERI-based Wasm" bundles three separable proposals, resolved individually against the §15 admission test and the import discipline — the same decomposition that logged the belt's spiller and EPIC's NaR while rejecting the rest.
@@ -126,6 +130,8 @@ Both distillable atoms already sit in the design (WIT → §12 IDL; linear-memor
 Wasm's sole admissible role is the §14 **contained interpreter-mode plugin engine** — software, not silicon, an application-internal choice the spec already sanctions.
 Non-normative; no spec-body change.
 
+---
+
 ## HexFive MultiZone — already covered, strictly dominated, nothing to import
 
 MultiZone is a policy-driven separation kernel: a small nanokernel orchestrating standard RISC-V **PMP** to isolate zones, a no-shared-memory messenger between zones, and a configurator fusing linked zone binaries + policy + kernel into a signed image (running unmodified code by trap-and-emulate of privileged instructions).
@@ -154,6 +160,8 @@ The domination verdict above is specific to PMP as a *primary, fine-grained comp
 An earlier disposition *banked* PMP in a *secondary, coarse, sub-kernel backstop* role (immutable-text/W^X, per-core partition bound, crown-jewel secret fencing) on the ground that, being CHERI-disjoint, it hedged a CHERI *logic* fault no in-band mechanism otherwise could.
 **That backstop is now dropped too** (the drop-PMP entry below): with CHERI formally verified (the Oxford/Google CHERIoT-Ibex conformance proof; the RTL ⊑ Sail workstream, §18) and application-class silicon removing PMP on exactly this ground (Codasip's A730 — PMP *"can be removed and replaced by more power- and area-efficient circuits"*), the disjoint hedge is judged redundant Sail surface, and the three roles collapse onto CHERI monotonicity (§7, §14), the crypto core's hardware boundary, and TME (§15).
 So the full disposition is now unqualified: nothing of MultiZone's *architecture* imports, the base does not descend to it, and PMP is not retained even as a backstop — CHERI is the sole in-band spatial mechanism, hedged by its own verification rather than by a coarse subset of itself.
+
+---
 
 ## Delete the MMU — purecap single-address-space, CHERI is the sole in-core spatial mechanism
 
@@ -190,6 +198,8 @@ The remaining kernel-shrink simplification the terminus names — the table-driv
 The MMU is **deleted**: `satp` is Bare, there is no Sv39 / Sv48 / Sv57 and no `Svadu` / `Svade` A/D machinery (§15), the kernel drops seL4's VSpace / page-table / frame-mapping object classes for a single physical address space (§7), and **CHERI is the sole in-core spatial mechanism** (with PMP since dropped too — the drop-PMP entry below — so no disjoint in-band backstop remains), the IOMMU + coherence islands (§15) the DMA and timing boundaries.
 The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend*: the MMU was a second in-band mechanism whose fine-grained defense-in-depth the SAS design never instantiated, purchased with a walker the admission test bans and a kernel subsystem the proof must carry.
 **Honest residual (§17):** in-core spatial isolation now rests on CHERI alone (a logic fault has no in-band fallback — the coarse PMP backstop is dropped too, below — only CHERI's own verification), and application-class single-address-space purecap is less battle-tested than page-table isolation (CheriOS/CHERIoT are small-scale) — offset against a net deletion of the walker, the TLB/walk-cache state, the VM subsystem, and their Sail surface.
+
+---
 
 ## Single privilege mode — Machine mode only, capability-gated privilege (CHERIoT-lineage)
 
@@ -228,6 +238,8 @@ Supervisor and User modes are **deleted**: the platform runs Machine mode only, 
 The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend*: the S/U ring was a second in-band privilege mechanism, and its one non-redundant service (the sub-kernel backstop) is itself now dropped as redundant against verified CHERI (below).
 **Honest residual (§17):** privilege now rests on CHERI alone (PMP dropped too, below) with no privilege-ring or disjoint-backstop redundancy, and single-privilege-mode purecap is unproven at application-class multicore scale (CHERIoT is single-core microcontroller) — offset against the deletion of the mode-transition machinery, the S-mode CSR bank, and trap delegation from the microarchitecture and the kernel proof.
 
+---
+
 ## Drop PMP — CHERI is the sole memory-protection mechanism, verified rather than hedged
 
 The proposal is to remove **physical memory protection (PMP)** — and `Smepmp` with it — leaving **CHERI as the only memory-protection mechanism on the die**.
@@ -257,6 +269,8 @@ If a future analysis judged the CHERI-logic-fault residual intolerable, the comp
 PMP and `Smepmp` are **removed**: CHERI is the sole memory-protection mechanism, W^X and the per-core partition bound rest on CHERI monotonicity (§7, §14), crown-jewel secrets on the crypto core's boundary and TME (§15), and DMA on the IOMMU (§15).
 The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend* — with the twist the whole design turns on: what lets a **single** mechanism replace a defense-in-depth stack is that this one is **formally verified**, so *delete rather than defend* becomes *verify rather than hedge*.
 **Honest residual (§17):** in-core spatial isolation, W^X, and the partition bound rest on CHERI alone with no in-band disjoint backstop; the sole hedge against a CHERI logic fault is CHERI's own verification (RTL ⊑ Sail, Oxford/Google, Codasip), the fab residual unchanged.
+
+---
 
 ## Delete scalar floating-point — fold all float onto the vector FPU, static rounding
 
@@ -289,6 +303,8 @@ Scalar `F`/`D`, the `f`-register file, and the dynamic rounding-mode CSR are **r
 The FP timing contract is stated once, for the vector FPU (§15).
 The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend*: a redundant FP datapath and one of the two FP timing crown jewels are deleted for an ABI change and a per-op vector-setup cost the subordinated-performance goal absorbs.
 **Honest residual (§17):** floating point now rests on the single vector FPU under a non-standard vector-FP-without-scalar-FP profile (a small new Sail surface for the operand-move path, an uncommon configuration at application scale) — offset against the deleted scalar datapath, `f`-register file, scalar FP timing contract, and dynamic rounding-mode state; a net shrink, booked in §17's proof-trust-base accounting.
+
+---
 
 ## Mon CHÉRI conditional capabilities — reject the binary-side extension, adopt Write-before-Read as a transparent initialization-tag plane
 
@@ -338,6 +354,8 @@ The **property** — Write-before-Read — is adopted as a **transparent, addres
 Mon CHÉRI's **binary-side conditional-capability *encoding*** — the per-capability operation-bound, its `CSetOpBounds` instructions, and the store-linearization it forces — is **rejected**: it is the bespoke binary-side CHERI change the platform declines, and its extra precision is not worth special binaries plus the Sail / RTL / toolchain / CHERI-TAL surface.
 The other six conditional permissions do not import (already covered by W^X, by no-codegen + CFI, or niche).
 **Honest residual (§17):** the tag plane is the one place the profile *adds* a mechanism rather than deleting one — booked as cheap defense-in-depth (granule-granular, heap/static-first, stack precision an optional compiler assist), strengthening the universal contract where hardware is the only guarantee, consistent with *verify rather than hedge*.
+
+---
 
 ## seL4 vs. CertiKOS — re-examined; seL4's *design* retained, re-proved end-to-end in Coq
 
@@ -390,6 +408,8 @@ The make-or-break subproof, never yet done in Coq for an seL4-class capability m
 **Importing seL4's Isabelle proof wholesale stays rejected** (the two-prover TCB).
 The earlier "no pure-win" verdict is **superseded**: it held only under the unstated assumption of *inheriting* seL4's proof; the engineering-free axiom licenses lifting that assumption, and the Coq-re-proved seL4 then dominates.
 
+---
+
 ## Kernel-in-gateware — the benefit needs the whole kernel, the safety only a frozen subset; the one separable primitive worth fusing is already CHERI
 
 The proposal is to express the capability/endpoint/scheduler machine **directly in a formal-semantics HDL** (Kôika/Kami) rather than as Machine-mode software, so the kernel's correctness proof folds into the **RTL ⊑ Sail** refinement already in scope (§18) and the Machine-mode software TCB on application cores collapses toward zero.
@@ -437,6 +457,8 @@ The one distilled atom — a verified hardware block for a genuinely-frozen sepa
 The **RealFast RTU / Sierra** line is a functional reference that RTOS-in-gates is real and deterministic, **not** an admissible artifact — unverified VHDL, a dynamic-priority/semaphore shape the §15 admission test deletes, and an accelerator that keeps the software kernel rather than replacing it.
 Non-normative; no spec-body change.
 
+---
+
 ## Crypto verification depth — implementation-correct is not reduction-secure
 
 Functional correctness plus constant-time (Fiat-Crypto + libcrux/HACL\*, §5) cover two of the three properties a verified cryptosystem needs and leave the third unstated — the reverse of this spec's "deepest proof over the smallest trusted set" criterion.
@@ -471,6 +493,8 @@ The platform axiom decides the toolchain exactly as it did for seL4: **methodolo
 **Honest residual (§17):** a reduction *isolates and names* the hardness assumptions (MLWE/MSIS; ECDLP/CDH) but cannot prove them — the irreducible cryptographic axiom; the implementation ⋈ reduction join is a new seam at the functional spec; EasyCrypt-borne reductions carry an SMT base until restated Coq-native; and scheme-level IND-CCA/EUF-CMA is still below protocol-level security (TLS/AKA), a further layer.
 What this buys is the deepest-available crypto proof — from "correct, constant-time code for a scheme we *assume* is secure" to "the scheme is IND-CCA/EUF-CMA under a named, minimal hardness assumption, implemented by constant-time code a verified compiler preserves and a verified checker admits" — with the residual pushed down to conjectures no proof system can discharge.
 
+---
+
 ## Sound WCET derivation — the analyzer the timing discipline was built for
 
 §11 checks *schedulability given WCET numbers* — for the static cyclic executive an interval-arithmetic check (§7), not Prosa-style response-time analysis — but on its own names **no vehicle to derive those numbers soundly** — the whole temporal-admission edifice (OPP/mode selection, TDM NoC schedule, watchdog windows) and much of the §17 timing-channel argument rested on WCET inputs a wrong value silently falsifies.
@@ -495,6 +519,8 @@ Name the layer, split it functional ⋈ hyperproperty like RTL ⊑ Sail, put the
 The platform axiom decides the toolchain as ever — *methodology is portable, maturity is not*: carry the Coq-native property to the verified-IPET artifact and the timing-annotated model, spending engineering to keep WCET on the single prover.
 **Honest residual (§17):** WCET is only as sound as the timing-annotated model's latency magnitudes (now crown-jewel specs) and inherits the RTL ⊑ Sail residual — no sound bound before that least-built arrow closes — while composability across partitions rests on the §15 isolation non-interference the timing-channel story already needs.
 
+---
+
 ## Binary-level constant-time verification — CT as a property of the artifact, not its pedigree
 
 Establishing **constant-time (CT)** by **preservation** alone — CompCert-CT-class for the verified-C path, the crypto core included — carries CT from a source-level proof through a *verified compiler* and therefore reaches only binaries built that way.
@@ -514,6 +540,8 @@ The FPCC discipline's own principle is *"verification is a property of the artif
   Binsec/Rel does exactly the binary-level job: **relational symbolic execution for constant-time and secret-erasure, directly on the binary against a leakage model**, and it scales to production crypto (BearSSL, OpenSSL, HACL\*, libsodium — finding real violations).
   It is the better-fit tool for this path because the FPCC statement is *binary-level against the Sail model* and Binsec/Rel is binary-level.
   But it is **not Coq** (OCaml + SMT) and is **path-bounded** symbolic execution — so, exactly like **riscv-formal BMC** and **aiT**, it is adopted as the **unverified complement / bring-up gate**, bounded evidence and untrusted evidence-producing machinery, with the relational-Sail-logic certificate the unbounded close.
+
+---
 
 ## CHERI-TAL admission — type-check the artifact where a type system suffices, prove it where it does not
 
@@ -558,6 +586,8 @@ A small, decidable **CHERI-TAL type-checker** is the on-device admission checker
 The **CIC proof kernel** is retained for the **deep** obligations no type system states — Tier-0 functional refinement + non-interference (§8), crypto reduction security, constant-time, WCET, filesystem linearizability/liveness — validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
 The platform axiom decides this exactly as it did for seL4 and crypto — **methodology is portable, the smallest trusted set wins**: spend the engineering to make the per-install admission checker a type-checker whose soundness is one Coq theorem, rather than a general proof checker no one can hold to 10³ lines.
 **Honest residual (§17):** the CHERI-TAL soundness metatheorem is a new crown-jewel spec; the deep-proof CIC kernel is *named* as the larger admission axiom rather than hidden inside a 10³-line claim (so "checking is cheap" holds only for the TAL tier); and the temporal-safety type discipline over CHERI capabilities is the net-new instantiation the certifying-compiler workstream (§18) now carries in place of a bespoke certificate format.
+
+---
 
 ## Synchronous control planes via Vélus — the sequencing logic is already dataflow; write it where determinism, WCET, and causality are structural
 

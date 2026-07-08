@@ -18,6 +18,8 @@ The selection is **uniformly Rust** by design: safe Rust is memory-safe by const
 - **Servo** — the contained, per-origin browser engine of §14 (Tier-2 origin compartments).
 - **GGUF inference runtime** — the §12 optional inference server on the M-class cores: the `burn` deep-learning framework re-targeted onto a net-new M-class GEMM backend (`burn`'s pluggable backend trait is the clean seam), not a from-scratch build (Tier-1).
 
+---
+
 ## The porting discipline — four obstacles every target meets
 
 Independent of the application, the same four substrate mismatches are re-targeted the same way, so they are stated once here and referenced per target below:
@@ -33,6 +35,8 @@ Independent of the application, the same four substrate mismatches are re-target
    Process trees become the service manager's static supervision tree (§12); path-based file access becomes a manifest-backed private namespace (§14); "spawn a helper" becomes a capability-delegated compartment reached over a ring (§12).
 4. **No runtime code generation, anywhere.**
    Compilation is an off-device build step (the certifying toolchain, §5/§18), never an on-device service; nothing on the device JITs (§14), so any embedded script/Wasm engine runs **pure-interpreter**.
+
+---
 
 ## Targets
 
@@ -117,6 +121,8 @@ No CUDA/GPU path exists (§15); throughput is the honest M-class envelope (§15 
 **Disposition:** adopt `burn` as the safe-Rust framework and write the M-class GEMM engine as a custom `burn` backend — the single net-new artifact, the systolic units having no existing backend — shedding `burn`'s training/autodiff; verify the GGUF parser (§5), route all matrix work through the M-class capability-operand movers (§15, no private DMA), and treat sampling/routing data-dependence as the residual to bound or label-fence.
 `candle`/`mistral.rs` are the rejected re-target alternatives — GGUF-native but enum-baked backends, `mistral.rs` maximizing the very data-dependent surface (b).
 
+---
+
 ## Shared prerequisites
 
 All six gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
@@ -125,6 +131,8 @@ All six gate on the same handful of net-new artifacts, so they are sequenced beh
 - **A software rendering/compositing library on V-class cores** — the substrate COSMIC's compositor, Zed's GPUI, and Servo's WebRender all collapse onto — is built once under the §12 display model and shared across the three GUI targets.
 - **The WASI-shaped capability libc (§14)** and its manifest-backed namespace is the common on-ramp every source-level re-target compiles against.
 - **The reference display server** (COSMIC's `cosmic-comp`, above) that the other GUI apps present surfaces to under per-surface / per-input capabilities (§12).
+
+---
 
 ## Deterministic simulation testing — catching what the certificate does not prove
 

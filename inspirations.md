@@ -21,12 +21,16 @@ That seL4's own 2024 direction is the **share-nothing multikernel** (RFC-0170) a
 Honest residual: a Coq re-proof is fresh — as unbattle-tested as any — so what transfers from seL4's maturity is the design, ABI, C implementation, and long-scrutinized specification, not the proof (§17).
 Convergent sibling: Google Research's **KataOS** (its **CantripOS** userland) and its **Sparrow** reference platform independently assemble almost this exact substrate — seL4, a near-entirely-Rust userland, statically-composed CAmkES components, and an OpenTitan RoT on RISC-V — reached not as an ancestor this design descends from but as a *convergent* one that stops an assurance tier short on every axis it shares: it rides seL4's Isabelle proof as-is (the two-prover base §5 declines) rather than re-proving in Coq, its Rust is memory-safe *by borrow-checker alone* — the "app safety leans on the toolchain" posture the artifact-level memory-safety certificate and CHERI supersede (§5, §13) — its CAmkES graph is "statically-defined and analyzable" short of machine-checked static composition (§7), and its third-party apps are **dynamically loaded and confined by seL4 capabilities alone**, exactly the containment-without-proof road §7's static composition and §11 proof-checked admission decline; KataOS is thus at once the seL4 line's **shipping evidence** that the whole substrate is buildable — the Fuchsia "shipping evidence, not the proof" move (below) one layer down — and its **foil**, the same triad secured by containment-plus-mitigation that this design takes to proof.
 
+---
+
 ## Barrelfish — the multikernel: share-nothing cores, capabilities as the lineage
 
 Barrelfish (ETH Zürich / Microsoft Research) originated the **multikernel**: treat a multicore machine not as a shared-memory multiprocessor but as a *network of independent cores*, each running its own kernel instance, sharing **no** kernel state and communicating only by explicit message passing, with per-core replicas kept consistent by agreement rather than by locks over shared structures.
 §7's **heterogeneous multikernel** is exactly that model — one verified kernel artifact instantiated once per core, strictly disjoint state, no shared mutable kernel data, no kernel locks — so each instance's proof is the *sequential* proof, sidestepping verified fine-grained SMP (the field's hardest artifact).
 Barrelfish also carried a capability system in the seL4 lineage, so the **capability + multikernel** pairing this platform rests on is the *Barrelfish → seL4* line made verifiable.
 What the spec does **not** take is Barrelfish's dynamic, discovery-driven System-Knowledge-Base personality: composition here is **static and machine-checked at build time** (§7), cores are statically assigned to classes with no dynamic migration (§7), and the message-passing plane becomes the bounded-SPSC **verified ring** (§12) proven under Ztso (§15).
+
+---
 
 ## CheriOS — the single-address-space CHERI microkernel, the existence proof for the deleted MMU
 
@@ -50,6 +54,8 @@ Convergent where it counts: CheriOS is **unverified purecap C** with **CHERI-rev
 CheriOS has the mechanism; this has the mechanism **and** the proof — the bcachefs/FSCQ relationship one layer down, in the kernel.
 It is the roads-taken counterpart to the rejected-alternative MMU analysis: the disposition argues CHERI *should* be the sole in-core spatial mechanism; CheriOS is the standing evidence it *can*.
 
+---
+
 ## Fedora Atomic — immutability as the base-image discipline
 
 Fedora Atomic (rpm-ostree; Silverblue / Kinoite / CoreOS) is the desktop-scale demonstration that the base OS can be an **immutable, versioned, atomically-updated, rollback-capable image** rather than a mutable pile of packages — libostree being, in effect, a content-addressed *"git-for-binaries"* object store with A/B deployments.
@@ -57,11 +63,15 @@ Fedora Atomic (rpm-ostree; Silverblue / Kinoite / CoreOS) is the desktop-scale d
 The spec then hardens it past what a Linux image can offer: the image is **content-addressed Merkle, signed, and runtime-verified against the boot-attested root** (§9, §10), reproducible bit-for-bit, with the **anti-rollback floor sealed to the RoT monotonic counter** (§9, §11).
 Immutability stops being a *deployment convenience* and becomes an *attestable integrity property*.
 
+---
+
 ## secureblue — the hardening ethos, carried from mitigation to proof
 
 secureblue is a security-focused, hardened derivative of the Fedora Atomic base — a hardened allocator, kernel-hardening flags, attack-surface reduction, GrapheneOS-influenced defaults.
 It contributes the *ethos* the spec elevates to a goal (**G1** minimal attack surface, **G2** defense in depth) and the specific stance that a desktop should be aggressively hardened **and** immutable at once, with the browser — the largest attack surface — **maximally contained** (§14).
 Where the design parts company is on the *nature of the guarantee*: secureblue composes **probabilistic mitigations** on a fundamentally memory-unsafe substrate, and this spec's own admission logic rejects mitigation-as-security wherever a proof is available — ASLR, stack canaries, CFI/landing-pads, and MTE-style tagging are **obviated by CHERI + proof and explicitly excluded**, on the *"~93% catch rate is a statistic, not a theorem"* disposition (§15, §17). secureblue is therefore the hardening ancestor whose *direction* the spec follows to its terminus: **delete the bug class by construction**, rather than raise the cost of exploiting it.
+
+---
 
 ## systemd — async init orchestration, minus the ambient authority
 
@@ -69,6 +79,8 @@ systemd contributed the *shape* of modern service management: **declarative unit
 §12's **service manager** keeps precisely this — a static supervision tree, declarative units, restarts with backoff — and §16 keeps the crash-only / health-gated posture.
 But systemd's *mechanism* is the thing this platform is built to refuse: it runs with root **ambient authority**, parses text unit files at runtime, and accretes a large privileged surface (socket activation, D-Bus, cgroup control).
 Here units are **compiled to typed, signed configuration objects per generation** — no trusted component parses text config at runtime (§10) — admitted by proof (§13); the supervisor holds **no ambient authority** and re-grants capabilities on restart (§8, §12); and socket-activation's "hand the service its connection" idea is subsumed by the **capability ring data plane** (§12), where authority arrives only over the control plane and *physically cannot cross* the data plane. systemd is thus the orchestration *pattern* ancestor, with its ambient-authority substrate swapped out for capabilities.
+
+---
 
 ## NixOS — the purely functional build: reproducible from source, config as a derivation
 
@@ -81,6 +93,8 @@ Where the design parts company is *addressing and trust*: classic Nix is **input
 NixOS also contributes the **generation** — a versioned, atomically-switched, rollback-capable whole system — but the spec's **statelessness** (§10) deletes Nix's mutable profiles, symlink farms, and imperative activation: there is no live system to reconcile, only an immutable signed image re-derived each boot.
 Guix's distinctive sharpening — a **full-source bootstrap** shrinking the trusted binary seed toward a tiny stage0 — is the *reduce-the-seed* complement to §13's *detect-by-DDC* answer to trusting-trust, the one Guix-specific idea worth carrying even though the imported model is Nix's.
 
+---
+
 ## OSTree — the content-addressed Merkle object store
 
 libostree (*"git-for-binaries"*) is the **content-addressed Merkle object store** beneath Fedora Atomic (above), rpm-ostree, and bootc: a Merkle-DAG file store keyed by content hash, with deduplicated deltas, atomic A/B deployments, and rollback as first-class operations.
@@ -90,10 +104,14 @@ What the spec **does not** take is the *product layer* over the store — neithe
 The spec's addition over the bare store is the *proof* and the *authority*: admission is gated by the on-device checker validating each binary's proof against the current spec/Sail-model versions (§11), and every object carries a **least-authority capability manifest** wired at compose time (§8, §13).
 Content-addressed transactional storage — now proof-checked and capability-scoped.
 
+---
+
 ## bcachefs — the CoW filesystem featureset, made verifiable
 
 bcachefs is the direct model for the mutable filesystem: an *elegant* copy-on-write filesystem whose whole architecture is **"everything is a b-tree,"** with per-extent checksumming, encryption, replication (RAID), erasure coding, tiering/caching, O(1) snapshots and reflinks, and a write-ahead journal. §10 adopts the featureset almost entire and makes it **verifiable**: the **L1 unified CoW B-tree with buffered updates** (bcachefs's log-structured nodes *are* a B^ε-tree), **snapshots as a version field in the key** (bcachefs-subvolume style), reflink/dedup as refcounted CoW extent sharing, replication/EC/tiering/copygc pushed **below the integrity line** as availability-only block services (§10, §12), and the journal as the **L0** crash-safety trunk. bcachefs's sharpest idea — **the checksum *is* the MAC** — becomes §10's **per-extent AEAD** (the Poly1305/GHASH tag serving as the stored checksum), now joined to a machine-checked proof: *bcachefs has the mechanism; this has the mechanism **and** the theorem* — the crypto reduction (scheme is IND-CCA/INT-CTXT) ⋈ the storage data-noninterference, at the extent's functional spec (§5, §10).
 The one deliberate subtraction is **compression**, dropped as a *security gain*: it deletes the compress-then-encrypt ratio oracle (CRIME/BREACH class) and removes a decompressor from the read path (§10).
+
+---
 
 ## FSCQ and its descendants — the verified-filesystem method
 
@@ -101,6 +119,8 @@ FSCQ (MIT) was the first filesystem with a machine-checked proof that its implem
 Its family is the entire L0–L3 methodology of §10: **SFSCQ / DiskSec** contribute machine-checked **data non-interference** (one domain's data provably cannot influence another's — the L3 confidentiality layer); **RefFS** contributes concurrent **linearizability + crash safety *and* liveness** — machine-checked deadlock- and livelock-freedom (Coq) via its **MoLi** *dynamically layered definite releases* framework, the safety-**plus-progress** successor to the same group's safety-only **AtomFS** (MoLi also caught a real deadlock in the Linux VFS locking scheme with no code proof); **VeriBetrFS** contributes the write-optimized **B^ε-tree** index design (L1); and **Perennial / GoJournal** contribute the concurrent crash-safe write-ahead **journal** (Iris/Coq — the L0 trunk), with **DaisyNFS** the top-half-transaction-over-journal *layering template*.
 The spec's move on this lineage is **trust-base uniformity and no managed runtime**: designs that ship on Dafny/Z3 or a Go runtime (VeriBetrFS, Perennial) are **re-proved in Coq/Iris and re-homed onto CompCert-C** (§5, §10, §18), keeping FSCQ itself and Yggdrasil as lineage and cross-check rather than bases.
 FSCQ is the existence proof *that a filesystem can be verified at all* — the ground the four-layer stack is built on.
+
+---
 
 ## ChromeOS — the verified-boot root of trust, realized as on-die OpenTitan
 
@@ -110,6 +130,8 @@ ChromeOS is the mass-deployment proof that a consumer OS can stand on a **hardwa
 ChromeOS supplies the verified-boot product template; OpenTitan supplies the open, inspectable silicon that lets the template become a *TCB* rather than a vendor black box.
 The same move **retires the discrete or firmware TPM — and declines OpenTitan's own TPM-2.0 command mode**: the RoT provides the TPM's *operations* (measured boot, sealing, attestation quotes, monotonic counters), verified and on-die (§9), but not as an unverified black box on an external bus (§15) nor through the TCG command *protocol* (a grammar-heavy register-slave surface, §5, §12) with its non-PQ attestation; software reaches those operations through the §12 sealing & attestation service that secure-vault apps build on.
 (Google's **Sparrow** — the KataOS reference platform, seL4 entry above — is a second datapoint for OpenTitan-as-integrated-RoT-on-RISC-V, corroborating the silicon bet even as it keeps a separate ML-accelerator core rather than making the die the platform's *only* computer, §4/§15.)
+
+---
 
 ## COSMIC / CVA6-CHERI — the open application-class CHERI core, and its ISA-conformance proof
 
@@ -122,6 +144,8 @@ The design **re-grounds** the import on its own axioms, three ways.
 *Purecap-only*: no capability-degraded interim (§15).
 What the design pointedly does **not** import is COSMIC's *product framing*: COSMIC is a **secure enclave beside a rich OS**, exercised with **Linux**, whereas §4's "no foreign computers" makes the **whole die** the trusted computer and §2/§14 reject a Linux personality outright — so the core RTL, the OpenTitan integration, and the conformance-proof *method* transfer, while the enclave pattern and the software stack do not.
 Two live-design notes mirror seL4's "a live design, not a frozen one" (above): CHERI is being standardized as the **RISC-V 'Y' extension** the frozen §15 profile tracks, and COSMIC's **dual-core lockstep** is a hardware fault-*detection* complement to §7's per-core kernel duplication for bit-flip blast-radius — fault detection beside fault containment, logged for **G5** but not yet imported (it doubles core area, a cost the design would weigh).
+
+---
 
 ## Fuchsia OS — the capability-IPC model: handles out-of-band, bounds in the schema
 

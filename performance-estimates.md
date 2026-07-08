@@ -17,6 +17,8 @@
 - **Sign convention:** negative = slower than baseline; positive = faster.
   `×` denotes a multiple (e.g. `+900%` = `10×`).
 
+---
+
 ## The big table
 
 | Group | Feature (spec §) | Change | Est. Δ perf | Applies to | Notes |
@@ -63,6 +65,8 @@
 | **Gain — added** | `Zaamo` single-instruction atomic RMW — fixed-latency, at the point of coherence (§15) | Retained | **≈0 vs baseline; a win vs LL/SC** | atomic / refcount-heavy | One AMO does the read-modify-write that bog-standard RISC — and RISC-V's own excluded `Zalrsc` — spends a load-reserved/store-conditional *retry loop* on: no spurious-failure re-tries, better under contention, one fixed-latency entry for WCET. Neutral against an AMO-equipped RV64GC/RVA23 baseline (which also carries `Zaamo`); the win is over the LL/SC idiom, and over the interrupt-masking / single-writer fallback a fully atomic-free profile would need. |
 | Neutral | `Ztso` memory model vs RVWMO (§15) | Substituted | **~0%** | all | Free on an in-order FIFO-store-buffer core; buys proof simplicity, not speed. |
 
+---
+
 ## Net change by workload archetype (vs the OoO baseline)
 
 The single-number answer depends entirely on the workload mix, so the honest total is a small matrix.
@@ -76,6 +80,8 @@ Figures are the compounded synthesis of the applicable rows above.
 | Vectorizable data-parallel (render, DSP, codecs, ML pre/post) | **+200% to +1400% (3–15×)** vs scalar; **≈ −20% to +100%** vs a vector-equipped baseline | RVV VLEN=4096 dominates; this is the class the design optimizes. |
 | Crypto (AES / SHA / GHASH) | **+400% to +1900% (5–20×)** | Table-free crypto extensions, constant-time. |
 | Dense GEMM / AI inference (M-class) | **+900% to +9900% (10–100×)** vs scalar | Systolic units; competitive with early-NPU-class parts. |
+
+---
 
 ## Headline total
 

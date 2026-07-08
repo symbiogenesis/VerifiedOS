@@ -22,6 +22,8 @@ An item earns a place on this list iff it clears all five:
 Aggressiveness is therefore **unbounded by trust**: any transformation whose result still type-checks (CHERI-TAL, §5) or proof-checks (CIC kernel, §6) is admissible however it was produced.
 This single fact is what makes the whole list pure.
 
+---
+
 ## 1. Off-device compiler optimization — untrusted optimizer, re-checked output
 
 *All items extend the in-scope §18 certifying-compiler workstream; none add a workstream to the TCB.
@@ -63,6 +65,8 @@ The output carries the same memory-safety / constant-time / WCET certificates (�
   Because the artifact is re-checked (§6), point unbounded offline search at the hottest routines.
   *This is the only admissible home for "evolutionary algorithms" — on codegen, where a wrong answer simply fails the checker, never on the spec or the proofs.*
 
+---
+
 ## 2. Off-device design-space search — admission tests as hard constraints
 
 *Optimize the **instantiation**, never the specification.
@@ -80,6 +84,8 @@ This — not mutating the spec — is the correct reading of "run a search over 
   *Keeps it pure:* each candidate is a static, Sail-modeled, admission-checked config; any added cache (e.g. integrity-tree nodes) is **partition-scoped and fence.t-flushed** like the LLC, so admission-test-3 still holds.
   *Done — wired into [verification-maximal-os.md](verification-maximal-os.md) §15 (normative) and [implementation-plan.md](implementation-plan.md) §1; the §17 Sail ⋈ RTL residual names it the standing mitigation.*
 
+---
+
 ## 3. Faster pure-interpreters — recover the JIT loss without runtime codegen
 
 - [ ] **Faster pure-interpreters for the browser's JS and Wasm.**
@@ -88,12 +94,16 @@ This — not mutating the spec — is the correct reading of "run a search over 
   *Keeps it pure:* no runtime codegen — the W^X invariant (§14) holds by construction.
   *No off-device AOT shortcut exists:* web-delivered Wasm is dynamic content and installed apps compile straight to native RV64+CHERI, so Wasm is never an execution target (§14) — the former "Wasm AOT" item was a category error and is removed.
 
+---
+
 ## 4. Application-level restructuring — software-only, no trust cost
 
 - [ ] **Data-oriented restructuring onto the fast paths.**
   SoA layouts, batching, and replacing pointer-chasing with vectorizable / matrix-shaped structure move general-purpose work onto the RVV, systolic-GEMM, and table-free-crypto paths (§15) that already run at parity-to-many-×.
   The single-address-space (no MMU, §7) already helps pointer-chasing (+5% to +25%).
   Pure by construction — ordinary source-level engineering that changes no mechanism.
+
+---
 
 ## What each lever recovers
 
@@ -113,6 +123,8 @@ Rows are named from [performance-estimates.md](performance-estimates.md) (figure
 | Micro-architectural DSE | Cache partitioning; DRAM (sub-)channel; DRAM integrity tree |
 | Faster pure-interpreters (JS + Wasm) | No-JIT (browser JS and Wasm) |
 | Data-oriented restructuring | General scalar → vector / matrix / crypto |
+
+---
 
 ## Out of scope — explicitly *not* pure wins
 
