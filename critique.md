@@ -43,8 +43,6 @@ High-rate authenticated freshness is a known-hard problem the spec waves at in o
 
 ## Gaps (not contradictions, but unbooked)
 
-USB-PD negotiation is a firmware-controller function everywhere today and escapes the EC-dissolution list.
-
 Capacitive touch controllers universally run tuned DSP firmware;the register-slave-scan claim implies a net-new raw-AFE + host-DSP co-design, unbooked.
 
 The RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP ASN.1 into Coq moves the vulnerability from the parser to your transcription of thousands of pages of grammar.
