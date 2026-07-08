@@ -767,13 +767,13 @@ No mechanism is added, so there is no new proof surface; the residual is purely 
 ## Link-layer timing — a fixed-function turnaround sequencer, not a Bluetooth/Wi-Fi controller
 
 The dissolved-modem thesis (§4, §12) puts the whole radio stack in contained software on the pinned V-cores, but one class of deadline is too tight for software under interrupt jitter: the sub-slot *turnaround*, where a device must flip the RX/TX path and be transmitting within a fixed inter-frame gap of the previous packet — the BLE inter-frame space (`T_IFS` = 150 µs ± 2 µs), the 802.11 short interframe space (SIFS = 10/16 µs), the 802.15.4 turnaround (~192 µs).
-This is the gap the critique flags — BLE link-layer timing "arguably harder than LTE HARQ" — and it is real: a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window, which is exactly why every shipping radio implements this turnaround below the software line.
+This is the gap worth flagging — BLE link-layer timing "arguably harder than LTE HARQ" — and it is real: a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window, which is exactly why every shipping radio implements this turnaround below the software line.
 
 **Three ways to meet it, and the fork the axiom forces.**
 (a) A **Bluetooth/Wi-Fi controller** runs the entire link layer/MAC as firmware on a hidden core — the industry's *FullMAC* — meeting the timing trivially but as precisely the "Wi-Fi/BT controller firmware" §4 bans: an opaque processor with its own DMA, the largest foreign computer the radio architecture exists to delete.
 Rejected.
 (b) **Pure software on dedicated cores** meets the turnaround by pinning a core and precomputing the response — the Microsoft *Sora* approach (NSDI '09), which used core-dedication and lookahead to hit Wi-Fi SIFS in software.
-It keeps everything in the trust structure but spends the tightest real-time budget on the most jitter-sensitive path; it is the critique's "harder than HARQ" horn, and at 150 µs / 16 µs it is fragile.
+It keeps everything in the trust structure but spends the tightest real-time budget on the most jitter-sensitive path; it is the "harder than HARQ" horn, and at 150 µs / 16 µs it is fragile.
 (c) A **fixed-function timing sequencer in the register-slave transceiver datapath** (§15) — a hardware packet-end event starting a fixed timer that drives the RX/TX switch and gates a software-prepared buffer out at the exact deadline, with no instruction fetch, no writable program, no firmware, and no protocol decision.
 This is the *SoftMAC / split-MAC* partition — time-critical turnaround in fixed hardware, the link layer and everything above it in software — and it is what the platform adopts.
 
@@ -798,7 +798,36 @@ This is the same "hardness at the boundary, patchable software above it" rule th
 The split-MAC line drawn here is not radio-specific; it is the platform's rule for every transducer.
 The analog front-end plus a fixed-cadence scan/sample sequencer stays *matter* — a register-slave AFE streaming raw samples over a capability-bounded DMA window, no per-sensor DSP core and no firmware — while all signal processing dissolves onto the host V-cores.
 Capacitive touch (raw capacitance → host touch DSP), the audio front-end (microphone/speaker converters → host filtering, echo-cancellation, and beamforming), the image sensor (raw Bayer → the software ISP), IMU/motion (raw reads → host fusion), and the fingerprint/biometric AFE (raw frames → the host matcher) are all instances.
-The one honesty the radio case does not carry: sensor front-ends have no off-the-shelf firmware-free part — commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware — so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design, booked in §17; that booking is the resolution of the capacitive-touch gap the critique flags.
+The one honesty the radio case does not carry: sensor front-ends have no off-the-shelf firmware-free part — commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware — so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design, booked in §17; that booking is the resolution of the capacitive-touch AFE gap.
+
+---
+
+## Physical bifurcation of the radio — a second die is declined; the single-die realization takes the top rung of every graded axis
+
+The candidate: instead of the radio stack living as a coherence island on the one die — absorbing the booked die-internal residuals (shared power/thermal/refresh/PRAC coupling, §17) — put it on a **second, identical, attested instance of the same die**, linked by a ring-over-SerDes: not a foreign computer (§4), a second copy of the one computer.
+It deletes the highest-value cross-domain residuals outright and simplifies the island machinery on the main die, at the cost of a package and an inter-die link that becomes a new (IDL-shaped, Narcissus-parsed) boundary.
+
+**What it targets, and what it keeps.**
+The win is deleting the radio↔rest **power/thermal/refresh/PRAC coupling** a shared die leaves.
+It does *not* delete the shared **mask set** — the second instance is "the same die" by design — so a mask- or dopant-level trojan is common to both copies regardless; the target is only the die-internal power/thermal/refresh/PRAC coupling.
+
+**Why the second die is declined.**
+The platform already climbs a **graded physical-isolation hierarchy** on every other axis — coherence (island exclusivity), DRAM (whole-die/rank down to bank), LLC (per-island slice), NoC (TDM non-interference), clock (GALS between islands).
+The radio already holds the coherence-island half, so the disciplined move is to take that hierarchy's **top on-die rung on every axis** rather than jump to a second package:
+- **DRAM** — the radio island takes **separate die/rank** exclusivity (the existing top rung, §15), deleting the shared refresh/RFM/PRAC/on-die-ECC coupling §17 books for sub-channel sharing — no new mechanism, just the strong rung.
+- **Power and clock** — the radio island gets its **own clock/power island**, the identical treatment the RoT already carries (§15, §16) and the mitigation §17 already names (*power-island isolation*), deleting the on-die power-delivery droop coupling and completing the GALS story on the power axis (islands already run at independent clocks; now an independent rail).
+- **Thermal/PRAC** — no new mechanism: the *channels* are already deleted (thermal fail-stop, PRAC demoted to a fail-stop tripwire, §15); a floorplan keep-out narrows the residual thermal-mass coupling.
+
+On the in-model residuals the second die targets this **deletes the same things**, and avoids paying what the second die charges: it keeps the **single-die inspectability** the §17 supply-chain residual leans on (one die to image under IRIS, not a board of opaque packages), and it adds **no new boundary** — the ring-over-SerDes would be a fresh IDL-shaped boundary needing a Narcissus parser, a clock-domain-crossing/metastability obligation, new RTL ⊑ Sail surface, two-die attestation, and SerDes power and latency — reusing island, DRAM-binding, and clock/power-island boundaries already modeled.
+
+**What the second die uniquely buys — and why it is not enough.**
+It alone gives physically separate substrate and thermal mass: the last epsilon of analog-emission (TEMPEST-class) and power-probe coupling between the transmitter and secret-processing logic.
+But that is (a) already physical-scope, outside the remote-attacker model (§17), and (b) *not actually closed by the second die either*, which reuses the same die design (same mask) and whose radio radiates by function — so the package buys an out-of-model epsilon it does not cleanly deliver.
+
+**Disposition (adopted in part; normative in §15):** the second die and the inter-die link are **declined**; the **single-die realization** — the radio island taking separate DRAM die/rank and its own clock/power island — is **adopted** and normative in §15 (Interconnect and coherence, Power architecture), deleting the power/thermal/refresh/PRAC coupling on one die.
+It is the same graded-hierarchy discipline the design already applies on four axes, extended one axis (power/thermal) to the block that already holds the coherence-island half.
+
+**Honest residual (§17):** the physical substrate and thermal mass stay shared — analog-emission and power-probe coupling remain physical-scope, exactly as the §17 physical residual books — bought back against a new inter-die trust boundary and the single-die inspectability the supply-chain residual leans on.
 
 ---
 
@@ -1137,7 +1166,7 @@ These are the textbook domain of Lustre/SCADE — the language family that certi
 - **WCET is structural, not derived.**
   A Lustre node compiles to a **loop-free, statically-bounded reaction** — one activation is a fixed amount of computation over a statically-sized state, no dynamic allocation, no unbounded loop.
   So the control tier's worst-case execution time falls out of Vélus compilation *by construction*, not from the Coq-verified IPET estimator (§5, §11) an arbitrary Rust CFG needs; the estimator's harder loop-bound/path work is left to the data planes.
-  This is a direct **shrink** of the §11 WCET surface, and it is why the critique names *structural WCET* the headline dividend.
+  This is a direct **shrink** of the §11 WCET surface, and it is why *structural WCET* is the headline dividend here.
 - **No hidden state survives an activation.**
   A synchronous node's entire state is the explicit, statically-sized Lustre memory; there is nothing latent between ticks.
   This is admission-test-3 (*no hidden state survives a partition switch*, §15) discharged by construction for the control tier, and it makes **crash-only** re-initialization (§12) a well-defined state reset rather than an audit of imperative heap.

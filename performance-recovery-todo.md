@@ -62,7 +62,7 @@ The output carries the same memory-safety / constant-time / WCET certificates (�
   Cut branch density (fewer static mispredicts), widen the scheduler's window for pipelining, and expose more loops to the vectorizer.
   Recovers part of the static-prediction and in-order rows; compounds the items above.
 - [ ] **Superoptimization / equality-saturation / search-based (incl. ML and evolutionary) codegen for hot kernels.**
-  Because the artifact is re-checked (§6), point unbounded offline search at the hottest routines.
+  Because the artifact is re-checked (§6), point unbounded offline search at the hottest routines: the whole modern SMT-backed stack enters *as untrusted, re-checked oracles* — **Souper**-class SMT superoptimization, **egg** / equality-saturation rewrite search, and **Alive2**-style translation validation gating each peephole — none touching the trust base, because the emitted binary still carries the CHERI-TAL and constant-time certificates the §6 checker re-validates.
   *This is the only admissible home for "evolutionary algorithms" — on codegen, where a wrong answer simply fails the checker, never on the spec or the proofs.*
 
 ---
@@ -89,7 +89,7 @@ This — not mutating the spec — is the correct reading of "run a search over 
 ## 3. Faster pure-interpreters — recover the JIT loss without runtime codegen
 
 - [ ] **Faster pure-interpreters for the browser's JS and Wasm.**
-  Under no-JIT (§14) the browser runs downloaded JS and Wasm *interpreted* — Boa/Nova for JS, wasmi for Wasm (both pure-Rust, per [critique.md](critique.md)) — because web content is dynamic and W^X (§14) forbids on-device codegen.
+  Under no-JIT (§14) the browser runs downloaded JS and Wasm *interpreted* — Boa/Nova for JS, wasmi for Wasm (both pure-Rust) — because web content is dynamic and W^X (§14) forbids on-device codegen.
   Claw the overhead back with threaded / computed-goto dispatch, superinstructions, and **data-plane inline caches** (caches as *data*, never generated code).
   *Keeps it pure:* no runtime codegen — the W^X invariant (§14) holds by construction.
   *No off-device AOT shortcut exists:* web-delivered Wasm is dynamic content and installed apps compile straight to native RV64+CHERI, so Wasm is never an execution target (§14) — a "Wasm AOT" lever would be a category error, so none is listed.
