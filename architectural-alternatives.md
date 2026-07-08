@@ -145,6 +145,43 @@ Non-normative; no spec-body change.
 
 ---
 
+## Fine-grained multithreading and timing-predictable architectures — PRET, PATMOS/T-CREST, FlexPRET — the non-speculative throughput lever the SMT rejection over-rejected
+
+The profile deletes **simultaneous multithreading** (SMT) uniformly (§15) on admission-test-3 grounds: SMT threads share issue ports, functional units, and caches *dynamically*, so one thread's occupancy is hidden shared state surviving a partition switch that makes the other's timing data-dependent — the co-residency channel.
+That rejection is correct, but it kills only *simultaneous* (dynamic-issue) multithreading, and it has been read too broadly.
+**Fine-grained (barrel / temporal) multithreading** is a structurally different mechanism: N hardware threads with **replicated per-thread register files**, interleaved onto one pipeline by a **fixed, statically-scheduled round-robin** — thread *t* owns issue slot *t mod N* unconditionally, whether or not it has work.
+This is the lineage of the CDC 6600 peripheral barrel, the Denelcor HEP and Tera MTA (Burton Smith), and — shipping, sold on determinism — **XMOS xCORE** (guaranteed-MIPS logical cores for hard-real-time I/O).
+It is separable from SMT exactly as EPIC's NaR was separable from the bundle, and the separated form clears the admission test the dynamic one fails.
+
+**The steelman — two real cards, both the platform's own currency.**
+(a) **It is the non-speculative throughput lever the belt entry (above) went looking for.**
+Interleaving hides load-use, functional-unit, and branch-resolution latency by filling the shadow of a stalled thread with *another partition's* independent work — recovering much of the in-order IPC tax **with no speculation, no dynamic prediction, and no rollback**: the "ILP without speculation" the belt chases through exposed scheduling and NaR, here obtained by temporal interleaving instead.
+(b) **It is the platform's timing discipline as a microarchitecture program.**
+The **PRET** machine (Edwards & Lee, DAC '07 — *precision-timed*, timing a first-class controllable property), **PATMOS / T-CREST** (Schoeberl — a time-predictable multicore whose **Argo TDM NoC** is the design's own §15 TDM NoC by another name), and **FlexPRET** (Zimmer/Broman/Shaver/Lee — a RISC-V fine-grained-multithreaded PRET core) are an entire architecture lineage built around *repeatable, controllable timing* — the property §11 and §15 construct from scratch.
+The design is *already a PRET-class machine on the timing axis*, reached from the security side (fixed-latency, in-order, static-only prediction) rather than the real-time side; PRET/PATMOS/FlexPRET are the convergent prior art the WCET entry (below) and the timing profile (§15) should cite.
+
+**Why the static-slot form passes where SMT fails.**
+Run barrel MT through the five-part §15 admission test in its *fixed-schedule* form: (1) deterministic — a thread's timeline is a function of its own instruction stream and its fixed slot allotment, nothing else; (2) no data-dependent latency — the schedule being fixed, thread A's stalls **cannot** shift thread B's issue cycles (the inter-thread interference SMT reintroduces is exactly what a static round-robin removes — *stronger* temporal isolation than a single fast thread, not weaker); (3) no hidden shared state surviving a partition switch — per-thread register files are architectural and replicated, the slot assignment is a composition-time constant, and threads map to partitions so the interleave *is* the partition boundary; (4) Sail-expressible — thread ID and slot table are architectural state; (5) no autonomous behavior — the round-robin is a fixed counter, not an address-dependent engine.
+It is the **pipeline-level analog of the TDM NoC and cache coloring** the design already runs (§15): time-division of one datapath among fixed tenants, which is precisely why T-CREST pairs barrel-predictable cores with a TDM NoC — the same instinct, one level down.
+The **dynamic** variant — fill an idle slot with any ready thread (FlexPRET's *soft* threads, SMT's issue logic) — reintroduces the data-dependent contention and **stays rejected**; the design takes FlexPRET's *hard-real-time-thread* discipline (every thread a guaranteed fixed slot) for **all** threads and drops the soft-thread slot-filling.
+
+**Where it ranks — the cheapest throughput lever, and it stays in RISC-V.**
+It **abandons no substrate** (FlexPRET is RV32; a barrel front end is an RV64+CHERI datapath option, not a new ISA), so it is off the belt/EPIC/OISC "abandon RISC-V for ILP" scale entirely, and it ranks **above** all of them as the *first* non-speculative throughput lever to reach for: it joins the two stay-in-RISC-V atoms the EPIC entry distilled — NaR poison loads and wider in-order superscalar + verified static scheduling — as a **third**, and the most directly latency-hiding of the set, at zero substrate cost and no new proof base beyond a per-thread-state Sail addition.
+Its natural home is the scalar in-order cores that actually pay the IPC tax (the V/M datapaths already hide latency through vector length and the systolic array), and its deterministic per-thread interrupt latency (XMOS's selling point) sharpens the §12 hard-real-time tasks — though the sub-slot radio turnaround stays in the fixed-function sequencer (the link-layer-timing entry below), which needs no thread at all.
+
+**The distilled atom — the methodology is banked, the mechanism is genuinely new.**
+Following the belt→spiller / EPIC→NaR discipline: the PRET *timing-first methodology* is already present as the fixed-latency profile (§15) ⋈ the timing-annotated Sail model (§11) — the design converged on it from security, so nothing imports there but the name and the citation.
+Barrel MT *itself* is the one un-banked atom — a real, admissible, non-speculative throughput mechanism the profile has not considered — and, unlike every other performance lever in this document, it is a pure *addition* of Sail surface (per-thread register files, a slot-schedule register), not a deletion.
+
+**Disposition (non-normative; gen-2 throughput candidate + prior-art grounding).**
+**Static-slot fine-grained (barrel) multithreading is admissible** — it passes the five-part admission test as the pipeline-level sibling of the TDM NoC (fixed schedule, replicated per-thread state, no inter-thread timing dependence), and is **logged as the first-choice non-speculative throughput lever should the in-order IPC tax bind** — ahead of the belt and any ISA fork, beside the EPIC entry's NaR and wider-superscalar atoms, on plain RV64+CHERI.
+**Dynamic-issue SMT (and FlexPRET-style soft-thread slot-filling) stays rejected** (§15) — the data-dependent contention the static schedule removes.
+**PRET / PATMOS / T-CREST / FlexPRET** are logged as the timing-predictable-architecture lineage the profile's timing discipline (§11, §15) converges on from the security side — the design is a PRET-class machine already, and T-CREST's Argo TDM NoC is its §15 NoC by another name.
+The platform axiom decides it as ever — *engineering is free, performance is subordinated*: a throughput lever that buys back IPC (the free axis) without speculation and without leaving the substrate is a gen-2 candidate, not a base move, unless the vector/matrix-memory-latency-hiding case ever justifies banking it at base.
+**Honest residual (§17):** barrel MT is the rare performance entry that *grows* the Sail model rather than shrinking it — per-thread register files, a slot-schedule table, and thread-ID architectural state join the model and the partition-switch/flush accounting — admissible only in the fixed-schedule form and only where a partition carries enough independent threads to fill its slots (else they idle, which the non-work-conserving §11 model already tolerates); it buys throughput, the freely-spent axis, so it is booked as a bounded, deferrable extrapolation like the belt, not a standing obligation.
+
+---
+
 ## CHERI-Wasm as a hardware ISA — the interface half is already imported (WIT → §12), the execution half is the substrate §14 deletes
 
 "Should the hardware natively target CHERI-based Wasm" bundles three separable proposals, resolved individually against the §15 admission test and the import discipline — the same decomposition that logged the belt's spiller and EPIC's NaR while rejecting the rest.
@@ -297,6 +334,40 @@ Non-normative; no spec-body change.
 
 ---
 
+## Decentralized-information-flow OS architectures — HiStar, Asbestos, Flume — the label-centric minimal-TCB design, reached from the capability side
+
+The proposal is an OS organized around **decentralized information flow control (DIFC)** as the primary mechanism: every object carries secrecy and integrity **labels**, the kernel's whole job is to forbid any data flow that would violate the label lattice, and the trusted base shrinks to a small label-checker.
+The lineage: **Asbestos** (Efstathopoulos et al., SOSP '05 — labels on processes and messages, event processes for per-request isolation); **HiStar** (Zeldovich/Boyd-Wickizer/Kohler/Mazières, OSDI '06 — six object types (segment, thread, gate, address space, container, device), labels on all, a minimal kernel enforcing *only* information flow, famously running a taint-tracking web server and a Unix emulation over a tiny TCB); and **Flume** (Krohn et al., SOSP '07 — DIFC as a reference monitor over standard Linux, tags and endpoints).
+
+**The steelman — squarely in the project's spirit.**
+(a) **Minimal TCB by making information flow the sole mechanism** — HiStar's thesis is that privacy and integrity policies need only a tiny kernel if information flow is the organizing principle, the platform's own least-authority, smallest-trusted-set instinct (G1/G2).
+(b) **Decentralized declassification** — any principal may declassify its own secrets — is the no-ambient-authority, delegate-don't-grant stance (§2, §8) exactly.
+(c) **It targets confidentiality/non-interference head-on** — the very property the design proves as the §8 non-interference theorem over the flow-label / IFC machinery (§8, §13).
+
+**Why it does not import as an *architecture* — the design already runs DIFC as a mechanism over a stronger substrate.**
+- **The design is capability-centric with DIFC layered on, not label-centric.**
+  The §8/§13 flow-label / IFC machinery *is* decentralized information flow control — but carried over a **capability** kernel (seL4-design, §7) and **CHERI** hardware, so the platform has HiStar's information-flow enforcement **plus** byte-granular spatial capability isolation HiStar lacks (HiStar isolates with coarse address-space containers and labels; CHERI bounds every pointer).
+  The lattice rides *on* capabilities, not *instead of* them — strictly more mechanism where it counts, reached from the capability side the historical-capability-machines entry (below) already traces.
+- **HiStar's minimal TCB is a runtime reference monitor; the platform's is a proof.**
+  HiStar shrinks the trusted *code*; the design shrinks the trusted *set* and then **proves** the kernel correct in Coq (§5) and bounds even wholly-unverified code with the hardware universal contract (§13).
+  HiStar's label-checker is small but unverified; the design's is small **and** verified — the same "minimal but *verified* beats minimal" upgrade the exokernel and enclave entries make.
+- **Timing channels are the platform's separate, deeper effort.**
+  DIFC labels track explicit and storage flows; the covert **timing** channels are closed here by construction (in-order, non-speculative, partitioned caches/DRAM/NoC, §15) and by the constant-time layer (§5), not by labels — so a DIFC OS would still owe the timing-channel story the profile already discharges.
+- **HiStar's Unix emulation is a foreign trust base** — the POSIX ambient-authority surface [userspace-porting.md](userspace-porting.md) deletes; the design reimplements capability-native (§14) rather than emulating Unix over labels.
+
+**The distilled atom — already banked (the belt→spiller discipline).**
+Decentralized information flow control = the §8/§13 flow-label / IFC machinery and the §8 non-interference theorem; minimal-TCB-via-one-mechanism = the capability kernel (§7) ⋈ the hardware universal contract (§13); decentralized declassification = the powerbox / capability-delegation model (§8, §12).
+The DIFC-OS tradition distills into **CHERI ⋈ the capability kernel ⋈ the flow-label/IFC machinery ⋈ the non-interference theorem** — all present, the OS-structure *name* for decisions taken from the capability side, exactly as the exokernel/unikernel entry (above) found for resource multiplexing.
+
+**Where it ranks.**
+Off the abandon-substrate scale (an OS structure, no ISA change) — a **convergent-structure entry** beside exokernel/unikernel and enclaves: the design is *already* a DIFC OS (labels ⋈ non-interference) reached from capabilities and **verified**, reaching HiStar's minimal-TCB goal with byte-granular isolation and a machine-checked proof HiStar has neither of.
+
+**Disposition:** no import as an architecture — DIFC is present as the §8/§13 flow-label / IFC machinery and the §8 non-interference theorem, carried over the capability kernel (§7) and CHERI (byte-granular, exceeding HiStar's coarse container-plus-label isolation) and **proved** in Coq (§5) rather than enforced by an unverified reference monitor; HiStar's Unix emulation is the POSIX ambient-authority surface the design deletes ([userspace-porting.md](userspace-porting.md), §14).
+The label-centric structure is convergent, the assurance is higher (verified, byte-granular), and nothing lifts.
+Non-normative; no spec-body change.
+
+---
+
 ## HexFive MultiZone — already covered, strictly dominated, nothing to import
 
 MultiZone is a policy-driven separation kernel: a small nanokernel orchestrating standard RISC-V **PMP** to isolate zones, a no-shared-memory messenger between zones, and a configurator fusing linked zone binaries + policy + kernel into a signed image (running unmodified code by trap-and-emulate of privileged instructions).
@@ -376,6 +447,47 @@ Off the abandon-substrate scale — a convergent / subsumed entry: the design is
 **Disposition:** no import — hardware enclaves defend against transient-execution and shared-microarchitecture channels the in-order, non-speculative, cache-partitioned, single-address-space profile deletes (§15), and their coarse PMP realization (Keystone) is the mechanism CHERI exceeds (drop-PMP, above); the attested isolated compartment and the small verified monitor are already the CHERI compartment ⋈ measured root (§9, §12, §14) and the verified kernel ⋈ RoT (§7, §9).
 The MI6/Kôika formal-HDL lineage is shared as a *verification* vehicle (§18); the enclave product is not needed.
 Non-normative; no spec-body change.
+
+---
+
+## Redundant-execution architectures — DIVA checker cores, lockstep, TMR — the asymmetric-trust pattern is the platform's own, spent on simplicity rather than redundancy
+
+The proposal keeps a fast, complex, *unverified* core and buys trust in its results with **hardware redundancy** rather than by simplifying and verifying the core itself.
+Three forms: **DIVA** (Austin, MICRO '99 — a small, in-order, *formally verifiable* **checker** core re-validates the complex core's every result at commit and overrides it on disagreement, so only the tiny checker need be trusted); **dual-core lockstep** (two identical cores, a comparator flags divergence — random-fault *detection*, as in ARM Cortex-R and the **COSMIC** work); and **TMR / N-modular redundancy** (triple copies plus majority vote — fault *masking* for the SEU/radiation case).
+
+**The steelman — DIVA is philosophically the platform's own move.**
+The **asymmetric-trust structure** — a small verified thing validates a large untrusted thing — is exactly what the design runs everywhere: the §6 FPCC checker over untrusted compilers, the CryptOpt Coq-verified equivalence-checker over an untrusted superoptimizer (§5), the §13 admission checker over untrusted binaries.
+DIVA is that pattern at the *microarchitecture* level, and if it held it would let a fast out-of-order core be used while keeping the trusted base small — an apparent escape from the in-order IPC tax that seems, at first glance, to spend the platform's own currency.
+Lockstep, meanwhile, is **already logged for G5** (COSMIC dual-core lockstep, a fault-*detection* complement to §7's per-core kernel duplication; [inspirations.md](inspirations.md)).
+
+**Why DIVA fails as a strategy — it restores the wrong half of trust.**
+- **A DIVA checker validates the *result*, not the *channels*.**
+  The complex core it checks is still out-of-order and speculative, so it still carries the **transient-execution, branch-predictor-state, and co-residency timing channels** the profile deletes by construction (§15).
+  DIVA lets the design trust *what* a speculative core computed while leaving *how long it took* — and what it prefetched, mispredicted, and evicted — a systematic leak the checker never inspects.
+  The platform's threat is not "the fast core computes a wrong result" (rare, and what DIVA catches) but "the fast core leaks through microarchitecture" (systematic, and what DIVA ignores) — so DIVA buys down the wrong risk.
+- **The design already took the stronger horn of the same asymmetry.**
+  Its answer to "small trusted, large untrusted" is to make the **core** the small verified thing — in-order, non-speculative, RTL ⊑ Sail (§18) — so there is *nothing complex to check and no channel to leak*, rather than keep a complex core and bolt a checker beside it.
+  *Delete rather than defend*: delete the speculative core, do not defend against it with a checker.
+- **Static proof beats per-execution check — the zkVM argument, one layer down.**
+  RTL ⊑ Sail proves the one simple core correct **for all inputs, once**; a DIVA checker re-establishes correctness **per execution**, and only functionally — precisely the ordering the zkVM entry (below) draws between a static all-inputs proof and a per-run transcript, DIVA the microarchitectural instance of the weaker side.
+
+**Why lockstep/TMR is orthogonal, not missing.**
+Random-fault redundancy addresses *reliability* (SEU, aging, glitch), not the *security* threat, and the reliability case is already partly carried: **ECC end-to-end**, deterministic **Rowhammer RFM** (§15), **per-core kernel duplication** for blast-radius containment, and crash-only fault containment (§16).
+Lockstep/TMR would add fault *detection/masking* on top — genuinely useful for a safety (**G5**) case — but at **2×/3× core area**, and it is already logged on exactly those terms ([inspirations.md](inspirations.md)): a deferred option weighed on cost, not an unconsidered gap.
+
+**The distilled atom — banked at the proof level, deferred at the silicon level.**
+The DIVA "small verified checker over large untrusted producer" pattern is banked *pervasively* as the FPCC/CryptOpt/admission discipline (§5, §6, §13) — reached where it costs proof surface rather than silicon area, and where the checker validates the **certificate** (memory safety, constant-time, refinement) rather than merely the register file.
+RTL ⊑ Sail (§18) is the design's answer to core correctness, static and for all inputs, strictly exceeding DIVA's per-execution functional check.
+Lockstep/TMR random-fault masking stays a **G5 gen-2 option**, subtractively admissible at its honest 2–3× area if a safety case ever demands masking over containment.
+
+**Where it ranks.**
+Off the abandon-substrate scale (a reliability/verification microarchitecture, not an ISA) — DIVA ranks as the *microarchitectural sibling* of the zkVM entry and below the adopted approach on the same "static all-inputs proof beats per-run check" grounds; lockstep/TMR ranks as a deferred G5 reliability option, already logged.
+
+**Disposition:** **DIVA is rejected as a strategy** — it restores functional trust in a complex core while leaving its timing channels (the actual threat) open, and the design takes the stronger horn of the same asymmetric-trust insight: a simple verified core (RTL ⊑ Sail, §18) with nothing complex to check and no channels to leak, its static all-inputs proof exceeding DIVA's per-execution functional check.
+The asymmetric-trust *pattern* DIVA embodies is banked at the proof level (FPCC §6, CryptOpt §5, admission §13), checking certificates rather than results.
+**Lockstep / TMR** random-fault redundancy is a reliability mechanism orthogonal to the security threat, partly present (ECC, RFM, kernel duplication; §15, §16) and otherwise **logged for G5** (COSMIC lockstep, [inspirations.md](inspirations.md)) as a deferred 2–3×-area option, not carried by default.
+The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend → verify rather than hedge*: verify one simple core rather than check a complex one, contain random faults rather than replicate against them, until a safety case pays for masking.
+**Honest residual (§17):** the single simple verified core has no functional-fault *masking* — a random SEU mid-computation is *contained* (blast radius, ECC; §16) but not voted out the way TMR would — the deferred G5 lockstep/TMR option at 2–3× area; the bet is that ECC ⋈ deterministic refresh ⋈ fault containment ⋈ a verified core with no design faults to outvote covers the random-fault case without N-modular redundancy, replicate-and-vote the cheapest re-admission if avionics/automotive-class fault masking is ever required.
 
 ---
 
@@ -929,6 +1041,36 @@ The zk primitives themselves (a SNARK/STARK verifier) are ordinary contained cry
 Rejected on **motivation**, one level above cost — like Wasm-as-substrate, it trades for a property the Goals do not seek (third-party verifiability of a remote execution) that FPCC ⋈ attestation already exceed for the local threat model; off the ILP ranking entirely, since it is not an ILP play.
 
 **Disposition:** rejected as an execution substrate — the FPCC discipline already banks proof-carrying artifacts *statically and per-input* (stronger than a per-execution transcript), attestation already gives a remote party a reproduced account of what runs (§9), and RTL ⊑ Sail already proves the machine executes the ISA faithfully (§18); a zk verifier is admissible only as an ordinary **application-level tool** for checking a specific untrusted third-party computation, never a system execution model, and its six-order overhead is the wrong trade on the one axis the platform spends.
+Non-normative; no spec-body change.
+
+---
+
+## Homomorphic encryption and secure multiparty computation as compute substrates — the privacy-preserving sibling of zkVM, rejected on the same two grounds
+
+The proposal makes the execution substrate a **privacy-preserving computation** model: **fully homomorphic encryption** (FHE; Gentry, STOC '09 — compute directly on ciphertext, the data never decrypted, so the executing machine never sees plaintext) or **secure multiparty computation** (MPC; Yao garbled circuits, GMW, secret-sharing — split a computation across mutually-distrusting parties so none sees another's inputs).
+It is the confidentiality sibling of the zkVM entry (above): where zkVM adds *verifiability* of a remote execution, FHE/MPC add *confidentiality against the executor*.
+
+**The steelman.**
+FHE gives **data-in-use confidentiality against the host itself** — the strongest possible data-confidentiality, stronger even than the platform's TME (which encrypts at rest and in transit but decrypts in-core to compute, §15) — and it is a genuinely different security model: confidentiality by *cryptography* rather than by *isolation*.
+Some FHE/MPC implementations are formalization-adjacent, so it is not off the verification map.
+
+**Why it does not import as a substrate — the zkVM rejection, verbatim, on two grounds.**
+- **Threat model.**
+  FHE/MPC protect a computation *from the machine running it* — the outsourced/cloud model where the executor is the adversary.
+  This platform **is** the trusted machine: a personal device whose CHERI, kernel, and crypto core the owner trusts and the design *verifies*, whose confidentiality boundary is TME ⋈ the crypto core's hardware boundary (keys never leave) ⋈ CHERI/IFC in-core (§8, §15), and whose whole point is that computing on plaintext on-core is safe.
+  Protecting the computation from its own trusted CPU is a property **outside the threat model** — the same "buys a property the Goals do not seek" rejection the zkVM (third-party verifiability) and Wasm-as-substrate (portability) entries make.
+- **Overhead.**
+  FHE carries **10³–10⁶×** slowdown (bootstrapping-dominated); MPC carries round-complexity and communication blowup, and its parameter- and noise-management structure is data-dependent in ways that fight the fixed-latency WCET tables (§11).
+  The platform spends performance freely, but not six orders of magnitude to buy a property it does not need — the identical cost argument the zkVM entry books.
+
+**The distilled atom — already banked / app-level.**
+Data confidentiality here is **TME** (§15) at rest and in transit ⋈ the **crypto core's hardware boundary** ⋈ **CHERI/IFC** in-core (§8) — confidentiality by isolation and at-rest encryption, matched to a threat model in which the CPU is trusted.
+The FHE/MPC *primitives* are ordinary contained crypto the platform could run **as an application** if a specific need arose — private set intersection, a sealed-bid or private-contact-discovery protocol with an untrusted **remote** party — an app-level tool over native RV64+CHERI, never a system execution substrate, exactly the zkVM verifier's sole admissible role.
+
+**Where it ranks.**
+Rejected on **motivation**, one level above cost — with zkVM and Wasm-as-substrate, it trades the substrate for a property (confidentiality against a distrusted executor) the Goals do not seek for the local threat model, where TME ⋈ isolation already give confidentiality against the threats that *are* in scope; off the ILP ranking (not an ILP play), and paired with the zkVM entry as the two cryptographic-computing models rejected on threat-model + overhead.
+
+**Disposition:** rejected as an execution substrate — FHE/MPC protect a computation from a distrusted host, a threat model this trusted, verified personal device is not in (confidentiality here is TME ⋈ the crypto-core boundary ⋈ CHERI/IFC, §8/§15, against the threats actually in scope), and their 10³–10⁶× overhead is the wrong trade on the one axis the platform spends; FHE/MPC primitives are admissible only as **application-level tools** for privacy-preserving interaction with an untrusted *remote* party, never a system execution model — the confidentiality sibling of the zkVM entry's verifiable-computation rejection.
 Non-normative; no spec-body change.
 
 ---
