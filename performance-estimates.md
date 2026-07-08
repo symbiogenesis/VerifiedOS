@@ -1,12 +1,21 @@
 # Performance Estimates — What the Security Choices Cost (and Buy) (non-normative)
 
-> Externalized companion to [verification-maximal-os.md](verification-maximal-os.md). This is a **non-normative estimate**, not part of the specification: an engineering-judgment accounting of the performance-relevant features the spec removes, adds, or substitutes, and the resulting net delta. Cross-references of the form §N point to sections of that specification. Every figure is a **coarse range with wide error bars**, not a benchmark; performance was deliberately subordinated to security (§1), so this document quantifies the accepted price rather than defending it.
+> Externalized companion to [verification-maximal-os.md](verification-maximal-os.md).
+> This is a **non-normative estimate**, not part of the specification: an engineering-judgment accounting of the performance-relevant features the spec removes, adds, or substitutes, and the resulting net delta.
+> Cross-references of the form §N point to sections of that specification.
+> Every figure is a **coarse range with wide error bars**, not a benchmark; performance was deliberately subordinated to security (§1), so this document quantifies the accepted price rather than defending it.
 
 ## How to read this
 
-- **Baseline.** Unless noted, the reference is a **conventional 2026 application-class RISC-V SoC**: out-of-order (OoO) superscalar, TAGE-class dynamic branch prediction, MMU + multi-level TLB, multi-level caches with hardware coherence, aggressive DVFS + turbo, fixed-function GPU and video codecs, RVA23-class ISA *including* the C extension, conventional (non-CHERI) 64-bit pointers, plain (unencrypted, no-integrity-tree) DRAM. This is "what you would otherwise buy" for the phone/desktop targets the spec addresses. A **secondary baseline** — a plain *in-order* RV64GC core — is treated in the totals, because against it several of the largest losses vanish.
-- **The percentages are per-workload multipliers, NOT additive.** Each row is the approximate change *on the workload it applies to*, holding everything else equal. They compound **multiplicatively** and are **gated by workload** (a vector gain and an in-order loss rarely touch the same cycle). The totals section is therefore a reasoned synthesis, not a column sum.
-- **Sign convention:** negative = slower than baseline; positive = faster. `×` denotes a multiple (e.g. `+900%` = `10×`).
+- **Baseline.**
+  Unless noted, the reference is a **conventional 2026 application-class RISC-V SoC**: out-of-order (OoO) superscalar, TAGE-class dynamic branch prediction, MMU + multi-level TLB, multi-level caches with hardware coherence, aggressive DVFS + turbo, fixed-function GPU and video codecs, RVA23-class ISA *including* the C extension, conventional (non-CHERI) 64-bit pointers, plain (unencrypted, no-integrity-tree) DRAM.
+  This is "what you would otherwise buy" for the phone/desktop targets the spec addresses.
+  A **secondary baseline** — a plain *in-order* RV64GC core — is treated in the totals, because against it several of the largest losses vanish.
+- **The percentages are per-workload multipliers, NOT additive.**
+  Each row is the approximate change *on the workload it applies to*, holding everything else equal. They compound **multiplicatively** and are **gated by workload** (a vector gain and an in-order loss rarely touch the same cycle).
+  The totals section is therefore a reasoned synthesis, not a column sum.
+- **Sign convention:** negative = slower than baseline; positive = faster.
+  `×` denotes a multiple (e.g. `+900%` = `10×`).
 
 ## The big table
 
@@ -56,7 +65,8 @@
 
 ## Net change by workload archetype (vs the OoO baseline)
 
-The single-number answer depends entirely on the workload mix, so the honest total is a small matrix. Figures are the compounded synthesis of the applicable rows above.
+The single-number answer depends entirely on the workload mix, so the honest total is a small matrix.
+Figures are the compounded synthesis of the applicable rows above.
 
 | Workload archetype | Net Δ vs conventional OoO core | Reading |
 |---|---|---|
@@ -69,13 +79,16 @@ The single-number answer depends entirely on the workload mix, so the honest tot
 
 ## Headline total
 
-- **General-purpose scalar / interactive code: ≈ −50%, range −40% to −70%** vs a conventional out-of-order RISC-V application core. In plain terms, ordinary software *feels like* it runs at roughly **one-third to one-half** the speed of what you would otherwise buy — the deliberate, spec-wide price of deleting speculation, dynamic prediction, and reactive clocking, and of paying the CHERI/encryption/integrity/isolation taxes.
+- **General-purpose scalar / interactive code: ≈ −50%, range −40% to −70%** vs a conventional out-of-order RISC-V application core.
+  In plain terms, ordinary software *feels like* it runs at roughly **one-third to one-half** the speed of what you would otherwise buy — the deliberate, spec-wide price of deleting speculation, dynamic prediction, and reactive clocking, and of paying the CHERI/encryption/integrity/isolation taxes.
 - **The workloads the machine is actually built for — vector graphics/DSP, crypto, and matrix/AI — run at parity-to-many-times the baseline** (roughly **+3× to +100×** over a scalar baseline, depending on class), because RVV, the systolic units, and table-free crypto more than repay the scalar overheads whenever the work vectorizes.
-- **Blended "typical desktop/phone" experience:** dominated by the scalar/interactive figure for responsiveness (**−40% to −65%**), with the accelerated paths pulling media, crypto, radio/DSP, and AI inference back to parity-or-better. Net: a machine that is **materially slower for general use and faster for the parallel workloads it targets** — exactly the trade §1–§2 declare.
+- **Blended "typical desktop/phone" experience:** dominated by the scalar/interactive figure for responsiveness (**−40% to −65%**), with the accelerated paths pulling media, crypto, radio/DSP, and AI inference back to parity-or-better.
+  Net: a machine that is **materially slower for general use and faster for the parallel workloads it targets** — exactly the trade §1–§2 declare.
 
 ### Sensitivity to the baseline
 
-If "bog-standard" is read literally as a **plain in-order RV64GC core** (the common shipping RISC-V application profile — dynamic prediction, MMU, DVFS, C extension, non-CHERI, no vector) rather than an OoO part, then the two biggest losses (in-order vs OoO, and much of the turbo gap) **disappear or shrink**, while the no-MMU, bit-manip, and CFI/ASLR gains and the vector/crypto/matrix gains remain. Against that baseline:
+If "bog-standard" is read literally as a **plain in-order RV64GC core** (the common shipping RISC-V application profile — dynamic prediction, MMU, DVFS, C extension, non-CHERI, no vector) rather than an OoO part, then the two biggest losses (in-order vs OoO, and much of the turbo gap) **disappear or shrink**, while the no-MMU, bit-manip, and CFI/ASLR gains and the vector/crypto/matrix gains remain.
+Against that baseline:
 
 - **General scalar: ≈ −15% to −45%** (static prediction + CHERI + partitioning + no-C, minus the single-address-space and bit-manip gains).
 - **Vector / crypto / matrix: unchanged — still large net positives**, and larger still because a plain RV64GC baseline has no vector unit to compare against.
