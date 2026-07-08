@@ -43,8 +43,6 @@ High-rate authenticated freshness is a known-hard problem the spec waves at in o
 
 ## Gaps (not contradictions, but unbooked)
 
-Capacitive touch controllers universally run tuned DSP firmware;the register-slave-scan claim implies a net-new raw-AFE + host-DSP co-design, unbooked.
-
 The RRC/NAS crown jewel is really a *transcription* risk: hand-encoding 3GPP ASN.1 into Coq moves the vulnerability from the parser to your transcription of thousands of pages of grammar.
 
 Finally, a document-engineering point that is itself a goal violation: §5 makes independent spec review a release gate, but 133 KB of multi-hundred-word single bullets with ten-deep cross-reference chains is engineered to defeat review; normative content needs decomposition into numbered atomic requirements.

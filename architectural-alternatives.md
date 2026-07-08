@@ -134,7 +134,7 @@ Non-normative; no spec-body change.
 ## HexFive MultiZone — already covered, strictly dominated, nothing to import
 
 MultiZone is a policy-driven separation kernel: a small nanokernel orchestrating standard RISC-V **PMP** to isolate zones, a no-shared-memory messenger between zones, and a configurator fusing linked zone binaries + policy + kernel into a signed image (running unmodified code by trap-and-emulate of privileged instructions).
-Each component maps onto a strictly stronger mechanism already mandated here: PMP zones → **CHERI + IOMMU + coherence islands** (byte-granular, unforgeable, formally modeled vs. a handful of coarse power-of-two regions); nanokernel → the **seL4-design capability microkernel** (re-proved in Coq, §5) with a completed refinement + non-interference proof (MultiZone advertises "formally verifiable," not a finished machine-checked proof); messenger → the **verified ring data plane** under Ztso; configurator → **static composition + signed generation + proof-checked admission**.
+Each component maps onto a strictly stronger mechanism already mandated here: PMP zones → **CHERI + capability-checked DMA + coherence islands** (byte-granular, unforgeable, formally modeled vs. a handful of coarse power-of-two regions); nanokernel → the **seL4-design capability microkernel** (re-proved in Coq, §5) with a completed refinement + non-interference proof (MultiZone advertises "formally verifiable," not a finished machine-checked proof); messenger → the **verified ring data plane** under Ztso; configurator → **static composition + signed generation + proof-checked admission**.
 Its distinctive selling point — zero hardware change, zero code change, commodity cores — is the pragmatic *inverse* of a spec that mandates custom CHERI silicon and native capability code, and its trap-and-emulate method opposes the no-ambient-authority stance.
 **There is no clean pure-win to extract; it is a lightweight point on the same design axis already taken to the maximum.**
 
@@ -146,7 +146,7 @@ The appeal is real and almost entirely about *realization*: PMP ships in every c
 Four objections are load-bearing.
 (1) **Granularity ceiling:** PMP is a handful of coarse power-of-two/TOR regions per hart, whereas the design names thousands of fine domains — per-origin, per-session ring table, per-surface/per-input, per-element gather/scatter (§8, §12, §14) — a count and byte-granularity PMP structurally cannot express, gutting G1/G2 least-authority.
 (2) **No intra-domain safety:** PMP isolates domains but does nothing *inside* one, so memory-safe-by-construction apps (§5, §14), the Cerise universal contract that bounds *wholly unverified* code (§13 Tier-2), the W^X capability-monotonicity invariant (§14), and per-element vector bounds (§8) lose their hardware footing and fall back onto the Rust toolchain — enlarging the very containment trust FPCC exists to remove.
-(3) **"PMP only" is not even sufficient:** malicious DMA still needs the IOMMU and cross-domain timing/coherence still needs the islands and TDM NoC (§3, §15), so PMP retires no other mechanism — it is a weaker spatial layer, not a one-mechanism simplification.
+(3) **"PMP only" is not even sufficient:** malicious DMA still needs capability-checked DMA and cross-domain timing/coherence still needs the islands and TDM NoC (§3, §15), so PMP retires no other mechanism — it is a weaker spatial layer, not a one-mechanism simplification.
 (4) **It reopens ambient authority:** MultiZone's trap-and-emulate of privileged instructions is exactly the ambient-authority pocket §2/§14 forbid.
 The defect is the trap-and-emulate model and PMP-as-primary, *not* Machine-mode kernel residence itself — which the platform embraces under capability-gated privilege (the single-privilege-mode entry below): once CHERI governs privilege as a PCC permission, a Machine-mode kernel is confined by unforgeable capabilities, whereas MultiZone's M-mode code is confined by nothing finer than coarse PMP.
 "More robust" is genuinely two-sided: PMP is more mature *today*, but CHERI is the stronger, more *uniform* guarantee once built (subsuming MMU-split, shadow stacks, and software W^X into one monotone mechanism), covering the same ground with fewer orthogonal parts.
@@ -155,7 +155,7 @@ The defect is the trap-and-emulate model and PMP-as-primary, *not* Machine-mode 
 Taking PMP-only as the *goal* would trade the platform's defining property — hardware that bounds arbitrary unverified code — for buildability the spec deliberately declines to optimize.
 
 **PMP is dominated in both roles — and dropped entirely.**
-The domination verdict above is specific to PMP as a *primary, fine-grained compartmentalization* mechanism, where CHERI + IOMMU + islands strictly exceed it.
+The domination verdict above is specific to PMP as a *primary, fine-grained compartmentalization* mechanism, where CHERI + capability-checked DMA + islands strictly exceed it.
 A tempting alternative *banks* PMP in a *secondary, coarse, sub-kernel backstop* role (immutable-text/W^X, per-core partition bound, crown-jewel secret fencing) on the ground that, being CHERI-disjoint, it would hedge a CHERI *logic* fault no in-band mechanism otherwise could.
 **That backstop is dropped too** (the drop-PMP entry below): with CHERI formally verified (the Oxford/Google CHERIoT-Ibex conformance proof; the RTL ⊑ Sail workstream, §18) and application-class silicon removing PMP on exactly this ground (Codasip's A730 — PMP *"can be removed and replaced by more power- and area-efficient circuits"*), the disjoint hedge is judged redundant Sail surface, and the three roles collapse onto CHERI monotonicity (§7, §14), the crypto core's hardware boundary, and TME (§15).
 So the full disposition is unqualified: nothing of MultiZone's *architecture* imports, the base does not descend to it, and PMP is not retained even as a backstop — CHERI is the sole in-band spatial mechanism, hedged by its own verification rather than by a coarse subset of itself.
@@ -165,10 +165,10 @@ So the full disposition is unqualified: nothing of MultiZone's *architecture* im
 ## Delete the MMU — purecap single-address-space, CHERI is the sole in-core spatial mechanism
 
 The proposal is to remove **Sv39 and the MMU entirely** and run the die as a **single physical address space** under CHERI, with `satp` fixed to Bare and no translation anywhere.
-The claim is redundancy: **CHERI + the IOMMU + coherence islands** (§8, §15) already supply the three things an MMU is kept for — byte-granular in-core spatial isolation, a physical-reach bound, and DMA confinement — so Sv39 is a *second, in-band* isolation mechanism bought at the price of the page-table walker, the TLB and walk-cache state, the entire kernel VM subsystem (VSpace / page-table / frame-mapping objects, map/unmap, `satp` management, TLB shootdown), and their share of the Sail model.
+The claim is redundancy: **CHERI + capability-checked DMA + coherence islands** (§8, §15) already supply the three things an MMU is kept for — byte-granular in-core spatial isolation, a physical-reach bound, and DMA confinement — so Sv39 is a *second, in-band* isolation mechanism bought at the price of the page-table walker, the TLB and walk-cache state, the entire kernel VM subsystem (VSpace / page-table / frame-mapping objects, map/unmap, `satp` management, TLB shootdown), and their share of the Sail model.
 
 **The spec had already converged here without taking the step.**
-The Mill entry (above) records that the design *"converges on Mill's single-address-space-with-per-domain-protection vision"* because *"capabilities bound memory irrespective of page tables"*; the MultiZone descend-the-base analysis (above) concedes that *"a stateless single-address-space design leaves most MMU machinery idle"*; and the §13 hardware universal contract is stated as **CHERI + caps + IOMMU** — the MMU already absent from it.
+The Mill entry (above) records that the design *"converges on Mill's single-address-space-with-per-domain-protection vision"* because *"capabilities bound memory irrespective of page tables"*; the MultiZone descend-the-base analysis (above) concedes that *"a stateless single-address-space design leaves most MMU machinery idle"*; and the §13 hardware universal contract is stated as **CHERI + caps + capability-checked DMA** — the MMU already absent from it.
 Deleting Sv39 makes the base what the rest of the document already describes.
 
 **It resolves the walker contradiction outright rather than by exemption.**
@@ -183,7 +183,7 @@ Three things answer this.
 
 **The bet, stated.**
 Single-address-space CHERI at *application-class* scale rests on **CheriOS** and **CHERIoT** as existence proofs, and both are small-scale; app-class SAS-purecap is the wager this takes.
-It is bounded, not blind: CHERI is the **primary, byte-granular, formally-modeled** mechanism the whole design already leans on (§8, §13); the IOMMU and coherence-island separation cover the DMA and cross-domain-timing residuals a page table never addressed anyway (physical-reach resting on CHERI partition bounds, PMP dropped — the drop-PMP entry below); and because the kernel is **bespoke** (seL4's capability / IPC *design* re-proved in Coq, not stock seL4's C), it is built single-address-space-native — dropping the VSpace object classes — rather than retrofitting SAS onto a page-table kernel.
+It is bounded, not blind: CHERI is the **primary, byte-granular, formally-modeled** mechanism the whole design already leans on (§8, §13); capability-checked DMA and coherence-island separation cover the device-access and cross-domain-timing residuals a page table never addressed anyway (physical-reach resting on CHERI partition bounds, PMP dropped — the drop-PMP entry below); and because the kernel is **bespoke** (seL4's capability / IPC *design* re-proved in Coq, not stock seL4's C), it is built single-address-space-native — dropping the VSpace object classes — rather than retrofitting SAS onto a page-table kernel.
 
 **This is not the descend-to-PMP-only move.**
 The rejected MultiZone descent (above) shed the MMU *and CHERI*, falling back on coarse PMP as the primary mechanism; this sheds **only** the MMU and keeps CHERI as the byte-granular primary.
@@ -194,7 +194,7 @@ This lands one of the three simplifications the kernel-in-gateware entry (below)
 The remaining kernel-shrink simplification the terminus names — the table-driven cyclic executive replacing MCS — is **also adopted** (§7, §11).
 
 **Disposition (adopted; normative in §7, §8, §14, §15).**
-The MMU is **deleted**: `satp` is Bare, there is no Sv39 / Sv48 / Sv57 and no `Svadu` / `Svade` A/D machinery (§15), the kernel drops seL4's VSpace / page-table / frame-mapping object classes for a single physical address space (§7), and **CHERI is the sole in-core spatial mechanism** (with PMP dropped too — the drop-PMP entry below — so no disjoint in-band backstop remains), the IOMMU + coherence islands (§15) the DMA and timing boundaries.
+The MMU is **deleted**: `satp` is Bare, there is no Sv39 / Sv48 / Sv57 and no `Svadu` / `Svade` A/D machinery (§15), the kernel drops seL4's VSpace / page-table / frame-mapping object classes for a single physical address space (§7), and **CHERI is the sole in-core spatial mechanism** (with PMP dropped too — the drop-PMP entry below — so no disjoint in-band backstop remains), capability-checked DMA + coherence islands (§15) the device-access and timing boundaries.
 The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend*: the MMU is a second in-band mechanism whose fine-grained defense-in-depth the SAS design does not instantiate, purchased with a walker the admission test bans and a kernel subsystem the proof must carry.
 **Honest residual (§17):** in-core spatial isolation rests on CHERI alone (a logic fault has no in-band fallback — the coarse PMP backstop is dropped too, below — only CHERI's own verification), and application-class single-address-space purecap is less battle-tested than page-table isolation (CheriOS/CHERIoT are small-scale) — offset against a net deletion of the walker, the TLB/walk-cache state, the VM subsystem, and their Sail surface.
 
@@ -261,13 +261,41 @@ And the residual that actually persists — fabricated silicon vs. verified RTL 
 
 **The bet, stated.**
 Resting all in-core spatial protection on CHERI is the same wager as single-address-space and single-privilege-mode, with no coarse fallback at all.
-It is bounded, not blind: CHERI is byte-granular, formally modeled, and the most-scrutinized mechanism on the die; the IOMMU still confines DMA and the coherence islands still bound cross-domain timing (neither was ever PMP's job); and the disjoint hedge is replaced by the strongest assurance the project has.
+It is bounded, not blind: CHERI is byte-granular, formally modeled, and the most-scrutinized mechanism on the die; capability-checked DMA still confines device access and the coherence islands still bound cross-domain timing (neither was ever PMP's job); and the disjoint hedge is replaced by the strongest assurance the project has.
 If a future analysis judged the CHERI-logic-fault residual intolerable, the composition-static locked-PMP backstop is the cheapest thing to re-admit (subtractive, static, Sail-modeled) — but it is not carried by default.
 
 **Disposition (adopted; normative in §7, §14, §15).**
-PMP and `Smepmp` are **removed**: CHERI is the sole memory-protection mechanism, W^X and the per-core partition bound rest on CHERI monotonicity (§7, §14), crown-jewel secrets on the crypto core's boundary and TME (§15), and DMA on the IOMMU (§15).
+PMP and `Smepmp` are **removed**: CHERI is the sole memory-protection mechanism, W^X and the per-core partition bound rest on CHERI monotonicity (§7, §14), crown-jewel secrets on the crypto core's boundary and TME (§15), and device DMA on capability-checked DMA (§15).
 The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend* — with the twist the whole design turns on: what lets a **single** mechanism replace a defense-in-depth stack is that this one is **formally verified**, so *delete rather than defend* becomes *verify rather than hedge*.
 **Honest residual (§17):** in-core spatial isolation, W^X, and the partition bound rest on CHERI alone with no in-band disjoint backstop; the sole hedge against a CHERI logic fault is CHERI's own verification (RTL ⊑ Sail, Oxford/Google, Codasip), the fab residual unchanged.
+
+---
+
+## Drop the IOMMU — capability-checked DMA, CHERI as the sole spatial mechanism system-wide
+
+The proposal is to remove the **IOMMU** — and to decline its device-side-PMP cousin the **IOPMP** with it — confining device DMA by **CHERI capabilities carried into the interconnect** rather than by an address-translation unit or a region-protection table.
+It is the device-side completion of the arc the MMU deletion, the mode collapse, and the PMP drop began: the IOMMU is to the DMA path what the MMU is in-core — an address-translation unit with a page-table walker, translation caches (IOATC), and in-memory device/context structures — and in the single physical address space this platform already adopts (the MMU-deletion entry above), its *translation* is unused; only its *protection* is wanted, and CHERI supplies that unforgeably and byte-granularly.
+
+**The mechanism, and why it is not merely IOPMP.**
+Every DMA-capable block becomes one of two capability-checked shapes: a **core-issued capability-operand mover** (the §15 coprocessor-line discipline the matrix and FEC units already follow — no independent mastership), or an **autonomous streaming engine holding a delegated, bounds-checked, revocable capability** for its window (scanout, transceiver-I/Q, NIC), with the fabric checking each access against a capability at the point of issue.
+This both **deletes translation** and is stronger than switching to an **IOPMP**: the IOPMP would confine DMA, but as a coarse, ambient, per-source-ID region table **disjoint from CHERI** — the device-side PMP, rejected on the identical ground the in-core PMP is (the drop-PMP entry above).
+Adopting IOPMP would trade the IOMMU's translation weight for a *second ambient spatial mechanism*; adopting capability-checked DMA *unifies* the device path onto the one mechanism the die already carries, so "who may DMA where" is a capability in the static topology (§7/§8), not a side table — *verify rather than hedge* taken to the device edge, and a device MSI (a store to an interrupt file, §8) confined by the same check rather than an interrupt-remapping table.
+
+**The prior art is proposed and prototyped, not hoped for.**
+The Cambridge/SRI position paper **"Defending Direct Memory Access with CHERI Capabilities"** (Markettos, Baldwin, Bukin, Neumann, Moore, Watson; HASP 2020) proposes exactly a capability-configured DMA controller that bounds-checks accesses from malicious peripherals — pluggable and SoC-embedded alike — and contrasts it with the IOMMU's nested-page-table translation.
+The **CHERI Alliance "CHERI at SoC Level"** guide (2025) specifies passing **capabilities, tags, and revocation** between CHERI-enabled IP blocks of varying CHERI-awareness, clearing tags on non-capability IP writes — the SoC-integration discipline this needs.
+Capability-holding DMA is demonstrated at **CHERIoT** scale (first silicon 2026).
+The deletion is sound *only because* the device model is already curated register-slave / transducer / on-die RTL (§4, §12): there is no foreign PCIe bus-master ecosystem issuing raw physical addresses the IOMMU exists to catch.
+
+**The honest counterargument — the two obligations it names.**
+Dropping the IOMMU removes the one DMA-side mechanism *disjoint* from CHERI, so device access now rests on CHERI too — the single-mechanism concentration the PMP drop books, extended to the device edge, hedged the same way (CHERI's own verification: RTL ⊑ Sail §18, the Oxford/Google CHERIoT-Ibex result).
+Two obligations are genuinely new relative to a translation-IOMMU and are booked in §17: (1) **in-flight-DMA revocation** — a capability held by a running transfer must honour the §8 revocation sweep so time-to-containment stays bounded (a load-barrier / revocation-epoch check, Cornucopia-Reloaded-lineage, or bounded re-authorized windows); (2) a **capability- and tag-carrying fabric** — the interconnect must propagate capabilities, tags, and revocation state to the DMA blocks (new Sail / RTL ⊑ Sail surface, §15/§18).
+Application-class capability-DMA at NIC / scanout / radio-I/Q bandwidth is net-new (§18); microcontroller-scale is the existence proof.
+
+**Disposition (adopted; normative in §4, §12, §15).**
+The IOMMU is **deleted** and the IOPMP **declined**: device DMA is capability-checked by the fabric, every DMA-capable block is a core-issued capability-operand mover or a delegated-capability-holding streamer, and CHERI becomes the sole spatial mechanism **system-wide** — cores and devices alike.
+The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend* → *verify rather than hedge*: the IOMMU is a second, device-side spatial mechanism (carrying a walker and caches the profile bans in-core), redundant once the fabric carries capabilities, and the IOPMP is the coarse subset of CHERI it is in-core.
+**Honest residual (§17):** device access rests on CHERI alone with no IOMMU-disjoint backstop; in-flight-DMA revocation and a capability/tag-carrying fabric are new obligations (Markettos-2020 and the CHERI-at-SoC-Level guide anchor feasibility, Cornucopia-Reloaded the revocation), and application-class capability-DMA is net-new (§18), microcontroller-scale the existence proof.
 
 ---
 
@@ -371,7 +399,7 @@ This is the *SoftMAC / split-MAC* partition — time-critical turnaround in fixe
 
 **The line between (a) and (c) is the "no foreign computers" line itself.**
 A controller is a processor running firmware; the sequencer is a timer plus a small finite state machine, fully described in RTL, Sail-modeled, capability-gated — the FEC-unit / digital-front-end category, "matter, not software," the same tolerance the design already extends to the DFE, the FEC blocks, and the I/Q-streaming DMA.
-It passes the five-part §15 admission test the way those do: deterministic; a fixed 150 µs constant independent of packet contents, so no data-timing channel; bounded FSM/timer state reset per event, architectural not hidden; a register slave with no authority beyond its IOMMU-confined window; and its autonomy is the scheduled-DMA kind (a timer firing a pre-designated buffer), not the address-dependent memory walker admission-test 5 bans.
+It passes the five-part §15 admission test the way those do: deterministic; a fixed 150 µs constant independent of packet contents, so no data-timing channel; bounded FSM/timer state reset per event, architectural not hidden; a register slave with no authority beyond its capability-bounded DMA window; and its autonomy is the scheduled-DMA kind (a timer firing a pre-designated buffer), not the address-dependent memory walker admission-test 5 bans.
 
 **Prior art — the partition is standard; the firmware-free realization is the part that is imported.**
 The SoftMAC/FullMAC split is the mainstream Wi-Fi architecture: Linux's `mac80211` SoftMAC stack runs the timing-critical MAC (ACK/SIFS/backoff) in hardware and the management MAC in host software — exactly this decomposition.
@@ -385,6 +413,12 @@ Everything with protocol semantics — connection-event/slot scheduling (a §11 
 A Bluetooth/Wi-Fi *controller* (FullMAC firmware) is rejected as a §4 foreign computer; pure-software turnaround (Sora-style) is rejected as spending the tightest real-time budget on the most jitter-sensitive path.
 This is the same "hardness at the boundary, patchable software above it" rule the regulatory layering (§12) applies to the emission envelope, applied to timing.
 **Honest residual (§17):** the sequencer is a small fixed-function block folded into the transceiver datapath already in the Sail model (§17 "grows the Sail model") — no firmware, no new trust axiom, its correctness and its 150 µs latency riding the existing transceiver RTL ⊑ Sail and WCET obligations; no new residual bullet, since the block is within the register-slave-datapath category the radio subsystem already books.
+
+**Generalization — the same partition is the standing sensor-front-end doctrine (§12, §15).**
+The split-MAC line drawn here is not radio-specific; it is the platform's rule for every transducer.
+The analog front-end plus a fixed-cadence scan/sample sequencer stays *matter* — a register-slave AFE streaming raw samples over a capability-bounded DMA window, no per-sensor DSP core and no firmware — while all signal processing dissolves onto the host V-cores.
+Capacitive touch (raw capacitance → host touch DSP), the audio front-end (microphone/speaker converters → host filtering, echo-cancellation, and beamforming), the image sensor (raw Bayer → the software ISP), IMU/motion (raw reads → host fusion), and the fingerprint/biometric AFE (raw frames → the host matcher) are all instances.
+The one honesty the radio case does not carry: sensor front-ends have no off-the-shelf firmware-free part — commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware — so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design, booked in §17; that booking is the resolution of the capacitive-touch gap the critique flags.
 
 ---
 

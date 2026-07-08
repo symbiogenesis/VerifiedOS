@@ -39,7 +39,7 @@
 | Mem / security | DRAM-wide integrity + anti-replay Merkle tree (§15) | Added | **−5% to −30%** | memory-bandwidth-bound | Largest memory-side tax; address- not data-dependent (no timing channel). |
 | Mem / security | End-to-end ECC, 3 layers (§15, §16) | Added | **−1% to −3%** | memory-bound | User-flagged "a little." |
 | Mem / security | Deterministic RFM refresh at worst-case cadence — replaces reactive PRAC back-off (§15) | Added | **−2% to −10%** | activation-heavy / memory-bound | Fixed worst-case cadence spends bandwidth a reactive back-off would reclaim; address- not data-dependent, so no timing channel. |
-| Mem / security | Mandatory IOMMU-confined DMA (§15) | Added | **−1% to −5%** | DMA / I/O-heavy | Translation overhead on the device path. |
+| Mem / security | Capability-checked DMA — no IOMMU/IOPMP (§15) | Added | **−0% to −3%** | DMA / I/O-heavy | Capability-bounds + tag check at the fabric; no page-table walk (lighter than an IOMMU). |
 | Isolation | Non-work-conserving static cyclic scheduler (§7) | Added | **−10% to −35%** | mixed-load throughput | Idle slots stay idle; no slack donation (that would be a timing channel). |
 | Isolation | Cache partitioning / way-coloring (§15) | Added | **−5% to −25%** | cache-sensitive, shared island | Reduced effective cache per partition. |
 | Isolation | DRAM (sub-)channel partitioning, no interleave (§15) | Added | **−5% to −20%** | bandwidth-bound per island | Bandwidth quantizes to assigned (sub-)channels. |
