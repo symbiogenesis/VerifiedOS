@@ -384,6 +384,57 @@ The other six conditional permissions do not import (already covered by W^X, by 
 
 ---
 
+## Tagged metadata-processing architectures — the SAFE project, micro-policies, the PUMP: the tag-monitor genus *is* the substrate, the programmable rule-cache fails the admission test
+
+Where the Mon CHÉRI entry above *extends* CHERI with one conditional-permission policy, the DARPA CRASH/SAFE lineage proposes the maximal form of the same move: a **programmable engine for arbitrary tag policies**.
+The SAFE machine's tagged architecture, its **micro-policies** framework (Azevedo de Amorim/Dénès/Giannarakis/Hriţcu/Pierce/Spector-Zabusky/Tolmach, IEEE S&P '15 — mechanized in **Coq**), the **PUMP** (Programmable Unit for Metadata Processing; Dhawan/Hriţcu/Rubin/Vasilakis/Chiricescu/Smith/Knight/Pierce/DeHon, ASPLOS '15), and its commercial realization **Dover CoreGuard** (software-defined metadata processing, SDMP) all rest on one idea: every word carries a large metadata tag, and on every instruction a hardware **rule cache** checks a software-defined policy over the operand tags, trapping to a software **policy monitor** on a miss (which resolves the rule and installs it).
+Run it through the import discipline — the decomposition that logged the belt's spiller and EPIC's NaR while rejecting the rest — and it splits into four separable parts: (a) the **tag-monitor *model*** (security as a property of per-word metadata checked in the datapath); (b) the **programmability** (arbitrary policies loaded as software, hardware-accelerated by the rule cache); (c) the **policy *catalog*** (the specific verified micro-policies — IFC, memory safety, CFI, compartmentalization, dynamic sealing); (d) the **Coq metatheory** (a machine-checked generic monitor + per-policy refinement).
+
+**The steelman — four real cards, and it is unusually spec-coherent in genus.**
+Unlike the belt/EPIC/Wasm targets it **abandons no substrate** — the PUMP is a tag coprocessor beside a conventional host, and CoreGuard rides a *RISC-V* host — so the substrate-cost objection fatal to EPIC does not apply.
+(a) **The metatheory lives in Coq.** Micro-policies ship a machine-checked generic-monitor theorem with per-policy refinements in the platform's own prover, and **"A Verified Information-Flow Architecture"** (Azevedo de Amorim et al., POPL '14) carries a tagged IFC machine end-to-end, hardware to abstract — the *hardware* sibling of the seL4/Cerise verification the design already leans on.
+(b) **One mechanism, many policies** — memory safety, IFC, CFI, compartmentalization, and sealing are all instances of the same tag-check, a genuine economy-of-mechanism claim.
+(c) **It is CHERI's own genus.** A capability is metadata bound to a word and checked in the datapath; CHERI *is* a tag-monitor, so the model is not foreign — it is the family the design already belongs to.
+(d) **It targets the same gap Mon CHÉRI does** — the IFC and initialization micro-policies address exactly the residual memory-safety classes the design chases with flow labels and the Write-before-Read plane.
+
+**Why it fails for *this* design — the programmability is the cost, not the win.**
+- **The rule cache fails the admission test, twice — the ALAT disposition verbatim.**
+  The PUMP's defining mechanism is a hardware **rule cache**: a hidden table whose occupancy records which (opcode, operand-tag-tuple) combinations have been seen and admitted.
+  That is **new hidden shared microarchitectural state surviving a partition switch** — it **fails test 3** exactly as the dynamic predictor, the LR/SC reservation set, and EPIC's ALAT do (the state the profile *deletes* rather than flushes).
+  And a rule-cache **miss** traps to the software monitor at a large, tag-pattern-dependent latency, so hit/miss timing is **data-dependent on the operand tags** — which, under the flagship IFC policy, *are the secret labels* — so it **fails test 2** (a tag-history timing channel that is neither constant-time nor provably secret-unreachable, landing squarely on that test's "no secret-labeled operand can reach it" clause), and its variable miss cost falsifies the per-(class, OPP) WCET tables (§11) the way the RSE does.
+  Its rejection is the admission test working correctly.
+- **Programmable security semantics invert the platform axiom.**
+  The PUMP's value proposition is a *general* engine that expresses *any* policy loaded at runtime; this platform's thesis is the opposite — *delete rather than defend, verify rather than hedge* — the **fewest, most-deeply-verified, frozen** mechanisms, not an engine whose expressiveness is the selling point.
+  A runtime-loadable policy monitor is (i) the large hidden-state cache above and (ii) a *general* trusted base where the platform wants a *specific* one; the profile is **"frozen with the proof like the IDL"** (§15), and programmability is the antithesis of freezing.
+  This is the deepest objection: micro-policies optimize **expressiveness** (one hardware mechanism spans many policies), this platform optimizes **minimality** (delete mechanisms until one verified primitive remains) — dual philosophies, and the axiom picks the frozen instance.
+
+**The distilled atom — already banked, twice, following the belt→spiller / EPIC→NaR / Mon CHÉRI→Write-before-Read discipline.**
+The non-redundant idea is *a fixed tag plane checked in the datapath*, and the design already carries **two**:
+- **CHERI *is* a micro-policy machine with a single hardwired policy.** The validity tag is precisely the SAFE "every word carries metadata" idea, frozen to the capability policy rather than left programmable — byte-granular and universal, so the memory-safety and compartmentalization micro-policies are already discharged, *deterministically*, by the substrate.
+- **The Write-before-Read initialization-tag plane** (the Mon CHÉRI entry above; §15) is a *second* fixed tag plane — an initialization micro-policy realized as an address-indexed tag in the CHERI metadata plane, checked at fixed latency in the datapath: literally a micro-policy in the transparent, non-programmable form, whose adoption already demonstrates the rule — take the *policy*, reject the *programmable engine*.
+
+And the **policy catalog imports nothing new**: IFC → the flow-label / IFC machinery (§8, §13); memory safety (spatial + temporal) → CHERI + budgeted revocation (§8); CFI + no-code-reuse → CFI under W^X capability-monotonicity (§14); compartmentalization → the capability/compartment model (§7, §12); dynamic sealing → CHERI **sealed capabilities**.
+Each micro-policy the framework verifies is either already the substrate or already a dedicated mechanism.
+
+**Where it ranks.**
+It **abandons no substrate** (a RISC-V-host tag coprocessor), so it is off the belt/EPIC/Wasm "abandon RISC-V for X" ranking entirely — its genus *is* the substrate.
+It ranks instead as the **maximal generalization of the Mon CHÉRI entry**: Mon CHÉRI proposed one extra tag policy and had its binary-side *encoding* rejected while its *property* (Write-before-Read) was banked; micro-policies propose a *programmable engine* for arbitrary policies and are rejected one level higher — not the encoding but the **programmability** — because the engine is a hidden-state admission-test failure and a programmable-vs-frozen inversion of the axiom.
+Among the "add a mechanism" entries it is the most spec-coherent in *lineage* (Coq-native, tag-based, substrate-preserving) yet imports the least, because everything importable is already present.
+
+**Disposition (nothing imports; confirms §15's tag-plane discipline).**
+The **programmable PUMP / software-defined-metadata engine** is **rejected**: its rule cache fails the admission test on tests 2 and 3 (a tag-history timing channel and hidden state surviving a partition switch), and runtime-loadable policy is the programmable-vs-frozen inversion of *delete rather than defend, verify rather than hedge*.
+The **tag-monitor *model* imports nothing because it is already the substrate** — CHERI is a fixed-policy tag-monitor and the Write-before-Read plane (§15) is a second fixed tag plane, so the platform is **already a fixed-policy tagged architecture**, reached not by adopting the PUMP but by freezing its genus to the policies the design proves.
+The **micro-policy catalog imports nothing new** (IFC → §8/§13 flow labels; memory safety → CHERI + revocation; CFI → W^X + CHERI §14; compartmentalization → §7/§12 capabilities; sealing → CHERI sealing).
+The **Coq metatheory** is logged as *methodological confirmation, not an import*: "verify a tag machine in Coq" is exactly the move the design makes for CHERI and for the Write-before-Read plane (re-homed onto the Coq-verified Iris/Cerise uninitialized-capabilities lineage, §13/§15), so the SAFE/micro-policies corpus is a **reference** for that discipline, not a component to lift.
+The platform axiom decides it as ever — *trust is the scarce resource, engineering is free, delete rather than defend* → *verify rather than hedge*: a programmable policy engine buys expressiveness (the free axis, here not even wanted) at the price of hidden state and a general trust base (the scarce one).
+Non-normative; no spec-body change.
+
+**Honest residual (§17):** what the design forgoes is *programmable, post-hoc* policy — the ability to load a new tag policy without a respin, the PUMP's one genuine capability.
+The bet is that the frozen catalog — CHERI ⋈ flow labels ⋈ W^X ⋈ Write-before-Read — is complete enough that field-loadable policy is never needed; if a genuinely new tag policy ever *were* required, the admissible way to add it is the transparent fixed-plane form the Write-before-Read plane already models (a datapath-checked, address-indexed tag reset by eager-zeroize), **never** the programmable rule cache — the same "cheapest thing to re-admit is the subtractive, static, Sail-modeled form" hedge the drop-PMP entry above books.
+No mechanism is added, so there is no new proof surface; the residual is purely the forgone flexibility, which the *frozen-with-the-proof* discipline (§15) treats as a feature, not a loss.
+
+---
+
 ## Link-layer timing — a fixed-function turnaround sequencer, not a Bluetooth/Wi-Fi controller
 
 The dissolved-modem thesis (§4, §12) puts the whole radio stack in contained software on the pinned V-cores, but one class of deadline is too tight for software under interrupt jitter: the sub-slot *turnaround*, where a device must flip the RX/TX path and be transmitting within a fixed inter-frame gap of the previous packet — the BLE inter-frame space (`T_IFS` = 150 µs ± 2 µs), the 802.11 short interframe space (SIFS = 10/16 µs), the 802.15.4 turnaround (~192 µs).
