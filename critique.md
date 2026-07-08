@@ -48,9 +48,6 @@ Sixth: defer the browser — it's the largest porting program in the roster and 
 - **tiny-skia + cosmic-text/swash today, Linebender's CPU-renderer work as it matures**: the shared software-render substrate; note no viable no-JIT software 3D exists (llvmpipe JITs), so an RVV rasterizer is genuinely net-new.
 - **wasmi** (pure-Rust interpreter) for the sanctioned plugin engines; **Boa/Nova** for the Servo JS gate.
 - **Cranelift + Crocus-verified ISLE lowerings**: a pragmatic (SMT-trust) interim for the certifying Rust→CHERI compiler while the Coq-native one is built — same slot as Binsec/Rel and aiT in your interim taxonomy.
-- **CompCert-CT** (Barthe/Blazy lineage) exists as a fork — worth naming as the concrete artifact §5 leans on.
-- **CryptOpt** (PLDI 2023; Fiat-Crypto / MIT-Adelaide) — a randomized-search superoptimizer whose emitted assembly a **Coq-verified equivalence checker** validates back to the Fiat-Crypto spec, beating GCC/Clang at top optimization and at times hand-written asm.
-  It is the concrete vehicle for field-arithmetic performance *without* a Jasmin-style verified backend — the trusted artifact is a small checker, not a second compiler (straight-line field arithmetic only; x86-64 today, CHERI-RISC-V retarget net-new).
 
 ---
 
