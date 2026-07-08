@@ -22,7 +22,7 @@
 | ISA removed | No scalar `F`/`D` — scalar float folded onto the vector FPU (§15) | Substituted | **−2% to −15%** | scalar-float-bound code | VL=1 vector ops + soft-float-register ABI setup; well-vectorized FP is unaffected (runs on RVV). |
 | ISA removed | No prefetch / non-temporal hints — Zicbop/Zihintntl (§15) | Removed | **−3% to −15%** | memory-bound streaming | Explicit loads only. |
 | ISA removed | Misaligned accesses trap (§15) | Substituted | **−0% to −5%** | code with unaligned access | Well-aligned code ≈ 0. |
-| ISA removed | `Zaamo`-only — no LR/SC, no CAS (§15) | Removed | **−0% to −3%** | lock-free / atomic-heavy | Spec argues no consumer exists above a share-nothing kernel; near-zero in practice. |
+| ISA removed | `Zaamo`-only — no LR/SC, no CAS (§15) | Removed | **−0% to −3%** | lock-free / atomic-heavy | The loss is the absence of lock-free *CAS*, not slower atomics: the retained `Zaamo` (gain row below) still resolves the real RMW traffic (refcounts, status flags) in one instruction. Spec argues no lock-free multi-writer consumer exists above a share-nothing kernel (§7); near-zero in practice. |
 | Mem / security | CHERI purecap, 128-bit capabilities (§7, §8, §15) | Added | **−3% to −15%** | pointer-heavy | Footprint/bandwidth from doubled pointer width; many workloads <5%. |
 | Mem / security | Transparent memory encryption — TME (§15) | Added | **−1% to −5%** | memory-bound | Added controller latency. |
 | Mem / security | DRAM-wide integrity + anti-replay Merkle tree (§15) | Added | **−5% to −30%** | memory-bandwidth-bound | Largest memory-side tax; address- not data-dependent (no timing channel). |
@@ -49,7 +49,8 @@
 | **Gain — added** | Macro-op fusion — decoder-stage, architecturally transparent (§2, §15) | Added | **+3% to +10%** | dependent scalar-integer / address-gen / compare-branch | Recovers issue efficiency lost to no-C and static-only prediction; a fused pair is one fixed-latency entry (tightens WCET), architecturally transparent so it costs no proof. |
 | **Gain — added** | `Zicond` branchless select (§15) | Added | **+0% to +4%** | data-dependent branches | "Doubly load-bearing": also dodges the static-predictor mispredict. |
 | **Gain — added** | `Zicboz` (cbo.zero) (§15) | Added | **+0% to +3%** | zeroing / context-switch | Makes eager-zeroize nearly free. |
-| **Gain — added** | bf16 (Zvfbfwma), `Zaamo` fixed-latency AMO (§15) | Added | **small, workload-specific** | ML / atomic paths | — |
+| **Gain — added** | bf16 — Zvfbfwma (§15) | Added | **small, workload-specific** | ML | — |
+| **Gain — added** | `Zaamo` single-instruction atomic RMW — fixed-latency, at the point of coherence (§15) | Retained | **≈0 vs baseline; a win vs LL/SC** | atomic / refcount-heavy | One AMO does the read-modify-write that bog-standard RISC — and RISC-V's own excluded `Zalrsc` — spends a load-reserved/store-conditional *retry loop* on: no spurious-failure re-tries, better under contention, one fixed-latency entry for WCET. Neutral against an AMO-equipped RV64GC/RVA23 baseline (which also carries `Zaamo`); the win is over the LL/SC idiom, and over the interrupt-masking / single-writer fallback a fully atomic-free profile would need. |
 | Neutral | `Ztso` memory model vs RVWMO (§15) | Substituted | **~0%** | all | Free on an in-order FIFO-store-buffer core; buys proof simplicity, not speed. |
 
 ## Net change by workload archetype (vs the OoO baseline)
