@@ -35,10 +35,6 @@ Worse, the powerbox and the supervision tree are authority-minting components th
 The upstream non-interference proof exists only for non-MCS, unicore, static-partition configurations and is the least-maintained layer of l4v.
 NI over multikernel + purecap CHERI-C + powerbox dynamics is a new theorem wearing an old name; the maturity transfer claimed in §5/§8 applies to none of it.
 
-**16. Anti-rollback for mutable user data is unworked.**
-The user-data root sealed to the RoT with a monotonic counter implies counter updates at CoW-commit frequency; OTP counters can't sustain that and flash-backed counters need their own freshness story.
-High-rate authenticated freshness is a known-hard problem the spec waves at in one clause.
-
 ---
 
 ## Gaps (not contradictions, but unbooked)
