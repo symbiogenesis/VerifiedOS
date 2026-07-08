@@ -16,6 +16,7 @@ This is a selection *economy*, not a language mandate: admission gates on the bi
 - **Zed** — the reference editor/IDE; a software-rendered Tier-2 app.
 - **coreutils / findutils / diffutils** from uutils — the seed corpus for §14's capability-native core utilities (Tier-2).
 - **gitoxide** — the pure-Rust Git, re-targeted as the capability-native version-control engine; its object store re-homes onto §10's verified CoW B-tree (native dedup, reflinks, snapshots — Git's packfiles and `gc` shed) and its pack/wire decoders are a §5 Narcissus obligation (Tier-2).
+- **NuShell** — the structured-data shell, re-grounded as the capability-native command interpreter: its typed value pipeline is the shell-level analogue of §12's data plane, its builtin-heavy command set shrinks the `fork`/`exec` surface, and its plugins become §12 ring-reached compartments (Tier-2).
 - **Servo** — the contained, per-origin browser engine of §14 (Tier-2 origin compartments).
 - **GGUF inference runtime** — the §12 optional inference server on the M-class cores: the `burn` deep-learning framework re-targeted onto a net-new M-class GEMM backend (`burn`'s pluggable backend trait is the clean seam), not a from-scratch build (Tier-1).
 - **Network stack** — the §12 IPv6/TLS/DNS/Roughtime compartments (**smoltcp**, **hickory-dns**, **roughenough**) retargeted onto the rings, every wire format a §5 Narcissus obligation; the TLS compartment prefers a Rust-native **hax**-verified stack (**Bertie**) over the mature F\*/Low\* **miTLS**, and the DNS/TCP compartments gate on SPARK/HOL4 differential oracles that enter no trust base (Tier-1).
@@ -91,6 +92,26 @@ Being neither a GUI nor a JIT host, gitoxide clears obstacles 2 and 4 for free; 
 
 **Disposition:** Tier-2; adopt gitoxide's safe-Rust core — object model, ref store, revision walk, diff/merge — as a near-clean lift, **re-home storage onto the §10 store** so its native content-addressed dedup, refcounted-CoW reflinks, and O(1) snapshots subsume loose objects, packfiles, delta chains, and `gc` (packing survives only as a *wire* codec, never an on-disk format, and crash-safety is inherited from the verified journal rather than re-implemented), gate admission on the §5 Narcissus proof for the pack/pkt-line/idx/delta and object decoders, mandate **SHA-256-only** through the verified crypto core with SHA-1 dropped, shed the `memmap2`/zlib `-sys` dependencies, and collapse the hook/helper/credential/signing subprocess menagerie into supervision-tree compartments (§12).
 
+### NuShell — the capability-native command interpreter
+
+NuShell is a shell built on a **structured-data pipeline**: typed values — tables, records, lists, and typed primitives — flow between commands that carry typed signatures, in place of the untyped byte stream a POSIX shell pipes and re-parses at every stage.
+That one choice is why it, and not a faster POSIX shell (fish, Ion), is the fit: the typed pipeline is the shell-level analogue of §12's typed data plane, so the port *deletes* the per-command text re-parsing surface — the unstructured, attacker-facing plumbing the spec minimizes everywhere else (§5) — rather than carrying it across.
+Four seams re-target it.
+**(1) The command model already shrinks obstacle 3.**
+Most of NuShell's vocabulary is in-process safe-Rust builtins operating on structured values, so a pipeline of builtins spawns no processes at all — the `fork`/`exec` surface that dominates a POSIX shell is a fraction of the whole before any re-targeting begins.
+What remains — invoking an external command — has no `fork`/`exec` (§2): it becomes a **capability-delegated spawn** through the service manager's supervision tree (§12), the callee reached over a ring rather than found by a `PATH` walk over a global namespace; the environment becomes a **typed, capability-scoped record** instead of a global string map, and `cd`, globbing, and `ls` against the ambient filesystem become the manifest-backed private namespace (§14, obstacle 3).
+**(2) Plugins are already compartments.**
+A NuShell plugin is a separate process speaking a serialization protocol (MessagePack or JSON) over stdio, which maps almost directly onto §12: each plugin becomes a **capability-confined Tier-2 server compartment reached over a ring**, started by the supervision tree, never by the shell's ambient authority.
+The plugin protocol is then an attacker-facing wire between mutually distrusting compartments, so its framing and value decode are a §5 **Narcissus** copy-once-parser obligation, and the structured values crossing it carry schema bounds like any §12 message.
+**(3) The evaluator is an interpreter, and stays one.**
+NuShell parses to an internal representation and evaluates it; nothing is compiled to native, so it clears obstacle 4 by construction — no on-device codegen, no JIT (§14) — and the parse-and-evaluate engine ports as ordinary pure-interpreter safe Rust.
+**(4) The `unsafe` goes.**
+NuShell's own crates are largely safe Rust, but dependencies reaching for OS facilities — terminal control, process spawning, filesystem metadata — carry `unsafe` FFI inadmissible in app logic (§5, obstacle 1); each is deleted with the POSIX assumption behind it or routed through the verified HAL.
+
+**Disposition:** Tier-2, re-grounded in the coreutils spirit — *reimplemented, not ported* (§14): adopt NuShell's structured-pipeline engine, typed-command model, and plugin-as-compartment protocol as the seed, and discard the POSIX-ambient residue — external spawning, the global environment, the ambient filesystem — re-expressing it as capabilities, exactly as coreutils harvests its algorithms and drops its ambient-authority commands.
+It is additive where the coreutils lift is pure subtraction: the typed pipeline is a positive alignment with §12, not merely a surface to strip, and it invites pushing past where NuShell stops — making a **capability handle a first-class pipeline value**, so authority is passed and composed in the pipeline the way data already is.
+fish (a faster interactive POSIX shell) and Ion (Redox's shell — Rust, but POSIX-adjacent and not capability-native) are the rejected alternatives: both spend their design budget on interaction quality while keeping the byte-stream pipe and `fork`/`exec` spawn this port exists to delete.
+
 ### Servo — the contained browser engine
 
 The Rust browser engine is §14's browser made real. Its per-origin architecture — the constellation, per-origin script and layout — maps directly onto §14's **per-origin capability compartments**, so an origin RCE yields only that origin's authority and nothing else.
@@ -142,7 +163,7 @@ Roughtime has no verified peer in any prover, so roughenough rides the Narcissus
 
 ## Shared prerequisites
 
-All seven gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
+All eight gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
 
 - **The certifying Rust→RV64+CHERI toolchain (§18)** is the hard, no-fallback prerequisite for *building or admitting any of them* — userspace availability gates on it exactly as desktop instantiation gates on CHERI silicon (§18).
 - **A software rendering/compositing library on V-class cores** — the substrate COSMIC's compositor, Zed's GPUI, and Servo's WebRender all collapse onto — is built once under the §12 display model and shared across the three GUI targets.
