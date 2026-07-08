@@ -243,7 +243,7 @@ The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardwa
   `sail -c` on the curated model (§1) gives a fast single-core RV64IMV+CHERI emulator.
   Drive it with hand-written and randomly-generated ISA tests; this validates the *hardware* reference independently of any software.
 - **Whole-machine harness.**
-  Wrap the Sail-generated core with a thin host-C system harness that provides: **multiple core instances** (C-class ×N, V-class, M-class, the S-class sentinel, and the RoT RV64 core of §2), **physical memory** with the modeled ECC/TME behavior as no-ops-with-latency, and the **modeled devices** — IOMMU (default-deny window checks), the register-slave transceiver stream, the scanout DMA block, and the RoT peripherals.
+  Wrap the Sail-generated core with a thin host-C system harness that provides: **multiple core instances** (C-class ×N, V-class, M-class, the S-class sentinel, and the RoT RV64 core of §2), **physical memory** with the modeled ECC/TME behavior as no-ops-with-latency, and the **modeled devices** — IOMMU (default-deny window checks), the register-slave transceiver stream (with its fixed-function link-layer timing sequencer, §15), the scanout DMA block, and the RoT peripherals.
   Devices are modeled either as Sail memory-mapped regions (preferred, keeps them in the one language) or as C shims in the harness where that is faster to iterate.
   The **NoC/coherence islands** are modeled as a simple address-routing layer in bring-up (the TDM schedule and non-interference semantics are §15 hardening, not needed for functional emulation).
 - **Composed full-system golden model.**
