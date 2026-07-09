@@ -195,6 +195,16 @@ Two live-design notes mirror seL4's "a live design, not a frozen one" (above): C
 
 ---
 
+## Codasip X730: the first commercial CHERI-RISC-V application core, shipping evidence and a silicon path, not the base
+
+The **X730** (Codasip) is the first commercially licensable CHERI-RISC-V processor: a 64-bit, in-order, nine-stage, dual-issue application core whose register file and selected CSRs widen to 129 bits to hold a 128-bit capability and its tag, with a capability-checking unit that every instruction issues to alongside another execution unit, their outputs combined at commit.
+It is the CHERI variant of the **A730** the drop-PMP argument already cites (§15), on a shared codebase that reports the CHERI version at a **sub-5% area delta** and the same maximum frequency: shipping commercial evidence for the design's own thesis that application-class purecap CHERI is real and cheap, at the scale where CheriOS and CHERIoT are only microcontroller-class existence proofs (§17).
+What it offers beyond the open designs sits on the *engineering-is-free* axis, never the scarce trust axis: it is the most direct answer to §18's binding constraint (application-class CHERI exists only as licensable IP and FPGA soft cores), and its CodAL / Codasip Studio single-source flow regenerates RTL, an LLVM toolchain, and a verification environment from one description, an accelerator for curating the frozen, MMU-less, static-prediction profile (§15).
+What the design does **not** take is the X730 as its trusted base: the RTL is proprietary and authored in CodAL, and Codasip's UVM-plus-formal sign-off is riscv-formal / Isla-class bring-up evidence, a complement and never the closing axiom (§6), so it cannot carry the load-bearing **RTL ⊑ Sail** refinement (§15, §18) that an open core re-expressible into a formal-semantics HDL can; and as shipped it is the general-purpose MMU-on, S/U-mode, Linux-booting configuration the profile curates away.
+So the X730 is a licensed **reference, bring-up, and possible silicon vehicle**: the commercial complement to the open **CVA6-CHERI / COSMIC** track (above), which stays the C-class front end precisely because it is open, re-expressible, and on a conformance-proof path.
+
+---
+
 ## Fuchsia OS: the capability-IPC model (handles out-of-band, bounds in the schema)
 
 Google's Fuchsia is the shipping demonstration that a **from-scratch capability microkernel** (Zircon) can carry a real consumer device OS with **no ambient authority**: every resource is an unforgeable **handle**, a component receives only the capabilities its **manifest** declares, and there is no POSIX-by-default, no global namespace, no `fork`.

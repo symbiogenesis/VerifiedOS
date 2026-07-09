@@ -1151,6 +1151,7 @@ SMM's use cases map onto RoT + sentinel + fail-stop; its mechanism (invisible pr
 ## 18. Realization (mid-2026)
 
 Silicon is the binding constraint: RV64 application-class CHERI exists only as licensable IP and FPGA soft cores; Morello is ARM, speculative, loan-only.
+The one commercial instance of that licensable IP is Codasip's **X730** (the CHERI variant of the A730 cited for the PMP drop, §15): shipping evidence that application-class purecap silicon is real at a sub-5% area cost and the most direct route to first silicon, yet its proprietary CodAL RTL enters as a reference and bring-up vehicle rather than the trusted base, since only an open core re-expressible into a formal-semantics HDL can carry the RTL ⊑ Sail refinement (below), which is why the C-class front end stays the open CVA6-CHERI ([inspirations.md](inspirations.md)).
 **The platform is purecap-only (§15): there is no non-CHERI host, no capability-degraded interim, and no plain-RV64 compilation target anywhere: every stage enforces hardware capabilities from first bring-up.**
 Staging: (1) build and prove the kernel, capability layer, and TCB on RV64 CHERI soft cores under FPGA; (2) desktop instantiation gates on first RV64 CHERI silicon.
 Both stages are purecap, so both gate on the CHERI toolchain: which is therefore **priority zero**: the certifying compilers (the toolchain workstream below) are built ahead of any emulator, FPGA, or silicon work, because nothing runs a line of the system until they exist.
