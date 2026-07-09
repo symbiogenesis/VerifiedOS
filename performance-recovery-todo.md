@@ -1,56 +1,56 @@
-# Performance Recovery — Pure-Win TODO (non-normative)
+# Performance Recovery: Pure-Win TODO (non-normative)
 
 > Companion to [performance-estimates.md](performance-estimates.md) and [verification-maximal-os.md](verification-maximal-os.md).
-> Where the estimates doc *accounts for* the accepted price of the security choices, this doc enumerates only the **pure wins** — recovery levers that cost nothing on the scarce axis.
-> A **pure win** here recovers performance while **shedding no security property, reviving no deleted mechanism, opening no channel, and adding no axiom or TCB surface** — admissible precisely because it is *static, ahead-of-time, off-device*, and its output is **re-checked at admission** (§6).
+> Where the estimates doc *accounts for* the accepted price of the security choices, this doc enumerates only the **pure wins**, recovery levers that cost nothing on the scarce axis.
+> A **pure win** here recovers performance while **shedding no security property, reviving no deleted mechanism, opening no channel, and adding no axiom or TCB surface**, admissible precisely because it is *static, ahead-of-time, off-device*, and its output is **re-checked at admission** (§6).
 > "Engineering is free; trust is the scarce resource," so every item below may be pursued to arbitrary aggressiveness without touching the trust base.
 > Checkboxes track workstream progress; nothing here is normative, and no item may relax the §15 admission test.
-> **This list is deliberately confined to off-device software levers** — the untrusted-producer, re-checked-artifact architecture is what keeps them free of trust cost — so the one *in-model* (hardware) pure win, **decoder-stage macro-op fusion**, is booked in the specification itself (§2, §15) rather than here: fused and unfused executions reach identical architectural state, so it is carried by the existing RTL-against-Sail *functional* refinement at no proof cost, recovering scalar issue efficiency without any off-device artifact to re-check.
+> **This list is deliberately confined to off-device software levers**, the untrusted-producer, re-checked-artifact architecture is what keeps them free of trust cost, so the one *in-model* (hardware) pure win, **decoder-stage macro-op fusion**, is booked in the specification itself (§2, §15) rather than here: fused and unfused executions reach identical architectural state, so it is carried by the existing RTL-against-Sail *functional* refinement at no proof cost, recovering scalar issue efficiency without any off-device artifact to re-check.
 
 ## The pure-win gate
 
 An item earns a place on this list iff it clears all five:
 
 1. **Recovers performance** on at least one row of [performance-estimates.md](performance-estimates.md).
-2. **No trust widening** — no new axiom, no TCB growth; the produced artifact is re-checked, so its *producer* stays untrusted.
-3. **Sheds no security property** — every theorem the spec claims still holds, unchanged.
-4. **Revives no deleted dynamic mechanism and opens no channel** — no speculation, OoO, dynamic prediction, SMT, JIT, DVFS/turbo, prefetch state, or reservation state sneaks back.
-5. **Stays inside the proven-safe envelope** — passes the five-part §15 admission test and the §8 non-interference / §11 WCET obligations.
+2. **No trust widening**, no new axiom, no TCB growth; the produced artifact is re-checked, so its *producer* stays untrusted.
+3. **Sheds no security property**, every theorem the spec claims still holds, unchanged.
+4. **Revives no deleted dynamic mechanism and opens no channel**, no speculation, OoO, dynamic prediction, SMT, JIT, DVFS/turbo, prefetch state, or reservation state sneaks back.
+5. **Stays inside the proven-safe envelope**, passes the five-part §15 admission test and the §8 non-interference / §11 WCET obligations.
 
 **The enabling theorem (§6).**
-*"A compromised compiler or analyzer cannot mint a valid certificate for a property its output lacks"* — so the optimizer is untrusted evidence-producing machinery.
+*"A compromised compiler or analyzer cannot mint a valid certificate for a property its output lacks"*, so the optimizer is untrusted evidence-producing machinery.
 Aggressiveness is therefore **unbounded by trust**: any transformation whose result still type-checks (CHERI-TAL, §5) or proof-checks (CIC kernel, §6) is admissible however it was produced.
 This single fact is what makes the whole list pure.
 
 ---
 
-## 1. Off-device compiler optimization — untrusted optimizer, re-checked output
+## 1. Off-device compiler optimization: untrusted optimizer, re-checked output
 
 *All items extend the in-scope §18 certifying-compiler workstream; none add a workstream to the TCB.
-The output carries the same memory-safety / constant-time / WCET certificates (§5, §13) it always did — the optimizer only makes the same-certified binary faster.*
+The output carries the same memory-safety / constant-time / WCET certificates (§5, §13) it always did, the optimizer only makes the same-certified binary faster.*
 
-- [ ] **Autovectorization / SLP onto RVV — the dominant lever.**
+- [ ] **Autovectorization / SLP onto RVV, the dominant lever.**
   Lift scalar inner loops onto the already-in-profile vector unit (VLEN 256 C-class / 4096 V-class, §15).
   This is where the general-scalar deficit is *erased*, not shaved: every loop moved onto RVV turns an in-order-scalar row into a vector-gain row.
   *Keeps it pure:* secret-touching output still carries the binary-level constant-time certificate (§5/§13), which rejects any secret-dependent vectorization.
 - [ ] **Software pipelining / modulo scheduling / static load hoisting.**
-  The in-order core has no out-of-order window to hide load/FP latency behind, so the scheduler must do it offline — overlap iterations, hoist loads ahead of use.
+  The in-order core has no out-of-order window to hide load/FP latency behind, so the scheduler must do it offline, overlap iterations, hoist loads ahead of use.
   Recovers part of the in-order (−35% to −60%) and no-prefetch (−3% to −15%) rows.
-  *Keeps it pure:* static hoisting, **not** the excluded `Zicbop` prefetch hint — no new µarch state, no channel.
+  *Keeps it pure:* static hoisting, **not** the excluded `Zicbop` prefetch hint, no new µarch state, no channel.
 - [ ] **Aggressive if-conversion onto `Zicond`.**
   Convert unpredictable forward branches into branchless `czero.eqz/nez` selects.
-  Already "doubly load-bearing" (§15) — it dodges the static-predictor mispredict *and* closes the data-dependent-branch leak.
+  Already "doubly load-bearing" (§15), it dodges the static-predictor mispredict *and* closes the data-dependent-branch leak.
   Recovers part of the static-prediction (−10% to −30%) row.
-- [ ] **Elide redundant software bounds checks onto CHERI's hardware bounds — the die already checks every access.**
-  Teach the certifying Rust→RV64+CHERI toolchain (§18) to recognize that a panicking language-level bounds check (safe Rust's `a[i]`, a hardened-C length test) is *redundant against the capability that already bounds the object* — §5's "CHERI discharges spatial safety in hardware," §7's "CHERI bounds are the sole in-core spatial isolation" — and drop the compare-and-forward-branch, letting the hardware bound fault instead.
+- [ ] **Elide redundant software bounds checks onto CHERI's hardware bounds, the die already checks every access.**
+  Teach the certifying Rust→RV64+CHERI toolchain (§18) to recognize that a panicking language-level bounds check (safe Rust's `a[i]`, a hardened-C length test) is *redundant against the capability that already bounds the object*, §5's "CHERI discharges spatial safety in hardware," §7's "CHERI bounds are the sole in-core spatial isolation", and drop the compare-and-forward-branch, letting the hardware bound fault instead.
   Under the platform's fail-stop posture the two outcomes coincide (an out-of-bounds access is a fault-stop either way), so for the panicking index/slice checks the elision is semantically transparent.
-  Each check removed is one fewer instruction (in-order row), one fewer forward branch (static-prediction −10% to −30% row), and less code (no-C / I-cache −2% to −12% row); together they partially *offset* the CHERI purecap pointer-width tax (−3% to −15% row) — you pay the wide pointer but claw back the software-check.
+  Each check removed is one fewer instruction (in-order row), one fewer forward branch (static-prediction −10% to −30% row), and less code (no-C / I-cache −2% to −12% row); together they partially *offset* the CHERI purecap pointer-width tax (−3% to −15% row), you pay the wide pointer but claw back the software-check.
   Unclaimed today: current purecap Rust (Morello / CHERI-RISC-V) makes raw-pointer and `unsafe` code spatially safe yet still emits the safe-Rust check *on top of* the hardware bound.
-  *Keeps it pure:* the bound is still enforced — by hardware already on the die, adding no µarch — so the output still type-checks memory-safe in the CHERI-TAL (§5/§6), the §13 certificate is undisturbed, the check is address- not secret-dependent (constant-time untouched), and fewer instructions only tighten WCET (§11).
-- [ ] **Lower temporal-safety instrumentation onto the revocation and tags already on the die — not a software refcount, and *not* a hardware one.**
-  The spatial elision has a temporal mirror, but the mechanism is *not* a counter: CHERI carries **no hardware reference-count primitive** — copying a capability is an un-intercepted move, so a hardware counter would be new microarchitecture (fails admission-test-3, §15, and the "no new µarch" premise this whole list rests on).
+  *Keeps it pure:* the bound is still enforced, by hardware already on the die, adding no µarch, so the output still type-checks memory-safe in the CHERI-TAL (§5/§6), the §13 certificate is undisturbed, the check is address- not secret-dependent (constant-time untouched), and fewer instructions only tighten WCET (§11).
+- [ ] **Lower temporal-safety instrumentation onto the revocation and tags already on the die, not a software refcount, and *not* a hardware one.**
+  The spatial elision has a temporal mirror, but the mechanism is *not* a counter: CHERI carries **no hardware reference-count primitive**, copying a capability is an un-intercepted move, so a hardware counter would be new microarchitecture (fails admission-test-3, §15, and the "no new µarch" premise this whole list rests on).
   What the die *does* run is the **tag + budgeted revocation sweep** (§8, "derivation-tree revoke + CHERI sweep," CHERIoT/Cornucopia lineage) and the **linear/affine capability types** the CHERI-TAL already carries as the temporal residual (§5, §13).
-  So the lever is a compiler that discharges use-after-free with *those* — eliding software shadow-memory / heavy-atomic UAF guards — and, where a genuine count survives (CoW-extent refcounts §10, `Rc`/`Arc` sharing), uses CHERI's *precise* tags to license non-conservative or non-atomic counting rather than a `Zaamo` atomic on every clone-and-drop.
+  So the lever is a compiler that discharges use-after-free with *those*, eliding software shadow-memory / heavy-atomic UAF guards, and, where a genuine count survives (CoW-extent refcounts §10, `Rc`/`Arc` sharing), uses CHERI's *precise* tags to license non-conservative or non-atomic counting rather than a `Zaamo` atomic on every clone-and-drop.
   That is CheriOS's "claim" (an object-granular refcount made sound by revocation) produced by an untrusted, re-checked compiler.
   Recovers the small atomic-RMW refcount traffic (the `Zaamo` / atomics −0% to −3% rows) and keeps the §13 temporal obligation structural rather than instrumented.
   *Keeps it pure:* leans only on mechanisms already in the design, adds no µarch and no channel, and is sound precisely because the §6 checker still re-checks the temporal-safety certificate on the output.
@@ -62,46 +62,46 @@ The output carries the same memory-safety / constant-time / WCET certificates (�
   Cut branch density (fewer static mispredicts), widen the scheduler's window for pipelining, and expose more loops to the vectorizer.
   Recovers part of the static-prediction and in-order rows; compounds the items above.
 - [ ] **Superoptimization / equality-saturation / search-based (incl. ML and evolutionary) codegen for hot kernels.**
-  Because the artifact is re-checked (§6), point unbounded offline search at the hottest routines: the whole modern SMT-backed stack enters *as untrusted, re-checked oracles* — **Souper**-class SMT superoptimization, **egg** / equality-saturation rewrite search, and **Alive2**-style translation validation gating each peephole — none touching the trust base, because the emitted binary still carries the CHERI-TAL and constant-time certificates the §6 checker re-validates.
-  *This is the only admissible home for "evolutionary algorithms" — on codegen, where a wrong answer simply fails the checker, never on the spec or the proofs.*
+  Because the artifact is re-checked (§6), point unbounded offline search at the hottest routines: the whole modern SMT-backed stack enters *as untrusted, re-checked oracles*, **Souper**-class SMT superoptimization, **egg** / equality-saturation rewrite search, and **Alive2**-style translation validation gating each peephole, none touching the trust base, because the emitted binary still carries the CHERI-TAL and constant-time certificates the §6 checker re-validates.
+  *This is the only admissible home for "evolutionary algorithms", on codegen, where a wrong answer simply fails the checker, never on the spec or the proofs.*
 
 ---
 
-## 2. Off-device design-space search — admission tests as hard constraints
+## 2. Off-device design-space search: admission tests as hard constraints
 
 *Optimize the **instantiation**, never the specification.
-Every candidate is frozen at composition time, Sail-modeled, and must clear the five-part §15 admission test plus §8 NI / §11 schedulability before it is admissible — the proof obligations are the feasibility oracle.
+Every candidate is frozen at composition time, Sail-modeled, and must clear the five-part §15 admission test plus §8 NI / §11 schedulability before it is admissible, the proof obligations are the feasibility oracle.
 The spec stays invariant, so this widens no trust base.
-This — not mutating the spec — is the correct reading of "run a search over the design."*
+This, not mutating the spec, is the correct reading of "run a search over the design."*
 
 - [ ] **Static schedule synthesis.**
   Pack the cyclic-executive slots (§7) and the TDM-NoC arbitration schedule (§15) with an ILP / SMT / evolutionary optimizer, subject to the §11 interval-arithmetic schedulability check.
   Tighter packing recovers the non-work-conserving-scheduler idle (−10% to −35%) and TDM-NoC (−5% to −15%) rows.
-  *Keeps it pure:* the frame stays **non-work-conserving** — no slack donation, no runtime scheduling decision — it is merely a better-packed static frame.
+  *Keeps it pure:* the frame stays **non-work-conserving**, no slack donation, no runtime scheduling decision, it is merely a better-packed static frame.
 - [x] **Micro-architectural DSE over the frozen parameters.**
   Multi-objective (perf / area / power / WCET / proof simplicity) Pareto search over: cache / way-coloring split, VLEN per class, issue width and pipeline depth, scratchpad sizes, DRAM (sub-)channel assignment, and on-die integrity-tree-node cache size.
   Partially recovers the cache-partition (−5% to −25%), DRAM-channel (−5% to −20%), and DRAM-integrity-tree (−5% to −30%) rows.
   *Keeps it pure:* each candidate is a static, Sail-modeled, admission-checked config; any added cache (e.g. integrity-tree nodes) is **partition-scoped and fence.t-flushed** like the LLC, so admission-test-3 still holds.
-  *Done — wired into [verification-maximal-os.md](verification-maximal-os.md) §15 (normative) and [implementation-plan.md](implementation-plan.md) §1; the §17 Sail ⋈ RTL residual names it the standing mitigation.*
+  *Done, wired into [verification-maximal-os.md](verification-maximal-os.md) §15 (normative) and [implementation-plan.md](implementation-plan.md) §1; the §17 Sail ⋈ RTL residual names it the standing mitigation.*
 
 ---
 
-## 3. Faster pure-interpreters — recover the JIT loss without runtime codegen
+## 3. Faster pure-interpreters: recover the JIT loss without runtime codegen
 
 - [ ] **Faster pure-interpreters for the browser's JS and Wasm.**
-  Under no-JIT (§14) the browser runs downloaded JS and Wasm *interpreted* — Boa/Nova for JS, wasmi for Wasm (both pure-Rust) — because web content is dynamic and W^X (§14) forbids on-device codegen.
+  Under no-JIT (§14) the browser runs downloaded JS and Wasm *interpreted*, Boa/Nova for JS, wasmi for Wasm (both pure-Rust), because web content is dynamic and W^X (§14) forbids on-device codegen.
   Claw the overhead back with threaded / computed-goto dispatch, superinstructions, and **data-plane inline caches** (caches as *data*, never generated code).
-  *Keeps it pure:* no runtime codegen — the W^X invariant (§14) holds by construction.
-  *No off-device AOT shortcut exists:* web-delivered Wasm is dynamic content and installed apps compile straight to native RV64+CHERI, so Wasm is never an execution target (§14) — a "Wasm AOT" lever would be a category error, so none is listed.
+  *Keeps it pure:* no runtime codegen, the W^X invariant (§14) holds by construction.
+  *No off-device AOT shortcut exists:* web-delivered Wasm is dynamic content and installed apps compile straight to native RV64+CHERI, so Wasm is never an execution target (§14), a "Wasm AOT" lever would be a category error, so none is listed.
 
 ---
 
-## 4. Application-level restructuring — software-only, no trust cost
+## 4. Application-level restructuring: software-only, no trust cost
 
 - [ ] **Data-oriented restructuring onto the fast paths.**
   SoA layouts, batching, and replacing pointer-chasing with vectorizable / matrix-shaped structure move general-purpose work onto the RVV, systolic-GEMM, and table-free-crypto paths (§15) that already run at parity-to-many-×.
   The single-address-space (no MMU, §7) already helps pointer-chasing (+5% to +25%).
-  Pure by construction — ordinary source-level engineering that changes no mechanism.
+  Pure by construction, ordinary source-level engineering that changes no mechanism.
 
 ---
 
@@ -126,18 +126,18 @@ Rows are named from [performance-estimates.md](performance-estimates.md) (figure
 
 ---
 
-## Out of scope — explicitly *not* pure wins
+## Out of scope: explicitly *not* pure wins
 
 Recorded so they are not re-proposed.
 Each recovers performance only by **shedding a property or reopening a channel**, so it belongs in [performance-estimates.md](performance-estimates.md) as an accepted cost, never here:
 
-- **Speculation / OoO, dynamic branch prediction, SMT** — hidden shared state that fails admission-test-3 (§15); the very channels the design deletes.
-- **JIT / on-device codegen** — violates W^X (§14).
+- **Speculation / OoO, dynamic branch prediction, SMT**, hidden shared state that fails admission-test-3 (§15); the very channels the design deletes.
+- **JIT / on-device codegen**, violates W^X (§14).
   The pure-win substitute is a faster pure-interpreter (§3); web JS and Wasm are dynamic content, so no AOT shortcut exists.
-- **DVFS / turbo, reactive clocking** — a data-dependent frequency channel; power states are static schedule artifacts (§7/§15).
-- **Prefetch / non-temporal hints (`Zicbop`/`Zihintntl`), a return-address stack, LR/SC** — reintroduce µarch state that WCET must model and admission-test-3 forbids.
+- **DVFS / turbo, reactive clocking**, a data-dependent frequency channel; power states are static schedule artifacts (§7/§15).
+- **Prefetch / non-temporal hints (`Zicbop`/`Zihintntl`), a return-address stack, LR/SC**, reintroduce µarch state that WCET must model and admission-test-3 forbids.
   The pure-win substitute for prefetch is static load hoisting (item 1).
-- **A hardware reference-count or ownership primitive (a capability-copy-intercepting counter, hardware *linear* capabilities)** — recovers refcount traffic only by adding microarchitecture: a new mutable per-object counter or a non-duplication check in the pipeline is exactly the hidden shared state admission-test-3 (§15) forbids, and it breaks the "no new µarch" premise the list rests on.
-  The pure-win substitute is eliding *software* temporal-safety instrumentation onto the tag + revocation machinery and the linear/affine capability *types* already present (§8, §5, §13) — the compiler-elision item in §1, not a counter in silicon.
-- **Dropping the DRAM integrity / anti-replay tree** — sheds the evil-maid / rollback defense (§3/§15).
+- **A hardware reference-count or ownership primitive (a capability-copy-intercepting counter, hardware *linear* capabilities)**, recovers refcount traffic only by adding microarchitecture: a new mutable per-object counter or a non-duplication check in the pipeline is exactly the hidden shared state admission-test-3 (§15) forbids, and it breaks the "no new µarch" premise the list rests on.
+  The pure-win substitute is eliding *software* temporal-safety instrumentation onto the tag + revocation machinery and the linear/affine capability *types* already present (§8, §5, §13), the compiler-elision item in §1, not a counter in silicon.
+- **Dropping the DRAM integrity / anti-replay tree**, sheds the evil-maid / rollback defense (§3/§15).
   Its tax is only *mitigable* (on-die node caching, item 2), never removable.

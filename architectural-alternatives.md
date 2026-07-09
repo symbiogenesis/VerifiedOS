@@ -194,7 +194,7 @@ Unlike the belt/EPIC targets, Wasm is not ILP bait; its appeal is orthogonal and
 (b) **Linear memory is capability-shaped**: a module's heap is exactly `base + length`, i.e. one CHERI capability, so bounding the sandbox with a cap and deleting the software bounds check is a real, published CHERI-Wasm result.
 (c) **Sandbox-by-construction** for untrusted code with no custom silicon.
 
-**Why it fails for *this* design — four load-bearing objections.**
+**Why it fails for *this* design: four load-bearing objections.**
 - **Wasm secures the host from the module, never the module from itself.**
   Its sandbox is *coarse, inter-module* isolation and supplies **zero intra-module memory safety**: a C-to-Wasm heap overflow is fully exploitable *inside* the linear memory (Lehmann/Kinder/Pradel, "Everything Old is New Again: Binary Security of WebAssembly," USENIX Security 2020).
   So the Tier-2 **temporal-safety + control-flow-integrity certificate** (§13) is *still owed on top* of Wasm: it interposes a bytecode/validator/stack-machine layer without retiring a single proof obligation.
@@ -300,7 +300,7 @@ The *"both, not either"* position (language safety proves it at source, CHERI en
 It is the **software-mechanism dual of the deletion trilogy** (MMU / privilege / PMP): where those delete a hardware mechanism and keep the verified one, this would delete the hardware and keep only language safety.
 The platform takes the *converse*: keep the one deeply-verified hardware mechanism *and* add the proof; because hardware must bound code the proof does not cover; off the abandon-RISC-V ranking, since it changes no ISA.
 
-**Disposition:** rejected as the *sole* isolation mechanism — language safety leaves unverified native code unbounded and leans on a trusted runtime / GC the platform refuses; its two atoms are already present: language safety at source (safe Rust / Vélus / verified C, §5) and typed assembly at the binary (CHERI-TAL, below); and Verve's verified-TAL *design* corroborates the CHERI-TAL route while its Boogie/Z3 prover is declined (the seL4 discipline).
+**Disposition:** rejected as the *sole* isolation mechanism: language safety leaves unverified native code unbounded and leans on a trusted runtime / GC the platform refuses; its two atoms are already present: language safety at source (safe Rust / Vélus / verified C, §5) and typed assembly at the binary (CHERI-TAL, below); and Verve's verified-TAL *design* corroborates the CHERI-TAL route while its Boogie/Z3 prover is declined (the seL4 discipline).
 The platform axiom decides it as ever (*verify rather than hedge*): the proof carries safety as far as it reaches, CHERI bounds the rest.
 Non-normative; no spec-body change.
 
@@ -328,7 +328,7 @@ Nothing new imports; the two lineages are the OS-structure *names* for decisions
 **Where it ranks.**
 Off the abandon-substrate scale (no ISA change): a convergent-structure entry like the Mill single-address-space cross-reference: the design is *already* an exokernel-style multiplexer running unikernel-shaped applications, reached from capabilities and static composition rather than from resource-exposure minimalism, and reaching *higher* assurance by verifying the multiplexer the exokernel left thin.
 
-**Disposition:** no import — the exokernel's secure multiplexing and the unikernel's specialized type-safe image are already the capability kernel (§7), the powerbox (§8, §12), and the per-app compartment (§14); the OCaml / library-OS *artifacts* carry a foreign runtime and GC the platform declines.
+**Disposition:** no import: the exokernel's secure multiplexing and the unikernel's specialized type-safe image are already the capability kernel (§7), the powerbox (§8, §12), and the per-app compartment (§14); the OCaml / library-OS *artifacts* carry a foreign runtime and GC the platform declines.
 The structure is convergent, the assurance is higher (the multiplexer is verified, not merely minimal), and nothing lifts.
 Non-normative; no spec-body change.
 
@@ -362,7 +362,7 @@ The DIFC-OS tradition distills into **CHERI ⋈ the capability kernel ⋈ the fl
 **Where it ranks.**
 Off the abandon-substrate scale (an OS structure, no ISA change): a **convergent-structure entry** beside exokernel/unikernel and enclaves: the design is *already* a DIFC OS (labels ⋈ non-interference) reached from capabilities and **verified**, reaching HiStar's minimal-TCB goal with byte-granular isolation and a machine-checked proof HiStar has neither of.
 
-**Disposition:** no import as an architecture — DIFC is present as the §8/§13 flow-label / IFC machinery and the §8 non-interference theorem, carried over the capability kernel (§7) and CHERI (byte-granular, exceeding HiStar's coarse container-plus-label isolation) and **proved** in Coq (§5) rather than enforced by an unverified reference monitor; HiStar's Unix emulation is the POSIX ambient-authority surface the design deletes ([userspace-porting.md](userspace-porting.md), §14).
+**Disposition:** no import as an architecture: DIFC is present as the §8/§13 flow-label / IFC machinery and the §8 non-interference theorem, carried over the capability kernel (§7) and CHERI (byte-granular, exceeding HiStar's coarse container-plus-label isolation) and **proved** in Coq (§5) rather than enforced by an unverified reference monitor; HiStar's Unix emulation is the POSIX ambient-authority surface the design deletes ([userspace-porting.md](userspace-porting.md), §14).
 The label-centric structure is convergent, the assurance is higher (verified, byte-granular), and nothing lifts.
 Non-normative; no spec-body change.
 
@@ -418,7 +418,7 @@ The machines: Intel's **iAPX 432** (capability-based, microcoded, famously ruino
 **Where it ranks.**
 Ancestry, not an alternative: off every ranking; the entry grounds the capability lineage the way the Mill entry grounds single-address-space, recording that the capability-machine tradition is **distilled into CHERI ⋈ seL4** rather than imported as a machine, and that its one separable idea (orthogonal persistence) is actively *incompatible* with the verified-crash-refinement storage the design chose.
 
-**Disposition:** no import as an architecture — capability addressing is CHERI (§1, §8) and the capability-OS design is seL4 (§7, §8), both exceeding their ancestors, and the 432's microcode-checking failure is exactly what CHERI's fixed-silicon checks avoid; the single distinct idea, orthogonal persistence / single-level store (AS/400, EROS), is **declined** because it dissolves the explicit state boundary the crash-only model (§12, §16), eager-zeroize / Write-before-Read (§7, §15), and the verified crash-refinement storage stack (§10) each depend on.
+**Disposition:** no import as an architecture: capability addressing is CHERI (§1, §8) and the capability-OS design is seL4 (§7, §8), both exceeding their ancestors, and the 432's microcode-checking failure is exactly what CHERI's fixed-silicon checks avoid; the single distinct idea, orthogonal persistence / single-level store (AS/400, EROS), is **declined** because it dissolves the explicit state boundary the crash-only model (§12, §16), eager-zeroize / Write-before-Read (§7, §15), and the verified crash-refinement storage stack (§10) each depend on.
 Non-normative; no spec-body change.
 
 ---
@@ -444,7 +444,7 @@ The MI6/Kôika author overlap is worth naming: the **formal-semantics HDL** line
 **Where it ranks.**
 Off the abandon-substrate scale: a convergent / subsumed entry: the design is an *all-enclave machine* (every compartment is one) *without an enclave mechanism*, because it removed the shared-and-speculative substrate enclaves were invented to partition, and it verifies the monitor enclaves keep small-but-trusted.
 
-**Disposition:** no import — hardware enclaves defend against transient-execution and shared-microarchitecture channels the in-order, non-speculative, cache-partitioned, single-address-space profile deletes (§15), and their coarse PMP realization (Keystone) is the mechanism CHERI exceeds (drop-PMP, above); the attested isolated compartment and the small verified monitor are already the CHERI compartment ⋈ measured root (§9, §12, §14) and the verified kernel ⋈ RoT (§7, §9).
+**Disposition:** no import: hardware enclaves defend against transient-execution and shared-microarchitecture channels the in-order, non-speculative, cache-partitioned, single-address-space profile deletes (§15), and their coarse PMP realization (Keystone) is the mechanism CHERI exceeds (drop-PMP, above); the attested isolated compartment and the small verified monitor are already the CHERI compartment ⋈ measured root (§9, §12, §14) and the verified kernel ⋈ RoT (§7, §9).
 The MI6/Kôika formal-HDL lineage is shared as a *verification* vehicle (§18); the enclave product is not needed.
 Non-normative; no spec-body change.
 
@@ -483,7 +483,7 @@ Lockstep/TMR random-fault masking stays a **G5 gen-2 option**, subtractively adm
 **Where it ranks.**
 Off the abandon-substrate scale (a reliability/verification microarchitecture, not an ISA): DIVA ranks as the *microarchitectural sibling* of the zkVM entry and below the adopted approach on the same "static all-inputs proof beats per-run check" grounds; lockstep/TMR ranks as a deferred G5 reliability option, already logged.
 
-**Disposition:** **DIVA is rejected as a strategy** — it restores functional trust in a complex core while leaving its timing channels (the actual threat) open, and the design takes the stronger horn of the same asymmetric-trust insight: a simple verified core (RTL ⊑ Sail, §18) with nothing complex to check and no channels to leak, its static all-inputs proof exceeding DIVA's per-execution functional check.
+**Disposition:** **DIVA is rejected as a strategy**: it restores functional trust in a complex core while leaving its timing channels (the actual threat) open, and the design takes the stronger horn of the same asymmetric-trust insight: a simple verified core (RTL ⊑ Sail, §18) with nothing complex to check and no channels to leak, its static all-inputs proof exceeding DIVA's per-execution functional check.
 The asymmetric-trust *pattern* DIVA embodies is banked at the proof level (FPCC §6, CryptOpt §5, admission §13), checking certificates rather than results.
 **Lockstep / TMR** random-fault redundancy is a reliability mechanism orthogonal to the security threat, partly present (ECC, RFM, kernel duplication; §15, §16) and otherwise **logged for G5** (COSMIC lockstep, [inspirations.md](inspirations.md)) as a deferred 2–3×-area option, not carried by default.
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend → verify rather than hedge*): verify one simple core rather than check a complex one, contain random faults rather than replicate against them, until a safety case pays for masking.
@@ -507,12 +507,12 @@ The choices were to *state an exemption principle* for the read-side walker or t
 **The honest counterargument: and why it does not hold at the base.**
 Sv39 would give an **MMU-disjoint intra-core isolation layer** that could still separate compartments if CHERI itself had a logic fault; deleting it concentrates in-core spatial isolation on one mechanism.
 Three things answer this.
-(1) The coarse **PMP backstop** that could supply a CHERI-disjoint failure domain is itself dropped (the drop-PMP entry below): rather than hedge a CHERI *logic* fault with a second in-band mechanism, the platform hedges it with the **formal verification of CHERI** (RTL ⊑ Sail §18; the Oxford/Google CHERIoT-Ibex conformance proof; Codasip's app-class deployment) — *verify rather than hedge*.
-(2) In the single-address-space model the design already converges on (the Mill entry above), the MMU **never supplied a per-compartment second layer to begin with**: intra-core compartments are separated by CHERI bounds over one shared map, so the page tables would be an identity-shaped translation, not the disjoint per-compartment isolation the fault argument imagines — the "second layer" was largely notional. (3) Keeping it would mean **carrying an admission-test-5 violation** (the autonomous walker) as standing defense-in-depth — trading the profile's own determinism rule for a layer whose fine-grained disjointness the SAS design does not actually instantiate.
+(1) The coarse **PMP backstop** that could supply a CHERI-disjoint failure domain is itself dropped (the drop-PMP entry below): rather than hedge a CHERI *logic* fault with a second in-band mechanism, the platform hedges it with the **formal verification of CHERI** (RTL ⊑ Sail §18; the Oxford/Google CHERIoT-Ibex conformance proof; Codasip's app-class deployment): *verify rather than hedge*.
+(2) In the single-address-space model the design already converges on (the Mill entry above), the MMU **never supplied a per-compartment second layer to begin with**: intra-core compartments are separated by CHERI bounds over one shared map, so the page tables would be an identity-shaped translation, not the disjoint per-compartment isolation the fault argument imagines: the "second layer" was largely notional. (3) Keeping it would mean **carrying an admission-test-5 violation** (the autonomous walker) as standing defense-in-depth, trading the profile's own determinism rule for a layer whose fine-grained disjointness the SAS design does not actually instantiate.
 
 **The bet, stated.**
 Single-address-space CHERI at *application-class* scale rests on **CheriOS** and **CHERIoT** as existence proofs, and both are small-scale; app-class SAS-purecap is the wager this takes.
-It is bounded, not blind: CHERI is the **primary, byte-granular, formally-modeled** mechanism the whole design already leans on (§8, §13); capability-checked DMA and coherence-island separation cover the device-access and cross-domain-timing residuals a page table never addressed anyway (physical-reach resting on CHERI partition bounds, PMP dropped — the drop-PMP entry below); and because the kernel is **bespoke** (seL4's capability / IPC *design* re-proved in Coq, not stock seL4's C), it is built single-address-space-native — dropping the VSpace object classes — rather than retrofitting SAS onto a page-table kernel.
+It is bounded, not blind: CHERI is the **primary, byte-granular, formally-modeled** mechanism the whole design already leans on (§8, §13); capability-checked DMA and coherence-island separation cover the device-access and cross-domain-timing residuals a page table never addressed anyway (physical-reach resting on CHERI partition bounds, PMP dropped: the drop-PMP entry below); and because the kernel is **bespoke** (seL4's capability / IPC *design* re-proved in Coq, not stock seL4's C), it is built single-address-space-native, dropping the VSpace object classes, rather than retrofitting SAS onto a page-table kernel.
 
 **This is not the descend-to-PMP-only move.**
 The rejected MultiZone descent (above) shed the MMU *and CHERI*, falling back on coarse PMP as the primary mechanism; this sheds **only** the MMU and keeps CHERI as the byte-granular primary.
@@ -532,7 +532,7 @@ The platform axiom decides it as ever (*trust is the scarce resource, engineerin
 ## Single privilege mode: Machine mode only, capability-gated privilege (CHERIoT-lineage)
 
 The proposal is to delete **Supervisor and User modes** and run the die in **Machine mode only**, expressing privilege as a **CHERI permission on the program-counter capability** (the access-system-registers permission, CHERIoT-style) rather than a hardware privilege ring.
-The claim is the same redundancy the MMU-deletion took one step earlier: once CHERI is *"the sole in-core spatial mechanism"* (§15), the S/U ring is a *second, in-band* privilege mechanism: a compartment is already confined by the capabilities it holds, so gating privileged operations (CSR access, interrupt-enable, context switch, sealing) by a **permission** rather than a **mode** removes the ring, its CSR bank (`sstatus`/`stvec`/`sepc`/…/`scounteren`), trap delegation (`medeleg`/`mideleg`), `sret`, and `Sstc` — and the mode-transition reasoning from the kernel proof — while losing nothing CHERI was not already enforcing.
+The claim is the same redundancy the MMU-deletion took one step earlier: once CHERI is *"the sole in-core spatial mechanism"* (§15), the S/U ring is a *second, in-band* privilege mechanism: a compartment is already confined by the capabilities it holds, so gating privileged operations (CSR access, interrupt-enable, context switch, sealing) by a **permission** rather than a **mode** removes the ring, its CSR bank (`sstatus`/`stvec`/`sepc`/…/`scounteren`), trap delegation (`medeleg`/`mideleg`), `sret`, and `Sstc`: and the mode-transition reasoning from the kernel proof; while losing nothing CHERI was not already enforcing.
 
 **CHERIoT is the existence proof, and it has silicon.**
 CHERIoT (Microsoft/lowRISC, contributed to the RISC-V standardization effort) is Machine-mode only by design (*"hierarchical privilege modes are unnecessary, so CHERIoT CPUs support only Machine Mode"*): with privilege carried by *"a permission that allows access to certain control and status registers … when a capability with that permission is installed as the program counter capability."*
@@ -547,7 +547,7 @@ Collapsing to one mode makes the enforcement substrate match the design the rest
 **The honest counterargument: and why it holds at the base.**
 The S/U ring gave (a) a hardware-privilege boundary preventing an app from executing privileged instructions regardless of CHERI, and (b) the privilege-layering that let the **PMP backstop** sit *below* the kernel.
 Both are answered.
-(1) In the CHERIoT model, privileged instructions are gated by the **PCC system-register permission**, which no compartment's PCC carries — so a compartment cannot execute a privileged CSR access for the same reason it cannot forge a pointer: the authorizing capability is *absent*, an unforgeable condition, not a mode bit an exploit might flip.
+(1) In the CHERIoT model, privileged instructions are gated by the **PCC system-register permission**, which no compartment's PCC carries: so a compartment cannot execute a privileged CSR access for the same reason it cannot forge a pointer: the authorizing capability is *absent*, an unforgeable condition, not a mode bit an exploit might flip.
 (2) The crown-jewel backstop role needs **no privilege ring**: and, as the drop-PMP entry below records, no PMP either: immutable-text/W^X, the per-core partition bound, and crown-jewel secret fencing rest on CHERI monotonicity (§7, §14), the crypto core's hardware boundary, and TME (§15), with the CHERI-*logic*-fault hedge being CHERI's own verification, not a coarse disjoint layer.
 The boot/M-mode firmware still runs first, establishes the initial capability distribution, and goes quiescent; the microkernel is the resident Machine-mode holder of the system-register permission; nothing else holds it.
 
@@ -580,13 +580,13 @@ With the fine-grained protection and compartmentalization of CHERI this unit can
 The CHERI research program (Cambridge/SRI, with Microsoft Research and INRIA) and the Oxford/Google formal verification against the Sail model are the assurance base that makes dropping the coarse hedge defensible.
 
 **Where PMP's three backstop roles go.**
-A locked-PMP backstop (weighed in the MultiZone entry above) would serve three coarse crown-jewel roles, each of which instead collapses onto a mechanism already present: (a) **immutable-text / W^X** on kernel and firmware text and the read-only content-addressed image is the CHERI capability-monotonicity invariant of §14: no writable capability to those regions is ever derived, so there is nothing for a second mechanism to re-enforce; (b) the **per-core physical-partition bound** is CHERI — each core's kernel instance is delegated a root capability bounded to its partition, and monotonicity (§7) lets it derive nothing outside it; (c) **crown-jewel secret fencing** is the crypto core's own hardware boundary plus TME (§15) — keys never leave the core, and anything resident outside it is ciphertext.
+A locked-PMP backstop (weighed in the MultiZone entry above) would serve three coarse crown-jewel roles, each of which instead collapses onto a mechanism already present: (a) **immutable-text / W^X** on kernel and firmware text and the read-only content-addressed image is the CHERI capability-monotonicity invariant of §14: no writable capability to those regions is ever derived, so there is nothing for a second mechanism to re-enforce; (b) the **per-core physical-partition bound** is CHERI, each core's kernel instance is delegated a root capability bounded to its partition, and monotonicity (§7) lets it derive nothing outside it; (c) **crown-jewel secret fencing** is the crypto core's own hardware boundary plus TME (§15), keys never leave the core, and anything resident outside it is ciphertext.
 
 **The honest counterargument: the one thing genuinely lost.**
 PMP's unique value is that it is **disjoint from CHERI**: an independent failure domain that would still bound each core if the CHERI machinery itself had a *logic* fault.
 Dropping it means in-core spatial isolation, W^X, and the partition bound rest on **one** mechanism with no in-band redundancy.
-This is answered the way the whole platform answers single-mechanism concentration — not with a second mechanism but with **proof**: CHERI is the mechanism the design verifies most deeply (the RTL ⊑ Sail workstream §18, the Oxford/Google CHERIoT-Ibex conformance result, Codasip's shipping app-class core), so the hedge against a CHERI implementation fault is the *verification* of CHERI, not a coarse subset of it running alongside.
-And the residual that actually persists — fabricated silicon vs. verified RTL — is unchanged by keeping or dropping PMP (both share the one mask set, §17), so PMP bought no protection against it.
+This is answered the way the whole platform answers single-mechanism concentration: not with a second mechanism but with **proof**: CHERI is the mechanism the design verifies most deeply (the RTL ⊑ Sail workstream §18, the Oxford/Google CHERIoT-Ibex conformance result, Codasip's shipping app-class core), so the hedge against a CHERI implementation fault is the *verification* of CHERI, not a coarse subset of it running alongside.
+And the residual that actually persists: fabricated silicon vs. verified RTL; is unchanged by keeping or dropping PMP (both share the one mask set, §17), so PMP bought no protection against it.
 
 **The bet, stated.**
 Resting all in-core spatial protection on CHERI is the same wager as single-address-space and single-privilege-mode, with no coarse fallback at all.
@@ -617,13 +617,13 @@ Capability-holding DMA is demonstrated at **CHERIoT** scale (first silicon 2026)
 The deletion is sound *only because* the device model is already curated register-slave / transducer / on-die RTL (§4, §12): there is no foreign PCIe bus-master ecosystem issuing raw physical addresses the IOMMU exists to catch.
 
 **The one accelerator alternative it declines: retrofitting CHERI-unaware IP.**
-A newer result from the same group — **CapChecker** ("Adaptive CHERI Compartmentalization for Heterogeneous Accelerators"; Cheng, Markettos et al., ISCA 2025) — takes the converse tack to the native path above: it interposes a capability-checking unit at the memory interface of a **CHERI-*unaware*** accelerator, so unmodified (often third-party or opaque) accelerator IP gains fine-grained protection at low overhead.
-That is exactly the road the no-foreign-computers mandate (§4) forecloses: the unaware, self-mastering, opaque accelerator is the category it excludes by name, and the coprocessor line (§15) makes the compute units (V/M-class, FEC) CHERI-native — core-issued capability-operand movement, no independent mastership — so no unaware self-mastering block remains to wrap.
+A newer result from the same group, **CapChecker** ("Adaptive CHERI Compartmentalization for Heterogeneous Accelerators"; Cheng, Markettos et al., ISCA 2025), takes the converse tack to the native path above: it interposes a capability-checking unit at the memory interface of a **CHERI-*unaware*** accelerator, so unmodified (often third-party or opaque) accelerator IP gains fine-grained protection at low overhead.
+That is exactly the road the no-foreign-computers mandate (§4) forecloses: the unaware, self-mastering, opaque accelerator is the category it excludes by name, and the coprocessor line (§15) makes the compute units (V/M-class, FEC) CHERI-native, core-issued capability-operand movement, no independent mastership, so no unaware self-mastering block remains to wrap.
 Its checking *function* is in any case what the capability-checked fabric above already performs at the point of issue: for the curated firmware-free streaming engines the platform does keep, the fabric *is* the checker, and a CapChecker shim would be the hedge *verify rather than hedge* declines.
-What survives the mandate is CapChecker as a **feasibility datapoint** — boundary capability-checking on real heterogeneous accelerators at low single-digit overhead (quantified in performance-estimates.md) — corroborating that the capability- and tag-carrying-fabric obligation above is cheap, not a reason to admit the CHERI-unaware accelerator it was built to rescue.
+What survives the mandate is CapChecker as a **feasibility datapoint**, boundary capability-checking on real heterogeneous accelerators at low single-digit overhead (quantified in performance-estimates.md), corroborating that the capability- and tag-carrying-fabric obligation above is cheap, not a reason to admit the CHERI-unaware accelerator it was built to rescue.
 
 **The honest counterargument: the two obligations it names.**
-Dropping the IOMMU removes the one DMA-side mechanism *disjoint* from CHERI, so device access now rests on CHERI too — the single-mechanism concentration the PMP drop books, extended to the device edge, hedged the same way (CHERI's own verification: RTL ⊑ Sail §18, the Oxford/Google CHERIoT-Ibex result).
+Dropping the IOMMU removes the one DMA-side mechanism *disjoint* from CHERI, so device access now rests on CHERI too: the single-mechanism concentration the PMP drop books, extended to the device edge, hedged the same way (CHERI's own verification: RTL ⊑ Sail §18, the Oxford/Google CHERIoT-Ibex result).
 Two obligations are genuinely new relative to a translation-IOMMU and are booked in §17: (1) **in-flight-DMA revocation**: a capability held by a running transfer must honour the §8 revocation sweep so time-to-containment stays bounded (a load-barrier / revocation-epoch check, Cornucopia-Reloaded-lineage, or bounded re-authorized windows); (2) a **capability- and tag-carrying fabric**: the interconnect must propagate capabilities, tags, and revocation state to the DMA blocks (new Sail / RTL ⊑ Sail surface, §15/§18).
 Application-class capability-DMA at NIC / scanout / radio-I/Q bandwidth is net-new (§18); microcontroller-scale is the existence proof.
 
@@ -693,7 +693,7 @@ That line runs exactly between Mon CHÉRI's two halves.
   Mon CHÉRI is **opt-in per capability** (the default disables enforcement; the allocator or compiler must emit a `CSetOpBounds`-family instruction such as `csetwbrbound`), **needs a store-linearization compiler pass** (21% false positives without it, because the operation-bound rides *in* the capability and ordinary codegen spills and duplicates capabilities into stale copies), **assumes sequential writes**, and steals capability-cursor bits: a change to the capability format and to the compiled instruction stream, i.e. special binaries.
   That is precisely what the steer rules out, and it enlarges the CHERI-RISC-V Sail model, the RTL ⊑ Sail refinement, CHERI-CompCert, and the CHERI-TAL soundness metatheorem (non-monotonic permission *regain* against the linear/affine capability discipline).
 - **But the *property* separates from the encoding, and the separated form is transparent: this is adopted (§15).**
-  Move the write-progress state out of the capability and into an **address-indexed initialization-tag plane**: a sibling of the CHERI validity tag, reset to *uninitialized* by eager-zeroize (`cbo.zero`, §7), set by any ordinary store, checked on data loads — and Write-before-Read runs on **stock CHERI binaries** with **no capability-encoding change, no new instruction the binary emits, and no store-linearization** (any store to the granule discharges its obligation, so correct code never false-faults; the false-positive problem that forced Mon CHÉRI's compiler pass was an artifact of the in-capability encoding).
+  Move the write-progress state out of the capability and into an **address-indexed initialization-tag plane**: a sibling of the CHERI validity tag, reset to *uninitialized* by eager-zeroize (`cbo.zero`, §7), set by any ordinary store, checked on data loads: and Write-before-Read runs on **stock CHERI binaries** with **no capability-encoding change, no new instruction the binary emits, and no store-linearization** (any store to the granule discharges its obligation, so correct code never false-faults; the false-positive problem that forced Mon CHÉRI's compiler pass was an artifact of the in-capability encoding).
   It is a custom microarchitecture, not a binary-side change: exactly the deviation the steer permits; and it rides the *existing* validity-tag datapath, so it is cheap in silicon and in proof.
   The compiler-transparent alternative Mon CHÉRI's authors themselves float: a shadow-memory "written" bitmap; is a *separate, hidden* per-address structure; the tag-plane form instead extends the metadata plane CHERI already maintains and reasons about, keeping it architectural state reset by eager-zeroize, not hidden microarchitectural state.
 - **The value is scoped by what is already discharged: which is why the mechanism is defense-in-depth, not a universal fault.**
@@ -703,7 +703,7 @@ That line runs exactly between Mon CHÉRI's two halves.
 **The distilled atom: Write-before-Read, and its verified vehicle is already in the trust base.**
 Of the seven conditional permissions, **Write-before-Read is the one non-redundant atom** for this platform: Write-before-Execute and Execute-Only/XOM are already covered by W^X under CHERI monotonicity (no writable-then-executable capability is ever derived, §14), Execute-Once anti-code-reuse by no-runtime-codegen + CFI + CHERI (§13, §14), and Write-Once/Read-Once are niche.
 Two facts make the atom unusually cheap to re-home.
-First, the store-linearization obligation the paper carries as an LLVM pass is a *linearity* problem, and the paper's own future work observes it is simpler in borrow-checked languages, Rust the prominent example — the platform's contained code *is* safe Rust carrying **CHERI-TAL** linear/affine capability types (below), so the compiler half is largely already discharged.
+First, the store-linearization obligation the paper carries as an LLVM pass is a *linearity* problem, and the paper's own future work observes it is simpler in borrow-checked languages, Rust the prominent example, the platform's contained code *is* safe Rust carrying **CHERI-TAL** linear/affine capability types (below), so the compiler half is largely already discharged.
 Second, and decisively, the **Coq-verified vehicle already sits in the trust base**: Georges et al.'s *uninitialized capabilities* (POPL '21) mechanize exactly Write-before-Read in the **Iris/Cerise** capability-machine logic the platform already relies on for its universal contract (§13).
 The adopted mechanism re-homes onto that verified lineage: the **address-indexed sibling** of its theorem, proved in the one prover; the same move this document makes elsewhere (adopt the *design*, re-home the *proof* onto Coq: seL4 below, VeriBetrFS in §10), here applied to a capability *extension*.
 Mon CHÉRI's own LLVM/Bluespec prototype is unverified and finer-grained (sub-object, stack and heap, FPGA-real); the platform trades that precision for the transparent, verified, tag-plane form.
@@ -713,7 +713,7 @@ It is the **most importable of the "change the ISA" entries**: it abandons no su
 
 **Disposition (adopted in part; normative in §15).**
 The **property**: Write-before-Read; is adopted as a **transparent, address-indexed initialization-tag plane** (a sibling of the CHERI validity tag, reset by eager-zeroize), enforced on **stock CHERI binaries** by microarchitecture and verified in the one prover as the address-indexed sibling of the Coq-verified Iris/Cerise uninitialized-capabilities result (§15).
-Mon CHÉRI's **binary-side conditional-capability *encoding*** — the per-capability operation-bound, its `CSetOpBounds` instructions, and the store-linearization it forces — is **rejected**: it is the bespoke binary-side CHERI change the platform declines, and its extra precision is not worth special binaries plus the Sail / RTL / toolchain / CHERI-TAL surface.
+Mon CHÉRI's **binary-side conditional-capability *encoding***: the per-capability operation-bound, its `CSetOpBounds` instructions, and the store-linearization it forces; is **rejected**: it is the bespoke binary-side CHERI change the platform declines, and its extra precision is not worth special binaries plus the Sail / RTL / toolchain / CHERI-TAL surface.
 The other six conditional permissions do not import (already covered by W^X, by no-codegen + CFI, or niche).
 **Honest residual (§17):** the tag plane is the one place the profile *adds* a mechanism rather than deleting one: booked as cheap defense-in-depth (granule-granular, heap/static-first, stack precision an optional compiler assist), strengthening the universal contract where hardware is the only guarantee, consistent with *verify rather than hedge*.
 
@@ -722,14 +722,14 @@ The other six conditional permissions do not import (already covered by W^X, by 
 ## Tagged metadata-processing architectures: the SAFE project, micro-policies, the PUMP; the tag-monitor genus *is* the substrate, the programmable rule-cache fails the admission test
 
 Where the Mon CHÉRI entry above *extends* CHERI with one conditional-permission policy, the DARPA CRASH/SAFE lineage proposes the maximal form of the same move: a **programmable engine for arbitrary tag policies**.
-The SAFE machine's tagged architecture, its **micro-policies** framework (Azevedo de Amorim/Dénès/Giannarakis/Hriţcu/Pierce/Spector-Zabusky/Tolmach, IEEE S&P '15 — mechanized in **Coq**), the **PUMP** (Programmable Unit for Metadata Processing; Dhawan/Hriţcu/Rubin/Vasilakis/Chiricescu/Smith/Knight/Pierce/DeHon, ASPLOS '15), and its commercial realization **Dover CoreGuard** (software-defined metadata processing, SDMP) all rest on one idea: every word carries a large metadata tag, and on every instruction a hardware **rule cache** checks a software-defined policy over the operand tags, trapping to a software **policy monitor** on a miss (which resolves the rule and installs it).
-Run it through the import discipline: the decomposition that logged the belt's spiller and EPIC's NaR while rejecting the rest; and it splits into four separable parts: (a) the **tag-monitor *model*** (security as a property of per-word metadata checked in the datapath); (b) the **programmability** (arbitrary policies loaded as software, hardware-accelerated by the rule cache); (c) the **policy *catalog*** (the specific verified micro-policies — IFC, memory safety, CFI, compartmentalization, dynamic sealing); (d) the **Coq metatheory** (a machine-checked generic monitor + per-policy refinement).
+The SAFE machine's tagged architecture, its **micro-policies** framework (Azevedo de Amorim/Dénès/Giannarakis/Hriţcu/Pierce/Spector-Zabusky/Tolmach, IEEE S&P '15, mechanized in **Coq**), the **PUMP** (Programmable Unit for Metadata Processing; Dhawan/Hriţcu/Rubin/Vasilakis/Chiricescu/Smith/Knight/Pierce/DeHon, ASPLOS '15), and its commercial realization **Dover CoreGuard** (software-defined metadata processing, SDMP) all rest on one idea: every word carries a large metadata tag, and on every instruction a hardware **rule cache** checks a software-defined policy over the operand tags, trapping to a software **policy monitor** on a miss (which resolves the rule and installs it).
+Run it through the import discipline: the decomposition that logged the belt's spiller and EPIC's NaR while rejecting the rest; and it splits into four separable parts: (a) the **tag-monitor *model*** (security as a property of per-word metadata checked in the datapath); (b) the **programmability** (arbitrary policies loaded as software, hardware-accelerated by the rule cache); (c) the **policy *catalog*** (the specific verified micro-policies: IFC, memory safety, CFI, compartmentalization, dynamic sealing); (d) the **Coq metatheory** (a machine-checked generic monitor + per-policy refinement).
 
 **The steelman: four real cards, and it is unusually spec-coherent in genus.**
 Unlike the belt/EPIC/Wasm targets it **abandons no substrate**: the PUMP is a tag coprocessor beside a conventional host, and CoreGuard rides a *RISC-V* host; so the substrate-cost objection fatal to EPIC does not apply.
 (a) **The metatheory lives in Coq.** Micro-policies ship a machine-checked generic-monitor theorem with per-policy refinements in the platform's own prover, and **"A Verified Information-Flow Architecture"** (Azevedo de Amorim et al., POPL '14) carries a tagged IFC machine end-to-end, hardware to abstract: the *hardware* sibling of the seL4/Cerise verification the design already leans on.
 (b) **One mechanism, many policies**: memory safety, IFC, CFI, compartmentalization, and sealing are all instances of the same tag-check, a genuine economy-of-mechanism claim.
-(c) **It is CHERI's own genus.** A capability is metadata bound to a word and checked in the datapath; CHERI *is* a tag-monitor, so the model is not foreign — it is the family the design already belongs to.
+(c) **It is CHERI's own genus.** A capability is metadata bound to a word and checked in the datapath; CHERI *is* a tag-monitor, so the model is not foreign: it is the family the design already belongs to.
 (d) **It targets the same gap Mon CHÉRI does**: the IFC and initialization micro-policies address exactly the residual memory-safety classes the design chases with flow labels and the Write-before-Read plane.
 
 **Why it fails for *this* design: the programmability is the cost, not the win.**
@@ -758,14 +758,14 @@ Among the "add a mechanism" entries it is the most spec-coherent in *lineage* (C
 
 **Disposition (nothing imports; confirms §15's tag-plane discipline).**
 The **programmable PUMP / software-defined-metadata engine** is **rejected**: its rule cache fails the admission test on tests 2 and 3 (a tag-history timing channel and hidden state surviving a partition switch), and runtime-loadable policy is the programmable-vs-frozen inversion of *delete rather than defend, verify rather than hedge*.
-The **tag-monitor *model* imports nothing because it is already the substrate** — CHERI is a fixed-policy tag-monitor and the Write-before-Read plane (§15) is a second fixed tag plane, so the platform is **already a fixed-policy tagged architecture**, reached not by adopting the PUMP but by freezing its genus to the policies the design proves.
+The **tag-monitor *model* imports nothing because it is already the substrate**: CHERI is a fixed-policy tag-monitor and the Write-before-Read plane (§15) is a second fixed tag plane, so the platform is **already a fixed-policy tagged architecture**, reached not by adopting the PUMP but by freezing its genus to the policies the design proves.
 The **micro-policy catalog imports nothing new** (IFC → §8/§13 flow labels; memory safety → CHERI + revocation; CFI → W^X + CHERI §14; compartmentalization → §7/§12 capabilities; sealing → CHERI sealing).
 The **Coq metatheory** is logged as *methodological confirmation, not an import*: "verify a tag machine in Coq" is exactly the move the design makes for CHERI and for the Write-before-Read plane (re-homed onto the Coq-verified Iris/Cerise uninitialized-capabilities lineage, §13/§15), so the SAFE/micro-policies corpus is a **reference** for that discipline, not a component to lift.
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend* → *verify rather than hedge*): a programmable policy engine buys expressiveness (the free axis, here not even wanted) at the price of hidden state and a general trust base (the scarce one).
 Non-normative; no spec-body change.
 
-**Honest residual (§17):** what the design forgoes is *programmable, post-hoc* policy — the ability to load a new tag policy without a respin, the PUMP's one genuine capability.
-The bet is that the frozen catalog — CHERI ⋈ flow labels ⋈ W^X ⋈ Write-before-Read — is complete enough that field-loadable policy is never needed; if a genuinely new tag policy ever *were* required, the admissible way to add it is the transparent fixed-plane form the Write-before-Read plane already models (a datapath-checked, address-indexed tag reset by eager-zeroize), **never** the programmable rule cache — the same "cheapest thing to re-admit is the subtractive, static, Sail-modeled form" hedge the drop-PMP entry above books.
+**Honest residual (§17):** what the design forgoes is *programmable, post-hoc* policy: the ability to load a new tag policy without a respin, the PUMP's one genuine capability.
+The bet is that the frozen catalog (CHERI ⋈ flow labels ⋈ W^X ⋈ Write-before-Read) is complete enough that field-loadable policy is never needed; if a genuinely new tag policy ever *were* required, the admissible way to add it is the transparent fixed-plane form the Write-before-Read plane already models (a datapath-checked, address-indexed tag reset by eager-zeroize), **never** the programmable rule cache: the same "cheapest thing to re-admit is the subtractive, static, Sail-modeled form" hedge the drop-PMP entry above books.
 No mechanism is added, so there is no new proof surface; the residual is purely the forgone flexibility, which the *frozen-with-the-proof* discipline (§15) treats as a feature, not a loss.
 
 ---
@@ -794,17 +794,17 @@ The closest match to the *no-firmware* form the platform needs is **openwifi** (
 None of these is formally verified or Sail-modeled; consistent with the platform's thesis, the split is off-the-shelf and the *verified, capability-gated, firmware-free* realization is the contribution.
 
 **Disposition (adopted; normative in §12, §15).**
-The sub-slot turnaround (BLE `T_IFS`, 802.11 SIFS, 802.15.4) is met by a fixed-function timing sequencer inside the register-slave transceiver datapath — a hardware timer + FSM, no instruction fetch, no firmware, one more fixed-latency entry in the timing-annotated Sail model (§11) riding the RTL ⊑ Sail refinement.
-Everything with protocol semantics — connection-event/slot scheduling (a §11 software hard task), channel selection, framing/whitening/CRC, link-layer encryption via the crypto core, and the link-layer state machine as a Lustre control plane — stays in software (§12).
+The sub-slot turnaround (BLE `T_IFS`, 802.11 SIFS, 802.15.4) is met by a fixed-function timing sequencer inside the register-slave transceiver datapath: a hardware timer + FSM, no instruction fetch, no firmware, one more fixed-latency entry in the timing-annotated Sail model (§11) riding the RTL ⊑ Sail refinement.
+Everything with protocol semantics (connection-event/slot scheduling, a §11 software hard task; channel selection; framing/whitening/CRC; link-layer encryption via the crypto core; and the link-layer state machine as a Lustre control plane) stays in software (§12).
 A Bluetooth/Wi-Fi *controller* (FullMAC firmware) is rejected as a §4 foreign computer; pure-software turnaround (Sora-style) is rejected as spending the tightest real-time budget on the most jitter-sensitive path.
 This is the same "hardness at the boundary, patchable software above it" rule the regulatory layering (§12) applies to the emission envelope, applied to timing.
-**Honest residual (§17):** the sequencer is a small fixed-function block folded into the transceiver datapath already in the Sail model (§17 "grows the Sail model") — no firmware, no new trust axiom, its correctness and its 150 µs latency riding the existing transceiver RTL ⊑ Sail and WCET obligations; no new residual bullet, since the block is within the register-slave-datapath category the radio subsystem already books.
+**Honest residual (§17):** the sequencer is a small fixed-function block folded into the transceiver datapath already in the Sail model (§17 "grows the Sail model"): no firmware, no new trust axiom, its correctness and its 150 µs latency riding the existing transceiver RTL ⊑ Sail and WCET obligations; no new residual bullet, since the block is within the register-slave-datapath category the radio subsystem already books.
 
 **Generalization: the same partition is the standing sensor-front-end doctrine (§12, §15).**
 The split-MAC line drawn here is not radio-specific; it is the platform's rule for every transducer.
 The analog front-end plus a fixed-cadence scan/sample sequencer stays *matter*: a register-slave AFE streaming raw samples over a capability-bounded DMA window, no per-sensor DSP core and no firmware; while all signal processing dissolves onto the host V-cores.
 Capacitive touch (raw capacitance → host touch DSP), the audio front-end (microphone/speaker converters → host filtering, echo-cancellation, and beamforming), the image sensor (raw Bayer → the software ISP), IMU/motion (raw reads → host fusion), and the fingerprint/biometric AFE (raw frames → the host matcher) are all instances.
-The one honesty the radio case does not carry: sensor front-ends have no off-the-shelf firmware-free part — commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware — so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design, booked in §17; that booking is the resolution of the capacitive-touch AFE gap.
+The one honesty the radio case does not carry: sensor front-ends have no off-the-shelf firmware-free part; commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware; so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design, booked in §17; that booking is the resolution of the capacitive-touch AFE gap.
 
 ---
 
@@ -828,12 +828,12 @@ On the in-model residuals the second die targets this **deletes the same things*
 
 **What the second die uniquely buys: and why it is not enough.**
 It alone gives physically separate substrate and thermal mass: the last epsilon of analog-emission (TEMPEST-class) and power-probe coupling between the transmitter and secret-processing logic.
-But that is (a) already physical-scope, outside the remote-attacker model (§17), and (b) *not actually closed by the second die either*, which reuses the same die design (same mask) and whose radio radiates by function — so the package buys an out-of-model epsilon it does not cleanly deliver.
+But that is (a) already physical-scope, outside the remote-attacker model (§17), and (b) *not actually closed by the second die either*, which reuses the same die design (same mask) and whose radio radiates by function: so the package buys an out-of-model epsilon it does not cleanly deliver.
 
 **Disposition (adopted in part; normative in §15):** the second die and the inter-die link are **declined**; the **single-die realization**: the radio island taking separate DRAM die/rank and its own clock/power island; is **adopted** and normative in §15 (Interconnect and coherence, Power architecture), deleting the power/thermal/refresh/PRAC coupling on one die.
 It is the same graded-hierarchy discipline the design already applies on four axes, extended one axis (power/thermal) to the block that already holds the coherence-island half.
 
-**Honest residual (§17):** the physical substrate and thermal mass stay shared — analog-emission and power-probe coupling remain physical-scope, exactly as the §17 physical residual books — bought back against a new inter-die trust boundary and the single-die inspectability the supply-chain residual leans on.
+**Honest residual (§17):** the physical substrate and thermal mass stay shared: analog-emission and power-probe coupling remain physical-scope, exactly as the §17 physical residual books; bought back against a new inter-die trust boundary and the single-die inspectability the supply-chain residual leans on.
 
 ---
 
@@ -851,7 +851,7 @@ A **third option dominates both**: keep seL4's *design* and re-prove it **end-to
 
 - **The spec already *is* seL4 in all but the prover.**
   Untyped memory / zero post-boot kernel allocation (§7), synchronous endpoints + notifications (§7), derivation-tree (CDT) revocation (§8), and the non-interference theorem (§8) are seL4's model in every particular; "CertiKOS" named only the **Coq proof engine**.
-  "CertiKOS-lineage kernel proof" was always shorthand for *verify this (seL4) design in Coq* — a label on the method, not a second kernel.
+  "CertiKOS-lineage kernel proof" was always shorthand for *verify this (seL4) design in Coq*: a label on the method, not a second kernel.
   The coherent artifact is a Coq proof **of the seL4 design already written down here**, not an import of CertiKOS's different kernel.
 
 - **The two decisive objections bind the prover, not the design: and dissolve on re-proof.**
@@ -878,12 +878,12 @@ The search for an existing Coq artifact to inherit comes back empty: seL4 is **I
 The freshness that bites is therefore **not** the authored refinement proofs, which fail *loudly* when they are wrong, but the **silent** kind: a mis-transcribed specification verifies perfectly (§5's crown-jewel failure mode).
 Bound it by transcribing the spec **mechanically, not by hand**: seL4's executable model is Haskell, and **hs-to-coq** (Gallina from Haskell) carries the scrutinized prototype into Coq without a paraphrase pass, so the artifact that earned the independent eyes is *preserved*, not re-typed; only the abstract spec and the refinement are authored fresh.
 That fresh abstract spec is not unmoored: it is **disciplined by the refinement against the hs-to-coq executable model**: any *divergence* fails the proof loudly, so the sole silent residual is a *too-weak-but-faithful* abstract spec, the **generic crown-jewel risk seL4 already carries in Isabelle** (§5), not one the Coq move introduces.
-And the two-checker alternative's edge is narrower than it looks: the proofs it would let you *inherit* do **not** cover this platform's purecap-CHERI kernel or the multikernel configuration — both unverified in seL4 today — so that proof mass is **fresh under either option**, and what the maturity actually buys is the *design and specification*, not a discharged proof of the configuration shipped here.
+And the two-checker alternative's edge is narrower than it looks: the proofs it would let you *inherit* do **not** cover this platform's purecap-CHERI kernel or the multikernel configuration: both unverified in seL4 today; so that proof mass is **fresh under either option**, and what the maturity actually buys is the *design and specification*, not a discharged proof of the configuration shipped here.
 That is a real cost: but a *labor-and-freshness* cost, the class the engineering-free axiom exists to absorb, not a *trust* cost: the trusted set does not grow.
-The claim is thus conditional and honest — **superior iff (a) engineering is free and (b) seL4's 2024 completion is in-scope**, both stipulated.
+The claim is thus conditional and honest: **superior iff (a) engineering is free and (b) seL4's 2024 completion is in-scope**, both stipulated.
 
 **Disposition:** adopt seL4's **design**, re-proved **end-to-end in Coq** and compiled via **CompCert/SECOMP** (§5, §7); **CertiKOS is demoted from kernel to proof-method lineage**: deep specifications, certified abstraction layers, CompCertX-style verified compilation; supplying the *how* while seL4 supplies the *what*.
-What transfers from that lineage is the abstraction-layer discipline, the deep-specification method, CompCertX-style verified compilation, and the generic lower-layer proofs (physical-memory management: the single-address-space design carries no paging layer) any kernel needs — **not** CCAL's *concurrency* machinery, which the share-nothing multikernel (above) makes dead weight; for a per-core *sequential* kernel, plain **VST** (sequential separation logic over CompCert) is the more parsimonious closing logic.
+What transfers from that lineage is the abstraction-layer discipline, the deep-specification method, CompCertX-style verified compilation, and the generic lower-layer proofs (physical-memory management: the single-address-space design carries no paging layer) any kernel needs, **not** CCAL's *concurrency* machinery, which the share-nothing multikernel (above) makes dead weight; for a per-core *sequential* kernel, plain **VST** (sequential separation logic over CompCert) is the more parsimonious closing logic.
 The make-or-break subproof, never yet done in Coq for an seL4-class capability model, is **CDT revocation** (the hardest part of the l4v corpus): so it is the piece to attempt *first*, the early kill-switch on the route.
 **Importing seL4's Isabelle proof wholesale stays rejected** (the two-prover TCB).
 The earlier "no pure-win" verdict is **superseded**: it held only under the unstated assumption of *inheriting* seL4's proof; the engineering-free axiom licenses lifting that assumption, and the Coq-re-proved seL4 then dominates.
@@ -907,13 +907,13 @@ If the kernel spec were genuinely frozen forever, fusing it would merge the kern
   This is precisely the RTU pattern: RTU keeps its host RTOS (µC/OS-II) in software and offloads hot paths, so even the canonical hardware-microkernel product never collapsed the software TCB.
   Partial fusion *adds* surface; only whole fusion pays off, and whole fusion needs the whole spec frozen.
 - **The most-proven subset is not the kernel this platform runs.** seL4's deepest guarantees hold for a **unicore, non-MCS, static-partition** configuration: functional correctness there, and the **non-interference proof only for non-MCS, unicore, static-partition configurations**: the least-maintained layer of l4v.
-  This platform is a **multikernel** on multicore, **purecap CHERI-C** — and although dropping MCS for a static cyclic executive (§7) moves the *scheduling* dimension back toward the non-MCS static-partition one seL4's proof covers, the multikernel and purecap-CHERI dimensions keep its non-interference a *fresh* theorem wearing an old name.
+  This platform is a **multikernel** on multicore, **purecap CHERI-C**: and although dropping MCS for a static cyclic executive (§7) moves the *scheduling* dimension back toward the non-MCS static-partition one seL4's proof covers, the multikernel and purecap-CHERI dimensions keep its non-interference a *fresh* theorem wearing an old name.
   "Fuse the proven subset" therefore fuses a kernel you do not deploy; the configuration you *do* deploy is the unfrozen one.
 - **Pedigree does not transfer across the prover or the transcription.** seL4's battle-testing is a property of the **Isabelle** proof, the C implementation, and fifteen years of deployment; the design is Isabelle-only and greenfield in Coq (seL4 vs. CertiKOS, above).
   Fusing to Kôika produces a **new** artifact: RTL; whose correctness is a **new** Coq proof (RTL ⊑ a fresh Coq transcription of the spec), riding the **least-built arrow in the whole stack** (RTL ⊑ Sail, §18).
-  The independent eyes were on the Isabelle artifact, not the gateware, so fusion inherits the *design* and re-proves *fresh* on the hardest tooling — strictly worse than the software re-proof, which at least rides the more-mature CompCert/VST path.
+  The independent eyes were on the Isabelle artifact, not the gateware, so fusion inherits the *design* and re-proves *fresh* on the hardest tooling: strictly worse than the software re-proof, which at least rides the more-mature CompCert/VST path.
 - **The radio/MTTR self-defeat softens under narrowing but survives.**
-  Restricting to the most-scrutinized subset genuinely lowers P(functional defect) — the crown-jewel doctrine (§5) working as designed.
+  Restricting to the most-scrutinized subset genuinely lowers P(functional defect): the crown-jewel doctrine (§5) working as designed.
   But the defect classes fusion forecloses response to are **uncorrelated with the functional proof**: **timing channels** (outside seL4's functional *and* non-interference proofs: time protection is a separate, still-maturing, hardware-dependent effort), hardware-model drift, assumption-boundary violations, and errata interactions.
   Scrutiny buys none of those down, and fusion concentrates its cost exactly there: on the **highest-privilege layer**, where the spec's own rule bites hardest: *"a fully fused radio could never patch its most-attacked surface"* (§12), so patch latency becomes fab latency.
   Lower P(defect) × maximal-severity-and-zero-remediation is still a bad tail trade.
@@ -929,12 +929,12 @@ So the separable primitive worth fusing is already fused; the rest is **control-
 
 **Where it ranks.**
 Unlike the belt, EPIC, and Wasm targets, kernel-in-gateware does **not** abandon the RISC-V substrate: it keeps the substrate and moves the *kernel* into it; so it is off that ranking.
-It is the terminus of the kernel-shrink path (the adopted cyclic executive ⋈ the adopted single-address-space MMU-deletion, above, which subsumes the frozen-page-table step), coherent only **after** those simplifications land — as the base has them — **and** the seL4-in-Coq specification and proof are complete and frozen — a gen-2 direction contingent on spec-freeze, in the same "iff the binding constraint appears" slot as the belt, not a base move.
+It is the terminus of the kernel-shrink path (the adopted cyclic executive ⋈ the adopted single-address-space MMU-deletion, above, which subsumes the frozen-page-table step), coherent only **after** those simplifications land: as the base has them; **and** the seL4-in-Coq specification and proof are complete and frozen; a gen-2 direction contingent on spec-freeze, in the same "iff the binding constraint appears" slot as the belt, not a base move.
 
 **Disposition:** the fusion of the **capability/endpoint/scheduler machine** is **rejected as a base direction**: the benefit needs the whole kernel while the proven-and-frozen safety covers only a subset (the scissor), the proven subset is not this platform's multikernel/purecap configuration, the maturity lives in Isabelle and does not transfer to a fresh Coq → Kôika → RTL artifact on the least-built arrow, and fusion forecloses remediation of the timing/assumption/errata defect classes the functional proof never covered, on the most-privileged layer.
 It is logged as a **spec-freeze-contingent gen-2 direction** (terminus of the adopted cyclic-executive and MMU-deletion simplifications, above).
 The one distilled atom: a verified hardware block for a genuinely-frozen separable primitive; is **already banked as CHERI** (§1); a verified **Kôika scheduler/timer** block is admissible in principle but too small to be the proposal, and stays non-normative.
-The **RealFast RTU / Sierra** line is a functional reference that RTOS-in-gates is real and deterministic, **not** an admissible artifact — unverified VHDL, a dynamic-priority/semaphore shape the §15 admission test deletes, and an accelerator that keeps the software kernel rather than replacing it.
+The **RealFast RTU / Sierra** line is a functional reference that RTOS-in-gates is real and deterministic, **not** an admissible artifact: unverified VHDL, a dynamic-priority/semaphore shape the §15 admission test deletes, and an accelerator that keeps the software kernel rather than replacing it.
 Non-normative; no spec-body change.
 
 ---
@@ -955,23 +955,23 @@ Functional correctness plus constant-time (Fiat-Crypto + libcrux/HACL\*, §5) co
 The tools, each run through the §5 trust-base test, close both gaps:
 
 - **CompCert-CT + CryptOpt translation validation (layers 1–2).**
-  Constant-time is carried by **CompCert-CT preservation** on the verified-C path — one verified compiler, the same Coq prover — replacing "trust a C compiler to preserve constant-time" with a *mechanized* preservation theorem.
+  Constant-time is carried by **CompCert-CT preservation** on the verified-C path: one verified compiler, the same Coq prover; replacing "trust a C compiler to preserve constant-time" with a *mechanized* preservation theorem.
   The performance-critical **field-arithmetic kernels** are then recovered by **CryptOpt**: an *untrusted* randomized-search superoptimizer emits assembly faster than GCC/Clang at top optimization (at times beating hand-written asm), admitted by a **Coq-verified program-equivalence checker** back to its **Fiat-Crypto** functional spec; so the trusted artifact is a *small verified checker*, not a second optimizing backend, and hand-assembly-grade speed and Coq-checkable correctness are both had at **zero trust-base fragmentation** (the crypto instantiation of the artifact-not-pedigree / CHERI-TAL discipline below).
-  Costs, and why it is a *deferrable* recovery rather than a hard dependency: **CryptOpt targets x86-64 today**, so the CHERI-RISC-V retarget of the equivalence checker over the one Sail model is a §18 workstream beside CHERI-CompCert — but the crypto core is already correct *and* constant-time on CompCert-CT alone (Fiat-Crypto's field arithmetic is straight-line), so this only buys back speed on the hot path and can be deferred.
+  Costs, and why it is a *deferrable* recovery rather than a hard dependency: **CryptOpt targets x86-64 today**, so the CHERI-RISC-V retarget of the equivalence checker over the one Sail model is a §18 workstream beside CHERI-CompCert: but the crypto core is already correct *and* constant-time on CompCert-CT alone (Fiat-Crypto's field arithmetic is straight-line), so this only buys back speed on the hot path and can be deferred.
   Two honest asterisks: CryptOpt's headline results come from randomized search **benchmarked on real silicon**, which does not exist here yet: the fitness function must ride the timing-annotated Sail model or the FPGA (§11), though the in-order fixed-latency profile (§15) makes that cost model *transparent* rather than the opaque superscalar it fights on x86; and its scope is *straight-line field arithmetic*, so control-flow-heavy primitives (Keccak, AES, ChaCha, the ML-KEM/ML-DSA NTT and samplers) stay on the CompCert-CT verified-C path: acceptable with performance subordinated.
 - **SSProve / FCF (layer 3).**
   Coq-native game-based reduction frameworks.
   Choosing them for the security proofs is the **identical decision** §5 made choosing Narcissus over EverParse: the reduction rides the one Coq kernel (§6) at **zero new trust base**.
   This is the spec-coherent home for the missing layer.
 - **EasyCrypt (layer 3, mature complement).**
-  The standard game-based prover and the one carrying the **formosa-crypto** ML-KEM/ML-DSA reductions — the fastest path to a *finished* proof.
-  But it discharges via **Why3/SMT**, a trust base distinct from Coq; by this spec's own logic it is a widening of the same character as the libcrux/HACL\* F\*/Z3 one — **adopted as pragmatic interim assurance, SSProve/FCF the destination.**
+  The standard game-based prover and the one carrying the **formosa-crypto** ML-KEM/ML-DSA reductions: the fastest path to a *finished* proof.
+  But it discharges via **Why3/SMT**, a trust base distinct from Coq; by this spec's own logic it is a widening of the same character as the libcrux/HACL\* F\*/Z3 one: **adopted as pragmatic interim assurance, SSProve/FCF the destination.**
 
 **Disposition (adopted; normative in §5).**
-Crypto assurance becomes **three composed layers** — functional correctness (Fiat-Crypto; libcrux/HACL\* interim) ⋈ constant-time (CompCert-CT preservation, with CryptOpt-checked field-arithmetic kernels) ⋈ reduction-level security (SSProve/FCF Coq-native, EasyCrypt mature complement) — joined at each primitive's functional specification, which joins the crown-jewel spec list.
-The platform axiom decides the toolchain exactly as it did for seL4: **methodology is portable, maturity is not** — carry the Coq-native property (CompCert-CT preservation, CryptOpt equivalence-checking to Fiat-Crypto, SSProve/FCF) to the mature artifacts (formosa-crypto, Fiat-Crypto/CryptOpt), spending engineering to shrink the trusted set.
+Crypto assurance becomes **three composed layers** (functional correctness (Fiat-Crypto; libcrux/HACL\* interim) ⋈ constant-time (CompCert-CT preservation, with CryptOpt-checked field-arithmetic kernels) ⋈ reduction-level security (SSProve/FCF Coq-native, EasyCrypt mature complement)): joined at each primitive's functional specification, which joins the crown-jewel spec list.
+The platform axiom decides the toolchain exactly as it did for seL4: **methodology is portable, maturity is not**: carry the Coq-native property (CompCert-CT preservation, CryptOpt equivalence-checking to Fiat-Crypto, SSProve/FCF) to the mature artifacts (formosa-crypto, Fiat-Crypto/CryptOpt), spending engineering to shrink the trusted set.
 **Honest residual (§17):** a reduction *isolates and names* the hardness assumptions (MLWE/MSIS; ECDLP/CDH) but cannot prove them: the irreducible cryptographic axiom; the implementation ⋈ reduction join is a new seam at the functional spec; EasyCrypt-borne reductions carry an SMT base until restated Coq-native; and scheme-level IND-CCA/EUF-CMA is still below protocol-level security (TLS/AKA), a further layer.
-What this buys is the deepest-available crypto proof — from "correct, constant-time code for a scheme we *assume* is secure" to "the scheme is IND-CCA/EUF-CMA under a named, minimal hardness assumption, implemented by constant-time code a verified compiler preserves and a verified checker admits" — with the residual pushed down to conjectures no proof system can discharge.
+What this buys is the deepest-available crypto proof: from "correct, constant-time code for a scheme we *assume* is secure" to "the scheme is IND-CCA/EUF-CMA under a named, minimal hardness assumption, implemented by constant-time code a verified compiler preserves and a verified checker admits"; with the residual pushed down to conjectures no proof system can discharge.
 
 ---
 
@@ -982,21 +982,21 @@ Sound, mechanized WCET is barely a field: **aiT (AbsInt)** is the commercial gol
 The irony the gap sharpens: the design's **in-order + static-only-prediction + fixed-latency** posture exists precisely to make WCET tractable, yet the tool computing it would otherwise go unnamed.
 
 - **The layer decomposes exactly as RTL ⊑ Sail does: a functional part ⋈ a hyperproperty part.**
-  WCET analysis is classically two halves: a **low-level micro-architectural model** (per-basic-block timing — aiT's abstract interpretation over pipeline and cache state) and a **high-level path analysis** (loop bounds + IPET over the CFG).
+  WCET analysis is classically two halves: a **low-level micro-architectural model** (per-basic-block timing: aiT's abstract interpretation over pipeline and cache state) and a **high-level path analysis** (loop bounds + IPET over the CFG).
   On this platform the two halves land in two *already-present* layers, so almost nothing is net-new theory.
-- **The low-level model is not a new artifact — it is the timing-annotated Sail model (§15).**
+- **The low-level model is not a new artifact: it is the timing-annotated Sail model (§15).**
   The timing discipline the profile adopted for other reasons: in-order issue, static-only prediction (no predictor-state variance), fixed-latency DIV/FPU/AMO, Ztso, cache/DRAM/NoC partitioning, TDM NoC, WCET-exact scratchpads, deterministic profile-guided layout (§10); *collapses* the low-level model from aiT's pipeline-and-cache abstract interpretation to a **per-(class, OPP) latency table** plus reproducible cache/fetch/memory terms, sound to the metal by RTL ⊑ Sail (Kami/Kôika).
   The non-speculative posture is itself a WCET-soundness argument.
 - **The high-level model is a Coq-verified IPET estimator** (Blazy/Pichardie/Maroneze/Puaut lineage, on CompCert): the existence proof that a Coq-native WCET analyzer *does* exist.
   Its ILP solution is a certificate, so the LP solver is untrusted evidence-producing machinery, and the whole estimator rides the one Coq prover alongside the §11 interval-arithmetic schedulability check at zero new trust base.
-- **Measurement-based / probabilistic WCET (MBPTA/EVT) — rejected as the bound.**
-  Extreme-value-theory tail estimates give a *probabilistic* bound; that is a statistic, not a theorem — the same disposition as MTE's ~93% (§15), antithetical to the proof-based determinism (G3/G4).
+- **Measurement-based / probabilistic WCET (MBPTA/EVT): rejected as the bound.**
+  Extreme-value-theory tail estimates give a *probabilistic* bound; that is a statistic, not a theorem: the same disposition as MTE's ~93% (§15), antithetical to the proof-based determinism (G3/G4).
   Admissible only as an out-of-band cross-check that flags a wrong timing annotation, never as the admitted WCET.
 
 **Disposition (adopted; normative in §5, §11).**
 Name the layer, split it functional ⋈ hyperproperty like RTL ⊑ Sail, put the low-level half *inside* the timing-annotated Sail model (discharged by the RTL ⊑ Sail proof already in scope) and the high-level half in a Coq-verified IPET estimator emitting FPCC WCET certificates.
 **aiT** is the unverified complement; **MBPTA** an out-of-band cross-check only.
-The platform axiom decides the toolchain as ever — *methodology is portable, maturity is not*: carry the Coq-native property to the verified-IPET artifact and the timing-annotated model, spending engineering to keep WCET on the single prover.
+The platform axiom decides the toolchain as ever (*methodology is portable, maturity is not*): carry the Coq-native property to the verified-IPET artifact and the timing-annotated model, spending engineering to keep WCET on the single prover.
 **Honest residual (§17):** WCET is only as sound as the timing-annotated model's latency magnitudes (crown-jewel specs) and inherits the RTL ⊑ Sail residual: no sound bound before that least-built arrow closes; while composability across partitions rests on the §15 isolation non-interference the timing-channel story already needs.
 
 ---
@@ -1006,10 +1006,10 @@ The platform axiom decides the toolchain as ever — *methodology is portable, m
 Establishing **constant-time (CT)** by **preservation** alone (CompCert-CT-class for the verified-C path, the crypto core included) carries CT from a source-level proof through a *verified compiler* and therefore reaches only binaries built that way.
 The FPCC discipline's own principle is *"verification is a property of the artifact, not its pedigree"* (§5); preservation-only CT is the one place that principle goes unmet, remaining a fact about **which compiler produced the binary**.
 
-- **The uncovered set is not exotic — it is most secret-touching code.**
+- **The uncovered set is not exotic: it is most secret-touching code.**
   Two paths carry no verified compiler: the FPCC **Islaris "no verified compiler in the loop"** path (§5), and (the larger one) **every Tier-1/2 binary**, because the certifying userspace toolchain (§5, §13) emits a *memory-safety* certificate but preserves nothing about timing.
   A key-handling server (the radio key hierarchy, §12) or a PIN-handling app compiled by that toolchain gets memory-safety PCC and **no CT**.
-  This is the exact shape of the gap the memory-safety certificate already avoids (§13) — trusted-by-pedigree where it should be proven-on-artifact — one property later.
+  This is the exact shape of the gap the memory-safety certificate already avoids (§13): trusted-by-pedigree where it should be proven-on-artifact; one property later.
 - **Artifact-level CT decomposes as RTL ⊑ Sail and WCET do: functional ⋈ hyperproperty.**
   Constant-time is a **2-safety hyperproperty** (it relates two executions differing only in secrets), which a *functional* program logic does not carry.
   So the bare Islaris/Iris-over-Sail refinement that discharges functional/safety obligations cannot state CT; it must be extended with a **relational** layer.
@@ -1017,7 +1017,7 @@ The FPCC discipline's own principle is *"verification is a property of the artif
   Self-composition / relational-Hoare reasoning (ReLoC-in-Iris lineage) over the Sail semantics *instrumented with the §15 `Zkt`/`Zvkt` leakage model* proves the leakage trace (load addresses, branch conditions, variable-latency operands) independent of secrets, **at binary level, in the one Coq prover**: the binary-level sibling of the source-level CompCert-CT proof, and the vehicle that also discharges CT for the off-path CryptOpt field-arithmetic kernels.
   It emits an FPCC **constant-time certificate** the §6 checker validates at zero new trust base.
 - **Binsec/Rel: the better-fit mature tool, run through the §5 trust-base test.**
-  Binsec/Rel does exactly the binary-level job: **relational symbolic execution for constant-time and secret-erasure, directly on the binary against a leakage model**, and it scales to production crypto (BearSSL, OpenSSL, HACL\*, libsodium — finding real violations).
+  Binsec/Rel does exactly the binary-level job: **relational symbolic execution for constant-time and secret-erasure, directly on the binary against a leakage model**, and it scales to production crypto (BearSSL, OpenSSL, HACL\*, libsodium: finding real violations).
   It is the better-fit tool for this path because the FPCC statement is *binary-level against the Sail model* and Binsec/Rel is binary-level.
   So, exactly like **riscv-formal BMC** and **aiT**, it is adopted as the **unverified complement / bring-up gate**, bounded evidence and untrusted evidence-producing machinery, with the relational-Sail-logic certificate the unbounded close.
 
@@ -1025,28 +1025,28 @@ The FPCC discipline's own principle is *"verification is a property of the artif
 
 ## Gate-level information-flow tracking and IFT-typed HDLs: GLIFT, SecVerilog; the hyperproperty half by another route, a bounded complement, not the Coq close
 
-The proposal targets the same non-interference and timing-channel obligation the RTL ⊑ Sail *hyperproperty* half and the constant-time layer already carry, but via a **hardware information-flow method**: **GLIFT** (gate-level information-flow tracking; Tiwari/Wassel/Mao/Chong/Sherwood/Kastner, ASPLOS '09 — track every bit's influence, including implicit and timing flows, from the gates up), and the information-flow-*typed* hardware-description languages that grew from it — **Caisson** (PLDI '11), **Sapper** (ASPLOS '14), and especially **SecVerilog** (Zhang/Wang/Suh/Myers, ASPLOS '15 — Verilog with information-flow *types* that statically prove **timing-sensitive** non-interference at synthesis).
+The proposal targets the same non-interference and timing-channel obligation the RTL ⊑ Sail *hyperproperty* half and the constant-time layer already carry, but via a **hardware information-flow method**: **GLIFT** (gate-level information-flow tracking; Tiwari/Wassel/Mao/Chong/Sherwood/Kastner, ASPLOS '09: track every bit's influence, including implicit and timing flows, from the gates up), and the information-flow-*typed* hardware-description languages that grew from it, **Caisson** (PLDI '11), **Sapper** (ASPLOS '14), and especially **SecVerilog** (Zhang/Wang/Suh/Myers, ASPLOS '15, Verilog with information-flow *types* that statically prove **timing-sensitive** non-interference at synthesis).
 
-**The steelman — genuinely on target.**
+**The steelman: genuinely on target.**
 It attacks a crown-jewel obligation directly: SecVerilog proves *timing-sensitive* non-interference: exactly the property the `Zkt`/`Zvkt` leakage model, the constant-time layer (§5), and the timing-annotated Sail model exist to establish; but at the **RTL**, where the transceiver, crypto core, and cache/NoC-partition logic actually live, and GLIFT catches the implicit and timing flows a *functional* refinement does not carry (the same hyperproperty gap the CT and WCET entries name).
 It is an HDL / synthesis discipline, so it could sit on the very RTL the RTL ⊑ Sail arrow refines.
 
 **Why it is a complement, not the closing vehicle.**
 - **Trust base.**
-  SecVerilog discharges via a type system plus **Z3**; Caisson/Sapper via their own checkers; GLIFT via logic synthesis — **none is Coq**.
+  SecVerilog discharges via a type system plus **Z3**; Caisson/Sapper via their own checkers; GLIFT via logic synthesis: **none is Coq**.
   By the single-prover rule the platform applies to Binsec/Rel, EasyCrypt, aiT, and riscv-formal, an SMT / typed-HDL information-flow tool is a **trust-base widening**, admissible as bounded bring-up *evidence*, never the closing axiom.
 - **The close is already chosen and Coq-native.**
-  The timing-annotated Sail model ⋈ the **relational-Sail-logic constant-time certificate** (§5, §15, the binary-CT entry above) discharge the *same* hyperproperty in the one prover, at binary level against the model the silicon refines — so SecVerilog would duplicate, in a second trust base, a property already closed in the first.
+  The timing-annotated Sail model ⋈ the **relational-Sail-logic constant-time certificate** (§5, §15, the binary-CT entry above) discharge the *same* hyperproperty in the one prover, at binary level against the model the silicon refines, so SecVerilog would duplicate, in a second trust base, a property already closed in the first.
 - **The profile has less to track than GLIFT assumes.**
   GLIFT's shadow-logic (a tag bit per wire propagated in added gates) is priced for the *out-of-order, speculative* designs it was built to tame; the in-order, non-speculative, fixed-latency datapath (§15) gets timing-determinism *structurally* (no predictor state, fixed-latency units), so the flows GLIFT would instrument are largely designed out, not tracked.
 
-**The distilled atom — the method, imported as a complement.**
+**The distilled atom: the method, imported as a complement.**
 Following the aiT / Binsec/Rel / riscv-formal pattern: *information flow as a hyperproperty discharged against a leakage model* is already the design's frame (the CT and RTL ⊑ Sail entries), and **SecVerilog-style IFT typing of the transceiver, crypto-core, and cache/NoC-partition RTL is logged as a bounded cross-check** in the same slot: bring-up evidence that flags a leak *before* the Coq relational proof closes it, exactly as riscv-formal BMC gates the functional refinement it does not prove.
 
 **Where it ranks.**
-Off the abandon-substrate scale — a verification *technique*, not an architecture — ranking alongside aiT, Binsec/Rel, and riscv-formal as an unverified complement to a Coq-native close: the *hardware-IFT sibling* of the binary-level constant-time tooling.
+Off the abandon-substrate scale: a verification *technique*, not an architecture; ranking alongside aiT, Binsec/Rel, and riscv-formal as an unverified complement to a Coq-native close: the *hardware-IFT sibling* of the binary-level constant-time tooling.
 
-**Disposition:** logged as a bounded **complement** — SecVerilog-style IFT types (and GLIFT gate-level tracking) as a bring-up cross-check on the transceiver, crypto-core, and cache/NoC-partition RTL — **not** the closing axiom; the timing-sensitive non-interference obligation is closed Coq-native by the relational-Sail-logic certificate over the timing-annotated model (§5, §15), and a Z3 / typed-HDL information-flow tool is the same trust-base widening the platform books for Binsec/Rel and aiT.
+**Disposition:** logged as a bounded **complement**: SecVerilog-style IFT types (and GLIFT gate-level tracking) as a bring-up cross-check on the transceiver, crypto-core, and cache/NoC-partition RTL; **not** the closing axiom; the timing-sensitive non-interference obligation is closed Coq-native by the relational-Sail-logic certificate over the timing-annotated model (§5, §15), and a Z3 / typed-HDL information-flow tool is the same trust-base widening the platform books for Binsec/Rel and aiT.
 It rides the existing hyperproperty slot, so nothing new imports.
 Non-normative; no spec-body change.
 
@@ -1054,12 +1054,12 @@ Non-normative; no spec-body change.
 
 ## zkVM and proof-carrying execution: the rhyme with FPCC, and why static proof over the smaller trusted set wins
 
-The proposal is **verifiable computation** — a zero-knowledge virtual machine (RISC Zero, SP1, Jolt, Valida; several are RISC-V zkVMs) that emits a succinct cryptographic proof that a *specific execution* ran faithfully to the ISA, checkable by a party who never saw the run.
+The proposal is **verifiable computation**: a zero-knowledge virtual machine (RISC Zero, SP1, Jolt, Valida; several are RISC-V zkVMs) that emits a succinct cryptographic proof that a *specific execution* ran faithfully to the ISA, checkable by a party who never saw the run.
 It is a genuinely different meaning of *"verification"*: not *"the program is correct for all inputs"* (static, ahead of time) but *"this run produced this output"* (dynamic, per-execution, cryptographic).
 
-**The steelman — the rhyme is real.**
+**The steelman: the rhyme is real.**
 It shares FPCC's headline shape (a proof travels with the artifact, checking is cheap and local, the producer is untrusted, §5, §6): so a single-prover project that already thinks in proof-carrying terms is looking at a proof-carrying *execution* model, and several instances are RISC-V-native, so it abandons no substrate.
-It would add *remote* verifiability of a computation to a mutually-distrusting third party — something the local admission check does not directly provide.
+It would add *remote* verifiability of a computation to a mutually-distrusting third party, something the local admission check does not directly provide.
 
 **Why it does not import as a substrate.**
 - **It buys a property outside the threat model, at the scarce-currency price.**
@@ -1070,42 +1070,42 @@ It would add *remote* verifiability of a computation to a mutually-distrusting t
 
 **The distilled atom: already banked.**
 Proof-carrying *artifact* is the FPCC discipline (§5, §6); attested *what-is-running* is the measured root ⋈ reference manifest (§9).
-The zk primitives themselves (a SNARK/STARK verifier) are ordinary contained crypto the platform could run as an *application* if a specific need ever arose — verifying an untrusted third party's *off-device* computation, say — an app-level tool, never a system execution substrate.
+The zk primitives themselves (a SNARK/STARK verifier) are ordinary contained crypto the platform could run as an *application* if a specific need ever arose: verifying an untrusted third party's *off-device* computation, say; an app-level tool, never a system execution substrate.
 
 **Where it ranks.**
-Rejected on **motivation**, one level above cost — like Wasm-as-substrate, it trades for a property the Goals do not seek (third-party verifiability of a remote execution) that FPCC ⋈ attestation already exceed for the local threat model; off the ILP ranking entirely, since it is not an ILP play.
+Rejected on **motivation**, one level above cost: like Wasm-as-substrate, it trades for a property the Goals do not seek (third-party verifiability of a remote execution) that FPCC ⋈ attestation already exceed for the local threat model; off the ILP ranking entirely, since it is not an ILP play.
 
-**Disposition:** rejected as an execution substrate — the FPCC discipline already banks proof-carrying artifacts *statically and per-input* (stronger than a per-execution transcript), attestation already gives a remote party a reproduced account of what runs (§9), and RTL ⊑ Sail already proves the machine executes the ISA faithfully (§18); a zk verifier is admissible only as an ordinary **application-level tool** for checking a specific untrusted third-party computation, never a system execution model, and its six-order overhead is the wrong trade on the one axis the platform spends.
+**Disposition:** rejected as an execution substrate, the FPCC discipline already banks proof-carrying artifacts *statically and per-input* (stronger than a per-execution transcript), attestation already gives a remote party a reproduced account of what runs (§9), and RTL ⊑ Sail already proves the machine executes the ISA faithfully (§18); a zk verifier is admissible only as an ordinary **application-level tool** for checking a specific untrusted third-party computation, never a system execution model, and its six-order overhead is the wrong trade on the one axis the platform spends.
 Non-normative; no spec-body change.
 
 ---
 
 ## Homomorphic encryption and secure multiparty computation as compute substrates: the privacy-preserving sibling of zkVM, rejected on the same two grounds
 
-The proposal makes the execution substrate a **privacy-preserving computation** model: **fully homomorphic encryption** (FHE; Gentry, STOC '09 — compute directly on ciphertext, the data never decrypted, so the executing machine never sees plaintext) or **secure multiparty computation** (MPC; Yao garbled circuits, GMW, secret-sharing — split a computation across mutually-distrusting parties so none sees another's inputs).
+The proposal makes the execution substrate a **privacy-preserving computation** model: **fully homomorphic encryption** (FHE; Gentry, STOC '09: compute directly on ciphertext, the data never decrypted, so the executing machine never sees plaintext) or **secure multiparty computation** (MPC; Yao garbled circuits, GMW, secret-sharing: split a computation across mutually-distrusting parties so none sees another's inputs).
 It is the confidentiality sibling of the zkVM entry (above): where zkVM adds *verifiability* of a remote execution, FHE/MPC add *confidentiality against the executor*.
 
 **The steelman.**
 FHE gives **data-in-use confidentiality against the host itself**: the strongest possible data-confidentiality, stronger even than the platform's TME (which encrypts at rest and in transit but decrypts in-core to compute, §15); and it is a genuinely different security model: confidentiality by *cryptography* rather than by *isolation*.
 Some FHE/MPC implementations are formalization-adjacent, so it is not off the verification map.
 
-**Why it does not import as a substrate — the zkVM rejection, verbatim, on two grounds.**
+**Why it does not import as a substrate: the zkVM rejection, verbatim, on two grounds.**
 - **Threat model.**
-  FHE/MPC protect a computation *from the machine running it* — the outsourced/cloud model where the executor is the adversary.
+  FHE/MPC protect a computation *from the machine running it*: the outsourced/cloud model where the executor is the adversary.
   This platform **is** the trusted machine: a personal device whose CHERI, kernel, and crypto core the owner trusts and the design *verifies*, whose confidentiality boundary is TME ⋈ the crypto core's hardware boundary (keys never leave) ⋈ CHERI/IFC in-core (§8, §15), and whose whole point is that computing on plaintext on-core is safe.
-  Protecting the computation from its own trusted CPU is a property **outside the threat model** — the same "buys a property the Goals do not seek" rejection the zkVM (third-party verifiability) and Wasm-as-substrate (portability) entries make.
+  Protecting the computation from its own trusted CPU is a property **outside the threat model**: the same "buys a property the Goals do not seek" rejection the zkVM (third-party verifiability) and Wasm-as-substrate (portability) entries make.
 - **Overhead.**
   FHE carries **10³–10⁶×** slowdown (bootstrapping-dominated); MPC carries round-complexity and communication blowup, and its parameter- and noise-management structure is data-dependent in ways that fight the fixed-latency WCET tables (§11).
-  The platform spends performance freely, but not six orders of magnitude to buy a property it does not need — the identical cost argument the zkVM entry books.
+  The platform spends performance freely, but not six orders of magnitude to buy a property it does not need, the identical cost argument the zkVM entry books.
 
-**The distilled atom — already banked / app-level.**
-Data confidentiality here is **TME** (§15) at rest and in transit ⋈ the **crypto core's hardware boundary** ⋈ **CHERI/IFC** in-core (§8) — confidentiality by isolation and at-rest encryption, matched to a threat model in which the CPU is trusted.
-The FHE/MPC *primitives* are ordinary contained crypto the platform could run **as an application** if a specific need arose — private set intersection, a sealed-bid or private-contact-discovery protocol with an untrusted **remote** party — an app-level tool over native RV64+CHERI, never a system execution substrate, exactly the zkVM verifier's sole admissible role.
+**The distilled atom: already banked / app-level.**
+Data confidentiality here is **TME** (§15) at rest and in transit ⋈ the **crypto core's hardware boundary** ⋈ **CHERI/IFC** in-core (§8): confidentiality by isolation and at-rest encryption, matched to a threat model in which the CPU is trusted.
+The FHE/MPC *primitives* are ordinary contained crypto the platform could run **as an application** if a specific need arose (private set intersection, a sealed-bid or private-contact-discovery protocol with an untrusted **remote** party): an app-level tool over native RV64+CHERI, never a system execution substrate, exactly the zkVM verifier's sole admissible role.
 
 **Where it ranks.**
-Rejected on **motivation**, one level above cost — with zkVM and Wasm-as-substrate, it trades the substrate for a property (confidentiality against a distrusted executor) the Goals do not seek for the local threat model, where TME ⋈ isolation already give confidentiality against the threats that *are* in scope; off the ILP ranking (not an ILP play), and paired with the zkVM entry as the two cryptographic-computing models rejected on threat-model + overhead.
+Rejected on **motivation**, one level above cost: with zkVM and Wasm-as-substrate, it trades the substrate for a property (confidentiality against a distrusted executor) the Goals do not seek for the local threat model, where TME ⋈ isolation already give confidentiality against the threats that *are* in scope; off the ILP ranking (not an ILP play), and paired with the zkVM entry as the two cryptographic-computing models rejected on threat-model + overhead.
 
-**Disposition:** rejected as an execution substrate — FHE/MPC protect a computation from a distrusted host, a threat model this trusted, verified personal device is not in (confidentiality here is TME ⋈ the crypto-core boundary ⋈ CHERI/IFC, §8/§15, against the threats actually in scope), and their 10³–10⁶× overhead is the wrong trade on the one axis the platform spends; FHE/MPC primitives are admissible only as **application-level tools** for privacy-preserving interaction with an untrusted *remote* party, never a system execution model — the confidentiality sibling of the zkVM entry's verifiable-computation rejection.
+**Disposition:** rejected as an execution substrate, FHE/MPC protect a computation from a distrusted host, a threat model this trusted, verified personal device is not in (confidentiality here is TME ⋈ the crypto-core boundary ⋈ CHERI/IFC, §8/§15, against the threats actually in scope), and their 10³–10⁶× overhead is the wrong trade on the one axis the platform spends; FHE/MPC primitives are admissible only as **application-level tools** for privacy-preserving interaction with an untrusted *remote* party, never a system execution model, the confidentiality sibling of the zkVM entry's verifiable-computation rejection.
 Non-normative; no spec-body change.
 
 ---
@@ -1113,60 +1113,60 @@ Non-normative; no spec-body change.
 ## CHERI-TAL admission: type-check the artifact where a type system suffices, prove it where it does not
 
 The proposal is to replace the bespoke per-property certificate formats with a **typed assembly language (TAL) for RV64+CHERI**: Tier-2 admission becomes **type-checking annotated binaries**, compilers **emit typing derivations rather than proof terms**, the on-device checker shrinks to a decidable type-checker, and the certifying-compiler workstream (§18) collapses to *"target the TAL."*
-This is the **Necula → Morrisett arc** — proof-carrying code narrowed to a type discipline (TALx86, then foundational TAL) — and it is the proposed structural fix to the two admission contradictions the spec still carries: the checker-size claim (a ~10³-line *CIC term* checker does not exist — MetaCoq's is tens of kLoC and axiomatizes guard/termination) and the pedigree seam (§5 calls verification a property of the artifact yet mandates the build path).
-It lands unusually cleanly here because **CHERI already discharges spatial safety in hardware**, so the type system need not encode bounds proofs — the capability *is* the bound.
+This is the **Necula → Morrisett arc** (proof-carrying code narrowed to a type discipline: TALx86, then foundational TAL) and it is the proposed structural fix to the two admission contradictions the spec still carries: the checker-size claim (a ~10³-line *CIC term* checker does not exist: MetaCoq's is tens of kLoC and axiomatizes guard/termination) and the pedigree seam (§5 calls verification a property of the artifact yet mandates the build path).
+It lands unusually cleanly here because **CHERI already discharges spatial safety in hardware**, so the type system need not encode bounds proofs, the capability *is* the bound.
 
-**The decomposition — and why the whole certificate scheme does not collapse into types.**
-The assurance obligations split along a line this document already draws three times (RTL ⊑ Sail, WCET, CT — each a *functional ⋈ hyperproperty* split):
+**The decomposition: and why the whole certificate scheme does not collapse into types.**
+The assurance obligations split along a line this document already draws three times (RTL ⊑ Sail, WCET, CT: each a *functional ⋈ hyperproperty* split):
 - The **type-level, 1-safety** obligations (memory safety (temporal + spatial), control-flow integrity, no-runtime-codegen (W^X, §14), ABI/type conformance) are exactly what a TAL type system *decides*.
   These are the whole of Tier-2 and the structural half of Tier-1.
 - The **deep** obligations (Tier-0 functional refinement, the binary refines the seL4 abstract spec, whole-graph non-interference (§8), crypto **reduction** security (IND-CCA/EUF-CMA, §5), **constant-time** (2-safety, §5), **WCET** (quantitative, §5), filesystem linearizability + liveness (§10)) are **not typing judgments**.
   No decidable type system states "this binary refines the abstract kernel" or "leakage is secret-independent"; those need a full higher-order logic and a proof term.
 
-So the TAL does not *replace* the certificate scheme — it **stratifies** it, taking the tier where a type system is complete and leaving the tier where only a proof will do.
+So the TAL does not *replace* the certificate scheme, it **stratifies** it, taking the tier where a type system is complete and leaving the tier where only a proof will do.
 This is the crypto/WCET/CT move run in reverse: those dispositions showed the *hyperproperties* need more than a functional logic; the TAL shows the *type-level* properties need less than a proof kernel.
 
 **What CHERI buys the type system.**
-TALx86 had to encode array-bounds and initialization proofs into its types because x86 had no hardware notion of a bound; on a purecap machine the bound, the tag, and monotonicity are architectural, so the CHERI-TAL types shrink to the *residual* CHERI does not enforce at runtime — **temporal** safety (linear/affine capability types; a revocation-coloured heap in the CHERIoT lineage) and **typed control flow** (well-typed jump targets *are* CFI).
-And that residual is precisely what safe Rust's ownership discipline already establishes at source (§5): the TAL is the vehicle that *carries those source types down to the binary as a checkable derivation*, turning §5's "the compiler preserves and certifies rather than re-discovers" from a promise into a concrete artifact format — the memory-safety analog of CompCert-CT carrying constant-time to the metal.
+TALx86 had to encode array-bounds and initialization proofs into its types because x86 had no hardware notion of a bound; on a purecap machine the bound, the tag, and monotonicity are architectural, so the CHERI-TAL types shrink to the *residual* CHERI does not enforce at runtime: **temporal** safety (linear/affine capability types; a revocation-coloured heap in the CHERIoT lineage) and **typed control flow** (well-typed jump targets *are* CFI).
+And that residual is precisely what safe Rust's ownership discipline already establishes at source (§5): the TAL is the vehicle that *carries those source types down to the binary as a checkable derivation*, turning §5's "the compiler preserves and certifies rather than re-discovers" from a promise into a concrete artifact format: the memory-safety analog of CompCert-CT carrying constant-time to the metal.
 
 - **It fixes the checker-size contradiction: by splitting the checker, not by shrinking a CIC checker.**
-  A TAL type-checker is decidable, syntactic, obviously terminating (no guard/termination side-condition to axiomatize), and genuinely on the order of 10³ lines — so the **on-device admission checker** that runs on every install and sits in the boot TCB *is* that type-checker, and the ~10³-line claim, false for a CIC term checker, is **true for this one**.
-  The full **CIC proof kernel** (MetaCoq-lineage, honestly tens of kLoC) does not vanish — it validates the deep Tier-0/hyperproperty proofs — but it moves to where those proofs actually live: **release-time, over the fixed base-image TCB**, its result bound into the signed measured-boot root (§9), not a per-install on-device cost.
+  A TAL type-checker is decidable, syntactic, obviously terminating (no guard/termination side-condition to axiomatize), and genuinely on the order of 10³ lines: so the **on-device admission checker** that runs on every install and sits in the boot TCB *is* that type-checker, and the ~10³-line claim, false for a CIC term checker, is **true for this one**.
+  The full **CIC proof kernel** (MetaCoq-lineage, honestly tens of kLoC) does not vanish: it validates the deep Tier-0/hyperproperty proofs; but it moves to where those proofs actually live: **release-time, over the fixed base-image TCB**, its result bound into the signed measured-boot root (§9), not a per-install on-device cost.
   "Checking is cheap and local" becomes *literally true* for the TAL admission path and is **honestly retracted** for Tier-0 (an seL4-scale refinement is machine-hours to check).
   Both horns the contradiction offered ("a genuinely tiny logic" and "a larger checker named as the axiom") are taken, each in its proper tier.
 - **It fixes the pedigree contradiction: admission gates on the derivation, not the producer.**
   Once the certificate *is* a typing derivation the checker re-checks, **any** producer of a well-typed CHERI-TAL binary is admissible by definition; the certifying Rust→CHERI compiler (§18) becomes the *reference producer*, not a gate.
   The "mandatory build path" language conflated "we ship one reference toolchain" with "only its output is admitted": the TAL drops the second, making admission genuinely language- and pedigree-agnostic (§5), while the hardware universal contract (Cerise, §13) stays beneath as defense-in-depth against a checker or TAL-soundness error.
 - **The one new axiom is the TAL's soundness metatheorem: a crown jewel, paid once.**
-  Type-checking is only as sound as the theorem *"well-typed CHERI-TAL ⇒ the safety properties hold over the Sail model"* — a foundational-TAL syntactic-soundness proof (WasmCert-Coq / RustBelt lineage), authored once in Coq against the §15 model.
+  Type-checking is only as sound as the theorem *"well-typed CHERI-TAL ⇒ the safety properties hold over the Sail model"*, a foundational-TAL syntactic-soundness proof (WasmCert-Coq / RustBelt lineage), authored once in Coq against the §15 model.
   It joins the crown-jewel specs (§5): a mis-stated typing rule admits an unsafe binary that type-checks perfectly.
   But it is a *smaller and more scrutable* axiom than "a hand-built ~10³-line CIC checker is correct," which is the trade the contradiction was pushing for.
 
 **Prior art, and where it ranks.**
-The lineage is real and mechanized — Necula's PCC, Morrisett's TALx86, Appel's foundational PCC, Crary's foundational TAL, and on the memory-safety-type side RustBelt (Iris) and WasmCert-Coq (mechanized type soundness) — so nothing here gambles on the *type-soundness* half; the net-new work is the CHERI-RISC-V *instantiation* (the temporal-safety type discipline over capabilities) and the compiler emitting derivations, which is a **refactor of the §18 certifying-compiler deliverable, not a new one** — its certificate format changes from ad-hoc Islaris terms to TAL derivations and its checker shrinks.
-Unlike the belt/EPIC/Wasm targets this abandons no substrate choice (RV64 + CHERI + FPCC all stay); it changes only the *shape of the evidence* on the type-level tier, so it is off that ranking — a structural refinement of the admission discipline, not an alternative to it.
+The lineage is real and mechanized (Necula's PCC, Morrisett's TALx86, Appel's foundational PCC, Crary's foundational TAL, and on the memory-safety-type side RustBelt (Iris) and WasmCert-Coq (mechanized type soundness)); so nothing here gambles on the *type-soundness* half; the net-new work is the CHERI-RISC-V *instantiation* (the temporal-safety type discipline over capabilities) and the compiler emitting derivations, which is a **refactor of the §18 certifying-compiler deliverable, not a new one**, its certificate format changes from ad-hoc Islaris terms to TAL derivations and its checker shrinks.
+Unlike the belt/EPIC/Wasm targets this abandons no substrate choice (RV64 + CHERI + FPCC all stay); it changes only the *shape of the evidence* on the type-level tier, so it is off that ranking: a structural refinement of the admission discipline, not an alternative to it.
 
 **Disposition (adopted in part; normative in §5, §6, §13).**
 Admission is **stratified into two checkers along this document's own functional ⋈ hyperproperty line**.
-A small, decidable **CHERI-TAL type-checker** is the on-device admission checker for the **type-level** obligations — Tier-2 in full (temporal + spatial memory safety, CFI, no-codegen, ABI/type conformance) and the memory/ABI-conformance half of Tier-1 — with the certifying compiler *targeting the TAL* and certificates carried as **typing derivations**, so admission is genuinely pedigree-independent and the ~10³-line / "cheap and local" claim is true of it.
-The **CIC proof kernel** is retained for the **deep** obligations no type system states — Tier-0 functional refinement + non-interference (§8), crypto reduction security, constant-time, WCET, filesystem linearizability/liveness — validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
-The platform axiom decides this exactly as it did for seL4 and crypto — **methodology is portable, the smallest trusted set wins**: spend the engineering to make the per-install admission checker a type-checker whose soundness is one Coq theorem, rather than a general proof checker no one can hold to 10³ lines.
+A small, decidable **CHERI-TAL type-checker** is the on-device admission checker for the **type-level** obligations: Tier-2 in full (temporal + spatial memory safety, CFI, no-codegen, ABI/type conformance) and the memory/ABI-conformance half of Tier-1; with the certifying compiler *targeting the TAL* and certificates carried as **typing derivations**, so admission is genuinely pedigree-independent and the ~10³-line / "cheap and local" claim is true of it.
+The **CIC proof kernel** is retained for the **deep** obligations no type system states (Tier-0 functional refinement + non-interference (§8), crypto reduction security, constant-time, WCET, filesystem linearizability/liveness): validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
+The platform axiom decides this exactly as it did for seL4 and crypto (**methodology is portable, the smallest trusted set wins**): spend the engineering to make the per-install admission checker a type-checker whose soundness is one Coq theorem, rather than a general proof checker no one can hold to 10³ lines.
 **Honest residual (§17):** the CHERI-TAL soundness metatheorem is a new crown-jewel spec; the deep-proof CIC kernel is *named* as the larger admission axiom rather than hidden inside a 10³-line claim (so "checking is cheap" holds only for the TAL tier); and the temporal-safety type discipline over CHERI capabilities is the net-new instantiation the certifying-compiler workstream (§18) carries in place of a bespoke certificate format.
 
 ---
 
 ## Synchronous control planes via Vélus: the sequencing logic is already dataflow; write it where determinism, WCET, and causality are structural
 
-The proposal takes the observation that the platform has already imposed every precondition of the **synchronous-dataflow** model — TDM schedules, static composition (§7), bounded IDL (§12), non-work-conserving partitioning (§11), crash-only servers with explicit re-initializable state (§12, §16) — and draws the conclusion: the **control planes** of §12 (the sequencing, supervision, and protocol state-machine logic, as opposed to the bulk **data planes** that move bytes) are *morally* Lustre programs already, written the long way in imperative Rust.
+The proposal takes the observation that the platform has already imposed every precondition of the **synchronous-dataflow** model (TDM schedules, static composition (§7), bounded IDL (§12), non-work-conserving partitioning (§11), crash-only servers with explicit re-initializable state (§12, §16)): and draws the conclusion: the **control planes** of §12 (the sequencing, supervision, and protocol state-machine logic, as opposed to the bulk **data planes** that move bytes) are *morally* Lustre programs already, written the long way in imperative Rust.
 **Vélus** is a **Coq-verified compiler for Lustre** (Bourke/Pouzet lineage, PLDI'17 and after) that emits **CompCert Clight** and whose correctness theorem *composes with CompCert's*: so writing a control plane in Lustre and compiling it through Vélus → CompCert buys **verified compilation, structural WCET, and causality/determinism by construction, at zero new prover**, with Rust retained for the data planes.
 Of the rearchitecture candidates this is the only one that *reduces* net-new tooling rather than trading one workstream for another.
 
 **The control/data split the section already draws.**
 §12 is written around exactly this line without naming it: the **ring data plane** moves bulk bytes over SPSC rings and "authority physically cannot cross" it, while "new authority arrives via **control-plane IPC** only."
-The data planes — ring processing, the PHY long-vector math, wire parsing (Narcissus, §5), the crypto core (§5) — are throughput code over unbounded streams and stay safe Rust / verified C.
-The control planes are **reactive state machines over bounded events**: the service manager's supervision tree (start-order, crash detection, restart-with-backoff, capability re-grant), the protocol sequencers (RRC/NAS/MLME/L2CAP-GATT/PDCP-RLC state and their T3xx-class timers — the *control* half of the L2/L3 servers whose *data* half stays Narcissus-parsed Rust), the power/mode/DRX/HARQ timing controllers (§11, §15), and the sentinel's detection→response logic (§12).
-These are the textbook domain of Lustre/SCADE — the language family that certifies avionics and nuclear-reactor control (DO-178C) precisely because a synchronous program is *deterministic and bounded by construction*.
+The data planes, ring processing, the PHY long-vector math, wire parsing (Narcissus, §5), the crypto core (§5), are throughput code over unbounded streams and stay safe Rust / verified C.
+The control planes are **reactive state machines over bounded events**: the service manager's supervision tree (start-order, crash detection, restart-with-backoff, capability re-grant), the protocol sequencers (RRC/NAS/MLME/L2CAP-GATT/PDCP-RLC state and their T3xx-class timers: the *control* half of the L2/L3 servers whose *data* half stays Narcissus-parsed Rust), the power/mode/DRX/HARQ timing controllers (§11, §15), and the sentinel's detection→response logic (§12).
+These are the textbook domain of Lustre/SCADE, the language family that certifies avionics and nuclear-reactor control (DO-178C) precisely because a synchronous program is *deterministic and bounded by construction*.
 
 **What the synchronous model makes structural: three obligations this document works hard for elsewhere:**
 - **WCET is structural, not derived.**
@@ -1177,22 +1177,22 @@ These are the textbook domain of Lustre/SCADE — the language family that certi
   A synchronous node's entire state is the explicit, statically-sized Lustre memory; there is nothing latent between ticks.
   This is admission-test-3 (*no hidden state survives a partition switch*, §15) discharged by construction for the control tier, and it makes **crash-only** re-initialization (§12) a well-defined state reset rather than an audit of imperative heap.
 - **Determinism and causality are compiler-checked.**
-  Vélus's clock calculus rejects instantaneous cycles and fixes evaluation order, so a control plane is deterministic and causally well-formed *before* it compiles — feeding the non-interference-over-a-fixed-graph theorem (§8) a control tier with no schedule-dependent behavior to reason about, and the memory-safety certificate (§13) a body whose static allocation makes the temporal-safety obligation trivial.
+  Vélus's clock calculus rejects instantaneous cycles and fixes evaluation order, so a control plane is deterministic and causally well-formed *before* it compiles, feeding the non-interference-over-a-fixed-graph theorem (§8) a control tier with no schedule-dependent behavior to reason about, and the memory-safety certificate (§13) a body whose static allocation makes the temporal-safety obligation trivial.
 
 **Why this is not a third language.**
-The realization plan's discipline is *"two languages, one machine"* — Sail and Coq/Gallina — and Lustre could look like a violation.
+The realization plan's discipline is *"two languages, one machine"* (Sail and Coq/Gallina) and Lustre could look like a violation.
 It is not, at the level that matters: **Vélus's Lustre semantics *and* its compiler correctness are both formalized in Coq**, and it emits Clight into the CompCert (→ CHERI-CompCert, §6) pipeline already in the trust base.
-So Lustre is not a new *trust base* — it is a **Coq-verified domain-specific generator emitting Clight**, exactly the shape of **Narcissus** (Coq-native parser DSL) and **Fiat-Crypto** (Coq-native field-arithmetic DSL) already relied on in §5; the two trust languages stay Sail + Coq.
+So Lustre is not a new *trust base*: it is a **Coq-verified domain-specific generator emitting Clight**, exactly the shape of **Narcissus** (Coq-native parser DSL) and **Fiat-Crypto** (Coq-native field-arithmetic DSL) already relied on in §5; the two trust languages stay Sail + Coq.
 Vélus is in fact the *strongest* member of that family, because unlike a synthesis tactic it is a *whole verified compiler* whose theorem chains with CompCert's rather than terminating at a synthesized term.
 
 **Prior art, and where it ranks.**
-The lineage is mature and mechanized — Lustre/SCADE in certified avionics, and Vélus itself a published Coq artifact that compiles a real Lustre subset — nodes, reset, control blocks, and **state machines** (POPL'23) — through CompCert with an end-to-end correctness proof, the state-machine result landing exactly on the protocol-sequencer use case.
-Unlike the belt/EPIC/Wasm targets this **abandons no substrate** (RV64 + CHERI + FPCC + the Rust data planes all stay) and unlike kernel-in-gateware it fuses nothing; it changes only the *source language of one tier of one non-TCB layer*, so it is off that ranking — a structural refinement of how §12 control logic is written, and the rare one that *removes* tooling (the control tier's WCET and memory-safety obligations become structural) rather than adding it.
+The lineage is mature and mechanized, Lustre/SCADE in certified avionics, and Vélus itself a published Coq artifact that compiles a real Lustre subset, nodes, reset, control blocks, and **state machines** (POPL'23), through CompCert with an end-to-end correctness proof, the state-machine result landing exactly on the protocol-sequencer use case.
+Unlike the belt/EPIC/Wasm targets this **abandons no substrate** (RV64 + CHERI + FPCC + the Rust data planes all stay) and unlike kernel-in-gateware it fuses nothing; it changes only the *source language of one tier of one non-TCB layer*, so it is off that ranking, a structural refinement of how §12 control logic is written, and the rare one that *removes* tooling (the control tier's WCET and memory-safety obligations become structural) rather than adding it.
 
 **Disposition (adopted; normative in §5, §11, §12).**
-The **control-plane** logic of §12 servers — supervision/sequencing, protocol state machines, mode/timing control — is written in **Lustre and compiled by Vélus** (Coq-verified, → Clight → CHERI-CompCert), a Coq-verified DSL alongside Narcissus and Fiat-Crypto (§5); the **data planes** stay `#![forbid(unsafe_code)]` safe Rust.
-Scope is honest: the adoption covers the logic that *is* reactive dataflow, and Rust is retained wherever a control path is genuinely imperative request/response rather than a state machine — a mis-drawn boundary is a spec error, not a silent failure.
-The platform axiom decides it as ever — *methodology is portable, the smallest trusted set wins, and engineering is the free axis*: spend the engineering to move sequencing onto a language where determinism, causality, and WCET are theorems of the compiler rather than fresh per-server proof obligations.
+The **control-plane** logic of §12 servers, supervision/sequencing, protocol state machines, mode/timing control, is written in **Lustre and compiled by Vélus** (Coq-verified, → Clight → CHERI-CompCert), a Coq-verified DSL alongside Narcissus and Fiat-Crypto (§5); the **data planes** stay `#![forbid(unsafe_code)]` safe Rust.
+Scope is honest: the adoption covers the logic that *is* reactive dataflow, and Rust is retained wherever a control path is genuinely imperative request/response rather than a state machine, a mis-drawn boundary is a spec error, not a silent failure.
+The platform axiom decides it as ever, *methodology is portable, the smallest trusted set wins, and engineering is the free axis*: spend the engineering to move sequencing onto a language where determinism, causality, and WCET are theorems of the compiler rather than fresh per-server proof obligations.
 **Honest residual (§17):** Vélus enters the build path as a new front end: Coq-verified, so it adds *no fresh axiom* and rides the already-priority-zero CHERI-CompCert backend (§18), but its Lustre-semantics faithfulness joins the crown-jewel specs and the **control/data boundary is a new crown-jewel interface**; offset against this, the control tier's structural WCET (§11), structural memory-safety certificate (§13), and by-construction determinism (§8, §15) are a net reduction in proof surface.
 - **ct-verif: the IR-level sibling, not the binary-level answer.** ct-verif verifies CT by product programs over **LLVM IR** (SMT-discharged).
   It is real and usable, but IR-level: on the verified-compiler path CompCert-CT already gives CT by construction, and on the *no-compiler* path there is no trusted IR to check: the binary is the artifact.
@@ -1203,6 +1203,6 @@ The platform axiom decides it as ever — *methodology is portable, the smallest
 
 **Disposition (adopted; normative in §5, §13, §15).**
 Verify CT **on the artifact** against the one `Zkt`/`Zvkt` leakage model for every secret-touching binary off the preservation path; split it functional ⋈ hyperproperty like RTL ⊑ Sail, with the **relational-Sail-logic constant-time certificate** the Coq-native close and **Binsec/Rel** the mature bounded complement (**ct-verif** the IR-level sibling).
-The platform axiom decides the toolchain as ever — *methodology is portable, maturity is not*: carry the Coq-native property to Binsec/Rel's demonstrated binary-level capability, spending engineering to keep CT on the single prover and make it *artifact*-borne.
+The platform axiom decides the toolchain as ever, *methodology is portable, maturity is not*: carry the Coq-native property to Binsec/Rel's demonstrated binary-level capability, spending engineering to keep CT on the single prover and make it *artifact*-borne.
 **Honest residual (§17):** Binsec/Rel is path-bounded evidence (the certificate is the unbounded close); CT verification inherits the RTL ⊑ Sail residual (the leakage model is sound only once that arrow closes) and leans on the `Zkt`/`Zvkt` leakage-model statement as a shared crown-jewel spec; and correctness of *scope* rests on the flow labels (§8, §12, §13), so a mislabeled secret is a spec error no CT proof catches.
-Like WCET it **degrades gracefully** — bounded Binsec/Rel evidence carries bring-up, the certificate closes it — so it gates *strong* CT assurance, not boot.
+Like WCET it **degrades gracefully**, bounded Binsec/Rel evidence carries bring-up, the certificate closes it, so it gates *strong* CT assurance, not boot.

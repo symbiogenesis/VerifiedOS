@@ -1,4 +1,4 @@
-# Golden-Model Implementation Plan — Two Languages, One Machine
+# Golden-Model Implementation Plan: Two Languages, One Machine
 
 > Companion to [verification-maximal-os.md](verification-maximal-os.md).
 > This is the **bring-up realization** of §18: how to stand the whole verified stack up as a *fast, executable golden model* generated **directly from the two verification languages**, before any of the optimized/production workstreams exist.
@@ -9,26 +9,26 @@
 
 The entire base system is written in exactly two languages, and each yields an executable reference by extraction, refinement, or generation rather than by hand-porting:
 
-- **Hardware — Sail.**
+- **Hardware, Sail.**
   One Sail model of the machine (ISA + datapath + modeled devices), parameterized by core class (§15).
-  Its **C backend generates the golden-model emulator** — the executable ISA reference.
+  Its **C backend generates the golden-model emulator**, the executable ISA reference.
   The *same* Sail source later feeds the RTL tools (Kami/Kôika, PipelineGen) and the proof tools (Sail → Coq, Isla); none of that is on the bring-up path.
-- **Software — Rocq/Coq (Gallina).**
-  Every TCB and base-system component is written in Gallina from one source, then lowered two different ways for two different roles — and **the on-device lowering carries no garbage collector.**
-  The main spec's storage rule — *"no managed runtime … the GC runtime is banned"* (§10) — is the discipline for the *whole* base here, not just the filesystem: a tracing GC is inadmissible twice over, putting an unverified runtime in the TCB and, with its unbounded pauses, breaking the WCET real-time path (§11).
+- **Software, Rocq/Coq (Gallina).**
+  Every TCB and base-system component is written in Gallina from one source, then lowered two different ways for two different roles, and **the on-device lowering carries no garbage collector.**
+  The main spec's storage rule, *"no managed runtime … the GC runtime is banned"* (§10), is the discipline for the *whole* base here, not just the filesystem: a tracing GC is inadmissible twice over, putting an unverified runtime in the TCB and, with its unbounded pauses, breaking the WCET real-time path (§11).
   So `CertiCoq → Clight` (which emits a GC) is used **host-side only**, never in a shipped image:
-  - **Host-side functional oracle — CertiCoq → Wasm.**
-    Run each component on a stock Wasm engine (wasmtime/Wasmtime-class — **standard Wasm, not CHERI-Wasm**) to iterate on OS *logic* at native-ish speed before the ISA emulator is fast enough or complete.
-    This leg tests logic and values, not capability *enforcement* — enforcement is validated on the purecap-on-Sail path below, so no CHERI semantics are needed here (Wasm is a system execution target nowhere in this design, §14; a research-grade CHERI-Wasm engine would only forfeit the mature host tooling that justifies this leg).
-    Here a GC is harmless — it rides the host engine, is never shipped, never enters the TCB, never touches a timing bound — so this stays the quick inner loop *and* the differential-testing spec-oracle for the path below; if a component is too slow or the backend too immature, fall back to standard `Extraction` to OCaml for that component only.
-  - **On-device purecap artifact — GC-free, by the component's memory behavior.**
-    The real *purecap* machine code that boots on the Sail emulator is produced with no managed runtime, by whichever Coq-native GC-free route fits — each already inside the trust base, so no garbage collector and no new prover ever enters the image:
-    - **Refine the Gallina spec to CompCert-C (VST/Iris), through CHERI-CompCert** — for the kernel (§5), the low-level M-mode firmware (§3), and the heap-churning storage layers (§6 object store, §7 filesystem).
+  - **Host-side functional oracle, CertiCoq → Wasm.**
+    Run each component on a stock Wasm engine (wasmtime/Wasmtime-class, **standard Wasm, not CHERI-Wasm**) to iterate on OS *logic* at native-ish speed before the ISA emulator is fast enough or complete.
+    This leg tests logic and values, not capability *enforcement*, enforcement is validated on the purecap-on-Sail path below, so no CHERI semantics are needed here (Wasm is a system execution target nowhere in this design, §14; a research-grade CHERI-Wasm engine would only forfeit the mature host tooling that justifies this leg).
+    Here a GC is harmless, it rides the host engine, is never shipped, never enters the TCB, never touches a timing bound, so this stays the quick inner loop *and* the differential-testing spec-oracle for the path below; if a component is too slow or the backend too immature, fall back to standard `Extraction` to OCaml for that component only.
+  - **On-device purecap artifact, GC-free, by the component's memory behavior.**
+    The real *purecap* machine code that boots on the Sail emulator is produced with no managed runtime, by whichever Coq-native GC-free route fits, each already inside the trust base, so no garbage collector and no new prover ever enters the image:
+    - **Refine the Gallina spec to CompCert-C (VST/Iris), through CHERI-CompCert**, for the kernel (§5), the low-level M-mode firmware (§3), and the heap-churning storage layers (§6 object store, §7 filesystem).
       This *is* the spec's stated end-state (seL4's design via CompCert/SECOMP, §5; verified C with no managed runtime, §10) and the CertiKOS/VST method the plan already cites; for the golden model the GC-free C comes first and its full refinement *proof* is deferred (below).
-    - **GC-free extraction with region/arena allocation** — for the allocation-light, arena-shaped components (the static init tree §8; **not** the admission checker §9, which is TCB whose binary nothing re-checks, so it takes the verified-compilation route above): **MetaCoq → Rust with `bumpalo` arenas** onto the certifying Rust→RV64+CHERI compiler (a priority-zero item the spec already commits to, §18), with **MCQC** (Gallina→C++, RAII — MIT-PDOS lineage, the group behind the §7 SFSCQ/DiskSec work) the standing precedent that push-button GC-free Gallina extraction exists.
-    - **Fiat/Bedrock correct-by-construction synthesis to imperative Clight** — where explicit-memory code is wanted directly; already the platform's method for wire parsers (Narcissus, §5) and field arithmetic (Fiat-Crypto, §4).
-    - **Vélus (Lustre → Clight)** — for the §12 server *control planes* (supervision trees, protocol state machines, mode/timing sequencing): a **Coq-verified** synchronous-dataflow compiler emitting CompCert Clight, so control-plane logic rides the same CHERI-CompCert path as the verified C, statically allocated (**no GC by construction**), with WCET, determinism, and causality structural (§5, §12).
-      Like Narcissus and Fiat-Crypto it is a Coq-verified DSL, **not a third trust language** — the two languages are the trust bases (Sail + Coq), and Lustre's meaning *and* its compilation are both Coq objects.
+    - **GC-free extraction with region/arena allocation**, for the allocation-light, arena-shaped components (the static init tree §8; **not** the admission checker §9, which is TCB whose binary nothing re-checks, so it takes the verified-compilation route above): **MetaCoq → Rust with `bumpalo` arenas** onto the certifying Rust→RV64+CHERI compiler (a priority-zero item the spec already commits to, §18), with **MCQC** (Gallina→C++, RAII, MIT-PDOS lineage, the group behind the §7 SFSCQ/DiskSec work) the standing precedent that push-button GC-free Gallina extraction exists.
+    - **Fiat/Bedrock correct-by-construction synthesis to imperative Clight**, where explicit-memory code is wanted directly; already the platform's method for wire parsers (Narcissus, §5) and field arithmetic (Fiat-Crypto, §4).
+    - **Vélus (Lustre → Clight)**, for the §12 server *control planes* (supervision trees, protocol state machines, mode/timing sequencing): a **Coq-verified** synchronous-dataflow compiler emitting CompCert Clight, so control-plane logic rides the same CHERI-CompCert path as the verified C, statically allocated (**no GC by construction**), with WCET, determinism, and causality structural (§5, §12).
+      Like Narcissus and Fiat-Crypto it is a Coq-verified DSL, **not a third trust language**, the two languages are the trust bases (Sail + Coq), and Lustre's meaning *and* its compilation are both Coq objects.
 
 **The two golden models are validated independently first, then composed.**
 The Sail-C emulator is exercised by assembly/ISA tests; the Gallina components are exercised as Wasm host-side; then the components are lowered **GC-free** to purecap RV64+CHERI (above) and run *on* the emulator for the composed, full-system golden model.
@@ -36,64 +36,64 @@ The Sail-C emulator is exercised by assembly/ISA tests; the Gallina components a
 ### The one prerequisite (built first): a functional CHERI-CompCert backend
 
 Because the platform is **purecap-only** (§15) and this plan is **purecap end to end**, the single enabling piece of new compiler work is front-loaded *before* Emulation (§10) and FPGA (§11): a **functionally-correct CHERI-RISC-V backend for CompCert** (memory model widened to capabilities + provenance).
-This is engineering, not a new axiom — the *working* backend, **differential-tested against the Sail golden model**, not yet its own Coq correctness proof and *not* the §5 secure-compilation (robust-preservation) theorem, both of which are hardening (below).
-The spec already lists this backend as a hard prerequisite — *"nothing boots without it"* (§6) — so front-loading it — **priority zero, ahead of any Emulation (§10) or FPGA (§11) work** — is the spec-consistent choice.
+This is engineering, not a new axiom, the *working* backend, **differential-tested against the Sail golden model**, not yet its own Coq correctness proof and *not* the §5 secure-compilation (robust-preservation) theorem, both of which are hardening (below).
+The spec already lists this backend as a hard prerequisite, *"nothing boots without it"* (§6), so front-loading it, **priority zero, ahead of any Emulation (§10) or FPGA (§11) work**, is the spec-consistent choice.
 Once it exists every C-path component below compiles straight to purecap RV64IMV+CHERI, and the *same* binaries run on the emulator (§10) and the FPGA (§11).
-**No purecap CertiCoq GC is on this critical path** — because the on-device lowering is GC-free (above), CertiCoq's collector is only ever exercised host-side on the stock Wasm engine, so it never has to be ported to purecap; the discipline *removes* a priority-zero deliverable rather than adding one.
+**No purecap CertiCoq GC is on this critical path**, because the on-device lowering is GC-free (above), CertiCoq's collector is only ever exercised host-side on the stock Wasm engine, so it never has to be ported to purecap; the discipline *removes* a priority-zero deliverable rather than adding one.
 The arena-extraction route that targets Rust (MetaCoq→Rust, §8) instead rides the certifying Rust→RV64+CHERI compiler, itself already priority zero in the spec (§18).
 
 ### Explicit scope cut (what this plan deliberately does **not** build yet)
 
 Per the mandate to produce a fast golden model rather than the optimized variants, the following §5/§6/§18 workstreams are **out of scope for bring-up** and are named here only so their absence is honest:
 
-- the CHERI-CompCert **secure-compilation criterion** (robust preservation, §5) — the *functional* backend is the prerequisite above and **is** built; only its heavier robust-preservation *theorem* is deferred, so golden-model software is purecap but not yet proven to preserve compartment isolation against an adversarial linked context;
-- the **CryptOpt-style field-arithmetic translation-validation toolchain** and binary-level **constant-time** verification (§5) — crypto is a Gallina *functional* reference only, no CT guarantee yet;
-- the **certifying Rust → RV64+CHERI** toolchain's *certificate* mode and the Tier-2 memory-safety certificate (§5, §13) — no contained-Rust userspace in the golden model; base components the spec assigns to safe Rust are written in Gallina for the reference (see §Init, §Object system).
-  Its *functional* Rust→CHERI lowering is still used as the target of the GC-free MetaCoq→Rust arena extraction above — but that backend is a spec-committed priority-zero item (§18), not a bring-up prerequisite this plan newly invents;
-- **RTL ⊑ Sail** refinement (Kami/Kôika) and the **full VST(Iris) refinement proofs** for the kernel and storage stack (§5, §6, §7) — the on-device code is written GC-free in the CompCert-C shape those proofs target (the §10 no-managed-runtime form), but its machine-checked *"artifact ⊑ Gallina spec"* proof is deferred; differential testing against the Wasm oracle and the Sail emulator stands in until it is built;
-- the **Coq-verified WCET estimator** and the **interval-arithmetic cyclic-executive schedulability check** (§5, §11) — timing is measured on the emulator, not certified.
+- the CHERI-CompCert **secure-compilation criterion** (robust preservation, §5), the *functional* backend is the prerequisite above and **is** built; only its heavier robust-preservation *theorem* is deferred, so golden-model software is purecap but not yet proven to preserve compartment isolation against an adversarial linked context;
+- the **CryptOpt-style field-arithmetic translation-validation toolchain** and binary-level **constant-time** verification (§5), crypto is a Gallina *functional* reference only, no CT guarantee yet;
+- the **certifying Rust → RV64+CHERI** toolchain's *certificate* mode and the Tier-2 memory-safety certificate (§5, §13), no contained-Rust userspace in the golden model; base components the spec assigns to safe Rust are written in Gallina for the reference (see §Init, §Object system).
+  Its *functional* Rust→CHERI lowering is still used as the target of the GC-free MetaCoq→Rust arena extraction above, but that backend is a spec-committed priority-zero item (§18), not a bring-up prerequisite this plan newly invents;
+- **RTL ⊑ Sail** refinement (Kami/Kôika) and the **full VST(Iris) refinement proofs** for the kernel and storage stack (§5, §6, §7), the on-device code is written GC-free in the CompCert-C shape those proofs target (the §10 no-managed-runtime form), but its machine-checked *"artifact ⊑ Gallina spec"* proof is deferred; differential testing against the Wasm oracle and the Sail emulator stands in until it is built;
+- the **Coq-verified WCET estimator** and the **interval-arithmetic cyclic-executive schedulability check** (§5, §11), timing is measured on the emulator, not certified.
 
 None of these is discarded; each is the *hardening* layer that later replaces a golden-model component in place.
 The golden model is the oracle they are all checked against.
 
 ---
 
-## 1. The processor — the fusion SoC (Sail)
+## 1. The processor: the fusion SoC (Sail)
 
 The "fusion processor with an on-die iGPU" is, in this architecture, a single die on which the GPU/accelerator role is **dissolved into ISA-visible cores in one Sail model** (§15): there is no fixed-function GPU.
 The "iGPU" is the **V-class** long-vector cores (software rasterization, compositing, codecs, ISP) and the **M-class** matrix cores (GEMM/AI); both share the scalar front end and differ only in datapath (VLEN, matrix geometry).
 One model, parameterized by class.
 
-- **Language** — Sail.
-- **Toolchain** — the Sail compiler's **C emulator backend** (`sail -c`) for the golden model; the OCaml backend for a quick interpreter; Sail → Coq and **Isla** (symbolic Sail) reserved for the proof/obligation side (deferred).
-- **Start from** — `rems-project/sail-riscv` (the official RISC-V golden model) merged with `CTSRD-CHERI/sail-cheri-riscv` (the CHERI-RISC-V capability model).
+- **Language**, Sail.
+- **Toolchain**, the Sail compiler's **C emulator backend** (`sail -c`) for the golden model; the OCaml backend for a quick interpreter; Sail → Coq and **Isla** (symbolic Sail) reserved for the proof/obligation side (deferred).
+- **Start from**, `rems-project/sail-riscv` (the official RISC-V golden model) merged with `CTSRD-CHERI/sail-cheri-riscv` (the CHERI-RISC-V capability model).
   These already give a booting RV64 + CHERI ISA emulator; the work is *curation and extension*, not greenfield.
-- **Compiler target** — Sail-C emits portable C; compile with host `clang`/`gcc` to a native `x86-64`/`arm64` emulator binary.
+- **Compiler target**, Sail-C emits portable C; compile with host `clang`/`gcc` to a native `x86-64`/`arm64` emulator binary.
   The *emulated* ISA is **RV64IMV + CHERI, purecap**, curated to the §15 profile.
-- **Plan** —
+- **Plan:**
   1. **Curate to the §15 profile.**
-     Remove the C/compressed extension (unique 4-byte decode) and `Zifencei` (no runtime consumer under W^X); narrow `A` to `Zaamo` only, delete `Zacas` (consumer-less general CAS) and `Zalrsc` (reservation state); adopt the crypto/bit extensions (`Zkne/Zknd/Zknh`, `Zbkb/Zbkc/Zbkx`, `Zvkned/Zvknhb/Zvkg/Zvbb/Zvbc`, `Zicond`, `Zba/Zbb/Zbs`, `Zicboz/Zicbom`), `Smstateen` (`mstateen`); **Machine mode only** — no S/U, no `Sstc`, no trap delegation, privilege gated by a CHERI permission on the PCC (§7/§15); **model the CHERIoT-lineage capability features** — interrupt-state sentries (`enabled`/`disabled`/`inherit`, forward/backward-edge for CFI), the capability trap registers (`MTCC`/`MEPCC`/`MTDC`), and local/global capabilities with the `store-local` permission (§15); **no MMU** — no `Sv39`/`Sv48`/`Sv57` and no `Svadu`/`Svade` (single-address-space, `satp` Bare, §15); make `misa` read-only; trap all reserved/custom encodings.
+     Remove the C/compressed extension (unique 4-byte decode) and `Zifencei` (no runtime consumer under W^X); narrow `A` to `Zaamo` only, delete `Zacas` (consumer-less general CAS) and `Zalrsc` (reservation state); adopt the crypto/bit extensions (`Zkne/Zknd/Zknh`, `Zbkb/Zbkc/Zbkx`, `Zvkned/Zvknhb/Zvkg/Zvbb/Zvbc`, `Zicond`, `Zba/Zbb/Zbs`, `Zicboz/Zicbom`), `Smstateen` (`mstateen`); **Machine mode only**, no S/U, no `Sstc`, no trap delegation, privilege gated by a CHERI permission on the PCC (§7/§15); **model the CHERIoT-lineage capability features**, interrupt-state sentries (`enabled`/`disabled`/`inherit`, forward/backward-edge for CFI), the capability trap registers (`MTCC`/`MEPCC`/`MTDC`), and local/global capabilities with the `store-local` permission (§15); **no MMU**, no `Sv39`/`Sv48`/`Sv57` and no `Svadu`/`Svade` (single-address-space, `satp` Bare, §15); make `misa` read-only; trap all reserved/custom encodings.
   2. **Adopt Ztso and static-only prediction as model properties** (§15): the memory model is RVTSO; there is no dynamic predictor state to model at all (deleting it is *less* Sail, not more).
   3. **Parameterize by core class.**
      Add the RVV long-vector datapath (V-class, VLEN=4096) and a **fork-and-frozen matrix extension** (M-class, systolic GEMM geometry) as ISA-visible, capability-checked operations in the *same* model; capability checks land on scalar-issued vector/matrix memory ops (per-element for gather/scatter).
-     Model the **FEC units** (LDPC/polar) and the optional Keccak unit as fixed-geometry, core-issued, capability-operand instructions — no DMA, no firmware.
-  4. **Add the timing annotations** the spec's §15 mandates name (fixed-latency DIV/FPU/AMO, mask-independent vector timing, static-fetch timing) as an annotated layer on the model, so the *same* Sail source is ready for later WCET/CT/Ztso obligations — but treat them as documentation in bring-up, checked by measurement.
+     Model the **FEC units** (LDPC/polar) and the optional Keccak unit as fixed-geometry, core-issued, capability-operand instructions, no DMA, no firmware.
+  4. **Add the timing annotations** the spec's §15 mandates name (fixed-latency DIV/FPU/AMO, mask-independent vector timing, static-fetch timing) as an annotated layer on the model, so the *same* Sail source is ready for later WCET/CT/Ztso obligations, but treat them as documentation in bring-up, checked by measurement.
   5. **Generate the emulator** and freeze it as the executable ISA reference.
      Every software image below runs on this.
 
-### Choosing the frozen parameters — a proof-aware design-space exploration
+### Choosing the frozen parameters: a proof-aware design-space exploration
 
-The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs — issue width and pipeline depth, the LLC/way-coloring split, the DRAM (sub-)channel-to-island map, software-scratchpad and integrity-tree-node cache sizes, and the TDM-NoC schedule — are not guessed.
-They are chosen by a **design-space exploration (DSE)** run off-model, ahead of RTL and silicon, whose utility function is **multi-objective: performance, area, power, WCET, and — as a first-class term — *proof simplicity*** (main-spec §15).
+The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs, issue width and pipeline depth, the LLC/way-coloring split, the DRAM (sub-)channel-to-island map, software-scratchpad and integrity-tree-node cache sizes, and the TDM-NoC schedule, are not guessed.
+They are chosen by a **design-space exploration (DSE)** run off-model, ahead of RTL and silicon, whose utility function is **multi-objective: performance, area, power, WCET, and, as a first-class term, *proof simplicity*** (main-spec §15).
 
 - **Proof simplicity is an explicit objective, not an afterthought.**
-  A smaller, more regular microarchitecture is a smaller Sail model and a cheaper **RTL ⊑ Sail** refinement (the FPGA/silicon arrow of §11; deferred, main-spec §18 — the least-built layer of the stack), so the DSE that improves performance can *reduce* the verification surface at the same time.
-  The term is a proxy — estimated Sail-surface size, decode/state complexity, and per-candidate refinement effort — cheap to score inside the search loop.
+  A smaller, more regular microarchitecture is a smaller Sail model and a cheaper **RTL ⊑ Sail** refinement (the FPGA/silicon arrow of §11; deferred, main-spec §18, the least-built layer of the stack), so the DSE that improves performance can *reduce* the verification surface at the same time.
+  The term is a proxy, estimated Sail-surface size, decode/state complexity, and per-candidate refinement effort, cheap to score inside the search loop.
 - **The admission test is a hard constraint, not an objective.**
   Every candidate must clear the five-part admission test and the non-interference / schedulability obligations (main-spec §15, §8, §11) to enter the Pareto front; infeasible points are pruned, so the search ranges only over the proven-safe envelope.
-  Its output is one frozen configuration that the per-class RTL ⊑ Sail proof then actually discharges — the proxy costs search quality, never soundness.
+  Its output is one frozen configuration that the per-class RTL ⊑ Sail proof then actually discharges, the proxy costs search quality, never soundness.
 - **Tooling and staging.**
-  An off-the-shelf multi-objective optimizer (NSGA-II-class) or an SMT/ILP feasibility oracle wrapping the admission predicate, over a parameterized cost model — **untrusted evidence-producing machinery, like the compilers and analyzers**: its output is re-modeled in Sail and re-checked, so it joins no trust base (§0, main-spec §6).
+  An off-the-shelf multi-objective optimizer (NSGA-II-class) or an SMT/ILP feasibility oracle wrapping the admission predicate, over a parameterized cost model, **untrusted evidence-producing machinery, like the compilers and analyzers**: its output is re-modeled in Sail and re-checked, so it joins no trust base (§0, main-spec §6).
   Deferred like the other hardening (§11): bring-up runs on hand-chosen parameters, and the DSE is layered on once the Sail cost model and per-class RTL exist.
   It is the concrete home of the *"search over the instantiation, never the specification"* discipline.
 
@@ -101,32 +101,32 @@ They are chosen by a **design-space exploration (DSE)** run off-model, ahead of 
 
 ## 2. Root of Trust (Sail scalar RV64+CHERI core + Coq firmware)
 
-The RoT is an on-die OpenTitan-class block with its own scalar RV64+CHERI control core, TRNG, OTP/key store, monotonic counters, and the watchdog (§9, §15) — the platform's only management processor.
-Its capability format is the main die's purecap format (§1) in a minimal scalar profile (no V/M, no C), so the one Sail model and the one CHERI-CompCert backend cover it — *not* CHERIoT's distinct compressed encoding.
-Two advantages past that uniformity fix the choice: as the **root of the capability derivation tree** the RoT mints and measures the very RV64 capabilities the main die executes under — which a 32-bit CHERIoT core could not even represent, so the boot handoff would otherwise cross a capability-format seam — and as the sole management processor its **64-bit reach** addresses the whole multi-GiB die directly, keeping measured boot clear of the 4 GiB windowing a 32-bit RoT would need in the measured path.
+The RoT is an on-die OpenTitan-class block with its own scalar RV64+CHERI control core, TRNG, OTP/key store, monotonic counters, and the watchdog (§9, §15), the platform's only management processor.
+Its capability format is the main die's purecap format (§1) in a minimal scalar profile (no V/M, no C), so the one Sail model and the one CHERI-CompCert backend cover it, *not* CHERIoT's distinct compressed encoding.
+Two advantages past that uniformity fix the choice: as the **root of the capability derivation tree** the RoT mints and measures the very RV64 capabilities the main die executes under, which a 32-bit CHERIoT core could not even represent, so the boot handoff would otherwise cross a capability-format seam, and as the sole management processor its **64-bit reach** addresses the whole multi-GiB die directly, keeping measured boot clear of the 4 GiB windowing a 32-bit RoT would need in the measured path.
 In the golden model it is a *second, smaller Sail core* plus a *Gallina firmware*.
 
-- **Language** — Sail (the scalar RV64+CHERI core + its modeled peripherals) and Coq/Gallina (the RoT firmware).
-- **Toolchain** — Sail-C for the core; for the firmware, **CertiCoq → Wasm** host-side (measure/seal logic, GC on the host engine) and a **GC-free** on-device image — this small, mostly-static firmware refines to CompCert-C through CHERI-CompCert, never the GC'd `CertiCoq → Clight` path.
-- **Start from** — `lowRISC/opentitan` and the **Ibex** core as the functional/RTL reference, with **CHERIoT-Ibex** (the Sonata core) as the existence proof for CHERI on an Ibex-class core; the control core itself is the `sail-cheri-riscv` base configured to a minimal **scalar RV64IMC+CHERI → RV64IM+CHERI** profile (no C, no V/M) in the main die's purecap capability format (not CHERIoT's separate encoding).
+- **Language**, Sail (the scalar RV64+CHERI core + its modeled peripherals) and Coq/Gallina (the RoT firmware).
+- **Toolchain**, Sail-C for the core; for the firmware, **CertiCoq → Wasm** host-side (measure/seal logic, GC on the host engine) and a **GC-free** on-device image, this small, mostly-static firmware refines to CompCert-C through CHERI-CompCert, never the GC'd `CertiCoq → Clight` path.
+- **Start from**, `lowRISC/opentitan` and the **Ibex** core as the functional/RTL reference, with **CHERIoT-Ibex** (the Sonata core) as the existence proof for CHERI on an Ibex-class core; the control core itself is the `sail-cheri-riscv` base configured to a minimal **scalar RV64IMC+CHERI → RV64IM+CHERI** profile (no C, no V/M) in the main die's purecap capability format (not CHERIoT's separate encoding).
   Model OTP, TRNG (as a seeded PRNG in emulation), monotonic counters, and the windowed watchdog as Sail memory-mapped devices.
-- **Compiler target** — scalar RV64+CHERI (purecap, no V/M) for the RoT firmware image, via the same CHERI-CompCert backend (§0) the main die uses; the RoT core emulator is Sail-C on the host.
-- **Plan** — model the RoT as a minimal scalar RV64+CHERI Sail core with its peripherals; write the **measured-boot / seal-unseal / attestation-quote / anti-rollback-counter** logic in Gallina (functional reference; PQ signatures via the crypto core of §4 below).
-  In the composed emulator the RoT core boots first, measures the M-mode firmware image, and releases the main die — the §9 chain realized as one emulator driving another.
+- **Compiler target**, scalar RV64+CHERI (purecap, no V/M) for the RoT firmware image, via the same CHERI-CompCert backend (§0) the main die uses; the RoT core emulator is Sail-C on the host.
+- **Plan**, model the RoT as a minimal scalar RV64+CHERI Sail core with its peripherals; write the **measured-boot / seal-unseal / attestation-quote / anti-rollback-counter** logic in Gallina (functional reference; PQ signatures via the crypto core of §4 below).
+  In the composed emulator the RoT core boots first, measures the M-mode firmware image, and releases the main die, the §9 chain realized as one emulator driving another.
 
 ---
 
 ## 3. M-mode firmware (Coq)
 
-Minimal verified M-mode firmware, quiescent after boot (§6, §7) — no trap delegation (single Machine mode; traps are taken by the Machine-mode kernel), no SMM-analog resident handler.
+Minimal verified M-mode firmware, quiescent after boot (§6, §7), no trap delegation (single Machine mode; traps are taken by the Machine-mode kernel), no SMM-analog resident handler.
 
-- **Language** — Coq/Gallina.
-- **Toolchain** — **CertiCoq → Wasm** host-side for the boot-logic exercise; on-device, GC-free **CompCert-C through CHERI-CompCert** (§0) — this firmware is tiny, quiescent, low-level register programming with no heap, so it never wants a managed runtime.
-- **Start from** — *no port.*
-  Use **OpenSBI** only as a functional checklist of what M-mode must do (initial capability distribution, boot handoff — no PMP setup, §15); write the behavior fresh in Gallina.
+- **Language**, Coq/Gallina.
+- **Toolchain**, **CertiCoq → Wasm** host-side for the boot-logic exercise; on-device, GC-free **CompCert-C through CHERI-CompCert** (§0), this firmware is tiny, quiescent, low-level register programming with no heap, so it never wants a managed runtime.
+- **Start from**, *no port.*
+  Use **OpenSBI** only as a functional checklist of what M-mode must do (initial capability distribution, boot handoff, no PMP setup, §15); write the behavior fresh in Gallina.
   The surface is small.
-- **Compiler target** — RV64IMV+CHERI (M-mode), purecap.
-- **Plan** — specify in Gallina: the **initial capability distribution** — deriving each core's partition-bounded root capability and the read-execute-only capabilities for kernel and firmware text (CHERI W^X, §14), with **no PMP or `Smepmp`** (CHERI is the sole memory-protection mechanism, §15); the boot handoff that launches one Machine-mode kernel instance per core (single privilege mode, no trap delegation).
+- **Compiler target**, RV64IMV+CHERI (M-mode), purecap.
+- **Plan**, specify in Gallina: the **initial capability distribution**, deriving each core's partition-bounded root capability and the read-execute-only capabilities for kernel and firmware text (CHERI W^X, §14), with **no PMP or `Smepmp`** (CHERI is the sole memory-protection mechanism, §15); the boot handoff that launches one Machine-mode kernel instance per core (single privilege mode, no trap delegation).
   Lower GC-free to purecap RV64+CHERI; it is the first image the die emulator executes after the RoT releases it.
 
 ---
@@ -136,12 +136,12 @@ Minimal verified M-mode firmware, quiescent after boot (§6, §7) — no trap de
 Boot verification, attestation, sealing, and the AEAD used by storage (§6 item 2, §10).
 The spec's production form is verified C via CompCert-CT with CryptOpt-checked field-arithmetic kernels + SSProve/FCF reductions (§5); the **golden-model form is a Gallina functional reference** with no constant-time or reduction guarantee yet.
 
-- **Language** — Coq/Gallina.
-- **Toolchain** — CertiCoq → Wasm (fast test vectors, GC on the host engine); on-device, a **GC-free** purecap image (CompCert-C through CHERI-CompCert, or GC-free extraction) — the CompCert-CT-preserved core with CryptOpt-checked field arithmetic is the deferred constant-time end-state (§5).
-- **Start from** — **Fiat-Crypto** (already Coq-native) for classical field arithmetic; for **ML-KEM / ML-DSA** and **SHA-2/3, AES-GCM / ChaCha20-Poly1305**, write Gallina functional specs (reference implementations), using the FIPS 203/204/205 vectors and `libcrux`/`HACL*` behavior as the oracle.
-  No `F*`/Z3 dependency enters the golden model — these are *reference* implementations, correctness-by-testing now, reduction/CT proofs later.
-- **Compiler target** — RV64IMV+CHERI purecap (and Wasm host-side for KATs).
-- **Plan** — assemble a Gallina crypto module exposing hash, AEAD seal/open, ML-KEM encaps/decaps, ML-DSA sign/verify, and a DRBG seeded from the RoT TRNG.
+- **Language**, Coq/Gallina.
+- **Toolchain**, CertiCoq → Wasm (fast test vectors, GC on the host engine); on-device, a **GC-free** purecap image (CompCert-C through CHERI-CompCert, or GC-free extraction), the CompCert-CT-preserved core with CryptOpt-checked field arithmetic is the deferred constant-time end-state (§5).
+- **Start from**, **Fiat-Crypto** (already Coq-native) for classical field arithmetic; for **ML-KEM / ML-DSA** and **SHA-2/3, AES-GCM / ChaCha20-Poly1305**, write Gallina functional specs (reference implementations), using the FIPS 203/204/205 vectors and `libcrux`/`HACL*` behavior as the oracle.
+  No `F*`/Z3 dependency enters the golden model, these are *reference* implementations, correctness-by-testing now, reduction/CT proofs later.
+- **Compiler target**, RV64IMV+CHERI purecap (and Wasm host-side for KATs).
+- **Plan**, assemble a Gallina crypto module exposing hash, AEAD seal/open, ML-KEM encaps/decaps, ML-DSA sign/verify, and a DRBG seeded from the RoT TRNG.
   Validate against known-answer tests via the Wasm build.
   This module is a dependency of the RoT (§2), the object system (§6), and the filesystem (§7).
   **Constant-time is explicitly not claimed** in the golden model; swapping in the CompCert-CT-preserved core with CryptOpt-checked field arithmetic is the later hardening step (§5).
@@ -150,66 +150,66 @@ The spec's production form is verified C via CompCert-CT with CryptOpt-checked f
 
 ## 5. Kernel (Coq)
 
-The capability microkernel — seL4's design, re-expressed in Gallina — instantiated once per core (multikernel, §7): untyped memory, endpoints + notifications, a static cyclic-executive schedule (no MCS), CDT revocation — **single address space, no VSpace/page-table objects** (the MMU is deleted, §7/§15).
+The capability microkernel, seL4's design, re-expressed in Gallina, instantiated once per core (multikernel, §7): untyped memory, endpoints + notifications, a static cyclic-executive schedule (no MCS), CDT revocation, **single address space, no VSpace/page-table objects** (the MMU is deleted, §7/§15).
 
-- **Language** — Coq/Gallina.
-- **Toolchain** — CertiCoq → Wasm host-side (fast functional exercise of the capability/IPC state machine, GC on the host engine); the real per-core kernel is **GC-free CompCert-C refined against the Gallina spec and compiled through CHERI-CompCert** — the seL4/CertiKOS/VST method the spec mandates (CompCert/SECOMP, §5), *not* GC'd extraction. seL4 does **zero post-boot allocation** (§7), so the running kernel needs neither a garbage collector nor even a heap; extracting it through CertiCoq's GC would wrap an allocation-free design in a managed runtime — exactly backwards.
-- **Start from** — seL4's **Haskell executable specification** as the design template (it is the same artifact seL4 uses to generate its Isabelle spec), **mechanically translated to Gallina via `hs-to-coq`** rather than hand-transcribed — the scrutinized prototype is carried across by tool, not paraphrased, so a silent spec-transcription error cannot slip in (the abstract spec and refinement proofs are still authored fresh); reuse the seL4 ABI and object model verbatim.
-  This is the §5/§7 "seL4's design, re-proved in Coq" — but for bring-up we only need the *executable* Gallina model, not yet the proof.
-- **Compiler target** — RV64IMV+CHERI (Machine mode), purecap and **GC-free** — the §7 purecap kernel, enabled by the prerequisite CHERI-CompCert backend (§0); every stage is purecap.
-- **Plan** —
-  1. Translate the seL4 executable spec's object types (dropping the VSpace/page-table/frame-mapping classes — single-address-space, §7 — and the MCS scheduling-context classes — a static cyclic executive replaces them, §7/§11), capability derivation tree, endpoint/notification IPC, and the cyclic-executive schedule into Gallina as an executable state machine.
-  2. Exercise it host-side via the Wasm build (create/derive/revoke capabilities, IPC round-trips, slot-overrun faults) — the fastest way to shake out the logic.
-  3. Refine the Gallina spec to GC-free CompCert-C (CHERI-seL4 is the existing purecap C implementation to start from), compile through CHERI-CompCert, and boot **one instance per emulated core** with strictly disjoint state (the multikernel is the *sequential* kernel duplicated, §7), physical partitions enforced by **CHERI capability bounds** — each instance's partition-bounded root capability (§7), no PMP.
+- **Language**, Coq/Gallina.
+- **Toolchain**, CertiCoq → Wasm host-side (fast functional exercise of the capability/IPC state machine, GC on the host engine); the real per-core kernel is **GC-free CompCert-C refined against the Gallina spec and compiled through CHERI-CompCert**, the seL4/CertiKOS/VST method the spec mandates (CompCert/SECOMP, §5), *not* GC'd extraction. seL4 does **zero post-boot allocation** (§7), so the running kernel needs neither a garbage collector nor even a heap; extracting it through CertiCoq's GC would wrap an allocation-free design in a managed runtime, exactly backwards.
+- **Start from**, seL4's **Haskell executable specification** as the design template (it is the same artifact seL4 uses to generate its Isabelle spec), **mechanically translated to Gallina via `hs-to-coq`** rather than hand-transcribed, the scrutinized prototype is carried across by tool, not paraphrased, so a silent spec-transcription error cannot slip in (the abstract spec and refinement proofs are still authored fresh); reuse the seL4 ABI and object model verbatim.
+  This is the §5/§7 "seL4's design, re-proved in Coq", but for bring-up we only need the *executable* Gallina model, not yet the proof.
+- **Compiler target**, RV64IMV+CHERI (Machine mode), purecap and **GC-free**, the §7 purecap kernel, enabled by the prerequisite CHERI-CompCert backend (§0); every stage is purecap.
+- **Plan:**
+  1. Translate the seL4 executable spec's object types (dropping the VSpace/page-table/frame-mapping classes, single-address-space, §7, and the MCS scheduling-context classes, a static cyclic executive replaces them, §7/§11), capability derivation tree, endpoint/notification IPC, and the cyclic-executive schedule into Gallina as an executable state machine.
+  2. Exercise it host-side via the Wasm build (create/derive/revoke capabilities, IPC round-trips, slot-overrun faults), the fastest way to shake out the logic.
+  3. Refine the Gallina spec to GC-free CompCert-C (CHERI-seL4 is the existing purecap C implementation to start from), compile through CHERI-CompCert, and boot **one instance per emulated core** with strictly disjoint state (the multikernel is the *sequential* kernel duplicated, §7), physical partitions enforced by **CHERI capability bounds**, each instance's partition-bounded root capability (§7), no PMP.
   4. Defer only the *proofs*: the functional-refinement proof (C ⊑ Gallina spec) and the non-interference theorem (§8), layered on later without changing the Gallina spec or the C.
-     Purecap, GC-free compilation is **not** deferred — the §0 prerequisite backend means the kernel is purecap and managed-runtime-free from first boot.
+     Purecap, GC-free compilation is **not** deferred, the §0 prerequisite backend means the kernel is purecap and managed-runtime-free from first boot.
 
 ---
 
 ## 6. OSTree-style object system + update transactor (Coq)
 
-The content-addressed Merkle-DAG object store (§10, the OSTree inspiration) plus the **atomic update transactor** (§6 item 3) — the system-integrity path: runtime read-verify against the boot-attested signed root, A/B generations, monotonic anti-rollback.
+The content-addressed Merkle-DAG object store (§10, the OSTree inspiration) plus the **atomic update transactor** (§6 item 3), the system-integrity path: runtime read-verify against the boot-attested signed root, A/B generations, monotonic anti-rollback.
 
-- **Language** — Coq/Gallina.
-- **Toolchain** — CertiCoq → Wasm host-side (store/verify logic, GC on the host engine); on-device, **GC-free CompCert-C (VST/Iris) through CHERI-CompCert** — the §10 no-managed-runtime storage form, shared with the §7 filesystem below.
-- **Start from** — `libostree` as the *conceptual* model only (content-addressed store, A/B deploy, rollback); write the store + transactor in Gallina.
+- **Language**, Coq/Gallina.
+- **Toolchain**, CertiCoq → Wasm host-side (store/verify logic, GC on the host engine); on-device, **GC-free CompCert-C (VST/Iris) through CHERI-CompCert**, the §10 no-managed-runtime storage form, shared with the §7 filesystem below.
+- **Start from**, `libostree` as the *conceptual* model only (content-addressed store, A/B deploy, rollback); write the store + transactor in Gallina.
   Hashing/signature checks call the §4 crypto module.
   This overlaps the storage L0/L1 layers (§7 filesystem) and shares their journal.
-- **Compiler target** — RV64IMV+CHERI purecap (and Wasm).
-- **Plan** — implement in Gallina: content addressing (object = hash of bytes, Merkle-DAG links), **read-verify against the signed root** on every access, the **A/B atomic-commit transactor** (stage → verify → flip → fall back on health failure), and the **anti-rollback floor** sealed to the RoT counter (§9, §11).
+- **Compiler target**, RV64IMV+CHERI purecap (and Wasm).
+- **Plan**, implement in Gallina: content addressing (object = hash of bytes, Merkle-DAG links), **read-verify against the signed root** on every access, the **A/B atomic-commit transactor** (stage → verify → flip → fall back on health failure), and the **anti-rollback floor** sealed to the RoT counter (§9, §11).
   In the golden model the transactor's "proof-checked admission" (§11) is stubbed to a signature/hash check; the on-device *proof* checker is §9 below.
 
 ---
 
 ## 7. Filesystem (Coq)
 
-The four-layer verified storage stack (§10): L0 journal, L1 CoW B-tree index, L2 FS semantics, L3 confidentiality — assembled as Gallina modules.
-The spec's production form is CompCert-C + VST/Iris with no managed runtime (§10); the golden-model form keeps that **GC-free CompCert-C shape** — a managed runtime is banned here exactly as in the spec — and defers only the full VST *proof*, standing in differential testing against the Wasm oracle while the Goose-for-C / VST re-homing is built.
+The four-layer verified storage stack (§10): L0 journal, L1 CoW B-tree index, L2 FS semantics, L3 confidentiality, assembled as Gallina modules.
+The spec's production form is CompCert-C + VST/Iris with no managed runtime (§10); the golden-model form keeps that **GC-free CompCert-C shape**, a managed runtime is banned here exactly as in the spec, and defers only the full VST *proof*, standing in differential testing against the Wasm oracle while the Goose-for-C / VST re-homing is built.
 
-- **Language** — Coq/Gallina.
-- **Toolchain** — CertiCoq → Wasm host-side (fast FS-logic exercise against an in-memory disk model, GC on the host engine); on-device, **GC-free CompCert-C (VST/Iris) through CHERI-CompCert** (against a modeled block device) — never the GC'd `CertiCoq → Clight` path, per §10.
-- **Start from** — the artifacts that are *already Coq*: **RefFS** (L2 concurrent linearizability + crash + liveness/MoLi) and **SFSCQ / DiskSec** (L3 data-noninterference).
+- **Language**, Coq/Gallina.
+- **Toolchain**, CertiCoq → Wasm host-side (fast FS-logic exercise against an in-memory disk model, GC on the host engine); on-device, **GC-free CompCert-C (VST/Iris) through CHERI-CompCert** (against a modeled block device), never the GC'd `CertiCoq → Clight` path, per §10.
+- **Start from**, the artifacts that are *already Coq*: **RefFS** (L2 concurrent linearizability + crash + liveness/MoLi) and **SFSCQ / DiskSec** (L3 data-noninterference).
   Re-express the **VeriBetrFS** B^ε-tree design (Dafny today) as the L1 CoW index in Gallina, and write the **Perennial/GoJournal** journal *design* (its proof is Coq, its code is Go via Goose) directly in Gallina for L0.
   Per-extent **AEAD** calls the §4 crypto module.
-- **Compiler target** — RV64IMV+CHERI purecap (and Wasm).
-- **Plan** — compose L0 (journal) ⋈ L1 (parametric CoW B-tree, one index instantiated per object class) ⋈ L2 (typed keys, snapshot-version-in-key, RefFS semantics) ⋈ L3 (per-domain AEAD, noninterference) as Gallina modules; exercise host-side via Wasm against an in-memory disk; lower GC-free (CompCert-C/VST through CHERI-CompCert) to purecap RV64+CHERI to run on the emulator against a modeled block device.
+- **Compiler target**, RV64IMV+CHERI purecap (and Wasm).
+- **Plan**, compose L0 (journal) ⋈ L1 (parametric CoW B-tree, one index instantiated per object class) ⋈ L2 (typed keys, snapshot-version-in-key, RefFS semantics) ⋈ L3 (per-domain AEAD, noninterference) as Gallina modules; exercise host-side via Wasm against an in-memory disk; lower GC-free (CompCert-C/VST through CHERI-CompCert) to purecap RV64+CHERI to run on the emulator against a modeled block device.
   Build the **system-integrity instance first** (it is the transactor's backing store, §6), then the **user-data (bcachefs-class) instance** on the same codebase (§10).
-  Below-the-line availability services (replication/EC/tiering/copygc/FTL) are *not* built in the golden model — they are the safe-Rust workstream (deferred).
+  Below-the-line availability services (replication/EC/tiering/copygc/FTL) are *not* built in the golden model, they are the safe-Rust workstream (deferred).
 
 ---
 
-## 8. Init system — the static supervision tree (Lustre via Vélus)
+## 8. Init system: the static supervision tree (Lustre via Vélus)
 
 The service manager: a static supervision tree with declarative units, no ambient authority, capability re-grant on restart (§12, §16).
-The spec assigns this **control plane to Lustre compiled by the Coq-verified Vélus compiler** (§5, §12) — a synchronous state machine whose WCET, determinism, and causality are structural. Because Vélus is Coq-verified and emits CompCert Clight, it rides the golden model's Coq/Clight discipline directly (Vélus → Clight → CHERI-CompCert, §0), with a Gallina model of the same machine kept host-side as the differential-testing oracle.
+The spec assigns this **control plane to Lustre compiled by the Coq-verified Vélus compiler** (§5, §12), a synchronous state machine whose WCET, determinism, and causality are structural. Because Vélus is Coq-verified and emits CompCert Clight, it rides the golden model's Coq/Clight discipline directly (Vélus → Clight → CHERI-CompCert, §0), with a Gallina model of the same machine kept host-side as the differential-testing oracle.
 
-- **Language** — Lustre (the control plane), with a Gallina reference model of the same state machine.
-- **Toolchain** — **Vélus (Lustre → Clight) → CHERI-CompCert** on-device: a synchronous node is statically allocated, so it is **GC-free by construction** (no arena or managed runtime needed).
+- **Language**, Lustre (the control plane), with a Gallina reference model of the same state machine.
+- **Toolchain**, **Vélus (Lustre → Clight) → CHERI-CompCert** on-device: a synchronous node is statically allocated, so it is **GC-free by construction** (no arena or managed runtime needed).
   CertiCoq → Wasm host-side runs the Gallina reference model for fast differential testing.
-- **Start from** — *no port.*
-  The design references are systemd's unit/supervision *shape* minus ambient authority (§12) and Erlang/OTP supervisor semantics (static tree, restart strategy, backoff) — a natural fit for a synchronous state machine; write it fresh in Lustre over the **compiled, typed, signed configuration objects** of §10 (no runtime text parsing).
-- **Compiler target** — RV64IMV+CHERI purecap (and, for the Gallina reference model, Wasm).
-- **Plan** — model as a Lustre state machine (with a Gallina reference): the static component graph loaded from the signed config generation, ordered capability-granting bring-up, crash detection, restart-with-backoff, and capability re-grant on restart.
+- **Start from**, *no port.*
+  The design references are systemd's unit/supervision *shape* minus ambient authority (§12) and Erlang/OTP supervisor semantics (static tree, restart strategy, backoff), a natural fit for a synchronous state machine; write it fresh in Lustre over the **compiled, typed, signed configuration objects** of §10 (no runtime text parsing).
+- **Compiler target**, RV64IMV+CHERI purecap (and, for the Gallina reference model, Wasm).
+- **Plan**, model as a Lustre state machine (with a Gallina reference): the static component graph loaded from the signed config generation, ordered capability-granting bring-up, crash detection, restart-with-backoff, and capability re-grant on restart.
   It consumes the object system (§6) for its config generation and the kernel (§5) for capability operations.
   In the golden model it is the first process the kernel starts, and it brings up the remaining (reference) components.
 
@@ -218,19 +218,19 @@ The spec assigns this **control plane to Lustre compiled by the Coq-verified Vé
 ## 9. Admission checkers (CHERI-TAL type-checker ⋈ Coq/MetaCoq proof kernel)
 
 **Two checkers, stratified** (main-spec §5/§6/§13).
-The **on-device admission checker** is a *CHERI typed-assembly-language type-checker* — order-10³ lines, decidable — the small on-device axiom that validates every installed binary's **typing derivation** (Tier-2 memory safety, CFI, no-codegen, ABI/type conformance) against the spec/Sail-model versions.
-The **CIC proof kernel** (MetaCoq-lineage, honestly larger) validates the deep Tier-0/hyperproperty proofs (functional refinement, non-interference, crypto reduction, CT, WCET, filesystem) — predominantly at release time over the base-image TCB.
+The **on-device admission checker** is a *CHERI typed-assembly-language type-checker*, order-10³ lines, decidable, the small on-device axiom that validates every installed binary's **typing derivation** (Tier-2 memory safety, CFI, no-codegen, ABI/type conformance) against the spec/Sail-model versions.
+The **CIC proof kernel** (MetaCoq-lineage, honestly larger) validates the deep Tier-0/hyperproperty proofs (functional refinement, non-interference, crypto reduction, CT, WCET, filesystem), predominantly at release time over the base-image TCB.
 Both are the component class whose *golden model is essentially its production form*.
 
-- **Language** — Coq/Gallina both: the CIC kernel is a proof-term type-checker; the CHERI-TAL checker is a typed-assembly type-checker whose **soundness metatheorem** (well-typed ⇒ safe over the Sail model; foundational-TAL / RustBelt / WasmCert-Coq lineage) is proved once in Coq.
-- **Toolchain** — **VST-refined CompCert-C through CHERI-CompCert**, the same verified-compilation route as the kernel (§5) and storage (§6/§7), for **both** checkers: they are TCB, so unlike the contained components they may **not** ride the unverified MetaCoq→Rust extraction backend and the untrusted Rust→CHERI userspace toolchain (§0) — that route is admissible only where the emitted binary is itself re-checked, and nothing re-checks the checkers.
-  Arena/region allocation stays the memory discipline (type-check one proof term in a bump arena, then wipe it whole), but expressed as the explicit-memory CompCert-C the VST refinement covers — not GC'd, not unverified-extracted.
-  **CertiCoq is *not* used on-device either** — its verified extraction still emits a GC, an unverified runtime inside the one axiomatic component (§0); **CertiCoq → Wasm** stays host-side only for development-time checking (GC on the host engine).
-- **Start from** — for the **CIC kernel**, **MetaCoq**'s verified checker (the "MetaCoq-style self-verification target" of §6) — a Coq-implemented type-checker for Coq terms — as the Gallina *specification* the on-device C kernel is refined against (VST), inheriting MetaCoq's in-Coq soundness rather than re-deriving it through unverified tooling.
+- **Language**, Coq/Gallina both: the CIC kernel is a proof-term type-checker; the CHERI-TAL checker is a typed-assembly type-checker whose **soundness metatheorem** (well-typed ⇒ safe over the Sail model; foundational-TAL / RustBelt / WasmCert-Coq lineage) is proved once in Coq.
+- **Toolchain**, **VST-refined CompCert-C through CHERI-CompCert**, the same verified-compilation route as the kernel (§5) and storage (§6/§7), for **both** checkers: they are TCB, so unlike the contained components they may **not** ride the unverified MetaCoq→Rust extraction backend and the untrusted Rust→CHERI userspace toolchain (§0), that route is admissible only where the emitted binary is itself re-checked, and nothing re-checks the checkers.
+  Arena/region allocation stays the memory discipline (type-check one proof term in a bump arena, then wipe it whole), but expressed as the explicit-memory CompCert-C the VST refinement covers, not GC'd, not unverified-extracted.
+  **CertiCoq is *not* used on-device either**, its verified extraction still emits a GC, an unverified runtime inside the one axiomatic component (§0); **CertiCoq → Wasm** stays host-side only for development-time checking (GC on the host engine).
+- **Start from**, for the **CIC kernel**, **MetaCoq**'s verified checker (the "MetaCoq-style self-verification target" of §6), a Coq-implemented type-checker for Coq terms, as the Gallina *specification* the on-device C kernel is refined against (VST), inheriting MetaCoq's in-Coq soundness rather than re-deriving it through unverified tooling.
   For the **CHERI-TAL type-checker**, the foundational-TAL / RustBelt / WasmCert-Coq type-soundness lineage, its type system the CHERI-RISC-V instantiation carrying the temporal-safety + typed-control-flow residual CHERI leaves (main-spec §5/§18).
-- **Compiler target** — RV64IMV+CHERI purecap (and Wasm host-side).
-- **Plan** — refine both checkers to CompCert-C (the CIC kernel against the MetaCoq Gallina spec; the CHERI-TAL type-checker against its soundness metatheorem) and compile through CHERI-CompCert as the admission oracle; in bring-up the packages they check are the golden-model components themselves (proof objects and typing derivations are thin/stubbed until the Tier-0/1/2 proofs exist).
-  Their role hardens *in place* as real proofs arrive — the checkers do not change, only the derivations and proofs they are handed.
+- **Compiler target**, RV64IMV+CHERI purecap (and Wasm host-side).
+- **Plan**, refine both checkers to CompCert-C (the CIC kernel against the MetaCoq Gallina spec; the CHERI-TAL type-checker against its soundness metatheorem) and compile through CHERI-CompCert as the admission oracle; in bring-up the packages they check are the golden-model components themselves (proof objects and typing derivations are thin/stubbed until the Tier-0/1/2 proofs exist).
+  Their role hardens *in place* as real proofs arrive, the checkers do not change, only the derivations and proofs they are handed.
   **The checkers' own binaries are the bootstrap root** (§6 item 6 of the main spec): no package certificate can cover the admitters, so their trust rests on reproducible build + DDC + the RoT measuring them into the measured-boot chain, not on any admission proof of themselves.
 
 ---
@@ -243,11 +243,11 @@ The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardwa
   `sail -c` on the curated model (§1) gives a fast single-core RV64IMV+CHERI emulator.
   Drive it with hand-written and randomly-generated ISA tests; this validates the *hardware* reference independently of any software.
 - **Whole-machine harness.**
-  Wrap the Sail-generated core with a thin host-C system harness that provides: **multiple core instances** (C-class ×N, V-class, M-class, the S-class sentinel, and the RoT RV64 core of §2), **physical memory** with the modeled ECC/TME behavior as no-ops-with-latency, and the **modeled devices** — capability-checked DMA (default-deny capability-bounds checks on device transfers), the register-slave transceiver stream (with its fixed-function link-layer timing sequencer, §15), the scanout DMA block, and the RoT peripherals.
+  Wrap the Sail-generated core with a thin host-C system harness that provides: **multiple core instances** (C-class ×N, V-class, M-class, the S-class sentinel, and the RoT RV64 core of §2), **physical memory** with the modeled ECC/TME behavior as no-ops-with-latency, and the **modeled devices**, capability-checked DMA (default-deny capability-bounds checks on device transfers), the register-slave transceiver stream (with its fixed-function link-layer timing sequencer, §15), the scanout DMA block, and the RoT peripherals.
   Devices are modeled either as Sail memory-mapped regions (preferred, keeps them in the one language) or as C shims in the harness where that is faster to iterate.
   The **NoC/coherence islands** are modeled as a simple address-routing layer in bring-up (the TDM schedule and non-interference semantics are §15 hardening, not needed for functional emulation).
 - **Composed full-system golden model.**
-  Boot the stack in the spec's §9 order on the harness: RoT core + firmware (§2) → M-mode firmware (§3) → one kernel instance per core (§5) → init (§8) → object system/transactor (§6), filesystem (§7), crypto core (§4), checker (§9) — every image **GC-free purecap RV64IMV+CHERI**, produced by the §0 on-device routes (CompCert-C/VST through CHERI-CompCert, or arena extraction through the Rust→CHERI compiler), *never* the GC'd `CertiCoq → Clight` path.
+  Boot the stack in the spec's §9 order on the harness: RoT core + firmware (§2) → M-mode firmware (§3) → one kernel instance per core (§5) → init (§8) → object system/transactor (§6), filesystem (§7), crypto core (§4), checker (§9), every image **GC-free purecap RV64IMV+CHERI**, produced by the §0 on-device routes (CompCert-C/VST through CHERI-CompCert, or arena extraction through the Rust→CHERI compiler), *never* the GC'd `CertiCoq → Clight` path.
   This is the reference machine: purecap, managed-runtime-free software on the verified-by-generation ISA.
 - **Fast software-only reference (parallel track).**
   For OS-logic iteration that does not need the ISA in the loop, run the *same* Gallina components as **CertiCoq → Wasm** on a host Wasm engine.
@@ -257,35 +257,35 @@ The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardwa
   Use **Isla** (symbolic execution over the Sail model) to derive ISA test vectors and the concurrency/Ztso litmus set from the frozen model.
   Keep the emulator as the **differential-testing oracle** for everything downstream (the FPGA in §11 is checked against it).
 - **Staging.**
-  C-class scalar emulator + software rendering first; add the V-class vector datapath, then M-class matrix, then FEC, then multi-core + islands — mirroring §18, each class extending the *same* Sail model and re-generating the emulator.
+  C-class scalar emulator + software rendering first; add the V-class vector datapath, then M-class matrix, then FEC, then multi-core + islands, mirroring §18, each class extending the *same* Sail model and re-generating the emulator.
 
 ---
 
 ## 11. Building an FPGA from it all
 
 The golden model is Sail, not RTL, so an FPGA needs RTL.
-Per the two-language ideal, the RTL is obtained *from* the golden model — either **generated** from it (the "one language" dream extended to hardware) or **brought up from open cores and differentially tested against it** — with the formal RTL ⊑ Sail refinement deferred (§18).
+Per the two-language ideal, the RTL is obtained *from* the golden model, either **generated** from it (the "one language" dream extended to hardware) or **brought up from open cores and differentially tested against it**, with the formal RTL ⊑ Sail refinement deferred (§18).
 
 - **Two routes to RTL.**
-  - **(a) Generate from the golden ISA description** — feed the Sail/ISA spec into **PipelineGen** (pipeline generation from the ISA description) and/or **Sail → Kôika/Kami** (Coq hardware DSLs) to emit a microarchitecture that is correct-by-construction against the golden model.
+  - **(a) Generate from the golden ISA description**, feed the Sail/ISA spec into **PipelineGen** (pipeline generation from the ISA description) and/or **Sail → Kôika/Kami** (Coq hardware DSLs) to emit a microarchitecture that is correct-by-construction against the golden model.
     This is the path that keeps Sail the single hardware source; its RTL ⊑ Sail obligation is *discharged by generation* rather than by after-the-fact proof.
-  - **(b) Bring up open cores + differential-test** — take the open RTL substrate per class and validate it against the Sail emulator (§10) as the oracle.
+  - **(b) Bring up open cores + differential-test**, take the open RTL substrate per class and validate it against the Sail emulator (§10) as the oracle.
     This is the pragmatic near-term path and matches the "fast golden model, defer the proofs" mandate: no RTL ⊑ Sail *proof* is required for the FPGA milestone, only differential agreement with the golden model.
 - **Open RTL substrate (route b), per class (§18).**
-  For the **C-class scalar** front end an *existing CHERI RV64 soft core* — **CHERI-CVA6** (Bristol / lowRISC / OpenHW) or the Bluespec **CHERI-Flute / Piccolo / Toooba** (CTSRD) — *modified to static-only prediction* and a TSO store buffer per §15; **Ara** (PULP) for the V-class vector unit; **Gemmini** (Berkeley, Chisel) for the M-class matrix unit; open **LDPC/polar** cores for FEC; and for the **RoT**, **Ibex** + `lowRISC/opentitan` as the functional reference and **CHERIoT-Ibex** (Sonata) as the CHERI-on-Ibex reference — the on-die core itself a small **scalar RV64+CHERI** purecap core in the main die's capability format (§1), not CHERIoT's separate encoding.
-  All are SystemVerilog/Chisel — synthesizable today.
-  The **CHERI-CVA6** option specifically has a commercial-quality, formally-verified open track: the lowRISC / Capabilities Limited **COSMIC** project (2025–28) hardens it on OpenTitan IP and proves its instruction execution conforms to its ISA spec — the application-class successor to the CHERIoT-Ibex conformance proof — directly de-risking the *"RV64 application-class CHERI exists only as soft cores"* binding constraint (§18) and handing the RTL ⊑ Sail bring-up gate a real application-class artifact (see [inspirations.md](inspirations.md)).
-- **Concrete bring-up artifact — CHERI Mocha (COSMIC MVP-2, `lowRISC/mocha` v0.1.0).**
-  That COSMIC track is already shipping a tagged, FPGA-synthesizable **secure-enclave SoC** — the CVA6-CHERI application core plus OpenTitan peripherals — that boots to a terminal prompt on a **Genesys 2 (Kintex-7)** board.
-  It is a **Start-from** for the C-class-scalar-plus-RoT bring-up here: the application core is the C-class front end above; the bundled **entropy source, KMAC, ROM controller, and SPI host** are functional-reference RTL for the RoT and its measured-boot chain — the **KMAC** (Keccak/SHA-3) doubling as a reference for the SHAKE-heavy PQ crypto core — and the bare-metal **HAL** (`sw/device/lib/hal`) is a Start-from for the verified DMA/MMIO/descriptor HAL, to be re-homed onto Verus/Prusti/Aeneas.
-  It stays a *reference*, not an admitted artifact — unverified RTL under the same route-(b) disposition as every core above, its **RTL ⊑ ISA conformance proof still pending** (§18) (MVP-2 is a maturity milestone, not a verification one).
+  For the **C-class scalar** front end an *existing CHERI RV64 soft core*, **CHERI-CVA6** (Bristol / lowRISC / OpenHW) or the Bluespec **CHERI-Flute / Piccolo / Toooba** (CTSRD), *modified to static-only prediction* and a TSO store buffer per §15; **Ara** (PULP) for the V-class vector unit; **Gemmini** (Berkeley, Chisel) for the M-class matrix unit; open **LDPC/polar** cores for FEC; and for the **RoT**, **Ibex** + `lowRISC/opentitan` as the functional reference and **CHERIoT-Ibex** (Sonata) as the CHERI-on-Ibex reference, the on-die core itself a small **scalar RV64+CHERI** purecap core in the main die's capability format (§1), not CHERIoT's separate encoding.
+  All are SystemVerilog/Chisel, synthesizable today.
+  The **CHERI-CVA6** option specifically has a commercial-quality, formally-verified open track: the lowRISC / Capabilities Limited **COSMIC** project (2025–28) hardens it on OpenTitan IP and proves its instruction execution conforms to its ISA spec, the application-class successor to the CHERIoT-Ibex conformance proof, directly de-risking the *"RV64 application-class CHERI exists only as soft cores"* binding constraint (§18) and handing the RTL ⊑ Sail bring-up gate a real application-class artifact (see [inspirations.md](inspirations.md)).
+- **Concrete bring-up artifact, CHERI Mocha (COSMIC MVP-2, `lowRISC/mocha` v0.1.0).**
+  That COSMIC track is already shipping a tagged, FPGA-synthesizable **secure-enclave SoC**, the CVA6-CHERI application core plus OpenTitan peripherals, that boots to a terminal prompt on a **Genesys 2 (Kintex-7)** board.
+  It is a **Start-from** for the C-class-scalar-plus-RoT bring-up here: the application core is the C-class front end above; the bundled **entropy source, KMAC, ROM controller, and SPI host** are functional-reference RTL for the RoT and its measured-boot chain, the **KMAC** (Keccak/SHA-3) doubling as a reference for the SHAKE-heavy PQ crypto core, and the bare-metal **HAL** (`sw/device/lib/hal`) is a Start-from for the verified DMA/MMIO/descriptor HAL, to be re-homed onto Verus/Prusti/Aeneas.
+  It stays a *reference*, not an admitted artifact, unverified RTL under the same route-(b) disposition as every core above, its **RTL ⊑ ISA conformance proof still pending** (§18) (MVP-2 is a maturity milestone, not a verification one).
   Two pieces are pointedly *not* imported.
-  The **debug module** — a development-visibility backdoor into the enclave — is admissible only where §15 already puts external debug: **gated behind RoT lifecycle state**, fused-off in production, never a shipping surface.
+  The **debug module**, a development-visibility backdoor into the enclave, is admissible only where §15 already puts external debug: **gated behind RoT lifecycle state**, fused-off in production, never a shipping surface.
   And Mocha's headline **CHERI-Linux boot** is the enclave-beside-Linux framing the design refuses (§14, *no Linux-personality shim*): the core, peripheral, and HAL RTL transfer as references; the operating system does not.
-- **CHERI runs on FPGA, and purecap software is ready for it — no stop-gap.**
-  CHERI *runs on FPGA today*: the scalar CHERI RV64 soft cores above make the **C-class FPGA purecap from the start**, and because the **functional CHERI-CompCert backend is a prerequisite** (§0), the purecap golden-model images boot on it directly — purecap from first bring-up, with no capability-degraded interim.
-  The genuinely new RTL + Sail work (§18) is CHERI for the **V-class and M-class** — Ara and Gemmini are not capability-aware, so extending their vector/matrix memory ops to per-element capability checks is the real hardware effort, *not* the scalar core.
-  The only *silicon* gate (§18) is fabricating a CHERI **ASIC** for a shippable product — irrelevant to emulation and FPGA.
+- **CHERI runs on FPGA, and purecap software is ready for it, no stop-gap.**
+  CHERI *runs on FPGA today*: the scalar CHERI RV64 soft cores above make the **C-class FPGA purecap from the start**, and because the **functional CHERI-CompCert backend is a prerequisite** (§0), the purecap golden-model images boot on it directly, purecap from first bring-up, with no capability-degraded interim.
+  The genuinely new RTL + Sail work (§18) is CHERI for the **V-class and M-class**, Ara and Gemmini are not capability-aware, so extending their vector/matrix memory ops to per-element capability checks is the real hardware effort, *not* the scalar core.
+  The only *silicon* gate (§18) is fabricating a CHERI **ASIC** for a shippable product, irrelevant to emulation and FPGA.
 - **Profile curation in RTL.**
   Enforce the §15 profile in hardware: no C extension, `Zaamo` only (no CAS, no LR/SC reservation logic), adopted crypto/bit units, static fetch, Ztso store buffer, fixed-latency DIV/FPU/AMO.
   Each is *less* hardware than the stock core, not more.
@@ -295,7 +295,7 @@ Per the two-language ideal, the RTL is obtained *from* the golden model — eith
   The **S-class sentinel** and RoT are small and come early.
 - **Deferred hardening (named, not built here).**
   The **riscv-formal/rvfi** BMC bring-up gate, the **Isla**-generated obligations, and the closing **Kami/Kôika** RTL ⊑ Sail refinement (§15, §18) are the path from "differentially agrees with the golden model" to "proven to refine it."
-  They are explicitly out of scope for the FPGA milestone and layered on afterward — the golden model remains the reference they target.
+  They are explicitly out of scope for the FPGA milestone and layered on afterward, the golden model remains the reference they target.
 
 ---
 
@@ -303,24 +303,24 @@ Per the two-language ideal, the RTL is obtained *from* the golden model — eith
 
 Bottom-up, each milestone runnable against the prior one:
 
-1. **M0 — Hardware reference.**
+1. **M0, Hardware reference.**
    Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green.
-2. **M1 — Toolchain spine, incl. the CHERI-CompCert prerequisite.**
-   Build the *functional* CHERI-RISC-V CompCert backend **first** (no purecap CertiCoq GC is needed — the on-device path is GC-free, §0), then bring up both roles — the host-side **CertiCoq → Wasm** oracle and the **GC-free on-device lowering** (CompCert-C/VST through CHERI-CompCert; arena extraction via MetaCoq→Rust onto the Rust→CHERI compiler for the allocation-light components) — producing runnable purecap artifacts from a trivial Gallina program on the M0 emulator.
+2. **M1, Toolchain spine, incl. the CHERI-CompCert prerequisite.**
+   Build the *functional* CHERI-RISC-V CompCert backend **first** (no purecap CertiCoq GC is needed, the on-device path is GC-free, §0), then bring up both roles, the host-side **CertiCoq → Wasm** oracle and the **GC-free on-device lowering** (CompCert-C/VST through CHERI-CompCert; arena extraction via MetaCoq→Rust onto the Rust→CHERI compiler for the allocation-light components), producing runnable purecap artifacts from a trivial Gallina program on the M0 emulator.
    Every later milestone is purecap and managed-runtime-free from here.
-3. **M2 — Boot chain.**
+3. **M2, Boot chain.**
    RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → the emulator reaches the Machine-mode kernel.
-4. **M3 — Kernel.**
+4. **M3, Kernel.**
    Gallina microkernel (§5), one instance per emulated core; capability/IPC tests green host-side (Wasm) and on-emulator (RV64).
-5. **M4 — Storage + objects.**
+5. **M4, Storage + objects.**
    Journal/index/FS (§7) and the content-addressed object store + transactor (§6); system-integrity instance first, then user-data.
-6. **M5 — Userland spine.**
+6. **M5, Userland spine.**
    Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set.
-7. **M6 — Full-system golden model.**
+7. **M6, Full-system golden model.**
    The composed emulator (§10) boots the whole stack; the Wasm track runs the same components fast for iteration.
-8. **M7 — FPGA scalar (purecap).**
+8. **M7, FPGA scalar (purecap).**
    Bring up an existing CHERI RV64 scalar soft core (§11); the purecap golden-model images (M1–M6) boot on it directly, differentially tested against M6; CHERI ISA tests from the Sail model green.
-9. **M8 — CHERI V/M/FEC datapath.**
-   Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18) — the scalar core and purecap software are already in hand from M1/M7, so the FPGA then matches the golden model across all core classes.
+9. **M8, CHERI V/M/FEC datapath.**
+   Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M7, so the FPGA then matches the golden model across all core classes.
 
-Everything past M8 — the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), CompCert-CT + the CryptOpt-style field-arithmetic translation-validation toolchain, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement — is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.
+Everything past M8, the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), CompCert-CT + the CryptOpt-style field-arithmetic translation-validation toolchain, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement, is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.
