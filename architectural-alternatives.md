@@ -837,7 +837,7 @@ It is the same graded-hierarchy discipline the design already applies on four ax
 
 ---
 
-## seL4 vs. CertiKOS: re-examined; seL4's *design* retained, re-proved end-to-end in Coq
+## seL4 vs. CertiKOS: re-examined; seL4's *design* retained as the object-model base for a bespoke minimal capability core, proved end-to-end in Coq
 
 The §5/§7 choice of a **CertiKOS-lineage** kernel proof over **seL4** rested, as written, on *one prover, Coq*.
 The first pass (bullets below, kept as the reasoning trail) concluded "no pure-win substitution: a trade of the single-checker TCB for maturity."
@@ -882,7 +882,14 @@ And the two-checker alternative's edge is narrower than it looks: the proofs it 
 That is a real cost: but a *labor-and-freshness* cost, the class the engineering-free axiom exists to absorb, not a *trust* cost: the trusted set does not grow.
 The claim is thus conditional and honest: **superior iff (a) engineering is free and (b) seL4's 2024 completion is in-scope**, both stipulated.
 
-**Disposition:** adopt seL4's **design**, re-proved **end-to-end in Coq** and compiled via **CompCert/SECOMP** (§5, §7); **CertiKOS is demoted from kernel to proof-method lineage**: deep specifications, certified abstraction layers, CompCertX-style verified compilation; supplying the *how* while seL4 supplies the *what*.
+**What the stripping leaves is a minimal capability core, and that is what makes the greenfield proof feasible.**
+The deletions this platform commits to — the MMU with its VSpace and paging objects, MCS, SMP, the S/U privilege ring, and PMP with the IOMMU (the MMU-deletion, single-privilege-mode, drop-PMP, and capability-checked-DMA entries above; §7, §15) — preferentially remove the *proof-heaviest* layer of `l4v` (the arch-specific VM refinement) and its *least-maintained* ones (MCS, and the SMP concurrency the multikernel never incurs).
+What survives is seL4's architecture-independent core — untyped memory, retype, the capability space, the CDT and its revocation, endpoints and notifications (§7, §8) — joined to a realization that is *not* seL4's: the single-address-space CHERI isolation CheriOS demonstrates, the CHERIoT-lineage switcher, sealing, and interrupt-state sentries (§15), and the table-driven cyclic executive (§7, §11).
+The artifact is therefore a **synthesis, not a transcription** — seL4's object model ⋈ the CheriOS/CHERIoT CHERI-SAS realization ⋈ Barrelfish's multikernel composition ⋈ a static cyclic executive — and reading the route as "re-prove seL4" *overstates* the maturity that transfers (the deployed kernel is a heavily-forked minimal variant, not mainline seL4) while *understating* the genuinely novel proof: purecap CHERI-C semantics, the multikernel non-interference composition, and the switcher and sentries, none of which any base supplies.
+Naming it a **bespoke minimal capability core** sizes the effort correctly and frees the object model to be designed for *minimum proof surface* rather than inheriting seL4's hooks for the features this platform deleted.
+It also **relocates the decision**: with the kernel this small, the dominant fresh proof mass is no longer *in* the kernel but in the CHERI-C mechanization (§7, §17), the multikernel non-interference composition (§8, §17), and the switcher and sentry verification against the Sail model, so the seL4-versus-CertiKOS-versus-CheriOS basis question is second-order to getting those right.
+
+**Disposition:** adopt seL4's **design** as the object-model base for a **bespoke minimal capability core**, proved **end-to-end in Coq** and compiled via **CompCert/SECOMP** (§5, §7); **CertiKOS is demoted from kernel to proof-method lineage**: deep specifications, certified abstraction layers, CompCertX-style verified compilation; supplying the *how* while seL4 supplies the *what*.
 What transfers from that lineage is the abstraction-layer discipline, the deep-specification method, CompCertX-style verified compilation, and the generic lower-layer proofs (physical-memory management: the single-address-space design carries no paging layer) any kernel needs, **not** CCAL's *concurrency* machinery, which the share-nothing multikernel (above) makes dead weight; for a per-core *sequential* kernel, plain **VST** (sequential separation logic over CompCert) is the more parsimonious closing logic.
 The make-or-break subproof, never yet done in Coq for an seL4-class capability model, is **CDT revocation** (the hardest part of the l4v corpus): so it is the piece to attempt *first*, the early kill-switch on the route.
 **Importing seL4's Isabelle proof wholesale stays rejected** (the two-prover TCB).
