@@ -185,7 +185,7 @@ The content-addressed Merkle-DAG object store (§10, the OSTree inspiration) plu
 ## 7. Filesystem (Coq)
 
 The four-layer verified storage stack (§10): L0 journal, L1 CoW B-tree index, L2 FS semantics, L3 confidentiality, assembled as Gallina modules.
-The spec's production form is CompCert-C + VST/Iris with no managed runtime (§10); the golden-model form keeps that **GC-free CompCert-C shape**, a managed runtime is banned here exactly as in the spec, and defers only the full VST *proof*, standing in differential testing against the Wasm oracle while the Goose-for-C / VST re-homing is built.
+The spec's production form is CompCert-C + VST/Iris with no managed runtime (§10); the golden-model form keeps that **GC-free CompCert-C shape**, a managed runtime is banned here exactly as in the spec, and defers only the full VST *proof*, standing in differential testing against the Wasm oracle while the CompCert-C + VST/Iris re-homing is built.
 
 - **Language**, Coq/Gallina.
 - **Toolchain**, CertiCoq → Wasm host-side (fast FS-logic exercise against an in-memory disk model, GC on the host engine); on-device, **GC-free CompCert-C (VST/Iris) through CHERI-CompCert** (against a modeled block device), never the GC'd `CertiCoq → Clight` path, per §10.
