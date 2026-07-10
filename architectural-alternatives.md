@@ -855,6 +855,33 @@ It is the same graded-hierarchy discipline the design already applies on four ax
 
 ---
 
+## Emergency calling: the unauthenticated-attach exception, taken as a separate zero-authority mode rather than a legacy fallback
+
+The tension: §12 makes *no downgrade, no null cipher, mutual authentication (5G-AKA)* a verified property of the L2/L3 servers, and §15 removes the 2G/3G/4G channel codes and RF from the silicon, so a legacy or downgraded attach is *unexpressible*.
+But emergency service (E911/E112) is legally required to connect a device with **no SIM and no valid credential**, over an *unauthenticated* emergency-registration path that by construction has no mutual authentication and may run a null cipher, and, on some deployed networks, only over a legacy generation.
+A verified stack that cannot express an unauthenticated attach cannot place that call, and a radio with no legacy silicon cannot fall back where legacy is the only coverage.
+There are two separable sub-problems (the unauthenticated *session*, and legacy-only *coverage*) and the tempting single fix, a small legacy emergency-only receiver, solves the second by reintroducing exactly what the first deletes.
+
+**The tempting fix, and why it is declined.**
+Returning a minimal turbo/convolutional decoder and legacy RF band "for emergency use only" would let the device attach to 2G/3G/4G for E911/E112.
+It is **declined**: the demodulation hardware, once present, is a bid-down target regardless of the "emergency-only" software intent, so a rogue base station is handed something to bid down *to* again, reopening the downgrade-attack class the generation floor (§15) deletes at the silicon.
+This is the *verify rather than hedge* clause (§15) in its usual shape: a fallback path is not admitted merely because a real need motivates it, when it reintroduces the surface the design exists to delete.
+
+**What is adopted instead: move the guarantee, do not lower it.**
+The unauthenticated-session sub-problem is taken by the critique's first horn, made precise as a **separate, separately-verified, zero-authority emergency mode** (§12): the *no downgrade / no null cipher / mutual auth* property is scoped to **non-emergency service**, and emergency calling runs in a compartment holding no keys, no user data, and no identity beyond the regulation-mandated IMEI and location.
+Its unauthenticated, possibly null-ciphered bearer can therefore carry only what emergency regulation already compels the device to disclose and can reach nothing else: the security posture (protection of the user's data and identity) is preserved by **non-interference** and zero authority, not by the network crypto the mode cannot have, and entry is an unspoofable local act (never network-initiated, §8, §9), so the downgrade class stays deleted.
+This is the eUICC's own zero-platform-authority containment (the one tolerated foreign trust domain, §4) applied to the *session* instead of the credential.
+
+**The coverage sub-problem is taken by the critique's second horn, as a decision.**
+Emergency calling is placed over **5G-standalone (and 6G) emergency registration**; where only legacy or 5G-non-standalone coverage (including EPS-fallback-to-LTE emergency voice) offers an emergency path, the device cannot place the call.
+Emergency reach equals 5G/6G coverage reach: a deliberate coverage-for-security trade, the same one the §15 generation floor already makes for ordinary service, extended to emergency service and stated rather than left to silence.
+
+**Disposition (adopted; normative in §12, §15, §17):** the legacy emergency-only receiver is **declined**; the unauthenticated-attach exception is adopted as a **zero-authority emergency mode** scoped out of the no-downgrade property, and the legacy-only-coverage limit is booked as a stated coverage decision.
+
+**Honest residual (§17):** the emergency mode admits an unauthenticated, possibly null-ciphered network session (contained by non-interference and zero authority, the one place the radio's verified crypto posture is deliberately not in force), and the coverage limit means no emergency call where only legacy or 5G-non-standalone coverage exists.
+
+---
+
 ## seL4 vs. CertiKOS: re-examined; seL4's *design* retained as the object-model base for a bespoke minimal capability core, proved end-to-end in Coq
 
 The §5/§7 choice of a **CertiKOS-lineage** kernel proof over **seL4** rested, as written, on *one prover, Coq*.
