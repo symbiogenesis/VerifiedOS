@@ -1006,11 +1006,11 @@ Functional correctness plus constant-time (Fiat-Crypto + libcrux/HACL\*, §5) co
 
 The tools, each run through the §5 trust-base test, close both gaps:
 
-- **CompCert-CT + CryptOpt translation validation (layers 1–2).**
-  Constant-time is carried by **CompCert-CT preservation** on the verified-C path: one verified compiler, the same Coq prover; replacing "trust a C compiler to preserve constant-time" with a *mechanized* preservation theorem.
+- **Constant-time on the artifact + CryptOpt translation validation (layers 1–2).**
+  Constant-time is verified **directly on the binary** against the §15 leakage model, for the verified-C crypto core exactly as for every other secret-touching artifact: there is **no verified-compiler CT route**, so a single CHERI-CompCert carries the whole toolchain and "trust a C compiler to preserve constant-time" is replaced by a *mechanized relational proof over the binary* (the binary-level constant-time entry below; the declined preservation route is the CompCert-CT entry below).
   The performance-critical **field-arithmetic kernels** are then recovered by **CryptOpt**: an *untrusted* randomized-search superoptimizer emits assembly faster than GCC/Clang at top optimization (at times beating hand-written asm), admitted by a **Coq-verified program-equivalence checker** back to its **Fiat-Crypto** functional spec; so the trusted artifact is a *small verified checker*, not a second optimizing backend, and hand-assembly-grade speed and Coq-checkable correctness are both had at **zero trust-base fragmentation** (the crypto instantiation of the artifact-not-pedigree / CHERI-TAL discipline below).
-  Costs, and why it is a *deferrable* recovery rather than a hard dependency: **CryptOpt targets x86-64 today**, so the CHERI-RISC-V retarget of the equivalence checker over the one Sail model is a §18 workstream beside CHERI-CompCert: but the crypto core is already correct *and* constant-time on CompCert-CT alone (Fiat-Crypto's field arithmetic is straight-line), so this only buys back speed on the hot path and can be deferred.
-  Two honest asterisks: CryptOpt's headline results come from randomized search **benchmarked on real silicon**, which does not exist here yet: the fitness function must ride the timing-annotated Sail model or the FPGA (§11), though the in-order fixed-latency profile (§15) makes that cost model *transparent* rather than the opaque superscalar it fights on x86; and its scope is *straight-line field arithmetic*, so control-flow-heavy primitives (Keccak, AES, ChaCha, the ML-KEM/ML-DSA NTT and samplers) stay on the CompCert-CT verified-C path: acceptable with performance subordinated.
+  Costs, and why it is a *deferrable* recovery rather than a hard dependency: **CryptOpt targets x86-64 today**, so the CHERI-RISC-V retarget of the equivalence checker over the one Sail model is a §18 workstream beside CHERI-CompCert: but the crypto core is already correct *and*, its field arithmetic being straight-line, constant-time on the stock CHERI-CompCert output verified on the artifact, so this only buys back speed on the hot path and can be deferred.
+  Two honest asterisks: CryptOpt's headline results come from randomized search **benchmarked on real silicon**, which does not exist here yet: the fitness function must ride the timing-annotated Sail model or the FPGA (§11), though the in-order fixed-latency profile (§15) makes that cost model *transparent* rather than the opaque superscalar it fights on x86; and its scope is *straight-line field arithmetic*, so control-flow-heavy primitives (Keccak, AES, ChaCha, the ML-KEM/ML-DSA NTT and samplers) stay verified C, branchless-hardened and constant-time-verified on the artifact (the binary-level constant-time entry below): acceptable with performance subordinated.
 - **SSProve / FCF (layer 3).**
   Coq-native game-based reduction frameworks.
   Choosing them for the security proofs is the **identical decision** §5 made choosing Narcissus over EverParse: the reduction rides the one Coq kernel (§6) at **zero new trust base**.
@@ -1020,10 +1020,10 @@ The tools, each run through the §5 trust-base test, close both gaps:
   But it discharges via **Why3/SMT**, a trust base distinct from Coq; by this spec's own logic it is a widening of the same character as the libcrux/HACL\* F\*/Z3 one: **adopted as pragmatic interim assurance, SSProve/FCF the destination.**
 
 **Disposition (adopted; normative in §5).**
-Crypto assurance becomes **three composed layers** (functional correctness (Fiat-Crypto; libcrux/HACL\* interim) ⋈ constant-time (CompCert-CT preservation, with CryptOpt-checked field-arithmetic kernels) ⋈ reduction-level security (SSProve/FCF Coq-native, EasyCrypt mature complement)): joined at each primitive's functional specification, which joins the crown-jewel spec list.
-The platform axiom decides the toolchain exactly as it did for seL4: **methodology is portable, maturity is not**: carry the Coq-native property (CompCert-CT preservation, CryptOpt equivalence-checking to Fiat-Crypto, SSProve/FCF) to the mature artifacts (formosa-crypto, Fiat-Crypto/CryptOpt), spending engineering to shrink the trusted set.
+Crypto assurance becomes **three composed layers** (functional correctness (Fiat-Crypto; libcrux/HACL\* interim) ⋈ constant-time (verified on the artifact, with CryptOpt-checked field-arithmetic kernels) ⋈ reduction-level security (SSProve/FCF Coq-native, EasyCrypt mature complement)): joined at each primitive's functional specification, which joins the crown-jewel spec list.
+The platform axiom decides the toolchain exactly as it did for seL4: **methodology is portable, maturity is not**: carry the Coq-native property (on-artifact constant-time verification, CryptOpt equivalence-checking to Fiat-Crypto, SSProve/FCF) to the mature artifacts (formosa-crypto, Fiat-Crypto/CryptOpt), spending engineering to shrink the trusted set.
 **Honest residual (§17):** a reduction *isolates and names* the hardness assumptions (MLWE/MSIS; ECDLP/CDH) but cannot prove them: the irreducible cryptographic axiom; the implementation ⋈ reduction join is a new seam at the functional spec; EasyCrypt-borne reductions carry an SMT base until restated Coq-native; and scheme-level IND-CCA/EUF-CMA is still below protocol-level security (TLS/AKA), a further layer.
-What this buys is the deepest-available crypto proof: from "correct, constant-time code for a scheme we *assume* is secure" to "the scheme is IND-CCA/EUF-CMA under a named, minimal hardness assumption, implemented by constant-time code a verified compiler preserves and a verified checker admits"; with the residual pushed down to conjectures no proof system can discharge.
+What this buys is the deepest-available crypto proof: from "correct, constant-time code for a scheme we *assume* is secure" to "the scheme is IND-CCA/EUF-CMA under a named, minimal hardness assumption, implemented by constant-time code a verified checker admits on the artifact"; with the residual pushed down to conjectures no proof system can discharge.
 
 ---
 
@@ -1055,23 +1055,50 @@ The platform axiom decides the toolchain as ever (*methodology is portable, matu
 
 ## Binary-level constant-time verification: CT as a property of the artifact, not its pedigree
 
-Establishing **constant-time (CT)** by **preservation** alone (CompCert-CT-class for the verified-C path, the crypto core included) carries CT from a source-level proof through a *verified compiler* and therefore reaches only binaries built that way.
-The FPCC discipline's own principle is *"verification is a property of the artifact, not its pedigree"* (§5); preservation-only CT is the one place that principle goes unmet, remaining a fact about **which compiler produced the binary**.
+**Constant-time (CT)** is discharged **directly on the binary** for *every* secret-touching artifact, the verified-C crypto core included: there is no verified-compiler CT route (no CompCert-CT-class preservation, the entry below), so CT is a property of the artifact and one verified compiler suffices.
+The FPCC discipline's own principle is *"verification is a property of the artifact, not its pedigree"* (§5); carrying CT by *preservation* would be the one place that principle goes unmet, leaving CT a fact about **which compiler produced the binary**, so the platform declines the preservation route and verifies CT on the binary instead.
 
-- **The uncovered set is not exotic: it is most secret-touching code.**
-  Two paths carry no verified compiler: the FPCC **Islaris "no verified compiler in the loop"** path (§5), and (the larger one) **every Tier-1/2 binary**, because the certifying userspace toolchain (§5, §13) emits a *memory-safety* certificate but preserves nothing about timing.
+- **The scope is all secret-touching code, the crypto core included.**
+  No path carries a CT-preserving compiler: the crypto core is compiled by the stock CHERI-CompCert, the FPCC **Islaris "no verified compiler in the loop"** path (§5) has none in the loop, and **every Tier-1/2 binary** goes through the certifying userspace toolchain (§5, §13), which emits a *memory-safety* certificate but preserves nothing about timing: so every secret-touching binary is verified on the artifact.
   A key-handling server (the radio key hierarchy, §12) or a PIN-handling app compiled by that toolchain gets memory-safety PCC and **no CT**.
   This is the exact shape of the gap the memory-safety certificate already avoids (§13): trusted-by-pedigree where it should be proven-on-artifact; one property later.
 - **Artifact-level CT decomposes as RTL ⊑ Sail and WCET do: functional ⋈ hyperproperty.**
   Constant-time is a **2-safety hyperproperty** (it relates two executions differing only in secrets), which a *functional* program logic does not carry.
   So the bare Islaris/Iris-over-Sail refinement that discharges functional/safety obligations cannot state CT; it must be extended with a **relational** layer.
 - **The Coq-native closing vehicle: a relational program logic over the leakage-annotated Sail model.**
-  Self-composition / relational-Hoare reasoning (ReLoC-in-Iris lineage) over the Sail semantics *instrumented with the §15 `Zkt`/`Zvkt` leakage model* proves the leakage trace (load addresses, branch conditions, variable-latency operands) independent of secrets, **at binary level, in the one Coq prover**: the binary-level sibling of the source-level CompCert-CT proof, and the vehicle that also discharges CT for the off-path CryptOpt field-arithmetic kernels.
+  Self-composition / relational-Hoare reasoning (ReLoC-in-Iris lineage) over the Sail semantics *instrumented with the §15 `Zkt`/`Zvkt` leakage model* proves the leakage trace (load addresses, branch conditions, variable-latency operands) independent of secrets, **at binary level, in the one Coq prover**: the single vehicle that discharges CT for the crypto core, the CryptOpt field-arithmetic kernels, and every other secret-touching binary alike, no source-level preservation route needed (the CompCert-CT entry below).
   It emits an FPCC **constant-time certificate** the §6 checker validates at zero new trust base.
 - **Binsec/Rel: the better-fit mature tool, run through the §5 trust-base test.**
   Binsec/Rel does exactly the binary-level job: **relational symbolic execution for constant-time and secret-erasure, directly on the binary against a leakage model**, and it scales to production crypto (BearSSL, OpenSSL, HACL\*, libsodium: finding real violations).
   It is the better-fit tool for this path because the FPCC statement is *binary-level against the Sail model* and Binsec/Rel is binary-level.
   So, exactly like **riscv-formal BMC** and **aiT**, it is adopted as the **unverified complement / bring-up gate**, bounded evidence and untrusted evidence-producing machinery, with the relational-Sail-logic certificate the unbounded close.
+
+---
+
+## CompCert-CT: constant-time by compiler preservation, declined for on-artifact verification
+
+**CompCert-CT** (Barthe, Blazy, et al., POPL 2020) is a modified CompCert that *preserves* constant-time: if the C source is constant-time against a leakage model, the compiled assembly is too.
+It exists because **stock CompCert does not preserve CT**: instruction selection, if-conversion, and the lowering of a conditional expression can turn a branchless source into a secret-dependent branch, so ordinary verified compilation gives functional correctness but not timing.
+An earlier form of this specification carried the crypto core's constant-time this way (one verified-compiler CT route, itself already a narrowing from a two-route CompCert-CT ⋈ Jasmin form).
+The property is real and its guarantee the strongest available (CT *by construction*, at the source, discharged once), but three things decide against it here.
+
+- **It has no CHERI backend, and would inherit the one being built from scratch.**
+  There is no functional CHERI-CompCert yet (§18 builds it as priority zero); CompCert-CT is an x86 / Arm / RISC-V research branch of mainline CompCert.
+  Keeping it means re-establishing the CT-preservation proofs across every pass *on top of* the net-new CHERI backend, a substantial research merge, for a guarantee whose floor is shared (below).
+  So the realistic unification was never "adopt CompCert-CT for everything" but "one stock CHERI-CompCert plus on-artifact CT," the direction taken.
+- **It buys earliness, not strength: the constant-time floor is identical either way.**
+  A preservation theorem and an on-artifact relational proof bottom out at the *same* `Zkt`/`Zvkt` leakage model and the *same* RTL ⊑ Sail arrow (§15, §17): CompCert-CT gives CT *earlier* (at the source, by construction) against that floor, not a *stronger* CT.
+  Earliness via a compiler that does not yet exist is not earliness in hand.
+- **Preservation is pedigree-bound; the doctrine is artifact-borne.**
+  CT by preservation reaches only binaries built through that compiler, leaving the FPCC Islaris path and every certifying-toolchain-compiled Tier-1/2 binary uncovered: the one place §5's *"property of the artifact, not its pedigree"* rule goes unmet (the binary-level constant-time entry above).
+  The platform already owes a binary-level CT verifier for those paths, and once it exists it is strictly more general and subsumes preservation.
+
+What is **kept** is exactly the destination: constant-time verified **on the binary** for every secret-touching artifact, the crypto core included, against the one leakage model (above).
+The cost of dropping preservation is the honest one: a stock compiler does not guarantee CT, so straight-line crypto is constant-time structurally but the control-flow-heavy primitives are branchless-hardened (`Zicond` selects) and verified on the artifact, or admitted as checker-admitted assembly leaves where a lowering resists (§5): a check-and-harden discipline on the free (engineering) axis in place of a by-construction guarantee that would require a compiler that does not exist.
+This is the same shape as the field-arithmetic kernels (CryptOpt: untrusted producer, small verified checker) and the same trade the platform makes dropping PMP (*verify rather than hedge*) and dropping Jasmin (fewer constant-time compilers), carried to zero verified-compiler CT routes.
+
+**Disposition:** declined as a mechanism; its property is retained, verified on the artifact instead (§5, §15, §17).
+Non-normative; the drop is normative in §5, §6, §15, §17.
 
 ---
 
@@ -1180,7 +1207,7 @@ This is the crypto/WCET/CT move run in reverse: those dispositions showed the *h
 
 **What CHERI buys the type system.**
 TALx86 had to encode array-bounds and initialization proofs into its types because x86 had no hardware notion of a bound; on a purecap machine the bound, the tag, and monotonicity are architectural, so the CHERI-TAL types shrink to the *residual* CHERI does not enforce at runtime: **temporal** safety (linear/affine capability types, the discipline **StkTokens** (Skorstengaard/Devriese/Birkedal, POPL 2019) formalizes in the same capability-machine-logic lineage as Cerise; a revocation-coloured heap in the CHERIoT lineage) and **typed control flow** (well-typed jump targets *are* CFI).
-And that residual is precisely what safe Rust's ownership discipline already establishes at source (§5): the TAL is the vehicle that *carries those source types down to the binary as a checkable derivation*, turning §5's "the compiler preserves and certifies rather than re-discovers" from a promise into a concrete artifact format: the memory-safety analog of CompCert-CT carrying constant-time to the metal.
+And that residual is precisely what safe Rust's ownership discipline already establishes at source (§5): the TAL is the vehicle that *carries those source types down to the binary as a checkable derivation*, turning §5's "the compiler preserves and certifies rather than re-discovers" from a promise into a concrete artifact format: the memory-safety analog of carrying constant-time to the binary as a checkable certificate (§5).
 
 - **It fixes the checker-size contradiction: by splitting the checker, not by shrinking a CIC checker.**
   A TAL type-checker is decidable, syntactic, obviously terminating (no guard/termination side-condition to axiomatize), and genuinely on the order of 10³ lines: so the **on-device admission checker** that runs on every install and sits in the boot TCB *is* that type-checker, and the ~10³-line claim, false for a CIC term checker, is **true for this one**.
@@ -1247,14 +1274,14 @@ Scope is honest: the adoption covers the logic that *is* reactive dataflow, and 
 The platform axiom decides it as ever, *methodology is portable, the smallest trusted set wins, and engineering is the free axis*: spend the engineering to move sequencing onto a language where determinism, causality, and WCET are theorems of the compiler rather than fresh per-server proof obligations.
 **Honest residual (§17):** Vélus enters the build path as a new front end: Coq-verified, so it adds *no fresh axiom* and rides the already-priority-zero CHERI-CompCert backend (§18), but its Lustre-semantics faithfulness joins the crown-jewel specs and the **control/data boundary is a new crown-jewel interface**; offset against this, the control tier's structural WCET (§11), structural memory-safety certificate (§13), and by-construction determinism (§8, §15) are a net reduction in proof surface.
 - **ct-verif: the IR-level sibling, not the binary-level answer.** ct-verif verifies CT by product programs over **LLVM IR** (SMT-discharged).
-  It is real and usable, but IR-level: on the verified-compiler path CompCert-CT already gives CT by construction, and on the *no-compiler* path there is no trusted IR to check: the binary is the artifact.
+  It is real and usable, but IR-level: the platform verifies CT **on the binary** for every secret-touching artifact (no verified-compiler CT path), and there is no trusted IR to check at that point: the binary is the artifact.
   So ct-verif is the sibling to note, Binsec/Rel the complement to adopt: analogous to **EverParse** being noted-but-not-adopted for parsing (§5), though here the mismatch is level-of-abstraction, not trust base.
 - **Scope is a labeling obligation, not a blanket tax.**
   CT is required only of compartments that receive **secret-labeled** material over an IDL confidentiality channel (§12); ordinary apps that touch no secrets carry no CT obligation.
   This matches the profile's *"tighter guarantees sharpen the holder's stopwatch"* scaling (§17) and hooks CT into the existing IFC/flow-label machinery (§8, §13) rather than inventing a new trigger: a secret reaching an un-CT-verified compartment is a *flow-label* error the Tier-1 flow theorems must catch.
 
 **Disposition (adopted; normative in §5, §13, §15).**
-Verify CT **on the artifact** against the one `Zkt`/`Zvkt` leakage model for every secret-touching binary off the preservation path; split it functional ⋈ hyperproperty like RTL ⊑ Sail, with the **relational-Sail-logic constant-time certificate** the Coq-native close and **Binsec/Rel** the mature bounded complement (**ct-verif** the IR-level sibling).
+Verify CT **on the artifact** against the one `Zkt`/`Zvkt` leakage model for every secret-touching binary (there is no verified-compiler CT route); split it functional ⋈ hyperproperty like RTL ⊑ Sail, with the **relational-Sail-logic constant-time certificate** the Coq-native close and **Binsec/Rel** the mature bounded complement (**ct-verif** the IR-level sibling).
 The platform axiom decides the toolchain as ever, *methodology is portable, maturity is not*: carry the Coq-native property to Binsec/Rel's demonstrated binary-level capability, spending engineering to keep CT on the single prover and make it *artifact*-borne.
 **Honest residual (§17):** Binsec/Rel is path-bounded evidence (the certificate is the unbounded close); CT verification inherits the RTL ⊑ Sail residual (the leakage model is sound only once that arrow closes) and leans on the `Zkt`/`Zvkt` leakage-model statement as a shared crown-jewel spec; and correctness of *scope* rests on the flow labels (§8, §12, §13), so a mislabeled secret is a spec error no CT proof catches.
 Like WCET it **degrades gracefully**, bounded Binsec/Rel evidence carries bring-up, the certificate closes it, so it gates *strong* CT assurance, not boot.

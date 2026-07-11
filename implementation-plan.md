@@ -3,7 +3,7 @@
 > Companion to [verification-maximal-os.md](verification-maximal-os.md).
 > This is the **bring-up realization** of §18: how to stand the whole verified stack up as a *fast, executable golden model* generated **directly from the two verification languages**, before any of the optimized/production workstreams exist.
 > It is non-normative; §N references point at the specification.
-> Where the spec describes the *hardened* artifact (CompCert-CHERI *robust preservation*, CompCert-CT + CryptOpt-checked field arithmetic, RTL ⊑ Sail, WCET certificates), this document describes the *reference* artifact that comes first and that everything else is later checked against.
+> Where the spec describes the *hardened* artifact (CompCert-CHERI *robust preservation*, on-artifact constant-time verification + CryptOpt-checked field arithmetic, RTL ⊑ Sail, WCET certificates), this document describes the *reference* artifact that comes first and that everything else is later checked against.
 
 ## 0. The discipline: two languages, two golden models
 
@@ -135,17 +135,17 @@ Minimal verified M-mode firmware, quiescent after boot (§6, §7), no trap deleg
 ## 4. Verified crypto core (Coq)
 
 Boot verification, attestation, sealing, and the AEAD used by storage (§6 item 2, §10).
-The spec's production form is verified C via CompCert-CT with CryptOpt-checked field-arithmetic kernels + SSProve/FCF reductions (§5); the **golden-model form is a Gallina functional reference** with no constant-time or reduction guarantee yet.
+The spec's production form is verified C compiled through CHERI-CompCert with constant-time verified on the artifact, CryptOpt-checked field-arithmetic kernels, and SSProve/FCF reductions (§5); the **golden-model form is a Gallina functional reference** with no constant-time or reduction guarantee yet.
 
 - **Language**, Coq/Gallina.
-- **Toolchain**, CertiCoq → Wasm (fast test vectors, GC on the host engine); on-device, a **GC-free** purecap image (CompCert-C through CHERI-CompCert, or GC-free extraction), the CompCert-CT-preserved core with CryptOpt-checked field arithmetic is the deferred constant-time end-state (§5).
+- **Toolchain**, CertiCoq → Wasm (fast test vectors, GC on the host engine); on-device, a **GC-free** purecap image (CompCert-C through CHERI-CompCert, or GC-free extraction), the CryptOpt-checked field arithmetic and on-artifact constant-time verification of the crypto core are the deferred constant-time end-state (§5).
 - **Start from**, **Fiat-Crypto** (already Coq-native) for classical field arithmetic; for **ML-KEM / ML-DSA** and **SHA-2/3, AES-GCM / ChaCha20-Poly1305**, write Gallina functional specs (reference implementations), using the FIPS 203/204/205 vectors and `libcrux`/`HACL*` behavior as the oracle.
   No `F*`/Z3 dependency enters the golden model, these are *reference* implementations, correctness-by-testing now, reduction/CT proofs later.
 - **Compiler target**, RV64IMV+CHERI purecap (and Wasm host-side for KATs).
 - **Plan**, assemble a Gallina crypto module exposing hash, AEAD seal/open, ML-KEM encaps/decaps, ML-DSA sign/verify, and a DRBG seeded from the RoT TRNG.
   Validate against known-answer tests via the Wasm build.
   This module is a dependency of the RoT (§2), the object system (§6), and the filesystem (§7).
-  **Constant-time is explicitly not claimed** in the golden model; swapping in the CompCert-CT-preserved core with CryptOpt-checked field arithmetic is the later hardening step (§5).
+  **Constant-time is explicitly not claimed** in the golden model; adding the on-artifact constant-time verification and CryptOpt-checked field arithmetic is the later hardening step (§5).
 
 ---
 
@@ -330,4 +330,4 @@ Bottom-up, each milestone runnable against the prior one:
 9. **M8, CHERI V/M/FEC datapath.**
    Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M7, so the FPGA then matches the golden model across all core classes.
 
-Everything past M8, the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), CompCert-CT + the CryptOpt-style field-arithmetic translation-validation toolchain, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement, is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.
+Everything past M8, the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), the binary-level constant-time verifier + the CryptOpt-style field-arithmetic translation-validation toolchain, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement, is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.
