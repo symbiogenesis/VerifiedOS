@@ -12,7 +12,7 @@ The entire base system is written in exactly two languages, and each yields an e
 - **Hardware, Sail.**
   One Sail model of the machine (ISA + datapath + modeled devices), parameterized by core class (§15).
   Its **C backend generates the golden-model emulator**, the executable ISA reference.
-  The *same* Sail source later feeds the RTL tools (Kami/Kôika, PipelineGen) and the proof tools (Sail → Coq, Isla, and the Coq program logics over Sail semantics Islaris and Katamaran); none of that is on the bring-up path.
+  The *same* Sail source later feeds the RTL flow (the **RTL of record authored in Kôika/Kami**, PipelineGen as scaffolding, SystemVerilog generated for synthesis, main-spec §15) and the proof tools (Sail → Coq, Isla, and the **one Iris-over-Sail program logic** with its four theories, Islaris/Cerise/Katamaran among them, main-spec §13); none of that is on the bring-up path.
 - **Software, Rocq/Coq (Gallina).**
   Every TCB and base-system component is written in Gallina from one source, then lowered two different ways for two different roles, and **the on-device lowering carries no garbage collector.**
   The main spec's storage rule, *"no managed runtime … the GC runtime is banned"* (§10), is the discipline for the *whole* base here, not just the filesystem: a tracing GC is inadmissible twice over, putting an unverified runtime in the TCB and, with its unbounded pauses, breaking the WCET real-time path (§11).
@@ -52,7 +52,7 @@ Per the mandate to produce a fast golden model rather than the optimized variant
 - the **certifying Rust → RV64+CHERI** toolchain's *certificate* mode and the Tier-2 memory-safety certificate (§5, §13), no contained-Rust userspace in the golden model; base components the spec assigns to safe Rust are written in Gallina for the reference (see §Init, §Object system).
   Its *functional* Rust→CHERI lowering is still used as the target of the GC-free MetaCoq→Rust arena extraction above, but that backend is a spec-committed priority-zero item (§18), not a bring-up prerequisite this plan newly invents;
 - **RTL ⊑ Sail** refinement (Kami/Kôika) and the **full VST(Iris) refinement proofs** for the kernel and storage stack (§5, §6, §7), the on-device code is written GC-free in the CompCert-C shape those proofs target (the §10 no-managed-runtime form), but its machine-checked *"artifact ⊑ Gallina spec"* proof is deferred; differential testing against the Wasm oracle and the Sail emulator stands in until it is built;
-- the **Coq-verified WCET estimator** and the **interval-arithmetic cyclic-executive schedulability check** (§5, §11), timing is measured on the emulator, not certified.
+- the **WCET cost-annotation pass** (syntax-directed over the typed control-flow graph, folded into the certifying toolchain, no standalone estimator, main-spec §5/§11) and the **interval-arithmetic cyclic-executive schedulability check**, timing is measured on the emulator, not certified;
 
 None of these is discarded; each is the *hardening* layer that later replaces a golden-model component in place.
 The golden model is the oracle they are all checked against.
@@ -221,7 +221,7 @@ The spec assigns this **control plane to Lustre compiled by the Coq-verified Vé
 
 **Two checkers, stratified** (main-spec §5/§6/§13).
 The **on-device admission checker** is a *CHERI typed-assembly-language type-checker*, order-10³ lines, decidable, the small on-device axiom that validates every installed binary's **typing derivation** (Tier-2 memory safety, CFI, no-codegen, ABI/type conformance) against the spec/Sail-model versions.
-The **CIC proof kernel** (MetaCoq-lineage, honestly larger) validates the deep Tier-0/hyperproperty proofs (functional refinement, non-interference, crypto reduction, CT, WCET, filesystem), predominantly at release time over the base-image TCB.
+The **CIC proof kernel** (MetaCoq-lineage, honestly larger) validates the deep Tier-0/hyperproperty proofs (functional refinement, non-interference, crypto reduction, the *residual unstructured* constant-time and WCET, filesystem), predominantly at release time over the base-image TCB, the structured constant-time and WCET cases being type-level in the CHERI-TAL (main-spec §5).
 Both are the component class whose *golden model is essentially its production form*.
 
 - **Language**, Coq/Gallina both: the CIC kernel is a proof-term type-checker; the CHERI-TAL checker is a typed-assembly type-checker whose **soundness metatheorem** (well-typed ⇒ safe over the Sail model; foundational-TAL / RustBelt / WasmCert-Coq lineage) is proved once in Coq.
@@ -267,13 +267,13 @@ The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardwa
 ## 11. Building an FPGA from it all
 
 The golden model is Sail, not RTL, so an FPGA needs RTL.
-Per the two-language ideal, the RTL is obtained *from* the golden model, either **generated** from it (the "one language" dream extended to hardware) or **brought up from open cores and differentially tested against it**, with the formal RTL ⊑ Sail refinement deferred (§18).
+Per the two-language ideal and the semantic-anchor budget (main-spec §5), the **RTL of record is authored in a formal-semantics HDL (Kôika/Kami)** so that RTL ⊑ Sail is discharged against the source the hardware is built from, with SystemVerilog *generated* for synthesis (main-spec §15); the open cores are **functional references** brought up and differentially tested against the golden model for the *early* FPGA milestone, not the RTL that ships or gets proven, and the formal RTL ⊑ Sail refinement over the authored RTL is deferred (§18).
 
 - **Two routes to RTL.**
-  - **(a) Generate from the golden ISA description**, feed the Sail/ISA spec into **PipelineGen** (pipeline generation from the ISA description) and/or **Sail → Kôika/Kami** (Coq hardware DSLs) to emit a microarchitecture that is correct-by-construction against the golden model.
-    This is the path that keeps Sail the single hardware source; its RTL ⊑ Sail obligation is *discharged by generation* rather than by after-the-fact proof.
-  - **(b) Bring up open cores + differential-test**, take the open RTL substrate per class and validate it against the Sail emulator (§10) as the oracle.
-    This is the pragmatic near-term path and matches the "fast golden model, defer the proofs" mandate: no RTL ⊑ Sail *proof* is required for the FPGA milestone, only differential agreement with the golden model.
+  - **(a) Author the RTL of record in Kôika/Kami** (Coq hardware DSLs), the microarchitecture written in the formal-semantics HDL and proven to refine the Sail golden model, with **PipelineGen** and **Sail → Kôika/Kami** generation as scaffolding rather than the design of record.
+    This is the closing path and keeps the hardware on the single prover; **Erbsen et al.** (PLDI 2021, Bedrock2 + Kami) is the existence proof that an end-to-end software ⋈ hardware theorem rides exactly this spine, with no SystemVerilog in the trusted path (SystemVerilog is generated output for synthesis).
+  - **(b) Bring up open cores as functional references + differential-test**, take the open RTL substrate per class and validate it against the Sail emulator (§10) as the oracle for the *early* FPGA milestone.
+    This is the pragmatic near-term path and matches the "fast golden model, defer the proofs" mandate: no RTL ⊑ Sail *proof* is required for the FPGA milestone, only differential agreement with the golden model, and the open cores serve as references the authored Kôika RTL (route a) is checked against, not the shipped or proven RTL.
 - **Open RTL substrate (route b), per class (§18).**
   For the **C-class scalar** front end an *existing CHERI RV64 soft core*, **CHERI-CVA6** (Bristol / lowRISC / OpenHW) or the Bluespec **CHERI-Flute / Piccolo / Toooba** (CTSRD), *modified to static-only prediction* and a TSO store buffer per §15; **Ara** (PULP) for the V-class vector unit; **Gemmini** (Berkeley, Chisel) for the M-class matrix unit; open **LDPC/polar** cores for FEC; and for the **RoT**, **Ibex** + `lowRISC/opentitan` as the functional reference and **CHERIoT-Ibex** (Sonata) as the CHERI-on-Ibex reference, the on-die core itself a small **scalar RV64+CHERI** purecap core in the main die's capability format (§1), not CHERIoT's separate encoding.
   All are SystemVerilog/Chisel, synthesizable today.
@@ -301,8 +301,8 @@ Per the two-language ideal, the RTL is obtained *from* the golden model, either 
   Bring up **C-class scalar first** (boots the same M-mode firmware → kernel → init stack from §10), then **V → M → FEC → NoC → coherence islands**, class by class, each differentially tested against the Sail golden model.
   The **S-class sentinel** and RoT are small and come early.
 - **Deferred hardening (named, not built here).**
-  The **riscv-formal/rvfi** BMC bring-up gate, the **Isla**-generated obligations, and the closing **Kami/Kôika** RTL ⊑ Sail refinement (§15, §18) are the path from "differentially agrees with the golden model" to "proven to refine it."
-  They are explicitly out of scope for the FPGA milestone and layered on afterward, the golden model remains the reference they target.
+The **riscv-formal/rvfi** BMC bring-up gate (on the generated SystemVerilog), the **Isla**-generated obligations, and the closing **Kami/Kôika** RTL ⊑ Sail refinement over the **authored** RTL of record (route a; §15, §18) are the path from "the reference cores differentially agree with the golden model" to "the shipped RTL is proven to refine it."
+  They are explicitly out of scope for the FPGA milestone and layered on afterward, the golden model remaining the reference they target.
 
 ---
 

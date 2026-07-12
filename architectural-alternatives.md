@@ -1039,34 +1039,36 @@ The irony the gap sharpens: the design's **in-order + static-only-prediction + f
 - **The low-level model is not a new artifact: it is the timing-annotated Sail model (§15).**
   The timing discipline the profile adopted for other reasons: in-order issue, static-only prediction (no predictor-state variance), fixed-latency DIV/FPU/AMO, Ztso, cache/DRAM/NoC partitioning, TDM NoC, WCET-exact scratchpads, deterministic profile-guided layout (§10); *collapses* the low-level model from aiT's pipeline-and-cache abstract interpretation to a **per-(class, OPP) latency table** plus reproducible cache/fetch/memory terms, sound to the metal by RTL ⊑ Sail (Kami/Kôika).
   The non-speculative posture is itself a WCET-soundness argument.
-- **The high-level model is a Coq-verified IPET estimator** (Blazy/Pichardie/Maroneze/Puaut lineage, on CompCert): the existence proof that a Coq-native WCET analyzer *does* exist.
-  Its ILP solution is a certificate, so the LP solver is untrusted evidence-producing machinery, and the whole estimator rides the one Coq prover alongside the §11 interval-arithmetic schedulability check at zero new trust base.
+- **The high-level model is a syntax-directed max-path sum, not IPET.**
+  On an in-order, fixed-latency, statically-predicted core there is no pipeline overlap, timing anomaly, or dynamic predictor for the Implicit Path Enumeration Technique to resolve, so structured-code WCET reduces to **Shaw's timing schema**: a syntax-directed max over the control-flow graph with loop bounds.
+  That CFG is **already typed** by the CHERI-TAL, so the bound rides as **cost annotations on the typing derivation** the on-device checker validates, and the **ILP / LP-solver machinery is deleted, not retargeted**: IPET exists only to *tighten* pessimism the deleted microarchitecture never introduces, and the standing rule is *take the trivial sound bound* (§5), so a whole net-new verified estimator is deleted with it.
 - **Measurement-based / probabilistic WCET (MBPTA/EVT): rejected as the bound.**
   Extreme-value-theory tail estimates give a *probabilistic* bound; that is a statistic, not a theorem: the same disposition as MTE's ~93% (§15), antithetical to the proof-based determinism (G3/G4).
   Admissible only as an out-of-band cross-check that flags a wrong timing annotation, never as the admitted WCET.
 
 **Disposition (adopted; normative in §5, §11).**
-Name the layer, split it functional ⋈ hyperproperty like RTL ⊑ Sail, put the low-level half *inside* the timing-annotated Sail model (discharged by the RTL ⊑ Sail proof already in scope) and the high-level half in a Coq-verified IPET estimator emitting FPCC WCET certificates.
-**aiT** is the unverified complement; **MBPTA** an out-of-band cross-check only.
-The platform axiom decides the toolchain as ever (*methodology is portable, maturity is not*): carry the Coq-native property to the verified-IPET artifact and the timing-annotated model, spending engineering to keep WCET on the single prover.
-**Honest residual (§17):** WCET is only as sound as the timing-annotated model's latency magnitudes (crown-jewel specs) and inherits the RTL ⊑ Sail residual: no sound bound before that least-built arrow closes; while composability across partitions rests on the §15 isolation non-interference the timing-channel story already needs.
+Put the low-level half *inside* the timing-annotated Sail model (discharged by the RTL ⊑ Sail proof already in scope) and derive the high-level half **syntax-directed** (Shaw's timing schema) as cost annotations on the CHERI-TAL typing derivation: **no IPET, no LP solver, no standalone estimator** (deleted by *take the trivial sound bound*, §5).
+**aiT** stays the unverified complement; **MBPTA** an out-of-band cross-check only.
+The general rule this case establishes, written into §5: **any verified tool that exists only to *tighten* an already-sound bound is inadmissible, take the trivial bound** (pessimism is free by axiom, performance subordinate, §1).
+**Honest residual (§17):** WCET is only as sound as the timing-annotated model's latency magnitudes (crown-jewel specs) and inherits the RTL ⊑ Sail residual (no sound bound before that least-built arrow closes); composability across partitions rests on the §15 isolation non-interference the timing-channel story already needs.
 
 ---
 
 ## Binary-level constant-time verification: CT as a property of the artifact, not its pedigree
 
 **Constant-time (CT)** is discharged **directly on the binary** for *every* secret-touching artifact, the verified-C crypto core included: there is no verified-compiler CT route (no CompCert-CT-class preservation, the entry below), so CT is a property of the artifact and one verified compiler suffices.
+Where the code is **structured** (the CryptOpt kernels, the Tier-1 secret paths) that discharge is a **decidable taint-type check in the CHERI-TAL** (CT-Wasm lineage, per-install), and only genuinely unstructured secret-dependent code falls to a relational proof (below).
 The FPCC discipline's own principle is *"verification is a property of the artifact, not its pedigree"* (§5); carrying CT by *preservation* would be the one place that principle goes unmet, leaving CT a fact about **which compiler produced the binary**, so the platform declines the preservation route and verifies CT on the binary instead.
 
 - **The scope is all secret-touching code, the crypto core included.**
   No path carries a CT-preserving compiler: the crypto core is compiled by the stock CHERI-CompCert, the FPCC **Islaris "no verified compiler in the loop"** path (§5) has none in the loop, and **every Tier-1/2 binary** goes through the certifying userspace toolchain (§5, §13), which emits a *memory-safety* certificate but preserves nothing about timing: so every secret-touching binary is verified on the artifact.
   A key-handling server (the radio key hierarchy, §12) or a PIN-handling app compiled by that toolchain gets memory-safety PCC and **no CT**.
   This is the exact shape of the gap the memory-safety certificate already avoids (§13): trusted-by-pedigree where it should be proven-on-artifact; one property later.
-- **Artifact-level CT decomposes as RTL ⊑ Sail and WCET do: functional ⋈ hyperproperty.**
+- **Artifact-level CT decomposes as RTL ⊑ Sail and WCET do: functional ⋈ hyperproperty, and mostly *type-level*.**
   Constant-time is a **2-safety hyperproperty** (it relates two executions differing only in secrets), which a *functional* program logic does not carry.
-  So the bare Islaris/Iris-over-Sail refinement that discharges functional/safety obligations cannot state CT; it must be extended with a **relational** layer.
-- **The Coq-native closing vehicle: a relational program logic over the leakage-annotated Sail model.**
-  Self-composition / relational-Hoare reasoning (ReLoC-in-Iris lineage) over the Sail semantics *instrumented with the §15 `Zkt`/`Zvkt` leakage model* proves the leakage trace (load addresses, branch conditions, variable-latency operands) independent of secrets, **at binary level, in the one Coq prover**: the single vehicle that discharges CT for the crypto core, the CryptOpt field-arithmetic kernels, and every other secret-touching binary alike, no source-level preservation route needed (the CompCert-CT entry below).
+  But **CT-Wasm** (Watt et al.) shows it decidable as a **taint-type discipline** (secret-labeled values the type system forbids from reaching a branch, an address, or a variable-latency op), with mechanized type-soundness: so for structured code CT is a **type-checking obligation in the CHERI-TAL**, not a proof term, and the bare Islaris/Iris-over-Sail refinement need be extended with a **relational** layer only for the unstructured residual.
+- **The residual close: a relational program logic over the leakage-annotated Sail model.**
+  For the unstructured code the taint discipline cannot type, self-composition / relational-Hoare reasoning (ReLoC-in-Iris lineage) over the Sail semantics *instrumented with the §15 `Zkt`/`Zvkt` leakage model* proves the leakage trace (load addresses, branch conditions, variable-latency operands) independent of secrets, **at binary level, in the one Coq prover** (the 2-safety theory of the §13 Iris-over-Sail base): the corner-case vehicle after the taint-type check, covering the crypto core, the CryptOpt kernels, and the structured Tier-1 paths where a lowering resists typing.
   It emits an FPCC **constant-time certificate** the §6 checker validates at zero new trust base.
 - **Binsec/Rel: the better-fit mature tool, run through the §5 trust-base test.**
   Binsec/Rel does exactly the binary-level job: **relational symbolic execution for constant-time and secret-erasure, directly on the binary against a leakage model**, and it scales to production crypto (BearSSL, OpenSSL, HACL\*, libsodium: finding real violations).
@@ -1197,10 +1199,12 @@ It lands unusually cleanly here because **CHERI already discharges spatial safet
 
 **The decomposition: and why the whole certificate scheme does not collapse into types.**
 The assurance obligations split along a line this document already draws three times (RTL ⊑ Sail, WCET, CT: each a *functional ⋈ hyperproperty* split):
-- The **type-level, 1-safety** obligations (memory safety (temporal + spatial), control-flow integrity, no-runtime-codegen (W^X, §14), ABI/type conformance) are exactly what a TAL type system *decides*.
-  These are the whole of Tier-2 and the structural half of Tier-1.
-- The **deep** obligations (Tier-0 functional refinement, the binary refines the seL4 abstract spec, whole-graph non-interference (§8), crypto **reduction** security (IND-CCA/EUF-CMA, §5), **constant-time** (2-safety, §5), **WCET** (quantitative, §5), filesystem linearizability + liveness (§10)) are **not typing judgments**.
-  No decidable type system states "this binary refines the abstract kernel" or "leakage is secret-independent"; those need a full higher-order logic and a proof term.
+- The **type-level obligations** (memory safety (temporal + spatial), control-flow integrity, no-runtime-codegen (W^X, §14), ABI/type conformance, the **constant-time** of structured secret code (a taint-type discipline, below), and the **WCET** of structured code (a syntax-directed cost annotation, below)) are exactly what a TAL type system *decides*.
+  These are the whole of Tier-2, the structural half of Tier-1, and (for the structured population) the constant-time and worst-case-timing obligations that would otherwise be release-time proof terms.
+- The **deep** obligations (Tier-0 functional refinement, the binary refines the seL4 abstract spec, whole-graph non-interference (§8), crypto **reduction** security (IND-CCA/EUF-CMA, §5), filesystem linearizability + liveness (§10)) are **not typing judgments**: no decidable type system states "this binary refines the abstract kernel", so those need a full higher-order logic and a proof term.
+  **Constant-time and WCET are the boundary cases, and for structured code they *do* type-check.**
+  CT is a 2-safety hyperproperty, but **CT-Wasm** (Watt et al.) shows it decidable as a *taint-type discipline* (secret-labeled values that provably never reach a branch, an address, or a variable-latency op), with mechanized type-soundness (Isabelle there, a Coq restatement here); and structured-code WCET is a syntax-directed max-path sum over the typed control-flow graph (Shaw's timing schema).
+  So both **join the type-level tier for the structured population** the obligations actually cover (the straight-line CryptOpt kernels, the structured Tier-1 secret paths), leaving only the genuinely unstructured CT/WCET residual as proof terms: the relational-Sail 2-safety logic shrinks from *the* CT vehicle to a corner case (§5).
 
 So the TAL does not *replace* the certificate scheme, it **stratifies** it, taking the tier where a type system is complete and leaving the tier where only a proof will do.
 This is the crypto/WCET/CT move run in reverse: those dispositions showed the *hyperproperties* need more than a functional logic; the TAL shows the *type-level* properties need less than a proof kernel.
@@ -1229,7 +1233,7 @@ Unlike the belt/EPIC/Wasm targets this abandons no substrate choice (RV64 + CHER
 **Disposition (adopted in part; normative in §5, §6, §13).**
 Admission is **stratified into two checkers along this document's own functional ⋈ hyperproperty line**.
 A small, decidable **CHERI-TAL type-checker** is the on-device admission checker for the **type-level** obligations: Tier-2 in full (temporal + spatial memory safety, CFI, no-codegen, ABI/type conformance) and the memory/ABI-conformance half of Tier-1; with the certifying compiler *targeting the TAL* and certificates carried as **typing derivations**, so admission is genuinely pedigree-independent and the ~10³-line / "cheap and local" claim is true of it.
-The **CIC proof kernel** is retained for the **deep** obligations no type system states (Tier-0 functional refinement + non-interference (§8), crypto reduction security, constant-time, WCET, filesystem linearizability/liveness): validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
+The **CIC proof kernel** is retained for the **deep** obligations no type system states (Tier-0 functional refinement + non-interference (§8), crypto reduction security, the *residual unstructured* constant-time and WCET, filesystem linearizability/liveness): validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
 The platform axiom decides this exactly as it did for seL4 and crypto (**methodology is portable, the smallest trusted set wins**): spend the engineering to make the per-install admission checker a type-checker whose soundness is one Coq theorem, rather than a general proof checker no one can hold to 10³ lines.
 **Honest residual (§17):** the CHERI-TAL soundness metatheorem is a new crown-jewel spec; the deep-proof CIC kernel is *named* as the larger admission axiom rather than hidden inside a 10³-line claim (so "checking is cheap" holds only for the TAL tier); and the temporal-safety type discipline over CHERI capabilities is the net-new instantiation the certifying-compiler workstream (§18) carries in place of a bespoke certificate format.
 
@@ -1250,7 +1254,7 @@ These are the textbook domain of Lustre/SCADE, the language family that certifie
 **What the synchronous model makes structural: three obligations this document works hard for elsewhere:**
 - **WCET is structural, not derived.**
   A Lustre node compiles to a **loop-free, statically-bounded reaction**: one activation is a fixed amount of computation over a statically-sized state, no dynamic allocation, no unbounded loop.
-  So the control tier's worst-case execution time falls out of Vélus compilation *by construction*, not from the Coq-verified IPET estimator (§5, §11) an arbitrary Rust CFG needs; the estimator's harder loop-bound/path work is left to the data planes.
+  So the control tier's worst-case execution time falls out of Vélus compilation *by construction*, not from the syntax-directed WCET cost annotation (§5, §11) an arbitrary Rust control-flow graph needs; that harder loop-bound/path work is left to the data planes.
   This is a direct **shrink** of the §11 WCET surface, and it is why *structural WCET* is the headline dividend here.
 - **No hidden state survives an activation.**
   A synchronous node's entire state is the explicit, statically-sized Lustre memory; there is nothing latent between ticks.
