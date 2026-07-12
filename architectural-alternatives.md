@@ -228,6 +228,40 @@ Non-normative; no spec-body change.
 
 ---
 
+## The executable and package format: ELF declined on-device for a content-addressed capability image
+
+The format the device admits and loads is a design decision with the same shape as the ISA-profile ones, so it runs through the §15 admission discipline and the import discipline like any mechanism: the scarce resource is the on-device trust and decode surface.
+
+**ELF is the incumbent, and it is declined as the on-device artifact.**
+ELF is the System-V executable and shared-object container: program-header and section-header tables reached by internal offset, string tables cross-referenced by index, ELF32/ELF64 and endianness variants, dynamic-linking and relocation sections, an interpreter path, and RWX segment permissions.
+Almost all of that machinery serves facilities this design deletes: dynamic linking and `ld.so` (static composition, §7, §13), PLT/GOT lazy binding (W^X and no runtime codegen, §14), RWX segments and `mprotect` (the W^X invariant admits no writable-to-executable promotion, §14), and symbol and section tables for a runtime linker and debugger (an off-device concern).
+What remains after subtracting those is not a small ELF profile but a different and much smaller object, and the residue ELF still forces on-device is the worst part for this project: a loader that parses offset-linked header tables is an attacker-facing grammar in the trust base, and by the §5 Narcissus rule its decoder would have to be verified over that whole cross-referencing structure.
+This is the same decode-surface objection the CHERI-Wasm entry (above) raises against Wasm's variable-length, LEB128, structured-block encoding, one step worse, because ELF's tables are offset-linked, not merely variable-length.
+
+**What replaces it (normative in §13) is a content-addressed capability image.**
+A small typed manifest names content-addressed store objects (§10): the immutable, hash-verified code-and-rodata image separated from a writable data-initializer eager-zeroized under the Write-before-Read plane (§7, §15), the CHERI-TAL typing derivation carried as a first-class component (§5, §13), and relocations expressed as an explicit capability-wiring table (source object, offset, bounds, permissions, monotone from the initial distribution, §7).
+Its decoder is a Narcissus copy-once verified reader over a fixed-layout, cross-reference-free schema (§5), and that schema is a crown-jewel spec discharged by compiling it, not hand-writing it, exactly as the wire-format descriptors are.
+Purecap makes this natural rather than exotic: CheriBSD carries capability relocations (`__cap_relocs` and dynamic `R_MORELLO_*` records) bolted onto ELF, and the friction of that bolt-on is the evidence that materializing capabilities wants a first-class wiring table, not a relocation section.
+
+**A single self-contained file is not the ELF property being declined.**
+The objection is to ELF's interpreted, offset-linked grammar, not to shipping one file, so the content-addressed image also serializes to a single self-contained pack: a hash-indexed archive of the manifest, the object closure needed to run, and the derivation, as convenient to distribute, sign, and run as an executable.
+It is the Fuchsia-archive and `blobfs`, IPFS-CAR, `fs-verity` read-only-image, and Nix-NAR lineage: one file whose *contents* are still named and verified by hash.
+Installation inserts its objects into the content-addressed store, where anything already present deduplicates (Git-packfile and OSTree behavior), and a portable image instead maps in place and executes from its hash-verified read-only region; single-file convenience and content-addressed dedup are the same objects in two containers, not a choice between them.
+The decode surface stays a flat header plus a hash-indexed object table plus a blob region with every object independently hash-verified, so a bad offset fails a hash check rather than driving a parser, which is the whole distance from ELF's cross-referencing header, section, string, and dynamic tables.
+
+**The distilled loading structure is already banked as CHERIoT.**
+CHERIoT already replaces container-style loading with compartment export and import tables and sealed entry points, sealed by a loader; the platform adopts that structure (sentries and the switcher, §7, §8, §15) and re-grounds it on RV64 128-bit capabilities and a verified reader, rejecting CHERIoT's compressed encoding and unverified loader, the same adopt-the-structure, reject-the-encoding move the ISA profile makes for the rest of CHERIoT.
+
+**ELF is retained off-device, as build interchange.**
+The certifying toolchain (§5, §18) may emit ELF, and CHERI-LLVM already does, because off-device artifacts are re-checked and their parsers never enter the on-device TCB; package build transforms ELF into the content-addressed image and derivation at store-insertion time (§10).
+The on-device loader is therefore *deleted rather than hardened*, the *verify rather than hedge* disposition the MMU, PMP, and IOMMU take (§15), one layer up, at the format.
+
+**Disposition:** stock ELF is declined as the on-device admitted and loaded artifact and retained only as off-device build interchange; the on-device format is the content-addressed capability image, normative in §13 (with §10, §14, §5).
+A minimal always-on ELF profile is the tempting middle option and is rejected: it still forces the on-device decoder to parse ELF's offset-linked tables to find the profiled content, paying the decode-surface cost without buying the content-addressed store's per-object sharing.
+No new §17 residual: the change deletes an on-device loader (a net trust shrink), and the format descriptor rides the existing Narcissus crown-jewel-spec obligation (§5, §17).
+
+---
+
 ## High-level-language computer architectures (HLLCA): the semantic gap belongs to the verified compiler; the one hardware atom is already CHERI
 
 A high-level-language computer architecture makes the machine's ISA *directly execute* a high-level language: closing the "semantic gap" (Wulf) in silicon rather than in a compiler.
