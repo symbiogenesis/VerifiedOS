@@ -25,6 +25,17 @@ KataOS is thus at once the seL4 line's **shipping evidence** that the whole subs
 
 ---
 
+## SECOMP: the secure-compilation method, and the CHERI-CompCert backend the TCB compiles through
+
+seL4 supplies the kernel *design*; **SECOMP** (the MPI-SP secure-compilation project) supplies the *compilation method* that carries it, and the rest of the verified C, to metal.
+SECOMP extends **CompCert** with **compartments** and proves not merely functional correctness but **secure compilation**: **robust preservation**, the guarantee that a component stays protected even when linked against a fully adversarial context, all machine-checked in Coq/Rocq.
+That criterion is §5's requirement for the TCB's compiler (§5, §6): the compiler-side complement to the **Cerise** universal contract the same spec uses for unknown code (§13), so "the TCB is correctly compiled" and "the hardware bounds everything else" compose under one robust-safety framework rather than joining unproven.
+Its CHERI backend, **SECOMP2CHERI** (PriSC 2023), already carries CompCert from CompCert C down to its formalized RISC-V assembly onto a CHERI capability machine, so the platform's **priority-zero CHERI-CompCert backend** (§6, §18) starts from it rather than authoring one fresh.
+What is re-grounded is not the prover: SECOMP and CompCert are Coq-native, so nothing foreign is shed (unlike the Isabelle and Dafny re-homings above); it is the CHERI *variant*, re-homed to the §15 purecap profile on the one Sail model, and the *completion* of the robust-preservation theorem for that profile.
+Honest residual: SECOMP2CHERI is workshop-stage (PriSC), its published sibling's primary backend targets a tagged architecture, and the robust-preservation theorem for this profile is deferred hardening (§5, §17); what transfers now is the functional CompCert-to-CHERI-RISC-V engineering, not a finished secure-compilation proof.
+
+---
+
 ## Barrelfish: the multikernel: share-nothing cores, capabilities as the lineage
 
 Barrelfish (ETH Zürich / Microsoft Research) originated the **multikernel**: treat a multicore machine not as a shared-memory multiprocessor but as a *network of independent cores*, each running its own kernel instance, sharing **no** kernel state and communicating only by explicit message passing, with per-core replicas kept consistent by agreement rather than by locks over shared structures.
