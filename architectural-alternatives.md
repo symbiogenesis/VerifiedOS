@@ -1193,6 +1193,41 @@ Non-normative; the drop is normative in §5, §6, §15, §17.
 
 ---
 
+## Translation validation: the alternative to the verified compiler, already run for the residual, the hedge for the CHERI-CompCert workstream
+
+**Translation validation** (TV) proves a *specific* compilation correct after the fact: compile with an ordinary unmodified optimizing compiler, then prove that *this binary* refines *this source*, instead of proving *the compiler* correct once for all inputs.
+seL4's own extension to the binary level takes exactly this route (Sewell, Myreen, Klein, PLDI 2013): stock `gcc` compiles the verified C (proven at `-O1`, most of the binary at `-O2`), the binary is decompiled into logic over the validated Cambridge ISA semantics, source and binary are lowered into a common control-flow-graph intermediate language, and refinement is discharged function by function by SMT.
+It composes with seL4's functional-correctness, integrity, authority-confinement, and non-interference proofs and carries them all to the binary, and its headline is a trust-base result: the C parser *and* the compiler leave the trusted computing base, because the source proof and the binary proof connect to the *same* formal artifact (the parser's output), so how that artifact was produced stops mattering.
+
+This is not a foreign technique to import but one the platform already runs, in three places:
+- §5 already reads *"CompCert compiles all trusted C; translation validation against the RISC-V Sail model covers the assembly/link/image steps outside CompCert's theorem"*: TV for the verified compiler's residual.
+- **CryptOpt** (§5) is verified translation validation for the field-arithmetic kernels: an untrusted superoptimizer admitted by a small Coq-verified equivalence checker.
+- **Islaris**-style Iris-over-Sail (§5, §13) is direct binary-level proof for binaries with no verified compiler in the loop.
+
+And the trust win TV is famous for, the parser and compiler leaving the TCB, is already banked by FPCC's *artifact-not-pedigree* rule (§5, §13).
+So the question is not *whether* to use TV but *how far*: seL4 covers the **whole** C-to-binary compilation with it and ships on stock `gcc` with no verified compiler in its TCB, whereas this platform scopes TV to the residual and builds a verified **CHERI-CompCert** backend (§6, §18) as priority zero.
+The paper raises whether extending the TV role already in the spec could **shrink or retire that prerequisite**, the single largest, least-built, net-new workstream on the books.
+
+- **The ingredients are largely present, and performance-subordination helps.**
+  The CHERI-RISC-V Sail model exists, Islaris is decompilation-into-logic already *in Coq* (the paper's is HOL4), **SMTCoq** (§5) pulls the SMT refinement back under the one kernel, and CryptOpt is the in-house precedent.
+  seL4's TV produced no proof failures at `-O1`; the `-O2` cases (loop unrolling, aggressive interprocedural optimization) were the hard part, and this platform subordinates performance (§2) over a *tiny* TCB it can compile at `-O1` or below, the regime where TV is robust.
+- **But it trades the scarce resource for the free one, the platform's own inversion.**
+  A verified compiler is *one* theorem, proved once and reused across every TCB build; TV is *per-build* proof search that must succeed for each binary, and to stay single-prover its SMT step must be reconstructed in the kernel (SMTCoq) or the solvers become *checkers* and widen the trust base (§5).
+  So TV spends trust (a new pipeline, per-build fragility, seL4's own `-O2` failures and small source tweaks) to save compiler engineering, and engineering is the free axis (§2): by the platform's own currency a verified compiler, once built, is the cleaner trust story.
+- **TV gives functional refinement, not robust preservation.**
+  The CHERI-CompCert backend must satisfy a *secure-compilation* criterion (robust preservation of compartment isolation against an adversarial linked context, the SECOMP2CHERI lineage, §5, §6), a hyperproperty over *all* contexts that per-program TV does not establish.
+  The softening is that CHERI hardware plus the **Cerise** universal contract (§13) already bound an arbitrary adversarial context at runtime, so on a purecap platform CHERI ⋈ Cerise already delivers most of what the robust-preservation theorem asserts, and TV under that contract recovers the practical guarantee, short of the compiler-level hyperproperty.
+- **The CHERI dimension is real rework.**
+  seL4's TV was non-CHERI Arm; the stack heuristic, the calling convention, the memory model, and the pointer-validity and aliasing reasoning are all purecap-sensitive, so a lift is not free even with the Sail model and Islaris in hand.
+
+What is **kept** is what the platform already does: TV for the compiler residual, CryptOpt for the crypto kernels, Islaris for the no-compiler path, FPCC for artifact-not-pedigree.
+What is **logged** is the extension: translation-validating the *whole* TCB base image off a stock CHERI-LLVM `-O1` build, retiring or shrinking the CHERI-CompCert prerequisite, as the fallback if that backend proves intractable, with the direct evidence that the horn is viable being seL4 itself, the design this platform's kernel descends from (the seL4 vs. CertiKOS entry above).
+
+**Disposition:** adopted in part and already normative (§5: TV covers the compiler residual, CryptOpt the crypto kernels, Islaris the no-compiler path); the full-coverage extension that would retire the CHERI-CompCert prerequisite (§6, §18) is logged as the fallback if that backend proves intractable, not a wholesale replacement, because a verified compiler is one reused theorem where TV is per-build search plus an SMTCoq reconstruction, and because only the compiler carries the robust-preservation hyperproperty (§5) that TV leaves to CHERI ⋈ Cerise at runtime (§13).
+Non-normative; no spec-body change.
+
+---
+
 ## Gate-level information-flow tracking and IFT-typed HDLs: GLIFT, SecVerilog; the hyperproperty half by another route, a bounded complement, not the Coq close
 
 The proposal targets the same non-interference and timing-channel obligation the RTL ⊑ Sail *hyperproperty* half and the constant-time layer already carry, but via a **hardware information-flow method**: **GLIFT** (gate-level information-flow tracking; Tiwari/Wassel/Mao/Chong/Sherwood/Kastner, ASPLOS '09: track every bit's influence, including implicit and timing flows, from the gates up), and the information-flow-*typed* hardware-description languages that grew from it, **Caisson** (PLDI '11), **Sapper** (ASPLOS '14), and especially **SecVerilog** (Zhang/Wang/Suh/Myers, ASPLOS '15, Verilog with information-flow *types* that statically prove **timing-sensitive** non-interference at synthesis).
