@@ -579,7 +579,7 @@ Lockstep, meanwhile, is **already logged for G5** (COSMIC dual-core lockstep, a 
   RTL ⊑ Sail proves the one simple core correct **for all inputs, once**; a DIVA checker re-establishes correctness **per execution**, and only functionally: precisely the ordering the zkVM entry (below) draws between a static all-inputs proof and a per-run transcript, DIVA the microarchitectural instance of the weaker side.
 
 **Why lockstep/TMR is orthogonal, not missing.**
-Random-fault redundancy addresses *reliability* (SEU, aging, glitch), not the *security* threat, and the reliability case is already partly carried: **ECC end-to-end**, deterministic **Rowhammer RFM** (§15), **per-core kernel duplication** for blast-radius containment, and crash-only fault containment (§16).
+Random-fault redundancy addresses *reliability* (SEU, aging, glitch), not the *security* threat, and the reliability case is already partly carried: **ECC end-to-end** (the DRAM path and every on-die SRAM array, caches, register files, scratchpads, and the tag and integrity caches, §15), deterministic **Rowhammer RFM** (§15), **per-core kernel duplication** for blast-radius containment, and crash-only fault containment (§16).
 Lockstep/TMR would add fault *detection/masking* on top: genuinely useful for a safety (**G5**) case; but at **2×/3× core area**, and it is already logged on exactly those terms ([inspirations.md](inspirations.md)): a deferred option weighed on cost, not an unconsidered gap.
 
 **The distilled atom: banked at the proof level, deferred at the silicon level.**
