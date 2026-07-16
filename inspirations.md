@@ -216,6 +216,19 @@ So the X730 is a licensed **reference, bring-up, and possible silicon vehicle**:
 
 ---
 
+## PIC64-HPSC: space-grade application-class RISC-V, radiation hardening as a manufacturing choice, not an architecture
+
+The **PIC64-HPSC** (Microchip, for NASA's **High-Performance Spaceflight Computing** program) is the space-grade instance of the design's own substrate class: a 64-bit **application-class RISC-V** multiprocessor built around **eight SiFive X280 cores** carrying the **vector extension**, made **radiation-hardened and fault-tolerant** (pervasive ECC, lockstep options, a wide operating-temperature range), the RISC-V successor to the PowerPC **RAD750** that has flown NASA's spacecraft for two decades.
+It is the existence proof that **application-class RISC-V with vectors, hardened against the space radiation environment, is a real and funded product class** rather than a research aspiration, and it validates three of the design's own choices on hardened silicon: the **RV64 plus vector** compute shape (§15), the **reliability posture** the memory subsystem and enclosure already mandate (pervasive ECC, fault containment, wide-temperature tolerance, §15, §16), and lockstep as a hardware **fault-detection** complement to §7's per-core kernel duplication for fault containment (the same G5 note the COSMIC entry logs, above).
+
+The design **re-grounds** the import on its own axioms exactly as it does the Codasip X730 and CVA6-CHERI silicon (above), and the split is unusually clean because **space-grade is a property of the process and the RTL, not of the instruction set**.
+What transfers is the **realization**: the radiation-hardened-by-design process (single-event-hardened cells, latch-up immunity, the wide temperature range), the fault-tolerance features, and the demonstration that a modern RISC-V vector machine survives the environment at all.
+What does **not** transfer is the architecture: the PIC64-HPSC is **RV64GC** (the C compressed extension the profile drops and the scalar floating-point it folds onto the vector unit, §15), it carries an **MMU** and boots a conventional operating system (the profile deletes the MMU for a single address space, `satp` Bare, §15), it is **not CHERI** (the spine of the whole design), and its SiFive cores are third-party RTL whose vendor verification is bring-up evidence, never the closing **RTL ⊑ Sail** axiom (§6, §15).
+So the platform imports the **radiation-hardened realization onto its own RV64+CHERI profile** rather than taking the PIC64-HPSC as a base: harden the manufacturing and the RTL of the design that already exists, changing no computation and lowering no guarantee, the source-side upset-rate reduction the Faraday enclosure cannot itself provide (§15).
+The fuller treatment of the space-grade realization axis (radiation, temperature, pressure, and vacuum) is in [Evaluated Architectural Alternatives](architectural-alternatives.md).
+
+---
+
 ## Fuchsia OS: the capability-IPC model (handles out-of-band, bounds in the schema)
 
 Google's Fuchsia is the shipping demonstration that a **from-scratch capability microkernel** (Zircon) can carry a real consumer device OS with **no ambient authority**: every resource is an unforgeable **handle**, a component receives only the capabilities its **manifest** declares, and there is no POSIX-by-default, no global namespace, no `fork`.
