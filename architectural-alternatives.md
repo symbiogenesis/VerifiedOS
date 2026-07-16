@@ -132,7 +132,7 @@ Asynchronous logic completes in *average*-case time (a carry chain that resolves
 
 **The distilled atom: none in the gates; the one admissible cousin, GALS, is already banked.**
 The security posture *wants* latency independent of data, which is the synchronous fixed-latency, in-order, non-speculative profile's defining choice (§15); asynchronous logic *in the datapath* is that choice's structural opposite, so there is nothing to distill from the gates: importing any of it would reintroduce the exact channel the profile deletes.
-The one structurally-adjacent idea that *is* admissible (dropping the *single global clock* so the machine is not one lock-stepped timing domain) the design already took, in its **globally-asynchronous, locally-synchronous (GALS)** form: the coherence islands share no coherence and communicate only by message-passing across the TDM NoC (§15), so they are independent timing domains by construction (per-island DRAM (sub-)channels and per-(class, OPP) operating points already imply the islands need not run at one frequency), yet each island stays *internally* synchronous, which is exactly what keeps its fixed-latency WCET tables and its RTL ⊑ Sail refinement tractable.
+The one structurally-adjacent idea that *is* admissible (dropping the *single global clock* so the machine is not one lock-stepped timing domain) the design already took, in its **globally-asynchronous, locally-synchronous (GALS)** form: the coherence islands share no coherence and communicate only by message-passing across the TDM NoC (§15), so they are independent timing domains by construction (per-island SRAM banks or macros and per-(class, OPP) operating points already imply the islands need not run at one frequency), yet each island stays *internally* synchronous, which is exactly what keeps its fixed-latency WCET tables and its RTL ⊑ Sail refinement tractable.
 The asynchrony is therefore confined to the **island boundary** (ring message-passing with explicit cache-management fences under Ztso, §12, §15) where the sole metastability obligation is the ordinary clock-domain-crossing synchronizer, not a datapath whose latency has become data-dependent.
 So the platform already banks the admissible half of the idea (system-level timing-domain decoupling) while rejecting the inadmissible half (data-dependent completion in the logic): **GALS *between* islands, synchronous fixed-latency *within* them**: the split this entry turns on.
 
@@ -395,7 +395,7 @@ The lineage: **Asbestos** (Efstathopoulos et al., SOSP '05: labels on processes 
   HiStar shrinks the trusted *code*; the design shrinks the trusted *set* and then **proves** the kernel correct in Coq (§5) and bounds even wholly-unverified code with the hardware universal contract (§13).
   HiStar's label-checker is small but unverified; the design's is small **and** verified: the same "minimal but *verified* beats minimal" upgrade the exokernel and enclave entries make.
 - **Timing channels are the platform's separate, deeper effort.**
-  DIFC labels track explicit and storage flows; the covert **timing** channels are closed here by construction (in-order, non-speculative, partitioned caches/DRAM/NoC, §15) and by the constant-time layer (§5), not by labels: so a DIFC OS would still owe the timing-channel story the profile already discharges.
+  DIFC labels track explicit and storage flows; the covert **timing** channels are closed here by construction (in-order, non-speculative, partitioned caches/memory/NoC, §15) and by the constant-time layer (§5), not by labels: so a DIFC OS would still owe the timing-channel story the profile already discharges.
 - **HiStar's Unix emulation is a foreign trust base**: the POSIX ambient-authority surface [userspace-porting.md](userspace-porting.md) deletes; the design reimplements capability-native (§14) rather than emulating Unix over labels.
 
 **The distilled atom: already banked (the belt→spiller discipline).**
@@ -579,7 +579,7 @@ Lockstep, meanwhile, is **already logged for G5** (COSMIC dual-core lockstep, a 
   RTL ⊑ Sail proves the one simple core correct **for all inputs, once**; a DIVA checker re-establishes correctness **per execution**, and only functionally: precisely the ordering the zkVM entry (below) draws between a static all-inputs proof and a per-run transcript, DIVA the microarchitectural instance of the weaker side.
 
 **Why lockstep/TMR is orthogonal, not missing.**
-Random-fault redundancy addresses *reliability* (SEU, aging, glitch), not the *security* threat, and the reliability case is already partly carried: **ECC end-to-end** (the DRAM path and every on-die SRAM array, caches, register files, scratchpads, and the tag and integrity caches, §15), deterministic **Rowhammer RFM** (§15), **per-core kernel duplication** for blast-radius containment, and crash-only fault containment (§16).
+Random-fault redundancy addresses *reliability* (SEU, aging, glitch), not the *security* threat, and the reliability case is already partly carried: **ECC across all SRAM** (main memory and every on-die array, caches, register files, scratchpads, native tag bits, and the integrity-tree-node cache, §15), **SRAM's freedom from the Rowhammer disturbance primitive** (§15), **per-core kernel duplication** for blast-radius containment, and crash-only fault containment (§16).
 Lockstep/TMR would add fault *detection/masking* on top: genuinely useful for a safety (**G5**) case; but at **2×/3× core area**, and it is already logged on exactly those terms ([inspirations.md](inspirations.md)): a deferred option weighed on cost, not an unconsidered gap.
 
 **The distilled atom: banked at the proof level, deferred at the silicon level.**
@@ -592,9 +592,9 @@ Off the abandon-substrate scale (a reliability/verification microarchitecture, n
 
 **Disposition:** **DIVA is rejected as a strategy**: it restores functional trust in a complex core while leaving its timing channels (the actual threat) open, and the design takes the stronger horn of the same asymmetric-trust insight: a simple verified core (RTL ⊑ Sail, §18) with nothing complex to check and no channels to leak, its static all-inputs proof exceeding DIVA's per-execution functional check.
 The asymmetric-trust *pattern* DIVA embodies is banked at the proof level (FPCC §6, CryptOpt §5, admission §13), checking certificates rather than results.
-**Lockstep / TMR** random-fault redundancy is a reliability mechanism orthogonal to the security threat, partly present (ECC, RFM, kernel duplication; §15, §16) and otherwise **logged for G5** (COSMIC lockstep, [inspirations.md](inspirations.md)) as a deferred 2–3×-area option, not carried by default.
+**Lockstep / TMR** random-fault redundancy is a reliability mechanism orthogonal to the security threat, partly present (ECC, the absence of a Rowhammer primitive in SRAM, kernel duplication; §15, §16) and otherwise **logged for G5** (COSMIC lockstep, [inspirations.md](inspirations.md)) as a deferred 2–3×-area option, not carried by default.
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend → verify rather than hedge*): verify one simple core rather than check a complex one, contain random faults rather than replicate against them, until a safety case pays for masking.
-**Honest residual (§17):** the single simple verified core has no functional-fault *masking*: a random SEU mid-computation is *contained* (blast radius, ECC; §16) but not voted out the way TMR would; the deferred G5 lockstep/TMR option at 2–3× area; the bet is that ECC ⋈ deterministic refresh ⋈ fault containment ⋈ a verified core with no design faults to outvote covers the random-fault case without N-modular redundancy, replicate-and-vote the cheapest re-admission if avionics/automotive-class fault masking is ever required.
+**Honest residual (§17):** the single simple verified core has no functional-fault *masking*: a random SEU mid-computation is *contained* (blast radius, ECC; §16) but not voted out the way TMR would; the deferred G5 lockstep/TMR option at 2–3× area; the bet is that ECC ⋈ fault containment ⋈ a verified core with no design faults to outvote covers the random-fault case without N-modular redundancy, replicate-and-vote the cheapest re-admission if avionics/automotive-class fault masking is ever required.
 
 ---
 
@@ -917,30 +917,62 @@ The one honesty the radio case does not carry: sensor front-ends have no off-the
 
 ## Physical bifurcation of the radio: a second die is declined; the single-die realization takes the top rung of every graded axis
 
-The candidate: instead of the radio stack living as a coherence island on the one die (absorbing the booked die-internal residuals, shared power/thermal/refresh/PRAC coupling, §17), put it on a **second, identical, attested instance of the same die**, linked by a ring-over-SerDes: not a foreign computer (§4), a second copy of the one computer.
+The candidate: instead of the radio stack living as a coherence island on the one die (absorbing the booked die-internal residuals, shared power and thermal coupling, §17), put it on a **second, identical, attested instance of the same die**, linked by a ring-over-SerDes: not a foreign computer (§4), a second copy of the one computer.
 It deletes the highest-value cross-domain residuals outright and simplifies the island machinery on the main die, at the cost of a package and an inter-die link that becomes a new (IDL-shaped, Narcissus-parsed) boundary.
 
 **What it targets, and what it keeps.**
-The win is deleting the radio↔rest **power/thermal/refresh/PRAC coupling** a shared die leaves.
-It does *not* delete the shared **mask set**: the second instance is "the same die" by design; so a mask- or dopant-level trojan is common to both copies regardless; the target is only the die-internal power/thermal/refresh/PRAC coupling.
+The win is deleting the radio↔rest **power and thermal coupling** a shared die leaves (the refresh and PRAC coupling a DRAM design would add being absent in the first place, main memory being SRAM, §15).
+It does *not* delete the shared **mask set**: the second instance is "the same die" by design; so a mask- or dopant-level trojan is common to both copies regardless; the target is only the die-internal power and thermal coupling.
 
 **Why the second die is declined.**
-The platform already climbs a **graded physical-isolation hierarchy** on every other axis: coherence (island exclusivity), DRAM (whole-die/rank down to bank), LLC (per-island slice), NoC (TDM non-interference), clock (GALS between islands).
+The platform already climbs a **graded physical-isolation hierarchy** on every other axis: coherence (island exclusivity), main memory (whole-macro/tier down to bank), LLC (per-island slice), NoC (TDM non-interference), clock (GALS between islands).
 The radio already holds the coherence-island half, so the disciplined move is to take that hierarchy's **top on-die rung on every axis** rather than jump to a second package:
-- **DRAM**: the radio island takes **separate die/rank** exclusivity (the existing top rung, §15), deleting the shared refresh/RFM/PRAC/on-die-ECC coupling §17 books for sub-channel sharing: no new mechanism, just the strong rung.
+- **Main memory**: the radio island takes a **separate SRAM macro or tier** (the existing top rung, §15); because main memory is SRAM the shared refresh, RFM, and PRAC coupling a DRAM design would book for sub-channel sharing is already absent, so this rung now deletes only the shared power and periphery: no new mechanism, just the strong rung.
 - **Power and clock**: the radio island gets its **own clock/power island**, the identical treatment the RoT already carries (§15, §16) and the mitigation §17 already names (*power-island isolation*), deleting the on-die power-delivery droop coupling and completing the GALS story on the power axis (islands already run at independent clocks; now an independent rail).
-- **Thermal/PRAC**: no new mechanism: the *channels* are already deleted (thermal fail-stop, PRAC demoted to a fail-stop tripwire, §15); a floorplan keep-out narrows the residual thermal-mass coupling.
+- **Thermal**: no new mechanism: the channel is already deleted (thermal fail-stop, §15; SRAM has no PRAC to demote); a floorplan keep-out narrows the residual thermal-mass coupling.
 
-On the in-model residuals the second die targets this **deletes the same things**, and avoids paying what the second die charges: it keeps the **single-die inspectability** the §17 supply-chain residual leans on (one die to image under IRIS, not a board of opaque packages), and it adds **no new boundary**: the ring-over-SerDes would be a fresh IDL-shaped boundary needing a Narcissus parser, a clock-domain-crossing/metastability obligation, new RTL ⊑ Sail surface, two-die attestation, and SerDes power and latency; reusing island, DRAM-binding, and clock/power-island boundaries already modeled.
+On the in-model residuals the second die targets this **deletes the same things**, and avoids paying what the second die charges: it keeps the **single-die inspectability** the §17 supply-chain residual leans on (one die to image under IRIS, not a board of opaque packages), and it adds **no new boundary**: the ring-over-SerDes would be a fresh IDL-shaped boundary needing a Narcissus parser, a clock-domain-crossing/metastability obligation, new RTL ⊑ Sail surface, two-die attestation, and SerDes power and latency; reusing island, memory-binding, and clock/power-island boundaries already modeled.
 
 **What the second die uniquely buys: and why it is not enough.**
 It alone gives physically separate substrate and thermal mass: the last epsilon of analog-emission (TEMPEST-class) and power-probe coupling between the transmitter and secret-processing logic.
 But that is (a) already physical-scope, outside the remote-attacker model (§17), and (b) *not actually closed by the second die either*, which reuses the same die design (same mask) and whose radio radiates by function: so the package buys an out-of-model epsilon it does not cleanly deliver.
 
-**Disposition (adopted in part; normative in §15):** the second die and the inter-die link are **declined**; the **single-die realization**: the radio island taking separate DRAM die/rank and its own clock/power island; is **adopted** and normative in §15 (Interconnect and coherence, Power architecture), deleting the power/thermal/refresh/PRAC coupling on one die.
+**Disposition (adopted in part; normative in §15):** the second die and the inter-die link are **declined**; the **single-die realization**: the radio island taking a separate SRAM macro or tier and its own clock/power island; is **adopted** and normative in §15 (Interconnect and coherence, Power architecture), deleting the power and thermal coupling on one die (the refresh and PRAC coupling a DRAM design would leave being absent in SRAM).
 It is the same graded-hierarchy discipline the design already applies on four axes, extended one axis (power/thermal) to the block that already holds the coherence-island half.
 
 **Honest residual (§17):** the physical substrate and thermal mass stay shared: analog-emission and power-probe coupling remain physical-scope, exactly as the §17 physical residual books; bought back against a new inter-die trust boundary and the single-die inspectability the supply-chain residual leans on.
+
+---
+
+## SRAM main memory: capacity traded for the deletion of the refresh, RowHammer, and PRAC machinery
+
+The choice: make main memory bespoke **on-die and in-package SRAM** rather than DRAM (LPDDR-class), accepting far lower capacity in exchange for latency, bandwidth, and, decisively for a verification-maximal design, the *deletion* of a whole class of mechanism.
+The alternatives weighed are keeping DRAM (the conventional choice) and a hybrid (an SRAM near tier over a retained DRAM far tier); both are declined, the switch is total.
+
+**What the deletion buys, on the scarce axis.**
+DRAM stores each bit as charge on a capacitor that leaks and must be refreshed, and that same charge-disturbance physics is the RowHammer primitive: repeated activation of an aggressor row flips bits in a victim row.
+SRAM stores each bit in a bistable cross-coupled latch: no leakage, no refresh, and no remote charge-disturbance primitive, so the probability of a RowHammer-class flip is *dramatically lower* (SRAM has its own far weaker, local read/write-disturb and half-select modes at aggressive nodes, covered by ECC and cell margin, not a remote flip).
+And because there is no refresh there is nothing to *manage*: the entire deterministic-refresh-management (RFM) cadence, the per-row-activation-counting (PRAC) counters, and their alert-and-back-off feedback loop are **deleted, not merely tuned**.
+That loop is a load-reactive coupling on the most-shared resource, the very thing a DRAM design must demote to a fail-stop tripwire and book as a §17 residual; removing it removes that residual, shrinks the proof surface (no refresh-cadence or PRAC crown-jewel spec, no reactive-refresh timing channel to argue closed, and the DRAM channel and sub-channel structure with its row-buffer state gone from the Sail model, so the worst-case memory-access latency is a flat SRAM constant rather than a pessimistic row-miss bound), and cleans the graded memory-tier isolation hierarchy: the sub-channel sharing a DRAM design must grade as *weaker* (two sub-channels of a die share its refresh and PRAC) has no such coupling to grade around when the memory is SRAM (§15).
+SRAM's higher speed also *improves* performance (lower latency, higher bandwidth, no activate, precharge, or refresh stalls), a rare case where the security-motivated choice is not on the subordinated performance axis.
+
+**What it costs, on the free axis, and how the cost is paid.**
+An SRAM cell is far larger than a DRAM cell, so capacity is much smaller per unit area and static leakage (idle power) higher: the honest, and only, downside.
+Both are bought back by static, transistor-level levers that add *no runtime behavior* (so none disturbs the admission tests): **3D die stacking** and **CFET-stacked cells** raise density, **backside power delivery** improves the power grid (lower droop, lower operating voltage) and frees front-side routing for density, and **asymmetric-threshold (asymmetric-Vt)** cells cut leakage and raise stability statically.
+A **chiplet** realization (manufacturing the SRAM as a separate die on an SRAM-optimized process and integrating it in-package) is admissible where capacity demands specialized, modular fabrication; the in-package die-to-die link carries passive memory, not a foreign computer (§4).
+
+**Assist circuits: the static form only.**
+SRAM read/write *assist* circuits (negative bitline, wordline underdrive, VDD collapse, and the like) recover low-voltage margin and can lower operating voltage further.
+Only a **fixed, composition-time-configured** assist is admitted; the dynamic, adaptive, or data-dependent assist that would add runtime state or a data-timing channel is declined, on the same *verify rather than hedge* grounds that keep the whole microarchitecture static and reactive-mechanism-free (§15): the exploitable, complex form is exactly what a design that ranks simplicity, reliability, and security above capacity should refuse, and asymmetric-Vt plus backside power carry most of the same low-voltage benefit statically.
+
+**What is kept: encryption and the integrity tree, as defense-in-depth.**
+On-die memory is within the physical boundary (like the on-die scratchpads the design already exempts), so an all-monolithic SRAM would need no memory encryption at all.
+But a stacked or chiplet realization places main memory just outside the compute die, across an in-package die-to-die interface, so the **transparent memory encryption and the integrity and anti-replay Merkle tree are retained over main memory** as defense-in-depth (§15): a far narrower physical surface than the external removable module and long bus a DRAM design exposes (bus interposer, module splice and replay, and cold-boot all gone), but retained rather than dropped so the chiplet case is covered and the monolithic case is belt-and-suspenders.
+The one clean simplification the bespoke SRAM buys here is **native tag bits**: a tag-less DRAM forces CHERI validity and initialization tags into a reserved-memory tag table behind a partitioned tag cache, but SRAM is widened to carry the tags *in the word*, deleting the table, the cache, and with them a whole element of shared microarchitectural state and its admission-test bookkeeping (§15).
+
+**Disposition (adopted; normative in §15):** main memory is bespoke on-die and in-package SRAM; refresh, RFM, PRAC, self-refresh, and the DRAM-side autonomous power modes are deleted; RowHammer drops from a live remote primitive to a narrowed ECC-covered residual; CHERI tags are native SRAM bits; TME and the integrity tree are retained as defense-in-depth over the in-package interface; the static density and idle-power levers (3D and CFET stacking, backside power, asymmetric-Vt) and a static-only assist are admitted, the dynamic assist declined; a chiplet realization is admissible.
+
+**Honest residual (§17):** capacity is materially lower than a DRAM design's, the accepted price; idle leakage is higher, mitigated but not erased by the static levers; a chiplet realization adds one in-package die-to-die interface (the surface the retained encryption and tree defend) and one further die to image under IRIS, a smaller inspection and physical surface than a socketed-module board but not zero.
 
 ---
 
@@ -1126,7 +1158,7 @@ The irony the gap sharpens: the design's **in-order + static-only-prediction + f
   WCET analysis is classically two halves: a **low-level micro-architectural model** (per-basic-block timing: aiT's abstract interpretation over pipeline and cache state) and a **high-level path analysis** (loop bounds + IPET over the CFG).
   On this platform the two halves land in two *already-present* layers, so almost nothing is net-new theory.
 - **The low-level model is not a new artifact: it is the timing-annotated Sail model (§15).**
-  The timing discipline the profile adopted for other reasons: in-order issue, static-only prediction (no predictor-state variance), fixed-latency DIV/FPU/AMO, Ztso, cache/DRAM/NoC partitioning, TDM NoC, WCET-exact scratchpads, deterministic profile-guided layout (§10); *collapses* the low-level model from aiT's pipeline-and-cache abstract interpretation to a **per-(class, OPP) latency table** plus reproducible cache/fetch/memory terms, sound to the metal by RTL ⊑ Sail (Kami/Kôika).
+  The timing discipline the profile adopted for other reasons: in-order issue, static-only prediction (no predictor-state variance), fixed-latency DIV/FPU/AMO, Ztso, cache/memory/NoC partitioning, TDM NoC, WCET-exact scratchpads, deterministic profile-guided layout (§10); *collapses* the low-level model from aiT's pipeline-and-cache abstract interpretation to a **per-(class, OPP) latency table** plus reproducible cache/fetch/memory terms, sound to the metal by RTL ⊑ Sail (Kami/Kôika).
   The non-speculative posture is itself a WCET-soundness argument.
 - **The high-level model is a syntax-directed max-path sum, not IPET.**
   On an in-order, fixed-latency, statically-predicted core there is no pipeline overlap, timing anomaly, or dynamic predictor for the Implicit Path Enumeration Technique to resolve, so structured-code WCET reduces to **Shaw's timing schema**: a syntax-directed max over the control-flow graph with loop bounds.

@@ -95,8 +95,8 @@ Ceteris paribus this too is universal: DSE is ordinary chip-design practice (the
   This shrinks the design's **self-imposed** idle only; it can never reach the baseline's work-conserving efficiency (that would need slack donation = a timing channel), so the row is narrowed, not closed.
   *Keeps it pure:* the frame stays **non-work-conserving**, no slack donation, no runtime scheduling decision, it is merely a better-packed static frame.
 - [x] **Micro-architectural DSE over the frozen parameters.**
-  Multi-objective (perf / area / power / WCET / proof simplicity) Pareto search over: cache / way-coloring split, VLEN per class, issue width and pipeline depth, scratchpad sizes, DRAM (sub-)channel assignment, and on-die integrity-tree-node cache size.
-  Partially recovers the cache-partition (−5% to −25%), DRAM-channel (−5% to −20%), and DRAM-integrity-tree (−5% to −30%) rows.
+  Multi-objective (perf / area / power / WCET / proof simplicity) Pareto search over: cache / way-coloring split, VLEN per class, issue width and pipeline depth, scratchpad sizes, SRAM bank/macro/tier assignment, and on-die integrity-tree-node cache size.
+  Partially recovers the cache-partition (−5% to −25%), memory-partition (−5% to −20%), and memory-integrity-tree (−5% to −30%) rows.
   Universal ceteris paribus: the conventional baseline is itself a DSE output, so this closes no inter-design gap, it only selects the best *admissible* secure configuration.
   *Keeps it pure:* each candidate is a static, Sail-modeled, admission-checked config; any added cache (e.g. integrity-tree nodes) is **partition-scoped and fence.t-flushed** like the LLC, so admission-test-3 still holds.
   *Done, wired into [verification-maximal-os.md](verification-maximal-os.md) §15 (normative) and [implementation-plan.md](implementation-plan.md) §1; the §17 Sail ⋈ RTL residual names it the standing mitigation.*
@@ -139,7 +139,7 @@ The third column marks whether the lever is *universal* (a conventional toolchai
 | LTO / inlining / unrolling | Static prediction + in-order (compounding) | Universal; cancels |
 | Superoptimization / search codegen | In-order scalar; bit/integer paths | Universal on speed; the re-check story is a *trust* win, not a perf differential |
 | Static schedule synthesis | Non-work-conserving scheduler; TDM NoC | Shrinks a self-imposed idle; never reaches work-conserving |
-| Micro-architectural DSE | Cache partitioning; DRAM (sub-)channel; DRAM integrity tree | Universal; the baseline is itself a DSE output |
+| Micro-architectural DSE | Cache partitioning; SRAM bank/macro; main-memory integrity tree | Universal; the baseline is itself a DSE output |
 | Faster pure-interpreters (JS + Wasm) | No-JIT (browser JS and Wasm) | Substitute for the missing JIT; narrows, never closes |
 | Data-oriented restructuring | General scalar → vector / matrix / crypto | Universal source technique; shared by both machines |
 
@@ -159,5 +159,5 @@ These accepted costs *are* the irreducible inter-design gap, the residual no §1
   The pure-win substitute for prefetch is static load hoisting (item 1).
 - **A hardware reference-count or ownership primitive (a capability-copy-intercepting counter, hardware *linear* capabilities)**, recovers refcount traffic only by adding microarchitecture: a new mutable per-object counter or a non-duplication check in the pipeline is exactly the hidden shared state admission-test-3 (§15) forbids, and it breaks the "no new µarch" premise the list rests on.
   The pure-win substitute is eliding *software* temporal-safety instrumentation onto the tag + revocation machinery and the linear/affine capability *types* already present (§8, §5, §13), the compiler-elision item in §1, not a counter in silicon.
-- **Dropping the DRAM integrity / anti-replay tree**, sheds the evil-maid / rollback defense (§3/§15).
+- **Dropping the main-memory integrity / anti-replay tree**, sheds the evil-maid / rollback defense (§3/§15).
   Its tax is only *mitigable* (on-die node caching, item 2), never removable.
