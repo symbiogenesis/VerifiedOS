@@ -842,6 +842,32 @@ The platform axiom decides it as ever (*trust is the scarce resource, engineerin
 
 ---
 
+## Matrix-accelerator ISA design: x86 ACE and Arm SME; outer products, software de-quantization, and block scaling weighed against the frozen matrix extension
+
+x86's AI Compute Extensions (ACE, an AMX accelerator type specified by the x86 Ecosystem Advisory Group alongside the original TMUL) and Arm's Scalable Matrix Extension (SME and SME2) are the two current attempts to accelerate matrix multiplication inside a CPU ISA.
+Both compute a matrix product as a sum of **outer products**, both pre-process quantized inputs in software rather than fixing a set of native formats, and both add **block scaling** for the OCP Microscaling (MX) formats.
+The M-class matrix extension (§15) is settled against all three ideas, and none is imported as an ISA: they are the x86 and Arm data points for a decision taken natively.
+
+**The outer-product interface is a design-space-exploration consideration, not a mechanism to add.**
+ACE's advantage over the original AMX is that its matrix instructions take their inputs from the vector registers and accumulate into the tile registers, so the tile store is pure accumulator and each result tile is covered with fewer operand loads (less cache bandwidth per multiply-accumulate).
+The M-class is already closer to this than to AMX: it has no dedicated architectural tile-register file (the several kilobytes of AMX/ACE state an operating system must save across every context switch), only a **capability-governed, plain-memory software-managed scratchpad** (§15) and the VLEN=1024 vector register file beside the array.
+Whether the array is fed straight from that vector register file with the scratchpad reserved for the growing accumulator is exactly the bytes-loaded-per-multiply question the **proof-aware design-space exploration** (§15) already optimizes over the frozen matrix geometry: a microarchitectural objective inside the model, not an ISA change, and one the absence of a tile-register file makes cheaper to reason about than the context-switch cost the extension carries elsewhere.
+
+**Software de-quantization is adopted, and it is already the design.**
+ACE converts arbitrary 2-to-7-bit quantized inputs to native types in software (a short unpack-and-permute sequence, the permute using a fixed-width vector as a lookup table), which supports any format instead of a fixed menu of them and is the ethos-aligned choice.
+The M-class runs de-quantization on its VLEN=1024 vector unit (§15), a second consumer that helps that unit earn its place beside the array, and the fixed VLEN chosen for determinism supplies the constant-width lookup table for free: the property ACE exploits AVX-512's fixed width to obtain, and scalable SME had to add a dedicated ZT0 register to recover.
+
+**The block-scale register is declined; microscaling is done in software.**
+ACE adds a 1024-bit Block Scale Register and SME uses scale fields in its floating-point mode register to hold the per-block scale factors of the MX formats.
+Each is architectural state that *every* low-precision matrix instruction reads: unless the register is renamed it serializes that math behind the last scale write, and renaming it leaves all such math dependent on that write regardless.
+It is also one more block of matrix state to model in Sail and to save-and-zeroize across a partition switch (§7), so the frozen matrix ISA takes neither; for MX-format models the shared scale is applied as one more per-element operation during the software de-quantization above, the array stays int8/bf16, and the only cost is forgoing native FP8 systolic density (the subordinated-performance goal absorbs it): the same *verify rather than hedge* calculus that declined the MMU, PMP, and IOMMU, one datapath over.
+
+**Disposition:** the adoptable RISC-V vehicle is a ratified matrix extension (AME/IME lineage), which the frozen matrix ISA already commits to tracking (§15); ACE and SME are reference points, not importable ISAs.
+Outer-product operand sourcing is a design-space-exploration objective; software de-quantization and software microscaling are adopted (normative in §15); the block-scale register is declined.
+Non-normative; the normative decisions are in §15.
+
+---
+
 ## Mon CHÉRI conditional capabilities: reject the binary-side extension, adopt Write-before-Read as a transparent initialization-tag plane
 
 Where the trilogy above *deletes* mechanisms down to CHERI, this entry weighs *extending* CHERI.
