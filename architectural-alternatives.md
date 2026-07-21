@@ -1040,7 +1040,7 @@ It is the same graded-hierarchy discipline the design already applies on four ax
 ## SRAM main memory: capacity traded for the deletion of the refresh, RowHammer, and PRAC machinery
 
 The choice: make main memory bespoke **on-die and in-package SRAM** rather than DRAM (LPDDR-class), accepting far lower capacity in exchange for latency, bandwidth, and, decisively for a verification-maximal design, the *deletion* of a whole class of mechanism.
-The alternatives weighed are keeping DRAM (the conventional choice) and a hybrid (an SRAM near tier over a retained DRAM far tier); both are declined, the switch is total.
+The alternatives weighed are keeping DRAM (the conventional choice), a hybrid (an SRAM near tier over a retained DRAM far tier), and an emerging non-volatile main memory such as MRAM (evaluated in its own entry below); all are declined, the switch is total.
 
 **What the deletion buys, on the scarce axis.**
 DRAM stores each bit as charge on a capacitor that leaks and must be refreshed, and that same charge-disturbance physics is the RowHammer primitive: repeated activation of an aggressor row flips bits in a victim row.
@@ -1066,6 +1066,62 @@ The one clean simplification the bespoke SRAM buys here is **native tag bits**: 
 **Disposition (adopted; normative in §15):** main memory is bespoke on-die and in-package SRAM; refresh, RFM, PRAC, self-refresh, and the DRAM-side autonomous power modes are deleted; RowHammer drops from a live remote primitive to a narrowed ECC-covered residual; CHERI tags are native SRAM bits; TME and the integrity tree are retained as defense-in-depth over the in-package interface; the static density and idle-power levers (3D and CFET stacking, backside power, asymmetric-Vt) and a static-only assist are admitted, the dynamic assist declined; a chiplet realization is admissible.
 
 **Honest residual (§17):** capacity is materially lower than a DRAM design's, the accepted price; idle leakage is higher, mitigated but not erased by the static levers; a chiplet realization adds one in-package die-to-die interface (the surface the retained encryption and tree defend) and one further die to image under IRIS, a smaller inspection and physical surface than a socketed-module board but not zero.
+
+---
+
+## MRAM main memory: the density and idle-power case is real, but non-volatility, write cost, and a magnetic attack surface trade the scarce axis for the free one
+
+The question, posed directly: swap the bespoke SRAM main memory (above) for magnetoresistive RAM (MRAM), whose mainstream embedded and main-memory candidate is spin-transfer-torque MRAM (STT-MRAM), with spin-orbit-torque MRAM (SOT-MRAM) as the less mature successor.
+The premise offered for it is fourfold: higher density than SRAM, stronger resistance to side-channel attacks, no idle-power draw, and manufacturing difficulty as the sole downside.
+Two of those four hold, one is the reverse of true for this threat model, and the decisive costs are three the premise does not name.
+
+**What is true, and what CHERI and ECC do with it.**
+MRAM stores a bit as the magnetization of a magnetic tunnel junction, one transistor and one junction per cell, far smaller than SRAM's six transistors, so its density is DRAM-class and well above SRAM's: the *density* claim holds.
+It is non-volatile, so the array draws essentially no retention or idle power: the *no-idle-power* claim holds, and it attacks precisely the one honest downside the SRAM choice accepts (capacity and static leakage).
+It is genuinely harder to manufacture (the junction stack is a specialized back-end-of-line magnetic process), though it ships today as embedded flash-replacement from several foundries, so the *manufacturing* claim holds but is not by itself disqualifying.
+And the specific compatibility the question asks about is real: CHERI tags ride in MRAM exactly as in SRAM, by widening the word to carry the one-bit-per-granule validity and initialization tags natively (the same move the SRAM entry makes), and ECC is not merely compatible but mandatory, because MRAM's raw bit-error rate is higher than SRAM's, and the design already mandates the strongest practical ECC (SECDED everywhere, DECTED on the capability-critical bits, interleaving, scrubbing, §15), so it composes without change.
+So on the literal question, CHERI and ECC both work over MRAM; that is simply not where the decision is made.
+
+**Why it is declined: it inverts the axis the SRAM choice optimizes.**
+The switch to SRAM was made on the *scarce* axis (trust and proof surface): it *deletes* the refresh, refresh-management, per-row-activation-counting, and reactive-back-off machinery, and the RowHammer charge-disturbance primitive with them, accepting lower capacity and higher idle leakage on the *free* (engineering) axis as the honest price (above).
+MRAM is also refresh-free, so it *matches* that deletion and offers no further scarce-axis win there, while it buys back the free-axis price at the cost of scarce-axis debts the SRAM design does not carry.
+
+**Objection 1: write cost and finite endurance reintroduce a reactive, stateful mechanism.**
+An MRAM write reverses a magnetic domain, so its latency and energy far exceed on-die SRAM's near-symmetric sub-nanosecond access (the studies that weigh STT-MRAM against DRAM for main memory find its write power and cell area several times higher, and position it as a low-performance edge and IoT memory replacing flash and SRAM, not a high-performance main store), giving back the performance the SRAM choice gains.
+Worse for the scarce axis, MRAM has finite write endurance (a spectrum from about 10^6 cycles for the densest flash-replacement grade to much higher for endurance-optimized cells, always traded against retention and density), and main memory sees the heaviest write traffic in the system, so an MRAM main store needs wear leveling: an address-remapping, stateful, reactive layer, exactly the kind of hidden autonomous mechanism the design deletes (it pushed the NAND flash-translation layer out to a non-TCB host-side server and refused reactive loops on shared resources, §12, §15).
+A hardware wear-remap table is the tag-table and address-walker shape the design already rejected (§15); a software one grows the surface it minimizes.
+So a deleted class of mechanism returns, and performance regresses, to buy capacity and idle power.
+
+**Objection 2: asymmetric writes are a data-dependent timing and power channel.**
+Reversing a junction to the parallel versus the anti-parallel state takes different time and current, an intrinsic write asymmetry, and correlation-power-analysis attacks on MRAM are documented in the literature.
+That is a native data-dependent write timing and power channel, against the constant-time mandate the design holds everywhere (data-independent fixed-latency operations, `Zkt`/`Zvkt`, §15): a new hyperproperty seam to argue closed where SRAM presents none.
+
+**Objection 3: magnetic-field fault injection and thermal attack are a new physical surface the enclosure does not cover.**
+External-magnetic-field fault injection and denial of service have been demonstrated experimentally on commercial MRAM, and retention is temperature-dependent, so a thermal attack is a further vector.
+The design's Faraday enclosure (§15) attenuates *time-varying* electromagnetic fields through induced eddy currents, but a *static or low-frequency magnetic* field passes through a conductive shell largely unattenuated (blocking it needs high-permeability ferromagnetic shielding, a different and heavier measure), so MRAM adds a physical-fault and denial-of-service surface the SRAM design does not have and the existing enclosure does not close: a new §17 residual.
+
+**Objection 4: non-volatility removes the volatility backstop and adds data remanence.**
+The cold-boot, evil-maid, and seized-device posture (§3), the Before-First-Unlock key eviction and the transparent-memory-encryption *lose the key, lose the memory* ephemerality, and the stateless, crash-only, re-measure-on-wake design (§9, §10, §15) all lean on volatile main memory as a physical backstop: cutting power destroys the plaintext.
+Non-volatile main memory retains the (encrypted) working set indefinitely across power loss, so at-rest secrecy of main memory rests *entirely* on key ephemerality with no evaporation backstop beneath it, and the persisted magnetic domains are themselves a remanence and imaging surface.
+Retained non-volatile working state is antithetical to a design whose statelessness is a load-bearing property, not an accident.
+
+**The one genuine upside, and why it does not compel adoption.**
+The magnetic storage element is relatively immune to the charge-based single-event upset that flips an SRAM or DRAM cell (a particle strike does not overturn a magnetic domain the way it dumps charge in a capacitor or a latch), and this is the likely kernel of truth behind the *stronger attack resistance* premise.
+But the peripheral CMOS around the array is still upset-susceptible, that immunity is traded for the magnetic-field fault surface objection 3 names, and the design already meets the single-event-upset threat with pervasive SECDED and DECTED ECC, scrubbing, fault containment, and a radiation-hardened silicon realization where the deployment warrants it (§15, §16, and the space-grade realization entry above), so it needs no upset-immune storage element to buy.
+The real upside is already covered, and it arrives bundled with a worse new surface.
+
+**The distilled atom is already banked.**
+The property MRAM genuinely offers this design, durable and tamper-evident *persistent security state*, is already taken by the existing embedded-non-volatile path: one-time-programmable fuses, the on-die flash key store, hardware monotonic counters, and the persisted last-known-good time floor (§9, §15, §16), used exactly where non-volatility is wanted (anti-rollback, key custody, the time floor) and nowhere it is not.
+Non-volatility is thus imported where it helps and declined for the working set where it hurts, which is the whole of the elegant synthesis.
+(The junction also makes a serviceable physical-unclonable function and entropy source, but the platform's entropy root is already singular, the RoT true-random generator through the verified deterministic random-bit generator, §15, §16.)
+
+**Where it ranks, and the hybrid.**
+An MRAM far tier over an SRAM near tier is the SRAM-over-DRAM hybrid the SRAM entry already declines, now with the non-volatile-memory write, endurance, magnetic, and remanence costs added and a reactive tiering mechanism on top, so it is declined *a fortiori*.
+MRAM ranks with the emerging non-volatile memories as a capacity-and-idle-power play on the free axis, rejected on the scarce axis it would tax: the same inversion, spending trust and proof surface to buy capacity and power, that the design refuses wherever it appears.
+
+**Disposition:** rejected as main memory; bespoke SRAM stays (§15).
+The non-volatility MRAM offers is taken where it belongs, in the persistent security state already held in fuses, flash, and monotonic counters, and declined for the working set, whose volatility is a security property the design depends on.
+Non-normative; no spec-body change.
 
 ---
 
