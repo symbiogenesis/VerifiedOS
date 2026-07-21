@@ -1155,6 +1155,34 @@ The choice re-verifies nothing, a transistor-architecture and power-delivery dec
 
 ---
 
+## Silicon-on-insulator and wide-bandgap substrates: they aid backside inspection but do not reconcile it with backside power
+
+The question, following the gate-all-around entry above: does building on **silicon-on-insulator** (SOI) or **silicon-carbide-on-insulator** change the backside-power tension, since an insulating or wide-bandgap substrate is more optically transparent than bulk silicon?
+The substrate is orthogonal to the verified design, like the transistor architecture and the radiation-hardened realization (above): it changes no proof, only the physical realization the RTL is fabricated into.
+The answer is that it does not change the core tension, for a reason worth stating precisely, and that SOI nonetheless earns its place on the *inspected* die for three other reasons.
+
+**The crux: the occluder is metal, not substrate.**
+IRIS already works *because* silicon is transparent to infra-red (its bandgap passes wavelengths past about 1.1 micrometers), so the fabricated structure is imaged through the backside of ordinary bulk silicon; transparency is not the thing backside power delivery takes away.
+What backside power delivery does is fill the die backside with an opaque **power-distribution metal** network, and metal is not transparent at any of these wavelengths, so it blocks the optical path outright.
+A more transparent *substrate*, SOI's buried oxide or silicon carbide's wider bandgap, does not open a window through that *metal*: there is nothing to see the device layer through where the power grid sits.
+So no substrate choice lets one die carry both a dense backside power network and backside inspection, and the die split of the gate-all-around entry (backside power on the passive SRAM die, frontside power on the inspected logic die) stands unchanged.
+
+**Where SOI does help: the inspected die, on three axes the design already values.**
+First, inspection: SOI's **buried oxide is a precise backside-reveal stop**, so thinning the die from the back for imaging halts uniformly at the oxide and leaves the thin device layer right beneath the surface, making IRIS cleaner and more repeatable than a reveal into bulk silicon.
+Second, radiation: the buried oxide **dielectrically isolates the device layer from the substrate**, eliminating the parasitic path that causes latch-up and shrinking the charge-collection volume a particle strike sees, so SOI is in fact the process behind the latch-up immunity the space-grade realization treats as a measured property (above), an inspectability choice and a radiation-hardening choice at once.
+Third, power: **fully-depleted SOI back-gate body bias** shifts threshold voltage from beneath the buried oxide, a *static*, composition-time-configurable low-power and leakage lever (the only kind the design admits) that supplies part of the benefit backside power is reached for *without* a backside metal grid, reducing the very pull toward backside power on the inspected die.
+The honest cost is real: SOI wafers cost more, logic density is lower than bulk, and the buried oxide traps heat (self-heating), which is precisely why the density-bound SRAM die stays bulk (gate-all-around and backside power, its fab residual carried by the integrity tree) while SOI goes to the inspected logic and security die, so SOI *reinforces* the die split rather than dissolving it.
+
+**Silicon carbide on insulator: the transparency window is real, the logic substrate is not.**
+Silicon carbide's much wider bandgap (about 3.2 electron-volts) makes it transparent well into the visible, so imaging through it could in principle use shorter wavelengths and resolve finer structure than silicon's infra-red-only window, softening the resolution ceiling gate-all-around sharpens, and it is famously radiation- and temperature-hard besides.
+But silicon carbide is a power, radio-frequency, and photonics material with no mature dense complementary-CMOS logic, so a CHERI application-class core cannot be built in it, and silicon-carbide-on-insulator today means integrated photonics, not a processor substrate.
+And the transparency benefit accrues only to a substrate that is *imaged through*, which backside power delivery thins away regardless, so even where a wide-bandgap handle would help it helps a case the design has already left behind: it is declined as a logic substrate, its transparency and hardness real but unusable for the core, the principle noted and not worth forking the substrate for.
+
+**Disposition (adopted in part; a realization-axis choice, §17 notes it):** the inspected compute and security die is well served by a **silicon-on-insulator** substrate, which aids IRIS (the buried-oxide reveal stop), supplies a static low-power lever without backside metal (fully-depleted body bias), and hardens against radiation (latch-up immunity and a smaller upset volume, the space-grade axis above), all on the realization axis and re-verifying nothing; **silicon-carbide-on-insulator** is declined as a logic substrate; and **neither changes the backside-power answer**, because the die split resolves an occlusion by metal that no substrate transparency addresses (the gate-all-around entry above).
+The only spec-body change is the §17 note that the inspected die's substrate is chosen for inspectability.
+
+---
+
 ## Emergency calling: the unauthenticated-attach exception, taken as a separate zero-authority mode rather than a legacy fallback
 
 The tension: §12 makes *no downgrade, no null cipher, mutual authentication (5G-AKA)* a verified property of the L2/L3 servers, and §15 removes the 2G/3G/4G channel codes and RF from the silicon, so a legacy or downgraded attach is *unexpressible*.
