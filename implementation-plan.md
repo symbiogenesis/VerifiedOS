@@ -73,7 +73,7 @@ One model, parameterized by class.
   The *emulated* ISA is **RV64IMV + CHERI, purecap**, curated to the §15 profile.
 - **Plan:**
   1. **Curate to the §15 profile.**
-     Remove the C/compressed extension (unique 4-byte decode) and `Zifencei` (no runtime consumer under W^X); narrow `A` to `Zaamo` only, delete `Zacas` (consumer-less general CAS) and `Zalrsc` (reservation state); adopt the crypto/bit extensions (`Zkne/Zknd/Zknh`, `Zbkb/Zbkc/Zbkx`, `Zvkned/Zvknhb/Zvkg/Zvbb/Zvbc`, `Zicond`, `Zba/Zbb/Zbs`, `Zicboz/Zicbom`), `Smstateen` (`mstateen`); **Machine mode only**, no S/U, no `Sstc`, no trap delegation, privilege gated by a CHERI permission on the PCC (§7/§15); **model the CHERIoT-lineage capability features**, interrupt-state sentries (`enabled`/`disabled`/`inherit`, forward/backward-edge for CFI), the capability trap registers (`MTCC`/`MEPCC`/`MTDC`), and local/global capabilities with the `store-local` permission (§15); **no MMU**, no `Sv39`/`Sv48`/`Sv57` and no `Svadu`/`Svade` (single-address-space, `satp` Bare, §15); make `misa` read-only; trap all reserved/custom encodings.
+     Remove the C/compressed extension (unique 4-byte decode) and `Zifencei` (no runtime consumer under W^X); narrow `A` to `Zaamo` only, delete `Zacas` (consumer-less general CAS) and `Zalrsc` (reservation state); adopt the crypto/bit extensions (`Zkne/Zknd/Zknh`, `Zbkb/Zbkc/Zbkx`, `Zvkned/Zvknhb/Zvkg/Zvbb/Zvbc`, `Zicond`, `Zba/Zbb/Zbs`, `Zicboz`), `Smstateen` (`mstateen`); **Machine mode only**, no S/U, no `Sstc`, no trap delegation, privilege gated by a CHERI permission on the PCC (§7/§15); **model the CHERIoT-lineage capability features**, interrupt-state sentries (`enabled`/`disabled`/`inherit`, forward/backward-edge for CFI), the capability trap registers (`MTCC`/`MEPCC`/`MTDC`), and local/global capabilities with the `store-local` permission (§15); **no MMU**, no `Sv39`/`Sv48`/`Sv57` and no `Svadu`/`Svade` (single-address-space, `satp` Bare, §15); make `misa` read-only; trap all reserved/custom encodings.
   2. **Adopt Ztso and static-only prediction as model properties** (§15): the memory model is RVTSO; there is no dynamic predictor state to model at all (deleting it is *less* Sail, not more).
   3. **Parameterize by core class.**
      Add the RVV long-vector datapath (V-class, VLEN=4096) and a **fork-and-frozen matrix extension** (M-class, systolic GEMM geometry) as ISA-visible, capability-checked operations in the *same* model; capability checks land on scalar-issued vector/matrix memory ops (per-element for gather/scatter).
@@ -84,7 +84,7 @@ One model, parameterized by class.
 
 ### Choosing the frozen parameters: a proof-aware design-space exploration
 
-The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs, issue width and pipeline depth, the LLC/way-coloring split, the SRAM bank/macro/tier-to-island map, software-scratchpad and integrity-tree-node cache sizes, and the TDM-NoC schedule, are not guessed.
+The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs, issue width and pipeline depth, the SRAM bank/macro/tier-to-island map, software-scratchpad and integrity-tree-node cache sizes, and the TDM-NoC schedule, are not guessed (there are no hardware caches to size, main-spec §15).
 They are chosen by a **design-space exploration (DSE)** run off-model, ahead of RTL and silicon, whose utility function is **multi-objective: performance, area, power, WCET, and, as a first-class term, *proof simplicity*** (main-spec §15).
 
 - **Proof simplicity is an explicit objective, not an afterthought.**
@@ -250,7 +250,7 @@ The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardwa
 - **Whole-machine harness.**
   Wrap the Sail-generated core with a thin host-C system harness that provides: **multiple core instances** (C-class ×N, V-class, M-class, the S-class sentinel, and the RoT RV64 core of §2), **physical memory** with the modeled ECC/TME behavior as no-ops-with-latency, and the **modeled devices**, capability-checked DMA (default-deny capability-bounds checks on device transfers), the register-slave transceiver stream (with its fixed-function link-layer timing sequencer, §15), the scanout DMA block, and the RoT peripherals.
   Devices are modeled either as Sail memory-mapped regions (preferred, keeps them in the one language) or as C shims in the harness where that is faster to iterate.
-  The **NoC/coherence islands** are modeled as a simple address-routing layer in bring-up (the TDM schedule and non-interference semantics are §15 hardening, not needed for functional emulation).
+  The **NoC and islands** are modeled as a simple address-routing layer in bring-up (the TDM schedule and non-interference semantics are §15 hardening, not needed for functional emulation).
 - **Composed full-system golden model.**
   Boot the stack in the spec's §9 order on the harness: RoT core + firmware (§2) → M-mode firmware (§3) → one kernel instance per core (§5) → init (§8) → object system/transactor (§6), filesystem (§7), crypto core (§4), checker (§9), every image **GC-free purecap RV64IMV+CHERI**, produced by the §0 on-device routes (CompCert-C/VST through CHERI-CompCert, or arena extraction through the Rust→CHERI compiler), *never* the GC'd `CertiCoq → Clight` path.
   This is the reference machine: purecap, managed-runtime-free software on the verified-by-generation ISA.
@@ -302,7 +302,7 @@ Per the two-language ideal and the semantic-anchor budget (main-spec §5), RTL �
   Each is *less* hardware than the stock core, not more.
 - **Synthesis + bring-up staging.**
   Target a large FPGA (Xilinx/AMD UltraScale+ or Versal class, or an open board where capacity allows).
-  Bring up **C-class scalar first** (boots the same M-mode firmware → kernel → init stack from §10), then **V → M → FEC → NoC → coherence islands**, class by class, each differentially tested against the Sail golden model.
+  Bring up **C-class scalar first** (boots the same M-mode firmware → kernel → init stack from §10), then **V → M → FEC → NoC → islands**, class by class, each differentially tested against the Sail golden model.
   The **S-class sentinel** and RoT are small and come early.
 - **Deferred hardening (named, not built here).**
 The **riscv-formal/rvfi** BMC bring-up gate (on the generated SystemVerilog), the **Sail-SV + commercial-FEV** observational-equivalence evidence for the imported cores (route b), the **Isla**-generated obligations, and the closing **Kami/Kôika** RTL ⊑ Sail refinement over the **authored** net-new blocks (route a; §15, §18) are the path from "the reference cores differentially agree with the golden model" to "the shipped RTL is proven to refine it."

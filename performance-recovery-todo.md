@@ -55,7 +55,7 @@ The two CHERI-elision items are the exceptions, they lean on on-die hardware (ca
 - [ ] **Elide redundant software bounds checks onto CHERI's hardware bounds, the die already checks every access.**
   Teach the certifying Rust→RV64+CHERI toolchain (§18) to recognize that a panicking language-level bounds check (safe Rust's `a[i]`, a hardened-C length test) is *redundant against the capability that already bounds the object*, §5's "CHERI discharges spatial safety in hardware," §7's "CHERI bounds are the sole in-core spatial isolation", and drop the compare-and-forward-branch, letting the hardware bound fault instead.
   Under the platform's fail-stop posture the two outcomes coincide (an out-of-bounds access is a fault-stop either way), so for the panicking index/slice checks the elision is semantically transparent.
-  Each check removed is one fewer instruction (in-order row), one fewer forward branch (static-prediction −10% to −30% row), and less code (no-C / I-cache −2% to −12% row); together they partially *offset* the CHERI purecap pointer-width tax (−3% to −15% row), you pay the wide pointer but claw back the software-check.
+  Each check removed is one fewer instruction (in-order row), one fewer forward branch (static-prediction −10% to −30% row), and less code (no-C −2% to −12% row); together they partially *offset* the CHERI purecap pointer-width tax (−3% to −15% row), you pay the wide pointer but claw back the software-check.
   This is one of the few genuinely *differential* levers, it spends on-die capability bounds a conventional chip lacks, so that chip's compiler cannot copy the trick, yet even so it only *offsets a self-imposed tax*, never overtaking a baseline that never paid the CHERI width.
   Unclaimed today: current purecap Rust (Morello / CHERI-RISC-V) makes raw-pointer and `unsafe` code spatially safe yet still emits the safe-Rust check *on top of* the hardware bound.
   *Keeps it pure:* the bound is still enforced, by hardware already on the die, adding no µarch, so the output still type-checks memory-safe in the CHERI-TAL (§5/§6), the §13 certificate is undisturbed, the check is address- not secret-dependent (constant-time untouched), and fewer instructions only tighten WCET (§11).
@@ -68,7 +68,7 @@ The two CHERI-elision items are the exceptions, they lean on on-die hardware (ca
   Differential like the spatial elision (it spends on-die tags + revocation the baseline lacks), but tiny, and again only offsetting a self-imposed cost.
   *Keeps it pure:* leans only on mechanisms already in the design, adds no µarch and no channel, and is sound precisely because the §6 checker still re-checks the temporal-safety certificate on the output.
 - [ ] **Deterministic PGO fall-through + BOLT-style post-link layout.**
-  Lay hot paths out as fall-through to hit the backward-taken / forward-not-taken static rule, and pack hot code to fight the +25–30% code-size / I-cache pressure from the deleted C extension.
+  Lay hot paths out as fall-through to hit the backward-taken / forward-not-taken static rule, and pack hot code to fight the +25–30% code-size and fetch-bandwidth pressure from the deleted C extension.
   §10 and §15 already book this as "partial recovery"; make it a first-class, maximized pass.
   *Keeps it pure:* the profile is a **signed, reproducible build input** (§10), never runtime-learned predictor state.
 - [ ] **LTO, aggressive inlining, loop unrolling, superblock formation.**
@@ -95,10 +95,10 @@ Ceteris paribus this too is universal: DSE is ordinary chip-design practice (the
   This shrinks the design's **self-imposed** idle only; it can never reach the baseline's work-conserving efficiency (that would need slack donation = a timing channel), so the row is narrowed, not closed.
   *Keeps it pure:* the frame stays **non-work-conserving**, no slack donation, no runtime scheduling decision, it is merely a better-packed static frame.
 - [x] **Micro-architectural DSE over the frozen parameters.**
-  Multi-objective (perf / area / power / WCET / proof simplicity) Pareto search over: cache / way-coloring split, VLEN per class, issue width and pipeline depth, scratchpad sizes, SRAM bank/macro/tier assignment, and on-die integrity-tree-node cache size.
-  Partially recovers the cache-partition (−5% to −25%), memory-partition (−5% to −20%), and memory-integrity-tree (−5% to −30%) rows.
+  Multi-objective (perf / area / power / WCET / proof simplicity) Pareto search over: VLEN per class, issue width and pipeline depth, scratchpad sizes, SRAM bank/macro/tier assignment, and on-die integrity-tree-node cache size (there are no hardware caches to size, main-spec §15).
+  Partially recovers the memory-partition (−5% to −20%) and memory-integrity-tree (−5% to −30%) rows.
   Universal ceteris paribus: the conventional baseline is itself a DSE output, so this closes no inter-design gap, it only selects the best *admissible* secure configuration.
-  *Keeps it pure:* each candidate is a static, Sail-modeled, admission-checked config; any added cache (e.g. integrity-tree nodes) is **partition-scoped and fence.t-flushed** like the LLC, so admission-test-3 still holds.
+  *Keeps it pure:* each candidate is a static, Sail-modeled, admission-checked config; the one address-indexed structure that remains (the integrity-tree-node cache) is **partition-scoped and fence.t-flushed**, so admission-test-3 still holds (there is no data cache, main-spec §15).
   *Done, wired into [verification-maximal-os.md](verification-maximal-os.md) §15 (normative) and [implementation-plan.md](implementation-plan.md) §1; the §17 Sail ⋈ RTL residual names it the standing mitigation.*
 
 ---
@@ -133,13 +133,13 @@ The third column marks whether the lever is *universal* (a conventional toolchai
 | Autovectorization / SLP | In-order issue; static prediction → converted to RVV vector gain | Universal pass; *realizes* the already-booked wide-VLEN gain (cancels vs. a vector-equipped baseline) |
 | Software pipelining / static load hoisting | In-order issue; no prefetch / NT hints | Universal; narrows the in-order tax only (OoO baseline hides the same latency in hardware) |
 | `Zicond` if-conversion | Static-only branch prediction | **Differential** (worth more under static-only prediction); narrows, never closes |
-| CHERI bounds-check elision | In-order issue; static prediction; no C/compressed (I-cache); offsets CHERI purecap width | **Differential** (on-die bounds the baseline lacks); offsets a self-imposed tax |
+| CHERI bounds-check elision | In-order issue; static prediction; no C/compressed (fetch); offsets CHERI purecap width | **Differential** (on-die bounds the baseline lacks); offsets a self-imposed tax |
 | CHERI temporal-safety elision | Atomic-RMW / `Zaamo` refcount traffic | **Differential** (on-die tags + revocation); offsets a self-imposed tax, tiny |
-| Deterministic PGO + BOLT layout | Static branch prediction; no C/compressed (I-cache) | Universal; the baseline runs BOLT too |
+| Deterministic PGO + BOLT layout | Static branch prediction; no C/compressed (fetch) | Universal; the baseline runs BOLT too |
 | LTO / inlining / unrolling | Static prediction + in-order (compounding) | Universal; cancels |
 | Superoptimization / search codegen | In-order scalar; bit/integer paths | Universal on speed; the re-check story is a *trust* win, not a perf differential |
 | Static schedule synthesis | Non-work-conserving scheduler; TDM NoC | Shrinks a self-imposed idle; never reaches work-conserving |
-| Micro-architectural DSE | Cache partitioning; SRAM bank/macro; main-memory integrity tree | Universal; the baseline is itself a DSE output |
+| Micro-architectural DSE | SRAM bank/macro; main-memory integrity tree | Universal; the baseline is itself a DSE output |
 | Faster pure-interpreters (JS + Wasm) | No-JIT (browser JS and Wasm) | Substitute for the missing JIT; narrows, never closes |
 | Data-oriented restructuring | General scalar → vector / matrix / crypto | Universal source technique; shared by both machines |
 

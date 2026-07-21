@@ -47,7 +47,7 @@ Run the four ingredients through the admission test:
   Itanium's NaT bit *is* metadata speculation: hoist a load, and on a deferred exception set poison and trap only at consumption, with **no microarchitectural rollback and therefore no transient-execution class**.
   It *passes* all five (architecturally-visible poison, deterministic, Sail-expressible, no hidden shared state, no autonomous behavior), and (the load being architecturally completed) carries data-independent latency, clearing test (2) besides.
   Crucially it is **separable from the bundle**: NaR/NaT can be a *small* RV64 extension (a poison tag bit + a speculative-load + a check/consume op), lifted out of both the belt and EPIC and dropped straight into RISC-V.
-  Its residual is exactly the one already accepted for wrong-path static fetch (§15, "Control-flow prediction"): a hoisted load's cache footprint is a deterministic function of the compiler-fixed instruction stream, not of learned history, so it falls in the cache-partitioning/`fence.t` bucket, the sole caveat being that a *secret-dependent* speculative address is an ordinary `Zkt`/`Zvkt` flow-label obligation, no different from any load.
+  Its residual is exactly the one already accepted for wrong-path static fetch (§15, "Control-flow prediction"): a hoisted load's memory access is a deterministic function of the compiler-fixed instruction stream, not of learned history, so there is no cache footprint to perturb (§15) and it needs no special treatment, the sole caveat being that a *secret-dependent* speculative address is an ordinary `Zkt`/`Zvkt` flow-label obligation, no different from any load.
 - **ALAT / data speculation (advanced loads hoisted over possibly-aliasing stores)**: **fails the admission test, twice.**
   The ALAT is a hidden microarchitectural table whose occupancy records which speculative loads are outstanding and whether a later store aliased them: new hidden shared state surviving a partition switch (test 3) and a data-dependent load↔store aliasing signal (test 2).
   It is the same shape as the LR/SC reservation set and the dynamic predictors §15 *deletes* rather than flushes; its rejection is the admission test working correctly.
@@ -132,8 +132,8 @@ Asynchronous logic completes in *average*-case time (a carry chain that resolves
 
 **The distilled atom: none in the gates; the one admissible cousin, GALS, is already banked.**
 The security posture *wants* latency independent of data, which is the synchronous fixed-latency, in-order, non-speculative profile's defining choice (§15); asynchronous logic *in the datapath* is that choice's structural opposite, so there is nothing to distill from the gates: importing any of it would reintroduce the exact channel the profile deletes.
-The one structurally-adjacent idea that *is* admissible (dropping the *single global clock* so the machine is not one lock-stepped timing domain) the design already took, in its **globally-asynchronous, locally-synchronous (GALS)** form: the coherence islands share no coherence and communicate only by message-passing across the TDM NoC (§15), so they are independent timing domains by construction (per-island SRAM banks or macros and per-(class, OPP) operating points already imply the islands need not run at one frequency), yet each island stays *internally* synchronous, which is exactly what keeps its fixed-latency WCET tables and its RTL ⊑ Sail refinement tractable.
-The asynchrony is therefore confined to the **island boundary** (ring message-passing with explicit cache-management fences under Ztso, §12, §15) where the sole metastability obligation is the ordinary clock-domain-crossing synchronizer, not a datapath whose latency has become data-dependent.
+The one structurally-adjacent idea that *is* admissible (dropping the *single global clock* so the machine is not one lock-stepped timing domain) the design already took, in its **globally-asynchronous, locally-synchronous (GALS)** form: the islands share no mutable memory and communicate only by message-passing across the TDM NoC (there is no coherence protocol, and no caches, §15), so they are independent timing domains by construction (per-island SRAM banks or macros and per-(class, OPP) operating points already imply the islands need not run at one frequency), yet each island stays *internally* synchronous, which is exactly what keeps its fixed-latency WCET tables and its RTL ⊑ Sail refinement tractable.
+The asynchrony is therefore confined to the **island boundary** (ring message-passing with fences under Ztso over shared SRAM, §12, §15) where the sole metastability obligation is the ordinary clock-domain-crossing synchronizer, not a datapath whose latency has become data-dependent.
 So the platform already banks the admissible half of the idea (system-level timing-domain decoupling) while rejecting the inadmissible half (data-dependent completion in the logic): **GALS *between* islands, synchronous fixed-latency *within* them**: the split this entry turns on.
 
 **Where it ranks.**
@@ -147,7 +147,7 @@ Non-normative; no spec-body change.
 
 ## Fine-grained multithreading and timing-predictable architectures: PRET, PATMOS/T-CREST, FlexPRET; the non-speculative throughput lever the SMT rejection over-rejected
 
-The profile deletes **simultaneous multithreading** (SMT) uniformly (§15) on admission-test-3 grounds: SMT threads share issue ports, functional units, and caches *dynamically*, so one thread's occupancy is hidden shared state surviving a partition switch that makes the other's timing data-dependent: the co-residency channel.
+The profile deletes **simultaneous multithreading** (SMT) uniformly (§15) on admission-test-3 grounds: SMT threads share issue ports and functional units *dynamically*, so one thread's occupancy is hidden shared state surviving a partition switch that makes the other's timing data-dependent: the co-residency channel.
 That rejection is correct, but it kills only *simultaneous* (dynamic-issue) multithreading, and it has been read too broadly.
 **Fine-grained (barrel / temporal) multithreading** is a structurally different mechanism: N hardware threads with **replicated per-thread register files**, interleaved onto one pipeline by a **fixed, statically-scheduled round-robin**: thread *t* owns issue slot *t mod N* unconditionally, whether or not it has work.
 This is the lineage of the CDC 6600 peripheral barrel, the Denelcor HEP and Tera MTA (Burton Smith), and (shipping, sold on determinism) **XMOS xCORE** (guaranteed-MIPS logical cores for hard-real-time I/O).
@@ -162,7 +162,7 @@ The design is *already a PRET-class machine on the timing axis*, reached from th
 
 **Why the static-slot form passes where SMT fails.**
 Run barrel MT through the five-part §15 admission test in its *fixed-schedule* form: (1) deterministic: a thread's timeline is a function of its own instruction stream and its fixed slot allotment, nothing else; (2) no data-dependent latency: the schedule being fixed, thread A's stalls **cannot** shift thread B's issue cycles (the inter-thread interference SMT reintroduces is exactly what a static round-robin removes, providing *stronger* temporal isolation than a single fast thread, not weaker); (3) no hidden shared state surviving a partition switch: per-thread register files are architectural and replicated, the slot assignment is a composition-time constant, and threads map to partitions so the interleave *is* the partition boundary; (4) Sail-expressible: thread ID and slot table are architectural state; (5) no autonomous behavior: the round-robin is a fixed counter, not an address-dependent engine.
-It is the **pipeline-level analog of the TDM NoC and cache coloring** the design already runs (§15): time-division of one datapath among fixed tenants, which is precisely why T-CREST pairs barrel-predictable cores with a TDM NoC: the same instinct, one level down.
+It is the **pipeline-level analog of the TDM NoC and memory partitioning** the design already runs (§15): time-division of one datapath among fixed tenants, which is precisely why T-CREST pairs barrel-predictable cores with a TDM NoC: the same instinct, one level down.
 The **dynamic** variant (fill an idle slot with any ready thread, FlexPRET's *soft* threads, SMT's issue logic) reintroduces the data-dependent contention and **stays rejected**; the design takes FlexPRET's *hard-real-time-thread* discipline (every thread a guaranteed fixed slot) for **all** threads and drops the soft-thread slot-filling.
 
 **Where it ranks: the cheapest throughput lever, and it stays in RISC-V.**
@@ -395,7 +395,7 @@ The lineage: **Asbestos** (Efstathopoulos et al., SOSP '05: labels on processes 
   HiStar shrinks the trusted *code*; the design shrinks the trusted *set* and then **proves** the kernel correct in Coq (§5) and bounds even wholly-unverified code with the hardware universal contract (§13).
   HiStar's label-checker is small but unverified; the design's is small **and** verified: the same "minimal but *verified* beats minimal" upgrade the exokernel and enclave entries make.
 - **Timing channels are the platform's separate, deeper effort.**
-  DIFC labels track explicit and storage flows; the covert **timing** channels are closed here by construction (in-order, non-speculative, partitioned caches/memory/NoC, §15) and by the constant-time layer (§5), not by labels: so a DIFC OS would still owe the timing-channel story the profile already discharges.
+  DIFC labels track explicit and storage flows; the covert **timing** channels are closed here by construction (in-order, non-speculative, no caches, partitioned memory and NoC, §15) and by the constant-time layer (§5), not by labels: so a DIFC OS would still owe the timing-channel story the profile already discharges.
 - **HiStar's Unix emulation is a foreign trust base**: the POSIX ambient-authority surface [userspace-porting.md](userspace-porting.md) deletes; the design reimplements capability-native (§14) rather than emulating Unix over labels.
 
 **The distilled atom: already banked (the belt→spiller discipline).**
@@ -414,7 +414,7 @@ Non-normative; no spec-body change.
 ## HexFive MultiZone: already covered, strictly dominated, nothing to import
 
 MultiZone is a policy-driven separation kernel: a small nanokernel orchestrating standard RISC-V **PMP** to isolate zones, a no-shared-memory messenger between zones, and a configurator fusing linked zone binaries + policy + kernel into a signed image (running unmodified code by trap-and-emulate of privileged instructions).
-Each component maps onto a strictly stronger mechanism already mandated here: PMP zones → **CHERI + capability-checked DMA + coherence islands** (byte-granular, unforgeable, formally modeled vs. a handful of coarse power-of-two regions); nanokernel → the **seL4-design capability microkernel** (re-proved in Coq, §5) with a completed refinement + non-interference proof (MultiZone advertises "formally verifiable," not a finished machine-checked proof); messenger → the **verified ring data plane** under Ztso; configurator → **static composition + signed generation + proof-checked admission**.
+Each component maps onto a strictly stronger mechanism already mandated here: PMP zones → **CHERI + capability-checked DMA + islands** (byte-granular, unforgeable, formally modeled vs. a handful of coarse power-of-two regions); nanokernel → the **seL4-design capability microkernel** (re-proved in Coq, §5) with a completed refinement + non-interference proof (MultiZone advertises "formally verifiable," not a finished machine-checked proof); messenger → the **verified ring data plane** under Ztso; configurator → **static composition + signed generation + proof-checked admission**.
 Its distinctive selling point (zero hardware change, zero code change, commodity cores) is the pragmatic *inverse* of a spec that mandates custom CHERI silicon and native capability code, and its trap-and-emulate method opposes the no-ambient-authority stance.
 **There is no clean pure-win to extract; it is a lightweight point on the same design axis already taken to the maximum.**
 
@@ -528,7 +528,7 @@ The pitch is strong isolation for mutually-distrusting workloads on shared silic
 
 **Why it is already subsumed: the threats it fights are deleted, not defended.**
 - **Enclaves exist to claw isolation back from mechanisms this platform removed.**
-  MI6's hard problem is isolating enclaves on a *speculative, out-of-order, cache-sharing* core; the platform is **in-order, non-speculative**, with **partitioned caches and coherence islands** (§15), so the transient-execution and shared-microarchitecture channels enclaves are engineered to close are absent by construction: the same reason the design needs no enclave-grade speculation fences.
+  MI6's hard problem is isolating enclaves on a *speculative, out-of-order, cache-sharing* core; the platform is **in-order, non-speculative**, with **no caches and partitioned memory and islands** (§15), so the transient-execution and shared-microarchitecture channels enclaves are engineered to close are absent by construction: the same reason the design needs no enclave-grade speculation fences.
 - **Keystone's isolation *is* PMP**: dropped here (the drop-PMP entry above) for CHERI as the sole spatial mechanism; a PMP-region enclave is exactly the coarse mechanism CHERI byte-granularly exceeds.
 - **The attested, isolated compartment is already the platform's compartment.**
   A per-app compartment with its own manifest, capability-bounded, attested through the measured root and the sealing service (§9, §12, §14), *is* an enclave: reached from capabilities and single-address-space isolation rather than from a monitor carving regions out of a shared VM.
@@ -551,7 +551,7 @@ Its cross-core capability-update protocol (IPI-driven, two-barrier atomic) is a 
 **Where it ranks.**
 Off the abandon-substrate scale: a convergent / subsumed entry: the design is an *all-enclave machine* (every compartment is one) *without an enclave mechanism*, because it removed the shared-and-speculative substrate enclaves were invented to partition, and it verifies the monitor enclaves keep small-but-trusted.
 
-**Disposition:** no import: hardware enclaves defend against transient-execution and shared-microarchitecture channels the in-order, non-speculative, cache-partitioned, single-address-space profile deletes (§15), and their coarse PMP realization (Keystone) is the mechanism CHERI exceeds (drop-PMP, above); the attested isolated compartment and the small verified monitor are already the CHERI compartment ⋈ measured root (§9, §12, §14) and the verified kernel ⋈ RoT (§7, §9).
+**Disposition:** no import: hardware enclaves defend against transient-execution and shared-microarchitecture channels the in-order, non-speculative, cacheless, single-address-space profile deletes (§15), and their coarse PMP realization (Keystone) is the mechanism CHERI exceeds (drop-PMP, above); the attested isolated compartment and the small verified monitor are already the CHERI compartment ⋈ measured root (§9, §12, §14) and the verified kernel ⋈ RoT (§7, §9).
 The MI6/Kôika formal-HDL lineage is shared as a *verification* vehicle (§18); the enclave product is not needed.
 Non-normative; no spec-body change.
 
@@ -580,10 +580,10 @@ Lockstep, meanwhile, is **already logged for G5** (COSMIC dual-core lockstep, a 
   RTL ⊑ Sail proves the one simple core correct **for all inputs, once**; a DIVA checker re-establishes correctness **per execution**, and only functionally: precisely the ordering the zkVM entry (below) draws between a static all-inputs proof and a per-run transcript, DIVA the microarchitectural instance of the weaker side.
 
 **Why lockstep/TMR is orthogonal, not missing.**
-Random-fault redundancy addresses *reliability* (SEU, aging, glitch), not the *security* threat, and most of the reliability case is already carried: **ECC across all SRAM** (main memory and every on-die array, caches, register files, scratchpads, native tag bits, and the integrity-tree-node cache, §15) covers the *stored-state* upset, **CHERI tag and bounds checks** fail-stop a strike that corrupts a *capability* (§15), **SRAM's freedom from the Rowhammer disturbance primitive** (§15), **per-core kernel duplication** bounds a corrupted kernel state's blast radius, and crash-only fault containment (§16) catches the gross failure.
+Random-fault redundancy addresses *reliability* (SEU, aging, glitch), not the *security* threat, and most of the reliability case is already carried: **ECC across all SRAM** (main memory and every on-die array, register files, scratchpads, native tag bits, and the integrity-tree-node cache; there are no data caches, §15) covers the *stored-state* upset, **CHERI tag and bounds checks** fail-stop a strike that corrupts a *capability* (§15), **SRAM's freedom from the Rowhammer disturbance primitive** (§15), **per-core kernel duplication** bounds a corrupted kernel state's blast radius, and crash-only fault containment (§16) catches the gross failure.
 What those leave is narrow and precise: a *transient strike in the datapath data computation* (a wrong integer or vector arithmetic result, neither a pointer nor yet stored, so neither ECC nor the tag check sees it), and a *permanent* wear-out or aging fault at runtime (which the design-level verification and the fab-time IRIS inspection, both static, do not reach).
 Replication would add fault *detection/masking* over that residual: genuinely useful for a safety (**G5**) case, but its cost falls on the *logic*, not the arrays.
-Because every SRAM array is already ECC-protected, the replication scope is the *datapath logic alone*: the large main-memory SRAM and the caches stay 1× with ECC and are never voted, so the honest **2×/3×** figure is the *core logic*, not the die, and the incremental cost of detection is only the small un-ECC-able compute path.
+Because every SRAM array is already ECC-protected, the replication scope is the *datapath logic alone*: the large main-memory SRAM and the scratchpads stay 1× with ECC and are never voted, so the honest **2×/3×** figure is the *core logic*, not the die, and the incremental cost of detection is only the small un-ECC-able compute path.
 It is a deferred option weighed on cost, not an unconsidered gap ([inspirations.md](inspirations.md)).
 
 **The alternatives, and why the software ones fit better here.**
@@ -668,7 +668,7 @@ This is the *engineering-is-free, trust-is-scarce* axiom reading a physical-reli
 ## Delete the MMU: purecap single-address-space, CHERI is the sole in-core spatial mechanism
 
 The proposal is to remove **Sv39 and the MMU entirely** and run the die as a **single physical address space** under CHERI, with `satp` fixed to Bare and no translation anywhere.
-The claim is redundancy: **CHERI + capability-checked DMA + coherence islands** (§8, §15) already supply the three things an MMU is kept for: byte-granular in-core spatial isolation, a physical-reach bound, and DMA confinement; so Sv39 is a *second, in-band* isolation mechanism bought at the price of the page-table walker, the TLB and walk-cache state, the entire kernel VM subsystem (VSpace / page-table / frame-mapping objects, map/unmap, `satp` management, TLB shootdown), and their share of the Sail model.
+The claim is redundancy: **CHERI + capability-checked DMA + islands** (§8, §15) already supply the three things an MMU is kept for: byte-granular in-core spatial isolation, a physical-reach bound, and DMA confinement; so Sv39 is a *second, in-band* isolation mechanism bought at the price of the page-table walker, the TLB and walk-cache state, the entire kernel VM subsystem (VSpace / page-table / frame-mapping objects, map/unmap, `satp` management, TLB shootdown), and their share of the Sail model.
 
 **The spec had already converged here without taking the step.**
 The Mill entry (above) records that the design *"converges on Mill's single-address-space-with-per-domain-protection vision"* because *"capabilities bound memory irrespective of page tables"*; the MultiZone descend-the-base analysis (above) concedes that *"a stateless single-address-space design leaves most MMU machinery idle"*; and the §13 hardware universal contract is stated as **CHERI + caps + capability-checked DMA**: the MMU already absent from it.
@@ -686,7 +686,7 @@ Three things answer this.
 
 **The bet, stated.**
 Single-address-space CHERI at *application-class* scale rests on **CheriOS** and **CHERIoT** as existence proofs, and both are small-scale; app-class SAS-purecap is the wager this takes.
-It is bounded, not blind: CHERI is the **primary, byte-granular, formally-modeled** mechanism the whole design already leans on (§8, §13); capability-checked DMA and coherence-island separation cover the device-access and cross-domain-timing residuals a page table never addressed anyway (physical-reach resting on CHERI partition bounds, PMP dropped: the drop-PMP entry below); and because the kernel is **bespoke** (seL4's capability / IPC *design* re-proved in Coq, not stock seL4's C), it is built single-address-space-native, dropping the VSpace object classes, rather than retrofitting SAS onto a page-table kernel.
+It is bounded, not blind: CHERI is the **primary, byte-granular, formally-modeled** mechanism the whole design already leans on (§8, §13); capability-checked DMA and island separation cover the device-access and cross-domain-timing residuals a page table never addressed anyway (physical-reach resting on CHERI partition bounds, PMP dropped: the drop-PMP entry below); and because the kernel is **bespoke** (seL4's capability / IPC *design* re-proved in Coq, not stock seL4's C), it is built single-address-space-native, dropping the VSpace object classes, rather than retrofitting SAS onto a page-table kernel.
 
 **This is not the descend-to-PMP-only move.**
 The rejected MultiZone descent (above) shed the MMU *and CHERI*, falling back on coarse PMP as the primary mechanism; this sheds **only** the MMU and keeps CHERI as the byte-granular primary.
@@ -697,7 +697,7 @@ This lands one of the three simplifications the kernel-in-gateware entry (below)
 The remaining kernel-shrink simplification the terminus names: the table-driven cyclic executive replacing MCS; is **also adopted** (§7, §11).
 
 **Disposition (adopted; normative in §7, §8, §14, §15).**
-The MMU is **deleted**: `satp` is Bare, there is no Sv39 / Sv48 / Sv57 and no `Svadu` / `Svade` A/D machinery (§15), the kernel drops seL4's VSpace / page-table / frame-mapping object classes for a single physical address space (§7), and **CHERI is the sole in-core spatial mechanism** (with PMP dropped too: the drop-PMP entry below; so no disjoint in-band backstop remains), capability-checked DMA + coherence islands (§15) the device-access and timing boundaries.
+The MMU is **deleted**: `satp` is Bare, there is no Sv39 / Sv48 / Sv57 and no `Svadu` / `Svade` A/D machinery (§15), the kernel drops seL4's VSpace / page-table / frame-mapping object classes for a single physical address space (§7), and **CHERI is the sole in-core spatial mechanism** (with PMP dropped too: the drop-PMP entry below; so no disjoint in-band backstop remains), capability-checked DMA + islands (§15) the device-access and timing boundaries.
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*): the MMU is a second in-band mechanism whose fine-grained defense-in-depth the SAS design does not instantiate, purchased with a walker the admission test bans and a kernel subsystem the proof must carry.
 **Honest residual (§17):** in-core spatial isolation rests on CHERI alone (a logic fault has no in-band fallback; the coarse PMP backstop is dropped too, below; only CHERI's own verification), and application-class single-address-space purecap is less battle-tested than page-table isolation (CheriOS/CHERIoT are small-scale): offset against a net deletion of the walker, the TLB/walk-cache state, the VM subsystem, and their Sail surface.
 
@@ -764,7 +764,7 @@ And the residual that actually persists: fabricated silicon vs. verified RTL; is
 
 **The bet, stated.**
 Resting all in-core spatial protection on CHERI is the same wager as single-address-space and single-privilege-mode, with no coarse fallback at all.
-It is bounded, not blind: CHERI is byte-granular, formally modeled, and the most-scrutinized mechanism on the die; capability-checked DMA still confines device access and the coherence islands still bound cross-domain timing (neither was ever PMP's job); and the disjoint hedge is replaced by the strongest assurance the project has.
+It is bounded, not blind: CHERI is byte-granular, formally modeled, and the most-scrutinized mechanism on the die; capability-checked DMA still confines device access and the islands still bound cross-domain timing (neither was ever PMP's job); and the disjoint hedge is replaced by the strongest assurance the project has.
 If a future analysis judged the CHERI-logic-fault residual intolerable, the composition-static locked-PMP backstop is the cheapest thing to re-admit (subtractive, static, Sail-modeled): but it is not carried by default.
 
 **Disposition (adopted; normative in §7, §14, §15).**
@@ -1010,7 +1010,7 @@ The one honesty the radio case does not carry: sensor front-ends have no off-the
 
 ## Physical bifurcation of the radio: a second die is declined; the single-die realization takes the top rung of every graded axis
 
-The candidate: instead of the radio stack living as a coherence island on the one die (absorbing the booked die-internal residuals, shared power and thermal coupling, §17), put it on a **second, identical, attested instance of the same die**, linked by a ring-over-SerDes: not a foreign computer (§4), a second copy of the one computer.
+The candidate: instead of the radio stack living as an island on the one die (absorbing the booked die-internal residuals, shared power and thermal coupling, §17), put it on a **second, identical, attested instance of the same die**, linked by a ring-over-SerDes: not a foreign computer (§4), a second copy of the one computer.
 It deletes the highest-value cross-domain residuals outright and simplifies the island machinery on the main die, at the cost of a package and an inter-die link that becomes a new (IDL-shaped, Narcissus-parsed) boundary.
 
 **What it targets, and what it keeps.**
@@ -1019,7 +1019,7 @@ It does *not* delete the shared **mask set**: the second instance is "the same d
 
 **Why the second die is declined.**
 The platform already climbs a **graded physical-isolation hierarchy** on every other axis: coherence (island exclusivity), main memory (whole-macro/tier down to bank), LLC (per-island slice), NoC (TDM non-interference), clock (GALS between islands).
-The radio already holds the coherence-island half, so the disciplined move is to take that hierarchy's **top on-die rung on every axis** rather than jump to a second package:
+The radio already holds the island half, so the disciplined move is to take that hierarchy's **top on-die rung on every axis** rather than jump to a second package:
 - **Main memory**: the radio island takes a **separate SRAM macro or tier** (the existing top rung, §15); because main memory is SRAM the shared refresh, RFM, and PRAC coupling a DRAM design would book for sub-channel sharing is already absent, so this rung now deletes only the shared power and periphery: no new mechanism, just the strong rung.
 - **Power and clock**: the radio island gets its **own clock/power island**, the identical treatment the RoT already carries (§15, §16) and the mitigation §17 already names (*power-island isolation*), deleting the on-die power-delivery droop coupling and completing the GALS story on the power axis (islands already run at independent clocks; now an independent rail).
 - **Thermal**: no new mechanism: the channel is already deleted (thermal fail-stop, §15; SRAM has no PRAC to demote); a floorplan keep-out narrows the residual thermal-mass coupling.
@@ -1031,7 +1031,7 @@ It alone gives physically separate substrate and thermal mass: the last epsilon 
 But that is (a) already physical-scope, outside the remote-attacker model (§17), and (b) *not actually closed by the second die either*, which reuses the same die design (same mask) and whose radio radiates by function: so the package buys an out-of-model epsilon it does not cleanly deliver.
 
 **Disposition (adopted in part; normative in §15):** the second die and the inter-die link are **declined**; the **single-die realization**: the radio island taking a separate SRAM macro or tier and its own clock/power island; is **adopted** and normative in §15 (Interconnect and coherence, Power architecture), deleting the power and thermal coupling on one die (the refresh and PRAC coupling a DRAM design would leave being absent in SRAM).
-It is the same graded-hierarchy discipline the design already applies on four axes, extended one axis (power/thermal) to the block that already holds the coherence-island half.
+It is the same graded-hierarchy discipline the design already applies on four axes, extended one axis (power/thermal) to the block that already holds the island half.
 
 **Honest residual (§17):** the physical substrate and thermal mass stay shared: analog-emission and power-probe coupling remain physical-scope, exactly as the §17 physical residual books; bought back against a new inter-die trust boundary and the single-die inspectability the supply-chain residual leans on.
 
@@ -1055,7 +1055,7 @@ Both are bought back by static, transistor-level levers that add *no runtime beh
 A **chiplet** realization (manufacturing the SRAM as a separate die on an SRAM-optimized process and integrating it in-package) is admissible where capacity demands specialized, modular fabrication; the in-package die-to-die link carries passive memory, not a foreign computer (§4).
 
 **The capacity this yields, at the reticle limit.**
-Fix the footprint at one reticle field (about 858 mm², the largest a normal, non-wafer-scale chip reaches) and leave the base compute die to the cores, caches, and the rest of the non-memory system: main memory is then what the *stacked* SRAM tiers above it hold.
+Fix the footprint at one reticle field (about 858 mm², the largest a normal, non-wafer-scale chip reaches) and leave the base compute die to the cores and the rest of the non-memory system (there are no caches, the no-hardware-caches entry below): main memory is then what the *stacked* SRAM tiers above it hold.
 Usable capacity runs well under the raw cell, because roughly half of it is spent before it is addressable: a 2 nm gate-all-around high-density cell reaches about 38 Mb/mm² (4.75 MB/mm²) of raw macro, but the SECDED-to-DECTED ECC, the native CHERI tag bits, the retained TME and anti-replay-tree metadata, and the tier's assist, redundancy, and island-partition floorplan leave about 2.6 MB/mm², near 2 GB, per full-reticle tier.
 Scaled by the accepted 3D stacking, that is about 2 GB at a single tier and roughly 16 GB at an aggressive eight-high memory stack on 2 nm; a denser 0.7 nm-class CFET cell (extrapolated near 4 MB/mm² usable) carries a comparable stack into the low tens of GB and a sixteen-high extreme toward 64 GB.
 The recorded maximum main memory for a normal-sized, reticle-limited, non-wafer chip is therefore **tens of gigabytes, of order 16 to 64 GB at the best nodes**, not the hundreds of gigabytes to terabytes a DRAM design reaches: the density price stated plainly, and the accepted cost of the deletion above (§15, §17).
@@ -1073,6 +1073,49 @@ The one clean simplification the bespoke SRAM buys here is **native tag bits**: 
 
 **Honest residual (§17):** capacity is materially lower than a DRAM design's, the accepted price; idle leakage is higher, mitigated but not erased by the static levers; a chiplet realization adds one in-package die-to-die interface (the surface the retained encryption and tree defend) and one further die to image under IRIS, a smaller inspection and physical surface than a socketed-module board but not zero.
 The two density levers that occlude that backside inspection, backside power delivery and gate-all-around transistors, are for that reason confined to the memory die and kept off the inspected compute die (the gate-all-around entry below, §17).
+
+---
+
+## No hardware caches: the SRAM main memory removes the latency gap the cache existed to hide
+
+The choice: with main memory now flat, low-latency, high-bandwidth on-die SRAM (the entry above), delete the hardware cache hierarchy entirely, no L1 instruction or data cache, no L2, no last-level cache, and no cache-coherence protocol, rather than partition and flush a cache the way a DRAM design must.
+The alternatives weighed are keeping a conventional multi-level cache hierarchy (partitioned and flushed for isolation, the mainstream choice a DRAM design forces) and keeping only a small L1 while dropping the outer levels; both are declined, the deletion is total.
+The prompt is the Cerebras all-SRAM design, which drops the L1/L2/L3 hierarchy because on a plane of SRAM there is no slow tier to cache; the same logic transfers here once main memory is SRAM, but is taken on this design's own terms (in-order, verification-maximal, performance subordinated), not Cerebras's.
+
+**What the deletion buys, on the scarce axis.**
+A cache exists to bridge the latency and bandwidth gap between a fast core and slow DRAM, and the SRAM main memory above removes that gap: there is no slow tier left to cache.
+What is deleted is not merely area but a *hidden, reactive, stateful* mechanism, a feedback loop from access history to placement and timing, the exact class the profile deletes everywhere else (the MMU, the dynamic branch predictor, the reactive refresh loop, dynamic DVFS): a cache is that pattern in the memory path, and deleting it is *strictly stronger than partitioning and flushing it*.
+The dividend is concentrated where this design spends most.
+The dominant WCET-pessimism term is gone: every access is the flat SRAM latency, not the hit-or-miss distribution an abstract-interpretation analyzer (aiT-class) must bound, so WCET's residual memory term is a constant (§11, §15).
+The entire cache-timing side-channel class, the canonical microarchitectural channel and the substrate of the transient-execution family, is deleted *at the source* rather than closed by way-coloring and `fence.t`: admission tests 2 and 3 are satisfied on that axis by absence, the wrong-path fetch I-cache footprint a static-prediction design still had to partition is gone, and the `fence.t` flush set shrinks toward the register files and store buffer alone (§15).
+The cache-coherence protocol and its directory leave the Sail model, within an island and across islands alike, so the isolation story simplifies to memory, NoC, and power partitioning under Ztso consistency, and the way-partitioning apparatus is unneeded (§15).
+
+**The cache-versus-scratchpad distinction is the whole point.**
+Deleting the *cache* is the scarce-axis win; it is not the same decision as deleting *fast local memory*.
+The retained fast structures are not caches and carry none of the cost: the register files; the Ztso store buffer (ordering, drained at a switch); a static-path fetch buffer down the statically determined path (deterministic, not history-indexed); the explicit software-managed scratchpads of the V- and M-class datapaths; and the integrity-tree-node cache (an address-indexed node store for the memory integrity tree, present only with that tree, address- not history-indexed, so no data-cache timing channel).
+An explicit scratchpad is capability-governed plain memory at a fixed address range, WCET-exact and coherence-exempt, holding no reactive or hidden state, so it adds no timing channel, no flush obligation beyond the eager save-and-zeroize already accounted at a partition switch (§7), and no WCET pessimism: it is *far cheaper on the proof axis than a cache* (a modeled memory region and its partition-switch save-and-zeroize, not a dynamic reactive structure carrying a timing channel, a flush-completeness obligation, and coherence), though not literally free, which is exactly why the V- and M-class carry one (their datapath throughput, systolic-GEMM and vector-operand reuse, rests on it, not merely its latency, so it is architecturally intrinsic, not a substitute cache).
+
+**Scalar cores carry no local memory tier, and the reason is two-sided, not a wash.**
+A scalar scratchpad is *purely* a performance structure, but it is not free on the scarce axis: it adds a modeled memory region, its partition-switch save-and-zeroize state, and RTL ⊑ Sail surface (far below a cache's dynamic, reactive cost, yet not zero), so dropping it *is* a small proof-shrink, the design's standing trade of subordinated performance (§2) for a smaller model.
+It is also a poor performance bet for the case that motivates it: a scratchpad is *statically* managed, capturing only what the compiler can place ahead of time, not the unpredictable working set of irregular, pointer-chasing code, which is precisely what a cache captures dynamically and a scratchpad cannot.
+So scalar cores default to *none* (the irregular-code latency is recovered off-device by static layout and the performance-recovery levers, never a hardware cache), and a scalar scratchpad is admitted only as a design-space-exploration parameter where a class's access is predictable and high-reuse enough for static staging to pay.
+The depth, such as it is, sits entirely in the *cache*, deleted unconditionally; the *scratchpad* is a modest, static, workload-specific tool, kept where a datapath's reuse earns it (V- and M-class) and dropped where irregular access would not be served by it anyway.
+
+**RISC-V does not couple the caches in: it is among the least cache-coupled ISAs.**
+Caches are microarchitecturally transparent in RISC-V: the ISA names no cache level, exposes no architectural cache state, and requires no cache at all (cacheless cores running from tightly-coupled SRAM are standard at the embedded scale, CHERIoT-Ibex among them), so a cacheless core is a fully conformant profile choice, not a fork.
+The Ztso memory model is defined over ordering, not caches, and gets *simpler* (coherence is trivial with a single copy per location).
+The one place that looks like coupling dissolves: `Zicbom` (`cbo.clean`/`flush`/`inval`) is *dropped outright*, because its only reasons to exist, cleaning or invalidating a cache line against memory, flushing to a persistence domain, or synchronizing an instruction cache for self-modifying code, are each absent by construction (no cache, volatile SRAM with durability only via the storage-device path, and W^X with no `fence.i` and no runtime codegen), so a `cbo` has nothing to manage and no consumer in the kernel or in any future userspace program; the cross-island ring ordering it nominally carried is a plain `fence` over shared SRAM (§15).
+`Zicboz` (`cbo.zero`) is unrelated and retained (a fast aligned-block zero, the eager-zeroize and Write-before-Read reset), and the `Zicbop` prefetch and non-temporal hints were already excluded (§15).
+
+**Objection: general-purpose, irregular workloads are what caches serve.**
+Cerebras is an AI-dataflow engine with predictable, streaming access, where a cacheless all-SRAM design is a natural fit; a general OS and application core runs irregular, pointer-chasing code whose locality a cache exploits.
+The honest answer is that this costs performance, deliberately: a large multi-megabyte SRAM main memory is not single-cycle (a big array has real access latency), so latency-bound scalar code that would have hit a small L1 now pays main-memory latency on an in-order core that cannot hide it.
+But the cost is *bounded* by SRAM's low latency, a small multiple, not the order-of-magnitude a cacheless *DRAM* design would pay; the throughput-critical vector and matrix paths keep their explicit scratchpads; and the loss is on the free axis (recovered off-device by static layout, the design's standard trade) against a large gain on the scarce one.
+This is the same posture as every other deletion in the profile: spend performance, buy proof surface.
+
+**Disposition (adopted; normative in §15):** there are no hardware caches (no L1, L2, or last-level cache) and no cache-coherence protocol; fast local memory is the explicit, WCET-exact, software-managed scratchpad, provided where a datapath needs it (V- and M-class) and absent on scalar cores by default (a design-space-exploration parameter, never a cache); `Zicbom` is dropped, `Zicboz` retained; cross-island rings communicate over shared SRAM windows ordered by Ztso and fences, with no cache management and no coherence traffic.
+
+**Honest residual (§17):** latency-bound, pointer-chasing scalar workloads that would have fit a conventional cache lose performance, bounded by SRAM main memory's low latency and partly recovered off-device; the accepted price of trading the cache's reactive complexity for a flat, statically-analyzable memory path.
 
 ---
 
