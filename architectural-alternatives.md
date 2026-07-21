@@ -1066,6 +1066,7 @@ The one clean simplification the bespoke SRAM buys here is **native tag bits**: 
 **Disposition (adopted; normative in §15):** main memory is bespoke on-die and in-package SRAM; refresh, RFM, PRAC, self-refresh, and the DRAM-side autonomous power modes are deleted; RowHammer drops from a live remote primitive to a narrowed ECC-covered residual; CHERI tags are native SRAM bits; TME and the integrity tree are retained as defense-in-depth over the in-package interface; the static density and idle-power levers (3D and CFET stacking, backside power, asymmetric-Vt) and a static-only assist are admitted, the dynamic assist declined; a chiplet realization is admissible.
 
 **Honest residual (§17):** capacity is materially lower than a DRAM design's, the accepted price; idle leakage is higher, mitigated but not erased by the static levers; a chiplet realization adds one in-package die-to-die interface (the surface the retained encryption and tree defend) and one further die to image under IRIS, a smaller inspection and physical surface than a socketed-module board but not zero.
+The two density levers that occlude that backside inspection, backside power delivery and gate-all-around transistors, are for that reason confined to the memory die and kept off the inspected compute die (the gate-all-around entry below, §17).
 
 ---
 
@@ -1122,6 +1123,35 @@ MRAM ranks with the emerging non-volatile memories as a capacity-and-idle-power 
 **Disposition:** rejected as main memory; bespoke SRAM stays (§15).
 The non-volatility MRAM offers is taken where it belongs, in the persistent security state already held in fuses, flash, and monotonic counters, and declined for the working set, whose volatility is a security property the design depends on.
 Non-normative; no spec-body change.
+
+---
+
+## Gate-all-around transistors: denser SRAM against backside inspectability, resolved by which die is inspected
+
+The question: adopt gate-all-around (GAA) transistors, the nanosheet successor to FinFET at the 2nm-class nodes (TSMC N2, Samsung SF2, Intel 18A RibbonFET), to raise SRAM density and so relieve the one honest downside of the bespoke-SRAM main memory, its lower capacity per unit area (above).
+GAA is a transistor architecture, not an instruction set or a memory model, so like the radiation-hardened realization (above) it is orthogonal to the verified design and changes no proof: the same RTL refines the same Sail model whether its cells are FinFET or nanosheet, and the density gain is real and wanted.
+The cost is that GAA-class density, at the nodes that deliver it, arrives in the same process regime as a change that works directly against the design's one physical-evidence lever against the fab residual.
+
+**Why it works against IRIS.**
+Verified RTL is not verified silicon (§17), and the mitigation is IRIS: non-destructive infra-red inspection *through the silicon backside*, exploiting silicon's infra-red transparency to image the gate-level structure and check the fabricated die against the verified layout.
+GAA's own contribution to the difficulty is that its nanosheet channels are a *vertical stack* of ever-smaller features, pushing the structure the inspection would verify further below infra-red resolution and out of a single imaging plane, sharpening the ceiling IRIS already carries (it resolves coarser structure far better than the smallest features, §17).
+Worse, the same node generation introduces **backside power delivery** (BSPDN), which routes the power-distribution metal onto the die *backside*, the exact optical path IRIS images through, so a dense backside power network occludes the backside view outright: Intel's 18A pairs GAA and backside power from the start, and TSMC and Samsung phase backside power in across the same 2nm generation, so a design reaching for GAA-class SRAM density reaches into the process regime where backside power lands with it.
+The failure-analysis literature corroborates the direction independently: GAA and backside power together are documented to break the established probe-and-optical fault-isolation flows and to force new device-preparation and diagnosis techniques.
+So the premise holds on both halves: GAA raises SRAM density and complicates post-fabrication validation.
+
+**Why the axis discipline decides it, and why it is not all-or-nothing.**
+Inspectability is on the *scarce* (trust and proof) axis; density is on the *free* (engineering) axis; and the design already accepted lower capacity to keep the scarce axis clean when it chose SRAM over DRAM (above).
+Spending inspectability to buy density *on the inspected die* is the same inversion the DRAM-to-SRAM and MRAM decisions refuse.
+But the die IRIS is load-bearing for and the die GAA's density helps are not the same die, so the choice divides rather than resolving one way for the whole system.
+
+**The resolution: put GAA where IRIS is not the mitigation.**
+The die IRIS protects is the **compute and security die**: a fab-time trojan in the RoT, the cores, the crypto core, or the NoC is the load-bearing fab threat (§17), and that die is logic, whose density is not the system's constraint.
+It stays on an **IRIS-inspectable process, frontside power delivery keeping the backside optical path clear, at a node whose structure backside infra-red resolves**, forgoing the logic density GAA and backside power would buy, which the design does not need.
+The die GAA's density genuinely helps is the **passive SRAM main memory**, whose capacity *is* constrained, and a stacked or chiplet SRAM realization already sits outside the compute die and already trades single-die inspectability for the memory encryption and the integrity and anti-replay tree that cover it at runtime (§15, and the SRAM entry above): a fabricated-in fault on a memory die can only produce a *caught corruption*, never a forged capability or covert computation, since it holds only encrypted, integrity-checked, capability-tagged data and executes nothing.
+So a **GAA and backside-power SRAM die is admissible where capacity demands it**, on exactly the die whose fab residual the tree carries rather than IRIS, while the inspected logic die keeps the process that keeps it inspectable.
+
+**Disposition (adopted in part, and graded; §15 and §17 scope it):** GAA and backside power are admitted for the passive SRAM die (stacked or chiplet), where density is the constraint and the retained encryption and integrity tree carry the fab residual, and declined for the inspected compute and security die, which keeps frontside power and an IRIS-resolvable process, because inspectability is the scarcer good and logic density is not the constraint.
+The choice re-verifies nothing, a transistor-architecture and power-delivery decision rather than an architectural one, and it resolves a latent tension in the profile: backside power delivery was listed among the SRAM density levers while IRIS depends on the backside optical path, now scoped so the two no longer collide (§15, §17).
 
 ---
 
