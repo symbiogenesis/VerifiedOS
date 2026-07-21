@@ -85,6 +85,50 @@ Both remain non-normative; **VLIW as a whole imports nothing**, and ranks below 
 
 ---
 
+## Secure speculation via information-flow tracking: SecureBOOM, STT, DOLMA; the leak is bounded in a foreign prover, the timing and proof costs it leaves behind are not
+
+The proposal is the direct counterpoint to the belt and EPIC entries (above): where they recover instruction-level parallelism by *avoiding* speculation (NaR metadata speculation, no rollback, no transient-execution class), this line *keeps* full out-of-order speculation and proves the transient leak closed.
+The strongest instance is **SecureBOOM** (Jauch, Wezel, Fadiheh, Schmitz, Ray, Fung, Fletcher, Stoffel, Kunz; ICCAD 2023; RPTU Kaiserslautern), which augments a full out-of-order BOOMv3 with a generic dynamic **taint** layer and an **information-flow controller** that selectively stalls or squashes the instructions ("transmitters") capable of turning transiently-accessed data into a microarchitectural signal, refined iteratively until the RTL passes **UPEC** (Unique Program Execution Checking; Fadiheh et al.), an exhaustive SAT-based, cycle- and bit-accurate property check for transient-execution side channels.
+It is the register-transfer realization of the software-mitigation lineage (**STT**, Speculative Taint Tracking, Yu et al., MICRO 2019; **DOLMA**, Loughlin et al., USENIX Security 2021).
+
+**The steelman: a real result, and an elegant one.**
+SecureBOOM is, to its authors' knowledge, the first formally-verified RTL out-of-order core featuring secure speculation with competitive performance (BOOMv3, RV64GC, boots Linux), at 5.2% overhead under its weaker (`spectre`) threat model and 36% under the stricter (`futuristic`) one.
+The flow is genuinely attractive on its own terms: the taint-plus-controller infrastructure is generic and needs no security expertise, UPEC's exhaustive counterexamples pinpoint the exact transmitter to fence rather than forcing a blanket flush, and the proof catches *unknown* channels, not only known Spectre variants.
+If the only objection to speculation were that it leaks secrets, this would be a serious dent in the profile's deletion of it.
+
+**Why it does not clear the admission bar: it answers a question this design does not ask, in a currency it does not spend.**
+The profile's speculation stance is not "speculation leaks," it is "speculation and its entire proof-and-timing burden are deleted (§15)," and SecureBOOM lowers the price of a *different* trade along *four* separate axes, only one of which it touches.
+- **The guarantee is in a foreign prover: an oracle, never the closing axiom.**
+  UPEC is an exhaustive RTL property checker, not a Coq refinement; by the single-prover rule the platform applies to riscv-formal, aiT, Binsec/Rel, and EasyCrypt, it is a **trust-base widening**, admissible only as bounded bring-up *evidence* that enters no trust base, exactly the disposition the GLIFT / SecVerilog entry (below) gives every RTL information-flow tool.
+  Even granting UPEC a complete proof of its property, it establishes a fact about the RTL *directly*, not the RTL ⊑ Sail refinement the WCET, constant-time, and non-interference theorems are quantified over: that refinement would still be owed, over a far larger model.
+- **It maximally inflates the least-built arrow.**
+  RTL ⊑ Sail is the design's hardest and least-built proof, and an out-of-order speculative core is the canonical state-space-explosion case; the proof-aware design-space exploration (§15) weighs *proof simplicity* as a first-class objective precisely so a smaller microarchitecture yields a smaller Sail model and a cheaper refinement, and speculation is the maximal move against it.
+  This is the EPIC-entry inversion (above) at microarchitectural scale: spending the scarce currency (proof surface on the least-built arrow) to buy the free one (IPC).
+- **It closes one of four blockers and leaves the timing half untouched.**
+  Speculation was deleted for the transient leak, for timing determinism, for hidden state surviving a partition switch, and for the classical channels, and SecureBOOM addresses only the first.
+  Worst-case timing: the design's bound collapses to a tree sum precisely because an overlap-free, non-speculative pipeline leaves the estimator no path interference to resolve (§11, §15), and out-of-order execution reintroduces exactly the history- and pipeline-state-dependent latency that makes WCET intractable and breaks the static cyclic executive (§7); UPEC certifies nothing about it.
+  Admission test: the branch predictor and the speculative structures are hidden, history-indexed shared state that survives a partition switch (test 3), and out-of-order completion is data-dependent by design (test 2), so satisfying the profile would still demand a `fence.t`-class flush on every switch, forfeiting the out-of-order benefit and adding the flush obligation, whether or not the *secret* leak is fenced.
+  Classical channels: SecureBOOM's *own* threat model excludes them (it explicitly places the instruction-cache footprint of square-and-multiply RSA out of scope), whereas the cacheless, in-order profile deletes the co-residency and cache-timing classes at the source (§15), so secure-OoO would reopen a channel class the design closed by construction and re-shut only its transient subset.
+- **The confidentiality scope is weaker.**
+  SecureBOOM declares architectural registers non-confidential and pushes "do not spill secrets into registers" onto the software developer, below the platform's binary-level constant-time bar; carrying constant-time over a speculative core would require a speculative-leakage contract (the hardware-software-contracts line, Guarnieri et al.) baked into the leakage-annotated Sail model and into every relational CT proof, replacing what the fixed-latency profile obtains structurally for straight-line code (§5, §15).
+
+**The distilled atom is already banked, and it is the opposite trade.**
+The design's answer to "recover ILP without re-admitting the leak" is not secure-OoO but **NaR / metadata speculation** (the belt and EPIC entries above): deferred-fault poison loads give the speculative *scheduling* benefit with no microarchitectural rollback and therefore no transient-execution class at all, so there is nothing to fence and nothing to prove secure.
+That is the shape of an admissible ILP recovery here, alongside macro-op fusion, the one in-model performance win admitted precisely because it is architecturally transparent, adds no hidden state, opens no timing channel, and *tightens* WCET (§15).
+Secure-OoO is the mirror image: add the mechanism, then spend scarce proof to fence it and still owe the timing and refinement costs; the enclave entry (below) reaches the same verdict from the isolation side, where the transient and shared-microarchitecture threats are *deleted, not defended*.
+
+**Where it ranks.**
+Off the abandon-substrate scale, evaluated as two things.
+As a microarchitectural mitigation it imports nothing, being the security patch for a mechanism the profile does not contain.
+As a verification method, UPEC is logged in the same slot as GLIFT / SecVerilog and riscv-formal (below): a bounded, non-Coq, information-flow property checker useful as bring-up evidence *were* speculation ever admitted, never the Coq close.
+
+**Disposition:** no import.
+Secure speculation lowers the cost of *keeping* out-of-order speculation and blocking its transient leak; the profile's bet is to *delete* speculation together with its WCET intractability, its hidden predictor state, its classical channels, and its share of the RTL ⊑ Sail proof, and re-admitting it would sacrifice all four to recover an IPC the NaR atom (above) recovers without any of them.
+UPEC and its STT/DOLMA-style information-flow tracking are logged, with GLIFT / SecVerilog (below), as a bounded bring-up complement that enters no trust base.
+Non-normative; no spec-body change.
+
+---
+
 ## Minimal-ISA extremes: OISC and transport-triggered architectures; parsimony past the point the substrate and the proof survive
 
 The proposal pushes the profile's own parsimony instinct (deleting the C extension for unambiguous decode, curating `A` to `Zaamo`, folding scalar float onto the vector unit, §15) to its absolute limit: a **one-instruction-set computer** (OISC, a single instruction such as *subtract-and-branch-if-≤0*, from which all computation is synthesized) or a **transport-triggered architecture** (TTA / the MOVE machine: the only operation is a register-to-functional-unit-port move, and arithmetic is a *side effect* of moving operands to a unit's input ports).
