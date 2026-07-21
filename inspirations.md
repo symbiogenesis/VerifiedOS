@@ -71,6 +71,19 @@ What transfers is therefore **evidence, not code**: Akaros is shipping demonstra
 
 ---
 
+## Cerebras: the wafer-scale all-SRAM manycore, convergent evidence for share-nothing and a foil for its dataflow
+
+The Cerebras Wafer-Scale Engine (Cerebras Systems) is a single-wafer AI processor: on the order of a million small cores, each with its own private SRAM, communicating only by message passing over a statically-configured 2D mesh, with no DRAM and no cache hierarchy anywhere on the die.
+Set its two headline properties aside (the wafer-scale integration this platform does not pursue, and the all-SRAM main memory it independently adopts, §15), and the rest converges, from the AI-accelerator pole, on three further commitments this design also makes: cores that share **no memory and run no cache-coherence protocol**, communicating by explicit messages (the share-nothing multikernel and its coherence-free islands, §7, §15); **flat, uniform-latency on-die SRAM** as the whole of memory (the no-DRAM, no-cache subsystem, §15); and a **statically-configured interconnect** whose routes are fixed ahead of time rather than arbitrated dynamically (the TDM NoC, §15).
+It is the largest-scale existence proof that a share-nothing, coherence-free, message-passing manycore is buildable, the role Barrelfish (above) plays for the model itself and SemperOS (above) for its distributed capabilities.
+
+It is a **convergent foil**, not an ancestor this design imports, and the divergence is the sharp part: precisely the mechanisms that make Cerebras fast are the data-dependent, reactive, hidden-state class this platform deletes by construction.
+Its **dataflow execution** fires work on operand arrival, so timing tracks the data, against the static cyclic executive and the fixed-latency WCET tables (§7, §11); its celebrated **sparsity harvesting** skips zero operands, a data-dependent timing, power, and interconnect-traffic channel of exactly the kind the constant-time mandate forbids (the `Zkt`/`Zvkt` leakage model, §15, the same class as variable-latency division and analog compute-in-memory); its mesh runs on **hardware backpressure**, a busy receiver stalling its upstream sender, which is the cross-domain contention timing channel the **TDM arbitration deletes** by construction (a partition's slot does not move because a neighbor is busy, §15); and because its cores are dataflow-driven they idle between events, a data-dependent activity profile, where this platform draws power on the static schedule alone (§15).
+The interconnect comparison is thus two-sided in one artifact, take the static routing and decline the backpressure, and the compute comparison likewise, keep the flat SRAM and decline the sparsity that would leak through it.
+What transfers is therefore **evidence, not code**: Cerebras is the demonstration at extreme scale that the share-nothing, no-coherence, all-SRAM substrate works, and, in the same motion, the clean illustration of *why* its performance tricks are the ones a verification-maximal design must leave on the table, because each buys throughput with a channel.
+
+---
+
 ## CheriOS: the single-address-space CHERI microkernel, the existence proof for the deleted MMU
 
 CheriOS (Lawrence Esswood's Cambridge microkernel, CTSRD-CHERI, a clean-slate design outlined by Robert Watson) is the working demonstration that **CHERI capabilities alone can carry a microkernel's entire spatial isolation in a single address space**: compartments share one address space and are separated by capability bounds, not page tables, and it runs a real workload there: multicore, a filesystem, an LWIP network stack, an NGINX webserver.
