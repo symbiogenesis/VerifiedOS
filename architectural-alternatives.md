@@ -995,6 +995,36 @@ Non-normative; the normative decisions are in §15.
 
 ---
 
+## Bespoke post-quantum instruction-set extensions: HORCRUX, PQCUARK, and dedicated NTT datapaths; the one PQC primitive that clears the threshold is Keccak, and it is already taken
+
+The profile adopts a frozen Keccak-f[1600] vector instruction (§15), which raises the obvious next question: should it go further, to a *fuller* post-quantum instruction-set extension, the number-theoretic-transform (NTT) butterflies, modular reduction, and rejection samplers that the research designs package beside Keccak?
+Two recent proposals mark the option.
+**HORCRUX** (eprint 2025/1934) is a unified ISE plus a tightly-coupled coprocessor covering *all* NIST-standardized PQC (ML-KEM, ML-DSA, SLH-DSA), aimed at constrained embedded cores under strict energy and area budgets.
+**PQCUARK** (eprint 2025/2178) is a scalar RISC-V ISE for ML-KEM and ML-DSA that accelerates what it names the two bottleneck kernels: the Keccak-f[1600] permutation and the NTT.
+The design takes Keccak and stops there, and the boundary is drawn on the same *verify rather than hedge* threshold as the matrix extension (above), not on reflex.
+
+**The NTT already rides the general vector unit, so a bespoke datapath adds Sail surface without deleting a proof.**
+The RISC-V PQC task group standardized Keccak *alone* precisely because the lattice ring arithmetic vectorizes on ordinary RVV (a result reproduced on BSC's Sargantana core, which reaches competitive ML-KEM and ML-DSA on standard bit-manipulation and vector extensions with no bespoke opcode).
+The NTT on RVV is a straight-line, statically-scheduled butterfly network with no secret-dependent control flow or addressing, so it is constant-time by construction and carries no heavy timing proof for a hardware unit to shrink; its modular reduction is a few `Zbc` and RVV operations against a small shared correctness lemma.
+A bespoke butterfly or `modmul` instruction would trade that small, already-constant-time software kernel for a fresh instruction, its Sail semantics, its own place on the `Zvkt` timing contract, and a new **RTL ⊑ Sail** obligation on the least-built arrow (§18): it *grows* the proof surface, the exact opposite of the reason Keccak was taken.
+
+**The Keccak asymmetry is the whole point, and it is what the threshold measures.**
+Keccak-f[1600] qualified on two properties the NTT lacks at the scale that would justify a datapath.
+It is the actual throughput bottleneck (ML-KEM, ML-DSA, SHAKE, and SLH-DSA are all Keccak-dominated, and SLH-DSA is *nothing but* hashing, so one Keccak unit accelerates every standardized PQC scheme), and its large, branchy theta/rho/pi/chi/iota permutation collapses in hardware to a single clean Sail invariant that is constant-time by `Zvkt` construction, deleting a substantial software constant-time-and-functional burden.
+That is exactly the order-of-magnitude, proof-collapsing threshold the matrix-accelerator entry (above) sets for admitting a domain datapath over the general vector unit: Keccak clears it, the NTT does not.
+
+**The coprocessor forms target the opposite design point, and their agility is a non-goal.**
+HORCRUX and PQCUARK give a *small, vectorless, embedded* core the PQC it could not otherwise afford; this is an application-class design whose crypto core already runs ML-KEM and ML-DSA constant-time on the vector unit plus the Keccak instruction, so the no-vector-unit bottleneck they solve does not exist here.
+HORCRUX's headline, all NIST PQC algorithms in one silicon ISE, is crypto-*agility* as a hardware feature: a fleet-and-interop economics property, not a security or proof one, and it would fold per-algorithm datapaths (SLH-DSA's hash-tree machinery among them) into the frozen model for a menu of algorithms the composition-time profile does not offer (§15).
+
+**Distilled atom, already banked.**
+The one PQC primitive that earns a hardware datapath is Keccak, and it is taken (§15, the frozen Keccak-f[1600] vector instruction on the vector-bearing cores); the NTT and the samplers ride the general vector unit and `Zvbb`/`Zvbc`, constant-time by construction and verified as software like the rest of the crypto core (§5).
+
+**Disposition:** reject the bespoke PQC instruction-set extension (the HORCRUX and PQCUARK coprocessors and their NTT, modular-reduction, and sampler instructions); the frozen Keccak-f[1600] vector instruction (§15) is the sole adopted PQC hardware primitive, and the NTT and rejection sampling ride the general vector unit as constant-time software.
+Non-normative; the normative decisions (adopt Keccak, ride the NTT on RVV) are in §15.
+
+---
+
 ## Mon CHÉRI conditional capabilities: reject the binary-side extension, adopt Write-before-Read as a transparent initialization-tag plane
 
 Where the trilogy above *deletes* mechanisms down to CHERI, this entry weighs *extending* CHERI.
