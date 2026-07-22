@@ -57,7 +57,7 @@
 | **Gain, removed** | No pointer masking, Ssnpm/Smnpm (§15) | Removed | **~0% to +1%** |, | Negligible. |
 | **Gain, added** | RVV vector, VLEN 256 (C-class) / 4096 (V-class) (§15) | Added | **+100% to +1500% (2–16×+)** | data-parallel | User-flagged. The dominant gain lever; huge VLEN on V-class. |
 | **Gain, added** | Matrix / systolic GEMM units, M-class (§15) | Added | **+900% to +9900% (10–100×)** | dense GEMM / AI inference | Vs scalar; "early-NPU-class" per the spec's own honesty. Admitted over the M-class's own VLEN=1024 RVV GEMM by the order-of-magnitude margin that is its §15 admission threshold. |
-| **Gain, added** | Scalar + vector crypto, Zkne/Zknd/Zknh, Zvkned/Zvknhb/Zvkg/Zvbb/Zvbc (§15) | Added | **+400% to +2000% (5–20×)** | AES / SHA-2 / GHASH | Table-free; *also* deletes the cache-timing side channel. |
+| **Gain, added** | Vector crypto, Zvkned/Zvknhb/Zvkg/Zvbb/Zvbc (§15) | Added | **+400% to +2000% (5–20×)** | AES / SHA-2 / GHASH | Table-free on the vector unit (scalar AES/SHA-2 round functions folded onto it, §15); *also* deletes the cache-timing side channel. |
 | **Gain, added** | Bit-manip Zba/Zbb/Zbs, fixed-latency (§15) | Added | **+2% to +12%** | bit / integer-heavy | Broad integer uplift. |
 | **Gain, added** | Macro-op fusion, decoder-stage, architecturally transparent (§2, §15) | Added | **+3% to +10%** | dependent scalar-integer / address-gen / compare-branch | Recovers issue efficiency lost to no-C and static-only prediction; a fused pair is one fixed-latency entry (tightens WCET), architecturally transparent so it costs no proof. |
 | **Gain, added** | `Zicond` branchless select (§15) | Added | **+0% to +4%** | data-dependent branches | "Doubly load-bearing": also dodges the static-predictor mispredict. |
