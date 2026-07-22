@@ -601,6 +601,32 @@ Non-normative; no spec-body change.
 
 ---
 
+## External roaming hardware authenticators: the YubiKey and FIDO2 security-key class, declined for the verified on-die authenticator
+
+The proposal moves the second authentication factor onto an **external roaming hardware security key**: a FIDO2/CTAP device of the YubiKey 5C Bio class, plugged into the USB-C port, holding origin-bound credentials and gating them with its own on-key fingerprint sensor.
+
+**The steelman is real.**
+A roaming key is phishing-resistant by construction (WebAuthn origin binding), hardware-binds its private keys, adds a genuine *possession* factor, gates with an on-key biometric, and rides an open, widely-audited standard.
+It is the best commodity answer to credential theft, and a natural thing to reach for.
+
+**Why it is declined, on this platform's own axioms.**
+A security key is a **foreign computer** (§4): its own microcontroller running unverified vendor firmware, the category this design admits only for the zero-authority eUICC.
+Admitting it as an authenticator puts an unverified device *in the authentication path*, and requires the USB stack to speak CTAP/CTAPHID (attacker-facing wire, one more Narcissus grammar, §5) to a device a malicious lookalike can impersonate (the BadUSB shape); the device-authentication floor and capability containment (§12) bound that surface but do not make it free, and it is spent on a function the platform already discharges.
+The function is **already on-die and verified**: the RoT, the crypto core, and the credential and unlock service together are a hardware-bound, phishing-resistant, post-quantum (ML-DSA) authenticator whose private keys never leave the crypto core (§5, §9, §12), with an on-device biometric gate (the under-display fingerprint sensor, §15) and attestation over the sealing service.
+This is the **TPM disposition one layer up** (the function is kept, on-die and verified; the standardized external device that also provides it is declined as a foreign trust base), and the drop-PMP maxim in miniature: *verify rather than hedge*, one authenticator, no unverified second root.
+
+**The distilled atom is already banked.**
+The useful capability (a hardware-bound, phishing-resistant credential and a possession factor) is the on-die **platform authenticator**: the WebAuthn platform-authenticator role realized over the sealing and attestation service (§12), so passkeys and origin-bound credentials are provided with no external device at all.
+What is declined is specifically the *roaming* (external, cross-device) key, not the authenticator function.
+
+**Honest cost.**
+Declining roaming keys forgoes the one thing the platform authenticator cannot offer: **portability across foreign devices and ecosystems** (a user cannot bring an existing YubiKey, and a credential minted here does not roam to a machine that is not this platform), the same class of interop trade as the no-Linux and no-tunneling decisions.
+The choice is the **most-secure** reading (zero external-authenticator support keeps the authentication attack surface minimal and the trust base purely on-die and verified), taken deliberately over the convenience of an existing key ecosystem.
+
+**Disposition:** no import: external roaming hardware authenticators are declined; the verified on-die path is the sole authentication root (the §12 credential and unlock service names it the platform authenticator).
+
+---
+
 ## Redundant-execution architectures: DIVA, lockstep, TMR, and their software alternatives; the asymmetric-trust pattern is the platform's own, spent on simplicity rather than redundancy
 
 The proposal keeps a fast, complex, *unverified* core and buys trust in its results with **hardware redundancy** rather than by simplifying and verifying the core itself.
