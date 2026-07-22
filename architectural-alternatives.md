@@ -1084,7 +1084,7 @@ It is the same graded-hierarchy discipline the design already applies on four ax
 ## SRAM main memory: capacity traded for the deletion of the refresh, RowHammer, and PRAC machinery
 
 The choice: make main memory bespoke **on-die and in-package SRAM** rather than DRAM (LPDDR-class), accepting far lower capacity in exchange for latency, bandwidth, and, decisively for a verification-maximal design, the *deletion* of a whole class of mechanism.
-The alternatives weighed are keeping DRAM (the conventional choice), a hybrid (an SRAM near tier over a retained DRAM far tier), and an emerging non-volatile main memory such as MRAM (evaluated in its own entry below); all are declined, the switch is total.
+The alternatives weighed are keeping DRAM (the conventional choice), a hybrid (an SRAM near tier over a retained DRAM far tier), and an emerging non-volatile main memory such as MRAM, FeRAM, or ReRAM (evaluated in its own entry below); all are declined, the switch is total.
 
 **What the deletion buys, on the scarce axis.**
 DRAM stores each bit as charge on a capacitor that leaks and must be refreshed, and that same charge-disturbance physics is the RowHammer primitive: repeated activation of an aggressor row flips bits in a victim row.
@@ -1168,11 +1168,12 @@ So the concrete 2D-mesh topology is at most an input to the proof-aware design-s
 
 ---
 
-## MRAM main memory: the density and idle-power case is real, but non-volatility, write cost, and a magnetic attack surface trade the scarce axis for the free one
+## Non-Volatile main memory (MRAM, FeRAM, ReRAM): the density and idle-power case is real, but non-volatility, write cost, and a new physical attack surface trade the scarce axis for the free one
 
 The question, posed directly: swap the bespoke SRAM main memory (above) for magnetoresistive RAM (MRAM), whose mainstream embedded and main-memory candidate is spin-transfer-torque MRAM (STT-MRAM), with spin-orbit-torque MRAM (SOT-MRAM) as the less mature successor.
 The premise offered for it is fourfold: higher density than SRAM, stronger resistance to side-channel attacks, no idle-power draw, and manufacturing difficulty as the sole downside.
 Two of those four hold, one is the reverse of true for this threat model, and the decisive costs are three the premise does not name.
+MRAM is the strongest of the non-volatile main-memory candidates, so it carries the detailed analysis; ferroelectric RAM (FeRAM) and resistive RAM (ReRAM) are folded in below, because they share its decisive property and fail the same way, each with an extra disqualifier of its own.
 
 **What is true, and what CHERI and ECC do with it.**
 MRAM stores a bit as the magnetization of a magnetic tunnel junction, one transistor and one junction per cell, far smaller than SRAM's six transistors, so its density is DRAM-class and well above SRAM's: the *density* claim holds.
@@ -1214,12 +1215,27 @@ The property MRAM genuinely offers this design, durable and tamper-evident *pers
 Non-volatility is thus imported where it helps and declined for the working set where it hurts, which is the whole of the elegant synthesis.
 (The junction also makes a serviceable physical-unclonable function and entropy source, but the platform's entropy root is already singular, the RoT true-random generator through the verified deterministic random-bit generator, §15, §16.)
 
+**The rest of the non-volatile class inherits the decisive strike: FeRAM and ReRAM.**
+The reasoning above is not specific to the magnetic junction; it is about non-volatility on the working set, so the other main-memory-candidate non-volatile memories fail the same way, each carrying its own extra disqualifier.
+Ferroelectric RAM, which stores a bit as the polarization of a ferroelectric capacitor, is *strictly weaker than MRAM here*: it carries the identical non-volatility remanence strike (objection 4), and it swaps the magnetic-fault surface for a *thermal* one (polarization is erased past the Curie temperature, a documented depolarization and fault-injection vector, with electric-field and imprint attacks alongside, so objection 3 recurs in a flavor the enclosure still does not cover).
+And it adds two problems MRAM does not have: its density is the *worst* of the class (the ferroelectric capacitor scales poorly, so commercial FeRAM tops out in the megabit range, orders of magnitude below a usable main store, which disqualifies it as main memory before the security axis is even reached), and its read is *destructive* (sensing depolarizes the cell and forces an immediate restoring write, turning every read into a read-modify-write, with the wear and the read-coupled write-timing that implies).
+Its one genuine edge over MRAM, very high and low-power write endurance that would neutralize the wear leveling of objection 1, is moot here, because the design already holds its persistent state to a write rate too low to wear even flash (the monotonic counters advance on signed updates, key rotation, or authentication attempts, never on a data commit, and the time floor persists rarely, §9, §10), so that headroom answers a problem the design has already deleted.
+Resistive RAM, which stores a bit as the resistance of a switchable metal-oxide filament, is the denser and more tempting of the two (density is *not* its disqualifier), but it carries the same non-volatility strike and the same axis inversion, its filament set and reset writes are asymmetric, variable, and partly stochastic (objection 2 returns as a data-dependent write timing and power channel), and its endurance is limited (objection 1's wear-leveling layer returns).
+Decisively, the design's own anti-features already place it: binary ReRAM is admitted *only* as deterministic storage below the §10 integrity line, never as main memory, and the analog ReRAM crossbar (compute-in-memory) is rejected outright (§15), so ReRAM as a main store sits on the far side of a line the spec has already drawn.
+
 **Where it ranks, and the hybrid.**
 An MRAM far tier over an SRAM near tier is the SRAM-over-DRAM hybrid the SRAM entry already declines, now with the non-volatile-memory write, endurance, magnetic, and remanence costs added and a reactive tiering mechanism on top, so it is declined *a fortiori*.
 MRAM ranks with the emerging non-volatile memories as a capacity-and-idle-power play on the free axis, rejected on the scarce axis it would tax: the same inversion, spending trust and proof surface to buy capacity and power, that the design refuses wherever it appears.
 
-**Disposition:** rejected as main memory; bespoke SRAM stays (§15).
-The non-volatility MRAM offers is taken where it belongs, in the persistent security state already held in fuses, flash, and monotonic counters, and declined for the working set, whose volatility is a security property the design depends on.
+**Any security-motivated hybrid is backwards for this design.**
+Hybrid volatile/non-volatile setups are argued for because it keeps the persistent state in the non-volatile memory and the secrets in SRAM, and claims the split *improves* cold-boot resistance, the best of both worlds.
+That reasoning holds only against a baseline where the secrets sit in a remanent memory (a DRAM machine, whose multi-second remanence is the cold-boot hole itself), and all of its resistance comes from the *secrets-in-volatile-SRAM* half.
+This design already holds the entire working set, every secret included, in volatile SRAM under an ephemeral key regenerated each boot and erased on power loss (§15), so it already sits at the maximum of that property: the hybrid adds no cold-boot resistance over the all-SRAM design and can only *subtract*, because its one net effect is to reintroduce a non-volatile region whose contents outlive power-off, the exact remanence the switch to SRAM deleted.
+The persistence and the remanence are one physical fact, not two: encrypt the non-volatile region under the ephemeral key and its contents are unrecoverable after power-off, throwing away the persistence that was paid for; keep the key long-lived so the contents are usable and the key is itself cold-boot-exposed, breaking the ephemerality the design leans on; no setting yields both.
+And the useful half of the split, persistent state in non-volatile memory, is *already the design*, realized in the fuses, flash, and monotonic counters that fit that small, low-rate, security-critical state far better than a general read-write non-volatile main memory (above).
+
+**Disposition:** MRAM, FeRAM, and ReRAM are all rejected as main memory; bespoke SRAM stays (§15).
+Non-volatility is taken where it belongs, in the small persistent security state already held in fuses, flash, and monotonic counters, and declined for the working set, whose volatility is a security property the design depends on; the security-motivated SRAM-plus-non-volatile hybrid is declined as a downgrade rather than a pure win, since it can only add remanence to a cold-boot posture already at its ceiling.
 Non-normative; no spec-body change.
 
 ---
