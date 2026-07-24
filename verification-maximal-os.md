@@ -1,11 +1,18 @@
 ﻿# Verification-Maximal Capability OS: Specification
 
-**Goals:** hyper-secure, extensively formally verified, transactional/stateless, reliable: with no requirement for broad software or hardware compatibility, and performance deliberately subordinated to security.
+**Goal:** a hyper-secure, extensively formally verified, transactional/stateless, reliable capability OS.
+Compatibility is narrow by design, and performance is subordinate to security.
 Engineering effort is treated as free; **trust is the scarce resource**.
-Every decision answers one question: *how small is the set of things that must be trusted, and how deep is the proof over it?*
-The axiom governs the trust *end-state*, never the delivery schedule: the two are different axes, and conflating them is the only way the axiom reads as self-contradictory.
-An interim that widens the trust base (F\*/Z3 via libcrux/HACL\* (§5), EasyCrypt's Why3/SMT, aiT, Binsec/Rel) is admissible only as a *retirable* scaffold with a named Coq-native destination and, where it is load-bearing at ship, a booked §17 retirement debt; it spends the free (calendar) axis to reach the same end-state sooner and never becomes the shipped trust base.
-That is categorically different from adopting a *permanent* second checker (inheriting seL4's Isabelle proof, or EverParse's F\*/Z3) which would never retire; it is this retirable-scaffold-versus-permanent-kernel asymmetry, not a second cost model, that forces the Coq-native re-proofs (seL4, VeriBetrFS, SSProve) while tolerating a temporary crypto widening, because engineering-is-free is precisely what *guarantees* the scaffold is affordable to remove: so an interim is a debt the axiom underwrites, not a suspension of it.
+
+The rule is simple: *minimize what must be trusted, then prove it as deeply as possible*.
+Two corollaries keep the rule from becoming self-contradictory:
+
+- **End state:** the shipped trust base is Coq-native wherever the system depends on the proof.
+  Permanent second checkers are rejected: inheriting seL4's Isabelle proof, or accepting EverParse's F\*/Z3 checker, would widen the final TCB.
+  That is why seL4's design, VeriBetrFS's design, and the crypto reductions are re-proved or re-homed in Coq (§5).
+- **Delivery path:** temporary foreign-prover or analysis scaffolds may speed construction only when they are explicitly retirable.
+  F\*/Z3 via libcrux/HACL\*, EasyCrypt's Why3/SMT, aiT, and Binsec/Rel are admissible as interim evidence or bring-up gates only with named Coq-native destinations and booked §17 retirement debt where load-bearing.
+  They spend calendar time, not trust: the axiom underwrites their removal rather than suspending itself.
 
 > **Inspirations & prior art.**
 > The systems and research artifacts this design descends from are cataloged in [inspirations.md](inspirations.md); the architectural *alternatives* it evaluated and rejected live in [architectural-alternatives.md](architectural-alternatives.md).
