@@ -1945,6 +1945,71 @@ The platform axiom decides this exactly as it did for seL4 and crypto (**methodo
 
 ---
 
+## First-order-only and defunctionalization: the closed call graph is the part worth having, and the source-language restriction is the wrong way to buy it
+
+The proposal is to restrict the contained languages to a **first-order fragment** (no closures, no function pointers, no dynamic dispatch) or, equivalently, to **defunctionalize** (Reynolds) so that every call site names a statically-known callee.
+The claimed pair of gains is that the whole-program call graph closes, upgrading control-flow integrity from *coarse-via-sentries* to *exact-by-construction*, and that indirect branches disappear, taking indirect-predictor state with them.
+
+**Half the claim is already banked and the other half is unreachable by construction, so the deflation leads.**
+There is no indirect-predictor state left to remove: §15 carries **zero mutable predictor state**, no BTB, no BHT, and explicitly no RAS, deleted on the standing ground that *deleting the structure is strictly stronger than bounding its use*.
+An indirect branch on this machine is therefore neither a speculation hazard nor a learned-history channel; it is a fixed pipeline-latency penalty already priced into the WCET tables (§15).
+The proposal contributes **nothing to silicon**: the hardware subtraction it offers was taken before it arrived.
+
+And *no indirect branches at all* cannot hold on a purecap compartmented machine, because the **sentry is an indirect jump by construction**.
+§15 makes capability jump-and-link "the hardware root of domain entry": a compartment is reached only by jumping through a sentry its manifest handed it, and the entire point is that the target is unforgeable and *not statically known to the caller*.
+Deleting indirect control transfer would delete domain entry.
+The proposal's scope is thus necessarily **intra-compartment**, and its subject matter is entirely software.
+
+**What survives the deflation is worth having, and it is exactly one property: the callee set.**
+Sentries decide *target legality*: this jump lands on something that was sealed as an entry point.
+They cannot decide *target membership*: this jump lands on one of the entries **this call site** is permitted to reach.
+That gap is precisely why the profile could exclude `Zicfilp` landing pads while calling CFI "CHERI-enforced for the rest" (§15): the enforcement is real and it is coarse.
+The proposal is right that the coarseness is a residual worth closing, and wrong about the vehicle.
+
+**Two consumers make the closed graph load-bearing rather than merely tidy, and only one of them is an admissible reason.**
+(a) **Bound *existence* for the two static-boundedness certificates.**
+§7 reads the peak-memory plan and the §11 WCET bound off *the same* static facts ("loop bounds, recursion depth, bounded allocation counts"), and the syntax-directed max-path sum (§5) walks the typed control-flow graph.
+An indirect call with an unknown callee set makes **call-graph acyclicity** unprovable, and with recursion depth unbounded neither the max-path sum nor the memory plan's live-range coloring yields a bound at all.
+That is bound *existence*, not bound *tightness*, so it is admissible.
+(b) **Tightness, which is not.**
+Enumerating a site's callees also lets its cost be the max over that set rather than over every function linked into the compartment.
+But a sealed image (the on-device loader "deleted rather than hardened," §13) makes "every function in the compartment" a finite set, so a trivial sound bound already exists, and the **standing §5 rule** (*any verified tool that exists only to tighten an already-sound bound is inadmissible, take the trivial sound bound*) refuses this as a justification.
+It is taken as a byproduct where it falls out and is never a reason: the same discipline that deleted IPET.
+
+**The literal restriction fails on three counts, the third being the one that decides it.**
+First, it guts the reference contained language: iterators, closures, and `dyn Trait` are not decorations on Rust, and `#![forbid(unsafe_code)]` Rust without them is a different language (§5).
+Second, defunctionalization is a **whole-program** transform, which fights the per-compartment, per-install admission model head-on: admission gates on one binary's typing derivation (§13), not on a whole-system compilation.
+Third, **defunctionalization does not remove the dispatch, it relocates it.**
+Reynolds' transform replaces a closure with a tag plus an `apply` that matches on it, and that match compiles either to a jump table (an indirect branch, so nothing was removed) or to a decision tree (so an *N*-way dispatch that cost one mispredict-equivalent penalty now costs log₂*N* of them).
+With **no dynamic prediction anywhere** (§15) the decision tree is the worse of the two, and it is worse *because of* the very subtraction the proposal was trying to extend.
+The transform is well-behaved on machines whose predictors make indirect jumps expensive; this profile deleted the predictors, and with them the reason.
+
+**The counterargument at full strength: the control tier already proves first-orderness pays.**
+The Vélus/Lustre control planes (§5, §12) *are* first-order (a node is a loop-free, statically-sized reaction with no closures) and the entry adopting them claims exactly the gains claimed here: structural WCET, causality by clock calculus, static allocation.
+The reply is that this argues against the mandate rather than for it.
+That tier has the property **free, from the shape of the language it already chose**, so a first-order mandate buys nothing where it is cheap and buys it at full price where it is not, which is the imperative Rust data planes.
+A rule whose entire cost falls on the population it least fits is not a subtraction.
+
+**Disposition (adopted as a typed callee set; normative in §5, §13. The source-language restriction is rejected).**
+The **property** is taken and the **restriction** is not: the CHERI-TAL's code types carry, at every indirect transfer, the **finite set of code labels that site may target**, and the typing rule for indirect jump requires the target's label to be a member.
+Closures, function pointers, and `dyn Trait` all survive, because **sealing is what makes the enumeration exhaustive**: with the on-device loader deleted and no dynamic linking (§13), the set of functions whose address is ever taken, and the set of impls behind any vtable, are both fixed at compose time, so the callee set is sound *by sealing* rather than by points-to analysis.
+Cross-compartment sentry edges stay outside the typed set and are governed where they already are, by the manifest's import/export tables and the §12 IDL (the CHERIoT export-table structure §13 already adopts), so the closed-graph claim is **per-compartment, joined at the manifest**, never whole-system-by-typing.
+This is the profile's usual shape once more (*take the property, decline the mechanism*), and it lands the `Zicfilp` residual in the type system at **zero silicon**, rather than in the ISA the profile already declined it from.
+
+**It is checked against the frozen type theory rather than assumed to fit (§5).**
+That theory's own admission rule asks three things.
+(1) *No open-term reduction, syntactic type equality preserved*: a callee set is a finite set of first-order code labels and membership is set comparison decided structurally, so type equality stays α-equivalence over first-order terms.
+(2) *No duplicated axis*: the set refines the **code type** already in the closed vocabulary ("code types as register-file preconditions"), so it is an amendment to an existing former by this document, the mechanism the freeze explicitly reserves, and not a new grade standing beside the linear/affine, relevance, taint, and cost axes.
+(3) *Decision procedure stays syntax-directed*: one subset check per indirect transfer, constant work per node.
+The checker grows by a set-membership test and the metatheory by one case in the soundness proof, which is what the freeze's admission rule exists to make demonstrable rather than asserted.
+
+**Honest residual (§17).**
+Enumeration is a **completeness** obligation on the certifying compiler, never a soundness one, exactly as the §17 certificate seam already books the preservation theorem: a compiler that cannot enumerate a site's targets fails to emit a well-typed derivation and the binary is **refused**, an availability outcome, and it cannot mint a derivation that type-checks yet under-declares.
+The population that genuinely resists enumeration (an interpreter dispatch loop, a dynamically-assembled table) is refused, which costs nothing new because no-runtime-codegen (§13, §14) already excludes it.
+And the closure is per-compartment: a whole-system call graph is the composition of the per-compartment graphs *with* the manifest's sentry edges, so a mis-stated manifest yields a perfectly well-typed set of compartments wired wrong, the crown-jewel-spec failure mode (§5) in its usual place rather than a new one.
+
+---
+
 ## Synchronous control planes via Vélus: the sequencing logic is already dataflow; write it where determinism, WCET, and causality are structural
 
 The proposal takes the observation that the platform has already imposed every precondition of the **synchronous-dataflow** model (TDM schedules, static composition (§7), bounded IDL (§12), non-work-conserving partitioning (§11), crash-only servers with explicit re-initializable state (§12, §16)): and draws the conclusion: the **control planes** of §12 (the sequencing, supervision, and protocol state-machine logic, as opposed to the bulk **data planes** that move bytes) are *morally* Lustre programs already, written the long way in imperative Rust.
