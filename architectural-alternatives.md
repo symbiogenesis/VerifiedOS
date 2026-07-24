@@ -1067,6 +1067,52 @@ The platform axiom decides it as ever (*trust is the scarce resource, engineerin
 
 ---
 
+## The graphics processor: a dedicated GPU core versus RVV on every core; the V-class vector class is already the graphics compute, a core class rather than a fixed-function GPU
+
+The question has two horns, and the design takes neither in the form posed.
+One horn is a **dedicated GPU core**: a fixed-function graphics processor with a command-stream front end and a driver beneath the render stack, the arrangement every conventional platform ships.
+The other is **RVV on every core, graphics spread uniformly across the whole multikernel**: no graphics hardware at all, the display driven by whichever kernel instance has cycles.
+The design's answer is a third shape it already carries: a **dedicated V-class vector core class** (§15), general RVV cores sized for the wide-vector workload, running the software renderer and compositor as ordinary capability-confined code, with no fixed-function GPU and no driver beneath them.
+
+**The premise, corrected: it is neither uniform RVV nor a spread across all cores.**
+The topology is heterogeneous (§4, §15): not every core carries the same vector datapath, and graphics does not run everywhere.
+The S-class sentinel and the RoT are **scalar, with no vector unit at all**; the C-class control cores carry a modest VLEN=256; the **V-class carries VLEN=4096 across eight lanes** (Ara-lineage), an order of magnitude wider, and it is the general V-class cores (four in the reference instantiation, distinct from the two radio-pinned) that run software rasterization, compositing, codecs, and the ISP (§15).
+So the graphics workload concentrates on the class whose datapath is built for it, exactly as it would concentrate on a dedicated GPU, rather than diffusing across control and sentinel cores that neither carry nor need a wide vector unit.
+"A dedicated core for graphics" is the right instinct; the design supplies it as a dedicated core *class*.
+
+**The steelman for a fixed-function GPU core.**
+A purpose-built rasterizer, texture unit, and ROP array deliver graphics throughput a general vector unit cannot touch per watt, and the accepted target here is honestly modest (2010s-iGPU class, §2), so the throughput a GPU would add is not nothing.
+There is, further, genuinely no drop-in verified 3D substrate: a software RVV rasterizer for 3D is net-new engineering, because the mature no-GPU software 3D path (llvmpipe) is a JIT, which W^X forbids (§14, §12), so the design pays in engineering exactly where a GPU would pay in silicon.
+If graphics throughput were the scarce resource, a dedicated GPU would be the answer.
+
+**Objection: a fixed-function GPU is a foreign computer (§4) and a timing-nondeterminism source (§11).**
+A modern GPU is a self-mastering coprocessor with its own command processor, its own firmware, its own shader-IR compiler, and a SIMT warp scheduler, so it is precisely the foreign computer §4 excludes by name (the discrete-GPU-and-accelerator-firmware line of the §12 topology table), reintroducing a second trust base, a second block of Sail surface, a second attacker-facing boot-and-update surface, and a second self-mastering block on the fabric.
+Its SIMT execution model is itself disqualifying below the trust axis: a hardware warp scheduler is a data-dependent timing source incompatible with the WCET tables and determinism the profile rests on (§11, §17), and CHERI-per-lane is unexplored (§15 names both as the ground for excluding SIMT GPGPU).
+It drags in a whole attack-surface class the design deletes rather than defends: the GPU command-stream validator, the shader-IR compiler in the display path, and the driver are gone by construction, not hardened (§15, §12).
+
+**Objection: RVV on every core with graphics spread uniformly over-provisions and breaks the static partition.**
+Widening every core to the V-class VLEN=4096 so any of them could rasterize would spend the widest vector datapath, its multi-kilobyte register file, and its eager save-and-zeroize cost (§7) on the scalar sentinel and control cores that will never use it, the opposite of the heterogeneity discipline that sizes each class to its datapath (§4).
+It also mistakes the topology: tasks are statically pinned to a core, hence a class, at composition, and there is **no dynamic migration between classes** (big.LITTLE-style HMP is rejected outright, §7), so "spread the display across whichever core is free" is not an operation this multikernel offers.
+Graphics is a normal capability-confined workload on the V-class kernel instances, not a special device and not a migratory load.
+
+**The distilled atom is already banked: the V-class is the dedicated graphics compute, as a core class, not an accelerator.**
+The useful half of "dedicate hardware to graphics" is the wide vector datapath, and the design has it, provisioned exactly where the workload lands and nowhere else; what it declines is the *fixed-function* and *foreign-computer* half, the command processor and driver and SIMT scheduler.
+Vector, not SIMT, is the specific move (§15): one thread with long vectors and masking gets the data-parallel throughput a warp scheduler gets, without the timing nondeterminism, and keeps CHERI a single-front-end problem (vector data carries no tags; the checks land on scalar-issued vector memory ops, per element for gather and scatter).
+The render and compositor servers, safe Rust on RVV (§12), are the whole of the "graphics driver," so the driver, the command-stream validator, and the shader-IR compiler are absent rather than trusted; the only graphics *device* is the firmware-free scanout DMA block behind a capability-bounded window (§15), which moves pixels and interprets nothing.
+The V-class vector microarchitecture that makes this throughput-competitive is weighed on its own terms in the SEAM-V entry above.
+
+**Where it ranks.**
+Off the abandon-substrate scale, like the NPU question below of which this is the graphics twin: the V-class vector-core-class is *adopted* (it is already the §15 topology), and the fixed-function GPU is *rejected on §4 and §11*, ranking with the discrete-GPU exclusion of the topology table and the SIMT-GPGPU exclusion of §15, declined not on throughput but on the trust structure and the timing model.
+The honest cost is the standing one: the 2010s-iGPU-class throughput target §2 already books, plus the net-new engineering of a no-JIT RVV software 3D rasterizer where a GPU would have supplied fixed-function silicon.
+
+**Disposition (adopted in part; the V-class topology is already normative in §15).**
+The graphics engine is the **V-class vector core class**, a dedicated core class sized for the wide-vector workload, running the software renderer and compositor as ordinary capability-confined code under the one ISA, the one kernel binary, and the one Sail model (§4, §15); this is already normative.
+The **fixed-function GPU, its driver, its command processor, its shader-IR compiler, and the SIMT execution model** are rejected: a foreign computer (§4, §2), a timing-nondeterminism source (§11), and a deleted attack-surface class (§15).
+The uniform "RVV on every core, graphics spread across all" reading is likewise declined: it over-provisions the scalar classes and assumes a dynamic cross-class migration the static multikernel does not offer (§7).
+Non-normative; the normative decisions are in §2, §4, §12, and §15.
+
+---
+
 ## Dedicated NPUs and RISC-V tensor-core extensions: the in-core matrix unit is already a tensor core, the firmware-driven NPU is the foreign computer §4 excludes
 
 RISC-V has become an industrial base for custom AI silicon, and the field builds its matrix engines two ways.
