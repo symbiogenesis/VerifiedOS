@@ -26,6 +26,91 @@ Two corollaries keep the rule from becoming self-contradictory:
 - **G4** Stateless, atomic, transactional, rollback-friendly.
 - **G5** Reliability: fault isolation, crash-only components, health-gated recovery.
 
+### Reader Map
+
+Read the document through two views: a **compose-time policy graph** that builds the machine, and a **concentric runtime hierarchy** that separates hardware substrate, TCB software and firmware, and contained non-TCB software.
+The later diagrams show the verification tower and the boot/key-state machine.
+The dense sections below preserve the exact obligations; the diagrams here are navigation aids only.
+
+```mermaid
+%%{init: {'flowchart': {'rankSpacing': 16, 'nodeSpacing': 10, 'subGraphTitleMargin': {'top': 6, 'bottom': 14}}}}%%
+flowchart TD
+  subgraph Policy[Compose-time policy]
+    direction TB
+    P1[manifests]
+    P2[IFC labels]
+    P3[static grants]
+    P1 ~~~ P2 ~~~ P3
+  end
+
+  subgraph Hardware[Hardware substrate: runtime policy enforcement]
+    direction TB
+
+    subgraph CHERI[CHERI-checked substrate]
+      direction TB
+      C1[SRAM banks]
+      C2[native tags]
+      C3[integrity tree]
+      C4[capability-checked DMA]
+      C5[fixed-function devices]
+      C1 ~~~ C2 ~~~ C3 ~~~ C4 ~~~ C5
+    end
+
+    subgraph Software[Software and firmware]
+      direction LR
+
+      subgraph TCB[Small TCB core]
+        direction TB
+        T1[kernel]
+        T2[RoT]
+        T3[crypto core]
+        T4[admission checkers]
+        T5[consent path]
+        T6[system reader]
+        T7[A/B transactor]
+        T1 ~~~ T2 ~~~ T3 ~~~ T4 ~~~ T5 ~~~ T6 ~~~ T7
+      end
+
+      subgraph NonTCB[Contained non-TCB ring]
+        direction TB
+        N1[drivers]
+        N2[storage]
+        N3[display]
+        N4[network]
+        N5[radio]
+        N6[apps]
+        N7[browser origins]
+        N1 ~~~ N2 ~~~ N3 ~~~ N4 ~~~ N5 ~~~ N6 ~~~ N7
+      end
+    end
+  end
+
+  Policy -->|fixes graph| Software
+  CHERI -->|enforces memory, DMA, timing| Software
+  TCB -->|admit, measure, grant, revoke, declassify| NonTCB
+```
+
+```mermaid
+flowchart LR
+  Spec[Abstract specs and policy] --> Source[Verified or generated source]
+  Source --> Binary[Binary plus certificates]
+  Binary --> Sail[CHERI-RISC-V Sail model]
+  Sail --> RTL[RTL refinement]
+  RTL --> Die[Fabricated die]
+  Checkers[TAL checker plus CIC kernel] -. admit .-> Binary
+  Ax[Ax: hardness, fab, spec intent, consent] -. bounds .-> Die
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> BFU: measured boot
+  BFU --> AFU: primary credential
+  AFU --> BFU: lock or idle timeout
+  AFU --> Erased: duress credential
+  BFU --> Recovery: signed recovery generation
+  Recovery --> BFU: rollback committed
+```
+
 ---
 
 ## 2. Non-Goals (deliberate)
