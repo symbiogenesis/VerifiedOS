@@ -920,7 +920,7 @@ If a future analysis judged the CHERI-logic-fault residual intolerable, the comp
 **Disposition (adopted; normative in §7, §14, §15).**
 PMP and `Smepmp` are **removed**: CHERI is the sole memory-protection mechanism, W^X and the per-core partition bound rest on CHERI monotonicity (§7, §14), crown-jewel secrets on the crypto core's boundary and TME (§15), and device DMA on capability-checked DMA (§15).
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*), with the twist the whole design turns on: what lets a **single** mechanism replace a defense-in-depth stack is that this one is **formally verified**, so *delete rather than defend* becomes *verify rather than hedge*.
-**Honest residual (§17):** in-core spatial isolation, W^X, and the partition bound rest on CHERI alone with no in-band disjoint backstop; the sole hedge against a CHERI logic fault is CHERI's own verification (its reachable-capability-monotonicity property already machine-checked over a full-scale CHERI ISA, Bauereiss et al. ESOP 2022; the RTL ⊑ Sail arrow, §18, the residual, plus Oxford/Google and Codasip), the fab residual unchanged.
+**Honest residual (§17):** in-core spatial isolation, W^X, and the partition bound rest on CHERI alone with no in-band disjoint backstop; the sole hedge against a CHERI logic fault is CHERI's own verification (the machine-checked monotonicity result above), leaving the **RTL ⊑ Sail** arrow (§18) the residual, the fab residual unchanged.
 
 ---
 
