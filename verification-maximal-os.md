@@ -125,7 +125,7 @@ stateDiagram-v2
   Throughput lands in 2010s-iGPU / early-NPU / LTE-class-modem territory by design; that is the accepted price.
   **Instruction-level parallelism is bought only from static, exposed mechanisms (wide in-order issue, decoder-stage macro-op fusion, RVV), never from mechanisms that create hidden speculative microarchitectural state (§15 profile).**
 - No legacy: no BIOS/MBR, UEFI, ACPI, IPv4, 32-bit modes, or compressed-instruction ambiguity (no C extension, §15).
-- No proprietary firmware black boxes (**named exhaustively: ME/PSP/SMM-class management processors, baseband processors, Wi-Fi/BT controller firmware, SSD controller firmware, embedded controllers, PMU microcontrollers (Pcode/SCP/AOP-class), discrete GPU/accelerator firmware, and processing-in-memory (autonomous in-array compute)**) excluded by platform mandate, not mitigated.
+- No proprietary firmware black boxes (named exhaustively in the §12 topology table) excluded by platform mandate, not mitigated.
 
 ---
 
@@ -741,6 +741,15 @@ Each server: its own compartment (the compartment model, §4), capability manife
 The *data plane* (bulk I/O, ring processing, vector/matrix math, wire parsing) is `#![forbid(unsafe_code)]` safe Rust; the *control plane* (sequencing, supervision, protocol state machines, mode/timing control) is Lustre compiled by the Coq-verified Vélus compiler (§5), synchronous dataflow whose determinism, causality, and WCET are structural. Any `unsafe` is confined to the verified HAL (§5), never inlined into server logic.**
 This plane split names the *default* languages, not a mandate: a server may instead be a formally-verified non-Rust lift (Project Everest and the F\*/Low\* lineage, §5) (memory-safe at the binary level like any contained binary (§13), its own verification bonus assurance) the network stack's TLS compartment the standing example (below).
 
+Every function on the machine falls into one of four classes (§4): software on cores (trusted, then contained non-TCB) drives the fixed-function *matter* tier through capability-checked MMIO/DMA, and every function a conventional platform would delegate to a firmware-running coprocessor is dissolved, reduced, or banned into the excluded set.
+
+| Class | Realization | Members |
+| --- | --- | --- |
+| **Software on cores — TCB** | Trusted, proven, minimal | Kernel (sole system-register holder)<br>Crypto core<br>Integrity reader + A/B transactor<br>M-mode firmware + RoT<br>Admission checkers (TAL + CIC)<br>Powerbox + trusted-path agent |
+| **Software on cores — non-TCB** | Contained: capability-confined, restartable | Servers / drivers / filesystems<br>Network + radio PHY / L2 / L3<br>Display / ISP / inference<br>Apps + browser origins<br>Verified HAL |
+| **Matter** | Fixed-function + register slaves: no instruction fetch, no firmware | Link-layer turnaround timer<br>USB-PD + DisplayPort sequencers<br>Sensor scan / sample sequencers<br>FEC (LDPC / polar), flash ECC<br>Transceiver + sensor AFEs<br>Scanout controller<br>eUICC (tolerated foreign oracle) |
+| **Excluded foreign computers** | Banned by platform mandate, not mitigated; not on die or board | Baseband processor<br>Wi-Fi / BT controller firmware<br>SSD controller firmware<br>Embedded controller, PMU microcontrollers (Pcode/SCP/AOP-class)<br>ME / PSP / SMM management cores<br>ISP firmware<br>Discrete GPU / accelerator firmware<br>Processing-in-memory (autonomous in-array compute) |
+
 - **Ring data plane (the secure io_uring):** all bulk I/O rides bounded SPSC shared-memory rings with notification wakeups (the sDDF/virtio idiom).
   The **Microkit / LionsOS / sDDF** stack (Trustworthy Systems) is the nearest living whole-system relative of this static-composition-plus-rings structure and the harvestable start-from for the composition tooling (§7, §18).
   The peer is a server, never the kernel: a ring bug costs one compartment.
@@ -1348,6 +1357,54 @@ Reference instantiation (counts are composition parameters, disjointness machine
 
 ### Memory subsystem
 
+The memory hierarchy at a glance (navigation aid only): cacheless SRAM bound per island, reached through the TDM NoC and the memory controller's ephemeral-key encryption and integrity tree, with device DMA capability-checked on the same capability- and tag-carrying fabric.
+
+```mermaid
+%%{init: {'flowchart': {'rankSpacing': 20, 'nodeSpacing': 14, 'subGraphTitleMargin': {'top': 6, 'bottom': 16}}}}%%
+flowchart TD
+  subgraph Islands["Islands = confidentiality domains — no shared mutable memory, no coherence"]
+    direction LR
+    subgraph IHi["High-assurance / radio island"]
+      direction TB
+      H1["Cores + own kernel instance"]
+      H2["Register files + store buffer"]
+      H3["Explicit scratchpad — not a cache"]
+      H1 ~~~ H2 ~~~ H3
+    end
+    subgraph ILo["Shared low-sensitivity island"]
+      direction TB
+      L1["Cores + own kernel instance"]
+      L2["Register files + store buffer"]
+      L3["Explicit scratchpad — not a cache"]
+      L1 ~~~ L2 ~~~ L3
+    end
+  end
+  NoC["TDM NoC — static slots, Sail non-interference"]
+  MC["Memory controller — ephemeral-key TME + integrity / anti-replay Merkle tree"]
+  Dev["Devices: transceiver, scanout, NIC, flash"]
+  subgraph SRAM["Cacheless SRAM main memory — banks / macros / tiers"]
+    direction LR
+    subgraph BHi["Macro / tier — pinned to high-assurance island"]
+      direction TB
+      BH1["Data + SECDED ECC"]
+      BH2["Native validity + init tags — DECTED"]
+      BH1 ~~~ BH2
+    end
+    subgraph BLo["Bank group — low-sensitivity islands"]
+      direction TB
+      BL1["Data + SECDED ECC"]
+      BL2["Native validity + init tags — DECTED"]
+      BL1 ~~~ BL2
+    end
+  end
+  IHi -->|"TDM slot"| NoC
+  ILo -->|"TDM slot"| NoC
+  Dev -->|"capability-checked DMA"| NoC
+  NoC -->|"capability + tag carrying fabric"| MC
+  MC --> BHi
+  MC --> BLo
+```
+
 - **Main memory is bespoke on-die and in-package SRAM, not DRAM.**
   The design trades capacity for latency, bandwidth, and simplicity: SRAM is static, so there is no refresh, no refresh management, and no charge-disturbance Rowhammer primitive to defend (below), while its access latency and aggregate bandwidth exceed any DRAM the phone or desktop targets would otherwise carry.
   The accepted price is density: an SRAM cell holds far less per unit area than DRAM, so main-memory capacity is smaller and idle leakage higher, bought back by the static, transistor-level levers that add no runtime behavior: **3D die stacking, CFET-stacked cells, gate-all-around (nanosheet) transistors, backside power delivery, and asymmetric-threshold (asymmetric-Vt) cells**, plus a **fixed, composition-time-configured read/write assist**.
@@ -1531,7 +1588,7 @@ The §15 mode transitions (mechanism 3), standby entry and exit (above), and dee
   Device allowlist collapsed toward transducers and register slaves by §4.
 - **Anti-features:** no UEFI, SMM, ACPI/AML, ME/PSP-class coprocessors, SMT, speculation, **dynamic branch prediction (BHT/BTB/RAS/indirect predictors (static-only per the profile)**, **LR/SC reservation state and general CAS (`Zalrsc` and `Zacas` excluded; `Zaamo`/`Zabha`) profile above)**, 32-bit modes, **hybrid capability mode (no DDC)**, legacy boot, option ROMs, or the **C/compressed extension** (profile above).
   Also excluded:
-  - **Foreign computers of every stripe (§4):** baseband processors, Wi-Fi/BT controller firmware, SSD controller firmware, embedded controllers, ISP firmware, PMU microcontrollers (Pcode/SCP/AOP-class), autonomous processing-in-memory.
+  - **Foreign computers of every stripe (§4):** enumerated in the §12 topology table.
   - **Discrete/opaque GPUs and fixed-function accelerator coprocessors**; no CUDA/proprietary-driver path.
     **SIMT GPGPU cores** (warp-scheduler timing nondeterminism; unexplored CHERI-per-lane).
     **Fixed-function codec blocks.**
@@ -1578,6 +1635,17 @@ The §15 mode transitions (mechanism 3), standby entry and exit (above), and dee
 ---
 
 ## 17. Residual Risks: the Honest Ceiling
+
+The residuals group by trust source, indexed below and developed in the entries that follow.
+
+| Trust source | Residuals |
+| --- | --- |
+| **Proof gap** (deferred, not assumed) | RTL ⊑ Sail (least-built layer)<br>End-to-end composition theorem<br>Fresh non-interference proof<br>Admission-checker soundness |
+| **Spec gap** (crown jewels) | Policy + IDL wire-format mapping<br>Leakage / Ztso / fence.t statements<br>Radio grammars<br>Crypto functional specs |
+| **Physical / fab gap** | Silicon vs verified RTL<br>Invasive physical attack<br>Power / EM at probe level<br>Factory calibration trust |
+| **Human consent** | User grants the wrong authority<br>Consent-path TCB |
+| **Hardness assumption** | MLWE / MSIS (post-quantum)<br>ECDLP / CDH (classical) |
+| **Commercial acceptance** | Open cellular certification<br>5G/6G-only coverage trade<br>USB-auth interop trade |
 
 - **Timing channels.**
   The transient-execution class is deleted by hardware choice (and the §15 profile forbids re-introducing speculative/hidden state via future extensions); **the branch-predictor-state class is deleted by the static-only prediction mandate (no BHT/BTB/RAS to carry cross-domain history)**; **the LR/SC reservation-granule contention channel is deleted by excluding `Zalrsc` (§15): there is no reservation set to monitor**; the DVFS/frequency class is deleted by the schedule-artifact power architecture; cross-domain coherence-traffic channels by the deletion of caches and any coherence protocol (§15); scheduler/slack channels by the non-work-conserving static cyclic executive (no slack is donated, §7); the rest narrowed by memory and NoC partitioning, fence.t, eager zeroize, gated clock resolution, and the fixed-latency divide/FPU/mask-independent-vector timing mandates.
