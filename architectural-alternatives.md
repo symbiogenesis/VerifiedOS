@@ -1467,6 +1467,62 @@ So the concrete 2D-mesh topology is at most an input to the proof-aware design-s
 
 ---
 
+## Low-leakage SRAM cell and circuit techniques: the static idle-power levers are admitted, the dynamic and data-dependent ones forfeit the upsides they would buy
+
+The bespoke SRAM main memory (above) accepts one honest cost on the free axis: static leakage, the idle power a bistable latch draws even when nothing reads it, felt most in a battery form factor.
+The question is whether the research-grade low-leakage SRAM designs, multi-transistor cells with decoupled read and write ports (8T, 9T, and 10T topologies), body biasing, sleep-transistor power gating, high-threshold-voltage engineering, and sub-threshold operation, can serve as a drop-in replacement that cuts that idle draw while *retaining every upside the SRAM choice was made for*.
+That conditional is the whole of the analysis: the upsides are load-bearing, and a technique that quietly forfeits one is not a drop-in, whatever it saves.
+
+**The upsides the replacement must retain, stated plainly.**
+Speed: SRAM's flat, fast access is what lets an in-order, non-speculative core keep up without a cache, so branch prediction and speculative execution can be deleted (the no-hardware-caches entry above; the transient-execution class deleted at the source, §15), and a slower cell reopens the latency gap that speculation existed to hide.
+The side-channel posture, where the premise needs an honest correction: SRAM is *not* inherently immune to side channels; the design's immunity comes from the static discipline around it (cacheless, in-order, no simultaneous multithreading, partitioned, a constant-time mandate, §15) together with the *absence* of the DRAM RowHammer and refresh-timing channels, not from the storage cell.
+Determinism: fixed-latency, reactive-mechanism-free operation, admission tests 2 and 3.
+
+**The decisive axis is static versus dynamic, and it sorts most of the toolkit.**
+A *static*, composition-time-configured leakage lever adds no runtime behavior, no reactive feedback, and no data- or activity-dependent power draw, so it retains all three upsides and is admitted.
+A *dynamic* one, a body bias or a power-gating decision that tracks workload, temperature, or data, is a reactive feedback loop on power: a data-dependent power side channel (the shape correlation-power-analysis exploits, admission test 2) and a source of the very timing and power variability the determinism upside forbids.
+So the dynamic form *forfeits the side-channel and determinism upsides the question asks to keep*, which is exactly why it is declined, on the same *verify rather than hedge* ground that already keeps the read/write assist static (above) and already deleted the reactive DVFS loop, the reactive refresh loop, and the dynamic branch predictor (§15): the same ground on which the adaptive assist is refused as too exploitable and complex.
+
+**The static levers, admitted, cut leakage without touching a runtime path.**
+A **high-threshold-voltage storage core with a low-threshold periphery** raises off-resistance where the bits sit while keeping the decoders and sense amps fast, the asymmetric-Vt lever the SRAM entry already names, stated here as the core-and-periphery split it is.
+The split is not a hedge but the one efficient point on the curve: leakage lives in the cell array (the storage cells are over ninety percent of the transistors, and leakage is exponential in threshold, so a high-Vt core cuts array leakage roughly ten to twenty-five fold) while access-path *delay* lives in the periphery, so raising threshold only on the core buys most of the leakage reduction at little speed cost.
+Raising it *everywhere*, an all-ultra-high-Vt array, is the rejected far end of that curve: gate delay scales inversely with overdrive, so ultra-high-Vt on the periphery would slow the access path by roughly a fifth to a half at nominal voltage and worse near threshold, giving back the very SRAM latency advantage the choice was made for, which is why the split is asymmetric and not uniform.
+A **static reverse body or well bias** (a fixed, composition-time back-bias, super-cutoff in the deepest retention state) raises threshold and chokes sub-threshold conduction, admitted precisely because it is *fixed*, not workload-tracking.
+**State-retentive sleep-transistor gating** (header, footer, or drain-gating switches that collapse an idle bank's supply toward a retention floor without losing its contents) is the mechanism behind the standby low-leakage retention the power architecture already specifies (§15): main memory holds the working set, so the gating must *retain*, the non-retentive gating that discards state being available only to structures the design does not have.
+**Gate-length biasing** (drawing the storage transistors slightly longer than the node minimum) subdues short-channel leakage and drain-induced barrier lowering at a small, static area and speed cost.
+A low-leakage foundry process flavor is the baseline the memory die is fabricated on.
+Each is a bespoke-cell composition-time parameter of the proof-aware design-space exploration (§15), spends nothing on the scarce axis, and stacks with the density levers.
+
+**Sub-threshold operation is the one static lever declined, because it trades the speed upside.**
+Running the array deep below threshold (the regime below roughly 400 millivolts the research reaches) cuts leakage the most, but a sub-threshold SRAM is *slow*, and slowness is the one thing the design cannot spend here: it reopens the exact latency gap the fast SRAM closed and the deleted speculation would otherwise have to hide.
+So sub-threshold is declined for the *active* working memory, while its milder cousin, holding an *idle* bank at a near-threshold retention voltage where speed does not matter, is admitted as exactly the standby retention above.
+The split is by duty, not by dogma: full voltage and full speed where the core is reading, a static low-leakage floor where it is not.
+
+**The multi-port cell is a density trade, not a free drop-in.**
+The premise that a higher-transistor cell is a drop-in "retaining all upsides" holds for the circuit techniques above but not for the *topology*: an 8T, 9T, or 10T cell adds transistors per bit, so it worsens the density that is already the binding constraint (the SRAM entry's stated cost), which is the correct observation that more transistors make the density problem worse.
+Its genuine value is not leakage alone but *stability and minimum voltage*: a decoupled read port removes read-disturb (hardening the read-disturb and half-select residual the SRAM entry books) and lowers the cell's minimum operating voltage, and because leakage falls super-linearly with voltage, a cell that runs correct at a lower voltage saves leakage *and* dynamic power at once, statically and with no data channel.
+Write margin does not collapse under the added transistors, contrary to the worry: a decoupled read port removes the 6T read-write conflict (a robust read no longer demands weak access), so the write path is free to be sized for write margin, and the asymmetric-Vt split *helps* it (a weak, high-Vt storage pull-up is easier to flip); write-margin collapse is instead a risk of *single-ended-write* low-power cells and of low-voltage or high-Vt-access operation, met by the static write-assist above (negative-bitline or supply-collapse, the write-margin countermeasure) and by declining sub-threshold for the active array.
+So the topology is neither mandated nor forbidden: it is a per-tier bespoke-cell selection knob (§15), dense 6T where capacity dominates, a decoupled-read 8T-class cell where a tier's read-disturb margin or minimum-voltage headroom earns the area, both static and both channel-free, weighed on the density-versus-margin trade the design already runs for every tier.
+
+**Body biasing meets the die-split the process entries draw.**
+The widest static body-bias control comes from a fully-depleted silicon-on-insulator (FD-SOI) process, the back-gate the silicon-on-insulator entry below adopts for the inspected logic die, but that process is *lower-density* than the bulk gate-all-around the memory die takes for capacity (the gate-all-around entry below), and density is the binding constraint for main memory.
+So the tension resolves the way gate-all-around and backside power already do, by which die is which: the logic die takes FD-SOI and its strong back-bias low-power (already decided, §15, §17), and the memory die stays bulk gate-all-around for density with the well-bias, high-Vt, gate-length, and retentive-gating leakage levers that cost it no capacity.
+The idle-power question does not reopen the substrate choice; it inherits the die-split that already answered it.
+
+**The distilled atom is already the design's stance.**
+The static-only-lever discipline is not new: the SRAM entry already admits asymmetric-Vt and a static assist and declines the dynamic assist, and the power architecture already specifies a low-leakage retention state.
+This entry generalizes that stance to the whole low-leakage-SRAM toolkit and states the two rules it turns on, static over dynamic (retain the side-channel and determinism upsides) and speed-preserving over speed-sacrificing (retain the speed upside), which between them sort every technique the research names into admitted or declined.
+
+**Where it ranks.**
+This is the idle-power sibling of the memory-technology question the MRAM entry (below) answers: both address the SRAM choice's honest cost, one by staying SRAM and paying the leakage down with better cells (adopted in part, here), the other by switching to a non-volatile memory (declined there, because non-volatility of the working set is itself a security liability).
+Staying SRAM and paying the residual leakage down statically keeps every upside; switching away to reclaim it spends the upsides, so the two rank oppositely for the same reason: the scarce axis is not for sale to buy free-axis power.
+
+**Disposition (adopted in part; the static levers normative in §15):** the static idle-power levers, a high-Vt storage core with a low-Vt periphery, a static reverse body or well bias, state-retentive sleep-transistor gating of idle banks, gate-length biasing, and a low-leakage process flavor, are admitted as bespoke-cell composition-time parameters, alongside the asymmetric-Vt and static assist already named; the dynamic and data-dependent variants, dynamic body biasing, activity-driven power gating, and the adaptive assist, are declined on *verify rather than hedge*; sub-threshold operation is declined for the active working memory as forfeiting the speed upside and admitted only as near-threshold idle-bank retention; the 6T-versus-multi-port cell topology is a per-tier density-versus-stability-and-minimum-voltage design-space parameter, neither mandated nor forbidden.
+
+**Honest residual (§17):** the static levers reduce idle leakage but do not erase it, so the SRAM entry's booked idle-power cost stands, mitigated further rather than removed; the static-only constraint deliberately forgoes the extra leakage the dynamic and adaptive techniques would reclaim, the accepted price of the side-channel and determinism posture; and a tier that selects a multi-port cell for stability or minimum voltage pays it in density, the binding constraint.
+
+---
+
 ## Non-Volatile main memory (MRAM, FeRAM, ReRAM): the density and idle-power case is real, but non-volatility, write cost, and a new physical attack surface trade the scarce axis for the free one
 
 The question, posed directly: swap the bespoke SRAM main memory (above) for magnetoresistive RAM (MRAM), whose mainstream embedded and main-memory candidate is spin-transfer-torque MRAM (STT-MRAM), with spin-orbit-torque MRAM (SOT-MRAM) as the less mature successor.
