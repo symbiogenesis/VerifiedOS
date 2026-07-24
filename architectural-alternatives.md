@@ -958,6 +958,83 @@ The platform axiom decides it as ever (*trust is the scarce resource, engineerin
 
 ---
 
+## Delete asynchronous interrupt delivery: the pollable-bit machine, and the low-latency ISR the schedule had already deleted
+
+The proposal is to remove **asynchronous interrupt delivery** outright: an interrupt arrival remains exactly what §15 already makes it (an IMSIC store setting a pending bit in an interrupt file), but **no pending bit ever vectors the core to `MTCC`**.
+Software reads the pending array with ordinary loads at syntactically-determined poll points, and the **slot-boundary timer is the sole remaining asynchronous trap**.
+It is the completion of the arc §7 began: interrupts were already demoted from scheduling events to latched state (§7), and this deletes the one delivery mechanism that survived that demotion.
+
+**The proposal deflates once, immediately, and the deflation should lead.**
+The trap path itself does **not** go away.
+The boundary timer must stay asynchronous, because the cyclic executive's entire temporal-isolation claim is that a partition "cannot overrun its slot" (§7) against a compartment that declines to yield; a cooperative-poll boundary would rest slot enforcement on the compartment's own good behavior, which is not a mechanism.
+So `MTCC`/`MEPCC`/`MTDC`, the capability trap vector, and the save/restore sequence all remain (§7, §15), and the proposal is not "delete the trap path" but **narrow the asynchronous trap set from {boundary timer, every device MSI, watchdog bark} to {boundary timer}**.
+What that narrowing buys is not the trap machinery; it is everything built to *govern* the trap machinery.
+
+**Four removals, each landing on a different layer.**
+(a) **The interrupt-state sentry triple dies.** §15's `enabled`/`disabled`/`inherit` forward- and backward-edge sentries exist to make interrupt masking structured and lexically scoped, with the caller's state captured in the return capability and restored automatically on return (§8, §15).
+With the boundary timer the only asynchronous trap, and with masking it precisely the cross-partition attack §8 defends against, **interrupt-enable state has nothing left to govern**: the three sentry types collapse to one plain sentry.
+That removes sentry-otype space and the interrupt-state capture-and-restore semantics of capability jump-and-link from the Sail model; the interrupt-state field of the return capability and its decode and auto-restore path from the RTL; the interrupt-state index on sentry types from the **CHERI-TAL**, where the on-device checker's order-of-10³-line budget is a hard constraint on the metatheory and not merely on the implementation (§17); and it makes the two lemmas the discipline exists to prove (*no compartment leaves interrupts masked past a return*, *cross-compartment calls force interrupts enabled*) **vacuous rather than discharged**.
+(b) **The bounded-interrupt-disabled-window allow-list is deleted, not bounded.** §8 and §11 carry a statically-auditable per-compartment allow-list of interrupt-disabled entry points with worst-case durations priced into the partition-switch budget.
+With nothing maskable the list is empty; the kernel's own boundary handler remains non-interruptible, but that is *one* region inside verified kernel code, discharged by the switch's padded constant cost (§15), not a per-compartment audit surface.
+Nor does the boundary timer itself need a mask: the switch completes at a padded constant far shorter than any slot, and the timer does not re-arm until the handler reprograms `mtimecmp`.
+(c) **The kernel loses a case split at every entry point.** §7 makes the kernel event-driven with no kernel threads, "executing only on trap/syscall/interrupt on the caller's budget"; deleting asynchronous device delivery leaves exactly two entry reasons, synchronous syscall/exception and the boundary timer, so the interleaving question *can a device MSI land mid-syscall* stops being a case in the Coq kernel proof.
+(d) **The AIA delivery-selection surface goes.** The IMSIC's delivery enable, threshold, and top-pending-selection machinery exists solely to choose *which* pending bit to deliver; under polling software reads the pending array directly.
+This is the same trim §15 already performed once on the AIA (dropping the supervisor and guest/VS interrupt files as dead Sail surface under the single Machine mode), applied a second time in the same direction.
+
+A fifth, smaller gain is worth naming because it runs the other way from most subtractions: **WCET improves rather than costing.**
+Asynchronous delivery puts a potential trap point at every instruction boundary, so any code region carries a preemption term, bounded by the allow-list but present.
+Polling makes trap points **syntactic** (they are poll sites, already nodes in the typed control-flow graph the §5 syntax-directed max-path sum walks), so the derivation **loses a term instead of bounding one**.
+Against a design that deliberately takes the trivial sound bound and forbids tools that only tighten it (§5), this is the rare subtraction that tightens the bound for free.
+
+**The counterargument, at full strength: the PS/2-style near-zero-latency ISR.**
+The intuition is that a hardware interrupt reaches a handler in tens of cycles where a poll loop reaches it in a poll period, and that this is a real capability worth ISA surface.
+The intuition is correct about *hardware* and wrong about *this machine*, and the reason is not the trap path at all: **it is the cyclic executive, which deleted the low-latency ISR before this proposal was on the table.**
+§7 already states it twice: aperiodic events get "dedicated polling or sporadic slots sized into the frame," and worst-case device service latency is "a *schedule corollary, not an interrupt property*," with latched-until-slot meaning an event waits at most its owning server's slot period plus in-slot handling WCET.
+A keypress on the current design does not preempt anything.
+It sets a pending bit that the owning driver's slot consumes, and end-to-end latency is bounded by the slot period, a bound this proposal **leaves exactly unchanged**.
+
+**What asynchronous delivery actually buys today is the sub-slot tail, and only in the rare case.**
+If the device's owning partition happens already to be running when the bit sets, asynchronous delivery reaches the handler in trap latency rather than at the next poll site.
+Against a major frame measured in hundreds of microseconds, that difference is noise; and it applies only when the owner is the currently-scheduled partition, which for a human-input device is by construction the uncommon case.
+The deeper reason the PS/2 intuition does not transfer is that it is an intuition from a **preemptive priority-scheduled** OS: an interrupt is fast there because it can *promote* work into the CPU ahead of what was running.
+Here there is no priority to preempt into.
+An interrupt can set a bit sooner, but **nothing can run sooner**, because *what runs now* is a composition-time constant (§7), and time never crosses a partition boundary even when donated (§7, non-work-conserving by construction).
+
+**The genuinely tight deadlines are already answered, and already answered against interrupts.**
+The sub-slot radio turnaround (BLE `T_IFS` 150 µs ± 2 µs, 802.11 SIFS 10/16 µs, 802.15.4 ~192 µs) is met by the **fixed-function turnaround sequencer** of the link-layer-timing entry above, whose own justification is that "a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window."
+HARQ feedback and DRX paging occasions get sporadic slots sized to their deadlines (§7).
+The design has therefore already concluded, on its tightest path, that the interrupt path is *not* the low-latency mechanism: anything tighter than a slot is RTL, and anything a slot can hold is a schedule parameter.
+Deleting asynchronous delivery removes nothing from either category.
+
+**Three real losses, named rather than waved.**
+(1) **Watchdog bark degrades to slot granularity.** §7 makes the RoT watchdog's bark an ordinary MSI into the sentinel's interrupt file, and its value is precisely to reach a core that is *alive but wedged*, which polling by definition cannot.
+The answer is that the bark check folds into the retained boundary-timer handler: the boundary trap fires regardless of what the compartment is doing, so the sentinel observes a bark within one slot, and if even the boundary path is dead the **bite** (a reset line, outside the interrupt model and unmaskable by construction, §7, §16) is the backstop it was always specified to be.
+Bark latency thus moves from trap latency to one slot period; that is a genuine degradation of the surgical-response window (§16) and is booked, not denied.
+(2) **A driver that would have slept mid-slot now sleeps to the boundary.** Race-to-idle with in-slot clock and power gating (§15) currently lets a gated core wake on delivery; under polling it wakes on the boundary timer it would take anyway, so a device serviceable mid-slot is instead serviced one slot later.
+This is a latency-for-energy trade already inside the schedule's own bound and sized by §11.
+(3) **Polling consumes the slot it polls in.** The cost is energy rather than throughput, because slack was never recoverable in the first place: the schedule is non-work-conserving across confidentiality boundaries, an idle slot staying idle because donated time is a timing channel (§7).
+A fourth item is sometimes offered as a loss and is not one: per-device poll cadence must now be sized explicitly, but §7 **already** requires exactly that sizing, so this strengthens a standing obligation rather than creating one.
+
+**The admission-test framing, and the argument shape this is an instance of.**
+Asynchronous delivery is not *inadmissible* under the five-part test (§15): it is deterministic, and per-partition interrupt state is identity-partitioned or swapped at the switch, so it does not fail test (3) the way a predictor or an LR/SC reservation does.
+It falls instead to the **defense-in-depth companion clause** (§15) read in the subtractive direction: its function (getting a device serviced within its deadline) is already covered *in full* by the static schedule, so it is a second mechanism for a job one mechanism already does, and the primary is the one the design proves.
+And the shape of the win is the platform's most-used argument, transplanted: **deleting asynchronous delivery is strictly stronger than bounding the mask windows**, exactly as deleting the branch predictor was strictly stronger than flushing it (§15) and deleting `Zalrsc` was strictly stronger than clearing its reservation (§15).
+In each case a *bounded* obligation ("is the mask window short enough?", "did we flush the predictor completely?", "was the reservation cleared?") becomes an **absence** obligation, and the absence is checked structurally rather than discharged.
+That is also why this lands where it is worth the most: an absence obligation is a structural check on the RTL, and RTL ⊑ Sail is the least-built layer of the stack (§17, §18).
+
+**The bet, stated.**
+The system gives up the ability to reach code that is running but not polling, and keeps exactly one mechanism that can: a timer that fires at a composition-time-known instant.
+That is acceptable only because the schedule is static: every deadline the machine owes is a slot parameter fixed at compose time, so there is no event whose *arrival* the machine needs to react to faster than the slot it was scheduled into.
+A design with any dynamic scheduling, any priority, or any admission of runtime-arriving work could not take this deletion; this one can, and the price is a bark window that widens from microseconds to one slot.
+
+**Disposition (adopted; normative in §7, §8, §15).**
+Asynchronous interrupt delivery is **deleted**: interrupt arrival remains a store to an interrupt file setting architectural pending state, consumed by ordinary loads at poll sites inside the owner's slot, and the **slot-boundary timer is the sole asynchronous trap on the machine**.
+The interrupt-state sentry types (`enabled`/`disabled`/`inherit`) are removed from the CHERI profile and the CHERI-TAL with the masking discipline they carried; the bounded-interrupt-disabled-window allow-list (§8, §11) is deleted rather than audited; the AIA delivery-selection machinery is trimmed to the pending array; and the watchdog bark is checked in the boundary handler.
+The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*), with the local twist that the feature's headline benefit (low-latency device service) **was not present to lose**: the cyclic executive had already made service latency a schedule corollary, so what asynchronous delivery still bought was a sub-slot tail, paid for in ISA surface, RTL, typing rules, kernel case splits, and a WCET preemption term.
+**Honest residual (§17):** the watchdog bark's surgical-response window widens from trap latency to one slot period, leaving **bite** as the only sub-slot response to a wedged sentinel; a device serviceable mid-slot is serviced at the next poll site or the next slot, so §11's per-device cadence sizing becomes load-bearing for every aperiodic device rather than for the radio paths alone; and poll-site placement becomes a WCET-visible source-level obligation on driver code (cheap, since poll sites are already CFG nodes the §5 cost annotation walks, but no longer implicit).
+
+---
+
 ## Delete scalar floating-point: fold all float onto the vector FPU, static rounding
 
 The proposal is to remove the **scalar `F`/`D` floating-point extensions** (the `f0`–`f31` register file, the scalar FP instruction set, and the dynamic rounding-mode CSR) and route **all** floating point through the **RVV floating-point unit every core already carries**.
