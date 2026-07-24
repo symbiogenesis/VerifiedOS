@@ -186,6 +186,29 @@ Non-normative; the only spec-body touch is the §15 microarchitecture cross-refe
 
 ---
 
+## Decoupled vector microarchitecture: SEAM-V; sustained RVV throughput bought in exactly the three currencies the profile refuses (WCET, autonomous fetch, the least-built arrow)
+
+Unlike the belt, EPIC, and SecureBOOM entries (above), which recover *scalar* ILP, this proposal targets the datapath the whole compute story actually rides: §2/§15 route **all** heavy compute (rendering, AI, radio DSP) onto RVV vector/matrix cores, so a proposal to raise *sustained vector* throughput is unusually on-point rather than tangential, and earns a decomposition on its own.
+**SEAM-V** (Wang and Zhang, arXiv:2607.17899; "A Hybrid-Decoupled RISC-V Vector Processor with Backend-Visible EP Context for Sustained Vector Throughput") attacks the instruction-supply gap of tightly-coupled RVV units by decoupling the vector backend from the scalar core and letting it run ahead on a continuous stream of **execute packets (EPs)**: it reports a 1.34× geomean over an **Ara**-based tightly-coupled baseline across 17 kernels (up to ~3× at short AVL=32, where the scalar-supply gap bites hardest).
+The baseline is the tell: **Ara is precisely the admissible target** (a tightly-coupled, statically-issued, in-order vector unit that is one more datapath class under §15's "one base ISA, one parameterized model; classes differ only in datapath"), and SEAM-V's entire margin over it *is* the decoupling the profile forbids.
+
+**The steelman.** The gap is real: at short vectors a tightly-coupled unit starves on scalar issue, and the accepted throughput target ("2010s-iGPU / early-NPU / LTE-class-modem territory," §2) is not so generous that a free 1.34× would be spurned on ordinary engineering grounds. If the only objection were IPC, this would be a serious lever.
+
+Run SEAM-V's mechanisms through the §15 admission test individually, the same decomposition that logged the belt's spiller and EPIC's NaT while rejecting backless memory, the ALAT, and the RSE:
+- **VLIW-style EP packing (static bundling of independent vector ops) + same-EP hazard suppression**: **the one admissible atom, and it is already banked.** Statically packing independent operations into a wide issue and chaining within a packet is deterministic, architecturally visible, Sail-expressible, and adds no hidden state; it is the vector face of the EPIC entry's distilled atom #2 (**wider in-order superscalar + verified static scheduling on plain RV64**), already licensed for the C-class and served by the bespoke CompCert/SECOMP scheduler. Widening in-order *vector* issue and letting the scheduler pack EPs recovers the short-AVL supply margin **with none of the decoupling below**, which is where SEAM-V's paper contribution actually lives.
+- **Task-level decoupling (the backend runs asynchronously ahead of the scalar core)**: **fails test 2.** A decoupled-access/execute queue makes vector-completion latency a function of dynamic queue occupancy and runtime issue skew, i.e. of history and pipeline state; that is exactly the path interference §11's WCET bound is free of *because* the pipeline is overlap-free and non-speculative, so the estimate collapses to a tree sum (§11, §15). Decoupling reintroduces the interference the SecureBOOM entry rejected out-of-order for, one abstraction level up: the bound stops being a tree sum.
+- **Local instruction supply (a backend-local EP store the vector unit fetches from on its own)**: **fails test 5, and trips the §4 invariant outright.** A datapath unit that autonomously fetches and sequences its own instruction stream is an autonomous engine (test 5, the ground the `Svadu` page-walker, the RSE, and the CHERIoT TBRE/STKZ walkers are all declined on), and more fundamentally it is **a second instruction-fetching computer on the die** — precisely the "No foreign computers" prohibition of §4 ("a component that fetches and executes instructions outside this discipline does not go on the die"). The vector unit must stay a **core-issued, capability-operand datapath** (the §15 coprocessor line: no instruction fetch, no local program), not a decoupled processor with its own front end.
+- **Backend-visible EP context + request-bound "intelligent" prefetch**: **fails test 2 and test 3.** Data-dependent prefetch is history-indexed, latency-shaping shared state — cache-prefetcher-shaped, the exact channel class the cacheless SRAM profile (§15) deletes at the source; its request-bound context is hidden microarchitectural state that survives across work items (test 3), and its data-dependent timing is test 2. This is the ALAT rejection in vector clothing.
+- **Dynamic dependency management for cross-EP constraints**: **fails test 2.** Runtime hazard resolution across EPs is a scoreboard by another name — history- and state-dependent completion latency, the dynamic scheduling an in-order + statically-scheduled datapath deletes rather than flushes.
+
+**The inversion, again.** As with EPIC and SecureBOOM, the hoped-for win runs backwards against the axiom. SEAM-V's decoupling, local supply, prefetch, and dynamic cross-EP tracking each *enlarge* the least-built arrow — an asynchronous vector backend with its own fetch queue and dynamic hazard state is a materially bigger Sail model and a harder RTL ⊑ Sail refinement (§17), the canonical concurrency-state-explosion case — while *degrading* the §11 tree-sum WCET the entire temporal-admission edifice consumes. It spends the two scarce currencies (proof surface on the least-built arrow, and timing determinism) plus the structural §4 no-foreign-computers invariant, to buy the one free currency (sustained vector throughput) on the very axis §2 already conceded as the accepted price. That is the wrong trade in the wrong direction three times over.
+
+**Where it ranks.** Off the abandon-substrate scale entirely — SEAM-V *is* RISC-V RVV, so unlike the belt/EPIC/EDGE targets it imports without an ecosystem fork; the objection is purely microarchitectural. Among throughput levers it sits with the FGMT/PRET entry's rejected half and below the admitted macro-op-fusion win: fusion is admitted because it is architecturally transparent, adds no hidden state, opens no timing channel, and *tightens* WCET, whereas SEAM-V's decoupling does the opposite on all four counts.
+
+**Disposition:** rejected as a base direction. **One atom is distilled and already held:** static, wide, in-order vector issue with verified EP packing on the tightly-coupled unit (the Ara-shaped datapath the paper benchmarks against), which recovers the short-AVL supply margin without decoupling; it needs no new mechanism because §15's in-order static-issue license already covers the vector class. Everything the paper adds over the tightly-coupled baseline — task-level decoupling, backend-local instruction supply, request-bound prefetch, dynamic cross-EP dependency tracking — is rejected on the admission test (tests 2, 3, 5) and on §4's no-foreign-computers invariant, and forfeits the §11 tree-sum WCET besides. Non-normative; no spec-body change.
+
+---
+
 ## Minimal-ISA extremes: OISC and transport-triggered architectures; parsimony past the point the substrate and the proof survive
 
 The proposal pushes the profile's own parsimony instinct (deleting the C extension for unambiguous decode, curating `A` to `Zaamo`, folding scalar float onto the vector unit, §15) to its absolute limit: a **one-instruction-set computer** (OISC, a single instruction such as *subtract-and-branch-if-≤0*, from which all computation is synthesized) or a **transport-triggered architecture** (TTA / the MOVE machine: the only operation is a register-to-functional-unit-port move, and arithmetic is a *side effect* of moving operands to a unit's input ports).
@@ -932,6 +955,83 @@ Application-class capability-DMA at NIC / scanout / radio-I/Q bandwidth is net-n
 The IOMMU is **deleted** and the IOPMP **declined**: device DMA is capability-checked by the fabric, every DMA-capable block is a core-issued capability-operand mover or a delegated-capability-holding streamer, and CHERI becomes the sole spatial mechanism **system-wide**: cores and devices alike.
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend* → *verify rather than hedge*): the IOMMU is a second, device-side spatial mechanism (carrying a walker and caches the profile bans in-core), redundant once the fabric carries capabilities, and the IOPMP is the coarse subset of CHERI it is in-core.
 **Honest residual (§17):** device access rests on CHERI alone with no IOMMU-disjoint backstop; in-flight-DMA revocation and a capability/tag-carrying fabric are new obligations (Markettos-2020 and the CHERI-at-SoC-Level guide anchor feasibility, Cornucopia-Reloaded the revocation), and application-class capability-DMA is net-new (§18), microcontroller-scale the existence proof.
+
+---
+
+## Delete asynchronous interrupt delivery: the pollable-bit machine, and the low-latency ISR the schedule had already deleted
+
+The proposal is to remove **asynchronous interrupt delivery** outright: an interrupt arrival remains exactly what §15 already makes it (an IMSIC store setting a pending bit in an interrupt file), but **no pending bit ever vectors the core to `MTCC`**.
+Software reads the pending array with ordinary loads at syntactically-determined poll points, and the **slot-boundary timer is the sole remaining asynchronous trap**.
+It is the completion of the arc §7 began: interrupts were already demoted from scheduling events to latched state (§7), and this deletes the one delivery mechanism that survived that demotion.
+
+**The proposal deflates once, immediately, and the deflation should lead.**
+The trap path itself does **not** go away.
+The boundary timer must stay asynchronous, because the cyclic executive's entire temporal-isolation claim is that a partition "cannot overrun its slot" (§7) against a compartment that declines to yield; a cooperative-poll boundary would rest slot enforcement on the compartment's own good behavior, which is not a mechanism.
+So `MTCC`/`MEPCC`/`MTDC`, the capability trap vector, and the save/restore sequence all remain (§7, §15), and the proposal is not "delete the trap path" but **narrow the asynchronous trap set from {boundary timer, every device MSI, watchdog bark} to {boundary timer}**.
+What that narrowing buys is not the trap machinery; it is everything built to *govern* the trap machinery.
+
+**Four removals, each landing on a different layer.**
+(a) **The interrupt-state sentry triple dies.** §15's `enabled`/`disabled`/`inherit` forward- and backward-edge sentries exist to make interrupt masking structured and lexically scoped, with the caller's state captured in the return capability and restored automatically on return (§8, §15).
+With the boundary timer the only asynchronous trap, and with masking it precisely the cross-partition attack §8 defends against, **interrupt-enable state has nothing left to govern**: the three sentry types collapse to one plain sentry.
+That removes sentry-otype space and the interrupt-state capture-and-restore semantics of capability jump-and-link from the Sail model; the interrupt-state field of the return capability and its decode and auto-restore path from the RTL; the interrupt-state index on sentry types from the **CHERI-TAL**, where the on-device checker's order-of-10³-line budget is a hard constraint on the metatheory and not merely on the implementation (§17); and it makes the two lemmas the discipline exists to prove (*no compartment leaves interrupts masked past a return*, *cross-compartment calls force interrupts enabled*) **vacuous rather than discharged**.
+(b) **The bounded-interrupt-disabled-window allow-list is deleted, not bounded.** §8 and §11 carry a statically-auditable per-compartment allow-list of interrupt-disabled entry points with worst-case durations priced into the partition-switch budget.
+With nothing maskable the list is empty; the kernel's own boundary handler remains non-interruptible, but that is *one* region inside verified kernel code, discharged by the switch's padded constant cost (§15), not a per-compartment audit surface.
+Nor does the boundary timer itself need a mask: the switch completes at a padded constant far shorter than any slot, and the timer does not re-arm until the handler reprograms `mtimecmp`.
+(c) **The kernel loses a case split at every entry point.** §7 makes the kernel event-driven with no kernel threads, "executing only on trap/syscall/interrupt on the caller's budget"; deleting asynchronous device delivery leaves exactly two entry reasons, synchronous syscall/exception and the boundary timer, so the interleaving question *can a device MSI land mid-syscall* stops being a case in the Coq kernel proof.
+(d) **The AIA delivery-selection surface goes.** The IMSIC's delivery enable, threshold, and top-pending-selection machinery exists solely to choose *which* pending bit to deliver; under polling software reads the pending array directly.
+This is the same trim §15 already performed once on the AIA (dropping the supervisor and guest/VS interrupt files as dead Sail surface under the single Machine mode), applied a second time in the same direction.
+
+A fifth, smaller gain is worth naming because it runs the other way from most subtractions: **WCET improves rather than costing.**
+Asynchronous delivery puts a potential trap point at every instruction boundary, so any code region carries a preemption term, bounded by the allow-list but present.
+Polling makes trap points **syntactic** (they are poll sites, already nodes in the typed control-flow graph the §5 syntax-directed max-path sum walks), so the derivation **loses a term instead of bounding one**.
+Against a design that deliberately takes the trivial sound bound and forbids tools that only tighten it (§5), this is the rare subtraction that tightens the bound for free.
+
+**The counterargument, at full strength: the PS/2-style near-zero-latency ISR.**
+The intuition is that a hardware interrupt reaches a handler in tens of cycles where a poll loop reaches it in a poll period, and that this is a real capability worth ISA surface.
+The intuition is correct about *hardware* and wrong about *this machine*, and the reason is not the trap path at all: **it is the cyclic executive, which deleted the low-latency ISR before this proposal was on the table.**
+§7 already states it twice: aperiodic events get "dedicated polling or sporadic slots sized into the frame," and worst-case device service latency is "a *schedule corollary, not an interrupt property*," with latched-until-slot meaning an event waits at most its owning server's slot period plus in-slot handling WCET.
+A keypress on the current design does not preempt anything.
+It sets a pending bit that the owning driver's slot consumes, and end-to-end latency is bounded by the slot period, a bound this proposal **leaves exactly unchanged**.
+
+**What asynchronous delivery actually buys today is the sub-slot tail, and only in the rare case.**
+If the device's owning partition happens already to be running when the bit sets, asynchronous delivery reaches the handler in trap latency rather than at the next poll site.
+Against a major frame measured in hundreds of microseconds, that difference is noise; and it applies only when the owner is the currently-scheduled partition, which for a human-input device is by construction the uncommon case.
+The deeper reason the PS/2 intuition does not transfer is that it is an intuition from a **preemptive priority-scheduled** OS: an interrupt is fast there because it can *promote* work into the CPU ahead of what was running.
+Here there is no priority to preempt into.
+An interrupt can set a bit sooner, but **nothing can run sooner**, because *what runs now* is a composition-time constant (§7), and time never crosses a partition boundary even when donated (§7, non-work-conserving by construction).
+
+**The genuinely tight deadlines are already answered, and already answered against interrupts.**
+The sub-slot radio turnaround (BLE `T_IFS` 150 µs ± 2 µs, 802.11 SIFS 10/16 µs, 802.15.4 ~192 µs) is met by the **fixed-function turnaround sequencer** of the link-layer-timing entry above, whose own justification is that "a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window."
+HARQ feedback and DRX paging occasions get sporadic slots sized to their deadlines (§7).
+The design has therefore already concluded, on its tightest path, that the interrupt path is *not* the low-latency mechanism: anything tighter than a slot is RTL, and anything a slot can hold is a schedule parameter.
+Deleting asynchronous delivery removes nothing from either category.
+
+**Three real losses, named rather than waved.**
+(1) **Watchdog bark degrades to slot granularity.** §7 makes the RoT watchdog's bark an ordinary MSI into the sentinel's interrupt file, and its value is precisely to reach a core that is *alive but wedged*, which polling by definition cannot.
+The answer is that the bark check folds into the retained boundary-timer handler: the boundary trap fires regardless of what the compartment is doing, so the sentinel observes a bark within one slot, and if even the boundary path is dead the **bite** (a reset line, outside the interrupt model and unmaskable by construction, §7, §16) is the backstop it was always specified to be.
+Bark latency thus moves from trap latency to one slot period; that is a genuine degradation of the surgical-response window (§16) and is booked, not denied.
+(2) **A driver that would have slept mid-slot now sleeps to the boundary.** Race-to-idle with in-slot clock and power gating (§15) currently lets a gated core wake on delivery; under polling it wakes on the boundary timer it would take anyway, so a device serviceable mid-slot is instead serviced one slot later.
+This is a latency-for-energy trade already inside the schedule's own bound and sized by §11.
+(3) **Polling consumes the slot it polls in.** The cost is energy rather than throughput, because slack was never recoverable in the first place: the schedule is non-work-conserving across confidentiality boundaries, an idle slot staying idle because donated time is a timing channel (§7).
+A fourth item is sometimes offered as a loss and is not one: per-device poll cadence must now be sized explicitly, but §7 **already** requires exactly that sizing, so this strengthens a standing obligation rather than creating one.
+
+**The admission-test framing, and the argument shape this is an instance of.**
+Asynchronous delivery is not *inadmissible* under the five-part test (§15): it is deterministic, and per-partition interrupt state is identity-partitioned or swapped at the switch, so it does not fail test (3) the way a predictor or an LR/SC reservation does.
+It falls instead to the **defense-in-depth companion clause** (§15) read in the subtractive direction: its function (getting a device serviced within its deadline) is already covered *in full* by the static schedule, so it is a second mechanism for a job one mechanism already does, and the primary is the one the design proves.
+And the shape of the win is the platform's most-used argument, transplanted: **deleting asynchronous delivery is strictly stronger than bounding the mask windows**, exactly as deleting the branch predictor was strictly stronger than flushing it (§15) and deleting `Zalrsc` was strictly stronger than clearing its reservation (§15).
+In each case a *bounded* obligation ("is the mask window short enough?", "did we flush the predictor completely?", "was the reservation cleared?") becomes an **absence** obligation, and the absence is checked structurally rather than discharged.
+That is also why this lands where it is worth the most: an absence obligation is a structural check on the RTL, and RTL ⊑ Sail is the least-built layer of the stack (§17, §18).
+
+**The bet, stated.**
+The system gives up the ability to reach code that is running but not polling, and keeps exactly one mechanism that can: a timer that fires at a composition-time-known instant.
+That is acceptable only because the schedule is static: every deadline the machine owes is a slot parameter fixed at compose time, so there is no event whose *arrival* the machine needs to react to faster than the slot it was scheduled into.
+A design with any dynamic scheduling, any priority, or any admission of runtime-arriving work could not take this deletion; this one can, and the price is a bark window that widens from microseconds to one slot.
+
+**Disposition (adopted; normative in §7, §8, §15).**
+Asynchronous interrupt delivery is **deleted**: interrupt arrival remains a store to an interrupt file setting architectural pending state, consumed by ordinary loads at poll sites inside the owner's slot, and the **slot-boundary timer is the sole asynchronous trap on the machine**.
+The interrupt-state sentry types (`enabled`/`disabled`/`inherit`) are removed from the CHERI profile and the CHERI-TAL with the masking discipline they carried; the bounded-interrupt-disabled-window allow-list (§8, §11) is deleted rather than audited; the AIA delivery-selection machinery is trimmed to the pending array; and the watchdog bark is checked in the boundary handler.
+The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*), with the local twist that the feature's headline benefit (low-latency device service) **was not present to lose**: the cyclic executive had already made service latency a schedule corollary, so what asynchronous delivery still bought was a sub-slot tail, paid for in ISA surface, RTL, typing rules, kernel case splits, and a WCET preemption term.
+**Honest residual (§17):** the watchdog bark's surgical-response window widens from trap latency to one slot period, leaving **bite** as the only sub-slot response to a wedged sentinel; a device serviceable mid-slot is serviced at the next poll site or the next slot, so §11's per-device cadence sizing becomes load-bearing for every aperiodic device rather than for the radio paths alone; and poll-site placement becomes a WCET-visible source-level obligation on driver code (cheap, since poll sites are already CFG nodes the §5 cost annotation walks, but no longer implicit).
 
 ---
 
@@ -1872,6 +1972,71 @@ A small, decidable **CHERI-TAL type-checker** is the on-device admission checker
 The **CIC proof kernel** is retained for the **deep** obligations no type system states (Tier-0 functional refinement + non-interference (§8), crypto reduction security, the *residual unstructured* constant-time and WCET, filesystem linearizability/liveness): validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
 The platform axiom decides this exactly as it did for seL4 and crypto (**methodology is portable, the smallest trusted set wins**): spend the engineering to make the per-install admission checker a type-checker whose soundness is one Coq theorem, rather than a general proof checker no one can hold to 10³ lines.
 **Honest residual (§17):** the CHERI-TAL soundness metatheorem is a new crown-jewel spec; the deep-proof CIC kernel is *named* as the larger admission axiom rather than hidden inside a 10³-line claim (so "checking is cheap" holds only for the TAL tier); and the temporal-safety type discipline over CHERI capabilities is the net-new instantiation the certifying-compiler workstream (§18) carries in place of a bespoke certificate format.
+
+---
+
+## First-order-only and defunctionalization: the closed call graph is the part worth having, and the source-language restriction is the wrong way to buy it
+
+The proposal is to restrict the contained languages to a **first-order fragment** (no closures, no function pointers, no dynamic dispatch) or, equivalently, to **defunctionalize** (Reynolds) so that every call site names a statically-known callee.
+The claimed pair of gains is that the whole-program call graph closes, upgrading control-flow integrity from *coarse-via-sentries* to *exact-by-construction*, and that indirect branches disappear, taking indirect-predictor state with them.
+
+**Half the claim is already banked and the other half is unreachable by construction, so the deflation leads.**
+There is no indirect-predictor state left to remove: §15 carries **zero mutable predictor state**, no BTB, no BHT, and explicitly no RAS, deleted on the standing ground that *deleting the structure is strictly stronger than bounding its use*.
+An indirect branch on this machine is therefore neither a speculation hazard nor a learned-history channel; it is a fixed pipeline-latency penalty already priced into the WCET tables (§15).
+The proposal contributes **nothing to silicon**: the hardware subtraction it offers was taken before it arrived.
+
+And *no indirect branches at all* cannot hold on a purecap compartmented machine, because the **sentry is an indirect jump by construction**.
+§15 makes capability jump-and-link "the hardware root of domain entry": a compartment is reached only by jumping through a sentry its manifest handed it, and the entire point is that the target is unforgeable and *not statically known to the caller*.
+Deleting indirect control transfer would delete domain entry.
+The proposal's scope is thus necessarily **intra-compartment**, and its subject matter is entirely software.
+
+**What survives the deflation is worth having, and it is exactly one property: the callee set.**
+Sentries decide *target legality*: this jump lands on something that was sealed as an entry point.
+They cannot decide *target membership*: this jump lands on one of the entries **this call site** is permitted to reach.
+That gap is precisely why the profile could exclude `Zicfilp` landing pads while calling CFI "CHERI-enforced for the rest" (§15): the enforcement is real and it is coarse.
+The proposal is right that the coarseness is a residual worth closing, and wrong about the vehicle.
+
+**Two consumers make the closed graph load-bearing rather than merely tidy, and only one of them is an admissible reason.**
+(a) **Bound *existence* for the two static-boundedness certificates.**
+§7 reads the peak-memory plan and the §11 WCET bound off *the same* static facts ("loop bounds, recursion depth, bounded allocation counts"), and the syntax-directed max-path sum (§5) walks the typed control-flow graph.
+An indirect call with an unknown callee set makes **call-graph acyclicity** unprovable, and with recursion depth unbounded neither the max-path sum nor the memory plan's live-range coloring yields a bound at all.
+That is bound *existence*, not bound *tightness*, so it is admissible.
+(b) **Tightness, which is not.**
+Enumerating a site's callees also lets its cost be the max over that set rather than over every function linked into the compartment.
+But a sealed image (the on-device loader "deleted rather than hardened," §13) makes "every function in the compartment" a finite set, so a trivial sound bound already exists, and the **standing §5 rule** (*any verified tool that exists only to tighten an already-sound bound is inadmissible, take the trivial sound bound*) refuses this as a justification.
+It is taken as a byproduct where it falls out and is never a reason: the same discipline that deleted IPET.
+
+**The literal restriction fails on three counts, the third being the one that decides it.**
+First, it guts the reference contained language: iterators, closures, and `dyn Trait` are not decorations on Rust, and `#![forbid(unsafe_code)]` Rust without them is a different language (§5).
+Second, defunctionalization is a **whole-program** transform, which fights the per-compartment, per-install admission model head-on: admission gates on one binary's typing derivation (§13), not on a whole-system compilation.
+Third, **defunctionalization does not remove the dispatch, it relocates it.**
+Reynolds' transform replaces a closure with a tag plus an `apply` that matches on it, and that match compiles either to a jump table (an indirect branch, so nothing was removed) or to a decision tree (so an *N*-way dispatch that cost one mispredict-equivalent penalty now costs log₂*N* of them).
+With **no dynamic prediction anywhere** (§15) the decision tree is the worse of the two, and it is worse *because of* the very subtraction the proposal was trying to extend.
+The transform is well-behaved on machines whose predictors make indirect jumps expensive; this profile deleted the predictors, and with them the reason.
+
+**The counterargument at full strength: the control tier already proves first-orderness pays.**
+The Vélus/Lustre control planes (§5, §12) *are* first-order (a node is a loop-free, statically-sized reaction with no closures) and the entry adopting them claims exactly the gains claimed here: structural WCET, causality by clock calculus, static allocation.
+The reply is that this argues against the mandate rather than for it.
+That tier has the property **free, from the shape of the language it already chose**, so a first-order mandate buys nothing where it is cheap and buys it at full price where it is not, which is the imperative Rust data planes.
+A rule whose entire cost falls on the population it least fits is not a subtraction.
+
+**Disposition (adopted as a typed callee set; normative in §5, §13. The source-language restriction is rejected).**
+The **property** is taken and the **restriction** is not: the CHERI-TAL's code types carry, at every indirect transfer, the **finite set of code labels that site may target**, and the typing rule for indirect jump requires the target's label to be a member.
+Closures, function pointers, and `dyn Trait` all survive, because **sealing is what makes the enumeration exhaustive**: with the on-device loader deleted and no dynamic linking (§13), the set of functions whose address is ever taken, and the set of impls behind any vtable, are both fixed at compose time, so the callee set is sound *by sealing* rather than by points-to analysis.
+Cross-compartment sentry edges stay outside the typed set and are governed where they already are, by the manifest's import/export tables and the §12 IDL (the CHERIoT export-table structure §13 already adopts), so the closed-graph claim is **per-compartment, joined at the manifest**, never whole-system-by-typing.
+This is the profile's usual shape once more (*take the property, decline the mechanism*), and it lands the `Zicfilp` residual in the type system at **zero silicon**, rather than in the ISA the profile already declined it from.
+
+**It is checked against the frozen type theory rather than assumed to fit (§5).**
+That theory's own admission rule asks three things.
+(1) *No open-term reduction, syntactic type equality preserved*: a callee set is a finite set of first-order code labels and membership is set comparison decided structurally, so type equality stays α-equivalence over first-order terms.
+(2) *No duplicated axis*: the set refines the **code type** already in the closed vocabulary ("code types as register-file preconditions"), so it is an amendment to an existing former by this document, the mechanism the freeze explicitly reserves, and not a new grade standing beside the linear/affine, relevance, taint, and cost axes.
+(3) *Decision procedure stays syntax-directed*: one subset check per indirect transfer, constant work per node.
+The checker grows by a set-membership test and the metatheory by one case in the soundness proof, which is what the freeze's admission rule exists to make demonstrable rather than asserted.
+
+**Honest residual (§17).**
+Enumeration is a **completeness** obligation on the certifying compiler, never a soundness one, exactly as the §17 certificate seam already books the preservation theorem: a compiler that cannot enumerate a site's targets fails to emit a well-typed derivation and the binary is **refused**, an availability outcome, and it cannot mint a derivation that type-checks yet under-declares.
+The population that genuinely resists enumeration (an interpreter dispatch loop, a dynamically-assembled table) is refused, which costs nothing new because no-runtime-codegen (§13, §14) already excludes it.
+And the closure is per-compartment: a whole-system call graph is the composition of the per-compartment graphs *with* the manifest's sentry edges, so a mis-stated manifest yields a perfectly well-typed set of compartments wired wrong, the crown-jewel-spec failure mode (§5) in its usual place rather than a new one.
 
 ---
 
