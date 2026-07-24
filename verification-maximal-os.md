@@ -1069,7 +1069,7 @@ This is the transparent realization of Write-before-Read, adopted **in place of*
   So the S-mode CSR bank (`sstatus`/`stvec`/`sepc`/`scause`/`stval`/`sie`/`sip`/`sscratch`/`senvcfg`/`scounteren`), trap delegation (`medeleg`/`mideleg`), `sret`, and `Sstc`'s `stimecmp` are all removed (there is no ring to delegate to, no mode to return to, and no S-mode timer to serve) deleting the mode-transition and delegation logic from the decode, the CSR bank, and the kernel proof.
   See the single-privilege-mode entry in [Evaluated Architectural Alternatives](architectural-alternatives.md).
 - **Scalar floating-point entirely: the `F`/`D` extensions, the `f0`–`f31` register file, and the dynamic rounding-mode CSR.**
-  Every core already carries the RVV floating-point unit (the C-class control cores carry VLEN=256, up through the V/M-class, per the heterogeneous-topology subsection below), so a *second*, scalar FP datapath is redundant mechanism the profile-parsimony rule indicts exactly as it did general CAS and the S/U ring.
+  Every core class already carries the RVV floating-point unit (the core-class table below), so a *second*, scalar FP datapath is redundant mechanism the profile-parsimony rule indicts exactly as it did general CAS and the S/U ring.
   **All floating point is vector:** scalar floats are held in integer or vector registers and computed as single-element (VL=1) RVV operations on the one FPU (the `Zfinx`-adjacent idiom of sourcing FP operands outside a scalar-FP register file, with the arithmetic on the vector unit) so the fixed-latency-including-subnormals timing contract and the `FDIV`/`FSQRT` constant-time carve-out (below) are stated once, for the vector FPU, not for two units: **one of the two FP timing crown jewels is deleted, not merely re-stated.**
   The `f`-register file leaves the context-switch and fence.t flush set, and the dynamic rounding-mode state (`frm`) goes with it under the static-rounding mandate below.
   The costs the subordinated-performance goal (§1) absorbs are an ABI change (a soft-float-register calling convention, floats passed in integer/capability registers) and a per-operation vector-setup cost on scalar-float code; the FP *arithmetic* complexity itself does not vanish (it lives on the retained vector FPU), so this is a consolidation-and-deletion of the scalar wrapper, not an elimination of floating point.
@@ -1078,7 +1078,7 @@ This is the transparent realization of Write-before-Read, adopted **in place of*
 - **Scalar AES and SHA-2 round instructions: the `Zkne`/`Zknd`/`Zknh` extensions.**
   Every vector-bearing core already carries the vector crypto suite (`Zvkned`/`Zvknhb`/`Zvkg`, adopted below), which computes AES, SHA-2, and GHASH table-free on the vector unit, so the *scalar* AES/SHA-2 round datapath is a second, redundant crypto datapath the profile-parsimony rule indicts exactly as it did scalar floating-point (above), general CAS, and the S/U ring.
   Single-block, latency-bound crypto folds onto that unit as single-element (VL=1) vector operations, at the per-operation vector-setup cost the scalar-floating-point fold already accepts (§1), so **the AES/SHA-2 fixed-latency constant-time contract (`Zvkt`) is stated once, for the vector unit, not a second time for a scalar suite**: a crown-jewel timing obligation deleted, not restated.
-  The one *vectorless* core is no exception: the S-class sentinel / RoT (scalar RV64+CHERI, the heterogeneous-topology subsection below) does its measurement and attestation hashing as SHA-3/SHAKE (ML-DSA is Keccak-dominated, §9) in plain 64-bit integer with `Zbb` rotations rather than an AES/SHA-2 opcode, and delegates AEAD and sealing to the vector-bearing crypto core (§5, §6, §12), so no vectorless core needs a hardware AES or SHA-2 round unit (a SHA-256 measurement, were one ever required, is constant-time in plain integer software without `Zknh`, having no table or secret-dependent branch).
+  The one *vectorless* core is no exception: the S-class sentinel / RoT (scalar RV64+CHERI, the core-class table below) does its measurement and attestation hashing as SHA-3/SHAKE (ML-DSA is Keccak-dominated, §9) in plain 64-bit integer with `Zbb` rotations rather than an AES/SHA-2 opcode, and delegates AEAD and sealing to the vector-bearing crypto core (§5, §6, §12), so no vectorless core needs a hardware AES or SHA-2 round unit (a SHA-256 measurement, were one ever required, is constant-time in plain integer software without `Zknh`, having no table or secret-dependent branch).
   Unlike the scalar-floating-point fold this needs no non-standard fork: the vector crypto extensions do not depend on the scalar ones, so it is a clean removal of a consumer-less datapath, as with general CAS, not a curated exception to a standard requirement.
   The scalar crypto **bit-manipulation** `Zbkb`/`Zbkc`/`Zbkx` (rotations, carry-less multiply, crossbar permute) is a distinct extension and is retained (adopted below): it accelerates software crypto (GHASH and CRC carry-less multiply, byte and bit permutation) on the scalar cores that carry no vector unit, and is not an AES/SHA-2 round datapath.
 - **Pointer masking (`Ssnpm`/`Smnpm`)**: obviated by CHERI.
@@ -1231,21 +1231,22 @@ A candidate that runs faster but is demonstrably harder to prove is a Pareto poi
 
 All compute on one die, one base ISA, one kernel binary, one parameterized formal model.
 Scalar front ends are one shared microarchitecture (CVA6-class, **modified to static-only prediction per the profile**) across all classes, so kernel-path WCET is a single analysis.
-Reference instantiation (counts are composition parameters, disjointness machine-checked as in §7):
+The core classes are the canonical **core-class table** below; the counts are a reference instantiation (composition parameters, disjointness machine-checked as in §7), and every other section names a class and refers here rather than re-listing them.
 
-- **C-class ×6: control/application.**
-  RV64IMV+CHERI purecap, in-order single/dual-issue, VLEN=256.
-  Kernel instances, servers, apps, browser origins, radio L2/L3 compartments.
-- **V-class ×4 general + ×2 radio-pinned: long-vector compute.**
-  Ara-lineage vector-dominated cores: same scalar front end + decoupled long-vector unit, VLEN=4096, 8 lanes.
-  General cores serve software rasterization, compositing, codecs, ISP, data-parallel work; the **radio-pinned pair (statically assigned per §7, never time-shared with non-radio domains)** hosts the cellular and Wi-Fi PHY servers.
+| Class | Count | Datapath | Role and typical owners |
+| --- | --- | --- | --- |
+| **C-class** | ×6 | RV64IMV+CHERI purecap, in-order single/dual-issue, VLEN=256 | Control and application: kernel instances, servers, apps, browser origins, radio L2/L3 compartments |
+| **V-class** | ×4 general + ×2 radio-pinned | Shared scalar front end + decoupled Ara-lineage long-vector unit, VLEN=4096, 8 lanes | Long-vector compute: software rasterization, compositing, codecs, ISP, and data-parallel work; the radio-pinned pair (statically assigned per §7, never time-shared with non-radio domains) hosts the cellular and Wi-Fi PHY servers |
+| **M-class** | ×2 | Shared scalar front end + tightly coupled systolic GEMM unit (32×32 int8 / 16×16 bf16, Gemmini-lineage) + mid-length vector (VLEN=1024) + software-managed scratchpad | Matrix and AI: the inference server (§12) is the typical owner |
+| **S-class** | ×1 | Minimal scalar-only core, no vector unit | Sentinel: permanently and exclusively owns the telemetry monitor (§12); its guaranteed budget is the whole core, collapsing the availability proof |
+| **RoT** | ×1 | OpenTitan-class block on-die: own scalar RV64+CHERI control core (the die's purecap capability format in a minimal scalar profile, so no second capability encoding forks the model), TRNG, OTP/key storage, monotonic counters, and the watchdog, in its own clock/power island | The platform's only management processor: measured boot, key custody, and attestation (§9) |
+
+- **V-class is vector, not fixed-function graphics, and not SIMT.**
   No fixed-function graphics: no rasterizer, no texture units, no ROPs, no command processor.
   Vector, not SIMT: one thread with long vectors and masking avoids a hardware warp scheduler (a timing-nondeterminism source incompatible with §11/§17) and keeps CHERI a single-front-end problem (vector data carries no tags; checks land on scalar-issued vector memory ops, per-element for gather/scatter).
-- **M-class ×2: matrix/AI.**
-  Same scalar front end + tightly coupled systolic GEMM unit (32×32 int8 / 16×16 bf16, Gemmini-lineage) + mid-length vector (VLEN=1024) + software-managed scratchpad.
-  **The systolic unit earns its Sail surface over the vector unit beside it.**
+- **The M-class systolic unit earns its Sail surface over the vector unit beside it.**
   Because the M-class *already* carries a VLEN=1024 RVV datapath, the bespoke matrix extension (the profile's single largest block of net-new Sail surface) is admitted only where it clears an **order-of-magnitude sustained dense-GEMM margin (about 8–10× in throughput, and a wider margin in throughput-per-watt) over the same GEMM expressed as RVV on that VLEN=1024 unit.**
-  The margin is structural, not incidental: the 32×32 int8 (16×16 bf16) array performs K² MACs per cycle for O(K) operand bandwidth (every element streamed in is reused across a full row or column of processing elements) whereas the vector unit is register-file- and issue-bandwidth-bound to a one-dimensional VLEN/element-width rate (128 int8 / 64 bf16 MACs per cycle at VLEN=1024), so the raw peak ratio is already 4–8× and the operand-reuse advantage carries sustained and per-watt throughput to a decade on the large dense GEMM that inference presents (the +900–9900% vs-scalar figure in performance-estimates.md is likewise about an order of magnitude over the vector path).
+  The margin is structural, not incidental: the 32×32 int8 (16×16 bf16) array performs K² MACs per cycle for O(K) operand bandwidth (every element streamed in is reused across a full row or column of processing elements) whereas the vector unit is register-file- and issue-bandwidth-bound to a one-dimensional VLEN/element-width rate (128 int8 / 64 bf16 MACs per cycle at VLEN=1024), so the raw peak ratio is already 4–8× and the operand-reuse advantage carries sustained and per-watt throughput to a decade on the large dense GEMM that inference presents.
   Dense int8/bf16 inference clears the bar, so the extension is **kept**; small, irregular, or low-reuse GEMM does **not**, and folds onto the VLEN=1024 RVV unit instead: the scalar-FP-onto-vector-FPU parsimony taken one level up.
   **The vector unit is also the de-quantization and scaling front-end.**
   A second consumer justifies the VLEN=1024 datapath beside the array: model weights arrive quantized to arbitrary low bit-widths (the K-quant families, codebook schemes), and unpacking them to the int8 or bf16 the systolic array consumes is software on that vector unit (RVV `vrgather` as the table lookup, narrowing and bit-manipulation as the unpack), the register-file-resident, correct-by-construction analog of the fixed-format de-quant hardware other accelerators bake in.
@@ -1259,10 +1260,7 @@ Reference instantiation (counts are composition parameters, disjointness machine
   **LDPC and polar decoders only (the 5G NR and 6G channel-code families**) as fixed-geometry arithmetic: deterministic iteration bounds, core-issued capability-operand movement, no firmware.
   The legacy **turbo and convolutional decoders are deliberately absent**, so the 2G/3G/4G air interfaces cannot be channel-decoded at all: the silicon half of the 5G/6G generation floor (radio subsystem below; §12, §3).
   This does **not** breach the codec-block ban (grammar vs. geometry): belief propagation on a fixed graph and FFT butterflies are grammar-free arithmetic.
-- **S-class ×1: sentinel.**
-  Minimal scalar-only core (no V), permanently and exclusively owning the telemetry monitor (§12); its guaranteed budget is the whole core, collapsing the availability proof.
 - **Integrated RoT.**
-  OpenTitan-class block on-die (own **scalar RV64+CHERI** control core (the die's purecap capability format in a minimal scalar profile, so no second capability encoding forks the model), TRNG, OTP/key storage, monotonic counters, the watchdog) in its own clock/power island, and the platform's **only management processor**.
   Integration removes the discrete-RoT interposer/probing surface; the cost is concentration (one mask set carries the RoT and everything it measures, §17).
 
 ### Radio subsystem (dissolved modem)
@@ -1294,7 +1292,7 @@ Reference instantiation (counts are composition parameters, disjointness machine
   Every link-layer address the platform uses (Wi-Fi, Bluetooth, and the wired NIC) is a fresh draw from the platform's **cryptographic RNG root (the RoT TRNG conditioned through the verified DRBG** (the single entropy root, §15, §16)) the only source of addresses on the device, with the locally-administered and unicast bits forced and never a value derived from a stored secret or a software PRNG.
   The §12 network compartment chooses only *when* to rotate (per association by default, held stable for one network's lifetime where a captive portal or address allow-list requires it) so MAC randomization is **privacy by construction**, tied to the entropy root rather than to a disable-able software setting: the link-layer analog of the fuzzed clock (§8).
   (Cellular subscription identity is instead concealed by the 5G-native SUCI construction, whose ephemeral keys draw from the same root; the MAC invariant is its Wi-Fi/Bluetooth/wired counterpart.)
-- **Capacity honesty:** two VLEN=4096 cores + FEC units is LTE-class *throughput* via reduced-bandwidth NR; the scaling axis is core count, never a firmware processor.
+- **Capacity honesty:** the two radio-pinned V-cores plus FEC units are LTE-class *throughput* via reduced-bandwidth NR; the scaling axis is core count, never a firmware processor.
 
 ### Sensor and transducer front-ends
 
