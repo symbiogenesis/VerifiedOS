@@ -1067,6 +1067,48 @@ The platform axiom decides it as ever (*trust is the scarce resource, engineerin
 
 ---
 
+## Dedicated NPUs and RISC-V tensor-core extensions: the in-core matrix unit is already a tensor core, the firmware-driven NPU is the foreign computer §4 excludes
+
+RISC-V has become an industrial base for custom AI silicon, and the field builds its matrix engines two ways.
+The first is a **dedicated NPU**, where RISC-V cores act as a management brain that feeds a custom matrix engine, the whole forming a self-contained accelerator subsystem.
+Tenstorrent's Tensix core packages five small programmable RISC-V cores beside a high-density SIMD matrix-and-vector engine; Semidynamics' Cervell folds scalar RISC-V, a vector unit, and a tensor unit into an all-in-one NPU driven to hundreds of TOPS; Google's open Coral NPU pairs a lightweight RISC-V control core with a quantized outer-product matrix unit for low-power edge inference; MIPS's S8200 builds an NPU around a RISC-V control core with vector and matrix extensions layered on.
+The second is a **tensor-core extension**, where matrix multiply is attached to the standard vector registers and executed by the main core, with no separate engine.
+Semidynamics' own Tensor Unit connects to the RISC-V vector registers and computes A×B+C in the shape of an NVIDIA tensor core; Andes' AMM (Andes Matrix Multiplication) tiles a neural network onto its vector processors without a proprietary matrix block at all.
+The design settles both natively: the M-class (§15) is already the second pattern, and the first is the foreign computer §4 excludes by name.
+
+**The steelman.**
+The case for a dedicated NPU is real, and not only about raw throughput (Cervell's hundreds of TOPS dwarf the M-class's honestly-named early-NPU-class target, §2).
+Its sharper form is programmability: AI models turn over every few months, fixed-function silicon goes obsolete, and a RISC-V-cored NPU rewrites its firmware to track a new model class without a new chip, which is exactly the argument the field makes for why open RISC-V, not a fixed-function ASIC, is winning the accelerator race.
+These are shipping data-center and edge parts, not proposals.
+If throughput or field-reprogrammability were the scarce resource, a dedicated NPU would be the answer.
+
+**Objection: the dedicated NPU is a foreign computer (§4).**
+A RISC-V *control core running firmware to master a matrix engine* is, in the trust structure rather than the datapath, exactly an on-die management processor of the ME/PSP/SCP/AOP class the §12 topology table bans by name (discrete GPU or accelerator firmware, and autonomous in-array compute).
+That the control core is itself RISC-V changes nothing that matters: it is a *separate* core running *separate*, unverified, field-updatable firmware, hence a second trust base, a second block of Sail surface (atop the M-class matrix extension, already the profile's single largest, §15), a second attacker-facing boot-and-update surface, and a second self-mastering block on the fabric.
+The CapChecker reasoning of the drop-IOMMU entry (above) forecloses even the softer move of wrapping such an accelerator in a capability checker: the unaware, self-mastering, opaque accelerator is the category §4 excludes, and the wrapper is the hedge *verify rather than hedge* declines.
+
+**Objection: the programmability the field celebrates is the surface the design forbids.**
+The NPU-race argument is that on-die firmware lets the accelerator follow new models without new silicon; but on-die firmware that rewrites the compute is precisely runtime-mutable code, the thing the W^X invariant and the no-runtime-codegen rule delete everywhere (§14), and the opposite of the compiled-and-certified-off-device discipline every V/M-class kernel already rides (§13).
+The design keeps the *benefit* and moves its *vehicle*: a new model is recompiled and recertified in the off-device toolchain and shipped as a content-addressed data artifact to the `burn` inference runtime (a contained userspace compartment, §12, [userspace-porting.md](userspace-porting.md)), so the reprogrammability happens in the verified build, not in on-die firmware.
+"Rewrite the firmware for the new model" becomes "recompile the model off-device": the same flexibility, with no mutable-code surface on the die.
+
+**The distilled atom is already banked, twice.**
+The tensor-core extension of the second pattern (the Semidynamics Tensor Unit, the Andes AMM) *is* the M-class matrix unit: a systolic array beside a VLEN=1024 vector register file, its operands core-issued from those registers under the coprocessor line (§15) and capability-checked per element like every other vector memory op (§15), so accelerator-class compute inherits the full spatial-safety story instead of a device-side approximation of it; Andes' "tile the network onto the vector unit without a proprietary matrix block" is the design's own sub-threshold fold, where small or irregular GEMM runs on the RVV unit and only order-of-magnitude-dense GEMM earns the array (§15).
+The insight the *dedicated-NPU* vendors are right about, that a RISC-V core should drive the matrix engine, the design also already holds, and holds more thoroughly: the M-class scalar front end *is* the RISC-V core that issues to the systolic array, but it is one core class in the one Sail model running the same admitted, capability-checked, off-device-certified code as every other core, not a separate firmware-running subsystem.
+The vendors' architectural insight is taken into the datapath and refused in the trust structure.
+
+**Where it ranks.**
+Off the abandon-substrate scale (this is an accelerator-integration question, not an ISA replacement): the tensor-core extension is *adopted*, because it is the M-class, and the dedicated NPU is *rejected on §4*, ranking with the discrete-GPU and accelerator-firmware exclusions of the topology table and the CapChecker-wrapped accelerator of the drop-IOMMU entry (above), declined not on throughput but on the trust structure.
+The honest cost is the standing one: forgoing datacenter-NPU throughput for the early-NPU-class target §2 already books, the subordinated-performance calculus one datapath over.
+
+**Disposition (adopted in part; the tensor-core extension is already normative in §4, §15).**
+The RISC-V tensor-core / matrix-extension pattern is adopted: it is the M-class systolic GEMM unit on the VLEN=1024 vector register file under the coprocessor line (§15), already normative, and how that matrix ISA is *encoded* is settled against x86 ACE and Arm SME in the entry below.
+The dedicated NPU, a RISC-V control core running firmware to master a matrix engine, is *rejected*: it is a foreign computer (§4), its firmware the runtime-mutable code W^X forbids (§14), its throughput bought in a currency the platform will not spend.
+Model flexibility is retained through the off-device certifying toolchain, the programmable RVV path, and the `burn` inference runtime (§13, §12), not on-die firmware.
+Non-normative; the normative decisions are in §4 and §15.
+
+---
+
 ## Matrix-accelerator ISA design: x86 ACE and Arm SME; outer products, software de-quantization, and block scaling weighed against the frozen matrix extension
 
 x86's AI Compute Extensions (ACE, an AMX accelerator type specified by the x86 Ecosystem Advisory Group alongside the original TMUL) and Arm's Scalable Matrix Extension (SME and SME2) are the two current attempts to accelerate matrix multiplication inside a CPU ISA.
