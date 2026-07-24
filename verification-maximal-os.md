@@ -131,7 +131,7 @@ stateDiagram-v2
 
 ## 3. Threat Model
 
-**Defended:** remote network attackers **including hostile radio infrastructure (rogue base stations and access points attacking the cellular/Wi-Fi stacks (with downgrade to the broken-crypto legacy generations physically impossible, 2G/3G/4G being absent from the silicon, §15)** (emergency calling connects over a separate zero-authority 5G/6G emergency mode, never a legacy or unauthenticated-attach fallback, §12); hostile web content; malicious or compromised apps, servers, and drivers; malicious DMA peripherals, and counterfeit or spoofed wired peripherals and cables (capability-checked DMA plus a mandatory post-quantum device- and cable-authentication floor, with no USB tunnel admitting a PCIe or DMA path into memory, §12, §15); evil-maid physical access (measured boot + attestation + FDE + authenticated memory encryption with main-memory integrity and anti-replay, §15); **forensic extraction of a seized device that has been unlocked at least once**) the *After First Unlock* state, whose per-profile volume keys are evicted on lock or idle timeout to return the device to the keys-not-resident *Before First Unlock* state through an attested transition (§9, §10, §15), with the USB data path closed while locked so a seized device offers no wired extraction channel (§12); **coerced unlock (duress)**, countered by a duress credential whose entry crypto-erases the key material rather than unlocking (§9, §12); software supply-chain attack in both forms: **tampering** (corrupted artifacts or a trusting-trust compiler: reproducible builds + DDC + proof objects, §13) and **subversion** (a malicious-but-memory-safe upstream dependency, xz/liblzma-shaped: confined at runtime by intra-app library compartmentalization, §13/§14).
+**Defended:** remote network attackers, including hostile radio infrastructure (rogue base stations and access points attacking the cellular/Wi-Fi stacks, with downgrade to the broken-crypto legacy generations physically impossible since 2G/3G/4G are absent from the silicon, §15, and emergency calling over a separate zero-authority 5G/6G mode, never a legacy or unauthenticated-attach fallback, §12); hostile web content; malicious or compromised apps, servers, and drivers; malicious DMA peripherals and counterfeit or spoofed wired peripherals and cables (capability-checked DMA plus a mandatory post-quantum device- and cable-authentication floor, no USB tunnel admitting a PCIe or DMA path into memory, §12, §15); evil-maid physical access (measured boot + attestation + FDE + authenticated memory encryption with main-memory integrity and anti-replay, §15); **forensic extraction of a seized device unlocked at least once** (the *After First Unlock* state, whose per-profile volume keys are evicted on lock or idle timeout to return the device to the keys-not-resident *Before First Unlock* state through an attested transition, §9, §10, §15, with the USB data path closed while locked so it offers no wired extraction channel, §12); **coerced unlock (duress)**, countered by a duress credential whose entry crypto-erases the key material rather than unlocking (§9, §12); and software supply-chain attack in both forms, **tampering** (corrupted artifacts or a trusting-trust compiler: reproducible builds + DDC + proof objects, §13) and **subversion** (a malicious-but-memory-safe upstream dependency, xz/liblzma-shaped: confined at runtime by intra-app library compartmentalization, §13/§14).
 **Covert activation** of the microphone, camera, or radios by compromised software or firmware, and use of the wired port in a deliberately-hostile environment, are additionally countered by **user-controlled cutoffs**: sealed, gasketed Hall-effect kill switches for the microphone, the radios, and the USB data lanes, independent of all software and firmware and **driven together by lockout and the form-factor away-gesture** (lid close, or face-down on a phone) as well as individually, plus a **mechanical camera shutter** over the lens, all beneath capability-gated per-app access that keeps each device off unless something holds a live grant to it (so a mobile phone stays ringable under the away-gesture while its other radios go dark, §8, §15).
 
 **Electromagnetic environment:** radiated and conducted **electromagnetic interference** and **electromagnetic fault injection** (EM *glitching*) are countered by the **shielded (Faraday) enclosure** (§15), with any fault that still lands caught by the fixed-latency ECC and the fail-stop reliability path (§15, §16); **single-event upsets** (cosmic-ray secondaries and other sources of bit flips) are *not* shielded, mass shielding being both ineffective and counterproductive against them, but are detected and corrected or contained in the same logic, with their rate reduced at the source by a radiation-hardened silicon realization where the deployment's environment warrants it (§15, §16).
@@ -189,7 +189,7 @@ Consequences: the device allowlist collapses toward transducers; N vendor firmwa
   Contained code is Rust for the data planes and **Coq-verified Lustre (Vélus) for the control planes** (§12), the latter riding verified compilation like the TCB rather than the certifying toolchain (Vélus bullet below).
   **Rust is the *reference* contained language, not an architectural mandate.**
   Nothing in the interfaces forces it (the kernel ABI is the capability primitives (§7), the §12 IDL is language-neutral (marshalling generated from types), and admission gates on the binary-level CHERI-TAL derivation rather than the source (§13)) so any memory-safe or formally-verified language yielding a well-typed binary (or shipping a manual memory-safety proof, §13) is admissible on equal terms.
-  A **formally-verified non-Rust component may therefore be lifted in whole (Project Everest (miTLS, HACL\*/EverCrypt) in the F\*/Low\* lineage the archetype**, reaching native code by the Low\*→C→CHERI-CompCert path the crypto core already uses (§6) and carrying its binary-level memory safety as the §13 certificate like any contained binary; its foreign-prover (F\*/Z3) verification then rides as *bonus* assurance that **never enters the trust base**, because containment re-establishes memory safety at the binary level and the system depends only on that) the lifted artifact merely *exceeds* the property the platform checks.
+  A **formally-verified non-Rust component may therefore be lifted in whole**, Project Everest (miTLS, HACL\*/EverCrypt) in the F\*/Low\* lineage the archetype: it reaches native code by the Low\*→C→CHERI-CompCert path the crypto core already uses (§6) and carries its binary-level memory safety as the §13 certificate like any contained binary, while its foreign-prover (F\*/Z3) verification rides as *bonus* assurance that **never enters the trust base**, because containment re-establishes memory safety at the binary level and the system depends only on that: the lifted artifact merely *exceeds* the property the platform checks.
   This is distinct from the checker rule (below) and the **EverParse-as-generator** rejection (below), which govern the *checked, load-bearing* properties an F\*/Z3 *checker* would widen the trust base to certify; a contained component's own verification is neither re-checked on-device nor relied upon, so it widens nothing: *artifact-not-pedigree* (§13) carried to its conclusion, verified imports welcome and their pedigree immaterial.
 - **One prover, Coq: over seL4's design.**
   The kernel is **seL4's design re-proved end-to-end in Coq** and compiled through CompCert/SECOMP; CompCert, Fiat-Crypto, and Perennial-lineage storage ride the same single prover.
@@ -270,7 +270,7 @@ Consequences: the device allowlist collapses toward transducers; N vendor firmwa
     Constant-time is carried **where a type discipline suffices and proved where it does not**, the same functional ⋈ hyperproperty stratification the CHERI-TAL draws for memory safety (§5 FPCC, §13).
     The common case is the move-(II) **secret-taint attribute** (a two-point lattice, shadow bullet above): a **constant-time taint-type discipline in the CHERI-TAL**, *structural* wherever the secret-touching compartment is confined to the constant-time (`Zkt`-only, branchless-on-secrets) sublanguage and a lattice join otherwise, so that secret-labeled values are taint-typed and the type system rejects any that reach a branch condition, a memory address, or a variable-latency operation off the `Zkt`/`Zvkt` list, so CT becomes a **decidable, per-install** check the on-device type-checker (§6) runs on the typing derivation, its soundness the **constant-time type-soundness metatheorem** (the **CT-Wasm** lineage (Watt et al.), mechanized in Isabelle and restated in Coq over the §15 leakage model, joining the CHERI-TAL soundness proof).
     This fits the population the obligation actually covers: the CryptOpt field-arithmetic kernels are **straight-line** (a near-syntactic check) and the Tier-1 secret paths (key schedule, PIN, session keys, §13) are **structured**, so both type-check.
-    The **residual corner** (genuinely unstructured secret-dependent code that does not type-check) is either branchless-hardened (`Zicond` selects, §15) and re-typed, or discharged by a **relational (self-composition) program logic over the leakage-annotated Sail semantics** (the 2-safety theory of the one §13 Iris-over-Sail base) emitting a proof term the CIC kernel validates.
+    The **residual corner** (unstructured secret-dependent code that does not type-check) is either branchless-hardened (`Zicond` selects, §15) and re-typed, or discharged by a **relational (self-composition) program logic over the leakage-annotated Sail semantics** (the 2-safety theory of the one §13 Iris-over-Sail base) emitting a proof term the CIC kernel validates.
     So the standalone binary-level CT verifier collapses into the certifying-compiler / TAL workstream (§18) and the relational logic shrinks from *the* vehicle to the **corner case**; the certifying userspace toolchain (below) preserves memory safety, not timing, so it is this CT taint-typing that carries the property to the binary.
     **Binsec/Rel** (relational symbolic execution for constant-time and secret-erasure, directly on the binary) is the mature, better-fit complement and the bring-up gate, but (like riscv-formal BMC and aiT) it is **bounded symbolic-execution evidence**, never the axiom; **ct-verif** is the LLVM-IR-level sibling, not binary-level for the on-the-artifact statement.
     The obligation is **scoped to secret-touching compartments** (those receiving secret-labeled material over an IDL confidentiality channel (§12), not the whole app population) and the binary-level CT verifier is an in-scope workstream (§18).
@@ -745,8 +745,8 @@ Every function on the machine falls into one of four classes (§4): software on 
 
 | Class | Realization | Members |
 | --- | --- | --- |
-| **Software on cores — TCB** | Trusted, proven, minimal | Kernel (sole system-register holder)<br>Crypto core<br>Integrity reader + A/B transactor<br>M-mode firmware + RoT<br>Admission checkers (TAL + CIC)<br>Powerbox + trusted-path agent |
-| **Software on cores — non-TCB** | Contained: capability-confined, restartable | Servers / drivers / filesystems<br>Network + radio PHY / L2 / L3<br>Display / ISP / inference<br>Apps + browser origins<br>Verified HAL |
+| **Software on cores: TCB** | Trusted, proven, minimal | Kernel (sole system-register holder)<br>Crypto core<br>Integrity reader + A/B transactor<br>M-mode firmware + RoT<br>Admission checkers (TAL + CIC)<br>Powerbox + trusted-path agent |
+| **Software on cores: non-TCB** | Contained: capability-confined, restartable | Servers / drivers / filesystems<br>Network + radio PHY / L2 / L3<br>Display / ISP / inference<br>Apps + browser origins<br>Verified HAL |
 | **Matter** | Fixed-function + register slaves: no instruction fetch, no firmware | Link-layer turnaround timer<br>USB-PD + DisplayPort sequencers<br>Sensor scan / sample sequencers<br>FEC (LDPC / polar), flash ECC<br>Transceiver + sensor AFEs<br>Scanout controller<br>eUICC (tolerated foreign oracle) |
 | **Excluded foreign computers** | Banned by platform mandate, not mitigated; not on die or board | Baseband processor<br>Wi-Fi / BT controller firmware<br>SSD controller firmware<br>Embedded controller, PMU microcontrollers (Pcode/SCP/AOP-class)<br>ME / PSP / SMM management cores<br>ISP firmware<br>Discrete GPU / accelerator firmware<br>Processing-in-memory (autonomous in-array compute) |
 
@@ -1362,38 +1362,38 @@ The memory hierarchy at a glance (navigation aid only): cacheless SRAM bound per
 ```mermaid
 %%{init: {'flowchart': {'rankSpacing': 20, 'nodeSpacing': 14, 'subGraphTitleMargin': {'top': 6, 'bottom': 16}}}}%%
 flowchart TD
-  subgraph Islands["Islands = confidentiality domains — no shared mutable memory, no coherence"]
+  subgraph Islands["Islands = confidentiality domains, no shared mutable memory, no coherence"]
     direction LR
     subgraph IHi["High-assurance / radio island"]
       direction TB
       H1["Cores + own kernel instance"]
       H2["Register files + store buffer"]
-      H3["Explicit scratchpad — not a cache"]
+      H3["Explicit scratchpad, not a cache"]
       H1 ~~~ H2 ~~~ H3
     end
     subgraph ILo["Shared low-sensitivity island"]
       direction TB
       L1["Cores + own kernel instance"]
       L2["Register files + store buffer"]
-      L3["Explicit scratchpad — not a cache"]
+      L3["Explicit scratchpad, not a cache"]
       L1 ~~~ L2 ~~~ L3
     end
   end
-  NoC["TDM NoC — static slots, Sail non-interference"]
-  MC["Memory controller — ephemeral-key TME + integrity / anti-replay Merkle tree"]
+  NoC["TDM NoC: static slots, Sail non-interference"]
+  MC["Memory controller: ephemeral-key TME + integrity / anti-replay Merkle tree"]
   Dev["Devices: transceiver, scanout, NIC, flash"]
-  subgraph SRAM["Cacheless SRAM main memory — banks / macros / tiers"]
+  subgraph SRAM["Cacheless SRAM main memory: banks / macros / tiers"]
     direction LR
-    subgraph BHi["Macro / tier — pinned to high-assurance island"]
+    subgraph BHi["Macro / tier: pinned to high-assurance island"]
       direction TB
       BH1["Data + SECDED ECC"]
-      BH2["Native validity + init tags — DECTED"]
+      BH2["Native validity + init tags, DECTED"]
       BH1 ~~~ BH2
     end
-    subgraph BLo["Bank group — low-sensitivity islands"]
+    subgraph BLo["Bank group: low-sensitivity islands"]
       direction TB
       BL1["Data + SECDED ECC"]
-      BL2["Native validity + init tags — DECTED"]
+      BL2["Native validity + init tags, DECTED"]
       BL1 ~~~ BL2
     end
   end

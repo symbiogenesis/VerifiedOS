@@ -1,16 +1,16 @@
 # Performance Recovery: Pure-Win TODO (non-normative)
 
 > Companion to [performance-estimates.md](performance-estimates.md) and [verification-maximal-os.md](verification-maximal-os.md).
-> Where the estimates doc *accounts for* the accepted price of the security choices, this doc enumerates only the **pure wins**, recovery levers that cost nothing on the scarce axis.
-> A **pure win** here recovers performance while **shedding no security property, reviving no deleted mechanism, opening no channel, and adding no axiom or TCB surface**, admissible precisely because it is *static, ahead-of-time, off-device*, and its output is **re-checked at admission** (§6).
-> "Engineering is free; trust is the scarce resource," so every item below may be pursued to arbitrary aggressiveness without touching the trust base.
-> Checkboxes track workstream progress; nothing here is normative, and no item may relax the §15 admission test.
-> **This list is deliberately confined to off-device software levers**, the untrusted-producer, re-checked-artifact architecture is what keeps them free of trust cost, so the one *in-model* (hardware) pure win, **decoder-stage macro-op fusion**, is booked in the specification itself (§2, §15) rather than here: fused and unfused executions reach identical architectural state, so it is carried by the existing RTL-against-Sail *functional* refinement at no proof cost, recovering scalar issue efficiency without any off-device artifact to re-check.
-> **Baseline, and what "recovery" here does and does not mean.**
-> Every figure below is measured **intra-design**, the same frozen instantiation *un-optimized vs. optimized*, and **not** as a narrowing of the gap to the conventional (speculative, OoO, JIT- and DVFS-capable) baseline of [performance-estimates.md](performance-estimates.md).
-> The distinction is load-bearing because almost every lever here, autovectorization, software pipelining, PGO/BOLT, LTO, superoptimization, micro-architectural DSE, static schedule synthesis, is **universal engineering that a conventional toolchain and design flow run too**: hold the compiler and the design flow constant across both machines (*ceteris paribus*) and those levers appear on **both** sides and cancel, leaving the structural hardware/ISA taxes, in-order issue, static-only prediction, CHERI pointer width, the integrity tree, the non-work-conserving frame, **still fully paid**.
-> So these items do **not** catch up to a chip that keeps the dangerous mechanisms, they only stop the secure design from running slower than it provably has to.
-> The few genuinely *differential* levers, **CHERI bounds-check** and **temporal-safety elision** (they spend on-die hardware, capability bounds and tags + revocation, that the baseline lacks) and, weakly, **`Zicond` if-conversion** (worth more under static-only prediction), still merely **offset a self-imposed tax**, never overtaking the baseline.
+> Where the estimates doc *accounts for* the accepted price of the security choices, this doc enumerates only the **pure wins**: recovery levers that cost nothing on the scarce axis.
+> A **pure win** recovers performance while **shedding no security property, reviving no deleted mechanism, opening no channel, and adding no axiom or TCB surface**, admissible precisely because it is *static, ahead-of-time, off-device*, and its output is **re-checked at admission** (§6).
+> "Engineering is free; trust is the scarce resource," so every item may be pursued to arbitrary aggressiveness without touching the trust base.
+> Checkboxes track progress; nothing here is normative, and no item may relax the §15 admission test.
+> **The list is confined to off-device software levers**, because the untrusted-producer, re-checked-artifact architecture is what keeps them free of trust cost. The one *in-model* (hardware) pure win, **decoder-stage macro-op fusion**, is booked in the spec instead (§2, §15): fused and unfused executions reach identical architectural state, so the existing RTL-against-Sail *functional* refinement carries it at no proof cost.
+> **What "recovery" here means.**
+> Every figure is measured **intra-design** (the same frozen instantiation *un-optimized vs. optimized*), **not** as a narrowing of the gap to the conventional speculative/OoO/JIT/DVFS baseline of [performance-estimates.md](performance-estimates.md).
+> The distinction is load-bearing: almost every lever here (autovectorization, software pipelining, PGO/BOLT, LTO, superoptimization, micro-architectural DSE, static schedule synthesis) is **universal engineering a conventional toolchain and design flow run too**, so *ceteris paribus* it appears on both sides and cancels, leaving the structural hardware/ISA taxes (in-order issue, static-only prediction, CHERI pointer width, the integrity tree, the non-work-conserving frame) **still fully paid**.
+> These items do **not** catch up to a chip that keeps the dangerous mechanisms; they only stop the secure design from running slower than it provably has to.
+> The few genuinely *differential* levers, **CHERI bounds-check** and **temporal-safety elision** (they spend on-die bounds and tags + revocation the baseline lacks) and, weakly, **`Zicond` if-conversion**, still merely **offset a self-imposed tax**, never overtaking the baseline.
 > The irreducible inter-design gap is exactly the deleted dynamic mechanisms, booked as accepted costs in the estimates (§ *Out of scope*, below) and recovered nowhere here.
 
 ## The pure-win gate
@@ -33,14 +33,14 @@ This single fact is what makes the whole list pure.
 ## 1. Off-device compiler optimization: untrusted optimizer, re-checked output
 
 *All items extend the in-scope §18 certifying-compiler workstream; none add a workstream to the TCB.
-The output carries the same memory-safety / constant-time / WCET certificates (§5, §13) it always did, the optimizer only makes the same-certified binary faster.
-Ceteris paribus these are the passes **any** optimizing compiler runs, so a conventional toolchain banks them too: on this design they realize the secure binary's **own** achievable speed, they do not close the gap to a conventional chip.
-The two CHERI-elision items are the exceptions, they lean on on-die hardware (capability bounds, tags + revocation) the baseline lacks, yet even they only offset the self-imposed CHERI taxes.*
+The output carries the same memory-safety / constant-time / WCET certificates (§5, §13); the optimizer only makes the same-certified binary faster.
+These are the passes **any** optimizing compiler runs, so *ceteris paribus* a conventional toolchain banks them too: here they realize the secure binary's **own** achievable speed, not a narrowing of the gap to a conventional chip.
+The two CHERI-elision items are the exceptions: they lean on on-die hardware (capability bounds, tags + revocation) the baseline lacks, yet even they only offset the self-imposed CHERI taxes.*
 
 - [ ] **Autovectorization / SLP onto RVV, the dominant lever.**
   Lift scalar inner loops onto the already-in-profile vector unit (VLEN 256 C-class / 4096 V-class, §15).
   Moving a loop onto RVV turns an in-order-scalar row into a vector-gain row, so *intra-design* it does not merely shave the general-scalar deficit, it converts it.
-  Ceteris paribus, though, this is **not** a closing of the inter-design gap but the *key that realizes an already-booked hardware gain* (the RVV row of the estimates): a conventional autovectorizer targets *its* vector unit too, so only the wider VLEN, itself already counted, differs.
+  *Ceteris paribus* this is **not** a closing of the inter-design gap but the *key that realizes an already-booked hardware gain* (the RVV row of the estimates): a conventional autovectorizer targets its own vector unit too, so only the wider VLEN, already counted, differs.
   *Keeps it pure:* secret-touching output still carries the binary-level constant-time certificate (§5/§13), which rejects any secret-dependent vectorization.
 - [ ] **Software pipelining / modulo scheduling / static load hoisting.**
   The in-order core has no out-of-order window to hide load/FP latency behind, so the scheduler must do it offline, overlap iterations, hoist loads ahead of use.
@@ -56,7 +56,7 @@ The two CHERI-elision items are the exceptions, they lean on on-die hardware (ca
   Teach the certifying Rust→RV64+CHERI toolchain (§18) to recognize that a panicking language-level bounds check (safe Rust's `a[i]`, a hardened-C length test) is *redundant against the capability that already bounds the object*, §5's "CHERI discharges spatial safety in hardware," §7's "CHERI bounds are the sole in-core spatial isolation", and drop the compare-and-forward-branch, letting the hardware bound fault instead.
   Under the platform's fail-stop posture the two outcomes coincide (an out-of-bounds access is a fault-stop either way), so for the panicking index/slice checks the elision is semantically transparent.
   Each check removed is one fewer instruction (in-order row), one fewer forward branch (static-prediction −10% to −30% row), and less code (no-C −2% to −12% row); together they partially *offset* the CHERI purecap pointer-width tax (−3% to −15% row), you pay the wide pointer but claw back the software-check.
-  This is one of the few genuinely *differential* levers, it spends on-die capability bounds a conventional chip lacks, so that chip's compiler cannot copy the trick, yet even so it only *offsets a self-imposed tax*, never overtaking a baseline that never paid the CHERI width.
+  This is one of the few genuinely *differential* levers, spending on-die capability bounds a conventional chip's compiler cannot copy, yet even so it only *offsets a self-imposed tax*, never overtaking a baseline that never paid the CHERI width.
   Unclaimed today: current purecap Rust (Morello / CHERI-RISC-V) makes raw-pointer and `unsafe` code spatially safe yet still emits the safe-Rust check *on top of* the hardware bound.
   *Keeps it pure:* the bound is still enforced, by hardware already on the die, adding no µarch, so the output still type-checks memory-safe in the CHERI-TAL (§5/§6), the §13 certificate is undisturbed, the check is address- not secret-dependent (constant-time untouched), and fewer instructions only tighten WCET (§11).
 - [ ] **Lower temporal-safety instrumentation onto the revocation and tags already on the die, not a software refcount, and *not* a hardware one.**
@@ -84,10 +84,9 @@ The two CHERI-elision items are the exceptions, they lean on on-die hardware (ca
 ## 2. Off-device design-space search: admission tests as hard constraints
 
 *Optimize the **instantiation**, never the specification.
-Every candidate is frozen at composition time, Sail-modeled, and must clear the five-part §15 admission test plus §8 NI / §11 schedulability before it is admissible, the proof obligations are the feasibility oracle.
-The spec stays invariant, so this widens no trust base.
-This, not mutating the spec, is the correct reading of "run a search over the design."
-Ceteris paribus this too is universal: DSE is ordinary chip-design practice (the conventional baseline is itself a DSE output) and static schedule synthesis only shrinks the design's **own** non-work-conserving idle, so neither narrows the inter-design gap, they merely keep the secure instantiation from being needlessly detuned.*
+Every candidate is frozen at composition time, Sail-modeled, and must clear the five-part §15 admission test plus §8 NI / §11 schedulability, the proof obligations serving as the feasibility oracle.
+The spec stays invariant, so this widens no trust base, and is the correct reading of "run a search over the design."
+Ceteris paribus this too is universal: DSE is ordinary chip-design practice (the conventional baseline is itself a DSE output), and static schedule synthesis only shrinks the design's **own** non-work-conserving idle, so neither narrows the inter-design gap; they merely keep the secure instantiation from being needlessly detuned.*
 
 - [ ] **Static schedule synthesis.**
   Pack the cyclic-executive slots (§7) and the TDM-NoC arbitration schedule (§15) with an ILP / SMT / evolutionary optimizer, subject to the §11 interval-arithmetic schedulability check.

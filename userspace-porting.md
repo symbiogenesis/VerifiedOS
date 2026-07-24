@@ -2,11 +2,11 @@
 
 > Externalized companion to [verification-maximal-os.md](verification-maximal-os.md).
 > This is a **non-normative roadmap**, not part of the specification: a curated list of the first userspace applications slated for porting, each mapped to the normative mechanism (§N of that document) it must be re-targeted onto.
-> It is the userland analogue of [Evaluated Architectural Alternatives](architectural-alternatives.md), and, like it, carries no normative weight, every target still enters through the Tier-2/Tier-1 admission discipline of §13, and a name on this list is a *statement of intent*, not a grant of exception.
+> It is the userland analogue of [Evaluated Architectural Alternatives](architectural-alternatives.md) and carries no normative weight: every target still enters through the Tier-2/Tier-1 admission discipline of §13, and a name here is a *statement of intent*, not a grant of exception.
 
 "Porting" here is a term of art.
 There is **no Linux-personality shim and no legacy VM** (§2, §14): a foreign binary does not run, ever.
-Every entry below is therefore a **source-level re-target**, recompiled against the WASI-shaped capability libc (§14) straight to native RV64+CHERI, its ambient-authority assumptions stripped and re-expressed as explicit capabilities (§8), admitted only once it carries the proof its tier demands (§13).
+Every entry is therefore a **source-level re-target**, recompiled against the WASI-shaped capability libc (§14) straight to native RV64+CHERI, its ambient-authority assumptions stripped and re-expressed as explicit capabilities (§8), admitted only once it carries the proof its tier demands (§13).
 The selection is **uniformly Rust** by design: safe Rust is memory-safe by construction (§5, §14), so a `#![forbid(unsafe_code)]` port is the cheapest path to the mandatory Tier-2 memory-safety certificate (§13), the certifying Rust→RV64+CHERI toolchain (§18) discharges it automatically, and rustc/LLVM never enter the trust base.
 This is a selection *economy*, not a language mandate: admission gates on the binary-level certificate, not the source (§13), so a formally-verified non-Rust component, Project Everest (miTLS, HACL\*/EverCrypt) and the F\*/Low\* lineage (§5), is admissible on equal terms, its foreign-prover verification bonus assurance that never enters the trust base.
 
@@ -66,13 +66,13 @@ These reimplement GNU coreutils/findutils/diffutils in Rust, yet §14 mandates c
 Their pure-computation core, the `sort`/`wc`/`cut`/`cat` byte plumbing, `diff`'s Myers algorithm, `find`'s predicate matcher, is exactly reusable safe Rust and transfers verbatim.
 Everything that assumes POSIX ambient authority does not: `chmod`/`chown`/`id`/`groups` (no uid/gid, §2/§8), `kill`/`ps`/`nice` (no ambient process table or signals, §2), `mount`/`mknod`/symlink semantics against a global VFS (the "filesystem" is a manifest-backed private namespace, §14), and every `nix`/`libc` `unsafe` FFI call that reaches for a syscall (§5, obstacle 1), all are **deleted or re-expressed** as capability operations (obstacle 3).
 So the three projects are adopted not as a *port* but as the **seed corpus** for §14's capability-native reimplementation: their algorithms populate the utilities while their POSIX surface is discarded, which honors "reimplemented, not ported" by construction rather than by exception.
-One capability the POSIX originals lack falls out of the content-addressed store (§10, §13): a file-movement utility (`cp`, `mv`) or a network download client, targeting the store, transfers a self-contained pack as a **set-difference**, writing and fetching only the objects the destination lacks and neither re-writing nor re-downloading one already present, each verified by hash on arrival (the Git have/want and OSTree-pull behavior), the dedup kept within a confidentiality domain exactly as §10 requires.
+One capability the POSIX originals lack falls out of the content-addressed store (§10, §13): a file-movement utility (`cp`, `mv`) or a network download client, targeting the store, transfers a self-contained pack as a **set-difference**, writing and fetching only the objects the destination lacks, each verified by hash on arrival (the Git have/want and OSTree-pull behavior), the dedup kept within a confidentiality domain as §10 requires.
 
 **Disposition:** Tier-2; harvest the computational core, drop the ambient-authority commands wholesale, and re-issue the survivors against the capability libc, the closest thing on this list to a clean lift, precisely because the hard part is subtraction.
 
 ### gitoxide: the capability-native version-control engine
 
-Sebastian Thiel's gitoxide (the `gix` crate family, with the `ein`/`gix` CLIs) is a from-scratch pure-Rust Git, and Git, structurally, is a VerifiedOS mechanism wearing POSIX clothes: its object database, blobs, trees, commits, tags, each named by the hash of its own bytes, is precisely the content-addressed **Merkle DAG** of §10, the very lineage that store is modeled on, so re-targeting keeps Git's data model as *vocabulary* and moves its enforcement, and its storage, onto the substrate.
+Sebastian Thiel's gitoxide (the `gix` crate family, with the `ein`/`gix` CLIs) is a from-scratch pure-Rust Git, and Git, structurally, is a VerifiedOS mechanism wearing POSIX clothes: its object database, blobs, trees, commits, tags, each named by the hash of its own bytes, is precisely the content-addressed **Merkle DAG** the §10 store is modeled on, so re-targeting keeps Git's data model as *vocabulary* and moves its enforcement, and its storage, onto the substrate.
 Five seams dominate.
 **(1) The hash is SHA-1, inadmissible.**
 A verification-maximal store cannot content-address by a collision-broken function (SHAttered), even SHA-1DC-hardened; the port is **SHA-256-only through the §5 verified crypto core** (Git's SHA-256 object format made mandatory), so object-graph integrity rests on the same verified hash as §10.
@@ -115,7 +115,7 @@ fish (a faster interactive POSIX shell) and Ion (Redox's shell, Rust, but POSIX-
 
 ### Servo: the contained browser engine
 
-The Rust browser engine is §14's browser made real. Its per-origin architecture, the constellation, per-origin script and layout, maps directly onto §14's **per-origin capability compartments**, so an origin RCE yields only that origin's authority and nothing else.
+The Rust browser engine is §14's browser made real. Its per-origin architecture, the constellation, per-origin script and layout, maps directly onto §14's **per-origin capability compartments**, so an origin RCE yields only that origin's authority.
 Three obstacles dominate.
 **(1) The JS engine is the gating sub-project.**
 Servo embeds SpiderMonkey (`mozjs`), C++, JIT, and a vast `unsafe` binding surface, and §14 forbids JIT on anything network-facing (interpreters run pure, obstacle 4).
