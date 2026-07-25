@@ -93,7 +93,7 @@ What the platform imports is the **thesis** (a single-address-space purecap syst
 - **The kernel is verified, not de-privileged.**
   CheriOS's signature move is a **nanokernel**: a tiny trusted layer beneath the OS exposing integrity, confidentiality, and attestation primitives so that *"processes exist in mutual distrust with the OS they run on"*: an application need not trust the kernel with its secrets.
   This platform takes the opposite route to the same end; it **verifies** the kernel (seL4's design re-proved in Coq, §7) so it *can* be trusted, rather than architecting around distrusting it.
-  CheriOS's de-privileging survives only as **defense-in-depth**, and scoped: the crypto core holds key material a compromised kernel *"can still only invoke… never exfiltrate"* (§15), fenced from the kernel by the crypto core's own hardware boundary and TME (§15, no PMP); the nanokernel's confidentiality applied to the crown jewels, not generalized, because the platform's primary lever is proof, not distrust.
+  CheriOS's de-privileging survives only as **defense-in-depth**, and scoped: the crypto core holds key material a compromised kernel *"can still only invoke… never exfiltrate"* (§15), fenced from the kernel by the crypto core's own hardware boundary and the seal/switch primitives (§7, §12, no PMP); the nanokernel's confidentiality applied to the crown jewels, not generalized, because the platform's primary lever is proof, not distrust.
 - **Attestation is the RoT, not per-enclave foundations.**
   CheriOS's **foundations** are measured, hash-identified code enclaves carrying nanokernel-issued sealing/signing keys: *local* attestation among mutually-distrusting compartments with no central authority.
   The platform provides the same operations (measure, seal, attest) through the on-die RoT and the §12 sealing & attestation service (§9), anchored on the one inspectable trust root the "no foreign computers" die already has (§4), rather than a decentralized per-enclave primitive.
@@ -257,6 +257,7 @@ What the design does **not** take is the X730 as its trusted base: the RTL is pr
 So the X730 is a licensed **reference, bring-up, and possible silicon vehicle**: the commercial complement to the open **CVA6-CHERI / COSMIC** track (above), which stays the C-class front end precisely because it is open, re-expressible, and on a conformance-proof path.
 
 ---
+
 
 ## PIC64-HPSC: space-grade application-class RISC-V, radiation hardening as a manufacturing choice, not an architecture
 

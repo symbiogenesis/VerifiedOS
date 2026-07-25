@@ -8,7 +8,7 @@
 > **The list is confined to off-device software levers**, because the untrusted-producer, re-checked-artifact architecture is what keeps them free of trust cost. The one *in-model* (hardware) pure win, **decoder-stage macro-op fusion**, is booked in the spec instead (§2, §15): fused and unfused executions reach identical architectural state, so the existing RTL-against-Sail *functional* refinement carries it at no proof cost.
 > **What "recovery" here means.**
 > Every figure is measured **intra-design** (the same frozen instantiation *un-optimized vs. optimized*), **not** as a narrowing of the gap to the conventional speculative/OoO/JIT/DVFS baseline of [performance-estimates.md](performance-estimates.md).
-> The distinction is load-bearing: almost every lever here (autovectorization, software pipelining, PGO/BOLT, LTO, superoptimization, micro-architectural DSE, static schedule synthesis) is **universal engineering a conventional toolchain and design flow run too**, so *ceteris paribus* it appears on both sides and cancels, leaving the structural hardware/ISA taxes (in-order issue, static-only prediction, CHERI pointer width, the integrity tree, the non-work-conserving frame) **still fully paid**.
+> The distinction is load-bearing: almost every lever here (autovectorization, software pipelining, PGO/BOLT, LTO, superoptimization, micro-architectural DSE, static schedule synthesis) is **universal engineering a conventional toolchain and design flow run too**, so *ceteris paribus* it appears on both sides and cancels, leaving the structural hardware/ISA taxes (in-order issue, static-only prediction, CHERI pointer width, the non-work-conserving frame) **still fully paid**.
 > These items do **not** catch up to a chip that keeps the dangerous mechanisms; they only stop the secure design from running slower than it provably has to.
 > The few genuinely *differential* levers, **CHERI bounds-check** and **temporal-safety elision** (they spend on-die bounds and tags + revocation the baseline lacks) and, weakly, **`Zicond` if-conversion**, still merely **offset a self-imposed tax**, never overtaking the baseline.
 > The irreducible inter-design gap is exactly the deleted dynamic mechanisms, booked as accepted costs in the estimates (§ *Out of scope*, below) and recovered nowhere here.
@@ -97,10 +97,10 @@ Ceteris paribus this too is universal: DSE is ordinary chip-design practice (the
   This shrinks the design's **self-imposed** idle only; it can never reach the baseline's work-conserving efficiency (that would need slack donation = a timing channel), so the row is narrowed, not closed.
   *Keeps it pure:* the frame stays **non-work-conserving**, no slack donation, no runtime scheduling decision, it is merely a better-packed static frame.
 - [x] **Micro-architectural DSE over the frozen parameters.**
-  Multi-objective (perf / area / power / WCET / proof simplicity) Pareto search over: VLEN per class, issue width and pipeline depth, scratchpad sizes, SRAM bank/macro/tier assignment, and on-die integrity-tree-node cache size (there are no hardware caches to size, main-spec §15).
-  Partially recovers the memory-partition (−5% to −20%) and memory-integrity-tree (−5% to −30%) rows.
+  Multi-objective (perf / area / power / WCET / proof simplicity) Pareto search over: VLEN per class, issue width and pipeline depth, scratchpad sizes, SRAM bank/macro/tier assignment, and the TDM-NoC schedule (there are no hardware caches to size, main-spec §15).
+  Partially recovers the memory-partition (−5% to −20%) row.
   Universal ceteris paribus: the conventional baseline is itself a DSE output, so this closes no inter-design gap, it only selects the best *admissible* secure configuration.
-  *Keeps it pure:* each candidate is a static, Sail-modeled, admission-checked config; the one address-indexed structure that remains (the integrity-tree-node cache) is **partition-scoped and fence.t-flushed**, so admission-test-3 still holds (there is no data cache, main-spec §15).
+  *Keeps it pure:* each candidate is a static, Sail-modeled, admission-checked config, and **no history-indexed dynamic structure exists to size**, the design carrying no data cache and no memory-integrity structure (main-spec §15).
   *Done, wired into [verification-maximal-os.md](verification-maximal-os.md) §15 (normative) and [implementation-plan.md](implementation-plan.md) §1; the §17 Sail ⋈ RTL residual names it the standing mitigation.*
 
 ---
@@ -141,7 +141,7 @@ The third column marks whether the lever is *universal* (a conventional toolchai
 | LTO / inlining / unrolling | Static prediction + in-order (compounding) | Universal; cancels |
 | Superoptimization / search codegen | In-order scalar; bit/integer paths | Universal on speed; the re-check story is a *trust* win, not a perf differential |
 | Static schedule synthesis | Non-work-conserving scheduler; TDM NoC | Shrinks a self-imposed idle; never reaches work-conserving |
-| Micro-architectural DSE | SRAM bank/macro; main-memory integrity tree | Universal; the baseline is itself a DSE output |
+| Micro-architectural DSE | SRAM bank/macro; TDM-NoC schedule | Universal; the baseline is itself a DSE output |
 | Faster pure-interpreters (JS + Wasm) | No-JIT (browser JS and Wasm) | Substitute for the missing JIT; narrows, never closes |
 | Data-oriented restructuring | General scalar → vector / matrix / crypto | Universal source technique; shared by both machines |
 
@@ -161,5 +161,7 @@ These accepted costs *are* the irreducible inter-design gap, the residual no §1
   The pure-win substitute for prefetch is static load hoisting (item 1).
 - **A hardware reference-count or ownership primitive (a capability-copy-intercepting counter, hardware *linear* capabilities)**, recovers refcount traffic only by adding microarchitecture: a new mutable per-object counter or a non-duplication check in the pipeline is exactly the hidden shared state admission-test-3 (§15) forbids, and it breaks the "no new µarch" premise the list rests on.
   The pure-win substitute is eliding *software* temporal-safety instrumentation onto the tag + revocation machinery and the linear/affine capability *types* already present (§8, §5, §13), the compiler-elision item in §1, not a counter in silicon.
-- **Dropping the main-memory integrity / anti-replay tree**, sheds the evil-maid / rollback defense (§3/§15).
-  Its tax is only *mitigable* (on-die node caching, item 2), never removable.
+- **Adding memory encryption or a memory integrity tree back**, and any capability-scoped variant of either.
+  These are not on this list because they are not levers at all here: the memory path carries no cryptography (§15), so there is nothing to tune, amortize, or partition.
+  They are recorded in this section so they are not re-proposed as a *security* addition either: each would add a controller-side latency term to every access, and the tree would additionally require a node cache whose contents are history-dependent, which fails admission-test-3 (§15) exactly as a data cache does.
+  The reasoning is in [architectural-alternatives.md](architectural-alternatives.md); the short form is that memory cryptography protects an interface and this machine has none.
