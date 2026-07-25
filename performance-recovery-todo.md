@@ -78,6 +78,9 @@ The two CHERI-elision items are the exceptions: they lean on on-die hardware (ca
   Because the artifact is re-checked (§6), point unbounded offline search at the hottest routines: the whole modern SMT-backed stack enters *as untrusted, re-checked oracles*, **Souper**-class SMT superoptimization, **egg** / equality-saturation rewrite search, and **Alive2**-style translation validation gating each peephole, none touching the trust base, because the emitted binary still carries the CHERI-TAL and constant-time certificates the §6 checker re-validates.
   Ceteris paribus the *speed* here is universal (a conventional toolchain runs Souper / egg / Alive2 too); the design's distinctive claim is only that it can point **unbounded, untrusted** search at the problem without TCB growth, a *trust* win, not an inter-design speed differential.
   *This is the only admissible home for "evolutionary algorithms", on codegen, where a wrong answer simply fails the checker, never on the spec or the proofs.*
+  **Scope limit (the CryptOpt line, main-spec §5):** this item is pure only where the *existing* checkers re-validate everything the search could break, i.e. code whose obligations are the CHERI-TAL derivation and the CT taint-typing.
+  It does **not** extend to TCB code carrying a **functional-refinement** obligation (the kernel, the crypto core's field arithmetic, storage L0), because no per-install checker re-validates "this binary refines its Gallina spec": admitting searched assembly there would require minting a net-new verified equivalence checker, which is exactly the artifact §5 deletes for buying speed alone.
+  So TCB hot paths are sped by *compiling better verified C*, never by admitting searched assembly, and the gate-2 phrase "the produced artifact is re-checked" must be read as *re-checked for every property it carries*, not merely for the type-level ones.
 
 ---
 
