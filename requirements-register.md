@@ -2400,7 +2400,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [L1075](verification-maximal-os.md#L1075)
 
 **R-15-001a** MUST — The frozen profile exists as a single enumeration in one artifact, [isa-profile.md](isa-profile.md), rather than as an emergent property of the requirements that constrain it. The artifact is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective — never authoritative — where it disagrees with this register.
-· Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions — every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it — because the same-set-stated-twice failure is exactly what produced [D-03](#d-03) and [D-10](#d-10). `tools/check-profile-trace.ps1` is that check and exits non-zero on either finding. **See [D-13](#d-13).**
+· Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions — every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it — because the same-set-stated-twice failure is exactly what produced [D-03](#d-03) and [D-10](#d-10). `tools/check-derived-views.ps1` is that check and exits non-zero on either finding. **See [D-13](#d-13).**
 · Trace: CJ-SAIL · [L1075](verification-maximal-os.md#L1075)
 
 **R-15-002** IS — The platform is single-physical-address-space under CHERI: no MMU, `satp` fixed to Bare, no Sv39 translation.
@@ -2486,7 +2486,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-ISOL · [L1115](verification-maximal-os.md#L1115)
 
 **R-15-021** MUST — The predictor deletion is discharged structurally by the microarchitectural absence contract, not by RTL ⊑ Sail.
-· Accept: predictor absence appears in the absence-contract register, not among the refinement obligations.
+· Accept: predictor absence appears in the absence-contract register (R-15-100a, rows A-04 through A-06), not among the refinement obligations.
 · Trace: CJ-RTL-SAIL · [L1116](verification-maximal-os.md#L1116)
 
 **R-15-022** IS — Fetch runs ahead only down the statically determined path, so wrong-path fetch is a deterministic function of the instruction stream and never of prior execution history.
@@ -2822,7 +2822,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [L1320](verification-maximal-os.md#L1320)
 
 **R-15-100** IS — The microarchitectural removals owed the absence contract are speculation, out-of-order issue, every dynamic direction/target/return predictor, prefetchers, SMT, the I- and D-caches and the tag cache, and DVFS/frequency control.
-· Accept: each appears in the absence-contract register with a discharge.
+· Accept: each appears in the absence-contract register — the artifact required by R-15-100a — with a discharge.
+· Trace: CJ-RTL-SAIL · [L1321](verification-maximal-os.md#L1321)
+
+**R-15-100a** MUST — The absence-contract register exists as a single enumerated artifact, [absence-contract.md](absence-contract.md), carrying one row per claimed absence with its ground, the netlist evidence sought, and its discharge form. Like the frozen profile it is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective — never authoritative — where it disagrees with this register.
+· Accept: the artifact exists, records both discharge forms (in-prover structural predicate for Kôika/Kami blocks per R-15-102; netlist state-enumeration plus synthesis-configuration provenance for imported cores per R-15-103), carries the table-freeness rule (R-15-104) and the `fence.t` four-class completeness map (R-15-217), and its agreement with this register is mechanically checked in both directions by `tools/check-derived-views.ps1`. Because R-18-012 makes this the one part of the least-built layer buildable before that layer exists, the artifact is a day-one deliverable under R-18-003b(ii) and an absent one blocks it. **See [D-14](#d-14).**
 · Trace: CJ-RTL-SAIL · [L1321](verification-maximal-os.md#L1321)
 
 **R-15-101** IS — The semantic content of the removals is one hyperproperty: cycle-level timing and memory traffic are a function of the instruction stream and architectural state alone, never of prior execution history.
@@ -2850,7 +2854,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-ISOL · [L1340](verification-maximal-os.md#L1340)
 
 **R-15-107** IS — The absence contract is a distinct §18 bring-up gate and a named §17 residual: the one obligation class whose imported-core half closes on audit rather than on proof.
-· Accept: both entries exist.
+· Accept: both entries exist — R-18-012 is the §18 gate and R-17-040 the §17 residual — and both are recorded in the absence-contract register's disposition (R-15-100a).
 · Trace: CJ-RTL-SAIL · [L1341](verification-maximal-os.md#L1341)
 
 ### 15.15 Parameter selection
@@ -3989,7 +3993,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 908 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 909 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4007,7 +4011,7 @@ All eighteen normative sections are extracted, at 908 requirements. §19 is non-
 | **§12 System Servers** | **extracted** | **86** |
 | **§13 Packaging & Supply Chain** | **extracted** | **29** |
 | **§14 Userland** | **extracted** | **13** |
-| **§15 Hardware Platform** | **extracted** | **247** |
+| **§15 Hardware Platform** | **extracted** | **248** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **65** |
 | **§18 Realization** | **extracted** | **37** |
@@ -4018,11 +4022,12 @@ All eighteen normative sections are extracted, at 908 requirements. §19 is non-
 
 Normative claims that resisted atomic restatement, per R-05-153. Each is a spec defect to be repaired in [verification-maximal-os.md](verification-maximal-os.md), not a register omission.
 
-**Status: all thirteen repaired.** Eleven were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
+**Status: all fourteen repaired.** Twelve were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
 
 - **D-01** is closed by one generic rule in §5 rather than five per-entry forecasts: an interim retires when its Coq-native destination has passed admission for every consumer riding the interim. Testable today against two lists.
 - **D-12** is the schedule defect, and is closed by *scoping* the priority-zero claim rather than weakening it: as a total order it was unsatisfiable, and the register's own R-18-024/R-18-025 pair made it a literal cycle. Its repair is the one with an implementation consequence — it yields the enumerated day-one set (R-18-003b).
 - **D-13** is closed by *building the missing artifact*: the frozen profile, which four acceptance criteria tested membership in, existed in no document. It is now [isa-profile.md](isa-profile.md), a derived view whose agreement with this register is machine-checked in both directions rather than maintained by care. D-12 and D-13 compose: D-12 made the profile freeze the schedule root, and D-13 is that root made handable to an engineer.
+- **D-14** is D-13's defect one layer down — the *absence-contract register*, quantified over by three acceptance criteria, held by no document — closed the same way, as [absence-contract.md](absence-contract.md). Together the two establish a **class defect**, recorded at D-14: acceptance criteria that quantify over a list no artifact holds. Further instances should be assumed present until the register has been swept for them.
 - **D-11** is closed by **deleting the fuzzed clock**, not specifying it. Jitter on a counter is recoverable by averaging, which makes it a statistical mitigation of exactly the kind §15 already refuses when it excludes MTE ("a statistic, not a theorem") and MBPTA/EVT. Specifying a distribution would have made a statistic normative in a document that admits none. What replaces it was already true: with the counters permission-gated, an untrusted compartment's only time source is a ring-serviced call, so its finest observable interval is its own slot period — a composition-time constant. The mechanism, its owner question, its distribution parameter, and its entry in §16's nondeterminism enumeration all leave together; the residual is the §11 rung channel already booked at R-17-007.
 
 Entries below are retained with their original diagnosis so the review record shows what was wrong and why.
@@ -4099,6 +4104,17 @@ R-15-001's acceptance criterion reads *"the frozen profile enumerates exactly th
 
 1. **Derived, not authoritative.** The register wins on any disagreement and the artifact is defective, so the profile cannot drift into a second source of truth — the failure that produced [D-03](#d-03) (four enumerations of overlapping obligation sets, no two agreeing) and [D-10](#d-10) (the axiom set stated twice with different membership). This defect is that same family caught before it forked rather than after.
 2. **Every row cites its governing requirement**, so a discrepancy is locatable rather than an ambiguity.
-3. **Agreement is machine-checked in both directions** by `tools/check-profile-trace.ps1` — every cited ID resolves, and every requirement in a profile-bearing subsection is carried. The reverse direction is the one that matters: on first run it found eight omissions, of which five were the §15.12 timing contracts (R-15-084 through R-15-088) and two were exclusions carrying accepted costs a curator reading only the exclusion table would have missed (R-15-040's RVV fork and its soft-float calling convention; R-15-076's forgone CHERI-disjoint failure domain). Extraction by hand had silently dropped them, which is the argument for the check rather than for more care.
+3. **Agreement is machine-checked in both directions** by `tools/check-derived-views.ps1` — every cited ID resolves, and every requirement in a profile-bearing subsection is carried. The reverse direction is the one that matters: on first run it found eight omissions, of which five were the §15.12 timing contracts (R-15-084 through R-15-088) and two were exclusions carrying accepted costs a curator reading only the exclusion table would have missed (R-15-040's RVV fork and its soft-float calling convention; R-15-076's forgone CHERI-disjoint failure domain). Extraction by hand had silently dropped them, which is the argument for the check rather than for more care.
 
 The residual is that the checker tests *citation*, not *fidelity*: it proves the profile mentions the right requirements, not that it restates them correctly. Fidelity remains a review-gate reading, and a row whose prose contradicts the requirement it cites is a finding against R-15-001a.
+
+<a id="d-14"></a>**D-14 — The absence-contract register does not exist either, and it is the deliverable the specification is most emphatic is available now.**
+Three acceptance criteria test membership in an *absence-contract register*: R-15-100 ("each appears in the absence-contract register with a discharge"), R-15-021 ("predictor absence appears in the absence-contract register, not among the refinement obligations"), and R-15-107 ("both entries exist"). No such register existed. This is [D-13](#d-13)'s defect one layer down — an acceptance criterion naming an artifact a reviewer cannot open — and finding it immediately after D-13 is itself the finding: the pattern is not two accidents but a *class*, and the class is **acceptance criteria that quantify over a list no document holds**.
+
+**What raises its severity above D-13's is where it sits.** R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"* — the only piece of RTL ⊑ Sail (R-17-039, the least-built layer of the stack, and R-01-003's widest as-existing gap) dischargeable before any RTL of record exists. D-12's repair then made it day-one deliverable (ii) under R-18-003b. So the single cheapest attack on the least-built layer was blocked on a missing checklist, while the specification asserted it was available immediately.
+
+**Repaired** by extraction into [absence-contract.md](absence-contract.md), booked as **R-15-100a**, under D-13's three disciplines (derived not authoritative; every row cites its governing requirement; agreement machine-checked both directions). The artifact carries sixteen enumerated absences — twelve owed the contract proper per R-15-100, and four more the `fence.t` completeness argument depends on per R-15-215 — each with the netlist evidence an auditor searches for; both discharge forms; R-15-104's table-freeness rule; R-15-217's four-class completeness map; and a six-step day-one procedure against the imported cores R-15-090 names, which exist today.
+
+Two residuals, both stated in the artifact rather than resolved by it. The imported-core half closes on **structural audit, not theorem** (R-17-040), which is a ceiling the extraction records and cannot lift. And as with D-13 the checker tests citation, not fidelity.
+
+**The class defect is the standing finding.** D-13 and D-14 were found by asking, of one acceptance criterion at a time, *what artifact does a reviewer open to decide this?* That question has not been asked of the register as a whole, so further instances should be assumed present rather than absent — R-05-153's rule makes each one a spec defect, and the checker built for D-13 generalizes to any further derived view.
