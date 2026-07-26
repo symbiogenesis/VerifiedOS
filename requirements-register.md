@@ -3620,7 +3620,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CT-SOUND · [L1854–1858](verification-maximal-os.md#L1854)
 
 **R-17-016** IS — Specification gap: proofs match the spec, never intent. The crown-jewel spec set is enumerated — policy model, IDL wire-format mapping, frozen matrix-extension semantics, NoC/island isolation model, the bank/macro/tier→island binding map, the native tag-bit layout, the memory controller's non-interference semantics, radio grammars, OPP/mode schedule statements, the frozen ISA-profile definition, the `Zkt`/`Zvkt` leakage-model statement, the Ztso and static-prediction fetch statements, the `fence.t` flush-set statement, the reset/power sequence table, and the calibration-manifest schema.
-· Accept: the list is closed by amendment to this register, and every crown jewel here has a `CJ-` trace target used by the sections that constrain it.
+· Accept: the list is closed by amendment to this register, and every crown jewel here has a `CJ-` trace target used by the sections that constrain it. The enumeration is held by the artifact R-17-016a requires, not by this entry's prose. **See [D-15](#d-15).**
+· Trace: CJ-T · [L1859–1862](verification-maximal-os.md#L1859)
+
+**R-17-016a** MUST — The crown-jewel inventory exists as a single enumerated artifact, [crown-jewels.md](crown-jewels.md), carrying one row per crown-jewel specification with its `CJ-` trace target, the requirements that constrain it, and its authored/partial/not-authored status. Like the frozen profile and the absence contract it is a *derived view*: it states no obligation of its own, cites the governing requirements for every row, and is defective — never authoritative — where it disagrees with this register.
+· Accept: the artifact exists; every requirement asserting crown-jewel status for a specification is cited by it; and all 21 `CJ-` targets are accounted for, each either as a specification row or as a theorem target whose premise is a specification row. `tools/check-derived-views.ps1` checks all three conditions. The inventory is the §5 review gate's subject (R-05-150) and the specification workstream's work list, its status column the countable form of R-01-003's as-existing position.
 · Trace: CJ-T · [L1859–1862](verification-maximal-os.md#L1859)
 
 ### 17.5 The hardware seam register
@@ -3993,7 +3997,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 909 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 910 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4013,7 +4017,7 @@ All eighteen normative sections are extracted, at 909 requirements. §19 is non-
 | **§14 Userland** | **extracted** | **13** |
 | **§15 Hardware Platform** | **extracted** | **248** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **65** |
+| **§17 Residual Risks** | **extracted** | **66** |
 | **§18 Realization** | **extracted** | **37** |
 
 §19 is non-normative and yields no requirements.
@@ -4022,12 +4026,13 @@ All eighteen normative sections are extracted, at 909 requirements. §19 is non-
 
 Normative claims that resisted atomic restatement, per R-05-153. Each is a spec defect to be repaired in [verification-maximal-os.md](verification-maximal-os.md), not a register omission.
 
-**Status: all fourteen repaired.** Twelve were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
+**Status: all fifteen repaired.** Thirteen were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
 
 - **D-01** is closed by one generic rule in §5 rather than five per-entry forecasts: an interim retires when its Coq-native destination has passed admission for every consumer riding the interim. Testable today against two lists.
 - **D-12** is the schedule defect, and is closed by *scoping* the priority-zero claim rather than weakening it: as a total order it was unsatisfiable, and the register's own R-18-024/R-18-025 pair made it a literal cycle. Its repair is the one with an implementation consequence — it yields the enumerated day-one set (R-18-003b).
 - **D-13** is closed by *building the missing artifact*: the frozen profile, which four acceptance criteria tested membership in, existed in no document. It is now [isa-profile.md](isa-profile.md), a derived view whose agreement with this register is machine-checked in both directions rather than maintained by care. D-12 and D-13 compose: D-12 made the profile freeze the schedule root, and D-13 is that root made handable to an engineer.
 - **D-14** is D-13's defect one layer down — the *absence-contract register*, quantified over by three acceptance criteria, held by no document — closed the same way, as [absence-contract.md](absence-contract.md). Together the two establish a **class defect**, recorded at D-14: acceptance criteria that quantify over a list no artifact holds. Further instances should be assumed present until the register has been swept for them.
+- **D-15** is the first instance found by *running* that sweep: the *crown-jewel inventory*, quantified over by seven criteria, stated in three non-agreeing places and held nowhere. Closed as [crown-jewels.md](crown-jewels.md), which also separates the specification crown jewels from the theorem targets — a distinction the `CJ-` table had left implicit and the checker surfaced.
 - **D-11** is closed by **deleting the fuzzed clock**, not specifying it. Jitter on a counter is recoverable by averaging, which makes it a statistical mitigation of exactly the kind §15 already refuses when it excludes MTE ("a statistic, not a theorem") and MBPTA/EVT. Specifying a distribution would have made a statistic normative in a document that admits none. What replaces it was already true: with the counters permission-gated, an untrusted compartment's only time source is a ring-serviced call, so its finest observable interval is its own slot period — a composition-time constant. The mechanism, its owner question, its distribution parameter, and its entry in §16's nondeterminism enumeration all leave together; the residual is the §11 rung channel already booked at R-17-007.
 
 Entries below are retained with their original diagnosis so the review record shows what was wrong and why.
@@ -4117,4 +4122,21 @@ Three acceptance criteria test membership in an *absence-contract register*: R-1
 
 Two residuals, both stated in the artifact rather than resolved by it. The imported-core half closes on **structural audit, not theorem** (R-17-040), which is a ceiling the extraction records and cannot lift. And as with D-13 the checker tests citation, not fidelity.
 
-**The class defect is the standing finding.** D-13 and D-14 were found by asking, of one acceptance criterion at a time, *what artifact does a reviewer open to decide this?* That question has not been asked of the register as a whole, so further instances should be assumed present rather than absent — R-05-153's rule makes each one a spec defect, and the checker built for D-13 generalizes to any further derived view.
+**The class defect is the standing finding.** D-13 and D-14 were found by asking, of one acceptance criterion at a time, *what artifact does a reviewer open to decide this?* That question has not been asked of the register as a whole, so further instances should be assumed present rather than absent — R-05-153's rule makes each one a spec defect, and the checker built for D-13 generalizes to any further derived view. [D-15](#d-15) is the first instance found by *running* that sweep rather than by stumbling on it.
+
+<a id="d-15"></a>**D-15 — The crown-jewel inventory is stated three times and held nowhere, and the three statements do not agree.**
+Found by the sweep D-14 called for: 109 acceptance criteria were extracted and filtered for artifact-quantifying language, and *the crown-jewel inventory* was the heaviest-quantified missing artifact at seven criteria — R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151, which requires *every* requirement to trace "to the crown-jewel spec it constrains."
+
+Three sources existed and none was the inventory:
+
+1. the **`CJ-` trace-target table** — 21 entries. This artifact is *healthy*: every target is used by at least one `Trace:` line and none is orphaned. But it is a **trace legend**, a controlled vocabulary of coarse targets, and its granularity is deliberately below the inventory's: `CJ-FORMAT` is one target covering every Narcissus descriptor, where R-05-046 requires the descriptor *set* enumerated; `CJ-CRYPTO-SPEC` is one target where R-05-076 requires *each primitive's* specification listed. A legend cannot enumerate members without one target per member, which would destroy its usefulness as a legend.
+2. **R-17-016's prose enumeration** — fifteen named specification statements, carried inside a single §17 residual entry rather than as an artifact.
+3. **thirteen scattered requirements** each asserting "X is a crown-jewel spec."
+
+R-17-016's acceptance criterion claims the list "is closed by amendment to this register." **It was not closed:** rows 17 (R-05-076), 18 (R-17-041), 19 (R-17-044), and 20 (R-05-042) of the new inventory carry crown-jewel status by requirements outside R-17-016 and appear in no enumeration, and row 13's per-descriptor obligation is stronger than R-17-016's single "radio grammars" entry.
+
+**Repaired** by extraction into [crown-jewels.md](crown-jewels.md), booked as **R-17-016a**, under the same three disciplines as D-13 and D-14.
+
+**The extraction found a distinction the register had left implicit, and the checker is what surfaced it.** Requiring the inventory to account for all 21 `CJ-` targets failed with nine unaccounted, and inspecting those nine showed the table mixes two kinds of thing: **specifications**, which are *authored* and whose correctness is unverifiable — R-17-016's whole residual is that a proof matches the spec and never intent — and **theorems**, which are *proven*, and whose correctness is exactly what the proof establishes. Two of the nine (`CJ-MEMPLAN`, `CJ-HAL`) were specifications the extraction had missed and are now rows 21 and 22; the other seven are theorem targets, now carried in their own table with the specification each is proven against. That mapping is not bookkeeping: **a theorem with no specification to be proven against is not a deliverable**, so it states which of the seven proof workstreams are currently blocked on an unwritten premise — which is all of them.
+
+**Standing consequence.** The inventory's status column makes R-01-003 countable: of twenty-two specification crown jewels, one is authored, three are partial, and eighteen are not written. The register asserted the as-existing gap; the inventory measures it.

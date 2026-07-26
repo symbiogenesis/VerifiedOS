@@ -14,6 +14,8 @@
 
 $ErrorActionPreference = 'Stop'
 
+# A view declares what it must carry, either by owning §15 subsection (Secs) or by a
+# pattern matched against requirement bodies anywhere in the register (BodyPattern).
 $views = @(
     @{ File = 'isa-profile.md'
        Governing = 'R-15-001a'
@@ -21,18 +23,26 @@ $views = @(
     @{ File = 'absence-contract.md'
        Governing = 'R-15-100a'
        Secs = '15.14' }
+    @{ File = 'crown-jewels.md'
+       Governing = 'R-17-016a'
+       BodyPattern = 'crown.jewel spec'
+       MustCiteTargets = $true }
 )
 
 $reg = Get-Content requirements-register.md
 $regIds = $reg | Select-String -Pattern '^\*\*(R-\d\d-\d+[a-z]?)\*\*' -AllMatches |
           ForEach-Object { $_.Matches[0].Groups[1].Value }
 
-# requirement id -> owning §15 subsection
-$sec = $null; $owner = @{}
+# requirement id -> owning §15 subsection, and id -> body text (all sections)
+$sec = $null; $owner = @{}; $body = @{}
 foreach ($line in $reg) {
     if ($line -match '^### (15\.\d+) ') { $sec = $Matches[1] }
     if ($line -match '^\*\*(R-15-\d+[a-z]?)\*\* (IS|MUST NOT|MUST)') { $owner[$Matches[1]] = $sec }
+    if ($line -match '^\*\*(R-\d\d-\d+[a-z]?)\*\* (IS|MUST NOT|MUST)') { $body[$Matches[1]] = $line }
 }
+
+# the CJ- controlled vocabulary, declared in the register's trace-target table
+$cjTargets = $reg | Select-String -Pattern '^\| `(CJ-[A-Z-]+)`' | ForEach-Object { $_.Matches[0].Groups[1].Value }
 
 $findings = 0
 foreach ($v in $views) {
@@ -51,13 +61,29 @@ foreach ($v in $views) {
         "ok: all $($cited.Count) cited IDs resolve"
     }
 
-    $uncovered = $owner.Keys | Where-Object { $owner[$_] -in $v.Secs -and $_ -notin $cited } | Sort-Object
+    if ($v.Secs) {
+        $uncovered = $owner.Keys | Where-Object { $owner[$_] -in $v.Secs -and $_ -notin $cited } | Sort-Object
+    } else {
+        $uncovered = $body.Keys | Where-Object { $body[$_] -match $v.BodyPattern -and $_ -notin $cited } | Sort-Object
+    }
     if ($uncovered) {
         $findings += @($uncovered).Count
         "FAIL: $(@($uncovered).Count) bearing requirement(s) not carried:"
-        $uncovered | ForEach-Object { "       $_  [§$($owner[$_])]" }
+        $uncovered | ForEach-Object { "       $_" }
     } else {
         "ok: all bearing requirements are carried"
+    }
+
+    # a view standing in for the CJ- vocabulary must account for every target
+    if ($v.MustCiteTargets) {
+        $missingCj = $cjTargets | Where-Object { (Get-Content $v.File -Raw) -notmatch [regex]::Escape($_) }
+        if ($missingCj) {
+            $findings += @($missingCj).Count
+            "FAIL: $(@($missingCj).Count) CJ- target(s) unaccounted for:"
+            $missingCj | ForEach-Object { "       $_" }
+        } else {
+            "ok: all $($cjTargets.Count) CJ- targets accounted for"
+        }
     }
     ""
 }
