@@ -2637,17 +2637,29 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: it clears all five admission tests; its correctness is a Sail invariant (fixed theta/rho/pi/chi/iota rounds, no tables, no secret-dependent control flow) riding RTL ⊑ Sail.
 · Trace: CJ-SAIL, CJ-LEAK · [L1230–1231](verification-maximal-os.md#L1230)
 
+**R-15-056a** MUST — The frozen Keccak fork defines **both** round counts the re-pin target defines — Keccak-*p*[1600,24] for SHA-3/SHAKE and Keccak-*p*[1600,12] for TurboSHAKE/KangarooTwelve — under an immediate selector, so that the re-pin exchanges an encoding under unchanged semantics instead of widening them.
+· Accept: the frozen Sail defines both round counts; both sit on the `Zvkt` fixed-latency list (R-15-053) and are covered by R-15-058's ACVP differential oracle; no round count is admitted to the frozen model at re-pin time.
+· Trace: CJ-SAIL, CJ-LEAK · [L1244](verification-maximal-os.md#L1244)
+
 **R-15-057** MUST — The Keccak unit is fork-and-frozen with full Sail semantics until the RISC-V PQC Task Group's instruction (RVG-84) ratifies, then re-pinned to it.
 · Accept: a re-pin obligation is recorded, as for the matrix extension and CHERI's 'Y' line.
 · Trace: CJ-SAIL · [L1232](verification-maximal-os.md#L1232)
+
+**R-15-057a** IS — The re-pin target is recorded concretely as `Zvknhk` / `vkeccak.vi`: one vector-immediate instruction, EGW 2048, EGS 32, SEW 64 only, dependent on `Zve64x`, mandating `Zvl128b`, round count immediate-selected with unassigned values illegal, and **data-independent execution latency mandatory in the extension itself** rather than deferred to a profile.
+· Accept: the frozen fork's semantics are diffed against that shape at each PQC TG milestone — specification stabilized 2026-07-30, public review opening 2026-09-22, ratification target 2026-12-31 — and any divergence is booked as a re-pin delta before ratification rather than discovered after it. R-15-053's keystone contract is thereby discharged architecturally for this instruction, not only locally.
+· Trace: CJ-SAIL, CJ-LEAK · [L1244](verification-maximal-os.md#L1244)
 
 **R-15-058** MUST — With no Coq-native Keccak proof to import, the fixed-permutation invariant is a fresh Sail proof disciplined against FIPS 202 and the NIST ACVP test vectors as differential oracle, with `Zvbb`/`Zvbc` software Keccak retained as the portable path and the differential reference.
 · Accept: the oracle enters no trust base; the software path exists on every core lacking the unit.
 · Trace: CJ-SAIL · [L1233](verification-maximal-os.md#L1233)
 
 **R-15-059** IS — The Keccak unit is placed on the vector-bearing cores and not on the vectorless S-class RoT; a hardware Keccak block on the RoT is declined on the global trade.
-· Accept: the RoT's scalar software Keccak is already constant-time on the fixed-latency core; a block would add to the least-built RTL ⊑ Sail arrow at the boot-critical root.
+· Accept: the RoT's scalar software Keccak is already constant-time on the fixed-latency core; a block would add to the least-built RTL ⊑ Sail arrow at the boot-critical root; and RVG-84 is vector-only, so no ratified scalar Keccak instruction exists for the RoT to adopt in its place — the trade decides the bespoke block, not the import.
 · Trace: CJ-RTL-SAIL · [L1234–1235](verification-maximal-os.md#L1234)
+
+**R-15-059a** MUST — The C-class Keccak throughput and register-pressure figures are stated at the C-class **VLEN=256**, where the 2048-bit element group is LMUL=8 and one permutation occupies the whole architectural vector register file; they are not extrapolated from the V-class VLEN=4096.
+· Accept: a C-class per-permutation cost and register-pressure figure exists at LMUL=8. This is a budget entry, not an admission entry: the five-part test (R-15-010) is indifferent to register pressure, so no admission verdict turns on it.
+· Trace: CJ-WCET · [L1244](verification-maximal-os.md#L1244)
 
 **R-15-060** IS — `Zicboz` (cbo.zero) is adopted, making the §7 eager-zeroize discipline nearly free per aligned block and carrying the disclosure half of Write-before-Read without any per-load check.
 · Accept: an unwritten slot reads a deterministic zero rather than residue.
@@ -4015,7 +4027,7 @@ All eighteen normative sections are extracted, at 910 requirements. §19 is non-
 | **§12 System Servers** | **extracted** | **86** |
 | **§13 Packaging & Supply Chain** | **extracted** | **29** |
 | **§14 Userland** | **extracted** | **13** |
-| **§15 Hardware Platform** | **extracted** | **248** |
+| **§15 Hardware Platform** | **extracted** | **251** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **66** |
 | **§18 Realization** | **extracted** | **37** |
