@@ -2470,8 +2470,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the only reordering the machine exhibits is store→later-load bypass through the store buffer.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-015)
 
-**R-15-016** MUST — The Ztso guarantee is an RTL-against-Sail proof obligation: the store buffer provably exposes no ordering weaker than TSO.
-· Accept: the obligation is a named bring-up gate alongside the `Zkt`/`Zvkt` timing obligation.
+**R-15-015a** MUST — Ztso is a system property whose structural discharge has three parts: the per-core FIFO store buffer (R-15-015), single-copy memory whose bank arbiter is the per-location order-determining point (R-15-087), and the NoC and memory controller preserving each hart's program order of memory requests across banks, macros, and shared cross-island ring windows. The third is not conferred by the store buffer's shape and is a named obligation in its own right.
+· Accept: two stores from one hart to distinct banks reach their arbiters in issue order, and no later load returns a value the coherence order places before an earlier load's. Discharged either structurally — per-hart request order is a static property of the composition-time TDM slot schedule and per-island arbitration, with reordering unrepresentable in the fabric (preferred) — or by an ordering lemma over the NoC and memory-controller RTL. Bare per-core reasoning is not a discharge.
+· Trace: CJ-SAIL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-015a), [§15](verification-maximal-os.md#r-15-015a-2)
+
+**R-15-016** MUST — The Ztso guarantee is an RTL-against-Sail proof obligation stated over the whole memory path: the store buffer provably exposes no ordering weaker than TSO, and the fabric beneath it provably preserves per-hart request order (R-15-015a).
+· Accept: the obligation is a named bring-up gate alongside the `Zkt`/`Zvkt` timing obligation, and its statement covers the NoC and memory controller rather than the store buffer alone.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-016), [§15](verification-maximal-os.md#r-15-016-2)
 
 **R-15-017** IS — `fence` instructions remain present and semantically modeled for I/O and device ordering (MMIO, DMA-descriptor visibility) and for cross-island ring ordering over shared SRAM.
@@ -4016,7 +4020,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 914 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries (`R-05-022a`, `R-05-151a`, `R-08-031a`, `R-15-001a`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-17-016a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 915 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries (`R-05-022a`, `R-05-151a`, `R-08-031a`, `R-15-001a`, `R-15-015a`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-17-016a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
