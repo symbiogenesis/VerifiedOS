@@ -6,9 +6,9 @@
 
 ## Why this document exists
 
-R-15-001's acceptance criterion reads *"the frozen profile enumerates exactly this extension set."* Until now no such enumeration existed: the profile was an emergent property of some seventy requirements spread across §15.1–§15.12 and §15.16, so the criterion named an artifact a reviewer could not open. That gap is booked as **[D-13](requirements-register.md#d-13)**.
+R-15-001's acceptance criterion reads *"the frozen profile enumerates exactly this extension set."* Without this document there is no such enumeration: the profile would be an emergent property of some seventy requirements spread across §15.1–§15.12 and §15.16, and the criterion would name an artifact a reviewer cannot open. Four criteria test membership in the profile this way (R-15-014, R-15-024, R-15-042, R-15-067), so all four are decidable only against this document.
 
-The gap mattered beyond review hygiene. R-18-003a makes the profile freeze the **root of the schedule** — the toolchain, the Sail model, and the CHERI-CompCert backend all target it, so it precedes all three — and R-18-003b(i) makes *"the profile freeze and its Sail curation"* the first day-one deliverable. This is the document that deliverable consumes: what a Sail curator removes from `sail-riscv` ⋈ `sail-cheri-riscv`, and what the backend's target description must match.
+It matters beyond review hygiene. R-18-003a makes the profile freeze the **root of the schedule** — the toolchain, the Sail model, and the CHERI-CompCert backend all target it, so it precedes all three — and R-18-003b(i) makes *"the profile freeze and its Sail curation"* the first day-one deliverable. This is the document that deliverable consumes: what a Sail curator removes from `sail-riscv` ⋈ `sail-cheri-riscv`, and what the backend's target description must match.
 
 ## 1. Base
 

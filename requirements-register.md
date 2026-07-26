@@ -14,13 +14,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-… (the crown-jewel spec it constrains) · [§n](verification-maximal-os.md#r-ss-nnn) (prose rationale)
 ```
 
-**Traces are bookmarks, not line numbers.** Each entry names a `<a id="r-ss-nnn">` bookmark carried by the prose line it was extracted from, so editing the prose moves the target with the text and a trace cannot go stale. The display text is the prose section the bookmark sits in, and a second citation of the same requirement takes the suffix `-2`. This replaced line-number citations, which drifted; see [D-16](#d-16).
+**Traces are bookmarks, not line numbers.** Each entry names a `<a id="r-ss-nnn">` bookmark carried by the prose line it was extracted from, so editing the prose moves the target with the text and a trace cannot go stale. The display text is the prose section the bookmark sits in, and a second citation of the same requirement takes the suffix `-2`. A line number would be a derived fact restated in a second document with nothing checking it; a bookmark is not, which is why traces are symbolic. `tools/check-traces.ps1` holds what a symbolic reference can still violate silently (R-05-151a).
 
 **Modality.** `MUST` — obligation on the built system or its process. `MUST NOT` — prohibition; the acceptance criterion is an emptiness or absence check. `IS` — a definition or classification the rest of the register quantifies over; reviewable for correctness, not for compliance.
 
 **IDs are permanent.** A retired requirement keeps its number and is struck, never reused. Renumbering breaks every review record that cites it.
 
-**Order is the specification's, not the numbering's.** Entries appear in the order of the prose they extract, so a requirement added by a later defect repair sits where its obligation belongs and not where its number would put it — §18.5 runs 031, 032, 034, 035, 033. A letter-suffixed ID (`R-05-022a`) is an obligation a repair inserted between two existing ones; it is a full entry and is counted as one.
+**Order is the specification's, not the numbering's.** Entries appear in the order of the prose they extract, so a requirement added after its neighbours sits where its obligation belongs and not where its number would put it — §18.5 runs 031, 032, 034, 035, 033. A letter-suffixed ID (`R-05-022a`) is an obligation inserted between two existing ones; it is a full entry and is counted as one.
 
 ### Crown-jewel specs referenced
 
@@ -124,8 +124,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-15-153 through R-15-157.
 · Trace: CJ-T · [§3](verification-maximal-os.md#r-03-003)
 
-**R-03-004** IS — The residual set is enumerated: timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; invasive physical attack; malicious silicon fabrication; and carrier or certification-body acceptance of an open cellular stack.
-· Accept: each maps to a §17 entry. **See [D-05](#d-05).**
+**R-03-004** IS — The residual set is enumerated: timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; protocol-level security above the scheme level (the composed session security of TLS 1.3, WireGuard, and the cellular AKA, which the §5 crypto assurance does not reach); invasive physical attack; malicious silicon fabrication; and carrier or certification-body acceptance of an open cellular stack.
+· Accept: each maps to a §17 entry — the protocol-level entry to R-17-049, which is the exclusion R-05-078 states and the largest scope boundary the word *hyper-secure* crosses.
 · Trace: CJ-T · [§3](verification-maximal-os.md#r-03-004)
 
 **R-03-005** IS — Invasive physical attack is the only way to reach main memory at all, main memory being on-die, so delidding and probing is the entry price; the line is what scopes the memory path in §15, and drawing it elsewhere would make every on-die interface a defended one.
@@ -316,8 +316,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the three classes are what PCC rests on; the platform's full axiom set is enumerated once in §6 (R-06-011) and is larger, adding the TAL type-checker, its soundness metatheorem, and the bootstrap root. This bullet no longer claims to state the whole set.
 · Trace: CJ-T, CJ-SAIL · [§5](verification-maximal-os.md#r-05-028)
 
-**R-05-029** IS — The type-level obligations are exactly: memory safety, definite initialization, control-flow integrity, no-runtime-codegen, ABI/type conformance, examined verdicts, absent ambient state, representation-and-provenance conformance, constant-time, and WCET. **See [D-03](#d-03).**
-· Accept: every admitted binary's derivation carries an attribute, citation, or deletion-check for each listed obligation.
+**R-05-029** IS — The type-level obligations are exactly: memory safety, definite initialization, control-flow integrity, no-runtime-codegen, ABI/type conformance, examined verdicts, absent ambient state, representation-and-provenance conformance, constant-time, and WCET. This list is canonical: every other section cites it rather than restating it, and control-flow integrity carries both halves — the runtime *legal-here* the sentries enforce and its compose-time callee-set enumeration, which is the static shadow of the same fact and not an eleventh obligation.
+· Accept: every admitted binary's derivation carries an attribute, citation, or deletion-check for each listed obligation, and no other section enumerates the obligations independently (R-06-009, R-13-012, and the move table at R-05-037/R-05-038 are citations of this entry).
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-029)
 
 **R-05-030** IS — The obligations no type system states — Tier-0 refinement, non-interference, crypto reduction security, and the residual unstructured constant-time and WCET cases — remain proof terms for the CIC kernel.
@@ -355,7 +355,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CERISE · [§5](verification-maximal-os.md#r-05-037)
 
 **R-05-038** IS — Move II carries temporal memory safety, definite initialization, examined verdicts, constant-time, WCET, callee-set enumeration, and type/ABI conformance.
-· Accept: each has a finite attribute domain and a syntax-directed rule (see R-05-132).
+· Accept: each has a finite attribute domain and a syntax-directed rule (see R-05-132). Callee-set enumeration is the compose-time half of R-05-029's CFI obligation, not an eleventh entry, so this row partitions the canonical ten rather than extending them.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-038)
 
 **R-05-039** IS — Move III carries representation-and-provenance conformance and absence of ambient mutable state, as one-pass inspections of absences.
@@ -520,7 +520,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each appears in the §17 axiom set `Ax`, not in the theorem set.
 · Trace: CJ-REDUCTION · [§5](verification-maximal-os.md#r-05-077)
 
-**R-05-078** MUST NOT — Protocol-level composition (TLS 1.3, WireGuard, the cellular AKA composition) is not claimed by the crypto layers. **See [D-05](#d-05).**
+**R-05-078** MUST NOT — Protocol-level composition (TLS 1.3, WireGuard, the cellular AKA composition) is not claimed by the crypto layers.
 · Accept: no crown-jewel theorem statement mentions a composed session-security property; the §3 Defended/Residual split records the exclusion.
 · Trace: CJ-REDUCTION · [§5](verification-maximal-os.md#r-05-078)
 
@@ -732,8 +732,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 5.18 The frozen checker theory
 
-**R-05-127** IS — The on-device checker is an attribute-grammar evaluator, not a term checker, and its order-of-10³-line budget is a consequence of that category fact. **See [D-02](#d-02).**
-· Accept: the checker evaluates a fixed attribute set bottom-up over the already-typed CFG with no fixpoint over open terms anywhere.
+**R-05-127** IS — The on-device checker is an attribute-grammar evaluator, not a term checker, and its order-of-10³-line budget is a consequence of that category fact.
+· Accept: the checker evaluates a fixed attribute set bottom-up over the already-typed CFG with no fixpoint over open terms anywhere; and the figure has a stated counting rule — it counts the attribute evaluator, the derivation reader, and the image scan together in the shipped source of the §6 type-checker, and excludes the frozen type-constructor vocabulary and attribute tables (data bounded by amendment to the specification, not by implementation), the CIC proof kernel, and the Coq metatheory. A checker that met the figure by moving decisions into a generated table fails the claim, the category fact being what the budget asserts.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-127)
 
 **R-05-128** MUST NOT — Absence (1): polymorphism is predicative and rank-1 prenex only — type variables quantified at the outermost position of a code type and instantiated only at monotypes.
@@ -837,7 +837,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T · [§5](verification-maximal-os.md#r-05-151)
 
 **R-05-151a** MUST — The register's traces to the prose are decided mechanically rather than by reading: every bookmark a trace cites resolves exactly once in the prose, every requirement carries a trace, every `r-*` bookmark in the prose names a live requirement, and the section a trace displays is the section its bookmark sits in.
-· Accept: `tools/check-traces.ps1` decides all four and exits non-zero on any finding. This is what makes [D-16](#d-16)'s repair durable rather than merely correct on the day it was made: a symbolic reference cannot go *stale*, but it can be absent, misspelled, or duplicated, and a dangling Markdown anchor fails silently — no more visible than the off-by-ten line numbers it replaced. **[D-16](#d-16)'s residual discharged.**
+· Accept: `tools/check-traces.ps1` decides all four and exits non-zero on any finding. A symbolic reference cannot go *stale*, but it can be absent, misspelled, or duplicated, and a dangling Markdown anchor fails silently, so the check is what keeps the reference discipline honest rather than merely well-intentioned. Each property is negative-tested against a deliberately broken copy — a mistyped anchor, a duplicated bookmark id, a deleted trace line, a bookmark naming a retired ID, a display section disagreeing with its target — because a checker that has never failed is indistinguishable from one that cannot. It checks *reference*, not *fidelity*: a trace landing on prose that does not support its requirement is a review-gate finding against R-05-151.
 · Trace: CJ-T · [§5](verification-maximal-os.md#r-05-151)
 
 **R-05-152** IS — The gate audits the register; the prose specification is commentary rather than the thing reviewed.
@@ -849,7 +849,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T · [§5](verification-maximal-os.md#r-05-153)
 
 **R-05-154** MUST — Maintaining the register and its traceability to the Coq specifications and the Sail model is a §18 workstream.
-· Accept: §18 lists it as a deliverable with an owner — R-18-034. **[D-06](#d-06) repaired.**
+· Accept: §18 lists it as a deliverable with an owner — R-18-034.
 · Trace: CJ-T, CJ-SAIL · [§5](verification-maximal-os.md#r-05-154)
 
 **R-05-155** MUST — The foundational-C separation-logic specifications (kernel, storage, HAL) are made runtime-testable in concrete execution under the Fulminate discipline for CN.
@@ -926,16 +926,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no third checker exists; no per-install path invokes the CIC kernel except for the few certificate-carrying installs (R-13-028).
 · Trace: CJ-TAL-SOUND · [§6](verification-maximal-os.md#r-06-008)
 
-**R-06-009** IS — The TAL type-checker decides Tier-2 memory safety, CFI, no-codegen, ABI/type conformance, relevance-graded verdicts, absence of an ambient tagged static capability, representation and provenance absences, closed-numeral overflow side conditions, and the memory/ABI half of Tier 1. **See [D-03](#d-03).**
-· Accept: its ~10³-line budget is a consequence of the frozen theory (R-05-127).
+**R-06-009** IS — The TAL type-checker decides **the ten type-level obligations of R-05-029** — every move-(I) citation, move-(II) attribute, and move-(III) deletion — plus closed-numeral overflow side conditions and the memory/ABI half of Tier 1. This row cites R-05-029 rather than restating it.
+· Accept: its ~10³-line budget is a consequence of the frozen theory (R-05-127), and its decided set is read off R-05-029 rather than enumerated here, so the two cannot disagree.
 · Trace: CJ-TAL-SOUND · [§6](verification-maximal-os.md#r-06-009)
 
 **R-06-010** IS — The CIC proof kernel decides Tier-0 functional refinement, the non-interference theorem, crypto reductions, filesystem certificates, and residual unstructured constant-time and WCET cases.
 · Accept: it is intentionally larger — universes, inductives, guard, and conversion — because seL4-scale proofs are not per-install admission work.
 · Trace: CJ-NI, CJ-REDUCTION · [§6](verification-maximal-os.md#r-06-010)
 
-**R-06-011** IS — The admission axioms are the two checkers, the spec and policy statements, the CHERI-TAL soundness metatheorem, and the Sail model they check against. **See [D-10](#d-10).**
-· Accept: the axiom inventory has exactly these entries.
+**R-06-011** IS — The admission axioms are the two checkers, the spec and policy statements, the CHERI-TAL soundness metatheorem, and the Sail model they check against.
+· Accept: the axiom inventory has exactly these entries plus the De Bruijn bootstrap root (R-06-014), and this is the specification's single statement of it — R-05-028 is scoped to the proof-carrying-code path and says so, so the two are no longer competing enumerations.
 · Trace: CJ-TAL-SOUND, CJ-SAIL · [§6](verification-maximal-os.md#r-06-011)
 
 **R-06-012** MUST — Both checkers are built like the rest of the TCB: the CIC kernel's MetaCoq-style Gallina checker and the TAL type-checker alike are refined to CompCert-C (VST/Iris) and compiled through CHERI-CompCert.
@@ -1889,7 +1889,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-IDL · [§12](verification-maximal-os.md#r-12-010)
 
 **R-12-011** MUST — Flow annotations are a first-class IDL concern for every cross-domain channel: each type carries confidentiality and integrity labels, the IDL-to-Coq generator emits the matching flow predicates, and Tier-1 proofs for cross-domain servers must include flow theorems against them.
-· Accept: the labeling is what defines *secret-labeled material* elsewhere in the specification. **See [D-04](#d-04).**
+· Accept: the labeling is what defines *secret-labeled material* for IDL-borne material, and is one source of the label rather than the definition of the population — R-05-074 scopes the constant-time obligation by the label however the material was obtained, so DMA-window, re-delegated-front-end, and locally-drawn secrets carry it without an IDL channel.
 · Trace: CJ-IDL, CJ-NI · [§12](verification-maximal-os.md#r-12-011)
 
 **R-12-012** MUST — The IDL profile is restricted: closed variants only, no recursion, and explicit bounds on every list and string.
@@ -2141,7 +2141,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§12](verification-maximal-os.md#r-12-069)
 
 **R-12-070** IS — Readout may be event-driven rather than fixed-cadence, the comparator and the event pixel being matter, so the host DSP idles between events and only changes cross the boundary.
-· Accept: event timing is data-dependent, and the no-timing-channel property is kept by confining event and wake traffic to the owning island's statically-partitioned NoC and memory budget. **See [D-08](#d-08).**
+· Accept: event timing is data-dependent, and the no-timing-channel property is kept by confining event and wake traffic to the owning island's statically-partitioned NoC and memory budget.
 · Trace: CJ-ISOL · [§12](verification-maximal-os.md#r-12-070)
 
 **R-12-071** IS — On the confidentiality ledger the event-driven change is neutral-to-positive: the island partition restores the constant-from-outside property, and emitting only changes shrinks the exposed data, leaving a worst-case-bandwidth reservation as the sole residual — a power-margin cost, not a confidentiality one.
@@ -2266,8 +2266,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: every admitted artifact carries exactly one tier and its required evidence.
 · Trace: CJ-TAL-SOUND, CJ-NI · [§13](verification-maximal-os.md#r-13-011)
 
-**R-13-012** IS — The Tier-2 certificate's content is enumerated: ABI/type well-formedness, no runtime codegen, manifest consistency, temporal safety, definite initialization, and CFI. Full functional PCC is deliberately not required, because app intent is unspecified.
-· Accept: admission is type-checking the artifact, not trusting the producer.
+**R-13-012** IS — The Tier-2 certificate carries the subset of R-05-029's ten type-level obligations this tier requires — ABI/type well-formedness, no runtime codegen, temporal safety, definite initialization, and CFI — plus manifest consistency, a tier-local admission check that is not one of the ten. Full functional PCC is deliberately not required, because app intent is unspecified.
+· Accept: admission is type-checking the artifact, not trusting the producer; and the certificate's content is read off R-05-029 with a stated tier scoping rather than enumerated independently, so a change to the canonical list has one place to be made.
 · Trace: CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-012)
 
 **R-13-013** MUST NOT — There is no `#![forbid(unsafe_code)]` shortcut and no uncertified-admission path: Rust source discipline is one way to produce the Tier-2 derivation, and any producer of a well-typed binary is admitted identically.
@@ -2299,7 +2299,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-HAL, CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-019)
 
 **R-13-020** MUST — Any app receiving secret-labeled material carries the binary-level constant-time obligation; apps that touch no secrets carry no CT proof.
-· Accept: the secret-touching set is derived from the §12 labeling. **See [D-04](#d-04).**
+· Accept: the secret-touching set is derived from the label on the material, never from its channel of arrival (R-05-074), so it includes the §12 IDL-labeled flows and equally the capability-bounded DMA window, the RoT-latched front end re-delegated to a compartment, and the local entropy draw.
 · Trace: CJ-CT-SOUND, CJ-IDL · [§13](verification-maximal-os.md#r-13-020)
 
 ### 13.3 Trust boundaries and supply chain
@@ -2407,7 +2407,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-001)
 
 **R-15-001a** MUST — The frozen profile exists as a single enumeration in one artifact, [isa-profile.md](isa-profile.md), rather than as an emergent property of the requirements that constrain it. The artifact is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective — never authoritative — where it disagrees with this register.
-· Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions — every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it — because the same-set-stated-twice failure is exactly what produced [D-03](#d-03) and [D-10](#d-10). `tools/check-derived-views.ps1` is that check and exits non-zero on either finding. **See [D-13](#d-13).**
+· Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions — every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it. `tools/check-derived-views.ps1` is that check and exits non-zero on either finding. The reverse direction is the one that earns its keep: a hand-maintained extraction silently drops rows, which is what makes a set stated in two places drift. The check tests *citation*, not *fidelity* — a row whose prose contradicts the requirement it cites is a review-gate finding against this entry.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-001a)
 
 **R-15-002** IS — The platform is single-physical-address-space under CHERI: no MMU, `satp` fixed to Bare, no Sv39 translation.
@@ -2845,7 +2845,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-100)
 
 **R-15-100a** MUST — The absence-contract register exists as a single enumerated artifact, [absence-contract.md](absence-contract.md), carrying one row per claimed absence with its ground, the netlist evidence sought, and its discharge form. Like the frozen profile it is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective — never authoritative — where it disagrees with this register.
-· Accept: the artifact exists, records both discharge forms (in-prover structural predicate for Kôika/Kami blocks per R-15-102; netlist state-enumeration plus synthesis-configuration provenance for imported cores per R-15-103), carries the table-freeness rule (R-15-104) and the `fence.t` four-class completeness map (R-15-217), and its agreement with this register is mechanically checked in both directions by `tools/check-derived-views.ps1`. Because R-18-012 makes this the one part of the least-built layer buildable before that layer exists, the artifact is a day-one deliverable under R-18-003b(ii) and an absent one blocks it. **See [D-14](#d-14).**
+· Accept: the artifact exists, records both discharge forms (in-prover structural predicate for Kôika/Kami blocks per R-15-102; netlist state-enumeration plus synthesis-configuration provenance for imported cores per R-15-103), carries the table-freeness rule (R-15-104) and the `fence.t` four-class completeness map (R-15-217), and its agreement with this register is mechanically checked in both directions by `tools/check-derived-views.ps1`. Because R-18-012 makes this the one part of the least-built layer buildable before that layer exists, the artifact is a day-one deliverable under R-18-003b(ii) and an absent one blocks it.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-100a)
 
 **R-15-101** IS — The semantic content of the removals is one hyperproperty: cycle-level timing and memory traffic are a function of the instruction stream and architectural state alone, never of prior execution history.
@@ -2869,7 +2869,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-105)
 
 **R-15-106** MUST — The `fence.t` completeness classification is discharged by the absence contract rather than by the refinement, since completeness is the claim that no unenumerated state exists, which the model cannot see.
-· Accept: the temporal fence's residual scope collapses to pipeline drain. **See [D-07](#d-07).**
+· Accept: the temporal fence's residual scope collapses to pipeline drain, which is class (d) of R-15-217's four-class map — *stream-determined pipeline state* — rather than an unmapped remainder.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-106)
 
 **R-15-107** IS — The absence contract is a distinct §18 bring-up gate and a named §17 residual: the one obligation class whose imported-core half closes on audit rather than on proof.
@@ -3001,7 +3001,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-136)
 
 **R-15-137** MUST — 1000BASE-T is met by a fixed-function PCS-and-canceller datapath whose coefficients are trained at link-up and then frozen for the link epoch (RoT-loadable, cleared on link-down), with the MAC, autonegotiation policy, and all protocol state staying host software.
-· Accept: adaptation is confined to a bounded training phase with no traffic in flight, so admission test 3 is met per epoch rather than waived. **See [D-08](#d-08).**
+· Accept: adaptation is confined to a bounded training phase with no traffic in flight, so admission test 3 is met per epoch rather than waived.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-137)
 
 **R-15-138** IS — The stated cost of frozen coefficients is that marginal cable plant re-trains on a link bounce instead of adapting through it: a link-availability cost, not an integrity one.
@@ -3019,7 +3019,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-140)
 
 **R-15-141** IS — Readout is fixed-cadence by default but may be event-driven (a fixed-function threshold comparator, or temporal-contrast pixels), with the data-dependent event timing confined to the owning island's static NoC/memory partition so no cross-island channel opens.
-· Accept: the test-2 disposition is containment within the island partition. **See [D-08](#d-08).**
+· Accept: the test-2 disposition is containment within the island partition.
 · Trace: CJ-ISOL, CJ-NI · [§15](verification-maximal-os.md#r-15-141)
 
 **R-15-142** IS — Raw-AFE silicon and its host-side DSP are a net-new co-design, booked as the honest cost of the firmware the profile deletes.
@@ -3165,7 +3165,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-175)
 
 **R-15-176** MUST — The error-detecting check travels *with* the word across the interconnect and the memory controller and is verified at the consumer, so a fault injected in transit is caught rather than masked by re-encoding at each hop.
-· Accept: there is no die-to-die interface to protect; every hop is on-die. **See [D-09](#d-09).**
+· Accept: there is no die-to-die interface to protect; every hop is on-die. The one re-encoding point on the path — the memory controller's sub-granule read-modify-write stage (R-15-181) — does not mask a transit fault, because the existing codeword's check is verified *before* the merge, so the stage catches a corrupt granule rather than laundering it into a fresh codeword.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-176)
 
 **R-15-177** MUST — Physical bit-interleaving and background scrubbing are mandated, not optional: a multi-cell upset presents as separable SECDED-correctable single-bit errors, and a latent single-bit error never accumulates into an uncorrectable double.
@@ -3185,7 +3185,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-180)
 
 **R-15-181** MUST — No sub-granule write exists at the array: the atomic write unit is the ECC codeword with its validity tag bit, and every path that reaches the array writes whole units.
-· Accept: a sub-granule store merges with the granule's existing codeword in a fixed read-modify-write stage at the memory controller, a constant pipeline term priced once, with tag and check bits regenerated combinationally in the same pass. **See [D-09](#d-09).**
+· Accept: a sub-granule store merges with the granule's existing codeword in a fixed read-modify-write stage at the memory controller, a constant pipeline term priced once, with the existing codeword's check **verified before the merge** and tag and check bits regenerated combinationally in the same pass. Cores may therefore issue sub-granule stores; what the whole-unit rule scopes is the controller-to-array path, not every path on the fabric, and the verify-before-merge obligation is what keeps this the one re-encoding point consistent with R-15-176.
 · Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-181)
 
 **R-15-182** MUST — `cbo.zero` allocates whole lines: zero data, cleared validity tags, and matching SECDED/DECTED codewords for data and tag plane alike, in one pass at one fixed per-line latency.
@@ -3331,7 +3331,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-KERNEL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-214)
 
 **R-15-215** MUST — Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: no predictor, no reservation, no prefetcher, no TLB or walk cache, no cache of any kind, no scalar-FP or rounding-mode state, the register files by total restore, and the vector/matrix and scratchpad state by the §7 eager save-and-zeroize.
-· Accept: each is a distinct named mechanism, not the fence's job. **See [D-07](#d-07).**
+· Accept: each is a distinct named mechanism, not the fence's job.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-215)
 
 **R-15-216** IS — `fence.t` does not touch state that is partitioned rather than time-shared (SRAM banks/macros/tiers, TDM NoC slots, per-partition interrupt-file state), and in-flight DMA is not its concern: device windows are torn down or re-authorized by the capability machinery at the boundary.
@@ -3533,7 +3533,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL, CJ-RTL-SAIL · [§16](verification-maximal-os.md#r-16-014)
 
 **R-16-015** IS — Determinism holds *given the inputs and the recorded nondeterminism*, and the second half is enumerated as exactly four sources: every draw from the single entropy root (protocol nonces, IVs, ephemeral key material, blinding factors); the link-layer address draws behind MAC randomization; raw counter reads by holders of the fine-grained-time permission; and the physical event stream the sentinel consumes.
-· Accept: the list is closed by amendment to this register; omitted, a replay diverges at the first draw. Clock fuzz left this enumeration when the mechanism was deleted (R-08-031a) — the list shrank rather than acquiring a parameter.
+· Accept: the list is closed by amendment to this register; omitted, a replay diverges at the first draw. No degraded or fuzzed timing value appears among the four, there being no such mechanism to record (R-08-031a).
 · Trace: CJ-NI · [§16](verification-maximal-os.md#r-16-015)
 
 **R-16-016** MUST — Public nondeterminism is recorded verbatim: the drawn link-layer address, counter values, and the sentinel's physical-event stream.
@@ -3545,7 +3545,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CRYPTO-SPEC, CJ-NI · [§16](verification-maximal-os.md#r-16-017)
 
 **R-16-018** IS — Substitution is sound because the crypto is constant-time, not because the values are unimportant: every secret-touching binary is CT-verified, so its control flow and memory-access sequence are secret-independent by construction and a substituted draw reproduces the same instruction sequence, addresses, capability operations, and fault.
-· Accept: the soundness of this clause is exactly as broad as the CT obligation's scope. **See [D-04](#d-04).**
+· Accept: the soundness of this clause is exactly as broad as the CT obligation's scope.
 · Trace: CJ-CT-SOUND · [§16](verification-maximal-os.md#r-16-018)
 
 **R-16-019** IS — The bit-exact claim is precise rather than weakened: replay is exact in control flow, capability operations, schedule, and fault reproduction everywhere, and exact in *values* everywhere outside the secret-entropy cone.
@@ -3635,11 +3635,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-014)
 
 **R-17-015** IS — Deterministic replay is bit-exact modulo the secret-entropy cone, with two booked limits: a fault turning on one specific secret draw does not reproduce from the exported record alone, and the soundness of entropy substitution rests on the constant-time property rather than on anything replay establishes.
-· Accept: replay is a *consumer* of the CT residual rather than an independent guarantee. **See [D-04](#d-04).**
+· Accept: replay is a *consumer* of the CT residual rather than an independent guarantee.
 · Trace: CJ-CT-SOUND · [§17](verification-maximal-os.md#r-17-015)
 
 **R-17-016** IS — Specification gap: proofs match the spec, never intent. The crown-jewel spec set is enumerated — policy model, IDL wire-format mapping, frozen matrix-extension semantics, NoC/island isolation model, the bank/macro/tier→island binding map, the native tag-bit layout, the memory controller's non-interference semantics, radio grammars, OPP/mode schedule statements, the frozen ISA-profile definition, the `Zkt`/`Zvkt` leakage-model statement, the Ztso and static-prediction fetch statements, the `fence.t` flush-set statement, the reset/power sequence table, and the calibration-manifest schema.
-· Accept: the list is closed by amendment to this register, and every crown jewel here has a `CJ-` trace target used by the sections that constrain it. The enumeration is held by the artifact R-17-016a requires, not by this entry's prose. **See [D-15](#d-15).**
+· Accept: the list is closed by amendment to this register, and every crown jewel here has a `CJ-` trace target used by the sections that constrain it. The enumeration is held by the artifact R-17-016a requires, not by this entry's prose.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-016)
 
 **R-17-016a** MUST — The crown-jewel inventory exists as a single enumerated artifact, [crown-jewels.md](crown-jewels.md), carrying one row per crown-jewel specification with its `CJ-` trace target, the requirements that constrain it, and its authored/partial/not-authored status. Like the frozen profile and the absence contract it is a *derived view*: it states no obligation of its own, cites the governing requirements for every row, and is defective — never authoritative — where it disagrees with this register.
@@ -3656,8 +3656,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: discharged by R-07-038 through R-07-047 and R-16-006.
 · Trace: CJ-KERNEL · [§17](verification-maximal-os.md#r-17-018)
 
-**R-17-019** IS — Seam: **`fence.t` ⋈ the state inventory** — the architectural / partition-owned / flushed trichotomy discharged against the RTL, the store buffer alone in the flushed class and the register files in the context-switched class under the kernel's total restore.
-· Accept: discharged by R-15-213 through R-15-217 and R-07-015. **See [D-07](#d-07).**
+**R-17-019** IS — Seam: **`fence.t` ⋈ the state inventory** — the architectural / partition-owned / flushed / stream-determined four-class map discharged against the RTL, the store buffer alone in the flushed class, the register files in the context-switched class under the kernel's total restore, and the fetch buffer and pipeline latches in the stream-determined class the fence's drain empties.
+· Accept: discharged by R-15-213 through R-15-217 and R-07-015, the four classes being exhaustive over the RTL state inventory so that an unmapped structure is a refinement failure rather than a silent remainder.
 · Trace: CJ-ISOL, CJ-RTL-SAIL · [§17](verification-maximal-os.md#r-17-019)
 
 **R-17-020** IS — Seam: **the memory path ⋈ power gating**, dissolved rather than reconciled — the memory path holds no key, counter, or root register, so nothing must stay powered across standby to preserve an invariant.
@@ -3676,8 +3676,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: discharged by R-08-006, R-08-007, and R-11-008.
 · Trace: CJ-CERISE, CJ-WCET · [§17](verification-maximal-os.md#r-17-023)
 
-**R-17-024** IS — Seam: **the write path ⋈ the ECC and tag planes** — no sub-granule fabric write exists.
-· Accept: discharged by R-15-181 through R-15-183. **See [D-09](#d-09).**
+**R-17-024** IS — Seam: **the write path ⋈ the ECC and tag planes** — no sub-granule write reaches the array, the controller-to-array path being the scope of the whole-unit rule.
+· Accept: discharged by R-15-181 through R-15-183, with the controller's read-modify-write stage the one re-encoding point and its verify-before-merge obligation what reconciles it with the end-to-end claim (R-15-176).
 · Trace: CJ-SAIL · [§17](verification-maximal-os.md#r-17-024)
 
 **R-17-025** IS — Seam: **clock domains ⋈ determinism** — mesochronous by construction, with three asynchronous boundaries terminated and unmodeled.
@@ -3751,7 +3751,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET, CJ-RTL-SAIL · [§17](verification-maximal-os.md#r-17-041)
 
 **R-17-042** IS — The constant-time coverage seam carries four residuals: CT is typed where it can be and proved where it cannot; a stock compiler does not preserve CT so it is hardened then checked; Binsec/Rel is bounded evidence; and CT inherits the RTL ⊑ Sail residual.
-· Accept: scope is a labeling obligation, so a secret reaching an un-CT-verified compartment is a spec or label error the flow theorems must catch, not a tooling gap. **See [D-04](#d-04).**
+· Accept: scope is a labeling obligation, so a secret reaching an un-CT-verified compartment is a spec or label error the flow theorems must catch, not a tooling gap.
 · Trace: CJ-CT-SOUND · [§17](verification-maximal-os.md#r-17-042)
 
 **R-17-043** IS — The verified-storage seam carries six residuals, all of a *verified but contained* stack: freshness rather than trust; L0 re-proved over C rather than ported by a bespoke tool; the AE ⋈ noninterference composition seam; the liveness ⋈ schedulability seam; the dedup keyed-digest interface and its domain-confined equality revelation; and user-data freshness surrendered by design.
@@ -3766,7 +3766,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: eager-zeroize keeps the *disclosure* consequence closed independently, so the uncaught case is a correctness bug reading zeros rather than a residue leak; the deletion is a net subtraction on every scarce axis.
 · Trace: CJ-TAL-SOUND, CJ-HAL · [§17](verification-maximal-os.md#r-17-045)
 
-**R-17-046** IS — The proof trust base is enumerated: the two admission checkers, the CHERI-TAL soundness metatheorem, the Sail model, the spec and policy statements, and — as explicitly shrinking interims — F\*/Z3 for PQ primitives and EasyCrypt's Why3/SMT wherever a layer-3 reduction rides it. **See [D-10](#d-10).**
+**R-17-046** IS — The proof trust base is enumerated: the two admission checkers, the CHERI-TAL soundness metatheorem, the Sail model, the spec and policy statements, and — as explicitly shrinking interims — F\*/Z3 for PQ primitives and EasyCrypt's Why3/SMT wherever a layer-3 reduction rides it.
 · Accept: the Coq-native crypto path adds no new prover, so those surfaces retire as primitives migrate; the checker's own binary keeps its named bootstrap as the De Bruijn root.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-046)
 
@@ -3781,7 +3781,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 17.7 Crypto, regulatory, and physical ceilings
 
 **R-17-049** IS — Reductions isolate axioms but do not remove them: hardness assumptions (MLWE/MSIS, ECDLP/CDH) are irreducible, and the implementation ⋈ reduction seam joins at the primitive's functional specification, a crown-jewel spec neither side catches.
-· Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach. **See [D-05](#d-05).**
+· Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach.
 · Trace: CJ-REDUCTION · [§17](verification-maximal-os.md#r-17-049)
 
 **R-17-050** IS — The blocking regulatory risk has substantially cleared (FCC's settled SDR position; the EU radio-lockdown delegated act abandoned in January 2026), and the genuine residual is narrow and commercial: carrier, PTCRB, and GCF acceptance of an open cellular UE stack.
@@ -3865,7 +3865,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CERISE · [§18](verification-maximal-os.md#r-18-002)
 
 **R-18-003** MUST — The certifying compilers are priority zero: no workstream that requires *executing system software* on any target — emulator, FPGA, or silicon — is scheduled ahead of them, because nothing runs a line of the system until they exist. Priority zero is this gating relation and not a total order over workstreams.
-· Accept: no scheduled task whose completion requires running a system image precedes the functional certifying core; a reviewer checks the schedule for such a task rather than for a workstream ordering. The priority-zero deliverable is scoped to the *functional* core — the CHERI-CompCert backend (R-18-014) and the TAL producer plus on-device checker (R-18-020) — and explicitly excludes the WCET cost-annotation extension of that same toolchain (R-18-024), which R-18-025 gates behind the timing-annotated Sail model. **See [D-12](#d-12).**
+· Accept: no scheduled task whose completion requires running a system image precedes the functional certifying core; a reviewer checks the schedule for such a task rather than for a workstream ordering. The priority-zero deliverable is scoped to the *functional* core — the CHERI-CompCert backend (R-18-014) and the TAL producer plus on-device checker (R-18-020) — and explicitly excludes the WCET cost-annotation extension of that same toolchain (R-18-024), which R-18-025 gates behind the timing-annotated Sail model.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND · [§18](verification-maximal-os.md#r-18-003)
 
 **R-18-003a** MUST — The frozen instruction-set profile (§15) is the root of the schedule rather than the toolchain: the toolchain, the Sail model, and the CompCert backend all target it, so freezing it precedes all three.
@@ -4001,7 +4001,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T · [§18](verification-maximal-os.md#r-18-032)
 
 **R-18-034** MUST — The atomic-requirements register is a §18 workstream with a named owner, not a by-product: extraction of every normative obligation with its acceptance criterion and its trace, plus traceability forward to the Coq specifications and the Sail model as those land, revved with every amendment to the specification and gating each release alongside the proofs.
-· Accept: §18 lists it as a deliverable with an owner. Like the composition theorem's statement it is engineering-free and available now, ahead of the artifacts it will trace to, which is why it is a day-one deliverable under R-18-003b(iv). This closes [D-06](#d-06) and discharges R-05-154.
+· Accept: §18 lists it as a deliverable with an owner. Like the composition theorem's statement it is engineering-free and available now, ahead of the artifacts it will trace to, which is why it is a day-one deliverable under R-18-003b(iv). This discharges R-05-154.
 · Trace: CJ-T, CJ-SAIL · [§18](verification-maximal-os.md#r-18-034)
 
 **R-18-035** IS — The register's standing output is the extraction-defect list, which is the review gate's agenda rather than an appendix to it: an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is a spec defect by R-05-153's own rule.
@@ -4016,7 +4016,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 914 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 914 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries (`R-05-022a`, `R-05-151a`, `R-08-031a`, `R-15-001a`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-17-016a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4043,141 +4043,14 @@ All eighteen normative sections are extracted, at 914 requirements. §19 is non-
 
 ## Extraction defects
 
-Normative claims that resisted atomic restatement, per R-05-153. Each is a spec defect to be repaired in [verification-maximal-os.md](verification-maximal-os.md), not a register omission.
+Normative claims that resist atomic restatement, per R-05-153. This is the register's standing output and the review gate's agenda (R-18-035): an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is itself a spec defect by R-05-153's own rule. A claim booked here is a defect in [verification-maximal-os.md](verification-maximal-os.md) to be repaired there, never a register omission to be worked around here.
 
-**Status: all sixteen repaired.** Fourteen were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
+**Open defects: none.** Every normative claim in all eighteen sections is carried by a numbered requirement with an acceptance criterion a reviewer can decide.
 
-- **D-01** is closed by one generic rule in §5 rather than five per-entry forecasts: an interim retires when its Coq-native destination has passed admission for every consumer riding the interim. Testable today against two lists.
-- **D-12** is the schedule defect, and is closed by *scoping* the priority-zero claim rather than weakening it: as a total order it was unsatisfiable, and the register's own R-18-024/R-18-025 pair made it a literal cycle. Its repair is the one with an implementation consequence — it yields the enumerated day-one set (R-18-003b).
-- **D-13** is closed by *building the missing artifact*: the frozen profile, which four acceptance criteria tested membership in, existed in no document. It is now [isa-profile.md](isa-profile.md), a derived view whose agreement with this register is machine-checked in both directions rather than maintained by care. D-12 and D-13 compose: D-12 made the profile freeze the schedule root, and D-13 is that root made handable to an engineer.
-- **D-14** is D-13's defect one layer down — the *absence-contract register*, quantified over by three acceptance criteria, held by no document — closed the same way, as [absence-contract.md](absence-contract.md). Together the two establish a **class defect**, recorded at D-14: acceptance criteria that quantify over a list no artifact holds. Further instances should be assumed present until the register has been swept for them.
-- **D-15** is the first instance found by *running* that sweep: the *crown-jewel inventory*, quantified over by seven criteria, stated in three non-agreeing places and held nowhere. Closed as [crown-jewels.md](crown-jewels.md), which also separates the specification crown jewels from the theorem targets — a distinction the `CJ-` table had left implicit and the checker surfaced.
-- **D-16** is the sweep's second instance, and the first found in the register's own machinery rather than in what it quantifies over: every entry cited its prose by **line number**, a derived fact restated in a second document with nothing checking it. It had drifted — 818 of 912 traces cited prose 2–27 lines short, because the bulk of the register was written against the prose as it stood *before* the commit that created it also edited that prose. The failure mode is the bad one for a review gate: at that distance a trace lands on plausible adjacent prose, so a reviewer following one gets a **wrong** answer rather than a visible error, and every count in this section was audited through those traces. Closed by *deleting the derived reference* rather than checking it harder: the prose now carries `<a id="r-ss-nnn">` bookmarks and traces cite those, so the reference is symbolic and prose edits move it with the text. The repair immediately surfaced two things line numbers had hidden: **R-05-022 carried no trace at all** — the D-01 repair added its prose without ever pointing the entry at it — and R-15-159's second citation pointed *inside a mermaid diagram*, both invisible while a trace was just an integer. D-14's class widens accordingly: it is not only criteria that quantify over a list no artifact holds, but any claim restated in a second place with no artifact checking the two agree. The repair's own residual — that a symbolic reference can still be absent, misspelled, or duplicated, and fails silently when it is — is discharged by `tools/check-traces.ps1` and booked as **R-05-151a**.
-- **D-11** is closed by **deleting the fuzzed clock**, not specifying it. Jitter on a counter is recoverable by averaging, which makes it a statistical mitigation of exactly the kind §15 already refuses when it excludes MTE ("a statistic, not a theorem") and MBPTA/EVT. Specifying a distribution would have made a statistic normative in a document that admits none. What replaces it was already true: with the counters permission-gated, an untrusted compartment's only time source is a ring-serviced call, so its finest observable interval is its own slot period — a composition-time constant. The mechanism, its owner question, its distribution parameter, and its entry in §16's nondeterminism enumeration all leave together; the residual is the §11 rung channel already booked at R-17-007.
+An empty list is not the same as a swept one, and the distinction is the honest statement of where this section stands. Three sweeps have been run over the register and each found instances the one before it could not see:
 
-Entries below are retained with their original diagnosis so the review record shows what was wrong and why.
+1. **What does a reviewer open to decide this?** — asked of one acceptance criterion at a time. Criteria that quantify over a list no artifact holds are the class this found; it is closed for the three lists it found (the frozen profile, the absence contract, the crown-jewel inventory), each now a derived view under R-15-001a, R-15-100a, and R-17-016a.
+2. **What does the register restate that nothing checks?** — the widened form of the same class, covering any claim held in a second place with no artifact checking the two agree. This is what moved traces from line numbers to bookmarks, and it is why the derived views are machine-checked in both directions rather than maintained by care.
+3. **Which enumerations disagree?** — asked of every list stated more than once. The type-level obligations (R-05-029) and the axiom set (R-06-011) are each now stated once and cited elsewhere.
 
-<a id="d-01"></a>**D-01 — The interim-anchor retirement conditions are asserted, not enumerated.**
-[§5](verification-maximal-os.md#r-05-022a) states that each interim non-Coq anchor "carries a Coq-native destination and a retirement," but no interim's retirement *condition* is written down. R-05-022's acceptance criterion is therefore unfalsifiable as the spec stands: a reviewer cannot decide whether libcrux/HACL\*'s retirement is met without a stated condition. **Repaired** by one generic rule in §5 rather than five per-entry forecasts: an interim retires when its named Coq-native destination has passed admission for every consumer that currently rides the interim, and is struck from the trust-base inventory in that same generation. *Retired* is then decided by inspecting two lists rather than by judgment, and an interim whose consumer set grows while its destination does not is a review-gate finding (R-05-022a) — which makes §17's *shrinking-interim* claim measurable instead of asserted.
-
-<a id="d-02"></a>**D-02 — The order-of-10³-line checker budget has no measurement rule.**
-[§5](verification-maximal-os.md#r-05-127) makes the line budget a *consequence* of the checker being an attribute-grammar evaluator, which is the right move, but the budget is still stated in lines and nothing says what is counted: the evaluator alone, or the attribute tables, the type-constructor vocabulary, the derivation parser, and the image scanner too. R-05-127's acceptance criterion tests the category fact, which is checkable; the line count is not. **Repair:** either state the counting rule, or drop the line figure and let the category fact carry the claim alone.
-
-<a id="d-03"></a>**D-03 — The ten type-level obligations and the three-move partition do not have the same membership.**
-[§5](verification-maximal-os.md#r-05-029) enumerates ten obligations; the move table at [§5](verification-maximal-os.md#r-05-037) partitions them across the three moves but lists **callee-set enumeration** as a move-II obligation, and it is not among the ten. (Memory safety splitting into spatial under move I and temporal under move II is consistent, and is not the discrepancy.) Either the list is eleven, or the callee set is a sub-obligation of CFI and should say so.
-
-A **third** list makes the mismatch worse. §6's checker table ([§6](verification-maximal-os.md#r-06-009)) enumerates what the TAL type-checker decides as "Tier-2 memory safety, CFI, no-codegen, ABI/type conformance, relevance-graded verdicts, no ambient tagged static capability, representation/provenance absences, closed-numeral overflow side conditions, and the memory/ABI half of Tier 1" — which **omits definite initialization, constant-time, and WCET**, all three of which §5 assigns to move II as per-install decidable, and §13 requires definite initialization in the Tier-2 certificate ([§13](verification-maximal-os.md#r-13-012)). §6's CIC row saying "*residual unstructured* constant-time and WCET cases" confirms the structured ones are meant to be the checker's, so the omission is an incomplete list rather than a narrower claim. R-05-029 (ten), R-05-038 (seven for move II), R-06-009 (nine), and R-13-012 (six) are four enumerations of overlapping sets, and no two agree. **Repair:** state the obligation list once, normatively, and have §6's and §13's tables cite it rather than restate it.
-
-<a id="d-04"></a>**D-04 — The constant-time obligation has two incompatible scopes.**
-[§5](verification-maximal-os.md#r-05-062) states CT is verified "for *every* secret-touching artifact, the crypto core included" — a property of the artifact. [§5](verification-maximal-os.md#r-05-074) scopes the obligation to "secret-touching compartments (those receiving secret-labeled material over an IDL confidentiality channel)". The second is narrower than the first and misses secrets that are not *received over IDL*.
-
-**Extracting §12 and §13 confirms this is a real hole, not a wording slip.** §12 defines the labeling that makes *secret-labeled* meaningful — flow annotations carried on IDL types for cross-domain channels ([§12](verification-maximal-os.md#r-12-011)) — and §13's Tier-1 row explicitly names "key-schedule, **PIN**, session-key, and radio-key paths" as carrying the constant-time obligation ([§13](verification-maximal-os.md#d-04-cite1)). But the PIN does not arrive over an IDL channel. It reaches the credential and unlock service as raw frames from a register-slave AFE over a capability-bounded DMA window ([§12](verification-maximal-os.md#d-04-cite2)), and during a consent prompt over the RoT-latched front-end re-delegated to the trusted-path agent ([§12](verification-maximal-os.md#d-04-cite3)) — neither is an IDL confidentiality channel. So the §5 scoping clause excludes precisely the path §13 names first. The same gap covers RoT-derived keys and material a compartment generates from a local entropy draw. **§16 raises the severity, because a second theorem rests on the CT obligation's scope.** Deterministic replay substitutes its own entropy for secret draws, and the soundness argument for that substitution is explicitly *not* that the values are unimportant but that "every secret-touching binary is CT-verified … so its control flow and memory-access sequence are independent of the secret by construction" ([§16](verification-maximal-os.md#r-16-018)). If the CT population is scoped by IDL channel of arrival, a compartment handling a locally-sourced secret — the PIN path above — is outside it, and replay's bit-exactness claim ([§16](verification-maximal-os.md#r-16-019)) does not hold for that compartment: a substituted draw could take a different branch and reproduce a different fault. R-16-018 therefore inherits this defect directly. **Repair:** define *secret-touching* once, by label rather than by channel of arrival, and make the label attach to DMA-window and re-delegated-front-end sources as well as IDL types.
-
-<a id="d-05"></a>**D-05 — The protocol-composition exclusion is stated only where it will not be read.**
-[§5](verification-maximal-os.md#r-05-077) correctly declines to claim protocol-level composition (TLS/AKA), and §17 books it, but §3's Defended/Residual split — the place a reader looks to learn what the system does and does not defend — does not carry it. This is the largest scope boundary the word *hyper-secure* crosses without a proof behind it. R-05-078's acceptance criterion requires the §3 entry, which does not currently exist. **Repair:** add the exclusion to §3.
-
-<a id="d-06"></a>**D-06 — The register's own §18 workstream is unverified.**
-[§5](verification-maximal-os.md#r-05-148) makes maintaining this register and its traceability "the review-gate workstream (§18)". R-05-154's acceptance criterion requires §18 to list it with an owner; §18 has not been extracted, so the criterion is untested. **Repair:** confirm on §18 extraction, or add the deliverable. **Repaired** by extraction: the prose deliverable at [§18](verification-maximal-os.md#r-18-034) is now booked as **R-18-034**, with R-18-035 carrying the defect-list output, and R-05-154's acceptance criterion cites it. (§18 extraction initially landed without these two entries, so the criterion stayed untested one revision longer than the defect list recorded; that gap is what [D-12](#d-12) turns into a standing check.)
-
-<a id="d-07"></a>**D-07 — The three-class `fence.t` mapping has no class for the pipeline, and the fetch buffer is the visible instance.**
-[§15](verification-maximal-os.md#r-15-217) requires *every* stateful structure in the RTL to map to exactly one of three classes — architectural/context-switched, partition-owned, or `fence.t`-flushed — and makes a structure outside the map a refinement failure. [§15](verification-maximal-os.md#d-07-cite1) then fixes the flush set at "a single structure: the store buffer", and [§15](verification-maximal-os.md#r-15-215) enumerates the would-be members that stay out. The static-path fetch buffer ([§15](verification-maximal-os.md#r-15-165), [§15](verification-maximal-os.md#d-07-cite2)) is a stateful structure that is none of the three: it is not architectural, not partition-owned, and not in the flush set. [§15](verification-maximal-os.md#r-15-106) separately describes the fence's "residual scope" as *pipeline drain*, which would place it — but pipeline drain is never stated as flush-set membership, so R-15-213, R-15-215, and R-15-217 cannot all be satisfied as written. The security argument is unaffected (the buffer's contents are a function of the instruction stream, so it carries no cross-partition history), but the mapping obligation is a *completeness* claim and completeness with an unmapped structure is exactly the failure the clause defines. **Repair:** state whether pipeline state (fetch buffer, decode and execute latches) is class (a) by drain, or add a fourth class for structures whose contents are stream-determined and therefore carry nothing across the switch.
-
-<a id="d-08"></a>**D-08 — The five-part admission test acquires new discharge forms case by case, without amending the test.**
-[§15](verification-maximal-os.md#r-15-010) states test (2) with exactly two discharges — operand-value-independent latency, or a flow-discipline proof that no secret-labeled operand reaches the feature — and explicitly rules out self-exclusion as a third. Test (3) is stated as *no new hidden shared microarchitectural state that survives a partition switch un-flushed by `fence.t`*. Two admitted features are then discharged by routes neither test names:
-
-- the event-driven sensor readout ([§15](verification-maximal-os.md#d-08-cite1)) passes test (2) by *island containment* — data-dependent event timing confined to the owning island's static NoC/memory partition — which is neither constant-time nor a secret-unreachability proof;
-- the 1000BASE-T frozen-coefficient canceller ([§15](verification-maximal-os.md#d-08-cite2)) passes test (3) *per epoch*, with coefficient state that does survive partition switches un-flushed, on the ground that it is constant for the epoch.
-
-Both dispositions are defensible on their merits, and neither is a contradiction. But R-15-010 asks a reviewer to confirm five recorded dispositions against a stated test, and two features are recorded against clauses the test does not contain — so the test as written under-specifies what it admits. **Repair:** amend tests (2) and (3) to enumerate their discharge forms (constant-time; secret-unreachability; partition-confined data-dependence — and for (3): absent; flushed; or provably constant over the switch interval), so the case law is statute, as the defense-in-depth clause already was at [§15](verification-maximal-os.md#d-08-cite3).
-
-<a id="d-09"></a>**D-09 — The end-to-end ECC claim and the granule read-modify-write stage are not reconciled.**
-[§15](verification-maximal-os.md#r-15-176) makes the end-to-end claim strict: the check "travels *with* the word … and is verified at the consumer, so a fault injected in transit … is caught rather than **masked by re-encoding at each hop**." [§15](verification-maximal-os.md#d-09-cite1) then specifies that a sub-granule store merges with the granule's existing codeword in a read-modify-write stage at the memory controller, "with tag bits and check bits **regenerated combinationally in the same pass**." Regeneration is re-encoding, and it happens at a hop. The stage is almost certainly sound — the read half can be checked before the merge, so a corrupt existing codeword is caught rather than laundered — but the spec does not say so, and R-15-176 and R-15-181 as written are in tension: one forbids re-encoding at a hop, the other mandates one. (A lesser wording issue rides along: [§15](verification-maximal-os.md#r-15-181) says "no sub-granule write exists on the fabric" while [§15](verification-maximal-os.md#d-09-cite1) has cores issuing sub-granule stores that the *controller* merges — consistent only if "fabric" means controller-to-array.) **Repair:** state the RMW stage's check obligation explicitly — the existing codeword is verified before merge and the merged word re-encoded — and scope "no sub-granule write" to the controller-to-array path.
-
-<a id="d-10"></a>**D-10 — The axiom set is stated twice, with different membership.**
-[§5](verification-maximal-os.md#r-05-028) states it as three classes: "only the proof kernel, the machine model, and the spec statements are axioms." [§6](verification-maximal-os.md#r-06-011) states it as five: "the admission axioms are these two checkers, the spec/policy statements, the CHERI-TAL soundness metatheorem, and the Sail model they check against" — adding the TAL type-checker and its soundness metatheorem, which are genuinely additional axioms, not instances of the three. [§6](verification-maximal-os.md#d-10-cite1) repeats the five-item version, so §6 is self-consistent and §5 is the outlier. R-05-028's acceptance criterion ("the axiom inventory has exactly these three classes") fails against R-06-011 as written. The axiom set is the single most review-critical enumeration in the document — it is what an independent reviewer checks the whole trust argument against — so two incompatible statements of it is the highest-severity defect the extraction found. **Repair:** state the axiom set once, in §6, as the five entries plus the De Bruijn bootstrap root ([§6](verification-maximal-os.md#r-06-014)); rewrite §5's FPCC sentence to make its narrower claim explicitly about the *proof-carrying-code path* rather than about the platform's axioms.
-
-<a id="d-11"></a>**D-11 — The fuzzed clock is normative and has no owner.**
-[§8](verification-maximal-os.md#d-11-cite1) states "the monitor gets nanoseconds; untrusted compartments get coarsened, fuzzed time," and the property is load-bearing enough that §15 cites it as the model for MAC randomization ("the link-layer analog of the fuzzed clock", [§15](verification-maximal-os.md#r-15-133)). But §15's counter gate is binary — a compartment either holds the counter-read permission on its PCC or it does not ([§15](verification-maximal-os.md#r-15-077)) — so *coarsened, fuzzed time* cannot come from the hardware path. It must be a service, and no component owns it: §12's server roster has a time-synchronization compartment that disciplines the wall-clock from Roughtime/NTS/PTP ([§12](verification-maximal-os.md#r-12-035)) and hands time out "coarse by default", but coarse-by-default is not the same as *fuzzed*, no fuzz distribution or quantum is specified anywhere, and no requirement says which component applies it. R-08-031 therefore has an acceptance criterion a reviewer cannot check: there is no artifact to inspect. This matters more than a missing parameter, because a timing-channel countermeasure with an unspecified distribution is not reviewable at all — the whole question is *how much* jitter and against what observer. **Extracting §16 makes the gap load-bearing rather than cosmetic.** The deterministic-replay record enumerates its nondeterminism sources and includes "the **clock fuzz** added to the coarsened time handed to untrusted compartments" ([§16](verification-maximal-os.md#d-11-cite2)), recording "the fuzz offsets already delivered to the compartments that read them" as public nondeterminism ([§16](verification-maximal-os.md#r-16-016)). So a second subsystem now depends on the mechanism: replay cannot record fuzz offsets without a component that applies them at a known point. R-16-015 and R-16-016 inherit R-08-031's unfalsifiability. **Repaired, by deletion rather than specification.** Naming an owner and a distribution would have been the wrong fix: jitter on a counter is recoverable by averaging over repeated reads, which makes it precisely the statistical mitigation §15 refuses when it excludes MTE (*a ~93% mitigation is a statistic, not a theorem*) and MBPTA/EVT. The mechanism is therefore struck. With the counters permission-gated, an untrusted compartment has no clock at all: its only time source is the time service over a ring serviced in its own slot, so the finest interval it can observe is its own slot period, a composition-time constant rather than a degraded value. The distribution question, the owner question, the crown-jewel statement about sufficiency, and the §16 nondeterminism entry all disappear together; the residual is the §11 population-rung channel already booked at R-17-007.
-
-<a id="d-12"></a>**D-12 — Priority zero is stated as a total order, and as a total order it is unsatisfiable.**
-[§18](verification-maximal-os.md#r-18-003) states the certifying compilers are "built ahead of any emulator, FPGA, or silicon work," and R-18-003's acceptance criterion made that a schedule ordering: *the toolchain workstream precedes all hardware workstreams*. No schedule satisfies it, and the failure is not a wording slip but a **cycle in the register's own dependency graph**:
-
-- R-18-024 folds **WCET derivation into the certifying toolchain** — explicitly *not* a standalone estimator, so the cost-annotation pass is part of the toolchain deliverable rather than a consumer of it;
-- R-18-025 gates WCET **behind the timing-annotated Sail model and thus per-class RTL bring-up**;
-- R-18-003 then puts the toolchain ahead of that bring-up.
-
-So *toolchain ⊐ WCET pass ⊐ timing-annotated Sail model ⊐ per-class RTL bring-up ⊐ toolchain*. A toolchain required to complete before all hardware work could never complete at all.
-
-Two further requirements falsify the criterion independently of the cycle, which is what shows the defect is in R-18-003 rather than in R-18-024/025: **R-18-007** states the memory path is *"the first thing built"*, and **R-18-012** states the microarchitectural absence contract is *"buildable on day one"* and is "the one part of the least-built layer that does not need the layer to exist first." Both are hardware workstreams that the criterion forbids starting. R-18-032 adds a third, non-hardware, conflict with the word *zero* itself: the composition statement is "available immediately."
-
-The consequence is the one that matters for §18's purpose. A reader deriving a build order from the register gets *nothing may begin*, which is both unactionable and false to the specification, since the specification names four deliverables as available now — and three of the four attack the two least-built layers (R-17-039, R-17-064), which is exactly where R-01-003's as-existing assurance gap is widest.
-
-**Repaired**, and by *scoping* rather than by weakening. Three changes, none of which touches a mechanism:
-
-1. **R-18-003** restated as the gating relation it actually is — no workstream requiring *execution of system software* is scheduled ahead of the compilers — with an acceptance criterion a reviewer can run (look for a scheduled task whose completion requires running a system image, not for a workstream ordering). The intent is preserved exactly: the compilers cannot be sequenced *behind* hardware bring-up, because every image that would run on that hardware is their output.
-2. The priority-zero deliverable **scoped to the functional certifying core** (R-18-014's backend, R-18-020's producer and checker), with R-18-024's WCET extension named as the later increment R-18-025 already places on the graceful-degradation path. This *breaks* the cycle rather than deferring it: the increment gated behind the Sail model is no longer part of the thing that must precede the Sail model.
-3. **R-18-003a** names the profile freeze as the schedule's actual root — the toolchain, Sail model, and backend all target it (R-18-006), and it is a specification act with no build prerequisite — and **R-18-003b** enumerates the four day-one deliverables, each already stated as available now elsewhere in the specification and none newly invented here.
-
-The residual is that R-18-003b is a *closure* claim over a list assembled by inspection: a day-one deliverable later found to have an unbuilt prerequisite is a review-gate finding against it, which is why its acceptance criterion says so rather than asserting the list is complete.
-
-<a id="d-13"></a>**D-13 — The frozen profile is an emergent property of seventy requirements, not an artifact.**
-R-15-001's acceptance criterion reads *"the frozen profile enumerates exactly this extension set."* No such enumeration existed. The profile was distributed across §15.1 (baseline), §15.3 (memory model), §15.4 (prediction), §15.5 (atomics), §15.6 (fusion), §15.7 (exclusions), §15.8 (adopted extensions), §15.9 (CHERI features), §15.10 (PMP), §15.11 (gated features and debug), §15.12 (timing contracts), and §15.16 (core classes) — around seventy requirements, no one of which is the profile. R-15-014 ("the profile is frozen with the proof"), R-15-024 ("the profile lists `Zaamo`+`Zabha`"), R-15-042 ("they appear in the adopted list"), and R-15-067 ("they appear in the frozen profile") each test membership in a list that no document contained, so four acceptance criteria were unfalsifiable in [D-01](#d-01)'s exact sense: a reviewer had no artifact to inspect.
-
-**The gap was load-bearing rather than cosmetic, and D-12's repair is what made it so.** R-18-003a now names the profile freeze the *root of the schedule* — the toolchain, the Sail model, and the CompCert backend all target it — and R-18-003b(i) makes it day-one deliverable number one. A schedule root that exists only as an emergent property of seventy scattered entries cannot be handed to the engineer curating `sail-riscv` ⋈ `sail-cheri-riscv`, which is the first task on the critical path. The defect therefore blocked the very work D-12's repair had just unblocked.
-
-**Repaired** by extraction into [isa-profile.md](isa-profile.md), booked as **R-15-001a**, on three disciplines that keep the repair from becoming the next defect:
-
-1. **Derived, not authoritative.** The register wins on any disagreement and the artifact is defective, so the profile cannot drift into a second source of truth — the failure that produced [D-03](#d-03) (four enumerations of overlapping obligation sets, no two agreeing) and [D-10](#d-10) (the axiom set stated twice with different membership). This defect is that same family caught before it forked rather than after.
-2. **Every row cites its governing requirement**, so a discrepancy is locatable rather than an ambiguity.
-3. **Agreement is machine-checked in both directions** by `tools/check-derived-views.ps1` — every cited ID resolves, and every requirement in a profile-bearing subsection is carried. The reverse direction is the one that matters: on first run it found eight omissions, of which five were the §15.12 timing contracts (R-15-084 through R-15-088) and two were exclusions carrying accepted costs a curator reading only the exclusion table would have missed (R-15-040's RVV fork and its soft-float calling convention; R-15-076's forgone CHERI-disjoint failure domain). Extraction by hand had silently dropped them, which is the argument for the check rather than for more care.
-
-The residual is that the checker tests *citation*, not *fidelity*: it proves the profile mentions the right requirements, not that it restates them correctly. Fidelity remains a review-gate reading, and a row whose prose contradicts the requirement it cites is a finding against R-15-001a.
-
-<a id="d-14"></a>**D-14 — The absence-contract register does not exist either, and it is the deliverable the specification is most emphatic is available now.**
-Three acceptance criteria test membership in an *absence-contract register*: R-15-100 ("each appears in the absence-contract register with a discharge"), R-15-021 ("predictor absence appears in the absence-contract register, not among the refinement obligations"), and R-15-107 ("both entries exist"). No such register existed. This is [D-13](#d-13)'s defect one layer down — an acceptance criterion naming an artifact a reviewer cannot open — and finding it immediately after D-13 is itself the finding: the pattern is not two accidents but a *class*, and the class is **acceptance criteria that quantify over a list no document holds**.
-
-**What raises its severity above D-13's is where it sits.** R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"* — the only piece of RTL ⊑ Sail (R-17-039, the least-built layer of the stack, and R-01-003's widest as-existing gap) dischargeable before any RTL of record exists. D-12's repair then made it day-one deliverable (ii) under R-18-003b. So the single cheapest attack on the least-built layer was blocked on a missing checklist, while the specification asserted it was available immediately.
-
-**Repaired** by extraction into [absence-contract.md](absence-contract.md), booked as **R-15-100a**, under D-13's three disciplines (derived not authoritative; every row cites its governing requirement; agreement machine-checked both directions). The artifact carries sixteen enumerated absences — twelve owed the contract proper per R-15-100, and four more the `fence.t` completeness argument depends on per R-15-215 — each with the netlist evidence an auditor searches for; both discharge forms; R-15-104's table-freeness rule; R-15-217's four-class completeness map; and a six-step day-one procedure against the imported cores R-15-090 names, which exist today.
-
-Two residuals, both stated in the artifact rather than resolved by it. The imported-core half closes on **structural audit, not theorem** (R-17-040), which is a ceiling the extraction records and cannot lift. And as with D-13 the checker tests citation, not fidelity.
-
-**The class defect is the standing finding.** D-13 and D-14 were found by asking, of one acceptance criterion at a time, *what artifact does a reviewer open to decide this?* That question has not been asked of the register as a whole, so further instances should be assumed present rather than absent — R-05-153's rule makes each one a spec defect, and the checker built for D-13 generalizes to any further derived view. [D-15](#d-15) is the first instance found by *running* that sweep rather than by stumbling on it.
-
-<a id="d-15"></a>**D-15 — The crown-jewel inventory is stated three times and held nowhere, and the three statements do not agree.**
-Found by the sweep D-14 called for: 109 acceptance criteria were extracted and filtered for artifact-quantifying language, and *the crown-jewel inventory* was the heaviest-quantified missing artifact at seven criteria — R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151, which requires *every* requirement to trace "to the crown-jewel spec it constrains."
-
-Three sources existed and none was the inventory:
-
-1. the **`CJ-` trace-target table** — 21 entries. This artifact is *healthy*: every target is used by at least one `Trace:` line and none is orphaned. But it is a **trace legend**, a controlled vocabulary of coarse targets, and its granularity is deliberately below the inventory's: `CJ-FORMAT` is one target covering every Narcissus descriptor, where R-05-046 requires the descriptor *set* enumerated; `CJ-CRYPTO-SPEC` is one target where R-05-076 requires *each primitive's* specification listed. A legend cannot enumerate members without one target per member, which would destroy its usefulness as a legend.
-2. **R-17-016's prose enumeration** — fifteen named specification statements, carried inside a single §17 residual entry rather than as an artifact.
-3. **thirteen scattered requirements** each asserting "X is a crown-jewel spec."
-
-R-17-016's acceptance criterion claims the list "is closed by amendment to this register." **It was not closed:** rows 17 (R-05-076), 18 (R-17-041), 19 (R-17-044), and 20 (R-05-042) of the new inventory carry crown-jewel status by requirements outside R-17-016 and appear in no enumeration, and row 13's per-descriptor obligation is stronger than R-17-016's single "radio grammars" entry.
-
-**Repaired** by extraction into [crown-jewels.md](crown-jewels.md), booked as **R-17-016a**, under the same three disciplines as D-13 and D-14.
-
-**The extraction found a distinction the register had left implicit, and the checker is what surfaced it.** Requiring the inventory to account for all 21 `CJ-` targets failed with nine unaccounted, and inspecting those nine showed the table mixes two kinds of thing: **specifications**, which are *authored* and whose correctness is unverifiable — R-17-016's whole residual is that a proof matches the spec and never intent — and **theorems**, which are *proven*, and whose correctness is exactly what the proof establishes. Two of the nine (`CJ-MEMPLAN`, `CJ-HAL`) were specifications the extraction had missed and are now rows 21 and 22; the other seven are theorem targets, now carried in their own table with the specification each is proven against. That mapping is not bookkeeping: **a theorem with no specification to be proven against is not a deliverable**, so it states which of the seven proof workstreams are currently blocked on an unwritten premise — which is all of them.
-
-**Standing consequence.** The inventory's status column makes R-01-003 countable: of twenty-two specification crown jewels, one is authored, three are partial, and eighteen are not written. The register asserted the as-existing gap; the inventory measures it.
-
-<a id="d-16"></a>**D-16 — Every trace cites the prose by line number, and nothing checks that the line is still the right one.**
-Found by the same sweep, one layer inward: D-14 and D-15 looked at what acceptance criteria *quantify over*; this is a defect in how the register *points at* the specification it extracts. Each entry ended `· Trace: CJ-… · [Lnnn](verification-maximal-os.md#Lnnn)`, and a line number is a derived fact restated in a second document — precisely the D-03/D-10 shape the derived-view checker was built for — with no artifact checking it.
-
-It had drifted, and not slightly. Blaming every trace line and resolving it against the prose as of the commit that wrote it shows **818 of 912 traces citing prose 2 to 27 lines short**: the register was extracted from the prose, the same commit then edited that prose, and the anchors were never recomputed. The 37 traces written by the later day-one-deliverables repair were correct, which is what made the drift piecewise and easy to miss.
-
-**The failure mode is the one a review gate can least afford.** A dangling reference announces itself; a reference off by ten lines does not. It lands on plausible adjacent prose, so a reviewer auditing an atomic obligation reads the wrong paragraph and gets a **wrong answer rather than an error** — and every count and coverage claim in this section was audited through those traces.
-
-**Repaired by deleting the derived reference, not by checking it harder.** The prose carries `<a id="r-ss-nnn"></a>` bookmarks on the line each requirement is extracted from, and traces cite the bookmark. Editing prose now moves the target with the text, so the class of defect is gone rather than monitored: there is no arithmetic left to drift, which is the whole of the repair.
-
-**What the repair did not cover, and no longer leaves uncovered.** Symbolic references cannot go *stale*, but they can still be *absent* or *misspelled*, and a dangling Markdown anchor fails silently — clicking it does nothing, which is no more visible than an off-by-ten line number was. Four properties are mechanical and cheap: that every cited bookmark resolves exactly once; that every requirement carries a trace at all; that every `r-*` bookmark in the prose names a live requirement; and that the §n in a trace's display text is the section its bookmark actually sits in. The first two are not hypothetical — they are what found R-05-022 and R-15-159 below. Booked here originally as a *residual*, because by D-14's own widened class a repair whose correctness nothing checks is exactly the shape the class describes.
-
-**The residual is now discharged**, by `tools/check-traces.ps1` and booked as **R-05-151a**. All four hold as of this revision: 942 bookmark citations across 914 traces each resolve exactly once, no requirement is untraced, no prose bookmark names a dead requirement, and no trace displays the wrong section. Two disciplines carry over from D-13's checker and one is new:
-
-1. **The check is negative-tested, not merely green.** A checker that has never failed is indistinguishable from one that cannot — the same "unheld by any artifact" objection one level up. Each property was confirmed to fire against a deliberately broken copy: a mistyped anchor, a bookmark id duplicated in the prose, a deleted `· Trace:` line, a bookmark naming a retired ID, and a display section that disagrees with its target.
-2. **It checks reference, not fidelity** — the same ceiling D-13 and D-14 record. That a trace resolves to a live bookmark does not make the prose at that bookmark the rationale for the requirement citing it. Fidelity remains a review-gate reading, and a trace landing on prose that does not support its requirement is a finding against R-05-151.
-3. **Property 3 is the reverse direction**, and it is the one that earns the check's keep for the same reason check 2 did in `check-derived-views.ps1`: it catches a requirement *deleted* from the register while its prose bookmark stays behind, which no forward check over traces can see.
-
-**Two defects were invisible until the reference became symbolic.** **R-05-022** carried *no trace at all* — the D-01 repair wrote its retirement rule into §5 and never pointed the entry at it, and no line-number check could have noticed an absent line number. **R-15-159**'s second citation pointed *inside a mermaid diagram*, a target that cannot host a bookmark and was never prose to begin with; it is re-aimed at the paragraph introducing the diagram. Both are repaired here.
-
-**Standing consequence.** D-14's class widens: it is not only acceptance criteria that quantify over a list no artifact holds, but **any claim restated in a second place with no artifact checking that the two agree**. Three instances are now on the books — D-13/D-14/D-15 (a list stated but not held) and D-16 (a pointer derived but not checked) — and the sweep should be re-run against that broader statement.
+The standing instruction is that sweep 2's question has not been asked exhaustively, so further instances should be assumed present rather than absent. `tools/check-derived-views.ps1` and `tools/check-traces.ps1` decide the instances already found; a newly found one is a spec defect booked here with a disposition, and a repair whose correctness nothing checks is itself an instance of the class.

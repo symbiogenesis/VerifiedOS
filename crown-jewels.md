@@ -6,9 +6,9 @@
 
 ## Why this document exists
 
-Seven acceptance criteria decide membership in *the crown-jewel inventory* — R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). No such inventory existed. Booked as **[D-15](requirements-register.md#d-15)**.
+Seven acceptance criteria decide membership in *the crown-jewel inventory* — R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). This document is the inventory all seven quantify over; without it none of them is decidable.
 
-What existed instead were **three overlapping sources that do not agree**:
+It replaces **three overlapping sources that did not agree**, none of which was an inventory:
 
 1. the register's **`CJ-` trace-target table** — 21 entries, all used, internally consistent, but a *legend of trace targets* rather than an inventory of specifications;
 2. **R-17-016's prose enumeration** — fifteen named specification statements, carried inside a single §17 residual entry;
@@ -83,7 +83,7 @@ So the two artifacts answer different questions and both are needed:
 
 ## Standing obligations
 
-- **The list is closed by amendment** (R-17-016). A requirement asserting crown-jewel status for a specification absent from this table is a review-gate finding, not a silent addition — that failure is exactly what produced D-15.
+- **The list is closed by amendment** (R-17-016). A requirement asserting crown-jewel status for a specification absent from this table is a review-gate finding, not a silent addition; an unclosed list is how the three disagreeing sources above arose.
 - **Every crown jewel is subject to independent review** under R-05-150 (R-05-046, R-08-028, R-15-221).
 - **Every crown jewel has a `CJ-` trace target** used by the sections that constrain it (R-17-016). The Constrained-by column is that check made visible.
 - **Status is maintained, not asserted once.** The inventory is revved with the register (R-18-034), and a status that moves from `not authored` without an artifact link is a finding.

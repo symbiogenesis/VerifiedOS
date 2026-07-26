@@ -6,9 +6,9 @@
 
 ## Why this document exists
 
-R-15-100's acceptance criterion reads *"each appears in the **absence-contract register** with a discharge."* R-15-021 requires that predictor absence *"appears in the absence-contract register, not among the refinement obligations."* R-15-107 requires that *"both entries exist."* No absence-contract register existed. That gap is booked as **[D-14](requirements-register.md#d-14)**.
+R-15-100's acceptance criterion reads *"each appears in the **absence-contract register** with a discharge."* R-15-021 requires that predictor absence *"appears in the absence-contract register, not among the refinement obligations."* R-15-107 requires that *"both entries exist."* This document is the register all three quantify over; without it none of them is decidable.
 
-It is the same defect as [D-13](requirements-register.md#d-13) one layer down, and it lands on the deliverable the specification is most emphatic is available now. R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"* — the sole part of RTL ⊑ Sail (R-17-039, the least-built layer of the stack) that can be discharged before any RTL of record exists. R-18-003b(ii) makes it day-one deliverable number two. This is the checklist that deliverable runs.
+It lands on the deliverable the specification is most emphatic is available now. R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"* — the sole part of RTL ⊑ Sail (R-17-039, the least-built layer of the stack) that can be discharged before any RTL of record exists. R-18-003b(ii) makes it day-one deliverable number two. This is the checklist that deliverable runs.
 
 ## 1. What the contract is, and why it is a separate register
 
