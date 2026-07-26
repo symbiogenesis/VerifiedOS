@@ -2396,7 +2396,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 15.1 ISA baseline
 
 **R-15-001** IS — The ISA is RV64IMV + CHERI: base IM_Zicsr, `A` narrowed to `Zaamo`+`Zabha`, no scalar `F`/`D`, V supplying all floating point, no C/compressed, purecap-only with no hybrid mode.
-· Accept: the frozen profile enumerates exactly this extension set; any encoding outside it traps (R-15-014).
+· Accept: the frozen profile — the artifact required by R-15-001a — enumerates exactly this extension set; any encoding outside it traps (R-15-014).
+· Trace: CJ-SAIL · [L1075](verification-maximal-os.md#L1075)
+
+**R-15-001a** MUST — The frozen profile exists as a single enumeration in one artifact, [isa-profile.md](isa-profile.md), rather than as an emergent property of the requirements that constrain it. The artifact is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective — never authoritative — where it disagrees with this register.
+· Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions — every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it — because the same-set-stated-twice failure is exactly what produced [D-03](#d-03) and [D-10](#d-10). `tools/check-profile-trace.ps1` is that check and exits non-zero on either finding. **See [D-13](#d-13).**
 · Trace: CJ-SAIL · [L1075](verification-maximal-os.md#L1075)
 
 **R-15-002** IS — The platform is single-physical-address-space under CHERI: no MMU, `satp` fixed to Bare, no Sv39 translation.
@@ -3985,7 +3989,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 907 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 908 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4003,7 +4007,7 @@ All eighteen normative sections are extracted, at 907 requirements. §19 is non-
 | **§12 System Servers** | **extracted** | **86** |
 | **§13 Packaging & Supply Chain** | **extracted** | **29** |
 | **§14 Userland** | **extracted** | **13** |
-| **§15 Hardware Platform** | **extracted** | **246** |
+| **§15 Hardware Platform** | **extracted** | **247** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **65** |
 | **§18 Realization** | **extracted** | **37** |
@@ -4014,10 +4018,11 @@ All eighteen normative sections are extracted, at 907 requirements. §19 is non-
 
 Normative claims that resisted atomic restatement, per R-05-153. Each is a spec defect to be repaired in [verification-maximal-os.md](verification-maximal-os.md), not a register omission.
 
-**Status: all twelve repaired.** Ten were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
+**Status: all thirteen repaired.** Eleven were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
 
 - **D-01** is closed by one generic rule in §5 rather than five per-entry forecasts: an interim retires when its Coq-native destination has passed admission for every consumer riding the interim. Testable today against two lists.
 - **D-12** is the schedule defect, and is closed by *scoping* the priority-zero claim rather than weakening it: as a total order it was unsatisfiable, and the register's own R-18-024/R-18-025 pair made it a literal cycle. Its repair is the one with an implementation consequence — it yields the enumerated day-one set (R-18-003b).
+- **D-13** is closed by *building the missing artifact*: the frozen profile, which four acceptance criteria tested membership in, existed in no document. It is now [isa-profile.md](isa-profile.md), a derived view whose agreement with this register is machine-checked in both directions rather than maintained by care. D-12 and D-13 compose: D-12 made the profile freeze the schedule root, and D-13 is that root made handable to an engineer.
 - **D-11** is closed by **deleting the fuzzed clock**, not specifying it. Jitter on a counter is recoverable by averaging, which makes it a statistical mitigation of exactly the kind §15 already refuses when it excludes MTE ("a statistic, not a theorem") and MBPTA/EVT. Specifying a distribution would have made a statistic normative in a document that admits none. What replaces it was already true: with the counters permission-gated, an untrusted compartment's only time source is a ring-serviced call, so its finest observable interval is its own slot period — a composition-time constant. The mechanism, its owner question, its distribution parameter, and its entry in §16's nondeterminism enumeration all leave together; the residual is the §11 rung channel already booked at R-17-007.
 
 Entries below are retained with their original diagnosis so the review record shows what was wrong and why.
@@ -4084,3 +4089,16 @@ The consequence is the one that matters for §18's purpose. A reader deriving a 
 3. **R-18-003a** names the profile freeze as the schedule's actual root — the toolchain, Sail model, and backend all target it (R-18-006), and it is a specification act with no build prerequisite — and **R-18-003b** enumerates the four day-one deliverables, each already stated as available now elsewhere in the specification and none newly invented here.
 
 The residual is that R-18-003b is a *closure* claim over a list assembled by inspection: a day-one deliverable later found to have an unbuilt prerequisite is a review-gate finding against it, which is why its acceptance criterion says so rather than asserting the list is complete.
+
+<a id="d-13"></a>**D-13 — The frozen profile is an emergent property of seventy requirements, not an artifact.**
+R-15-001's acceptance criterion reads *"the frozen profile enumerates exactly this extension set."* No such enumeration existed. The profile was distributed across §15.1 (baseline), §15.3 (memory model), §15.4 (prediction), §15.5 (atomics), §15.6 (fusion), §15.7 (exclusions), §15.8 (adopted extensions), §15.9 (CHERI features), §15.10 (PMP), §15.11 (gated features and debug), §15.12 (timing contracts), and §15.16 (core classes) — around seventy requirements, no one of which is the profile. R-15-014 ("the profile is frozen with the proof"), R-15-024 ("the profile lists `Zaamo`+`Zabha`"), R-15-042 ("they appear in the adopted list"), and R-15-067 ("they appear in the frozen profile") each test membership in a list that no document contained, so four acceptance criteria were unfalsifiable in [D-01](#d-01)'s exact sense: a reviewer had no artifact to inspect.
+
+**The gap was load-bearing rather than cosmetic, and D-12's repair is what made it so.** R-18-003a now names the profile freeze the *root of the schedule* — the toolchain, the Sail model, and the CompCert backend all target it — and R-18-003b(i) makes it day-one deliverable number one. A schedule root that exists only as an emergent property of seventy scattered entries cannot be handed to the engineer curating `sail-riscv` ⋈ `sail-cheri-riscv`, which is the first task on the critical path. The defect therefore blocked the very work D-12's repair had just unblocked.
+
+**Repaired** by extraction into [isa-profile.md](isa-profile.md), booked as **R-15-001a**, on three disciplines that keep the repair from becoming the next defect:
+
+1. **Derived, not authoritative.** The register wins on any disagreement and the artifact is defective, so the profile cannot drift into a second source of truth — the failure that produced [D-03](#d-03) (four enumerations of overlapping obligation sets, no two agreeing) and [D-10](#d-10) (the axiom set stated twice with different membership). This defect is that same family caught before it forked rather than after.
+2. **Every row cites its governing requirement**, so a discrepancy is locatable rather than an ambiguity.
+3. **Agreement is machine-checked in both directions** by `tools/check-profile-trace.ps1` — every cited ID resolves, and every requirement in a profile-bearing subsection is carried. The reverse direction is the one that matters: on first run it found eight omissions, of which five were the §15.12 timing contracts (R-15-084 through R-15-088) and two were exclusions carrying accepted costs a curator reading only the exclusion table would have missed (R-15-040's RVV fork and its soft-float calling convention; R-15-076's forgone CHERI-disjoint failure domain). Extraction by hand had silently dropped them, which is the argument for the check rather than for more care.
+
+The residual is that the checker tests *citation*, not *fidelity*: it proves the profile mentions the right requirements, not that it restates them correctly. Fidelity remains a review-gate reading, and a row whose prose contradicts the requirement it cites is a finding against R-15-001a.
