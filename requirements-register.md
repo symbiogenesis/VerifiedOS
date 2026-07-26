@@ -18,6 +18,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **IDs are permanent.** A retired requirement keeps its number and is struck, never reused. Renumbering breaks every review record that cites it.
 
+**Order is the specification's, not the numbering's.** Entries appear in the order of the prose they extract, so a requirement added by a later defect repair sits where its obligation belongs and not where its number would put it — §18.5 runs 031, 032, 034, 035, 033. A letter-suffixed ID (`R-05-022a`) is an obligation a repair inserted between two existing ones; it is a full entry and is counted as one.
+
 ### Crown-jewel specs referenced
 
 | ID | Spec |
@@ -840,7 +842,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T · [L413](verification-maximal-os.md#L413)
 
 **R-05-154** MUST — Maintaining the register and its traceability to the Coq specifications and the Sail model is a §18 workstream.
-· Accept: §18 lists it as a deliverable with an owner. **See [D-06](#d-06).**
+· Accept: §18 lists it as a deliverable with an owner — R-18-034. **[D-06](#d-06) repaired.**
 · Trace: CJ-T, CJ-SAIL · [L413](verification-maximal-os.md#L413)
 
 **R-05-155** MUST — The foundational-C separation-logic specifications (kernel, storage, HAL) are made runtime-testable in concrete execution under the Fulminate discipline for CN.
@@ -3825,149 +3827,165 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-18-001** IS — Silicon is the binding constraint: RV64 application-class CHERI exists only as licensable IP and FPGA soft cores. Codasip's X730 is shipping evidence that application-class purecap silicon is real at sub-5% area cost, but its proprietary RTL enters as a reference and bring-up vehicle, never the trusted base.
 · Accept: the RTL of record is authored in a formal-semantics HDL, so even open CVA6-CHERI enters as a functional reference.
-· Trace: CJ-RTL-SAIL · [L2059–2060](verification-maximal-os.md#L2059)
+· Trace: CJ-RTL-SAIL · [L2072–2073](verification-maximal-os.md#L2072)
 
 **R-18-002** MUST — The platform is purecap-only: there is no non-CHERI host, no capability-degraded interim, and no plain-RV64 compilation target anywhere, so every stage enforces hardware capabilities from first bring-up.
 · Accept: both staging phases are purecap and both gate on the CHERI toolchain.
-· Trace: CJ-CERISE · [L2061–2062](verification-maximal-os.md#L2061)
+· Trace: CJ-CERISE · [L2074–2075](verification-maximal-os.md#L2074)
 
-**R-18-003** MUST — The certifying compilers are priority zero, built ahead of any emulator, FPGA, or silicon work, because nothing runs a line of the system until they exist.
-· Accept: the toolchain workstream precedes all hardware workstreams in the schedule.
-· Trace: CJ-COMPCERT, CJ-TAL-SOUND · [L2063](verification-maximal-os.md#L2063)
+**R-18-003** MUST — The certifying compilers are priority zero: no workstream that requires *executing system software* on any target — emulator, FPGA, or silicon — is scheduled ahead of them, because nothing runs a line of the system until they exist. Priority zero is this gating relation and not a total order over workstreams.
+· Accept: no scheduled task whose completion requires running a system image precedes the functional certifying core; a reviewer checks the schedule for such a task rather than for a workstream ordering. The priority-zero deliverable is scoped to the *functional* core — the CHERI-CompCert backend (R-18-014) and the TAL producer plus on-device checker (R-18-020) — and explicitly excludes the WCET cost-annotation extension of that same toolchain (R-18-024), which R-18-025 gates behind the timing-annotated Sail model. **See [D-12](#d-12).**
+· Trace: CJ-COMPCERT, CJ-TAL-SOUND · [L2076](verification-maximal-os.md#L2076)
+
+**R-18-003a** MUST — The frozen instruction-set profile (§15) is the root of the schedule rather than the toolchain: the toolchain, the Sail model, and the CompCert backend all target it, so freezing it precedes all three.
+· Accept: the profile freeze is a specification act with no build prerequisite; R-18-006 already makes it part of the platform definition from first bring-up, and R-18-014's re-homing of SECOMP2CHERI has no target until it lands.
+· Trace: CJ-SAIL, CJ-COMPCERT · [L2078–2085](verification-maximal-os.md#L2078)
+
+**R-18-003b** MUST — Four deliverables are day-one and gate on nothing, and are enumerated so that R-18-003 is not read as prohibiting all work until the compilers exist: (i) the profile freeze and its Sail curation (R-18-003a); (ii) the microarchitectural absence contract (R-18-012); (iii) the machine-checked statement of T and the seam lemmas (R-18-031(a), R-18-032); (iv) the atomic-requirements register (R-18-034).
+· Accept: each of the four is stated elsewhere in the specification as available immediately, and none has a prerequisite that is itself unbuilt; three of the four attack the two least-built layers (R-17-039, R-17-064). A day-one deliverable found to have an unbuilt prerequisite is a review-gate finding against this requirement.
+· Trace: CJ-T, CJ-RTL-SAIL · [L2078–2085](verification-maximal-os.md#L2078)
 
 **R-18-004** IS — First release is scoped to prove the thesis, not complete the roster: Wi-Fi-only, deferring the eUICC, cellular certification, the HARQ hard-real-time class, and the 5G-AKA key hierarchy; the browser is likewise deferred as the largest porting program.
 · Accept: neither is a design cut — full cellular and the browser remain in the specification, sequenced behind the smaller surface that proves the core claims.
-· Trace: CJ-T · [L2065–2068](verification-maximal-os.md#L2065)
+· Trace: CJ-T · [L2087–2090](verification-maximal-os.md#L2087)
 
 **R-18-005** IS — The heterogeneous die is staged class by class: C-class + RVV under CHERI → V-class → M-class → FEC units → islands and TDM NoC → capability-checked DMA engines and the capability/tag-carrying fabric.
 · Accept: open RTL exists per class, but CHERI-purecap extension of each is new RTL and Sail work.
-· Trace: CJ-RTL-SAIL · [L2070–2072](verification-maximal-os.md#L2070)
+· Trace: CJ-RTL-SAIL · [L2092–2094](verification-maximal-os.md#L2092)
 
 **R-18-006** MUST — The frozen instruction-set profile is part of the platform definition from the first FPGA bring-up: Ztso, static-only branch prediction, and Machine-mode-only are bring-up properties, not later additions.
 · Accept: the CVA6-class front end is modified to static prediction and the store buffer proven TSO-exposing as part of first bring-up, alongside the `Zkt`/`Zvkt` obligation.
-· Trace: CJ-SAIL, CJ-RTL-SAIL · [L2073](verification-maximal-os.md#L2073)
+· Trace: CJ-SAIL, CJ-RTL-SAIL · [L2095](verification-maximal-os.md#L2095)
 
 **R-18-007** IS — The memory path is the first thing built and the smallest it can be: a granule read-modify-write stage, an ECC encode-and-check stage, the bank/macro/tier decode, and no cryptography of any kind.
 · Accept: this matters disproportionately because every block deleted here is one that would have had to be authored in Kôika and proven against Sail from nothing.
-· Trace: CJ-RTL-SAIL · [L2075–2077](verification-maximal-os.md#L2075)
+· Trace: CJ-RTL-SAIL · [L2097–2099](verification-maximal-os.md#L2097)
 
 **R-18-008** IS — The one sequential-3D dependency is a manufacturing risk, not a design one: if tier count under-delivers, capacity bends and the mechanism does not, the bonded-stack and chiplet alternatives being declined on trust grounds that a schedule pressure does not revisit.
 · Accept: consistent with R-15-173.
-· Trace: CJ-DEVTREE · [L2079–2080](verification-maximal-os.md#L2079)
+· Trace: CJ-DEVTREE · [L2101–2102](verification-maximal-os.md#L2101)
 
 **R-18-009** IS — Two memory-path questions are named as open and explicitly *not* specified: a statically-placed instruction scratchpad (whose remaining motivation is port contention alone), and sequential consistency in place of Ztso (whose reach is narrower than it looks — `fence.t` and the `A` extension both survive it).
 · Accept: each is open because the timing budget makes it worth revisiting, not because a change is pending; Ztso and the shared fetch path are what the specification states.
-· Trace: CJ-SAIL · [L2082–2095](verification-maximal-os.md#L2082)
+· Trace: CJ-SAIL · [L2104–2117](verification-maximal-os.md#L2104)
 
 ### 18.2 RTL-against-Sail
 
 **R-18-010** MUST — RTL ⊑ Sail is a first-class workstream staged with the die and is the least-built layer of the stack: no full application-class core, and *a fortiori* no heterogeneous multi-class die, has been proven to refine its Sail model.
 · Accept: the staging is rvfi first, then Sail-generated SystemVerilog plus commercial FEV, then Isla-generated obligations, then the Kami/Kôika Coq refinement as the closing goal.
-· Trace: CJ-RTL-SAIL · [L2097–2099](verification-maximal-os.md#L2097)
+· Trace: CJ-RTL-SAIL · [L2119–2121](verification-maximal-os.md#L2119)
 
 **R-18-011** IS — The timing and ordering hyperproperties ride a timing-annotated model and are the hardest sub-goal: functional refinement alone does not establish them.
 · Accept: consistent with R-15-095.
-· Trace: CJ-RTL-SAIL, CJ-LEAK · [L2100](verification-maximal-os.md#L2100)
+· Trace: CJ-RTL-SAIL, CJ-LEAK · [L2122](verification-maximal-os.md#L2122)
 
 **R-18-012** IS — The microarchitectural absence contract is a separate gate on this workstream rather than a stage of it, and it inverts the difficulty: it is buildable on day one and cheap, which is the whole argument for preferring removal to partitioning.
 · Accept: it is the one part of the least-built layer that does not need the layer to exist first; its honest ceiling is that the imported-core half closes on audit, not theorem.
-· Trace: CJ-RTL-SAIL · [L2101–2104](verification-maximal-os.md#L2101)
+· Trace: CJ-RTL-SAIL · [L2123–2126](verification-maximal-os.md#L2123)
 
 **R-18-013** IS — RTL ⊑ Sail degrades gracefully, unlike the certifying compilers: rvfi and Isla obligations ship long before the Coq refinement closes, so base bring-up is not blocked on the full proof — only the *unbounded* claim is.
 · Accept: the disposition is stated per workstream rather than uniformly.
-· Trace: CJ-RTL-SAIL · [L2105](verification-maximal-os.md#L2105)
+· Trace: CJ-RTL-SAIL · [L2127](verification-maximal-os.md#L2127)
 
 ### 18.3 The toolchain
 
 **R-18-014** MUST — Two certifying compilers gate the platform: the CHERI-CompCert backend for the TCB, and a certifying Rust→RV64+CHERI compiler emitting per-binary memory-safety certificates.
 · Accept: the first re-homes SECOMP2CHERI and completes its robust-preservation theorem rather than authoring a capability backend fresh; the second is genuinely net-new and explicitly in scope.
-· Trace: CJ-COMPCERT, CJ-SECOMP · [L2107–2109](verification-maximal-os.md#L2107)
+· Trace: CJ-COMPCERT, CJ-SECOMP · [L2129–2131](verification-maximal-os.md#L2129)
 
 **R-18-015** IS — The certifying Rust compiler's shape is a front end over safe-Rust MIR carrying the source type system's memory-safety fact through lowering and emitting a CHERI-TAL derivation; CHERI discharges spatial safety, so the preserved obligation is the temporal-safety and typed-control-flow residual.
 · Accept: no per-app manual proof is required for pure-safe-Rust code.
-· Trace: CJ-TAL-SOUND · [L2110](verification-maximal-os.md#L2110)
+· Trace: CJ-TAL-SOUND · [L2132](verification-maximal-os.md#L2132)
 
 **R-18-016** MUST — Relevance grading is the one obligation the front end cannot lift from the source type system, so the fallible-result types of the kernel ABI, the IDL, and the attestation and storage interfaces are declared relevance-graded *at their definition* and the front end propagates from there.
 · Accept: the net-new work sits at the interface definitions rather than at every call site.
-· Trace: CJ-TAL-SOUND, CJ-IDL · [L2111](verification-maximal-os.md#L2111)
+· Trace: CJ-TAL-SOUND, CJ-IDL · [L2133](verification-maximal-os.md#L2133)
 
 **R-18-017** MUST — The derivation is emitted by hinted mirroring: the untrusted compiler records hints through lowering and a small trusted Coq replayer reconstructs the typing derivation the on-device checker re-validates.
 · Accept: the certifier is a small replayer plus an untrusted producer rather than a whole-compiler preservation megaproof — the concrete reason the preservation theorem sits off the trust path.
-· Trace: CJ-TAL-SOUND · [L2112](verification-maximal-os.md#L2112)
+· Trace: CJ-TAL-SOUND · [L2134](verification-maximal-os.md#L2134)
 
 **R-18-018** IS — The toolchain sub-deliverables are enumerated: (a) the lowering emitting the TAL derivation, with its preservation statement a completeness property backfilled as assurance against Radium; (b) the CHERI-TAL and its soundness metatheorem, its type theory frozen to the §5 budget so the line budget and metatheorem size are consequences rather than targets; (c) integration with the on-device checker and oracle-compressed proof shipping; (d) the manual-proof escape hatch for HAL-adjacent `unsafe`, foundationally grounded via VerusBelt, plus a gate refusing app `unsafe` outside it.
 · Accept: all four appear in the workstream list.
-· Trace: CJ-TAL-SOUND, CJ-HAL · [L2113](verification-maximal-os.md#L2113)
+· Trace: CJ-TAL-SOUND, CJ-HAL · [L2135](verification-maximal-os.md#L2135)
 
 **R-18-019** MUST — A bug-finding oracle rides alongside the certifier and never as a second checker: Soteria-rust over the same MIR hunts UB in the HAL-adjacent `unsafe`, and the same framework instantiates for C to bug-find the CompCert/VST path.
 · Accept: a Soteria finding shifts a bug left of admission rather than ever carrying it; the memory-safety obligation is discharged by CHERI ⋈ the TAL metatheorem regardless.
-· Trace: CJ-TAL-SOUND · [L2114](verification-maximal-os.md#L2114)
+· Trace: CJ-TAL-SOUND · [L2136](verification-maximal-os.md#L2136)
 
 **R-18-020** IS — A producer of TAL derivations is a hard prerequisite with no trusted-toolchain fallback: no userspace app is built or admitted until the producer and the on-device checker exist, while the preservation proof is deliberately off that critical path.
 · Accept: Cranelift with Crocus-verified lowerings is an SMT-trust reference point informing the lowering proofs, never the shipped certifier and never an admission path — of which there is none.
-· Trace: CJ-TAL-SOUND · [L2116–2118](verification-maximal-os.md#L2116)
+· Trace: CJ-TAL-SOUND · [L2138–2140](verification-maximal-os.md#L2138)
 
 ### 18.4 Crypto, WCET, storage, radio, memory
 
 **R-18-021** MUST — Crypto verification carries exactly three deliverables and no codegen deliverable: layer-3 reduction proofs authored Coq-native in SSProve/FCF; the composition linking reductions to implementations at each primitive's functional specification; and constant-time verification for every secret-touching binary.
 · Accept: the standalone CT verifier folds into the certifying-compiler/TAL workstream rather than being net-new, degrading gracefully with Binsec/Rel carrying bring-up.
-· Trace: CJ-REDUCTION, CJ-CT-SOUND · [L2120–2121](verification-maximal-os.md#L2120)
+· Trace: CJ-REDUCTION, CJ-CT-SOUND · [L2142–2143](verification-maximal-os.md#L2142)
 
 **R-18-022** MUST NOT — The fourth deliverable an earlier revision carried, the CryptOpt-style translation-validation toolchain, is deleted rather than deferred, because its whole yield was speed on an already-sound path.
 · Accept: deleting it retires a net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category, and this workstream, at the price of hand-assembly-grade ECC throughput.
-· Trace: CJ-CRYPTO-SPEC · [L2122–2124](verification-maximal-os.md#L2122)
+· Trace: CJ-CRYPTO-SPEC · [L2144–2146](verification-maximal-os.md#L2144)
 
 **R-18-023** IS — The formosa-crypto ML-KEM effort is the existence proof for what remains, so the reduction and composition deliverables are a Coq-native restatement of finished work rather than a from-scratch research program; an EasyCrypt reduction is admissible interim assurance exactly as libcrux/HACL\* is.
 · Accept: the SSProve/FCF restatement is the trust-base-minimizing follow-through, not a boot blocker.
-· Trace: CJ-REDUCTION · [L2125–2126](verification-maximal-os.md#L2125)
+· Trace: CJ-REDUCTION · [L2147–2148](verification-maximal-os.md#L2147)
 
 **R-18-024** MUST — WCET derivation folds into the certifying toolchain rather than a standalone estimator, with three sub-deliverables: the per-instruction latency table as a projection of the timing-annotated Sail model; the tree-sum cost annotation and loop-bound discharge integrated into the toolchain; and integration with the on-device checker.
 · Accept: the standalone Coq-verified IPET estimator is retired as a workstream.
-· Trace: CJ-WCET · [L2128–2131](verification-maximal-os.md#L2128)
+· Trace: CJ-WCET · [L2150–2153](verification-maximal-os.md#L2150)
 
 **R-18-025** IS — WCET staging is gated behind the timing-annotated Sail model and thus per-class RTL bring-up, degrading gracefully: there is no *sound* §11 admission until the timing-annotated model lands for the core class, but the deriver is a cost-annotation pass rather than a separate verified estimator.
 · Accept: aiT and Heptane stay unverified out-of-band cross-checks that flag a wrong timing annotation, never the bound.
-· Trace: CJ-WCET, CJ-RTL-SAIL · [L2132–2133](verification-maximal-os.md#L2132)
+· Trace: CJ-WCET, CJ-RTL-SAIL · [L2154–2155](verification-maximal-os.md#L2154)
 
 **R-18-026** MUST — The verified filesystem carries four deliverables: L0 re-expressed in Gallina and verified over CompCert-C with VST/Iris; the VeriBetrFS B^ε-tree design re-proved in Coq/Iris; the L2 semantics with RefFS-style linearizability, crash, and liveness specs; and the L3 data-noninterference proof composed with the AEAD reduction.
 · Accept: no bespoke Goose-to-C extractor is built; Yggdrasil and FSCQ are retained as cross-check and lineage, not bases.
-· Trace: CJ-T · [L2135–2139](verification-maximal-os.md#L2135)
+· Trace: CJ-T · [L2157–2161](verification-maximal-os.md#L2157)
 
 **R-18-027** MUST — Storage staging puts the small system-integrity reader and A/B transactor — the only storage TCB — on the critical path, with the four-layer filesystem following and below-the-line block services running availability-only from the start.
 · Accept: the ordering reflects TCB membership, not layer count.
-· Trace: CJ-DEVTREE · [L2140](verification-maximal-os.md#L2140)
+· Trace: CJ-DEVTREE · [L2162](verification-maximal-os.md#L2162)
 
 **R-18-028** IS — Radio staging does not wait for integration: an off-die register-slave SDR transceiver behind a certified analog front end gives the identical architecture today, with on-die RF later buying only physical and interface simplification.
 · Accept: srsRAN/OpenAirInterface, openwifi, GNSS-SDR, and aff3ct anchor feasibility; openwifi's open-RTL low-MAC is the harvestable existence proof for the fixed-function link-layer timing sequencer.
-· Trace: CJ-SAIL · [L2142–2146](verification-maximal-os.md#L2142)
+· Trace: CJ-SAIL · [L2164–2168](verification-maximal-os.md#L2164)
 
 **R-18-029** MUST — The radio parsers are generated, not hand-transcribed: a verified ASN.1 → Narcissus front end over the published 3GPP modules, with the IEI/TLV 5G-NAS grammar hand-written and differential-tested against four independent references.
 · Accept: the crown-jewel grammar spec shrinks to one reusable oracle-checked codec rather than thousands of hand-copied pages (R-05-048, R-05-050).
-· Trace: CJ-FORMAT · [L2144](verification-maximal-os.md#L2144)
+· Trace: CJ-FORMAT · [L2166](verification-maximal-os.md#L2166)
 
 **R-18-030** IS — Memory staging is capacity-limited, not availability-limited: first parts are planar single-tier at order 1–2 GB, with the 4–8 GB phone envelope arriving as sequential-3D tier counts reach 8–16.
 · Accept: the interim is less capacity and a leaner roster, never a different mechanism; no deleted DRAM machinery returns, and neither bonded die-stacking nor an SRAM chiplet is held in reserve.
-· Trace: CJ-DEVTREE · [L2147–2150](verification-maximal-os.md#L2147)
+· Trace: CJ-DEVTREE · [L2170–2172](verification-maximal-os.md#L2170)
 
 ### 18.5 The capstone
 
 **R-18-031** MUST — The end-to-end composition proof is the capstone workstream, staged last because it consumes the others, with three sub-deliverables: the machine-checked *statement* of T and each seam lemma with interfaces aligned; the linking theorem discharged incrementally; and the boundary ledger of *D* and *Ax* maintained as an enumerated, reviewed artifact.
 · Accept: sub-deliverable (a) is engineering-free and authored *now*, ahead of the proofs it will link, doubling as the coverage checklist.
-· Trace: CJ-T · [L2152–2154](verification-maximal-os.md#L2152)
+· Trace: CJ-T · [L2174–2176](verification-maximal-os.md#L2174)
 
 **R-18-032** IS — Like RTL ⊑ Sail this is a hard, currently-nonexistent deliverable for the strong form of G3, but its *statement* is available immediately and is the higher-value half: it turns "a dozen things are proven" into "the conjunction claims exactly this, and rests on exactly that" — the review artifact the crown-jewel gate most needs.
 · Accept: CompCert ⋈ CertiKOS layered refinement, DeepSpec, and seL4's own integration are the methodological anchors; none is at this scope, which is why the linking theorem is the deepest outstanding proof.
-· Trace: CJ-T · [L2155–2156](verification-maximal-os.md#L2155)
+· Trace: CJ-T · [L2177–2178](verification-maximal-os.md#L2177)
+
+**R-18-034** MUST — The atomic-requirements register is a §18 workstream with a named owner, not a by-product: extraction of every normative obligation with its acceptance criterion and its trace, plus traceability forward to the Coq specifications and the Sail model as those land, revved with every amendment to the specification and gating each release alongside the proofs.
+· Accept: §18 lists it as a deliverable with an owner. Like the composition theorem's statement it is engineering-free and available now, ahead of the artifacts it will trace to, which is why it is a day-one deliverable under R-18-003b(iv). This closes [D-06](#d-06) and discharges R-05-154.
+· Trace: CJ-T, CJ-SAIL · [L2180–2183](verification-maximal-os.md#L2180)
+
+**R-18-035** IS — The register's standing output is the extraction-defect list, which is the review gate's agenda rather than an appendix to it: an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is a spec defect by R-05-153's own rule.
+· Accept: the defect list is carried in the register with a disposition per entry, and the gate's record cites it.
+· Trace: CJ-T · [L2183](verification-maximal-os.md#L2183)
 
 **R-18-033** MUST — Two requirements never trade: the verified TCB, and capabilities as the sole authority. Everything else — ship date, core counts, radio bandwidth, acceleration — bends around them.
 · Accept: any proposed change is checked against these two first.
-· Trace: CJ-T, CJ-CERISE · [L2158–2159](verification-maximal-os.md#L2158)
+· Trace: CJ-T, CJ-CERISE · [L2185–2186](verification-maximal-os.md#L2185)
 
 ---
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 901 requirements. §19 is non-normative and yields none. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 907 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries added by defect repairs (`R-05-022a`, `R-08-031a`, `R-18-003a`, `R-18-003b`); an earlier revision of this table omitted the first two, which is why the total moved by more than the entries D-12 added. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -3975,10 +3993,10 @@ All eighteen normative sections are extracted, at 901 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **162** |
+| **§5 Languages & Verification** | **extracted** | **163** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **52** |
-| **§8 Authority Model** | **extracted** | **44** |
+| **§8 Authority Model** | **extracted** | **45** |
 | **§9 Boot & Root of Trust** | **extracted** | **31** |
 | **§10 Storage & State** | **extracted** | **34** |
 | **§11 Updates** | **extracted** | **27** |
@@ -3988,7 +4006,7 @@ All eighteen normative sections are extracted, at 901 requirements. §19 is non-
 | **§15 Hardware Platform** | **extracted** | **246** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **65** |
-| **§18 Realization** | **extracted** | **33** |
+| **§18 Realization** | **extracted** | **37** |
 
 §19 is non-normative and yields no requirements.
 
@@ -3996,9 +4014,10 @@ All eighteen normative sections are extracted, at 901 requirements. §19 is non-
 
 Normative claims that resisted atomic restatement, per R-05-153. Each is a spec defect to be repaired in [verification-maximal-os.md](verification-maximal-os.md), not a register omission.
 
-**Status: all eleven repaired.** Nine were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
+**Status: all twelve repaired.** Ten were editorial — the specification already meant the repaired thing and had said it inconsistently, so none changed a mechanism. Two needed a decision, and both were resolved by *deleting* rather than specifying:
 
 - **D-01** is closed by one generic rule in §5 rather than five per-entry forecasts: an interim retires when its Coq-native destination has passed admission for every consumer riding the interim. Testable today against two lists.
+- **D-12** is the schedule defect, and is closed by *scoping* the priority-zero claim rather than weakening it: as a total order it was unsatisfiable, and the register's own R-18-024/R-18-025 pair made it a literal cycle. Its repair is the one with an implementation consequence — it yields the enumerated day-one set (R-18-003b).
 - **D-11** is closed by **deleting the fuzzed clock**, not specifying it. Jitter on a counter is recoverable by averaging, which makes it a statistical mitigation of exactly the kind §15 already refuses when it excludes MTE ("a statistic, not a theorem") and MBPTA/EVT. Specifying a distribution would have made a statistic normative in a document that admits none. What replaces it was already true: with the counters permission-gated, an untrusted compartment's only time source is a ring-serviced call, so its finest observable interval is its own slot period — a composition-time constant. The mechanism, its owner question, its distribution parameter, and its entry in §16's nondeterminism enumeration all leave together; the residual is the §11 rung channel already booked at R-17-007.
 
 Entries below are retained with their original diagnosis so the review record shows what was wrong and why.
@@ -4023,7 +4042,7 @@ A **third** list makes the mismatch worse. §6's checker table ([L442](verificat
 [L284](verification-maximal-os.md#L284) correctly declines to claim protocol-level composition (TLS/AKA), and §17 books it, but §3's Defended/Residual split — the place a reader looks to learn what the system does and does not defend — does not carry it. This is the largest scope boundary the word *hyper-secure* crosses without a proof behind it. R-05-078's acceptance criterion requires the §3 entry, which does not currently exist. **Repair:** add the exclusion to §3.
 
 <a id="d-06"></a>**D-06 — The register's own §18 workstream is unverified.**
-[L413](verification-maximal-os.md#L413) makes maintaining this register and its traceability "the review-gate workstream (§18)". R-05-154's acceptance criterion requires §18 to list it with an owner; §18 has not been extracted, so the criterion is untested. **Repair:** confirm on §18 extraction, or add the deliverable.
+[L413](verification-maximal-os.md#L413) makes maintaining this register and its traceability "the review-gate workstream (§18)". R-05-154's acceptance criterion requires §18 to list it with an owner; §18 has not been extracted, so the criterion is untested. **Repair:** confirm on §18 extraction, or add the deliverable. **Repaired** by extraction: the prose deliverable at [L2180–2183](verification-maximal-os.md#L2180) is now booked as **R-18-034**, with R-18-035 carrying the defect-list output, and R-05-154's acceptance criterion cites it. (§18 extraction initially landed without these two entries, so the criterion stayed untested one revision longer than the defect list recorded; that gap is what [D-12](#d-12) turns into a standing check.)
 
 <a id="d-07"></a>**D-07 — The three-class `fence.t` mapping has no class for the pipeline, and the fetch buffer is the visible instance.**
 [L1707](verification-maximal-os.md#L1707) requires *every* stateful structure in the RTL to map to exactly one of three classes — architectural/context-switched, partition-owned, or `fence.t`-flushed — and makes a structure outside the map a refinement failure. [L1702](verification-maximal-os.md#L1702) then fixes the flush set at "a single structure: the store buffer", and [L1705](verification-maximal-os.md#L1705) enumerates the would-be members that stay out. The static-path fetch buffer ([L1574](verification-maximal-os.md#L1574), [L1333](verification-maximal-os.md#L1333)) is a stateful structure that is none of the three: it is not architectural, not partition-owned, and not in the flush set. [L1340](verification-maximal-os.md#L1340) separately describes the fence's "residual scope" as *pipeline drain*, which would place it — but pipeline drain is never stated as flush-set membership, so R-15-213, R-15-215, and R-15-217 cannot all be satisfied as written. The security argument is unaffected (the buffer's contents are a function of the instruction stream, so it carries no cross-partition history), but the mapping obligation is a *completeness* claim and completeness with an unmapped structure is exactly the failure the clause defines. **Repair:** state whether pipeline state (fetch buffer, decode and execute latches) is class (a) by drain, or add a fourth class for structures whose contents are stream-determined and therefore carry nothing across the switch.
@@ -4044,3 +4063,24 @@ Both dispositions are defensible on their merits, and neither is a contradiction
 
 <a id="d-11"></a>**D-11 — The fuzzed clock is normative and has no owner.**
 [L611](verification-maximal-os.md#L611) states "the monitor gets nanoseconds; untrusted compartments get coarsened, fuzzed time," and the property is load-bearing enough that §15 cites it as the model for MAC randomization ("the link-layer analog of the fuzzed clock", [L1417](verification-maximal-os.md#L1417)). But §15's counter gate is binary — a compartment either holds the counter-read permission on its PCC or it does not ([L1274](verification-maximal-os.md#L1274)) — so *coarsened, fuzzed time* cannot come from the hardware path. It must be a service, and no component owns it: §12's server roster has a time-synchronization compartment that disciplines the wall-clock from Roughtime/NTS/PTP ([L867–871](verification-maximal-os.md#L867)) and hands time out "coarse by default", but coarse-by-default is not the same as *fuzzed*, no fuzz distribution or quantum is specified anywhere, and no requirement says which component applies it. R-08-031 therefore has an acceptance criterion a reviewer cannot check: there is no artifact to inspect. This matters more than a missing parameter, because a timing-channel countermeasure with an unspecified distribution is not reviewable at all — the whole question is *how much* jitter and against what observer. **Extracting §16 makes the gap load-bearing rather than cosmetic.** The deterministic-replay record enumerates its nondeterminism sources and includes "the **clock fuzz** added to the coarsened time handed to untrusted compartments" ([L1804](verification-maximal-os.md#L1804)), recording "the fuzz offsets already delivered to the compartments that read them" as public nondeterminism ([L1806](verification-maximal-os.md#L1806)). So a second subsystem now depends on the mechanism: replay cannot record fuzz offsets without a component that applies them at a known point. R-16-015 and R-16-016 inherit R-08-031's unfalsifiability. **Repaired, by deletion rather than specification.** Naming an owner and a distribution would have been the wrong fix: jitter on a counter is recoverable by averaging over repeated reads, which makes it precisely the statistical mitigation §15 refuses when it excludes MTE (*a ~93% mitigation is a statistic, not a theorem*) and MBPTA/EVT. The mechanism is therefore struck. With the counters permission-gated, an untrusted compartment has no clock at all: its only time source is the time service over a ring serviced in its own slot, so the finest interval it can observe is its own slot period, a composition-time constant rather than a degraded value. The distribution question, the owner question, the crown-jewel statement about sufficiency, and the §16 nondeterminism entry all disappear together; the residual is the §11 population-rung channel already booked at R-17-007.
+
+<a id="d-12"></a>**D-12 — Priority zero is stated as a total order, and as a total order it is unsatisfiable.**
+[L2076](verification-maximal-os.md#L2076) states the certifying compilers are "built ahead of any emulator, FPGA, or silicon work," and R-18-003's acceptance criterion made that a schedule ordering: *the toolchain workstream precedes all hardware workstreams*. No schedule satisfies it, and the failure is not a wording slip but a **cycle in the register's own dependency graph**:
+
+- R-18-024 folds **WCET derivation into the certifying toolchain** — explicitly *not* a standalone estimator, so the cost-annotation pass is part of the toolchain deliverable rather than a consumer of it;
+- R-18-025 gates WCET **behind the timing-annotated Sail model and thus per-class RTL bring-up**;
+- R-18-003 then puts the toolchain ahead of that bring-up.
+
+So *toolchain ⊐ WCET pass ⊐ timing-annotated Sail model ⊐ per-class RTL bring-up ⊐ toolchain*. A toolchain required to complete before all hardware work could never complete at all.
+
+Two further requirements falsify the criterion independently of the cycle, which is what shows the defect is in R-18-003 rather than in R-18-024/025: **R-18-007** states the memory path is *"the first thing built"*, and **R-18-012** states the microarchitectural absence contract is *"buildable on day one"* and is "the one part of the least-built layer that does not need the layer to exist first." Both are hardware workstreams that the criterion forbids starting. R-18-032 adds a third, non-hardware, conflict with the word *zero* itself: the composition statement is "available immediately."
+
+The consequence is the one that matters for §18's purpose. A reader deriving a build order from the register gets *nothing may begin*, which is both unactionable and false to the specification, since the specification names four deliverables as available now — and three of the four attack the two least-built layers (R-17-039, R-17-064), which is exactly where R-01-003's as-existing assurance gap is widest.
+
+**Repaired**, and by *scoping* rather than by weakening. Three changes, none of which touches a mechanism:
+
+1. **R-18-003** restated as the gating relation it actually is — no workstream requiring *execution of system software* is scheduled ahead of the compilers — with an acceptance criterion a reviewer can run (look for a scheduled task whose completion requires running a system image, not for a workstream ordering). The intent is preserved exactly: the compilers cannot be sequenced *behind* hardware bring-up, because every image that would run on that hardware is their output.
+2. The priority-zero deliverable **scoped to the functional certifying core** (R-18-014's backend, R-18-020's producer and checker), with R-18-024's WCET extension named as the later increment R-18-025 already places on the graceful-degradation path. This *breaks* the cycle rather than deferring it: the increment gated behind the Sail model is no longer part of the thing that must precede the Sail model.
+3. **R-18-003a** names the profile freeze as the schedule's actual root — the toolchain, Sail model, and backend all target it (R-18-006), and it is a specification act with no build prerequisite — and **R-18-003b** enumerates the four day-one deliverables, each already stated as available now elsewhere in the specification and none newly invented here.
+
+The residual is that R-18-003b is a *closure* claim over a list assembled by inspection: a day-one deliverable later found to have an unbuilt prerequisite is a review-gate finding against it, which is why its acceptance criterion says so rather than asserting the list is complete.
