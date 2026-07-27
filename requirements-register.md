@@ -2418,6 +2418,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions — every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it. `tools/check-derived-views.ps1` is that check and exits non-zero on either finding. The reverse direction is the one that earns its keep: a hand-maintained extraction silently drops rows, which is what makes a set stated in two places drift. The check tests *citation*, not *fidelity* — a row whose prose contradicts the requirement it cites is a review-gate finding against this entry.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-001a)
 
+**R-15-001b** MUST — The surviving CSR bank is enumerated in that same view as the deletions are: register by register, each row citing the requirement that admits or excludes it. The enumeration closes the CSR address space — an address absent from the table is unallocated and traps under R-15-014, by that rule and not a second mechanism — so the "every CSR a partition can name" that the total restore quantifies over (R-07-015, R-15-214) is a list a reviewer can open.
+· Accept: [isa-profile.md](isa-profile.md) carries the table; every row cites a governing requirement or is marked **open**, and every open row is booked in the extraction defects with a disposition. This entry states no membership of its own — it requires the enumeration to exist and to be closed, exactly as R-15-001a requires both for the extension set, and admits no CSR that the requirements its rows cite do not already admit.
+· Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-001b)
+
 **R-15-002** IS — The platform is single-physical-address-space under CHERI: no MMU, `satp` fixed to Bare, no Sv39 translation.
 · Accept: the Sail model carries no translation state; no page-table walker exists in any RTL.
 · Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-002), [§15](verification-maximal-os.md#r-15-002-2)
@@ -4057,9 +4061,24 @@ All eighteen normative sections are extracted, at 915 requirements. §19 is non-
 
 Normative claims that resist atomic restatement, per R-05-153. This is the register's standing output and the review gate's agenda (R-18-035): an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is itself a spec defect by R-05-153's own rule. A claim booked here is a defect in [verification-maximal-os.md](verification-maximal-os.md) to be repaired there, never a register omission to be worked around here.
 
-**Open defects: none.** Every normative claim in all eighteen sections is carried by a numbered requirement with an acceptance criterion a reviewer can decide.
+**Open defects: one, with eight rows.**
 
-An empty list is not the same as a swept one, and the distinction is the honest statement of where this section stands. Three sweeps have been run over the register and each found instances the one before it could not see:
+**D-CSR — the surviving CSR bank is not decided register by register.** Sweep 1's class, found in a fourth list: §15 enumerates the deleted CSRs by name and states the residue nowhere, while R-07-015 and R-15-214 both quantify over "every CSR a partition can name." R-15-001b closes the *artifact* half — the enumeration now exists, in [isa-profile.md](isa-profile.md) §5 — and this entry holds the rows the enumeration found that no requirement decides. Each is a defect in [verification-maximal-os.md](verification-maximal-os.md) §15 to be repaired there; the profile view carries the same rows marked **open** and decides none of them.
+
+| Row | What is undecided | Indicated |
+| --- | --- | --- |
+| `mcause` / `mtval` | the trap path is specified in capability terms (R-07-022, R-15-073) but names no cause register, no trap-value register, and no cause encoding for a CHERI capability exception | present — a hole, not a deletion |
+| `mie` / `mip` | the machine-timer bits have a consumer (R-07-043, R-15-063); the external- and software-interrupt bits do not (R-15-065, R-15-066) | present, narrowed to the timer bits |
+| `menvcfg` | R-15-049's ground against `Smstateen` applies word for word and is stated only for `Smstateen`; `Zicboz`'s `CBZE` bit is the case to check (R-15-060) | deletion |
+| `mcountinhibit` | a second gate on counters already gated by a CHERI permission (R-15-077), against R-15-013 | deletion |
+| `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | one Sail model frozen with the proof (R-15-005) has no runtime discovery consumer | hardwired zero |
+| `mhartid` | one kernel binary across core classes needs hart identity (R-07-012); no requirement says so | present |
+| `tselect` / `tdata1–3` | the lifecycle fuse is stated for the Debug Module and trace (R-15-078, R-15-079); the trigger module is not named, and its CSRs are M-mode-accessible in standard RISC-V — mutable hidden state surviving a partition switch, the shape admission test (3) rejects (R-15-010, R-15-012) | absent, or fused with the DM |
+| `DDC` | purecap-only with no hybrid mode (R-15-001) leaves it without a consumer, but nothing retires it and the total restore would have to name it (R-07-015) | absent |
+
+The `tselect` / `tdata` row is the one with a security consequence rather than a surface consequence, and it is the row that most repays being asked early.
+
+An empty list was not the same as a swept one, and that distinction is what this entry vindicates: the three sweeps below closed the three lists they found, and the standing instruction below — assume further instances present rather than absent — is what found the fourth. Three sweeps have been run over the register and each found instances the one before it could not see:
 
 1. **What does a reviewer open to decide this?** — asked of one acceptance criterion at a time. Criteria that quantify over a list no artifact holds are the class this found; it is closed for the three lists it found (the frozen profile, the absence contract, the crown-jewel inventory), each now a derived view under R-15-001a, R-15-100a, and R-17-016a.
 2. **What does the register restate that nothing checks?** — the widened form of the same class, covering any claim held in a second place with no artifact checking the two agree. This is what moved traces from line numbers to bookmarks, and it is why the derived views are machine-checked in both directions rather than maintained by care.

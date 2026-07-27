@@ -83,17 +83,6 @@ An item earns a place on this list iff it clears all five:
 
 ---
 
-## 4. Enumerate the surviving CSR set
-
-- [ ] **State the CSRs that remain, as a frozen table in the profile view.**
-  Not a simplification in itself — the enabling artifact for several. §15 enumerates the **deleted** CSR banks exhaustively and admirably (the S-mode bank by name, `medeleg`/`mideleg`, `frm`, `mstateen`, `srmcfg`, `Zkr`'s entropy CSR, `scounteren`), but nowhere states the set that **survives**. `misa` is read-only (R-15-052), the trap registers are capability-typed (R-15-073), `mtimecmp` is present (R-15-063), the counters are gated (R-15-077), and `vtype`/`vl`/`vstart`/`vxrm`/`vcsr` are implied by RVV — but there is no table, so no reviewer can decide membership.
-  *Grounds (gate 4):* this is precisely the defect R-15-001a diagnosed for the extension set, in a space the derived views do not cover. The same fix applies: a table, in the profile view, with a governing requirement per row.
-  *Perf:* neutral by construction.
-  *Why it belongs on this list:* a `Zicsr` surface nobody has enumerated is a surface nobody has minimized. Expect the table itself to expose deletions — `vstart` in particular is mutable per-instruction state that survives a trap and therefore has a `fence.t` story that should be written down whether or not it is deletable (its partition-switch half is settled: the switch zeroizes the vector CSRs and saves nothing, R-07-014a, so `vstart` is written to zero and never restored), and `vxrm`'s dynamic rounding mode is the vector sibling of the `frm` CSR that R-15-083 already deleted for being dynamic.
-  *That last observation is the strongest reason to write the table.* R-15-083 mandates static, per-instruction floating-point rounding and deletes `frm` so that *"no mutable rounding-mode state context-switches or joins the fence.t set."* If `vxrm` (fixed-point rounding) is in the profile unexamined, that requirement has a live counterexample sitting next to it.
-
----
-
 ## Not a simplification, but adjacent
 
 - [ ] **Add the invariance clause to R-15-018's SC rejection.**
