@@ -1071,8 +1071,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 7.3 Switch discipline
 
 **R-07-014** MUST NOT — There is no lazy vector/matrix unit switching, ever: lazy unit-ownership trapping is a cross-domain timing channel.
-· Accept: either a V/M-class core is statically pinned to a single domain, or partition switches perform eager save-and-zeroize of vector RF, vector CSRs, and scratchpad, WCET-accounted in the switch budget.
+· Accept: either a V/M-class core is statically pinned to a single domain, or partition switches perform eager zeroize of vector RF, vector CSRs, and scratchpad, WCET-accounted in the switch budget.
 · Trace: CJ-NI, CJ-WCET · [§7](verification-maximal-os.md#r-07-014)
+
+**R-07-014a** MUST NOT — The partition switch does not *save* vector or matrix state; it zeroizes it. Save-and-restore has exactly one consumer — a partition cut mid-computation and later resumed — and no such partition exists: asynchronous interrupt delivery is deleted (R-07-038), the slot-boundary timer is the core's only asynchronous trap so no path carries a preemption term (R-07-043), and admission proves each slot's WCET fits its slot (R-07-035, R-11-006). A boundary cut is therefore a broken WCET bound, restarted under the crash-only posture (R-01-005), never resumed.
+· Accept: the *no consumer* deletion that took `Zacas` (R-15-026) and `Zifencei` (R-15-047), with the retained restore declined under *verify rather than hedge* (R-15-013) exactly as R-07-016 declines the register-file flush. The zeroize is unchanged and unconditional, so no isolation property moves; what is deleted is the per-partition save area, the kernel's V/M save and restore paths, and a resident copy of one domain's vector state between switches.
+· Trace: CJ-NI, CJ-ISOL, CJ-KERNEL, CJ-WCET · [§7](verification-maximal-os.md#r-07-014a)
+
+**R-07-014b** MUST — A computation that spans slots sinks its own vector and matrix working state to its own memory, in its own non-TCB code, under the compiler's sink-before-yield transformation; the kernel carries nothing across a switch on its behalf.
+· Accept: the obligation is paid by the tasks that need it and sized to what is live, in place of a kernel paying the full worst-case save for every partition at every switch — a reduction, not a relocation, and the standing move of placing an obligation where a proof can discharge it (R-07-016, R-05-123).
+· Trace: CJ-WCET, CJ-ISOL · [§7](verification-maximal-os.md#r-07-014b)
 
 **R-07-015** MUST — The scalar and capability register restore is *total*: every general-purpose register, capability register, and CSR a partition can name is written by the switch before the successor partition's first instruction.
 · Accept: residue is impossible rather than cleared; the register set is enumerated and argued closed, and a register outside the restore set is a proof failure.
@@ -1769,7 +1777,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-010)
 
 **R-11-011** MUST — Lever (2): where the deadline rather than the buffer sets the cadence, a device server whose admissible T_poll drives σ past the composition threshold is inadmissible as a slotted task and is statically pinned to a core of its class.
-· Accept: pinning *deletes* rather than reduces the switching cost — a core running one partition performs no partition switch, so `fence.t`, save-and-zeroize, and OPP relock all leave its budget together.
+· Accept: pinning *deletes* rather than reduces the switching cost — a core running one partition performs no partition switch, so `fence.t`, zeroize, and OPP relock all leave its budget together.
 · Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-011)
 
 **R-11-012** IS — This is the general rule the radio PHY pair and the sentinel were already instances of, now derived rather than assumed: any other device server failing σ is treated the same way instead of special-cased.
@@ -1834,7 +1842,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: suspension keeps state and removes a slot; it is not termination, and it is the mechanism, not a heuristic.
 · Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-026)
 
-**R-11-027** MUST — Tasks using vector or matrix instructions carry those units' bounded worst-case latencies into the WCET inputs, and eager vector/matrix save-and-zeroize costs enter the partition-switch terms.
+**R-11-027** MUST — Tasks using vector or matrix instructions carry those units' bounded worst-case latencies into the WCET inputs, and eager vector/matrix zeroize costs enter the partition-switch terms (zeroize only: the switch saves nothing, R-07-014a, and a slot-spanning task's own sink is in-slot WCET, R-07-014b).
 · Accept: the enabling properties are deterministic dataflow, in-order non-speculative issue, statically-predicted control flow, schedule-fixed frequency, and the fixed-latency divide/FPU/AMO mandates.
 · Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-027)
 
@@ -2614,7 +2622,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no unused encoding vocabulary appears in the model.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-048)
 
-**R-15-049** MUST NOT — `Smstateen` is excluded: with no less-privileged mode its bits gate nothing reachable, and what it was meant to close is already closed by the frozen profile, the access-system-registers permission, and `mstatus.VS/XS` with eager save-and-zeroize.
+**R-15-049** MUST NOT — `Smstateen` is excluded: with no less-privileged mode its bits gate nothing reachable, and what it was meant to close is already closed by the frozen profile, the access-system-registers permission, and `mstatus.VS/XS` with eager zeroize.
 · Accept: the CSR bank is absent.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-049)
 
@@ -3133,7 +3141,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-166), [§15](verification-maximal-os.md#r-15-166-2)
 
 **R-15-167** IS — Fast local memory, where a datapath needs it, is an explicit scratchpad: capability-governed plain memory at a fixed address range, WCET-exact and coherence-exempt, holding no reactive or hidden state.
-· Accept: it adds no timing channel and no flush obligation beyond the eager save-and-zeroize already accounted at a partition switch.
+· Accept: it adds no timing channel and no flush obligation beyond the eager zeroize already accounted at a partition switch.
 · Trace: CJ-WCET, CJ-ISOL · [§15](verification-maximal-os.md#r-15-167)
 
 **R-15-168** IS — Scalar cores carry no local memory tier: their hierarchy is register file to SRAM main memory, flat and uniform. A scalar scratchpad is admitted only as a design-space-exploration parameter where access is predictable and high-reuse enough for static staging to pay.
@@ -3334,8 +3342,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: residue is impossible rather than cleared, and a register outside the restore set is a failure of the kernel proof.
 · Trace: CJ-KERNEL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-214)
 
-**R-15-215** MUST — Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: no predictor, no reservation, no prefetcher, no TLB or walk cache, no cache of any kind, no scalar-FP or rounding-mode state, the register files by total restore, and the vector/matrix and scratchpad state by the §7 eager save-and-zeroize.
-· Accept: each is a distinct named mechanism, not the fence's job.
+**R-15-215** MUST — Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: no predictor, no reservation, no prefetcher, no TLB or walk cache, no cache of any kind, no scalar-FP or rounding-mode state, the register files by total restore, and the vector/matrix and scratchpad state by the §7 eager zeroize.
+· Accept: each is a distinct named mechanism, not the fence's job. With the V/M save deleted (R-07-014a) the last two converge: both are discharged by what the switch *writes* before the successor's first instruction, neither by a snapshot carried across, so R-15-217's class (a) sees one sub-case where it formerly saw two.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-215)
 
 **R-15-216** IS — `fence.t` does not touch state that is partitioned rather than time-shared (SRAM banks/macros/tiers, TDM NoC slots, per-partition interrupt-file state), and in-flight DMA is not its concern: device windows are torn down or re-authorized by the capability machinery at the boundary.
@@ -3354,7 +3362,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the temporal fence makes the term data-independent, a property no ordering fence has.
 · Trace: CJ-NI, CJ-WCET · [§15](verification-maximal-os.md#r-15-219)
 
-**R-15-220** MUST — Partition-switch cost is three terms, not four: the `fence.t` padded constant (which *is* the store-buffer drain, counted once), eager vector/matrix save-and-zeroize, and OPP relock where operating points differ.
+**R-15-220** MUST — Partition-switch cost is three terms, not four: the `fence.t` padded constant (which *is* the store-buffer drain, counted once), eager vector/matrix zeroize (zeroize only — the switch saves nothing, R-07-014a), and OPP relock where operating points differ.
 · Accept: listing the fence and the drain separately would inflate every switch bound feeding §11 by a full drain.
 · Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-220), [§15](verification-maximal-os.md#r-15-220-2)
 
