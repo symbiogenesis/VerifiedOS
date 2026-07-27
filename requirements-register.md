@@ -2486,6 +2486,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: two stores from one hart to distinct banks reach their arbiters in issue order, and no later load returns a value the coherence order places before an earlier load's. Discharged either structurally — per-hart request order is a static property of the composition-time TDM slot schedule and per-island arbitration, with reordering unrepresentable in the fabric (preferred) — or by an ordering lemma over the NoC and memory-controller RTL. Bare per-core reasoning is not a discharge.
 · Trace: CJ-SAIL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-015a), [§15](verification-maximal-os.md#r-15-015a-2)
 
+**R-15-015b** MUST — The store buffer holds SRAM-space stores only: a device-space store does not enter it, issuing only once the buffer has drained and completing at the endpoint's accept before it retires. The exclusion is forced by R-15-218, whose padded constant is stated over the class's depth and memory bandwidth and would otherwise be set by the slowest endpoint's accept latency (R-12-046's divided card clock being an on-die existence proof, and R-15-196's island-clock FIFO narrowing that to the common case without closing the full-FIFO backpressure worst case a pad must price); the drain-first half is forced by R-15-015, a device store leaving the core ahead of a buffered SRAM store being a store→store reordering Ztso does not permit.
+· Accept: no device-space entry is representable in the buffer in the RTL, and the issue condition is one statically-decoded stall on one instruction class rather than the load-path bypass-correctness obligation R-15-018 ground (3) rejects. Together the two halves make descriptor→doorbell, device-store→device-store, and the MMIO read-back structural, so the `PI`/`PO` axis separates nothing and per-hart request order to a device endpoint needs no clause in R-15-015a. Cost is a drain plus an endpoint round-trip per device store, at rate only on the MSI send (R-15-064, R-08-032), mitigated by R-11-010's ring-depth amortization.
+· Trace: CJ-SAIL, CJ-WCET, CJ-ISOL · [§15](verification-maximal-os.md#r-15-015b)
+
 **R-15-016** MUST — The Ztso guarantee is an RTL-against-Sail proof obligation stated over the whole memory path: the store buffer provably exposes no ordering weaker than TSO, and the fabric beneath it provably preserves per-hart request order (R-15-015a).
 · Accept: the obligation is a named bring-up gate alongside the `Zkt`/`Zvkt` timing obligation, and its statement covers the NoC and memory controller rather than the store buffer alone.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-016), [§15](verification-maximal-os.md#r-15-016-2)
@@ -3359,8 +3363,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-RTL-SAIL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-217)
 
 **R-15-218** MUST — `fence.t`'s cost is a padded per-class constant and the fence completes at that bound, never early.
-· Accept: the worst case is the store buffer's drain latency at the class's depth and memory bandwidth, a data-independent entry in the timing-annotated model.
-· Trace: CJ-WCET, CJ-LEAK · [§15](verification-maximal-os.md#r-15-218)
+· Accept: the worst case is the store buffer's drain latency at the class's depth and memory bandwidth, a data-independent entry in the timing-annotated model. The bound is over SRAM and holds because R-15-015b keeps device-space stores out of the buffer, so no endpoint's accept latency is inside it and the constant is a function of the class rather than of what the outgoing partition was last talking to.
+· Trace: CJ-WCET, CJ-LEAK · [§15](verification-maximal-os.md#r-15-218), [§15](verification-maximal-os.md#r-15-218-2)
 
 **R-15-219** IS — That constancy, not the draining, is why a plain `fence` cannot replace it: a `fence` completes when the buffer happens to empty, making its duration a function of the outgoing partition's store-buffer occupancy — a partition-switch-duration channel.
 · Accept: the temporal fence makes the term data-independent, a property no ordering fence has.

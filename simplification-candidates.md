@@ -24,35 +24,26 @@ An item earns a place on this list iff it clears all five:
 
 ## 1. Collapse the `fence` encoding space
 
-- [ ] **Reduce `fence` from 256 encodings to the two (at most four) behaviors the machine can actually exhibit.**
+- [ ] **Reduce `fence` from 256 encodings to the two behaviors the machine can actually exhibit.**
   RISC-V `fence` carries `fm[3:0]`, `pred[3:0]`, `succ[3:0]`, with predecessor and successor sets each drawn from `{PI, PO, PR, PW}` — 256 pred/succ pairs, plus `fence.tso` as a distinguished `fm`.
   This machine's ordering set is fully determined by three facts already in the register: in-order issue gives load→load and load→store, the FIFO store buffer gives store→store (R-15-015), and single-copy memory with the bank arbiter as the order-determining point gives store atomicity (R-15-087). The **only** relaxation is store→later-load bypass.
   So a `fence` is observable iff its predecessor set includes a write and its successor set includes a read; every other encoding — all of `r,r`, `w,w`, `r,w`, and their I/O variants — is architecturally a **no-op on this platform**, and `fence.tso` is indistinguishable from the machine's steady state.
-  Two behaviors exist (drain, nop), or four if device stores travel a path distinct from SRAM stores and the `PI`/`PO` axis therefore separates. Not 256.
+  **Two** behaviors exist — drain, nop. Not 256. The `PI`/`PO` axis separates nothing either: under R-15-015b a device store leaves the core only after the buffer has drained and completes at the endpoint before it retires, so device stores travel no independently-ordered path for the fence to name.
   *Grounds (gate 4):* this is verbatim the argument §15 already makes for dropping RVWMO — *"keeping RVWMO would only impose its heavier reasoning burden on every proof for behaviors the hardware cannot produce"* (R-15-004). The pred/succ set lattice is that burden's remaining half: it is RVWMO's vocabulary, retained on a machine that cannot make the distinctions it expresses.
   *Perf:* neutral. Every collapsed encoding is already a no-op; the drain case keeps the cost it has.
   *Deletes:* the pred/succ lattice from the Sail memory-ordering rules, the `fm` field's semantics, and the fence-set case analysis from every ring proof (R-12-008) and from the §17 litmus obligations.
-  *Touches:* R-15-017 (which currently retains `fence` generically), R-12-008's acceptance criterion, R-15-061, R-15-015a (whose coverage the device case turns on, below).
+  *Touches:* R-15-017 (which currently retains `fence` generically), R-12-008's acceptance criterion, R-15-061.
 
   **Two adjacent claims to re-derive rather than inherit.** Both are stated in the register as though `fence` were load-bearing, and under TSO on single-copy memory neither obviously is:
   - **R-12-008's "under Ztso *with fences included*."** A bounded SPSC ring needs release-store and acquire-load semantics (R-15-026), and on this machine both are **free**: release needs load→store and store→store, acquire needs load→load and load→store, and all four are given. The producer's *check tail → write data → write head* and the consumer's *read head → read data → write tail* contain no store→load edge. If that holds, the ring proof needs no fence at all, and its acceptance criterion is over-specifying the hardware.
   - **R-15-061's "cross-island ring ordering is a plain `fence`."** Cross-island rings live in shared SRAM (R-15-223), and shared SRAM is the same single-copy memory under the same TSO. The fence there is either unnecessary for the same reason, or it is standing in for the fabric-ordering property R-15-015a makes an explicit obligation — in which case it is a fence papering over an interconnect guarantee, which is the wrong place to pay for it.
 
-  **The last consumer, and where it actually lives.** If both re-derive as fence-free, `fence`'s sole surviving consumer is device ordering — MMIO and DMA-descriptor visibility (R-15-017) — and the cut becomes the same *no consumer* deletion that took `Zacas`. But that consumer is misdescribed by its own name, and the misdescription is what makes it look expensive to retire.
+  **There is no surviving consumer.** If both re-derive as fence-free, the only remaining candidate is device ordering — MMIO and DMA-descriptor visibility (R-15-017) — and R-15-015b supplies every edge that names, making the cut the same *no consumer* deletion that took `Zacas`:
+  - **SRAM store → device store**, the descriptor-before-doorbell edge — descriptors being ordinary SRAM writes and only the doorbell a device write. A device store issues only once the store buffer has drained, so every preceding descriptor write has reached its bank arbiter, the order-determining point (R-15-087), before the doorbell leaves the core.
+  - **device store → device store**: serialized by the accept, each completing before the next issues.
+  - **device store → device load**, the MMIO read-back: the store has completed at the endpoint before the load issues.
 
-  DMA-descriptor visibility is not a *device-store* ordering problem. The descriptors are ordinary SRAM writes; only the doorbell is a device write. The edge that must hold is therefore **SRAM store → device store**, and TSO gives store→store architecturally. What does not obviously follow is the implementation side: R-15-015a states the fabric obligation over "banks, macros, and shared cross-island ring windows" — **device endpoints are not in that list**. That omission, not buffering, is the whole of why the `PI`/`PO` axis survives into the four-behavior count above.
-
-  *Preferred discharge — extend R-15-015a to device endpoints.* Per-hart program order preserved to a device endpoint exactly as to a bank makes descriptor-before-doorbell structural, retiring the consumer outright.
-  - *Perf:* neutral. It constrains a TDM schedule at composition time, which is where R-15-015a already says the property is preferentially discharged — not a term paid per store at runtime.
-  - *Deletes:* more than the non-bufferable route does. The `PI`/`PO` axis goes with it, collapsing this section's "two, or four" back to an unqualified **two**, and folding I/O ordering into the one memory model rather than leaving it in the sidecar RISC-V keeps it in.
-  - *Residual:* device store → device load — the MMIO read-back — is the one genuine store→load edge left, and it is closed by a local store-buffer rule (device-space stores do not forward to loads), not by an architectural change to when a store completes.
-  - *Grounds (gate 4):* this is R-15-015a's own move, applied to the endpoint class it did not reach — naming a fabric obligation instead of buying the ordering with an instruction. Same shape as R-15-061's diagnosis one bullet up: a fence papering over an interconnect guarantee is paying in the wrong currency.
-
-  *The non-bufferable variant, rejected.* Making device-space stores architecturally non-bufferable is the stronger-looking alternative, and it is **worse on both gates that matter**:
-  - It **does not retire the descriptor consumer** it was proposed for. Non-bufferable device stores leave the *SRAM* stores in the buffer, so the descriptor→doorbell edge is exactly as unordered as before. It closes the read-back hazard and nothing else — which the forwarding rule above closes for free.
-  - It **fails gate 2**, where the fabric route does not. Cost is concentrated, not diffuse: MMIO configuration is cold-path by construction (R-15-140), and doorbells are already per-batch under R-11-010's ring-depth amortization rather than per-item. The one class that pays is **MSI sends**, which R-15-064 and R-08-032 make device-space stores on the cross-core notification path — and the mitigation there is the batching-at-the-source that [performance-recovery-todo.md](performance-recovery-todo.md) §1's ring-window lever already prescribes for the same traffic. Bounded and largely recoverable, but a cycle cost bought for a guarantee the composition-time route supplies at none.
-
-  Recorded as **considered and rejected in favor of the fabric obligation**, not as a live trade.
+  So per-hart request order to a device endpoint is a property of the core rather than a clause owed by the fabric, and R-15-015a needs no extension to device endpoints.
 
 ---
 
@@ -83,15 +74,6 @@ An item earns a place on this list iff it clears all five:
 
 ---
 
-## Not a simplification, but adjacent
-
-- [ ] **Settle whether a device store can sit in the store buffer across a `fence.t`.**
-  R-15-218 states the padded constant's worst case as "the store buffer's drain latency at the class's depth **and memory bandwidth**." That phrasing assumes every buffered store is bound for SRAM. If device-space stores are bufferable — and nothing in the register says they are not — then a partition holding an MMIO write to a slow endpoint makes the drain's worst case that endpoint's accept latency instead, and the eUICC's ISO7816 block, clocked off a divided card clock (R-12-046), is an existence proof that such an endpoint is on the die.
-  Either device stores are already implicitly excluded from the buffer and no requirement says so, or **R-15-218's constant is understated and R-15-220's three-term switch cost inherits the error** — which would put a device's response time inside a bound the design needs to be a function of the *class*, not of what the outgoing partition was talking to.
-  *Not on the numbered list because it deletes nothing either;* it is a question about a stated bound, and it wants an answer whether or not §1 is ever adopted. The answer may also close §1's read-back residual for free: if device stores never enter the buffer, the no-forwarding rule is vacuous.
-
----
-
 ## Considered and rejected
 
 Recorded so they are not re-proposed. Each fails a specific gate.
@@ -104,4 +86,3 @@ Recorded so they are not re-proposed. Each fails a specific gate.
 | **Collapse the three VLENs to one** | 2 | VLEN is where the vector performance argument lives (R-15-113, R-15-115). Real surface win, real perf loss; belongs in the multi-objective DSE trade the spec already specifies (§15, [implementation-plan.md](implementation-plan.md) §1), not here. |
 | **Delete indexed gather/scatter and segment load/store** | 2 | Large surface with per-element capability checks (R-15-115), but segment load/store is the AoS↔SoA path the radio and codec kernels on the V-class need most. Deleting it moves the cost into every kernel's inner loop. |
 | **A hardware store-buffer bypass predictor**, or any dynamic ordering optimization | 3, 4 | Hidden state that survives a partition switch; fails admission test 3 outright (R-15-011). Already out of scope in [performance-recovery-todo.md](performance-recovery-todo.md). |
-| **Architecturally non-bufferable device stores**, as the route to deleting `fence` | 2 | Superseded by §1's fabric-obligation route, which retires the same consumer at composition time. Two defects: it does not order the SRAM-store→doorbell edge it was proposed for (those stores stay buffered), and it puts a NoC round-trip in every MSI send (R-15-064, R-08-032). Kept only as the fallback if extending R-15-015a to device endpoints proves infeasible in the NoC schedule. |

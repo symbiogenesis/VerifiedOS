@@ -86,7 +86,7 @@ Every stateful structure in the RTL maps to **exactly one of four classes**, and
 | --- | --- | --- |
 | Architectural / context-switched | register files, restored in total by the kernel's restore set — residue is impossible rather than cleared, and a register outside the restore set is a failure of the kernel proof | R-15-214, R-15-217 |
 | Partition-owned | SRAM banks/macros/tiers, TDM-NoC slots, per-partition interrupt-file state — flushing spatially-owned state would be a category error | R-15-216, R-15-217 |
-| `fence.t`-flushed | **a single structure: the store buffer**, drained rather than merely fenced | R-15-213, R-15-217 |
+| `fence.t`-flushed | **a single structure: the store buffer**, drained rather than merely fenced — and holding **SRAM-space stores only**, which is what keeps the drain's bound a function of the class rather than of an endpoint's accept latency | R-15-213, R-15-217, R-15-015b |
 | Stream-determined pipeline state | the static-path fetch buffer and the decode and execute latches, emptied by the fence's pipeline drain; **bounded by the same table-freeness test** as §5 | R-15-217, R-15-104 |
 
 *"Did we flush everything"* is discharged against the RTL state inventory rather than a hand-maintained list (R-15-217). Nothing else joins the flush set, each would-be member being already absent or covered elsewhere — the A-13 through A-16 rows above are that argument's dependencies (R-15-215).
