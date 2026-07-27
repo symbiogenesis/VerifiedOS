@@ -2494,9 +2494,9 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the Sail model retains `fence`; no cache-management instruction accompanies it.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-017)
 
-**R-15-018** IS — Sequential consistency was evaluated and rejected on four platform-specific grounds, and is named in §18 as a question worth revisiting, not as a pending change.
-· Accept: Ztso is the specified model; the §18 entry is a question, not a deliverable.
-· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-018)
+**R-15-018** IS — Sequential consistency was evaluated and rejected on four platform-specific grounds, none of which carries a hart-count or issue-width term: single-copy memory (R-15-087) makes the deviation from SC local to each hart's own store buffer rather than coherence-borne, so there is no traffic term for hart count to scale, and wider issue deepens the buffer each load must wait out. SC is named in §18 as a question worth revisiting, not as a pending change.
+· Accept: Ztso is the specified model; the §18 entry is a question, not a deliverable. The rejection is stated over the platform, not over a configuration of it, and ground (4)'s saving is the single store→later-load relaxation that single-copy memory leaves — one clause of the ordering relation, not the memory model.
+· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-018), [§15](verification-maximal-os.md#r-15-018-2)
 
 ### 15.4 Control-flow prediction
 

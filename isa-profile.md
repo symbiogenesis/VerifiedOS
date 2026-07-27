@@ -28,7 +28,7 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | Unallocated encodings | **trap**; no encoding is a no-op by default | R-15-014 |
 | Model | exactly **one** Sail model, parameterized by core class; exactly **one** capability encoding | R-15-005 |
 
-**Ztso is the specified model, and sequential consistency is not a pending change.** SC was evaluated and rejected on four platform-specific grounds; §18 names it as a question worth revisiting, which is a question and not a deliverable (R-15-018). A curator implements Ztso.
+**Ztso is the specified model, and sequential consistency is not a pending change.** SC was evaluated and rejected on four platform-specific grounds, none of which has a hart-count or issue-width term — single-copy memory keeps the deviation from SC local to each hart's store buffer (R-15-087), so the rejection holds at any core count and gets *stronger* with width; §18 names it as a question worth revisiting, which is a question and not a deliverable (R-15-018). A curator implements Ztso.
 
 ## 2. Adopted extensions
 
