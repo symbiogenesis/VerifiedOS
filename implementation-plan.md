@@ -189,6 +189,7 @@ The spec's production form is CompCert-C + VST/Iris with no managed runtime (§1
   Re-express the **VeriBetrFS** B^ε-tree design (Dafny today) as the L1 CoW index in Gallina, and write the **Perennial/GoJournal** journal *design* (its proof is Coq, its code is Go via Goose) directly in Gallina for L0.
   Per-extent **AEAD** calls the §4 crypto module.
 - **Plan**, compose L0 (journal) ⋈ L1 (parametric CoW B-tree, one index instantiated per object class) ⋈ L2 (typed keys, snapshot-version-in-key, RefFS semantics) ⋈ L3 (per-domain AEAD, noninterference) as Gallina modules; exercise host-side via Wasm against an in-memory disk; lower GC-free (CompCert-C/VST through CHERI-CompCert) to purecap RV64+CHERI to run on the emulator against a modeled block device.
+  Instantiate typed object-metadata and secondary-index keys in that same L1 module, update object, metadata, and indexes through one L0 transaction, and derive bounded live-query deltas from committed typed-key changes; test confidentiality-domain and namespace-capability scoping, crash atomicity, ordered delivery, and overflow-to-rescan behavior.
   Build the **system-integrity instance first** (it is the transactor's backing store, §6), then the **user-data (bcachefs-class) instance** on the same codebase (§10).
   Below-the-line availability services (replication/EC/tiering/copygc/FTL) are *not* built in the golden model, they are the safe-Rust workstream (deferred).
 
@@ -318,7 +319,7 @@ Bottom-up, each milestone runnable against the prior one:
 5. **M4, Storage + objects.**
    Journal/index/FS (§7) and the content-addressed object store + transactor (§6); system-integrity instance first, then user-data.
 6. **M5, Userland spine.**
-   Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set.
+  Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set; the package composer emits the finite typed handler/translator graph and pre-admitted media templates, and the contained object router exercises private namespaces, intents, live queries, deterministic translation caching, and protocol-bound credential handles over the existing IDL and rings.
 7. **M6, Full-system golden model.**
    The composed emulator (§10) boots the whole stack; the Wasm track runs the same components fast for iteration.
 8. **M7, FPGA scalar (purecap).**

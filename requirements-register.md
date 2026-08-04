@@ -1992,6 +1992,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: runtime binding creates no code, compartment, edge type, or unbounded queue; outputs enter the caller's confidentiality domain as ordinary §10 typed objects in one metadata/index transaction.
 · Trace: CJ-WCET, CJ-NI, CJ-IDL, CJ-T · [§12](verification-maximal-os.md#r-12-024c)
 
+**R-12-024d** MUST — Deterministic translation reuse is confined to one confidentiality domain and keyed by input content hash, admitted translator package identity and version, declared parameters, and output content type.
+· Accept: mutable input identity, undeclared process state, filename, and caller-controlled handler naming affect neither the result nor cache selection; cache probing reveals nothing across domains.
+· Trace: CJ-NI, CJ-DEVTREE, CJ-T · [§12](verification-maximal-os.md#r-12-024d)
+
 **R-12-025** MUST — Raw NAND is exposed through a firmware-free on-die flash-interface block (ONFI PHY plus a fixed-function ECC engine), with the FTL a host-side Tier-1 server doing wear levelling, mapping, and garbage collection in safe Rust, trusted for availability only.
 · Accept: SSD-controller firmware is deleted; NVMe/eMMC devices with vendor firmware are not on the allowlist.
 · Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-025)
