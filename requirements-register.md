@@ -1920,6 +1920,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the kernel is not an IDL endpoint.
 · Trace: CJ-IDL · [§12](verification-maximal-os.md#r-12-013)
 
+**R-12-013a** MUST — Object references, intents, and transformations use the existing IDL: an object is an out-of-band capability plus typed metadata identity, an intent is a closed variant rather than an executable name or command string, and a transformation declares bounded input/output types, resource limits, and its interface world.
+· Accept: no desktop-specific wire protocol, open-ended intent string, or authority-bearing path is introduced.
+· Trace: CJ-IDL, CJ-FORMAT · [§12](verification-maximal-os.md#r-12-013a)
+
 ### 12.4 Sealing, attestation, and credentials
 
 **R-12-014** MUST — The sealing and attestation service is a crypto-core-backed compartment exposing seal/unseal, attestation quotes, reference-manifest retrieval, and monotonic-counter operations over rings, binding secrets to the RoT and measured state.
@@ -1929,6 +1933,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-12-015** MUST — A relying party retrieves the running generation's reference integrity manifest through the same service and appraises a quote against it, so remote verification needs no vendor-side golden database.
 · Accept: the reference set is reproducible from source.
 · Trace: CJ-DEVTREE · [§12](verification-maximal-os.md#r-12-015)
+
+**R-12-015a** MUST — The sealing service is the sole credential agent and returns only non-exportable credential capabilities bound to a typed protocol role, principal, peer/origin scope, permitted operation, transcript/domain separator, use count, and expiry.
+· Accept: raw key export and unconstrained sign, decrypt, or derive operations are absent; each operation is a schema-bounded IDL request returning only the protocol result.
+· Trace: CJ-CRYPTO-SPEC, CJ-CT-SOUND, CJ-IDL · [§12](verification-maximal-os.md#r-12-015a)
+
+**R-12-015b** MUST — Credential delegation is monotone attenuation and any operation requiring fresh user approval uses the powerbox and trusted consent path rather than a client-rendered prompt.
+· Accept: a client or delegated credential holder can neither widen protocol/scope/operation bounds nor manufacture approval.
+· Trace: CJ-NI, CJ-CERISE, CJ-CRYPTO-SPEC · [§12](verification-maximal-os.md#r-12-015b)
 
 **R-12-016** MUST — The credential and unlock service gates the Before-First-Unlock → After-First-Unlock transition: it matches the primary credential and runs biometric matching, with the biometric sensor a register slave streaming raw samples over a capability-bounded DMA interface block and the matcher ordinary contained safe Rust in its own sub-manifest.
 · Accept: a correct match authorizes the crypto core and RoT to derive and hold the per-profile volume key.
@@ -1967,6 +1979,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-12-024** IS — Below the §10 integrity line the availability-only block services are ordinary `#![forbid(unsafe_code)]` Rust Tier-1 compartments; a bug or compromise costs availability, never integrity or confidentiality.
 · Accept: the AEAD/Merkle-DAG layer catches corruption.
 · Trace: CJ-CRYPTO-SPEC · [§12](verification-maximal-os.md#r-12-024)
+
+**R-12-024a** IS — The object namespace, query, and routing service is a contained non-TCB control plane over the existing filesystem, object store, IDL, and rings, resolving only the caller's manifest-derived namespace capability and returning object capabilities plus commit-ordered query deltas.
+· Accept: no VFS, registry, metadata database, or launcher is added, and compromise costs correct routing or availability rather than authority confinement.
+· Trace: CJ-NI, CJ-CERISE, CJ-IDL · [§12](verification-maximal-os.md#r-12-024a)
+
+**R-12-024b** MUST — The handler and translator graph is a finite signed generation-built object compiled from installed packages' interface descriptors, with deterministic typed routing and no runtime registration, executable lookup, shell command, plugin load, or content sniffing.
+· Accept: routing passes only caller-supplied object and local-buffer capabilities attenuated to the selected edge; unsupported types fail closed.
+· Trace: CJ-IDL, CJ-DEVTREE, CJ-NI · [§12](verification-maximal-os.md#r-12-024b)
+
+**R-12-024c** MUST — One-shot translation and streaming media use the same static typed graph: streaming binds a composition-time template from pre-composed node and bounded-ring pools, with every node's WCET, memory, labels, and device reservation admitted before shipment.
+· Accept: runtime binding creates no code, compartment, edge type, or unbounded queue; outputs enter the caller's confidentiality domain as ordinary §10 typed objects in one metadata/index transaction.
+· Trace: CJ-WCET, CJ-NI, CJ-IDL, CJ-T · [§12](verification-maximal-os.md#r-12-024c)
 
 **R-12-025** MUST — Raw NAND is exposed through a firmware-free on-die flash-interface block (ONFI PHY plus a fixed-function ECC engine), with the FTL a host-side Tier-1 server doing wear levelling, mapping, and garbage collection in safe Rust, trusted for availability only.
 · Accept: SSD-controller firmware is deleted; NVMe/eMMC devices with vendor firmware are not on the allowlist.
@@ -2411,6 +2435,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-14-012** MUST NOT — There is no Linux-personality shim, ever, and no VM: faithful syscall translation is an ambient-authority emulator, and foreign binaries simply do not run.
 · Accept: the only on-ramp is source-level recompilation against a WASI-shaped capability libc whose filesystem is a private, manifest-backed namespace; such ports are ordinary Tier-2 citizens.
 · Trace: CJ-CERISE · [§14](verification-maximal-os.md#r-14-012)
+
+**R-14-012a** IS — A private filesystem namespace is a typed view mechanically derived from the app's capability manifest, with paths only app-local aliases for object or service capabilities already present in the graph.
+· Accept: build-time composition may deterministically join or shadow fragments, but runtime mount/bind/union mutation, a global service directory, path-based capability lookup, and namespace escape are absent.
+· Trace: CJ-NI, CJ-CERISE · [§14](verification-maximal-os.md#r-14-012a)
 
 **R-14-013** IS — *WASI-shaped* is API vocabulary, not substrate: everything compiles to native RV64+CHERI, and Wasm is not a system execution target. An app may embed an interpreter-mode Wasm engine as its private plugin mechanism, invisible to the architecture.
 · Accept: no Wasm runtime exists in any system image (R-05-085).

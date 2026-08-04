@@ -57,6 +57,32 @@ The design also *shrinks* the problem before inheriting it: because its capabili
 
 ---
 
+## Plan 9: private namespaces, Factotum, and Plumber re-grounded on capabilities and typed IPC
+
+Plan 9 contributes three ideas that become one object-fabric control plane in §12 and §14.
+Its **per-process namespace** supplies the usability model for presenting each program a different coherent view of files and services; here the view is derived at composition time from the program's capability manifest, and a path is only a local alias for an object or service capability already granted, so namespace composition never becomes an authority mechanism (§14).
+Its **Factotum** supplies the separation between protocol implementation and key custody; here the existing sealing and attestation service and crypto core return non-exportable, attenuable credential capabilities bound to protocol role, peer or origin, operation, transcript, use count, and expiry, with no raw-key export or generic signing/decryption oracle (§12).
+Its **Plumber** supplies typed intent routing between applications; here intents are closed IDL variants, objects travel as out-of-band capabilities with §10 typed metadata, and a contained router selects only among a signed, generation-built graph of already-admitted handlers and translators (§12, §13).
+
+The transformation is the point.
+Plan 9's universal file protocol and mutable `mount`/`bind` namespace are not imported: forcing every service through byte-stream file operations would discard the platform's typed IDL, bounded rings, capability control plane, and generated proof skeletons, while runtime namespace mutation and global service discovery would reopen ambient path authority.
+No 9P compatibility layer exists; the platform takes the private-view, key-custody, and message-routing ideas and realizes each through mechanisms it already verifies.
+
+---
+
+## BeOS: typed attributes, live queries, translators, and media graphs made transactional and static
+
+BeOS contributes the object-facing half of the same fabric.
+Its filesystem **typed attributes, indexed queries, and live queries** become typed metadata records and secondary-key instantiations in §10's one verified B^ε-tree, scoped by confidentiality domain and namespace capability and updated in the same journal transaction as the object; commit-ordered live deltas use §12's bounded SPSC rings, with overflow reduced to a rescan marker rather than an unbounded event queue.
+Its **Translation Kit** becomes the finite typed translator graph: content type and intent are frozen IDL types, every translator is an admitted static compartment, and conversion output returns to the content-addressed store as an ordinary typed object (§10, §12, §13, §14).
+Its **Media Kit** becomes the streaming form of that graph: composition-time templates bind pre-composed decoder, converter, mixer, renderer, and output nodes with bounded rings and §11-admitted WCET, memory, label, and device reservations (§12).
+
+The dynamic BeOS mechanisms are deliberately declined.
+There is no runtime-loaded translator add-on, codec plugin, handler registration, content-sniffing dispatch, global query index, or best-effort media graph assembled after admission; those would add executable mutability, cross-domain metadata oracles, parser ambiguity, and scheduling states the static package closure and cyclic executive exist to remove.
+The result keeps BeOS's unusually coherent object and media programming model while moving persistence into the existing verified store, authority into CHERI capabilities, interchange into the existing IDL, isolation into static compartments, and timing into the existing admission proof.
+
+---
+
 ## Akaros: application-directed core partitioning and the asynchronous syscall, reached from the datacenter-performance pole
 
 Akaros (Barret Rhoden, Kevin Klues, and colleagues at UC Berkeley; a Plan 9 derivative) is a manycore operating system built for *"parallel and high-performance applications in the datacenter"*, whose organizing goals are **application-directed resource management** and *"100% isolation from other jobs running on the system."*
