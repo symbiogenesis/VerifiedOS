@@ -1740,6 +1740,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: it feeds WCET and reproducibility without introducing per-core learned history.
 · Trace: CJ-WCET · [§10](verification-maximal-os.md#r-10-034)
 
+**R-10-035** MUST — A compartment declares its durable state as typed regions in its manifest, within the enumerated mutable volumes, and the platform checkpoints them into the owning confidentiality domain's subvolume under that domain's key; applications author no serializer, autosave loop, or recovery path.
+· Accept: the durable path is the verified L0/L1/L2 stack, so per-application persistence inherits its crash-refinement theorem rather than each application's ad-hoc recovery being an unproved crash surface.
+· Trace: CJ-DEVTREE, CJ-FORMAT · [§10](verification-maximal-os.md#r-10-035)
+
+**R-10-036** MUST — A checkpoint is taken only at a declared quiescent point and committed as a single L0 journal transaction; restoring is never a resume but a measured boot, a manifest-reconstructed compartment, ordinary initialization, and only then a read of the durable regions.
+· Accept: the checkpoint is an admitted slot rather than a preemption, no partially updated region is ever committed, and durable state is bound to its schema and image generation so an update supplies a checked migration or discards.
+· Trace: CJ-WCET, CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-036)
+
+**R-10-037** MUST NOT — A checkpoint never contains execution state, capabilities or tags, keys, DRBG state or nonces, leases, consent grants or powerbox decisions, or connection, session, or device state.
+· Accept: authority is re-derived at restart from the manifest and the current revocation epoch, so no restore resurrects an authority a revocation retired and storage is never a second origin of authority beside composition.
+· Trace: CJ-CERISE, CJ-CRYPTO-SPEC · [§10](verification-maximal-os.md#r-10-037)
+
 ---
 
 ## §11 — Updates
@@ -3832,6 +3844,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the stack carries no TCB membership at all, so system integrity rides the small reader and transactor instead.
 · Trace: CJ-NI, CJ-REDUCTION · [§17](verification-maximal-os.md#r-17-043)
 
+**R-17-043a** IS — Declarative durable state books the storage seam's seventh residual: it buys the deletion of per-application persistence code at the price of the one state class that outlives the reboot which clears everything else, costing a rollback window between checkpoints, a standing schema-migration obligation across generations, and the only place on the machine where a defect can be durable.
+· Accept: the class stays typed, per-domain, non-TCB, and discardable and is never extended to system or kernel state; externally visible or non-repeatable effects still take an explicit commit rather than riding the checkpoint.
+· Trace: CJ-DEVTREE · [§17](verification-maximal-os.md#r-17-043a)
+
 **R-17-044** IS — The synchronous-control-plane seam adds no fresh axiom (Vélus is Coq-verified) and carries two residuals: the Lustre program and the control/data boundary are crown-jewel specs, and the offset is a net shrink — WCET, the memory-safety certificate, and determinism become structural for the control tier.
 · Accept: the rare adoption that lowers net tooling.
 · Trace: CJ-VELUS · [§17](verification-maximal-os.md#r-17-044)
@@ -4090,7 +4106,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 915 requirements. §19 is non-normative and yields none. Counts include the letter-suffixed entries (`R-05-022a`, `R-05-151a`, `R-08-031a`, `R-15-001a`, `R-15-015a`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-17-016a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 936 requirements. §19 is non-normative and yields none. Counts include the thirty letter-suffixed entries (`R-05-022a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4100,17 +4116,17 @@ All eighteen normative sections are extracted, at 915 requirements. §19 is non-
 | **§4 Organizing Principle** | **extracted** | **12** |
 | **§5 Languages & Verification** | **extracted** | **164** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
-| **§7 Kernel** | **extracted** | **52** |
+| **§7 Kernel** | **extracted** | **54** |
 | **§8 Authority Model** | **extracted** | **45** |
 | **§9 Boot & Root of Trust** | **extracted** | **31** |
-| **§10 Storage & State** | **extracted** | **34** |
+| **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
-| **§12 System Servers** | **extracted** | **86** |
+| **§12 System Servers** | **extracted** | **95** |
 | **§13 Packaging & Supply Chain** | **extracted** | **29** |
-| **§14 Userland** | **extracted** | **13** |
-| **§15 Hardware Platform** | **extracted** | **251** |
+| **§14 Userland** | **extracted** | **14** |
+| **§15 Hardware Platform** | **extracted** | **254** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **66** |
+| **§17 Residual Risks** | **extracted** | **67** |
 | **§18 Realization** | **extracted** | **37** |
 
 §19 is non-normative and yields no requirements.

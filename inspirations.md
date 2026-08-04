@@ -57,6 +57,26 @@ The design also *shrinks* the problem before inheriting it: because its capabili
 
 ---
 
+## KeyKOS → EROS → CapROS: transparent checkpointing, with the persistence of *data* taken and the persistence of *processes* left behind
+
+The KeyKOS line's most distinctive runtime idea is **orthogonal global persistence**: the system takes a periodic consistent snapshot of all user state (pages, capabilities, and running processes alike), so a restart resumes the machine as of the last checkpoint and an application does nothing whatever to be persisted or recovered.
+The engineering held up: dirty pages are marked copy-on-write and written in the background rather than stop-the-world (the naive multi-second snapshot is what gave checkpointing its bad name), the snapshot lands in a write-ahead checkpoint log before migrating to home locations, most migrations never happen because the page is re-dirtied first, and the reported steady-state overhead is a fraction of one percent.
+Its claimed payoff is the one this design cares about: applications stop containing save/load code at all, and a capability system additionally escapes the awkward startup question of where a freshly started program gets its authority.
+
+**What is taken is the payoff, not the mechanism.**
+§10's **declarative durable state** keeps the property that no application authors a serializer, an autosave loop, or a recovery path, and drops everything that made the property *transparent*: a compartment declares typed durable regions in its manifest (§13), the platform checkpoints them at a verified quiescent point (§7) as one transaction through the already-verified storage stack (§10), and a restart is a measured boot into a freshly initialized compartment that then *reads* its regions (§9).
+The deletion is therefore of **code**, which is what the design wants (one verified persistence path instead of N unverified ones, the move already made for the allocator and the configuration parser), without the resume, which is what the design forbids.
+The security argument is the code-deletion argument, not the convenience one: a hand-rolled per-application serializer is an encoder and a parser over attacker-reachable bytes, and the platform's standing answer to N of those is to replace them with one artifact under proof (§5).
+
+**What is left behind, and why the line's own history says so.**
+Resuming execution state contradicts the crash-only posture (§12, §16) and the rule that no resume path exists outside the measured chain (§9); restoring a saved capability graph would make storage a second origin of authority beside static composition (§7, §13), able to resurrect what a revocation epoch retired (§8); and keys, nonces, and DRBG state must not survive a reboot at all (§5, §9).
+The line reached compatible conclusions under pressure, which is why the exclusions are enumerated rather than judged.
+**CapROS** had to make the page-fault handler and most drivers **non-persistent** by necessity, split its objects into persistent and non-persistent classes, **rescind on restart** every capability a persistent object held to a non-persistent one, and warn that I/O may be half-completed across a checkpoint; **EROS** had to add an explicit **journaling capability** beside transparent persistence, because a database's durability cannot ride a checkpoint interval.
+Both concessions are load-bearing here: the first is the argument that the *typed-data* half is the separable atom, and the second is why an externally visible or non-repeatable effect still takes an explicit commit (§17).
+Honest residual: the tradition's own warning that in a persistent system a defect is written down and read back, so damaged state outlives the reboot that would otherwise have cleared it, is booked in §17 and bounded by keeping the durable class typed, per-domain, non-TCB, and discardable, and by never extending it to system or kernel state.
+
+---
+
 ## Plan 9: private namespaces, Factotum, and Plumber re-grounded on capabilities and typed IPC
 
 Plan 9 contributes three ideas that become one object-fabric control plane in §12 and §14.

@@ -20,7 +20,7 @@ Design for an end-to-end formally verified computer, built around a bespoke in-o
 
 The normative design lives in [verification-maximal-os.md](verification-maximal-os.md), with non-normative companions covering [prior art](inspirations.md), [evaluated architectural alternatives](architectural-alternatives.md), an [implementation plan](implementation-plan.md), and [performance estimates](performance-estimates.md).
 
-Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md) — each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 915 numbered requirements. Its standing output is the extraction-defect list — normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list is currently empty.
+Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md) — each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 936 numbered requirements. Its standing output is the extraction-defect list — normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list is currently empty.
 
 Three **derived views** collect what the register states across many entries but no document held:
 
