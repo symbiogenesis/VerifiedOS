@@ -542,6 +542,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: every such primitive's contract contains the postcondition; the definite-initialization attribute (R-05-122) consumes it at the compartment edge.
 · Trace: CJ-HAL, CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-082)
 
+**R-05-082a** MUST — DMA submission consumes the caller's exclusive buffer capability and returns only a linear in-flight token; completion consumes that token and returns initialized CPU ownership, while a device-read transfer excludes CPU stores for the same interval.
+· Accept: no HAL signature or CHERI-TAL derivation exposes CPU payload access while the corresponding device state owns the range, and no descriptor retains authority after completion.
+· Trace: CJ-HAL, CJ-TAL-SOUND, CJ-RTL-SAIL · [§5](verification-maximal-os.md#r-05-082a)
+
 **R-05-083** MUST — MMIO register field layouts are declared once in a register-description language, and the shift/mask field accessors are generated correct-by-construction and Coq-checked against that declaration.
 · Accept: no hand-written bit-twiddling and no unverified template or macro layer appears in the HAL; every accessor traces to a declaration.
 · Trace: CJ-HAL · [§5](verification-maximal-os.md#r-05-083)
@@ -603,6 +607,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-05-096** IS — Capabilities are linear/affine: contraction denied so authority cannot be duplicated, weakening allowed so it may be dropped.
 · Accept: the TAL's context-splitting rules deny contraction on capability types.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-096)
+
+**R-05-096a** MUST — Data-race freedom is an artifact-level exclusive-access theorem: for every non-atomic byte range, live writable authority excludes every overlapping load or store authority in another thread, compartment, or device state; duplicable aliases are read-only, and concurrently shared synchronization cells are explicitly atomic types.
+· Accept: the CHERI-TAL soundness statement entails that no Sail execution of an admitted composition contains conflicting non-atomic accesses, so no sequence-counter retry, atomic `memcpy`, or byte-wise-atomic payload wrapper exists.
+· Trace: CJ-TAL-SOUND, CJ-SAIL · [§5](verification-maximal-os.md#r-05-096a)
+
+**R-05-096b** MUST — Exclusive access is checked compositionally: each binary's linear context proves its local splits and the manifest join rejects overlapping cross-compartment grants, with load/store typing requiring the matching capability permission and ownership state.
+· Accept: an overlap fixture fails admission even when each component type-checks alone; a compromised admitted component has no well-typed instruction path that accesses a payload outside its ownership state.
+· Trace: CJ-TAL-SOUND, CJ-CERISE · [§5](verification-maximal-os.md#r-05-096b)
 
 **R-05-097** MUST — Fallible results are relevance-graded: weakening denied, contraction allowed, so every error verdict must be consumed at least once.
 · Accept: a derivation that drops a relevance-graded value fails to type-check.
@@ -1909,6 +1921,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-12-008** MUST — Both sides parse with verified copy-once parsers, using one canonical verified ring library proven against a Byzantine peer under Ztso with fences included, and — for rings crossing islands — proven over the shared SRAM window they occupy.
 · Accept: one ring library, one proof, restated under Ztso (R-15-004).
 · Trace: CJ-FORMAT, CJ-SAIL · [§12](verification-maximal-os.md#r-12-008)
+
+**R-12-008a** MUST — Every ring payload slot follows a CHERI-TAL-checked ownership transition: producer-exclusive writable; release-published and producer-inaccessible; consumer-acquired immutable; completed and returned to producer ownership. Only head, tail, and notification cells are concurrently shared, and they are explicitly atomic types.
+· Accept: the canonical ring proof rejects any path that reads a slot before acquire, writes it after publication, or restores producer write ownership before every consumer reader is consumed; the Byzantine-peer theorem assumes no protocol compliance beyond admission of the typed binary.
+· Trace: CJ-TAL-SOUND, CJ-SAIL, CJ-FORMAT · [§12](verification-maximal-os.md#r-12-008a)
 
 **R-12-009** IS — Service is metered on the session's schedule slot; zero-copy is a delegated memory capability the DMA engine presents and the fabric checks, torn down with the session.
 · Accept: cross-service linked ops and any credential or personality registration are absent by design.
@@ -3390,6 +3406,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the mechanism is named and its cost budgeted.
 · Trace: CJ-CERISE, CJ-WCET · [§15](verification-maximal-os.md#r-15-208)
 
+**R-15-208a** MUST — DMA completion is an RTL-enforced ownership boundary: it cannot become visible until issue has stopped, all accepted writes have reached SRAM, and the delegated window is closed or re-authorized away from the device; no request under the old transfer capability may issue afterward.
+· Accept: the RTL ⊑ Sail completion lemma proves quiescence, write visibility, and old-capability rejection before the completion event observed by software.
+· Trace: CJ-RTL-SAIL, CJ-HAL · [§15](verification-maximal-os.md#r-15-208a)
+
 **R-15-209** MUST — The interconnect is a capability- and tag-carrying fabric: it propagates capabilities, tags, and revocation state to the DMA blocks, while non-capability transducer writes clear tags by construction.
 · Accept: this is new Sail-model and RTL ⊑ Sail surface, booked in §18.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-209)
@@ -4106,7 +4126,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 936 requirements. §19 is non-normative and yields none. Counts include the thirty letter-suffixed entries (`R-05-022a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 941 requirements. §19 is non-normative and yields none. Counts include the thirty-five letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4114,17 +4134,17 @@ All eighteen normative sections are extracted, at 936 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **164** |
+| **§5 Languages & Verification** | **extracted** | **167** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **54** |
 | **§8 Authority Model** | **extracted** | **45** |
 | **§9 Boot & Root of Trust** | **extracted** | **31** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
-| **§12 System Servers** | **extracted** | **95** |
+| **§12 System Servers** | **extracted** | **96** |
 | **§13 Packaging & Supply Chain** | **extracted** | **29** |
 | **§14 Userland** | **extracted** | **14** |
-| **§15 Hardware Platform** | **extracted** | **254** |
+| **§15 Hardware Platform** | **extracted** | **255** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **67** |
 | **§18 Realization** | **extracted** | **37** |
