@@ -1606,6 +1606,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: one keyspace, one index proof.
 · Trace: CJ-T · [§10](verification-maximal-os.md#r-10-005)
 
+**R-10-005a** MUST — Typed object metadata and queries are views of the existing L1/L2 keyspace, not a second database: immutable objects use their content hash, mutable objects use their filesystem object identity, and each carries a fork-and-frozen content-type identifier plus schema-bounded attributes.
+· Accept: no independent metadata database, indexer, or crawler exists.
+· Trace: CJ-T, CJ-IDL · [§10](verification-maximal-os.md#r-10-005a)
+
+**R-10-005b** MUST — Secondary metadata indexes are instantiations of the one parametric L1 index, keyed by confidentiality domain and namespace capability as well as typed attribute value and object identity, and update atomically with the object and metadata in the same L0 transaction.
+· Accept: no index spans confidentiality domains and no query returns an object capability not derivable from the presented namespace capability.
+· Trace: CJ-T, CJ-NI · [§10](verification-maximal-os.md#r-10-005b)
+
+**R-10-005c** MUST — A live query is a bounded subscription whose ordered add/remove deltas are derived only after the committing L0 transaction and delivered over a bounded SPSC ring; overflow emits one rescan-required marker rather than buffering without bound or backpressuring commit.
+· Accept: the subscription has a composition-time result and queue bound, and crash recovery exposes either the committed state and its delta or the pre-commit state, never an index/object mismatch.
+· Trace: CJ-T, CJ-WCET, CJ-NI · [§10](verification-maximal-os.md#r-10-005c)
+
 **R-10-006** MUST — RefFS's machine-checked deadlock- and livelock-freedom (the MoLi dynamically-layered-definite-releases discipline) is a precondition for §11 temporal admission of any task that calls a shared storage server.
 · Accept: a deadlocked or livelocked server is unbounded blocking no WCET bound survives; system-wide deadlock-freedom is the concurrent complement to §13's per-handler termination obligation.
 · Trace: CJ-WCET · [§10](verification-maximal-os.md#r-10-006)
