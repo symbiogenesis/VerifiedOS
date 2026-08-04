@@ -564,7 +564,7 @@ So the full disposition is unqualified: nothing of MultiZone's *architecture* im
 
 ---
 
-## Historical capability machines: iAPX 432, System/38 → AS/400, KeyKOS/EROS, the M-Machine; the ancestry CHERI and seL4 already distill; orthogonal persistence is the one distinct idea, and it is declined
+## Historical capability machines: iAPX 432, System/38 → AS/400, KeyKOS/EROS, the M-Machine; Factory-style confinement imports as a theorem shape, not runtime machinery
 
 Before CHERI and seL4 there was a lineage of capability *hardware* and capability *operating systems* this design descends from, and completeness asks whether any of it imports beyond what CHERI and seL4 already carry.
 The machines: Intel's **iAPX 432** (capability-based, microcoded, famously ruinous in performance); IBM's **System/38 → AS/400** (a capability-addressed **single-level store** behind a technology-independent machine interface); the **KeyKOS → EROS → Coyotos** capability-OS line (capabilities with orthogonal persistence); the Cambridge **CAP** and **Plessey System 250**; and the MIT **M-Machine**'s **guarded pointers** (Carter/Keckler/Dally, ASPLOS '94: an in-register capability scheme, the direct hardware ancestor of CHERI).
@@ -574,17 +574,39 @@ The machines: Intel's **iAPX 432** (capability-based, microcoded, famously ruino
 - **The capability-OS design**: untyped memory, endpoints, a derivation tree, revocation; is seL4 (§7, §8), itself a KeyKOS/EROS descendant, re-proved in Coq (the seL4 entry below).
 - The 432's **lesson**: capability checks on the critical path in *microcode* are fatal to performance; is answered by CHERI doing them in *fixed silicon* on the fast path, which is why the design can rest on capabilities where the 432 collapsed under them.
 
-**The one genuinely distinct idea: and why it is declined.**
+**KeyKOS contributes one theorem shape worth naming: the Factory confinement claim.**
+A KeyKOS Factory constructs a service from declared components and supplied keys so that its product has no communication authority beyond that construction input; the valuable atom is not a dynamic factory object but the claim that construction closes the product's authority world.
+The platform imports that atom statically: the §13 capability manifest and content-addressed capability image declare every component and initial capability, the §7 composition proof installs exactly that graph, and the §5 binary scan proves that no tagged capability hides in writable static data and every mutable object is reachable only from an explicitly handed reference.
+The resulting **compile-time Factory theorem** is stronger for this design: an admitted component's initial capability set is its whole authority, so a malicious or subverted component may misuse an explicit grant but cannot discover an undeclared channel (§13); no runtime factory protocol, constructor service, or new trusted object is required.
+
+**KeyKOS banks, meters, and keepers are ancestors of stricter static mechanisms already adopted.**
+- A **space bank** makes allocation authority and resource charging explicit; §7 and §8 replace it with a checked static slot assignment whose peak-memory bound is the space projection of the same boundedness certificate used for time, while untyped-memory capabilities retain explicit ownership of kernel-object storage.
+- A **meter** makes CPU consumption delegable and exhaustible; the §7 cyclic executive and §11 admission proof are stricter because time is fixed in composition-time slots, never delegated, replenished, or contested at runtime.
+- A domain or meter **keeper** receives control when a domain faults or exhausts its meter; §12 and §16 retain only the safe specialization, crash-only fail-stop followed by supervised restart and re-grant of the already-declared authority. An arbitrary keeper able to inspect, alter, or resume another compartment would reopen exception, debugger, and continuation authority the static design deliberately deletes.
+These are lineage, not imports: dynamic banks, meters, and keepers would duplicate the static memory plan, schedule, and supervision tree while adding runtime state and authority paths.
+
+**The genuinely distinct runtime idea splits in two, and only one half is declined.**
 - **Orthogonal persistence / single-level store** (AS/400, EROS) erases the memory/storage distinction: objects simply persist, transparently, with no serialize/load boundary; tempting against a single-address-space design whose MMU is *already* gone.
-  It is declined because it collides with three adopted invariants.
-  The **crash-only** model with explicit, re-initializable state (§12, §16) wants a clean state boundary that transparent persistence dissolves; **eager-zeroize** and the **Write-before-Read** typing discipline (§7, §5) assume memory starts *empty*, not silently repopulated from a persistent image; and the **verified storage stack** (§10) is a content-addressed CoW B-tree with an *explicit, provable* crash-refinement semantics that orthogonal persistence would replace with an implicit one no theorem covers.
-  Persistence here is **explicit and verified** (§10), not orthogonal: the crash-safety proof *needs* the boundary the single-level store deletes.
+  The **whole-machine half is declined**: a periodic consistent snapshot of *processes* (registers, stacks, in-flight calls) and of the *capability graph*, resumed at restart, collides with three adopted invariants.
+  The **crash-only** model with explicit, re-initializable state (§12, §16) wants a clean state boundary that a transparent resume dissolves, and §9 admits no resume path outside the measured chain at all; **eager-zeroize** and the **Write-before-Read** typing discipline (§7, §5) assume memory starts *empty*, not silently repopulated from a persistent image; and restoring a saved capability graph would make storage a **second origin of authority** beside static composition (§7, §13), able to resurrect authority a revocation epoch retired (§8).
+  The line met that last seam itself and had to answer it with non-persistent object classes and rescission-on-restart, which is evidence that the seam is real rather than an artifact of this design.
+  The **data half is adopted**, because the value of orthogonal persistence was never the process resume: it was that N applications stop hand-rolling N serializers and recovery paths over attacker-reachable bytes, which is the same one-verified-implementation deletion the platform already makes for the allocator and the config parser.
+  That half is taken as **declarative durable state** (§10): manifest-declared typed regions, checkpointed by the platform at verified quiescent points through the already-verified storage stack, restored only after a measured boot into a freshly initialized compartment, and carrying no execution state, capability, or key.
+  So persistence here stays **explicit, typed, and verified** rather than orthogonal, and the crash-safety proof keeps the boundary the single-level store deletes; the road taken is recorded in [Inspirations & Prior Art](inspirations.md) and its cost is booked in §17.
+
+**The rest of the family is convergent, and nothing further imports.**
+- The **stateless supervisor** (kernel state derived from user-supplied state, with only a thread list and an object directory saved persistently) is already the stronger §7 posture: untyped memory delegated from userland with zero post-boot kernel allocation, and an object graph fixed at composition rather than recovered from a log.
+- The **no-dynamic-kernel-heap** discipline (the line's own argument that a kernel heap breeds hidden deadlock and hidden communication channels) is the §7 static slot plan, reached as a proof obligation rather than as a convention.
+- **Resume keys**, the one-shot capability that returns to a caller, are CHERI **sealed return capabilities** plus the §12 typed request/response discipline.
+- **No ambient user identity** (authority held by the domain, never by a logged-in user or a superuser) is §8's no-ambient-authority rule and the powerbox.
+- The **escrow agent** and the confused-deputy framing are application patterns *over* these primitives, not OS mechanisms to import (§8, §12).
+- **Distributing a persistent store across a cluster** is out of scope (§2), and keeper-driven **preemptive or soft-real-time scheduling** is declined with the meters above (§7).
 
 **Where it ranks.**
-Ancestry, not an alternative: off every ranking; the entry grounds the capability lineage the way the Mill entry grounds single-address-space, recording that the capability-machine tradition is **distilled into CHERI ⋈ seL4** rather than imported as a machine, and that its one separable idea (orthogonal persistence) is actively *incompatible* with the verified-crash-refinement storage the design chose.
+Mostly ancestry rather than an alternative, so off every ranking, with one importable runtime atom after all: the entry grounds the capability lineage the way the Mill entry grounds single-address-space, recording that the capability-machine tradition is **distilled into CHERI ⋈ seL4**, the KeyKOS Factory claim becomes the compile-time whole-authority theorem, banks/meters/keepers become the static memory/schedule/supervision discipline, transparent persistence loses its process-resume half to the crash-only and static-composition invariants, and keeps its data half as §10 declarative durable state.
 
-**Disposition:** no import as an architecture: capability addressing is CHERI (§1, §8) and the capability-OS design is seL4 (§7, §8), both exceeding their ancestors, and the 432's microcode-checking failure is exactly what CHERI's fixed-silicon checks avoid; the single distinct idea, orthogonal persistence / single-level store (AS/400, EROS), is **declined** because it dissolves the explicit state boundary the crash-only model (§12, §16), eager-zeroize / Write-before-Read (§7, §5), and the verified crash-refinement storage stack (§10) each depend on.
-Non-normative; no spec-body change.
+**Disposition:** import the KeyKOS Factory as the theorem shape for compose-time confinement, already realized by §5/§7/§13 and requiring no new runtime object; recognize space banks, meters, and keepers as ancestors of the stricter static memory, time, and restart mechanisms already present; import no KeyKOS runtime machinery. Capability addressing remains CHERI (§1, §8) and the capability-OS design remains seL4 (§7, §8); **orthogonal persistence as a whole-machine resume remains declined** because it dissolves the explicit state boundary the crash-only model (§12, §16), eager-zeroize / Write-before-Read (§7, §5), and verified crash-refinement storage (§10) each depend on, and would make storage a second origin of authority; its **data half is adopted** as §10 declarative durable state.
+Non-normative except for that last clause, whose rationale is in [Inspirations & Prior Art](inspirations.md), whose obligations are §10, and whose cost is §17.
 
 ---
 
