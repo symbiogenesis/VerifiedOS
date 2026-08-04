@@ -16,11 +16,101 @@ Design for an end-to-end formally verified computer, built around a bespoke in-o
 - **No firmware coprocessors.** Radios, sensors, and inputs are driven by ordinary verified CPU cores under one ISA and one set of proofs, not opaque baseband or controller firmware.
 - **On-die OpenTitan-class root of trust.** Built on a scalar RV64+CHERI core, the platform's only management processor, for measured boot, key custody, and attestation.
 
+## Bug classes removed by construction
+
+This is an inventory of the guarantees targeted by the **full specified stack**, not a claim about a system that exists today. Nothing is built yet, and many of the crown-jewel specifications and proofs are explicitly unauthored. The construction uses four different discharge modes: **absent** means the mechanism needed to express the bug is deleted; **hardware-enforced** means every access is checked by the CHERI machine; **admission-rejected** means the CHERI-TAL checker refuses the binary before installation; **proved** means the shipped artifact or composed system must carry a machine-checked theorem. These are stronger and narrower claims than “written in a safe language.”
+
+### RISC-V and microarchitectural omissions
+
+| Potential bug or attack class | Why it cannot arise in the specified machine | Mode |
+| --- | --- | --- |
+| Spectre, Meltdown, transient execution, and microarchitectural data sampling | No speculative execution, transient state, reorder buffer, or reservation stations exist | **Absent** |
+| Cross-thread SMT leakage and sibling-thread state corruption | One hardware thread per core; there is no second thread context | **Absent** |
+| Branch-predictor poisoning, BTB aliasing, and return-stack poisoning | Prediction is static-only; BHT/PHT, BTB, and RAS state do not exist | **Absent** |
+| Cache timing, cache eviction, cache coherence, and stale-cache bugs | Flat SRAM replaces the I-cache, D-cache, L2/LLC hierarchy, tag cache, and coherence protocol | **Absent** |
+| TLB, page-table-walk, A/D-bit, alias-mapping, and TLB-shootdown bugs | Virtual memory, the MMU, page tables, TLBs, and walk caches are deleted | **Absent** |
+| Privilege-ring confusion and S/U transition bugs | Machine mode is the only mode; privileged operations require an unforgeable CHERI permission on PCC | **Absent / hardware-enforced** |
+| PMP, IOMMU, and IOPMP configuration gaps or inconsistent protection views | Those parallel protection mechanisms are deleted; one capability model governs CPU and DMA access | **Absent** |
+| LR/SC livelock, spurious-failure retry, CAS retry, and capability-sized ABA machinery | `Zalrsc` and `Zacas` are excluded, and admitted code has no such retry loop | **Absent** |
+| Self-modifying-code and instruction-stream synchronization bugs | Runtime code generation, writable executable memory, `fence.i`, and writable-to-executable promotion are absent | **Absent / admission-rejected** |
+| History-dependent prefetch, DVFS, refresh, and reactive power-control channels | Prefetchers, frequency control, DRAM refresh/PRAC, and activity-driven control loops are absent | **Absent** |
+| Variable-latency secret operations | Secret-reachable operations are fixed-latency or rejected by the information-flow discipline | **Hardware-enforced / admission-rejected** |
+
+The auditable list of invisible hardware structures is the [microarchitectural absence contract](absence-contract.md); the complete architectural profile is the [frozen ISA profile](isa-profile.md).
+
+### CHERI capability tags, bounds, and monotonicity
+
+| Potential bug or attack class | Construction | Mode |
+| --- | --- | --- |
+| Stack, heap, object, and sub-object buffer overflows or out-of-bounds reads | Every usable pointer is a tagged capability with hardware-enforced bounds | **Hardware-enforced** |
+| Pointer forgery, integer-to-pointer confusion, and fabricated device addresses | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **Hardware-enforced** |
+| Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **Hardware-enforced / admission-rejected** |
+| Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **Hardware-enforced** |
+| Cross-object, cross-compartment, and cross-kernel-partition corruption | Each object and partition is reachable only through bounded capabilities rooted in the static distribution | **Hardware-enforced** |
+| C/C++, assembly, unsafe-Rust, compiler, or DMA code bypassing spatial checks | Capability checks apply to emitted machine accesses regardless of source language; DMA carries explicit capability operands | **Hardware-enforced** |
+| Writable-code injection and executable-data promotion | The initial capability forest contains no Store-and-Execute authority, and monotonicity preserves that W^X invariant | **Hardware-enforced / proved** |
+| Corrupted pointers accidentally becoming live authority | A modified capability loses its validity tag or fails its bounds and permission checks | **Hardware-enforced** |
+
+### CHERIoT-lineage compartments, sentries, and lifetime
+
+| Potential bug or attack class | Construction | Mode |
+| --- | --- | --- |
+| Ambient authority, global namespace privilege, `setuid`-style escalation, and authority acquired by name | A compartment can name only capabilities in its manifest; no uid/gid, global namespace, `fork()`, or ambient device access exists | **Absent / hardware-enforced** |
+| Malicious or compromised dependencies corrupting their caller or reaching unrelated resources | Attacker-facing and over-authorized libraries are separate least-authority compartments in the static graph | **Hardware-enforced / proved** |
+| Forged entry points, calls into the middle of a component, and forged or replayed return addresses | Sealed forward- and backward-edge sentries constrain entry and return sites | **Hardware-enforced** |
+| Unprivileged code accessing system registers or switch machinery | Access-system-register authority is a permission on PCC, held only by the kernel | **Hardware-enforced** |
+| Stale capabilities surviving object reuse | Linear lifetime typing, revocation epochs, a budgeted sweep, quarantine, and the per-access load filter invalidate the old tenant before reuse | **Hardware-enforced / admission-rejected / proved** |
+| Runtime creation of unreviewed protection domains or authority edges | Compartments, imports, exports, shared windows, and schedule slots are fixed and checked at composition or package admission | **Absent / admission-rejected** |
+| Permission-dialog spoofing and confused consent delegation | Only the trusted powerbox may attenuate and grant device authority; apps neither draw the prompt nor mint the grant | **Hardware-enforced / proved** |
+
+### Mon CHÉRI property, re-homed without a second tag plane
+
+VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee**, but not its additional runtime metadata plane. The same property is checked statically as CHERI-TAL definite initialization, while eager zeroization also prevents prior-tenant disclosure.
+
+| Potential bug or attack class | Construction | Mode |
+| --- | --- | --- |
+| Reads of uninitialized locals, heap slots, fields, or representation padding | A load type-checks only where the slot's initialization attribute is set on every incoming control-flow path | **Admission-rejected** |
+| Disclosure of a prior tenant's data through unwritten memory | Allocation eagerly zeroizes the slot before it enters its new live range | **Absent** |
+| Treating device-filled memory as initialized before DMA completion | The verified HAL consumes exclusive CPU ownership and returns initialized ownership only on completion | **Admission-rejected / proved** |
+| Partial or ambiguous initialization across an IPC boundary | Typed IDL messages and copy-once parsers write fixed destinations whole and carry initialization state explicitly | **Admission-rejected / proved** |
+
+### CHERI-TAL and binary admission
+
+| Potential bug or attack class | Construction | Mode |
+| --- | --- | --- |
+| Use-after-free, dangling pointers, and double use or double free of linear authority | Linear and affine capabilities deny duplication and track lifetime through the typed binary | **Admission-rejected** |
+| Data races across threads, compartments, or devices | Live writable authority excludes every overlapping alias; shared synchronization cells must have explicit atomic types | **Admission-rejected / proved** |
+| Type confusion, ABI mismatch, malformed control flow, and calls to undeclared callees | Type/ABI conformance, both halves of CFI, and the manifest callee set are checked on the final binary | **Admission-rejected** |
+| Integer overflow and underflow | Arithmetic is total by typing; range side conditions reject trapping and wrapping executions | **Admission-rejected / proved** |
+| Ignored security, integrity, freshness, admission, or transaction verdicts | Relevance typing requires each security-bearing result to be examined before its authority-bearing effect can continue | **Admission-rejected** |
+| Hidden mutable globals, lazy statics, thread-locals, and singleton state escaping the authority graph | The image is inspected for ambient mutable state and capabilities outside its declared initial set | **Admission-rejected** |
+| Secret-dependent branches, addresses, or variable-latency operations | Secret taint is checked by the constant-time type discipline; unstructured residuals carry a relational proof over the leakage model | **Admission-rejected / proved** |
+| Unbounded loops, handlers that outlive a slot, and timing-budget overruns | Syntax-directed WCET costs and loop-bound proofs must fit the static cyclic-executive slot | **Admission-rejected / proved** |
+| Compiler-created memory-safety regressions | Safety is checked from the final machine code and its derivation; compiler pedigree is not an admission input | **Admission-rejected** |
+
+### Verified OS, I/O, storage, and supply-chain construction
+
+| Potential bug or attack class | Construction | Mode |
+| --- | --- | --- |
+| Parser buffer errors, unchecked lengths, recursive-input exhaustion, and representation-padding leaks | Every attacker-facing format uses a schema-bounded, non-recursive, verified copy-once Narcissus parser | **Absent / proved** |
+| Authority smuggling through IPC payloads | Ring payloads cannot store capabilities; they carry only indices into a pre-delegated per-session table | **Hardware-enforced / proved** |
+| Ring publication races, torn ownership, and peer mutation of published slots | One canonical bounded SPSC ring library, linear ownership transfer, explicit atomics, and `Ztso` fences define the only transitions | **Admission-rejected / proved** |
+| DMA time-of-check/time-of-use races over a live buffer | Submission consumes the CPU's exclusive capability and returns it only after device completion | **Admission-rejected / proved** |
+| Deadlock and livelock in shared filesystem operations | RefFS-style linearizability and MoLi definite-release proofs are prerequisites to temporal admission | **Proved** |
+| Torn writes, inconsistent recovery, and process-resume state corruption | The log and filesystem carry crash-refinement proofs; recovery reconstructs from measured boot rather than resuming execution state | **Proved** |
+| Offline storage tampering, ciphertext substitution, and silent corruption | Authenticate-then-return AEAD plus the Merkle structure rejects unauthenticated data | **Hardware-enforced / proved** |
+| Unauthorized rollback of system generations | Signed roots, monotonic counters, and an anti-rollback floor constrain which generation may boot | **Hardware-enforced / proved** |
+| Loader, dynamic-linker, relocation, and executable-format parser bugs | There is no on-device ELF loader or dynamic linker; a small verified content-addressed image reader and capability-wiring table replace them | **Absent / proved** |
+| Malicious compiler, package, dependency, or build-farm output bypassing platform safety | The final artifact is independently type- or proof-checked, packages are reproducible and signed, and third-party code remains least-authority contained | **Admission-rejected / proved** |
+| Firmware bugs in basebands, SSD controllers, GPUs, NPUs, sensor hubs, and management engines | Those programmable foreign computers are absent; fixed-function matter is driven by verified host software | **Absent** |
+
+This inventory deliberately does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol-level flaw. Functional correctness is mandatory for the TCB, not for arbitrary apps. Those limits and the still-open proof work are recorded in the normative specification's §17 and in [critique.md](critique.md).
+
 ## Specification
 
 The normative design lives in [verification-maximal-os.md](verification-maximal-os.md), with non-normative companions covering [prior art](inspirations.md), [evaluated architectural alternatives](architectural-alternatives.md), an [implementation plan](implementation-plan.md), and [performance estimates](performance-estimates.md).
 
-Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md) — each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 936 numbered requirements. Its standing output is the extraction-defect list — normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list carries one open defect, `D-CSR`, whose eight rows are surviving CSRs that the frozen profile had to enumerate and that no requirement decides.
+Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md) — each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 941 numbered requirements. Its standing output is the extraction-defect list — normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list carries one open defect, `D-CSR`, whose eight rows are surviving CSRs that the frozen profile had to enumerate and that no requirement decides.
 
 Three **derived views** collect what the register states across many entries but no document held:
 
