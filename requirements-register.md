@@ -29,7 +29,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 | `CJ-T` | The apex theorem T: whole-system robust non-interference modulo declassification, on silicon (§5) |
 | `CJ-SAIL` | The CHERI-RISC-V Sail model: ISA semantics, incl. its timing and leakage annotations (§15) |
 | `CJ-RTL-SAIL` | RTL ⊑ Sail, functional and hyperproperty halves (§15, §18) |
-| `CJ-TAL-SOUND` | CHERI-TAL soundness metatheorem: well-typed ⇒ safe over the Sail model (§5) |
+| `CJ-TAL-SOUND` | CHERI-TAL soundness metatheorem: well-typed ⇒ safe and data-race-free over the Sail model (§5) |
 | `CJ-CT-SOUND` | Constant-time type-soundness metatheorem over the §15 leakage model (§5) |
 | `CJ-LEAK` | The `Zkt`/`Zvkt` leakage model (§15) |
 | `CJ-WCET` | The timing-annotated Sail model and the derived per-(class, operating-point) bounds (§5, §11, §15) |
@@ -316,7 +316,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the three classes are what PCC rests on; the platform's full axiom set is enumerated once in §6 (R-06-011) and is larger, adding the TAL type-checker, its soundness metatheorem, and the bootstrap root. This bullet no longer claims to state the whole set.
 · Trace: CJ-T, CJ-SAIL · [§5](verification-maximal-os.md#r-05-028)
 
-**R-05-029** IS — The type-level obligations are exactly: memory safety, definite initialization, control-flow integrity, no-runtime-codegen, ABI/type conformance, examined verdicts, absent ambient state, representation-and-provenance conformance, constant-time, and WCET. This list is canonical: every other section cites it rather than restating it, and control-flow integrity carries both halves — the runtime *legal-here* the sentries enforce and its compose-time callee-set enumeration, which is the static shadow of the same fact and not an eleventh obligation.
+**R-05-029** IS — The type-level obligations are exactly: memory safety, definite initialization, data-race freedom, control-flow integrity, no-runtime-codegen, ABI/type conformance, examined verdicts, absent ambient state, representation-and-provenance conformance, constant-time, and WCET. This list is canonical: every other section cites it rather than restating it, and control-flow integrity carries both halves — the runtime *legal-here* the sentries enforce and its compose-time callee-set enumeration, which is the static shadow of the same fact and not a twelfth obligation.
 · Accept: every admitted binary's derivation carries an attribute, citation, or deletion-check for each listed obligation, and no other section enumerates the obligations independently (R-06-009, R-13-012, and the move table at R-05-037/R-05-038 are citations of this entry).
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-029)
 
@@ -324,7 +324,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: none of these appears as a TAL attribute; each has a release-time proof term.
 · Trace: CJ-NI, CJ-REDUCTION · [§5](verification-maximal-os.md#r-05-030)
 
-**R-05-031** MUST — The CHERI-TAL soundness metatheorem (well-typed ⇒ safe over the Sail model) is a single Coq proof.
+**R-05-031** MUST — The CHERI-TAL soundness metatheorem (well-typed ⇒ safe and data-race-free over the Sail model) is a single Coq proof.
 · Accept: one theorem statement, one development; admission's appeal to type-checking cites it and nothing else.
 · Trace: CJ-TAL-SOUND, CJ-SAIL · [§5](verification-maximal-os.md#r-05-031)
 
@@ -354,8 +354,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the derivation records the cited invariant; the checker inspects the citation.
 · Trace: CJ-CERISE · [§5](verification-maximal-os.md#r-05-037)
 
-**R-05-038** IS — Move II carries temporal memory safety, definite initialization, examined verdicts, constant-time, WCET, callee-set enumeration, and type/ABI conformance.
-· Accept: each has a finite attribute domain and a syntax-directed rule (see R-05-132). Callee-set enumeration is the compose-time half of R-05-029's CFI obligation, not an eleventh entry, so this row partitions the canonical ten rather than extending them.
+**R-05-038** IS — Move II carries temporal memory safety, definite initialization, data-race freedom, examined verdicts, constant-time, WCET, callee-set enumeration, and type/ABI conformance.
+· Accept: each has a finite attribute domain and a syntax-directed rule (see R-05-132). Callee-set enumeration is the compose-time half of R-05-029's CFI obligation, not a twelfth entry, so this row partitions the canonical eleven rather than extending them.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-038)
 
 **R-05-039** IS — Move III carries representation-and-provenance conformance and absence of ambient mutable state, as one-pass inspections of absences.
@@ -366,7 +366,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no move-I obligation has a checker-side decision procedure beyond confirming the citation.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-040)
 
-**R-05-041** MUST — The soundness metatheorem is stated over the three moves against the four unary invariants, not over a flat list of ten obligations.
+**R-05-041** MUST — The soundness metatheorem is stated over the three moves against the four unary invariants, not over a flat list of eleven obligations.
 · Accept: the theorem statement quantifies over move classes; adding an obligation within an existing move adds no new top-level case.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-041)
 
@@ -938,7 +938,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no third checker exists; no per-install path invokes the CIC kernel except for the few certificate-carrying installs (R-13-028).
 · Trace: CJ-TAL-SOUND · [§6](verification-maximal-os.md#r-06-008)
 
-**R-06-009** IS — The TAL type-checker decides **the ten type-level obligations of R-05-029** — every move-(I) citation, move-(II) attribute, and move-(III) deletion — plus closed-numeral overflow side conditions and the memory/ABI half of Tier 1. This row cites R-05-029 rather than restating it.
+**R-06-009** IS — The TAL type-checker decides **the eleven type-level obligations of R-05-029** — every move-(I) citation, move-(II) attribute, and move-(III) deletion — plus closed-numeral overflow side conditions and the memory/ABI half of Tier 1. This row cites R-05-029 rather than restating it.
 · Accept: its ~10³-line budget is a consequence of the frozen theory (R-05-127), and its decided set is read off R-05-029 rather than enumerated here, so the two cannot disagree.
 · Trace: CJ-TAL-SOUND · [§6](verification-maximal-os.md#r-06-009)
 
@@ -2352,7 +2352,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: every admitted artifact carries exactly one tier and its required evidence.
 · Trace: CJ-TAL-SOUND, CJ-NI · [§13](verification-maximal-os.md#r-13-011)
 
-**R-13-012** IS — The Tier-2 certificate carries the subset of R-05-029's ten type-level obligations this tier requires — ABI/type well-formedness, no runtime codegen, temporal safety, definite initialization, and CFI — plus manifest consistency, a tier-local admission check that is not one of the ten. Full functional PCC is deliberately not required, because app intent is unspecified.
+**R-13-012** IS — The Tier-2 certificate carries the subset of R-05-029's eleven type-level obligations this tier requires — ABI/type well-formedness, no runtime codegen, temporal safety, definite initialization, data-race freedom, and CFI — plus manifest consistency, a tier-local admission check that is not one of the eleven. Full functional PCC is deliberately not required, because app intent is unspecified.
 · Accept: admission is type-checking the artifact, not trusting the producer; and the certificate's content is read off R-05-029 with a stated tier scoping rather than enumerated independently, so a change to the canonical list has one place to be made.
 · Trace: CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-012)
 
