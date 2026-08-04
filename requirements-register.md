@@ -1606,16 +1606,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: one keyspace, one index proof.
 · Trace: CJ-T · [§10](verification-maximal-os.md#r-10-005)
 
-**R-10-005a** MUST — Typed object metadata and queries are views of the existing L1/L2 keyspace, not a second database: immutable objects use their content hash, mutable objects use their filesystem object identity, and each carries a fork-and-frozen content-type identifier plus schema-bounded attributes.
-· Accept: no independent metadata database, indexer, or crawler exists.
+**R-10-005a** MUST — Typed object metadata and queries are views of the existing L1/L2 keyspace, not a second database: an object is identified by its content address (the per-domain keyed plaintext digest for user data, the store's content hash for system-image objects) or, where mutable, by its filesystem object identity, and each carries a fork-and-frozen content-type identifier plus schema-bounded attributes.
+· Accept: no independent metadata database, indexer, or crawler exists, and metadata identity forms no bare cross-domain content hash of user data, so R-10-016's cross-domain incomparability is preserved.
 · Trace: CJ-T, CJ-IDL · [§10](verification-maximal-os.md#r-10-005a)
 
-**R-10-005b** MUST — Secondary metadata indexes are instantiations of the one parametric L1 index, keyed by confidentiality domain and namespace capability as well as typed attribute value and object identity, and update atomically with the object and metadata in the same L0 transaction.
-· Accept: no index spans confidentiality domains and no query returns an object capability not derivable from the presented namespace capability.
+**R-10-005b** MUST — Secondary metadata indexes are instantiations of the one parametric L1 index, keyed by confidentiality domain and a stable namespace *identifier* as well as typed attribute value and object identity, and update atomically with the object and metadata in the same L0 transaction.
+· Accept: no capability is written into a key (a key is a persisted typed value; the presented namespace capability is checked at query admission against that identifier), no index spans confidentiality domains, and no query returns an object capability not derivable from the presented namespace capability.
 · Trace: CJ-T, CJ-NI · [§10](verification-maximal-os.md#r-10-005b)
 
 **R-10-005c** MUST — A live query is a bounded subscription whose ordered add/remove deltas are derived only after the committing L0 transaction and delivered over a bounded SPSC ring; overflow emits one rescan-required marker rather than buffering without bound or backpressuring commit.
-· Accept: the subscription has a composition-time result and queue bound, and crash recovery exposes either the committed state and its delta or the pre-commit state, never an index/object mismatch.
+· Accept: the subscription has a composition-time result and queue bound; a subscription is volatile and does not survive a crash, so recovery re-establishes it by rescan, and index and objects are never observed mismatched.
 · Trace: CJ-T, CJ-WCET, CJ-NI · [§10](verification-maximal-os.md#r-10-005c)
 
 **R-10-006** MUST — RefFS's machine-checked deadlock- and livelock-freedom (the MoLi dynamically-layered-definite-releases discipline) is a precondition for §11 temporal admission of any task that calls a shared storage server.
@@ -1922,7 +1922,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-013a** MUST — Object references, intents, and transformations use the existing IDL: an object is an out-of-band capability plus typed metadata identity, an intent is a closed variant rather than an executable name or command string, and a transformation declares bounded input/output types, resource limits, and its interface world.
 · Accept: no desktop-specific wire protocol, open-ended intent string, or authority-bearing path is introduced.
-· Trace: CJ-IDL, CJ-FORMAT · [§12](verification-maximal-os.md#r-12-013a)
+· Trace: CJ-IDL · [§12](verification-maximal-os.md#r-12-013a)
 
 ### 12.4 Sealing, attestation, and credentials
 
@@ -1934,7 +1934,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the reference set is reproducible from source.
 · Trace: CJ-DEVTREE · [§12](verification-maximal-os.md#r-12-015)
 
-**R-12-015a** MUST — The sealing service is the sole credential agent and returns only non-exportable credential capabilities bound to a typed protocol role, principal, peer/origin scope, permitted operation, transcript/domain separator, use count, and expiry.
+**R-12-015a** MUST — The sealing service is the sole broker of *protocol* credentials, distinct from the user-authenticating credential and unlock service (R-12-016), and returns only non-exportable credential capabilities bound to a typed protocol role, principal, peer/origin scope, permitted operation, transcript/domain separator, use count, and expiry.
 · Accept: raw key export and unconstrained sign, decrypt, or derive operations are absent; each operation is a schema-bounded IDL request returning only the protocol result.
 · Trace: CJ-CRYPTO-SPEC, CJ-CT-SOUND, CJ-IDL · [§12](verification-maximal-os.md#r-12-015a)
 
@@ -1980,22 +1980,6 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the AEAD/Merkle-DAG layer catches corruption.
 · Trace: CJ-CRYPTO-SPEC · [§12](verification-maximal-os.md#r-12-024)
 
-**R-12-024a** IS — The object namespace, query, and routing service is a contained non-TCB control plane over the existing filesystem, object store, IDL, and rings, resolving only the caller's manifest-derived namespace capability and returning object capabilities plus commit-ordered query deltas.
-· Accept: no VFS, registry, metadata database, or launcher is added, and compromise costs correct routing or availability rather than authority confinement.
-· Trace: CJ-NI, CJ-CERISE, CJ-IDL · [§12](verification-maximal-os.md#r-12-024a)
-
-**R-12-024b** MUST — The handler and translator graph is a finite signed generation-built object compiled from installed packages' interface descriptors, with deterministic typed routing and no runtime registration, executable lookup, shell command, plugin load, or content sniffing.
-· Accept: routing passes only caller-supplied object and local-buffer capabilities attenuated to the selected edge; unsupported types fail closed.
-· Trace: CJ-IDL, CJ-DEVTREE, CJ-NI · [§12](verification-maximal-os.md#r-12-024b)
-
-**R-12-024c** MUST — One-shot translation and streaming media use the same static typed graph: streaming binds a composition-time template from pre-composed node and bounded-ring pools, with every node's WCET, memory, labels, and device reservation admitted before shipment.
-· Accept: runtime binding creates no code, compartment, edge type, or unbounded queue; outputs enter the caller's confidentiality domain as ordinary §10 typed objects in one metadata/index transaction.
-· Trace: CJ-WCET, CJ-NI, CJ-IDL, CJ-T · [§12](verification-maximal-os.md#r-12-024c)
-
-**R-12-024d** MUST — Deterministic translation reuse is confined to one confidentiality domain and keyed by input content hash, admitted translator package identity and version, declared parameters, and output content type.
-· Accept: mutable input identity, undeclared process state, filename, and caller-controlled handler naming affect neither the result nor cache selection; cache probing reveals nothing across domains.
-· Trace: CJ-NI, CJ-DEVTREE, CJ-T · [§12](verification-maximal-os.md#r-12-024d)
-
 **R-12-025** MUST — Raw NAND is exposed through a firmware-free on-die flash-interface block (ONFI PHY plus a fixed-function ECC engine), with the FTL a host-side Tier-1 server doing wear levelling, mapping, and garbage collection in safe Rust, trusted for availability only.
 · Accept: SSD-controller firmware is deleted; NVMe/eMMC devices with vendor firmware are not on the allowlist.
 · Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-025)
@@ -2020,7 +2004,33 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a NAND failure is always a caught corruption or an availability event, never a silent integrity breach; corrected-error rates and uncorrectable events feed the sentinel.
 · Trace: CJ-CERISE, CJ-CRYPTO-SPEC · [§12](verification-maximal-os.md#r-12-030)
 
-### 12.6 Network
+### 12.6 The object fabric
+
+**R-12-024a** IS — The object fabric is a contained non-TCB control plane over the existing filesystem, object store, IDL, and rings: the caller delegates its manifest-derived namespace capability for the duration of a session, and the service queries and resolves under that capability alone, returning object capabilities derived from it plus commit-ordered query deltas.
+· Accept: no VFS, registry, metadata database, or launcher is added; the service holds no standing cross-caller namespace authority, each delegation ending with its session at the revocation epoch; and compromise costs correct routing or availability rather than authority confinement.
+· Trace: CJ-NI, CJ-CERISE, CJ-IDL · [§12](verification-maximal-os.md#r-12-024a)
+
+**R-12-024b** MUST — The handler and translator graph is a finite signed composition-time object compiled from installed packages' interface descriptors and rebuilt and re-signed at package install rather than only at a system-generation flip, with deterministic typed routing and no runtime registration, executable lookup, shell command, plugin load, or content sniffing.
+· Accept: the graph is a typed signed configuration object admitted on the ordinary install path (R-13-001, R-13-002), and an intent naming no admitted edge fails closed.
+· Trace: CJ-IDL, CJ-DEVTREE, CJ-NI · [§12](verification-maximal-os.md#r-12-024b)
+
+**R-12-024c** MUST — One-shot translation and streaming media use the same static typed graph: streaming binds a composition-time template from pre-composed node and bounded-ring pools, with every node's WCET, memory, labels, and device reservation admitted under §11 before it may be bound, at release time for base-image nodes and at install time for package-supplied ones.
+· Accept: runtime binding creates no code, compartment, edge type, or unbounded queue; outputs enter the caller's confidentiality domain as ordinary §10 typed objects in one metadata/index transaction.
+· Trace: CJ-WCET, CJ-NI, CJ-IDL, CJ-T · [§12](verification-maximal-os.md#r-12-024c)
+
+**R-12-024d** MUST — Deterministic translation reuse is confined to one confidentiality domain and keyed by the input's content address (the per-domain keyed digest for user data), admitted translator package identity and version, declared parameters, and output content type.
+· Accept: mutable input identity, undeclared process state, filename, and caller-controlled handler naming affect neither the result nor cache selection; no cache key is a cross-domain content hash, so probing reveals nothing across domains.
+· Trace: CJ-NI, CJ-T · [§12](verification-maximal-os.md#r-12-024d)
+
+**R-12-024e** MUST — Routing has two distinct faces and mints nothing: *resolution* derives object capabilities only from the namespace capability the caller delegated for that session, and *handoff* passes the selected handler only that object capability plus caller-supplied local buffer capabilities, attenuated to the selected edge's declared bounds.
+· Accept: a compromised router cannot reach a namespace no live session delegated to it, read an object it holds no read capability for, or launch a handler with authority absent from that handler's manifest.
+· Trace: CJ-NI, CJ-CERISE · [§12](verification-maximal-os.md#r-12-024e)
+
+**R-12-024f** MUST — Every content format a translator or media node parses is attacker-facing wire: it carries a §5 Narcissus copy-once verified parser and is enumerated in the wire-format inventory.
+· Accept: the image, media, font, archive, and document formats the graph admits appear in the R-05-042 inventory on the same terms as the radio and USB grammars.
+· Trace: CJ-FORMAT · [§12](verification-maximal-os.md#r-12-024f)
+
+### 12.7 Network
 
 **R-12-031** IS — The network is an IPv6-only single stack with verified parsers at every boundary, TLS 1.3 with hybrid PQ key exchange, WireGuard-style tunnels, DNS-over-TLS in its own compartment, and Roughtime-authenticated time.
 · Accept: each compartment's attacker-facing wire parsing is held to the Narcissus discipline and its memory safety to the binary-level certificate.
@@ -2050,7 +2060,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no verified PTP peer exists, so it rides parser-plus-crypto discipline alone; the residual delay and path-asymmetry surface is booked in §17.
 · Trace: CJ-FORMAT, CJ-CRYPTO-SPEC · [§12](verification-maximal-os.md#r-12-037)
 
-### 12.7 Radio stack
+### 12.8 Radio stack
 
 **R-12-038** MUST — The radio is software-defined as ordinary contained compartments with no baseband processor anywhere: PHY servers run statically pinned on the radio V-class cores with the FEC units, and HARQ/subframe deadlines are §11-admitted hard tasks.
 · Accept: cellular and Wi-Fi PHYs are separate compartments; GNSS (receive-only) is a third.
@@ -2092,7 +2102,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the one tolerated foreign computer speaks to the platform only through a verified parser inside a zero-authority compartment.
 · Trace: CJ-FORMAT · [§12](verification-maximal-os.md#r-12-047)
 
-### 12.8 Emergency calling
+### 12.9 Emergency calling
 
 **R-12-048** IS — Emergency service runs in a zero-authority emergency compartment holding no volume keys, no user data, and no persistent identity beyond the regulation-mandated IMEI and location, so its unauthenticated bearer can carry only what regulation already compels the device to disclose.
 · Accept: the *no downgrade, no null cipher, mutual authentication* property is scoped to non-emergency service, and emergency calling is a distinct, separately-verified mode rather than a relaxation of it.
@@ -2122,7 +2132,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a software path able to re-enable a sealed cutoff for emergencies is a software path able to re-enable it; the direction is booked in §17.
 · Trace: CJ-T · [§12](verification-maximal-os.md#r-12-054)
 
-### 12.9 Regulatory layering
+### 12.10 Regulatory layering
 
 **R-12-055** MUST — Compliance is enforced primarily by passive matter in three layers: the passive analog envelope (band-limited PA, fixed filters, fixed-gain final stage, narrowband antenna), OTP/RoT-latched limit registers, and the attested frozen radio generation.
 · Accept: multi-band is a switched bank of pre-certified fixed paths, so every reachable RF configuration is one that passed certification; a fully compromised radio stack cannot exceed the envelope.
@@ -2132,7 +2142,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a fully fused radio could never patch its most-attacked surface.
 · Trace: CJ-DEVTREE · [§12](verification-maximal-os.md#r-12-056)
 
-### 12.10 Drivers, USB, and input
+### 12.11 Drivers, USB, and input
 
 **R-12-057** MUST — There is one compartment per device; register and DMA access go through the verified HAL primitives, so driver logic is fully safe Rust, device registers reached through a typed register interface that is the safe-Rust face of the same register-description-language layout the HAL is generated and verified against.
 · Accept: driver code never open-codes a shift or mask; DMA is only through explicit capability grants the fabric checks; drivers are restartable without reboot.
@@ -2174,7 +2184,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no bus and no arbitrary negotiation rides the power channel.
 · Trace: CJ-DEVTREE · [§12](verification-maximal-os.md#r-12-066)
 
-### 12.11 Sensors, camera, and the front-end doctrine
+### 12.12 Sensors, camera, and the front-end doctrine
 
 **R-12-067** MUST — Camera sensors are register slaves streaming raw Bayer over a capability-bounded DMA interface block, with the entire ISP pipeline (demosaic, 3A, tone mapping) software on V-class cores in the app's or camera server's compartment.
 · Accept: no ISP firmware exists.
@@ -2200,7 +2210,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the §17 entry exists (R-15-142).
 · Trace: CJ-WCET · [§12](verification-maximal-os.md#r-12-072)
 
-### 12.12 Service manager
+### 12.13 Service manager
 
 **R-12-073** MUST — The service manager is a static supervision tree with declarative units and no ambient authority, restarting with backoff and capability re-grant, realized as a synchronous Lustre state machine.
 · Accept: its start-order, crash detection, restart-with-backoff, and capability re-grant have deterministic, bounded, hidden-state-free reactions by construction.
@@ -2210,7 +2220,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the supervision tree is an authority re-instantiator, never a minter; the powerbox alone mints, and it alone joins the TCB.
 · Trace: CJ-NI, CJ-KERNEL · [§12](verification-maximal-os.md#r-12-074)
 
-### 12.13 Display, render, and the consent path
+### 12.14 Display, render, and the consent path
 
 **R-12-075** MUST — Display and render use per-surface and per-input capabilities with no ambient observation of input or output, so keylogging and screen-scraping are unexpressible.
 · Accept: capture requires per-window capabilities.
@@ -2252,7 +2262,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-15-229.
 · Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-084)
 
-### 12.14 Inference and telemetry
+### 12.15 Inference and telemetry
 
 **R-12-085** IS — The inference server is an optional Tier-1 compartment exposing quantized-inference sessions over rings, with weights de-quantized and any microscaling block-scale applied in software on the M-class vector unit.
 · Accept: models are content-addressed store objects; per-session memory is capability-delegated and zeroized on teardown.
