@@ -8,13 +8,14 @@
 
 Seven acceptance criteria decide membership in *the crown-jewel inventory* — R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). This document is the inventory all seven quantify over; without it none of them is decidable.
 
-It replaces **three overlapping sources that did not agree**, none of which was an inventory:
+Membership is **conferred, never declared in bulk**: a specification is a crown jewel because some requirement says a proof against it cannot check it, so no single entry can hold the list and R-17-016 does not try to. What stays distributed is the conferral; what is collected here is the set.
 
-1. the register's **`CJ-` trace-target table** — 21 entries, all used, internally consistent, but a *legend of trace targets* rather than an inventory of specifications;
-2. **R-17-016's prose enumeration** — fifteen named specification statements, carried inside a single §17 residual entry;
-3. **thirteen scattered requirements** each asserting "X is a crown-jewel spec."
+Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
 
-R-17-016's acceptance criterion states the list "is closed by amendment to this register." It is not closed: five specifications carry crown-jewel status by other requirements and do not appear in it (rows 16–20 below).
+1. the register's **`CJ-` trace-target table** — 21 entries, all used, internally consistent, but a *legend of trace targets* rather than an enumeration of specifications (below);
+2. the **conferring requirements** — the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §12, §15, and §17. There are fourteen such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
+
+Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, and a row citing an identifier the register does not hold.
 
 ## Why it matters for implementation
 
@@ -52,7 +53,7 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 | 21 | **The static whole-program slot plan** and its live-range colouring | `CJ-MEMPLAN` | R-08-011, R-08-018, R-15-060 | not authored |
 | 22 | **The verified HAL's hardware contracts** and DMA/descriptor postconditions | `CJ-HAL` | R-05-083, R-05-138, R-18-018 | not authored |
 
-**Rows 16–20 are the closure defect.** Each carries crown-jewel status by a requirement outside R-17-016, and none appears in R-17-016's fifteen-item enumeration: the calibration-manifest schema is in R-17-016 (row 16 here is the *schema*, which is), while rows 17 (R-05-076), 18 (R-17-041), 19 (R-17-044), and 20 (R-05-042) are not. Row 13's per-descriptor requirement (R-05-046) is likewise stronger than R-17-016's single "radio grammars" entry.
+**Rows 16–20 are conferred outside the residual that names the gap**, by R-15-127, R-05-076, R-17-041, R-17-044, and R-05-042 respectively. That is the ordinary case rather than an exception: conferral is distributed by design, and this table is where it lands. Row 13 shows the same thing at a finer grain — R-05-046 confers the status on *each* format descriptor individually, so the set of descriptors is carried as its own row rather than folded into one coarse "radio grammars" entry.
 
 ## The theorem targets
 
@@ -83,7 +84,7 @@ So the two artifacts answer different questions and both are needed:
 
 ## Standing obligations
 
-- **The list is closed by amendment** (R-17-016). A requirement asserting crown-jewel status for a specification absent from this table is a review-gate finding, not a silent addition; an unclosed list is how the three disagreeing sources above arose.
+- **The list is closed by amendment** (R-17-016). A requirement asserting crown-jewel status for a specification absent from this table is a review-gate finding, not a silent addition; that is what closure can mean where membership is conferred entry by entry, and `tools/check.ps1` reports the violation in both directions rather than leaving it to a reader's roll-call.
 - **Every crown jewel is subject to independent review** under R-05-150 (R-05-046, R-08-028, R-15-221).
 - **Every crown jewel has a `CJ-` trace target** used by the sections that constrain it (R-17-016). The Constrained-by column is that check made visible.
 - **Status is maintained, not asserted once.** The inventory is revved with the register (R-18-034), and a status that moves from `not authored` without an artifact link is a finding.

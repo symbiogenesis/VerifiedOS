@@ -218,6 +218,9 @@ $q = [ordered]@{
     'cj-partial'    = @($cjRows | Where-Object { (Get-Status $_) -like 'partial*' }).Count
     'cj-unauthored' = @($cjRows | Where-Object { (Get-Status $_) -like 'not authored*' }).Count
     'cj-theorems'   = @($cj | Where-Object { $_ -match '^\| `CJ-[A-Z-]+` \|' }).Count
+    'cj-conferring' = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' }).Count
+    'seams'         = @($body.Keys | Where-Object { $body[$_] -match ' Seam: \*\*' }).Count
+    'views'         = $views.Count
     'absences'      = @(Get-Content 'absence-contract.md' | Where-Object { $_ -match '^\| \*\*A-\d+\*\*' }).Count
 }
 
@@ -243,8 +246,10 @@ $claims = @(
     @{ File = 'crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=because these )[\w-]+(?= are \*named)' }
     @{ File = 'crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of them are not yet written)' }
     @{ File = 'crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=the )[\w-]+(?= theorem targets above cannot start)' }
+    @{ File = 'crown-jewels.md'; Q = 'cj-conferring'; Style = 'words';  Pattern = '(?<=There are )[\w-]+(?= such entries)' }
 
     # the README summarizes them
+    @{ File = 'README.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= \*\*derived views\*\* collect)' }
     @{ File = 'README.md'; Q = 'sections';      Style = 'words';  Pattern = '(?<=covers all )[\w-]+(?= normative sections)' }
     @{ File = 'README.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=sections as )[\d,]+(?= numbered requirements)' }
     @{ File = 'README.md'; Q = 'dcsr-rows';     Style = 'words';  Pattern = '(?<=whose )[\w-]+(?= rows are surviving CSRs)' }
@@ -253,6 +258,10 @@ $claims = @(
     @{ File = 'README.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=plus the )[\w-]+(?= theorem targets)' }
 
     # the gap catalogue argues from them
+    @{ File = 'critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=requirements-register\.md\), )[\d,]+(?= numbered requirements)' }
+    @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '(?<=register and the )[\w-]+(?= derived views)' }
+    @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= derived views and `tools/check\.ps1`)' }
+    @{ File = 'critique.md'; Q = 'seams';         Style = 'words';  Pattern = '[\w-]+(?= hardware seams are named with owners)' }
     @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown-jewel specifications are named)' }
     @{ File = 'critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '[\w-]+(?= theorem targets are named)' }
     @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)' }
