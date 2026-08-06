@@ -64,7 +64,19 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 | Unprivileged code accessing system registers or switch machinery | Access-system-register authority is a permission on PCC, held only by the kernel | **Hardware-enforced** |
 | Stale capabilities surviving object reuse | Linear lifetime typing, revocation epochs, a budgeted sweep, quarantine, and the per-access load filter invalidate the old tenant before reuse | **Hardware-enforced / admission-rejected / proved** |
 | Runtime creation of unreviewed protection domains or authority edges | Compartments, imports, exports, shared windows, and schedule slots are fixed and checked at composition or package admission | **Absent / admission-rejected** |
+| Kernel memory exhaustion, allocation-failure paths, and out-of-memory kills | The kernel allocates nothing after boot: every kernel object is carved from untyped memory delegated from userland, each core's instance owns a disjoint pool, and IPC rings are bounded and pre-composed. A compartment can exhaust only what it was itself given, so there is no shared kernel heap to drain, no allocation that can fail, and no reclaim policy to attack | **Absent** |
 | Permission-dialog spoofing and confused consent delegation | Only the trusted powerbox may attenuate and grant device authority; apps neither draw the prompt nor mint the grant | **Hardware-enforced / proved** |
+
+### Static time partitioning
+
+A compartment's share of the processor is decided at composition, as a slot in a fixed table or a core of its own, so scheduling is a static artifact rather than a runtime policy and nothing a compartment does can enlarge its share. That bounds what one compartment can take from another; it does not make availability under fault a guarantee, which §17 books separately.
+
+| Potential bug or attack class | Construction | Mode |
+| --- | --- | --- |
+| CPU starvation and scheduling denial of service by a hostile or runaway compartment | Each core runs a table-driven cyclic executive of fixed, time-triggered slots: no priorities, no run queue to enqueue on, no runtime scheduling decision, and no budget donation | **Absent** |
+| Priority inversion, priority-inheritance chains, and kernel lock contention | There are no priorities to invert, no shared mutable kernel data, and no kernel locks or kernel threads; the kernel is entered only by a synchronous trap or the slot-boundary timer, and runs on the caller's budget | **Absent** |
+| Interrupt storms and interrupt-driven preemption of an unrelated partition | Asynchronous interrupt delivery does not exist: arrival is latched pending state read by ordinary loads in the owner's own slot, and the slot-boundary timer is the machine's only asynchronous trap | **Absent** |
+| Slot overruns and forced revocation sweeps spilling into another partition's time | Admission is an interval-arithmetic proof that the slot budgets fit the major frame, and the schedule is non-work-conserving; an overrun is a fault that restarts the offending partition, and a compartment that churns grants forces sweeps only of its own footprint, paid from fixed slots that cannot grow | **Absent / proved** |
 
 ### Mon CHÉRI property, re-homed without a second tag plane
 
