@@ -1752,8 +1752,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no identity material survives the reset outside the RoT.
 · Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-033)
 
-**R-10-034** IS — Deterministic layout is a proof input: because control-flow prediction is static, hot-path fall-through layout is a reproducible property of the signed image rather than runtime-learned predictor state.
-· Accept: it feeds WCET and reproducibility without introducing per-core learned history.
+**R-10-034** MUST — Profile-free static layout orders functions from the admitted composition and typed-callee graph and basic blocks from the typed control-flow graph plus the backward-taken / forward-not-taken rule, using a fixed tie-break and recording the final order in the signed image.
+· Accept: the build uses no PGO corpus, sampled frequency, learned weight, runtime feedback, or new mutable state; layout may reorder but never clone code or enlarge the image, and the resulting order feeds WCET directly.
 · Trace: CJ-WCET · [§10](verification-maximal-os.md#r-10-034)
 
 **R-10-035** MUST — A compartment declares its durable state as typed regions in its manifest, within the enumerated mutable volumes, and the platform checkpoints them into the owning confidentiality domain's subvolume under that domain's key; applications author no serializer, autosave loop, or recovery path.
@@ -2622,7 +2622,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-026** IS — `Zacas` is excluded for want of a consumer: the multikernel is share-nothing with no kernel locks, rings are single-writer SPSC under Ztso, refcounts and status flags are single-instruction `Zaamo`, and no capability ever resides in shared mutable memory.
 · Accept: no admitted software requires compare-and-swap; the 128-bit CAS coherence point is absent from the memory model.
-· Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-026), [§15](verification-maximal-os.md#r-15-026-2)
+· Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-026)
 
 **R-15-027** IS — `Zabha` supplies only the byte and halfword forms of the retained unconditional AMOs; sub-word compare-and-swap (`amocas.b`/`.h`) remains excluded with `Zacas`.
 · Accept: the added encodings are width cases on the existing AMO semantics, adding no operation class.

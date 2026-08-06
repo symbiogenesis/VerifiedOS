@@ -103,11 +103,6 @@ Nothing here contradicts the §5 rule that deleted the CryptOpt toolchain (R-05-
   Targets the in-order (−35% to −60%) and no-hardware-caches (−10% to −50%) rows. It may **not** claim a no-prefetch row: the estimates score no-prefetch at **≈0%** and state that the remaining load-use latency "is hidden instead by static instruction scheduling", so charging it here would double-count against the no-cache row.
   Higher margin than on the baseline, whose OoO window hides the same latency dynamically, so the compiler's marginal contribution there is small; the gap narrows by that difference, though static scheduling still wins mainly on regular loops rather than the branchy code that dominates the in-order row.
   *Keeps it pure:* static hoisting, **not** the excluded `Zicbop` prefetch hint, no new µarch state, no channel. Trades against fusion adjacency under **Tensions**.
-- [ ] **[U] Deterministic PGO fall-through + BOLT-style post-link layout.**
-  Lay hot paths out as fall-through to hit the backward-taken / forward-not-taken static rule, and pack hot code to fight the +25–30% code-size and fetch-bandwidth pressure from the deleted C extension.
-  §10 and §15 already book this as "partial recovery"; make it a first-class, maximized pass.
-  Higher margin: against a TAGE-class predictor, layout mistakes are recovered in hardware and BOLT's yield is modest; here the static rule *is* the predictor, so layout is the whole of it.
-  *Keeps it pure:* the profile is a **signed, reproducible build input** (§10, R-10-034), never runtime-learned predictor state.
 - [ ] **[U] LTO, aggressive inlining, loop unrolling, superblock formation.**
   Cut branch density (fewer static mispredicts), widen the scheduler's window for pipelining, and expose more loops to the vectorizer.
   Recovers part of the static-prediction and in-order rows; compounds with everything above.
@@ -196,7 +191,6 @@ The third column gives the class from **The two classes**, above: **[D]** exploi
 | CHERI bounds-check elision | In-order; static prediction; no C/compressed; offsets CHERI purecap (−2% to −12%) | **[D]** Only under a certified exact-bounds precondition (`len` ≠ capacity, compressed-bounds rounding, panic ≠ trap) |
 | CHERI temporal-safety elision | *No booked row*: unscored instrumentation + refcount atomic traffic | **[D]** The −0% to −3% row is missing-CAS, not refcount cost. Structural §13 hygiene; tiny, and smaller still under share-nothing |
 | Software pipelining / modulo scheduling | In-order issue; no hardware caches | **[U]** Advanced cross-iteration scheduling only; ordinary latency scheduling is mandatory backend completeness under R-18-014a. No no-prefetch row to claim (scored ≈0%; charging it double-counts) |
-| Deterministic PGO + BOLT layout | Static branch prediction; no C/compressed (fetch) | **[U]** Higher margin: the static rule *is* the predictor, so layout is the whole of it |
 | LTO / inlining / unrolling | Static prediction + in-order (compounding) | **[U]** Gate-6 constrained; trades against code size (Tensions) |
 | Superoptimization / search codegen | In-order scalar; bit/integer paths | **[U]** Speed is universal; the untrusted-search story is a *trust* win. Producer-side TV is required, not optional |
 | Static schedule synthesis | Non-work-conserving scheduler; TDM NoC | **[U]** Shrinks a self-imposed idle; never reaches work-conserving. Loops with WCET-directed compilation |
