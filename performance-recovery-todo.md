@@ -9,7 +9,7 @@
 >
 > **What "recovery" means here.**
 > Figures are measured **intra-design** (the same frozen instantiation *un-optimized vs. optimized*) against the rows of [performance-estimates.md](performance-estimates.md).
-> A pass that the conventional baseline also runs does **not** thereby cancel: cancellation requires the *same delta* on both machines, and the deltas are not the same. The asymmetry is systematic — the **marginal return** of static scheduling, code and data layout, and devirtualization is *low* against an out-of-order core with a TAGE-class predictor, whose hardware recovers dynamically from whatever the compiler got wrong, and *high* here, where **the compiler is the only latency-hiding mechanism, the only placement mechanism, and the only branch-prediction-recovery mechanism that exists.**
+> A pass that the conventional baseline also runs does **not** thereby cancel: cancellation requires the *same delta* on both machines, and the deltas are not the same. The asymmetry is systematic — the **marginal return** of static scheduling and code and data layout is *low* against an out-of-order core with a TAGE-class predictor, whose hardware recovers dynamically from whatever the compiler got wrong, and *high* here, where **the compiler is the only latency-hiding mechanism, the only placement mechanism, and the only branch-prediction-recovery mechanism that exists.**
 > Wherever the deltas differ, running the pass on both sides **does** narrow the inter-design gap, by the difference.
 > What never narrows is the residual *after* every pass has run on both machines: the deleted dynamic mechanisms, booked as accepted costs in the estimates (§ *Out of scope*, below) and recovered nowhere here.
 > These items do **not** catch up to a chip that keeps the dangerous mechanisms; they stop the secure design from running slower than it provably has to, and several of them do close real distance while doing it.
@@ -48,13 +48,6 @@ Nothing here contradicts the §5 rule that deleted the CryptOpt toolchain (R-05-
 
 ### 1A. Differential levers, ordered by expected value
 
-- [ ] **[D] Whole-image partial evaluation against the composition graph.**
-  The component graph, capability manifests, IFC labels, static grants, devicetree, cyclic-executive schedule, and browser origin pool are **build-time constants** (§7 static composition, §8, §14): the machine admits no compartment, endpoint, or grant minted at runtime.
-  So specialize the entire image against them: **devirtualize every cross-compartment call to its single static callee**, specialize the seal/switch trampoline per graph *edge* rather than compiling one generic switcher, monomorphize the kernel per core class (§15 core-class table), constant-fold manifest and authority lookups into immediates, and resolve Rust `dyn` dispatch wherever the graph fixes the callee set.
-  **This is the largest genuinely differential software lever available**, and its size comes from a hardware fact rather than a compiler one: with no BTB and no return-address stack, indirect branches and call/return dispatch pay **full pipeline-latency mispredict-equivalent penalties** (§15, the accepted-costs paragraph under static-only prediction). Every indirect call the graph lets the compiler turn into a direct one removes a penalty the baseline's predictor would have absorbed for free, so the pass is worth a rounding error there and a great deal here.
-  A conventional OS cannot copy it: dynamic linking, `dlopen`, runtime plugin registration, and mutable capability tables are exactly what keeps its call graph open.
-  Attacks the in-order (−35% to −60%), static-prediction (−10% to −30%), cross-core-coordination (−2% to −15%), and context-switch (−2% to −4%) rows.
-  *Keeps it pure:* it specializes against the graph the §8 non-interference theorem is already stated over, mints no authority and no edge (specializing a call cannot create one the graph lacks), and the output re-type-checks in the CHERI-TAL like any other binary. Note under gate 6: per-edge trampoline specialization multiplies code, so it is **size-budgeted** (Tensions, below).
 - [ ] **[D] Static data placement: bank-, macro-, and tier-aware layout.**
   **The lever the spec points here for.** §15 says scalar cores get no scratchpad because "that irregular latency is recovered off-device by static layout, the performance-recovery levers", and the estimates' no-cache row says the same ("partly recovered off-device by static layout"): both cite this item, and it carries the **no-hardware-caches (−10% to −50%)** row, the second-largest single loss in the design.
   The lever is hot/cold field splitting, structure splitting and merging, affinity-driven co-location of objects touched together, and explicit assignment of hot working sets to the island's least-contended SRAM banks and macros, all frozen into the signed image.
@@ -172,7 +165,6 @@ The list is not internally free: three pairs pull against each other, and each i
 
 - **Advanced scheduling vs. macro-op fusion.** R-18-014a makes the frozen fusion table a mandatory scheduler input and preserves pair adjacency unless the same block's static Sail cost is strictly lower when broken. Optional modulo scheduling may make that measured trade; it may not silently give back the booked +3% to +10% to an unmeasured heuristic.
 - **Inlining and unrolling vs. code size.** Speed bought with size lands on a machine with no I-cache, a +25–30% no-C penalty, and a hard SRAM capacity budget (§15), so it can regress the very fetch-bandwidth pressure PGO/BOLT layout exists to relieve, and it consumes budget the §15 roster is fit to explicitly. **Arbitration:** gate 6. Size is a constrained objective in the optimizer, not a free variable, and profile-directed selectivity (inline and unroll on measured hot paths only) is the standing form.
-- **Per-edge specialization vs. code size.** Whole-image partial evaluation multiplies trampolines and monomorphized kernel copies. Same arbitration: budgeted, profile-directed, and measured against the §15 capacity arithmetic rather than applied uniformly.
 
 ---
 
@@ -183,7 +175,6 @@ The third column gives the class from **The two classes**, above: **[D]** exploi
 
 | Pure-win lever | Rows it attacks | Class and marginal-return note |
 |---|---|---|
-| Whole-image partial evaluation | In-order issue; static prediction; cross-core coordination; context switch | **[D]** Compose-time-frozen call graph; indirect-branch removal is worth a rounding error against a BTB+RAS and a full pipeline penalty here |
 | Static data placement (bank / macro / tier) | **No hardware caches (−10% to −50%)**; SRAM bank/macro partitioning | **[D]** Layout is the *only* placement mechanism in the machine; the lever §15 and the estimates both cite |
 | WCET-directed compilation | Non-work-conserving scheduler; §11 population rung | **[D]** Worth *nothing* on a work-conserving baseline; buys schedulable frame capacity |
 | Switch-cost minimization (live V/M state) | `fence.t` + eager V/M zeroize (−2% to −4%) | **[D]** Baseline has no eager-zeroize obligation and no compile-time-known switch points. Bounded: the switch saves nothing (R-07-014a), so only one write pass is left to shrink, over a `fence.t` floor that does not move |

@@ -692,6 +692,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: with the on-device loader deleted and no dynamic linking, the address-taken set and the per-vtable impl set are fixed at compose time.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-114)
 
+**R-05-114a** MUST — At composition, every indirect call with exactly one typed callee or cross-compartment manifest target is replaced by a direct call unless doing so would grow the admitted image, and its now-unused dispatch machinery is deleted, while sentry and seal/switch semantics are preserved; the transform MUST NOT clone, specialize, monomorphize, or duplicate.
+· Accept: every singleton site is direct or has an image-size witness for remaining indirect; no rewritten cross-compartment edge bypasses its manifest-authorized sentry transition, and no rewrite creates a function-body or trampoline clone.
+· Trace: CJ-TAL-SOUND, CJ-MEMPLAN · [§5](verification-maximal-os.md#r-05-114a)
+
 **R-05-115** IS — Closures, function pointers, and `dyn Trait` survive unrestricted; a first-order source-language mandate and defunctionalization are rejected.
 · Accept: no source-language restriction on higher-order constructs exists.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-115)
