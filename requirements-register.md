@@ -2354,6 +2354,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the on-device loader is deleted rather than hardened.
 · Trace: CJ-FORMAT · [§13](verification-maximal-os.md#r-13-010)
 
+**R-13-010a** MUST — Package construction performs whole-image dead elimination before admission: from the frozen component graph, typed callee sets, manifest roots, interrupt and scheduled-entry roots, and capability-wiring table, existing LTO, section garbage collection, and linker stripping retain exactly the statically reachable closure and remove unreachable code, data, manifest entries, dispatch cases, and feature variants before hashing and signing.
+· Accept: the source-correspondence theorem and CHERI-TAL derivation cover the stripped image itself; every retained object has a reachability root; and stripping changes no rooted symbol, capability edge, interface, or proof obligation.
+· Trace: CJ-FORMAT, CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-010a)
+
 ### 13.2 Assurance tiers
 
 **R-13-011** IS — There are exactly three assurance tiers. **Tier 0** (TCB components): full functional refinement at binary level, robust preservation of compartment isolation, and the non-interference theorem over the full component graph, admitted by CIC proof terms mostly checked at release time. **Tier 1** (servers crossing confidentiality boundaries): binary-level policy proofs — memory/ABI conformance, handler termination, information-flow theorems from the IDL annotations, and constant-time for secret-labeled paths — admitted by CHERI-TAL taint typing where structured. **Tier 2** (apps and contained code): a mandatory binary-level memory-safety certificate, admitted by a typing derivation the on-device type-checker checks.
@@ -4138,7 +4142,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 943 requirements. §19 is non-normative and yields none. Counts include the thirty-seven letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`, `R-18-014a`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 945 requirements. §19 is non-normative and yields none. Counts include the thirty-nine letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-114a`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-13-010a`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`, `R-18-014a`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4146,7 +4150,7 @@ All eighteen normative sections are extracted, at 943 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **168** |
+| **§5 Languages & Verification** | **extracted** | **169** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **54** |
 | **§8 Authority Model** | **extracted** | **45** |
@@ -4154,7 +4158,7 @@ All eighteen normative sections are extracted, at 943 requirements. §19 is non-
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
 | **§12 System Servers** | **extracted** | **96** |
-| **§13 Packaging & Supply Chain** | **extracted** | **29** |
+| **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
 | **§15 Hardware Platform** | **extracted** | **255** |
 | **§16 Reliability** | **extracted** | **22** |
