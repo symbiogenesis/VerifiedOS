@@ -1392,8 +1392,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 8.5 Authority over time and interrupts
 
-**R-08-031** MUST — Clock read-out is authority: a compartment reads the cycle and time counters only if its PCC carries the access-to-system-registers permission, and the monitor gets nanoseconds.
-· Accept: the permission gate is R-15-077. There is **no clock-degradation mechanism**: a compartment without the permission has no counter, so its only time source is the time service over a ring serviced in its own slot, and the finest interval it can observe is its own slot period — a composition-time constant. No value is fuzzed, nothing is drawn, and no component owns a degradation.
+**R-08-031** MUST — Clock read-out is authority: precision is granted through the time-service interface, coarse by default and nanosecond-capable only for a capability-authorized client; no compartment reads an architectural cycle, time, retirement, or performance counter.
+· Accept: R-15-077 deletes the counters. There is **no clock-degradation mechanism**: a compartment without the time-service capability has no clock, and the finest interval it can observe is its own slot period — a composition-time constant. No value is fuzzed, nothing is drawn, and no component owns a degradation.
 · Trace: CJ-NI · [§8](verification-maximal-os.md#r-08-031)
 
 **R-08-031a** MUST NOT — Statistical clock degradation (jitter added to a counter read) is inadmissible on the same ground MTE and MBPTA/EVT are: it is recoverable by averaging over repeated reads, a statistic rather than a theorem.
@@ -2842,10 +2842,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the residual is the RTL ⊑ Sail arrow plus a Coq-native restatement of reachable-capability monotonicity over the CHERI-RISC-V Sail model.
 · Trace: CJ-CERISE, CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-076)
 
-### 15.11 Gated features and debug
+### 15.11 Deleted counters and lifecycle-gated debug
 
-**R-15-077** MUST — Performance counters (`Zicntr`/`Zihpm`) are unreadable unless the accessing compartment's PCC carries the counter-read permission; hpm events are sentinel-only.
-· Accept: clock read-out is gated authority; with one privilege mode there is no `mcounteren`/`scounteren` ring to gate through.
+**R-15-077** MUST NOT — `Zicntr` and `Zihpm` are implemented in no lifecycle state: their user and Machine counter CSRs, event selectors, inhibit state, and counter-read CHERI permission are absent.
+· Accept: `mtime`/`mtimecmp` remains the kernel-owned scheduling device, and lifecycle-gated Debug Module trace supplies development WCET calibration; Sail and RTL contain no architectural performance-counter semantics or production timing oracle.
 · Trace: CJ-NI · [§15](verification-maximal-os.md#r-15-077)
 
 **R-15-078** MUST — The RISC-V Debug Module exists in silicon but is lifecycle-fused at the hardware level, never merely software-gated: in the production lifecycle state the RoT's OTP fuse holds its clock and reset gated off and its fabric port electrically quiesced.
@@ -4164,7 +4164,7 @@ Normative claims that resist atomic restatement, per R-05-153. This is the regis
 | `mcause` / `mtval` | the trap path is specified in capability terms (R-07-022, R-15-073) but names no cause register, no trap-value register, and no cause encoding for a CHERI capability exception | present — a hole, not a deletion |
 | `mie` / `mip` | the machine-timer bits have a consumer (R-07-043, R-15-063); the external- and software-interrupt bits do not (R-15-065, R-15-066) | present, narrowed to the timer bits |
 | `menvcfg` | R-15-049's ground against `Smstateen` applies word for word and is stated only for `Smstateen`; `Zicboz`'s `CBZE` bit is the case to check (R-15-060) | deletion |
-| `mcountinhibit` | a second gate on counters already gated by a CHERI permission (R-15-077), against R-15-013 | deletion |
+| `mcountinhibit` | its counters are absent under R-15-077 | deletion |
 | `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | one Sail model frozen with the proof (R-15-005) has no runtime discovery consumer | hardwired zero |
 | `mhartid` | one kernel binary across core classes needs hart identity (R-07-012); no requirement says so | present |
 | `tselect` / `tdata1–3` | the lifecycle fuse is stated for the Debug Module and trace (R-15-078, R-15-079); the trigger module is not named, and its CSRs are M-mode-accessible in standard RISC-V — mutable hidden state surviving a partition switch, the shape admission test (3) rejects (R-15-010, R-15-012) | absent, or fused with the DM |

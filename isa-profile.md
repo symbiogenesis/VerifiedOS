@@ -43,7 +43,6 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | `Zicboz` | `cbo.zero`; makes eager-zeroize near-free and carries the disclosure half of Write-before-Read | R-15-060 |
 | `Zvkned` / `Zvknhb` / `Zvkg` / `Zvbb` / `Zvbc` | table-free vector AES / SHA-2 / GHASH; `Zvbb`/`Zvbc` also carry baseline Keccak, NTT rides plain RVV | R-15-055 |
 | `Zvfbfwma` | M-class bf16 | R-15-067 |
-| `Zicntr` / `Zihpm` | present but **permission-gated** — unreadable without the counter-read permission on the PCC; hpm events sentinel-only | R-15-077 |
 | AIA / IMSIC | interrupt delivery; MSI is a store to an interrupt file, so send authority is a write capability | R-15-064 |
 | `mtimecmp` | M-mode timer, programmed directly by the kernel | R-15-063 |
 
@@ -81,7 +80,6 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, reachable only with access-system-registers | R-15-073 |
 | Local/global + `store-local` | with `load-global`/`load-mutable` transitivity; only the stack carries `store-local` | R-15-074 |
 | access-system-registers permission | *is* the privilege mechanism, replacing the S/U ring | R-15-003 |
-| counter-read permission | gates `Zicntr`/`Zihpm` | R-15-077 |
 
 **Excluded**
 
@@ -107,7 +105,6 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | `mstatus` | present for **`VS`/`XS`** — the vector/matrix state gate, set at partition setup and paired with eager zeroize; this is the mechanism `Smstateen` was deleted in favor of. `FS` has no referent with scalar FP deleted | R-07-012, R-15-049, R-15-039 |
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, **in place of** `mtvec` / `mepc` / trap-scratch, reachable only with access-system-registers. A trap installs `MTCC` as the executing PCC, saves the interrupted PCC as `MEPCC`, and bootstraps the handler's authority from `MTDC` | R-15-073, R-07-022, R-07-023 |
 | `vtype` / `vl` / `vlenb` / `vstart` / `vxrm` / `vxsat` / `vcsr` | present with **V**. The partition switch **zeroizes and does not save** them, so no vector CSR context-switches and none joins the `fence.t` flush set — the property R-15-083 deletes `frm` to obtain, obtained here structurally. The standard reachable `vtype` configuration space remains intact; the profile imposes no narrower subset | R-15-001, R-07-014, R-07-014a, R-15-214 |
-| `mcycle` / `minstret` / `mhpmcounter3–31` / `mhpmevent3–31` | present but **permission-gated** — unreadable without counter-read on the PCC; hpm events sentinel-only | R-15-077 |
 | `dcsr` / `dpc` / `dscratch0–1` | Debug Module state: present in silicon, **unreachable in the production lifecycle state**, where the RoT's OTP fuse holds the DM's clock and reset gated off and its fabric port electrically quiesced | R-15-078, R-15-079 |
 
 ### 5.2 Absent
@@ -118,7 +115,8 @@ Each row is a `MUST NOT` in the register; the ground is the governing requiremen
 | --- | --- | --- |
 | `sstatus` / `stvec` / `sepc` / `scause` / `stval` / `sie` / `sip` / `sscratch` / `senvcfg` / `scounteren` | the S-mode bank: no ring to delegate to, no mode to return to | R-15-003 |
 | `medeleg` / `mideleg` | trap delegation with no delegate | R-15-003 |
-| `mcounteren` | grants counter access to a less-privileged mode that does not exist; the gate is the CHERI permission | R-15-003, R-15-077 |
+| `mcycle` / `minstret` / `mhpmcounter3–31` / `mhpmevent3–31` / `mcountinhibit` | performance counters, event selection, and inhibit state are deleted in every lifecycle state | R-15-077 |
+| `mcounteren` | no counters exist to grant, and no less-privileged mode exists | R-15-003, R-15-077 |
 | `stimecmp` (`Sstc`) | one privilege mode; the kernel programs the machine-timer compare directly | R-15-063 |
 | `satp` | no MMU: the Sail model carries no translation state, and `satp` is Bare rather than present-and-ignored | R-15-002 |
 | `fcsr` / `frm` / `fflags` | no scalar FP; rounding is static and encoded per-instruction, so no mutable rounding-mode state context-switches or joins the `fence.t` set | R-15-039, R-15-083 |
@@ -138,7 +136,6 @@ Booked as an extraction defect in the register. Each states what is indicated an
 | `mcause` / `mtval` | The trap path is specified in capability terms — `MTCC` installed, `MEPCC` saved, authority from `MTDC` — but no requirement names a cause register, a trap-value register, or the cause encoding for a CHERI capability exception. A handler needs a cause | **present**; this is a hole, not a deletion | R-07-022, R-15-073 |
 | `mie` / `mip` | The machine-timer bits have a consumer: the slot-boundary timer is the core's only asynchronous trap. The external- and software-interrupt bits do not — an MSI sets an IMSIC pending bit read by an ordinary load and never vectors the core, and no wired level interrupt exists on the die | **present, narrowed to the timer bits**; the deletion is of fields, not registers | R-07-038, R-07-043, R-15-063, R-15-065, R-15-066 |
 | `menvcfg` | Every bit gates a *less-privileged* mode's access to an extension feature. R-15-049's ground against `Smstateen` — with no less-privileged mode its bits gate nothing reachable — applies word for word, and is stated only for `Smstateen`. `Zicboz`'s `CBZE` bit is the case to check: `cbo.zero` is unconditionally permitted in M-mode | **deletion** | R-15-049, R-15-060, R-15-003 |
-| `mcountinhibit` | A second gate on counters already gated by a CHERI permission, and writable state a total restore would have to name | **deletion**, under *verify rather than hedge* | R-15-077, R-15-013 |
 | `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | Read-only identification. RISC-V permits all four to read zero, and a profile frozen with the proof, carrying exactly one Sail model, has no runtime discovery consumer | **hardwired zero** | R-15-005, R-15-014 |
 | `mhartid` | Almost certainly present — one kernel binary runs unmodified on every core class and needs hart identity — but no requirement says so, and its value space is a composition parameter | **present** | R-07-012, R-15-113 |
 | `tselect` / `tdata1–3` (trigger module) | The lifecycle fuse is stated for the Debug Module and for trace. The trigger module is not named, and in standard RISC-V its CSRs are **M-mode-accessible** — reachable in the production state. A trigger is mutable hidden state that fires on an address or data match, which is the shape admission test (3) rejects, and it survives a partition switch unless something zeroizes it | **absent**, or fused with the DM | R-15-078, R-15-079, R-15-010, R-15-012 |
@@ -158,6 +155,7 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 | `Zacas` (incl. `amocas.q`, `amocas.b/.h`) | no consumer: share-nothing multikernel, SPSC rings under Ztso, single-instruction `Zaamo` refcounts, no capability in shared mutable memory | R-15-026, R-15-027 |
 | `Zicbom` | no hardware caches, so no consumer; cross-island ring release/acquire ordering is native Ztso and needs no fence | R-15-061 |
 | `Zifencei` / `fence.i` | no runtime consumer under W^X with no on-device codegen | R-15-047 |
+| `Zicntr` / `Zihpm`; `cycle` / `time` / `instret`; `mcycle` / `minstret` / `mhpmcounter*` / `mhpmevent*` / `mcountinhibit` | no runtime consumer: scheduling uses `mtime`/`mtimecmp`, development measurement uses lifecycle-gated DM trace, and production counters would be a general timing oracle | R-15-077 |
 | `Zkr` | exactly one entropy root — the RoT TRNG through the verified DRBG | R-15-037 |
 | `Zkne` / `Zknd` / `Zknh` | vector crypto computes them table-free, so the CT contract is stated once | R-15-041 |
 | `Zks*` / `Zvks*` (ShangMi), `Zimop` / `Zcmop` | dead Sail surface on a frozen ISA | R-15-048 |

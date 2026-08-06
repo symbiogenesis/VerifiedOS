@@ -22,19 +22,6 @@ An item earns a place on this list iff it clears all five:
 
 ---
 
-## 1. Delete `Zicntr` / `Zihpm` instead of permission-gating them
-
-- [ ] **Replace the counter-read permission with the lifecycle fuse the Debug Module already uses.**
-  R-15-077 keeps `Zicntr` and `Zihpm` in the profile, unreadable without the counter-read permission on the PCC, with hpm events sentinel-only. That is a **hedge**: a mechanism retained and then gated, whose gating must be modeled, whose permission bit consumes capability encoding space, and whose "sentinel-only" event restriction is an argument that has to be made and audited rather than a structure that can be checked.
-  *Grounds (gate 4):* *verify rather than hedge* (R-15-013) declines exactly this shape — a second modeled mechanism spending the scarce axis to buy down a risk. And the timing-oracle risk the gate exists to manage is the one this platform is otherwise structurally free of: cycle counters are the last general-purpose measurement instrument on a machine that deleted every other one.
-  *The substitute already exists.* R-15-078 lifecycle-fuses the Debug Module at the hardware level — clock and reset gated off, fabric port electrically quiesced in the production state, with *no DM transaction reaches the fabric* as a stated RTL ⊑ Sail obligation. Cycle measurement wants exactly that treatment: present and readable in development states where WCET-table validation happens, electrically absent in production. Reusing a mechanism the spec already builds and already proves is strictly cheaper than maintaining a second, softer gate beside it.
-  *Perf:* neutral. Neither counter is on any hot path, in the kernel or out of it.
-  *The obvious objection, answered:* `rdtime` lives in `Zicntr`, so deleting the extension appears to delete timekeeping. It does not — the platform's clock is `mtime`/`mtimecmp`, programmed directly by the kernel (R-15-063), and the time-service compartment (§9) reads it there. Nothing in the scheduling or timeout path needs `rdcycle`.
-  *Deletes:* the counter CSRs, one CHERI permission bit, the hpm sentinel-event argument, and the counter-read branch of the §8 *clock read-out is authority* reasoning.
-  *Touches:* R-15-077, and the CHERI permission table in [isa-profile.md](isa-profile.md) §4.
-
----
-
 ## Considered and rejected
 
 Recorded so they are not re-proposed. Each fails a specific gate.
