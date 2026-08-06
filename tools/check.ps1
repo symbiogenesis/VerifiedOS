@@ -9,8 +9,13 @@
 #   views    the membership   what a derived view carries, checked in both directions
 #   counts   the cardinality  every figure any document asserts, against its artifact
 #
-# Run with -Fix to rewrite the asserted counts from their artifacts. Trace and view
-# findings have no mechanical repair: they are a person's edit, reported not guessed.
+# A fourth group checks what a document is made of rather than what it says:
+#
+#   glyphs   the characters   punctuation the house style forbids, and encoding damage
+#
+# Run with -Fix to rewrite the asserted counts from their artifacts. Trace, view and
+# glyph findings have no mechanical repair: they are a person's edit, reported not
+# guessed.
 #
 # Exit 0 clean, 1 on any finding. Run from the repository root.
 
@@ -364,6 +369,55 @@ if ($q['dcsr-rows'] -ne $q['open-csr-rows']) {
 } else {
     "ok: $($q['dcsr-rows']) open CSR rows in both the register and the profile"
 }
+""
+
+# =================================================================================
+# glyphs: punctuation the house style forbids, and the encoding damage that mimics it
+# =================================================================================
+#
+# The three groups above check what a document says. This one checks what it is made of,
+# where two unrelated faults share one symptom, a wrong character, and neither survives
+# a rendered read: the em-dash is house style (the punctuation here is explicit, so a
+# clause takes a comma, a colon, or its own sentence), and mojibake is UTF-8 read as some
+# single-byte encoding, which leaves a signature worth catching the moment it lands.
+#
+# Both are reported per file with the lines to visit, and neither is repaired. An em-dash
+# is removed by deciding what the sentence meant; a mangled character can only be restored
+# by whoever knows what it was.
+
+function Format-GlyphHits([string]$File, [int[]]$Lines) {
+    $shown = if ($Lines.Count -gt 12) { ($Lines[0..11] -join ', ') + ", and $($Lines.Count - 12) more" }
+             else                     { $Lines -join ', ' }
+    "${File}: $($Lines.Count) line(s): $shown"
+}
+
+"=== glyphs: forbidden punctuation and encoding damage ==="
+
+$emDash = [char]0x2014
+
+# A lead byte of a multi-byte UTF-8 sequence, decoded as Latin-1 or CP1252, followed by a
+# continuation byte decoded the same way. The second class is the whole high half of both
+# encodings, so the mangling of any character is caught, not just the common ones.
+$cp1252 = '\u0080-\u00BF\u0152\u0153\u0160\u0161\u017D\u017E\u0178\u0192\u02C6\u02DC' +
+          '\u2013\u2014\u2018-\u201A\u201C-\u201E\u2020-\u2022\u2026\u2030\u2039\u203A\u20AC\u2122'
+$mojibake = [regex]"[\u00C2\u00C3\u00E2\u00F0][$cp1252]|\uFFFD"
+
+$emHits = @(); $mojibakeHits = @()
+foreach ($doc in Get-ChildItem -Path . -Filter *.md -Recurse | Sort-Object FullName) {
+    $name  = (Resolve-Path -Relative $doc.FullName) -replace '^\.[\\/]', ''
+    $lines = [System.IO.File]::ReadAllLines($doc.FullName)
+
+    $em = @(); $mb = @()
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i].Contains($emDash))  { $em += $i + 1 }
+        if ($mojibake.IsMatch($lines[$i])) { $mb += $i + 1 }
+    }
+    if ($em.Count) { $emHits       += Format-GlyphHits $name $em }
+    if ($mb.Count) { $mojibakeHits += Format-GlyphHits $name $mb }
+}
+
+Report 'file(s) carrying an em-dash (U+2014)' $emHits 'no em-dash in any document'
+Report 'file(s) carrying mojibake or a replacement character' $mojibakeHits 'no encoding damage in any document'
 ""
 
 if ($Fix) {
