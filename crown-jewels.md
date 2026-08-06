@@ -79,7 +79,7 @@ So the two artifacts answer different questions and both are needed:
 | Artifact | Question it answers | Granularity |
 | --- | --- | --- |
 | `CJ-` table (in the register) | *which crown jewel does this requirement constrain?* | 21 coarse targets |
-| This inventory | *what are the crown jewels, and does each one exist yet?* | 20 specifications, per-member where a requirement demands it |
+| This inventory | *what are the crown jewels, and does each one exist yet?* | 22 specifications, per-member where a requirement demands it |
 
 ## Standing obligations
 

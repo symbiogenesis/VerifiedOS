@@ -16,6 +16,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **Traces are bookmarks, not line numbers.** Each entry names a `<a id="r-ss-nnn">` bookmark carried by the prose line it was extracted from, so editing the prose moves the target with the text and a trace cannot go stale. The display text is the prose section the bookmark sits in, and a second citation of the same requirement takes the suffix `-2`. A line number would be a derived fact restated in a second document with nothing checking it; a bookmark is not, which is why traces are symbolic. `tools/check-traces.ps1` holds what a symbolic reference can still violate silently (R-05-151a).
 
+**Derived facts are computed, not copied.** A line number is only the commonest case of a wider one: any count, table, or list some other artifact already determines is a derived fact, and restating it by hand is a re-synchronization burden that discharges itself silently in the wrong direction. Nothing of that kind is maintained here by care. `tools/check-counts.ps1` recomputes every figure the documents assert — the coverage totals below, the per-section table, the crown-jewel status ratio, the absence and open-CSR row counts — from the artifact that owns it, reports drift, and rewrites the assertions under `-Fix`; `tools/check-derived-views.ps1` holds the same discipline for the membership the derived views carry. And where one entry needs a set another entry states, it **cites that entry rather than repeating it** — R-06-009 cites R-05-029's type-level obligations, R-13-012 cites the tier subset of the same list, R-17-046 cites R-06-011's axiom inventory — so a set stated in two places cannot come to disagree, which is the failure R-05-028 and R-17-016 were each repaired for.
+
 **Modality.** `MUST` — obligation on the built system or its process. `MUST NOT` — prohibition; the acceptance criterion is an emptiness or absence check. `IS` — a definition or classification the rest of the register quantifies over; reviewable for correctness, not for compliance.
 
 **IDs are permanent.** A retired requirement keeps its number and is struck, never reused. Renumbering breaks every review record that cites it.
@@ -2583,7 +2585,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-012)
 
 **R-15-013** MUST — Defense-in-depth clause (*verify rather than hedge*): a redundant mechanism is admitted only if it is a genuinely disjoint failure domain the primary's own verification does not reach; where the primary is formally verified, the hedge is declined.
-· Accept: every declined hedge (PMP, IOMMU/IOPMP, MTE, shadow stacks, Harvard split, initialization-tag plane, memory cryptography) cites this clause; every admitted one (crypto core's hardware boundary, on-die ECC, the RoT, physical cutoffs, the Faraday enclosure) shows disjointness and zero cost on the scarce axis.
+· Accept: neither roster is kept here. Every declined hedge cites *verify rather than hedge* at the point of decline and every admitted one cites it at the point of admission, so both sets are read off the citations and a hedge cannot be settled in the prose without the clause knowing. A decline shows the primary's own verification reaches the domain; an admission shows a genuinely disjoint failure domain and zero cost on the scarce axis.
 · Trace: CJ-T · [§15](verification-maximal-os.md#r-15-013)
 
 **R-15-014** MUST — The profile is frozen with the proof, and all reserved, custom, and unused encodings trap rather than silently executing.
@@ -3797,7 +3799,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-016)
 
 **R-17-016a** MUST — The crown-jewel inventory exists as a single enumerated artifact, [crown-jewels.md](crown-jewels.md), carrying one row per crown-jewel specification with its `CJ-` trace target, the requirements that constrain it, and its authored/partial/not-authored status. Like the frozen profile and the absence contract it is a *derived view*: it states no obligation of its own, cites the governing requirements for every row, and is defective — never authoritative — where it disagrees with this register.
-· Accept: the artifact exists; every requirement asserting crown-jewel status for a specification is cited by it; and all 21 `CJ-` targets are accounted for, each either as a specification row or as a theorem target whose premise is a specification row. `tools/check-derived-views.ps1` checks all three conditions. The inventory is the §5 review gate's subject (R-05-150) and the specification workstream's work list, its status column the countable form of R-01-003's as-existing position.
+· Accept: the artifact exists; every requirement asserting crown-jewel status for a specification is cited by it; and every `CJ-` target in the trace-target table above is accounted for, each either as a specification row or as a theorem target whose premise is a specification row. `tools/check-derived-views.ps1` checks all three conditions. The inventory is the §5 review gate's subject (R-05-150) and the specification workstream's work list, its status column the countable form of R-01-003's as-existing position.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-016a)
 
 ### 17.5 The hardware seam register
@@ -3924,8 +3926,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: eager-zeroize keeps the *disclosure* consequence closed independently, so the uncaught case is a correctness bug reading zeros rather than a residue leak; the deletion is a net subtraction on every scarce axis.
 · Trace: CJ-TAL-SOUND, CJ-HAL · [§17](verification-maximal-os.md#r-17-045)
 
-**R-17-046** IS — The proof trust base is enumerated: the two admission checkers, the CHERI-TAL soundness metatheorem, the Sail model, the spec and policy statements, and — as explicitly shrinking interims — F\*/Z3 for PQ primitives and EasyCrypt's Why3/SMT wherever a layer-3 reduction rides it.
-· Accept: the Coq-native crypto path adds no new prover, so those surfaces retire as primitives migrate; the checker's own binary keeps its named bootstrap as the De Bruijn root.
+**R-17-046** IS — The proof trust base is the §6 axiom inventory (R-06-011) together with the interim non-Coq anchors (R-05-022), held here as a residual rather than restated: what this entry adds is the disposition, that the interims are explicitly shrinking rather than open-endedly tolerated.
+· Accept: both lists are read off R-06-011 and R-05-022, so neither is enumerated twice and a change to either has one place to be made. The Coq-native crypto path adds no new prover, so an interim's surface retires as its consumer list empties (R-05-022a); the checkers' own binaries keep their named bootstrap as the De Bruijn root (R-06-014).
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-046)
 
 **R-17-047** IS — Lean-as-checker is refused as the two-kernel cost and Lean-as-oracle has no mature transport today, so the answer stays Coq-native: a tooling-maturity cost the engineering-free axiom absorbs, not a reason to fork the checker.
@@ -4178,7 +4180,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 954 requirements. §19 is non-normative and yields none. Counts include the forty-eight letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-114a`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-12-085a`, `R-12-085b`, `R-12-085c`, `R-12-085d`, `R-12-085e`, `R-13-010a`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-013a`, `R-17-013b`, `R-17-013c`, `R-17-013d`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`, `R-18-014a`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 954 requirements. §19 is non-normative and yields none. Counts include the forty-eight letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check-counts.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
