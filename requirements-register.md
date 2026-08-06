@@ -3310,8 +3310,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a non-capability DMA write clears the validity tags of exactly the granules it wholly covers and can straddle nothing; the descriptor's length field, not the fill, delimits the payload.
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-183)
 
-**R-15-184** IS — Rowhammer has no charge-disturbance analog in SRAM, so the refresh-management apparatus (RFM cadence, PRAC counters, alert and back-off) is deleted, not tuned.
-· Accept: the residual is SRAM's own read/write-disturb and half-select modes, covered by the pervasive ECC and cell-level margin, with an uncorrectable event a fail-stop sentinel event.
+**R-15-184** IS — Rowhammer and its RowPress variant have no charge-disturbance analog in SRAM, so the refresh-management apparatus (RFM cadence, PRAC counters, alert and back-off) is deleted, not tuned.
+· Accept: no activation-counting or back-off mitigation is carried or re-tuned per disturbance variant; the residual is SRAM's own read/write-disturb and half-select modes, covered by the pervasive ECC and cell-level margin, with an uncorrectable event a fail-stop sentinel event.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-184)
 
 **R-15-185** MUST NOT — Autonomous processing-in-memory is banned: compute placed inside the memory array is outside the ISA, capability model, Sail model, and attestation.
