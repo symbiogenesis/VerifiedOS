@@ -1,16 +1,58 @@
 # Userspace Porting Targets (non-normative)
 
 > Externalized companion to [verification-maximal-os.md](verification-maximal-os.md).
-> This is a **non-normative roadmap**, not part of the specification: a curated list of the first userspace applications slated for porting, each mapped to the normative mechanism (§N of that document) it must be re-targeted onto.
+> This is a **non-normative roadmap**, not part of the specification: an inventory of the userland the platform must have, followed by the first applications slated for porting, each mapped to the normative mechanism (§N of that document) it is authored or re-targeted onto.
 > It is the userland analogue of [Evaluated Architectural Alternatives](architectural-alternatives.md) and carries no normative weight: every target still enters through the Tier-2/Tier-1 admission discipline of §13, and a name here is a *statement of intent*, not a grant of exception.
 
 "Porting" here is a term of art.
 There is **no Linux-personality shim and no legacy VM** (§2, §14): a foreign binary does not run, ever.
-Every entry is therefore a **source-level re-target**, recompiled against the WASI-shaped capability libc (§14) straight to native RV64+CHERI, its ambient-authority assumptions stripped and re-expressed as explicit capabilities (§8), admitted only once it carries the proof its tier demands (§13).
+Every *ported* entry is therefore a **source-level re-target**, recompiled against the WASI-shaped capability libc (§14) straight to native RV64+CHERI, its ambient-authority assumptions stripped and re-expressed as explicit capabilities (§8), admitted only once it carries the proof its tier demands (§13).
+Much of the userland is not ported at all: the servers §12 mandates (the next section) are **authored** against the typed IDL, because nothing upstream implements what they are.
 The selection is **uniformly Rust** by design: safe Rust is memory-safe by construction (§5, §14), so a `#![forbid(unsafe_code)]` port is the cheapest path to the mandatory Tier-2 memory-safety certificate (§13), the certifying Rust→RV64+CHERI toolchain (§18) discharges it automatically, and rustc/LLVM never enter the trust base.
 This is a selection *economy*, not a language mandate: admission gates on the binary-level certificate, not the source (§13), so a formally-verified non-Rust component, Project Everest (miTLS, HACL\*/EverCrypt) and the F\*/Low\* lineage (§5), is admissible on equal terms, its foreign-prover verification bonus assurance that never enters the trust base.
 
-## Roster
+## Required system userland
+
+The specification does not leave userland open.
+§12 names a fixed set of servers without which the system cannot boot, unlock, update, consent, or render, and several are load-bearing in ways no application is: one is the sole userland-resident member of the TCB (§6), several are Tier-1 cross-domain servers carrying flow theorems (§13), and one is resident on a core of its own.
+They come first because their sequencing dominates: the roster below is elective and stageable (§18), this half is not.
+
+Most of them are not ports.
+There is no upstream to re-target for a powerbox, a trusted consent path, or a signed translator graph, and where an ancestor exists (systemd's supervision model, Plan 9's plumber and Factotum, BeOS's translators, bcachefs's structure) the design takes the *pattern* and supersedes the mechanism, exactly as [inspirations.md](inspirations.md) records.
+The four obstacles below still bind on whatever code these do reuse, but *which crate do we start from* mostly has no answer here, and the honest cost is authoring against §12's typed IDL rather than subtraction from a POSIX original.
+
+- **Powerbox and trusted-path agent** (§6 item 7, §8, §12), the **consent TCB**: the one userland component the non-interference theorem trusts, because it mints the single capability edge not fixed at compose time and a wrongful declassification is a legitimate capability operation CHERI cannot catch.
+  It is not one program but three cooperating pieces: the powerbox itself, the agent that renders the consent surface into a region it holds by capability under the RoT-driven secure-attention indicator (§9), and the fixed threshold-and-centroid reducer, with no adaptive state, that reads raw front-end frames while the touch AFE's ownership is RoT-latched away from its driver (§12, §15).
+  Authored and verified, never ported; and nothing on the roster below is admissible before it exists, since every file, camera, microphone, and device grant an application ever receives passes through it.
+- **Service manager** (§12): the static supervision tree, declarative units, restart with backoff and capability re-grant, an authority *re-instantiator* that mints nothing.
+  Not a Rust port at all: its control plane is the canonical synchronous Lustre program compiled through Vélus (§5, §12), so it is authored in the control-plane language and inherits structural WCET and determinism instead of being re-targeted from an existing init.
+- **Credential & unlock service** (§12, §9): primary-credential matching, the biometric matcher confined to its own sub-manifest (§14), the duress credential, and the Before-First-Unlock to After-First-Unlock key-custody transition.
+  Authored; the matcher is the only part with plausible upstream, and is precisely the part that must be contained.
+- **Sealing & attestation service** (§12): the crypto core's userspace face (seal/unseal, quotes, reference-manifest retrieval, monotonic counters) and, as protocol-credential broker, the non-exportable typed credential capabilities TLS, WireGuard, and WebAuthn clients hold instead of a signing oracle.
+  Plan 9's Factotum is the design ancestor for the protocol-code-versus-key-custody split, not a lift.
+- **Rollback-manager service and UI** (§12, §9, §10, §11, §16): untrusted and non-TCB, but required, and carrying a constraint no application has.
+  It is also the payload of the boot-selected recovery generation (§9), so it must build and run inside a minimal signed image with no desktop beneath it.
+- **Object fabric** (§12): the contained control-plane service joining Plan 9's private namespace and plumber to BeOS's typed attributes and translators, resolving intents over a signed composition-time handler graph while minting nothing.
+  Authored: there is no runtime handler registration, launcher, or content sniffing to port from.
+- **Media and translator graph** (§12): the one-shot conversion chains and the streaming media templates, including the audio path (raw PCM/PDM from the front-ends, with filtering, echo cancellation, beamforming, and any Opus or AAC coding all host software, §15).
+  This is the sharpest constraint in this half, and the reason the decoder story cannot live on the roster below: §12 makes **every content format such a node parses attacker-facing wire**, so image, font, archive, and media decoders are §5 Narcissus obligations enumerated in the wire-format inventory, not safe-Rust crates lifted intact.
+  `image`, `symphonia`, and the pure-Rust font stack are references for the algorithms and the geometry; the parsers are re-derived.
+- **Filesystem, block, and storage servers** (§12, §10): the four-layer verified stack is a §18 verification workstream rather than a port, while the availability-layer services below the §10 integrity line (replication, erasure coding, tiering, allocator and copygc, and the host-side FTL) are ordinary Tier-1 safe Rust.
+- **Drivers** (§12, §15): one compartment per device, and under the sensor-front-end doctrine each carries the host-side DSP a commodity system hides inside device firmware (touch, audio, IMU, image, fingerprint), alongside the USB stack, the NIC path, and scanout.
+  These are the net-new co-design booked in §17, not re-targets: the firmware-free part does not exist to port from.
+- **Time service** (§12, §9): one wall clock disciplined from three graded authenticated sources (Roughtime, then NTS, then secure PTP over the hardware timestamp unit), with precision itself a capability (§8).
+  `roughenough` appears below as a start-from for one source; the service that cross-checks all three, and holds the monotonic floor across a cold boot on a machine with no real-time clock, is authored.
+- **Telemetry monitor and emergency-call compartment** (§12): the former permanently resident on the S-class sentinel core, the latter a zero-authority compartment reachable at Before First Unlock.
+  Both small, both authored, both required.
+
+Three §12 servers appear in the roster below rather than here, because unlike the rest of this half they have genuine start-froms: the network stack (smoltcp, hickory-dns, roughenough), the inference server (`burn`), and the reference display server (`cosmic-comp`).
+The split runs through COSMIC: the **compositor** is required userland, the **shell** around it is elective.
+
+---
+
+## Roster: the elective applications
+
+These are stageable behind the userland above, and §18 already stages two of them: the first release ships Wi-Fi-only and defers the browser.
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
 - **Zed**, the reference editor/IDE; a software-rendered Tier-2 app.
@@ -42,6 +84,9 @@ Independent of the application, the same four substrate mismatches are re-target
 ---
 
 ## Targets
+
+One section per roster entry above.
+The required userland is not repeated here: having no upstream to analyze, it carries an inventory rather than a per-target disposition.
 
 ### COSMIC Desktop: the shell, and the reference compositor
 
@@ -165,10 +210,11 @@ Roughtime has no verified peer in any prover, so roughenough rides the Narcissus
 
 ## Shared prerequisites
 
-All eight gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
+Both halves of the userland gate on the same handful of net-new artifacts, so they are sequenced behind them rather than each solving them privately:
 
 - **The certifying Rust→RV64+CHERI toolchain (§18)** is the hard, no-fallback prerequisite for *building or admitting any of them*, userspace availability gates on it exactly as desktop instantiation gates on CHERI silicon (§18).
 - **A software rendering/compositing library on V-class cores**, the substrate COSMIC's compositor, Zed's GPUI, and Servo's WebRender all collapse onto, is built once under the §12 display model and shared across the three GUI targets.
+  It is needed earlier than any of them: the trusted-path agent and the rollback-manager UI (above) must draw before an application exists to consent about or a generation exists to roll back.
 - **The WASI-shaped capability libc (§14)** and its manifest-backed namespace is the common on-ramp every source-level re-target compiles against.
 - **The reference display server** (COSMIC's `cosmic-comp`, above) that the other GUI apps present surfaces to under per-surface / per-input capabilities (§12).
 
