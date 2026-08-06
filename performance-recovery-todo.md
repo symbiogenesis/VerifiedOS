@@ -5,7 +5,7 @@
 > A **pure win** recovers performance while **shedding no security property, reviving no deleted mechanism, opening no channel, and adding no axiom or TCB surface**, admissible precisely because it is *static, ahead-of-time, off-device*, and its output is **re-checked at admission** (§6).
 > "Engineering is free; trust is the scarce resource," so every item may be pursued to arbitrary aggressiveness without touching the trust base.
 > This list records **open** levers only: an item that lands in the spec leaves the list, and nothing here is normative or may relax the §15 admission test.
-> **The list is confined to off-device software and composition-time levers**, because the untrusted-producer, re-checked-artifact architecture is what keeps them free of trust cost. The one *in-model* (hardware) pure win, **decoder-stage macro-op fusion**, is booked in the spec instead (§2, §15): fused and unfused executions reach identical architectural state, so the existing RTL-against-Sail *functional* refinement carries it at no proof cost. The spec calls this list fusion's "off-device complement" (§15), and the complement is real work: the decoder fuses only *adjacent* pairs from a frozen set, so the gain exists only if the compiler emits them and the scheduler does not split them (§1A).
+> **The list is confined to off-device software and composition-time levers**, because the untrusted-producer, re-checked-artifact architecture is what keeps them free of trust cost. The one *in-model* (hardware) pure win, **decoder-stage macro-op fusion**, is booked in the spec instead (§2, §15): fused and unfused executions reach identical architectural state, so the existing RTL-against-Sail *functional* refinement carries it at no proof cost. Its off-device complement has also left this list: R-18-014a makes fusion-pair emission and preservation, RVV autovectorization and SLP, legal `Zicond` if-conversion, and ordinary latency-aware scheduling baseline completeness of the already-required compiler backends.
 >
 > **What "recovery" means here.**
 > Figures are measured **intra-design** (the same frozen instantiation *un-optimized vs. optimized*) against the rows of [performance-estimates.md](performance-estimates.md).
@@ -14,11 +14,10 @@
 > What never narrows is the residual *after* every pass has run on both machines: the deleted dynamic mechanisms, booked as accepted costs in the estimates (§ *Out of scope*, below) and recovered nowhere here.
 > These items do **not** catch up to a chip that keeps the dangerous mechanisms; they stop the secure design from running slower than it provably has to, and several of them do close real distance while doing it.
 
-## The three classes
+## The two classes
 
 Every item is tagged with one, and the tag is the honest statement of what it buys:
 
-- **[R] Realizes.** The lever is the software key to a hardware gain the estimates **already book** as a positive row (RVV, macro-op fusion, `Zicond`). It recovers no loss row and must not be scored against one; without it the booked gain is simply not collected.
 - **[D] Differential.** The lever exploits structure the conventional baseline **does not have** (a compose-time-frozen component graph, capability bounds and tags on die, a WCET-bounded frame, a partitioned SRAM map). Its marginal return is strictly higher here, so it narrows the inter-design gap by that difference. Several still only *offset a self-imposed tax* and never overtake the baseline; the item says which.
 - **[U] Universal, higher margin.** An ordinary optimizing-compiler pass the baseline runs too, but whose marginal return is larger here because no dynamic mechanism papers over its absence. It narrows the gap by the difference in marginal return, which is smaller than a [D] lever's and is not zero.
 
@@ -26,7 +25,7 @@ Every item is tagged with one, and the tag is the honest statement of what it bu
 
 An item earns a place on this list iff it clears all six:
 
-1. **Recovers performance** on at least one row of [performance-estimates.md](performance-estimates.md), *intra-design* (the same instantiation, un-optimized vs. optimized). An item that realizes a booked **gain** row is tagged **[R]** and may not additionally claim a loss row: that is double-counting.
+1. **Recovers performance** on at least one loss row of [performance-estimates.md](performance-estimates.md), *intra-design* (the same instantiation, un-optimized vs. optimized). Collecting a hardware gain already booked there is backend completeness, not an open recovery lever.
 2. **No trust widening**, no new axiom, no TCB growth; the produced artifact is re-checked, so its *producer* stays untrusted.
 3. **Sheds no security property**, every theorem the spec claims still holds, unchanged.
 4. **Revives no deleted dynamic mechanism and opens no channel**, no speculation, OoO, dynamic prediction, SMT, JIT, DVFS/turbo, prefetch state, or reservation state sneaks back.
@@ -47,7 +46,7 @@ This single fact is what makes the whole list pure.
 The output carries the same memory-safety / constant-time / WCET certificates (§5, §13); the optimizer only makes the same-certified binary faster.
 Nothing here contradicts the §5 rule that deleted the CryptOpt toolchain (R-05-064, R-18-022): that rule bans minting a **net-new verified artifact** whose only yield is speed, and every tool below is untrusted producer-side machinery that mints nothing.*
 
-### 1A. Differential and realizing levers, ordered by expected value
+### 1A. Differential levers, ordered by expected value
 
 - [ ] **[D] Whole-image partial evaluation against the composition graph.**
   The component graph, capability manifests, IFC labels, static grants, devicetree, cyclic-executive schedule, and browser origin pool are **build-time constants** (§7 static composition, §8, §14): the machine admits no compartment, endpoint, or grant minted at runtime.
@@ -78,21 +77,6 @@ Nothing here contradicts the §5 rule that deleted the CryptOpt toolchain (R-05-
   Differential: a coherent baseline has no slot cadence to align to and no granule write path to respect; the compiler and the composition tooling here both know the schedule.
   Attacks the cross-core-coordination (−2% to −15%), TDM-NoC (−5% to −15%), and no-coherence (−5% to −20%) rows.
   *Keeps it pure:* it changes the *shape* of traffic inside a compartment's own statically granted slots and windows, never the slot allocation, the arbitration, or who may address what.
-- [ ] **[R] Autovectorization / SLP onto RVV, the dominant realizing lever.**
-  Lift scalar inner loops onto the already-in-profile vector unit (VLEN 256 C-class / 4096 V-class, §15).
-  Moving a loop onto RVV converts an in-order-scalar row into a vector-gain row.
-  Scored as **[R]**: it is the key that collects an already-booked hardware gain (the RVV row, +100% to +1500%), not a recovery of a loss row, and a conventional autovectorizer targets its own vector unit too, so only the wider VLEN, already counted, differs.
-  *Keeps it pure:* secret-touching output still carries the binary-level constant-time certificate (§5/§13), which rejects any secret-dependent vectorization.
-- [ ] **[R] Fusion-idiom-aware instruction selection and scheduling.**
-  §15 admits decoder-stage macro-op fusion over a **frozen set of adjacent pairs** (`lui`+`addi`, `auipc`+`addi`/load, `slli`+`add` indexed addressing, compare-and-branch, short dependent-ALU chains) and books it as a **+3% to +10%** gain, and §15 explicitly names this list its off-device complement.
-  The complement is two obligations: **emit** the fusable idioms in preference to equivalent non-fusable encodings, and **forbid the scheduler from separating a fused pair** (see Tensions: aggressive scheduling and software pipelining destroy the adjacency fusion requires, so the booked gain can be lost while chasing the in-order row).
-  Scored **[R]**: it collects a booked gain; it recovers no loss row.
-  *Keeps it pure:* fusion is architecturally transparent (fused and unfused executions reach identical architectural state), so no certificate, WCET table entry, or CT statement is re-derived; the compiler is merely emitting one encoding rather than another.
-- [ ] **[R] If-conversion onto `Zicond`, scoped honestly.**
-  Convert unpredictable forward branches into branchless `czero.eqz/nez` selects.
-  `Zicond` is booked in the estimates as a **gain row (+0% to +4%)**, so it is **[R]**, the same status as autovectorization: the compiler collects a booked gain and claims no part of the static-prediction (−10% to −30%) loss row, which would be counting it twice.
-  Two scope limits bound it. Applicability is narrow: `czero` if-converts **register-to-register arms only**, because this machine speculates nothing, so any arm containing a load, a store, or a trapping operation cannot be if-converted at all. And the security half is **not a performance lever**: eliminating a secret-dependent branch is *mandatory* under the CT taint discipline (§5), not optional recovery, so the performance credit is confined to non-secret unpredictable branches.
-  Still worth more here than on the baseline in marginal terms, since a dynamic predictor would have nailed many of these branches and can even be *hurt* by if-converting a well-predicted one.
 - [ ] **[D] Elide software bounds checks onto CHERI's hardware bounds, under a certified precondition.**
   Teach the certifying Rust→RV64+CHERI toolchain (§18) to drop a panicking language-level bounds check where the capability that will be dereferenced **already bounds exactly the region the check tests**, letting the hardware bound fault instead. Unclaimed today: current purecap Rust (Morello / CHERI-RISC-V) makes raw-pointer and `unsafe` code spatially safe yet still emits the safe-Rust check *on top of* the hardware bound.
   Three preconditions are load-bearing, and elision without certifying them removes the only check that exists:
@@ -114,8 +98,8 @@ Nothing here contradicts the §5 rule that deleted the CryptOpt toolchain (R-05-
 
 ### 1B. Universal passes whose marginal return is higher here
 
-- [ ] **[U] Software pipelining / modulo scheduling / static load hoisting.**
-  The in-order core has no out-of-order window to hide load or FP latency behind, so the scheduler must do it offline: overlap iterations, hoist loads ahead of use.
+- [ ] **[U] Software pipelining / modulo scheduling beyond the mandatory backend scheduler.**
+  R-18-014a already requires ordinary latency-aware scheduling, including local load-use separation, as backend completeness. This optional lever is only the advanced cross-iteration transform: overlap iterations and hoist loads across iteration boundaries.
   Targets the in-order (−35% to −60%) and no-hardware-caches (−10% to −50%) rows. It may **not** claim a no-prefetch row: the estimates score no-prefetch at **≈0%** and state that the remaining load-use latency "is hidden instead by static instruction scheduling", so charging it here would double-count against the no-cache row.
   Higher margin than on the baseline, whose OoO window hides the same latency dynamically, so the compiler's marginal contribution there is small; the gap narrows by that difference, though static scheduling still wins mainly on regular loops rather than the branchy code that dominates the in-order row.
   *Keeps it pure:* static hoisting, **not** the excluded `Zicbop` prefetch hint, no new µarch state, no channel. Trades against fusion adjacency under **Tensions**.
@@ -191,7 +175,7 @@ The search itself is specified in §15 (normative) and [implementation-plan.md](
 
 The list is not internally free: three pairs pull against each other, and each is arbitrated rather than merely noted.
 
-- **Instruction scheduling vs. macro-op fusion.** Software pipelining and aggressive scheduling reorder instructions; the decoder fuses only **adjacent** pairs from a frozen set (§15). A scheduler ignorant of the fusion table will split fused pairs and give back part of the booked +3% to +10% while chasing the in-order row. **Arbitration:** the fusion table is a scheduler input, and pairs are atomic to the scheduler unless breaking one measurably wins on the same block.
+- **Advanced scheduling vs. macro-op fusion.** R-18-014a makes the frozen fusion table a mandatory scheduler input and preserves pair adjacency unless the same block's static Sail cost is strictly lower when broken. Optional modulo scheduling may make that measured trade; it may not silently give back the booked +3% to +10% to an unmeasured heuristic.
 - **Inlining and unrolling vs. code size.** Speed bought with size lands on a machine with no I-cache, a +25–30% no-C penalty, and a hard SRAM capacity budget (§15), so it can regress the very fetch-bandwidth pressure PGO/BOLT layout exists to relieve, and it consumes budget the §15 roster is fit to explicitly. **Arbitration:** gate 6. Size is a constrained objective in the optimizer, not a free variable, and profile-directed selectivity (inline and unroll on measured hot paths only) is the standing form.
 - **Per-edge specialization vs. code size.** Whole-image partial evaluation multiplies trampolines and monomorphized kernel copies. Same arbitration: budgeted, profile-directed, and measured against the §15 capacity arithmetic rather than applied uniformly.
 
@@ -200,7 +184,7 @@ The list is not internally free: three pairs pull against each other, and each i
 ## What each lever recovers
 
 Rows are named from [performance-estimates.md](performance-estimates.md) (figures live there, so this stays in sync).
-The third column gives the class from **The three classes**, above: **[R]** realizes a booked gain row, **[D]** exploits structure the baseline lacks and so narrows the gap by its higher marginal return, **[U]** is a universal pass whose marginal return is nonetheless higher here.
+The third column gives the class from **The two classes**, above: **[D]** exploits structure the baseline lacks and so narrows the gap by its higher marginal return, while **[U]** is a universal pass whose marginal return is nonetheless higher here.
 
 | Pure-win lever | Rows it attacks | Class and marginal-return note |
 |---|---|---|
@@ -209,12 +193,9 @@ The third column gives the class from **The three classes**, above: **[R]** real
 | WCET-directed compilation | Non-work-conserving scheduler; §11 population rung | **[D]** Worth *nothing* on a work-conserving baseline; buys schedulable frame capacity |
 | Switch-cost minimization (live V/M state) | `fence.t` + eager V/M zeroize (−2% to −4%) | **[D]** Baseline has no eager-zeroize obligation and no compile-time-known switch points. Bounded: the switch saves nothing (R-07-014a), so only one write pass is left to shrink, over a `fence.t` floor that does not move |
 | Ring-window / message layout | Cross-core coordination; TDM NoC; no coherence | **[D]** Aligns to a slot cadence and granule write path the baseline does not have |
-| Autovectorization / SLP | → RVV vector gain row (+100% to +1500%) | **[R]** Collects a booked gain; claims no loss row |
-| Fusion-idiom-aware iselect / scheduling | → macro-op fusion gain row (+3% to +10%) | **[R]** Collects a booked gain; the off-device complement §15 names |
-| `Zicond` if-conversion | → `Zicond` gain row (+0% to +4%) | **[R]** Register-arm-only; claims no part of the static-prediction loss row; the CT half is mandatory, not recovery |
 | CHERI bounds-check elision | In-order; static prediction; no C/compressed; offsets CHERI purecap (−2% to −12%) | **[D]** Only under a certified exact-bounds precondition (`len` ≠ capacity, compressed-bounds rounding, panic ≠ trap) |
 | CHERI temporal-safety elision | *No booked row*: unscored instrumentation + refcount atomic traffic | **[D]** The −0% to −3% row is missing-CAS, not refcount cost. Structural §13 hygiene; tiny, and smaller still under share-nothing |
-| Software pipelining / static load hoisting | In-order issue; no hardware caches | **[U]** No no-prefetch row to claim (scored ≈0%; charging it double-counts). Higher margin: no OoO window to hide latency |
+| Software pipelining / modulo scheduling | In-order issue; no hardware caches | **[U]** Advanced cross-iteration scheduling only; ordinary latency scheduling is mandatory backend completeness under R-18-014a. No no-prefetch row to claim (scored ≈0%; charging it double-counts) |
 | Deterministic PGO + BOLT layout | Static branch prediction; no C/compressed (fetch) | **[U]** Higher margin: the static rule *is* the predictor, so layout is the whole of it |
 | LTO / inlining / unrolling | Static prediction + in-order (compounding) | **[U]** Gate-6 constrained; trades against code size (Tensions) |
 | Superoptimization / search codegen | In-order scalar; bit/integer paths | **[U]** Speed is universal; the untrusted-search story is a *trust* win. Producer-side TV is required, not optional |

@@ -4038,6 +4038,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the first re-homes SECOMP2CHERI and completes its robust-preservation theorem rather than authoring a capability backend fresh; the second is genuinely net-new and explicitly in scope.
 · Trace: CJ-COMPCERT, CJ-SECOMP · [§18](verification-maximal-os.md#r-18-014)
 
+**R-18-014a** MUST — Backend completeness is part of the two already-required compiler deliverables, not a separate performance workstream: every production lowering for a vector-bearing core class provides ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion, and fusion-aware selection and adjacency preservation for the frozen §15 pair set.
+· Accept: backend tests contain one positive generated-code case for each facility and a fusion-conflict case showing that a pair is broken only when the same block's static Sail cost is strictly lower; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, verified artifact, or workstream for these duties.
+· Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET · [§18](verification-maximal-os.md#r-18-014a)
+
 **R-18-015** IS — The certifying Rust compiler's shape is a front end over safe-Rust MIR carrying the source type system's memory-safety fact through lowering and emitting a CHERI-TAL derivation; CHERI discharges spatial safety, so the preserved obligation is the temporal-safety and typed-control-flow residual.
 · Accept: no per-app manual proof is required for pure-safe-Rust code.
 · Trace: CJ-TAL-SOUND · [§18](verification-maximal-os.md#r-18-015)
@@ -4130,7 +4134,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 942 requirements. §19 is non-normative and yields none. Counts include the thirty-six letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 943 requirements. §19 is non-normative and yields none. Counts include the thirty-seven letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`, `R-18-014a`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4151,7 +4155,7 @@ All eighteen normative sections are extracted, at 942 requirements. §19 is non-
 | **§15 Hardware Platform** | **extracted** | **255** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **67** |
-| **§18 Realization** | **extracted** | **37** |
+| **§18 Realization** | **extracted** | **38** |
 
 §19 is non-normative and yields no requirements.
 
