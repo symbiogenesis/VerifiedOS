@@ -58,7 +58,7 @@ The split runs through COSMIC: the **compositor** is required userland, the **sh
 These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes two points in it, shipping Wi-Fi-only and deferring the browser.
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
-- **Zed**, the reference editor/IDE; a software-rendered Tier-2 app.
+- **Zed**, the reference editor, a software-rendered Tier-2 app: its GPU-first framework and its C parsing runtime are both bounded re-targets, and it carries no language-support commitment.
 - **coreutils / findutils / diffutils** from uutils, the seed corpus for §14's capability-native core utilities (Tier-2).
 - **gitoxide**, the pure-Rust Git, re-targeted as the capability-native version-control engine; its object store re-homes onto §10's verified CoW B-tree (native dedup, reflinks, snapshots, Git's packfiles and `gc` shed) and its pack/wire decoders are a §5 Narcissus obligation (Tier-2).
 - **NuShell**, the structured-data shell, re-grounded as the capability-native command interpreter: its typed value pipeline is the shell-level analogue of §12's data plane, its builtin-heavy command set shrinks the `fork`/`exec` surface, and its plugins become §12 ring-reached compartments (Tier-2).
@@ -78,6 +78,9 @@ Independent of the application, the same four substrate mismatches are re-target
 2. **GPU dependence becomes software compute.**
    There is no fixed-function GPU, no Vulkan/Metal/wgpu path, no CUDA (§15).
    Rendering, compositing, and codecs move to software on the V-class cores; matrix/AI work moves to the M-class GEMM units (§15), both under the §12 display/inference model, never a driver.
+   The replacement is not a software implementation of a graphics API: every mature one JITs its shaders, which W^X forbids (§14), and an emulated API would reintroduce the shader-IR compiler and command-stream validator §12 excludes from the display path, for no gain, since the pixels are computed by the vector unit either way.
+   What survives is the shader as a *program*: §13 already admits one, AOT-compiled and certified off-device and dispatched like any other binary, and this costs these toolkits nothing, because their shader sets are fixed at build time and none of them needs to generate one at runtime.
+   The shading languages survive with it, as build-time intermediates the certifying toolchain consumes; the API question is weighed per mechanism in [Evaluated Architectural Alternatives](architectural-alternatives.md).
 3. **Ambient POSIX authority becomes explicit capabilities.**
    No `fork`/`exec`, no uid/gid, no `/proc`, no CWD-relative path resolution (§2, §8).
    Process trees become the service manager's static supervision tree (§12); path-based file access becomes a manifest-backed private namespace (§14); "spawn a helper" becomes a capability-delegated compartment reached over a ring (§12).
@@ -127,19 +130,49 @@ The required userland is not repeated here: having no upstream to analyze, it ca
 ### COSMIC Desktop: the shell, and the reference compositor
 
 System76's Rust desktop, the `libcosmic`/`iced` toolkit, the `cosmic-comp` compositor on smithay, cosmic-text, assumes Wayland-over-Linux: DRM/KMS scanout, a GPU through wgpu/OpenGL, evdev/libinput.
-Re-targeted, **`cosmic-comp` becomes the reference §12 display server**: it already embodies the "surfaces are plain memory, input and output are mediated" model that §12 mandates, so Wayland's global-registry ambient objects are replaced by **per-surface and per-input capabilities** (keylogging and screen-scraping become unexpressible, §12), DRM/KMS is replaced by the firmware-free scanout controller behind a static capability-bounded DMA window (§12, §15), and the wgpu/OpenGL renderer falls back to **software compositing on V-class cores** (§12, obstacle 2).
+Re-targeted, **`cosmic-comp` becomes the reference §12 display server**: it already embodies the "surfaces are plain memory, input and output are mediated" model that §12 mandates, so Wayland's global-registry ambient objects are replaced by **per-surface and per-input capabilities** (keylogging and screen-scraping become unexpressible, §12), DRM/KMS is replaced by the firmware-free scanout controller behind a static capability-bounded DMA window (§12, §15), and the wgpu/OpenGL path becomes **software compositing on V-class cores** (§12, obstacle 2).
+
+**The toolkit half of that renderer largely exists upstream.**
+`iced` is renderer-agnostic by construction and already ships two backends, `iced_wgpu` and a software `iced_tiny_skia` built on the very crate §12 names as the 2D start-from, so the shell and its applets reach the substrate through a seam their toolkit already has rather than through a rewrite.
+The compositor is the half that needs the work, and its renderer is a backend against the shared substrate on the same terms as the other GUI targets: its shader set, like theirs, is fixed at build time and so AOT-compiles and is certified off-device (§13, obstacle 2).
+
 Because the compositor mediates between mutually distrusting clients, many origins' and apps' surfaces and input events, it is a cross-domain **Tier-1** server carrying the §13 information-flow theorems that decide which surface may observe which input; the panel, launcher, settings, and applets are ordinary **Tier-2** apps built on `libcosmic`. libinput/evdev collapse to register-slave scan drivers (§12), and `fork`-spawned session helpers become supervision-tree compartments (obstacle 3).
 
-**Disposition:** adopt `cosmic-comp` as the reference display-server seed and `libcosmic`/`iced` as the app toolkit; the GPU renderer is the single largest rewrite (software rasterization on V-class cores), and the Wayland surface model is kept as *vocabulary* while its enforcement moves to capabilities.
+**Disposition:** adopt `cosmic-comp` as the reference display-server seed and `libcosmic`/`iced` as the app toolkit, keeping the Wayland surface model as *vocabulary* while its enforcement moves to capabilities.
+The largest work is not the renderer: it is shedding smithay's Linux backend layer (DRM and GBM, EGL, libinput, udev, session and seat), which goes with the assumption that motivated it (closure disposition 2), and re-grounding the compositor's mediation on per-surface and per-input capabilities under Tier-1 information-flow obligations no other target on this roster carries.
 
-### Zed: the reference editor/IDE
+### Zed: the reference editor
 
-Zed Industries' Rust editor rides the GPUI framework, which is GPU-first (Metal / `blade` / Vulkan) over a platform `unsafe` layer; Zed spawns language servers as subprocesses, drives syntax with tree-sitter (a C library), and ships networked collaboration.
-Re-targeted: GPUI's renderer moves to **software on V-class cores**, the same substrate COSMIC and Servo need, built once and shared, and its platform `unsafe` routes through the verified HAL (§5, obstacle 1).
-The LSP subprocess model has no `fork`/`exec` (§2): each language server becomes a **capability-delegated Tier-2 compartment reached over a ring** (§12), started by the service manager's static supervision tree (§12), not by the editor's ambient authority (obstacle 3). tree-sitter's C core is a `-sys` FFI dependency and thus inadmissible as-is, either contained behind the verified HAL or replaced by a pure-Rust grammar runtime; note that parsing *local* source is **not** the §5 attacker-facing-wire mandate (which governs remote formats), so tree-sitter stays ordinary contained code, not a Narcissus obligation.
-Collaboration rides the §12 IPv6/TLS network stack; file and clipboard access is powerbox-mediated (§14).
+Zed Industries' Rust editor rides the GPUI framework, which is GPU-first (Metal, `blade`, Direct3D) over a platform `unsafe` layer; it drives syntax with tree-sitter, whose parsing runtime is C, spawns language servers as subprocesses, and ships networked collaboration.
+The first three read as blockers and are not: two are bounded re-targets, and the third is scoped out rather than solved.
 
-**Disposition:** Tier-2, gated on the shared software-render substrate and on shedding the tree-sitter and GPU `-sys` crates; the editor core, rope, multi-buffer, diagnostics, git, ports as clean safe Rust.
+**The renderer is the smallest of the three GUI re-targets, not the largest.**
+GPUI is not a general graphics-API consumer but a specialized 2D scene renderer over a small fixed primitive set (rounded quads with borders and gradients, drop shadows, monochrome glyph sprites from an atlas, polychrome image sprites, underlines, filled paths, platform surfaces) drawn by on the order of a dozen hand-written shaders.
+That set is signed-distance-field and blit shaped rather than triangle-mesh shaped, which is the shape a wide vector unit suits: per-pixel evaluation over a primitive's bounding box is branch-free and parallel, and filled paths are the one awkward member.
+It also already carries a backend seam, having been implemented over Metal, over `blade`, and over Direct3D, so a fourth backend against the shared substrate is known-shaped work rather than a new framework.
+Obstacle 4 never bites it: the shader set is fixed at build time, so it AOT-compiles and is certified off-device like any other code (§13, obstacle 2).
+The other half of that backend is the platform layer (windowing, input, clipboard, frame timing), which is where GPUI's `unsafe` lives and which becomes ordinary §12 display-server client work under per-surface and per-input capabilities.
+
+**tree-sitter is a sub-port with prior art, and the tables are why it is bounded.**
+Its parsing runtime is C, so the `-sys` crate is inadmissible (closure disposition 3), but two facts keep the replacement small: the grammar *generator* is already Rust and runs off-device at build time, exactly where compilation belongs (obstacle 4), and a generated grammar is overwhelmingly static parse tables rather than code.
+A safe-Rust runtime consuming those tables behind a Rust-native API is therefore bounded work against a stable data format.
+ast-grep's Rust rewrite of the C runtime serves as a functional reference and differential oracle, and as evidence that the rewrite is performance-positive, but it is not the artifact to adopt: it preserves the C binary interface, which is both the constraint that forces pervasive `unsafe` and a constraint nothing here needs, since no component on this platform links that library.
+The residue is the external scanners, since the grammars needing context-sensitive lexing ship hand-written C ones, so every grammar actually shipped carries a scanner rewrite with it.
+Parsing *local* source is **not** the §5 attacker-facing-wire mandate, which governs remote formats, so the runtime is contained code rather than a Narcissus obligation; but source opened from a cloned repository is attacker-controlled input, so §14 makes it a mandatory intra-app compartment with its own sub-manifest (closure disposition 4) whatever language it is written in.
+
+**No language support is promised, and the editor does not depend on any.**
+The LSP subprocess model has no `fork`/`exec` (§2), so a language server becomes a capability-delegated Tier-2 compartment reached over a ring and started by the supervision tree (§12, obstacle 3) rather than by the editor's ambient authority.
+That is the mechanism, not a roster commitment: a language server is admissible only as certified native code (§13), and most of the ones in demand are programs written for a runtime this platform does not host.
+Language support is therefore later work, taken only where it is near-free, meaning a server already written in admissible safe Rust and a grammar needing no external scanner.
+The editor is useful before any of it, and nothing else on the roster waits on it.
+
+**An editor is not an integrated development environment here, because nothing on the device compiles.**
+Compilation and proving are off-device build steps (§5, §13) and nothing JITs (§14), so there is no on-device toolchain for an editor to drive: building, certifying, and admitting happen elsewhere, and the results arrive as signed generations (§11) or admitted images (§13).
+That is a property of the platform rather than of this target, and it bounds what any editor on this roster can mean.
+Collaboration rides the §12 network stack; file and clipboard access is powerbox-mediated (§14).
+
+**Disposition:** Tier-2, gated on the shared render substrate and on nothing else, language ecosystems included.
+Adopt the editor core (rope, multi-buffer, diagnostics, git integration) as clean safe Rust, write a fourth GPUI backend against that substrate with the shader set AOT-compiled and certified off-device, replace the tree-sitter runtime with a safe-Rust table consumer cross-checked against both the C and ast-grep implementations, rewrite one external scanner per grammar actually shipped, and treat language servers as a later addition admitted only where near-free.
 
 ### coreutils / findutils / diffutils: reimplemented capability-native core utilities, based on uutils
 
@@ -251,6 +284,7 @@ Both halves of the userland gate on the same handful of net-new artifacts, so th
 
 - **The certifying Rust→RV64+CHERI toolchain (§18)** is the hard, no-fallback prerequisite for *building or admitting any of them*, userspace availability gates on it exactly as desktop instantiation gates on CHERI silicon (§18).
 - **A software rendering/compositing library on V-class cores**, the substrate COSMIC's compositor, Zed's GPUI, and Servo's WebRender all collapse onto, is built once under the §12 display model and shared across the three GUI targets.
+  Its interface is a dispatch of AOT-certified kernels over capability-scoped buffers rather than an emulated graphics API (obstacle 2), which is what makes the three backends re-targets of a known shape instead of three GPU stacks: each toolkit's shader set is fixed at build time, and each already has a backend seam to write against.
   It is needed earlier than any of them: the trusted-path agent and the rollback-manager UI (above) must draw before an application exists to consent about or a generation exists to roll back.
 - **The WASI-shaped capability libc (§14)** and its manifest-backed namespace is the common on-ramp every source-level re-target compiles against.
 - **The reference display server** (COSMIC's `cosmic-comp`, above) that the other GUI apps present surfaces to under per-surface / per-input capabilities (§12).

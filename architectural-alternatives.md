@@ -1161,6 +1161,58 @@ Non-normative; the normative decisions are in §2, §4, §12, and §15.
 
 ---
 
+## Vulkan and the software graphics API: the shader survives as a certified program, the runtime API does not
+
+The entry above settles the hardware question; this one settles the software layer that would sit on top of it.
+The request arrives from the roster rather than from theory: every graphical target ([userspace-porting.md](userspace-porting.md)) speaks a graphics API upstream, GPUI over Metal and `blade` and Direct3D, WebRender and `iced` over wgpu, and `blade` reaches Linux hardware through Vulkan.
+So the question is whether the platform can expose Vulkan, or an emulated GL, Metal, or wgpu above it, and let that body of code arrive unchanged.
+
+Three claims separate.
+Vulkan **as a hardware driver interface** is moot, there being no GPU to drive (§15).
+Vulkan **as a software implementation** is the live proposal, of the lavapipe and SwiftShader class.
+Vulkan **as a portability vocabulary** is the part actually wanted, and it is the part that survives, though not in that form.
+
+**The steelman.**
+Of all the graphics APIs this is the one whose taste is closest to the design's: explicit, low-level, no hidden driver state, no implicit synchronization, resources and lifetimes stated rather than inferred.
+It is also the single largest lever on porting cost, since it is the one interface standing between a large body of existing safe-Rust graphics code and this platform, and forgoing it means a hand-written backend per toolkit rather than one inherited by all of them.
+If any graphics API were admissible here, it would be this one.
+
+**Objection: runtime pipeline creation is the model, and it is runtime code generation.**
+Creating a shader module and then a graphics or compute pipeline compiles SPIR-V to machine code at run time, and the pipeline object is the API's central abstraction rather than an implementation detail, so this is not a corner that can be trimmed away.
+W^X forbids it (§14), and an emulated API reinstates in userland the shader-IR compiler §12 excludes from the display path.
+A *pure interpreter* over SPIR-V would dodge W^X, interpreters being admitted (§14), but interpreting per-pixel shading spends the throughput budget §2 already books at 2010s-iGPU class on the one workload that can least afford it, and it leaves every objection below standing.
+
+**Objection: command buffers reinstate the validator.**
+Recording commands into a buffer that another component later executes is an attacker-authorable command stream a trusted consumer must validate, which is exactly the surface class §15 deletes rather than defends and §12 keeps out of the display path.
+That shape is a property of the API, not of the silicon beneath it: a software implementation reproduces the command stream and the validator faithfully, and gains only that the executor is now ordinary userland code.
+
+**Objection: it is a personality shim, and a large one.**
+The loader, the ICD and extension mechanism, descriptor sets, memory heaps and types, and the queue and synchronization primitives all model a discrete device with its own memory across a bus.
+That device does not exist here: there is a single address space with no MMU, surfaces are plain memory under CHERI, and buffers reach a compartment as capabilities (§12, §15), so the API's memory model is an abstraction over a separation the machine does not have.
+Emulating an absent machine to keep an interface is the personality-shim move §2 and §14 refuse, and the objection is the same one made against the Linux personality, one layer up.
+
+**Objection: it buys nothing where it is asked for.**
+Every consumer on the roster has a shader set fixed at build time, GPUI's dozen or so hand-written shaders included, and none of them generates a shader at run time.
+The dynamic half of the API, which is the inadmissible half, is therefore precisely the half none of these toolkits uses, while the static half is already supplied.
+The cost lands on the loser of that trade in the same motion: the ported backend is written by hand, and existing wgpu-based code does not arrive unchanged.
+
+**The distilled atom is already banked, twice.**
+The admissible core of what a graphics API does is the shader as a *program*, and §13 already admits one, compiled ahead of time and certified off-device and dispatched like any other binary; the interface the roster gets is a dispatch of AOT-certified kernels over capability-scoped buffers, built once and shared by all three graphical targets ([userspace-porting.md](userspace-porting.md)).
+The shading *language* survives too, on the far side of the build: SPIR-V, WGSL, or GLSL is admissible as a build-time intermediate the certifying toolchain consumes on its way to vector kernels, since compilation there is exactly where the design puts it (§5, §13).
+Keeping the vocabulary while moving the enforcement is the same move made on the Wayland surface model, and the API's own best virtue, no hidden driver state, is had more thoroughly by having no driver.
+
+**Where it ranks.**
+With the emulated-personality family rather than with the hardware alternatives: rejected on the same three grounds as any other shim (runtime code generation, a reinstated command-stream validator, and an interface modeling absent hardware), and rejected for a fourth reason peculiar to it, that the part its consumers need is already normative and the part that is inadmissible is the part they do not use.
+The honest cost is one backend per toolkit written rather than inherited, which is engineering on the free axis, paid once per target and shared thereafter through the common substrate.
+
+**Disposition (no import; the substitute is already normative in §13 and §12).**
+Vulkan is not exposed, as a driver interface, as an emulated software implementation, or as a compatibility layer, and neither are GL, Metal, or wgpu.
+What is exposed instead is the dispatch of ahead-of-time-compiled, off-device-certified kernels over capability-scoped buffers, with the render and compositor servers as the whole of the graphics driver (§12, §13).
+SPIR-V and the shading languages above it remain admissible strictly off-device, as build-time shader IR for the certifying toolchain (§5, §13).
+Non-normative; the normative decisions are in §12, §13, §14, and §15.
+
+---
+
 ## Dedicated NPUs and RISC-V tensor-core extensions: the in-core matrix unit is already a tensor core, the firmware-driven NPU is the foreign computer §4 excludes
 
 RISC-V has become an industrial base for custom AI silicon, and the field builds its matrix engines two ways.
