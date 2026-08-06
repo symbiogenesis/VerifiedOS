@@ -8,7 +8,7 @@
 There is **no Linux-personality shim and no legacy VM** (§2, §14): a foreign binary does not run, ever.
 Every *ported* entry is therefore a **source-level re-target**, recompiled against the WASI-shaped capability libc (§14) straight to native RV64+CHERI, its ambient-authority assumptions stripped and re-expressed as explicit capabilities (§8), admitted only once it carries the proof its tier demands (§13).
 Much of the userland is not ported at all: the servers §12 mandates (the next section) are **authored** against the typed IDL, because nothing upstream implements what they are.
-The selection is **uniformly Rust** by design: safe Rust is memory-safe by construction (§5, §14), so a `#![forbid(unsafe_code)]` port is the cheapest path to the mandatory Tier-2 memory-safety certificate (§13), the certifying Rust→RV64+CHERI toolchain (§18) discharges it automatically, and rustc/LLVM never enter the trust base.
+The selection is **uniformly Rust** by design: safe Rust is memory-safe by construction (§5, §14), so a port whose whole dependency closure is `#![forbid(unsafe_code)]` is the cheapest path to the mandatory Tier-2 memory-safety certificate (§13), the certifying Rust→RV64+CHERI toolchain (§18) discharges it automatically, and rustc/LLVM never enter the trust base.
 This is a selection *economy*, not a language mandate: admission gates on the binary-level certificate, not the source (§13), so a formally-verified non-Rust component, Project Everest (miTLS, HACL\*/EverCrypt) and the F\*/Low\* lineage (§5), is admissible on equal terms, its foreign-prover verification bonus assurance that never enters the trust base.
 
 ## Required system userland
@@ -74,7 +74,7 @@ Independent of the application, the same four substrate mismatches are re-target
 
 1. **`unsafe` must go.**
    FFI shims, GPU bindings, and hand-rolled synchronization are inadmissible in app logic (§5): each `unsafe` site is either deleted with the POSIX/GPU assumption that motivated it or routed through the formally verified HAL (§5).
-   A dependency that cannot shed its `unsafe`, a C library behind a `-sys` crate, is itself a sub-port.
+   A dependency that cannot shed its `unsafe`, a C library behind a `-sys` crate, is itself a sub-port, and the audit that finds them runs over the whole dependency closure rather than the crate that names the target (below).
 2. **GPU dependence becomes software compute.**
    There is no fixed-function GPU, no Vulkan/Metal/wgpu path, no CUDA (§15).
    Rendering, compositing, and codecs move to software on the V-class cores; matrix/AI work moves to the M-class GEMM units (§15), both under the §12 display/inference model, never a driver.
@@ -83,6 +83,39 @@ Independent of the application, the same four substrate mismatches are re-target
    Process trees become the service manager's static supervision tree (§12); path-based file access becomes a manifest-backed private namespace (§14); "spawn a helper" becomes a capability-delegated compartment reached over a ring (§12).
 4. **No runtime code generation, anywhere.**
    Compilation is an off-device build step (the certifying toolchain, §5/§18), never an on-device service; nothing on the device JITs (§14), so any embedded script/Wasm engine runs **pure-interpreter**.
+
+---
+
+## The dependency closure is the unit of work
+
+A name on the roster is the top of a graph, not the graph.
+`#![forbid(unsafe_code)]` is a property of one crate, while the admitted artifact is the whole linked image and the Tier-2 certificate (§13) is a derivation over everything in it, so the unit that must be audited, re-targeted, and admitted is the target's entire dependency closure.
+For the GUI entries that is hundreds of crates, and the honest cost of a port is stated over the closure rather than over the name.
+
+Four dispositions exhaust it, and every crate in a closure takes exactly one:
+
+1. **Transfers.**
+   Pure safe-Rust computation carrying no platform assumption recompiles and is done.
+   Most of a well-factored closure is this, which is the whole reason these targets are worth starting from.
+2. **Deletes with its assumption.**
+   A crate that exists only to abstract a platform this design does not have goes with the assumption that motivated it: the POSIX and libc shims, the readiness-driven event loops, the thread-pool and processor-count probes, the home-directory and path resolvers, the memory-mapping wrappers.
+   This is the subtractive case obstacles 1 through 3 describe, and it cascades, since deleting one such crate usually deletes a subtree.
+3. **Sub-ports.**
+   A `-sys` crate wrapping a C library is a port of its own, or a replacement, and there is no third option: a foreign binary never runs (§2, §14), and C inside an application image has no route to the memory-safety floor that an app-tier component can take, verified C under CompCert being the TCB's route (§5) rather than userland's.
+   tree-sitter under the editor, SpiderMonkey under the browser, and zlib under the version-control engine are the named instances below.
+4. **Compartments.**
+   A dependency that is *memory-safe and still dangerous* is the case safe Rust does not settle, and §14 makes the disposition mandatory rather than advisory: any dependency parsing attacker-controlled input (media, image, font, archive, compression, wire formats) and any third-party library handed capabilities becomes an intra-app compartment with its own least-authority sub-manifest (§8, §14).
+   Memory safety does not make a decoder correct, and linked flat such a dependency runs with the app's *whole* manifest (§14).
+
+**The closure is also the supply-chain surface, and §13 already governs it, in two halves that need different answers.**
+§3 splits the threat: *tampering*, bytes that do not correspond to the reviewed source, is answered by the source-correspondence theorem binding the installed bytes to the **exact included source closure** (§13); *subversion*, a logic backdoor present in that source, compiling cleanly and carrying a valid certificate, is answered only by compartmentalization (§13, §14), because no proof about the artifact can catch it.
+Note what §13 does *not* demand: bit-for-bit reproducibility is mandatory for the base image, and with DDC for the two checker binaries no certificate can cover (§6), while every other binary is admitted on its checked source-correspondence theorem, so a closure is bound to its source rather than to a particular builder.
+Build scripts and procedural macros are worth naming separately: they run on the build host, so whatever they emit must itself fall inside the included source closure that theorem binds, and a build step whose output depends on the build machine rather than on that closure is precisely what it refuses.
+Most of them exist to probe a platform or to compile C, and this design deletes both.
+
+**The per-target dispositions below are the head of a closure audit, not a substitute for one.**
+The audit produces four lists rather than a verdict, and producing them is the cheapest useful early work on any of these targets, because it is mechanical and it tells you the real size of the port before anyone writes a line of it.
+It also cuts both ways: the closure is larger than the name suggests, and class 2 is subtractive enough that the survivors are usually a fraction of it.
 
 ---
 
