@@ -4155,7 +4155,7 @@ All eighteen normative sections are extracted, at 941 requirements. §19 is non-
 
 Normative claims that resist atomic restatement, per R-05-153. This is the register's standing output and the review gate's agenda (R-18-035): an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is itself a spec defect by R-05-153's own rule. A claim booked here is a defect in [verification-maximal-os.md](verification-maximal-os.md) to be repaired there, never a register omission to be worked around here.
 
-**Open defects: one, with eight rows.**
+**Open defects: one, with seven rows.**
 
 **D-CSR — the surviving CSR bank is not decided register by register.** Sweep 1's class, found in a fourth list: §15 enumerates the deleted CSRs by name and states the residue nowhere, while R-07-015 and R-15-214 both quantify over "every CSR a partition can name." R-15-001b closes the *artifact* half — the enumeration now exists, in [isa-profile.md](isa-profile.md) §5 — and this entry holds the rows the enumeration found that no requirement decides. Each is a defect in [verification-maximal-os.md](verification-maximal-os.md) §15 to be repaired there; the profile view carries the same rows marked **open** and decides none of them.
 
@@ -4164,7 +4164,6 @@ Normative claims that resist atomic restatement, per R-05-153. This is the regis
 | `mcause` / `mtval` | the trap path is specified in capability terms (R-07-022, R-15-073) but names no cause register, no trap-value register, and no cause encoding for a CHERI capability exception | present — a hole, not a deletion |
 | `mie` / `mip` | the machine-timer bits have a consumer (R-07-043, R-15-063); the external- and software-interrupt bits do not (R-15-065, R-15-066) | present, narrowed to the timer bits |
 | `menvcfg` | R-15-049's ground against `Smstateen` applies word for word and is stated only for `Smstateen`; `Zicboz`'s `CBZE` bit is the case to check (R-15-060) | deletion |
-| `mcountinhibit` | its counters are absent under R-15-077 | deletion |
 | `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | one Sail model frozen with the proof (R-15-005) has no runtime discovery consumer | hardwired zero |
 | `mhartid` | one kernel binary across core classes needs hart identity (R-07-012); no requirement says so | present |
 | `tselect` / `tdata1–3` | the lifecycle fuse is stated for the Debug Module and trace (R-15-078, R-15-079); the trigger module is not named, and its CSRs are M-mode-accessible in standard RISC-V — mutable hidden state surviving a partition switch, the shape admission test (3) rejects (R-15-010, R-15-012) | absent, or fused with the DM |
