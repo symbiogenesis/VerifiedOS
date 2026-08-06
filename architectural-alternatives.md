@@ -2167,7 +2167,8 @@ Non-normative; the drop is normative in §5, §6, §15, §17.
 seL4's own extension to the binary level takes exactly this route (Sewell, Myreen, Klein, PLDI 2013): stock `gcc` compiles the verified C (proven at `-O1`, most of the binary at `-O2`), the binary is decompiled into logic over the validated Cambridge ISA semantics, source and binary are lowered into a common control-flow-graph intermediate language, and refinement is discharged function by function by SMT.
 It composes with seL4's functional-correctness, integrity, authority-confinement, and non-interference proofs and carries them all to the binary, and its headline is a trust-base result: the C parser *and* the compiler leave the trusted computing base, because the source proof and the binary proof connect to the *same* formal artifact (the parser's output), so how that artifact was produced stops mattering.
 
-This is not a foreign technique to import but one the platform already runs, in two places:
+This is not a foreign technique to import but the basis of the package-wide source-correspondence rule, with three concrete uses:
+- §13 requires every admitted binary to carry its exact content-addressed source closure and a CIC-checked theorem that the final image refines that source through assembly, linking, and image construction: TV generalized from a compiler experiment into the admission contract.
 - §5 already reads *"CompCert compiles all trusted C; translation validation against the RISC-V Sail model covers the assembly/link/image steps outside CompCert's theorem"*: TV for the verified compiler's residual.
 - **Islaris**-style Iris-over-Sail (§5, §13) is direct binary-level proof for binaries with no verified compiler in the loop.
 
@@ -2189,10 +2190,10 @@ The paper raises whether extending the TV role already in the spec could **shrin
 - **The CHERI dimension is real rework.**
   seL4's TV was non-CHERI Arm; the stack heuristic, the calling convention, the memory model, and the pointer-validity and aliasing reasoning are all purecap-sensitive, so a lift is not free even with the Sail model and Islaris in hand.
 
-What is **kept** is what the platform already does: TV for the compiler residual, Islaris for the no-compiler path, FPCC for artifact-not-pedigree.
+What is **kept** is what the platform already does: source correspondence for every admitted package, TV for the verified compiler's residual, Islaris for the no-compiler path, FPCC for artifact-not-pedigree.
 What is **logged** is the extension: translation-validating the *whole* TCB base image off a stock CHERI-LLVM `-O1` build, retiring or shrinking the CHERI-CompCert prerequisite, as the fallback if that backend proves intractable, with the direct evidence that the horn is viable being seL4 itself, the design this platform's kernel descends from (the seL4 vs. CertiKOS entry above).
 
-**Disposition:** adopted in part and already normative (§5: TV covers the compiler residual, Islaris the no-compiler path; the crypto-kernel use is deleted, above); the full-coverage extension that would retire the CHERI-CompCert prerequisite (§6, §18) is logged as the fallback if that backend proves intractable, not a wholesale replacement, because a verified compiler is one reused theorem where TV is per-build search plus an SMTCoq reconstruction, and because only the compiler carries the robust-preservation hyperproperty (§5) that TV leaves to CHERI ⋈ Cerise at runtime (§13).
+**Disposition:** adopted as the mandatory source-correspondence certificate for every package (§5, §13), and already normative for the verified compiler's residual and the Islaris no-compiler path; extending correspondence to retire the CHERI-CompCert prerequisite (§6, §18) remains a fallback rather than a wholesale replacement, because a verified compiler is one reused theorem where TV is per-build search plus an SMTCoq reconstruction, and because only the compiler carries the robust-preservation hyperproperty (§5) that TV leaves to CHERI ⋈ Cerise at runtime (§13).
 Non-normative; no spec-body change.
 
 ---

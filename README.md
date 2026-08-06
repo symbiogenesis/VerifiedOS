@@ -87,6 +87,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee**, but not its addi
 | Secret-dependent branches, addresses, or variable-latency operations | Secret taint is checked by the constant-time type discipline; unstructured residuals carry a relational proof over the leakage model | **Admission-rejected / proved** |
 | Unbounded loops, handlers that outlive a slot, and timing-budget overruns | Syntax-directed WCET costs and loop-bound proofs must fit the static cyclic-executive slot | **Admission-rejected / proved** |
 | Compiler-created memory-safety regressions | Safety is checked from the final machine code and its derivation; compiler pedigree is not an admission input | **Admission-rejected** |
+| Compiler or build-farm output that does not implement its included source | Every package carries its exact content-addressed source closure and a kernel-checked theorem from that closure through assembly, linking, and the final image | **Admission-rejected / proved** |
 
 ### Verified OS, I/O, storage, and supply-chain construction
 
@@ -101,7 +102,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee**, but not its addi
 | Offline storage tampering, ciphertext substitution, and silent corruption | Authenticate-then-return AEAD plus the Merkle structure rejects unauthenticated data | **Hardware-enforced / proved** |
 | Unauthorized rollback of system generations | Signed roots, monotonic counters, and an anti-rollback floor constrain which generation may boot | **Hardware-enforced / proved** |
 | Loader, dynamic-linker, relocation, and executable-format parser bugs | There is no on-device ELF loader or dynamic linker; a small verified content-addressed image reader and capability-wiring table replace them | **Absent / proved** |
-| Malicious compiler, package, dependency, or build-farm output bypassing platform safety | The final artifact is independently type- or proof-checked, packages are reproducible and signed, and third-party code remains least-authority contained | **Admission-rejected / proved** |
+| Malicious compiler, package, dependency, or build-farm output bypassing platform safety | The final artifact is independently type- or proof-checked and proved to correspond to its included source closure; source-level malicious dependencies remain least-authority contained | **Admission-rejected / proved** |
 | Firmware bugs in basebands, SSD controllers, GPUs, NPUs, sensor hubs, and management engines | Those programmable foreign computers are absent; fixed-function matter is driven by verified host software | **Absent** |
 
 This inventory deliberately does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol-level flaw. Functional correctness is mandatory for the TCB, not for arbitrary apps. Those limits and the still-open proof work are recorded in the normative specification's §17 and in [critique.md](critique.md).

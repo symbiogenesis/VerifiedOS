@@ -218,12 +218,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each §12 server's control-plane logic is a Lustre node set; its data-plane logic is Rust.
 · Trace: CJ-VELUS · [§5](verification-maximal-os.md#r-05-007)
 
-**R-05-008** MUST NOT — Admission never gates on the source language of a binary.
-· Accept: the §6 checker's inputs are the binary and its CHERI-TAL derivation only; no checker decision reads a source-language identifier.
+**R-05-008** MUST NOT — Admission never gates on the source language or producer identity of a binary.
+· Accept: source is read only as the hash-bound subject of a correspondence theorem; no source-language identifier or producer credential grants admission.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-008)
 
-**R-05-009** MUST — Any memory-safe or formally-verified language that yields a well-typed binary, or that ships a manual §13 memory-safety proof, is admissible on the same terms as Rust.
-· Accept: the admission rules contain no language allowlist; a non-Rust component meeting the binary-level floor is admitted without exception or waiver.
+**R-05-009** MUST — Any memory-safe or formally-verified language that yields a well-typed binary and a kernel-checked elaboration into an existing semantic anchor, or that ships the required manual proofs, is admissible on the same terms as Rust.
+· Accept: the admission rules contain no language allowlist; a non-Rust component meeting the binary-level and source-correspondence floors is admitted without exception or waiver.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-009)
 
 **R-05-010** MUST NOT — A contained component's own foreign-prover verification never enters the trust base.
@@ -304,8 +304,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 5.6 Foundational proof-carrying code
 
-**R-05-026** MUST — Every binary ships a machine-checkable proof of its assurance tier, stated at binary level against the CHERI-RISC-V Sail model.
-· Accept: no binary is admitted without a tier-appropriate certificate; the certificate's statement quantifies over the Sail model, not over source.
+**R-05-026** MUST — Every binary ships a machine-checkable proof of its assurance tier, stated at binary level against the CHERI-RISC-V Sail model, plus a source-correspondence theorem binding the final image to its exact content-addressed source closure.
+· Accept: no binary is admitted without a tier-appropriate certificate and a theorem that every final-image behavior refines behavior permitted by the committed source through assembly, linking, and image construction.
 · Trace: CJ-SAIL, CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-026)
 
 **R-05-027** MUST — The certificate is checked at admission by the on-device checker.
@@ -934,16 +934,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 6.2 The two admission checkers
 
-**R-06-008** IS — Admission is two checkers, stratified: the CHERI-TAL type-checker runs on every install over typing derivations; the CIC proof kernel runs predominantly at release time over deep proof terms, its result bound into the measured-boot root.
-· Accept: no third checker exists; no per-install path invokes the CIC kernel except for the few certificate-carrying installs (R-13-028).
+**R-06-008** IS — Admission is two checkers, stratified: the CHERI-TAL type-checker runs on every install over typing derivations; the CIC proof kernel runs on every install for source correspondence and predominantly at release time over deep proof terms, whose result is bound into the measured-boot root.
+· Accept: no third checker exists; every install invokes the CIC kernel for exactly the local correspondence proof plus any additional certificate the package carries (R-13-028).
 · Trace: CJ-TAL-SOUND · [§6](verification-maximal-os.md#r-06-008)
 
 **R-06-009** IS — The TAL type-checker decides **the eleven type-level obligations of R-05-029** — every move-(I) citation, move-(II) attribute, and move-(III) deletion — plus closed-numeral overflow side conditions and the memory/ABI half of Tier 1. This row cites R-05-029 rather than restating it.
 · Accept: its ~10³-line budget is a consequence of the frozen theory (R-05-127), and its decided set is read off R-05-029 rather than enumerated here, so the two cannot disagree.
 · Trace: CJ-TAL-SOUND · [§6](verification-maximal-os.md#r-06-009)
 
-**R-06-010** IS — The CIC proof kernel decides Tier-0 functional refinement, the non-interference theorem, crypto reductions, filesystem certificates, and residual unstructured constant-time and WCET cases.
-· Accept: it is intentionally larger — universes, inductives, guard, and conversion — because seL4-scale proofs are not per-install admission work.
+**R-06-010** IS — The CIC proof kernel decides every binary's source-correspondence theorem plus Tier-0 functional refinement, the non-interference theorem, crypto reductions, filesystem certificates, and residual unstructured constant-time and WCET cases.
+· Accept: the per-install correspondence proof is artifact-local; seL4-scale composition proofs remain release-time work.
 · Trace: CJ-NI, CJ-REDUCTION · [§6](verification-maximal-os.md#r-06-010)
 
 **R-06-011** IS — The admission axioms are the two checkers, the spec and policy statements, the CHERI-TAL soundness metatheorem, and the Sail model they check against.
@@ -2306,16 +2306,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 13.1 The admitted artifact
 
-**R-13-001** IS — A package is content plus a capability manifest plus a proof object; installation is proof check, store insertion, and capability wiring.
-· Accept: no other installation step exists.
+**R-13-001** IS — A package is content plus its exact content-addressed source closure, a capability manifest, and a proof object; installation is proof check, store insertion, and capability wiring.
+· Accept: source, generated inputs, dependency sources, configuration, and semantic-anchor version are hash-named in the closure; no other installation step exists.
 · Trace: CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-001)
 
 **R-13-002** MUST NOT — There are no maintainer scripts, no post-install execution, and no runtime code fetching by system components.
 · Accept: the installation path executes no package-supplied code.
 · Trace: CJ-CERISE · [§13](verification-maximal-os.md#r-13-002)
 
-**R-13-003** IS — The admitted artifact is a content-addressed capability image, not an ELF-style executable container: a set of content-addressed objects named by a small typed manifest — the immutable code-and-rodata image, a separate writable data-initializer, the CHERI-TAL typing derivation, the capability-wiring table, and the capability manifest with its §12 interface descriptor.
-· Accept: no interpreted, offset-linked container grammar is parsed on-device.
+**R-13-003** IS — The admitted artifact is a content-addressed capability image, not an ELF-style executable container: a set of content-addressed objects named by a small typed manifest — the immutable code-and-rodata image, a separate writable data-initializer, the exact source closure, the CHERI-TAL typing derivation and source-correspondence theorem, the capability-wiring table, and the capability manifest with its §12 interface descriptor.
+· Accept: all parts are present; no interpreted, offset-linked container grammar is parsed on-device.
 · Trace: CJ-TAL-SOUND, CJ-FORMAT · [§13](verification-maximal-os.md#r-13-003)
 
 **R-13-004** MUST — Execute authority is wired only over the immutable code-and-rodata image, hash-verified against the signed root.
@@ -2394,12 +2394,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the certificate removes a trusted dependency; it does not weaken containment, which is retained beneath it.
 · Trace: CJ-TAL-SOUND, CJ-CERISE · [§13](verification-maximal-os.md#r-13-021)
 
-**R-13-022** IS — There is no trusted-toolchain fallback: the certifying compiler is a hard prerequisite for *building* contained code, but the prerequisite is on the build, not on admission, which gates on the derivation itself.
-· Accept: mandating the toolchain is not pedigree enforcement; no uncertified app is ever admitted.
+**R-13-022** IS — There is no trusted-toolchain fallback: the certifying compiler is a hard prerequisite for *building* contained code, but the prerequisite is on the build, not on admission, which gates on the CHERI-TAL derivation and source-correspondence theorem.
+· Accept: another producer emitting equivalent checked evidence is admitted identically; no uncertified app is ever admitted.
 · Trace: CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-022)
 
-**R-13-023** MUST — Supply-chain defense is two mechanisms, not one: build-integrity (reproducible builds, DDC, and the proof object) against a *corrupted* artifact or a trusting-trust compiler, and compose-time confinement against a *subverted-but-memory-safe upstream*.
-· Accept: the first does nothing against a logic backdoor that compiles cleanly and carries a valid Tier-2 certificate — the xz/liblzma archetype — and the split is stated rather than blurred.
+**R-13-023** MUST — Supply-chain defense is two mechanisms, not one: checked source correspondence against a *corrupted* artifact or trusting-trust injection absent from source, and compose-time confinement against a *subverted-but-memory-safe upstream* present in source.
+· Accept: correspondence covers assembly, linking, and image construction but does nothing against a source-level logic backdoor carrying valid Tier-2 certificates, and the split is stated rather than blurred.
 · Trace: CJ-CERISE · [§13](verification-maximal-os.md#r-13-023)
 
 **R-13-024** MUST — The package manifest declares the app's internal compartment graph, each attacker-facing or third-party dependency taking a least-authority sub-manifest, so the seal/switch boundary confines a malicious dependency to the capabilities it was explicitly granted.
@@ -2410,16 +2410,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no runtime check is elided on the strength of a certificate.
 · Trace: CJ-CERISE · [§13](verification-maximal-os.md#r-13-025)
 
-**R-13-026** MUST — Bit-for-bit reproducibility stays mandatory and DDC bounds trusting-trust, their role confined to what proofs do not cover — chiefly Tier-2 functional correctness, memory safety and CFI being proven and app intent not.
-· Accept: every release is reproducible and DDC-checked.
+**R-13-026** MUST — Bit-for-bit reproducibility is mandatory only for the base image, whose exact regeneration underwrites the reference integrity manifest, and with DDC for the two checker binaries no admission certificate can cover; every other binary is admitted on source correspondence rather than reproducibility.
+· Accept: a nondeterministic producer may be admitted when its final image carries a valid correspondence theorem; the base image and checker bootstrap remain reproducible and DDC-checked.
 · Trace: CJ-T · [§13](verification-maximal-os.md#r-13-026)
 
-**R-13-027** MUST — Compilation and proving both stay off-device: the on-device admission fast path is type-checking the CHERI-TAL derivation plus install-time capability wiring, and the certifying toolchain is a build path, not an on-device service.
+**R-13-027** MUST — Compilation and proving both stay off-device: on-device admission type-checks the CHERI-TAL derivation, CIC-checks the artifact-local source-correspondence theorem, then performs capability wiring; the certifying toolchain is a build path, not an on-device service.
 · Accept: proof objects may ship oracle-compressed.
 · Trace: CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-027)
 
 **R-13-028** IS — Deep proofs are not cheap and are not per-device: Tier-0 functional refinement and non-interference are validated by the CIC kernel at release time over the base-image TCB and bound into the signed measured-boot root, while the lower-volume hyperproperty certificates an installed component carries (crypto reduction, constant-time, WCET) are CIC-checked when present, off the type-checking fast path.
-· Accept: on-device admission is the TAL type-check plus wiring, with the CIC kernel reserved for the base image and the few certificate-carrying installs.
+· Accept: every install pays one local correspondence check; the CIC kernel validates large composed proofs at release time and additional hyperproperty certificates only where present.
 · Trace: CJ-NI, CJ-KERNEL · [§13](verification-maximal-os.md#r-13-028)
 
 **R-13-029** MUST — SBOM and proof artifacts ship with every release.
