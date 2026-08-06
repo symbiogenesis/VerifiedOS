@@ -1918,8 +1918,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: rings carry indices, never capabilities (R-15-026).
 · Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-007)
 
-**R-12-008** MUST — Both sides parse with verified copy-once parsers, using one canonical verified ring library proven against a Byzantine peer under Ztso with fences included, and — for rings crossing islands — proven over the shared SRAM window they occupy.
-· Accept: one ring library, one proof, restated under Ztso (R-15-004).
+**R-12-008** MUST — Both sides parse with verified copy-once parsers, using one canonical verified ring library proven against a Byzantine peer under Ztso with no fence in the ring algorithm, and, for rings crossing islands, proven over the shared SRAM window they occupy.
+· Accept: release publication uses load→store and store→store ordering, acquire consumption uses load→load and load→store ordering, and Ztso supplies all four; the algorithm contains no store→later-load edge, and R-15-015a preserves the four supplied edges across the shared window.
 · Trace: CJ-FORMAT, CJ-SAIL · [§12](verification-maximal-os.md#r-12-008)
 
 **R-12-008a** MUST — Every ring payload slot follows a CHERI-TAL-checked ownership transition: producer-exclusive writable; release-published and producer-inaccessible; consumer-acquired immutable; completed and returned to producer ownership. Only head, tail, and notification cells are concurrently shared, and they are explicitly atomic types.
@@ -2576,8 +2576,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the obligation is a named bring-up gate alongside the `Zkt`/`Zvkt` timing obligation, and its statement covers the NoC and memory controller rather than the store buffer alone.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-016), [§15](verification-maximal-os.md#r-15-016-2)
 
-**R-15-017** IS — `fence` instructions remain present and semantically modeled for cross-island ring ordering over shared SRAM. **The I/O and device-ordering ground is struck**: R-15-015b and R-15-015a's device-endpoint destination set make device-store→device-store, the MMIO read-back, and descriptor-before-doorbell structural, so MMIO and DMA-descriptor visibility are no longer consumers of this instruction.
-· Accept: the Sail model retains `fence`; no cache-management instruction accompanies it.
+**R-15-017** IS — Legal standard `fence` encodings collapse to two semantics: a normal `fence` drains the store buffer iff its predecessor set contains a write (`PW` or `PO`) and its successor set contains a read (`PR` or `PI`); every other predecessor/successor combination and `fence.tso` are semantic no-ops. Reserved `fm` values still trap. The drain remains available for userspace store→later-load synchronization; SPSC rings, cross-island rings, MMIO, and DMA-descriptor visibility are not consumers.
+· Accept: the Sail model and Isla litmus oracle carry `drain | nop`, not the 256-case predecessor/successor lattice or separate `fm` semantics; all legal standard encodings remain accepted, the canonical ring algorithm contains no fence, and no cache-management instruction accompanies it.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-017)
 
 **R-15-018** IS — Sequential consistency was evaluated and rejected on four platform-specific grounds, none of which carries a hart-count or issue-width term: single-copy memory (R-15-087) makes the deviation from SC local to each hart's own store buffer rather than coherence-borne, so there is no traffic term for hart count to scale, and wider issue deepens the buffer each load must wait out. SC is named in §18 as a question worth revisiting, not as a pending change.
@@ -2775,7 +2775,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-MEMPLAN · [§15](verification-maximal-os.md#r-15-060)
 
 **R-15-061** MUST NOT — `Zicbom` (cache-block clean/flush/invalidate) is not adopted: with no hardware caches it has no consumer, in the kernel or in any future userspace program.
-· Accept: cross-island ring ordering is a plain `fence` over shared SRAM.
+· Accept: cross-island rings need neither cache management nor a fence; their release/acquire edges are native Ztso ordering preserved by R-15-015a.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-061)
 
 **R-15-062** IS — `fence.t` is adopted as a fork-and-frozen platform-custom instruction with full Sail semantics, specified rather than invoked: enumerated flush set, mechanized completeness classification, and padded constant cost.
@@ -3470,7 +3470,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no cache-coherence protocol and no coherence directory exist within or across islands.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-222)
 
-**R-15-223** MUST — Across islands there is no shared mutable memory at all: cross-island communication is only through designated ring windows in a shared SRAM region, made visible by ordinary Ztso-ordered stores and fences.
+**R-15-223** MUST — Across islands there is no shared mutable memory at all: cross-island communication is only through designated ring windows in a shared SRAM region, whose release/acquire edges are made visible by Ztso plus R-15-015a without a fence.
 · Accept: the cross-domain coherence-traffic channel is deleted structurally, there being no coherence traffic anywhere on the die.
 · Trace: CJ-ISOL, CJ-NI · [§15](verification-maximal-os.md#r-15-223)
 

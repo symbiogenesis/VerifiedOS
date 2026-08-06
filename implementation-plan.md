@@ -251,7 +251,7 @@ The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardwa
   This is the "is Wasm fast enough?" lever: it is the quick inner loop; the RV64-on-Sail path is the faithful outer loop.
   Both come from one source, so a bug found in either is fixed once.
 - **Test generation and differential testing.**
-  Use **Isla** (symbolic execution over the Sail model) to derive ISA test vectors and the concurrency/Ztso litmus set from the frozen model.
+  Use **Isla** (symbolic execution over the Sail model) to derive ISA test vectors and the concurrency/Ztso litmus set from the frozen model, normalizing every legal `fence` encoding to the profile's two outcomes (`drain | nop`) rather than generating predecessor/successor-set cases.
   Keep the emulator as the **differential-testing oracle** for everything downstream (the FPGA in §11 is checked against it).
 - **Staging.**
   C-class scalar emulator + software rendering first; add the V-class vector datapath, then M-class matrix, then FEC, then multi-core + islands, mirroring §18, each class extending the *same* Sail model and re-generating the emulator.
