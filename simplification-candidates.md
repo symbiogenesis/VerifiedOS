@@ -22,21 +22,7 @@ An item earns a place on this list iff it clears all five:
 
 ---
 
-## 1. Freeze `vtype`
-
-- [ ] **Enumerate the admissible vector configurations and freeze them with the profile, as the profile already freezes the extension set.**
-  `vtype` is the one configuration space the freeze did not reach. `SEW ∈ {8,16,32,64}` × `LMUL ∈ {1/8,1/4,1/2,1,2,4,8}` × `vta` × `vma` is 112 reachable configurations plus `vill`, and unlike an extension it does not *add* to the instruction count — it **multiplies into the semantics of every vector instruction in the profile**. On a machine whose vector unit carries graphics, ML, DSP, and crypto (R-15-115), that is plausibly the largest single block of Sail surface left anywhere in the ISA.
-  The register reaches it exactly once, incidentally, and only through Keccak element-group geometry (R-15-059a). No requirement constrains it.
-  The proposal: enumerate the configurations the named kernels actually use, freeze that set, and trap the rest — dropping **fractional LMUL** outright, fixing **one tail policy and one mask policy**, and making `vill` unreachable by construction rather than a state the model must carry.
-  *Grounds (gate 4):* R-15-014 already mandates that reserved and unused encodings trap rather than silently executing, and R-15-001a's complaint about the extension set — that without an enumeration the criterion *"names an artifact a reviewer cannot open"* — applies word for word to `vtype`. This is that requirement's own logic, applied to the space it did not cover.
-  *Perf:* neutral for every workload the spec names. GEMM, table-free vector crypto, the NTT, and codec kernels each fix SEW and LMUL per kernel; none needs runtime agility across the full space. `vill` is unreachable on a machine that traps illegal encodings anyway.
-  *Costs, honestly:* fractional LMUL is the convenience path for mixed-width arithmetic (widening and narrowing chains), so dropping it costs some register pressure and a few extra moves in mixed-precision code. That is a code-generation cost paid off-device by the untrusted optimizer, not a cycle cost on a hot loop — but it is a real cost, and the enumeration should be chosen from measured kernels rather than from taste.
-  *Deletes:* the tail/mask policy cross-product, the fractional-LMUL register-addressing rules, and `vill` from the Sail model, and collapses the per-class geometry claims (R-15-059a's LMUL=8-at-VLEN=256 sharp edge becomes a frozen case rather than a discovered one).
-  *Blocks on:* choosing the set, which needs the kernels. Sequence it after the first vector kernels exist, not on day one.
-
----
-
-## 2. Delete `Zicntr` / `Zihpm` instead of permission-gating them
+## 1. Delete `Zicntr` / `Zihpm` instead of permission-gating them
 
 - [ ] **Replace the counter-read permission with the lifecycle fuse the Debug Module already uses.**
   R-15-077 keeps `Zicntr` and `Zihpm` in the profile, unreadable without the counter-read permission on the PCC, with hpm events sentinel-only. That is a **hedge**: a mechanism retained and then gated, whose gating must be modeled, whose permission bit consumes capability encoding space, and whose "sentinel-only" event restriction is an argument that has to be made and audited rather than a structure that can be checked.
@@ -55,6 +41,7 @@ Recorded so they are not re-proposed. Each fails a specific gate.
 
 | Proposal | Fails | Why |
 |---|---|---|
+| **Freeze `vtype` by dropping fractional LMUL and fixing tail/mask policy** | 2, 5 | Fractional LMUL is not merely compile-time convenience: mixed-width ML, DSP, crypto, and codec chains use it to keep widening results in smaller register groups. Removing it can increase live-register pressure, add moves or spills, and therefore cost hot-loop cycles. Fixing an agnostic policy can likewise require explicit preservation where undisturbed elements are needed; fixing an undisturbed policy can require preservation work where agnostic results suffice. Moving those costs into generated code relocates rather than deletes them. Enumerating configurations after measuring kernels may still be useful profile hygiene, but until the measured set proves no generated-code delta, restricting the set is not a pure win. |
 | **Sequential consistency** (at any core count or width) | 2, 4 | Grounds (1)–(4) of R-15-018, whose invariance clause states the absence of any hart-count or issue-width term: single-copy memory (R-15-087) keeps the deviation from SC local to each hart's store buffer, so nothing scales with harts. Ground (3) is decisive and invariant: it trades a *structural* obligation (a FIFO cannot expose ordering weaker than TSO, bookable in the absence contract) for an *interlock-correctness* obligation (no load bypasses the drain, on any path, proven present and complete), which runs *delete rather than defend* backwards. Wider cores make it worse, not better. |
 | **Delete hardware integer DIV/REM**, do it in software | 2 | [performance-estimates.md](performance-estimates.md) already books −1% to −6% for the always-worst-case fixed-latency divider (R-15-080). Shift-subtract or Newton–Raphson in software is several times that latency; the deletion buys one datapath unit and one timing-contract row for a real cycle loss. |
 | **Delete vector masking** | 2 | Tempting because R-15-085 mandates mask-*independent* timing, so masking buys no cycles — but if-converted vector code then needs explicit merges, which need masks to generate. The surface returns as instructions and the cycles go negative. |
