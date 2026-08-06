@@ -15,7 +15,7 @@ This is a selection *economy*, not a language mandate: admission gates on the bi
 
 The specification does not leave userland open.
 §12 names a fixed set of servers without which the system cannot boot, unlock, update, consent, or render, and several are load-bearing in ways no application is: one is the sole userland-resident member of the TCB (§6), several are Tier-1 cross-domain servers carrying flow theorems (§13), and one is resident on a core of its own.
-They come first because their sequencing dominates: the roster below is elective and stageable (§18), this half is not.
+They come first because their sequencing dominates: the roster below is elective and stageable (§18), this half is not, though it is itself ordered (**Sequencing**, below).
 
 Most of them are not ports.
 There is no upstream to re-target for a powerbox, a trusted consent path, or a signed translator graph, and where an ancestor exists (systemd's supervision model, Plan 9's plumber and Factotum, BeOS's translators, bcachefs's structure) the design takes the *pattern* and supersedes the mechanism, exactly as [inspirations.md](inspirations.md) records.
@@ -40,6 +40,9 @@ The four obstacles below still bind on whatever code these do reuse, but *which 
 - **Filesystem, block, and storage servers** (§12, §10): the four-layer verified stack is a §18 verification workstream rather than a port, while the availability-layer services below the §10 integrity line (replication, erasure coding, tiering, allocator and copygc, and the host-side FTL) are ordinary Tier-1 safe Rust.
 - **Drivers** (§12, §15): one compartment per device, and under the sensor-front-end doctrine each carries the host-side DSP a commodity system hides inside device firmware (touch, audio, IMU, image, fingerprint), alongside the USB stack, the NIC path, and scanout.
   These are the net-new co-design booked in §17, not re-targets: the firmware-free part does not exist to port from.
+- **Radio L2/L3 servers** (§12, §15): the software half of the dissolved-radio thesis, the 802.11 MLME element grammars and the cellular RRC/NAS ASN.1 UPER path, which §5 names as the most-attacked remote parse surfaces in consumer computing and holds to the Narcissus discipline, with the protocol state machines beside them as Lustre/Vélus control planes (§5, §12).
+  Authored by necessity, since the firmware-free implementation is precisely what does not exist, which is the thesis: srsRAN/srsUE, OpenAirInterface, and openwifi are the feasibility existence proofs §18 names rather than lifts, and asn1scc and the Wireshark dissectors are differential oracles that enter no trust base (§5).
+  This is required userland for the first release, not deferred with cellular: §18 ships Wi-Fi-only, so the 802.11 half of it is on the critical path.
 - **Time service** (§12, §9): one wall clock disciplined from three graded authenticated sources (Roughtime, then NTS, then secure PTP over the hardware timestamp unit), with precision itself a capability (§8).
   `roughenough` appears below as a start-from for one source; the service that cross-checks all three, and holds the monotonic floor across a cold boot on a machine with no real-time clock, is authored.
 - **Telemetry monitor and emergency-call compartment** (§12): the former permanently resident on the S-class sentinel core, the latter a zero-authority compartment reachable at Before First Unlock.
@@ -52,14 +55,14 @@ The split runs through COSMIC: the **compositor** is required userland, the **sh
 
 ## Roster: the elective applications
 
-These are stageable behind the userland above, and §18 already stages two of them: the first release ships Wi-Fi-only and defers the browser.
+These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes two points in it, shipping Wi-Fi-only and deferring the browser.
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
 - **Zed**, the reference editor/IDE; a software-rendered Tier-2 app.
 - **coreutils / findutils / diffutils** from uutils, the seed corpus for §14's capability-native core utilities (Tier-2).
 - **gitoxide**, the pure-Rust Git, re-targeted as the capability-native version-control engine; its object store re-homes onto §10's verified CoW B-tree (native dedup, reflinks, snapshots, Git's packfiles and `gc` shed) and its pack/wire decoders are a §5 Narcissus obligation (Tier-2).
 - **NuShell**, the structured-data shell, re-grounded as the capability-native command interpreter: its typed value pipeline is the shell-level analogue of §12's data plane, its builtin-heavy command set shrinks the `fork`/`exec` surface, and its plugins become §12 ring-reached compartments (Tier-2).
-- **Servo**, the contained, per-origin browser engine of §14 (Tier-2 origin compartments).
+- **Servo**, the contained, per-origin browser engine of §14 (Tier-2 origin compartments), which §18 defers past the first release.
 - **GGUF inference runtime**, the §12 optional inference server on the M-class cores: the `burn` deep-learning framework re-targeted onto a net-new M-class GEMM backend (`burn`'s pluggable backend trait is the clean seam), not a from-scratch build (Tier-1).
 - **Network stack**, the §12 IPv6/TLS/DNS/Roughtime compartments (**smoltcp**, **hickory-dns**, **roughenough**) retargeted onto the rings, every wire format a §5 Narcissus obligation; the TLS compartment prefers a Rust-native **hax**-verified stack (**Bertie**) over the mature F\*/Low\* **miTLS**, and the DNS/TCP compartments gate on SPARK/HOL4 differential oracles that enter no trust base (Tier-1).
 
@@ -171,6 +174,7 @@ This is the browser's defining unresolved tension, recorded rather than hidden.
 File and clipboard access is powerbox-only (§14).
 
 **Disposition:** Tier-2 per-origin compartments; adopt Servo's engine and compartment model, treat the pure-interpreter JS engine as the hard gating dependency, and reuse the shared software-render substrate.
+§18 places the whole program past the first release, so the gating engine question is sequenced rather than urgent: it is the one target whose deferral the specification states itself.
 
 ### GGUF inference runtime: the M-class inference server
 
@@ -217,6 +221,42 @@ Both halves of the userland gate on the same handful of net-new artifacts, so th
   It is needed earlier than any of them: the trusted-path agent and the rollback-manager UI (above) must draw before an application exists to consent about or a generation exists to roll back.
 - **The WASI-shaped capability libc (§14)** and its manifest-backed namespace is the common on-ramp every source-level re-target compiles against.
 - **The reference display server** (COSMIC's `cosmic-comp`, above) that the other GUI apps present surfaces to under per-surface / per-input capabilities (§12).
+
+---
+
+## Sequencing
+
+Two gates order this work, not one.
+The **software gate** is the prerequisites above: nothing exists before the certifying toolchain, and nothing with a surface exists before the render substrate.
+The **hardware gate** is §18's own staging, which brings the die up class by class (C-class scalar with software rendering, then V-class, then M-class, then the FEC units), so a target cannot be *delivered* before the core class it runs on exists.
+The two gates are not the same date: the golden model boots the whole stack at M6 of the [implementation plan](implementation-plan.md), functionally and slowly, long before any of it is deliverable, so the class order gates delivery rather than existence.
+
+Stages, not a schedule: within a stage nothing is serialized, and each stage presupposes only the one before it.
+
+1. **The spine**, arriving with the userland milestone (M5).
+   Service manager, filesystem, block and storage servers, drivers, the radio L2/L3 servers, the network stack, sealing and attestation, the time service, the telemetry monitor.
+   This is the minimum for a machine that boots, keeps state, knows the time, reaches a network, and can take a signed generation.
+   The update path comes first among equals: a system that cannot be updated cannot safely be iterated on, so every later stage presupposes it.
+2. **Consent and recovery.**
+   The render substrate, and then its first two clients: the trusted-path agent and the rollback-manager UI, with the credential and unlock service beside them.
+   The renderer's first client is the consent path, not the desktop.
+   This is the stage that makes the earlier claim operational, since no application may hold a grant before the component that mints grants exists, and it is where recovery arrives, the machine now holding state worth rolling back.
+3. **The headless applications.**
+   coreutils, findutils and diffutils first as the seed corpus, then gitoxide and NuShell.
+   They clear obstacles 2 and 4 for free, need no surface, and exercise §10's store and §12's rings harder than any GUI target will: gitoxide's re-homing onto the CoW B-tree is the sharpest test userland gives the storage stack.
+   They are also the targets deterministic simulation testing can actually run (below).
+4. **The desktop.**
+   `cosmic-comp` as the reference display server, then the shell and applets above it, and with them the first real load on the media and translator graph: the image, font, and archive decoders a desktop cannot avoid, each a §5 Narcissus obligation rather than a lifted crate.
+   An editor follows the compositor rather than preceding it, for want of a surface to draw on.
+5. **Deferred by the specification itself.**
+   §18 defers the **browser**, the largest porting program here and the one gated on a pure-interpreter JavaScript engine that does not yet exist.
+   The **inference server** is optional in §12 and waits on M-class bring-up (M8).
+   **Cellular** follows the Wi-Fi-only first release: the RRC/NAS compartments, the HARQ hard-real-time task class (§11), and the eUICC wait on FEC-unit bring-up and carrier certification.
+
+**What would reorder this.**
+The order is a consequence of exactly two things, the prerequisite with no fallback and the class order §18 fixes, so it moves only when one of those moves.
+A target advances by shedding a gate, never by priority: an editor needing no surface would sit in stage 3 rather than stage 4, and an inference runtime targeting the V-class vector unit rather than the systolic array would not wait on M8.
+Nothing here promises dates, and nothing here is a design cut: a later stage is later, not smaller.
 
 ---
 
