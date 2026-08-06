@@ -2275,6 +2275,53 @@ Non-normative; no spec-body change.
 
 ---
 
+## The hardware-description language: Hardcaml, Chisel, and the generator HDLs; the RTL of record is chosen by whose semantics is mechanized, not by whose ergonomics are better
+
+The proposal is to author the hardware in a **host-language-embedded generator HDL** rather than in the Coq hardware DSL the design names.
+**Hardcaml** (Jane Street: an OCaml library, open source via opam, in production in their low-latency trading systems, with the ZPrize MSM/NTT implementations as its public showpiece) is the strongest current instance, and the genus also holds **Chisel** (Scala), **SpinalHDL** (Scala), **Clash** (Haskell), and **Bluespec** itself.
+All share one shape: a program in the host language *elaborates* to a netlist, and SystemVerilog is emitted for synthesis.
+Three claims separate: the **generator and type-system productivity**, the **simulation and verification story**, and the **hardware-software integration** (drivers written in the same language as the RTL, with register maps generated from the driver code rather than transcribed).
+
+**The steelman: it is on target in a way an HLS tool would not be.**
+Hardcaml states plainly that it is a fully-featured HDL and not high-level synthesis, so it does not reintroduce the scheduling opacity that would put a compiler's arbitrary pipelining between the design and the fixed-latency timing contracts (§11, §15): every register and wire stays under the designer's control and the generated RTL is predictable, with synthesis results mapping back to the source.
+Its functor system parameterizes a design over its implementations and datatypes, which is exactly the shape a frozen-parameter design wants when it sweeps a proof-aware design-space exploration (§15).
+Its simulation runs inside the host runtime with the full software ecosystem available, so constrained-random testing (Quickcheck), inline waveform expect-tests, and driver code exercised against simulated hardware all come for free, and this is a *real* industrial artifact rather than a research prototype.
+
+**Why it does not import.**
+- **The RTL-of-record decision is a semantic-anchor decision, not an authoring-ergonomics one.**
+  Kôika/Kami is named the closing vehicle for one reason: the refinement is tractable only against a source whose semantics is *already mechanized in the prover*, so the net-new blocks are authored there and their SystemVerilog is *generated*, which is why that generated SystemVerilog is not an anchor (§15).
+  A Hardcaml design has no mechanized circuit semantics in Coq, so making it the source of record would admit a new circuit-semantics anchor that **duplicates one the budget already holds**, failing clauses (1) Coq-native or mechanically bridged and (2) no duplicate of an existing anchor, and retiring no interim under clause (3) (§5).
+  The same verdict falls on Chisel, SpinalHDL, and Clash, and it is the verdict the design already reaches when it takes CHERI-CVA6, Ara, and Gemmini as *references* rather than as the trusted base.
+- **Its verification story lands in the complement slot, which is already full.**
+  Native simulation, constrained-random generation, expect-tested waveforms, and formal verification via SAT solvers and industry-standard toolkits are all **bounded or foreign-prover evidence**: precisely the rung the design already occupies with riscv-formal bounded model checking, Isla-derived obligations, and Sail-generated SystemVerilog under commercial formal-equivalence verification (§15).
+  By the rule applied to aiT, Binsec/Rel, and SecVerilog (the entry below), such a tool is admissible as bring-up evidence and never the closing axiom, so adopting Hardcaml would add a fourth source of a kind of evidence the design already has three of, and would close nothing.
+- **The OCaml adjacency is a coincidence, not a bridge.**
+  Coq extracts to OCaml, which makes it tempting to read Hardcaml as somehow near the prover, but the two meet in the wrong direction: a verified OCaml program that *builds* a netlist gives a trustworthy **elaborator**, not a semantics for the circuit it emits, and the obligation is a statement about the circuit's behavior against the Sail model.
+  Kôika runs the useful direction instead, being a rule semantics *in* Coq with a compilation to circuits proved *inside* the same kernel that checks the kernel and the compilers (§6).
+- **The blocks that are actually authored here are the ones a generator HDL helps least.**
+  What is written from scratch is the capability- and tag-carrying DMA fabric, the TDM NoC, and the fixed-function sequencers (§15, §17, §18): small, static, fixed-latency, and free of dynamic scheduling.
+  Generator-HDL productivity pays most on the elaborate, heavily parameterized, dynamically scheduled structures this profile has deliberately deleted (caches, a coherence protocol, predictors, out-of-order issue), and the mass that remains lives in the imported cores, which are already SystemVerilog and Chisel and enter under the Sail-plus-FEV rung.
+  Re-authoring those in *any* HDL is the re-expression hop the deferred Verilog-semantics rung exists to delete, not to redirect (§15).
+
+**The distilled atoms are banked, each from the other side.**
+The integration idea, one language for the hardware and its driver so the register map cannot drift, is held here by the **register-description language** from which the verified HAL's field accessors are generated and Coq-checked, with drivers reaching the device through a typed register interface so no driver open-codes a shift or a mask (§5, §12).
+Simulation as a first-class artifact is held by the Sail C-backend golden model and the deterministic simulation testing built on it, where the *same* frozen model the silicon is proven to refine is the thing the tests run against, which is the gap a black-box simulator leaves open.
+Generated-rather-than-hand-written RTL is already the shape of both live rungs, one generating from Kôika and one from Sail.
+Functor-parameterized architectural sweeps are the proof-aware design-space exploration, whose utility function weights proof simplicity beside performance and area (§15).
+
+**Where it could legitimately sit.**
+As **untrusted scaffolding**: a generator or exploration front end feeding the design-space search, or a fast simulation cross-check, in the same slot PipelineGen and Sail-to-Kôika generation already occupy as scaffolding rather than the design of record.
+Anything in that slot enters no trust base and is spent freely on the engineering axis, which is also why adopting it buys little the design lacks.
+
+**Where it ranks.**
+Off the abandon-substrate scale entirely: this is a tooling question, not an architecture, and it ranks with the verification complements (aiT, Binsec/Rel, riscv-formal, SecVerilog below) rather than with the entries that would change what the machine is.
+
+**Disposition:** no import as the language of record.
+The RTL of record stays Kôika/Kami for the net-new blocks, with imported cores entering as references under Sail-generated SystemVerilog plus commercial FEV (§15), because the choice turns on which HDL's semantics is mechanized in the one prover and not on which is pleasanter to write; Hardcaml and its genus are admissible only as untrusted generators or simulation cross-checks, which is the slot the existing scaffolding already fills.
+Non-normative; no spec-body change.
+
+---
+
 ## Gate-level information-flow tracking and IFT-typed HDLs: GLIFT, SecVerilog; the hyperproperty half by another route, a bounded complement, not the Coq close
 
 The proposal targets the same non-interference and timing-channel obligation the RTL ⊑ Sail *hyperproperty* half and the constant-time layer already carry, but via a **hardware information-flow method**: **GLIFT** (gate-level information-flow tracking; Tiwari/Wassel/Mao/Chong/Sherwood/Kastner, ASPLOS '09: track every bit's influence, including implicit and timing flows, from the gates up), and the information-flow-*typed* hardware-description languages that grew from it, **Caisson** (PLDI '11), **Sapper** (ASPLOS '14), and especially **SecVerilog** (Zhang/Wang/Suh/Myers, ASPLOS '15, Verilog with information-flow *types* that statically prove **timing-sensitive** non-interference at synthesis).
