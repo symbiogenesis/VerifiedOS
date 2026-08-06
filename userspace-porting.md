@@ -58,7 +58,8 @@ The split runs through COSMIC: the **compositor** is required userland, the **sh
 These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes two points in it, shipping Wi-Fi-only and deferring the browser.
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
-- **Zed**, the reference editor, a software-rendered Tier-2 app: its GPU-first framework and its C parsing runtime are both bounded re-targets, and it carries no language-support commitment.
+- **Zed**, the reference editor, a software-rendered Tier-2 app: its GPU-first framework and its C parsing runtime are both bounded re-targets, it carries no language-support commitment, and it is the reference client of the editor-agent protocol the next entry uses.
+- **Coding agent**, the editor-independent agent compartment: an agent speaking that protocol over a ring, whose every tool call is a powerbox grant rather than an ambient authority (Tier-2, normative in §12).
 - **coreutils / findutils / diffutils** from uutils, the seed corpus for §14's capability-native core utilities (Tier-2).
 - **gitoxide**, the pure-Rust Git, re-targeted as the capability-native version-control engine; its object store re-homes onto §10's verified CoW B-tree (native dedup, reflinks, snapshots, Git's packfiles and `gc` shed) and its pack/wire decoders are a §5 Narcissus obligation (Tier-2).
 - **NuShell**, the structured-data shell, re-grounded as the capability-native command interpreter: its typed value pipeline is the shell-level analogue of §12's data plane, its builtin-heavy command set shrinks the `fork`/`exec` surface, and its plugins become §12 ring-reached compartments (Tier-2).
@@ -166,13 +167,41 @@ That is the mechanism, not a roster commitment: a language server is admissible 
 Language support is therefore later work, taken only where it is near-free, meaning a server already written in admissible safe Rust and a grammar needing no external scanner.
 The editor is useful before any of it, and nothing else on the roster waits on it.
 
+**The agentic half is a protocol rather than a feature, which is what makes this target the reference client.**
+Zed authored the editor-agent protocol the field is converging on: JSON-RPC, the agent running as a subprocess of the editor, the editor advertising filesystem and terminal capabilities that **default to disabled**, and every sensitive tool call returning through a permission request whose options are one-time or remembered.
+Adopting Zed therefore brings a safe-Rust implementation of the *client* side, and the re-target is obstacle 3 rather than new design: the subprocess and its pipe become a capability-delegated compartment reached over a ring, exactly as the language-server path above does.
+What is not a port is the seam underneath it, because the protocol's default-disabled capabilities and its one-time-or-remembered permission options are the shape the powerbox already has, with its own temporal scopes (§8): the platform *enforces* what the protocol can only *request*.
+The agent itself is not part of this port and is not part of any editor, having its own compartment (below).
+
 **An editor is not an integrated development environment here, because nothing on the device compiles.**
 Compilation and proving are off-device build steps (§5, §13) and nothing JITs (§14), so there is no on-device toolchain for an editor to drive: building, certifying, and admitting happen elsewhere, and the results arrive as signed generations (§11) or admitted images (§13).
 That is a property of the platform rather than of this target, and it bounds what any editor on this roster can mean.
 Collaboration rides the §12 network stack; file and clipboard access is powerbox-mediated (§14).
 
 **Disposition:** Tier-2, gated on the shared render substrate and on nothing else, language ecosystems included.
-Adopt the editor core (rope, multi-buffer, diagnostics, git integration) as clean safe Rust, write a fourth GPUI backend against that substrate with the shader set AOT-compiled and certified off-device, replace the tree-sitter runtime with a safe-Rust table consumer cross-checked against both the C and ast-grep implementations, rewrite one external scanner per grammar actually shipped, and treat language servers as a later addition admitted only where near-free.
+Adopt the editor core (rope, multi-buffer, diagnostics, git integration) as clean safe Rust, write a fourth GPUI backend against that substrate with the shader set AOT-compiled and certified off-device, replace the tree-sitter runtime with a safe-Rust table consumer cross-checked against both the C and ast-grep implementations, rewrite one external scanner per grammar actually shipped, treat language servers as a later addition admitted only where near-free, and bind the agent panel to the agent compartment below rather than to a subprocess.
+
+### Coding agent: the editor-independent agent compartment
+
+A program that plans and acts from a language model's output is normative in §12 as a contained compartment holding no ambient authority, so what is left here is the porting question: what to build it from, and what the re-target costs.
+It is deliberately **not** part of the editor.
+The protocol decouples them, so binding an agent into one application would forfeit the separation for nothing, and the compartment boundary is the security argument.
+
+**The Rust lane is the only near-free one.**
+The protocol ships a Rust crate for the wire, and Rust agent implementations exist upstream, while the two most widely used coding agents are Node programs: this platform hosts no JavaScript runtime for native tooling, the pure interpreter of §14 being for web content inside the browser, and §13 admits only certified native code.
+So the agent is a re-target of a Rust agent plus that crate, not a lift of the popular ones.
+
+**Three obstacles clear and one is the whole port.**
+Obstacle 1 clears if the closure is safe Rust; obstacle 2 clears because the agent draws nothing, rendering through whichever client hosts it; obstacle 4 clears twice over, since the agent generates no code and could not compile what it wrote in any case.
+Obstacle 3 is the work: the protocol's subprocess-over-stdio transport becomes a ring, its *create a terminal and run this command* becomes a capability-delegated compartment under the supervision tree rather than a shell, and its absolute paths resolve inside the manifest-backed private namespace (§14) rather than a filesystem the agent may roam.
+The wire is attacker-facing, since what crosses it is derived from content the agent read, so it is a §5 Narcissus obligation like any other (closure disposition 4 applies to the agent itself, not merely to its dependencies).
+
+**The tool calls are the powerbox, and that is the point.**
+Each call is a request for authority the compartment does not hold, answered by a live consent on the trusted path or by a standing grant, so a compromised or induced agent is bounded by what it was granted rather than by what its user could have done.
+The honest limits are booked rather than claimed away: confinement bounds what an agent may hold, never what it may be induced to ask for, and an agent exercises the consent path far faster than hand-driven use does (§17).
+
+**Disposition:** Tier-2, its own compartment, gated on the network stack or on the optional inference server for a model, and on no editor.
+It has no surface of its own, so it arrives with its first client, which on the present roster is the editor; the roster carries no terminal emulator, and adding one would move the agent two stages earlier (below).
 
 ### coreutils / findutils / diffutils: reimplemented capability-native core utilities, based on uutils
 
@@ -314,7 +343,7 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
    They are also the targets deterministic simulation testing can actually run (below).
 4. **The desktop.**
    `cosmic-comp` as the reference display server, then the shell and applets above it, and with them the first real load on the media and translator graph: the image, font, and archive decoders a desktop cannot avoid, each a §5 Narcissus obligation rather than a lifted crate.
-   An editor follows the compositor rather than preceding it, for want of a surface to draw on.
+   An editor follows the compositor rather than preceding it, for want of a surface to draw on, and the coding agent arrives with it: the agent gates on the network stack rather than on the renderer, and would sit in stage 3 the moment a headless client for it exists.
 5. **Deferred by the specification itself.**
    §18 defers the **browser**, the largest porting program here and the one gated on a pure-interpreter JavaScript engine that does not yet exist.
    The **inference server** is optional in §12 and waits on M-class bring-up (M8).

@@ -2304,6 +2304,26 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: models are content-addressed store objects; per-session memory is capability-delegated and zeroized on teardown.
 · Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-085)
 
+**R-12-085a** MUST — An autonomous agent is an ordinary contained compartment with a manifest, in no trusted set and holding no ambient authority: every capability it exercises arrives as a powerbox grant with an explicit temporal scope, witnessed on the trusted consent path.
+· Accept: the agent's manifest confers no object, namespace, device, or network authority directly, and every such authority held in a live session traces to a recorded grant.
+· Trace: CJ-NI · [§12](verification-maximal-os.md#r-12-085a)
+
+**R-12-085b** MUST — An agent's tool surface is exactly the interfaces its manifest declares it may request, each answered by a live consent or a standing grant; model output is an untrusted proposal that reaches no object without a capability already granted for it.
+· Accept: a tool call naming an interface absent from the manifest is refused before any consent prompt, and no code path derives authority from model output.
+· Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-085b)
+
+**R-12-085c** MUST — The agent's peer wire is the §12 typed IDL over a ring, started by the service manager and held to the §5 Narcissus discipline; there is no `fork`/`exec`, and running a command is a capability-delegated compartment.
+· Accept: the wire appears in the §5 wire-format inventory, and no process-spawn primitive is reachable from an agent compartment.
+· Trace: CJ-IDL, CJ-FORMAT · [§12](verification-maximal-os.md#r-12-085c)
+
+**R-12-085d** IS — Inference is served either by the optional inference server or by a remote endpoint through the network compartment; the agent, not the model, is the principal that holds authority.
+· Accept: no capability is held by, or delegated to, an inference session.
+· Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-085d)
+
+**R-12-085e** MUST NOT — No agent compiles, certifies, or generates code on the device; an agent that edits source drives an off-device build-and-certify service, and the result re-enters through admission.
+· Accept: the agent compartment holds no toolchain capability and no executable-memory authority, and every artifact it causes is admitted under §13 like any other.
+· Trace: CJ-TAL-SOUND · [§12](verification-maximal-os.md#r-12-085e)
+
 **R-12-086** MUST — The telemetry monitor is permanently resident on the dedicated S-class sentinel core, consuming the native sensor grid: CHERI validity-tag traps, slot-overrun faults, DMA capability-check denials, health heartbeats, ECC and NoC error telemetry, thermal sensors, and radio-limit-register violation traps.
 · Accept: detection latency is a proved bound under any load, and responses (restart, revoke, roll back) run under the same guarantees.
 · Trace: CJ-WCET, CJ-ISOL · [§12](verification-maximal-os.md#r-12-086)
@@ -3746,6 +3766,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no claim elsewhere in the specification implies otherwise.
 · Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-013)
 
+**R-17-013a** IS — The autonomous-agent residual: the §12 posture bounds what an agent may hold, and two costs remain that belong to the residual rather than to the mechanism.
+· Accept: both are enumerated below, and neither is claimed to be closed.
+· Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-013a)
+
+**R-17-013b** IS — Cost (1): prompt injection is not answerable at this layer. An agent reading attacker-influenced content can be induced to request authority it should not; confinement bounds what it may hold, never what it may be made to ask.
+· Accept: the claim recorded for agents is containment and legibility of the request, not correctness of the request.
+· Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-013b)
+
+**R-17-013c** IS — Cost (2): the consent ceiling of R-17-013 is exercised at machine rate, the human adjudicator being the scarce resource; standing grants relieve the fatigue by widening and lengthening the hold, which is where the bound weakens.
+· Accept: no mechanism is claimed to decide the fatigue-versus-scope trade on the user's behalf.
+· Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-013c)
+
+**R-17-013d** IS — No theorem is stated over the model's behavior: it runs off-platform or as data on the inference server, and the claim is bounded authority and attributable action, never sound judgment.
+· Accept: no seam lemma or inventory entry quantifies over model output.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-013d)
+
 ### 17.4 Proof-gap residuals
 
 **R-17-014** IS — The non-interference theorem is fresh — seL4-NI in method, not maturity — with three dimensions none of seL4's proof reaches: the multikernel composition, the purecap CHERI-C semantics, and robust delimited declassification.
@@ -4142,7 +4178,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 945 requirements. §19 is non-normative and yields none. Counts include the thirty-nine letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-114a`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-13-010a`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`, `R-18-014a`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 954 requirements. §19 is non-normative and yields none. Counts include the forty-eight letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-114a`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-12-085a`, `R-12-085b`, `R-12-085c`, `R-12-085d`, `R-12-085e`, `R-13-010a`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-013a`, `R-17-013b`, `R-17-013c`, `R-17-013d`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`, `R-18-014a`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4157,12 +4193,12 @@ All eighteen normative sections are extracted, at 945 requirements. §19 is non-
 | **§9 Boot & Root of Trust** | **extracted** | **31** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
-| **§12 System Servers** | **extracted** | **96** |
+| **§12 System Servers** | **extracted** | **101** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
 | **§15 Hardware Platform** | **extracted** | **255** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **67** |
+| **§17 Residual Risks** | **extracted** | **71** |
 | **§18 Realization** | **extracted** | **38** |
 
 §19 is non-normative and yields no requirements.
