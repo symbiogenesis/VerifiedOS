@@ -838,6 +838,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: anchor count, grade-axis count, crown-jewel count, and silicon area are unchanged.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-149)
 
+**R-05-149a** MUST — Where a collection is one exact-bounded object whose elements share one authority, revocation domain, and lifetime, its admitted representation uses one exact-bounded base capability plus 32/64-bit indices rather than one capability per interior element, but only where doing so removes capability-valued fields without adding shadow metadata or a reconstruction table and without increasing generated code or data.
+· Accept: source or the existing IDL/layout declaration contains one exact-bounded base capability; independently bounded, authorized, revocable, or lived objects remain separate; no auxiliary representation is introduced; generated code and data do not grow; and index arithmetic discharges R-05-145/R-05-146.
+· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-149a)
+
 ### 5.20 The review gate
 
 **R-05-150** MUST — Independent specification review is a release gate.
@@ -4126,7 +4130,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 941 requirements. §19 is non-normative and yields none. Counts include the thirty-five letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 942 requirements. §19 is non-normative and yields none. Counts include the thirty-six letter-suffixed entries (`R-05-022a`, `R-05-082a`, `R-05-096a`, `R-05-096b`, `R-05-149a`, `R-05-151a`, `R-07-014a`, `R-07-014b`, `R-08-031a`, `R-10-005a`, `R-10-005b`, `R-10-005c`, `R-12-008a`, `R-12-013a`, `R-12-015a`, `R-12-015b`, `R-12-024a`, `R-12-024b`, `R-12-024c`, `R-12-024d`, `R-12-024e`, `R-12-024f`, `R-14-012a`, `R-15-001a`, `R-15-001b`, `R-15-015a`, `R-15-015b`, `R-15-056a`, `R-15-057a`, `R-15-059a`, `R-15-100a`, `R-15-208a`, `R-17-016a`, `R-17-043a`, `R-18-003a`, `R-18-003b`), each of which is a full entry. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4134,7 +4138,7 @@ All eighteen normative sections are extracted, at 941 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **167** |
+| **§5 Languages & Verification** | **extracted** | **168** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **54** |
 | **§8 Authority Model** | **extracted** | **45** |
