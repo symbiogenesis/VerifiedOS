@@ -18,7 +18,7 @@ Design for an end-to-end formally verified computer, built around a bespoke in-o
 
 ## Bug classes removed by construction
 
-This is an inventory of the guarantees targeted by the **full specified stack**, not a claim about a system that exists today. Nothing is built yet, and many of the crown-jewel specifications and proofs are explicitly unauthored. The construction uses four different discharge modes: **absent** means the mechanism needed to express the bug is deleted; **hardware-enforced** means every access is checked by the CHERI machine; **admission-rejected** means the CHERI-TAL checker refuses the binary before installation; **proved** means the shipped artifact or composed system must carry a machine-checked theorem. These are stronger and narrower claims than “written in a safe language.”
+This is an inventory of the guarantees targeted by the **full specified stack**, not a claim about a system that exists today. Nothing is built yet, and many of the crown-jewel specifications and proofs are explicitly unauthored. The construction uses four different discharge modes: **absent** means the mechanism needed to express the bug is deleted; **hardware-enforced** means every access is checked by the CHERI machine; **admission-rejected** means the CHERI-TAL checker refuses the binary before installation; **proved** means the shipped artifact or composed system must carry a machine-checked theorem, itself subject to the two proof-artifact gates below. These are stronger and narrower claims than “written in a safe language.”
 
 ### RISC-V and microarchitectural omissions
 
@@ -124,13 +124,22 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee**, but not its addi
 | Malicious compiler, package, dependency, or build-farm output bypassing platform safety | The final artifact is independently type- or proof-checked and proved to correspond to its included source closure; source-level malicious dependencies remain least-authority contained | **Admission-rejected / proved** |
 | Firmware bugs in basebands, SSD controllers, GPUs, NPUs, sensor hubs, and management engines | Those programmable foreign computers are absent; fixed-function matter is driven by verified host software | **Absent** |
 
+### The proof artifacts themselves
+
+Every row above that reads **proved** is a claim about a machine-checked theorem, and a theorem can verify perfectly while establishing less than its citation says. Both failure modes are checked mechanically, on the proof artifacts rather than on the machine, and both are preconditions on every other use of that mode.
+
+| Potential bug or attack class | Construction | Mode |
+| --- | --- | --- |
+| A shipped theorem resting on an admitted lemma, an unresolved obligation, or an axiom nobody declared | Every theorem's axiom and assumption set is enumerated from its proof term and compared against the declared set, which is read from the requirements register rather than from the development; a build whose set is not exactly the declared one fails, an extra axiom included | **Proved** |
+| A theorem that is true and empty: a premise nothing satisfies, a specification permissive enough that anything refines it, or a quantifier ranging over nothing | Each shipped theorem carries a machine-checked witness that its hypotheses are satisfiable and, where it is a refinement or a policy statement, an instance its specification rejects. Vacuity is not decidable in general, so the obligation is a per-theorem witness rather than a further checker | **Proved** |
+
 This inventory deliberately does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol-level flaw. Nor do the two injection rows above say anything about an interpreter an app brings with it: the platform's own name resolution, command execution, search, and configuration are structured rather than textual, but an app that ships a string-parsing engine of its own, web content in the browser being the standing case, can still be injected within the authority of the compartment holding it. Functional correctness is mandatory for the TCB, not for arbitrary apps. Those limits and the still-open proof work are recorded in the normative specification's §17 and in [critique.md](critique.md).
 
 ## Specification
 
 The normative design lives in [verification-maximal-os.md](verification-maximal-os.md), with non-normative companions covering [prior art](inspirations.md), [evaluated architectural alternatives](architectural-alternatives.md), an [implementation plan](implementation-plan.md), and [performance estimates](performance-estimates.md).
 
-Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md) — each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 954 numbered requirements. Its standing output is the extraction-defect list — normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list carries one open defect, `D-CSR`, whose seven rows are surviving CSRs that the frozen profile had to enumerate and that no requirement decides.
+Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md) — each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 960 numbered requirements. Its standing output is the extraction-defect list — normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list carries one open defect, `D-CSR`, whose seven rows are surviving CSRs that the frozen profile had to enumerate and that no requirement decides.
 
 Three **derived views** collect what the register states across many entries but no document held:
 

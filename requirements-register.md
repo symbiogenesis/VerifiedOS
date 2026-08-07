@@ -908,6 +908,32 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each boundary element is a §17 residual; everything outside *D* and *Ax* is inside T.
 · Trace: CJ-T · [§5](verification-maximal-os.md#r-05-162)
 
+### 5.22 Proof-artifact hygiene
+
+**R-05-163** MUST — Every shipped theorem's axiom and assumption set is enumerated mechanically from its proof term and compared against the declared set, and the build fails wherever the enumerated set is not exactly the declared one.
+· Accept: an admitted lemma, an unresolved obligation, a locally declared parameter, or any axiom absent from the declared set fails the build rather than shipping green, and an extra axiom is a finding even where every theorem is true. The gate is a predicate over the proof term: it adds no semantic anchor (R-05-020), no runtime mechanism, and no Sail surface.
+· Trace: CJ-T · [§5](verification-maximal-os.md#r-05-163)
+
+**R-05-164** MUST — The declared set is read from this register rather than from the development: it is the admission axioms of R-06-011, the bootstrap root of R-06-014, and the *Ax* boundary ledger of R-18-031.
+· Accept: a proof needing an axiom the register does not carry is an amendment to R-06-011 or to the *Ax* ledger, decided at the review gate; adding a declaration inside the development to make R-05-163 pass is a review-gate finding against R-05-150.
+· Trace: CJ-T · [§5](verification-maximal-os.md#r-05-164)
+
+**R-05-165** IS — A theorem can be true and empty in exactly three ways, each of which verifies perfectly: a premise nothing satisfies, a specification permissive enough that any implementation refines it, and a quantifier ranging over an uninhabited domain.
+· Accept: this is the degenerate case of R-05-150's own reason for existing, and the case review is worst at catching, the defect lying in what the statement fails to exclude rather than in what it says.
+· Trace: CJ-T · [§5](verification-maximal-os.md#r-05-165)
+
+**R-05-166** MUST — Every shipped theorem carries a non-vacuity witness: a machine-checked inhabitation witness for its hypotheses, plus, where it is a refinement or a policy statement, a distinguishing instance its specification rejects.
+· Accept: vacuity is not decidable in general, so the obligation is per-theorem and constructive rather than a further checker; a theorem shipped without its witnesses is refused by the same build gate as R-05-163. The reference composition serves as the inhabitation witness wherever one exists.
+· Trace: CJ-T · [§5](verification-maximal-os.md#r-05-166)
+
+**R-05-167** IS — R-05-163 and R-05-166 are preconditions on every claim the specification discharges by a machine-checked theorem, T included, rather than properties standing beside them.
+· Accept: a theorem resting on an undeclared axiom has not established what its citation claims, and a vacuously true one has established nothing; citing a theorem that fails either gate as discharging an obligation is a review-gate finding.
+· Trace: CJ-T · [§5](verification-maximal-os.md#r-05-167)
+
+**R-05-168** MUST — Both gates are day-one deliverables under R-18-003b and gate on nothing.
+· Accept: the assumption gate is a predicate over whatever proof artifact exists, so it is wired ahead of the first closing theorem and grows with the development; the witness obligation is a specification act like the statement of T itself.
+· Trace: CJ-T · [§5](verification-maximal-os.md#r-05-168)
+
 ---
 
 ## §6 — Trusted Computing Base
@@ -957,7 +983,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-NI, CJ-REDUCTION · [§6](verification-maximal-os.md#r-06-010)
 
 **R-06-011** IS — The admission axioms are the two checkers, the spec and policy statements, the CHERI-TAL soundness metatheorem, and the Sail model they check against.
-· Accept: the axiom inventory has exactly these entries plus the De Bruijn bootstrap root (R-06-014), and this is the specification's single statement of it — R-05-028 is scoped to the proof-carrying-code path and says so, so the two are no longer competing enumerations.
+· Accept: the axiom inventory has exactly these entries plus the De Bruijn bootstrap root (R-06-014), and this is the specification's single statement of it — R-05-028 is scoped to the proof-carrying-code path and says so, so the two are no longer competing enumerations. R-05-163 is what decides agreement with the shipped proof artifacts mechanically rather than by inspection.
 · Trace: CJ-TAL-SOUND, CJ-SAIL · [§6](verification-maximal-os.md#r-06-011)
 
 **R-06-012** MUST — Both checkers are built like the rest of the TCB: the CIC kernel's MetaCoq-style Gallina checker and the TAL type-checker alike are refined to CompCert-C (VST/Iris) and compiled through CHERI-CompCert.
@@ -4032,8 +4058,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the profile freeze is a specification act with no build prerequisite; R-18-006 already makes it part of the platform definition from first bring-up, and R-18-014's re-homing of SECOMP2CHERI has no target until it lands.
 · Trace: CJ-SAIL, CJ-COMPCERT · [§18](verification-maximal-os.md#r-18-003a)
 
-**R-18-003b** MUST — Four deliverables are day-one and gate on nothing, and are enumerated so that R-18-003 is not read as prohibiting all work until the compilers exist: (i) the profile freeze and its Sail curation (R-18-003a); (ii) the microarchitectural absence contract (R-18-012); (iii) the machine-checked statement of T and the seam lemmas (R-18-031(a), R-18-032); (iv) the atomic-requirements register (R-18-034).
-· Accept: each of the four is stated elsewhere in the specification as available immediately, and none has a prerequisite that is itself unbuilt; three of the four attack the two least-built layers (R-17-039, R-17-064). A day-one deliverable found to have an unbuilt prerequisite is a review-gate finding against this requirement.
+**R-18-003b** MUST — Five deliverables are day-one and gate on nothing, and are enumerated so that R-18-003 is not read as prohibiting all work until the compilers exist: (i) the profile freeze and its Sail curation (R-18-003a); (ii) the microarchitectural absence contract (R-18-012); (iii) the machine-checked statement of T and the seam lemmas (R-18-031(a), R-18-032); (iv) the atomic-requirements register (R-18-034); (v) the proof-artifact hygiene gates (R-05-163, R-05-166, per R-05-168).
+· Accept: each of the five is stated elsewhere in the specification as available immediately, and none has a prerequisite that is itself unbuilt; three of the five attack the two least-built layers (R-17-039, R-17-064). A day-one deliverable found to have an unbuilt prerequisite is a review-gate finding against this requirement.
 · Trace: CJ-T, CJ-RTL-SAIL · [§18](verification-maximal-os.md#r-18-003b)
 
 **R-18-004** IS — First release is scoped to prove the thesis, not complete the roster: Wi-Fi-only, deferring the eUICC, cellular certification, the HARQ hard-real-time class, and the 5G-AKA key hierarchy; the browser is likewise deferred as the largest porting program.
@@ -4180,7 +4206,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 954 requirements. §19 is non-normative and yields none. Counts include the forty-eight letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 960 requirements. §19 is non-normative and yields none. Counts include the forty-eight letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4188,7 +4214,7 @@ All eighteen normative sections are extracted, at 954 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **169** |
+| **§5 Languages & Verification** | **extracted** | **175** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **54** |
 | **§8 Authority Model** | **extracted** | **45** |

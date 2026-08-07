@@ -96,13 +96,6 @@ These are open. Some are open in a way the inventory already admits and states p
   The remaining construction work is small and specific: a stated position on control-flow signatures for the sequences where a skipped instruction is catastrophic (the boot chain, the credential comparison, the lifecycle transition), and a stated position on whether the sentinel core runs in lockstep, which the design has evaluated and deferred rather than decided in the inventory's terms.
   **Lands as:** an inventory row once the mode exists, plus the §16 statements it would cite. **Mode:** detected (item 15).
 
-- [ ] **12. Proof-trusted-computing-base hygiene.**
-  Two checks are buildable today, cost nothing on the scarce axis, and are named nowhere.
-  **Assumption gating.** A Coq development can compile green while resting on an admitted lemma, and the closing theorems here are the whole argument. The check is mechanical: for every shipped theorem, enumerate its axioms and assumptions and fail the build if the set is not exactly the declared one. The design already has the declared set, since §5's semantic-anchor budget and §6's axiom list state what is *supposed* to be assumed; the check is the one that makes the list true rather than aspirational.
-  **Vacuity and coverage.** A theorem can be true and empty, whether by an unsatisfiable premise, a specification that permits everything, or a quantifier that ranges over nothing. The register's own review gate exists because "a proof against a wrong spec verifies perfectly", and a vacuous theorem is the degenerate case of exactly that.
-  Both are checks over the proof artifacts, so they join `tools/check.ps1` in spirit but not in file: they belong to the build of the proofs rather than the consistency of the documents.
-  **Lands as:** §5 or §6 obligations on the proof workstream, with §18 naming them as day-one deliverables (they gate on nothing, which is the §18 test for that class). **Mode:** proved, as a precondition on every other use of that mode.
-
 - [ ] **13. Silicon supply chain: the mask analogue of reproducible builds.**
   Partly answered and stated as partly answered, which is right: §17 carries the fab residual, names open RTL and multi-sourcing as partial mitigations, and adds post-fabrication infrared inspection as evidence rather than proof.
   What has no analogue is the software side's strongest instrument. Every binary is bound to its exact source closure by a checked theorem, and the base image is bit-for-bit reproducible; nothing states the corresponding property for the artifact that becomes silicon. The deterministic-synthesis question (that a given RTL and toolchain produce a bit-identical layout, so that an independent party can regenerate and compare), the hashing and attestation of the mask set that the boot ROM already assumes is attested (§9 cites "the attested mask set"), and the correspondence between the layout that was reviewed and the layout that was taped out, are all unstated.
@@ -146,6 +139,6 @@ These are open. Some are open in a way the inventory already admits and states p
 
 Items 1, 2, 6, and 7 are small constructions over existing machinery and could land as requirements without new mechanism.
 Items 4 and 5 are real proof obligations of ordinary size.
-Items 3, 9, 12, 13, 15, and 16 are statements the design owes about positions it has already taken.
+Items 3, 9, 13, 15, and 16 are statements the design owes about positions it has already taken.
 Items 8, 10, 11, and 14 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, 11 by acquiring a mode it lacks, and 14 by changing the shape of the argument from a list to a covering.
 Only item 14 retires the others structurally, because a matrix of boundaries against properties makes every remaining item either a filled cell or a named residual, and makes a *missing* item a computed finding rather than a critique someone had to notice.
