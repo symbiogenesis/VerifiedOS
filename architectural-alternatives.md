@@ -571,7 +571,7 @@ The machines: Intel's **iAPX 432** (capability-based, microcoded, famously ruino
 
 **Already distilled: the lineage is the substrate, not an alternative to it.**
 - **Capability addressing**: unforgeable, bounded references as the sole naming mechanism; is CHERI (§1, §8), byte-granular and formally modeled, strictly exceeding the coarse segment / descriptor capabilities of the 432 and System/38.
-- **The capability-OS design**: untyped memory, endpoints, a derivation tree, revocation; is seL4 (§7, §8), itself a KeyKOS/EROS descendant, re-proved in Coq (the seL4 entry below).
+- **The capability-OS design**: endpoints and first-class revocation; is seL4 (§7, §8), itself a KeyKOS/EROS descendant, re-proved in Coq (the seL4 entry below), with untyped memory and the derivation tree since deleted as redundant with the tag plane and the static composition (the object-model entry below).
 - The 432's **lesson**: capability checks on the critical path in *microcode* are fatal to performance; is answered by CHERI doing them in *fixed silicon* on the fast path, which is why the design can rest on capabilities where the 432 collapsed under them.
 
 **KeyKOS contributes one theorem shape worth naming: the Factory confinement claim.**
@@ -580,7 +580,7 @@ The platform imports that atom statically: the §13 capability manifest and cont
 The resulting **compile-time Factory theorem** is stronger for this design: an admitted component's initial capability set is its whole authority, so a malicious or subverted component may misuse an explicit grant but cannot discover an undeclared channel (§13); no runtime factory protocol, constructor service, or new trusted object is required.
 
 **KeyKOS banks, meters, and keepers are ancestors of stricter static mechanisms already adopted.**
-- A **space bank** makes allocation authority and resource charging explicit; §7 and §8 replace it with a checked static slot assignment whose peak-memory bound is the space projection of the same boundedness certificate used for time, while untyped-memory capabilities retain explicit ownership of kernel-object storage.
+- A **space bank** makes allocation authority and resource charging explicit; §7 and §8 replace it with a checked static slot assignment whose peak-memory bound is the space projection of the same boundedness certificate used for time, and kernel-object storage is a placement in that same plan rather than a delegated untyped region, the object-model entry below having deleted untyped memory outright.
 - A **meter** makes CPU consumption delegable and exhaustible; the §7 cyclic executive and §11 admission proof are stricter because time is fixed in composition-time slots, never delegated, replenished, or contested at runtime.
 - A domain or meter **keeper** receives control when a domain faults or exhausts its meter; §12 and §16 retain only the safe specialization, crash-only fail-stop followed by supervised restart and re-grant of the already-declared authority. An arbitrary keeper able to inspect, alter, or resume another compartment would reopen exception, debugger, and continuation authority the static design deliberately deletes.
 These are lineage, not imports: dynamic banks, meters, and keepers would duplicate the static memory plan, schedule, and supervision tree while adding runtime state and authority paths.
@@ -595,7 +595,7 @@ These are lineage, not imports: dynamic banks, meters, and keepers would duplica
   So persistence here stays **explicit, typed, and verified** rather than orthogonal, and the crash-safety proof keeps the boundary the single-level store deletes; the road taken is recorded in [Inspirations & Prior Art](inspirations.md) and its cost is booked in §17.
 
 **The rest of the family is convergent, and nothing further imports.**
-- The **stateless supervisor** (kernel state derived from user-supplied state, with only a thread list and an object directory saved persistently) is already the stronger §7 posture: untyped memory delegated from userland with zero post-boot kernel allocation, and an object graph fixed at composition rather than recovered from a log.
+- The **stateless supervisor** (kernel state derived from user-supplied state, with only a thread list and an object directory saved persistently) is already the stronger §7 posture: zero post-boot kernel allocation by the absence of any allocation primitive, and an object graph fixed at composition rather than recovered from a log.
 - The **no-dynamic-kernel-heap** discipline (the line's own argument that a kernel heap breeds hidden deadlock and hidden communication channels) is the §7 static slot plan, reached as a proof obligation rather than as a convention.
 - **Resume keys**, the one-shot capability that returns to a caller, are CHERI **sealed return capabilities** plus the §12 typed request/response discipline.
 - **No ambient user identity** (authority held by the domain, never by a logged-in user or a superuser) is §8's no-ambient-authority rule and the powerbox.
@@ -688,7 +688,7 @@ The MI6/Kôika author overlap is worth naming: the **formal-semantics HDL** line
 
 **A software capability-monitor sibling, Tyche, confirms the convergence and the foil.**
 Tyche (EPFL DCSL; Ghosn, Castes, Kalani, Bugnion; arXiv 2507.12364) is a recent security monitor of exactly this small-privileged-monitor shape that composes attestable isolation out of **capabilities**: nested *security domains* (enclaves, sandboxes, CVMs) over two monotonic capability-derivation trees with cascading revocation, a platform-independent **capability engine** (a few thousand lines of Rust with no `unsafe`) above a thin hardware **backend** (x86 EPT, RISC-V PMP), and region-transfer attributes: *clean* (zero-on-revoke), *hash* (measure-on-transfer), *vital* (revoke-the-receiver): the intents of which this platform already carries (eager-zeroize §15, reference-integrity-manifest attestation §9, revocation-driven teardown §8).
-It independently reaches this design's own structure: the capability model split from the enforcement substrate, monotonic-CDT revocation, a root domain with no special privilege: so it *validates* those choices rather than proposing an alternative to them.
+It independently reaches this design's own structure: the capability model split from the enforcement substrate, monotonic revocation, a root domain with no special privilege: so it *validates* those choices rather than proposing an alternative to them. Its revocation is CDT-shaped where this design's is colour- and epoch-shaped (the object-model entry below), which changes the mechanism carrying monotonic revocation, not the validation.
 Its motivation, though, is the **foil**: it exists to *retrofit* composable isolation beneath an **untrusted commodity OS** on legacy hardware (Linux domains, KVM/Gramine/Keystone compatibility), it is **unverified** (a fuzzed monitor, not a proved one), it puts side channels and physical attacks out of scope, and its RISC-V enforcement *is* the **PMP** this design drops (drop-PMP, above).
 Its cross-core capability-update protocol (IPI-driven, two-barrier atomic) is a concrete reference, but for a **shared-state** engine coherent across cores: the opposite of the share-nothing island model, so the distributed non-coherent revocation reference is [SemperOS](inspirations.md), not Tyche.
 
@@ -2019,7 +2019,7 @@ A **third option dominates both**: keep seL4's *design* and re-prove it **end-to
   **CertiKOS's one distinctive asset: proven shared-memory concurrency; is therefore dead weight here:** the multikernel forbids the shared mutable kernel state it verifies.
 
 - **The spec already *is* seL4 in all but the prover.**
-  Untyped memory / zero post-boot kernel allocation (§7), synchronous endpoints + notifications (§7), derivation-tree (CDT) revocation (§8), and the non-interference theorem (§8) are seL4's model in every particular; "CertiKOS" named only the **Coq proof engine**.
+  Zero post-boot kernel allocation (§7), synchronous endpoints + notifications (§7), first-class revocation (§8), and the non-interference theorem (§8) were seL4's model in every particular at the time this entry was written; "CertiKOS" named only the **Coq proof engine**. (The first and third are since re-grounded on mechanisms that are not seL4's, per the entry below, without disturbing this entry's argument, which is about the prover and not the object model.)
   "CertiKOS-lineage kernel proof" was always shorthand for *verify this (seL4) design in Coq*: a label on the method, not a second kernel.
   The coherent artifact is a Coq proof **of the seL4 design already written down here**, not an import of CertiKOS's different kernel.
 
@@ -2053,16 +2053,96 @@ The claim is thus conditional and honest: **superior iff (a) engineering is free
 
 **What the stripping leaves is a minimal capability core, and that is what makes the greenfield proof feasible.**
 This platform commits to a specific set of deletions: the MMU with its VSpace and paging objects, MCS, SMP, the S/U privilege ring, and PMP with the IOMMU (the MMU-deletion, single-privilege-mode, drop-PMP, and capability-checked-DMA entries above; §7, §15). These preferentially remove the *proof-heaviest* layer of `l4v` (the arch-specific VM refinement) and its *least-maintained* ones (MCS, and the SMP concurrency the multikernel never incurs).
-What survives is seL4's architecture-independent core (untyped memory, retype, the capability space, the CDT and its revocation, endpoints and notifications; §7, §8), joined to a realization that is *not* seL4's: the single-address-space CHERI isolation CheriOS demonstrates, the CHERIoT-lineage switcher, sealing, and interrupt-state sentries (§15), and the table-driven cyclic executive (§7, §11).
+What survives is seL4's architecture-independent core (untyped memory, retype, the capability space, the CDT and its revocation, endpoints and notifications; §7, §8), **of which the first four are deleted in turn by the entry below**, leaving endpoints, notifications, and the non-interference statement; joined to a realization that is *not* seL4's: the single-address-space CHERI isolation CheriOS demonstrates, the CHERIoT-lineage switcher, sealing, and interrupt-state sentries (§15), and the table-driven cyclic executive (§7, §11).
 The artifact is therefore a **synthesis, not a transcription**: seL4's object model ⋈ the CheriOS/CHERIoT CHERI-SAS realization ⋈ Barrelfish's multikernel composition ⋈ a static cyclic executive. Reading the route as "re-prove seL4" *overstates* the maturity that transfers (the deployed kernel is a heavily-forked minimal variant, not mainline seL4) while *understating* the genuinely novel proof: the purecap CHERI-C *kernel refinement* (the CHERI-C language semantics itself now mechanized in Coq, Zaliva et al. ASPLOS 2024, so the novelty is this kernel's proof over it, not the semantics), the multikernel non-interference composition, and the switcher and sentries, none of which any base supplies.
 Naming it a **bespoke minimal capability core** sizes the effort correctly and frees the object model to be designed for *minimum proof surface* rather than inheriting seL4's hooks for the features this platform deleted.
 It also **relocates the decision**: with the kernel this small, the dominant fresh proof mass is no longer *in* the kernel but in the CHERI-C kernel refinement over the now-mechanized CHERI-C semantics (§7, §17), the multikernel non-interference composition (§8, §17), and the switcher and sentry verification against the Sail model, so the seL4-versus-CertiKOS-versus-CheriOS basis question is second-order to getting those right.
 
 **Disposition:** adopt seL4's **design** as the object-model base for a **bespoke minimal capability core**, proved **end-to-end in Coq** and compiled via **CompCert/SECOMP** (§5, §7); **CertiKOS is demoted from kernel to proof-method lineage**: deep specifications, certified abstraction layers, CompCertX-style verified compilation; supplying the *how* while seL4 supplies the *what*.
 What transfers from that lineage is the abstraction-layer discipline, the deep-specification method, CompCertX-style verified compilation, and the generic lower-layer proofs (physical-memory management: the single-address-space design carries no paging layer) any kernel needs, **not** CCAL's *concurrency* machinery, which the share-nothing multikernel (above) makes dead weight; for a per-core *sequential* kernel, plain **VST** (sequential separation logic over CompCert) is the more parsimonious closing logic.
-The make-or-break subproof, never yet done in Coq for an seL4-class capability model, is **CDT revocation** (the hardest part of the l4v corpus): so it is the piece to attempt *first*, the early kill-switch on the route.
+The make-or-break subproof, never yet done in Coq for an seL4-class capability model, was **CDT revocation** (the hardest part of the l4v corpus), nominated here as the piece to attempt *first*, the early kill-switch on the route.
+**The entry below retires that subproof rather than scheduling it**, the CDT being deleted as redundant with the CHERI revocation machinery, so the kill-switch role passes to the purecap CHERI-C kernel refinement and the multikernel non-interference composition, which are the novel proofs this entry already identifies as the dominant fresh mass.
 **Importing seL4's Isabelle proof wholesale stays rejected** (the two-prover TCB).
 The earlier "no pure-win" verdict is **superseded**: it held only under the unstated assumption of *inheriting* seL4's proof; the engineering-free axiom licenses lifting that assumption, and the Coq-re-proved seL4 then dominates.
+**The object-model survivors that entry lists are themselves deleted by the entry below**, which runs the same redundancy test on the object model that this one ran on the architecture-specific layers; what remains of seL4 here is endpoints, notifications, and the non-interference statement.
+
+---
+
+## The seL4 object model's runtime layer: untyped and retype, the capability space, and the CDT, all deleted as redundant with the tag plane and the static composition
+
+The entry above stripped seL4 of everything the *hardware* deletions made unreachable: VSpace, page tables, frame mappings, MCS, SMP, the S/U rings.
+It then listed what survives (*"untyped memory, retype, the capability space, the CDT and its revocation, endpoints and notifications"*) and stopped, because that list is what remains after the *architecture-specific* layers are removed.
+The list was never itself tested.
+It should have been, because the same entry licenses the test in its own words: the bespoke core is *"free[d] to be designed for **minimum proof surface** rather than inheriting seL4's hooks for the features this platform deleted"* (above).
+Running that test finds that three of the five survivors have no consumer on this platform, and that each is redundant with a mechanism the design already specifies, already proves, and already relies on elsewhere.
+
+**Untyped memory and retype have no post-boot caller.**
+Their entire purpose is creating kernel objects at runtime under an explicit resource-ownership discipline.
+This platform creates none: R-07-025 fixes the component graph and capability distribution at build time with no dynamic privilege creation, R-07-026 confines the two sanctioned runtime authority transfers (the powerbox grant and the supervision tree's restart re-grant) to edges the manifest already fixed, and R-07-028 has the M-mode firmware **install** the composed cap graph as running kernel state under an initialisation-refinement proof.
+The object graph is therefore complete before the first partition runs and never grows.
+Where the objects *live* is likewise already decided by a mechanism that is not the kernel's: §8's whole-program static memory plan compiles the heap rather than allocating it, colouring live ranges into physical SRAM slots at composition and checking slot disjointness as a decidable side condition of the on-device TAL type-check (R-08-010 through R-08-014).
+Kernel objects are objects.
+They take slots in that plan like everything else, and the plan's checker rejects a bad placement as a type error rather than trusting an allocator's bookkeeping.
+So *zero kernel allocation after boot* survives verbatim and gets stronger: it held because userland had to delegate the memory, and it now holds because **no allocation primitive exists in the ABI at all**.
+This is the no-consumer parsimony that excluded `Zacas`, `Zifencei`, and `Sstc` (§15), applied for the first time to a kernel object rather than an instruction.
+
+**The capability space is the software emulation of the tag plane.**
+seL4 needs CNodes because a capability on a conventional machine is a kernel-managed record that unprivileged code must not be able to forge, so it must live in kernel memory and be named indirectly, by index, through a guarded radix structure the kernel walks on every invocation.
+On this machine that problem does not arise: a capability is a hardware object with a validity tag, monotonicity is enforced by the datapath, and unprivileged code already holds capabilities directly in registers and tagged memory because that is the *only* way it holds anything (§15).
+Retaining CSpace beside the tag plane is therefore two capability representations, two namespaces, two forgery arguments, and two proofs, for one authority relation.
+What CNodes supply beyond storage is **typing** (this capability names an endpoint, not a byte range) and **rights**, and both are already present in the hardware: CHERI **sealing** with a composition-fixed otype set distinguishes an object capability from a memory capability unforgeably, and CHERI permissions carry the rights.
+This is not a substitution proposed here; it is what the CHERIoT lineage this design already follows does, and §7's own switcher, sealing, and sentries are imported from it.
+The spec has in fact already conceded the point in §5: what is proved is *"more precisely a CHERIoT-class static separation kernel that borrows seL4's object vocabulary."*
+The deletion finishes that sentence, dropping the vocabulary along with the machinery, because CHERIoT has no CNodes.
+
+**The CDT is a second revocation mechanism for a property the first already delivers.**
+R-08-004 states the duplication in a single clause: *"first-class revocation (derivation-tree revoke **+** CHERI sweep)."*
+The CHERI side is fully specified and load-bearing on its own: the epoch advance is the bounded containment constant, the per-load filter makes *freed implies unreachable* hold at access time rather than at sweep completion, the sweep is sized background reclamation in its own admitted slot class, and the quarantine pool prices forced-sweep denial of service to the aggressor (R-08-005 through R-08-009).
+It also covers strictly more than the CDT ever could, because it reaches every capability on the machine, including the userland capabilities in registers and tagged memory that no kernel derivation tree records.
+The one thing ancestry keying buys over address keying is **subtree** revocation, revoking what one principal delegated without disturbing capabilities to the same object derived by another, and that is already bought by a primitive the profile lists among the monotone capability-producing operations: **revocation-colour assignment** (§5).
+A colour is stamped at derivation and revoked as a set, which is subtree revocation performed by the load filter at hardware speed rather than by a kernel walk over a tree.
+Two mechanisms, one property, one of them verified hardware and the other the most expensive software proof in the plan: this is precisely the shape *verify rather than hedge* (R-15-013) exists to reject, and the design has applied that rule against the initialization-tag plane, MTE, shadow stacks, PMP, and the IOMMU while leaving its own kernel carrying a duplicate.
+
+**What this does to the proof programme is the point.**
+The entry above nominates the deleted mechanism as the project's kill switch: *"The make-or-break subproof, never yet done in Coq for an seL4-class capability model, is **CDT revocation** (the hardest part of the l4v corpus): so it is the piece to attempt first."*
+Deleting the CDT retires that subproof outright rather than scheduling it, and the untyped and CSpace deletions retire the retype invariants and the capability-space lookup refinement, which are the two largest remaining blocks of the l4v burden after the VM layer this design had already dropped.
+Measured against the standing complaint that this project's obligation count grows monotonically while its discharge count stands at one, this is the first change on record that moves the counter the other way.
+The residual kernel proof is what §7 already says is the genuinely novel work and is unaffected: the purecap CHERI-C refinement, the multikernel non-interference composition, and the switcher and sentry verification against the Sail model.
+
+**The five gates.**
+(1) **Surface:** deletes three object classes and their invariants from the kernel spec, the retype and capability-space invocations from the frozen ABI, the CDT refinement and its revocation theorem from the proof programme, and the corresponding object classes from the capDL-class distribution spec.
+(2) **Performance:** a gain, and on the hot path.
+Capability transfer in IPC becomes a register operand the hardware validates, with no CSpace lookup and no guarded radix walk, which is the kernel's most frequent operation and one of the two paths R-07-050 verifies at binary level.
+(3) **Security:** nothing shed.
+Confinement was CHERI's before this change (R-07-006, R-08-003); revocation was already specified end to end on the CHERI side, and colours cover the ancestry case; typing and rights move from CNode fields to sealing and permissions, which are unforgeable in hardware rather than in a proof.
+(4) **Grounds:** no-consumer parsimony for untyped and retype, *verify rather than hedge* for the CDT, *delete rather than defend* for the capability space.
+(5) **Relocation:** none.
+The composition tool already emits the graph, the firmware already installs it under an existing proof obligation, and the static memory plan already places and checks the slots.
+No obligation moves into software that was not already there and already discharged.
+
+**The honest counterargument, and why the axiom overrides it.**
+Two things are genuinely given up.
+(1) **Maturity, again, and more of it than the entry above gave up.**
+That entry's whole case was that seL4 supplies a design and a specification with more independent scrutiny than any kernel spec in existence, and the object model is the most scrutinized part of it.
+Deleting three of its five surviving classes spends that scrutiny rather than banking it, and the replacement is a CHERIoT-shaped model whose published assurance is far thinner.
+The mitigating fact is that the entry above already conceded this halfway: the shipped artifact was a *synthesis* with a CHERIoT realization glued to an seL4 object model, and it is the seam between those two, not either one, that carried the novelty.
+Deleting the seL4 half of the seam removes the seam.
+(2) **The hs-to-coq route narrows.**
+That entry's answer to specification freshness was to carry seL4's Haskell executable model into Coq mechanically, so the scrutinized artifact is preserved rather than re-typed.
+With the object model gone, less of that model transfers and more of the Gallina state machine is authored fresh, which is exactly the silent failure mode §5 names as the crown-jewel risk.
+The offset is that the fresh artifact is dramatically smaller: an authored specification for endpoints, notifications, partition contexts, and the switch is a far smaller oracle to get right than an authored specification of untyped, retype, CSpace, and the CDT, and the *count* of things that must be stated correctly falls even as the fraction that is authored rises.
+Both costs land on labour and freshness, the axis the engineering-free axiom exists to absorb, and neither adds a member to the trusted set.
+
+**The bet, stated.**
+The bet is that the CHERIoT lineage's answer (capabilities in registers and tagged memory, objects named by sealed capabilities, revocation by colour and epoch under a load filter) is sufficient for a kernel whose object graph is fixed at composition, and that nothing in seL4's dynamic object machinery is load-bearing once that graph cannot change.
+It is a bounded extrapolation of the same kind as the single-address-space and single-privilege-mode bets, and bounded for the same reason: CHERIoT ships this model, the design has already imported its switcher, sealing, and sentries, and what changes is which mechanism names an object, never what authority the object confers.
+
+**Disposition (adopted; normative in §7 and §8).**
+Untyped memory and retype, the capability space and its CNodes, and the capability derivation tree with its revocation are **removed**.
+Kernel objects are placed by §8's composition-time memory plan and installed by the §9 boot firmware under R-07-028's existing initialisation-refinement obligation; they are named by sealed CHERI capabilities over a composition-fixed otype set; revocation is the CHERI epoch, colour, sweep, and load filter alone.
+Endpoints, notifications, and the non-interference theorem are retained from seL4 unchanged.
+The kernel ABI loses its retype, capability-space, and derivation-tree invocations.
+**Honest residual (§17):** the object model is now CHERIoT-shaped rather than seL4-shaped, so the independent-scrutiny argument that carried the kernel-design choice is weaker than the entry above claimed, and a larger fraction of the Gallina specification is authored rather than mechanically transcribed; offset against three deleted object classes, a deleted ABI surface, the deleted CDT refinement, and the retirement of the subproof that entry named its own kill switch, this is a net shrink of both the specification surface and the proof programme, booked in §17's proof-trust-base accounting.
 
 ---
 

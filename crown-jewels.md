@@ -63,7 +63,7 @@ The remaining seven `CJ-` targets name **theorems, not specifications** — thin
 | --- | --- | --- |
 | `CJ-COMPCERT` | CHERI-CompCert correctness | CompCert C semantics ⋈ the frozen ISA profile (row 4) |
 | `CJ-SECOMP` | Robust preservation of compartment isolation by the verified compiler | the policy model (row 2) |
-| `CJ-KERNEL` | Kernel functional refinement — seL4's design re-proved in Coq | the kernel's abstract specification ⋈ the slot plan (row 21) |
+| `CJ-KERNEL` | Kernel functional refinement — seL4's endpoint model and non-interference statement re-proved in Coq, the rest of the object model deleted (R-07-001) | the kernel's abstract specification ⋈ the slot plan (row 21) |
 | `CJ-CERISE` | The Cerise universal contract | the ISA profile and its Sail semantics (rows 4, 6) |
 | `CJ-TAL-SOUND` | CHERI-TAL soundness: well-typed ⇒ safe over the Sail model | the ISA profile (row 4) |
 | `CJ-CT-SOUND` | Constant-time type soundness over the leakage model | the `Zkt`/`Zvkt` statement (row 5) |

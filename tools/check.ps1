@@ -384,7 +384,9 @@ if ($findings -eq $countFindings -and -not $Fix) { "ok: all $($claims.Count) ass
 
 # --- the Coverage table is one row per section, with the right count ---------------
 
-$rowPattern = '(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|$'
+# The trailing lookahead keeps CRLF out of the match: .NET's (?m)$ sits before the \n,
+# so an anchored \|$ never matches a CRLF file, and every row reads as missing.
+$rowPattern = '(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|(?=\r?$)'
 $regRaw = if ($fixedFiles.ContainsKey('requirements-register.md')) { $fixedFiles['requirements-register.md'] } else { Get-Content 'requirements-register.md' -Raw }
 $rows = [regex]::Matches($regRaw, $rowPattern)
 

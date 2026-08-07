@@ -1100,17 +1100,25 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 7.1 Object model and allocation
 
-**R-07-001** MUST — The kernel is a verified capability microkernel, seL4's design re-proved end-to-end in Coq, targeting ≤10k lines.
+**R-07-001** MUST — The kernel is a verified capability microkernel taking seL4's endpoint model and non-interference statement, re-proved end-to-end in Coq, targeting ≤10k lines; the remainder of seL4's object model is deleted by R-07-002, R-07-002b, and R-08-004.
 · Accept: the line count is measured against the shipped source; CertiKOS supplies the proof method, not the kernel.
 · Trace: CJ-KERNEL · [§7](verification-maximal-os.md#r-07-001)
 
-**R-07-002** MUST — Untyped memory: there is zero kernel allocation after boot, and all kernel-object memory is delegated from userland via capabilities.
-· Accept: no allocator exists in the kernel; the allocator bug classes are absent rather than bounded.
+**R-07-002** MUST NOT — There is no untyped memory and no retype: zero kernel allocation after boot holds by the absence of any allocation primitive in the ABI rather than by delegation from userland, and kernel objects are placed by the §8 composition-time static memory plan.
+· Accept: no allocator and no allocation primitive exist in the kernel; the allocator bug classes are absent rather than bounded, and kernel-object slot disjointness is decided by the same on-device type-check side condition as every other object (R-08-014).
 · Trace: CJ-KERNEL · [§7](verification-maximal-os.md#r-07-002)
+
+**R-07-002a** IS — The untyped and retype deletion is grounded in the absence of a caller: static composition fixes the graph (R-07-025), the sanctioned runtime authority transfers extend only edges the manifest already fixed (R-07-026), and the graph is complete before the first partition runs and never grows.
+· Accept: the ground is the no-consumer parsimony that excluded `Zacas`, `Zifencei`, and `Sstc`, stated as such rather than as a preference.
+· Trace: CJ-KERNEL · [§7](verification-maximal-os.md#r-07-002a)
+
+**R-07-002b** MUST NOT — There is no capability space: no CNodes, no capability-address translation, and no guarded radix lookup. A capability is a hardware object carrying a validity tag, held directly in registers and tagged memory; sealing over a composition-fixed otype set supplies object typing and CHERI permissions supply the rights.
+· Accept: one capability representation exists on the machine, not two; no kernel-managed capability record and no index-to-capability lookup appears in the ABI or the proof.
+· Trace: CJ-KERNEL, CJ-CERISE · [§7](verification-maximal-os.md#r-07-002b)
 
 ### 7.2 Multikernel
 
-**R-07-003** IS — The microkernel is one verified artifact instantiated once per core: identical text, verified once and duplicated per core, with strictly disjoint state — each instance owning its capability tables, scheduler, and untyped pool.
+**R-07-003** IS — The microkernel is one verified artifact instantiated once per core: identical text, verified once and duplicated per core, with strictly disjoint state — each instance owning its object region, scheduler, and partition contexts.
 · Accept: duplication is for NUMA locality and bit-flip blast-radius containment.
 · Trace: CJ-KERNEL · [§7](verification-maximal-os.md#r-07-003)
 
@@ -1220,8 +1228,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: neither operation adds a node or a label to the composed graph.
 · Trace: CJ-NI · [§7](verification-maximal-os.md#r-07-026)
 
-**R-07-027** MUST — The §12 IDL worlds and interfaces lower to a capDL-class capability-distribution spec: kernel-object-granular, re-homed to Coq, extended so cap edges carry CHERI-bounds grants, and stripped of the VSpace, page-table, and frame-mapping object classes.
-· Accept: the spec is a Coq artifact, not a documentation format.
+**R-07-027** MUST — The §12 IDL worlds and interfaces lower to a capDL-class capability-distribution spec: kernel-object-granular over endpoints, notifications, and partition contexts, re-homed to Coq, extended so cap edges carry CHERI-bounds grants, and stripped of the VSpace, page-table, and frame-mapping object classes together with the untyped and CNode classes R-07-002 and R-07-002b delete.
+· Accept: the spec is a Coq artifact, not a documentation format, and its object classes are exactly those the kernel retains.
 · Trace: CJ-IDL, CJ-KERNEL · [§7](verification-maximal-os.md#r-07-027)
 
 **R-07-028** MUST — The capability-distribution spec carries an initialisation-refinement obligation: the M-mode firmware that installs the distribution is proved to instantiate exactly the composed cap graph as running kernel state.
@@ -1238,9 +1246,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the kernel ABI admits no submission-queue opcode dispatch.
 · Trace: CJ-KERNEL · [§7](verification-maximal-os.md#r-07-030)
 
-**R-07-031** IS — The kernel ABI is the capability primitives alone: on the order of a dozen invocations, formally specified and frozen with the proof; kernel messages are registers plus capability slots, never typed structured data.
+**R-07-031** IS — The kernel ABI is the capability primitives alone: under a dozen invocations, formally specified and frozen with the proof; kernel messages are registers plus capability slots, never typed structured data.
 · Accept: rich interfaces live one layer up in §12.
 · Trace: CJ-KERNEL, CJ-IDL · [§7](verification-maximal-os.md#r-07-031)
+
+**R-07-031a** MUST NOT — The kernel ABI carries no retype, no capability-space, and no derivation-tree invocation; the surface the frozen ABI specifies and the proof covers is the endpoint, notification, partition-context, and revocation set alone.
+· Accept: the invocation list is enumerated and closed, and an invocation outside that set is a failure of the ABI freeze rather than an extension of it.
+· Trace: CJ-KERNEL · [§7](verification-maximal-os.md#r-07-031a)
 
 ### 7.7 Scheduling
 
@@ -1329,7 +1341,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-COMPCERT · [§7](verification-maximal-os.md#r-07-051)
 
 **R-07-052** MUST — Single address space: the kernel drops seL4's VSpace, page-table, and frame-mapping object classes entirely, and CHERI bounds are the sole in-core spatial isolation.
-· Accept: the map/unmap invocations, the page-table walk, `satp` switching, and TLB-shootdown paths and their proofs are gone rather than verified; frames become capability-bounded physical ranges delegated from untyped memory.
+· Accept: the map/unmap invocations, the page-table walk, `satp` switching, and TLB-shootdown paths and their proofs are gone rather than verified; frames become capability-bounded physical ranges fixed by the §8 composition-time memory plan.
 · Trace: CJ-KERNEL, CJ-CERISE · [§7](verification-maximal-os.md#r-07-052)
 
 ---
@@ -1352,9 +1364,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 8.2 Revocation
 
-**R-08-004** MUST — The kernel layer provides object capabilities with first-class revocation (derivation-tree revoke plus CHERI sweep) running within a guaranteed time bound, so time-to-containment is a bounded constant — including the distributed case, where capabilities delegated over cross-core grant edges revoke via a verified bounded-round protocol.
-· Accept: the bound is stated per composition and enters the §11 schedule.
+**R-08-004** MUST — The kernel layer provides object capabilities with first-class revocation, and the mechanism is the CHERI one alone: revocation epoch, revocation colour, budgeted sweep, and per-load filter. There is no capability derivation tree. Revocation runs within a guaranteed time bound, so time-to-containment is a bounded constant — including the distributed case, where capabilities delegated over cross-core grant edges revoke via a verified bounded-round protocol of local epoch advance plus proxy notification along the same static edges.
+· Accept: the bound is stated per composition and enters the §11 schedule; exactly one revocation mechanism appears in the kernel spec and its proof.
 · Trace: CJ-CERISE, CJ-WCET · [§8](verification-maximal-os.md#r-08-004)
+
+**R-08-004a** IS — Subtree revocation is retained and is carried by the revocation colour: a colour is stamped at derivation and retired as a set, so revoking what one principal delegated without disturbing capabilities to the same object derived by another is decided by the load filter rather than by a kernel walk over a derivation tree.
+· Accept: the one capability ancestry keying held over address keying is discharged by a mechanism R-05-136 already admits as a monotone capability-producing operation; retaining a tree beside it would be a hedge on a verified primary under R-15-013.
+· Trace: CJ-CERISE · [§8](verification-maximal-os.md#r-08-004a)
 
 **R-08-005** MUST — *Freed ⇒ unreachable* holds at *access* time, not only at sweep completion: a per-load revocation check (load filter or barrier) invalidates a stale capability the moment it is loaded.
 · Accept: the check is deterministic and architectural, fixed-latency, riding the load with no added memory traffic, so it passes the §15 admission test.
@@ -3998,6 +4014,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: eager-zeroize keeps the *disclosure* consequence closed independently, so the uncaught case is a correctness bug reading zeros rather than a residue leak; the deletion is a net subtraction on every scarce axis.
 · Trace: CJ-TAL-SOUND, CJ-HAL · [§17](verification-maximal-os.md#r-17-045)
 
+**R-17-045a** IS — The object-model deletion (R-07-002, R-07-002b, R-08-004) spends the independent-scrutiny argument that carried the seL4 design choice: the deleted classes were the most scrutinized part of that specification, their CHERIoT-lineage replacements carry thinner published assurance, and less of seL4's executable model transfers through `hs-to-coq`, so a larger fraction of the Gallina specification is authored fresh.
+· Accept: booked as a specification-scrutiny residual rather than a mechanism residual, nothing joining the trusted set; bounded by the authored artifact being a smaller oracle than the one it replaces, and offset by the retirement of the CDT revocation refinement the kernel-design disposition named as the route's early kill switch.
+· Trace: CJ-KERNEL · [§17](verification-maximal-os.md#r-17-045a)
+
 **R-17-046** IS — The proof trust base is the §6 axiom inventory (R-06-011) together with the interim non-Coq anchors (R-05-022), held here as a residual rather than restated: what this entry adds is the disposition, that the interims are explicitly shrinking rather than open-endedly tolerated.
 · Accept: both lists are read off R-06-011 and R-05-022, so neither is enumerated twice and a change to either has one place to be made. The Coq-native crypto path adds no new prover, so an interim's surface retires as its consumer list empties (R-05-022a); the checkers' own binaries keep their named bootstrap as the De Bruijn root (R-06-014).
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-046)
@@ -4252,7 +4272,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 971 requirements. §19 is non-normative and yields none. Counts include the fifty-nine letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 976 requirements. §19 is non-normative and yields none. Counts include the sixty-four letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4262,8 +4282,8 @@ All eighteen normative sections are extracted, at 971 requirements. §19 is non-
 | **§4 Organizing Principle** | **extracted** | **12** |
 | **§5 Languages & Verification** | **extracted** | **184** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
-| **§7 Kernel** | **extracted** | **54** |
-| **§8 Authority Model** | **extracted** | **45** |
+| **§7 Kernel** | **extracted** | **57** |
+| **§8 Authority Model** | **extracted** | **46** |
 | **§9 Boot & Root of Trust** | **extracted** | **31** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
@@ -4272,7 +4292,7 @@ All eighteen normative sections are extracted, at 971 requirements. §19 is non-
 | **§14 Userland** | **extracted** | **14** |
 | **§15 Hardware Platform** | **extracted** | **255** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **73** |
+| **§17 Residual Risks** | **extracted** | **74** |
 | **§18 Realization** | **extracted** | **38** |
 
 §19 is non-normative and yields no requirements.
