@@ -2790,9 +2790,17 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the fixed-latency-including-subnormals contract and the `FDIV`/`FSQRT` carve-out are stated once, for the vector FPU; the `f`-register file is absent from the context-switch and `fence.t` sets.
 · Trace: CJ-LEAK, CJ-SAIL · [§15](verification-maximal-os.md#r-15-039)
 
+**R-15-039a** MUST NOT — The vector element-restart CSR `vstart` is excluded: no vector instruction carries element-restart state, and a vector operation is all-or-nothing.
+· Accept: no resumable-trap consumer exists on the platform, each of the four cuts being absent or fatal: asynchronous interrupt delivery is absent (R-07-038), no MMU means no mid-instruction page fault (R-15-038), a capability fault is contained and restarted (R-16-001), and a slot-boundary cut is a broken admission bound §7 restarts rather than resumes (R-07-014a). Every vector instruction's Sail definition runs its element loop from zero with no base to read and no residue to write, `vle*ff` reports a short transfer in `vl`, and `vstart` is absent from the §7 zeroize set because it is absent from the machine.
+· Trace: CJ-SAIL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-039a)
+
 **R-15-040** IS — Vector-FP-without-scalar-FP is a deliberate, Sail-modeled fork of standard RVV, admissible because the platform curates its own profile and formal model.
 · Accept: the fork is recorded, with its ABI cost (a soft-float-register calling convention) accepted.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-040)
+
+**R-15-040a** IS — `vstart`-free RVV is a second deliberate, Sail-modeled fork of standard RVV, admissible on the same ground as the vector-FP-without-scalar-FP fork.
+· Accept: the fork is recorded, and unlike the scalar-FP fork it books no accepted cost: no calling convention names `vstart` and no compiler emits a write to it, so the residue is hand-written RVV assembly setting an element base, which admission rejects as an undefined instruction rather than miscompiling.
+· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-040a)
 
 **R-15-041** MUST NOT — The scalar AES and SHA-2 round instructions (`Zkne`/`Zknd`/`Zknh`) are excluded: the vector crypto suite computes them table-free, so the constant-time contract is stated once.
 · Accept: no vectorless core requires a hardware AES or SHA-2 round unit; the S-class RoT hashes SHA-3/SHAKE in plain 64-bit integer with `Zbb` rotations and delegates AEAD and sealing to the crypto core.
@@ -3052,7 +3060,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: ISA-visible removals are absences in the frozen Sail model and owe nothing further; microarchitectural removals owe the absence contract.
 · Trace: CJ-SAIL, CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-098)
 
-**R-15-099** IS — The ISA-visible removals are the MMU and its Sv39 walker, PMP, the S/U rings, `C`, `Zifencei`, `Zalrsc`/`Zacas`, scalar F/D, the dynamic `frm` state, and asynchronous interrupt delivery.
+**R-15-099** IS — The ISA-visible removals are the MMU and its Sv39 walker, PMP, the S/U rings, `C`, `Zifencei`, `Zalrsc`/`Zacas`, scalar F/D, the dynamic `frm` state, the vector element-restart state `vstart` (R-15-039a), and asynchronous interrupt delivery.
 · Accept: an RTL implementing any of them fails ordinary refinement.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-099)
 
@@ -4272,7 +4280,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 976 requirements. §19 is non-normative and yields none. Counts include the sixty-four letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 978 requirements. §19 is non-normative and yields none. Counts include the sixty-six letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4290,7 +4298,7 @@ All eighteen normative sections are extracted, at 976 requirements. §19 is non-
 | **§12 System Servers** | **extracted** | **101** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
-| **§15 Hardware Platform** | **extracted** | **255** |
+| **§15 Hardware Platform** | **extracted** | **257** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **74** |
 | **§18 Realization** | **extracted** | **38** |

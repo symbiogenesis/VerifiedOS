@@ -104,7 +104,7 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | `misa` | **read-only**; writes have no effect, so no runtime ISA morphing | R-15-052 |
 | `mstatus` | present for **`VS`/`XS`** — the vector/matrix state gate, set at partition setup and paired with eager zeroize; this is the mechanism `Smstateen` was deleted in favor of. `FS` has no referent with scalar FP deleted | R-07-012, R-15-049, R-15-039 |
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, **in place of** `mtvec` / `mepc` / trap-scratch, reachable only with access-system-registers. A trap installs `MTCC` as the executing PCC, saves the interrupted PCC as `MEPCC`, and bootstraps the handler's authority from `MTDC` | R-15-073, R-07-022, R-07-023 |
-| `vtype` / `vl` / `vlenb` / `vstart` / `vxrm` / `vxsat` / `vcsr` | present with **V**. The partition switch **zeroizes and does not save** them, so no vector CSR context-switches and none joins the `fence.t` flush set — the property R-15-083 deletes `frm` to obtain, obtained here structurally. The standard reachable `vtype` configuration space remains intact; the profile imposes no narrower subset | R-15-001, R-07-014, R-07-014a, R-15-214 |
+| `vtype` / `vl` / `vlenb` / `vxrm` / `vxsat` / `vcsr` | present with **V**; `vstart` is not among them, excluded in §5.2. The partition switch **zeroizes and does not save** them, so no vector CSR context-switches and none joins the `fence.t` flush set — the property R-15-083 deletes `frm` to obtain, obtained here structurally. The standard reachable `vtype` configuration space remains intact; the profile imposes no narrower subset | R-15-001, R-07-014, R-07-014a, R-15-214 |
 | `dcsr` / `dpc` / `dscratch0–1` | Debug Module state: present in silicon, **unreachable in the production lifecycle state**, where the RoT's OTP fuse holds the DM's clock and reset gated off and its fabric port electrically quiesced | R-15-078, R-15-079 |
 
 ### 5.2 Absent
@@ -120,6 +120,7 @@ Each row is a `MUST NOT` in the register; the ground is the governing requiremen
 | `stimecmp` (`Sstc`) | one privilege mode; the kernel programs the machine-timer compare directly | R-15-063 |
 | `satp` | no MMU: the Sail model carries no translation state, and `satp` is Bare rather than present-and-ignored | R-15-002 |
 | `fcsr` / `frm` / `fflags` | no scalar FP; rounding is static and encoded per-instruction, so no mutable rounding-mode state context-switches or joins the `fence.t` set | R-15-039, R-15-083 |
+| `vstart` | no resumable trap exists to restart a vector instruction from an element index: no asynchronous interrupt delivery, no page fault without an MMU, a capability fault restarted rather than resumed, and a slot-boundary cut already a broken admission bound. What goes is a term in every vector instruction's semantics, not only a CSR | R-15-039a, R-15-040a |
 | `seed` (`Zkr`) | exactly one entropy root — the RoT TRNG through the verified DRBG | R-15-037 |
 | `mstateen0–3` (`Smstateen`) | with no less-privileged mode its bits gate nothing reachable | R-15-049 |
 | `srmcfg` (`Ssqosid`) | bandwidth is not a runtime-allocated quantity; per-`MCID` counters would be a cross-partition activity oracle | R-15-050, R-15-051 |
@@ -151,6 +152,7 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 | --- | --- | --- |
 | `C` (compressed) | unique 4-byte decode for binary-level proofs; ~25–30% code size accepted | R-15-036 |
 | `F` / `D` scalar FP, `f0`–`f31`, dynamic `frm` | all FP is vector; fixed-latency contract stated once | R-15-039, R-15-083 |
+| `vstart` element-restart state | no consumer: nothing on this machine resumes a vector instruction mid-element, so the element loop runs from zero in every vector instruction's Sail definition | R-15-039a |
 | `Zalrsc` | per-hart reservation register is hidden inter-instruction state (test 3); spurious SC failure (test 1); reservation-granule contention is a cross-hart channel | R-15-025 |
 | `Zacas` (incl. `amocas.q`, `amocas.b/.h`) | no consumer: share-nothing multikernel, SPSC rings under Ztso, single-instruction `Zaamo` refcounts, no capability in shared mutable memory | R-15-026, R-15-027 |
 | `Zicbom` | no hardware caches, so no consumer; cross-island ring release/acquire ordering is native Ztso and needs no fence | R-15-061 |
@@ -176,6 +178,8 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 | Speculation, SMT, dynamic branch prediction | fail admission tests (1)–(3), (3), and (3) respectively | R-15-012, R-15-019 |
 
 **Two exclusions are recorded with their accepted costs rather than as free wins.** Vector-FP-without-scalar-FP is a deliberate, Sail-modeled **fork of standard RVV**, admissible only because the platform curates its own profile and formal model; its cost is a soft-float-register calling convention, accepted (R-15-040). And dropping PMP forgoes the one **CHERI-disjoint failure domain** PMP uniquely offered: the hedge becomes CHERI's own formal verification, and the resulting concentration is booked in §17 as the RTL ⊑ Sail arrow plus a Coq-native restatement of reachable-capability monotonicity over the CHERI-RISC-V Sail model (R-15-076). Neither is a deletion the profile gets for nothing, and a curator reading only the exclusion table would miss both.
+
+**A third fork is recorded with no cost to book, which is the reason to record it.** `vstart`-free RVV is a Sail-modeled fork on the same ground as the first, standard RVV defining `vstart` as mandatory, but where the scalar-FP fork bought its deletion with a calling convention this one buys nothing: no ABI names `vstart`, no compiler emits a write to it, and the residue is hand-written RVV assembly setting an element base, which admission rejects as an undefined instruction rather than miscompiling (R-15-040a). A curator should read the absence of an accepted cost here as a claim to check, not as a row that was written carelessly.
 
 ## 7. Microarchitectural mandates carried by the profile
 

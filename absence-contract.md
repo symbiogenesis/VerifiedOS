@@ -24,7 +24,7 @@ The contract does **not** prove that hyperproperty over a cycle-accurate model. 
 
 | Class | Owes | Governing |
 | --- | --- | --- |
-| **ISA-visible removals** — MMU and its Sv39 walker, PMP, the S/U rings, `C`, `Zifencei`, `Zalrsc`/`Zacas`, scalar `F`/`D`, dynamic `frm` state, asynchronous interrupt delivery | **Nothing further.** These are absences in the frozen Sail model; an RTL implementing any of them fails *ordinary* refinement | R-15-098, R-15-099 |
+| **ISA-visible removals** — MMU and its Sv39 walker, PMP, the S/U rings, `C`, `Zifencei`, `Zalrsc`/`Zacas`, scalar `F`/`D`, dynamic `frm` state, `vstart` element-restart state, asynchronous interrupt delivery | **Nothing further.** These are absences in the frozen Sail model; an RTL implementing any of them fails *ordinary* refinement | R-15-098, R-15-099, R-15-039a |
 | **Microarchitectural removals** — the register in §3 | **This contract.** Invisible to a model of architectural state, so no rung of the RTL ⊑ Sail ladder discharges them | R-15-098, R-15-100 |
 
 ## 3. The register
