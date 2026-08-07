@@ -22,18 +22,6 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 These are classes the design has the machinery to remove and does not currently claim. Each is a small construction over mechanisms that already exist, not a new subsystem.
 
-- [ ] **1. Nonce and initialization-vector reuse.**
-  The per-extent AEAD nonce is specified as random and per-extent (§10), the DRBG is verified and single-rooted (§15, §16), and the checkpoint exclusion list already names nonces as state that must never be restored (§10). What is missing is the property that makes the class *unexpressible* rather than merely well-implemented: a nonce is a **use-once value**, and use-once is a type this system already has.
-  The construction is the linear or affine grade the CHERI-TAL carries for capabilities, applied to a different object: a nonce-typed value is consumed by the operation that seals under it and cannot be duplicated, stored, or reached twice, so a reuse is a type error at admission rather than a review item at the call site.
-  This is also the shape that survives the two hard cases (a restored checkpoint and a re-derived key), because the linear obligation forces the fresh draw rather than trusting the exclusion list to be read.
-  **Lands as:** a §5 attribute admitted under the standing attribute test (R-05-132: finite domain, no duplicate axis, local syntax-directed rule) plus §6 checker-table coverage. **Mode:** admission-rejected.
-
-- [ ] **2. Secret residue on release, and residue in registers and spill slots.**
-  Allocation zeroizes eagerly (§7) and the partition switch zeroizes vector and matrix state (§7), which together close *disclosure to the next tenant*. Neither obligates **scrubbing on release**, so a secret's lifetime ends when its holder stops caring rather than when the secret is erased, and the residue that survives is exactly the residue in the places the switch does not clear: scalar registers not covered by the switch discipline, compiler-introduced spill slots, and the caller frames of a compartment that returns rather than restarts.
-  The construction is the affine dual of item 1: a secret-typed value carries a **must-be-consumed-by-erasure** obligation, discharged by the erasing operation and checked on the final binary, which reaches the spill slots precisely because the check is on the binary and not the source. The `Zicboz` cost argument the eager-zeroize discipline already makes (§15) applies unchanged.
-  Note the interaction with the crash-only posture: restart erases a compartment's whole footprint, so the obligation binds the paths that *return* while holding secrets, which is the smaller and the more dangerous set.
-  **Lands as:** the same §5 attribute family as item 1, with the §13 tier table naming which tiers must carry it. **Mode:** admission-rejected, with eager zeroize as the absent-by-construction half already claimed.
-
 - [ ] **3. Entropy-source failure and random-number-generator subversion.**
   The inventory has no row for the case where every cryptographic proof holds and the seed is predictable, and that case is not covered by anything else in the construction: the security reductions are conditional on uniform keys, the constant-time discipline says nothing about the values, and the single-root rule (§15, `Zkr` excluded so that exactly one entropy root exists) *concentrates* the risk rather than discharging it.
   What is missing is a statement of what the root owes: continuous on-line health tests with a defined failure action (fail-stop, not degrade), a conditioning and post-processing chain whose properties are stated rather than assumed, a seeding and reseeding discipline the DRBG's own correctness proof is stated against, and the boot-time position that a failed health test blocks key derivation rather than proceeding.
@@ -58,12 +46,6 @@ These are classes the design has the machinery to remove and does not currently 
   What is not stated is the property: that the lifecycle is **monotone**, that no state transition re-enables a debug or test surface once production is entered, that raw-flash and test modes have no re-entry path, and that the transition is attested into the measured chain rather than merely performed.
   The class this removes is large and famous (test-mode re-entry, unlocked JTAG, factory-mode escape, engineering-key acceptance), and it is a class of *escape* rather than of exploitation, which is why it is worth a row of its own rather than a clause in the boot section.
   **Lands as:** §9 lifecycle requirements with the monotonicity property stated, cited from the §15 debug-gating entry. **Mode:** hardware-enforced, with the fuse state as the enforcing element.
-
-- [ ] **7. Dimension, unit, and clock-domain confusion.**
-  Nearly free at the type level and unclaimed. The design already separates the two clocks that matter (the free-running monotonic `mtime` the scheduler uses, and the disciplined wall-clock view the time service computes, §12, §15) and already knows that a cold boot has no absolute time (§9). Nothing prevents a value from one domain being used where the other is meant, and nothing prevents the ordinary unit confusions (cycles against microseconds, bytes against elements, a slot index against a slot width).
-  The construction is a **phantom dimension attribute** on the TAL's existing attribute machinery, checked syntactically and erased before code generation, so it costs a rule and no runtime.
-  It is worth doing here specifically because the WCET budgets, the frame arithmetic, and the deadline obligations (§11) are the places where a unit confusion is not a bug but an unsound admission, and because the monotonic-versus-wall-clock distinction is load-bearing for freshness (§9, §17).
-  **Lands as:** a §5 attribute under R-05-132, consumed by the §11 admission arithmetic. **Mode:** admission-rejected.
 
 ---
 
@@ -137,7 +119,7 @@ These are open. Some are open in a way the inventory already admits and states p
 
 ## What would retire this list
 
-Items 1, 2, 6, and 7 are small constructions over existing machinery and could land as requirements without new mechanism.
+Item 6 is a small construction over existing machinery and could land as a requirement without new mechanism.
 Items 4 and 5 are real proof obligations of ordinary size.
 Items 3, 9, 13, 15, and 16 are statements the design owes about positions it has already taken.
 Items 8, 10, 11, and 14 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, 11 by acquiring a mode it lacks, and 14 by changing the shape of the argument from a list to a covering.

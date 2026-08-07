@@ -748,7 +748,45 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the §7 zeroize discipline covers every slot; `Zicboz` (`cbo.zero`) is in the §15 profile.
 · Trace: CJ-MEMPLAN, CJ-SAIL · [§15](verification-maximal-os.md#r-05-126); constrains R-15-*
 
-### 5.18 The frozen checker theory
+### 5.18 Use-once, must-erase, and dimension: three re-uses of the existing grades
+
+**R-05-126a** IS — Three obligations ride the grades the CHERI-TAL already carries rather than new axes: a nonce is use-once (the linear grade), a secret is must-erase (the relevance grade), and a quantity carries its dimension (a phantom parameter under syntactic type equality).
+· Accept: each is shown against R-05-132 clause 2 as a new use of an existing grade or of type equality; no grade or label axis is added, and each is decided at admission by the §6 type-checker.
+· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-126a)
+
+**R-05-126b** MUST — A nonce-typed value carries the linear grade: it is consumed by the operation that seals under it, and cannot be duplicated, stored for later, or reached twice.
+· Accept: contraction is denied on nonce-typed values, so a binary that reaches one twice fails to type-check and is refused at admission.
+· Trace: CJ-TAL-SOUND, CJ-CRYPTO-SPEC · [§5](verification-maximal-os.md#r-05-126b)
+
+**R-05-126c** MUST — A restored checkpoint and a re-derived key each force a fresh draw, the linear obligation carrying the two cases rather than the §10 exclusion list being read.
+· Accept: no admitted path reaches a nonce that a checkpoint restore or a key re-derivation reinstated.
+· Trace: CJ-TAL-SOUND, CJ-CRYPTO-SPEC · [§5](verification-maximal-os.md#r-05-126c)
+
+**R-05-126d** MUST — A secret-typed value carries the relevance grade: it must be consumed by an erasing operation, and the obligation is checked on the final binary so that it reaches scalar registers and compiler-introduced spill slots the partition switch does not clear.
+· Accept: weakening is denied on secret-typed values; the check is stated over the emitted binary, not the source.
+· Trace: CJ-TAL-SOUND, CJ-CT-SOUND · [§5](verification-maximal-os.md#r-05-126d)
+
+**R-05-126e** IS — Restart discharges the erasure obligation wholesale, a crash-only compartment erasing its whole footprint, so the rule binds the path that returns while holding a secret.
+· Accept: the obligation is stated over returning paths; a restarting compartment carries no separate scrub proof.
+· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-126e)
+
+**R-05-126f** MUST — Physical quantities carry their dimension as a phantom parameter on the existing type formers, decided by syntactic type equality and erased before code generation.
+· Accept: the parameter is inhabited by no term, adds no runtime representation, and is decided by the same structural comparison R-05-129 fixes.
+· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-126f)
+
+**R-05-126g** MUST — The monotonic scheduler counter and the disciplined wall-clock view are distinct dimensions, as are cycles and microseconds, bytes and elements, and a slot index and a slot width; the §11 admission arithmetic consumes the dimensioned types.
+· Accept: a §11 budget, frame, or deadline computation mixing two dimensions fails to type-check rather than yielding an unsound admission.
+· Trace: CJ-WCET, CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-126g)
+
+**R-05-126h** IS — The cost of the three is one further narrowing of the admitted library set: no runtime check, no silicon, no new semantic anchor, no new grade axis, and no new crown jewel, each adding one rule to the CHERI-TAL and one case to its soundness metatheorem.
+· Accept: no §15 mechanism, Sail surface, or crown-jewel target is added; the three are shown to fit the frozen theory exactly as its other riders are.
+· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-126h), [§5](verification-maximal-os.md#r-05-126h-2)
+
+**R-05-126i** IS — A grade binds the label, never the judgment that assigned it: a value never typed as a nonce, a secret never labeled one, or a quantity given the wrong dimension is admitted with the obligation discharged and the property absent.
+· Accept: the residual is booked in §17 as the wrong-label case, the same shape as the mislabeled-secret residual of the constant-time discipline; what the three delete is the unenforced-obligation class.
+· Trace: CJ-TAL-SOUND · [§17](verification-maximal-os.md#r-05-126i)
+
+### 5.19 The frozen checker theory
 
 **R-05-127** IS — The on-device checker is an attribute-grammar evaluator, not a term checker, and its order-of-10³-line budget is a consequence of that category fact.
 · Accept: the checker evaluates a fixed attribute set bottom-up over the already-typed CFG with no fixpoint over open terms anywhere; and the figure has a stated counting rule — it counts the attribute evaluator, the derivation reader, and the image scan together in the shipped source of the §6 type-checker, and excludes the frozen type-constructor vocabulary and attribute tables (data bounded by amendment to the specification, not by implementation), the CIC proof kernel, and the Coq metatheory. A checker that met the figure by moving decisions into a generated table fails the claim, the category fact being what the budget asserts.
@@ -786,7 +824,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no rule requires reduction of open terms; anything that would descends under R-05-133.
 · Trace: CJ-TAL-SOUND, CJ-WCET · [§5](verification-maximal-os.md#r-05-135)
 
-### 5.19 Representation and provenance: five deletions
+### 5.20 Representation and provenance: five deletions
 
 **R-05-136** MUST NOT — (1) No integer→capability provenance: no integer-to-pointer cast, no address literal that becomes a capability, and no reconstruction of a capability from its bit pattern. The only capability-producing operations are the monotone derivations (bounds and permission restriction, sealing, revocation-colour assignment) applied to a capability already held.
 · Accept: the checker finds no integer inhabiting a capability type; the derivation's capability-producing rules are exactly the monotone set.
@@ -848,7 +886,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: source or the existing IDL/layout declaration contains one exact-bounded base capability; independently bounded, authorized, revocable, or lived objects remain separate; no auxiliary representation is introduced; generated code and data do not grow; and index arithmetic discharges R-05-145/R-05-146.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-149a)
 
-### 5.20 The review gate
+### 5.21 The review gate
 
 **R-05-150** MUST — Independent specification review is a release gate.
 · Accept: no release proceeds without a completed independent review of the register.
@@ -878,7 +916,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each such specification has an executable form run against the implementation; a mis-transcribed specification is caught by execution and not by review alone.
 · Trace: CJ-KERNEL, CJ-HAL · [§5](verification-maximal-os.md#r-05-155)
 
-### 5.21 The apex theorem T
+### 5.22 The apex theorem T
 
 **R-05-156** IS — Theorem T: for the composed system image on the fabricated die, under the compose-time policy *P*, for every adversary controlling any set *C* of non-TCB compartments the graph permits, two whole-system inputs indistinguishable to *C* under *P* produce attacker-observations equal across value, timing, and the in-scope architectural channels — modulo the powerbox declassification set *D* and relative to the axiom set *Ax*.
 · Accept: one theorem statement exists with all four elements: the quantifier over *C*, the value-and-timing-and-architectural observation, the *modulo D* clause, and the *relative to Ax* clause.
@@ -908,7 +946,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each boundary element is a §17 residual; everything outside *D* and *Ax* is inside T.
 · Trace: CJ-T · [§5](verification-maximal-os.md#r-05-162)
 
-### 5.22 Proof-artifact hygiene
+### 5.23 Proof-artifact hygiene
 
 **R-05-163** MUST — Every shipped theorem's axiom and assumption set is enumerated mechanically from its proof term and compared against the declared set, and the build fails wherever the enumerated set is not exactly the declared one.
 · Accept: an admitted lemma, an unresolved obligation, a locally declared parameter, or any axiom absent from the declared set fails the build rather than shipping green, and an extra axiom is a finding even where every theorem is true. The gate is a predicate over the proof term: it adds no semantic anchor (R-05-020), no runtime mechanism, and no Sail surface.
@@ -4206,7 +4244,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 960 requirements. §19 is non-normative and yields none. Counts include the forty-eight letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 969 requirements. §19 is non-normative and yields none. Counts include the fifty-seven letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4214,7 +4252,7 @@ All eighteen normative sections are extracted, at 960 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **175** |
+| **§5 Languages & Verification** | **extracted** | **184** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **54** |
 | **§8 Authority Model** | **extracted** | **45** |
