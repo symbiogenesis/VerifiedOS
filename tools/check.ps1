@@ -105,6 +105,24 @@ foreach ($line in Get-Content 'isa-profile.md') {
     if ($inOpen -and $line -match '^\| `') { $openCsr++ }
 }
 
+# --- the coverage matrix: two enumerations, and the cells over their product ------
+# A definition row names one id and then prose; a matrix row names two ids. That is
+# the whole difference, so one pass reads all three.
+
+$cmBounds = [System.Collections.Generic.List[string]]::new()
+$cmProps  = [System.Collections.Generic.List[string]]::new()
+$cmCells  = [ordered]@{}
+$cmTwice  = @()
+foreach ($line in Get-Content 'coverage-matrix.md') {
+    if     ($line -match '^\| `(B-\d\d)` \| `(P-\d)` \|') {
+        $pair = "$($Matches[1]) by $($Matches[2])"
+        if ($cmCells.Contains($pair)) { $cmTwice += "$pair has more than one cell" }
+        $cmCells[$pair] = $line
+    }
+    elseif ($line -match '^\| `(B-\d\d)` \| [^`|]') { $cmBounds.Add($Matches[1]) }
+    elseif ($line -match '^\| `(P-\d)` \| [^`|]')  { $cmProps.Add($Matches[1]) }
+}
+
 # =================================================================================
 # traces: the register's references against the prose bookmarks they cite
 # =================================================================================
@@ -173,6 +191,9 @@ $views = @(
        Governing = 'R-17-016a'
        BodyPattern = 'crown.jewel spec'
        MustCiteTargets = $true }
+    @{ File = 'coverage-matrix.md'
+       Governing = 'R-17-001b'
+       MustCoverCells = $true }
 )
 
 "=== views: what each derived view carries, both directions ==="
@@ -188,10 +209,26 @@ foreach ($v in $views) {
 
     if ($v.Secs) {
         $uncovered = $subsection.Keys | Where-Object { $subsection[$_] -in $v.Secs -and $_ -notin $cited } | Sort-Object
-    } else {
+        Report 'bearing requirement(s) not carried:' $uncovered 'all bearing requirements are carried' '  '
+    } elseif ($v.BodyPattern) {
         $uncovered = $body.Keys | Where-Object { $body[$_] -match $v.BodyPattern -and $_ -notin $cited } | Sort-Object
+        Report 'bearing requirement(s) not carried:' $uncovered 'all bearing requirements are carried' '  '
     }
-    Report 'bearing requirement(s) not carried:' $uncovered 'all bearing requirements are carried' '  '
+
+    # a matrix view is bearing over a product rather than a subsection: what it must
+    # carry is every pair of its own two enumerations, each resting on a requirement
+    if ($v.MustCoverCells) {
+        $expected = @()
+        foreach ($b in $cmBounds) { foreach ($p in $cmProps) { $expected += "$b by $p" } }
+        $gaps  = @($expected | Where-Object { -not $cmCells.Contains($_) } | ForEach-Object { "$_ has no cell" })
+        $gaps += @($cmCells.Keys | Where-Object { $_ -notin $expected } | ForEach-Object { "$_ names no enumerated boundary or property" })
+        $gaps += $cmTwice
+        Report 'uncovered or unaccounted cell(s):' $gaps "all $($cmBounds.Count) by $($cmProps.Count) cells present, exactly once" '  '
+
+        Report 'cell(s) resting on no requirement:' `
+               @($cmCells.Keys | Where-Object { $cmCells[$_] -notmatch 'R-\d\d-\d' }) `
+               'every cell cites a requirement' '  '
+    }
 
     # a view standing in for the CJ- vocabulary must account for every target
     if ($v.MustCiteTargets) {
@@ -226,6 +263,9 @@ $q = [ordered]@{
     'cj-conferring' = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' }).Count
     'seams'         = @($body.Keys | Where-Object { $body[$_] -match ' Seam: \*\*' }).Count
     'views'         = $views.Count
+    'boundaries'    = $cmBounds.Count
+    'properties'    = $cmProps.Count
+    'cells'         = $cmCells.Count
     'absences'      = @(Get-Content 'absence-contract.md' | Where-Object { $_ -match '^\| \*\*A-\d+\*\*' }).Count
 }
 
@@ -252,6 +292,11 @@ $claims = @(
     @{ File = 'crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of them are not yet written)' }
     @{ File = 'crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=the )[\w-]+(?= theorem targets above cannot start)' }
     @{ File = 'crown-jewels.md'; Q = 'cj-conferring'; Style = 'words';  Pattern = '(?<=There are )[\w-]+(?= such entries)' }
+
+    # the coverage matrix states the shape of its own product
+    @{ File = 'coverage-matrix.md'; Q = 'boundaries'; Style = 'words'; Pattern = '(?<=below are )[\w-]+(?= boundaries)' }
+    @{ File = 'coverage-matrix.md'; Q = 'properties'; Style = 'words'; Pattern = '(?<=boundaries and )[\w-]+(?= properties)' }
+    @{ File = 'coverage-matrix.md'; Q = 'cells';      Style = 'words'; Pattern = '(?<=carries all )[\w-]+(?= of their pairs)' }
 
     # the README summarizes them
     @{ File = 'README.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= \*\*derived views\*\* collect)' }

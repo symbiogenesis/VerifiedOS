@@ -10,7 +10,7 @@
 
 The inventory's rows are the strongest claims in the repository, so a proposed row is admitted only if it clears all five:
 
-1. **It names a boundary and a property, not an attack.** "Rowhammer" is a name for an instance; "a memory array must not permit a write at one address to disturb a bit at another" is a property of a boundary. A row stated as an attack name can only ever be lengthened, never completed (item 14).
+1. **It names a boundary and a property, not an attack.** "Rowhammer" is a name for an instance; "a memory array must not permit a write at one address to disturb a bit at another" is a property of a boundary. A row stated as an attack name can only ever be lengthened, never completed, and the [coverage matrix](coverage-matrix.md) is where the completable form of the claim lives.
 2. **The construction is stated in this design's own mechanisms**, citing the sections that carry it, not in the general vocabulary of hardening.
 3. **It carries a discharge mode**, and the mode is honest about what is *checked* versus what is *believed* (items 15 and 16 propose the two modes the current vocabulary lacks).
 4. **It cites the requirement that makes it true.** A row with no requirement behind it is a claim about the prose, and the register's conferral discipline exists precisely because three overlapping sources of the same fact will disagree.
@@ -86,19 +86,6 @@ These are open. Some are open in a way the inventory already admits and states p
 
 ---
 
-## The structural defect
-
-- [ ] **14. The taxonomy is shaped like a vulnerability archive, and that shape can never be argued complete.**
-  Every row enumerates a historically named archetype. That form has a real virtue (a reader recognizes what is being claimed) and one fatal property: it can only be **lengthened**, never **completed**, and its coverage argument is therefore always "here is a long list" rather than "here is every case".
-  A completeness claim needs a different shape, and the design already owns the materials for it. The shape is **interfaces by properties, top down**: for each boundary in the system, enumerate the properties that boundary must hold, then show each is discharged or listed as residual.
-  The boundaries are already named across the specification: the ISA and its microarchitectural absences (§15), the binary-admission interface (§13), the inter-process interface definition language and its rings (§12), the device edge with its capability-checked direct memory access and its register-slave analog front ends (§12, §15), storage at rest (§10), the radio and network wire (§12), the human consent path (§6, §8), time and freshness (§9), and the supply chain from source through binary to mask (§13, §17).
-  The properties per boundary are equally already named: confidentiality, integrity, authority, freshness, availability and progress, timing and leakage, and identity or uniqueness.
-  Each cell is then discharged by requirement, or it is a residual, and an empty cell is a finding rather than an oversight. **This is derivable from the register**, because every requirement already carries a trace, so the matrix is computed rather than authored, and it is checkable in exactly the way the three existing derived views are: a cell with no requirement and no residual fails.
-  The result is a **coverage argument** instead of a list, and it retires the inventory's weakest sentence, which is the implicit one that says the list is long enough.
-  **Lands as:** a fourth derived view, generated and checked by `tools/check.ps1` alongside the existing three, with the README inventory retained as the reader-facing summary it is good at being. **Mode:** not applicable; this is the shape the modes are reported in.
-
----
-
 ## Two smaller structural notes
 
 - [ ] **15. The discharge vocabulary is missing at least two real modes.**
@@ -122,5 +109,5 @@ These are open. Some are open in a way the inventory already admits and states p
 Item 6 is a small construction over existing machinery and could land as a requirement without new mechanism.
 Items 4 and 5 are real proof obligations of ordinary size.
 Items 3, 9, 13, 15, and 16 are statements the design owes about positions it has already taken.
-Items 8, 10, 11, and 14 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, 11 by acquiring a mode it lacks, and 14 by changing the shape of the argument from a list to a covering.
-Only item 14 retires the others structurally, because a matrix of boundaries against properties makes every remaining item either a filled cell or a named residual, and makes a *missing* item a computed finding rather than a critique someone had to notice.
+Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by acquiring a mode it lacks.
+The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.

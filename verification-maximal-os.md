@@ -1975,6 +1975,16 @@ The residuals group by trust source, indexed below and developed in the entries 
 | **Hardness assumption** | MLWE / MSIS (post-quantum)<br>ECDLP / CDH (classical) |
 | **Commercial acceptance** | Open cellular certification<br>5G/6G-only coverage trade<br>USB-auth interop trade |
 
+- **The coverage argument runs top down: every boundary against every property, discharged or booked.** <a id="r-17-001a"></a>
+  An index grouped by trust source answers *where does a residual come from*, and answers nothing about what is missing.
+  Neither does a list of named attack archetypes, which can always be lengthened and never completed.
+  So the completeness claim is made the other way around: each boundary this specification names, taken against each property in the coverage vocabulary, is either discharged by a requirement or booked here as a residual, and a pair carrying neither is a spec defect in the sense §5 defines rather than an omission a reader is expected to spot.
+  The two enumerations are held in one artifact and quantified over from here, exactly as crown-jewel membership is (below), because a set restated in this prose is a set free to stop being the set.
+- **The matrix is a derived view, computed and checked like the frozen profile, the absence contract, and the crown-jewel inventory.** <a id="r-17-001b"></a>
+  Every requirement already carries a trace, so the coverage matrix is derived rather than authored beside the register: it states no obligation of its own, cites the requirements carrying every cell, and is defective rather than authoritative where the two disagree.
+  What the tooling decides is what a reader cannot: that both enumerations are stated once, that every pair of them appears exactly once, and that no cell rests on nothing.
+  An empty cell is therefore a failing check rather than a gap somebody has to notice, which is the entire reason the argument takes this shape.
+  The reader-facing inventory of removed bug classes stays what it is good at being, a summary, and is not the coverage claim.
 - **Timing channels.** <a id="r-17-002"></a>
   The transient-execution class is deleted by hardware choice (and the §15 profile forbids re-introducing speculative/hidden state via future extensions); **the branch-predictor-state class is deleted by the static-only prediction mandate (no BHT/BTB/RAS to carry cross-domain history)**; **the LR/SC reservation-granule contention channel is deleted by excluding `Zalrsc` (§15): there is no reservation set to monitor**; the DVFS/frequency class is deleted by the schedule-artifact power architecture; cross-domain coherence-traffic channels by the deletion of caches and any coherence protocol (§15); scheduler/slack channels by the non-work-conserving static cyclic executive (no slack is donated, §7), whose own residual (the §11 population rung, observable to every discretionary compartment as its slot width) is the separate entry below rather than a deletion claimed here; the rest narrowed by memory and NoC partitioning, fence.t, eager zeroize, gated clock resolution, and the fixed-latency divide/FPU/mask-independent-vector timing mandates.
   No general guarantee exists: tighter guarantees sharpen the holder's stopwatch, so budget/partition granularity scales with assurance tier.

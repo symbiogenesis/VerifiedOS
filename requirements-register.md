@@ -3780,6 +3780,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: every §17 entry belongs to exactly one group, and every group's listed residuals have entries below.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-001)
 
+**R-17-001a** MUST — Coverage is claimed top down rather than by enumerated archetype: every boundary this specification names carries, against every property in the coverage vocabulary, either a requirement that discharges it or a §17 residual that books it. A boundary-and-property pair carrying neither is a spec defect in the sense R-05-153 defines, not an omission left for a reader to notice, and the reader-facing inventory of removed bug classes is a summary of this argument rather than the argument itself.
+· Accept: the boundaries and the properties are each enumerated exactly once, in the artifact R-17-001b requires and not in the prose that quantifies over them; every pair drawn from the two enumerations appears there exactly once; and every pair cites at least one live entry of this register. `tools/check.ps1` decides all three, so an uncovered pair is a failing check rather than a finding somebody has to make.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-001a)
+
+**R-17-001b** MUST — The coverage matrix exists as a single enumerated artifact, [coverage-matrix.md](coverage-matrix.md), carrying the boundary enumeration, the property enumeration, and one row per pair of them with its construction, its discharge mode, and the requirements that carry it. Like the frozen profile, the absence contract, and the crown-jewel inventory it is a *derived view*: it states no obligation of its own, cites the governing requirements for every row, and is defective, never authoritative, where it disagrees with this register.
+· Accept: the artifact exists; every requirement it cites resolves here; and the cell conditions of R-17-001a hold over its own two enumerations, so the coverage argument is computed from the register rather than restated beside it. Each row's discharge mode reports how its cited requirements carry the pair, and the view introduces no obligation and no vocabulary of its own.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-001b)
+
 ### 17.2 Timing and scheduling
 
 **R-17-002** IS — The transient-execution, branch-predictor-state, LR/SC reservation-granule, DVFS/frequency, cross-domain coherence-traffic, and scheduler/slack channel classes are each *deleted* by a named construction rather than mitigated; the rest are narrowed by partitioning, `fence.t`, eager zeroize, gated clock resolution, and the fixed-latency timing mandates.
@@ -4244,7 +4252,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 969 requirements. §19 is non-normative and yields none. Counts include the fifty-seven letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 971 requirements. §19 is non-normative and yields none. Counts include the fifty-nine letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete* — which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4264,7 +4272,7 @@ All eighteen normative sections are extracted, at 969 requirements. §19 is non-
 | **§14 Userland** | **extracted** | **14** |
 | **§15 Hardware Platform** | **extracted** | **255** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **71** |
+| **§17 Residual Risks** | **extracted** | **73** |
 | **§18 Realization** | **extracted** | **38** |
 
 §19 is non-normative and yields no requirements.
