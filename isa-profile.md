@@ -8,7 +8,7 @@
 
 R-15-001's acceptance criterion reads *"the frozen profile enumerates exactly this extension set."* Without this document there is no such enumeration: the profile would be an emergent property of some seventy requirements spread across §15.1–§15.12 and §15.16, and the criterion would name an artifact a reviewer cannot open. Four criteria test membership in the profile this way (R-15-014, R-15-024, R-15-042, R-15-067), so all four are decidable only against this document.
 
-It matters beyond review hygiene. R-18-003a makes the profile freeze the **root of the schedule** — the toolchain, the Sail model, and the CHERI-CompCert backend all target it, so it precedes all three — and R-18-003b(i) makes *"the profile freeze and its Sail curation"* the first day-one deliverable. This is the document that deliverable consumes: what a Sail curator removes from `sail-riscv` ⋈ `sail-cheri-riscv`, and what the backend's target description must match.
+It matters beyond review hygiene. R-18-003a makes the profile freeze the **root of the schedule** (the toolchain, the Sail model, and the CHERI-CompCert backend all target it, so it precedes all three), and R-18-003b(i) makes *"the profile freeze and its Sail curation"* the first day-one deliverable. This is the document that deliverable consumes: what a Sail curator removes from `sail-riscv` ⋈ `sail-cheri-riscv`, and what the backend's target description must match.
 
 ## 1. Base
 
@@ -17,18 +17,18 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | Base ISA | RV64 **IM**_Zicsr | R-15-001 |
 | Vector | **V** (RVV), VLEN per core class (§8) | R-15-001, R-15-113 |
 | Capabilities | **CHERI**, 128-bit purecap encoding | R-15-001, R-15-007 |
-| ABI mode | **purecap only** — no hybrid, no plain-RV64 target anywhere | R-15-001, R-18-002 |
+| ABI mode | **purecap only**: no hybrid, no plain-RV64 target anywhere | R-15-001, R-18-002 |
 | Atomics | `A` narrowed to **`Zaamo` + `Zabha`** | R-15-001, R-15-024 |
-| Scalar FP | **none** — V supplies all floating point, computed at VL=1 | R-15-001, R-15-039 |
-| Compressed | **none** — unique 4-byte-aligned decode | R-15-001, R-15-036 |
+| Scalar FP | **none**: V supplies all floating point, computed at VL=1 | R-15-001, R-15-039 |
+| Compressed | **none**: unique 4-byte-aligned decode | R-15-001, R-15-036 |
 | Privilege | **Machine mode only**; privilege is the CHERI access-system-registers permission on the PCC, not a ring | R-15-003 |
 | Address space | **single physical**; no MMU, `satp` fixed Bare | R-15-002 |
 | Memory model | **Ztso** (RVTSO), normatively in place of RVWMO | R-15-004, R-15-015 |
-| `misa` | **read-only** — no runtime ISA morphing | R-15-052 |
+| `misa` | **read-only**: no runtime ISA morphing | R-15-052 |
 | Unallocated encodings | **trap**; no encoding is a no-op by default | R-15-014 |
 | Model | exactly **one** Sail model, parameterized by core class; exactly **one** capability encoding | R-15-005 |
 
-**Ztso is the specified model, and sequential consistency is not a pending change.** SC was evaluated and rejected on four platform-specific grounds, none of which has a hart-count or issue-width term — single-copy memory keeps the deviation from SC local to each hart's store buffer (R-15-087), so the rejection holds at any core count and gets *stronger* with width; §18 names it as a question worth revisiting, which is a question and not a deliverable (R-15-018). A curator implements Ztso.
+**Ztso is the specified model, and sequential consistency is not a pending change.** SC was evaluated and rejected on four platform-specific grounds, none of which has a hart-count or issue-width term: single-copy memory keeps the deviation from SC local to each hart's store buffer (R-15-087), so the rejection holds at any core count and gets *stronger* with width; §18 names it as a question worth revisiting, which is a question and not a deliverable (R-15-018). A curator implements Ztso.
 
 ## 2. Adopted extensions
 
@@ -36,7 +36,7 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | --- | --- | --- |
 | `Zicsr` | base CSR access | R-15-001 |
 | `Zaamo` | unconditional atomic RMW, word + doubleword; dominant consumer is `Arc`'s refcounts | R-15-024, R-15-029 |
-| `Zabha` | byte + halfword width cases on the above — width cases, not a new operation class; justified by lowering-admissibility, not traffic | R-15-024, R-15-027, R-15-028 |
+| `Zabha` | byte + halfword width cases on the above: width cases, not a new operation class; justified by lowering-admissibility, not traffic | R-15-024, R-15-027, R-15-028 |
 | `Zba` / `Zbb` / `Zbs` | fixed-latency bit manipulation | R-15-067 |
 | `Zbkb` / `Zbkc` / `Zbkx` | scalar crypto bit-manipulation, retained for software crypto on vectorless cores; **not** an AES/SHA-2 round datapath | R-15-042, R-15-055 |
 | `Zicond` | branchless constant-time select (`czero.eqz/nez`); doubly load-bearing under static-only prediction | R-15-054 |
@@ -48,7 +48,7 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 
 **`Zkt` + `Zvkt`** are adopted as the **leakage contract** rather than as instructions: the architectural statement that a listed instruction set runs in data-independent latency. That list is both the single leakage model constant-time verification is stated against and an RTL ⊑ Sail proof obligation (R-15-053).
 
-**AIA scope.** Only the *machine-level* interrupt files exist, and of those only the **pending array**. The supervisor and guest/VS machinery, and the delivery-enable, threshold, and top-pending-selection machinery, are dead Sail surface and are excluded; software reads pending bits with ordinary loads (R-15-065). The platform is MSI-only — no PLIC, no wired level interrupt on the die; the only non-MSI signals are the RoT's reset and watchdog-bite lines, which sit outside the interrupt model (R-15-066).
+**AIA scope.** Only the *machine-level* interrupt files exist, and of those only the **pending array**. The supervisor and guest/VS machinery, and the delivery-enable, threshold, and top-pending-selection machinery, are dead Sail surface and are excluded; software reads pending bits with ordinary loads (R-15-065). The platform is MSI-only: no PLIC, no wired level interrupt on the die; the only non-MSI signals are the RoT's reset and watchdog-bite lines, which sit outside the interrupt model (R-15-066).
 
 ## 3. Custom and fork-and-frozen instructions
 
@@ -56,17 +56,17 @@ Each carries full Sail semantics and a recorded **re-pin obligation** where a st
 
 | Instruction / unit | Disposition | Re-pin target | Governing |
 | --- | --- | --- | --- |
-| `fence.t` | platform-custom; specified rather than invoked — enumerated flush set, mechanized completeness classification, padded constant cost | — | R-15-062 |
+| `fence.t` | platform-custom; specified rather than invoked: enumerated flush set, mechanized completeness classification, padded constant cost | n/a | R-15-062 |
 | Keccak-p[1600] | single vector instruction, fixed-latency permutation, **both 24- and 12-round** modes frozen; **vector-bearing cores only**, not the S-class RoT | `Zvknhk` / `vkeccak.vi` (RISC-V PQC TG, RVG-84) | R-15-056, R-15-056a, R-15-057, R-15-057a, R-15-059, R-15-059a |
 | Matrix extension | bespoke, fork-and-frozen; systolic GEMM geometry | ratified AME/IME lineage | R-15-009, R-15-116 |
-| FEC units | LDPC and polar decoders only, fixed-geometry, deterministic iteration bounds, core-issued capability operands, no firmware | — | R-15-119 |
+| FEC units | LDPC and polar decoders only, fixed-geometry, deterministic iteration bounds, core-issued capability operands, no firmware | n/a | R-15-119 |
 | CHERI dialect | frozen with the profile | ratified RVY base, not a private snapshot | R-15-007 |
 
 The Keccak unit has no Coq-native proof to import, so its fixed-permutation invariant is a fresh Sail proof disciplined against FIPS 202 and the NIST ACVP vectors as differential oracle; the `Zvbb`/`Zvbc` software path is retained as the portable route and the differential reference (R-15-058).
 
-**Keccak re-pin target, recorded.** RVG-84 is `Zvknhk`, one instruction `vkeccak.vi`: vector-immediate multi-round Keccak-*p*[1600], **EGW 2048 / EGS 32 / SEW 64 only**, requiring `Zve64x` and mandating `Zvl128b`, with the immediate selecting 24 rounds (SHA-3/SHAKE) or 12 (TurboSHAKE/KangarooTwelve) and all other values illegal (R-15-057a). Three consequences are carried here rather than left to the re-pin. Data-independent execution latency is **mandatory in the extension itself**, so the `Zkt`/`Zvkt` keystone (R-15-053) is discharged architecturally for this instruction rather than imposed by this profile alone. The fork therefore freezes **both** round counts, so the re-pin is a substitution of encoding and not a widening of frozen semantics that would reopen the permutation lemma and the fixed-latency claim at ratification time (R-15-056a). And the 2048-bit element group is LMUL≤1 at the V-class VLEN=4096 but **LMUL=8 at the C-class VLEN=256**, one permutation consuming the whole architectural vector register file, so C-class Keccak figures are stated at that geometry (R-15-059a) — a budget entry, not an admission one.
+**Keccak re-pin target, recorded.** RVG-84 is `Zvknhk`, one instruction `vkeccak.vi`: vector-immediate multi-round Keccak-*p*[1600], **EGW 2048 / EGS 32 / SEW 64 only**, requiring `Zve64x` and mandating `Zvl128b`, with the immediate selecting 24 rounds (SHA-3/SHAKE) or 12 (TurboSHAKE/KangarooTwelve) and all other values illegal (R-15-057a). Three consequences are carried here rather than left to the re-pin. Data-independent execution latency is **mandatory in the extension itself**, so the `Zkt`/`Zvkt` keystone (R-15-053) is discharged architecturally for this instruction rather than imposed by this profile alone. The fork therefore freezes **both** round counts, so the re-pin is a substitution of encoding and not a widening of frozen semantics that would reopen the permutation lemma and the fixed-latency claim at ratification time (R-15-056a). And the 2048-bit element group is LMUL≤1 at the V-class VLEN=4096 but **LMUL=8 at the C-class VLEN=256**, one permutation consuming the whole architectural vector register file, so C-class Keccak figures are stated at that geometry (R-15-059a), a budget entry, not an admission one.
 
-There is **no scalar Keccak instruction on the RISC-V standards track and none proposed.** RVG-84 is vector-only by construction, so the vectorless S-class and the RoT have nothing to adopt: their SHA-3/SHAKE stays plain 64-bit integer with `Zbb` rotations, which is both the constant-time answer on a fixed-latency core and the standards-aligned one (R-15-041, R-15-059). The matrix unit consumes int8/bf16 only — de-quantization and block-scale application are software on the M-class vector unit, and no block-scale register enters the frozen matrix ISA (R-15-117). Every byte the matrix unit moves is core-issued with explicit capability operands: no independent DMA mastership, no translation context, no firmware (R-15-118).
+There is **no scalar Keccak instruction on the RISC-V standards track and none proposed.** RVG-84 is vector-only by construction, so the vectorless S-class and the RoT have nothing to adopt: their SHA-3/SHAKE stays plain 64-bit integer with `Zbb` rotations, which is both the constant-time answer on a fixed-latency core and the standards-aligned one (R-15-041, R-15-059). The matrix unit consumes int8/bf16 only: de-quantization and block-scale application are software on the M-class vector unit, and no block-scale register enters the frozen matrix ISA (R-15-117). Every byte the matrix unit moves is core-issued with explicit capability operands: no independent DMA mastership, no translation context, no firmware (R-15-118).
 
 ## 4. CHERI feature set
 
@@ -76,7 +76,7 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | --- | --- | --- |
 | 128-bit purecap encoding | object-type and permission space frozen with the profile | R-15-007 |
 | Sealed-entry sentries, forward/backward-edge split | the platform's coarse-grained CFI; a return capability may target only a return site | R-15-008, R-15-071 |
-| Capability jump-and-link | unseals a forward-edge sentry into PCC and writes the return address already sealed as a backward-edge sentry — the hardware root of domain entry, so there is no separate call gate | R-15-068, R-15-069 |
+| Capability jump-and-link | unseals a forward-edge sentry into PCC and writes the return address already sealed as a backward-edge sentry, the hardware root of domain entry, so there is no separate call gate | R-15-068, R-15-069 |
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, reachable only with access-system-registers | R-15-073 |
 | Local/global + `store-local` | with `load-global`/`load-mutable` transitivity; only the stack carries `store-local` | R-15-074 |
 | access-system-registers permission | *is* the privilege mechanism, replacing the S/U ring | R-15-003 |
@@ -91,20 +91,20 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 
 ## 5. The CSR bank
 
-*The artifact R-15-001b mandates. The deletions below in §6 are enumerated by name; this is the residue, enumerated the same way, because two obligations quantify over it — the partition switch's restore is total over "every general-purpose register, capability register, and CSR a partition can name" (R-07-015), and the flush-set argument puts that totality in place of flush-set membership (R-15-214).*
+*The artifact R-15-001b mandates. The deletions below in §6 are enumerated by name; this is the residue, enumerated the same way, because two obligations quantify over it: the partition switch's restore is total over "every general-purpose register, capability register, and CSR a partition can name" (R-07-015), and the flush-set argument puts that totality in place of flush-set membership (R-15-214).*
 
 **The table is closed.** A CSR address in neither §5.1 nor §5.3 is unallocated, and an unallocated CSR address traps under R-15-014 exactly as an unallocated instruction encoding does. §5.3 is the part the register does not yet decide; those rows are booked as extraction defects and are the review gate's agenda, not an implementer's discretion.
 
-**`mtime` / `mtimecmp` are not in this table.** They are memory-mapped, not CSRs — the kernel programs the machine-timer compare through the fabric, and `Sstc`'s `stimecmp` is excluded with the S-mode bank (R-15-063, R-15-066).
+**`mtime` / `mtimecmp` are not in this table.** They are memory-mapped, not CSRs: the kernel programs the machine-timer compare through the fabric, and `Sstc`'s `stimecmp` is excluded with the S-mode bank (R-15-063, R-15-066).
 
 ### 5.1 Present
 
 | CSR | Disposition | Governing |
 | --- | --- | --- |
 | `misa` | **read-only**; writes have no effect, so no runtime ISA morphing | R-15-052 |
-| `mstatus` | present for **`VS`/`XS`** — the vector/matrix state gate, set at partition setup and paired with eager zeroize; this is the mechanism `Smstateen` was deleted in favor of. `FS` has no referent with scalar FP deleted | R-07-012, R-15-049, R-15-039 |
+| `mstatus` | present for **`VS`/`XS`**, the vector/matrix state gate, set at partition setup and paired with eager zeroize; this is the mechanism `Smstateen` was deleted in favor of. `FS` has no referent with scalar FP deleted | R-07-012, R-15-049, R-15-039 |
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, **in place of** `mtvec` / `mepc` / trap-scratch, reachable only with access-system-registers. A trap installs `MTCC` as the executing PCC, saves the interrupted PCC as `MEPCC`, and bootstraps the handler's authority from `MTDC` | R-15-073, R-07-022, R-07-023 |
-| `vtype` / `vl` / `vlenb` / `vxrm` / `vxsat` / `vcsr` | present with **V**; `vstart` is not among them, excluded in §5.2. The partition switch **zeroizes and does not save** them, so no vector CSR context-switches and none joins the `fence.t` flush set — the property R-15-083 deletes `frm` to obtain, obtained here structurally. The standard reachable `vtype` configuration space remains intact; the profile imposes no narrower subset | R-15-001, R-07-014, R-07-014a, R-15-214 |
+| `vtype` / `vl` / `vlenb` / `vxrm` / `vxsat` / `vcsr` | present with **V**; `vstart` is not among them, excluded in §5.2. The partition switch **zeroizes and does not save** them, so no vector CSR context-switches and none joins the `fence.t` flush set, the property R-15-083 deletes `frm` to obtain, obtained here structurally. The standard reachable `vtype` configuration space remains intact; the profile imposes no narrower subset | R-15-001, R-07-014, R-07-014a, R-15-214 |
 | `dcsr` / `dpc` / `dscratch0–1` | Debug Module state: present in silicon, **unreachable in the production lifecycle state**, where the RoT's OTP fuse holds the DM's clock and reset gated off and its fabric port electrically quiesced | R-15-078, R-15-079 |
 
 ### 5.2 Absent
@@ -121,25 +121,25 @@ Each row is a `MUST NOT` in the register; the ground is the governing requiremen
 | `satp` | no MMU: the Sail model carries no translation state, and `satp` is Bare rather than present-and-ignored | R-15-002 |
 | `fcsr` / `frm` / `fflags` | no scalar FP; rounding is static and encoded per-instruction, so no mutable rounding-mode state context-switches or joins the `fence.t` set | R-15-039, R-15-083 |
 | `vstart` | no resumable trap exists to restart a vector instruction from an element index: no asynchronous interrupt delivery, no page fault without an MMU, a capability fault restarted rather than resumed, and a slot-boundary cut already a broken admission bound. What goes is a term in every vector instruction's semantics, not only a CSR | R-15-039a, R-15-040a |
-| `seed` (`Zkr`) | exactly one entropy root — the RoT TRNG through the verified DRBG | R-15-037 |
+| `seed` (`Zkr`) | exactly one entropy root, the RoT TRNG through the verified DRBG | R-15-037 |
 | `mstateen0–3` (`Smstateen`) | with no less-privileged mode its bits gate nothing reachable | R-15-049 |
 | `srmcfg` (`Ssqosid`) | bandwidth is not a runtime-allocated quantity; per-`MCID` counters would be a cross-partition activity oracle | R-15-050, R-15-051 |
 | `pmpcfg0–15` / `pmpaddr0–63` | CHERI is the sole memory-protection mechanism | R-15-075 |
 | `hstatus` / `hedeleg` / `hideleg` / `hgatp` / … / `mtinst` / `mtval2` | the platform hosts no guests | R-15-006 |
 | `miselect` / `mireg` / `mtopei` / `mtopi` / `mvien` / `mvip` | the AIA **indirect interface**: only the machine-level pending array exists, software reads pending bits with ordinary loads, and the delivery-enable, threshold, and top-pending-selection machinery is dead Sail surface | R-15-064, R-15-065 |
 
-### 5.3 Open — rows the register does not decide
+### 5.3 Open: rows the register does not decide
 
 Booked as an extraction defect in the register. Each states what is indicated and why, and **none is settled by this document**: the "indicated" column is a reading of requirements that exist, not a decision this view is entitled to make.
 
 | CSR | What the register does and does not say | Indicated | Bearing |
 | --- | --- | --- | --- |
-| `mcause` / `mtval` | The trap path is specified in capability terms — `MTCC` installed, `MEPCC` saved, authority from `MTDC` — but no requirement names a cause register, a trap-value register, or the cause encoding for a CHERI capability exception. A handler needs a cause | **present**; this is a hole, not a deletion | R-07-022, R-15-073 |
-| `mie` / `mip` | The machine-timer bits have a consumer: the slot-boundary timer is the core's only asynchronous trap. The external- and software-interrupt bits do not — an MSI sets an IMSIC pending bit read by an ordinary load and never vectors the core, and no wired level interrupt exists on the die | **present, narrowed to the timer bits**; the deletion is of fields, not registers | R-07-038, R-07-043, R-15-063, R-15-065, R-15-066 |
-| `menvcfg` | Every bit gates a *less-privileged* mode's access to an extension feature. R-15-049's ground against `Smstateen` — with no less-privileged mode its bits gate nothing reachable — applies word for word, and is stated only for `Smstateen`. `Zicboz`'s `CBZE` bit is the case to check: `cbo.zero` is unconditionally permitted in M-mode | **deletion** | R-15-049, R-15-060, R-15-003 |
+| `mcause` / `mtval` | The trap path is specified in capability terms (`MTCC` installed, `MEPCC` saved, authority from `MTDC`) but no requirement names a cause register, a trap-value register, or the cause encoding for a CHERI capability exception. A handler needs a cause | **present**; this is a hole, not a deletion | R-07-022, R-15-073 |
+| `mie` / `mip` | The machine-timer bits have a consumer: the slot-boundary timer is the core's only asynchronous trap. The external- and software-interrupt bits do not: an MSI sets an IMSIC pending bit read by an ordinary load and never vectors the core, and no wired level interrupt exists on the die | **present, narrowed to the timer bits**; the deletion is of fields, not registers | R-07-038, R-07-043, R-15-063, R-15-065, R-15-066 |
+| `menvcfg` | Every bit gates a *less-privileged* mode's access to an extension feature. R-15-049's ground against `Smstateen` (with no less-privileged mode its bits gate nothing reachable) applies word for word, and is stated only for `Smstateen`. `Zicboz`'s `CBZE` bit is the case to check: `cbo.zero` is unconditionally permitted in M-mode | **deletion** | R-15-049, R-15-060, R-15-003 |
 | `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | Read-only identification. RISC-V permits all four to read zero, and a profile frozen with the proof, carrying exactly one Sail model, has no runtime discovery consumer | **hardwired zero** | R-15-005, R-15-014 |
-| `mhartid` | Almost certainly present — one kernel binary runs unmodified on every core class and needs hart identity — but no requirement says so, and its value space is a composition parameter | **present** | R-07-012, R-15-113 |
-| `tselect` / `tdata1–3` (trigger module) | The lifecycle fuse is stated for the Debug Module and for trace. The trigger module is not named, and in standard RISC-V its CSRs are **M-mode-accessible** — reachable in the production state. A trigger is mutable hidden state that fires on an address or data match, which is the shape admission test (3) rejects, and it survives a partition switch unless something zeroizes it | **absent**, or fused with the DM | R-15-078, R-15-079, R-15-010, R-15-012 |
+| `mhartid` | Almost certainly present (one kernel binary runs unmodified on every core class and needs hart identity) but no requirement says so, and its value space is a composition parameter | **present** | R-07-012, R-15-113 |
+| `tselect` / `tdata1–3` (trigger module) | The lifecycle fuse is stated for the Debug Module and for trace. The trigger module is not named, and in standard RISC-V its CSRs are **M-mode-accessible**, reachable in the production state. A trigger is mutable hidden state that fires on an address or data match, which is the shape admission test (3) rejects, and it survives a partition switch unless something zeroizes it | **absent**, or fused with the DM | R-15-078, R-15-079, R-15-010, R-15-012 |
 | `DDC` | Purecap-only with no hybrid mode leaves the default data capability without a consumer, but no requirement retires it, and it is architectural capability state the total restore would have to name | **absent** | R-15-001, R-07-015 |
 
 ---
@@ -158,7 +158,7 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 | `Zicbom` | no hardware caches, so no consumer; cross-island ring release/acquire ordering is native Ztso and needs no fence | R-15-061 |
 | `Zifencei` / `fence.i` | no runtime consumer under W^X with no on-device codegen | R-15-047 |
 | `Zicntr` / `Zihpm`; `cycle` / `time` / `instret`; `mcycle` / `minstret` / `mhpmcounter*` / `mhpmevent*` / `mcountinhibit` | no runtime consumer: scheduling uses `mtime`/`mtimecmp`, development measurement uses lifecycle-gated DM trace, and production counters would be a general timing oracle | R-15-077 |
-| `Zkr` | exactly one entropy root — the RoT TRNG through the verified DRBG | R-15-037 |
+| `Zkr` | exactly one entropy root, the RoT TRNG through the verified DRBG | R-15-037 |
 | `Zkne` / `Zknd` / `Zknh` | vector crypto computes them table-free, so the CT contract is stated once | R-15-041 |
 | `Zks*` / `Zvks*` (ShangMi), `Zimop` / `Zcmop` | dead Sail surface on a frozen ISA | R-15-048 |
 | `Zicbop` / `Zihintntl` | no prefetch request has a software origin | R-15-046 |
@@ -172,7 +172,7 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 | `Sstc` / `stimecmp` | one privilege mode; the kernel programs `mtimecmp` directly | R-15-063 |
 | S/U modes, `medeleg` / `mideleg`, `sret`, `mcounteren` / `scounteren` | single Machine mode | R-15-003, R-15-077 |
 | PMP / `Smepmp` | CHERI is the sole memory-protection mechanism; the three roles a locked-PMP backstop would serve each map onto a named CHERI or crypto-core mechanism | R-15-075 |
-| MTE-class memory tagging | ~93% probabilistic detection, blind to intra-granule overflow — a statistic, not a theorem | R-15-045 |
+| MTE-class memory tagging | ~93% probabilistic detection, blind to intra-granule overflow: a statistic, not a theorem | R-15-045 |
 | Initialization-tag plane (Mon CHÉRI-derived) | carried instead by the definite-initialization attribute of [verification-maximal-os.md](verification-maximal-os.md) §5; one tag plane per SRAM word, not two | R-15-035 |
 | RVWMO | retained neither in hardware nor in proof reasoning; every ring proof restated under Ztso | R-15-004 |
 | Speculation, SMT, dynamic branch prediction | fail admission tests (1)–(3), (3), and (3) respectively | R-15-012, R-15-019 |
@@ -191,7 +191,7 @@ R-18-006 makes these part of the platform definition from first FPGA bring-up, n
 | Predictor deletion is structural | discharged by the microarchitectural absence contract, **not** by RTL ⊑ Sail; nothing joins the `fence.t` flush set and no residual completeness obligation exists | R-15-020, R-15-021 |
 | Fetch discipline | run-ahead only down the statically determined path; the only run-ahead structure is the static-path fetch buffer | R-15-022 |
 | Accepted cost | full pipeline-latency mispredict-equivalent penalties on forward conditional, indirect, and call/return dispatch, priced into WCET; the RAS is excluded despite its IPC value | R-15-023 |
-| Ztso realization | in-order issue plus a FIFO store buffer; the only reordering is store→later-load bypass. **TSO is a system property, so the discharge is three-part**: the FIFO (per core), single-copy memory whose bank arbiter is the order-determining point (per location), and the NoC/memory-controller obligation to preserve per-hart request order across banks, macros, and **device endpoints** (across locations) — the last preferentially met by constraining the composition-time TDM schedule. The bring-up gate covers the whole path, not the buffer alone. **The buffer holds SRAM-space stores only**: a device-space store issues only once it has drained and completes at the endpoint's accept before retiring, keeping the `fence.t` constant a function of the class (R-15-218) and keeping SRAM-store→device-store inside TSO. *Drained* is **issued into the fabric**, so the core confers issue order and the fabric clause confers arrival — which is why descriptor-before-doorbell, whose observer is the DMA engine and not the issuing hart, needs both | R-15-015, R-15-015a, R-15-015b, R-15-016 |
+| Ztso realization | in-order issue plus a FIFO store buffer; the only reordering is store→later-load bypass. **TSO is a system property, so the discharge is three-part**: the FIFO (per core), single-copy memory whose bank arbiter is the order-determining point (per location), and the NoC/memory-controller obligation to preserve per-hart request order across banks, macros, and **device endpoints** (across locations), the last preferentially met by constraining the composition-time TDM schedule. The bring-up gate covers the whole path, not the buffer alone. **The buffer holds SRAM-space stores only**: a device-space store issues only once it has drained and completes at the endpoint's accept before retiring, keeping the `fence.t` constant a function of the class (R-15-218) and keeping SRAM-store→device-store inside TSO. *Drained* is **issued into the fabric**, so the core confers issue order and the fabric clause confers arrival, which is why descriptor-before-doorbell, whose observer is the DMA engine and not the issuing hart, needs both | R-15-015, R-15-015a, R-15-015b, R-15-016 |
 | `fence` retained, two semantics | normal legal encodings are `drain` iff predecessor includes `PW`/`PO` and successor includes `PR`/`PI`, otherwise `nop`; `fence.tso` is `nop`; reserved `fm` traps. The drain remains for userspace store→load synchronization, not rings or device ordering | R-15-017, R-15-015a, R-15-015b |
 | Macro-op fusion | decoder may fuse a **frozen, enumerated** set of adjacent pairs (address formation / LEA, compare-and-branch, short dependent-ALU chains); combinational on static encoding, architecturally transparent, so it disturbs no certificate, CT proof, or WCET table. Sole obligation: the set is frozen with the proof and listed in the timing-annotated model | R-15-031, R-15-032, R-15-033, R-15-034 |
 | No retry loops in WCET | neither LR/SC spurious-failure retry nor CAS compare-fail retry exists; every atomic is one bounded memory transaction | R-15-030 |
@@ -203,7 +203,7 @@ One shared scalar front end (CVA6-class, modified to static-only prediction) acr
 | Class | Datapath | Notes |
 | --- | --- | --- |
 | **C** | scalar + RVV, **VLEN=256** | control and application |
-| **V** | long vector, **VLEN=4096**, 8 lanes | includes a radio-pinned pair; vector, **not** fixed-function graphics and not SIMT — no rasterizer, texture units, ROPs, command processor, or hardware warp scheduler (R-15-115) |
+| **V** | long vector, **VLEN=4096**, 8 lanes | includes a radio-pinned pair; vector, **not** fixed-function graphics and not SIMT: no rasterizer, texture units, ROPs, command processor, or hardware warp scheduler (R-15-115) |
 | **M** | systolic GEMM + **VLEN=1024** + software-managed scratchpad | matrix extension admitted only on an 8–10× sustained dense-GEMM margin over the same GEMM as RVV on its own VLEN=1024 unit (R-15-116) |
 | **S** | scalar sentinel | vectorless; hashes SHA-3/SHAKE in plain 64-bit integer with `Zbb` rotations (R-15-041) |
 | **RoT** | OpenTitan-class scalar RV64+CHERI, own clock/power island | no V/M; main-die purecap capability format, **not** CHERIoT's encoding (R-15-005, R-15-113) |
@@ -218,12 +218,12 @@ These are the entries the timing-annotated Sail model carries, and the projectio
 | --- | --- |
 | Integer DIV/REM completes at fixed worst-case latency always; early-out-on-small-operands dividers forbidden | R-15-080 |
 | Vector FPU fixed-latency across all operand classes, **subnormals included**; no subnormal slow path | R-15-081 |
-| `vfdiv` / `vfsqrt` either fixed-latency or off the constant-time list — the latter admissible only on a discharged proof that no secret-labeled operand reaches them, never self-declaration | R-15-082, R-15-011 |
+| `vfdiv` / `vfsqrt` either fixed-latency or off the constant-time list, the latter admissible only on a discharged proof that no secret-labeled operand reaches them, never self-declaration | R-15-082, R-15-011 |
 | Floating-point rounding static, encoded per-instruction (default RNE); never the dynamic `frm` CSR | R-15-083 |
 | Misaligned accesses **trap** and are never split in hardware, so no line-crossing address-dependent latency exists | R-15-084 |
 | `Zvkt`-listed vector operations execute in **mask-independent** time: an implementation may not skip memory accesses or cycles for masked-off elements, so the mask is unobservable through timing or memory traffic | R-15-085 |
 | Branch-resolution latency is a fixed function of the static rule, so fetch timing depends on architectural state only | R-15-086 |
-| `Zaamo` / `Zabha` AMOs complete as single bounded memory transactions with data-independent latency at the SRAM bank's serialization point — which is the whole of what a coherence point would otherwise name | R-15-087 |
+| `Zaamo` / `Zabha` AMOs complete as single bounded memory transactions with data-independent latency at the SRAM bank's serialization point, which is the whole of what a coherence point would otherwise name | R-15-087 |
 | The store buffer's drain at a partition switch is data-independent because it is paid as the `fence.t` padded constant, not as a second budget term beside it | R-15-088 |
 
 ## 10. Debug

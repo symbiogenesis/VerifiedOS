@@ -424,13 +424,24 @@ if ($q['dcsr-rows'] -ne $q['open-csr-rows']) {
 #
 # The three groups above check what a document says. This one checks what it is made of,
 # where two unrelated faults share one symptom, a wrong character, and neither survives
-# a rendered read: the em-dash is house style (the punctuation here is explicit, so a
-# clause takes a comma, a colon, or its own sentence), and mojibake is UTF-8 read as some
-# single-byte encoding, which leaves a signature worth catching the moment it lands.
+# a rendered read: the em-dash is against house style (the punctuation here is explicit,
+# so a clause takes a comma, a colon, parentheses, or its own sentence), and mojibake is
+# UTF-8 read as some single-byte encoding, which leaves a signature worth catching the
+# moment it lands.
 #
 # Both are reported per file with the lines to visit, and neither is repaired. An em-dash
 # is removed by deciding what the sentence meant; a mangled character can only be restored
 # by whoever knows what it was.
+#
+# The rule is absolute, and that is a decision rather than an oversight. It stood failing
+# across nine files for as long as it did because it conflated prose punctuation with two
+# structural uses that no rewrite can reach: the register's entry header (`**R-nn-nnn**
+# MUST — obligation`) and its section headings (`## §n — Title`), a delimiter and a title
+# separator, one per requirement and one per section. Neither has a sentence whose meaning
+# could be decided. Both were changed to ASCII (`MUST: ` and `## §n. `) rather than
+# exempted here, because an exemption is a proviso that must itself be audited, and a rule
+# with no carve-out is closed by construction: any U+2014 anywhere is a finding, and a
+# table cell meaning *not applicable* is spelled `n/a` rather than left as a bare dash.
 
 function Format-GlyphHits([string]$File, [int[]]$Lines) {
     $shown = if ($Lines.Count -gt 12) { ($Lines[0..11] -join ', ') + ", and $($Lines.Count - 12) more" }
