@@ -2756,6 +2756,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the fused set is enumerated and frozen with the proof.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-031)
 
+**R-15-031a** MUST: The frozen set's membership is selected against the instruction mix this profile emits (purecap-only, no C, no scalar `F`/`D`), as a composition-time parameter of the §15 design-space exploration, and is not inherited from the general RISC-V fusion literature.
+· Accept: the frozen set is a recorded selection against a measured mix; no pair is carried solely because a conventional RV64GC target would fuse it.
+· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-031a)
+
+**R-15-031b** MUST: The set includes the capability-address-formation pairs, stated by function because purecap mnemonics vary by CHERI line (R-15-007): offset-then-dereference (`cincoffset` + load/store), PCC-relative materialization (`auipcc` + `cincoffset`), and address-then-narrow at allocation and compartment entry (`csetaddr` or `cincoffset`, then `csetbounds`, in that dependency order).
+· Accept: each is enumerated in the frozen set or its exclusion is recorded against the measured mix. Base-plus-index `add`+load is not separately listed because a purecap load takes no integer base: it exists here only as the first pair.
+· Trace: CJ-SAIL, CJ-WCET · [§15](verification-maximal-os.md#r-15-031b)
+
+**R-15-031c** IS: Widening the set toward capability arithmetic adds no admission-test case, no `fence.t` flush-set member, and no obligation beyond R-15-034: each added pair is admitted by the R-15-032 disposition and the R-15-033 transparency argument unchanged, and tightens rather than loosens every bound it appears in.
+· Accept: membership is bounded by decoder area and the §15 proof-simplicity term, never by a safety, timing, or schedulability limit.
+· Trace: CJ-RTL-SAIL, CJ-WCET · [§15](verification-maximal-os.md#r-15-031c)
+
 **R-15-032** IS: Fusion is a combinational function of the static instruction encoding, holds no state surviving a partition switch, mints no authority, and runs no walker, so it passes all five admission tests.
 · Accept: five recorded dispositions; nothing joins the `fence.t` flush set.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-032)
@@ -4280,7 +4292,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 978 requirements. §19 is non-normative and yields none. Counts include the sixty-six letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 981 requirements. §19 is non-normative and yields none. Counts include the sixty-nine letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4298,7 +4310,7 @@ All eighteen normative sections are extracted, at 978 requirements. §19 is non-
 | **§12 System Servers** | **extracted** | **101** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
-| **§15 Hardware Platform** | **extracted** | **257** |
+| **§15 Hardware Platform** | **extracted** | **260** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **74** |
 | **§18 Realization** | **extracted** | **38** |
