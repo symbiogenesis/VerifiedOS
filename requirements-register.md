@@ -1406,6 +1406,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the footprint is peak-liveness, the minimum any non-moving scheme can use.
 · Trace: CJ-MEMPLAN · [§8](verification-maximal-os.md#r-08-012)
 
+**R-08-012a** MUST: The plan's objective is lexicographic: the peak-liveness footprint first, which locality may never worsen, then locality, whose three terms are co-location of objects the typed structure shows are reached together, field partitioning so frequently-reached fields share whole granules and rarely-reached ones leave them, and spreading concurrently-live objects across the island's own banks and macros.
+· Accept: the degrees of freedom a peak-optimal colouring leaves over are recorded as spent on those three terms under a fixed tie-break rather than on an arbitrary one; with no cache on the die the plan is the machine's only placement mechanism, so an unspent degree of freedom is latency nothing else recovers.
+· Trace: CJ-MEMPLAN, CJ-WCET · [§8](verification-maximal-os.md#r-08-012a), [§15](verification-maximal-os.md#r-08-012a-2)
+
+**R-08-012b** MUST: Reach frequency is decided from artifacts the build already carries (the typed callee graph, the typed control-flow graph and its loop nesting, the §11 declared loop bounds, and the manifest's declared region types) under a fixed tie-break, with no PGO corpus, sampled frequency, learned weight, or runtime feedback.
+· Accept: two builds of one source closure yield an identical placement map, so the map is reproducible and attestable and the plan is not a reactive feedback loop rebuilt in the toolchain; the discipline is R-10-034's, applied to data.
+· Trace: CJ-MEMPLAN, CJ-DEVTREE · [§8](verification-maximal-os.md#r-08-012b), [§10](verification-maximal-os.md#r-08-012b-2)
+
+**R-08-012c** MUST: Every slot the plan assigns lies inside the region the owning island's root capability bounds, and the bank/macro/tier→island map is read and never written, so no placement moves an island boundary, borrows another island's array, changes a bandwidth ceiling, or places two confidentiality domains in one granule.
+· Accept: an out-of-island placement has no capability derivation rather than a new admission test to fail; consistent with R-07-006, R-15-226, R-15-228, and R-15-228a.
+· Trace: CJ-MEMPLAN, CJ-ISOL · [§8](verification-maximal-os.md#r-08-012c)
+
+**R-08-012d** MUST: Locality is a constrained objective, admissible only where no island's peak footprint and no admitted §11 bound is worse than in the plan it replaces, and it adds no admission test, no checker, no proof term, and no WCET input.
+· Accept: R-08-014's interference side-condition, R-08-016's single pass, and R-11-015's derivation from the placed image are each unchanged; where the timing-annotated model prices two arrays alike the gain is on the average and the bound does not move, and where it prices them apart the derived bound improves.
+· Trace: CJ-MEMPLAN, CJ-WCET, CJ-TAL-SOUND · [§8](verification-maximal-os.md#r-08-012d)
+
 **R-08-013** IS: Offline is the whole game: online allocation carries Robson's Θ(log n) worst case, while the offline problem is NP-hard in general, constant-factor approximable, and exactly optimal in polynomial time for the nested, region-structured lifetimes a region discipline produces, all solved in build-time compute.
 · Accept: static composition is what buys the move from the Robson-hard online setting to the near-optimal offline one.
 · Trace: CJ-MEMPLAN · [§8](verification-maximal-os.md#r-08-013)
@@ -3628,6 +3644,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each island's bandwidth ceiling quantizes to its assigned banks or macros and feeds §11 admission.
 · Trace: CJ-ISOL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-228)
 
+**R-15-228a** MUST: The bank/macro/tier→island map is an input to the §8 static memory plan and never an output of it: the plan distributes an island's own objects across the arrays the map already grants it, altering no binding, no arbitration, and no ceiling.
+· Accept: the attested devicetree map is identical before and after placement; consistent with R-08-012c.
+· Trace: CJ-ISOL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-228a)
+
 ### 15.29 Display and media
 
 **R-15-229** IS: The scanout controller is the one graphics device: a small open-RTL firmware-free DMA block behind a static capability-bounded DMA window; audio I/O follows the same pattern.
@@ -4200,6 +4220,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: backend tests contain one positive generated-code case for each lowering facility and a fusion-conflict case showing that a pair is broken only when the same block's static Sail cost is strictly lower; linker tests contain positive and blocked-precondition cases for each enabled standard relaxation, introduce no private relaxation semantics, and translation-validate the post-relaxation linked image against Sail under R-05-023; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, verified artifact, or workstream for these duties.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET · [§18](verification-maximal-os.md#r-18-014a)
 
+**R-18-014b** MUST: The link-time step that already emits the static slot assignment implements the R-08-012a lexicographic objective from the R-08-012b profile-free inputs, with a determinism test (one source closure, two builds, one identical placement map) and a non-regression test (no island's peak footprint and no admitted §11 bound worse than under a footprint-only plan).
+· Accept: the work plan names no separate placement tool, profile pipeline, optimizer, or workstream, and no consumer-side checker is added: the placed image is validated by the same TAL interference check and the same R-05-023 translation validation as before.
+· Trace: CJ-COMPCERT, CJ-MEMPLAN, CJ-WCET · [§18](verification-maximal-os.md#r-18-014b)
+
 **R-18-015** IS: The certifying Rust compiler's shape is a front end over safe-Rust MIR carrying the source type system's memory-safety fact through lowering and emitting a CHERI-TAL derivation; CHERI discharges spatial safety, so the preserved obligation is the temporal-safety and typed-control-flow residual.
 · Accept: no per-app manual proof is required for pure-safe-Rust code.
 · Trace: CJ-TAL-SOUND · [§18](verification-maximal-os.md#r-18-015)
@@ -4292,7 +4316,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 981 requirements. §19 is non-normative and yields none. Counts include the sixty-nine letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 987 requirements. §19 is non-normative and yields none. Counts include the seventy-five letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4303,17 +4327,17 @@ All eighteen normative sections are extracted, at 981 requirements. §19 is non-
 | **§5 Languages & Verification** | **extracted** | **184** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
-| **§8 Authority Model** | **extracted** | **46** |
+| **§8 Authority Model** | **extracted** | **50** |
 | **§9 Boot & Root of Trust** | **extracted** | **31** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
 | **§12 System Servers** | **extracted** | **101** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
-| **§15 Hardware Platform** | **extracted** | **260** |
+| **§15 Hardware Platform** | **extracted** | **261** |
 | **§16 Reliability** | **extracted** | **22** |
 | **§17 Residual Risks** | **extracted** | **74** |
-| **§18 Realization** | **extracted** | **38** |
+| **§18 Realization** | **extracted** | **39** |
 
 §19 is non-normative and yields no requirements.
 
