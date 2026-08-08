@@ -231,7 +231,7 @@ The minimal-ISA entries add nothing but substrate abandonment on top of a parsim
 Beside EPIC on the "abandon RISC-V" scale and below the belt and EDGE: more radical in decode-minimalism than any of them, but into a *deader* ecosystem (OISC/TTA never shipped an application platform, let alone a verified one) and *inverting* the proof-shrink it promises, so it clears none of the bars the belt's spiller or EDGE's block-atomic commit clear.
 
 **Disposition:** rejected as a substrate: OISC/TTA abandon RV64 and re-mint every artifact stated against its Sail model (the EPIC disqualifier), TTA re-couples binary to microarchitecture, and neither actually shrinks the proof surface once capabilities, DMA, interrupts, and timing are modeled; the genuine parsimony atom (minimal decode, curated extensions) is already banked **inside** RISC-V (§15).
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*): parsimony is spent where it shrinks the proof without forfeiting the substrate, not past the point the substrate and the proof survive.
+The platform axiom decides it as ever: parsimony is spent where it shrinks the proof without forfeiting the substrate, not past the point the substrate and the proof survive.
 Non-normative; no spec-body change.
 
 ---
@@ -660,7 +660,7 @@ Its safety atom is exceeded by CHERI, its identity-temporal atom is banked (or a
 
 **Disposition:** no import as an architecture: the object memory model's spatial safety is byte-granularly exceeded by CHERI (§1, §8) without the OID indirection; its identity-based temporal safety is already met by budgeted revocation ⋈ the load filter (§8) ⋈ CHERI-TAL linear/affine types (§5, §13) and admissible only as a transparent generation-tag plane, never the hardware object table (which is the MMU this design deleted, below, generalized per-object); and its single-level store, relocation, and GC are the orthogonal persistence the Historical capability machines entry (above) declines and the autonomous relocation / managed runtime the admission test and §10 ban.
 The elegant synthesis (object identity ⋈ capability enforcement) is *already the design*: content-addressed objects (§10) resolved to CHERI capabilities at compose and storage time by the wiring table (the content-addressed capability image entry above), TAL-typed (HLLCA, above) and explicitly, verifiably persisted (§10), the object graph resolved statically and once rather than by a runtime hardware table.
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend* → *verify rather than hedge*): resolve the object model into capabilities ahead of time and delete the runtime indirection, rather than pay a per-dereference object-table tax to buy persistence and relocation the design refuses.
+The platform axiom decides it as ever: resolve the object model into capabilities ahead of time and delete the runtime indirection, rather than pay a per-dereference object-table tax to buy persistence and relocation the design refuses.
 Non-normative; no spec-body change.
 
 ---
@@ -786,7 +786,7 @@ Off the abandon-substrate scale (a reliability/verification microarchitecture, n
 **Disposition:** **DIVA is rejected as a strategy**: it restores functional trust in a complex core while leaving its timing channels (the actual threat) open, and the design takes the stronger horn of the same asymmetric-trust insight: a simple verified core (RTL ⊑ Sail, §18) with nothing complex to check and no channels to leak, its static all-inputs proof exceeding DIVA's per-execution functional check.
 The asymmetric-trust *pattern* DIVA embodies is banked at the proof level (FPCC §6, the CHERI-TAL §5, admission §13), checking certificates rather than results.
 **Lockstep / TMR** random-fault redundancy is a reliability mechanism orthogonal to the security threat, partly present (ECC, the absence of a Rowhammer primitive in SRAM, kernel duplication; §15, §16) and otherwise **logged for G5** (COSMIC lockstep, [inspirations.md](inspirations.md)) as a deferred option, not carried by default; where a G5 case demands it, the *preferred* answer to the transient datapath residual is the **software** redundancy above (instruction- or task-level, or ABFT on the compute datapaths) as detection then fail-stop, growing no trusted hardware and importing no fault-model proof, with hardware DCLS reserved for an ultra-tight FTTI and masking (TMR, task-vote) for availability *through* a fault, and the distinct *permanent*-fault residual met by periodic self-test (SBST) rather than replication.
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend → verify rather than hedge*): verify one simple core rather than check a complex one, contain random faults rather than replicate against them, until a safety case pays for masking.
+The platform axiom decides it as ever: verify one simple core rather than check a complex one, contain random faults rather than replicate against them, until a safety case pays for masking.
 **Honest residual (§17):** the single simple verified core carries no functional-fault *masking*, and its leftover splits in two.
 A *transient* strike in the datapath *data* computation (not the stored state ECC corrects, nor the capability a CHERI check fail-stops) can yield a silently-wrong result: *contained* to its partition (§7, §16) but neither corrected nor voted out.
 A *permanent* fault or aging at runtime is a distinct residual the static design-time verification and fab-time IRIS inspection (§17) do not reach.
@@ -869,7 +869,7 @@ The remaining kernel-shrink simplification the terminus names: the table-driven 
 
 **Disposition (adopted; normative in §7, §8, §14, §15).**
 The MMU is **deleted**: `satp` is Bare, there is no Sv39 / Sv48 / Sv57 and no `Svadu` / `Svade` A/D machinery (§15), the kernel drops seL4's VSpace / page-table / frame-mapping object classes for a single physical address space (§7), and **CHERI is the sole in-core spatial mechanism** (with PMP dropped too: the drop-PMP entry below; so no disjoint in-band backstop remains), capability-checked DMA + islands (§15) the device-access and timing boundaries.
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*): the MMU is a second in-band mechanism whose fine-grained defense-in-depth the SAS design does not instantiate, purchased with a walker the admission test bans and a kernel subsystem the proof must carry.
+The platform axiom decides it as ever: the MMU is a second in-band mechanism whose fine-grained defense-in-depth the SAS design does not instantiate, purchased with a walker the admission test bans and a kernel subsystem the proof must carry.
 **Honest residual (§17):** in-core spatial isolation rests on CHERI alone (a logic fault has no in-band fallback; the coarse PMP backstop is dropped too, below; only CHERI's own verification), and application-class single-address-space purecap is less battle-tested than page-table isolation (CheriOS/CHERIoT are small-scale): offset against a net deletion of the walker, the TLB/walk-cache state, the VM subsystem, and their Sail surface.
 
 ---
@@ -908,7 +908,7 @@ The two again share a silhouette (a Machine-mode kernel) and nothing else: one g
 
 **Disposition (adopted; normative in §7, §8, §15).**
 Supervisor and User modes are **deleted**: the platform runs Machine mode only, privilege is the CHERIoT-lineage access-system-registers permission on the PCC, the S-mode CSR bank / trap delegation / `sret` / `Sstc` are removed (§15), and the microkernel is the resident Machine-mode holder of the system-register and switch/seal authority (§7); PMP itself is dropped too (the drop-PMP entry below), so CHERI is the sole in-band spatial mechanism and no disjoint backstop remains.
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*): the S/U ring is a second in-band privilege mechanism, and its one non-redundant service (the sub-kernel backstop) is itself dropped as redundant against verified CHERI (below).
+The platform axiom decides it as ever: the S/U ring is a second in-band privilege mechanism, and its one non-redundant service (the sub-kernel backstop) is itself dropped as redundant against verified CHERI (below).
 **Honest residual (§17):** privilege rests on CHERI alone (PMP dropped too, below) with no privilege-ring or disjoint-backstop redundancy, and single-privilege-mode purecap is unproven at application-class multicore scale (CHERIoT is single-core microcontroller): offset against the deletion of the mode-transition machinery, the S-mode CSR bank, and trap delegation from the microarchitecture and the kernel proof.
 
 ---
@@ -940,7 +940,7 @@ If a future analysis judged the CHERI-logic-fault residual intolerable, the comp
 
 **Disposition (adopted; normative in §7, §14, §15).**
 PMP and `Smepmp` are **removed**: CHERI is the sole memory-protection mechanism, W^X and the per-core partition bound rest on CHERI monotonicity (§7, §14), crown-jewel secrets on the crypto core's boundary and the seal/switch primitives (§7, §12), and device DMA on capability-checked DMA (§15).
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*), with the twist the whole design turns on: what lets a **single** mechanism replace a defense-in-depth stack is that this one is **formally verified**, so *delete rather than defend* becomes *verify rather than hedge*.
+The platform axiom decides it as ever, with the twist the whole design turns on: what lets a **single** mechanism replace a defense-in-depth stack is that this one is **formally verified**, so *delete rather than defend* becomes *verify rather than hedge*.
 **Honest residual (§17):** in-core spatial isolation, W^X, and the partition bound rest on CHERI alone with no in-band disjoint backstop; the sole hedge against a CHERI logic fault is CHERI's own verification (the machine-checked monotonicity result above), leaving the **RTL ⊑ Sail** arrow (§18) the residual, the fab residual unchanged.
 
 ---
@@ -974,7 +974,7 @@ Application-class capability-DMA at NIC / scanout / radio-I/Q bandwidth is net-n
 
 **Disposition (adopted; normative in §4, §12, §15).**
 The IOMMU is **deleted** and the IOPMP **declined**: device DMA is capability-checked by the fabric, every DMA-capable block is a core-issued capability-operand mover or a delegated-capability-holding streamer, and CHERI becomes the sole spatial mechanism **system-wide**: cores and devices alike.
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend* → *verify rather than hedge*): the IOMMU is a second, device-side spatial mechanism (carrying a walker and caches the profile bans in-core), redundant once the fabric carries capabilities, and the IOPMP is the coarse subset of CHERI it is in-core.
+The platform axiom decides it as ever: the IOMMU is a second, device-side spatial mechanism (carrying a walker and caches the profile bans in-core), redundant once the fabric carries capabilities, and the IOPMP is the coarse subset of CHERI it is in-core.
 **Honest residual (§17):** device access rests on CHERI alone with no IOMMU-disjoint backstop; in-flight-DMA revocation and a capability/tag-carrying fabric are new obligations (Markettos-2020 and the CHERI-at-SoC-Level guide anchor feasibility, Cornucopia-Reloaded the revocation), and application-class capability-DMA is net-new (§18), microcontroller-scale the existence proof.
 
 ---
@@ -1051,7 +1051,7 @@ A design with any dynamic scheduling, any priority, or any admission of runtime-
 **Disposition (adopted; normative in §7, §8, §15).**
 Asynchronous interrupt delivery is **deleted**: interrupt arrival remains a store to an interrupt file setting architectural pending state, consumed by ordinary loads at poll sites inside the owner's slot, and the **slot-boundary timer is the sole asynchronous trap on the machine**.
 The interrupt-state sentry types (`enabled`/`disabled`/`inherit`) are removed from the CHERI profile and the CHERI-TAL with the masking discipline they carried; the bounded-interrupt-disabled-window allow-list (§8, §11) is deleted rather than audited; the AIA delivery-selection machinery is trimmed to the pending array; and the watchdog bark is checked in the boundary handler.
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*), with the local twist that the feature's headline benefit (low-latency device service) **was not present to lose**: the cyclic executive had already made service latency a schedule corollary, so what asynchronous delivery still bought was a sub-slot tail, paid for in ISA surface, RTL, typing rules, kernel case splits, and a WCET preemption term.
+The platform axiom decides it as ever, with the local twist that the feature's headline benefit (low-latency device service) **was not present to lose**: the cyclic executive had already made service latency a schedule corollary, so what asynchronous delivery still bought was a sub-slot tail, paid for in ISA surface, RTL, typing rules, kernel case splits, and a WCET preemption term.
 **Honest residual (§17):** the watchdog bark's surgical-response window widens from trap latency to one slot period, leaving **bite** as the only sub-slot response to a wedged sentinel; a device serviceable mid-slot is serviced at the next poll site or the next slot, so §11's per-device cadence sizing becomes load-bearing for every aperiodic device rather than for the radio paths alone; and poll-site placement becomes a WCET-visible source-level obligation on driver code (cheap, since poll sites are already CFG nodes the §5 cost annotation walks, but no longer implicit).
 
 ---
@@ -1154,7 +1154,7 @@ Vector-FP-without-scalar-FP at application scale is uncommon (most RVV cores kee
 **Disposition (adopted; normative in §15).**
 Scalar `F`/`D`, the `f`-register file, and the dynamic rounding-mode CSR are **removed**; all floating point is vector (VL=1 for scalars), rounding is static, and the ABI is soft-float-register.
 The FP timing contract is stated once, for the vector FPU (§15).
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend*): a redundant FP datapath and one of the two FP timing crown jewels are deleted for an ABI change and a per-op vector-setup cost the subordinated-performance goal absorbs.
+The platform axiom decides it as ever: a redundant FP datapath and one of the two FP timing crown jewels are deleted for an ABI change and a per-op vector-setup cost the subordinated-performance goal absorbs.
 **Honest residual (§17):** floating point rests on the single vector FPU under a non-standard vector-FP-without-scalar-FP profile (a small new Sail surface for the operand-move path, an uncommon configuration at application scale): offset against the deleted scalar datapath, `f`-register file, scalar FP timing contract, and dynamic rounding-mode state; a net shrink, booked in §17's proof-trust-base accounting.
 
 ---
@@ -1464,7 +1464,7 @@ The **programmable PUMP / software-defined-metadata engine** is **rejected**: it
 The **tag-monitor *model* imports nothing because it is already the substrate**: CHERI is a fixed-policy tag-monitor, so the platform is **already a fixed-policy tagged architecture**, reached not by adopting the PUMP but by freezing its genus to the single policy the design proves, and then declining even the one further policy it wanted (Write-before-Read, §5) as a plane.
 The **micro-policy catalog imports nothing new** (IFC → §8/§13 flow labels; memory safety → CHERI + revocation; CFI → W^X + CHERI §14; compartmentalization → §7/§12 capabilities; sealing → CHERI sealing).
 The **Coq metatheory** is logged as *methodological confirmation, not an import*: "verify a tag machine in Coq" is exactly the move the design makes for CHERI, and the Write-before-Read case shows its limit, the Coq-verified Iris/Cerise uninitialized-capabilities lineage being re-homed into the CHERI-TAL soundness metatheorem rather than into a machine to verify (§13/§5), so the SAFE/micro-policies corpus is a **reference** for that discipline, not a component to lift.
-The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend* → *verify rather than hedge*): a programmable policy engine buys expressiveness (the free axis, here not even wanted) at the price of hidden state and a general trust base (the scarce one).
+The platform axiom decides it as ever: a programmable policy engine buys expressiveness (the free axis, here not even wanted) at the price of hidden state and a general trust base (the scarce one).
 Non-normative; no spec-body change.
 
 **Honest residual (§17):** what the design forgoes is *programmable, post-hoc* policy: the ability to load a new tag policy without a respin, the PUMP's one genuine capability.
@@ -1638,7 +1638,7 @@ Total memory encryption and a memory-wide Merkle counter-tree for integrity and 
 The entry is kept at length because the reasoning generalizes: this is the clearest case in the design of a mechanism that admits itself by *category* ("memory protection is good") rather than by the admission test everything else must pass.
 
 **The reframing that settles it: memory cryptography protects an interface, not a memory.**
-Every word decrypts on arrival at the controller in order to be computed on, so the plaintext is reachable to any adversary who reached the core, and the mechanism buys protection at exactly one physical hop.
+Every word decrypts on arrival at the controller before it can be computed on, so the plaintext is reachable to any adversary who reached the core, and the mechanism buys protection at exactly one physical hop.
 A conventional design encrypts DRAM not because DRAM is untrusted but because the *bus* is exposed.
 This design deleted the bus: main memory is bespoke SRAM on the same die as the cores (the SRAM entry above), and the packaging entry below declines the chiplet and bonded-stack realizations that would have reintroduced a die-to-die interface.
 So there is no hop, and the mechanism has no customer.
@@ -2509,7 +2509,7 @@ The proposal makes the execution substrate a **privacy-preserving computation** 
 It is the confidentiality sibling of the zkVM entry (above): where zkVM adds *verifiability* of a remote execution, FHE/MPC add *confidentiality against the executor*.
 
 **The steelman.**
-FHE gives **data-in-use confidentiality against the host itself**: the strongest possible data-confidentiality, and a property this platform's memory path does not attempt at all, carrying no cryptography whatever (§15, on the reasoning that any such mechanism decrypts on arrival at the controller in order to compute and therefore protects an interface rather than a memory); and it is a genuinely different security model: confidentiality by *cryptography* rather than by *isolation*.
+FHE gives **data-in-use confidentiality against the host itself**: the strongest possible data-confidentiality, and a property this platform's memory path does not attempt at all, carrying no cryptography whatever (§15, on the reasoning that any such mechanism decrypts on arrival at the controller to compute and therefore protects an interface rather than a memory); and it is a genuinely different security model: confidentiality by *cryptography* rather than by *isolation*.
 Some FHE/MPC implementations are formalization-adjacent, so it is not off the verification map.
 
 **Why it does not import as a substrate: the zkVM rejection, verbatim, on two grounds.**
@@ -2682,7 +2682,7 @@ Unlike the belt/EPIC/Wasm targets this **abandons no substrate** (RV64 + CHERI +
 **Disposition (adopted; normative in §5, §11, §12).**
 The **control-plane** logic of §12 servers, supervision/sequencing, protocol state machines, mode/timing control, is written in **Lustre and compiled by Vélus** (Coq-verified, → Clight → CHERI-CompCert), a Coq-verified DSL alongside Narcissus and Fiat-Crypto (§5); the **data planes** stay `#![forbid(unsafe_code)]` safe Rust.
 Scope is honest: the adoption covers the logic that *is* reactive dataflow, and Rust is retained wherever a control path is genuinely imperative request/response rather than a state machine, a mis-drawn boundary is a spec error, not a silent failure.
-The platform axiom decides it as ever, *methodology is portable, the smallest trusted set wins, and engineering is the free axis*: spend the engineering to move sequencing onto a language where determinism, causality, and WCET are theorems of the compiler rather than fresh per-server proof obligations.
+The platform axiom decides it as ever: spend the engineering to move sequencing onto a language where determinism, causality, and WCET are theorems of the compiler rather than fresh per-server proof obligations.
 **Honest residual (§17):** Vélus enters the build path as a new front end: Coq-verified, so it adds *no fresh axiom* and rides the already-priority-zero CHERI-CompCert backend (§18), but its Lustre-semantics faithfulness joins the crown-jewel specs and the **control/data boundary is a new crown-jewel interface**; offset against this, the control tier's structural WCET (§11), structural memory-safety certificate (§13), and by-construction determinism (§8, §15) are a net reduction in proof surface.
 - **ct-verif: the IR-level sibling, not the binary-level answer.** ct-verif verifies CT by product programs over **LLVM IR** (SMT-discharged).
   It is real and usable, but IR-level: the platform verifies CT **on the binary** for every secret-touching artifact (no verified-compiler CT path), and there is no trusted IR to check at that point: the binary is the artifact.
@@ -2693,6 +2693,6 @@ The platform axiom decides it as ever, *methodology is portable, the smallest tr
 
 **Disposition (adopted; normative in §5, §13, §15).**
 Verify CT **on the artifact** against the one `Zkt`/`Zvkt` leakage model for every secret-touching binary (there is no verified-compiler CT route); split it functional ⋈ hyperproperty like RTL ⊑ Sail, with the **relational-Sail-logic constant-time certificate** the Coq-native close and **Binsec/Rel** the mature bounded complement (**ct-verif** the IR-level sibling).
-The platform axiom decides the toolchain as ever, *methodology is portable, maturity is not*: carry the Coq-native property to Binsec/Rel's demonstrated binary-level capability, spending engineering to keep CT on the single prover and make it *artifact*-borne.
+The platform axiom decides the toolchain as ever: carry the Coq-native property to Binsec/Rel's demonstrated binary-level capability, spending engineering to keep CT on the single prover and make it *artifact*-borne.
 **Honest residual (§17):** Binsec/Rel is path-bounded evidence (the certificate is the unbounded close); CT verification inherits the RTL ⊑ Sail residual (the leakage model is sound only once that arrow closes) and leans on the `Zkt`/`Zvkt` leakage-model statement as a shared crown-jewel spec; and correctness of *scope* rests on the flow labels (§8, §12, §13), so a mislabeled secret is a spec error no CT proof catches.
 Like WCET it **degrades gracefully**, bounded Binsec/Rel evidence carries bring-up, the certificate closes it, so it gates *strong* CT assurance, not boot.
