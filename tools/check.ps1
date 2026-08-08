@@ -2,20 +2,23 @@
 #
 # A derived fact is anything one document holds only because another document already
 # determined it. Restated by hand it drifts silently, in whichever direction nobody
-# looked, which is the defect the register's sweep 2 names. The defect takes three
+# looked, which is the defect the register's sweep 2 names. The defect takes five
 # granularities, and they are one mistake, so they are one tool:
 #
 #   traces   the reference    every bookmark a trace cites, and the section it displays
+#   names    the vocabulary   every R-, CJ-, A-, B- and P- id used, against its declarer
+#   links    the pointer      every cross-document link and every §n.m a sentence names
 #   views    the membership   what a derived view carries, checked in both directions
 #   counts   the cardinality  every figure any document asserts, against its artifact
 #
-# A fourth group checks what a document is made of rather than what it says:
+# Two further groups check what a document is made of rather than what it says, where a
+# fault survives a rendered read because the render succeeds:
 #
+#   tables   the shape        every row against the width its header declares
 #   glyphs   the characters   punctuation the house style forbids, and encoding damage
 #
-# Run with -Fix to rewrite the asserted counts from their artifacts. Trace, view and
-# glyph findings have no mechanical repair: they are a person's edit, reported not
-# guessed.
+# Run with -Fix to rewrite the asserted counts from their artifacts. Every other finding
+# has no mechanical repair: it is a person's edit, reported not guessed.
 #
 # Exit 0 clean, 1 on any finding. Run from the repository root.
 
@@ -40,6 +43,28 @@ function Report([string]$Label, $Items, [string]$Ok = '', [string]$Pad = '') {
 # =================================================================================
 # The artifacts, each parsed once
 # =================================================================================
+
+# --- every document, read once, and which of its lines a fence displays verbatim --
+# A fenced block is shown as text, so an anchor inside one is not a bookmark, a link
+# inside one is not a link, and an id inside one names nothing: the register's own
+# entry template cites `#r-ss-nnn`, which must not read as a dangling trace. Every
+# group that reads whole documents reads them through this, so the rule is stated
+# once and every group inherits it.
+
+$docs = @(foreach ($f in Get-ChildItem -Path . -Filter *.md -Recurse | Sort-Object FullName) {
+    $lines  = [System.IO.File]::ReadAllLines($f.FullName)
+    $fenced = New-Object 'bool[]' $lines.Count
+    $open   = $false
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\s*```') { $fenced[$i] = $true; $open = -not $open }
+        else                             { $fenced[$i] = $open }
+    }
+    [pscustomobject]@{
+        Name   = (Resolve-Path -Relative $f.FullName) -replace '^\.[\\/]', ''
+        Lines  = $lines
+        Fenced = $fenced
+    }
+})
 
 # --- the register: ids, where each sits, its body, and the trace it carries -------
 
@@ -76,20 +101,40 @@ foreach ($line in $regLines) {
     elseif ($inDefects -and $line -match '^\| `') { $dcsrRows++ }
 }
 
-# --- the prose: bookmark -> occurrence count, and bookmark -> owning §n -----------
+# --- every bookmark: where it is declared, how often, and the prose §n it sits in --
 # A bookmark may be cited more than once from the prose only by taking a -2/-3 suffix;
-# the base id it belongs to is what the third trace property resolves against.
+# the base id it belongs to is what the third trace property resolves against. Ids are
+# per-file, so two documents may carry the same one; within a file a repeat is a fault,
+# and the link group needs the whole set, not the prose's alone.
 
-$anchorCount = @{}
-$anchorSec   = @{}
+$anchorCount = @{}         # prose bookmark -> how often the prose declares it
+$anchorSec   = @{}         # prose bookmark -> the §n it sits in
+$anchorsOf   = @{}         # file -> (bookmark -> count), the whole corpus
+$buried      = @()         # anchors a fence displays instead of declaring
+$twiceHere   = @()
+
 $sec = $null
-foreach ($line in Get-Content 'verification-maximal-os.md') {
-    if ($line -match '^## (\d+)\.') { $sec = $Matches[1] }
-    foreach ($m in [regex]::Matches($line, '<a id="([^"]+)"')) {
-        $id = $m.Groups[1].Value
-        $anchorCount[$id] = 1 + $anchorCount[$id]
-        if (-not $anchorSec.ContainsKey($id)) { $anchorSec[$id] = $sec }
+foreach ($d in $docs) {
+    $prose = $d.Name -eq 'verification-maximal-os.md'
+    $here  = @{}
+    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
+        $line = $d.Lines[$i]
+        if ($prose -and -not $d.Fenced[$i] -and $line -match '^## (\d+)\.') { $sec = $Matches[1] }
+        foreach ($m in [regex]::Matches($line, '<a id="([^"]+)"')) {
+            $id = $m.Groups[1].Value
+            if ($d.Fenced[$i]) {
+                $buried += "$($d.Name):$($i + 1) buries #$id in a fenced block, where it is text and not a bookmark"
+                continue
+            }
+            $here[$id] = 1 + $here[$id]
+            if ($here[$id] -eq 2) { $twiceHere += "$($d.Name) declares #$id more than once; a link to it resolves to whichever comes first" }
+            if ($prose) {
+                $anchorCount[$id] = 1 + $anchorCount[$id]
+                if (-not $anchorSec.ContainsKey($id)) { $anchorSec[$id] = $sec }
+            }
+        }
     }
+    $anchorsOf[$d.Name] = $here
 }
 
 # --- the counted artifacts: the inventory, the profile, the absence contract ------
@@ -97,6 +142,21 @@ foreach ($line in Get-Content 'verification-maximal-os.md') {
 $cj = Get-Content 'crown-jewels.md'
 $cjRows = @($cj | Where-Object { $_ -match '^\| \d+ \|' })
 function Get-Status($row) { (($row -split '\|')[-2]).Trim() }
+
+# The status column is a closed vocabulary of three, and the counts below are taken by
+# reading it. A status spelled a fourth way is counted by none of them, so the ratio
+# quietly stops summing to the inventory and each figure remains individually true.
+# One classifier, and the rows it classifies as nothing are the finding.
+function Get-CjClass($row) {
+    $s = Get-Status $row
+    if ($s -like 'not authored*') { return 'unauthored' }
+    if ($s -like 'partial*')      { return 'partial' }
+    if ($s -like '*authored*')    { return 'authored' }
+    $null
+}
+
+$absenceIds = @(Get-Content 'absence-contract.md' |
+                ForEach-Object { if ($_ -match '^\| \*\*(A-\d+)\*\*') { $Matches[1] } })
 
 $openCsr = 0; $inOpen = $false
 foreach ($line in Get-Content 'isa-profile.md') {
@@ -127,10 +187,13 @@ foreach ($line in Get-Content 'coverage-matrix.md') {
 # traces: the register's references against the prose bookmarks they cite
 # =================================================================================
 #
-# Bookmarks cannot go stale the way line numbers do, but they can be absent, misspelled
-# or duplicated, and a dangling Markdown anchor fails silently. Properties 1 and 2 are
-# not hypothetical: they found R-05-022 (no trace) and R-15-159 (a target inside a
-# mermaid diagram) when the reference first became symbolic.
+# Bookmarks cannot go stale the way line numbers do, but they can be absent, misspelled,
+# duplicated or buried, and a dangling Markdown anchor fails silently. The properties are
+# not hypothetical: they found R-05-022 (no trace) and R-15-159 (a target inside a mermaid
+# diagram) when the reference first became symbolic. The mermaid case is why a bookmark
+# inside a fenced block is now a finding on its own: the fence displays the anchor rather
+# than declaring it, so the trace that cites it points at nothing while the prose looks
+# like it carries the target. That defect was repaired by hand once and nothing held it.
 
 "=== traces: the register's references against the prose ==="
 
@@ -140,9 +203,7 @@ foreach ($id in $ids) {
     if (-not $t) { continue }
     foreach ($m in [regex]::Matches($t, '\[§([\d.]+)\]\(verification-maximal-os\.md#([^)]+)\)')) {
         $anchor = $m.Groups[2].Value
-        $n = [int]$anchorCount[$anchor]
-        if ($n -eq 0)     { $badTarget += "$id cites #$anchor — no such bookmark in the prose" }
-        elseif ($n -gt 1) { $badTarget += "$id cites #$anchor — $n bookmarks share that id" }
+        if (-not $anchorCount.ContainsKey($anchor)) { $badTarget += "$id cites #$anchor, which is no bookmark in the prose" }
 
         $shown  = ($m.Groups[1].Value -split '\.')[0]
         $actual = $anchorSec[$anchor]
@@ -151,7 +212,11 @@ foreach ($id in $ids) {
         }
     }
 }
-Report 'unresolvable or ambiguous trace target(s)' $badTarget 'every cited bookmark resolves exactly once'
+Report 'unresolvable trace target(s)' $badTarget 'every cited bookmark resolves'
+
+Report 'bookmark(s) declared more than once in one document' $twiceHere 'every bookmark id is unique where it is declared'
+
+Report 'bookmark(s) buried in a fenced block' $buried 'every bookmark is addressable where it is written'
 
 Report 'requirement(s) with no trace' @($ids | Where-Object { -not $traceOf.ContainsKey($_) }) 'every requirement carries a trace'
 
@@ -169,6 +234,128 @@ Report "trace(s) whose display section is wrong" $wrongSec "every trace displays
 ""
 
 # =================================================================================
+# names: every id a document uses, against the artifact that declares it
+# =================================================================================
+#
+# Five vocabularies run across these documents: the register's R- requirements and its
+# CJ- crown-jewel targets, the absence contract's A- absences, and the coverage matrix's
+# B- boundaries and P- properties. Each is declared by exactly one artifact and cited
+# from everywhere, which makes a citation a derived fact of the coarsest granularity,
+# a whole id. Retire or renumber one and every sentence arguing from it still reads,
+# and argues from nothing. IDs are permanent here (a retired requirement is struck,
+# never reused), and that is what makes the check total rather than advisory: a name
+# either resolves to something live or is an error, with no third case to adjudicate.
+
+"=== names: every id used, against the artifact that declares it ==="
+
+Report 'requirement id(s) the register declares twice:' `
+       @($ids | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "$($_.Name), declared $($_.Count) times" }) `
+       "all $($ids.Count) register ids are distinct"
+
+$vocab = @(
+    @{ Kind = 'requirement';        Token = 'R-\d\d-\d+[a-z]?'; Declared = $ids;        Home = 'the register' }
+    @{ Kind = 'crown-jewel target'; Token = 'CJ-[A-Z][A-Z-]*';  Declared = $cjTargets;  Home = "the register's CJ- table" }
+    @{ Kind = 'absence';            Token = 'A-\d+';            Declared = $absenceIds; Home = 'absence-contract.md' }
+    @{ Kind = 'boundary';           Token = 'B-\d+';            Declared = $cmBounds;   Home = 'coverage-matrix.md' }
+    @{ Kind = 'property';           Token = 'P-\d+';            Declared = $cmProps;    Home = 'coverage-matrix.md' }
+)
+
+foreach ($v in $vocab) {
+    $declared = [System.Collections.Generic.HashSet[string]]::new([string[]]@($v.Declared))
+    $pattern  = [regex]"(?<![\w-])$($v.Token)(?![\w-])"
+    $unknown  = @()
+    foreach ($d in $docs) {
+        for ($i = 0; $i -lt $d.Lines.Count; $i++) {
+            if ($d.Fenced[$i]) { continue }
+            foreach ($m in $pattern.Matches($d.Lines[$i])) {
+                if (-not $declared.Contains($m.Value)) {
+                    $unknown += "$($d.Name):$($i + 1) uses $($m.Value), which $($v.Home) does not declare"
+                }
+            }
+        }
+    }
+    Report "$($v.Kind) id(s) naming nothing:" $unknown `
+           "every $($v.Kind) id used names one of the $($declared.Count) $($v.Home) declares"
+}
+""
+
+# =================================================================================
+# links: every cross-reference a document makes, against what it points at
+# =================================================================================
+#
+# The traces group holds the register's citations of the prose. This holds every other
+# pointer: the README to the views, the views to each other and back to the register, a
+# heading cited by its slug, and the §n.m a sentence names without a link at all, which
+# is the commonest cross-reference here and the only one Markdown cannot render as
+# broken even in principle. A dead link renders as ordinary text and reads as a working
+# reference, so nothing but a tool notices. Renaming a heading breaks every slug that
+# cited it and renumbering a section breaks every §n.m that named it, both silently and
+# both at a distance from the edit that caused them.
+#
+# The §n.m half resolves against the numbered headings of the whole repository rather
+# than one document's, because the numbering is shared: §5.3 is the register's
+# subsection and the profile's CSR section, and which is meant is the sentence's
+# business. What the check holds is the weaker property that closes the drift: a number
+# no document carries at all is a reference to a section that has been renumbered away.
+
+"=== links: every cross-reference against what it points at ==="
+
+function ConvertTo-Slug([string]$Heading) {
+    (($Heading -replace '<[^>]+>', '' -replace '`', '').Trim().ToLower() -replace '[^\w\s-]', '' -replace '\s+', '-')
+}
+
+$targets  = @{}   # file -> every id a link may name: its bookmarks and its heading slugs
+$numbered = @{}   # "15.12" -> the number is carried by a heading somewhere
+foreach ($d in $docs) {
+    $set = [System.Collections.Generic.HashSet[string]]::new([string[]]@($anchorsOf[$d.Name].Keys))
+    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
+        if ($d.Fenced[$i] -or $d.Lines[$i] -notmatch '^#{1,6}\s+(.+)$') { continue }
+        $heading = $Matches[1]
+        [void]$set.Add((ConvertTo-Slug $heading))
+        if ($heading -match '^§?(\d+(?:\.\d+)*)[.:) ]') { $numbered[$Matches[1]] = $true }
+    }
+    $targets[$d.Name] = $set
+}
+
+$dead = @(); $unnumbered = [ordered]@{}; $exists = @{}
+foreach ($d in $docs) {
+    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
+        if ($d.Fenced[$i]) { continue }
+        $line = $d.Lines[$i]
+
+        foreach ($m in [regex]::Matches($line, '\]\(([^)\s#]*)(?:#([^)\s]+))?\)')) {
+            $file = $m.Groups[1].Value -replace '^\./', ''
+            $frag = $m.Groups[2].Value
+            if ($file -match '^[a-z][a-z0-9+.-]*:') { continue }   # off the repository, not ours to hold
+            if (-not $file) { $file = $d.Name }
+            if (-not $exists.ContainsKey($file)) { $exists[$file] = Test-Path $file }
+            if (-not $exists[$file]) {
+                $dead += "$($d.Name):$($i + 1) points at $file, which is not in the repository"
+            } elseif ($frag -and $targets.ContainsKey($file) -and -not $targets[$file].Contains($frag)) {
+                $dead += "$($d.Name):$($i + 1) points at $file#$frag, which is no bookmark or heading there"
+            }
+        }
+
+        foreach ($m in [regex]::Matches($line, '§(\d+(?:\.\d+)*)')) {
+            $n = $m.Groups[1].Value
+            if ($numbered.Contains($n)) { continue }
+            if (-not $unnumbered.Contains($n)) { $unnumbered[$n] = @() }
+            $unnumbered[$n] += "$($d.Name):$($i + 1)"
+        }
+    }
+}
+
+Report 'dead link(s):' $dead 'every link resolves to a file, and every fragment to a bookmark or heading'
+
+Report 'section reference(s) naming no numbered heading:' `
+       @($unnumbered.Keys | ForEach-Object {
+           $sites = $unnumbered[$_]
+           $shown = if ($sites.Count -gt 4) { ($sites[0..3] -join ', ') + ", and $($sites.Count - 4) more" } else { $sites -join ', ' }
+           "§$_ is named $($sites.Count) time(s) and numbered nowhere: $shown"
+       }) 'every §n.m names a heading some document carries'
+""
+
+# =================================================================================
 # views: what each derived view carries, in both directions
 # =================================================================================
 #
@@ -179,6 +366,9 @@ Report "trace(s) whose display section is wrong" $wrongSec "every trace displays
 #
 # A view declares what it must carry, either by owning §15 subsection (Secs) or by a
 # pattern matched against requirement bodies anywhere in the register (BodyPattern).
+# That every id a view cites resolves is the names group's business, not this one's:
+# a view is not a special case of the vocabulary, it is the only place membership is
+# also owed in the other direction.
 
 $views = @(
     @{ File = 'isa-profile.md'
@@ -203,9 +393,6 @@ foreach ($v in $views) {
 
     $cited = Select-String -Path $v.File -Pattern 'R-\d\d-\d+[a-z]?' -AllMatches |
              ForEach-Object { $_.Matches } | ForEach-Object { $_.Value } | Sort-Object -Unique
-
-    Report 'ID(s) cited but absent from the register:' @($cited | Where-Object { $_ -notin $ids }) `
-           "all $($cited.Count) cited IDs resolve" '  '
 
     if ($v.Secs) {
         $uncovered = $subsection.Keys | Where-Object { $subsection[$_] -in $v.Secs -and $_ -notin $cited } | Sort-Object
@@ -256,9 +443,9 @@ $q = [ordered]@{
     'dcsr-rows'     = $dcsrRows
     'open-csr-rows' = $openCsr
     'cj-specs'      = $cjRows.Count
-    'cj-authored'   = @($cjRows | Where-Object { (Get-Status $_) -like '*authored*' -and (Get-Status $_) -notlike 'not authored*' -and (Get-Status $_) -notlike 'partial*' }).Count
-    'cj-partial'    = @($cjRows | Where-Object { (Get-Status $_) -like 'partial*' }).Count
-    'cj-unauthored' = @($cjRows | Where-Object { (Get-Status $_) -like 'not authored*' }).Count
+    'cj-authored'   = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'authored' }).Count
+    'cj-partial'    = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'partial' }).Count
+    'cj-unauthored' = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'unauthored' }).Count
     'cj-theorems'   = @($cj | Where-Object { $_ -match '^\| `CJ-[A-Z-]+` \|' }).Count
     'cj-conferring' = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' }).Count
     'seams'         = @($body.Keys | Where-Object { $body[$_] -match ' Seam: \*\*' }).Count
@@ -266,7 +453,7 @@ $q = [ordered]@{
     'boundaries'    = $cmBounds.Count
     'properties'    = $cmProps.Count
     'cells'         = $cmCells.Count
-    'absences'      = @(Get-Content 'absence-contract.md' | Where-Object { $_ -match '^\| \*\*A-\d+\*\*' }).Count
+    'absences'      = $absenceIds.Count
 }
 
 $claims = @(
@@ -382,6 +569,57 @@ foreach ($c in $claims) {
 }
 if ($findings -eq $countFindings -and -not $Fix) { "ok: all $($claims.Count) asserted counts agree" }
 
+# --- the status column is three classes, and every row is in one -------------------
+
+Report 'crown-jewel row(s) whose status is in no class:' `
+       @($cjRows | Where-Object { -not (Get-CjClass $_) } | ForEach-Object { "row $((($_ -split '\|')[1]).Trim()): $(Get-Status $_)" }) `
+       "$($q['cj-specs']) rows partition into $($q['cj-authored']) authored, $($q['cj-partial']) partial, $($q['cj-unauthored']) not authored"
+
+# --- a figure stated where no claim holds it ---------------------------------------
+#
+# The claims above are the whole mechanism, so a restatement nobody registered is not
+# checked at all: right on the day it is written, drifting from then on, and under -Fix
+# left alone while its neighbours are rewritten around it, which is worse than being
+# unchecked, because the document then disagrees with itself. Nothing announces a new
+# figure, so the trap is the value. A form distinctive enough not to collide with
+# ordinary prose (a word form of eleven or more, or three digits and up) standing on
+# the same line as a noun one of these quantities is counted in, and outside the span
+# of every claim, is a figure that escaped the register. Rewording it out of the way
+# is as good a repair as registering it; what is not available is leaving it unheld.
+
+$countedNoun = 'requirement|acceptance criteri|normative section|crown.jewel|specification|' +
+               'theorem target|`CJ-`|absence|boundar|propert|pair|cell|derived view|seam|' +
+               'CSR|letter-suffixed|such entries'
+
+$distinct = [ordered]@{}   # a distinctive form -> the quantities it could be stating
+foreach ($k in $q.Keys) {
+    $n    = $q[$k]
+    $form = if ($n -ge 100) { [string]$n } elseif ($n -ge 11) { ConvertTo-Words $n } else { $null }
+    if ($form) {
+        if (-not $distinct.Contains($form)) { $distinct[$form] = @() }
+        $distinct[$form] += $k
+    }
+}
+
+$loose = @()
+foreach ($file in $docs.Name) {
+    $raw = if ($fixedFiles.ContainsKey($file)) { $fixedFiles[$file] } else { Get-Content $file -Raw }
+    if (-not $raw) { continue }
+    $held = @($claims | Where-Object { $_.File -eq $file } |
+              ForEach-Object { [regex]::Matches($raw, $_.Pattern) } | ForEach-Object { $_ })
+
+    foreach ($form in $distinct.Keys) {
+        foreach ($m in [regex]::Matches($raw, "(?i)(?<![\w-])$form(?![\w-])")) {
+            $rest = $raw.Substring($m.Index, [math]::Min(80, $raw.Length - $m.Index)) -replace '(?s)\r?\n.*', ''
+            if ($rest -notmatch $countedNoun) { continue }
+            if ($held | Where-Object { $m.Index -ge $_.Index -and $m.Index -lt $_.Index + $_.Length }) { continue }
+            $line = 1 + [regex]::Matches($raw.Substring(0, $m.Index), "`n").Count
+            $loose += "${file}:${line} states '$($m.Value)' where no claim holds it, for $($distinct[$form] -join ' or ')"
+        }
+    }
+}
+Report 'unheld restatement(s) of a counted figure:' $loose 'every stated figure is held by a claim'
+
 # --- the Coverage table is one row per section, with the right count ---------------
 
 # The trailing lookahead keeps CRLF out of the match: .NET's (?m)$ sits before the \n,
@@ -418,11 +656,64 @@ if ($q['dcsr-rows'] -ne $q['open-csr-rows']) {
 }
 ""
 
+# A file plus the lines to visit, for the two groups whose findings are per-line and
+# whose repair is always the same visit.
+function Format-Sites([string]$File, [int[]]$Lines) {
+    $shown = if ($Lines.Count -gt 12) { ($Lines[0..11] -join ', ') + ", and $($Lines.Count - 12) more" }
+             else                     { $Lines -join ', ' }
+    "${File}: $($Lines.Count) line(s): $shown"
+}
+
+# =================================================================================
+# tables: every row against the width its header declares
+# =================================================================================
+#
+# Nearly every counted artifact here is a table, and the counts above read one by column
+# position: the crown-jewel status is the last cell, the Coverage total the third. A row
+# short a cell does not fail, it renders short, and every field after the gap shifts one
+# place left, so a column read at the end returns the neighbouring field and the count
+# taken from it is wrong while still being computed. The header row decides the width;
+# a row that disagrees is the finding, and only its author knows which cell is missing.
+#
+# A run of rows carrying no header rule is the second finding, and the coarser one. It
+# is either a table whose `| --- |` was lost, which renders as a paragraph of pipes and
+# is read by nothing, or a row pasted somewhere on its own, which renders as its own
+# one-row table and is read by nothing either. Both are invisible in the source and
+# obvious the moment anything looks for the rule.
+
+"=== tables: every row against the width its header declares ==="
+
+$ragged = @(); $ruleless = @()
+foreach ($d in $docs) {
+    $bad = @(); $width = 0; $start = 0; $rows = 0; $rule = $false
+
+    for ($i = 0; $i -le $d.Lines.Count; $i++) {
+        $line = if ($i -lt $d.Lines.Count -and -not $d.Fenced[$i]) { $d.Lines[$i] } else { '' }
+
+        if ($line -match '^\s*\|') {
+            # an escaped pipe is a character inside a cell, not a wall between two
+            $cells = ($line.TrimEnd() -replace '\\\|', '').Split('|').Count - 2
+            if ($rows -eq 0)           { $start = $i + 1; $width = $cells }
+            elseif ($cells -ne $width) { $bad += $i + 1 }
+            if ($line -match '^\s*\|[\s:|-]+\|\s*$') { $rule = $true }
+            $rows++
+        } elseif ($rows) {
+            if (-not $rule) { $ruleless += "$($d.Name):$start, $rows row(s) with no header rule" }
+            $rows = 0; $rule = $false
+        }
+    }
+    if ($bad.Count) { $ragged += Format-Sites $d.Name $bad }
+}
+
+Report 'file(s) with a table row of the wrong width' $ragged 'every table row is the width its header declares'
+Report 'run(s) of table rows carrying no header rule:' $ruleless 'every table row belongs to a table with a header rule'
+""
+
 # =================================================================================
 # glyphs: punctuation the house style forbids, and the encoding damage that mimics it
 # =================================================================================
 #
-# The three groups above check what a document says. This one checks what it is made of,
+# The groups above check what a document says. This one checks what it is made of,
 # where two unrelated faults share one symptom, a wrong character, and neither survives
 # a rendered read: the em-dash is against house style (the punctuation here is explicit,
 # so a clause takes a comma, a colon, parentheses, or its own sentence), and mojibake is
@@ -443,12 +734,6 @@ if ($q['dcsr-rows'] -ne $q['open-csr-rows']) {
 # with no carve-out is closed by construction: any U+2014 anywhere is a finding, and a
 # table cell meaning *not applicable* is spelled `n/a` rather than left as a bare dash.
 
-function Format-GlyphHits([string]$File, [int[]]$Lines) {
-    $shown = if ($Lines.Count -gt 12) { ($Lines[0..11] -join ', ') + ", and $($Lines.Count - 12) more" }
-             else                     { $Lines -join ', ' }
-    "${File}: $($Lines.Count) line(s): $shown"
-}
-
 "=== glyphs: forbidden punctuation and encoding damage ==="
 
 $emDash = [char]0x2014
@@ -461,17 +746,14 @@ $cp1252 = '\u0080-\u00BF\u0152\u0153\u0160\u0161\u017D\u017E\u0178\u0192\u02C6\u
 $mojibake = [regex]"[\u00C2\u00C3\u00E2\u00F0][$cp1252]|\uFFFD"
 
 $emHits = @(); $mojibakeHits = @()
-foreach ($doc in Get-ChildItem -Path . -Filter *.md -Recurse | Sort-Object FullName) {
-    $name  = (Resolve-Path -Relative $doc.FullName) -replace '^\.[\\/]', ''
-    $lines = [System.IO.File]::ReadAllLines($doc.FullName)
-
+foreach ($d in $docs) {
     $em = @(); $mb = @()
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        if ($lines[$i].Contains($emDash))  { $em += $i + 1 }
-        if ($mojibake.IsMatch($lines[$i])) { $mb += $i + 1 }
+    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
+        if ($d.Lines[$i].Contains($emDash))  { $em += $i + 1 }
+        if ($mojibake.IsMatch($d.Lines[$i])) { $mb += $i + 1 }
     }
-    if ($em.Count) { $emHits       += Format-GlyphHits $name $em }
-    if ($mb.Count) { $mojibakeHits += Format-GlyphHits $name $mb }
+    if ($em.Count) { $emHits       += Format-Sites $d.Name $em }
+    if ($mb.Count) { $mojibakeHits += Format-Sites $d.Name $mb }
 }
 
 Report 'file(s) carrying an em-dash (U+2014)' $emHits 'no em-dash in any document'
