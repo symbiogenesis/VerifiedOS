@@ -44,12 +44,12 @@ A property is what a boundary must hold, stated as a property and never as an at
 
 ## 3. The matrix
 
-Each row records the construction in this design's own mechanisms, its discharge mode, and the requirements that carry it. The modes are the inventory's: **absent** where the class has no vehicle to exist in, **hardware-enforced** where matter decides it, **admission-rejected** where a gate refuses what would violate it, **proved** where a machine-checked theorem carries it, and **residual** where §17 books the remainder rather than a construction closing it.
+Each row records the construction in this design's own mechanisms, its discharge mode, and the requirements that carry it. The modes are the inventory's: **absent** where the class has no vehicle to exist in, **hardware-enforced** where matter decides it, **admission-rejected** where a gate refuses what would violate it, **proved** where a machine-checked theorem carries it, **detected** where the fault is not prevented but cannot pass silently and its consequence is bounded, **transferred** where the obligation is real and is met by a named party other than the platform, and **residual** where §17 books the remainder rather than a construction closing it.
 
 | Boundary | Property | Construction | Mode | Requirements |
 | --- | --- | --- | --- | --- |
 | `B-01` | `P-1` | No speculative, out-of-order, or predictor state exists to carry history across a domain; islands are confidentiality domains and `fence.t` clears what is time-shared | absent | R-15-100, R-15-211, R-15-222 |
-| `B-01` | `P-2` | Every SRAM array is ECC-protected and corrected, the validity tag bits take the stronger code, and no sub-granule write reaches the array | hardware-enforced | R-15-175, R-15-178, R-15-181 |
+| `B-01` | `P-2` | Every SRAM array is ECC-protected and corrected, the validity tag bits take the stronger code, and no sub-granule write reaches the array; interleaving and scrubbing keep a latent error from accumulating and an uncorrectable one is a fail-stop rather than a returned value | detected | R-15-175, R-15-177, R-15-178, R-15-181 |
 | `B-01` | `P-3` | CHERI is the sole spatial mechanism, privilege is a permission on the program-counter capability, and domain entry is a sealed capability jump; the debug module, the one master that would sit outside that model, is fused absent in production under a lifecycle that never re-enters a state it has left | hardware-enforced | R-07-018, R-09-033, R-15-068, R-15-073, R-15-078 |
 | `B-01` | `P-4` | Neither memory encryption nor an anti-replay tree is on the die, the off-die surface they answer being absent and the tags never leaving it | absent | R-15-199, R-15-203, R-15-204 |
 | `B-01` | `P-5` | Divide, vector floating point, and atomics complete at a fixed worst-case latency, and the partition fence completes at a padded constant rather than early | hardware-enforced | R-15-080, R-15-081, R-15-087, R-15-218 |
@@ -90,7 +90,7 @@ Each row records the construction in this design's own mechanisms, its discharge
 | `B-06` | `P-5` | Radio deadlines ship as admitted hard tasks, and a stack crash costs connectivity rather than platform integrity | proved | R-11-007, R-16-002 |
 | `B-06` | `P-6` | The plane split keeps wire parsing in the data plane and protocol state in synchronous control planes whose reaction time is structural | proved | R-05-054, R-12-043 |
 | `B-06` | `P-7` | A value crosses under exactly one admissible encoding, canonicity being proved from the descriptor rather than tested, though agreement with a peer's implementation of the same format stays evidence; no persistent link-layer identifier exists in hardware, every address being a draw from the one entropy root, which is necessary and not sufficient for unlinkability | proved / hardware-enforced / residual | R-05-051a, R-15-132, R-15-133, R-17-016b, R-17-055 |
-| `B-07` | `P-1` | Non-interference holds modulo robust delimited declassification, and the powerbox is the sole runtime declassifier | proved | R-06-016, R-08-024, R-08-026 |
+| `B-07` | `P-1` | Non-interference holds modulo robust delimited declassification, and the powerbox is the sole runtime declassifier; what the modulo releases is decided by the consent act, so the mechanism is proved and the judgment is the user's | proved / transferred | R-06-016, R-08-024, R-08-026, R-17-013 |
 | `B-07` | `P-2` | A grant is an authenticated user act over a path whose front-end ownership the root of trust latches for the prompt's duration | hardware-enforced | R-08-036, R-12-078, R-12-081 |
 | `B-07` | `P-3` | The powerbox holds only the authority grants are attenuated from, and a supervised restart re-grant mints nothing new | proved | R-08-035, R-12-074 |
 | `B-07` | `P-4` | A grant carries a temporal scope enforced by the same revocation, and the unconditional cuts dominate any lease | proved | R-08-037, R-08-041 |
@@ -117,5 +117,7 @@ Each row records the construction in this design's own mechanisms, its discharge
 A cell says how this design carries one property at one boundary, and points at the register for the obligation itself. It is not a summary of everything the requirements say; it is the shortest statement that makes the pair decidable.
 
 A **residual** cell is not an empty cell. It records that the remainder is booked in §17 with an owner and a scope, which is the honest discharge for a pair no construction closes. What the matrix forbids is the third case, a pair with neither.
+
+A **detected** cell and a **transferred** cell are the two ways a pair is carried without being closed here, and both are read wrong if read as the first four modes. Detected says the fault reaches the boundary and cannot cross it silently, so what the cell bounds is the consequence and not the fault. Transferred says the obligation crosses to the party the cell names, so what the cell states is where it went; a transferred cell whose text names no party is defective on its face.
 
 To change a cell, change the register first. Adding a boundary or a property adds a row to one of the two enumerations above and thereby a whole line or column of cells, every one of which must be filled before the checker passes: that is the intended cost, and it is what keeps the enumerations honest rather than convenient.

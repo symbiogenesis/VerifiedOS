@@ -12,7 +12,7 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 1. **It names a boundary and a property, not an attack.** "Rowhammer" is a name for an instance; "a memory array must not permit a write at one address to disturb a bit at another" is a property of a boundary. A row stated as an attack name can only ever be lengthened, never completed, and the [coverage matrix](coverage-matrix.md) is where the completable form of the claim lives.
 2. **The construction is stated in this design's own mechanisms**, citing the sections that carry it, not in the general vocabulary of hardening.
-3. **It carries a discharge mode**, and the mode is honest about what is *checked* versus what is *believed* (items 15 and 16 propose the two modes the current vocabulary lacks).
+3. **It carries a discharge mode**, and the mode is honest about what is *checked* versus what is *believed*. The vocabulary is six modes wide, and the last two are the ones a row reaches for when it would otherwise overclaim: *detected* where the fault occurs and its consequence is bounded, *transferred* where the obligation is met by a named party other than the platform.
 4. **It cites the requirement that makes it true.** A row with no requirement behind it is a claim about the prose, and the register's conferral discipline exists precisely because three overlapping sources of the same fact will disagree.
 5. **If it cannot be discharged, it is a §17 residual, not an omission.** The inventory's closing paragraph already carries an exclusion list; the failure mode is a class that appears in neither.
 
@@ -41,11 +41,11 @@ These are open. Some are open in a way the inventory already admits and states p
   The minimum honest step is to state the position: that the crypto core carries no masking, that side-channel resistance against a probing adversary is not claimed, and what would change that. The maximum step is the masked implementation with its probing-model theorem, which would be a new crown jewel and a new leakage assumption.
   **Lands as:** a §17 residual stated in its own right rather than inside the physical-attack clause; optionally a §5 obligation if masking is ever adopted. **Mode:** residual.
 
-- [ ] **11. Fault injection, and the discharge mode it has nowhere to go.**
+- [ ] **11. Fault injection, and the two detector positions the design has not taken.**
   Voltage and clock glitching, laser injection, and electromagnetic fault injection are not eliminable, and the design says so. But they are *detectable* by construction, and the design already carries most of the detectors: pervasive error-correcting codes with correction on every array, the CHERI validity tags, the fail-stop sentinel, the watchdog, the crash-only restart, and the multikernel blast-radius containment (§7, §15, §16). §15 even states the doctrine in one line: *detect, correct, or contain, never shield*.
-  The gap is that the inventory has no mode for any of that. A row whose honest answer is "an injected fault is caught and the partition restarts" cannot be written today, so the class is simply missing from a matrix that claims to enumerate what the construction removes. This is the concrete case that motivates item 15.
-  The remaining construction work is small and specific: a stated position on control-flow signatures for the sequences where a skipped instruction is catastrophic (the boot chain, the credential comparison, the lifecycle transition), and a stated position on whether the sentinel core runs in lockstep, which the design has evaluated and deferred rather than decided in the inventory's terms.
-  **Lands as:** an inventory row once the mode exists, plus the §16 statements it would cite. **Mode:** detected (item 15).
+  The gap is no longer the vocabulary: *detected* now names the mode, and the detection rows beside it (upsets, the entropy root, the wedged partition) are the shape the fault-injection row would take. What the row still lacks is its construction. A row whose honest answer is "an injected fault is caught and the partition restarts" has to say which mechanism catches *which* injection, and for the sequences where a single skipped instruction is catastrophic the design says nothing at all.
+  The remaining construction work is small and specific: a stated position on control-flow signatures for those sequences (the boot chain, the credential comparison, the lifecycle transition), and a stated position on whether the sentinel core runs in lockstep, which the design has evaluated and deferred rather than decided in the inventory's terms. Until both exist the row would be a mode with nothing under it.
+  **Lands as:** an inventory row beside the other detection rows, plus the §16 statements it would cite. **Mode:** detected.
 
 - [ ] **13. Silicon supply chain: the mask analogue of reproducible builds.**
   Partly answered and stated as partly answered, which is right: §17 carries the fab residual, names open RTL and multi-sourcing as partial mitigations, and adds post-fabrication infrared inspection as evidence rather than proof.
@@ -55,13 +55,7 @@ These are open. Some are open in a way the inventory already admits and states p
 
 ---
 
-## Two smaller structural notes
-
-- [ ] **15. The discharge vocabulary is missing at least two real modes.**
-  The inventory uses absent, hardware-enforced, admission-rejected, and proved. Two mechanisms the design leans on heavily fit none of them.
-  **Detected and corrected.** Error-correcting codes are the clearest case: the mandate is pervasive and graded, correction is on every array, uncorrectable events are fail-stop, and the whole single-event-upset posture is *detect, correct, or contain* (§15). None of that is absence, none of it is a hardware access check, none of it is refused at admission, and none of it is a theorem about the fault. The same is true of the memory integrity tree, of storage scrubbing, of the watchdog, and of the fail-stop sentinel. Adding the mode is the precondition for item 11 having anywhere to land, and for the entropy root's health tests reading as the discharge they are rather than as a residual's consolation.
-  **Transferred.** Some obligations are genuinely discharged by someone other than the platform: the compartment author (an app that ships its own string-parsing engine, which the inventory's closing paragraph already concedes), the deployment (the graded reliability and radiation-hardening axes), and the human (consent comprehension, which §17 books as outside every theorem). Today these appear as prose caveats after the tables, which reads as a footnote to a claim rather than as a claim about where the obligation went. Naming the mode makes the transfer a stated part of the argument and makes it countable.
-  **Lands as:** two mode names in the README legend plus per-row use. **Mode:** not applicable.
+## A smaller structural note
 
 - [ ] **16. The inventory is integrity-shaped, and confidentiality is under-represented.**
   Counting by row, the overwhelming majority of the claims are about integrity and authority. Confidentiality gets essentially one row (secret-dependent branches, addresses, and variable-latency operations) despite non-interference being the named property of §8 and a named §17 residual.
@@ -75,6 +69,6 @@ These are open. Some are open in a way the inventory already admits and states p
 
 ## What would retire this list
 
-Items 9, 13, 15, and 16 are statements the design owes about positions it has already taken.
-Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by acquiring a mode it lacks.
+Items 9, 13, and 16 are statements the design owes about positions it has already taken.
+Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by deciding the two §16 positions its row would have to cite.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.
