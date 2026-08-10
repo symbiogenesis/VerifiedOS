@@ -121,12 +121,11 @@ The search itself is specified in §15 (normative) and [implementation-plan.md](
 
 ---
 
-## 4. Application- and composition-level restructuring: software-only, no trust cost
+## 4. Composition-level restructuring: software-only, no trust cost
 
-- [ ] **[U] Data-oriented restructuring onto the fast paths.**
-  SoA layouts, batching, and replacing pointer-chasing with vectorizable / matrix-shaped structure move general-purpose work onto the RVV, systolic-GEMM, and table-free-crypto paths (§15) that already run at parity-to-many-×.
-  The single-address-space (no MMU, §7) already helps pointer-chasing (+5% to +25%).
-  Ordinary source-level engineering that changes no mechanism; a conventional chip benefits identically, so this moves work onto the fast paths both machines share rather than closing distance. Its marginal return is nonetheless higher here for the same reason the memory plan's locality objective (R-08-012a) pays: there is no cache to rescue a bad access pattern, and source structure is what that plan has to work with.
+*Both items decide the *shape* of a composition rather than the content of a binary: how many discretionary tenants divide the frame, and how wide an authority grant a driver's WCET bound is priced against.
+The source-level counterpart, writing application data structures onto the RVV / GEMM / crypto fast paths, is porting discipline rather than a lever here: it changes no mechanism, no schedule, and no theorem, so there is nothing for the spec to land, and it is stated once in [userspace-porting.md](userspace-porting.md).*
+
 - [ ] **[D] Compartment-granularity budgeting at composition time.**
   The design's largest *user-facing* performance cost is not in the big table at all: it is §17's **population wall**, where a non-work-conserving frame **divides rather than shares**, discretionary capacity collapses as roughly 1/n, a background origin at the 32-rung holds on the order of one percent of one core, and twenty idle background compartments burn twenty slots that no mechanism will ever reclaim (§17 states plainly that none will be added, because that mechanism *is* the channel the design is buying).
   The only pure lever against it is the divisor: **choose compartment granularity deliberately at composition time**, keep the discretionary population small, prefer one compartment doing batched work to several waiting ones, and design apps so deep sets are *retained state* rather than live compartments, which is the shape §14 and §17 already describe.
@@ -169,7 +168,6 @@ The third column gives the class from **The two classes**, above: **[D]** exploi
 | Static schedule synthesis | Non-work-conserving scheduler; TDM NoC | **[U]** Shrinks a self-imposed idle; never reaches work-conserving. Loops with WCET-directed compilation |
 | Core count weighted against issue width | Non-work-conserving scheduler; `fence.t` + zeroize; §17 population wall | **[D]** Each extra core *deletes* a pinned server's switch terms rather than reducing them (R-11-011); worth nothing on a work-conserving baseline. Core count is not yet in R-15-108's searched set |
 | Faster pure-interpreters (JS + Wasm) | No-JIT (browser JS and Wasm) | **[U]** Substitute for the missing JIT; narrows, never closes. Inline caches carry the §8 argument stated, not assumed, plus a differential-testing obligation; the superinstruction set is size-budgeted under gate 6, its bodies being AOT code |
-| Data-oriented restructuring | General scalar → vector / matrix / crypto | **[U]** Shared source technique; higher margin only because no cache rescues a bad pattern |
 | Compartment-granularity budgeting | §17 population wall (unrowed; the largest user-facing cost) | **[D]** A *shape* lever, not a percentage; bounded below by §14's mandatory compartmentalization |
 
 ---

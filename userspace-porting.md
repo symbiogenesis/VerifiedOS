@@ -90,6 +90,18 @@ Independent of the application, the same four substrate mismatches are re-target
 
 ---
 
+## Writing for the fast paths: a source-level discipline, not a mechanism
+
+The four obstacles above decide whether a port is *admissible*; this decides whether it is *fast*, and it is the one performance lever that lives entirely in application source.
+SoA layouts, batching, and replacing pointer-chasing with vectorizable or matrix-shaped structure move general-purpose work onto the RVV, systolic-GEMM, and table-free-crypto paths (§15) that already run at parity-to-many-×, which is where the compute deleted by obstacle 2 has to land.
+The single address space (no MMU, §7) already helps pointer-chasing on its own.
+
+Nothing here is specific to this design, and a conventional chip benefits from the same rewrite, so this moves work onto fast paths both machines share rather than closing distance against one.
+Its **marginal return** is nonetheless higher here, for the same reason the memory plan's locality objective (R-08-012a) pays: there is no cache to rescue a bad access pattern, and source structure is all that plan has to work with.
+That is why it is recorded as porting discipline rather than as a recovery lever in [performance-recovery-todo.md](performance-recovery-todo.md) — it changes no mechanism, no schedule, and no theorem, so there is nothing for the spec to land.
+
+---
+
 ## The dependency closure is the unit of work
 
 A name on the roster is the top of a graph, not the graph.
