@@ -2662,6 +2662,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a compromised codec reaches only the buffer capabilities it was passed, and because those buffers are handed over as *local* capabilities it cannot retain them past the call to exfiltrate later.
 · Trace: CJ-CERISE · [§14](verification-maximal-os.md#r-14-007)
 
+**R-14-007a** MUST: Above the R-14-007 floor, discretionary compartment granularity is a budgeted composition-time quantity and not an inherited consequence of source factoring: the frame is non-work-conserving across confidentiality boundaries (R-07-036), so every live discretionary compartment is a divisor of the discretionary band and an idle one burns a slot no mechanism reclaims (R-17-004, R-17-006).
+· Accept: the composition records its discretionary compartment count as a capacity decision against the §11 population rung (R-11-021); one compartment doing batched work is preferred to several waiting ones, and deep sets are held as retained state (R-14-011) rather than as live compartments. The lever recovers no scored row: the wall is a capacity statement rather than a percentage, so what the budget decides is where a composition sits against it.
+· Trace: CJ-CERISE, CJ-WCET · [§14](verification-maximal-os.md#r-14-007a)
+
+**R-14-007b** MUST NOT: No compartment boundary R-14-007 requires is merged to shrink the divisor.
+· Accept: where the R-14-007a budget and R-14-007 conflict, R-14-007 wins; fewer compartments is less isolation, so the budget binds discretionary granularity only and is never a licence to flatten a mandated boundary.
+· Trace: CJ-CERISE · [§14](verification-maximal-os.md#r-14-007b)
+
 **R-14-008** MUST: The browser is maximally contained: per-origin compartments, no JIT, software rendering on C/V-class cores, and powerbox-only file and clipboard access.
 · Accept: an origin RCE yields that origin's authority and nothing else.
 · Trace: CJ-CERISE · [§14](verification-maximal-os.md#r-14-008)
@@ -2799,6 +2807,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-015b** MUST: The store buffer holds SRAM-space stores only: a device-space store does not enter it, issuing only once the buffer has drained and completing at the endpoint's accept before it retires. **Drained** means every prior buffered store has been issued into the fabric, not that it has reached its bank arbiter: the core confers issue order, and the arrival half of any edge whose observer is not the issuing hart is R-15-015a's obligation. The exclusion is forced by R-15-218, whose padded constant is stated over the class's depth and memory bandwidth and would otherwise be set by the slowest endpoint's accept latency (R-12-046's divided card clock being an on-die existence proof, and R-15-196's island-clock FIFO narrowing that to the common case without closing the full-FIFO backpressure worst case a pad must price); the drain-first half is forced by R-15-015, a device store leaving the core ahead of a buffered SRAM store being a store→store reordering Ztso does not permit.
 · Accept: no device-space entry is representable in the buffer in the RTL, and the issue condition is one statically-decoded stall on one instruction class rather than the load-path bypass-correctness obligation R-15-018 ground (3) rejects. The two halves close, **at the core**, exactly the edges between requests the core itself sequences: device-store→device-store, serialized by the accept, and the MMIO read-back, the store having completed before the load issued. **Descriptor→doorbell is not one of them**: its observer is the DMA engine, which reads the descriptor from SRAM after taking the doorbell, so that edge is discharged by R-15-015a over device endpoints, the drain supplying its issue-order half and the fabric its arrival half. With both in place the `PI`/`PO` axis separates nothing. The endpoint's accept latency, evicted from R-15-218's constant, lands in the device store's own per-instruction latency in the timing-annotated model (R-05-103) with the full-FIFO crossing as its worst case, charged to the compartment that issues the store rather than to every partition switch. Cost is a drain plus an endpoint round-trip per device store, at rate only on the MSI send (R-15-064, R-08-032), mitigated by R-11-010's ring-depth amortization.
 · Trace: CJ-SAIL, CJ-WCET, CJ-ISOL · [§15](verification-maximal-os.md#r-15-015b)
+
+**R-15-015c** MUST: Device authority is provisioned by latency class in the attested devicetree (R-09-007): a compartment holds only endpoints whose worst-case accept is of the same order, and an endpoint whose full-FIFO crossing dominates sits behind its own thin driver compartment whose entire budget is that latency.
+· Accept: no grant spans a fabric-rate register block and a divided-clock endpoint (R-12-046), so no compartment's MMIO is priced at a worst case it does not incur. The rule narrows an authority grant inside the sole origin of device authority (R-05-138), from which the verified HAL derives rather than fabricates: no mechanism, interface, or ordering rule changes and no proof obligation moves, R-15-015b pricing each store exactly as before. What is removed is the reachability that created the term, not the margin on it.
+· Trace: CJ-CERISE, CJ-WCET · [§15](verification-maximal-os.md#r-15-015c)
+
+**R-15-015d** MUST: The R-15-015c split is taken only where the slow endpoint's worst case dominates the compartment's §11 bound, never merely because two endpoints differ, because each additional driver compartment is one more tenant dividing the non-work-conserving frame (R-07-036) and one more slot against the population wall (R-17-004, R-17-006).
+· Accept: a split that meaningfully shortens no slot is not admitted; where the slow endpoint does dominate, the split is taken, a slot width set by a divided card clock being the larger loss. This is the same trade R-14-007a states from the compartment-count side, and the two are arbitrated together rather than as independent preferences.
+· Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-015d)
 
 **R-15-016** MUST: The Ztso guarantee is an RTL-against-Sail proof obligation stated over the whole memory path: the store buffer provably exposes no ordering weaker than TSO, and the fabric beneath it provably preserves per-hart request order (R-15-015a).
 · Accept: the obligation is a named bring-up gate alongside the `Zkt`/`Zvkt` timing obligation, and its statement covers the NoC and memory controller rather than the store buffer alone.
@@ -4478,7 +4494,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1027 requirements. §19 is non-normative and yields none. Counts include the 109 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1031 requirements. §19 is non-normative and yields none. Counts include the 113 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4495,8 +4511,8 @@ All eighteen normative sections are extracted, at 1027 requirements. §19 is non
 | **§11 Updates** | **extracted** | **27** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
-| **§14 Userland** | **extracted** | **20** |
-| **§15 Hardware Platform** | **extracted** | **269** |
+| **§14 Userland** | **extracted** | **22** |
+| **§15 Hardware Platform** | **extracted** | **271** |
 | **§16 Reliability** | **extracted** | **23** |
 | **§17 Residual Risks** | **extracted** | **79** |
 | **§18 Realization** | **extracted** | **41** |
