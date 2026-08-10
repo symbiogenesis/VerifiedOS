@@ -460,7 +460,7 @@ $claims = @(
     # the register states its own coverage
     @{ File = 'requirements-register.md'; Q = 'sections';      Style = 'words';  Pattern = '[\w-]+(?= normative sections are extracted)' }
     @{ File = 'requirements-register.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=extracted, at )[\d,]+(?= requirements)' }
-    @{ File = 'requirements-register.md'; Q = 'lettered';      Style = 'words';  Pattern = '(?<=Counts include the )[\w-]+(?= letter-suffixed entries)' }
+    @{ File = 'requirements-register.md'; Q = 'lettered';      Style = 'digits'; Pattern = '(?<=Counts include the )[\w,-]+(?= letter-suffixed entries)' }
     @{ File = 'requirements-register.md'; Q = 'dcsr-rows';     Style = 'words';  Pattern = '(?<=one, with )[\w-]+(?= rows)' }
 
     # the crown-jewel inventory states its own status ratio

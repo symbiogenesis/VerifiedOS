@@ -55,7 +55,7 @@ Each row records the construction in this design's own mechanisms, its discharge
 | `B-01` | `P-5` | Divide, vector floating point, and atomics complete at a fixed worst-case latency, and the partition fence completes at a padded constant rather than early | hardware-enforced | R-15-080, R-15-081, R-15-087, R-15-218 |
 | `B-01` | `P-6` | `Zkt` and `Zvkt` are the architectural data-independent-timing contract, and bare self-exclusion from that list is not a pass | hardware-enforced | R-15-011, R-15-053, R-15-085 |
 | `B-01` | `P-7` | Exactly one Sail model and one capability encoding exist, and a second entropy root is refused rather than reconciled | admission-rejected | R-15-005, R-15-037, R-15-241 |
-| `B-02` | `P-1` | Any binary receiving secret-labeled material carries the binary-level constant-time obligation, and secret taint is a type-level attribute the checker decides | proved | R-05-062, R-05-069, R-13-020 |
+| `B-02` | `P-1` | Any binary receiving secret-labeled material carries the binary-level constant-time obligation, and secret taint is a type-level attribute the checker decides; the obligation reaches the fault path, so which traps such a binary can take is a function of its public inputs | proved | R-05-062, R-05-069, R-13-020, R-16-002a |
 | `B-02` | `P-2` | Admission binds the installed bytes to their exact content-addressed source closure, and the pack is read by a verified copy-once reader | proved | R-06-010, R-13-001, R-13-009 |
 | `B-02` | `P-3` | Execute authority is wired only over the immutable image through the capability-wiring table, and the manifest declares the internal compartment graph | admission-rejected | R-13-004, R-13-006, R-13-024 |
 | `B-02` | `P-4` | A binary enters only through a signed generation, the anti-rollback floor bounds which generations may boot, and no system component fetches code at runtime | hardware-enforced | R-09-028, R-11-005, R-13-002 |
@@ -102,7 +102,7 @@ Each row records the construction in this design's own mechanisms, its discharge
 | `B-08` | `P-3` | Precision beyond the default is granted through the one time-service interface rather than read ambiently from a counter | proved | R-08-031, R-12-036 |
 | `B-08` | `P-4` | The platform carries no persistent real-time clock: the device boots time-unknown, re-acquires from an authenticated source, and holds a persisted monotonic floor | absent | R-09-012, R-09-014, R-09-016 |
 | `B-08` | `P-5` | A network adversary can deny or stall fresh absolute time, which is booked as an availability limit rather than an integrity one | residual | R-17-057 |
-| `B-08` | `P-6` | The schedule is time-triggered and non-work-conserving, so an idle slot is burned rather than donated | absent | R-07-032, R-07-036 |
+| `B-08` | `P-6` | The schedule is time-triggered and non-work-conserving, so an idle slot is burned rather than donated, which is what puts progress and termination inside the flow policy: what a peer observes of a computation is a function of the schedule rather than of the secret | absent | R-07-032, R-07-036, R-08-027b |
 | `B-08` | `P-7` | Nothing security-critical depends on wall-clock time, the monotonic counters being counters rather than clocks | absent | R-09-013 |
 | `B-09` | `P-1` | There are no maintainer scripts, no post-install execution, and no runtime code fetching by system components | absent | R-13-002 |
 | `B-09` | `P-2` | The base image is bit-for-bit reproducible, so a relying party reproduces the reference values instead of being told them | proved | R-09-027, R-13-026 |

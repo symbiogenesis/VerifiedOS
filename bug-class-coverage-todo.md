@@ -1,7 +1,7 @@
 # Bug-Class Coverage: TODO (non-normative)
 
 > Companion to the **Bug classes removed by construction** inventory in [README.md](README.md), to [verification-maximal-os.md](verification-maximal-os.md), and to [requirements-register.md](requirements-register.md).
-> Where the README inventory states what the construction *already* removes, this doc holds the critiques of that inventory: the classes it should carry and does not, the classes it should name as open and does not, and the two defects in its *shape*.
+> Where the README inventory states what the construction *already* removes, this doc holds the critiques of that inventory: the classes it should carry and does not, and the classes it should name as open and does not.
 > Nothing here is normative and nothing here relaxes an obligation.
 > An item leaves this list when it lands as a numbered requirement in the register with an acceptance criterion and a trace, and appears in the inventory as a row or in §17 as a residual. Removing an item from the list without one of those is the failure mode this doc exists to prevent.
 > Item numbers are stable. Resolved items are deleted rather than checked off, and survivors are **not** renumbered, so gaps in the sequence are the record of what closed (the [critique.md](critique.md) convention).
@@ -55,20 +55,8 @@ These are open. Some are open in a way the inventory already admits and states p
 
 ---
 
-## A smaller structural note
-
-- [ ] **16. The inventory is integrity-shaped, and confidentiality is under-represented.**
-  Counting by row, the overwhelming majority of the claims are about integrity and authority. Confidentiality gets essentially one row (secret-dependent branches, addresses, and variable-latency operations) despite non-interference being the named property of §8 and a named §17 residual.
-  Three confidentiality classes have no entry at all and each is a real class with a real construction position in this design.
-  **Over-broad declassification.** The powerbox is the sole runtime declassifier and the design's answer is robust delimited declassification (§8), which is a strong construction and appears nowhere in the inventory. The class it removes (an over-broad grant, a grant an attacker can drive, a grant that carries more than the object it named) is exactly what a reader of a security inventory would look for.
-  **Termination and progress channels.** A static cyclic executive with non-work-conserving slots and admitted worst-case bounds is an unusually strong answer here, because a computation's *observable* progress is a function of the schedule rather than of the secret. That is close to an absence claim and it is not made.
-  **Exception and fault-path flows.** Fail-stop is the design's standard response, and a fault that is a function of a secret is an information flow whether or not the machine survives it. The design's position (that a fault restarts a partition, and that fault classes are reported to the sentinel) has a confidentiality consequence that is currently unstated.
-  **Lands as:** three inventory rows plus, where the position is not yet stated, the §8 and §16 requirements they would cite. **Mode:** per row; the declassification row is proved, the progress row is closer to absent, the fault-path row may be residual.
-
----
-
 ## What would retire this list
 
-Items 9, 13, and 16 are statements the design owes about positions it has already taken.
+Items 9 and 13 are statements the design owes about positions it has already taken.
 Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by deciding the two §16 positions its row would have to cite.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.

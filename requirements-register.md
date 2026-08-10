@@ -1500,6 +1500,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the seam is the NI ⋈ timing lemma (R-05-160).
 · Trace: CJ-NI, CJ-ISOL · [§8](verification-maximal-os.md#r-08-027)
 
+**R-08-027a** IS: The observation model includes *progress*: whether a component terminates and how far it gets before it does are observations the policy ranges over, not quantities quotiented out of it.
+· Accept: the theorem is termination- and progress-sensitive; a proof stated over final values alone does not discharge it.
+· Trace: CJ-NI · [§8](verification-maximal-os.md#r-08-027a)
+
+**R-08-027b** MUST: A component's observable progress is a function of the schedule and not of any secret it holds: slot instants and widths are composition constants, the frame is non-work-conserving across confidentiality boundaries, and each slot's worst case is admitted to fit its width, so a diverging loop, an early return, a rejected input, or a fault moves no other partition's slot boundary.
+· Accept: there is no donation, yield, or slack path by which one partition's progress can reach another's timing (R-07-032, R-07-036, R-11-006); the only progress quantity a compartment reads is its own slot width, which is the population-rung residual already booked (R-17-007) and not a second channel.
+· Trace: CJ-NI, CJ-ISOL · [§8](verification-maximal-os.md#r-08-027b)
+
+**R-08-027c** MUST: An exception, the fault class it raises, and the restart it causes are observations, so the fault path carries a confidentiality obligation and not only an availability one: a fault that is a function of secret-labeled data is a flow whether or not the machine survives it.
+· Accept: the mechanism is R-16-002a and the residual is R-17-003a; a fault path treated only as a reliability event is a finding against this requirement.
+· Trace: CJ-NI · [§8](verification-maximal-os.md#r-08-027c)
+
 **R-08-028** IS: The security policy model, including the delimited-release bound and the robust-declassification statement, is a crown-jewel spec.
 · Accept: it appears in the crown-jewel inventory and is subject to independent review.
 · Trace: CJ-NI · [§8](verification-maximal-os.md#r-08-028)
@@ -3824,6 +3836,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the radio stack is wholly non-TCB (R-06-021).
 · Trace: CJ-CERISE · [§16](verification-maximal-os.md#r-16-002)
 
+**R-16-002a** MUST: The fault path is held to the confidentiality policy on three mechanisms: an in-model fault is secret-independent wherever a constant-time obligation binds, since CT verification makes control flow and access sequence, hence the traps reachable, functions of public inputs; the restart is paid from the faulting partition's own slots, so it moves no peer's timing; and the fault class reaches the sentinel telemetry monitor as a labeled flow over a closed enumeration rather than an ambient log.
+· Accept: each of the three is already required elsewhere (R-05-062, R-07-036, R-16-013) and is stated jointly here because separately none of them reads as a confidentiality claim; the obligation this discharges is R-08-027c and what it does not reach is R-17-003a.
+· Trace: CJ-NI, CJ-CT-SOUND · [§16](verification-maximal-os.md#r-16-002a)
+
 **R-16-003** MUST: Crash consistency on the integrity path is machine-checked; user data carries checksummed CoW plus patrol scrub; ECC telemetry spans cores, scratchpads, NoC, and the main-memory SRAM array.
 · Accept: each is a named mechanism with an owner.
 · Trace: CJ-DEVTREE · [§16](verification-maximal-os.md#r-16-003)
@@ -3939,6 +3955,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-17-003** IS: The NI ⋈ timing seam's residual is the composition proof itself, plus any channel below partitioning granularity.
 · Accept: statically-predicted wrong-path fetch reads flat SRAM at fixed latency with no I-cache, so that residual footprint is deleted rather than partitioned.
 · Trace: CJ-NI, CJ-ISOL · [§17](verification-maximal-os.md#r-17-003)
+
+**R-17-003a** IS: The fault path's last case is booked rather than closed: a compartment holding no platform secret carries no constant-time obligation, so whether it faulted and in which class can be a function of its own data, and that class travels to the sentinel and onward in an exported crash record.
+· Accept: what bounds the channel is the record's shape rather than a proof (a closed fault-class enumeration, a schema-bounded record, no free-form text, and no data-dependent payload, per R-16-013), so the disclosure is coarse and countable; the two mechanisms that do close their cases are R-16-002a's first and second.
+· Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-003a)
 
 **R-17-004** IS: The population wall: a non-work-conserving frame divides rather than shares, so discretionary capacity is divided among live compartments and no scheduling work recovers the difference.
 · Accept: the §11 population rungs change the *shape* of the division, not the fact of it.
@@ -4422,7 +4442,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1013 requirements. §19 is non-normative and yields none. Counts include the ninety-five letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1018 requirements. §19 is non-normative and yields none. Counts include the 100 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4433,7 +4453,7 @@ All eighteen normative sections are extracted, at 1013 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **188** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
-| **§8 Authority Model** | **extracted** | **50** |
+| **§8 Authority Model** | **extracted** | **53** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
@@ -4441,8 +4461,8 @@ All eighteen normative sections are extracted, at 1013 requirements. §19 is non
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
 | **§15 Hardware Platform** | **extracted** | **267** |
-| **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **77** |
+| **§16 Reliability** | **extracted** | **23** |
+| **§17 Residual Risks** | **extracted** | **78** |
 | **§18 Realization** | **extracted** | **41** |
 
 §19 is non-normative and yields no requirements.
