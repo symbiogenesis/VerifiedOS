@@ -3657,7 +3657,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 15.27 Temporal isolation and `fence.t`
 
 **R-15-211** MUST: Temporal isolation is carried by `fence.t`-class flush at partition switches, SRAM bank/macro/tier partitioning, and TDM NoC arbitration with island separation, each carrying architecturally guaranteed non-interference semantics in the Sail model.
-· Accept: a partition's timing behaviour is provably independent of another's activity.
+· Accept: a partition's timing behaviour is independent of another's activity, decided against the isolation model's non-interference statement rather than against the list of mechanisms above it; until that model is authored the obligation is stated and not discharged (R-17-003b).
 · Trace: CJ-ISOL, CJ-NI · [§15](verification-maximal-os.md#r-15-211)
 
 **R-15-212** IS: Bandwidth appears as a consequence of the NoC schedule and the bank binding, never as a regulated quantity; no bandwidth-allocation mechanism exists beside them.
@@ -3719,7 +3719,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-ISOL, CJ-NI · [§15](verification-maximal-os.md#r-15-225)
 
 **R-15-226** MUST: The SRAM bank, macro, or tier is bound to the island as a graded spatial hierarchy: separate macro or stacked tier, then separate bank group, then bank within a macro, decreasing in isolation strength as sharing rises to a common macro.
-· Accept: high-assurance islands take whole-macro (better, whole-tier) exclusivity; mid- and low-sensitivity islands take bank granularity, with residual macro-internal coupling narrowed by static per-island arbitration and `fence.t` and §17-listed rather than eliminated.
+· Accept: high-assurance islands take whole-macro (better, whole-tier) exclusivity; mid- and low-sensitivity islands take bank granularity, with residual macro-internal coupling narrowed by static per-island arbitration and `fence.t` and booked in R-17-003b rather than eliminated.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-226)
 
 **R-15-227** MUST: Residual coupling is narrowed by scheduling, never by throttling: a rate regulator could only shape traffic whose arrival the TDM schedule already fixed, which is why none exists.
@@ -3967,6 +3967,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-17-003a** IS: The fault path's last case is booked rather than closed: a compartment holding no platform secret carries no constant-time obligation, so whether it faulted and in which class can be a function of its own data, and that class travels to the sentinel and onward in an exported crash record.
 · Accept: what bounds the channel is the record's shape rather than a proof (a closed fault-class enumeration, a schema-bounded record, no free-form text, and no data-dependent payload, per R-16-013), so the disclosure is coarse and countable; the two mechanisms that do close their cases are R-16-002a's first and second.
 · Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-003a)
+
+**R-17-003b** IS: The seam's spatial term is graded rather than uniform: disjoint macro or tier binding leaves no shared address or data path to contend for and no arbiter whose decision another island's activity could reach, while two low-sensitivity islands sharing a macro have their contention term scheduled away by the memory controller's static per-island arbitration and retain the macro's shared periphery, power delivery, and thermal mass, which is the physical residual (R-17-058) read on the memory array rather than on the crypto core. Neither case is carried by a theorem: the non-interference statement both are stated against is the NoC/island isolation model, which is not authored.
+· Accept: the inventory row and the coverage cell read absent for the disjoint binding and residual for the shared macro, and neither reads proved while that model is unauthored (R-15-211, R-15-225, R-15-228); whole-macro or whole-tier exclusivity is mandatory for high-assurance islands (R-15-226), so no crown-jewel domain sits inside the shared-macro case, and the shared case is narrowed by scheduling rather than by throttling (R-15-227).
+· Trace: CJ-ISOL, CJ-NI · [§17](verification-maximal-os.md#r-17-003b)
 
 **R-17-004** IS: The population wall: a non-work-conserving frame divides rather than shares, so discretionary capacity is divided among live compartments and no scheduling work recovers the difference.
 · Accept: the §11 population rungs change the *shape* of the division, not the fact of it.
@@ -4450,7 +4454,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1020 requirements. §19 is non-normative and yields none. Counts include the 102 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1021 requirements. §19 is non-normative and yields none. Counts include the 103 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4470,7 +4474,7 @@ All eighteen normative sections are extracted, at 1020 requirements. §19 is non
 | **§14 Userland** | **extracted** | **14** |
 | **§15 Hardware Platform** | **extracted** | **269** |
 | **§16 Reliability** | **extracted** | **23** |
-| **§17 Residual Risks** | **extracted** | **78** |
+| **§17 Residual Risks** | **extracted** | **79** |
 | **§18 Realization** | **extracted** | **41** |
 
 §19 is non-normative and yields no requirements.

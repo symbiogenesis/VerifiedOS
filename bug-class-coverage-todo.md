@@ -22,12 +22,6 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 These are open. Some are open in a way the inventory already admits and states poorly; some are open and unmentioned.
 
-- [ ] **8. Spatial contention channels, and the theorem that would close them.**
-  The inventory carries this row and the construction it names is the right one: static time-division multiplexing of fabric access, disjoint bank and macro binding per island, a whole macro or tier for a high-assurance island, and `fence.t` at the partition switch for the residual case where two low-sensitivity islands share a macro. That is the spatial analogue of the temporal partitioning, exactly as it should be.
-  The open part is not the construction, it is that the row's mode says **proved** and the isolation model it would be proved against is unauthored, which is the dominant fact the critique's first gap states about the whole design. Bank-conflict and interconnect-arbitration channels survive the deletion of caches; what removes them is the static schedule, and what would *establish* that removal is the Sail-level non-interference statement for the memory path and the fabric.
-  So the work here is not a new mechanism. It is: state the model, state the two-island shared-macro residual explicitly rather than in a subordinate clause, and stop the row from reading as discharged while its theorem has not started.
-  **Lands as:** sharpening the existing row's honesty plus the crown-jewel specification it depends on. **Mode:** currently absent-or-proved; should read absent for the disjoint case and residual for the shared-macro case until the model exists.
-
 - [ ] **10. Power and electromagnetic analog leakage.**
   Absent entirely, and honestly so: §3 scopes invasive physical attack out, §15 admits the Faraday enclosure as attenuation that no theorem rests on, and §17 books emanation as narrowed but not closed. Nothing in the construction is a countermeasure for differential power analysis or electromagnetic analysis against the crypto core, and the constant-time discipline addresses *timing*, not power.
   The only construction-grade answer is **masking with a machine-checked proof in a probing model**, which is a real and mature line of work and is entirely unrepresented here. It is expensive on both axes (randomness per operation, area, and a proof over a leakage model that is itself an assumption), so the decision is a genuine one rather than an oversight to correct.
@@ -51,5 +45,5 @@ These are open. Some are open in a way the inventory already admits and states p
 ## What would retire this list
 
 Item 13 is a statement the design owes about a position it has already taken.
-Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by deciding the two §16 positions its row would have to cite.
+Items 10 and 11 are the ones that change what the inventory *claims*: 10 by admitting a class is not addressed, and 11 by deciding the two §16 positions its row would have to cite.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.
