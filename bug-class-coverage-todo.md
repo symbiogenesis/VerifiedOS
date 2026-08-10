@@ -22,13 +22,6 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 These are classes the design has the machinery to remove and does not currently claim. Each is a small construction over mechanisms that already exist, not a new subsystem.
 
-- [ ] **4. Parser differentials and encoding ambiguity.**
-  This one needs a correction before it needs work. Narcissus buys more than memory safety: the format descriptor yields a **proved encode and decode pair** (§5), so the round trip is not in question. What is genuinely absent is the *other* direction and the *other* party.
-  Two properties are separable and neither is currently claimed. **Canonicity**: that a value has exactly one admissible encoding, so a decode of a re-encode is the identity and a malleable second encoding of the same value cannot exist. **Agreement**: that two independent implementations of the same format accept the same language, which is what a parser differential actually is, and which a single verified parser cannot establish by itself.
-  Canonicity is the one worth pursuing because it is provable from the descriptor rather than tested: it makes signature-over-encoding, content addressing, and cache identity (§10, §12) sound against a peer that re-encodes, and it is exactly the property whose absence produces the signature-confusion and hash-substitution families.
-  Agreement stays evidence rather than theorem, and the design already knows the shape: the differential oracles named for the radio and network grammars (§5) are the instrument, and they enter no trust base.
-  **Lands as:** a canonicity obligation on the §5 format-descriptor discipline, cited by the §13 image reader and the §10 content address. **Mode:** proved for canonicity; the agreement half stays evidence and belongs in §17.
-
 - [ ] **5. Protocol state-machine flaws and downgrade.**
   Partly claimed and partly not. The design already states the radio-generation floor as matter rather than policy (§15) and the no-null-cipher, mutual-authentication-required, no-silent-downgrade posture as a verified property of the L2/L3 servers rather than a toggle (§12), and §17 books protocol-level composition as above the proof frontier.
   The gap is between those two statements: a protocol state machine is a Lustre control plane (§5, §12), which is the right vehicle, but no requirement says the machine **refines a formal model of the standard's own state machine**, and without that the verified property is a property of the implementation the design happens to have written.
@@ -101,7 +94,7 @@ These are open. Some are open in a way the inventory already admits and states p
 ## What would retire this list
 
 Item 6 is a small construction over existing machinery and could land as a requirement without new mechanism.
-Items 4 and 5 are real proof obligations of ordinary size.
+Item 5 is a real proof obligation of ordinary size.
 Items 9, 13, 15, and 16 are statements the design owes about positions it has already taken.
 Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by acquiring a mode it lacks.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.

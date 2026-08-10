@@ -414,6 +414,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a §18 corpus result exists per descriptor; no oracle appears in the trust-base inventory.
 · Trace: CJ-FORMAT · [§5](verification-maximal-os.md#r-05-051)
 
+**R-05-051a** MUST: Every format descriptor whose encoding is ever an input to a signature, a hash used as a name, a content address, a cache key, or an equality test carries a machine-checked **canonicity** theorem beside its Narcissus correctness pair: decode is injective on the admissible byte strings, so re-encoding a decoded input returns that input unchanged and no value has a second admissible encoding.
+· Accept: the theorem is Coq-checked against the descriptor and quantifies over the whole admissible language rather than a corpus; the R-05-042 wire-format inventory records which descriptors carry it; and the correctness pair alone is never cited for this property, the two directions being separate theorems.
+· Trace: CJ-FORMAT · [§5](verification-maximal-os.md#r-05-051a)
+
+**R-05-051b** MUST: A descriptor carrying R-05-051a admits no encoding slack: one admissible length form, one presence encoding per optional field, fixed field order, no free padding or reserved bits, and no accept-and-ignore field. A non-canonical input is a decode failure and is never normalized into the canonical encoding of the same value.
+· Accept: no decoder on an identity-bearing path maps two distinct admissible byte strings to one value; where the published grammar admits several encodings of one value, the descriptor pins one subset and the remainder fails to decode rather than being accepted and rewritten.
+· Trace: CJ-FORMAT · [§5](verification-maximal-os.md#r-05-051b)
+
+**R-05-051c** MUST NOT: No signature, content address, cache key, or equality decision is taken over an encoding whose descriptor carries no R-05-051a theorem; a format that cannot carry one is refused that role rather than used with a stated caveat.
+· Accept: the set of identity-consuming sites resting on a descriptor without the theorem is empty, each site (the §13 pack reader R-13-009 and typed manifest R-13-003, the §10 content address R-10-005a, the §12 deterministic-reuse key R-12-024d) naming the descriptor it depends on rather than assuming one.
+· Trace: CJ-FORMAT · [§5](verification-maximal-os.md#r-05-051c)
+
 ### 5.9 Verified synchronous control planes
 
 **R-05-052** MUST: The control-plane logic of §12 servers (supervision trees, protocol state machines, and mode/timing sequencing) is written in Lustre and compiled by Vélus.
@@ -1733,7 +1745,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T · [§10](verification-maximal-os.md#r-10-005)
 
 **R-10-005a** MUST: Typed object metadata and queries are views of the existing L1/L2 keyspace, not a second database: an object is identified by its content address (the per-domain keyed plaintext digest for user data, the store's content hash for system-image objects) or, where mutable, by its filesystem object identity, and each carries a fork-and-frozen content-type identifier plus schema-bounded attributes.
-· Accept: no independent metadata database, indexer, or crawler exists, and metadata identity forms no bare cross-domain content hash of user data, so R-10-016's cross-domain incomparability is preserved.
+· Accept: no independent metadata database, indexer, or crawler exists, and metadata identity forms no bare cross-domain content hash of user data, so R-10-016's cross-domain incomparability is preserved. The content address is taken over an encoding whose descriptor carries the R-05-051a canonicity theorem, per R-05-051c, so one object cannot present two addresses and two objects cannot present one.
 · Trace: CJ-T, CJ-IDL · [§10](verification-maximal-os.md#r-10-005a)
 
 **R-10-005b** MUST: Secondary metadata indexes are instantiations of the one parametric L1 index, keyed by confidentiality domain and a stable namespace *identifier* as well as typed attribute value and object identity, and update atomically with the object and metadata in the same L0 transaction.
@@ -2473,7 +2485,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-NI · [§13](verification-maximal-os.md#r-13-008)
 
 **R-13-009** MUST: The on-device pack decoder is a Narcissus copy-once verified reader over a fixed-layout, schema-bounded format (header, flat hash-indexed object table, blob region) with every object independently hash-verified, so a corrupt index fails a hash check rather than driving a parser.
-· Accept: the loader is never an attacker-facing grammar in the trust base; the format descriptor is a crown-jewel spec discharged by compiling it, not hand-writing it.
+· Accept: the loader is never an attacker-facing grammar in the trust base; the format descriptor is a crown-jewel spec discharged by compiling it, not hand-writing it; and because every object here is named by its hash, the pack and manifest descriptors are identity-bearing in the sense of R-05-051c and carry the R-05-051a canonicity theorem, so an object has one encoding and its hash is an identity rather than one of several.
 · Trace: CJ-FORMAT · [§13](verification-maximal-os.md#r-13-009)
 
 **R-13-010** MUST NOT: ELF and any conventional executable container are off-device only: the certifying toolchain may emit ELF as build interchange, and package build transforms it into the pack at store-insertion time.
@@ -3958,6 +3970,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the artifact exists; every requirement asserting crown-jewel status for a specification is cited by it; and every `CJ-` target in the trace-target table above is accounted for, each either as a specification row or as a theorem target whose premise is a specification row. `tools/check.ps1` checks all three conditions. The inventory is the §5 review gate's subject (R-05-150) and the specification workstream's work list, its status column the countable form of R-01-003's as-existing position.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-016a)
 
+**R-17-016b** IS: Agreement gap: a verified decoder establishes that this platform accepts exactly the language its descriptor defines, and canonicity (R-05-051a) that a value leaves it under exactly one encoding, but neither reaches the language an independent implementation of the same format accepts. A parser differential is a disagreement between two parties, so no single-party proof has the quantifier to exclude it, however faithfully the descriptor is transcribed (R-05-046).
+· Accept: the residual stays booked as evidence rather than absorbed: the differential oracles (R-05-045, R-05-051) are the instrument and enter no trust base, no requirement claims freedom from parser differentials, and canonicity is nowhere read as agreement. The consequence is bounded to the semantic class by the unconditional memory-safety property (R-05-047) and compartment containment, never reaching the memory-safety one.
+· Trace: CJ-FORMAT · [§17](verification-maximal-os.md#r-17-016b)
+
 ### 17.5 The hardware seam register
 
 **R-17-017** MUST: The hardware seams are a named register with owners rather than an emergent property, and a future mechanism's admission review walks this list *before* the five-part admission test's clauses, because at this design's maturity a gap is a seam, not a subsystem.
@@ -4348,7 +4364,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 995 requirements. §19 is non-normative and yields none. Counts include the eighty-three letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 999 requirements. §19 is non-normative and yields none. Counts include the eighty-seven letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4356,7 +4372,7 @@ All eighteen normative sections are extracted, at 995 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **185** |
+| **§5 Languages & Verification** | **extracted** | **188** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **50** |
@@ -4368,7 +4384,7 @@ All eighteen normative sections are extracted, at 995 requirements. §19 is non-
 | **§14 Userland** | **extracted** | **14** |
 | **§15 Hardware Platform** | **extracted** | **266** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **75** |
+| **§17 Residual Risks** | **extracted** | **76** |
 | **§18 Realization** | **extracted** | **39** |
 
 §19 is non-normative and yields no requirements.
