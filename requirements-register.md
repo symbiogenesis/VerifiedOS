@@ -3384,8 +3384,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: multi-tier capacity is taken monolithically by sequential 3D, sharing one mask set, one fab lot, one package, and one attested identity, with no die-to-die link anywhere.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-162)
 
-**R-15-163** IS: Two consequences of sequential 3D are normative: static body bias is a logic-tier lever only, and the shared thermal budget caps upper-tier device quality and tightens sustained-power headroom.
-· Accept: both are carried in the §16 thermal posture and the leakage story.
+**R-15-163** IS: Three consequences of sequential 3D are normative: static body bias is a logic-tier lever only; the shared thermal budget caps upper-tier device quality and tightens sustained-power headroom; and that budget makes the vertical lever conditional on a materials result rather than graded by effort, a 6T cell being complementary while low-temperature p-type devices are unsolved and the back-end-survivable oxide semiconductors are n-type only.
+· Accept: the first two are carried in the §16 thermal posture and the leakage story; the third is carried as the two-case exposure in R-15-173 and the discrete manufacturing risk in R-18-008.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-163)
 
 **R-15-164** MUST NOT: There are no hardware caches: no L1, no L2, no last-level cache, and no cache-coherence protocol.
@@ -3413,7 +3413,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-169)
 
 **R-15-170** IS: The capacity budget is arithmetic: ~30–50 Mb/mm² of macro, so one gigabyte is roughly 160–270 mm² of raw array and a flat 4 GB is on the order of a full reticle or more; the High-NA half field (~430 mm²) is the hard planar boundary, so capacity is bought vertically.
-· Accept: the reference instantiation budgets ~4–8 GB phone-class (8–16 memory tiers) and 16–32 GB laptop/desktop-class, as composition-time constants in the attested devicetree.
+· Accept: the reference instantiation budgets ~4–8 GB phone-class (8–16 memory tiers) and 16–32 GB laptop/desktop-class, as composition-time constants in the attested devicetree; every figure above the single planar tier is contingent on R-15-173a and is not to be read as scheduled.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-170)
 
 **R-15-171** MUST: The roster is fit to the budget explicitly, and a workload that does not fit is refused at admission, not paged: there is no swap and no overcommit anywhere, every resident byte being a capability-delegated SRAM byte.
@@ -3427,6 +3427,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-173** MUST: Should the density levers under-deliver, the fallback bends capacity (fewer origins, smaller models, a leaner roster), never the mechanism: DRAM does not return and neither does a second die.
 · Accept: the fallback is stated as a composition change, not an architectural one.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-173), [§15](verification-maximal-os.md#r-15-173-2)
+
+**R-15-173a** IS: The tier-count exposure is two-case rather than a continuum: where complementary back-end devices exist, tier count is an ordinary yield-and-cost question and R-15-173 runs as written; where they do not, the vertical lever is absent rather than reduced, capacity is the single planar tier at order 1–2 GB, and the phone envelope is unreachable rather than late.
+· Accept: both cases bend the roster and neither returns a mechanism, so the disposition is unchanged; what the second case forbids is treating the 8-to-16-tier step as a schedule item, and the roster shown to close is the one-tier roster (R-18-030a).
+· Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-173a)
 
 **R-15-174** MUST NOT: Variable-rate compression of the memory path (a compressed pool or cache, runtime deduplication) is declined: it would make capacity data-dependent, latency operand-dependent, and the ratio a cross-compartment oracle.
 · Accept: fixed-rate encodings chosen at composition time remain admissible as compartment-local data representations.
@@ -4172,6 +4176,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the honest statement is not "everything is imaged" but "everything that *acts* is imaged, and what is not imaged cannot act."
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-061)
 
+**R-17-061a** IS: Where the tiers are realized by layer transfer, the transferred layer originates on a donor wafer, so the supply chain acquires a second wafer source while the trust structure does not acquire a second die: what arrives is blanket and unpatterned, carrying no mask set, no design content, and no separate attested identity, and is patterned in place in the same lot.
+· Accept: the residual is materials provenance (substrate quality, contamination, dopant profile of an unpatterned film), not the design subversion of R-17-060, and is bounded as the tiers are: a donor-wafer adversary can corrupt stored bits, caught by ECC and fail-stop, and cannot introduce structure that computes; booked so that "the same lot" in R-17-061 does not overstate what the tiers' assurance rests on.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-061a)
+
 **R-17-062** IS: Per-unit calibration manifests are booked in this residual: measured at the factory rather than reproduced from source, they are the one per-device artifact reproducible builds and DDC cannot cover, so the factory trim step is a named trusted measurement, narrow, but trust nonetheless.
 · Accept: bounded in effect by the passive emission envelope and the ECC/fail-stop backstops.
 · Trace: CJ-DEVTREE · [§17](verification-maximal-os.md#r-17-062)
@@ -4235,6 +4243,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-18-008** IS: The one sequential-3D dependency is a manufacturing risk, not a design one: if tier count under-delivers, capacity bends and the mechanism does not, the bonded-stack and chiplet alternatives being declined on trust grounds that a schedule pressure does not revisit.
 · Accept: consistent with R-15-173.
 · Trace: CJ-DEVTREE · [§18](verification-maximal-os.md#r-18-008)
+
+**R-18-008a** IS: That risk is discrete, not gradual, and the plan is written against its worse branch: tier count is gated on complementary devices at the back-end thermal budget, which either exist (tier count is then an ordinary yield-and-cost question) or do not (the machine is one planar tier at order 1–2 GB permanently, not as a first step).
+· Accept: a manufacturing dependency in both branches and a proof obligation in neither, so the §17 frontier is unmoved; what moves is R-18-030, which plans the multi-tier envelope as upside and must show the roster closing on the single tier.
+· Trace: CJ-DEVTREE · [§18](verification-maximal-os.md#r-18-008a)
 
 **R-18-009** IS: Two memory-path questions are named as open and explicitly *not* specified: a statically-placed instruction scratchpad (whose remaining motivation is port contention alone), and sequential consistency in place of Ztso (whose reach is narrower than it looks: `fence.t` and the `A` extension both survive it).
 · Accept: each is open because the timing budget makes it worth revisiting, not because a change is pending; Ztso and the shared fetch path are what the specification states.
@@ -4334,9 +4346,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the crown-jewel grammar spec shrinks to one reusable oracle-checked codec rather than thousands of hand-copied pages (R-05-048, R-05-050).
 · Trace: CJ-FORMAT · [§18](verification-maximal-os.md#r-18-029)
 
-**R-18-030** IS: Memory staging is capacity-limited, not availability-limited: first parts are planar single-tier at order 1–2 GB, with the 4–8 GB phone envelope arriving as sequential-3D tier counts reach 8–16.
+**R-18-030** IS: Memory staging is capacity-limited, not availability-limited: first parts are planar single-tier at order 1–2 GB, with the 4–8 GB phone envelope arriving if and only if sequential-3D tier counts reach 8–16.
 · Accept: the interim is less capacity and a leaner roster, never a different mechanism; no deleted DRAM machinery returns, and neither bonded die-stacking nor an SRAM chiplet is held in reserve.
 · Trace: CJ-DEVTREE · [§18](verification-maximal-os.md#r-18-030)
+
+**R-18-030a** MUST: The multi-tier envelope is planned as upside, the single planar tier being the case the roster is shown to close on: the 1–2 GB fit carries the base system, servers, and compositor in hundreds of megabytes, a framebuffer in tens, a composition-sized origin budget with crash-only eviction, and an inference server admitting only the smallest quantized class or none.
+· Accept: the gate is a materials result, not calendar time or yield learning (R-18-008a), so every capacity claim above the single tier is stated as contingent and no roster element depends on a tier that has not been built.
+· Trace: CJ-DEVTREE · [§18](verification-maximal-os.md#r-18-030a)
 
 ### 18.5 The capstone
 
