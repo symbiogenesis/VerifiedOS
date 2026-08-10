@@ -183,6 +183,51 @@ Like every static, compose-time-checked mechanism in this document, its soundnes
 
 ---
 
+## Project Oberon: whole-stack parsimony as a method, the quiescent point for deferred bulk work, and the module key as load-time admission
+
+Oberon is the one ancestor in this document that co-designed the **whole stack under a single axiom**, and the only one whose axiom is this platform's own with the currency changed.
+Wirth and Gutknecht's system (1987, on the NS32032 Ceres workstation) is at once a language, an operating system, a compiler, and a graphical environment; the 2013 re-implementation adds the machine underneath it, a **RISC5 processor of fourteen instructions and sixteen registers in a few hundred lines of Verilog** (later restated in Wirth's own **Lola-2** logic-description language), and publishes the entire result, gates to graphical user interface, as one readable book.
+Every other entry here contributes a layer: seL4 a kernel, SECOMP a compiler, CVA6-CHERI a core, Cerebras a fabric.
+Oberon contributes the *posture* of holding all of them at once, and it is the only prior art that has actually done so.
+
+**The axiom, and the currency it must be changed into.**
+*A Plea for Lean Software* (1995) argues that complexity is routinely mistaken for sophistication, that the incomprehensible should draw suspicion rather than admiration, and that **a system not understood in its entirety by a single individual should probably not be built**.
+Read literally that is a rule this platform breaks deliberately: §4 spends engineering without limit, and the Sail model, the Coq development, and the RTL will not fit in one head between them.
+What survives the translation is that Wirth's scarce resource was *implementation effort* while this one's is *review*: §5's independent-specification review gate, the crown-jewel specifications it audits, and the atomic-requirements register are all audits performed by people, and a corpus too large to audit fails **silently**, by being approved unread, where a corpus too large to build fails loudly.
+So the rule imports in the only form the platform can act on: the size of the *audited* artifact is a budget like any other, and the import still owed is to publish it as a per-layer ledger tracked by the same tool that holds every other derived count (§5), so that an unreviewable corpus is a failing check rather than something a reviewer has to notice at the gate.
+
+**The load-bearing import: the quiescent point.**
+Oberon's collector is an ordinary unsynchronized mark-and-sweep, and it is cheap and precise for a structural reason rather than an algorithmic one: it runs as a background task the central loop schedules only when **no command is executing**, so no procedure activation exists, the stack holds nothing to trace, and the root set is exactly the module-level pointer variables.
+Wirth did not make the collector safe against a mutator; he made concurrency with the mutator **impossible**, and paid for it in the one currency he had, latency between commands.
+§8's budgeted revocation sweep is deferred bulk work of the same shape over a graph of the same kind, and it is specified to run as an incremental, preemptible task in its own §11-admitted background slot class, which means its quanta interleave with compartments holding live capabilities in registers and frames, and its correctness must be argued against them.
+The Oberon rule says to bind those quanta instead to the **slot boundaries of the domain being swept**, where `fence.t` has already run and the live capability root set is the statically enumerated one §11's stack-depth and callee-graph analysis computes anyway: the sweep then never overlaps its own mutator, and its root set becomes a composition-time artifact rather than a runtime scan.
+What that buys is not a mechanism but a **deleted proof obligation**, which is the currency §17 counts; it is proposed here and not yet taken, since §8 currently specifies the preemptible form.
+
+**The module key: interface consistency as a load-time refusal.**
+Oberon compiles a module's interface into a **symbol file** carrying a key, compiles every client against that key, and has the loader **refuse** a client whose recorded key does not match the module actually present: no negotiation, no version range, no compatibility shim, no partial link.
+It is the oldest working instance of the discipline §13 states as safety being a property of the artifact rather than of its pedigree, and it makes the check at **load** time rather than trusting the build to have been consistent, which is the same relocation of trust the content-addressed source closure and the CHERI-TAL admission pass make (§10, §13).
+The one refinement ETH Oberon later added, fine-grained interface fingerprinting so a module's interface can be *extended* without invalidating its clients, is deliberately not taken: here a changed interface changes the content address, the old binary is a different artifact, and admission has no notion of a compatible change to be lenient about.
+
+**Oberon-07 as the precedent for the deletion gate.**
+The language was revised in 2007 and again in 2008, 2011, 2013, 2014, 2015, and 2016, almost entirely by **removal**: `WITH`, `LOOP`, and `EXIT` deleted outright, `RETURN` confined to the end of a function, implicit numeric conversion replaced by explicit `FLOOR` and `FLT`, imported variables and structured value parameters made read-only.
+Wirth's criterion was compiler cost; the criterion here is proof cost, and §15's frozen profile together with the *rejected profile simplifications* table in [architectural-alternatives.md](architectural-alternatives.md) runs precisely that gate over an instruction set instead of a grammar.
+The transferable part is that the deletions kept arriving for nine years after the design was nominally finished, which is the posture a frozen profile has to hold if freezing is not to mean fossilizing (§15, §18).
+
+**Two convergences, from the parts of the family that went this platform's way.**
+
+- **Active Cells** (Gutknecht's group at ETH) maps Active Oberon *cells* onto separate processors of a system-on-chip built on an FPGA, wired by explicit channels and composed statically before anything runs: the multikernel arrived at from the language side, where Barrelfish arrives at it from the operating-system side (above) and Cerebras from the fabric side (above).
+  Three independent derivations of share-nothing plus explicit messages is the strongest form the convergence argument takes anywhere in this document.
+- **Oberon-V**, earlier *Seneca* (Griesemer, ETH, 1990 to 1993), is the family's vector dialect: whole-array operations and an `ALL` statement whose semantics are **order-independent by construction**, so vectorizability is a syntactic property the program states rather than a conclusion a dependence analyzer has to recover.
+  That is the source-level shape the V-class graphics and machine-learning work wants (§15), and it rhymes exactly with §11's syntax-directed WCET derivation: both refuse to let a compiler *discover* a property the program could have *declared*, because a discovered property is one an analyzer can lose.
+
+**Where Oberon is a counter-example rather than an ancestor.**
+The Oberon system has no protection of any kind: one address space, no processes, no rings, no capabilities, and a command that can reach any exported variable of any loaded module.
+Its safety is entirely the language's, resting on the premise that every instruction came from the trusted compiler and that nobody reached for the `SYSTEM` escape, which is the **language-based-isolation pole** the alternatives document rejects as a sole mechanism and the exact reason CHERI is kept for the unverified residual.
+The rest of the family's system mechanisms (executable text, the collector, load-time module linking, Active Oberon's condition monitors, Juice's syntax-tree mobile code, and RISC5 as a candidate substrate) are weighed one at a time in [architectural-alternatives.md](architectural-alternatives.md), and none of them imports.
+What imports is the method, the quiescent point, and the module key.
+
+---
+
 ## Fedora Atomic: immutability as the base-image discipline
 
 Fedora Atomic (rpm-ostree; Silverblue / Kinoite / CoreOS) is the desktop-scale demonstration that the base OS can be an **immutable, versioned, atomically-updated, rollback-capable image** rather than a mutable pile of packages, layered on the content-addressed libostree object store the **OSTree** entry below covers.
