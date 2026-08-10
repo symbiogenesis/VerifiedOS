@@ -18,21 +18,9 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 ---
 
-## Eliminable with modest added construction
-
-These are classes the design has the machinery to remove and does not currently claim. Each is a small construction over mechanisms that already exist, not a new subsystem.
-
-- [ ] **6. Lifecycle and debug-surface escape.**
-  The design inherits the strongest available answer and does not claim it. Debug and trace sit behind RoT lifecycle state and are fused off in production (§15), the lifecycle state and anti-rollback counters live in on-die OTP (§9), and the boot ROM is metal-mask immutable (§9). That is an OpenTitan-lineage one-way fuse state machine, which is a *construction*, not a mitigation.
-  What is not stated is the property: that the lifecycle is **monotone**, that no state transition re-enables a debug or test surface once production is entered, that raw-flash and test modes have no re-entry path, and that the transition is attested into the measured chain rather than merely performed.
-  The class this removes is large and famous (test-mode re-entry, unlocked JTAG, factory-mode escape, engineering-key acceptance), and it is a class of *escape* rather than of exploitation, which is why it is worth a row of its own rather than a clause in the boot section.
-  **Lands as:** §9 lifecycle requirements with the monotonicity property stated, cited from the §15 debug-gating entry. **Mode:** hardware-enforced, with the fuse state as the enforcing element.
-
----
-
 ## The honest frontier
 
-These are open. Some are open in a way the inventory already admits and states poorly; some are open and unmentioned. None is closed by an item above.
+These are open. Some are open in a way the inventory already admits and states poorly; some are open and unmentioned.
 
 - [ ] **8. Spatial contention channels, and the theorem that would close them.**
   The inventory carries this row and the construction it names is the right one: static time-division multiplexing of fabric access, disjoint bank and macro binding per island, a whole macro or tier for a high-assurance island, and `fence.t` at the partition switch for the residual case where two low-sensitivity islands share a macro. That is the spatial analogue of the temporal partitioning, exactly as it should be.
@@ -87,7 +75,6 @@ These are open. Some are open in a way the inventory already admits and states p
 
 ## What would retire this list
 
-Item 6 is a small construction over existing machinery and could land as a requirement without new mechanism.
 Items 9, 13, 15, and 16 are statements the design owes about positions it has already taken.
 Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by acquiring a mode it lacks.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.

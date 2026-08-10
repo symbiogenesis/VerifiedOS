@@ -1718,6 +1718,32 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a rollback cannot be triggered silently.
 · Trace: CJ-NI, CJ-DEVTREE · [§9](verification-maximal-os.md#r-09-031)
 
+### 9.6 The lifecycle
+
+**R-09-032** IS: The RoT lifecycle is a fixed enumeration of states held as one-way OTP fuse state (*raw*, *test*, *development*, *production*, *RMA*) under a fixed acyclic transition relation: raw to test, test to development or to production, development and production to RMA, and RMA terminal.
+· Accept: exactly one state is readable at any time and it is a hardware input to the reset path rather than a software-writable register; no state outside the enumeration and no edge outside the relation exists in RTL or Sail, so development and production are siblings with no edge between them.
+· Trace: CJ-DEVTREE · [§9](verification-maximal-os.md#r-09-032)
+
+**R-09-033** MUST: Lifecycle transitions are monotone: every transition burns OTP and advances along R-09-032's relation, and no reverse, reset, vendor-unlock, re-provisioning, or refurbishment path exists in any state.
+· Accept: *no sequence of transitions re-enters a state the device has left* is a stated RTL ⊑ Sail obligation beside R-15-078's, discharged over the fuse state rather than over the provisioning flow.
+· Trace: CJ-RTL-SAIL · [§9](verification-maximal-os.md#r-09-033)
+
+**R-09-034** MUST: The transition out of the test state closes every manufacturing surface permanently: the Debug Module and trace (R-15-078), scan, BIST, the test straps, the manufacturing flash-programming path, and the provisioning interface, with no later transition re-opening any of them.
+· Accept: test-mode re-entry, TAP unlock, and factory-mode escape name transitions R-09-032's relation does not carry, so each is an absent edge rather than a defeated check; every one of the surfaces is gated by the fuse state and not by a software check.
+· Trace: CJ-RTL-SAIL, CJ-DEVTREE · [§9](verification-maximal-os.md#r-09-034)
+
+**R-09-035** MUST: RMA is the only edge out of production and is a forward transition: authenticated as R-15-079's debug entry is, preceded by that entry's crypto-erase before the Debug Module becomes live, re-opening no manufacturing surface (R-09-034), and terminal.
+· Accept: a part in RMA holds no production key custody and has no transition back to production, so a debuggable part is never a fielded one.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§9](verification-maximal-os.md#r-09-035)
+
+**R-09-036** MUST: The signature-verification roots the boot ROM accepts are diversified by lifecycle state as the sealing hierarchy is (R-15-079): in production the ROM accepts the production root alone, and no fuse, strap, or signed unlock token widens the accepted set.
+· Accept: a development- or test-rooted image verifies in no production part, and the ROM carries no engineering-key or unlock-token path to be authorized.
+· Trace: CJ-CRYPTO-SPEC · [§9](verification-maximal-os.md#r-09-036)
+
+**R-09-037** MUST: The RoT extends the lifecycle state into the measured chain as its first extension, before the ROM verifies any payload, and the reference integrity manifest (R-09-026) carries the production value as the expected one.
+· Accept: every later measurement is bound to the state it ran under and a relying party appraises a debuggable part from its quote rather than inferring it; R-09-025's vector is not widened, the state entering as a chain measurement rather than as a further field.
+· Trace: CJ-DEVTREE · [§9](verification-maximal-os.md#r-09-037)
+
 ---
 
 ## §10. Storage & State
@@ -3035,11 +3061,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-NI · [§15](verification-maximal-os.md#r-15-077)
 
 **R-15-078** MUST: The RISC-V Debug Module exists in silicon but is lifecycle-fused at the hardware level, never merely software-gated: in the production lifecycle state the RoT's OTP fuse holds its clock and reset gated off and its fabric port electrically quiesced.
-· Accept: *no DM transaction reaches the fabric in the production state* is a stated RTL ⊑ Sail obligation, so the Sail model carries the gate rather than a model of the debugger.
+· Accept: *no DM transaction reaches the fabric in the production state* is a stated RTL ⊑ Sail obligation, so the Sail model carries the gate rather than a model of the debugger; the state the fuse holds is monotone (R-09-033), so production is not a mode the device can be talked back out of.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-078)
 
 **R-15-079** MUST: In development and RMA lifecycle states, DM entry is an RoT challenge-response (ML-DSA-signed, serial-bound), the RoT key hierarchy diversifies by lifecycle state, and moving a fielded device to a debuggable state crypto-erases first; trace rides the same fuse.
-· Accept: a debuggable part cannot unseal production-sealed material.
+· Accept: a debuggable part cannot unseal production-sealed material, and the move that makes a fielded part debuggable is RMA, which is forward and terminal (R-09-035).
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-079)
 
 ### 15.12 Implementation timing contracts
@@ -4396,7 +4422,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1007 requirements. §19 is non-normative and yields none. Counts include the ninety-five letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1013 requirements. §19 is non-normative and yields none. Counts include the ninety-five letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4408,7 +4434,7 @@ All eighteen normative sections are extracted, at 1007 requirements. §19 is non
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **50** |
-| **§9 Boot & Root of Trust** | **extracted** | **32** |
+| **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
 | **§12 System Servers** | **extracted** | **105** |
