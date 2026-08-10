@@ -2240,6 +2240,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: causality and per-reaction WCET are structural on the most-attacked remote surface; flow theorems govern what crosses from radio to platform.
 · Trace: CJ-VELUS, CJ-NI · [§12](verification-maximal-os.md#r-12-043)
 
+**R-12-043a** MUST: Each admitted protocol has exactly one admissible configuration, fixed at composition: one ciphersuite, one protocol version, and no capability-driven fallback path.
+· Accept: no control plane holds a variable whose value selects a cipher suite, protocol version, or feature set; an offered configuration other than the single admissible one terminates the association rather than selecting a second path, and the emergency mode (R-12-048) is a separate configuration entered by the local act R-12-049 requires rather than a negotiated fallback.
+· Trace: CJ-VELUS · [§12](verification-maximal-os.md#r-12-043a)
+
+**R-12-043b** MUST: Each named protocol control plane's sequencer is proved to refine a formal reference model of the standard's own state machine: NR RRC and 5G NAS including 5G-AKA, the 802.11 MLME including the WPA3/SAE handshake, and BT L2CAP/GATT pairing.
+· Accept: one machine-checked refinement theorem per named control plane, stated over the Lustre node set R-05-052 mandates and against the reference model as its specification; a state, transition, or timer the model does not carry is unreachable in the sequencer rather than merely untested, and a control plane carrying no such theorem is a review-gate finding.
+· Trace: CJ-VELUS · [§12](verification-maximal-os.md#r-12-043b)
+
+**R-12-043c** MUST: Each protocol's reference state machine is a crown-jewel spec, conferred per protocol rather than per stack and enumerated individually in the crown-jewel inventory.
+· Accept: the inventory carries one row per reference model, each subject to the R-05-150 independent specification review; a refinement claimed under R-12-043b against a model absent from the inventory is a review-gate finding.
+· Trace: CJ-VELUS · [§12](verification-maximal-os.md#r-12-043c)
+
+**R-12-043d** IS: R-12-043b claims conformance to the reference model, not security of the protocol: the model's faithfulness to the published standard is unverifiable, and the composed session security of the standard itself remains the residual R-03-004 enumerates.
+· Accept: no requirement cites R-12-043b for a session-security property; the §17 protocol-composition residual is narrowed on its implementation half and is otherwise unchanged.
+· Trace: CJ-VELUS · [§12](verification-maximal-os.md#r-12-043d)
+
 **R-12-044** MUST: Cellular and Wi-Fi session keys live in crypto-core-backed compartments; the air-interface stack sees only the handles it needs.
 · Accept: no session key is resident in an air-interface compartment.
 · Trace: CJ-CRYPTO-SPEC · [§12](verification-maximal-os.md#r-12-044)
@@ -4380,7 +4396,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 999 requirements. §19 is non-normative and yields none. Counts include the eighty-seven letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1007 requirements. §19 is non-normative and yields none. Counts include the ninety-five letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4395,13 +4411,13 @@ All eighteen normative sections are extracted, at 999 requirements. §19 is non-
 | **§9 Boot & Root of Trust** | **extracted** | **32** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
-| **§12 System Servers** | **extracted** | **101** |
+| **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
-| **§15 Hardware Platform** | **extracted** | **266** |
+| **§15 Hardware Platform** | **extracted** | **267** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **76** |
-| **§18 Realization** | **extracted** | **39** |
+| **§17 Residual Risks** | **extracted** | **77** |
+| **§18 Realization** | **extracted** | **41** |
 
 §19 is non-normative and yields no requirements.
 

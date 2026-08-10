@@ -22,12 +22,6 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 These are classes the design has the machinery to remove and does not currently claim. Each is a small construction over mechanisms that already exist, not a new subsystem.
 
-- [ ] **5. Protocol state-machine flaws and downgrade.**
-  Partly claimed and partly not. The design already states the radio-generation floor as matter rather than policy (§15) and the no-null-cipher, mutual-authentication-required, no-silent-downgrade posture as a verified property of the L2/L3 servers rather than a toggle (§12), and §17 books protocol-level composition as above the proof frontier.
-  The gap is between those two statements: a protocol state machine is a Lustre control plane (§5, §12), which is the right vehicle, but no requirement says the machine **refines a formal model of the standard's own state machine**, and without that the verified property is a property of the implementation the design happens to have written.
-  The construction that fits the design's grain is a single admissible configuration with nothing to negotiate (one ciphersuite, no version negotiation, no capability-driven fallback) plus refinement of the sequencer against a formal 802.11 or WPA3 or 5G-AKA state machine. The first half deletes the class the way the generation floor deletes the legacy-attach class; the second half is what makes the remaining half a theorem.
-  **Lands as:** §12 refinement obligations on the named control planes, with the crown-jewel specification for each protocol's model. **Mode:** proved, with the composition residual unchanged in §17.
-
 - [ ] **6. Lifecycle and debug-surface escape.**
   The design inherits the strongest available answer and does not claim it. Debug and trace sit behind RoT lifecycle state and are fused off in production (§15), the lifecycle state and anti-rollback counters live in on-die OTP (§9), and the boot ROM is metal-mask immutable (§9). That is an OpenTitan-lineage one-way fuse state machine, which is a *construction*, not a mitigation.
   What is not stated is the property: that the lifecycle is **monotone**, that no state transition re-enables a debug or test surface once production is entered, that raw-flash and test modes have no re-entry path, and that the transition is attested into the measured chain rather than merely performed.
@@ -94,7 +88,6 @@ These are open. Some are open in a way the inventory already admits and states p
 ## What would retire this list
 
 Item 6 is a small construction over existing machinery and could land as a requirement without new mechanism.
-Item 5 is a real proof obligation of ordinary size.
 Items 9, 13, 15, and 16 are statements the design owes about positions it has already taken.
 Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by acquiring a mode it lacks.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.

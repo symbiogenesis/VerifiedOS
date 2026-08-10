@@ -13,7 +13,7 @@ Membership is **conferred, never declared in bulk**: a specification is a crown 
 Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
 
 1. the register's **`CJ-` trace-target table**, 21 entries, all used, internally consistent, but a *legend of trace targets* rather than an enumeration of specifications (below);
-2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §12, §15, and §17. There are fourteen such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
+2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §12, §15, and §17. There are fifteen such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
 
 Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, and a row citing an identifier the register does not hold.
 
@@ -52,8 +52,9 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 | 20 | **The wire-format inventory**, every attacker-facing format with its Narcissus descriptor | `CJ-FORMAT` | R-05-042 | not authored |
 | 21 | **The static whole-program slot plan** and its live-range colouring | `CJ-MEMPLAN` | R-08-011, R-08-018, R-15-060 | not authored |
 | 22 | **The verified HAL's hardware contracts** and DMA/descriptor postconditions | `CJ-HAL` | R-05-083, R-05-138, R-18-018 | not authored |
+| 23 | **The protocol reference state machines**, each protocol's model individually, per R-12-043c's *conferred per protocol rather than per stack*: NR RRC and 5G NAS with 5G-AKA, the 802.11 MLME with WPA3/SAE, and BT L2CAP/GATT pairing | `CJ-VELUS` | R-12-043b, R-12-043c | not authored |
 
-**Rows 16–20 are conferred outside the residual that names the gap**, by R-15-127, R-05-076, R-17-041, R-17-044, and R-05-042 respectively. That is the ordinary case rather than an exception: conferral is distributed by design, and this table is where it lands. Row 13 shows the same thing at a finer grain: R-05-046 confers the status on *each* format descriptor individually, so the set of descriptors is carried as its own row rather than folded into one coarse "radio grammars" entry.
+**Rows 16–20 are conferred outside the residual that names the gap**, by R-15-127, R-05-076, R-17-041, R-17-044, and R-05-042 respectively. That is the ordinary case rather than an exception: conferral is distributed by design, and this table is where it lands. Row 13 shows the same thing at a finer grain: R-05-046 confers the status on *each* format descriptor individually, so the set of descriptors is carried as its own row rather than folded into one coarse "radio grammars" entry. Row 23 is conferred that way too, by R-12-043c, one reference model per protocol rather than one for the radio stack, since it is a particular standard's state machine a particular sequencer is proved to refine.
 
 ## The theorem targets
 
@@ -69,7 +70,7 @@ The remaining seven `CJ-` targets name **theorems, not specifications**, things 
 | `CJ-CT-SOUND` | Constant-time type soundness over the leakage model | the `Zkt`/`Zvkt` statement (row 5) |
 | `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions | each primitive's functional specification (row 17) |
 
-The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and eighteen of those twenty-two are not authored.
+The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and nineteen of those twenty-three are not authored.
 
 ## What the `CJ-` table is, and is not
 
@@ -80,7 +81,7 @@ So the two artifacts answer different questions and both are needed:
 | Artifact | Question it answers | Granularity |
 | --- | --- | --- |
 | `CJ-` table (in the register) | *which crown jewel does this requirement constrain?* | 21 coarse targets |
-| This inventory | *what are the crown jewels, and does each one exist yet?* | 22 specifications, per-member where a requirement demands it |
+| This inventory | *what are the crown jewels, and does each one exist yet?* | 23 specifications, per-member where a requirement demands it |
 
 ## Standing obligations
 
@@ -91,6 +92,6 @@ So the two artifacts answer different questions and both are needed:
 
 ## Reading the status column
 
-One of twenty-two is authored outright (row 4, the frozen ISA profile), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Eighteen are not authored.
+One of twenty-three is authored outright (row 4, the frozen ISA profile), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Nineteen are not authored.
 
-That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-two are *named, constrained, and traced*; the as-existing assurance is low because eighteen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
+That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-three are *named, constrained, and traced*; the as-existing assurance is low because nineteen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
