@@ -3106,6 +3106,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the mask is not observable through timing or memory traffic.
 · Trace: CJ-LEAK · [§15](verification-maximal-os.md#r-15-085)
 
+**R-15-085a** MUST: Vector memory operations split by whether their element-address pattern is fixed at compile time. Unit-stride, segment, and whole-register accesses are on the data-independent-timing list, their bank sequence being a function of the element width and a granule-aligned base alone. Indexed accesses (`vluxei`/`vloxei`/`vsuxei`/`vsoxei`) and runtime-strided accesses (`vlse`/`vsse`) are off it, their latency being an explicit function of how the element addresses distribute over the SRAM banks, and are admissible only because the flow discipline proves no secret-labeled value reaches an element address.
+· Accept: the discharge is R-05-070's rejection of a secret-labeled value reaching a memory address, applied per element at the point the capability check already lands (R-15-115), under R-15-011's rule that a bare exclusion is not a pass; the vector crypto is table-free and the Keccak unit indexes nothing (R-15-055, R-15-056), so no admitted crypto kernel needs the excluded form, which is the `vfdiv`/`vfsqrt` discharge (R-15-082) read on the memory path.
+· Trace: CJ-LEAK, CJ-NI · [§15](verification-maximal-os.md#r-15-085a)
+
+**R-15-085b** MUST: The timing-annotated model carries the fully-conflicted bound for an off-list vector access, every element resolving to one bank, so an operation whose observed latency varies still has one sound latency in the WCET table.
+· Accept: schedulability is proved against the conflicted bound and never against a typical pattern; because the schedule is time-triggered and the unspent remainder is burned rather than donated (R-07-036), the variation stays inside the issuing partition's own slot and reaches no observer across a partition boundary, which is the scope the flow obligation of R-15-085a has to cover.
+· Trace: CJ-WCET, CJ-ISOL · [§15](verification-maximal-os.md#r-15-085b)
+
 **R-15-086** MUST: Branch-resolution latency is a fixed function of the static rule, so fetch timing depends on architectural state only.
 · Accept: no dynamic predictor state contributes to fetch timing.
 · Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-086)
@@ -4442,7 +4450,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1018 requirements. §19 is non-normative and yields none. Counts include the 100 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1020 requirements. §19 is non-normative and yields none. Counts include the 102 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4460,7 +4468,7 @@ All eighteen normative sections are extracted, at 1018 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
-| **§15 Hardware Platform** | **extracted** | **267** |
+| **§15 Hardware Platform** | **extracted** | **269** |
 | **§16 Reliability** | **extracted** | **23** |
 | **§17 Residual Risks** | **extracted** | **78** |
 | **§18 Realization** | **extracted** | **41** |

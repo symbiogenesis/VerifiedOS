@@ -28,13 +28,6 @@ These are open. Some are open in a way the inventory already admits and states p
   So the work here is not a new mechanism. It is: state the model, state the two-island shared-macro residual explicitly rather than in a subordinate clause, and stop the row from reading as discharged while its theorem has not started.
   **Lands as:** sharpening the existing row's honesty plus the crown-jewel specification it depends on. **Mode:** currently absent-or-proved; should read absent for the disjoint case and residual for the shared-macro case until the model exists.
 
-- [ ] **9. Vector gather and scatter, and variable-latency arithmetic.**
-  The general constant-time clause covers this in principle and an explicit profile entry would cover it in fact. Two specifics deserve naming rather than inheriting a general clause.
-  **Secret-dependent addresses still leak without any cache.** Indexed vector access is checked per element (§15) but its *timing* over a banked SRAM is a function of the address pattern, because bank conflicts serialize. With no cache in the machine this is the surviving address-timing channel, and it is precisely the one a reader assumes the cacheless design deleted.
-  **Subnormal and divide latency on the vector FPU.** The profile already mandates fixed latency across operand classes including subnormals and carves out `FDIV`/`FSQRT` with the argument that crypto needs neither, which is the correct discharge. The gather and scatter case has no equivalent sentence.
-  The admissible resolution matches the existing carve-out discipline: either an operand-pattern-independent timing contract for indexed access, or an explicit ISA-profile exclusion of secret-indexed gather and scatter with the information-flow obligation that discharges it (the standing rule that a bare self-exclusion is not a pass).
-  **Lands as:** a §15 timing-contract entry beside the FPU one, with the `Zvkt` list naming it. **Mode:** hardware-enforced or admission-rejected, per the carve-out pattern.
-
 - [ ] **10. Power and electromagnetic analog leakage.**
   Absent entirely, and honestly so: §3 scopes invasive physical attack out, §15 admits the Faraday enclosure as attenuation that no theorem rests on, and §17 books emanation as narrowed but not closed. Nothing in the construction is a countermeasure for differential power analysis or electromagnetic analysis against the crypto core, and the constant-time discipline addresses *timing*, not power.
   The only construction-grade answer is **masking with a machine-checked proof in a probing model**, which is a real and mature line of work and is entirely unrepresented here. It is expensive on both axes (randomness per operation, area, and a proof over a leakage model that is itself an assumption), so the decision is a genuine one rather than an oversight to correct.
@@ -57,6 +50,6 @@ These are open. Some are open in a way the inventory already admits and states p
 
 ## What would retire this list
 
-Items 9 and 13 are statements the design owes about positions it has already taken.
+Item 13 is a statement the design owes about a position it has already taken.
 Items 8, 10, and 11 are the ones that change what the inventory *claims*: 8 by admitting its theorem has not started, 10 by admitting a class is not addressed, and 11 by deciding the two §16 positions its row would have to cite.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.
