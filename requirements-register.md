@@ -522,6 +522,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each appears in the §17 axiom set `Ax`, not in the theorem set.
 · Trace: CJ-REDUCTION · [§5](verification-maximal-os.md#r-05-077)
 
+**R-05-077a** IS: The three layers carry a precondition on the entropy root rather than a conclusion about it: a reduction is stated over uniformly drawn keys, nonces, and blinding factors, and constant-time verification constrains a draw's observable behaviour and never its distribution, so a predictable root breaks IND-CCA and EUF-CMA while all three layers verify unchanged.
+· Accept: the hypothesis is discharged where the root is (R-15-241a through R-15-241e, R-09-006a) rather than assumed by the reduction that consumes it, and its irreducible remainder is booked in R-17-049a; no crypto-layer claim states or implies that the root's quality follows from the layers.
+· Trace: CJ-REDUCTION, CJ-CRYPTO-SPEC · [§5](verification-maximal-os.md#r-05-077a)
+
 **R-05-078** MUST NOT: Protocol-level composition (TLS 1.3, WireGuard, the cellular AKA composition) is not claimed by the crypto layers.
 · Accept: no crown-jewel theorem statement mentions a composed session-security property; the §3 Defended/Residual split records the exclusion.
 · Trace: CJ-REDUCTION · [§5](verification-maximal-os.md#r-05-078)
@@ -1589,6 +1593,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-09-006** MUST: The ROM's sequence is fixed and singular: verify and enter the RoT runtime firmware, walk the reset table, bring up the memory controller, pull both A/B headers, select per the boot-target latch and boot counting, place the verified M-mode image in main SRAM, and release the boot core into the measured chain.
 · Accept: cold boot, deep-sleep wake, and the recovery generation all take this one path, so no second loader exists.
 · Trace: CJ-DEVTREE · [§9](verification-maximal-os.md#r-09-006)
+
+**R-09-006a** MUST: The RoT's start-up entropy health tests (R-15-241b) complete before the first draw any measured stage can make, their verdict is measured into the chain, and on failure the RoT derives no key, unseals no material, and completes no attestation quote.
+· Accept: the machine halts in a stated failure state rather than booting to a usable device on a weak root; the failure is a §16 fault class and not a boot-counting event, so the automatic A/B revert (R-09-028) is not its response and consumes no attempt.
+· Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC · [§9](verification-maximal-os.md#r-09-006a)
 
 **R-09-007** MUST NOT: There is no UEFI, no SMM, no ACPI, and no option ROMs; a static devicetree instead declares core classes, islands, the NoC schedule, OPP tables, and radio calibration and limit values.
 · Accept: the devicetree is attested (R-15-126).
@@ -3704,6 +3712,26 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: all firmware is open, reproducible, and measured; the device allowlist is collapsed toward transducers and register slaves.
 · Trace: CJ-NI, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-241)
 
+**R-15-241a** IS: The single-root rule (R-15-037) concentrates the entropy risk rather than discharging it, so the root carries obligations of its own: no other mechanism covers the case where every proof holds and the drawn value is predictable, the reductions being conditional on uniform draws (R-05-077a), the constant-time discipline constraining a draw's observable behaviour and not its distribution, and the linear nonce type forcing freshness and not unpredictability (R-05-126b).
+· Accept: R-15-241b through R-15-241e are the obligations this entry quantifies over; a predictable root is a stated failure of theirs rather than a case the register leaves to the crypto core.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-241a)
+
+**R-15-241b** MUST: The noise source runs start-up health tests over a fixed sample budget before its first output leaves the RoT and continuous on-line tests thereafter, sized against the source's stochastic model, and the sole failure action is fail-stop: the root latches a failure state reported as a §16 fault class.
+· Accept: no reduced-rate, best-effort, or last-known-good output path exists in hardware or firmware, so a detected failure cannot become an undetected one by degrading.
+· Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-241b)
+
+**R-15-241c** MUST: Raw source output reaches no consumer: it is conditioned in the RoT by a vetted non-keyed cryptographic conditioner whose input entropy rate is claimed from the source's stochastic model and whose output is full-entropy at the claimed rate, with the DRBG the only interface a consumer holds.
+· Accept: the entropy estimate is a stated number backed by the model, reviewable and disputable as such; no path exposes unconditioned output, the excluded supplementary analog source of R-15-244 being an input to this conditioner and not an exception to it.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-241c)
+
+**R-15-241d** MUST: The verified DRBG is instantiated from conditioned root output at a stated seed length, reseeds on stated draw-count and interval bounds and on every RoT lifecycle or lock-state transition (R-09-017, R-15-078), and carries prediction resistance across a reseed and backtracking resistance across a draw.
+· Accept: the DRBG's refinement statement takes this seeding discipline as an explicit hypothesis rather than assuming a uniform seed, so the hypothesis is discharged by this entry and R-15-241b through R-15-241e rather than assumed by R-05-075.
+· Trace: CJ-CRYPTO-SPEC · [§15](verification-maximal-os.md#r-15-241d)
+
+**R-15-241e** MUST: The root takes multiple independent noise sources spanning at least two physical mechanisms into the one conditioner, each separately health-tested, with no source reaching the conditioner unattributed.
+· Accept: no single hardware source's death, sticking, or narrowed distribution silently repairs or silently corrupts the root's output; the RDRAND cautionary history R-15-037 cites is thereby answered as an argument against trusting a raw source and not only against a second root, with the undetectable-trim case booked in R-17-049a.
+· Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-241e)
+
 **R-15-242** MUST NOT: The anti-feature set is excluded entirely: UEFI, SMM, ACPI/AML, ME/PSP-class coprocessors, SMT, speculation, dynamic branch prediction, LR/SC reservation state and general CAS, 32-bit modes, hybrid capability mode (no DDC), legacy boot, option ROMs, and the C extension.
 · Accept: none appears in the profile, the Sail model, or any RTL.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-242)
@@ -4076,6 +4104,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach.
 · Trace: CJ-REDUCTION · [§17](verification-maximal-os.md#r-17-049)
 
+**R-17-049a** IS: The entropy residual is subversion, not failure: a dead, stuck, biased, or dying source is a stated fault (R-15-241b, R-15-241e, R-09-006a), while a source trimmed at fabrication to a distribution that passes exactly the tests it will be given is the fab residual (R-17-060) read on the noise source rather than on the logic, and inherits its ceiling without narrowing it.
+· Accept: the split is stated as detected failure against undetected subversion, the entropy root being a consumer of the silicon supply-chain residual rather than a mechanism outside it; open RTL does not describe an analog trim and IRIS images structure rather than distribution (R-17-061, R-17-063), so neither mitigation is claimed against this case.
+· Trace: CJ-T, CJ-CRYPTO-SPEC · [§17](verification-maximal-os.md#r-17-049a)
+
 **R-17-050** IS: The blocking regulatory risk has substantially cleared (FCC's settled SDR position; the EU radio-lockdown delegated act abandoned in January 2026), and the genuine residual is narrow and commercial: carrier, PTCRB, and GCF acceptance of an open cellular UE stack.
 · Accept: mitigations are module certification with inheritance, RoT attestation giving stronger version binding than the industry norm, and private-network deployment as the lighter-certification first ring.
 · Trace: CJ-DEVTREE · [§17](verification-maximal-os.md#r-17-050)
@@ -4316,7 +4348,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 987 requirements. §19 is non-normative and yields none. Counts include the seventy-five letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 995 requirements. §19 is non-normative and yields none. Counts include the eighty-three letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4324,19 +4356,19 @@ All eighteen normative sections are extracted, at 987 requirements. §19 is non-
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **5** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **184** |
+| **§5 Languages & Verification** | **extracted** | **185** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **50** |
-| **§9 Boot & Root of Trust** | **extracted** | **31** |
+| **§9 Boot & Root of Trust** | **extracted** | **32** |
 | **§10 Storage & State** | **extracted** | **40** |
 | **§11 Updates** | **extracted** | **27** |
 | **§12 System Servers** | **extracted** | **101** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **14** |
-| **§15 Hardware Platform** | **extracted** | **261** |
+| **§15 Hardware Platform** | **extracted** | **266** |
 | **§16 Reliability** | **extracted** | **22** |
-| **§17 Residual Risks** | **extracted** | **74** |
+| **§17 Residual Risks** | **extracted** | **75** |
 | **§18 Realization** | **extracted** | **39** |
 
 §19 is non-normative and yields no requirements.
