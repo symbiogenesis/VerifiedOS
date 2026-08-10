@@ -276,6 +276,9 @@ Three obstacles dominate.
 Servo embeds SpiderMonkey (`mozjs`), C++, JIT, and a vast `unsafe` binding surface, and §14 forbids JIT on anything network-facing (interpreters run pure, obstacle 4).
 SpiderMonkey-in-interpreter-mode is still unverifiable C++ that cannot carry the Tier-2 safe-Rust certificate, so the spec-coherent target is a **pure-Rust, interpreter-only engine** (Boa-lineage), accepting its web-incompleteness as the honest cost; `mozjs` restricted to its C interpreter behind CHERI containment is the pragmatic, *non-conforming* interim.
 This is the browser's defining unresolved tension, recorded rather than hidden.
+The Wasm side is the same shape and smaller: a pure-Rust interpreter (wasmi-lineage) inside the origin compartment, Wasm being no system execution target (§14).
+What either engine may do to claw back the no-JIT row is settled in §14 rather than left to porting taste: threaded dispatch, an off-device-selected superinstruction set whose bodies are AOT image code under a size budget, and data-plane inline caches carrying a producer-side differential-testing obligation (R-14-008a to R-14-008d).
+None of the three is runtime codegen, none closes the gap to a JIT, and none of it reaches the browser's own chrome and privileged JS, which are image code compiled natively (R-14-008e).
 **(2) WebRender is GPU-first** and falls back to software rendering on C/V-class cores under §12 (§14, obstacle 2).
 **(3) Content parsers stay contained, not verified.** html5ever, the CSS parser, and the JS front end all consume attacker-controlled input, but §14's stance is that the browser is *unverifiable, therefore maximally contained*, so these remain memory-safe Rust inside the origin compartment; the §5 Narcissus mandate binds the *network wire* (TLS/HTTP, §12), not the DOM.
 File and clipboard access is powerbox-only (§14).

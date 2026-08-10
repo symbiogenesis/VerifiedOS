@@ -2666,6 +2666,30 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: an origin RCE yields that origin's authority and nothing else.
 · Trace: CJ-CERISE · [§14](verification-maximal-os.md#r-14-008)
 
+**R-14-008a** MUST: Web-delivered JS and Wasm run in a pure interpreter, and every admitted performance-recovery lever on that path is ahead-of-time: threaded dispatch, superinstructions whose selection is computed off-device against a corpus and whose bodies are compiled AOT into the signed image, and data-plane inline caches.
+· Accept: no on-device code generation exists anywhere on the path, so W^X (R-14-002, R-14-004) holds by construction rather than by interpreter policy.
+· Trace: CJ-CERISE · [§14](verification-maximal-os.md#r-14-008a)
+
+**R-14-008b** MUST: Superinstruction-set membership is a size-constrained selection against the corpus, bounded by the §15 SRAM capacity budget and the §7/§8 static memory plan, because each member costs its own interpreter body and buys dispatch reduction with image footprint.
+· Accept: the frozen set is recorded as a constrained-objective selection whose footprint is charged against that budget; no set is admitted on the ground that it is data rather than generated code, which is a property W^X does not bound.
+· Trace: CJ-MEMPLAN · [§14](verification-maximal-os.md#r-14-008b)
+
+**R-14-008c** IS: An inline cache is compartment-private data under CHERI bounds inside one origin compartment, not microarchitecture: it crosses no confidentiality boundary, no §15 admission test applies to it, and the timing variance it introduces sits inside a discretionary slot whose width the §11 rung fixes, so it cannot move time between compartments; what it forfeits is intra-compartment timing determinism, which is not promised.
+· Accept: the §8 non-interference statement is unchanged, and no cache state is shared between origin compartments or consulted across a partition switch.
+· Trace: CJ-NI, CJ-WCET · [§14](verification-maximal-os.md#r-14-008c)
+
+**R-14-008d** MUST: The inline-cache path carries a producer-side differential-testing obligation, test262 and the Wasm specification suite run against the same interpreter with caches disabled, discharged as engineering hygiene and never as a trust argument.
+· Accept: the differential runs are off-device and no admission decision cites them; the residual is reliability rather than confidentiality, nothing on the device deciding Tier-2 functional correctness (R-14-005).
+· Trace: CJ-TAL-SOUND · [§14](verification-maximal-os.md#r-14-008d)
+
+**R-14-008e** MUST: The browser's own chrome, built-in libraries, and privileged JS are not downloaded content and are compiled natively through the §13 admission path rather than interpreted.
+· Accept: no image-resident browser code runs on the interpreter, so the no-JIT cost falls only on network-delivered content.
+· Trace: CJ-CERISE · [§14](verification-maximal-os.md#r-14-008e)
+
+**R-14-008f** IS: There is no AOT route for web-delivered JS and Wasm, which are dynamic content and for which Wasm is no system execution target (R-14-013), so a faster interpreter narrows the no-JIT gap and no interpreter closes it; a web application shipped through the §13 install path is instead an ordinary native Tier-2 citizen paying none of that cost.
+· Accept: the delivery-path cost stays booked as accepted in [performance-estimates.md](performance-estimates.md) rather than claimed recovered, and the install path is the only exit, taken by a product decision and not by a platform mechanism.
+· Trace: CJ-TAL-SOUND · [§14](verification-maximal-os.md#r-14-008f)
+
 **R-14-009** MUST: Origins come from a composition-fixed pool of *P* identical origin compartments (one manifest, one static memory plan) differing only in which origin is bound to them, because static composition admits no compartment minted at runtime.
 · Accept: opening a tab binds a free pool member and raises the §11 population rung; closing one is an ordinary kernel-mediated session teardown whose capabilities die at the revocation epoch flip, which is what makes a member safe to rebind.
 · Trace: CJ-CERISE, CJ-MEMPLAN · [§14](verification-maximal-os.md#r-14-009)
@@ -4454,7 +4478,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1021 requirements. §19 is non-normative and yields none. Counts include the 103 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1027 requirements. §19 is non-normative and yields none. Counts include the 109 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4471,7 +4495,7 @@ All eighteen normative sections are extracted, at 1021 requirements. §19 is non
 | **§11 Updates** | **extracted** | **27** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
-| **§14 Userland** | **extracted** | **14** |
+| **§14 Userland** | **extracted** | **20** |
 | **§15 Hardware Platform** | **extracted** | **269** |
 | **§16 Reliability** | **extracted** | **23** |
 | **§17 Residual Risks** | **extracted** | **79** |
