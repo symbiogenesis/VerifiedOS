@@ -826,10 +826,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the residual is booked in §17 as the wrong-label case, the same shape as the mislabeled-secret residual of the constant-time discipline; what the three delete is the unenforced-obligation class.
 · Trace: CJ-TAL-SOUND · [§17](verification-maximal-os.md#r-05-126i)
 
-### 5.19 The frozen checker theory
+### 5.19 The frozen checker theory, and the language it lives in
 
 **R-05-127** IS: The on-device checker is an attribute-grammar evaluator, not a term checker, and its order-of-10³-line budget is a consequence of that category fact.
-· Accept: the checker evaluates a fixed attribute set bottom-up over the already-typed CFG with no fixpoint over open terms anywhere; and the figure has a stated counting rule: it counts the attribute evaluator, the derivation reader, and the image scan together in the shipped source of the §6 type-checker, and excludes the frozen type-constructor vocabulary and attribute tables (data bounded by amendment to the specification, not by implementation), the CIC proof kernel, and the Coq metatheory. A checker that met the figure by moving decisions into a generated table fails the claim, the category fact being what the budget asserts.
+· Accept: the checker evaluates a fixed attribute set bottom-up over the already-typed CFG with no fixpoint over open terms anywhere, and the shipped source meets the counting rule [typed-assembly-language.md](typed-assembly-language.md) states, cited here rather than restated. A checker that met the figure by moving decisions into a generated table fails the claim, the category fact being what the budget asserts.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-127)
 
 **R-05-128** MUST NOT: Absence (1): polymorphism is predicative and rank-1 prenex only: type variables quantified at the outermost position of a code type and instantiated only at monotypes.
@@ -844,8 +844,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the checker contains no acyclicity solver.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-130)
 
-**R-05-131** MUST NOT: Absence (4): no user-extensible inductive definitions. The type-constructor vocabulary is fixed and closed by this specification, and grows only by amendment to it, never at install time.
-· Accept: no positivity check, no guard condition, and no eliminator generation exists in the checker; the vocabulary is capability types (bounds, permissions, revocation colour, initialization flag), code types (register-file preconditions carrying the callee set), the aggregate and existential formers the ABI needs, the linear/affine and relevance grades, the CT taint labels, and the WCET cost annotations.
+**R-05-131** MUST NOT: Absence (4): no user-extensible inductive definitions. The type-constructor vocabulary is fixed and closed by the pinned language specification (R-05-135a), and grows only by amendment to it, never at install time.
+· Accept: no positivity check, no guard condition, and no eliminator generation exists in the checker; the vocabulary is the closed set that specification fixes, cited here rather than restated, so the two cannot come to disagree.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-131)
 
 **R-05-132** MUST: A proposed attribute is admitted only on a shown demonstration that it (1) has a finite semilattice/monoid domain decided with no open-term reduction and preserves syntactic type equality, (2) duplicates no existing grade or label axis, and (3) has a local syntax-directed rule.
@@ -863,6 +863,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-05-135** IS: The only computation the checker performs is bounded-width arithmetic over closed numerals (WCET literal sums and comparisons; overflow range side conditions), decided in constant time per node.
 · Accept: no rule requires reduction of open terms; anything that would descends under R-05-133.
 · Trace: CJ-TAL-SOUND, CJ-WCET · [§5](verification-maximal-os.md#r-05-135)
+
+**R-05-135a** IS: The type theory (R-05-127 to R-05-135), the obligation menu, the machine-profile parameter, and the soundness statement are specified in [typed-assembly-language.md](typed-assembly-language.md), a target-parameterized language this platform *depends on* rather than a component of it. CHERI-TAL is that language's `cheri-rv64` instantiation, and the factoring renames nothing.
+· Accept: the language document states the theory, the menu, and the profile rule; this register states which instantiation and which obligations this platform requires (R-05-029); neither restates the other's list.
+· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-135a)
+
+**R-05-135b** MUST: A generation is checked against a named, pinned version of the language specification and its profile, and a version bump is a review-gate event carrying a fresh reading of the soundness metatheorem, never a transparent upgrade.
+· Accept: the generation names the language version and profile its checker implements, and a review record exists for that version; no generation is admitted against an unpinned or un-re-reviewed one.
+· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-135b)
+
+**R-05-135c** MUST: This platform's profile is `cheri-rv64`, which cites spatial memory safety, no-runtime-codegen, and the run-time half of control-flow integrity as architectural. No obligation of R-05-029 is discharged here by inserted run-time checks.
+· Accept: every cited invariant is a theorem of the §15 Sail model rather than a claim about an implementation, and no admitted derivation carries an inserted-check discharge.
+· Trace: CJ-TAL-SOUND, CJ-CERISE, CJ-SAIL · [§5](verification-maximal-os.md#r-05-135c)
+
+**R-05-135d** IS: Factoring the language out relocates the work rather than reducing it, and substitutes a version seam for an amendment process: a theory frozen in this corpus is frozen by its own review gate, and a theory frozen in a dependency is frozen by R-05-135b's pin.
+· Accept: the residual is booked in §17 as the dependency seam, and no §18 deliverable is reduced by the factoring.
+· Trace: CJ-TAL-SOUND · [§17](verification-maximal-os.md#r-05-135d)
 
 ### 5.20 Representation and provenance: five deletions
 
@@ -4542,7 +4558,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1043 requirements. §19 is non-normative and yields none. Counts include the 124 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1047 requirements. §19 is non-normative and yields none. Counts include the 128 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4550,7 +4566,7 @@ All eighteen normative sections are extracted, at 1043 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **6** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **191** |
+| **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **53** |
