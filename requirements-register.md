@@ -286,6 +286,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the anchor list in the trust-base inventory is exactly these seven; any eighth is an amendment to this register.
 · Trace: CJ-SAIL, CJ-RTL-SAIL · [§5](verification-maximal-os.md#r-05-019)
 
+**R-05-019a** MUST: Each semantic anchor is one artifact, and every theorem that mentions it quantifies over that same term; an anchor re-transcribed once per consumer is a second anchor and is rejected under R-05-020's non-duplication condition.
+· Accept: the trust-base inventory holds exactly one artifact per anchor, and every theorem citing an anchor resolves to that artifact rather than to a per-consumer copy of it.
+· Trace: CJ-SAIL, CJ-T · [§5](verification-maximal-os.md#r-05-019a)
+
+**R-05-019b** MUST: The Sail model enters the development as the Coq definitions Sail's own backend emits, and both the §13 Iris-over-Sail program logic and the §15 RTL ⊑ Sail refinement quantify over that one term.
+· Accept: the binary-against-Sail obligations and the hardware refinement resolve to the same Coq definitions; neither tower carries its own transcription of the ISA model.
+· Trace: CJ-SAIL, CJ-RTL-SAIL · [§5](verification-maximal-os.md#r-05-019b)
+
+**R-05-019c** MUST NOT: No build step emits the Sail model from the development it anchors.
+· Accept: the ISA model's provenance is the authored, frozen profile the R-05-150 gate reviews, and no build step produces it from a Coq artifact. Generation downstream of it, the Coq definitions its own backend emits, is proof transport under R-05-021 and is unaffected.
+· Trace: CJ-SAIL · [§5](verification-maximal-os.md#r-05-019c)
+
 **R-05-020** MUST: A new semantics, program logic, or translator is admitted only on a shown demonstration of all three conditions: Coq-native or mechanically bridged; non-duplicating of an existing anchor; and retiring an interim it replaces.
 · Accept: each amendment record carries three arguments, one per condition, each shown rather than asserted.
 · Trace: CJ-T · [§5](verification-maximal-os.md#r-05-020)
@@ -4530,7 +4542,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1040 requirements. §19 is non-normative and yields none. Counts include the 121 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1043 requirements. §19 is non-normative and yields none. Counts include the 124 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4538,7 +4550,7 @@ All eighteen normative sections are extracted, at 1040 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **6** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **188** |
+| **§5 Languages & Verification** | **extracted** | **191** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **53** |
