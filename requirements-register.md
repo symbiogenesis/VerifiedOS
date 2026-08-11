@@ -62,6 +62,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the property is discharged by the compose-time capability topology plus CHERI containment; it is the quantifier over adversary sets *C* in theorem T (R-05-156).
 · Trace: CJ-T, CJ-CERISE · [§1](verification-maximal-os.md#r-01-002)
 
+**R-01-002a** IS: G2 has two premises in different conditions. Its software premise admits no interim: nothing executes that the certifying toolchain has not certified, so a missing certificate is a delivery failure and never a degraded admission (R-13-022, R-17-033). Its hardware premise admits one, because every isolation boundary rests on CHERI alone with no disjoint backstop retained (R-17-037, R-17-045) and the arrow beneath it is the least-built layer of the stack (R-18-010): until that arrow closes, the premise stands at *evidence tier* (rvfi conformance, Sail-generated SystemVerilog under commercial FEV, the structural netlist audit carrying the imported-core half of the absence contract) rather than at *theorem tier* (the Kami/Kôika Coq unbounded refinement).
+· Accept: each tier is identified by its vehicles rather than by adjective, so which tier a core stands at is read off the artifacts admitted for that core; the two tiers partition the rungs R-18-010 stages, at the unbounded one.
+· Trace: CJ-T, CJ-RTL-SAIL, CJ-CERISE · [§1](verification-maximal-os.md#r-01-002a)
+
+**R-01-002b** MUST: A unit built before R-18-010's unbounded rung is admitted for its cores asserts G2 at evidence tier and no higher, as does every §3 defended entry answered by CHERI containment (R-03-006). The tier rises per core when that core's unbounded refinement is admitted, never at an intermediate rung, under the retirement discipline R-05-022 imposes on every interim non-Coq anchor.
+· Accept: decided by inspecting two lists rather than by judgment, the rungs admitted for that core and the claims riding them (R-05-022a's shape). An attestation, datasheet, or conformance claim that asserts G2 without the tier it stands at is a review-gate finding, as is a tier raised on an intermediate rung.
+· Trace: CJ-T, CJ-RTL-SAIL · [§1](verification-maximal-os.md#r-01-002b)
+
 **R-01-003** IS: G3: end-to-end formal verification from abstract spec through source, binary, ISA, and modeled hardware to RTL, with RTL ⊑ Sail a named in-scope mechanization workstream rather than a bare trust assumption.
 · Accept: the RTL of record is authored in Kami/Kôika, with riscv-formal/rvfi the bring-up gate and Isla the obligation bridge; below it, fabricated silicon versus verified RTL is the irreducible fab residual.
 · Trace: CJ-RTL-SAIL · [§1](verification-maximal-os.md#r-01-003)
@@ -133,6 +141,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-03-005** IS: Invasive physical attack is the only way to reach main memory at all, main memory being on-die, so delidding and probing is the entry price; the line is what scopes the memory path in §15, and drawing it elsewhere would make every on-die interface a defended one.
 · Accept: the scope line is load-bearing and is booked as such (R-17-059).
 · Trace: CJ-T · [§3](verification-maximal-os.md#r-03-005)
+
+**R-03-006** MUST: The defended set enumerates scope, not strength: each entry is asserted at the discharge tier of the mechanism answering it (R-01-002a), so the entries answered by CHERI containment carry R-01-002b's tier until the RTL ⊑ Sail ladder reaches its unbounded rung.
+· Accept: for each defended entry, the mechanism R-03-001 requires it to name is read against the tier definition, and no entry is asserted above the tier of its own mechanism; the containment mechanism most entries share reads as evidence tier for as long as R-18-010's unbounded rung is open.
+· Trace: CJ-T, CJ-CERISE · [§3](verification-maximal-os.md#r-03-006)
 
 ---
 
@@ -4381,7 +4393,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-RTL-SAIL · [§18](verification-maximal-os.md#r-18-012)
 
 **R-18-013** IS: RTL ⊑ Sail degrades gracefully, unlike the certifying compilers: rvfi and Isla obligations ship long before the Coq refinement closes, so base bring-up is not blocked on the full proof; only the *unbounded* claim is.
-· Accept: the disposition is stated per workstream rather than uniformly.
+· Accept: the disposition is stated per workstream rather than uniformly, and the tier it leaves a pre-close unit entitled to assert is carried by G2 and the defended set (R-01-002a, R-01-002b, R-03-006) rather than held only in this section.
 · Trace: CJ-RTL-SAIL · [§18](verification-maximal-os.md#r-18-013)
 
 ### 18.3 The toolchain
@@ -4494,13 +4506,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1031 requirements. §19 is non-normative and yields none. Counts include the 113 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1034 requirements. §19 is non-normative and yields none. Counts include the 115 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
-| **§1 Goals** | **extracted** | **6** |
+| **§1 Goals** | **extracted** | **8** |
 | **§2 Non-Goals** | **extracted** | **7** |
-| **§3 Threat Model** | **extracted** | **5** |
+| **§3 Threat Model** | **extracted** | **6** |
 | **§4 Organizing Principle** | **extracted** | **12** |
 | **§5 Languages & Verification** | **extracted** | **188** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
