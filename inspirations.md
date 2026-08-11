@@ -182,6 +182,25 @@ The result keeps BeOS's unusually coherent object and media programming model wh
 
 ---
 
+## oo7 and the freedesktop Secret Service: the desktop keyring, and the escape hatch from it that argues the capability case
+
+oo7 is a Rust implementation of the freedesktop **Secret Service**, the interface behind the Linux desktop keyring: a client library, a daemon replacing `gnome-keyring-daemon`, a portal backend for sandboxed applications, a `secret-tool`-equivalent CLI, a `git` credential helper, PAM integration, and a KWallet parser kept only to migrate secrets *out* of one.
+It is the closest shipping analogue of what the sealing and attestation service does for userland here (§12), and it converges on three of the same conclusions: that secret custody belongs in one service rather than in every application, that the credential-helper surface is what makes such a service reach anything at all, and that the C daemon underneath is worth replacing with memory-safe code.
+
+The divergence is the interesting half, because the incumbent interface is **ambient by construction**.
+Any client that can address the session bus may ask the service for items, mediated by a prompt rather than by possession of a capability, and oo7's own documentation states the remedy plainly: a sandboxed application should abandon the shared service for a per-application encrypted file, *because the shared one exposes its secrets to everything else that can talk to the bus*.
+That is the ambient-authority diagnosis in the ecosystem's own words, and the per-application file is a weaker approximation of what §8 supplies by construction, there being no bus to address and no ambient name to ask for: an application reaches the store only through a capability it was granted, and holds nothing else.
+
+Three further inversions follow from that one.
+The interface is a **retrieval** API that hands the secret bytes back to the caller, where the protocol-credential broker returns a non-exportable credential capability bound to protocol role, peer, operation, transcript, use count, and expiry, so the credential never crosses the boundary at all (§12: the Factotum split above, carried one step further).
+The file backend puts the application in charge of its own encryption under a master secret a portal hands it, where keys never leave the crypto core (§5), an application holds only sealed blobs (§12), and per-domain keys with per-extent AEAD already hold them in its own namespace (§10, §14).
+And the unlock prompt is rendered by the service itself with nothing to distinguish it from a spoof, precisely the seam the trusted-path agent under the RoT-driven secure-attention indicator exists to close (§6, §9), while the transport the specification negotiates (a plaintext mode, or 1024-bit Diffie-Hellman with AES-128-CBC) is the pre-quantum floor everything here binds to the §5 core to avoid.
+
+What transfers is therefore vocabulary and evidence, not code, and certainly not the protocol: no Secret Service server and no compatibility layer for one exists here, for the same reason no 9P one does.
+The client **shape** (an item as a label, an attribute map, an opaque secret and a content type, searched by attribute rather than by path, with locked and unlocked stores distinguished in the type system behind an explicit backend seam) is the vocabulary the platform's own secret-store client takes, both of oo7's backends being deleted along with the assumptions that motivate them and one typed IDL ring to the sealing service put in their place; and its credential helpers are the concrete shape of the compartments the version-control port already calls for and does not specify.
+
+---
+
 ## Akaros: application-directed core partitioning and the asynchronous syscall, reached from the datacenter-performance pole
 
 Akaros (Barret Rhoden, Kevin Klues, and colleagues at UC Berkeley; a Plan 9 derivative) is a manycore operating system built for *"parallel and high-performance applications in the datacenter"*, whose organizing goals are **application-directed resource management** and *"100% isolation from other jobs running on the system."*

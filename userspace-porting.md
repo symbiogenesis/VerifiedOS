@@ -30,6 +30,7 @@ The four obstacles below still bind on whatever code these do reuse, but *which 
   Authored; the matcher is the only part with plausible upstream, and is precisely the part that must be contained.
 - **Sealing & attestation service** (§12): the crypto core's userspace face (seal/unseal, quotes, reference-manifest retrieval, monotonic counters) and, as protocol-credential broker, the non-exportable typed credential capabilities TLS, WireGuard, and WebAuthn clients hold instead of a signing oracle.
   Plan 9's Factotum is the design ancestor for the protocol-code-versus-key-custody split, not a lift.
+  The client library and credential helpers applications reach it *through* are a roster entry below rather than part of this half: the service is required, the vocabulary that fronts it is stageable.
 - **Rollback-manager service and UI** (§12, §9, §10, §11, §16): untrusted and non-TCB, but required, and carrying a constraint no application has.
   It is also the payload of the boot-selected recovery generation (§9), so it must build and run inside a minimal signed image with no desktop beneath it.
 - **Object fabric** (§12): the contained control-plane service joining Plan 9's private namespace and plumber to BeOS's typed attributes and translators, resolving intents over a signed composition-time handler graph while minting nothing.
@@ -62,6 +63,7 @@ These are stageable behind the userland above, in the order **Sequencing** (belo
 - **Coding agent**, the editor-independent agent compartment: an agent speaking that protocol over a ring, whose every tool call is a powerbox grant rather than an ambient authority (Tier-2, normative in §12).
 - **coreutils / findutils / diffutils** from uutils, the seed corpus for §14's capability-native core utilities (Tier-2).
 - **gitoxide**, the pure-Rust Git, re-targeted as the capability-native version-control engine; its object store re-homes onto §10's verified CoW B-tree (native dedup, reflinks, snapshots, Git's packfiles and `gc` shed) and its pack/wire decoders are a §5 Narcissus obligation (Tier-2).
+- **Secret-store client and credential helpers**, the userland face of the §12 sealing and attestation service: `oo7`'s client vocabulary re-targeted with both of its backends deleted for a single typed IDL ring, and the `git` credential helper and secret-lookup utility gitoxide's port calls for as capability-delegated compartments (Tier-2).
 - **NuShell**, the structured-data shell, re-grounded as the capability-native command interpreter: its typed value pipeline is the shell-level analogue of §12's data plane, its builtin-heavy command set shrinks the `fork`/`exec` surface, and its plugins become §12 ring-reached compartments (Tier-2).
 - **Servo**, the contained, per-origin browser engine of §14 (Tier-2 origin compartments), which §18 defers past the first release.
 - **GGUF inference runtime**, the §12 optional inference server on the M-class cores: the `burn` deep-learning framework re-targeted onto a net-new M-class GEMM backend (`burn`'s pluggable backend trait is the clean seam), not a from-scratch build (Tier-1).
@@ -246,7 +248,31 @@ The security ledger improves twice: the on-disk DEFLATE of seam (2) vanishes (ob
 No second structure is needed: §10's *"everything is a b-tree"* unification absorbs both of Git's stores at once, immutable objects as content-addressed, dedup-shared, AEAD-sealed extents, and mutable refs, the index, and the reflog as keys in the same keyspace, the reflog falling out of snapshot-versioning for free.
 Being neither a GUI nor a JIT host, gitoxide clears obstacles 2 and 4 for free; what remains is the subtraction of ambient authority, the coreutils shape, joined by a move the coreutils lift has no analogue for: collapsing Git's bespoke object store onto the verified §10 store.
 
-**Disposition:** Tier-2; adopt gitoxide's safe-Rust core, object model, ref store, revision walk, diff/merge, as a near-clean lift, **re-home storage onto the §10 store** so its native content-addressed dedup, refcounted-CoW reflinks, and O(1) snapshots subsume loose objects, packfiles, delta chains, and `gc` (packing survives only as a *wire* codec, never an on-disk format, and crash-safety is inherited from the verified journal rather than re-implemented), gate admission on the §5 Narcissus proof for the pack/pkt-line/idx/delta and object decoders, mandate **SHA-256-only** through the verified crypto core with SHA-1 dropped, shed the `memmap2`/zlib `-sys` dependencies, and collapse the hook/helper/credential/signing subprocess menagerie into supervision-tree compartments (§12).
+**Disposition:** Tier-2; adopt gitoxide's safe-Rust core, object model, ref store, revision walk, diff/merge, as a near-clean lift, **re-home storage onto the §10 store** so its native content-addressed dedup, refcounted-CoW reflinks, and O(1) snapshots subsume loose objects, packfiles, delta chains, and `gc` (packing survives only as a *wire* codec, never an on-disk format, and crash-safety is inherited from the verified journal rather than re-implemented), gate admission on the §5 Narcissus proof for the pack/pkt-line/idx/delta and object decoders, mandate **SHA-256-only** through the verified crypto core with SHA-1 dropped, shed the `memmap2`/zlib `-sys` dependencies, and collapse the hook/helper/credential/signing subprocess menagerie into supervision-tree compartments (§12), whose credential half the next entry supplies.
+
+### Secret-store client and credential helpers: the userland face of the sealing service
+
+§12 names the safe-Rust client crates that wrap the sealing and attestation service for password managers, credential vaults, and per-application secret storage, and names no upstream for them.
+This is the one roster entry that is a *library* rather than a program: the service it fronts is required userland (above), and what is stageable is the vocabulary applications reach it through, plus the helpers that make it reach anything.
+`oo7`, a Rust implementation of the freedesktop Secret Service whose daemon replaces `gnome-keyring-daemon`, is the start-from, and it is a start-from for its **shape**, never its protocol ([inspirations.md](inspirations.md) records why the protocol itself is declined).
+Four seams settle it.
+**(1) The API shape transfers whole.**
+An item is a label, an attribute map, an opaque secret, and a content type; items are created, searched, and deleted by attribute rather than by path; locked and unlocked stores are distinct types; a store that cannot decrypt one item reports *that item* rather than failing entire; and a key judged too weak is refused for writing rather than accepted quietly.
+That is exactly the vocabulary applications need and the platform has never named, and none of it depends on the protocol underneath.
+**(2) Both backends delete with their assumptions.**
+The D-Bus backend addresses `org.freedesktop.secrets` on the session bus, an ambient service §8 has nothing to map onto and §12 supplies no bus for; the file backend has the application encrypt its own store under a master secret a portal hands it, which §5 refuses outright, keys never leaving the crypto core, and which §10 and §14 already supersede with per-domain keys, per-extent AEAD, and a manifest-backed private namespace.
+One typed IDL ring to the sealing service replaces both: the client marshals a schema-bounded request and receives sealed blobs and capability handles, so the constant-time obligation stays on the crypto core rather than travelling with the library (§13).
+This is the closure discipline's *deletes with its assumption* disposition applied to the substrate of a library rather than to a leaf of one.
+**(3) The credential helpers are the point, and gitoxide already needs them.**
+A `git` credential helper becomes a capability-delegated compartment on the supervision tree reached over a ring, holding a **credential capability** bound to peer and operation rather than a password it could leak (§12's protocol-credential broker), which is the shape the gitoxide entry above calls for and does not specify.
+The `secret-tool`-equivalent lookup CLI becomes an ordinary capability-native utility beside coreutils.
+The PAM integration is not ported, authenticating the *user* being the credential and unlock service's job (§9, §12), and the `cargo` credential provider does not transfer at all, nothing on this device compiling (§5, §13, obstacle 4).
+**(4) Import is a one-shot §5 obligation, not a backend.**
+`oo7` carries a KWallet parser and a host-to-sandbox migration path purely to read foreign vaults, and here a foreign keyring file is attacker-shaped input in exactly the §5 sense: the reader is a verified copy-once parser running in a throwaway compartment that holds one capability to the file and one to the sealing service, emits sealed per-domain items, and is torn down when it finishes.
+No standing compatibility backend survives it.
+
+**Disposition:** Tier-2; adopt the item-and-attribute vocabulary and the async client structure, delete both backends with their assumptions in favor of a single typed IDL ring to the sealing service, ship the `git` credential helper and the lookup utility as capability-delegated compartments, drop the PAM and `cargo` integrations as already discharged and as inapplicable respectively, and treat foreign-vault import as a contained one-shot §5 obligation rather than a supported backend.
+`libsecret` (C, and the thing being replaced) and `secret-service-rs` (a sync, D-Bus-only client) are the rejected alternatives, and no Secret Service *server* is implemented at all.
 
 ### NuShell: the capability-native command interpreter
 
@@ -353,7 +379,7 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
    The renderer's first client is the consent path, not the desktop.
    This is the stage that makes the earlier claim operational, since no application may hold a grant before the component that mints grants exists, and it is where recovery arrives, the machine now holding state worth rolling back.
 3. **The headless applications.**
-   coreutils, findutils and diffutils first as the seed corpus, then gitoxide and NuShell.
+   coreutils, findutils and diffutils first as the seed corpus, then gitoxide and NuShell, the secret-store client and its `git` credential helper arriving beside gitoxide, the first target needing a credential it must not hold in plaintext.
    They clear obstacles 2 and 4 for free, need no surface, and exercise §10's store and §12's rings harder than any GUI target will: gitoxide's re-homing onto the CoW B-tree is the sharpest test userland gives the storage stack.
    They are also the targets deterministic simulation testing can actually run (below).
 4. **The desktop.**
