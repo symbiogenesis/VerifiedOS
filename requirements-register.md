@@ -2916,7 +2916,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: one tag plane exists in the SRAM word, not two (R-15-165); the deletion recovers one bit per granule, its DECTED coverage, a Sail invariant, an RTL ⊑ Sail obligation, and a DSE parameter.
 · Trace: CJ-RTL-SAIL, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-035)
 
-**R-15-036** MUST NOT: The C (compressed) extension is excluded; the accepted cost is ~25–30% code size.
+**R-15-036** MUST NOT: The C (compressed) extension is excluded; the accepted cost is ~33–43% code size (RVC's 25–30% saving inverted).
 · Accept: unique 4-byte-aligned decode, no overlapping 16-bit-aligned decodings, no decode ambiguity for binary-level proofs (R-05-035).
 · Trace: CJ-SAIL, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-036)
 

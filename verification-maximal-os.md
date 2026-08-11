@@ -1396,7 +1396,7 @@ The exclusion and its ground are stated below with the other declined hedges; th
   Full evaluation in [Evaluated Architectural Alternatives](architectural-alternatives.md).
 - **C (compressed).** <a id="r-15-036"></a>
   Overlapping 16-bit-aligned decodings create hidden gadgets for unproven code and a decode ambiguity the binary-level proofs must discharge; removal gives unique 4-byte-aligned decode, simpler fetch, cleaner WCET.
-  Cost (~25–30% code size, so fetch bandwidth and memory-footprint pressure) is accepted.
+  Cost (~33–43% code size, RVC's usual 25–30% saving read the other way, so fetch bandwidth and memory-footprint pressure) is accepted.
 - **`Zalrsc`** (LR/SC): the `A` extension is kept only as its `Zaamo` half (see "Atomics" above).
   LR/SC's reservation set is hidden inter-instruction microarchitectural state (fails admission-test-3, like a dynamic predictor), SC's spurious failure is a sanctioned nondeterminism (fails test-1), and its coherence-granule contention is a cross-hart channel; deleting it is strictly stronger than flushing it, removes the reservation-set / spurious-failure / forward-progress rules from the Sail model, and tightens WCET (a single fixed-latency AMO vs. an LR/SC retry loop).
   **`Zacas`** (general CAS, incl. the 128-bit `amocas.q`) is excluded on the same parsimony: the share-nothing kernel (§7) and single-writer SPSC rings (§12) present no lock-free multi-writer consumer, and no capability sits in shared memory to need atomic tagged update, so its 128-bit coherence-point would be dead Sail surface (see "Atomics" above).

@@ -150,7 +150,7 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 
 | Excluded | Ground | Governing |
 | --- | --- | --- |
-| `C` (compressed) | unique 4-byte decode for binary-level proofs; ~25–30% code size accepted | R-15-036 |
+| `C` (compressed) | unique 4-byte decode for binary-level proofs; ~33–43% code size accepted | R-15-036 |
 | `F` / `D` scalar FP, `f0`–`f31`, dynamic `frm` | all FP is vector; fixed-latency contract stated once | R-15-039, R-15-083 |
 | `vstart` element-restart state | no consumer: nothing on this machine resumes a vector instruction mid-element, so the element loop runs from zero in every vector instruction's Sail definition | R-15-039a |
 | `Zalrsc` | per-hart reservation register is hidden inter-instruction state (test 3); spurious SC failure (test 1); reservation-granule contention is a cross-hart channel | R-15-025 |
