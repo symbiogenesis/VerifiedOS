@@ -575,6 +575,25 @@ Report 'crown-jewel row(s) whose status is in no class:' `
        @($cjRows | Where-Object { -not (Get-CjClass $_) } | ForEach-Object { "row $((($_ -split '\|')[1]).Trim()): $(Get-Status $_)" }) `
        "$($q['cj-specs']) rows partition into $($q['cj-authored']) authored, $($q['cj-partial']) partial, $($q['cj-unauthored']) not authored"
 
+# --- membership, in the direction the view could invent it -------------------------
+#
+# The views group checks that every conferring requirement reaches the inventory. That
+# is the direction where a row goes missing. This is the other one R-17-016 names, the
+# direction where a row is *added*: a specification the view grants the status and the
+# register never did. Conferral is the whole membership rule, so a row standing behind
+# no conferring requirement is the view legislating, which is exactly what a derived
+# view may not do. Rows only: the theorem table is targets, not specifications.
+
+$conferring = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' })
+$unconferred = @(foreach ($row in $cjRows) {
+    $cites = @([regex]::Matches($row, 'R-\d\d-\d+[a-z]?') | ForEach-Object { $_.Value })
+    if (-not @($cites | Where-Object { $_ -in $conferring }).Count) {
+        "row $((($row -split '\|')[1]).Trim()): $((($row -split '\|')[2]).Trim())"
+    }
+})
+Report 'crown-jewel row(s) no requirement confers:' $unconferred `
+       "every row cites one of the $($conferring.Count) requirements that confer the status"
+
 # --- a figure stated where no claim holds it ---------------------------------------
 #
 # The claims above are the whole mechanism, so a restatement nobody registered is not

@@ -556,7 +556,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each HAL primitive has a proof obligation discharged in Coq (or the equivalent FPCC discipline); no primitive is admitted on review alone.
 · Trace: CJ-HAL · [§5](verification-maximal-os.md#r-05-081)
 
-**R-05-082** MUST: A DMA or descriptor primitive returning a device-filled buffer establishes that buffer's *initialized* postcondition.
+**R-05-082** MUST: A DMA or descriptor primitive returning a device-filled buffer establishes that buffer's *initialized* postcondition. The hardware contract the postcondition rests on is a crown-jewel spec: the HAL is proved against the contract and never against the device.
 · Accept: every such primitive's contract contains the postcondition; the definite-initialization attribute (R-05-122) consumes it at the compartment edge.
 · Trace: CJ-HAL, CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-082)
 
@@ -934,7 +934,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 5.22 The apex theorem T
 
-**R-05-156** IS: Theorem T: for the composed system image on the fabricated die, under the compose-time policy *P*, for every adversary controlling any set *C* of non-TCB compartments the graph permits, two whole-system inputs indistinguishable to *C* under *P* produce attacker-observations equal across value, timing, and the in-scope architectural channels, modulo the powerbox declassification set *D* and relative to the axiom set *Ax*.
+**R-05-156** IS: Theorem T: for the composed system image on the fabricated die, under the compose-time policy *P*, for every adversary controlling any set *C* of non-TCB compartments the graph permits, two whole-system inputs indistinguishable to *C* under *P* produce attacker-observations equal across value, timing, and the in-scope architectural channels, modulo the powerbox declassification set *D* and relative to the axiom set *Ax*. The statement is itself a crown-jewel spec: a proof of T establishes that T holds, never that T is the property wanted.
 · Accept: one theorem statement exists with all four elements: the quantifier over *C*, the value-and-timing-and-architectural observation, the *modulo D* clause, and the *relative to Ax* clause.
 · Trace: CJ-T · [§5](verification-maximal-os.md#r-05-156)
 
@@ -1414,7 +1414,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no allocator component exists; no online packing exists for Robson's worst case to act upon.
 · Trace: CJ-MEMPLAN · [§8](verification-maximal-os.md#r-08-010)
 
-**R-08-011** IS: Linear/affine ownership fixes each object's live range at compile time and region inference fixes its allocation and free points, expressed against the capability substrate as the calculus-of-capabilities region discipline whose static tokens this design realizes at runtime as CHERI capabilities.
+**R-08-011** IS: Linear/affine ownership fixes each object's live range at compile time and region inference fixes its allocation and free points, expressed against the capability substrate as the calculus-of-capabilities region discipline whose static tokens this design realizes at runtime as CHERI capabilities. The resulting whole-program slot plan and its live-range colouring are a crown-jewel spec: the kernel refinement is stated against the plan, so a wrong plan yields a correct proof of the wrong layout.
 · Accept: the compiler emits a static slot assignment carried in the CHERI-TAL derivation.
 · Trace: CJ-MEMPLAN, CJ-TAL-SOUND · [§8](verification-maximal-os.md#r-08-011)
 
@@ -2000,7 +2000,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-05-054.
 · Trace: CJ-VELUS, CJ-WCET · [§11](verification-maximal-os.md#r-11-016)
 
-**R-11-017** MUST: WCET tables are per (class, operating point), and the admission proof selects each partition's OPP (the slowest point meeting deadlines), emitting the OPP assignment, the TDM NoC schedule, and the watchdog windows as one artifact.
+**R-11-017** MUST: WCET tables are per (class, operating point), and the admission proof selects each partition's OPP (the slowest point meeting deadlines), emitting the OPP assignment, the TDM NoC schedule, and the watchdog windows as one artifact, itself a crown-jewel spec: admission is decided against the schedule the artifact states, not against the machine that runs it.
 · Accept: one artifact, three outputs.
 · Trace: CJ-WCET, CJ-ISOL · [§11](verification-maximal-os.md#r-11-017)
 
@@ -2732,7 +2732,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the frozen profile (the artifact required by R-15-001a) enumerates exactly this extension set; any encoding outside it traps (R-15-014).
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-001)
 
-**R-15-001a** MUST: The frozen profile exists as a single enumeration in one artifact, [isa-profile.md](isa-profile.md), rather than as an emergent property of the requirements that constrain it. The artifact is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective, never authoritative, where it disagrees with this register.
+**R-15-001a** MUST: The frozen profile exists as a single enumeration in one artifact, [isa-profile.md](isa-profile.md), rather than as an emergent property of the requirements that constrain it. The profile it enumerates is a crown-jewel spec: CHERI-CompCert, Cerise, and the CHERI-TAL are each proved against it, so a wrong profile is a correct proof about the wrong machine. The artifact is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective, never authoritative, where it disagrees with this register.
 · Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions: every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it. `tools/check.ps1` is that check and exits non-zero on either finding. The reverse direction is the one that earns its keep: a hand-maintained extraction silently drops rows, which is what makes a set stated in two places drift. The check tests *citation*, not *fidelity*: a row whose prose contradicts the requirement it cites is a review-gate finding against this entry.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-001a)
 
@@ -2752,7 +2752,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: RVWMO is retained neither in hardware nor in proof reasoning; every ring proof is restated under Ztso.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-004), [§15](verification-maximal-os.md#r-15-004-2)
 
-**R-15-005** MUST: There is exactly one Sail model, parameterized by core class (VLEN, matrix geometry), and exactly one capability encoding.
+**R-15-005** MUST: There is exactly one Sail model, parameterized by core class (VLEN, matrix geometry), and exactly one capability encoding. That model's semantics are a crown-jewel spec: every architectural proof is stated against the model, and the model's faithfulness to what the profile intends is what no such proof checks.
 · Accept: no second CHERI dialect (CHERIoT's compressed RV32 format included) exists; no second capability encoding forks the model, the RoT's scalar core included.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-005), [§14](verification-maximal-os.md#r-15-005-2), [§15](verification-maximal-os.md#r-15-005-3)
 
@@ -2994,7 +2994,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 15.8 Adopted extensions
 
-**R-15-053** IS: `Zkt` + `Zvkt` is the keystone: the architectural contract that a listed instruction set runs in data-independent latency.
+**R-15-053** IS: `Zkt` + `Zvkt` is the keystone: the architectural contract that a listed instruction set runs in data-independent latency. The leakage model it fixes is a crown-jewel spec: constant-time soundness is proved against the model, and a model weaker than the silicon verifies perfectly and leaks.
 · Accept: the list is (a) the single leakage model constant-time verification is stated against and (b) an RTL-against-Sail proof obligation.
 · Trace: CJ-LEAK, CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-053)
 
@@ -3332,7 +3332,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: post-factory substitution or downgrade of calibration fails attestation like any other measured input.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-126)
 
-**R-15-127** IS: The calibration manifest is the one per-device artifact reproducibility cannot reach: it is measured, not built, so the factory step joins the supply chain as a trusted measurement, bounded by construction so compromise degrades performance and availability, never integrity and never the regulatory ceiling.
+**R-15-127** IS: The calibration manifest is the one per-device artifact reproducibility cannot reach: it is measured, not built, so the factory step joins the supply chain as a trusted measurement, bounded by construction so compromise degrades performance and availability, never integrity and never the regulatory ceiling. The manifest schema those bounds are stated over is a crown-jewel spec.
 · Accept: emission stays inside the passive analog envelope whatever the trim says; limit values latch only at or below certified ceilings; SRAM assist mis-trim degrades margin that ECC and fail-stop catch; sensor mis-trim costs fidelity.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-127)
 
@@ -3634,7 +3634,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no modeled constant quantifies over a metastability resolution.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-197)
 
-**R-15-198** MUST: Power-domain and reset sequencing is a fixed, composition-time sequence table in the attested devicetree, dependency-ordered, each step gated on a hardware ready indication under a watchdog-bounded timeout, executed by the verified RoT firmware as the only sequencer.
+**R-15-198** MUST: Power-domain and reset sequencing is a fixed, composition-time sequence table in the attested devicetree, dependency-ordered, each step gated on a hardware ready indication under a watchdog-bounded timeout, executed by the verified RoT firmware as the only sequencer. The table is itself a crown-jewel spec.
 · Accept: mode transitions, standby entry and exit, and deep-sleep wake are re-entries into suffixes of the same table, so there is one sequencing artifact to verify, a crown-jewel spec beside the NoC schedule; resets are hierarchical, and only the watchdog bite asserts the die.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-198)
 
@@ -3696,7 +3696,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 15.27 Temporal isolation and `fence.t`
 
-**R-15-211** MUST: Temporal isolation is carried by `fence.t`-class flush at partition switches, SRAM bank/macro/tier partitioning, and TDM NoC arbitration with island separation, each carrying architecturally guaranteed non-interference semantics in the Sail model.
+**R-15-211** MUST: Temporal isolation is carried by `fence.t`-class flush at partition switches, SRAM bank/macro/tier partitioning, and TDM NoC arbitration with island separation, each carrying architecturally guaranteed non-interference semantics in the Sail model. The isolation model those semantics are stated in is a crown-jewel spec.
 · Accept: a partition's timing behaviour is independent of another's activity, decided against the isolation model's non-interference statement rather than against the list of mechanisms above it; until that model is authored the obligation is stated and not discharged (R-17-003b).
 · Trace: CJ-ISOL, CJ-NI · [§15](verification-maximal-os.md#r-15-211)
 

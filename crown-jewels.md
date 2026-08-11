@@ -13,9 +13,9 @@ Membership is **conferred, never declared in bulk**: a specification is a crown 
 Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
 
 1. the register's **`CJ-` trace-target table**, 21 entries, all used, internally consistent, but a *legend of trace targets* rather than an enumeration of specifications (below);
-2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §12, §15, and §17. There are fifteen such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
+2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §11, §12, §15, and §17. There are twenty-five such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
 
-Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, and a row citing an identifier the register does not hold.
+Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, a row no conferring requirement stands behind, and a row citing an identifier the register does not hold.
 
 ## Why it matters for implementation
 
@@ -35,26 +35,27 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 | 3 | **The IDL wire-format mapping**, the profile's mapping, the contract the IDL's types only document | `CJ-IDL` | R-12-013 | not authored |
 | 4 | **The frozen ISA-profile definition** | `CJ-SAIL` | R-15-001, R-15-001a, R-15-014 | **authored**: [isa-profile.md](isa-profile.md) |
 | 5 | **The `Zkt`/`Zvkt` leakage-model statement**, the single leakage model constant-time verification is stated against | `CJ-LEAK` | R-15-053, R-05-070 | partial: enumerated in the profile (§2); the instruction list itself rides the ratified `Zkt`/`Zvkt` definition |
-| 6 | **The Ztso and static-prediction fetch statements** | `CJ-SAIL`, `CJ-RTL-SAIL` | R-15-004, R-15-016, R-15-019, R-15-086, R-15-095 | partial: stated in the profile (§1, §6); not yet a Sail-model statement |
+| 6 | **The frozen profile's Sail semantics**: the Ztso and static-prediction fetch statements, the frozen matrix-extension semantics, and the native tag-bit layout, one model rather than three | `CJ-SAIL`, `CJ-RTL-SAIL` | R-15-005, R-15-004, R-15-016, R-15-019, R-15-086, R-15-095, R-15-009, R-15-116, R-15-117, R-15-118, R-15-175, R-15-035 | partial: each is stated in prose by the profile (§1, §3, §6, §7); no Sail-model statement of any of them is authored |
 | 7 | **The `fence.t` flush-set statement**, now over one structure rather than two | `CJ-ISOL` | R-15-213, R-15-215, R-15-217, R-15-221 | partial: the four-class map is carried in [absence-contract.md](absence-contract.md) §6; the Sail statement is not authored |
-| 8 | **The frozen matrix-extension semantics** | `CJ-SAIL` | R-15-009, R-15-116, R-15-117, R-15-118 | not authored |
-| 9 | **The NoC/island isolation model** | `CJ-ISOL` | R-15-211, R-15-222, R-15-223 | not authored |
-| 10 | **The bank/macro/tier→island binding map**, landing in the attested static devicetree | `CJ-ISOL`, `CJ-DEVTREE` | R-15-228, R-15-211 | not authored |
-| 11 | **The memory controller's non-interference semantics**, per-island arbitration carrying TDM-NoC-class non-interference in the Sail model | `CJ-ISOL` | R-15-228 | not authored |
-| 12 | **The native tag-bit layout** | `CJ-SAIL` | R-15-175, R-15-035 | not authored |
-| 13 | **The radio grammars**, each format descriptor individually, per R-05-046's *descriptor set is enumerated* | `CJ-FORMAT` | R-05-042, R-05-046, R-05-050, R-18-029 | not authored: the wire-format inventory (R-05-042) is itself a missing artifact; see the note below |
-| 14 | **The OPP / mode schedule statements** | `CJ-WCET`, `CJ-ISOL` | R-11-017, R-15-198, R-17-005 | not authored |
-| 15 | **The reset/power sequence table**, fixed, composition-time, dependency-ordered, in the attested devicetree | `CJ-DEVTREE` | R-15-198 | not authored |
-| 16 | **The calibration-manifest schema** | `CJ-DEVTREE` | R-15-127, R-17-062 | not authored |
-| 17 | **Each primitive's abstract functional specification**, the join point of the three-layer crypto proof, where layer-1/2 refinement and the layer-3 game meet | `CJ-CRYPTO-SPEC` | R-05-076, R-05-059, R-10-025, R-17-049 | not authored |
-| 18 | **The timing-annotated Sail model's latency magnitudes** | `CJ-WCET` | R-17-041, R-15-095, R-18-024 | not authored |
-| 19 | **The Lustre program and the control/data boundary** | `CJ-VELUS` | R-17-044, R-05-088 | not authored |
-| 20 | **The wire-format inventory**, every attacker-facing format with its Narcissus descriptor | `CJ-FORMAT` | R-05-042 | not authored |
-| 21 | **The static whole-program slot plan** and its live-range colouring | `CJ-MEMPLAN` | R-08-011, R-08-018, R-15-060 | not authored |
-| 22 | **The verified HAL's hardware contracts** and DMA/descriptor postconditions | `CJ-HAL` | R-05-083, R-05-138, R-18-018 | not authored |
-| 23 | **The protocol reference state machines**, each protocol's model individually, per R-12-043c's *conferred per protocol rather than per stack*: NR RRC and 5G NAS with 5G-AKA, the 802.11 MLME with WPA3/SAE, and BT L2CAP/GATT pairing | `CJ-VELUS` | R-12-043b, R-12-043c | not authored |
+| 8 | **The NoC/island isolation model**, whose non-interference statement is what temporal isolation is decided against, including the memory controller's per-island arbitration carrying TDM-NoC-class non-interference in the Sail model | `CJ-ISOL` | R-15-211, R-15-222, R-15-223, R-15-228 | not authored |
+| 9 | **The bank/macro/tier→island binding map**, landing in the attested static devicetree | `CJ-ISOL`, `CJ-DEVTREE` | R-15-228, R-15-211 | not authored |
+| 10 | **The wire-format inventory and its Narcissus descriptors**, every attacker-facing format with its descriptor, each descriptor a member per R-05-046: the ASN.1 UPER/aligned-PER RRC grammars and the 802.11 MLME element grammars, the IEI/TLV 5G-NAS grammar (**hand-transcribed**, and carrying differential-oracle coverage as its retirement mechanism, per R-05-050), the USB grammars, the image, media, font, archive, and document formats, and the pack and manifest descriptors | `CJ-FORMAT` | R-05-042, R-05-046, R-05-050, R-12-024f, R-13-009, R-18-029 | not authored |
+| 11 | **The OPP / mode schedule statements** | `CJ-WCET`, `CJ-ISOL` | R-11-017, R-15-198, R-17-005 | not authored |
+| 12 | **The reset/power sequence table**, fixed, composition-time, dependency-ordered, in the attested devicetree | `CJ-DEVTREE` | R-15-198 | not authored |
+| 13 | **The calibration-manifest schema** | `CJ-DEVTREE` | R-15-127, R-17-062 | not authored |
+| 14 | **Each primitive's abstract functional specification**, the join point of the three-layer crypto proof, where layer-1/2 refinement and the layer-3 game meet | `CJ-CRYPTO-SPEC` | R-05-076, R-05-059, R-10-025, R-17-049 | not authored |
+| 15 | **The timing-annotated Sail model's latency magnitudes** | `CJ-WCET` | R-17-041, R-15-095, R-18-024 | not authored |
+| 16 | **The Lustre program and the control/data boundary** | `CJ-VELUS` | R-17-044, R-05-088 | not authored |
+| 17 | **The static whole-program slot plan** and its live-range colouring | `CJ-MEMPLAN` | R-08-011, R-08-018, R-15-060 | not authored |
+| 18 | **The verified HAL's hardware contracts** and DMA/descriptor postconditions | `CJ-HAL` | R-05-082, R-05-083, R-05-138, R-18-018 | not authored |
+| 19 | **The NR RRC reference state machine** | `CJ-VELUS` | R-12-043b, R-12-043c | not authored |
+| 20 | **The 5G NAS reference state machine**, including 5G-AKA | `CJ-VELUS` | R-12-043b, R-12-043c | not authored |
+| 21 | **The 802.11 MLME reference state machine**, including the WPA3/SAE handshake | `CJ-VELUS` | R-12-043b, R-12-043c | not authored |
+| 22 | **The BT L2CAP/GATT pairing reference state machine** | `CJ-VELUS` | R-12-043b, R-12-043c | not authored |
 
-**Rows 16–20 are conferred outside the residual that names the gap**, by R-15-127, R-05-076, R-17-041, R-17-044, and R-05-042 respectively. That is the ordinary case rather than an exception: conferral is distributed by design, and this table is where it lands. Row 13 shows the same thing at a finer grain: R-05-046 confers the status on *each* format descriptor individually, so the set of descriptors is carried as its own row rather than folded into one coarse "radio grammars" entry. Row 23 is conferred that way too, by R-12-043c, one reference model per protocol rather than one for the radio stack, since it is a particular standard's state machine a particular sequencer is proved to refine.
+**Rows 13–16 and row 10 are conferred outside the residual that names the gap**, by R-15-127, R-05-076, R-17-041, R-17-044, and R-05-042 respectively. That is the ordinary case rather than an exception: conferral is distributed by design, and this table is where it lands.
+
+Two rules decide how finely conferral is cut, and they cut in opposite directions. **A row is one specification, never one clause of one** (R-17-016a: *one row per crown-jewel specification*), so where a single artifact carries several statements it is one row: row 6 is the frozen profile's Sail model, not three rows for the three statements it will make, and row 8 is the isolation model, not a row per mechanism inside it, because R-15-211 makes non-interference *"decided against the isolation model's non-interference statement rather than against the list of mechanisms above it"* and a row per mechanism would reinstate that list. **But where a requirement confers per member, the members are rows**, which is why rows 19–22 are four and not one: R-12-043c confers *per protocol rather than per stack* and its acceptance criterion requires the inventory to carry **one row per reference model**, since it is a particular standard's state machine a particular sequencer is proved to refine. Row 10 sits between the two: R-05-046 confers on each descriptor individually, but the descriptor set is not knowable until R-05-042's inventory exists, so the row carries the enumeration obligation and names the member classes, and the per-descriptor enumeration lands in it as that artifact is authored.
 
 ## The theorem targets
 
@@ -64,13 +65,13 @@ The remaining seven `CJ-` targets name **theorems, not specifications**, things 
 | --- | --- | --- |
 | `CJ-COMPCERT` | CHERI-CompCert correctness | CompCert C semantics ⋈ the frozen ISA profile (row 4) |
 | `CJ-SECOMP` | Robust preservation of compartment isolation by the verified compiler | the policy model (row 2) |
-| `CJ-KERNEL` | Kernel functional refinement: seL4's endpoint model and non-interference statement re-proved in Coq, the rest of the object model deleted (R-07-001) | the kernel's abstract specification ⋈ the slot plan (row 21) |
+| `CJ-KERNEL` | Kernel functional refinement: seL4's endpoint model and non-interference statement re-proved in Coq, the rest of the object model deleted (R-07-001) | the kernel's abstract specification ⋈ the slot plan (row 17) |
 | `CJ-CERISE` | The Cerise universal contract | the ISA profile and its Sail semantics (rows 4, 6) |
 | `CJ-TAL-SOUND` | CHERI-TAL soundness: well-typed ⇒ safe over the Sail model | the ISA profile (row 4) |
 | `CJ-CT-SOUND` | Constant-time type soundness over the leakage model | the `Zkt`/`Zvkt` statement (row 5) |
-| `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions | each primitive's functional specification (row 17) |
+| `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions | each primitive's functional specification (row 14) |
 
-The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and nineteen of those twenty-three are not authored.
+The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and eighteen of those twenty-two are not authored.
 
 ## What the `CJ-` table is, and is not
 
@@ -81,7 +82,7 @@ So the two artifacts answer different questions and both are needed:
 | Artifact | Question it answers | Granularity |
 | --- | --- | --- |
 | `CJ-` table (in the register) | *which crown jewel does this requirement constrain?* | 21 coarse targets |
-| This inventory | *what are the crown jewels, and does each one exist yet?* | 23 specifications, per-member where a requirement demands it |
+| This inventory | *what are the crown jewels, and does each one exist yet?* | 22 specifications, per-member where a requirement demands it |
 
 ## Standing obligations
 
@@ -92,6 +93,6 @@ So the two artifacts answer different questions and both are needed:
 
 ## Reading the status column
 
-One of twenty-three is authored outright (row 4, the frozen ISA profile), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Nineteen are not authored.
+One of twenty-two is authored outright (row 4, the frozen ISA profile), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Eighteen are not authored.
 
-That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-three are *named, constrained, and traced*; the as-existing assurance is low because nineteen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
+That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-two are *named, constrained, and traced*; the as-existing assurance is low because eighteen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
