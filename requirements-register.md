@@ -4286,9 +4286,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a just-cold-booted offline device runs time-unknown until Roughtime succeeds; the PTP exposure exists only where PTP is used.
 · Trace: CJ-CRYPTO-SPEC · [§17](verification-maximal-os.md#r-17-057)
 
-**R-17-058** IS: Physical residuals: Rowhammer is dramatically reduced rather than mitigated; cold boot is countered by SRAM volatility with no encryption involved; power analysis persists at probe level; TEMPEST-class emission is attenuated but not closed against a near-field probe; and macro-internal and sequential-3D thermal coupling are narrowed rather than eliminated.
+**R-17-058** IS: Physical residuals: Rowhammer is dramatically reduced rather than mitigated; cold boot is countered by SRAM volatility with no encryption involved; TEMPEST-class emission is attenuated but not closed against a near-field probe; and macro-internal and sequential-3D thermal coupling are narrowed rather than eliminated. The analog channel out of the crypto core is not one of these: R-17-058a states it in its own right, because it is a decision about that core rather than a consequence of the invasive-attack scope line.
 · Accept: each names the mechanism that narrows it and the scope line that bounds it.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-058)
+
+**R-17-058a** IS: The crypto core carries no masking, and resistance to a probing adversary is not claimed: every constant-time obligation (R-05-004, R-05-062) is stated against the architectural §15 leakage model (`Zkt`/`Zvkt`, R-15-053), which covers instruction latency and emitted addresses and not instantaneous power draw or near-field electromagnetic emission, so differential and correlation power analysis and their electromagnetic equivalents are unaddressed by construction rather than narrowed. The shield cans and enclosure (R-15-153) and the RoT's own clock/power island (R-15-113) attenuate and separate; neither bounds what a measurement yields, and no claim rests on either.
+· Accept: no row, mode, or theorem anywhere claims analog side-channel resistance, and a claim resting on the enclosure is a spec defect in the R-05-153 sense. The reversal is named and is four things together: a masked datapath in the crypto core; a probing-model leakage statement authored and conferred beside the `Zkt`/`Zvkt` one, carrying its own axiom because a physical leakage model is an assumption about the silicon in the R-06-011 sense; *d*-probing and composition theorems verified on the crypto artifacts as R-05-004 already requires of constant time; and per-operation randomness booked against the entropy root (R-15-241) and the crypto core's slot. Absent all four the residual stands, and adopting masking amends this entry rather than reinterpreting it.
+· Trace: CJ-LEAK · [§17](verification-maximal-os.md#r-17-058a)
 
 **R-17-059** IS: The memory path is defended by the *absence of a surface* rather than by a mechanism, and the residual is the scope line itself: the honest statement is not "replay is undetected" but "the whole class is out of scope, and nothing on the memory path would detect it if it were in scope."
 · Accept: there is no defence-in-depth layer beneath the package boundary on the memory path, so the invasive-attack scope line is load-bearing rather than conservative, and if it is ever judged wrong there is no second mechanism behind it. **This is the sharpest instance of *verify rather than hedge* applied to the design's own threat model.**
@@ -4506,7 +4510,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1034 requirements. §19 is non-normative and yields none. Counts include the 115 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1035 requirements. §19 is non-normative and yields none. Counts include the 116 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4526,7 +4530,7 @@ All eighteen normative sections are extracted, at 1034 requirements. §19 is non
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **271** |
 | **§16 Reliability** | **extracted** | **23** |
-| **§17 Residual Risks** | **extracted** | **79** |
+| **§17 Residual Risks** | **extracted** | **80** |
 | **§18 Realization** | **extracted** | **41** |
 
 §19 is non-normative and yields no requirements.

@@ -22,12 +22,6 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 These are open. Some are open in a way the inventory already admits and states poorly; some are open and unmentioned.
 
-- [ ] **10. Power and electromagnetic analog leakage.**
-  Absent entirely, and honestly so: §3 scopes invasive physical attack out, §15 admits the Faraday enclosure as attenuation that no theorem rests on, and §17 books emanation as narrowed but not closed. Nothing in the construction is a countermeasure for differential power analysis or electromagnetic analysis against the crypto core, and the constant-time discipline addresses *timing*, not power.
-  The only construction-grade answer is **masking with a machine-checked proof in a probing model**, which is a real and mature line of work and is entirely unrepresented here. It is expensive on both axes (randomness per operation, area, and a proof over a leakage model that is itself an assumption), so the decision is a genuine one rather than an oversight to correct.
-  The minimum honest step is to state the position: that the crypto core carries no masking, that side-channel resistance against a probing adversary is not claimed, and what would change that. The maximum step is the masked implementation with its probing-model theorem, which would be a new crown jewel and a new leakage assumption.
-  **Lands as:** a §17 residual stated in its own right rather than inside the physical-attack clause; optionally a §5 obligation if masking is ever adopted. **Mode:** residual.
-
 - [ ] **11. Fault injection, and the two detector positions the design has not taken.**
   Voltage and clock glitching, laser injection, and electromagnetic fault injection are not eliminable, and the design says so. But they are *detectable* by construction, and the design already carries most of the detectors: pervasive error-correcting codes with correction on every array, the CHERI validity tags, the fail-stop sentinel, the watchdog, the crash-only restart, and the multikernel blast-radius containment (§7, §15, §16). §15 even states the doctrine in one line: *detect, correct, or contain, never shield*.
   The gap is no longer the vocabulary: *detected* now names the mode, and the detection rows beside it (upsets, the entropy root, the wedged partition) are the shape the fault-injection row would take. What the row still lacks is its construction. A row whose honest answer is "an injected fault is caught and the partition restarts" has to say which mechanism catches *which* injection, and for the sequences where a single skipped instruction is catastrophic the design says nothing at all.
@@ -45,5 +39,5 @@ These are open. Some are open in a way the inventory already admits and states p
 ## What would retire this list
 
 Item 13 is a statement the design owes about a position it has already taken.
-Items 10 and 11 are the ones that change what the inventory *claims*: 10 by admitting a class is not addressed, and 11 by deciding the two §16 positions its row would have to cite.
+Item 11 is the one that changes what the inventory *claims*, by deciding the two §16 positions its row would have to cite.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.
