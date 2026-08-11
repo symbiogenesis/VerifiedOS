@@ -25,8 +25,10 @@ A **typed assembly language** in the Necula ⋈ Morrisett lineage: final machine
 
 Three commitments distinguish it from that lineage rather than one:
 
-- **The check is an attribute-grammar evaluation, not proof checking.**
-  What the checker decides is a fixed set of attributes evaluated bottom-up over an already-typed control-flow graph, with no fixpoint over open terms anywhere.
+- **The check is certificate-directed dataflow validation, not proof checking.**
+  What the checker decides is a fixed set of attributes over an already-typed control-flow graph, evaluated in one syntax-directed pass whose abstract state at every join is *supplied by the derivation* rather than discovered, so the consumer runs no fixpoint and reduces no open term.
+  The exact precedent is **lightweight bytecode verification** (Rose, JAR 2003; Klein and Nipkow's verified account), where stack maps carry the abstract state at each merge and reduce the verifier from a dataflow solver to a checker of local transfer constraints (§9).
+  The producer may run whatever fixpoint analysis it likes to *compute* those annotations; the no-fixpoint claim is about certificate consumption alone (§7).
   This is a *category* claim, and every other budget in this document is a consequence of it rather than a target set beside it.
 - **The theory is frozen, and freezing it is the mechanism, not an austerity.**
   A line budget over an unspecified theory constrains nothing, because what makes a checker large is what it must decide (§3).
@@ -46,21 +48,29 @@ For every obligation in §4 a profile declares exactly one discharge route:
 
 | Route | Meaning | Cost |
 | --- | --- | --- |
-| **Cited** | The machine enforces it; the derivation records which invariant it relies on and the checker inspects that reliance. | None at check time; none at run time. |
+| **Cited** | The machine enforces it; the derivation records which invariant it relies on and the checker inspects that reliance. | None at check time; no additional *software* check at run time, the machine's own checks still executing. |
 | **Attributed** | The type system decides it statically as a §5 attribute. | Check time only. |
 | **Inserted** | The producer emits an ordinary run-time check and the type system requires that check to dominate every access it guards. | Run time. |
 
-The routes are ordered by preference and the ordering is the design: a cited invariant is free, an attributed one is paid once at admission, and an inserted one is paid on every execution forever.
+The routes are ordered by preference and the ordering is the design: a cited invariant costs no software, an attributed one is paid once at admission, and an inserted one is paid on every execution forever.
 
 **Two profiles are specified, and they differ by exactly one line of the table.**
 
 - **`cheri-rv64`**, the profile VerifiedOS pins.
-  Bounds, tags, monotone derivation, and sealed entry are architectural, so spatial memory safety, no-runtime-codegen, and the run-time half of control-flow integrity are all **cited**, and the type system carries only the residual the hardware does not enforce: temporal safety, exclusive access, and typed control flow.
+  Bounds, tags, monotone derivation, and sealed entry are architectural, so spatial memory safety and no-runtime-codegen are **cited**, capability integrity constrains which authority may be executed and where an entry may land, and the type system carries only the residual the hardware does not enforce: temporal safety, exclusive access, and typed control flow.
+  Control-flow integrity is the easiest of these to overstate, and the split is worth naming: the machine bounds executable authority and entry, while the legal target set of an indirect transfer and the signature of the code it reaches stay **attributed**, a type match being a policy no instruction set states.
   This is the profile in which the language is small.
 - **`bare-rv64`**, the profile with no capability hardware.
   Nothing is cited.
   Spatial safety becomes **inserted** (bounds checks the type system locates and requires) or, at the producer's option, a fat-pointer ABI in which a bounds pair is an ordinary aggregate the type fixes the representation of.
   Provenance survives as an **attributed** property, because the integer-to-capability deletion (§3) is already a type-system fact rather than a hardware one.
+
+**A citation is a theorem about the machine, and citing carelessly is the likeliest way for everything downstream of it to be wrong.**
+The capability literature is explicit about the qualifications, and a profile's declaration is defective if it does not carry them.
+Compressed capability encodings admit **inexact bounds**, so a cited spatial-safety invariant holds up to the representable-region rounding the encoding defines rather than to the byte the source intended.
+Monotone derivation has **privileged and transition cases**, the instructions and states in which authority is installed rather than narrowed, and a citation must name them rather than quantify over the whole machine.
+Capability hardware does not by itself supply **temporal safety, exact callee sets, or ABI conformance**, and its immutable-code guarantee is conditional on an initial capability distribution from which no writable-and-executable authority is derivable, which is a property of the loader rather than of the instruction set.
+`cheri-rv64` therefore declares, beside the four architectural facts above, the execution-mode, loader, privilege, and memory-permission assumptions under which they hold, and every one of those is a premise the profile's soundness instantiation (§6) discharges rather than assumes.
 
 **What a bare profile does not recover, and the specification says so rather than implying otherwise.**
 A cited invariant holds against *arbitrary co-resident code*, because the machine checks every access whoever issued it.
@@ -80,7 +90,7 @@ A profile is admitted only on a shown demonstration that every obligation has a 
 
 ## 3. The frozen theory
 
-The type theory is fixed and closed by this document, and the four absences below are what make the check an attribute-grammar evaluation rather than proof checking:
+The type theory is fixed and closed by this document, and the four absences below are what make the check a dataflow validation rather than proof checking:
 
 1. **Predicative, rank-1 prenex polymorphism.**
    Type variables are quantified only at the outermost position of a code type and instantiated only at monotypes: the classical TALx86 use (polymorphism over callee-saved registers and stack tails) and no more.
@@ -97,7 +107,7 @@ The type theory is fixed and closed by this document, and the four absences belo
 **What makes the four load-bearing is what they delete from a checker.**
 A term checker for a full calculus of inductive constructions spends its tens of thousands of lines on four hard structures: universe constraints, conversion, positivity, and the guard condition.
 The absences above are precisely the deletion of those four, so what remains is not a small dependent-type checker but *not a dependent-type checker at all*, and the line budget is a consequence of that rather than a target an implementation is asked to hit.
-What the checker does instead is evaluate a fixed attribute set bottom-up over the already-typed control-flow graph (the type under structural equality, the threaded linear context, the taint lattice, the cost semiring, the callee set) and confirm each *local* constraint: tens of lines of evaluator per attribute.
+What the checker does instead is evaluate a fixed attribute set over the already-typed control-flow graph (the type under structural equality, the threaded linear context, the taint lattice, the cost semiring, the callee set), taking the abstract state at each join from the derivation rather than computing it, and confirm each *local* constraint: tens of lines of evaluator per attribute.
 
 **What the figure counts, so the budget is auditable rather than rhetorical.**
 It counts the attribute evaluator, the derivation reader, and the image scan, together, in the shipped source of the checker.
@@ -139,10 +149,16 @@ Two of these are boundary cases worth naming, because a reader who knows the lit
 
 - **Constant-time** is a 2-safety hyperproperty, which a type system cannot state in general, but the CT-Wasm result makes it a **taint-typing** obligation for structured code: secret-labeled values the type system forbids from reaching a branch condition, a memory address, or a variable-latency operation.
   Only the genuinely unstructured residual descends to a relational proof.
+  The guarantee is relative to the profile's declared **leakage model** rather than absolute, and it does not survive a lowering the type system never sees, which is exactly why the obligation is stated over final code rather than over a source or intermediate form (§8).
 - **Worst-case cost** is a quantitative property, but for structured code it is a syntax-directed max-path sum over the already-typed control-flow graph (Shaw's timing schema), carried as a cost annotation rather than produced by a separate analyzer.
+  The sum is sound only given supplied loop and recursion bounds, the path facts that exclude infeasible worst cases, and a machine cost model in which per-instruction costs actually compose: caches, pipelines, speculation, interrupts, and shared resources each falsify that composition, so a profile that neither deletes nor bounds them owes an inserted-route argument rather than an attributed one.
 
 What the language does **not** carry, at any profile, is the deep tier: functional refinement, whole-system non-interference, cryptographic reduction security, and linearizability or liveness.
 No decidable type system states these, and pretending otherwise is how a type system becomes a prover.
+
+**The menu is not a routine consequence of having finite attribute domains, and the hard cases are known in advance.**
+Temporal safety over a real allocator, data-race freedom under a weak memory model, cost over a genuinely unstructured control-flow graph, and constant-time preserved down to native code are the four places where the soundness argument is hard, independently of how small the checker is.
+A profile or an instantiation that presents any of them as a small case of §5's move II has mislabeled its own difficulty, and the schedule that follows will be wrong in the same proportion.
 
 ---
 
@@ -153,10 +169,12 @@ The checker handles the whole menu with exactly three moves, and the profile of 
 | Move | What the checker does | Why it stays small |
 | --- | --- | --- |
 | **I. Cite a run-time invariant** | Confirms the derivation records reliance on an invariant the profile declares architectural. | It does not re-prove the machine's fact; it inspects the reliance. |
-| **II. Evaluate an attribute** | Runs a local, Knuth-style attribute pass over the typed control-flow graph and joins linear contexts at boundaries. | Each attribute has a finite domain and a syntax-directed rule. |
+| **II. Evaluate an attribute** | Runs a local, syntax-directed attribute pass over the typed control-flow graph, taking the abstract state at each join from the derivation and confirming the linear contexts agree there. | Each attribute has a finite domain and a local rule, and the derivation supplies the joins a fixpoint would otherwise have to find. |
 | **III. Confirm a deletion** | Checks that constructs which would make the static account lie are absent. | These are one-pass inspections of absences: no integer-to-pointer construction, no type punning, no variadic arity, no unbounded recursive former, no implicit conversion. |
 
 Move I is empty in a profile that cites nothing, which is the precise sense in which a bare target is more expensive than a capability one: the same obligations survive, and they move rightward through the §2 table.
+
+The word *attribute* is Knuth's, and the analogy is deliberately partial: an attribute grammar decorates a tree, while a machine-code control-flow graph is cyclic, which is precisely why the derivation carries the abstract state at every merge and the checker validates rather than solves (§1).
 
 ---
 
@@ -168,7 +186,9 @@ It is **parameterized over the profile and discharged per instantiation**.
 The core carries every proof obligation that does not mention the machine; a profile discharges the rest by supplying, for each cited invariant, a theorem of its own machine semantics, and for each inserted check, a domination argument.
 So a second profile does not re-open the whole proof, but neither is it free: it owes exactly the machine-dependent cases, and a profile that cites an invariant its semantics does not actually enforce produces a proof about a machine nobody built.
 
-The metatheorem is the language's single axiom, and freezing the theory bounds its size just as it bounds the checker's: the two shrink together.
+The metatheorem is the language's *main trusted theorem*, and freezing the theory bounds its size just as it bounds the checker's: the two shrink together.
+Calling it the single axiom would understate the base, and the honest list is short but longer than one: a consumer also trusts the machine semantics and its correspondence to the silicon that runs it, the profile's cited invariants, the decoder that recovers instructions from the image, the loader and initial-state model the derivation is stated against, and the implementation of the checker itself.
+The claim worth making is that this list is small, fixed, and separately reviewable, not that it has one element.
 A mis-stated typing rule admits an unsafe binary that type-checks perfectly, exactly as a wrong specification verifies perfectly, which is why this is a specification worth reviewing rather than a proof worth trusting.
 
 ---
@@ -181,6 +201,7 @@ Any producer of a well-typed binary is admissible by definition, and a consumer'
 **A producer may be built on an existing unverified toolchain, and should be.**
 The practical shape is **hinted mirroring**: the untrusted compiler records hints through lowering and a small trusted replayer reconstructs the derivation the checker re-validates.
 That is a small replayer plus an arbitrary producer, not a whole-compiler preservation proof, and it is why an LLVM backend is a reasonable way to build one.
+The precedent is Necula and Lee's certifying compiler and, closer to this shape, **Crellvm**, in which an untrusted optimizer emits hints a verified checker reconstructs and validates; Crellvm covered selected intermediate-representation optimizations rather than native code generation, so it supports the architecture without completing it (§9).
 
 **What that does not buy is language-independence of the guarantee, and the distinction is the important one.**
 A compiler intermediate representation carries none of the facts the derivation asserts: ownership, lifetime, exclusivity, initialization, taint, dimension, and callee sets come from the *source* type system, not from the lowering.
@@ -201,15 +222,68 @@ This is the same fact as §2's profile table seen from the other end: when an in
 
 - **Not an isolation mechanism.** Its guarantee is over admitted code; a system that runs anything else needs hardware or a supervisor, and under a bare profile that is not optional (§2).
 - **Not an intermediate representation.** It types final machine code against a machine semantics, so a target needs an ISA semantics of the quality of a Sail model before it can have a profile at all.
+  That this is achievable rather than aspirational is the RockSalt and Islaris result: a decoded binary image checked against a machine model proved sound in a proof assistant, and binary machine code reasoned about against full Sail-derived semantics (§9).
 - **Not a proof system.** The deep tier stays with a proof kernel (§4), and every proposal to move an obligation inward is decided by §3's amendment rule rather than by appetite.
 - **Not a safety claim about a source language.** It carries facts; it does not manufacture them (§7).
 
 ---
 
-## 9. Status and honest accounting
+## 9. Prior art
+
+The design is a synthesis of several mature lines rather than an instance of any one of them, and the honest way to read it is as an assembly whose parts are each well precedented and whose *combination* is not.
+
+**Typed assembly language.**
+Morrisett, Walker, Crary, and Glew, *From System F to Typed Assembly Language* (TOPLAS 1999); Morrisett et al., *TALx86: A Realistic Typed Assembly Language* (WCSSS 1999); Crary, *Toward a Foundational Typed Assembly Language* (POPL 2003).
+These supply polymorphic code-pointer types, register-file preconditions, stack polymorphism, initialization tracking, typed indirect jumps, and producer-supplied derivations, which is most of §3's vocabulary.
+Two boundaries in that lineage are exactly the ones this document has to cross: TALx86 checked *annotated assembly* rather than independently decoded executable bytes, and foundational TAL separates its abstract-machine soundness from the correspondence with a concrete architecture that a profile here must supply (§2, §6).
+
+**Proof-carrying code.**
+Necula, *Proof-Carrying Code* (POPL 1997); Appel, *Foundational Proof-Carrying Code* (LICS 2001); Hamid et al., *A Syntactic Approach to Foundational Proof-Carrying Code* (LICS 2002).
+Proof-carrying code already covers binary machine code from an untrusted producer checked against a consumer-defined policy; the foundational account makes decoding, machine semantics, and the safety predicate foundational; and the syntactic account factors a certificate into a typing derivation plus a reusable soundness proof, which is precisely this document's split between §4 and §6.
+
+**Certificate-directed checking.**
+Rose, *Lightweight Bytecode Verification* (JAR 2003); Klein and Nipkow, *Verified Lightweight Bytecode Verification*.
+This is the closest precedent for §1's architecture, and the reason the no-fixpoint claim is stated as a property of certificate *consumption* rather than as an absence of analysis anywhere in the pipeline.
+
+**Final machine code.**
+Morrisett et al., *RockSalt* (PLDI 2012); Sammler et al., *Islaris* (PLDI 2022); Armstrong et al., *ISA Semantics for ARMv8-A, RISC-V, and CHERI-MIPS* (POPL 2019).
+RockSalt parses a real binary image and applies a generated checker proved sound against a machine model; Islaris verifies binary machine code against full Sail-derived Arm and RISC-V semantics.
+Together they are the precedent for the seam this language stands on, final bytes against an authoritative machine semantics (§8).
+
+**Capability machines.**
+Watson et al., the CHERI ISA specification (University of Cambridge technical report); the CHERI-RISC-V Sail model; Nienhuis et al., *Rigorous Engineering for Hardware Security* (S&P 2020).
+These are what a citing profile cites (§2): tagged capabilities, bounds, permissions, sealing, provenance validity, and guarded monotone derivation.
+Their published qualifications, inexact compressed bounds and the privileged and transition cases of monotonicity, are what a profile's declaration must state rather than gloss.
+
+**Linear control and ownership.**
+Skorstengaard, Devriese, and Birkedal, *StkTokens* (POPL 2019); Crary, Walker, and Morrisett, *Typed Memory Management in a Calculus of Capabilities* (POPL 1999); Smith, Walker, and Morrisett, *Alias Types* (ESOP 2000); Jung et al., *RustBelt* (POPL 2018).
+StkTokens is the direct precedent for a linear capability discipline proving well-bracketed control flow and stack encapsulation.
+It does not establish general heap temporal safety on ordinary capability hardware, which is why the revocation discipline of §4 owes an allocator-and-reuse theorem of its own (§6) rather than inheriting one.
+
+**Constant-time typing.**
+Watt et al., *CT-Wasm* (POPL 2019); Barthe et al., *System-level Non-interference for Constant-time Cryptography* (CCS 2014); Almeida et al., *Verifying Constant-Time Implementations* (USENIX Security 2016).
+CT-Wasm is the direct precedent for §4's taint-typing route, mechanized through semantics, checker, and soundness together, and its guarantee is relative to an explicit leakage model rather than absolute.
+
+**Cost certificates.**
+Shaw, *Reasoning About Time in Higher-Level Language Software* (TSE 1989); Li and Malik, implicit path enumeration (1995); Carbonneaux et al., *Automated Resource Analysis with Coq Proof Objects* (CAV 2017).
+These support compositional timing annotations and independently checked resource bounds, under exactly the side conditions §4 states and not otherwise.
+
+**Certifying compilation.**
+Necula and Lee, *The Design and Implementation of a Certifying Compiler* (PLDI 1998); Kang et al., *Crellvm* (PLDI 2018); the translation-validation and CompCert lines.
+Crellvm is the closest match to §7's hinted mirroring, over selected intermediate-representation optimizations rather than native code generation.
+
+**What is not precedented is the assembly.**
+Not typed assembly language, not proof-carrying code, not capability typing, not taint typing, and not resource certificates, each of which is someone else's result.
+The combination is: a fixed, non-extensible certificate language carrying all of them at once, assigning every obligation an explicit cited, attributed, or inserted discharge against a *versioned machine profile*, and checking final decoded machine code without invoking a general proof kernel at install time.
+That is a claim about the arrangement rather than about any component, and it is the part a reviewer should attack first.
+
+---
+
+## 10. Status and honest accounting
 
 Unbuilt, in all three parts: the type system, the checker, and the soundness proof.
-The prior art it stands on is real and mechanized (proof-carrying code, TALx86, foundational TAL, RustBelt, WasmCert-Coq, StkTokens, CT-Wasm), so the *type-soundness discipline* is not a gamble; the instantiation is.
+The prior art it stands on is real and mechanized and is set out in §9, so the *type-soundness discipline* is not a gamble; the instantiation is.
+One caution about the closest mechanized soundness result of this shape: WasmCert-Coq mechanizes WebAssembly's semantics, binary format, typing, and type soundness, but for a *bytecode* rather than a native instruction set, and its published account left end-to-end work unfinished, so it is a template for the metatheorem's shape and not evidence that the same has been carried out over an ISA semantics.
 
 Factoring it out of an operating-system specification changes three things and no others:
 
