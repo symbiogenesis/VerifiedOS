@@ -1308,6 +1308,78 @@ Non-normative; the normative decisions are in §12, §13, §14, and §15.
 
 ---
 
+## The emissive display technology: micro-LED is the preferred emitter and is not procurable, OLED is declined on its compensation loop, AMLCD is the instantiation
+
+The question arrives as a reliability one, *is micro-LED not the more space-grade emitter*, and the literature answers it by dissolving it: the emitter is not where space-grading lives, and the axis that does decide the technology is a §12 confidentiality property rather than a §15 environmental one.
+
+**Radiation does not discriminate between emitters, and the published campaigns say so.**
+NASA's crewed-display work under the NEPP programme (Ryder, Landen et al., NSREC and RADECS 2023, out of the Mars Campaign Office's Project Polaris) irradiated commercially available LCD, OLED, LED-matrix, and electronic-paper panels with 64 MeV protons and reported degradation in **each** pixel technology at doses and magnitudes likely to be tolerable for most applications, OLED losing roughly a percent of brightness per 200 Gy and losing it worst in the blue channel.
+Micro-LED does not appear in that test set at all, so its space case is an inference from GaN device physics rather than a display result: AlGaN/GaN parts tolerate ionizing dose on the order of 100 Mrad, GaN HEMTs shift threshold by about 0.2 V at 500 krad(Si), and the material has years of geostationary operating experience, all of which is real and none of which is a qualified panel.
+What actually drifts under dose is the rest of the panel: LTPS thin-film transistors take permanent structural damage and a negative threshold shift under X-ray, oxide (a-IGZO) backplanes survive the same comparison better yet still shift by many volts at kilogray doses, the liquid crystal itself shows no measurable degradation at 250 krad(Si) (about fourteen years at geostationary orbit) while its alignment layer and polarizer are the organics that do degrade, and the display driver IC is enough of a single-event target that NASA tested one under heavy ions as a part in its own right.
+Every one of those is the **backplane and the driver silicon**, which is precisely the graded-realization axis the *Space-grade silicon* entry above already owns.
+Swapping the emitter moves none of it.
+
+**The axis that does decide it is compensation state, and it is a §12 property.**
+An emitter that ages non-uniformly must be corrected, and how the correction is *stored* is the whole question.
+Micro-LED and LCD correct statically or not at all: micro-LED inherits luminance and wavelength scatter from epitaxy and mass-transfer bin mismatch, but that scatter is fixed the moment the panel exists, so the industry workflow measures per-subpixel luminance and chromaticity once with an imaging colorimeter and bakes the coefficients into a lookup table, and LCD carries no per-pixel correction at all.
+OLED cannot: its organics age *in service* and at rates that differ per channel, so the shipping mitigation derives each pixel's correction coefficient from that pixel's **accumulated drive current**, applies it to the next frame's drive, and in current parts adds real-time thermal tracking and learned degradation models running in the driver IC.
+That is a foreign computer (§4) with mutable state on the display path, and worse, its state *is* a persistent low-resolution integral of everything the machine has ever displayed, held in panel-resident memory outside the capability system, surviving power cycles, and never observable by the software that §12 makes accountable for what reaches a surface.
+R-12-075 makes screen-scraping unexpressible; a burn-in compensator is a screen-scraper the panel vendor ships as a feature.
+So OLED is declined on a security ground it would still fail at sea level, and R-15-236a is written about compensation state rather than about emitters, which is why it decides the case without naming a winner.
+
+**The honest cost is that the preferred emitter cannot be bought.**
+Micro-LED is the emitter this design would rather have (inorganic, no organic aging term and so no compensation loop to forbid, no backlight, wide envelope, and the luminance a sunlit or high-ambient deployment wants), and at the sizes in question there is no supply.
+Mass-transfer yields run 99.5 to 99.8 percent against a consumer requirement above 99.99, and the arithmetic is unforgiving: a full-HD direct-view panel places over six million chips, above twenty-four million transfers counting RGB subpixels, so even 99.99 percent leaves thousands of dead pixels to repair or the panel to scrap.
+Volume in 2026 is on the order of sixteen million units, about four tenths of a percent of the flat-panel market, and concentrated at the two extremes that avoid the problem, sub-inch microdisplays on silicon backplanes and coarse-pitch tiled walls.
+The band this design actually needs, roughly five to seventeen inches at usable pixel density, is where the economics have not closed: Apple cancelled its in-house watch panel in March 2024 with the panel costed near $150 against $38 for the OLED it would have replaced, taking a $650 to $900 million write-down at ams-OSRAM and Kulicke & Soffa's Project W with it, and the mid-size direct-view demonstrations remain concepts.
+Defence procurement is moving the same way and no faster, with MIL-STD-810 qualification adding years before any unit is buyable.
+
+**Disposition (the requirement is technology-neutral; the ranking is recorded here).**
+R-15-236a constrains compensation state and leaves the emitter free, which admits AMLCD and micro-LED, declines the OLED aging-compensation class, and needs no revision when supply changes.
+The instantiation today is therefore **AMLCD behind the fixed-function timing controller**, which is also the only one of the three with crewed-spaceflight and avionics heritage, with the space and automotive grading applied to the backplane, driver, and link as the *Space-grade silicon* entry grades everything else.
+**Micro-LED is the standing preference, and it is recorded as a trigger rather than as a date.**
+A horizon would be a schedule claim this document has no way to check, and the entry does not need one, because the adoption is conditional on facts that are individually decidable: micro-LED is adopted as the instantiation **iff** a panel exists in the five-to-seventeen-inch band at the density the form factor wants, whose demura data is delivered as a static table rather than held as panel-side adaptive state (R-15-236a), and whose backplane, driver, and link can be graded to the deployment on the same terms as the rest of the realization.
+Each of those is a procurement question a buyer answers by reading a datasheet, and none of them is a design question, which is the point: adoption **touches no requirement**, because the demura table is exactly the static artifact R-15-236a already admits, and hoisting it into the host colour pipeline (§15) makes it a devicetree-attested constant rather than panel-side state.
+The move is a realization change of the *Space-grade silicon* kind, re-verifying nothing.
+What the evidence above does say about timing, without being promoted to a commitment, is that the binding constraint is mass-transfer yield and repair economics in that one band, and that the two extremes solving it first do not solve it there.
+An OLED panel becomes admissible only if a vendor ships one whose compensation is disabled or externalized to the host, which is not a product that exists.
+Non-normative; the normative decisions are R-15-236, R-15-236a, and R-12-075.
+
+---
+
+## Adaptive-Sync and variable refresh: the judder it fixes is real, the timing channel it opens is not payable, and an enumerated rate set buys most of it back
+
+The steelman is not a preference and should not be dismissed as one.
+A panel scanning at a fixed rate that the content rate does not divide produces either tearing or judder, and no amount of compute deletes the arithmetic: 24 fps into 60 Hz is the 3:2 cadence that has annoyed people for a century, and a workload whose frame cost varies produces a visible stutter every time it crosses a refresh boundary.
+Adaptive-Sync (VESA's, and the proprietary variants above it) fixes this at the root by letting the panel wait: the frame period becomes whatever the compositor needed, so a frame is never shown early, late, or twice.
+It needs no firmware, no negotiation beyond a range the sink advertises, and no new device, which is more than most rejected features here can say, and on a naive reading of this design's own commitments it looks admissible.
+
+**It is declined on §12, not on §11, and the distinction is the whole entry.**
+The §11 objection is the obvious one and it is *not* the binding one: a variable frame period looks like it should break a static schedule, but it does not, because the scanout reservation is admitted at the fastest line period the profile carries (R-15-236b) and every slower period runs inside it as slack.
+Admission would tolerate this.
+What does not tolerate it is §12.
+Variable refresh works by making the frame period a function of when composition finished, and composition finishes when the *slowest surface in the frame* is ready, so presentation timing becomes a function of the render cost of every surface composited: a compartment holding a present callback for its own surface learns a quantity determined by surfaces it holds no capability to observe, and an external monitor, which this design already treats as untrusted and authorized only to see what is deliberately shown to it, learns the same thing by watching vertical blanking.
+R-12-075 makes screen-scraping unexpressible; variable refresh reintroduces a low-bandwidth version of it through the timing rather than the pixels.
+
+**It is also the display instance of a class already deleted five times.**
+The reactive DVFS loop, the DRAM refresh and back-off loop, the dynamic branch predictor, the adaptive SRAM assist, and the QoS rate regulator were each declined for the same shape: a feedback path from workload to timing.
+Adaptive-Sync is that shape rendered on a screen.
+Declining it keeps the profile's central claim honest, that timing on this machine is a composition-time constant and not a measurement of what the machine was doing, and admitting it would leave the claim true of every path except the one a person is looking at.
+
+**What is kept, and what is genuinely lost.**
+Kept is nearly all of the practical value, by a route this design was already going to take: the enumerated rate set is specified to carry the common multiples, so a 24 fps film selects 48 or 120 Hz and a 60 fps workload selects 120, each an exact division with no cadence to interpolate, and the selection is a compositor act at a content boundary rather than a per-frame decision (R-15-236b).
+High fixed rates help twice over, since the judder from any remaining non-divisor rate shrinks as the panel rate rises, and the reservation already carries the fast rate.
+Lost is the case Adaptive-Sync alone covers: content whose rate is not known until it plays, or a workload whose per-frame cost varies enough to miss its chosen rate.
+That content takes the nearest admitted rate and keeps its residual judder.
+This is a comfort cost on the subordinated axis (§2), it is paid by a person's eyes rather than by a proof, and it is the honest price of the entry rather than a defect hidden in it.
+
+**Disposition (declined; the substitute is normative in §15).**
+Adaptive-Sync and every other variable-refresh mechanism is absent (R-15-236c), and the enumerated fixed-rate set with a maximum-mode reservation is normative in its place (R-15-236b).
+The decline is on the §12 cross-surface-observation ground and would stand unchanged if §11 admission were infinitely permissive, which is why it is not revisited by a faster machine.
+Non-normative; the normative decisions are R-15-236b, R-15-236c, and R-12-075.
+
+---
+
 ## Dedicated NPUs and RISC-V tensor-core extensions: the in-core matrix unit is already a tensor core, the firmware-driven NPU is the foreign computer §4 excludes
 
 RISC-V has become an industrial base for custom AI silicon, and the field builds its matrix engines two ways.

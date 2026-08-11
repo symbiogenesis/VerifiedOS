@@ -3820,6 +3820,26 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a fixed-function panel-self-refresh block is admissible on the sensor and radio fixed-function terms (no writable program).
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-236)
 
+**R-15-236a** MUST: The panel's per-pixel uniformity correction is a static table fixed at manufacture, attested with the devicetree, and applied by fixed-function timing-controller logic or by the host colour pipeline. Per-pixel aging compensation, which integrates cumulative drive history into panel-resident writable memory, is excluded, so the emissive technology is free except of this constraint.
+· Accept: no panel-resident writable store accumulates displayed-content statistics, and the correction table is a devicetree-attested constant.
+· Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-236a)
+
+**R-15-236b** MUST: Refresh rate and pixel format are enumerated composition-time constants, and the scanout reservation (TDM slice, bank-group binding, line-buffer FIFO) is admitted at the fastest line period and widest pixel the profile carries, so slower rates and narrower formats run inside it as slack. Selecting among the enumerated rates is not a global mode change and re-assigns no operating point, TDM schedule, or watchdog window.
+· Accept: one reservation, sized to the maximum mode, covers every admitted rate and format; the audited selection channel is log₂(#rates) bits per event.
+· Trace: CJ-WCET, CJ-CERISE · [§15](verification-maximal-os.md#r-15-236b)
+
+**R-15-236c** MUST NOT: Presentation timing is never a function of composition-completion time; Adaptive-Sync and any other variable-refresh mechanism is absent, because a frame period following render cost carries the cost of every composited surface to any holder of one surface's present callback and to an external monitor watching vertical blanking.
+· Accept: no variable-refresh mechanism exists; the frame period is a constant of the selected rate.
+· Trace: CJ-NI, CJ-CERISE · [§15](verification-maximal-os.md#r-15-236c)
+
+**R-15-236d** IS: High dynamic range decomposes into a framebuffer format (a bandwidth term of R-15-236b's maximum), a transfer function and tone mapping that are colour management already assigned to host software by R-15-236, and static mastering metadata carried as a fixed-size block under R-15-234's bounded-EDID and Narcissus discipline.
+· Accept: HDR adds no device, no on-panel program, and no parser, only a schema and a bandwidth figure.
+· Trace: CJ-CERISE, CJ-FORMAT · [§15](verification-maximal-os.md#r-15-236d)
+
+**R-15-236e** MUST NOT: No tone mapping or dimming decision is executed by the display: display-executed dynamic-metadata systems and panel-side content analysis driving a local-dimming zone array are excluded, and any zone values are computed host-side and shipped over the fixed-function link. A fixed-function luminance limiter holding no accumulated state remains admissible.
+· Accept: the panel runs no program; the only content-derived values crossing the link are host-computed.
+· Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-236e)
+
 **R-15-237** IS: The touchscreen is a projected-capacitive raw-capacitance AFE under the sensor doctrine: every baselining, rejection, touch, and gesture stage is host software, never a tuned-firmware touch controller. Resistive touch is not used.
 · Accept: no touch-controller firmware exists.
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-237)
@@ -4510,7 +4530,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1035 requirements. §19 is non-normative and yields none. Counts include the 116 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1040 requirements. §19 is non-normative and yields none. Counts include the 121 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4528,7 +4548,7 @@ All eighteen normative sections are extracted, at 1035 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **271** |
+| **§15 Hardware Platform** | **extracted** | **276** |
 | **§16 Reliability** | **extracted** | **23** |
 | **§17 Residual Risks** | **extracted** | **80** |
 | **§18 Realization** | **extracted** | **41** |
