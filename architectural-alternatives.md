@@ -238,6 +238,57 @@ Non-normative; no spec-body change.
 
 ---
 
+## Amending the frozen ISA profile: three bespoke deviations weighed against a narrowed gate, and why the amendment window closed empty
+
+The entries above answer "abandon RISC-V?"; this one answers the smaller and more tempting question left over, "amend it *once* more?", and records the class of levers that are worth having **only** by amending the frozen profile ([isa-profile.md](isa-profile.md)).
+It exists because that class was being reasoned about informally and priced wrong in both directions, and because the window in which it could be priced cheaply is closing.
+
+**Why the question was forced rather than left open.**
+R-18-003a makes the profile freeze the **root of the schedule**: the toolchain, the Sail model, and the CHERI-CompCert backend all target it, so it precedes `CJ-COMPCERT`, `CJ-CERISE`, and `CJ-TAL-SOUND`, none of which has started, and R-18-003b(i) makes the freeze and its Sail curation the first day-one deliverable.
+The cost of amending is therefore at its permanent minimum before those land (one derived view, one register edit, one review-gate rerun at R-18-034) and rises monotonically after: re-curation of [crown-jewels.md](crown-jewels.md) row 6 once the Sail model is curated, an Asm-semantics and instruction-selection change once the CompCert backend exists, and reopened cases in the two longest-lead-time theorems once CHERI-TAL and Cerise are underway.
+"Never" is a legitimate answer; arriving at it by not deciding is not, because the default resolves silently against amendment as soon as the day-one deliverables land.
+The class was therefore enumerated deliberately, and it resolved **empty**.
+
+**The premise is that RISC-V conformance is already spent, not that it is cheap.**
+The profile forks standard RVV twice (scalar-FP-free at R-15-040, `vstart`-free at R-15-040a), deletes the C extension, mandates Ztso in place of RVWMO, freezes a bespoke matrix extension, a bespoke Keccak instruction, a bespoke capability indexed load/store (R-15-007e), and a bespoke bitfield extract/insert (R-15-067a), runs a re-parameterized 64+1-bit capability format whose RVY re-pin is retired (R-15-007, R-17-048a), and runs M-mode-only purecap with CHERI as the sole protection mechanism.
+No profile-conforming binary runs here and nothing built here runs elsewhere.
+What conformance still buys is its **oracles**, not its badge, and the oracles degrade *proportionally* to the number of amendments rather than all at once (R-17-048a): which is exactly why a short bounded list would be affordable where the clean sheet of the entries above is not.
+
+**Two facts do most of the ranking, and each kills a plausible line of argument outright.**
+- **Fusion is priced at zero, so no amendment may be justified by deleting a fusion pair.**
+  The tempting argument (a custom instruction replaces a fused pair, and fused pairs carry observational-equivalence obligations, fusion-window invariants across interrupt arrival, and an RTL cross-check, so the instruction is the smaller proof surface) is **wrong here**: R-15-032/R-15-033 make fusion combinational on static encoding and architecturally transparent, and R-15-031c records that widening the set adds no admission-test case, no flush-set member, and no obligation beyond R-15-034's listing, while *tightening* every bound it touches.
+  Fusion pairs cost nothing to keep and nothing to add, so a custom instruction never wins on cycles fusion already recovers.
+- **There is no interrupt prologue to optimize.**
+  R-15-070 *excludes* CHERIoT's interrupt-state sentries because asynchronous interrupt delivery is deleted and the three sentry types collapse to one plain sealed entry; the slot-boundary timer is the core's only asynchronous trap ([isa-profile.md](isa-profile.md) §5.3), and the partition switch zeroizes rather than saves (R-07-014a).
+  The general RISC-V critique of software interrupt stacking, and the CHERI aggravation of it by capability register width, have **no referent on this machine**.
+
+**The gate, deliberately narrower than the recovery TODO's**, because an amendment spends the scarce resource rather than avoiding it. An item earns consideration iff it clears all five:
+1. **It wins on a booked scarce quantity, not on cycles.** Fusion takes the cycles for free, so a cycle argument is either already collected or unfalsifiable. The two quantities that count are **proof surface** and **code size**, the latter an admission quantity rather than a preference: no I-cache, the 33–43% no-C penalty accepted at R-15-036, and a composition-time SRAM capacity budget.
+2. **It is re-derivable from this profile's emitted mix**, not from the general RISC-V literature: R-15-031a's discipline applied one layer up.
+3. **It adds no new architectural state**, no flush-set member (R-15-213/215/217/221), no admission-test case (R-15-012), and no mutable microarchitectural structure the absence contract would have to newly police.
+4. **It lives in custom opcode space** where it is an instruction, so it can never collide with a future ratified extension, and it carries a Sail clause with a recorded re-pin obligation where a standards track exists ([isa-profile.md](isa-profile.md) §3).
+5. **Its cost is booked as a deletion, not slid in as an optimization.** Where an amendment retires a standing obligation (a re-pin target, a differential oracle, an inherited model), that retirement is the headline and belongs in §17, not in an exclusion-table row.
+
+**Gate 1 has a corollary, and it is the trap the gate exists to avoid.**
+[critique.md](critique.md) gap 10 charges that the first release has no stated minimum viable capability, so *delete-rather-than-defend* is unfalsifiable: every deletion is scored on the axis it improves and the axis that would push back has no artifact.
+A performance-motivated **addition** admitted under the same condition is the identical defect running the other way and strictly worse, because a deletion at least reduces proof surface while an addition does not.
+Until a minimum viable capability exists, an amendment justified by throughput cannot be evaluated at all, which is why gate 1 confines the question to the two axes that *do* have artifacts to score against.
+
+**The three candidates, each failing a specific gate rather than merely unattractive.**
+- **Test-bit-and-branch (`TBZ`/`TBNZ`-class).** Fails gate 1. `bext`+`bnez` falls in R-15-031b's compare-and-branch class, so the cycle is already taken; branch **count** is unchanged, so none of the static-prediction loss row (−10% to −30%) is addressed. And under R-15-019's backward-taken/forward-not-taken rule a test-bit branch to a cold path is **correctly predicted by construction**. What remains is 4 bytes on a pattern that is not among the profile's highest-frequency pairs, which does not justify moving the schedule root.
+- **A bespoke base ISA, for orthogonality or encoding elegance.** Fails gate 1 and gate 5 together, and is the in-RISC-V-adjacent restatement of the belt/EPIC/OISC disposition above. The perf-attributable delta at fixed microarchitecture is single-digit to low-double-digit and is mostly capturable by targeted amendments of the shape this gate admits; the proof-surface delta is confined to the ISA-model, decoder, and refinement slice, a minority of a burden dominated by the certifying compiler, the TAL, and the OS logic. Against that, the deletions are severe and land on the least-built arrow: `sail-riscv` ⋈ `sail-cheri-riscv` as an inherited, externally-maintained model; a CompCert backend (1–2 person-years for a *non-capability* target before CHERI); differential testing against Spike, QEMU, `riscv-tests`, and `arch-test`; and the CHERIoT-Ibex FEV work as a methodology reference for R-18-010's second rung. **Differential testing is the load-bearing loss**: proofs catch spec-versus-implementation divergence and do not catch spec-versus-intent divergence, which is R-17-016's residual and the first-ranked risk in [critique.md](critique.md) gap 16, and independent implementations are the only instrument reporting on the layer the proofs sit on top of. **The general rule this instance establishes:** conformance is worth what its *oracles* are worth, not what its badge is worth.
+- **Bespoke capability *semantics* (as opposed to representation).** Fails gate 5's spirit, and the narrowed format now in the register is the standing instance of the distinction. Changing the algebra rather than the encoding forfeits the Cambridge security results and converts R-15-007a's representation-correctness proof into a re-proof of monotonicity, provenance, and non-forgeability from scratch, on the arrow with the least slack. R-15-007b's non-orthogonal permission lattice is the **one** admitted algebra change, it is bounded, and it stays the only one.
+
+Kept separate on purpose: **reviving the C extension**, or a restricted `VerifiedOS-C` profile, is not an answer on this axis. R-15-036 excludes C for unique 4-byte-aligned decode, and an amendment of the shape gated above buys code size *without* reopening variable-length fetch, mid-instruction reinterpretation, or the fetch-alignment machinery. Whether C returns is a separate decision against a separate set of obligations, neither strengthened nor weakened here.
+
+**What a future item would have to move**, recorded because an amendment to a derived view is defective unless the register moves first (R-05-152), and because this blast radius is the thing most likely to be underestimated: the register entry and its acceptance criterion; the normative prose and its bookmark; [isa-profile.md](isa-profile.md) §3 and every other row of that view the amendment narrows; R-18-014a, where the backend owes the selection rule; one entry in the timing-annotated model behind [crown-jewels.md](crown-jewels.md) row 15 (`CJ-WCET`); one case each in `CJ-TAL-SOUND`, `CJ-CERISE`, and `CJ-COMPCERT`; and with them R-18-034's review-gate rerun and a re-freeze of row 4.
+
+**Disposition:** all three declined, and the class is closed rather than open: test-bit-and-branch buys 4 bytes on a pattern fusion and the static-prediction rule already serve, a bespoke base ISA trades the oracles that report spec-versus-intent divergence for a delta the amendment shape captures anyway, and bespoke capability semantics forfeit the Cambridge results on the arrow with the least slack.
+The gate itself is retained as the standing test, so a later proposal is measured rather than argued.
+Non-normative; no spec-body change.
+
+---
+
 ## Asynchronous (clockless) logic: rejected at the timing axiom; data-dependent latency is the channel the profile is built to forbid
 
 The proposal is to implement the datapath as **self-timed / clockless** logic (delay-insensitive or bundled-data asynchronous circuits with handshake-driven completion) rather than a globally-clocked synchronous pipeline, trading worst-case for **average-case** completion and shedding the clock-distribution network, with lower power and electromagnetic emission as the draw.
