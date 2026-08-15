@@ -182,7 +182,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 - [ ] **`mshwm`/`mshwmb` stack high-water-mark CSRs** (CHERIoT). *§5, R-07-014 · Matrix §10.*
   The mechanism exists so a switch zeroizes only the stack actually used. The profile zeroizes eagerly and pays for it, and **§5's CSR table is closed**, so these are absent *by construction rather than by decision*. If the compartment-switch zeroize cost is material at §11, this is the cheap lever; if it is not, the row should say so.
 - [ ] **`CSetBounds` with a large immediate** (CHERIoT). *R-15-067d · Matrix §10.*
-  A third code-size candidate of the same class, and it should be measured the same way R-15-067d measures the bitfield pair: **against actual generated output at the freeze, dropped if the delta is immaterial.**
+  A further code-size candidate of the same class, and it should be measured the same way R-15-067d measures the bitfield pair: **against actual generated output at the freeze, dropped if the delta is immaterial.** R-15-036n makes that one measurement rather than several, so this lands with the bitfield pair and the single-check multi-save or not at all.
 - [ ] Weigh all three against **§3's two code-size admissions** and the dictionary encoding's headroom (R-15-036a). Watch `ZcheriSanitary` (§6) — it is the standards-track form of this exact question.
 
 ### 4D. Sweep support

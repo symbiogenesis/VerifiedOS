@@ -13,14 +13,13 @@ It is also an argument about **the `C` encoding space**, and this profile has no
 
 **Code size is a hard admission quantity here**, not a preference: no I-cache, no swap, no overcommit, and a composition-time SRAM capacity budget measured in square millimetres (clause 6 of [performance-recovery-todo.md](performance-recovery-todo.md)'s pure-win gate). The dictionary bought headroom against that budget; it did not change the budget's character.
 
-## The three redundancy classes
+## The redundancy classes
 
-The group's decade of work sorts into three classes of redundancy. The dictionary collects exactly one of them, completely.
+The group's decade of work sorts into classes of redundancy. The dictionary collects one of them completely.
 
 | Class | Zc instrument | Status under R-15-036a |
 | --- | --- | --- |
 | **Per-instruction** — a small set of opcode+operand patterns dominates the histogram | `Zca`, `Zcb` | **Subsumed, and strictly better.** A dictionary index *is* a 16-bit encoding of an existing instruction, selected by measurement rather than by committee, allocating no opcode and creating no decode ambiguity |
-| **Sequence** — recurring multi-instruction idioms, dominantly prologue/epilogue | `Zcmp` | **Not collected.** The dictionary is a total `Fin N → Instr` (R-15-036c); its codomain is one instruction, so it cannot name a sequence at any hit rate |
 | **Cross-reference** — call targets and address materialization | `Zcmt` | **Not collected, and adversarial to the dictionary**, a PC-relative displacement being a distinct entry per site (R-15-036k). Its insight is imported at R-15-036l; its mechanism is rejected at item 2 |
 
 The first row is the load-bearing one and it is a **free confirmation the profile should collect**, of the same class as the matrix's two: `Zcb`'s entire premise is that a handful of already-existing instructions dominates emitted code. That is R-15-036h's premise, reached independently, measured on a real corpus, and shipped. R-15-036h currently rests the density claim on an unattributed hit rate; a citation costs one clause.
@@ -36,19 +35,21 @@ An item belongs here iff it clears all four:
 
 ---
 
-## 1. [DECIDE] A `Zcmp`-shaped multi-save, in single-check form only
+## 1. [DECIDE] Outlining and tail merging — the sequence class has a software instrument, and the profile does not name it
 
-- [ ] **The residual is real, and the dictionary has already collected half of it.**
+- [ ] **The residual R-15-036n carries is also reachable from the compiler, and nothing in the register says who takes it.**
 
-  Prologues are stereotyped, so the dictionary hits on them at near unity — each `csc cs_i, off(csp)` at a recurring (register, offset) pair is one entry, reused at every call site in the image. `Zcmp`'s marginal win over the dictionary is therefore **(k−1)·16 bits, not (k−1)·32**: half its value against RVC, which is the figure the group measured it at.
+  A dictionary index names one instruction (R-15-036c), so a recurring *sequence* is outside its codomain at any hit rate. R-15-036n now carries the ISA answer for the stereotyped save/restore case, measurement-conditional. The general answer to the same class is a compiler pass: **outline** a recurring region into a called helper, **tail-merge** shared epilogues, and the sequence collapses into the per-instruction class the dictionary already collects completely. Neither transform appears anywhere in [requirements-register.md](requirements-register.md) or [verification-maximal-os.md](verification-maximal-os.md), and both are ordinary `-Oz` technology — LLVM's machine outliner and identical code folding — shipped for a decade against exactly this budget.
 
-  Against that halved win, stock `cm.push`/`cm.pop` are multi-access compound instructions with a **restartable mid-sequence trap model**. That is architectural state, and it fails gate 3 outright — it is also a direct hit on R-15-036b's *no decoder state* and would put a sequencer where the profile has a stateless decoder.
+  It earns a row on gate 1, which is about the redundancy class and not about provenance; it is not a `Zc` instrument. Gates 2 and 3 do not clear so much as **fail to arise**: there is no instruction to admit, no opcode consumed, no architectural state, no `fence.t` flush-set member, no decoder state, and nothing new for the absence contract to police. The consumer is the CHERI-CompCert backend (R-18-014a) — the same single emitter R-15-036l and R-15-036n already teach — and the pass owes the secure-compilation obligation every backend pass owes (R-05-024) rather than a new kind of one. This is the profile's standing move, *take the property and decline the mechanism*, made on code size where §5 already made it on CFI for `Zicfilp` landing pads and the typed callee set.
 
-  One platform accident cuts the other way and is worth recording: asynchronous interrupt delivery is deleted (R-15-070 collapses the three CHERIoT sentry types to one on exactly this ground), so the hardest part of specifying compound multi-access instructions in stock RISC-V does not arise here. What remains is the capability check, which can still fault mid-sequence.
+  **The sharp consequence is that R-15-036n's corpus is not well-defined without this decision.** Outlining removes instances of precisely the stereotyped prologues the multi-save covers, so the two are substitutive in R-15-036i's exact sense — *partly substitutive, measured composed and never multiplied, and ordered first*. R-15-036i books that relation for the §10/§13 duplication-removal levers; outlining is such a lever, it is not on that list, and it sits upstream of the one measurement item 3 is meant to take. A multi-save delta re-derived from a backend that does not outline is measured against the wrong corpus, which is R-15-036i's ordering error in a new place and the same error item 3's last paragraph already warns about for `bfext`.
 
-  **The one admissible form is all-or-nothing with a single up-front bounds check** against `[csp − adj, csp)` instead of *k* checks. That is structurally the same admission argument R-15-007f makes for the indexed load/store — *less* capability semantics rather than more, one check where the sequence does N — and it is the argument that has already cleared this bar once. The stack is a distinguished statically-known capability here (R-15-074: only the stack carries `store-local`), and the whole consumer is the CHERI-CompCert backend (R-18-014a), so there is one emitter to teach.
+  **The win is also coupled to R-15-036l, tightly enough that the two cannot be measured apart.** For a region of *n* instructions outlined from *m* sites, all site-invariant hits at one slot: the region costs *nm* slots inline, against *n* + *m* + 1 outlined if the call is composition-time absolute and therefore one shared dictionary entry, or *n* + 2*m* + 1 if it stays PC-relative, every site being a distinct displacement and so a site-varying miss at two slots (R-15-036k). Break-even moves materially: a two-instruction region pays from four sites under an absolute call and **never pays** under a PC-relative one, and a three-instruction region needs five sites instead of three. R-15-036j's padding term pushes the same way, escapes stranding slots. Two riders: the profitable regions are those needing no frame of their own, or the helper re-incurs the save sequence this is meant to collect, and outlining must stay **intra-compartment** — a whole-image pass would fight the per-compartment admission model exactly as [architectural-alternatives.md](architectural-alternatives.md) records defunctionalization doing.
 
-  **Owed:** carry it as a **measurement-conditional candidate in R-15-067d's style** — re-derived at the freeze from actual generated output, dropped on an immaterial delta rather than carried on the argument. Expectation is that it dies: the win is halved, and it competes for the same bespoke-encoding budget as the matrix's `CSetBounds`-with-large-immediate row and as R-15-036l's absolute call and global-address forms, which the matrix now carries `AUICGP` against. Decide the four together.
+  **The cost is cycles, and here cycles are capacity, not throughput.** Each outlined region trades inline instructions for a call and return on the dynamic path, so this fails clause 6 of [performance-recovery-todo.md](performance-recovery-todo.md)'s pure-win gate on the cycle axis — which is why it is `[DECIDE]` and not `[YES]`. Under the static cyclic executive a partition's capacity *is* its slot width (R-07-032, R-07-037), so WCET inflation does not degrade smoothly: it widens a slot or it does not fit. Note the trade runs opposite to R-15-036n's, which spends architecture to buy cycles where this spends cycles to buy architecture.
+
+  **Owed:** a decision recorded either way, and a **two-axis** measurement rather than the one-axis one the other candidates take — bytes removed *and* WCET added, since a lever that fails the pure-win gate cannot be settled on the byte column alone. It belongs in the same act as R-15-036l and R-15-036n and must be **ordered before both**, per R-15-036i. Expectation, unlike R-15-036n's, is that it carries: it costs no encoding budget, competes with nothing in §3, and its instrument is a backend pass rather than an ISA amendment.
 
 ## 2. [NO] `Zcmt` table jump — reject the mechanism, keep the insight
 
@@ -60,38 +61,39 @@ An item belongs here iff it clears all four:
 
   The insight survives and is booked at R-15-036l: *index the target, do not displace to it*. On this platform it reduces to *use composition-time absolute targets*, which needs no table.
 
-## 3. [YES] The measurement instrument, which the profile owes four times over
+## 3. [YES] The measurement instrument, which the profile owes five times over
 
 - [ ] **Name a corpus, a tool, and a threshold.**
 
   The group's durable output beyond the specification is a method: a benchmark corpus, an ELF-diffing analysis script, published per-extension deltas, and a standing refusal to admit an instruction without one.
 
-  The profile has **four open measurement obligations** and no instrument for any of them:
+  The profile has **five open measurement obligations** and no instrument for any of them:
 
   | Obligation | What must be measured | Against what |
   | --- | --- | --- |
   | R-15-036h, R-15-036k | dictionary hit rate *p* **stratified by operand class**, and the realized dictionary itself | the composed image, after §13's merge (R-15-036i) |
   | R-15-036l | whether the call and global-address forms are PC-relative or composition-time absolute | generated output at the freeze, in R-15-067d's style |
+  | R-15-036n | whether the single-check multi-register stack save and restore is carried at all | generated prologues and epilogues at the freeze, in the same act as R-15-036l and R-15-067d |
   | R-15-067d | whether `bfext`/`bfins` carry, in which form | generated Narcissus UPER/TLV codecs and generated MMIO accessors |
   | R-15-007g | the indexed load/store scale immediate | the emitted mix, under R-15-031a's discipline |
 
-  All four say *"measured"*; none names a corpus, a tool, a threshold, or who runs it. [tools/](tools/) holds only `check.ps1`. One instrument discharges the shape of all four, and R-18-003b(i) makes the profile freeze and its Sail curation the **first day-one deliverable**, which is where this instrument is needed rather than after.
+  All five say *"measured"*; none names a corpus, a tool, a threshold, or who runs it. [tools/](tools/) holds only `check.ps1`. One instrument discharges the shape of all five, and R-18-003b(i) makes the profile freeze and its Sail curation the **first day-one deliverable**, which is where this instrument is needed rather than after.
 
   R-15-036k raises the bar on the first row rather than adding a row: an instrument that reports one aggregate *p* cannot discharge it, so the corpus must carry operand-class provenance from the emitter and not be recovered by disassembly after the fact.
 
-  Note the ordering constraint this shares with R-15-036i: a dictionary selected against an unmerged image is selected against the wrong histogram, and a `bfext` delta measured against hand-written rather than generated code is measured against the wrong corpus. The corpus definition is part of the obligation, not a detail of running it.
+  Note the ordering constraint this shares with R-15-036i: a dictionary selected against an unmerged image is selected against the wrong histogram, and a `bfext` delta measured against hand-written rather than generated code is measured against the wrong corpus. Item 1 adds a third instance and the only one that is not yet decided — whether the corpus comes from a backend that outlines — which must be settled before the instrument is pointed at R-15-036n. The corpus definition is part of the obligation, not a detail of running it.
 
 ---
 
 ## What the list says
 
-**One decision.** A single-check multi-save is the only `Zcmp`-shaped construct that clears R-15-067c's bar, its win is halved by the dictionary, and it should be measured beside `bfext`/`bfins`, the matrix's `CSetBounds`-with-large-immediate row, and R-15-036l's absolute call and global-address forms rather than argued on its own.
+**One decision, and it is upstream of the others.** The sequence class has a software instrument the register never names, it is substitutive with R-15-036n rather than additive, and it is the one open question that changes what the corpus *is* — so it is settled first or the measurement below is taken against the wrong output.
 
 **One rejection worth writing down**, because the profile currently gets the right answer on `Zcmt` for a reason (encoding-space collision with `C.LY`/`C.SY`) that does not apply to a machine with no `C`.
 
 **One free confirmation.** `Zcb` is the dictionary's premise, reached independently and measured on a real corpus, and R-15-036h should cite it.
 
-**And one instrument**, which is the cheapest item here and unblocks four obligations that currently name a measurement without naming a way to take it.
+**And one instrument**, which is the cheapest item here and unblocks five obligations that currently name a measurement without naming a way to take it.
 
 ## Sources
 
