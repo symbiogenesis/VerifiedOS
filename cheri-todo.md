@@ -13,7 +13,7 @@
 | Class | Meaning | Count |
 | --- | --- | --- |
 | **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions" — and the one clause that collapses six of it. | 1 |
-| **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 5 (one with 3 parts) |
+| **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 4 |
 | **§2 Corrections** | Claims the profile makes that were true when written and are now imprecise. The conclusions stand; the arguments need restating. | 4 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 5 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 19 in 9 clusters |
@@ -69,14 +69,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 ## 1. Defects
 
 *The register requires it and the profile does not carry it. These are not preferences.*
-
-- [ ] **The revocation load filter is missing from the profile.**
-  *Governing:* R-08-004, R-08-005, R-08-006, R-08-009, R-17-023 · *Lands:* §4 (CHERI feature set), §7 (microarchitectural mandates), §9 (timing contracts) · *Matrix:* §6, §9.2 `Svyrg`
-  The register mandates a per-load revocation check that is "deterministic and architectural, fixed-latency, riding the load with no added memory traffic" (R-08-005), imports it by name from CHERIoT (R-08-009), and makes containment latency depend on it (R-08-006, R-17-023). [isa-profile.md](isa-profile.md) lists it in **none** of §4, §7, or §9. Upstream's realization is per-page PTE bits (ISAv8; RVY `Svyrg`), which a machine with no MMU cannot use — so what the profile owes is *the other realization*, not silence. **This is the largest single gap in the matrix.**
-  Three things must land together, and under-specifying is the named risk: RVY reworked its scheme to **4 bits** at v0.9.7 precisely because a 1-bit encoding could not express all the states real revoker software needs.
-  - [ ] The mechanism itself in §4 and the mandate in §7.
-  - [ ] A fixed-latency timing contract in §9, since containment latency is a §11 schedule term and a proof obligation.
-  - [ ] **The shadow structure the filter reads, which is currently unsized.** It is an SRAM allocation, an ECC-protected array (R-15-175), and a composition-time capacity line item. No requirement sizes it. *(Matrix §10, CHERIoT shadow memory.)*
 
 - [ ] **The revocation colour has no bits.**
   *Governing:* R-08-004, R-08-004a · *Lands:* §4.1 (capability format) · *Matrix:* §6
@@ -267,15 +259,13 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 | --- | --- | --- |
 | §1 Base | merged register file; no runtime CHERI disable | defect, statement |
 | §3 Custom instructions | `YSH1ADD` re-pin-target correction; opcode-space choice (see below) | correction |
-| §4 CHERI feature set | revocation load filter; revocation-driven tag clearing on load; tag-clearing-vs-trapping | defect ×2, statement |
+| §4 CHERI feature set | revocation-driven tag clearing on load; tag-clearing-vs-trapping | defect, statement |
 | §4.1 Capability format | revocation colour; zeroed-granule NULL; SDP bits; seal/unseal separability; malformed-bounds checks | defect ×2, cluster 4A |
 | §5.1 / §5.3 CSR bank | `xtval` closure + sentry-on-`mret`, unaligned-base cause, `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | defect, cluster 4F, statement, 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
-| §7 Microarch mandates | load-filter mandate | defect 1 |
 | §8 Core classes | vector store clears tags; active-element ⋈ mask-independence | statement, 4H |
-| §9 Timing contracts | load-filter fixed latency | defect 1 |
 | §10 Debug | what the fuse is refusing | 5A |
 | §11 Freeze / re-pin | R-17-048a two-term estimate; parameterized-encoding-format argument; **residual-semantics clause** (or §4.1) | corrections 2, 3, **§0** |
-| Register (not the profile) | shadow-memory sizing; R-15-007b rationale re-word; R-08-004a keying | defect 1, correction 4, defect 2 |
+| Register (not the profile) | R-15-007b rationale re-word; R-08-004a keying | correction 4, defect 2 |
 
 **One item has no landing row and should get one at the freeze:** the profile places three bespoke instructions — the capability indexed load/store and `bfext`/`bfins` — in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that correction 3 would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-014; matrix §9.2).

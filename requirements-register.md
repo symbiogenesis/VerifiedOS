@@ -1448,6 +1448,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the check is deterministic and architectural, fixed-latency, riding the load with no added memory traffic, so it passes the §15 admission test.
 · Trace: CJ-CERISE, CJ-LEAK · [§8](verification-maximal-os.md#r-08-005)
 
+**R-08-005a** MUST: The load filter is backed by a dedicated ECC-protected revocation bitmap over a composition-fixed union of 64-byte-aligned revocable SRAM intervals, with one architectural revocation bit per 8-byte capability granule: `0` is live and `1` is revoked. For covered intervals *I*, its payload is exactly Σ|*I*|/64 bytes; the static memory plan charges that payload, its ECC bits, and macro periphery against the §15 SRAM capacity budget, and admission rejects a composition that does not fit. The interval map and resulting bitmap size are attested-devicetree constants; ordinary compartments cannot address the bitmap, and only the kernel revocation path may update it.
+· Accept: this is the CHERIoT non-MMU realization, not RVY `Svyrg`: the loaded capability's base selects the bit and a set bit clears its tag before architectural writeback. RVY's four-bit PTE state machine has no PTE in which to live here and is not silently compressed into one bit; epoch, colour-retirement, sweep, and quarantine state remain in their separately specified protocol, while this array carries only the load-time live/revoked predicate. The bitmap is a bank-side sidecar read with the data/tag access, not a second fabric or main-memory transaction.
+· Trace: CJ-CERISE, CJ-WCET, CJ-SAIL · [§8](verification-maximal-os.md#r-08-005a)
+
 **R-08-006** IS: Containment and reclamation split: containment is the revocation-epoch advance the load filter checks against (a register-write-class constant, microseconds), while the sweep is reclamation, milliseconds to seconds of memory traffic that no security property waits on.
 · Accept: the bounded constant claimed in R-08-004 is the epoch flip, not sweep completion.
 · Trace: CJ-CERISE · [§8](verification-maximal-os.md#r-08-006)
@@ -4942,7 +4946,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1134 requirements. §19 is non-normative and yields none. Counts include the 212 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1135 requirements. §19 is non-normative and yields none. Counts include the 213 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4953,7 +4957,7 @@ All eighteen normative sections are extracted, at 1134 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
-| **§8 Authority Model** | **extracted** | **54** |
+| **§8 Authority Model** | **extracted** | **55** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **41** |
 | **§11 Updates** | **extracted** | **28** |

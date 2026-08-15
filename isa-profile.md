@@ -116,6 +116,7 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | Capability jump-and-link | unseals a forward-edge sentry into PCC and writes the return address already sealed as a backward-edge sentry, the hardware root of domain entry, so there is no separate call gate | R-15-068, R-15-069 |
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, reachable only with access-system-registers | R-15-073 |
 | Local/global + `store-local` | with `load-global`/`load-mutable` transitivity; only the stack carries `store-local` | R-15-074 |
+| Revocation load filter | every tagged capability load checks the dedicated revocation sidecar at the granule containing the loaded capability's base; a revoked result clears the loaded tag before architectural writeback rather than trapping | R-08-004, R-08-005, R-08-005a, R-08-009 |
 | access-system-registers permission | *is* the privilege mechanism, replacing the S/U ring | R-15-003 |
 
 **Excluded**
@@ -125,6 +126,8 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | Interrupt-state sentries (`enabled`/`disabled`/`inherit`) | the one CHERIoT capability feature the profile declines: with asynchronous interrupt delivery deleted, the three sentry types collapse to one plain sealed entry | R-15-070 |
 | CHERIoT compressed RV32 capability format | no second capability encoding forks the model, the RoT's scalar core included | R-15-005 |
 | Landing-pad / target-membership surface | a sentry deliberately does not decide target membership; the residual closes in software as the typed callee set | R-15-072 |
+
+**The load filter uses the CHERIoT non-MMU realization, not a page-table surrogate.** The attested devicetree gives a composition-fixed union of 64-byte-aligned revocable SRAM intervals. A dedicated sidecar bitmap carries one revocation bit per 8-byte capability granule in those intervals (`0` live, `1` revoked), so for intervals *I* its payload is exactly Σ|*I*|/64 bytes. The static memory plan charges the payload, ECC bits, and macro periphery against the SRAM capacity budget. The bitmap carries only the load-time live/revoked predicate; RVY `Svyrg`'s four-bit PTE protocol is not imported, and epoch, colour-retirement, sweep, and quarantine state are not collapsed into this bit (R-08-005a, R-15-175).
 
 ### 4.1 The capability format
 
@@ -257,6 +260,7 @@ R-18-006 makes these part of the platform definition from first FPGA bring-up, n
 | Macro-op fusion | decoder may fuse a **frozen, enumerated** set of adjacent pairs (address formation / LEA, compare-and-branch, short dependent-ALU chains, the last narrowed but not deleted by the §3 bitfield extract and insert); combinational on static encoding, architecturally transparent, so it disturbs no certificate, CT proof, or WCET table. Sole obligation: the set is frozen with the proof and listed in the timing-annotated model | R-15-031, R-15-032, R-15-033, R-15-034 |
 | Fusion set is profile-matched | membership is selected against the mix **this** profile emits (purecap-only, no C, no scalar `F`/`D`) as a composition-time DSE parameter, not inherited from the general RISC-V literature. It includes the capability-address-formation pairs, by function since mnemonics vary by CHERI line: offset-then-dereference (`cincoffset` + load/store), PCC-relative materialization (`auipcc` + `cincoffset`), address-then-narrow (`csetaddr`/`cincoffset` then `csetbounds`). Base-plus-index `add`+load is not listed separately: a purecap load takes no integer base, so it exists only as the first pair. The first pair is **narrowed, not deleted**, by the §3 indexed load/store, which carries the dereferences it covers and leaves this pair the ones it does not; the sequence stays legal, stays emitted where the indexed form does not apply, and stays in the set, a retained pair costing nothing (R-15-007e). Widening adds no admission-test case, no flush-set member, and no obligation beyond R-15-034, and **tightens** every bound it touches; bounded by decoder area and proof simplicity, never by safety or schedulability | R-15-031a, R-15-031b, R-15-031c |
 | No retry loops in WCET | neither LR/SC spurious-failure retry nor CAS compare-fail retry exists; every atomic is one bounded memory transaction | R-15-030 |
+| Revocation filter is bank-side | every SRAM bank serving a revocable interval carries the corresponding ECC-protected bitmap slice and reads it in parallel with data and the validity tag. The lookup is indexed by the loaded capability's base, adds no fabric request or main-memory access, and clears a revoked capability's tag before writeback; uncovered intervals take the same pipeline path with a constant live result. Bitmap updates are reachable only through the kernel revocation path | R-08-005, R-08-005a, R-15-175 |
 
 ## 8. Core classes
 
@@ -289,6 +293,7 @@ These are the entries the timing-annotated Sail model carries, and the projectio
 | Branch-resolution latency is a fixed function of the static rule, so fetch timing depends on architectural state only | R-15-086 |
 | `Zaamo` / `Zabha` AMOs complete as single bounded memory transactions with data-independent latency at the SRAM bank's serialization point, which is the whole of what a coherence point would otherwise name | R-15-087 |
 | The store buffer's drain at a partition switch is data-independent because it is paid as the `fence.t` padded constant, not as a second budget term beside it | R-15-088 |
+| Every capability load has one fixed latency whether its base is outside a covered interval or its revocation bit is clear or set. The bank-side bitmap lookup is included in that load latency and may add neither a second memory transaction nor a retry; revocation changes only the returned tag. Revocation-epoch advance has one fixed register-write-class latency and is the containment term carried into §11, independent of sweep progress and bitmap occupancy | R-08-005, R-08-005a, R-08-006, R-17-023 |
 
 ## 10. Debug
 
