@@ -1,0 +1,353 @@
+# The CHERI Version Matrix
+
+*Non-normative. A review instrument, not a source of obligation: every "our disposition" cell is a reading of [requirements-register.md](requirements-register.md) and [isa-profile.md](isa-profile.md), and where the two disagree the register wins and this document is defective. Nothing here amends the frozen profile; the ⚠️ rows are an agenda for the review gate (R-18-034), not decisions.*
+
+## What this compares against
+
+Three lineages have incremented since CHERI began, and the profile stands in a different relation to each.
+
+1. **The Cambridge line**, ISAv1 (2010) → **ISAv9** (UCAM-CL-TR-987, September 2023), with ISAv10 open on `main` and its changelog still `TBD`. This is the line the profile is pinned to: R-15-007 makes the format a **re-parameterization of `sail-cheri-riscv`**, whose capability functions are the ISAv8/v9 CHERI-RISC-V ones, and R-15-007a inherits the monotonicity, provenance, and non-forgeability results from it. Anything ISAv9 settled at the level of *algebra or instruction semantics* is therefore carried by R-15-007 whether or not the profile names it — that is the ⚙️ class below, and it is the largest class in this document.
+2. **The RISC-V standardization line**, now **RVY** (`riscv/riscv-cheri`, v0.9.9 of 2026-08-10, "Stable — limited change expected"). R-15-007 and R-17-048a **retire** the re-pin to this line outright, so RVY rows are not obligations. They are evidence: where RVY independently reached the profile's answer, that is confirmation; where it reached a different one, that is a divergence whose cost R-17-048a has to carry.
+3. **CHERIoT** (v1.0, November 2025). The profile already borrows from it selectively — it declines the interrupt-state sentries (R-15-070) and the CHERIoT capability encoding (R-15-005) while importing the load filter (R-08-009) and, in R-15-071, the forward/backward sentry split that CHERIoT 1.0 added.
+
+**Legend.**
+
+| Mark | Meaning |
+| --- | --- |
+| ✅ | **Adopted** — named in the register or the profile |
+| ⚙️ | **Inherited** — carried by R-15-007's "instruction semantics unchanged" without being separately named; correct as-is |
+| ⛔ | **Excluded** — a named `MUST NOT` with a stated ground |
+| ➖ | **No consumer** — structurally inapplicable on this machine; the profile is silent and silence is right |
+| ⚠️ | **Gap** — required elsewhere in the register but missing from the frozen profile, or a live undecided question |
+
+The **Should?** column reads **no** (silence or exclusion is correct and final), **yes** (the profile is defective without it), or **decide** (a genuine open question for the freeze).
+
+---
+
+## 1. ISAv1–ISAv3 (2010–2014): the protection model
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| Capabilities as an in-address-space feature composing with MMU virtual memory | 1.0 | ⛔ | R-15-002, R-15-038 | no | Inverted deliberately: one dense 36-bit **physical** space, `satp` Bare, MMU and walker deleted rather than exempted. ISAv9 later added a model section for exactly this case (§9 below). |
+| Capabilities implement C code and data pointers | 1.0 | ✅ | R-15-001, R-18-002 | no | Purecap only, no hybrid, no plain-RV64 target. |
+| Monotonic non-increase on derivation | 1.0 | ✅ | R-15-007b, R-07-006, R-14-002 | no | Restated over the enumerated permission lattice rather than inherited over independent bits — the one place the algebra changes. |
+| Explicit capability instructions targeted by the compiler | 1.0 | ✅ | R-18-014a | no | CHERI-CompCert backend targets the frozen profile. |
+| Bounds derived from allocators and OS policy | 1.0 | ✅ | R-15-007c | no | Displaced to composition time: the static memory plan computes the padding. |
+| Capabilities in registers **and** in memory | 1.0 | ✅ | R-15-203 | no | One native tag bit per 64-bit SRAM granule, one plane, no tag cache. |
+| Tagged memory for provenance | 1.0 | ✅ | R-15-203, R-15-209 | no | Fabric propagates tags; non-capability transducer writes clear them by construction. |
+| Separate capability register file (MIPS coprocessor model) | 1.0 | ➖ | — | no | Superseded by the merged file at v9 — see the ⚠️ row in §9. |
+| Sealed capabilities: sealed bit, object types | 1.0 | ✅ | R-15-007, R-07-002b | no | 4-bit object type, composition-fixed; no runtime type allocation and no type manager. |
+| **Software-defined (user) permission bits** | 1.0 / 1.8 | ⚠️ | R-15-007b | **decide** | The 5-bit lattice carries no SDP bits — 36+4+5+5+8+6 = 64 exactly, with nothing spare. RVY mandates a 4-bit SDP field and CHERIoT carries them. Ground for declining exists (static task set, sealing over a fixed otype set), but it is not *stated*, and the lattice enumeration at freeze is where it must be settled. |
+| `DDC` for legacy integer pointers | 1.0 | ⛔ | R-15-001, §5.3 | no | Purecap-only leaves no consumer; §5.3 indicates **absent**, and ISAv9 independently stopped `DDC` relocating anything. |
+| `PC` → `PCC` | 1.0 | ✅ | R-15-003 | no | Privilege *is* the ASR permission on the executing PCC. |
+| Compartmentalization as a higher-level model over the same primitives | 1.0 | ✅ | R-04-004, R-04-005 | no | Every non-kernel resident is a compartment. |
+| Tags on capability **registers** (capability-oblivious `memcpy`) | 1.5 | ⚙️ | R-15-007 | no | |
+| `CCall`/`CReturn` with a hardware trusted stack | 1.9 | ⛔ | R-15-068, R-04-004 | no | Superseded twice over — by ISAv8's `CInvoke` and then by the profile's *no call gate at all*: `cjalr` unseals the forward sentry and seals the return. |
+| `Permit_Set_Type` / delegated type allocation | 1.7 | ➖ | R-07-002b | no | The otype set is fixed at composition; nothing allocates types at runtime. |
+| **Capability cause register (`CGetCause`) + exception priorities** | 1.7 | ⚠️ | §5.3, R-07-022 | **yes** | The profile's own §5.3 books `mcause`/`mtval` as a hole: the trap path is specified in capability terms but no requirement names a cause register or the CHERI cause encoding. ISAv8 settled it (see §8) — the answer is `xtval`, not a bespoke cause register. |
+| `CToPtr` / `CFromPtr` | 1.8 | ⛔ | R-05-136 | no | No integer→capability provenance of any kind; ISAv9 deprecated both anyway. |
+| `CSetCause` (software-writable cause) | 1.8 | ⛔ | R-15-014 | no | Existed only for exception-based `CCall`; ISAv8 deprecated it. |
+| `CCheckPerm` / `CCheckType` | 1.8 | ➖ | — | no | Deprecated at 7.0-ALPHA4, removed at v8. |
+| TLB bits authorizing tagged load/store per page | 1.8 / 1.11 | ⛔ | R-15-038 | no | No MMU. The *function* survives as the capability's own C/LM permissions. |
+| Capability load-linked / store-conditional (`CLLC`/`CSCC`) | 1.9 | ⛔ | R-15-025 | no | `Zalrsc` fails admission tests 1 and 3 outright. |
+| NULL capability = all-zeroes, untagged (so BSS works) | 1.10 | ⚠️ | R-15-182, R-15-060 | **yes** | Cheap and load-bearing here: `cbo.zero` writes zeroed data *and* cleared tags (R-15-182), and eager zeroize is the platform's Write-before-Read mechanism, so "a zeroed granule decodes as untagged NULL" is a property the format must state rather than one a reader should assume. One line in §4.1. |
+| Sealed-bit inversion, `CGetSealed` | 1.10 | ⚙️ | R-15-007 | no | |
+| Offset/cursor field (base+bounds+offset fat pointer) | 1.10 | ⚙️ | R-15-007, R-15-002a | no | The profile stores the address uncompressed — that *is* the cursor. |
+| `CGetOffset` / `CSetOffset` / `CPtrCmp` | 1.10 | ⚙️ | R-15-007 | no | |
+| `CJR`/`CJALR` take capability targets; `CGetPCC` returns PC in the offset | 1.10 | ✅ | R-15-068, R-15-069 | no | |
+| `EPCC` carries the saved PC | 1.10 | ✅ | R-15-073 | no | `MEPCC`, reachable only with ASR. |
+| 24-bit object type, software type manager | 1.10 / 1.18 | ✅ | R-15-007, R-07-002b | no | Narrowed to **4 bits**. This is a semantic narrowing, not only a field width — no delegation of type allocation — and R-07-002b states it. |
+| `CSeal` replaces `CSealCode`/`CSealData`; `CSetType` removed | 1.10 | ⚙️ | R-15-007 | no | |
+| Ephemeral → **local**, non-ephemeral → **global** | 1.10 | ✅ | R-15-074 | no | Adopted with `store-local`, and `load-global`/`load-mutable` transitivity. |
+| `CIncOffset` (avoid read-modify-write on the offset) | 1.11 | ✅ | R-15-031b, R-15-007e | no | Named directly: `cincoffset` heads the fused address-formation pair and is the sequence the indexed load/store narrows. |
+
+## 2. ISAv4 (TR-876, 2015): compression arrives
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| `CSetBounds` — both bounds exposed atomically to the hardware | 1.12 | ⚙️ | R-15-007 | no | The instruction compression was introduced *for*; named indirectly in the `csetbounds` fusion pair. |
+| "Representable" defined; non-representable values must be handled | 1.13 | ✅ | R-15-007e, R-15-007f | no | Load-bearing rather than inherited: R-15-007e turns the representability case into the *reason* the indexed load/store is admissible at a 256-byte exactness threshold. |
+| Precision loss preserves base, not offset | 1.13 | ⚙️ | R-15-007 | no | |
+| Saturating length behavior | 1.13 | ⚙️ | R-15-007 | no | |
+| `CIncBase`/`CSetLen` deprecated then removed | 1.13/1.15 | ➖ | — | no | |
+| **Fast register-clearing instructions** (`CClearHi/Lo`, `CClearRegs`) | 1.13/1.14 | ⚠️ | R-07-014, R-07-015, R-15-214 | **decide** | At *partition* switch the profile is covered structurally — the restore is total over every register a partition can name, which is why the register files are not in the `fence.t` flush set. At *compartment* switch it is not: the switcher clears registers on every cross-compartment call, on a machine with no `C` extension and a hard code-size budget. ISAv9 deleted `Clear` only because the merged register file made the split-file variant meaningless, not because the need went away. Weigh with §3's two code-size admissions. |
+| `CSetBoundsExact` + its exception code | 1.14 | ⚠️ | R-15-007c | **decide** | Worth more here than upstream, not less: at 8-bit base mantissa, bounds are byte-exact only to 256 bytes, so "this narrowing was exact" is an assertion a dynamic subobject narrow actually needs. The alternative is a software check against `CRAM`-style rounding (next row). |
+| Full-width capability LL/SC (`CLLB`…`CSCD`) | 1.14 | ⛔ | R-15-025 | no | |
+| Sealed vs unsealed compressed formats ("candidate 3") | 1.14 | ➖ | R-15-007 | no | Superseded by Concentrate's dedicated otype field at 7.0. |
+| `CEXEQ` / `CEQ` exact comparison (→ `CSetEqualExact`) | 1.14 | ⚙️ | R-15-007 | no | |
+| `CSUB` (pointer subtraction with GC atomicity) | 1.14 | ➖ | — | no | Removed at v9 with the merged register file. |
+
+## 3. ISAv5 (TR-891, 2016): CHERI-128 and the single system permission
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| **One `Permit_Access_System_Registers` replacing several privileged permissions** | 1.17/1.18 | ✅ | R-15-003, R-07-018 | no | Taken further than upstream: ASR is not *a* privileged permission here, it **is** the privilege mechanism, in place of the S/U ring. |
+| `CGetPCCSetOffset` (PCC-relative jump target in one instruction) | 1.17 | ⚙️ | R-15-031b | no | Obtained by fusion instead of by opcode: `auipcc` + `cincoffset` is a named member of the frozen fusion set. |
+| **Scaled immediates on capability-relative load/store** | 1.17 | ✅ | R-15-007e, R-15-007g | no | The same lever, spent on a bespoke instruction: `cld rd, cs1[rs2 << imm]` carries a scale immediate frozen as a composition-time parameter against the emitted mix. |
+| Allocator alignment requirements under compression | 1.17/1.18 | ✅ | R-15-007c | no | Discharged by the static memory plan, which is what makes 8/6-bit mantissas affordable at all. |
+| 64-bit wraparound permitted on capability-relative load/store | 1.18 | ⚙️ | R-15-007 | no | A Sail-model detail the re-parameterization inherits. |
+| "Deep vs surface" model/ISA distinction | 1.17 | ✅ | R-15-007a | no | This is precisely the distinction R-15-007a leans on: the Cambridge results are about the algebra (deep), the field widths are surface, so what the narrowing owes is representation correctness. |
+
+## 4. ISAv6 (TR-907, 2017): domain transition without exceptions
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| ASR extended to cover non-CHERI privilege (kernel compartmentalization) | 1.19 | ✅ | R-15-003, R-07-018, R-07-020 | no | The kernel is the sole resident holding ASR and the switch/seal authority. |
+| Principle of least privilege; **principle of intentional use** | 1.20 | ✅ | R-15-118, R-15-007f | no | Intentionality shows up where it costs something: the matrix unit takes explicit capability operands and has no independent DMA mastership. |
+| `CCall` selector 1 — jump-based, exception-free domain transition + `Permit_CCall` | 1.20 | ⛔ | R-15-068, R-15-069 | no | The profile goes one step past ISAv8's `CInvoke`: no call gate instruction at all, the sentry-unsealing `cjalr` being the hardware root of domain entry. |
+| **`CBuildCap` / `CCopyType` / `CCSeal`** — re-internalize capabilities from non-capability storage | 1.20 | ⛔ | R-05-136 | no | Excluded at the root: no reconstruction of a capability from its bit pattern, ever. The upstream use cases (swap, VM migration, runtime linking) are each independently absent. Note RVY promoted this to the base ISA as `YBLD` — a divergence to keep visible. |
+| `CGetType` returns −1 (later 2^64−1) for unsealed | 1.20 | ⚙️ | R-15-007 | no | |
+| **`CMOVN`/`CMOVZ` — conditional capability move** | 1.20 | ⚠️ | R-15-054, R-15-019, R-15-023 | **decide** | The one obviated-looking row that is not obviated. `Zicond` is adopted precisely because branchless select is *doubly* load-bearing under static-only prediction with a full mispredict penalty on every forward conditional — but `czero.eqz/nez` selects an integer, and on a purecap machine the value being selected is frequently a capability. Either a capability-aware conditional move exists, or every conditional pointer select pays a mispredict-equivalent penalty and breaks the constant-time story that R-15-054 was bought to protect. |
+| `CJR`/`CJALR` accept non-global targets | 1.20 | ⚙️ | R-15-007 | no | |
+| Capability load without `Permit_Load_Capability` strips the tag rather than trapping | 1.20 | ⚙️ | R-15-007 | no | Retained by RVY as the C-permission rule. |
+| "Control-flow robustness" over "control-flow integrity" | 1.20 | ✅ | R-15-071, R-15-072, R-15-044 | no | The profile is explicit about the residual: a sentry does not decide target *membership*; that closes in software as the typed callee set. |
+| Architecture-neutral tagged-memory expectations | 1.20 | ✅ | R-15-203, R-15-209 | no | |
+| `CNExEq` | 1.21 | ⚙️ | R-15-007 | no | |
+
+## 5. ISAv7 (TR-927, 2019): Concentrate, SCRs, and a large experimental appendix
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| **CHERI Concentrate** replaces CHERI-128 | 7.0 | ✅ | R-15-007, R-15-007a | no | The direct ancestor of the frozen format: same bounds algorithm, re-parameterized widths. |
+| SCRs moved out of the GP capability file; `CReadHwr`/`CWriteHwr` | 7.0-A1 | ✅ | R-15-073 | no | Realized as `MTCC`/`MEPCC`/`MTDC`, ASR-gated. |
+| `KCC` / `KDC` (kernel code/data capabilities) | 7.0-A1 | ✅ | R-15-073, R-07-023 | no | `MTCC` is the handler's PCC and `MTDC` bootstraps its authority — the same two roles under RISC-V names. |
+| User/privileged **TLS** capability registers (`CULR`/`CPLR`) | 7.0-A1 | ➖ | R-05-086 | no | No thread-locals exist anywhere in the system. |
+| `c0` as the NULL capability register | 7.0-A1 | ⚙️ | R-15-007 | no | |
+| `Permit_Seal` split into `Permit_Seal` + `Permit_Unseal` | 7.0-A1 | ⚠️ | R-15-007b | **decide** | Not a free inheritance: the 5-bit lattice enumerates *which* permission sets exist, so whether seal and unseal are separable is a decision the lattice enumeration makes at freeze, and R-15-007b does not record it. Reducing unseal-only privilege is the reason upstream split them. |
+| **`CGetCID`/`CSetCID` + `Permit_Set_CID`** — compartment ID for side-channel mitigation | 7.0-A1 | ➖ | R-15-019, R-15-020, R-15-012 | no | Structurally obviated, and worth recording as such: the CID exists to tag branch-predictor entries with the compartment allowed to use them. There is no predictor, no BTB, no RAS, no cache, and no SMT, so the mechanism has nothing to partition. |
+| `CSetBoundsImm` / `CIncOffsetImm` | 7.0-A1 | ⚙️ | R-15-007 | no | Immediate forms of adopted instructions; code-size relevant and inherited. |
+| `CBNZ` / `CBEZ` — branch on NULL capability | 7.0-A1 | ⚙️ | R-15-007 | no | |
+| `CGetAddr` | 7.0-A1 | ➖ | — | no | Removed at v9: with a merged file the address *is* the integer value. |
+| Trap on out-of-bounds capability jump rather than at target fetch | 7.0-A1 | ⚙️ | R-15-086 | no | Matters here for the reason upstream gave (precise state at the jump) *and* for branch-resolution latency being a fixed function of the static rule. |
+| **`CTestSubset`** | 7.0-A1 | ⚠️ | R-07-031a | **decide** | Upstream's consumer is a garbage collector, which the platform has not got. Its second consumer is argument validation at a domain boundary, which the platform has: the switcher checks delegated buffers on every cross-compartment call. RVY promoted it to the base ISA as `YSS`. |
+| Experimental 64-bit capability format for 32-bit addresses | 7.0-A1 | ➖ | R-15-005 | no | Withdrawn at v8 and replaced by 64-bit Concentrate, which is the profile's actual base. |
+| **Linear capabilities** (`LLCR`/`LSCR`) | 7.0-A1 | ✅ | R-05-159, R-05-126b | no | Handled at a different layer, deliberately: linearity is a CHERI-TAL typing discipline over the certificate, not an ISA feature with silicon and a Sail case. A good example of the profile answering an upstream question by moving it. |
+| **Indirect capabilities** (table-based lookup) | 7.0-A1 | ⛔ | R-07-002b | no | No capability space, no CNodes, no capability-address translation, no guarded radix lookup. |
+| **Capability permission compression** (experimental appendix) | 7.0-A1 | ✅ | R-15-007b | no | The profile makes normative what upstream floated as an appendix. CHERIoT shipped it (6 bits, 12 permissions); RVY tried it and **reverted** — see §9.2. The idea is live and built, but the profile is not following a settled trend. |
+| `Permit_Recursive_Mutable_Load` (experimental) | 7.0-A2 | ✅ | R-15-074 | no | Shipped upstream as `load-mutable`; adopted with the local/global model. |
+| **`CLoadTags`** (experimental → mature at v8) | 7.0-A2 | ⚠️ | R-08-007, R-15-203 | **yes** | The §8 sweep is an incremental software task whose completion latency is "the domain's capability-bearing footprint over the per-frame sweep quantum" — i.e. it is *entirely* a memory-traffic quantity, and `CLoadTags` reads a granule group's tags without reading the data. With native SRAM tag bits read in parallel with data (R-15-203) it is close to free in silicon. Nothing in the profile carries it, and no requirement declines it. |
+| Sealed **entry capabilities** (sentries), experimental | 7.0-A2 | ✅ | R-15-008, R-15-068 | no | Matured at v8; the platform's coarse-grained CFI. |
+| Compact capability **coloring** (proposed replacement for local/global) | 7.0-A2 | ➖ | R-15-074 | no | Upstream kept local/global and so does the profile; RVY's `Zylevels1` is the two-level version of the same thing. (Unrelated to R-08-004a's *revocation* colour.) |
+| Memory type tokens (experimental) | 7.0-A2 | ➖ | R-07-002b | no | |
+| `CSetAddr`, `CAndAddr`, `CGetAndAddr` | 7.0-A3 | ⚙️ | R-15-031b | no | `csetaddr` is named in the address-then-narrow fusion pair. |
+| **`CRAM` / `CRRL`** — representable alignment mask and rounded length | 7.0-A3 | ⚠️ | R-15-007c | **decide** | Upstream's answer to "how much must an allocator round?" The profile answers it at composition time for the static plan, but R-15-007c concedes that **dynamic subobject narrowing carries the case at runtime**, and at a 256-byte exactness threshold that rounding is coarse and frequent. Either the instruction pair exists, or the rounding is a software computation of the exponent — decide with `CSetBoundsExact` above, since they are two answers to one question. |
+| `CMove` becomes a standalone instruction | 7.0-A3 | ⚙️ | R-15-007 | no | |
+| `CCheckTag` | 7.0-A2 | ⚙️ | R-15-007 | no | |
+| `CLCBI` (capability load with big immediate) | 7.0-A2 | ➖ | R-13-010a | no | Upstream's consumer is runtime linkage; the image here is composed and linked at composition time. |
+| Capability **flags** field + `CGetFlags`/`CSetFlags` | 7.0 | ➖ | R-15-001 | no | The flag's only architectural use is the capability encoding-mode bit, and there is one mode. |
+| `AUIPC` returns a PCC-relative capability in capability mode | 7.0 | ✅ | R-15-031b | no | `auipcc`, named in the fusion set. |
+| Dedicated `otype` field; **any representable capability may be sealed** | 7.0 | ✅ | R-15-007 | no | The frozen 4-bit otype is a dedicated field, so the v7 property holds. |
+| **Physical-address capabilities** (experimental appendix) | 7.0 | ✅✅ | R-15-002, R-15-002a | no | The profile's entire address model, promoted upstream to a model section at v9. The one dense 36-bit physical space *is* this appendix taken to its conclusion. |
+| Hybrid 64/128-bit capability design (experimental) | 7.0 | ⛔ | R-15-005 | no | Exactly one capability encoding; a second forks the model. |
+| Sail formal semantics for CHERI-RISC-V | 7.0 | ✅ | R-15-005, R-18-003b | no | The artifact the whole schedule is rooted in. |
+| `ErrorEPCC` (fault inside a fault handler) | 7.0-A3 | ⚠️ | R-07-022, §5.3 | **decide** | Modeled on MIPS `ErrorEPC` and not carried into RISC-V, where the equivalent question is what happens to a trap taken inside the handler. §5.3's `mcause` hole is the right place to settle it. Low cost, but the §5 table is *closed*, so silence is a decision. |
+| Capability-relative floating-point load/store | 7.0-A3 | ➖ | R-15-039 | no | No scalar FP exists. |
+| Capability dirty bit in PTEs | 7.0-A3 | ⛔ | R-15-038 | no | No MMU. |
+| Capability-aware **DMA** (tag-stripping vs capability-aware options) | 7.0-A4 | ✅ | R-15-208, R-15-209 | no | The stronger of the two options: a capability- and tag-carrying fabric, plus in-flight-DMA revocation as a stated obligation. |
+| Composition with memory-versioning (ADI / MTE) | 7.0-A3 | ⛔ | R-15-045 | no | ~93% probabilistic detection, blind to intra-granule overflow: a statistic, not a theorem. |
+
+## 6. ISAv8 (TR-951, 2020): Morello sync, temporal safety, microarchitecture
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| Compression becomes part of the abstract model; capability = architectural type + in-memory representation | 8.0 | ✅ | R-15-007a | no | The framing that makes the re-parameterization a representation-correctness proof rather than a rewrite. |
+| Both 32- and 64-bit address sizes; XLEN/CLEN abstraction | 8.0 | ✅ | R-15-002a, R-15-007 | no | The profile picks a third point (36-bit address inside a 64+1-bit capability) on an axis v8 opened. |
+| **64-bit capability format within CHERI Concentrate** | 8.0 | ✅✅ | R-15-007 | no | The literal base of the frozen format. Its existence upstream is why R-15-007a can call the change a re-parameterization. |
+| `CInvoke` replaces `CCall`; exception-free transition only | 8.0 | ⛔ | R-15-068 | no | See §4 — the profile removes the call gate entirely. |
+| **Minimum architectural bounds precision** policy | 8.0 | ✅ | R-15-007c | no | The profile does the strong form: precision is fixed exactly and its cost booked (byte-exact to 256 bytes, rounding outward at length/2^8 above). |
+| MMU-originated exceptions distinguished from CHERI exceptions | 8.0 | ➖ | R-15-038 | no | |
+| **Per-page capability load barriers for revocation** | 8.0 | ⚠️ | R-08-004, R-08-005, R-08-009 | **yes** | The register mandates a per-load revocation filter that is "deterministic and architectural, fixed-latency, riding the load with no added memory traffic" (R-08-005), imports it explicitly from CHERIoT (R-08-009), and makes containment latency depend on it (R-08-006, R-17-023). **[isa-profile.md](isa-profile.md) §4 does not list it, §7 does not mandate it, and §9 carries no timing contract for it.** Upstream's realization is per-page PTE bits, which this platform cannot use — so the profile owes the *other* realization, not silence. This is the largest single gap in the matrix. |
+| **Revocation colour as capability metadata** | (8.0 lineage) | ⚠️ | R-08-004, R-08-004a | **yes** | R-08-004a stamps a colour at derivation and retires colours as a set, which is what buys subtree revocation with no derivation tree. §4.1's field table has **no colour field and no spare bits**: 36+4+5+5+8+6 = 64. Either the colour lives outside the capability (in the filter's shadow structure, keyed by address — but R-08-004a explicitly prefers *ancestry* keying over address keying), or a field must be found. It cannot be both required and unrepresentable. |
+| `CPtrCmp` compares addresses only, ignoring the tag | 8.0 | ⚙️ | R-15-007 | no | |
+| Sentries no longer experimental; `CSealEntry` | 8.0 | ✅ | R-15-008 | no | |
+| Sentries auto-unseal when installed in the exception PC, not only when jumped to | 8.0 | ⚠️ | R-15-073, R-07-022 | **decide** | The trap path installs `MTCC` and saves `MEPCC`; whether a sentry installed in `MEPCC` unseals on `mret` is a semantics question the profile does not answer, and it is on the domain-entry path. |
+| `CGetPCCIncOffset` / `CGetPCCSetAddr` | 8.0 | ⚙️ | R-15-031b | no | Fusion covers the pair. |
+| `CRRL` / `CRAM` mature | 8.0 | ⚠️ | R-15-007c | decide | See §5. |
+| **`CLoadTags` mature and defined for CHERI-RISC-V** | 8.0 | ⚠️ | R-08-007 | **yes** | See §5. Maturity upstream removes the "experimental" objection. |
+| `CIncOffset` guarantees the cursor holds the arithmetic result | 8.0 | ⚙️ | R-15-007e | no | Precisely the behavior R-15-007e reasons about when it argues the indexed load/store takes the representability case off the hot path. |
+| CHERI-RISC-V **atomic** instructions matching the base atomics | 8.0 | ⛔ | R-15-026, R-15-027 | no | No capability lives in shared mutable memory: share-nothing multikernel, SPSC rings under Ztso, single-instruction `Zaamo` refcounts. RVY's `AMOSWAP.Y` and `LR.Y`/`SC.Y` fall to the same ground. |
+| CSR whitelist exempting some CSRs from ASR (e.g. cycle counter) | 8.0 | ➖ | R-15-077 | no | Obviated: the counters do not exist in any lifecycle state. |
+| **Capability exceptions reported via `xtval`, not a capability cause register** | 8.0 | ⚠️ | §5.3 | **yes** | This is the standards answer to the §5.3 hole, and it is the *cheaper* answer — reuse `mtval` rather than add a bank. Settling §5.3 with it costs one row and removes a named extraction defect. |
+| Two CHERI MMU fault codes; PTE `CD`/`CRM`/`CRG` bits | 8.0 | ⛔ | R-15-038 | no | No MMU. `CRM`/`CRG` are the page-level form of the load barrier — see the ⚠️ row above. |
+| Unaligned-base CHERI exception code | 8.0 | ⚠️ | R-15-084, §5.3 | **decide** | Misaligned data accesses trap (R-15-084) and fetch is bundle-aligned, so the *behavior* is settled; what is unsettled is the cause encoding, which belongs with the `mcause` row. |
+| `CSpecialRW` WARL write clears the tag on a sealed value | 8.0 | ⚙️ | R-15-073 | no | |
+| **`CClearTags`** (bulk tag zeroing for revocation) | 8.0 | ⚠️ | R-15-182, R-08-007 | decide | Partly covered already: `cbo.zero` allocates whole lines with zeroed data *and* cleared validity tags at one fixed latency (R-15-182). The residue is tag-only clearing where data must survive, which is a sweep-side want, not a zeroize-side one. Decide with `CLoadTags`. |
+| **`CLCNT`** (non-temporal capability load) | 8.0 | ➖ | R-15-165, R-15-046 | no | The instruction exists to avoid polluting a cache. There are no caches. |
+| **Sealed indirect enter capabilities** / `CInvokeInd` | 8.0 | ⛔ | R-15-008, R-15-068 | no | R-15-008 is explicit that the base sentry semantics are the *only* sentry semantics the profile carries. The code+data pairing it provides is done by the switcher. |
+| **Ephemeral capabilities** (register-only, never stored) | 8.0 | ➖ | R-05-159, R-08-004a | no | Both halves are answered elsewhere: non-storability by the CHERI-TAL linear discipline, prompt sub-tree revocation by the revocation colour. |
+| **Anti-tamper seal** (validate a returned allocation pointer) | 8.0 | ➖ | R-15-007c, R-08-004 | no | Upstream's use case is `free()` on a dynamic heap; allocation here is composition-time, and reuse safety is the revocation epoch's job. |
+| Capability-related prefetch instructions | 8.0 | ⛔ | R-15-046 | no | No prefetch request has a software origin. |
+| Integer-pointer versioning + atomic version manipulation (MTE composition) | 8.0 | ⛔ | R-15-045 | no | |
+| **Practical CHERI microarchitecture chapter** (pipeline, register file, bounds decompression, fast bounds check, tagged memory, speculation) | 8.0 | ✅ | §7, R-15-012, R-15-019 | no | The profile's §7 is the same document with the speculation section deleted rather than mitigated: CHERI-and-speculation is the chapter's hardest problem and it has no referent here. |
+
+## 7. ISAv9 (TR-987, 2023): the current Cambridge baseline
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| CHERI-RISC-V becomes the primary reference; CHERI-MIPS removed | 9.0 | ✅ | R-15-001 | no | |
+| Privileged CHERI-RISC-V defined against RISC-V privileged v1.11 | 9.0 | ✅ | R-15-003 | no | Machine mode only; the S and H banks are deleted by name in §5.2. |
+| Capability exception details in `xtval` rather than `xccsr` | 9.0 | ⚠️ | §5.3 | **yes** | Reaffirms the v8 change. See §6. |
+| `JAL`/`JALR` mode-dependent; `CJAL`/`CJALR`, `JALR.CAP`, `JALR.PCC` | 9.0 | ✅ | R-15-068 | no | Purecap-only makes the mode dependence vacuous; `cjalr` is the domain-entry root. |
+| Compressed instructions in capability mode | 9.0 | ⛔ | R-15-036, R-15-036a | no | `C` is excluded for decode ambiguity and the code-size loss is recovered by the dictionary encoding instead. |
+| Opcode reservations for memory versioning and `CRelocate` | 9.0 | ⛔ | R-15-045, R-15-014 | no | Unallocated encodings trap; no reservation survives. |
+| **Merged register file always** | 9.0 | ⚠️ | R-07-015, R-15-214 | **yes** | ISAv9 made this normative and the profile never states it. It is not cosmetic here: R-07-015 and R-15-214 make the restore total over "every general-purpose register, **capability register**, and CSR a partition can name", which reads as an enumeration over two files. On a merged file it is one file of 32 × (64+1) bits, and *that* is the set the total-restore obligation quantifies over. One row in §1 of the profile. |
+| **Tag clearing rather than exceptions for non-monotonic modification** (from Morello) | 9.0 | ⚠️ | R-15-007, R-15-007e | **yes** | The profile inherits "instruction semantics unchanged" without saying which side of this change it lands on, and the two sides are not equivalent for this platform: trapping makes every failed derivation a control-flow event with a WCET term and a cause encoding, while tag clearing makes it a silent data result that faults later at dereference. R-15-007e already reasons about `cincoffset` producing an out-of-representable-region result, which only makes sense on the tag-clearing side. State it. |
+| `CGetHigh` / `CSetHigh` (upper half of a capability) | 9.0 | ➖ | R-15-007 | no | Obviated by the narrowing: a 64+1-bit capability is one register, so there is no half to address separately. A small dividend of the format choice worth noticing. |
+| `CGetTop` | 9.0 | ⚙️ | R-15-007 | no | |
+| `DDC`/`PCC` no longer relocate legacy accesses; `CFromPtr`/`CToPtr` deprecated | 9.0 | ✅ | R-05-136, §5.3 | no | Independently obviated here twice over. |
+| Model section on capabilities protecting **physical addresses** | 9.0 | ✅✅ | R-15-002, R-15-002a, R-15-002b | no | Upstream promoted the v7 experimental appendix to the model; the profile had already built the platform on it, with the density of the physical map as a stated constraint on the attested devicetree. |
+| **CHERI enable/disable bit in `menvcfg`/`senvcfg`** | 9.0 | ⚠️ | §5.3, R-15-049 | **decide** | §5.3 indicates deleting `menvcfg` on R-15-049's ground (its bits gate a less-privileged mode that does not exist). That ground survives contact with this change, but the conclusion now needs saying out loud: **CHERI is unconditionally enabled and no enable bit exists**, so a curator reading `menvcfg → deletion` does not silently delete the CHERI enable with it. |
+| `xScratchC` extends the existing `xscratch` registers | 9.0 | ✅ | R-15-073 | no | `MTDC` occupies the same role. |
+| 64-bit CHERI Concentrate format documented | 9.0 | ✅✅ | R-15-007 | no | |
+
+## 8. ISAv10 (in progress)
+
+| Feature | Ver | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- | --- |
+| ISAv10 changelog | 10.0 | ➖ | R-15-014 | no | `app-versions-10-0.tex` on `main` reads `\textbf{TBD}` — the version is open with no published changes. Nothing to track yet; the profile is frozen with the proof and a later Cambridge release is an amendment that reruns the review gate (R-18-034), not a drift. |
+
+## 9. RVY — the RISC-V standardization line
+
+*Not obligations: R-15-007 retires this re-pin and R-17-048a books the cost. Read these rows as external evidence, and the ⚠️ ones as pressure on R-17-048a's estimate rather than on the profile's content. The line moves fast — 378 tagged releases, twelve of them named versions — so §9.1 gives the release-level history and §9.2 the feature matrix.*
+
+### 9.1 Release history
+
+Naming changed twice along the way: the `Zcheri*` extension names of the 2024–2025 releases became `Zy*` and then largely folded into a base ISA called **RVY**, with the capability format named **RV64LYA**. Old-name → new-name mappings are given where they matter.
+
+| Release | Date | Substantive changes |
+| --- | --- | --- |
+| v0.7.1 – v0.8.3 | 2023–2024 | Prerelease. Split into `Zcheri_purecap` / `Zcheri_legacy` / `Zcheri_mode`; `Zcmt` checking moved to PCC bounds in legacy mode. |
+| **v0.9.0** | 2024-10-04 | The large feature release. **Hypervisor** integration; **Load Mutable** permission introduced; `GCTYPE` to read the capability type; **alternative capability encodings allowed**; `Zstid` thread-ID CSRs and their access control; **vector ⋈ CHERI** integration; **PTE proposal with load-side barrier bits**; **capability levels** introduced; `GCMODE` reinstated; permissions bitmap permuted for `ACPERM`/`GCPERM`; `xtval`/`xtval2` roles swapped; `MODESW` split into `MODESW.CAP` / `MODESW.INT`; **pointer-masking support**; CHERI mode on debug entry; malformed-capability definition clarified. |
+| v0.9.1 | 2024-11-13 | `ACPERM` rule overhaul (four PRs); redundant `SCBNDSI` encodings reserved; `mstatus.CRG` reinstated with justification; levels ⋈ sealed-capability interaction clarified. |
+| v0.9.2 | 2024-12-12 | More CHERI page-fault types, so a normal page fault and a CHERI PTE page fault can both be pending and software chooses; **legal-permissions invariant for tagged capabilities**; `xtval2` clarifications. |
+| v0.9.3 | 2025-01-16 | `CRG` functionality split for U- and S-mode; M-bit behavior with no integer mode; PTE fault exception priority. |
+| v0.9.4 | 2025-02-07 | **`mtdc` and `[v]stdc` removed** from the architecture; PTE bits reserved in guest page tables. |
+| **v0.9.5** | 2025-02-14 | **Changes to pointer masking**; `GCPERM` result made forwards-compatible with software. Small, but the release the Feb-2025 standardization deck was cut against. |
+| v0.9.6 | 2025-09-26 | Status raised to **Stable**; `Zilsd`/`Zclsd` ratified-spec update; M-bit made dependent on X for RV64; initial integration with the ISA manual; representable-range clarifications. |
+| v0.9.6.1 | 2025-12-15 | **Integrity checks enforced**; `CL` → `GL` rename; enable/disable bit for the `Svucrg` PTE extension; **vector enabled for v1.0 ratification**; **`LY` definition allows revocation-driven tag clearing**; `YTOPR` added; **a CHERIoT chapter added** (not for v1.0); `_L<params>` capability-encoding naming drafted. |
+| v0.9.7 | 2026-02-17 | Temporal safety reworked to a **4-bit PTE scheme** covering all revoker states; **`Svucrg` renamed `Svyrg`**; **`Svucrglct` dropped** — whether loaded tags are actually checked is an implementation choice, since software must assume they might not be. |
+| v0.9.7.1 / .2 | 2026-03/04 | `ADDIY` → `YADDI`; RV32 formats and extensions **moved out of the v1.0 ratification package**. |
+| **v0.9.8** | 2026-05-13 | **Opcode relocation: RVY instructions moved into what is Custom-3 for RVI, and Custom1–3 reserved for RVY when the base ISA is RVY.** Hybrid-mode rewrite, M-bit → **P-bit**; `Zyhybrid` redefined as an extension on RVY rather than RVI; `Zylevels1` refactored and **postponed out of v1.0**; `YBLD` and `YTOPR` folded into the base; `YLT` → `YSS`. |
+| v0.9.8.1 / .2 | 2026-05 | `YBNDSWI` and `YAMASK` encoding fixes. |
+| **v0.9.9-ar20260707** | 2026-07-07 | **`YSENTRY` folded into the RVY base** (its `rs1` reserved for a future `YSEAL` taking an authorizing capability); CHERI-enable bit in `menvcfg`/`senvcfg` moved to a final position; **`misa.Y` now resets to 1 and clearing it disables CHERI entirely**, permitted only while `pc`, `xtvec`, `xepc` (and `ddc` under `Zyhybrid`) hold root capabilities; format renamed **RV64LYA**; metadata layout rearranged to give AP, SDP and GL adjacent reserved space; **a compressed AP encoding was tried and reverted to one-bit-per-permission**; mandatory and optional integrity checks separated; debug specification split out. |
+| v0.9.9-ar20260810 | 2026-08-10 | Clarifications only: `LY`/`SY` with `rs1=x0`, `SFENCE.VMA` required after changing `sstatus.YRGE`, bounds-decoding correction factors. |
+
+### 9.2 Feature matrix
+
+| Feature | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- |
+| **Architectural permission encoding (AP)** | ⚠️ | R-15-007b | no (but re-word) | **A correction to an earlier reading of mine.** RVY does *not* vindicate R-15-007b. RV64LYA spends 8 bits one-bit-per-permission plus a P-bit, reserving the illegal combinations (90 valid of 512), and the release history shows a compressed encoding was attempted at v0.9.9 and **reverted to one-bit-per-permission**. What survives is a note that *"future extensions or capability encoding formats may leverage these reserved patterns to implement a more compact joint AP-field and P-bit encoding"* — an invitation, not a precedent. The live precedent is CHERIoT's 6-bit encoding of 12 permissions. R-15-007b remains sound and is still the right choice at 64 bits, but it is a road RVY looked down and did not take, which is worth knowing before the freeze rather than after. |
+| **Alternative capability encoding formats are a first-class RVY mechanism** | ⚠️ | R-15-007, R-17-048a | **yes (re-check)** | Added at v0.9.0 and refined at v0.9.6.1 into an `_L<params>` naming scheme: RVY separates the base ISA (`RV64Y`) from the capability encoding format (`RV64LYA`, parameterized by mantissa width, exponent width, max exponent), and states that *"every RVY base ISA requires a capability encoding format to complete the specification."* The profile's 64+1-bit format is exactly a different parameterization. This does not reopen R-15-007's decision — the field widths still fall outside anything RVY will ratify, and a 36-bit address is not an RVY address size — but it does weaken the premise that the only options were "adopt RVY" or "fork permanently". A third option now exists in the standard's own structure, and R-17-048a's cost argument was written before it did. |
+| Capability Type (CT) field replaces the object type; 1-bit sealing in the base | ⚠️ | R-15-007, R-15-071 | no | Divergence in both directions: the profile keeps a 4-bit otype where RVY's base keeps one sealing bit, and the profile's forward/backward sentry split (R-15-071) is listed in RVY as a *future* CT value. RVY has reserved room for it — `YSENTRY`'s `rs1` is held for a future `YSEAL` with an authorizing capability — so the profile is ahead of the base and aligned with CHERIoT, not adrift from it. |
+| Mandatory 4-bit software-defined permissions (SDP) | ⚠️ | R-15-007b | **decide** | See §1. RVY makes SDP part of the required format for all encodings and gave it adjacent reserved space at v0.9.9; the profile has no bits for it. |
+| **`Zylevels1`** — GL flag, SL and LG permissions | ✅ | R-15-074 | no | The standardized form of what R-15-074 adopts. Note it was **postponed out of the v1.0 ratification package** at v0.9.8, so the profile's adoption is of a feature the standard has deferred — a point in favour of the retired re-pin, not against it. |
+| `Zyhybrid`, `ddc`, pointer-mode P-bit, `YMODEW`/`YMODER`/`YMODESW*` | ⛔ | R-15-001, R-18-002 | no | Purecap only. The whole mode apparatus — `GCMODE`, `MODESW.CAP`/`MODESW.INT`, the M-bit-renamed-P-bit, the integer-pointer-mode CSR handling — exists to make hybrid work and has no referent here. |
+| **`Svyrg`** (was `Svucrg`) — PTE-based capability load faults and capability dirty tracking | ⚠️ | R-08-005, R-15-038 | no (but) | MMU-borne and unusable here; its *existence* is the point, since the profile requires a load barrier with no realization named. Two details transfer even without pages: the **4-bit scheme** exists because a 1-bit one could not encode all the states real revoker software needs, which is a warning about under-specifying the profile's filter; and `LY`'s definition was amended at v0.9.6.1 to **permit revocation-driven tag clearing on load**, which is the exact architectural clause the profile's load filter needs and does not have. |
+| **`Svucrglct` dropped** — whether loaded tags are checked is implementation-defined | ⚠️ | R-08-005 | no | A deliberate divergence worth recording. RVY dropped the extension on the ground that software must assume the check might not happen, so naming it buys nothing. The profile cannot take that position: R-08-005 makes the per-load check architectural and fixed-latency *because* containment latency is a proof obligation and a §11 schedule term. Same mechanism, opposite conclusion, and the profile's reason is specific to it. |
+| `YBLD` (build capability) promoted to the base ISA | ⛔ | R-05-136 | no | Base functionality upstream, forbidden at the root here. |
+| `YSS` (capability subset test) promoted to the base ISA | ⚠️ | R-07-031a | **decide** | See `CTestSubset` in §5; promotion out of the experimental appendix weakens the "no consumer" reading. |
+| `YAMASK` (representable alignment mask) in the base ISA | ⚠️ | R-15-007c | **decide** | The `CRAM` question, now standardized. |
+| **`YSH1ADD`…`YSH4ADD`** — capability shift-and-add, in `Zba` | ⚠️ | R-15-007e, R-15-067d | **yes (correction)** | [isa-profile.md](isa-profile.md) §3 records the capability indexed load/store as having **"none: bespoke with the dialect"** for a re-pin target. Imprecise: RVY puts capability shift-and-add in `Zba`, an extension this profile *adopts*. It is not the same instruction — it materializes the intermediate capability, which is what R-15-007f's admissibility argument turns on avoiding — but it covers the address-formation half. |
+| **Opcode space: RVY claims Custom1–3 when the base ISA is RVY** | ⚠️ | R-15-007e, R-15-067a, R-15-014 | **yes** | New at v0.9.8 and directly consequential. The profile places three bespoke instructions — the capability indexed load/store and `bfext`/`bfins` — in "custom opcode space". On an RVY-based machine that space is *taken*: RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale. The profile is not RVY-based, so there is no defect today, but the encoding choice should be made knowing that the standards line has claimed the same real estate, since it forecloses a later encoding-level rapprochement that the format parameterization (above) would otherwise leave open. |
+| Vector: no tags in vector registers | ✅ | R-15-115 | no | Reached independently; enabled for v1.0 ratification at v0.9.6.1. |
+| **Vector: stores always clear capability tags in memory** | ⚠️ | R-15-115 | **yes** | R-15-115 says vector data carries no tags; it does not say what a vector store does to the tag of the granule it overwrites. RVY answers: clear it. Without that clause a vector store could be read as leaving a stale tag over overwritten data — a forgery primitive. One clause in §8 of the profile. |
+| Vector: only active elements are subject to CHERI checks | ⚠️ | R-15-115, R-15-085 | **decide** | Interacts with R-15-085's mask-independence contract, which forbids skipping cycles or accesses for masked-off elements. Compatible (check everything, fault only on active elements) but the composition should be stated, since one is a security contract and the other a timing one. |
+| **Pointer masking integrated** (RVA23 compatibility) | ⛔ | R-15-043 | no | Changed at v0.9.0 and again at **v0.9.5**. RVY integrates pointer masking because RVA23 requires it; R-15-043 excludes `Ssnpm`/`Smnpm` outright as obviated by CHERI with no top-byte-ignore mechanism. The divergence is entirely a profile-compatibility artifact — RVY must coexist with an application profile, and this platform curates its own. |
+| **RVA23 compatibility** as a design constraint | ➖ | R-15-001, R-15-012 | no | The single largest structural difference between the two efforts, and the reason many RVY rows read as "integrate" where the profile reads as "delete". RVY must land inside a ratified application profile; this profile is the application profile. |
+| `Zicboz`: `cbo.zero` requires W-permission and atomically clears each granule's tag | ✅ | R-15-060, R-15-182 | no | Already the profile's semantics, ECC on both planes included. |
+| `Zalrsc` `LR.Y`/`SC.Y`; `Zaamo` `AMOSWAP.Y` | ⛔ | R-15-025, R-15-026 | no | |
+| **`Zcd`, `Zcmp`, `Zcmt` are incompatible with RV64Y** | ✅ | R-15-036, R-15-036a | no | A free confirmation the profile should collect. Purecap needs the 16-bit load/store encoding space for `C.LY`/`C.SY`, so the code-size half of the `Zc*` family — push/pop multiple (`Zcmp`) and table jump (`Zcmt`) — is **unavailable on any purecap RV64 machine**, standards-track or not. The profile's `C` exclusion therefore forgoes less than a naive reading suggests: two of the three code-size instruments were never on offer. It also removes a hypothetical objection, since `Zcmt`'s jump-vector table is a target-membership structure that would sit awkwardly beside sentry CFI and R-15-072's typed callee set anyway. |
+| **`Zicfiss` incompatible with CHERI** (its push/pop instructions would need modifying) | ✅ | R-15-044 | no | RVY reaches the profile's conclusion from the encoding side rather than the principle side. R-15-044 excludes `Zicfiss`/`Zicfilp` because CFI is a theorem for verified code and CHERI-enforced for the rest. |
+| `Zilsd` / `Zclsd` compatibility | ➖ | R-15-036 | no | Load/store-pair extensions tracked by RVY at v0.9.6 for ratified-spec alignment; the compressed halves are excluded here with `C`. |
+| `mtvec`/`mepc`/`mscratch` widened to capabilities; `mtidc`/`stidc` added (was `Zstid`) | ✅ / ➖ | R-15-073, R-05-086 | no | The first three are `MTCC`/`MEPCC`/`MTDC`. The thread-identifier capabilities have no consumer — no thread-locals exist — and their `Xstateen0.TID` access control lands on an extension the profile deletes. Note RVY **removed `mtdc`/`[v]stdc`** at v0.9.4; the profile's `MTDC` is the ISAv8/v9 trap-data register, not RVY's deleted one. |
+| **`Xtval2` for extra exception reporting** | ⚠️ | §5.3 | **yes (informs)** | Added at v0.9.0–v0.9.2 so a normal page fault and a CHERI PTE page fault can both be reported and software can choose. Two thirds of the mechanism is MMU-specific and irrelevant here; the third that is not is the confirmation that **one trap-value register is where CHERI exception detail belongs**, which is what §5.3's `mcause`/`mtval` hole needs to hear. |
+| `misa.Y` resets to 1; clearing it **disables CHERI entirely**, and only from a root-capability state | ⚠️ | R-15-052 | no (but state it) | R-15-052 makes `misa` read-only, so the profile already refuses this — but it now refuses something specific and worth naming: a runtime, software-reachable **CHERI off switch**, gated in RVY only by a check that the implicit-check CSRs hold root capabilities. On a machine whose entire protection story is CHERI, "no runtime ISA morphing" and "no runtime CHERI disable" are the same sentence and only one of them is written. |
+| CHERI enable bit in `menvcfg`/`senvcfg` | ⚠️ | §5.3, R-15-049 | **decide** | See §7. The bit moved position twice during v0.9.9 review, so it is settled architecture, not a placeholder. |
+| **Mandatory vs optional capability integrity checks** | ⚠️ | R-15-007a | **decide** | Enforced at v0.9.6.1, then split into mandatory and optional sets at v0.9.9, alongside a "legal permissions invariant for tagged capabilities" at v0.9.2. Half is obviated here — the format has zero reserved bits, all 64 being spent — and half is not: *malformed bounds* is a property of the bounds algorithm, and at 8/6-bit mantissas the reachable malformed set differs from RV64LYA's. R-15-007a's representation-correctness proof is the natural home and should name it. The mandatory/optional split is itself the interesting part: RVY found that some integrity checks must be architectural and some may be implementation choices, which is the same question the profile faces on the load filter. |
+| Hypervisor extension integration | ⛔ | R-15-006 | no | Integrated at v0.9.0, now non-v1.0 content. The platform hosts no guests. |
+| **Legacy debugger support; separate Debug specification with optional capability-width abstract commands** | ⚠️ | R-15-078, R-15-079 | no | RVY spends real effort making a debugger work against capability state — CHERI mode on debug entry, `dpcc`, `drootcsel`, capability-width abstract commands. The profile's answer is orthogonal and stronger: the Debug Module exists in silicon but is lifecycle-fused at the hardware level, its clock and reset gated off in production. Worth recording that the profile is not *missing* the debug work but has deleted its reachability, since §10 states the fuse without stating that the capability-debug surface is what it is refusing. |
+| CHERI exceptions and speculative execution | ➖ | R-15-012, R-15-019 | no | No speculation exists to reason about. |
+| Instruction renaming to the `Y*` mnemonic space; opcode relocation; format rename | ⚠️ | R-17-048a | **yes (re-check)** | R-17-048a books the retired re-pin as differential-testing oracles "degrading in proportion to the parameterization rather than all at once". That estimate was made against a CHERI-RISC-V sharing mnemonics, encodings, and CSR names with `sail-cheri-riscv`. Since then RVY has renamed every instruction, relocated the entire encoding space into Custom-3, moved sealing to a CT field, restructured the CSRs, and renamed the format. *Instruction-level* oracles (Spike, QEMU, the CHERI test suites) now degrade closer to all at once; *algebraic* oracles (bounds encode/decode, monotonicity) still degrade in proportion. The conclusion stands; the estimate should be restated in two parts. |
+
+### 9.3 Extensions that are pending, postponed, or research-stage
+
+*These carry no obligation at all — several may never ratify — but two of them are aimed at questions the profile has open, which is the reason to track them.*
+
+| Extension | Status | Relevance here |
+| --- | --- | --- |
+| **`ZcheriSanitary`** — cleaning capabilities on compartment switching | Research, needs a PR | The one to watch. It is the standards-track form of the question raised by the `CClearRegs` row in §2 and the `mshwm` row in §10: what does a compartment switch have to scrub, and can the ISA help? The profile's answer at *partition* switch is total restore (R-07-015, R-15-214); at *compartment* switch it is the switcher's software, unpriced in the profile. |
+| **`ZcheriTraceTag`** — data capability trace with tags | Research, needs a PR | Trace of capability-valued data. Irrelevant in production (trace rides the lifecycle fuse, R-15-079) but relevant in the development lifecycle state, where §10 permits trace and R-15-077 points development measurement at it. If capability-valued trace is wanted there, this is the shape it takes. |
+| `ZcheriLevels` → **`Zylevels1`** | Renamed; postponed out of v1.0 at v0.9.8 | Adopted here regardless (R-15-074). The postponement is mildly reassuring for the retired re-pin: the profile would have been waiting. |
+| `Zstid` | Absorbed into the base as `utidc`/`mtidc`/`stidc` + `Xstateen0.TID` | No consumer (R-05-086). |
+| `ZcheriVector` | Absorbed as "V (RVY modified behavior)"; enabled for v1.0 at v0.9.6.1 | Two live rows in §9.2 (tag clearing on vector store, active-element checking). |
+| `ZcheriSystem` | Absorbed into "Machine-Level ISA (RVY)" / "Supervisor-Level ISA (RVY)" | The machine-level half maps onto R-15-073; the supervisor half is deleted with S-mode. |
+| `Svucrg` → **`Svyrg`**; `Svucrglct` **dropped** | Renamed at v0.9.7; 4-bit PTE scheme; enable bit added | See §9.2 — the dropped sub-extension is the more interesting of the two. |
+| `Zysentry` | Folded into the RVY base at v0.9.9 | Sentries are no longer optional upstream either. |
+| RV32 capability formats and extensions | Moved out of the v1.0 package at v0.9.7.2 | Confirms `Zcheri`-for-32-bit is not imminent; the CHERIoT chapter added at v0.9.6.1 is where that lineage now sits, explicitly not for v1.0. |
+
+## 10. CHERIoT (v1.0, November 2025)
+
+| Feature | Disposition | Governing | Should? | Note |
+| --- | --- | --- | --- | --- |
+| **6-bit compressed permission encoding for 12 permissions** | ✅✅ | R-15-007b | no | The existence proof that a heavily compressed non-orthogonal permission field is buildable and compilable-against. With RVY's AP field this is the second independent convergence on R-15-007b. |
+| 64-bit capabilities for a 32-bit address space | ⛔ | R-15-005 | no | The nearest cousin to the frozen format and still excluded as a *second* encoding — the RoT's scalar core included, which is the whole content of the exclusion. |
+| **Interrupt-status sentries** (enable / disable / inherit) | ⛔ | R-15-070 | no | The one CHERIoT capability feature the profile declines by name, with the losses enumerated in the requirement rather than waved at. Sound: asynchronous interrupt delivery is deleted, so the three types collapse to one. |
+| **Forward/backward sentry split** | ✅ | R-15-071 | no | Added in CHERIoT 1.0 for exactly the profile's reason — distinguishing function pointers from return addresses. R-15-071 notes the split survives the interrupt-state deletion because it is a property of edge direction. |
+| **Multi-rooted capability hierarchy** (disjoint RX / RW / sealing roots, so no W+X root exists) | ⚠️ | R-14-002 | **decide** | R-14-002 proves system-wide W^X as an invariant of the derivation forest via a machine-checked absence of Store∧Execute in the *static initial capability distribution*. Disjoint roots would make the same property structural — unforgeable by construction rather than true of one audited initial state — and the profile already fixes the initial distribution at composition, so the cost is close to zero. Worth weighing precisely because R-15-076 books the concentration of everything onto CHERI's own correctness. |
+| Shadow memory + load filter + revoker | ⚠️ / ⛔ | R-08-005, R-08-009 | **yes** | The filter is imported (R-08-009) and is the §6 gap. The **shadow memory** it reads is a second cost with no home: it is an SRAM allocation, an ECC-protected array (R-15-175), and a composition-time capacity line item, and no requirement sizes it. |
+| TBRE background revocation engine; STKZ stack-zeroing engine | ⛔ | R-08-009 | no | Autonomous memory-touching walkers, refused under admission test 5. |
+| **`mshwm`/`mshwmb` stack high-water mark CSRs** | ⚠️ | §5, R-07-014 | **decide** | The mechanism exists so a switch zeroizes only the stack that was actually used. The profile zeroizes eagerly and pays for it, and §5's CSR table is **closed**, so these are absent by construction rather than by decision. If the compartment-switch zeroize cost is material at §11, this is the cheap lever; if not, the row should say so. |
+| `AUICGP` (global-pointer-relative, large offset) | ➖ | R-13-010a, R-15-036a | no | A code-size instrument for a relocatable ABI; the image here is composed whole and the dictionary encoding is the code-size lever. |
+| `CSetBounds` with a large immediate | ⚠️ | R-15-067d | decide | A third code-size candidate of the same class as §3's two, and it should be measured the same way R-15-067d measures the bitfield pair: against actual generated output at the freeze, dropped if the delta is immaterial. |
+| `AUIPCC` shift reduced to 2 GiB | ➖ | R-15-002a | no | A 36-bit space makes the question moot. |
+| No hybrid mode | ✅ | R-15-001, R-18-002 | no | |
+
+---
+
+## 11. What the matrix says
+
+**Five rows are defects — the register requires something the frozen profile does not carry, or the profile names a hole it can now close.**
+
+1. **The revocation load filter is missing from the profile.** R-08-004/005/006/009 and R-17-023 make a per-load, fixed-latency, architectural revocation check the mechanism containment latency is measured in, and import it by name from CHERIoT. [isa-profile.md](isa-profile.md) lists it in neither §4 (CHERI feature set), §7 (microarchitectural mandates), nor §9 (timing contracts). Upstream's realization is per-page PTE bits (ISAv8, RVY `Svyrg`), which this platform cannot use, so the profile owes the alternative realization rather than silence. Its shadow structure is an unsized SRAM and ECC line item besides.
+2. **The revocation colour has no bits.** R-08-004a stamps a colour at derivation and retires colours as a set; §4.1's field table spends all 64 bits (36+4+5+5+8+6). Either the colour is not capability metadata — in which case R-08-004a's preference for ancestry keying over address keying needs re-argument — or the format must find room, which at this width means taking bits from the otype or a mantissa. Both readings are consequential and neither is written down.
+3. **`mcause`/`mtval` should be closed with `xtval`.** §5.3 books it as an extraction defect; ISAv8 changed CHERI-RISC-V to report capability exceptions through the existing trap-value CSR rather than a bespoke cause register, and ISAv9 and RVY both keep that. Adopting it settles the profile's own named hole with the cheapest available answer, and takes the unaligned-base and `ErrorEPCC` rows with it.
+4. **The tag-clearing-versus-trapping discipline is unstated.** ISAv9 adopted Morello's rule: non-monotonic modification clears the tag rather than raising an exception. The profile inherits "instruction semantics unchanged" without saying which rule it inherits, and the two differ in WCET terms, cause encodings, and where the fault surfaces. R-15-007e's reasoning only coheres on the tag-clearing side, so the profile is already committed and should say so.
+5. **The merged register file is unstated.** ISAv9 made it normative for all CHERI architectures. R-07-015 and R-15-214 quantify the total restore over "every general-purpose register, capability register, and CSR", phrasing that reads as two files. On a merged file the restore set is one file of 32 × (64+1) bits, and that is the set the obligation is over.
+
+**Four rows are corrections to claims the profile makes.**
+
+6. **"No re-pin target" for the capability indexed load/store is now imprecise.** RVY places capability shift-and-add (`YSH1ADD`…`YSH4ADD`) in `Zba`, an extension this profile adopts. It is genuinely a different instruction — it materializes the intermediate capability, which R-15-007f's admissibility argument exists to avoid — but "none exists" overstates it.
+7. **R-17-048a's cost estimate is now optimistic.** RVY has since renamed every instruction, relocated its whole encoding space into Custom-3, moved sealing to a CT field, restructured the CSRs, and renamed the format. Instruction-level differential-testing oracles degrade closer to all at once, not in proportion. The conclusion stands; the estimate should be restated as two terms, algebraic and instruction-level.
+8. **"Permanently bespoke" was a true dichotomy when written and is not one now.** RVY separates the base ISA from a *parameterized capability encoding format* (`RV64Y` + `RV64LYA`, with an `_L<params>` naming scheme), and states that every RVY base requires an encoding format to complete it. The profile's 64+1-bit format is a different parameterization of that same slot. This does not reopen R-15-007 — 36-bit addresses and 8/6-bit mantissas fall outside anything RVY will ratify — but the argument for retirement should engage with the mechanism rather than with a fork/adopt binary that the standard no longer presents.
+9. **The custom opcode space the profile's three bespoke instructions occupy has been claimed upstream.** At v0.9.8 RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale when the base ISA is RVY. No defect today, since the profile is not RVY-based — but it forecloses the encoding-level rapprochement that finding 8 would otherwise leave open, and the freeze should choose the encoding knowing that.
+
+**Two rows are cheap statements the profile should make because the standard has now made the opposite one explicit.**
+
+10. **No runtime CHERI disable.** RVY's `misa.Y` now resets to 1 and clearing it disables CHERI entirely, gated only by a root-capability check on the implicit-check CSRs. R-15-052's read-only `misa` already refuses this, but on a machine whose whole protection story is CHERI, "no runtime ISA morphing" and "no runtime CHERI disable" are the same sentence and only one is written.
+11. **The load instruction must permit revocation-driven tag clearing.** RVY amended `LY`'s definition at v0.9.6.1 to allow exactly this. It is the architectural clause the profile's load filter needs and does not have — and it is the same one-line fix as finding 1, seen from the instruction side rather than the mechanism side.
+
+**Three rows are live design questions the freeze must answer.**
+
+8. **A capability conditional move.** `Zicond` is adopted because branchless select is doubly load-bearing under static-only prediction with full mispredict-equivalent penalties — but it selects integers, and on a purecap machine the selected value is often a capability. ISAv6 added `CMOVN`/`CMOVZ` for the generated-code case; here the argument is stronger, because the fallback is a branch the profile has deliberately made expensive.
+9. **`CLoadTags` (with `CClearTags`), for the sweep.** The §8 sweep's completion latency is purely capability-bearing memory traffic, and `CLoadTags` reads tags without reading data. With native SRAM tag bits read in parallel (R-15-203) the hardware is nearly free. No requirement declines it.
+10. **`CRAM`/`CRRL`/`CSetBoundsExact`, for dynamic narrowing.** R-15-007c concedes that dynamic subobject narrowing carries the representability case at runtime, and the 256-byte exactness threshold makes the rounding coarse and frequent. RVY standardized `YAMASK`. These are three answers to one question and should be decided together.
+
+**Six rows are worth recording as deliberate divergences, so a later reader does not mistake them for drift:** the 4-bit object type against RVY's 1-bit CT; the forward/backward sentry split, CHERIoT-aligned and ahead of RVY's base, for which RVY has reserved encoding room; the absence of software-defined permissions, which RVY mandates and CHERIoT carries; `YBLD`, base functionality upstream and forbidden at the root here; pointer masking, which RVY integrates for RVA23 compatibility and R-15-043 deletes; and the architectural status of the per-load tag check, which RVY made implementation-defined (dropping `Svucrglct` on the ground that software must assume it might not happen) and which R-08-005 must keep architectural because containment latency is a proof obligation.
+
+**Two rows are free confirmations the profile should collect.** `Zcd`, `Zcmp`, and `Zcmt` are **incompatible with any purecap RV64 CHERI machine** — purecap needs the 16-bit load/store encoding space for capability load and store — so the `C` exclusion forgoes less than a naive reading suggests: two of the three code-size instruments in the `Zc*` family were never on offer, and `Zcmt`'s jump-vector table would have sat awkwardly beside sentry CFI in any case. And `Zicfiss` is likewise incompatible, which is R-15-044's conclusion reached from the encoding side rather than the principle side.
+
+**And two rows are convergences worth recording, because they are the external evidence the retired re-pin costs the profile:** physical-address capabilities, an ISAv7 experimental appendix promoted to an ISAv9 model section and the basis of this platform's entire address model; and the 64-bit Concentrate format, which is the literal base of the frozen format. A third — compressed non-orthogonal permissions — is **not** a convergence, and an earlier reading of mine that treated it as one was wrong: RVY tried a compressed AP encoding during v0.9.9 review and reverted to one-bit-per-permission, leaving only a note that future encoding formats *may* compress. CHERIoT's 6-bit encoding of 12 permissions is the sole shipped precedent for R-15-007b, and the profile should lean on that one rather than on a trend that does not exist.
+
+---
+
+## Sources
+
+- [CHERI ISA version history appendix (`app-versions.tex`) and per-version change logs](https://github.com/CTSRD-CHERI/cheri-specification), CTSRD-CHERI, `main` — the primary source for §§1–8
+- [CHERI Instruction-Set Architecture Version 9, UCAM-CL-TR-987](https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-987.pdf) (September 2023)
+- [CHERI ISAv7, UCAM-CL-TR-927](https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-927.pdf) (June 2019)
+- [RISC-V Specification for CHERI Extensions](https://riscv.github.io/riscv-cheri/), v0.9.9 of 2026-08-10, and its [version index](https://riscv.github.io/riscv-cheri/versions.html)
+- [`riscv/riscv-cheri` releases](https://github.com/riscv/riscv-cheri/releases) — 378 tags, twelve named versions; the per-release notes are the source for §9.1
+- [University of Cambridge CHERI-RISC-V page](https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/cheri-risc-v.html)
+- [CHERIoT 1.0 release announcement](https://cheriot.org/sail/specification/release/2025/11/03/cheriot-1.0.html) and [CHERIoT ISA roadmap](https://cheriot.org/isa/roadmap/2024/10/31/isa-roadmap.html)
+- [CHERIoT Architecture Specification v1.0](https://cheriot.org/cheriot-sail/cheriot-architecture.pdf)
+- [Let's make a standard for CHERI-RISC-V](https://cheri-alliance.org/wp-content/uploads/2025/03/20250226-RVI-Tokyo-Tariq-Kurd-CHERI-Standardisation.pdf), Tariq Kurd, RVI Tokyo 2025
