@@ -45,6 +45,7 @@ Each row is a structure whose **absence** is claimed, with the discharge form th
 | **A-10** | Data cache | as A-09 | no cache data, tag, or valid arrays on the data path | R-15-100, R-15-103 |
 | **A-11** | Tag cache | CHERI tags ride the SRAM word; no separate tag hierarchy | no tag-cache array | R-15-100, R-15-103 |
 | **A-12** | DVFS / frequency control | power states are schedule artifacts, never control loops | no PLL or DVFS control path, no frequency-scaling state machine | R-15-100, R-15-103 |
+| **A-12a** | Activity-driven memory power gating (idle-timer / watermark bank shutdown, wake-on-access) | the saving is taken statically instead: the memory plan's per-mode occupancy map decides which macros and tiers are powered, so the detector has nothing left to detect | no per-domain idle counter, access counter, or watermark register; no access-history state in the power controller; no request path from an address decode to a rail enable; the rail-state inputs are the mode index and the attested power vector alone | R-15-189a, R-15-189d, R-15-189h |
 
 **Absences the `fence.t` completeness argument additionally relies on.** These are discharged elsewhere (each is already absent by an ISA-visible removal or covered by its own named mechanism) but the flush-set claim depends on them, so the audit confirms them rather than assuming them (R-15-215):
 
@@ -107,7 +108,7 @@ The contract needs no RTL of record, no toolchain, and no Sail model, only the i
 
 1. **Elaborate** the core at its intended synthesis configuration.
 2. **Enumerate** every state element in the elaborated netlist.
-3. **Search** that inventory for the A-01 – A-12 structures by the evidence column of §3; confirm A-13 – A-16.
+3. **Search** that inventory for the A-01 – A-12a structures by the evidence column of §3; confirm A-13 – A-16.
 4. **Record synthesis-configuration provenance** (the parameters that disable each structure) so the absence is bound to a build, not to a reading. CVA6's branch-predictor and cache parameters are the live instance.
 5. **Classify** every remaining state element into one of §6's four classes; anything unclassifiable is a finding, not a footnote.
 6. Apply **§5's table-freeness rule** to every fetch-path element, mechanically.

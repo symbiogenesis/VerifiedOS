@@ -1,5 +1,3 @@
-- Leverage static memory allocation to deterministically switch off unused SRAM
-
 **Regarding memory constraints: The strongest option is a verified, restricted compressed-instruction profile.** RISC-V C does not inherently weaken CHERI, TAL, W^X, constant-time, or non-interference guarantees; it mainly enlarges the decoder and instruction-fetch proof.
 
 ### First: reduce duplication without changing the ISA
@@ -71,7 +69,7 @@ This could outperform C for the exact VerifiedOS instruction distribution, but i
 
 ### Execute-in-place from dense MRAM
 
-If STT- or SOT-MRAM is adopted, code need not consume SRAM at all:
+If SOT-MRAM is adopted, code need not consume SRAM at all:
 
 - Put immutable executable code in MRAM.
 - Keep stacks, heaps, IPC buffers, and mutable state in SRAM.

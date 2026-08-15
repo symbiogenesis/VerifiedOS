@@ -1494,6 +1494,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: R-08-014's interference side-condition, R-08-016's single pass, and R-11-015's derivation from the placed image are each unchanged; where the timing-annotated model prices two arrays alike the gain is on the average and the bound does not move, and where it prices them apart the derived bound improves.
 · Trace: CJ-MEMPLAN, CJ-WCET, CJ-TAL-SOUND · [§8](verification-maximal-os.md#r-08-012d)
 
+**R-08-012e** MUST: The plan's fourth lexicographic term, after footprint and locality, is domain concentration: minimizing, per global mode, the number of distinct gating domains (macros and tiers) an island's live set occupies, and emitting that per-mode occupancy map over gating domains for §15 to read as the mode's power vector.
+· Accept: the map is a projection of the slot assignment and the bank/macro/tier→island map the plan already consumes (R-15-228a), so it is a reporting step and not a new analysis; a domain holding one live object cannot be collapsed, which is what makes the count the thing R-15-189a spends.
+· Accept: concentration is constrained by R-08-012d's rule exactly as locality is, and it is in genuine tension with R-08-012a's bank spreading, so it wins only in modes where the island is not bandwidth-bound, which are the low-duty and standby modes where the leakage term dominates.
+· Accept: compaction stays a build step; the runtime relocation pass that would be its dynamic form is declined with the rest of the reactive family (R-15-189h).
+· Trace: CJ-MEMPLAN, CJ-WCET · [§8](verification-maximal-os.md#r-08-012e)
+
 **R-08-013** IS: Offline is the whole game: online allocation carries Robson's Θ(log n) worst case, while the offline problem is NP-hard in general, constant-factor approximable, and exactly optimal in polynomial time for the nested, region-structured lifetimes a region discipline produces, all solved in build-time compute.
 · Accept: static composition is what buys the move from the Robson-hard online setting to the near-optimal offline one.
 · Trace: CJ-MEMPLAN · [§8](verification-maximal-os.md#r-08-013)
@@ -3708,8 +3714,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 15.23 Power architecture
 
-**R-15-186** MUST: Exactly four power mechanisms are admissible, and every banned mechanism (SMM PM handlers, Pcode/SCP/AOP PMU microcontrollers, reactive DVFS, turbo, autonomous throttling) is banned for sharing a hidden feedback loop from workload or temperature to performance state.
-· Accept: the four are race-to-idle with in-slot gating; static per-partition operating points; pre-proved global mode schedules; and deep sleep as a boot-chain variant.
+**R-15-186** MUST: Exactly five power mechanisms are admissible, and every banned mechanism (SMM PM handlers, Pcode/SCP/AOP PMU microcontrollers, reactive DVFS, turbo, autonomous throttling) is banned for sharing a hidden feedback loop from workload or temperature to performance state.
+· Accept: the five are race-to-idle with in-slot gating; static per-partition operating points; pre-proved global mode schedules; deep sleep as a boot-chain variant; and composition-time gating of unallocated SRAM.
 · Trace: CJ-ISOL, CJ-WCET · [§15](verification-maximal-os.md#r-15-186)
 
 **R-15-187** MUST: In-slot clock/power gating is entered only when the remaining slot ≥ entry+exit WCET, and exit latency is a data-independent Sail-modeled constant.
@@ -3724,9 +3730,61 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: log₂(#modes) bits per audited event; migration stays banned.
 · Trace: CJ-NI · [§15](verification-maximal-os.md#r-15-189)
 
+**R-15-189a** MUST: Power mechanism 5 is composition-time gating of unallocated SRAM: arrays holding nothing in a mode are retained or collapsed by the same RoT-attested transition that installs the mode (mechanism 3 applied to memory rather than to islands).
+· Accept: never activity-driven and never demand-woken; the schedule, not an idle detector, decides.
+· Trace: CJ-ISOL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-189a)
+
+**R-15-189b** IS: Static allocation makes the unused array set knowable: with no allocator, no swap, no overcommit, and no demand growth, the whole-program memory plan's slot assignment is the complete and final statement of which bytes an admitted composition can touch, so its complement is a build constant.
+· Accept: the conventional idle-timer bank-gating controller is refused as a reactive loop from access history to power state whose supply-current signature follows the tenant's access pattern; the saving it chases is taken statically instead.
+· Trace: CJ-MEMPLAN, CJ-NI · [§15](verification-maximal-os.md#r-15-189b), [§15](verification-maximal-os.md#r-15-189b-2), [§15](verification-maximal-os.md#r-15-189b-3)
+
+**R-15-189d** MUST: Each gating domain occupies exactly one of three states, ON, RETAINED (state-retentive, contents and tags preserved, not addressable), or OFF (rail collapsed, data, tag plane, and check bits destroyed), and transitions occur only at a global mode transition, commanded only by the RoT, from the mode's pre-proved descriptor.
+· Accept: no edge in the lattice is traversable by an access, a timer, a counter, or a temperature; a domain's power state is a function of the mode schedule and the current mode index, never of access history, occupancy watermark, idle timer, or observed leakage.
+· Trace: CJ-NI, CJ-WCET · [§15](verification-maximal-os.md#r-15-189d)
+
+**R-15-189e** MUST: The gating domain is the macro or tier, never the bank, so that it coincides with the isolation domain; where low-sensitivity islands share a macro at bank granularity, its state is the conjunction over its bound islands' mode participation.
+· Accept: shared power delivery is already the coupling that separates bank binding from whole-macro exclusivity (R-15-228), so no per-bank rail is claimed; the conjunction is over composition-time facts, so no island's runtime behavior reaches another island's rail.
+· Trace: CJ-ISOL, CJ-NI · [§15](verification-maximal-os.md#r-15-189e)
+
+**R-15-189f** MUST: Composition emits, per global mode, one {ON, RETAINED, OFF} entry per gating domain, a total function of the static memory plan, the bank/macro/tier→island map, and the mode's resident island set; the vector lands in the attested static devicetree and is hashed into the mode descriptor.
+· Accept: a verifier learns which arrays were live in which mode; the transition stays a log₂(#modes)-bit audited event, the attestation surface growing by a named constant table and not by an open set of runtime decisions.
+· Trace: CJ-DEVTREE, CJ-NI · [§15](verification-maximal-os.md#r-15-189f)
+
+**R-15-189g** MUST: For every mode, the union of address ranges authorized by any capability reachable by any resident compartment is contained in the union of that mode's ON domains, decided by the same on-device pass that checks slot disjointness; a power vector that switches off a reachable array fails to type-check and is rejected at admission.
+· Accept: hardware decode disable is a backstop only (an access decoding to a non-ON domain is a fail-stop sentinel event, never a floating read, a stall, or a wake); there is no wake-on-access anywhere in the mechanism, that being demand paging with a power rail.
+· Fail-closed: a failed containment check rejects the composition (an availability outcome), never admits it with an unreachable-but-live array.
+· Trace: CJ-CERISE, CJ-ISOL, CJ-WCET · [§15](verification-maximal-os.md#r-15-189g)
+
+**R-15-189h** MUST NOT: Six adjacent forms are declined for rebuilding the loop: idle-timer, watermark, or access-counter bank gating; wake-on-access, demand power-up, or any cold-array slow path; runtime occupancy compaction with a relocation pass; leakage-, temperature-, or aging-sensing modulation of the retention rail; a power domain shared across islands participating in different modes; and per-domain voltage or frequency scaling following bandwidth demand.
+· Accept: the static counterpart of compaction is admitted as a memory-plan objective (R-08-012e); the conjunction rule (R-15-189e) is the admitted alternative to a cross-island domain; shared resources never scale (R-15-188).
+· Trace: CJ-NI, CJ-LEAK · [§15](verification-maximal-os.md#r-15-189h)
+
+**R-15-189i** MUST: Rail collapse and restore are RoT-sequenced with fixed dwell times in a fixed staggered ramp order, both composition-time constants, and inrush is bounded by provisioning the power delivery network for the worst-case simultaneous-on set read off the power vectors.
+· Accept: no current-sensing soft-start loop exists; per-domain transition latency is a data-independent modeled constant folded into the §11 mode-transition budget, adding a term to that budget and no variability to any partition's WCET.
+· Trace: CJ-WCET, CJ-NI · [§15](verification-maximal-os.md#r-15-189i)
+
+**R-15-189j** MUST: Every OFF→ON transition begins with an unconditional array clear (zero data, cleared validity tags, regenerated SECDED and DECTED codewords for both planes) at a fixed per-domain latency before the domain is admitted to the mode, and the RoT gates the transition on a one-bit fail-stop discharge confirmation.
+· Accept: whatever survived the collapse (low-temperature retention, incomplete discharge, a glitched or held rail) is overwritten before any capability names the array, so a fault-injection attack that keeps a domain alive across a mode transition yields zeros; the discharge check is never a retry loop and never feeds back into timing.
+· Accept: collapse is the strongest zeroize available, removing the charge rather than overwriting it, tag plane included, so island teardown at a mode boundary is a physical erasure and not a trusted write.
+· Fail-closed: a rail that does not discharge latches a fail-stop rather than completing the transition, composed at R-17-030n with the rest of the detector class; the cost is the mode transition and, with it, the availability of the mode being entered.
+· Trace: CJ-ISOL, CJ-CERISE · [§15](verification-maximal-os.md#r-15-189j)
+
+**R-15-189k** MUST: Background scrubbing runs on ON domains only, so the retention voltage floor is set by DECTED tag-plane margin at the worst characterized corner, and any mode holding a domain RETAINED longer than the §16 accumulation bound must schedule a periodic ON scrub interval or perform a full verify-and-correct sweep on the exit path before admission.
+· Accept: all three are composition-time constants, none a timer firing on an observed error rate; in standby the DRX period is the scrub period, the live island's bank returning to ON at every paging occasion.
+· Trace: CJ-SAIL, CJ-WCET · [§15](verification-maximal-os.md#r-15-189k), [§15](verification-maximal-os.md#r-15-189k-2)
+
+**R-15-189l** IS: Leakage is proportional to powered bitcell count, so island exclusivity becomes a capacity tax and not a leakage tax, a deployment pays leakage for the roster it composed rather than the capacity fabricated, and standby leaks in proportion to the retained tens of megabytes rather than the fabricated gigabytes.
+· Accept: retention runs roughly an order of magnitude below active-voltage idle per bit and collapse one to two further orders below retention; absolute figures are per-process characterization inputs to the §11 and §16 budgets, the structure of the saving being what is normative; collapsed tiers also relieve sequential 3D's shared heat path and sustained-power headroom.
+· Trace: CJ-DEVTREE, CJ-ISOL · [§15](verification-maximal-os.md#r-15-189l), [§15](verification-maximal-os.md#r-15-189l-2)
+
+**R-15-189m** IS: A domain's power state is a function of the mode index alone, and the mode index is already a declared, RoT-attested, log₂(#modes)-bit public event, so an adversary observing supply current, di/dt, electromagnetic emission, or thermal signature learns the mode and nothing about any partition's data, access pattern, or occupancy.
+· Accept: this is the property activity-driven gating cannot have, its operating principle being to make the rail a function of tenant behavior, and it is the whole of why one form is admitted and the other declined.
+· Trace: CJ-NI, CJ-LEAK · [§15](verification-maximal-os.md#r-15-189m)
+
 **R-15-190** MUST: Standby is a partial-power global mode (mechanism 3), not whole-machine deep sleep: exactly one island stays live at low duty cycle while every other island is sealed and powered off.
 · Accept: the live set is enumerated as the radio island, its kernel instance, the cellular paging path, the DRX wake timer, the island's bound SRAM bank in low-leakage retention, and the RoT, a composition-time constant attested on entry.
-· Trace: CJ-ISOL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-190)
+· Accept: every other macro and tier is collapsed outright rather than retained (R-15-189a), the sealed islands having no live allocation to preserve across a mode whose exit re-measures them, so their OFF→ON clear on wake is subsumed by that re-measurement.
+· Trace: CJ-ISOL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-190), [§15](verification-maximal-os.md#r-15-190-2)
 
 **R-15-191** IS: The memory path needs no protection carve-out in the live set: it holds no key, no counter, and no root register, so the live set is ordinary static logic rather than an exception carved for a cryptographic invariant.
 · Accept: the retained bank plus the TDM slice joining island to bank is the whole of it.
@@ -3887,6 +3945,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-226** MUST: The SRAM bank, macro, or tier is bound to the island as a graded spatial hierarchy: separate macro or stacked tier, then separate bank group, then bank within a macro, decreasing in isolation strength as sharing rises to a common macro.
 · Accept: high-assurance islands take whole-macro (better, whole-tier) exclusivity; mid- and low-sensitivity islands take bank granularity, with residual macro-internal coupling narrowed by static per-island arbitration and `fence.t` and booked in R-17-003b rather than eliminated.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-226)
+
+**R-15-226a** IS: Shared power delivery is what fixes the gating domain at the macro or tier rather than the bank, so an island holding whole-macro or whole-tier exclusivity owns its own memory power domain and takes the strongest form of composition-time gating as a consequence of the isolation it already bought.
+· Accept: islands sharing a macro share its rail and take that macro's power state as the conjunction of their mode participation, a composition-time constant rather than a coupling either can drive (R-15-189e).
+· Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-226a)
 
 **R-15-227** MUST: Residual coupling is narrowed by scheduling, never by throttling: a rate regulator could only shape traffic whose arrival the TDM schedule already fixed, which is why none exists.
 · Accept: consistent with R-15-050.
@@ -4344,7 +4406,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: an adversary who can force the degraded subset on demand holds durable partial denial under cover of containment having worked, which R-16-009's per-incident budget cannot express; the obligation that makes it expressible is R-17-030m.
 · Trace: CJ-CERISE · [§17](verification-maximal-os.md#r-17-030d)
 
-**R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022).
+**R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022); the same pass rejects a composition whose per-mode power vector would switch off an SRAM array some admitted capability can still reach (R-15-189g).
 · Accept: the one member whose denial cannot reach a running unit, named so that the register is not read as uniformly a field risk.
 · Trace: CJ-TAL-SOUND · [§17](verification-maximal-os.md#r-17-030e)
 
@@ -4380,7 +4442,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: R-16-009 budgets one window and R-17-035 books its cost, and neither expresses windows per unit time; without this, an attacker holding a surface degraded indefinitely is reported by the platform as a mechanism working correctly, once per window, forever. The record is a §16 event class and adds no trusted component, the sentinel already driving the attested transition it counts.
 · Trace: CJ-DEVTREE, CJ-WCET · [§17](verification-maximal-os.md#r-17-030m)
 
-**R-17-030n** IS: Fail-closed seam **detector trip ⋈ continued operation**: every fault detector answers detection by stopping, an uncorrectable ECC event and a tag-integrity failure being fail-stop sentinel events (R-15-204, R-16-008b), a control-flow signature mismatch on the three protected sequences raising the same class (R-16-008c), a divergence on the sentinel's lockstepped pair latching a fail-stop to the RoT (R-16-008d), and residual synchronizer failure landing in the same place (R-15-197).
+**R-17-030n** IS: Fail-closed seam **detector trip ⋈ continued operation**: every fault detector answers detection by stopping, an uncorrectable ECC event and a tag-integrity failure being fail-stop sentinel events (R-15-204, R-16-008b), a control-flow signature mismatch on the three protected sequences raising the same class (R-16-008c), a divergence on the sentinel's lockstepped pair latching a fail-stop to the RoT (R-16-008d), residual synchronizer failure landing in the same place (R-15-197), and a gating domain whose rail fails its discharge confirmation at a mode transition latching the same class rather than completing the transition (R-15-189j).
 · Accept: the member whose provocation needs no software access, because the adversary it answers is the radiated-EMI and electromagnetic-fault-injection adversary in scope by name (R-03-003, R-15-155), so a probe held near the enclosure stops a correctly behaving device; each detector is right to stop and the composition is the finding, not any member of it.
 · Trace: CJ-SAIL, CJ-RTL-SAIL · [§17](verification-maximal-os.md#r-17-030n)
 
@@ -4399,7 +4461,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
 · Accept: this is R-17-016's repair applied to the other register, and it closes the register's disagreement with the requirements, which is the direction R-03-008 already calls a review-gate finding and nothing enforced; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: against the completeness residue `tools/check.ps1` over-approximates the vocabulary of refusal across the whole register and requires every entry it catches to be conferred or explicitly dispositioned, so the totality claim is discharged against an agenda regenerated on every run; R-17-030n, R-17-030o, R-17-030p, and R-17-030q were found by running it and not by inspection.
-· Accept: sixteen requirements confer a refusal and fourteen seams collect them, both figures recomputed rather than maintained here.
+· Accept: eighteen requirements confer a refusal and fourteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-030r)
 
 ### 17.7 Admission and tooling seams
@@ -4796,7 +4858,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1099 requirements. §19 is non-normative and yields none. Counts include the 177 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1113 requirements. §19 is non-normative and yields none. Counts include the 191 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4807,14 +4869,14 @@ All eighteen normative sections are extracted, at 1099 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
-| **§8 Authority Model** | **extracted** | **53** |
+| **§8 Authority Model** | **extracted** | **54** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **41** |
 | **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **289** |
+| **§15 Hardware Platform** | **extracted** | **302** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **105** |
 | **§18 Realization** | **extracted** | **45** |
