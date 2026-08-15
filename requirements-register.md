@@ -2963,7 +2963,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 15.6 Macro-op fusion
 
 **R-15-031** IS: The decoder may fuse a frozen set of adjacent instruction pairs (address formation and load-effective-address, compare-and-branch, short dependent-ALU chains) into a single internal operation.
-· Accept: the fused set is enumerated and frozen with the proof.
+· Accept: the fused set is enumerated and frozen with the proof. The dependent-ALU-chain class is **narrowed and not deleted** by R-15-067a on the same terms R-15-031b records for the capability pair: the shift-and-mask sequence stays legal, stays emitted where the field specifiers are not compile-time constants, and stays in the frozen set.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-031)
 
 **R-15-031a** MUST: The frozen set's membership is selected against the instruction mix this profile emits (purecap-only, no C, no scalar `F`/`D`), as a composition-time parameter of the §15 design-space exploration, and is not inherited from the general RISC-V fusion literature.
@@ -3145,6 +3145,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-067** IS: `Zba`/`Zbb`/`Zbs` (fixed-latency bit-manipulation) and `Zvfbfwma` (M-class bf16) are adopted.
 · Accept: they appear in the frozen profile with fixed-latency dispositions.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-067)
+
+**R-15-067a** IS: The frozen profile carries a **multi-bit bitfield extract and insert** in custom opcode space, which `Zbs`'s single-bit `bext`/`bset`/`bclr` and the standards track do not supply: `bfext rd, rs1, lsb, len` zero-extends the `len` bits at `lsb` of `rs1` into `rd`, and `bfins rd, rs1, lsb, len` deposits the low `len` bits of `rs1` into `rd` at `lsb`, leaving the rest of `rd` unchanged.
+· Accept: both carry full Sail semantics and are frozen with the profile like every other encoding it allocates (R-15-014); both reuse the I-type field layout, the two 6-bit specifiers packing into the 12-bit immediate the RV64 shift-immediate instructions already carry, so the decoder gains two opcodes and no instruction format; custom opcode space is uncontended, no C extension competing for 32-bit encodings (R-15-036).
+· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-067a)
+
+**R-15-067b** IS: It is admitted on **code size** rather than on cycles, and re-derived from the mix this profile emits rather than from the general RISC-V literature: the extract collapses a shift-and-mask pair into one instruction and the insert collapses the four-to-six-instruction mask-materialize, clear, shift, and merge sequence into one.
+· Accept: the two largest bodies of generated code on the machine are bitfield access in a loop, so the lowering is not a peephole: the bit-aligned wire formats, where Narcissus derives the encoder as well as the decoder from one format description and so gives the insert form a first-class consumer (R-05-042, R-05-048, R-12-040), and the generated MMIO register accessors, which are the whole device-driver surface (R-05-083). The bytes are spent against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the §15 SRAM capacity budget. A cycle term survives on the insert form, whose dependent chain is longer than adjacent-pair fusion collapses; it is not what admits the instruction and is not scored.
+· Trace: CJ-SAIL, CJ-FORMAT · [§15](verification-maximal-os.md#r-15-067b)
+
+**R-15-067c** IS: It clears the five-part admission test as the adopted bit-manipulation extensions do, and adds nothing structural: no architectural state, no `fence.t` flush-set member, no admission-test case, and no mutable microarchitectural structure the absence contract would newly police.
+· Accept: deterministic in architectural state (R-15-010 test 1) at fixed operand-value-independent latency, which puts it on the R-15-053 list and gives it one entry in the timing-annotated model (R-15-095); holding no state across a partition switch (test 3, so nothing joins the R-15-214 flush set), minting no authority (test 4), running no walker (test 5). What it adds beyond that is one instruction-selection rule per production backend (R-18-014a). Being bespoke it records no standards-track re-pin target, no general bitfield proposal existing to re-pin to. The short-dependent-ALU-chain fusion class (R-15-031) is **narrowed and not deleted**: the sequence stays legal, stays emitted where the field specifiers are not compile-time constants, and stays in the frozen set, R-15-031c pricing a retained pair at zero.
+· Trace: CJ-SAIL, CJ-WCET · [§15](verification-maximal-os.md#r-15-067c)
+
+**R-15-067d** MUST: The field-specifier form, whether the insert form is carried, and whether the pair is carried at all are re-derived at the freeze from actual generated output on at least the UPER RRC and IEI/TLV descriptors and the generated register accessors, by the discipline R-15-031a states for fusion-set membership, and recorded with the freeze (R-15-014).
+· Accept: the instruction is admitted on an image-size delta, which is a claim about emitted code rather than about the literature, so the measurement is what decides it: a measured delta immaterial against the §15 capacity budget drops the instruction at the freeze rather than carrying it into the frozen profile on the argument alone. Whether the two 6-bit immediates earn their encoding bits, or a register-specified field suffices, is that same recorded selection.
+· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-067d)
 
 ### 15.9 CHERI capability-ISA features
 
@@ -4498,7 +4514,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the first re-homes SECOMP2CHERI and completes its robust-preservation theorem rather than authoring a capability backend fresh; the second is genuinely net-new and explicitly in scope.
 · Trace: CJ-COMPCERT, CJ-SECOMP · [§18](verification-maximal-os.md#r-18-014)
 
-**R-18-014a** MUST: Backend completeness is part of the two already-required compiler deliverables, not a separate performance workstream: every production lowering for a vector-bearing core class provides ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion, fusion-aware selection and adjacency preservation for the frozen §15 pair set, and selection of the frozen §15 capability indexed load and store (R-15-007e) wherever the addressing pattern matches; every production link enables the standard CHERI/RISC-V address-materialization and direct-call relaxations supported by the frozen profile where their standard preconditions hold.
+**R-18-014a** MUST: Backend completeness is part of the two already-required compiler deliverables, not a separate performance workstream: every production lowering for a vector-bearing core class provides ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion, fusion-aware selection and adjacency preservation for the frozen §15 pair set, and selection of the frozen §15 capability indexed load and store (R-15-007e) and bitfield extract and insert (R-15-067a) wherever the addressing or field-access pattern matches; every production link enables the standard CHERI/RISC-V address-materialization and direct-call relaxations supported by the frozen profile where their standard preconditions hold.
 · Accept: backend tests contain one positive generated-code case for each lowering facility and a fusion-conflict case showing that a pair is broken only when the same block's static Sail cost is strictly lower; linker tests contain positive and blocked-precondition cases for each enabled standard relaxation, introduce no private relaxation semantics, and translation-validate the post-relaxation linked image against Sail under R-05-023; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, verified artifact, or workstream for these duties.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET · [§18](verification-maximal-os.md#r-18-014a)
 
@@ -4610,7 +4626,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1057 requirements. §19 is non-normative and yields none. Counts include the 138 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1064 requirements. §19 is non-normative and yields none. Counts include the 145 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4624,14 +4640,14 @@ All eighteen normative sections are extracted, at 1057 requirements. §19 is non
 | **§8 Authority Model** | **extracted** | **53** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **40** |
-| **§11 Updates** | **extracted** | **27** |
+| **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **285** |
+| **§15 Hardware Platform** | **extracted** | **289** |
 | **§16 Reliability** | **extracted** | **23** |
 | **§17 Residual Risks** | **extracted** | **81** |
-| **§18 Realization** | **extracted** | **41** |
+| **§18 Realization** | **extracted** | **43** |
 
 §19 is non-normative and yields no requirements.
 

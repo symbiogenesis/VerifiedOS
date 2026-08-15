@@ -3,7 +3,7 @@
 > Companion to [isa-profile.md](isa-profile.md) and [performance-recovery-todo.md](performance-recovery-todo.md), and the **mirror image** of the latter.
 > The recovery TODO is confined by construction to levers that touch no theorem, spend no trust, and require no amendment: "engineering is free; trust is the scarce resource." This list records the opposite class, the levers that are worth having **only** by amending the frozen profile, and it exists because that class was being reasoned about informally and priced wrong in both directions.
 > An amendment to the profile reruns the review gate (R-18-034) and moves the schedule root (R-18-003a). Nothing here is normative, nothing here relaxes the five-part §15 admission test, and an item that lands in the register leaves this list.
-> **The premise of the list is that RISC-V conformance is already spent, not that it is cheap.** [isa-profile.md](isa-profile.md) forks standard RVV twice (scalar-FP-free at R-15-040, `vstart`-free at R-15-040a), deletes the C extension, mandates Ztso in place of RVWMO, freezes a bespoke matrix extension, a bespoke Keccak instruction, and a bespoke capability indexed load/store (R-15-007e), runs a re-parameterized 64+1-bit capability format whose RVY re-pin is retired (R-15-007, R-17-048a), and runs M-mode-only purecap with CHERI as the sole protection mechanism. No profile-conforming binary runs here and nothing built here runs elsewhere. What conformance still buys is enumerated in §3 below, and it is not zero; it is just much smaller than the word suggests.
+> **The premise of the list is that RISC-V conformance is already spent, not that it is cheap.** [isa-profile.md](isa-profile.md) forks standard RVV twice (scalar-FP-free at R-15-040, `vstart`-free at R-15-040a), deletes the C extension, mandates Ztso in place of RVWMO, freezes a bespoke matrix extension, a bespoke Keccak instruction, a bespoke capability indexed load/store (R-15-007e), and a bespoke bitfield extract/insert (R-15-067a), runs a re-parameterized 64+1-bit capability format whose RVY re-pin is retired (R-15-007, R-17-048a), and runs M-mode-only purecap with CHERI as the sole protection mechanism. No profile-conforming binary runs here and nothing built here runs elsewhere. What conformance still buys is enumerated in §4 below, and it is not zero; it is just much smaller than the word suggests.
 
 ## 1. The amendment window, and why it is the forcing function
 
@@ -44,19 +44,7 @@ An item earns a place on this list iff it clears all five. The gate is deliberat
 
 ---
 
-## 4. Conditional: multi-bit bitfield extract and insert
-
-`Zbs` is adopted (R-15-067) and provides **single-bit** `bext`/`bset`/`bclr`. RISC-V has no general bitfield extract or insert, so a multi-bit field access lowers to a shift-and-mask pair, and an insert to a longer sequence.
-
-**The justification is specific to this platform's mix and is unusually strong on paper.** Row 10 of [crown-jewels.md](crown-jewels.md) is the wire-format inventory: ASN.1 **UPER** (bit-aligned, not byte-aligned) RRC grammars, the IEI/TLV 5G-NAS grammar, the 802.11 MLME element grammars, plus the image, media, font, archive, and document formats. Narcissus-generated decoders over bit-aligned grammars are bitfield extraction in a loop, and machine-generated code is shaped **entirely** by what the backend can lower to, so the multiplier here is larger than for hand-written code.
-
-**Why it is conditional rather than banked.** The cycle half is partly available to fusion already (`slli`+`srli`, `srli`+`andi` are short dependent-ALU chains, the third class in R-15-031's frozen set). The size half is real, and the dependent chains in bit-packed decode are longer than adjacent-pair fusion collapses well, but the magnitude is a claim about emitted code that has not been measured.
-
-**Admission condition:** re-derive from actual Narcissus output on at least the UPER RRC and IEI/TLV descriptors, and land it only if the image-size delta is material against the §15 capacity budget. This is gate 2 held strictly, and it is the general form of what should be required of every item on this list.
-
----
-
-## 5. Declined
+## 4. Declined
 
 Recorded so they are not re-proposed. Each fails a specific gate rather than being merely unattractive.
 
@@ -70,16 +58,15 @@ Recorded so they are not re-proposed. Each fails a specific gate rather than bei
 
 ---
 
-## 6. Summary
+## 5. Summary
 
 | Item | Wins on | Gate 1 axis | Cost headline | Disposition |
 | --- | --- | --- | --- | --- |
-| Multi-bit bitfield extract/insert | Bit-aligned wire-format decode (UPER, IEI/TLV, MLME) | **Code size** | Two Sail clauses | **Conditional** on measured Narcissus output |
 | Test-bit-and-branch | 4 bytes on a low-frequency pattern | Fails gate 1 | n/a | **Declined** |
 | Bespoke base ISA | Encoding elegance | Fails gates 1 and 5 | Loses Sail model, CompCert backend, differential oracles, FEV reference | **Declined** |
 | Bespoke capability semantics | n/a | Fails gate 5 | Forfeits the Cambridge security results | **Declined** |
 
-## 7. What an item that lands has to move
+## 6. What an item that lands has to move
 
 Recorded because an amendment to a derived view is defective unless the register moves first (R-05-152), and because the blast radius is the thing most likely to be underestimated. Any item leaving this list moves, at minimum: the register entry and its acceptance criterion; the normative prose and its bookmark; [isa-profile.md](isa-profile.md) §3 and every other row of that view the amendment narrows; R-18-014a, where the backend owes the selection rule; one entry in the timing-annotated model behind row 15 (`CJ-WCET`); and one case each in `CJ-TAL-SOUND`, `CJ-CERISE`, and `CJ-COMPCERT`.
 
