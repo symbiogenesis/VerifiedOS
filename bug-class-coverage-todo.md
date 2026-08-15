@@ -22,12 +22,6 @@ The inventory's rows are the strongest claims in the repository, so a proposed r
 
 These are open. Some are open in a way the inventory already admits and states poorly; some are open and unmentioned.
 
-- [ ] **11. Fault injection, and the two detector positions the design has not taken.**
-  Voltage and clock glitching, laser injection, and electromagnetic fault injection are not eliminable, and the design says so. But they are *detectable* by construction, and the design already carries most of the detectors: pervasive error-correcting codes with correction on every array, the CHERI validity tags, the fail-stop sentinel, the watchdog, the crash-only restart, and the multikernel blast-radius containment (§7, §15, §16). §15 even states the doctrine in one line: *detect, correct, or contain, never shield*.
-  The gap is no longer the vocabulary: *detected* now names the mode, and the detection rows beside it (upsets, the entropy root, the wedged partition) are the shape the fault-injection row would take. What the row still lacks is its construction. A row whose honest answer is "an injected fault is caught and the partition restarts" has to say which mechanism catches *which* injection, and for the sequences where a single skipped instruction is catastrophic the design says nothing at all.
-  The remaining construction work is small and specific: a stated position on control-flow signatures for those sequences (the boot chain, the credential comparison, the lifecycle transition), and a stated position on whether the sentinel core runs in lockstep, which the design has evaluated and deferred rather than decided in the inventory's terms. Until both exist the row would be a mode with nothing under it.
-  **Lands as:** an inventory row beside the other detection rows, plus the §16 statements it would cite. **Mode:** detected.
-
 - [ ] **13. Silicon supply chain: the mask analogue of reproducible builds.**
   Partly answered and stated as partly answered, which is right: §17 carries the fab residual, names open RTL and multi-sourcing as partial mitigations, and adds post-fabrication infrared inspection as evidence rather than proof.
   What has no analogue is the software side's strongest instrument. Every binary is bound to its exact source closure by a checked theorem, and the base image is bit-for-bit reproducible; nothing states the corresponding property for the artifact that becomes silicon. The deterministic-synthesis question (that a given RTL and toolchain produce a bit-identical layout, so that an independent party can regenerate and compare), the hashing and attestation of the mask set that the boot ROM already assumes is attested (§9 cites "the attested mask set"), and the correspondence between the layout that was reviewed and the layout that was taped out, are all unstated.
@@ -39,5 +33,4 @@ These are open. Some are open in a way the inventory already admits and states p
 ## What would retire this list
 
 Item 13 is a statement the design owes about a position it has already taken.
-Item 11 is the one that changes what the inventory *claims*, by deciding the two §16 positions its row would have to cite.
 The structural change is already made: the [coverage matrix](coverage-matrix.md) is the coverage argument, so every item still on this list is now either a cell whose construction is thinner than its row reads or a residual whose booking is thinner than it should be, and a class nobody has thought of is a computed finding rather than a critique someone had to notice.

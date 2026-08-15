@@ -4030,7 +4030,29 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the trust split is specified once, in §11 (R-11-002).
 · Trace: CJ-DEVTREE · [§16](verification-maximal-os.md#r-16-008)
 
-### 16.3 Time-to-remediation
+### 16.3 Injected faults
+
+**R-16-008a** IS: An injected fault (voltage and clock glitching, laser injection, electromagnetic fault injection) puts the machine outside its own semantics, so no theorem stated over the Sail model reaches it and the platform's answer is detection and containment rather than shielding. The enclosure's attenuation of the electromagnetic variant is narrowing at the boundary and nothing below is claimed from it.
+· Accept: no statement in this register discharges an injected fault by citing R-15-155's attenuation; the mode available to this class is *detected* and never *absent* or *proved*.
+· Trace: CJ-SAIL · [§16](verification-maximal-os.md#r-16-008a)
+
+**R-16-008b** IS: The mechanism catching each injection is enumerated rather than aggregated: a fault in stored state is corrected by the pervasive ECC and is a fail-stop event where uncorrectable (R-15-175, R-15-177); a fault corrupting a capability traps on the validity tag or the bounds check (R-15-204); a fault in live kernel state is confined to one partition by the multikernel and answered by crash-only restart (R-07-009, R-16-001); a wedged or runaway core is reached by the layered watchdogs (R-16-005, R-16-006). The two cases none of them reaches are R-16-008c's and R-16-008d's; the transient datapath strike is reached by neither and is booked at R-17-058b.
+· Accept: every injection this entry lists names the requirement that catches it, and the cases named as unreached are exactly the two positions plus the booked residual, so the class carries no unattributed remainder.
+· Trace: CJ-SAIL, CJ-KERNEL · [§16](verification-maximal-os.md#r-16-008b)
+
+**R-16-008c** MUST: Three sequences carry a compiler-emitted running control-flow signature and no other sequence does: the measured-boot chain's per-stage verify-then-transfer, the credential comparison at the RoT gate, and the lifecycle transition over one-way fuse state. Each basic block of a protected region folds a compose-time constant into a signature register and the region's exit compares the accumulation against the value its control-flow graph predicts, a mismatch raising the fail-stop class an uncorrectable ECC event raises. The decision each sequence reaches is encoded so that omitting work refuses: acceptance is a multi-bit token computed from the comparison, which no fall-through, skipped branch, or truncated region produces, and the comparison is performed twice with the signature check between the two.
+· Accept: the set is these three and extending it is an amendment, not a reading; the predicted value is derived from the region's control-flow graph rather than annotated by hand, so where the artifact passes admission the instrumentation is checked on the final binary with the other type-level obligations (R-05-029) and where it lives in the boot ROM it is fixed at tapeout and measured with the ROM (R-09-002); the emitted instructions are ordinary instructions and enter the syntax-directed WCET cost (R-05-102). Coverage is evidence and is booked at R-17-058b.
+· Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET · [§16](verification-maximal-os.md#r-16-008c)
+
+**R-16-008d** MUST: The S-class sentinel core is realized as a detection-only lockstepped pair presenting one architectural core: two instances execute the same instruction stream, a comparator checks their committed results and bus traffic, and a divergence latches a fail-stop reported to the RoT rather than to the sentinel, whose response is the watchdog bite R-16-005 already defines.
+· Accept: the sentinel is the one core software redundancy cannot serve, because the pass would run on the core being doubted and the tier above catches a sentinel that stops (R-16-005) and not one that continues having suppressed an event; determinism (R-15-100, R-16-011) makes the comparison exact, so there is no false-divergence rate; the comparator holds no architectural state and changes no committed result, so the Sail model and R-18-010's refinement obligation are unchanged, on the ground R-15-157 states for radiation hardening.
+· Trace: CJ-RTL-SAIL, CJ-DEVTREE · [§16](verification-maximal-os.md#r-16-008d)
+
+**R-16-008e** MUST NOT: No control-flow-signature hardware, no landing-pad or shadow-stack mechanism, and no ISA surface of any kind is added for R-16-008c, which is compiler-emitted instrumentation in three named regions; and no core other than the S-class pair is replicated, no comparator votes, and no third instance exists, so masking, its voting-correctness proof, and the explicit fault model such a proof needs are all absent.
+· Accept: R-15-044 and R-15-245 stand unamended, the frozen profile gains no instruction and no CSR, and the core-class table carries replication for the S-class row alone; a request for masking is a G5 deployment question against the redundant-execution disposition, not a platform change.
+· Trace: CJ-SAIL, CJ-RTL-SAIL · [§16](verification-maximal-os.md#r-16-008e)
+
+### 16.4 Time-to-remediation
 
 **R-16-009** MUST: Time-to-remediation is a first-class property budgeted separately from time-to-full-fix: a live remote exploit is answered at detection latency, the sentinel triggering an attested transition that revokes the compromised compartment's capabilities, withdraws its rings, and fails its surface closed.
 · Accept: this needs no new proof, because narrowing authority is monotone and cannot violate a safety theorem; the §6 checker still gates any replacement code.
@@ -4040,7 +4062,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the fast path degrades capability under proof and the slow path restores it with proof; neither ships unproven code.
 · Trace: CJ-CERISE · [§16](verification-maximal-os.md#r-16-010)
 
-### 16.4 Diagnosis by deterministic replay
+### 16.5 Diagnosis by deterministic replay
 
 **R-16-011** MUST: Deterministic builds give deterministic failure reproduction, and diagnostics are capability-scoped; schedule-fixed frequencies, fixed-latency divide/FPU and atomic RMW, static-only control-flow prediction, and Ztso ordering extend determinism to timing-sensitive failure reproduction.
 · Accept: each enabling property is a §15 mandate.
@@ -4402,6 +4424,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no row, mode, or theorem anywhere claims analog side-channel resistance, and a claim resting on the enclosure is a spec defect in the R-05-153 sense. The reversal is named and is four things together: a masked datapath in the crypto core; a probing-model leakage statement authored and conferred beside the `Zkt`/`Zvkt` one, carrying its own axiom because a physical leakage model is an assumption about the silicon in the R-06-011 sense; *d*-probing and composition theorems verified on the crypto artifacts as R-05-004 already requires of constant time; and per-operation randomness booked against the entropy root (R-15-241) and the crypto core's slot. Absent all four the residual stands, and adopting masking amends this entry rather than reinterpreting it.
 · Trace: CJ-LEAK · [§17](verification-maximal-os.md#r-17-058a)
 
+**R-17-058b** IS: Fault injection's detector positions (R-16-008c, R-16-008d) buy coverage and never a theorem, because the fault is the Sail model's hypothesis failing rather than a behavior it admits. Four limits are named: signature coverage is evidence, a divergence that lands the signature register on its predicted value being uncaught; a fault inside the compare-and-fail-stop epilogue is not caught by that epilogue, doubling raising the cost of the attempt rather than closing the case; lockstep is decided for the S-class core alone, so the C-, V-, and M-class cores and the RoT's continuous operation carry no comparator; and the transient datapath strike is unclaimed at consumer grade, its answer being deployment-graded software redundancy.
+· Accept: no row, mode, or requirement states a detection *probability* or claims a mode above *detected* for this class; what would raise it is a stated fault model the silicon is claimed to satisfy plus a detection statement proved over it, the shape R-17-058a already uses for masking.
+· Trace: CJ-T, CJ-SAIL · [§17](verification-maximal-os.md#r-17-058b)
+
 **R-17-059** IS: The memory path is defended by the *absence of a surface* rather than by a mechanism, and the residual is the scope line itself: the honest statement is not "replay is undetected" but "the whole class is out of scope, and nothing on the memory path would detect it if it were in scope."
 · Accept: there is no defence-in-depth layer beneath the package boundary on the memory path, so the invasive-attack scope line is load-bearing rather than conservative, and if it is ever judged wrong there is no second mechanism behind it. **This is the sharpest instance of *verify rather than hedge* applied to the design's own threat model.**
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-059)
@@ -4626,7 +4652,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1064 requirements. §19 is non-normative and yields none. Counts include the 145 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1070 requirements. §19 is non-normative and yields none. Counts include the 151 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4645,8 +4671,8 @@ All eighteen normative sections are extracted, at 1064 requirements. §19 is non
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **289** |
-| **§16 Reliability** | **extracted** | **23** |
-| **§17 Residual Risks** | **extracted** | **81** |
+| **§16 Reliability** | **extracted** | **28** |
+| **§17 Residual Risks** | **extracted** | **82** |
 | **§18 Realization** | **extracted** | **43** |
 
 §19 is non-normative and yields no requirements.
