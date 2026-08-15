@@ -35,23 +35,7 @@ An item belongs here iff it clears all four:
 
 ---
 
-## 1. [DECIDE] Outlining and tail merging — the sequence class has a software instrument, and the profile does not name it
-
-- [ ] **The residual R-15-036n carries is also reachable from the compiler, and nothing in the register says who takes it.**
-
-  A dictionary index names one instruction (R-15-036c), so a recurring *sequence* is outside its codomain at any hit rate. R-15-036n now carries the ISA answer for the stereotyped save/restore case, measurement-conditional. The general answer to the same class is a compiler pass: **outline** a recurring region into a called helper, **tail-merge** shared epilogues, and the sequence collapses into the per-instruction class the dictionary already collects completely. Neither transform appears anywhere in [requirements-register.md](requirements-register.md) or [verification-maximal-os.md](verification-maximal-os.md), and both are ordinary `-Oz` technology — LLVM's machine outliner and identical code folding — shipped for a decade against exactly this budget.
-
-  It earns a row on gate 1, which is about the redundancy class and not about provenance; it is not a `Zc` instrument. Gates 2 and 3 do not clear so much as **fail to arise**: there is no instruction to admit, no opcode consumed, no architectural state, no `fence.t` flush-set member, no decoder state, and nothing new for the absence contract to police. The consumer is the CHERI-CompCert backend (R-18-014a) — the same single emitter R-15-036l and R-15-036n already teach — and the pass owes the secure-compilation obligation every backend pass owes (R-05-024) rather than a new kind of one. This is the profile's standing move, *take the property and decline the mechanism*, made on code size where §5 already made it on CFI for `Zicfilp` landing pads and the typed callee set.
-
-  **The sharp consequence is that R-15-036n's corpus is not well-defined without this decision.** Outlining removes instances of precisely the stereotyped prologues the multi-save covers, so the two are substitutive in R-15-036i's exact sense — *partly substitutive, measured composed and never multiplied, and ordered first*. R-15-036i books that relation for the §10/§13 duplication-removal levers; outlining is such a lever, it is not on that list, and it sits upstream of the one measurement item 3 is meant to take. A multi-save delta re-derived from a backend that does not outline is measured against the wrong corpus, which is R-15-036i's ordering error in a new place and the same error item 3's last paragraph already warns about for `bfext`.
-
-  **The win is also coupled to R-15-036l, tightly enough that the two cannot be measured apart.** For a region of *n* instructions outlined from *m* sites, all site-invariant hits at one slot: the region costs *nm* slots inline, against *n* + *m* + 1 outlined if the call is composition-time absolute and therefore one shared dictionary entry, or *n* + 2*m* + 1 if it stays PC-relative, every site being a distinct displacement and so a site-varying miss at two slots (R-15-036k). Break-even moves materially: a two-instruction region pays from four sites under an absolute call and **never pays** under a PC-relative one, and a three-instruction region needs five sites instead of three. R-15-036j's padding term pushes the same way, escapes stranding slots. Two riders: the profitable regions are those needing no frame of their own, or the helper re-incurs the save sequence this is meant to collect, and outlining must stay **intra-compartment** — a whole-image pass would fight the per-compartment admission model exactly as [architectural-alternatives.md](architectural-alternatives.md) records defunctionalization doing.
-
-  **The cost is cycles, and here cycles are capacity, not throughput.** Each outlined region trades inline instructions for a call and return on the dynamic path, so this fails clause 6 of [performance-recovery-todo.md](performance-recovery-todo.md)'s pure-win gate on the cycle axis — which is why it is `[DECIDE]` and not `[YES]`. Under the static cyclic executive a partition's capacity *is* its slot width (R-07-032, R-07-037), so WCET inflation does not degrade smoothly: it widens a slot or it does not fit. Note the trade runs opposite to R-15-036n's, which spends architecture to buy cycles where this spends cycles to buy architecture.
-
-  **Owed:** a decision recorded either way, and a **two-axis** measurement rather than the one-axis one the other candidates take — bytes removed *and* WCET added, since a lever that fails the pure-win gate cannot be settled on the byte column alone. It belongs in the same act as R-15-036l and R-15-036n and must be **ordered before both**, per R-15-036i. Expectation, unlike R-15-036n's, is that it carries: it costs no encoding budget, competes with nothing in §3, and its instrument is a backend pass rather than an ISA amendment.
-
-## 2. [NO] `Zcmt` table jump — reject the mechanism, keep the insight
+## 1. [NO] `Zcmt` table jump — reject the mechanism, keep the insight
 
 - [ ] **Record the rejection, since the profile currently rejects it only by accident of encoding space.**
 
@@ -61,39 +45,40 @@ An item belongs here iff it clears all four:
 
   The insight survives and is booked at R-15-036l: *index the target, do not displace to it*. On this platform it reduces to *use composition-time absolute targets*, which needs no table.
 
-## 3. [YES] The measurement instrument, which the profile owes five times over
+## 2. [YES] The measurement instrument, which the profile owes six times over
 
 - [ ] **Name a corpus, a tool, and a threshold.**
 
   The group's durable output beyond the specification is a method: a benchmark corpus, an ELF-diffing analysis script, published per-extension deltas, and a standing refusal to admit an instruction without one.
 
-  The profile has **five open measurement obligations** and no instrument for any of them:
+  The profile has **six open measurement obligations** and no instrument for any of them:
 
   | Obligation | What must be measured | Against what |
   | --- | --- | --- |
   | R-15-036h, R-15-036k | dictionary hit rate *p* **stratified by operand class**, and the realized dictionary itself | the composed image, after §13's merge (R-15-036i) |
+  | R-15-036p | bytes removed **and worst-case cycles added** by outlining and tail merging, per admitted region class | the composed image, before every row below it (R-15-036o) |
   | R-15-036l | whether the call and global-address forms are PC-relative or composition-time absolute | generated output at the freeze, in R-15-067d's style |
   | R-15-036n | whether the single-check multi-register stack save and restore is carried at all | generated prologues and epilogues at the freeze, in the same act as R-15-036l and R-15-067d |
   | R-15-067d | whether `bfext`/`bfins` carry, in which form | generated Narcissus UPER/TLV codecs and generated MMIO accessors |
   | R-15-007g | the indexed load/store scale immediate | the emitted mix, under R-15-031a's discipline |
 
-  All five say *"measured"*; none names a corpus, a tool, a threshold, or who runs it. [tools/](tools/) holds only `check.ps1`. One instrument discharges the shape of all five, and R-18-003b(i) makes the profile freeze and its Sail curation the **first day-one deliverable**, which is where this instrument is needed rather than after.
+  All six say *"measured"*; none names a corpus, a tool, a threshold, or who runs it. [tools/](tools/) holds only `check.ps1`. One instrument discharges the shape of all six, and R-18-003b(i) makes the profile freeze and its Sail curation the **first day-one deliverable**, which is where this instrument is needed rather than after.
 
   R-15-036k raises the bar on the first row rather than adding a row: an instrument that reports one aggregate *p* cannot discharge it, so the corpus must carry operand-class provenance from the emitter and not be recovered by disassembly after the fact.
 
-  Note the ordering constraint this shares with R-15-036i: a dictionary selected against an unmerged image is selected against the wrong histogram, and a `bfext` delta measured against hand-written rather than generated code is measured against the wrong corpus. Item 1 adds a third instance and the only one that is not yet decided — whether the corpus comes from a backend that outlines — which must be settled before the instrument is pointed at R-15-036n. The corpus definition is part of the obligation, not a detail of running it.
+  **R-15-036p raises it on a second axis, and this is the one structural demand the list makes of the instrument.** Every other row is answered by a byte count; that one is not, because outlining fails the pure-win gate on cycles, so the instrument must emit a bytes-and-cycles pair per region class and take its WCET column from §11's model rather than from a stopwatch. An instrument built for bytes alone cannot discharge it and would report the lever as a clean win.
+
+  Note the ordering constraint this shares with R-15-036i: a dictionary selected against an unmerged image is selected against the wrong histogram, a `bfext` delta measured against hand-written rather than generated code is measured against the wrong corpus, and R-15-036p's row runs before R-15-036l's and R-15-036n's or their corpus is the output of a backend that does not outline. The corpus definition is part of the obligation, not a detail of running it.
 
 ---
 
 ## What the list says
 
-**One decision, and it is upstream of the others.** The sequence class has a software instrument the register never names, it is substitutive with R-15-036n rather than additive, and it is the one open question that changes what the corpus *is* — so it is settled first or the measurement below is taken against the wrong output.
-
 **One rejection worth writing down**, because the profile currently gets the right answer on `Zcmt` for a reason (encoding-space collision with `C.LY`/`C.SY`) that does not apply to a machine with no `C`.
 
 **One free confirmation.** `Zcb` is the dictionary's premise, reached independently and measured on a real corpus, and R-15-036h should cite it.
 
-**And one instrument**, which is the cheapest item here and unblocks five obligations that currently name a measurement without naming a way to take it.
+**And one instrument**, which is the cheapest item here and unblocks six obligations that currently name a measurement without naming a way to take it, one of which needs a cycles column and not only a byte one.
 
 ## Sources
 
