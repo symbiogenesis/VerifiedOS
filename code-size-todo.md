@@ -21,7 +21,7 @@ The group's decade of work sorts into three classes of redundancy. The dictionar
 | --- | --- | --- |
 | **Per-instruction** — a small set of opcode+operand patterns dominates the histogram | `Zca`, `Zcb` | **Subsumed, and strictly better.** A dictionary index *is* a 16-bit encoding of an existing instruction, selected by measurement rather than by committee, allocating no opcode and creating no decode ambiguity |
 | **Sequence** — recurring multi-instruction idioms, dominantly prologue/epilogue | `Zcmp` | **Not collected.** The dictionary is a total `Fin N → Instr` (R-15-036c); its codomain is one instruction, so it cannot name a sequence at any hit rate |
-| **Cross-reference** — call targets and address materialization | `Zcmt` | **Not collected, and adversarial to the dictionary.** See item 1 |
+| **Cross-reference** — call targets and address materialization | `Zcmt` | **Not collected, and adversarial to the dictionary**, a PC-relative displacement being a distinct entry per site (R-15-036k). Its insight is imported at R-15-036l; its mechanism is rejected at item 2 |
 
 The first row is the load-bearing one and it is a **free confirmation the profile should collect**, of the same class as the matrix's two: `Zcb`'s entire premise is that a handful of already-existing instructions dominates emitted code. That is R-15-036h's premise, reached independently, measured on a real corpus, and shipped. R-15-036h currently rests the density claim on an unattributed hit rate; a citation costs one clause.
 
@@ -36,36 +36,7 @@ An item belongs here iff it clears all four:
 
 ---
 
-## 1. [DEFECT] R-15-036h's *p* is unstratified, and its dominant risk factor is unnamed
-
-- [ ] **PC-relative immediates are dictionary-hostile, and nothing in the profile says so.**
-
-  A dictionary entry is a **complete canonical instruction, immediate included** (R-15-036a: *"complete canonical instructions"*). Two calls to the same callee from different sites carry different PC-relative displacements, so they are **different entries**. Every `auipcc`/`cincoffset` global-address pair (R-15-031b names it as a fusion pair, so it is emitted at rate), every `cjal`, and most forward branches largely **miss** by construction. Backward branches of a common loop shape recur and hit; the address-materialization and call traffic does not.
-
-  Run that through the profile's own model. For a fraction *x* of the stream that is control transfer and address materialization and largely misses, *p* ≤ 1 − *x*. R-15-036h gives encoded size 36.571 − 18.286·*p* bits against a 32-bit canonical stream, so:
-
-  | Hit rate *p* | Encoded size | Fraction of canonical | vs `C` at 70–75% |
-  | --- | --- | --- | --- |
-  | 0.95 | 19.20 bits | 60.0% | wins comfortably |
-  | 0.80 | 21.94 bits | 68.6% | wins by 1.4 points against the optimistic figure |
-  | **0.775** | 22.40 bits | **70.0%** | **break-even against the optimistic `C` figure** |
-  | **0.688** | 24.00 bits | **75.0%** | **break-even against the pessimistic `C` figure** |
-
-  R-15-036 states that the code-size cost of excluding `C` is *"recovered, not accepted"*. That recovery is a claim about *p*, and it **fails below *p* = 0.775** on the profile's own arithmetic. The register quotes a range for *p*, states it is *"measured against the composed image"*, and names nothing that governs it.
-
-  `Zcmt` exists precisely because call targets are the worst case for a displacement encoding, and its answer was to make the operand a **small repeating index** rather than a displacement. That reframing is the importable idea, and this platform is unusually well placed to take it: single dense physical address space, no MMU, `satp` Bare (R-15-002, R-15-002a), and a freeze-committed position-fixed image, so **call targets are composition-time absolute**. An absolute-target call form makes every call site to one callee share an encoding, without a JVT, without a CSR, without a table load, and without the target-membership structure item 3 rejects.
-
-  **Owed:** R-15-036h's measurement must be **stratified by operand class**, reporting PC-relative operands separately, and the dictionary-selection procedure (R-15-036i orders it after §13's merge, which is the right order and not the whole procedure) needs a stated policy for them. Decide at the freeze whether the emitted call and address-materialization forms are PC-relative or composition-time absolute; the choice is worth several points of *p* and the model has no term for it.
-
-- [ ] **The model treats slots as fungible, and escapes are not.**
-
-  An escape is **exactly 2 slots and may not straddle a bundle boundary** (R-15-036a). A bundle is 7 slots. For *h* hits and *e* escapes in one bundle, *h* + 2*e* ≤ 7 packs perfectly only when *h* is **odd**; with an even hit count at least one slot is dead, and the encoder cannot reorder the instruction stream to arrange otherwise.
-
-  The pure-escape case is exact and shows the size of the omission: 7 slots hold **3** escapes plus one dead slot, i.e. 128/3 = **42.7 bits per instruction**, against the model's 36.571 at *p* = 0 — **17% understated**. In a mixed stream the loss is on the order of half a slot per bundle, so R-15-036h is optimistic by a term that *grows as *p* falls*, in exactly the region where item 1's first bullet already puts pressure on it.
-
-  **Owed:** either a packing term in R-15-036h, or a stated encoder invariant that recovers perfect packing. Confirm first whether an escape must additionally begin at an even slot index — R-15-036a states bundle-containment only, and if pair-alignment is also required the loss is worse than computed here.
-
-## 2. [DECIDE] A `Zcmp`-shaped multi-save, in single-check form only
+## 1. [DECIDE] A `Zcmp`-shaped multi-save, in single-check form only
 
 - [ ] **The residual is real, and the dictionary has already collected half of it.**
 
@@ -77,9 +48,9 @@ An item belongs here iff it clears all four:
 
   **The one admissible form is all-or-nothing with a single up-front bounds check** against `[csp − adj, csp)` instead of *k* checks. That is structurally the same admission argument R-15-007f makes for the indexed load/store — *less* capability semantics rather than more, one check where the sequence does N — and it is the argument that has already cleared this bar once. The stack is a distinguished statically-known capability here (R-15-074: only the stack carries `store-local`), and the whole consumer is the CHERI-CompCert backend (R-18-014a), so there is one emitter to teach.
 
-  **Owed:** carry it as a **measurement-conditional candidate in R-15-067d's style** — re-derived at the freeze from actual generated output, dropped on an immaterial delta rather than carried on the argument. Expectation is that it dies: the win is halved, and it competes for the same bespoke-encoding budget as item 5's `CSetBounds`-with-large-immediate row in the matrix. Decide the three together.
+  **Owed:** carry it as a **measurement-conditional candidate in R-15-067d's style** — re-derived at the freeze from actual generated output, dropped on an immaterial delta rather than carried on the argument. Expectation is that it dies: the win is halved, and it competes for the same bespoke-encoding budget as the matrix's `CSetBounds`-with-large-immediate row and as R-15-036l's absolute call and global-address forms, which the matrix now carries `AUICGP` against. Decide the four together.
 
-## 3. [NO] `Zcmt` table jump — reject the mechanism, keep the insight
+## 2. [NO] `Zcmt` table jump — reject the mechanism, keep the insight
 
 - [ ] **Record the rejection, since the profile currently rejects it only by accident of encoding space.**
 
@@ -87,23 +58,26 @@ An item belongs here iff it clears all four:
 
   The strongest evidence is already in this repo: [cheri-version-matrix.md](cheri-version-matrix.md) §9.1 records that at v0.7.1–v0.8.3 **`Zcmt` checking was moved to PCC bounds in legacy mode** — the standards line had to invent a bespoke authority rule for the JVT fetch the moment capabilities arrived. That is the mechanism failing to compose with CHERI upstream, independently.
 
-  The insight survives and is booked at item 1: *index the target, do not displace to it*. On this platform it reduces to *use composition-time absolute targets*, which needs no table.
+  The insight survives and is booked at R-15-036l: *index the target, do not displace to it*. On this platform it reduces to *use composition-time absolute targets*, which needs no table.
 
-## 4. [YES] The measurement instrument, which the profile owes three times over
+## 3. [YES] The measurement instrument, which the profile owes four times over
 
 - [ ] **Name a corpus, a tool, and a threshold.**
 
   The group's durable output beyond the specification is a method: a benchmark corpus, an ELF-diffing analysis script, published per-extension deltas, and a standing refusal to admit an instruction without one.
 
-  The profile has **three open measurement obligations** and no instrument for any of them:
+  The profile has **four open measurement obligations** and no instrument for any of them:
 
   | Obligation | What must be measured | Against what |
   | --- | --- | --- |
-  | R-15-036h | dictionary hit rate *p*, and the realized dictionary itself | the composed image, after §13's merge (R-15-036i) |
+  | R-15-036h, R-15-036k | dictionary hit rate *p* **stratified by operand class**, and the realized dictionary itself | the composed image, after §13's merge (R-15-036i) |
+  | R-15-036l | whether the call and global-address forms are PC-relative or composition-time absolute | generated output at the freeze, in R-15-067d's style |
   | R-15-067d | whether `bfext`/`bfins` carry, in which form | generated Narcissus UPER/TLV codecs and generated MMIO accessors |
   | R-15-007g | the indexed load/store scale immediate | the emitted mix, under R-15-031a's discipline |
 
-  All three say *"measured"*; none names a corpus, a tool, a threshold, or who runs it. [tools/](tools/) holds only `check.ps1`. One instrument discharges the shape of all three, and R-18-003b(i) makes the profile freeze and its Sail curation the **first day-one deliverable**, which is where this instrument is needed rather than after.
+  All four say *"measured"*; none names a corpus, a tool, a threshold, or who runs it. [tools/](tools/) holds only `check.ps1`. One instrument discharges the shape of all four, and R-18-003b(i) makes the profile freeze and its Sail curation the **first day-one deliverable**, which is where this instrument is needed rather than after.
+
+  R-15-036k raises the bar on the first row rather than adding a row: an instrument that reports one aggregate *p* cannot discharge it, so the corpus must carry operand-class provenance from the emitter and not be recovered by disassembly after the fact.
 
   Note the ordering constraint this shares with R-15-036i: a dictionary selected against an unmerged image is selected against the wrong histogram, and a `bfext` delta measured against hand-written rather than generated code is measured against the wrong corpus. The corpus definition is part of the obligation, not a detail of running it.
 
@@ -111,15 +85,13 @@ An item belongs here iff it clears all four:
 
 ## What the list says
 
-**One defect.** R-15-036 claims the `C` exclusion's cost is *recovered*, and the recovery is a claim about *p* that fails below 0.775 on the profile's own arithmetic. The two terms most likely to push *p* down — PC-relative immediates and escape packing — are named in neither the model nor the measurement, and both are worse in the same direction at the same time. This is the one item on the list that could change a frozen decision rather than add to it.
-
-**One decision.** A single-check multi-save is the only `Zcmp`-shaped construct that clears R-15-067c's bar, its win is halved by the dictionary, and it should be measured beside `bfext`/`bfins` and the matrix's `CSetBounds`-with-large-immediate row rather than argued on its own.
+**One decision.** A single-check multi-save is the only `Zcmp`-shaped construct that clears R-15-067c's bar, its win is halved by the dictionary, and it should be measured beside `bfext`/`bfins`, the matrix's `CSetBounds`-with-large-immediate row, and R-15-036l's absolute call and global-address forms rather than argued on its own.
 
 **One rejection worth writing down**, because the profile currently gets the right answer on `Zcmt` for a reason (encoding-space collision with `C.LY`/`C.SY`) that does not apply to a machine with no `C`.
 
 **One free confirmation.** `Zcb` is the dictionary's premise, reached independently and measured on a real corpus, and R-15-036h should cite it.
 
-**And one instrument**, which is the cheapest item here and unblocks three obligations that currently name a measurement without naming a way to take it.
+**And one instrument**, which is the cheapest item here and unblocks four obligations that currently name a measurement without naming a way to take it.
 
 ## Sources
 
