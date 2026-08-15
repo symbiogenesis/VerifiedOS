@@ -16,13 +16,13 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | --- | --- | --- |
 | Base ISA | RV64 **IM**_Zicsr | R-15-001 |
 | Vector | **V** (RVV), VLEN per core class (§8) | R-15-001, R-15-113 |
-| Capabilities | **CHERI**, 128-bit purecap encoding | R-15-001, R-15-007 |
+| Capabilities | **CHERI**, **64+1-bit** purecap encoding: re-parameterized CHERI Concentrate, standard algebra, narrowed fields (§4.1) | R-15-001, R-15-007 |
 | ABI mode | **purecap only**: no hybrid, no plain-RV64 target anywhere | R-15-001, R-18-002 |
 | Atomics | `A` narrowed to **`Zaamo` + `Zabha`** | R-15-001, R-15-024 |
 | Scalar FP | **none**: V supplies all floating point, computed at VL=1 | R-15-001, R-15-039 |
 | Compressed | **none**: unique 4-byte-aligned decode | R-15-001, R-15-036 |
 | Privilege | **Machine mode only**; privilege is the CHERI access-system-registers permission on the PCC, not a ring | R-15-003 |
-| Address space | **single physical**; no MMU, `satp` fixed Bare | R-15-002 |
+| Address space | **single physical, 36 bits wide**; no MMU, `satp` fixed Bare; the map is dense by obligation | R-15-002, R-15-002a, R-15-002b |
 | Memory model | **Ztso** (RVTSO), normatively in place of RVWMO | R-15-004, R-15-015 |
 | `misa` | **read-only**: no runtime ISA morphing | R-15-052 |
 | Unallocated encodings | **trap**; no encoding is a no-op by default | R-15-014 |
@@ -60,7 +60,7 @@ Each carries full Sail semantics and a recorded **re-pin obligation** where a st
 | Keccak-p[1600] | single vector instruction, fixed-latency permutation, **both 24- and 12-round** modes frozen; **vector-bearing cores only**, not the S-class RoT | `Zvknhk` / `vkeccak.vi` (RISC-V PQC TG, RVG-84) | R-15-056, R-15-056a, R-15-057, R-15-057a, R-15-059, R-15-059a |
 | Matrix extension | bespoke, fork-and-frozen; systolic GEMM geometry | ratified AME/IME lineage | R-15-009, R-15-116 |
 | FEC units | LDPC and polar decoders only, fixed-geometry, deterministic iteration bounds, core-issued capability operands, no firmware | n/a | R-15-119 |
-| CHERI dialect | frozen with the profile | ratified RVY base, not a private snapshot | R-15-007 |
+| CHERI dialect | frozen with the profile; **re-parameterized Concentrate at 64+1 bits**, algebra unchanged (§4.1) | **none**: the RVY re-pin is retired, not deferred, and the dialect is permanently bespoke | R-15-007, R-17-048a |
 
 The Keccak unit has no Coq-native proof to import, so its fixed-permutation invariant is a fresh Sail proof disciplined against FIPS 202 and the NIST ACVP vectors as differential oracle; the `Zvbb`/`Zvbc` software path is retained as the portable route and the differential reference (R-15-058).
 
@@ -74,7 +74,7 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 
 | Feature | Note | Governing |
 | --- | --- | --- |
-| 128-bit purecap encoding | object-type and permission space frozen with the profile | R-15-007 |
+| **64+1-bit** purecap encoding | re-parameterized CHERI Concentrate; object-type and permission space frozen with the profile; field widths in §4.1 | R-15-007 |
 | Sealed-entry sentries, forward/backward-edge split | the platform's coarse-grained CFI; a return capability may target only a return site | R-15-008, R-15-071 |
 | Capability jump-and-link | unseals a forward-edge sentry into PCC and writes the return address already sealed as a backward-edge sentry, the hardware root of domain entry, so there is no separate call gate | R-15-068, R-15-069 |
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, reachable only with access-system-registers | R-15-073 |
@@ -88,6 +88,26 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | Interrupt-state sentries (`enabled`/`disabled`/`inherit`) | the one CHERIoT capability feature the profile declines: with asynchronous interrupt delivery deleted, the three sentry types collapse to one plain sealed entry | R-15-070 |
 | CHERIoT compressed RV32 capability format | no second capability encoding forks the model, the RoT's scalar core included | R-15-005 |
 | Landing-pad / target-membership surface | a sentry deliberately does not decide target membership; the residual closes in software as the typed callee set | R-15-072 |
+
+### 4.1 The capability format
+
+**Read it as re-parameterized CHERI Concentrate, not as a bespoke format.** Same bounds algorithm, same capability algebra, same sentry and instruction semantics; different field widths. That distinction decides what is owed: the Cambridge monotonicity, provenance, and non-forgeability results are statements about the algebra and not the bit layout, so they are **inherited**, and what the change owes is a **representation-correctness proof** (encode/decode round-trip, field-extraction lemmas, derivation of base and top) over a re-parameterization of `sail-cheri-riscv`'s capability functions rather than a rewrite (R-15-007a).
+
+| Field | Width | Note | Governing |
+| --- | --- | --- | --- |
+| address | 36 | the whole physical address space; stored uncompressed | R-15-002a |
+| object type | 4 | the sealed-capability classes, known at freeze time | R-15-007 |
+| permissions | 5 | **non-orthogonal**: an enumerated lattice, not independent bits | R-15-007b |
+| exponent | 5 | as CHERI Concentrate | R-15-007 |
+| base mantissa | 8 | the exactness threshold: bounds are byte-exact to 256 bytes | R-15-007c |
+| top mantissa | 6 | high bits derived, as CHERI Concentrate derives them | R-15-007c |
+| validity tag | 1 | outside the 64; one tag per 64-bit SRAM granule | R-15-203 |
+
+**Three consequences a curator should not have to re-derive.**
+
+- **The algebra changes in exactly one place, and it is the permission encoding.** Five bits do not carry independent permission bits, so the admitted sets are enumerated at freeze time as a lattice with its join and meet, and monotonicity is restated over it: proved rather than inherited, bounded, and available only because the static task set makes the complete lattice known at freeze time (R-15-007b).
+- **Bounds precision is spent, not bought.** The address is stored uncompressed, so 36 address bits inside 64 leave 28 for everything else and the mantissas land at 8 and 6: byte-exact to 256 bytes, rounding outward above that at a granularity of the length over 2^8, where a 128-bit format is exact to roughly 4 KiB. What makes it affordable here and would not make it affordable on a general-purpose machine is that allocation is composition-time, so the padding is computed by the static memory plan and only dynamic subobject narrowing carries the case at runtime (R-15-007c).
+- **The width is permanent.** Every capability in the immutable image and every sealed blob is stored in this format, so a later width change invalidates stored authority wholesale rather than costing a recompile. The margin is argued once, against the SRAM capacity bound rather than against an expectation: the roster tops out well inside 64 GB and there is no DRAM growth axis to plan for (R-15-002a, R-15-007d). Its corollary is that the physical address map must be **dense**, a constraint on the attested devicetree and the binding map rather than a discovery at composition (R-15-002b).
 
 ## 5. The CSR bank
 
@@ -236,10 +256,11 @@ The RISC-V Debug Module exists in silicon but is **lifecycle-fused at the hardwa
 
 ## 11. Freeze and re-pin obligations
 
-The profile is frozen **with the proof** (R-15-014). Three components carry standing re-pin obligations, and each re-pins to a ratified base rather than to a private snapshot:
+The profile is frozen **with the proof** (R-15-014). Two components carry standing re-pin obligations, and each re-pins to a ratified base rather than to a private snapshot:
 
-- **CHERI** → the ratified RVY base as 'Y' ratifies (R-15-007)
 - **Matrix extension** → a ratified AME/IME-lineage extension when one supersedes it (R-15-009)
 - **Keccak** → RVG-84 when the RISC-V PQC Task Group's instruction ratifies (R-15-057)
+
+**CHERI carries none, and its absence is a decision rather than an omission.** Narrowing the capability format to 64+1 bits (§4.1) retires the re-pin to the ratified RVY base outright: the dialect is permanently bespoke. What that spends is oracles rather than a badge, `sail-cheri-riscv` becoming a model this platform parameterizes and maintains rather than one it inherits, and the CHERI half of the differential-testing surface degrading in proportion to the parameterization rather than all at once. The loss is booked in §17 with its compensating obligations named (R-17-048a).
 
 A re-pin is an amendment to the profile and therefore reruns the review gate (R-18-034).

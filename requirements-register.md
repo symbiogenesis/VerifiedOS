@@ -2784,6 +2784,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the Sail model carries no translation state; no page-table walker exists in any RTL.
 · Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-002), [§15](verification-maximal-os.md#r-15-002-2)
 
+**R-15-002a** IS: That address space is architecturally **36 bits wide**. A capability's address field holds 36 bits, so no access above 2^36 is representable; integer registers stay 64-bit and no path runs from an out-of-range integer to an access, a purecap load or store taking no integer base (R-15-031b).
+· Accept: the width is bounded by fabricable on-die SRAM rather than by architecture, which is what makes it safe to freeze permanently: the roster tops out at 16–32 GB laptop/desktop-class and at 1–2 GB in the single-planar-tier case (R-15-170, R-15-173a), main memory is on-die SRAM with no external bus and therefore no DRAM growth axis (R-15-158), and 64 GB is beyond any capacity this design plans for. It is not a window onto a wider space: no extension, segment, or bank register widens it, and the 36 bits are what put R-15-007's format inside 64 bits.
+· Trace: CJ-SAIL, CJ-CERISE · [§15](verification-maximal-os.md#r-15-002a)
+
+**R-15-002b** MUST: The physical address map is **dense**: every SRAM region and every MMIO aperture is placed inside the 36-bit space, with no aperture scattered at a wide power-of-two offset, and the placement is a stated constraint on the attested devicetree (R-09-007) and on the bank/macro/tier binding map (R-15-228).
+· Accept: the address map is checked against the 36-bit bound at composition, so an aperture that does not fit is a composition failure rather than a runtime trap. A narrow space cannot absorb the scattering a 64-bit map tolerates, so the constraint is stated where the map is authored instead of being discovered when the first devicetree is composed.
+· Trace: CJ-DEVTREE, CJ-ISOL · [§15](verification-maximal-os.md#r-15-002b)
+
 **R-15-003** IS: There is a single privilege mode (Machine only). Privilege is a CHERI permission on the PCC (access-system-registers), not a ring.
 · Accept: the S/U CSR banks, trap delegation (`medeleg`/`mideleg`), `sret`, and `Sstc`'s `stimecmp` are absent from the decode, the CSR bank, and the kernel proof.
 · Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-003), [§15](verification-maximal-os.md#r-15-003-2)
@@ -2800,9 +2808,25 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the profile excludes H; the guest/VS interrupt-file machinery is absent (R-15-062).
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-006)
 
-**R-15-007** MUST: CHERI is version-pinned like every other extension: the 128-bit purecap encoding, the object-type and permission space, the sentry mechanism, and the capability instruction set are frozen with the profile and tracked to the RISC-V 'Y' line.
-· Accept: the profile records a pin; as 'Y' ratifies, the frozen dialect re-pins to the ratified RVY base rather than a private snapshot.
+**R-15-007** MUST: The capability format is **re-parameterized CHERI Concentrate at 64+1 bits**, not a bespoke format: the bounds algorithm, the capability algebra, and the sentry and instruction semantics are the standard-track ones unchanged, and only the field widths change. The frozen parameterization is a 36-bit address (R-15-002a), a 4-bit object type, 5-bit encoded permissions (R-15-007b), a 5-bit exponent, and 8-bit base and 6-bit top mantissas with the top's high bits derived as CHERI Concentrate derives them, plus one validity tag bit outside the 64 (R-15-203). The object-type and permission space, the sentry mechanism, and the capability instruction set are frozen with the profile.
+· Accept: encode, decode, bounds derivation, and every capability instruction are a re-parameterization of `sail-cheri-riscv`'s capability functions rather than a rewrite, so what the change owes is R-15-007a's representation-correctness proof and not a re-proof of CHERI. The re-pin to the ratified RVY base is **retired rather than deferred**: the dialect is permanently bespoke, no standards-track re-pin target is recorded for it, and the evidence that retirement spends is booked in §17 (R-17-048a).
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-007)
+
+**R-15-007a** MUST: What the narrowing owes is a **representation-correctness proof**: encode/decode round-trip over the frozen field widths, field-extraction lemmas, and derivation of the represented base and top from the address, exponent, and two mantissas, each stated over the parameterized Sail capability functions.
+· Accept: monotonicity, provenance, and non-forgeability are **inherited**, being statements about the algebra rather than the bit layout, and the algebra is preserved exactly (R-15-007b names the sole exception). A proof obligation that restates any of the three from scratch is evidence the change went past representation, and is a review-gate finding (R-18-034) rather than extra work. The capability encoding is accordingly authored rather than curated work on the Sail model, landing on the arrow R-17-039 names as the least built.
+· Trace: CJ-SAIL, CJ-CERISE, CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-007a)
+
+**R-15-007b** MUST: Permissions are a **non-orthogonal enumerated encoding**: the admitted permission sets are enumerated at freeze time as a lattice with its join and meet, and monotonicity is restated over that lattice rather than over independent bits.
+· Accept: this is the one place the narrowing changes the algebra rather than the representation, so it is proved here rather than inherited: every derivation, `candperm` included, lands in the enumerated set, and no reachable instruction sequence produces a set outside it. Enumeration is available because the complete permission lattice and the full set of sealed-capability classes are known at composition time (R-15-005, R-13-001), and it is bounded: no permission the profile carries leaves the lattice, R-15-074's local/global and `store-local` and R-15-003's access-system-registers included.
+· Trace: CJ-CERISE, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-007b)
+
+**R-15-007c** IS: Mantissa width buys bounds precision and the narrowing **spends** it: bounds are byte-exact for objects up to 256 bytes, and above that the representable region rounds outward at a granularity of the length over 2^8, against a 128-bit format's exactness to roughly 4 KiB. This is a cost of the format, booked here, and not a prize claimed for it.
+· Accept: the rounding is absorbed by the static memory plan (R-08-011) rather than at runtime, allocation on this machine being composition-time, so padding and alignment above the threshold are computed where the layout is decided and the representable-region-versus-requested-region reasoning does not reach the allocator's runtime path. What remains is dynamic subobject narrowing (`csetbounds` under the TAL), which carries the case exactly as it does today over a lower threshold, with padding bounded at one part in 256 of the object.
+· Trace: CJ-MEMPLAN, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-007c)
+
+**R-15-007d** MUST: The format width is a **permanent commitment**, not a composition parameter: every capability in the immutable image and every sealed blob is stored in it, so a later format break invalidates stored authority wholesale rather than costing a recompile.
+· Accept: the width is frozen with the profile (R-15-014), carries no widening path and no re-pin target, and the margin that makes the commitment safe is argued once, in R-15-002a, against the SRAM capacity bound rather than against an expectation about future demand.
+· Trace: CJ-SAIL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-007d)
 
 **R-15-008** IS: The base sealed-entry and forward/backward-edge sentry semantics are the only sentry semantics the profile carries; the frozen dialect adds no sentry surface to the standard-track base.
 · Accept: CHERIoT's interrupt-state sentry variants are absent (R-15-078).
@@ -3602,7 +3626,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: cryptographic memory constructions answer an interface this machine does not have (R-15-195).
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-180)
 
-**R-15-181** MUST: No sub-granule write exists at the array: the atomic write unit is the ECC codeword with its validity tag bit, and every path that reaches the array writes whole units.
+**R-15-181** MUST: No sub-granule write exists at the array: the atomic write unit is the ECC codeword with its validity tag bits, and every path that reaches the array writes whole units.
 · Accept: a sub-granule store merges with the granule's existing codeword in a fixed read-modify-write stage at the memory controller, a constant pipeline term priced once, with the existing codeword's check **verified before the merge** and tag and check bits regenerated combinationally in the same pass. Cores may therefore issue sub-granule stores; what the whole-unit rule scopes is the controller-to-array path, not every path on the fabric, and the verify-before-merge obligation is what keeps this the one re-encoding point consistent with R-15-176.
 · Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-181)
 
@@ -3610,7 +3634,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: one entry in the timing-annotated model.
 · Trace: CJ-MEMPLAN · [§15](verification-maximal-os.md#r-15-182)
 
-**R-15-183** MUST: Device DMA is granule-aligned by construction: windows are allocated at tag-granule (16-byte) alignment, interface FIFOs coalesce arrivals into granule-multiple bursts, and a trailing partial granule completes with zero fill inside the delegated buffer.
+**R-15-183** MUST: Device DMA is granule-aligned by construction: windows are allocated at tag-granule (8-byte) alignment, interface FIFOs coalesce arrivals into granule-multiple bursts, and a trailing partial granule completes with zero fill inside the delegated buffer.
 · Accept: a non-capability DMA write clears the validity tags of exactly the granules it wholly covers and can straddle nothing; the descriptor's length field, not the fill, delimits the payload.
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-183)
 
@@ -3696,8 +3720,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the memory controller carries only the granule read-modify-write stage and the ECC encode-and-check: no key, no cipher, no counter, and no address-dependent latency class.
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-202)
 
-**R-15-203** MUST: CHERI tags are native SRAM bits, one validity tag per 128-bit granule, one plane and not two, read and written in parallel with the data, with no separate table and no tag cache.
-· Accept: the reserved-memory tag table and the partitioned tag cache are deleted, and with them a shared microarchitectural state element, its miss-and-walk latency term, its way-partitioning and `fence.t` membership, and its DSE parameter.
+**R-15-203** MUST: CHERI tags are native SRAM bits, one validity tag per **64-bit** granule, one plane and not two, read and written in parallel with the data, with no separate table and no tag cache.
+· Accept: the reserved-memory tag table and the partitioned tag cache are deleted, and with them a shared microarchitectural state element, its miss-and-walk latency term, its way-partitioning and `fence.t` membership, and its DSE parameter. The granule follows the capability width (R-15-007), and it moves the tag plane alone: the ECC codeword stays at 128 data bits and carries two tag bits instead of one (R-15-181), so no data-side check-bit area moves, tag-plane density doubles to 1.56% of the array, and the plane's DECTED area (R-15-178) doubles with it. Against that, capability-dense structures halve, so the net is computed against the roster (R-15-170) at composition rather than argued.
 · Trace: CJ-CERISE, CJ-ISOL · [§15](verification-maximal-os.md#r-15-203)
 
 **R-15-204** IS: Tag integrity is an ECC property, not a cryptographic one, because the tag bits never leave the die; a tag-integrity failure is an ECC event and a fail-stop sentinel event.
@@ -4294,6 +4318,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 17.7 Crypto, regulatory, and physical ceilings
 
+**R-17-048a** IS: Retiring the RVY re-pin (R-15-007) spends **oracles rather than a badge**: `sail-cheri-riscv` becomes a model this platform parameterizes and maintains rather than one it inherits, and the CHERI half of the differential-testing surface (Spike, QEMU, and the CHERI test suites) degrades in proportion to the parameterization rather than all at once. What is not spent is the algebra: the Cambridge monotonicity, provenance, and non-forgeability results are statements about it, and they are inherited under R-15-007a.
+· Accept: booked as an evidence loss rather than as trust growth, nothing joining the trusted set. The instrument spent is the one that reports spec-versus-intent divergence, which no proof covers (R-17-016), so the compensating obligations are named rather than assumed: the representation-correctness proof (R-15-007a), the enumerated permission lattice (R-15-007b), and the bounds-precision cost carried by the static memory plan (R-15-007c). The rule the case establishes for any later amendment is that conformance is worth what its oracles are worth, so the number of amendments to the frozen dialect is itself a quantity to keep small.
+· Trace: CJ-SAIL, CJ-RTL-SAIL · [§17](verification-maximal-os.md#r-17-048a)
+
 **R-17-049** IS: Reductions isolate axioms but do not remove them: hardness assumptions (MLWE/MSIS, ECDLP/CDH) are irreducible, and the implementation ⋈ reduction seam joins at the primitive's functional specification, a crown-jewel spec neither side catches.
 · Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach.
 · Trace: CJ-REDUCTION · [§17](verification-maximal-os.md#r-17-049)
@@ -4558,7 +4586,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1047 requirements. §19 is non-normative and yields none. Counts include the 128 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1054 requirements. §19 is non-normative and yields none. Counts include the 135 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4576,9 +4604,9 @@ All eighteen normative sections are extracted, at 1047 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **276** |
+| **§15 Hardware Platform** | **extracted** | **282** |
 | **§16 Reliability** | **extracted** | **23** |
-| **§17 Residual Risks** | **extracted** | **80** |
+| **§17 Residual Risks** | **extracted** | **81** |
 | **§18 Realization** | **extracted** | **41** |
 
 §19 is non-normative and yields no requirements.
