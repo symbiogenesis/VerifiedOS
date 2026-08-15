@@ -2828,6 +2828,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the width is frozen with the profile (R-15-014), carries no widening path and no re-pin target, and the margin that makes the commitment safe is argued once, in R-15-002a, against the SRAM capacity bound rather than against an expectation about future demand.
 · Trace: CJ-SAIL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-007d)
 
+**R-15-007e** IS: The frozen profile carries a **capability indexed load and store** in custom opcode space (`cld rd, cs1[rs2 << imm]` and its store form): bounds and permissions are checked on the authorizing capability at base plus scaled index and the access is performed there, with **no intermediate capability materialized** at any point.
+· Accept: it is admitted on code size rather than on cycles, the offset-then-dereference pair it replaces being fused already (R-15-031b), so what it collects is the four bytes of image and of fetch bandwidth a fused pair still occupies, against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the §15 SRAM capacity budget; it is the highest-frequency dereference sequence a purecap target emits, it carries full Sail semantics and is frozen with the proof like every other encoding the profile allocates (R-15-014), and being bespoke with the dialect it records no standards-track re-pin target (R-15-007d, R-17-048a).
+· Trace: CJ-SAIL, CJ-CERISE · [§15](verification-maximal-os.md#r-15-007e)
+
+**R-15-007f** IS: The instruction takes capability semantics **off** the dereference path rather than adding them: `cincoffset` may produce a capability outside the representable region, a case the Sail model, the CHERI-TAL soundness metatheorem, and the Cerise universal contract each carry, and a single indexed access never constructs that intermediate.
+· Accept: what it adds is one Sail clause, one instruction-selection rule per production backend (R-18-014a), one case each in CJ-TAL-SOUND and CJ-CERISE, and one fixed-latency entry in the timing-annotated model that keeps it on the R-15-053 list; what it adds nowhere is architectural state, a `fence.t` flush-set member (R-15-214), an admission-test case (R-15-012), or a mutable microarchitectural structure the absence contract would newly police (R-15-100a). At R-15-007c's 256-byte exactness threshold the representability case is the common one rather than the large-object one, so the path the case leaves is the path it was hottest on.
+· Trace: CJ-TAL-SOUND, CJ-CERISE, CJ-WCET · [§15](verification-maximal-os.md#r-15-007f)
+
+**R-15-007g** MUST: The scale immediate is a composition-time parameter selected against the instruction mix this profile emits, by the discipline R-15-031a states for fusion-set membership, and frozen with the profile.
+· Accept: whether the shift amount earns its encoding bits, or an unscaled index suffices because element strides are known where the slot plan is decided (R-08-011), is a recorded selection against a measured mix rather than a backend preference; the choice is frozen with the profile (R-15-014) and the Sail clause states one form.
+· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-007g)
+
 **R-15-008** IS: The base sealed-entry and forward/backward-edge sentry semantics are the only sentry semantics the profile carries; the frozen dialect adds no sentry surface to the standard-track base.
 · Accept: CHERIoT's interrupt-state sentry variants are absent (R-15-078).
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-008)
@@ -2955,7 +2967,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-031a)
 
 **R-15-031b** MUST: The set includes the capability-address-formation pairs, stated by function because purecap mnemonics vary by CHERI line (R-15-007): offset-then-dereference (`cincoffset` + load/store), PCC-relative materialization (`auipcc` + `cincoffset`), and address-then-narrow at allocation and compartment entry (`csetaddr` or `cincoffset`, then `csetbounds`, in that dependency order).
-· Accept: each is enumerated in the frozen set or its exclusion is recorded against the measured mix. Base-plus-index `add`+load is not separately listed because a purecap load takes no integer base: it exists here only as the first pair.
+· Accept: each is enumerated in the frozen set or its exclusion is recorded against the measured mix. Base-plus-index `add`+load is not separately listed because a purecap load takes no integer base: it exists here only as the first pair. The first pair is **narrowed and not deleted** by R-15-007e, which expresses in one instruction the indexed dereferences it can reach: the sequence stays legal, stays emitted where the indexed form does not apply, and stays in the frozen set, R-15-031c pricing a retained pair at zero.
 · Trace: CJ-SAIL, CJ-WCET · [§15](verification-maximal-os.md#r-15-031b)
 
 **R-15-031c** IS: Widening the set toward capability arithmetic adds no admission-test case, no `fence.t` flush-set member, and no obligation beyond R-15-034: each added pair is admitted by the R-15-032 disposition and the R-15-033 transparency argument unchanged, and tightens rather than loosens every bound it appears in.
@@ -4482,7 +4494,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the first re-homes SECOMP2CHERI and completes its robust-preservation theorem rather than authoring a capability backend fresh; the second is genuinely net-new and explicitly in scope.
 · Trace: CJ-COMPCERT, CJ-SECOMP · [§18](verification-maximal-os.md#r-18-014)
 
-**R-18-014a** MUST: Backend completeness is part of the two already-required compiler deliverables, not a separate performance workstream: every production lowering for a vector-bearing core class provides ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion, and fusion-aware selection and adjacency preservation for the frozen §15 pair set; every production link enables the standard CHERI/RISC-V address-materialization and direct-call relaxations supported by the frozen profile where their standard preconditions hold.
+**R-18-014a** MUST: Backend completeness is part of the two already-required compiler deliverables, not a separate performance workstream: every production lowering for a vector-bearing core class provides ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion, fusion-aware selection and adjacency preservation for the frozen §15 pair set, and selection of the frozen §15 capability indexed load and store (R-15-007e) wherever the addressing pattern matches; every production link enables the standard CHERI/RISC-V address-materialization and direct-call relaxations supported by the frozen profile where their standard preconditions hold.
 · Accept: backend tests contain one positive generated-code case for each lowering facility and a fusion-conflict case showing that a pair is broken only when the same block's static Sail cost is strictly lower; linker tests contain positive and blocked-precondition cases for each enabled standard relaxation, introduce no private relaxation semantics, and translation-validate the post-relaxation linked image against Sail under R-05-023; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, verified artifact, or workstream for these duties.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET · [§18](verification-maximal-os.md#r-18-014a)
 
@@ -4586,7 +4598,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1054 requirements. §19 is non-normative and yields none. Counts include the 135 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1057 requirements. §19 is non-normative and yields none. Counts include the 138 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4604,7 +4616,7 @@ All eighteen normative sections are extracted, at 1054 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **282** |
+| **§15 Hardware Platform** | **extracted** | **285** |
 | **§16 Reliability** | **extracted** | **23** |
 | **§17 Residual Risks** | **extracted** | **81** |
 | **§18 Realization** | **extracted** | **41** |

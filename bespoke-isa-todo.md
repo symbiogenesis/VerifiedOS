@@ -3,7 +3,7 @@
 > Companion to [isa-profile.md](isa-profile.md) and [performance-recovery-todo.md](performance-recovery-todo.md), and the **mirror image** of the latter.
 > The recovery TODO is confined by construction to levers that touch no theorem, spend no trust, and require no amendment: "engineering is free; trust is the scarce resource." This list records the opposite class, the levers that are worth having **only** by amending the frozen profile, and it exists because that class was being reasoned about informally and priced wrong in both directions.
 > An amendment to the profile reruns the review gate (R-18-034) and moves the schedule root (R-18-003a). Nothing here is normative, nothing here relaxes the five-part §15 admission test, and an item that lands in the register leaves this list.
-> **The premise of the list is that RISC-V conformance is already spent, not that it is cheap.** [isa-profile.md](isa-profile.md) forks standard RVV twice (scalar-FP-free at R-15-040, `vstart`-free at R-15-040a), deletes the C extension, mandates Ztso in place of RVWMO, freezes a bespoke matrix extension and a bespoke Keccak instruction, runs a re-parameterized 64+1-bit capability format whose RVY re-pin is retired (R-15-007, R-17-048a), and runs M-mode-only purecap with CHERI as the sole protection mechanism. No profile-conforming binary runs here and nothing built here runs elsewhere. What conformance still buys is enumerated in §3 below, and it is not zero; it is just much smaller than the word suggests.
+> **The premise of the list is that RISC-V conformance is already spent, not that it is cheap.** [isa-profile.md](isa-profile.md) forks standard RVV twice (scalar-FP-free at R-15-040, `vstart`-free at R-15-040a), deletes the C extension, mandates Ztso in place of RVWMO, freezes a bespoke matrix extension, a bespoke Keccak instruction, and a bespoke capability indexed load/store (R-15-007e), runs a re-parameterized 64+1-bit capability format whose RVY re-pin is retired (R-15-007, R-17-048a), and runs M-mode-only purecap with CHERI as the sole protection mechanism. No profile-conforming binary runs here and nothing built here runs elsewhere. What conformance still buys is enumerated in §3 below, and it is not zero; it is just much smaller than the word suggests.
 
 ## 1. The amendment window, and why it is the forcing function
 
@@ -44,31 +44,7 @@ An item earns a place on this list iff it clears all five. The gate is deliberat
 
 ---
 
-## 4. Banked: a capability indexed load/store
-
-Shape: `cld rd, cs1[rs2 << imm]` and the store form. Bounds and permission check on base + scaled index, **with no intermediate capability materialized**.
-
-### Why it clears gate 1
-
-R-15-031b names `cincoffset`+load/store as the offset-then-dereference pair covering **"every indexed dereference here"**, and records that base-plus-index `add`+load does not exist separately because a purecap load takes no integer base. Fusion already recovers the cycle. What fusion cannot recover is **bytes**: a fused pair still occupies 8 bytes of image and of fetch bandwidth.
-
-That makes this the **largest single code-size lever available**, because it applies to the highest-frequency pair the profile emits, on a machine with no I-cache, an accepted 33–43% no-C penalty (R-15-036), and code size as a hard admission quantity.
-
-### Why it is less capability semantics, not more
-
-This is the non-obvious part and it is what distinguishes this item from an ordinary custom instruction. The fused pair materializes an **intermediate capability** whose representability must be reasoned about: `cincoffset` may produce a capability outside the representable region, which is a case CHERI-TAL, Cerise, and the Sail model each carry. A single indexed access never materializes it. The representability question **leaves that path** rather than being discharged on it.
-
-**The narrowed capability format makes this worth more, not less.** R-15-007c sets byte-exactness at 256 bytes, so the intermediate `cincoffset` result falls outside the representable region far more often than it did at 128 bits, and the case CHERI-TAL, Cerise, and the Sail model each carry is now the common one rather than the large-object one. An instruction that never materializes the intermediate takes that case off the path where it is hottest.
-
-### Cost
-
-One Sail clause and its semantics; one instruction-selection rule in the backend; one case each in `CJ-TAL-SOUND` and `CJ-CERISE`; one entry in the timing-annotated model. No new architectural state, no flush-set member, no admission-test case. Custom opcode space is available and uncontended, the profile having no C extension to compete with for 32-bit encoding space.
-
-**Open:** whether the shift-amount immediate is worth its encoding bits, or whether an unscaled index suffices given that element strides are known at composition. Decide against the emitted mix, per gate 2.
-
----
-
-## 5. Conditional: multi-bit bitfield extract and insert
+## 4. Conditional: multi-bit bitfield extract and insert
 
 `Zbs` is adopted (R-15-067) and provides **single-bit** `bext`/`bset`/`bclr`. RISC-V has no general bitfield extract or insert, so a multi-bit field access lowers to a shift-and-mask pair, and an insert to a longer sequence.
 
@@ -80,38 +56,31 @@ One Sail clause and its semantics; one instruction-selection rule in the backend
 
 ---
 
-## 6. Declined
+## 5. Declined
 
 Recorded so they are not re-proposed. Each fails a specific gate rather than being merely unattractive.
 
 - **Test-bit-and-branch (`TBZ`/`TBNZ`-class).** Fails gate 1. `bext`+`bnez` falls in R-15-031b's compare-and-branch class, so the cycle is already taken; branch **count** is unchanged, so none of the static-prediction loss row (−10% to −30%) is addressed. And the recovery TODO's own reasoning about Rust bounds checks applies directly: under R-15-019's backward-taken/forward-not-taken rule, a test-bit branch to a cold path is **correctly predicted by construction**. What remains is 4 bytes on a pattern that is not among the profile's highest-frequency pairs, which does not justify an amendment to the schedule root.
 
-- **A bespoke base ISA, for orthogonality or encoding elegance.** Fails gate 1 and gate 5 together. The perf-attributable delta at fixed microarchitecture is single-digit to low-double-digit and is mostly capturable by the items above; the proof-surface delta is confined to the ISA-model, decoder, and refinement slice, which is a minority of the total burden dominated by the certifying compiler, the TAL, and the OS logic. Against that, the deletions are severe and land on the least-built arrow: `sail-riscv` ⋈ `sail-cheri-riscv` as an inherited and externally-maintained model, a CompCert backend (1–2 person-years for a *non-capability* target before CHERI), differential testing against Spike, QEMU, `riscv-tests`, and `arch-test`, and the CHERIoT-Ibex FEV work as a methodology reference for R-18-010's second rung. **Differential testing is the load-bearing loss**, and specifically so for this project: proofs catch spec-versus-implementation divergence and do not catch spec-versus-intent divergence, which is R-17-016's residual and the first-ranked risk in [critique.md](critique.md) gap 16. Independent implementations are the only instrument that reports on the layer the proofs sit on top of. **The general rule this instance establishes:** conformance is worth what its *oracles* are worth, not what its badge is worth, and the oracles degrade **proportionally** to the number of amendments rather than all at once, which is exactly why a short bounded list is affordable where a clean sheet is not.
+- **A bespoke base ISA, for orthogonality or encoding elegance.** Fails gate 1 and gate 5 together. The perf-attributable delta at fixed microarchitecture is single-digit to low-double-digit and is mostly capturable by targeted amendments of the shape this list admits; the proof-surface delta is confined to the ISA-model, decoder, and refinement slice, which is a minority of the total burden dominated by the certifying compiler, the TAL, and the OS logic. Against that, the deletions are severe and land on the least-built arrow: `sail-riscv` ⋈ `sail-cheri-riscv` as an inherited and externally-maintained model, a CompCert backend (1–2 person-years for a *non-capability* target before CHERI), differential testing against Spike, QEMU, `riscv-tests`, and `arch-test`, and the CHERIoT-Ibex FEV work as a methodology reference for R-18-010's second rung. **Differential testing is the load-bearing loss**, and specifically so for this project: proofs catch spec-versus-implementation divergence and do not catch spec-versus-intent divergence, which is R-17-016's residual and the first-ranked risk in [critique.md](critique.md) gap 16. Independent implementations are the only instrument that reports on the layer the proofs sit on top of. **The general rule this instance establishes:** conformance is worth what its *oracles* are worth, not what its badge is worth, and the oracles degrade **proportionally** to the number of amendments rather than all at once, which is exactly why a short bounded list is affordable where a clean sheet is not.
 
 - **Bespoke capability *semantics* (as opposed to representation).** Fails gate 5's spirit, and the narrowed format now in the register is the standing instance of the distinction. Changing the algebra rather than the encoding forfeits the Cambridge security results and converts R-15-007a's representation-correctness proof into a re-proof of monotonicity, provenance, and non-forgeability from scratch, on the arrow with the least slack. R-15-007b's non-orthogonal permission lattice is the **one** admitted algebra change, it is bounded, and it should stay the only one.
 
-- **Reviving the C extension, or a restricted `VerifiedOS-C` profile, as a code-size answer to the items above.** Out of scope for this list and recorded here only to keep the two questions apart. R-15-036 excludes C for unique 4-byte-aligned decode, and the items above are chosen precisely because they reduce code size **without** reopening variable-length fetch, mid-instruction reinterpretation, or the fetch-alignment machinery. Whether C returns is a separate decision against a separate set of obligations, and an amendment taken here neither strengthens nor weakens it.
+- **Reviving the C extension, or a restricted `VerifiedOS-C` profile, as a code-size answer to the amendments this list admits.** Out of scope for this list and recorded here only to keep the two questions apart. R-15-036 excludes C for unique 4-byte-aligned decode, and the amendments here are chosen precisely because they reduce code size **without** reopening variable-length fetch, mid-instruction reinterpretation, or the fetch-alignment machinery. Whether C returns is a separate decision against a separate set of obligations, and an amendment taken here neither strengthens nor weakens it.
 
 ---
 
-## 7. Summary
+## 6. Summary
 
 | Item | Wins on | Gate 1 axis | Cost headline | Disposition |
 | --- | --- | --- | --- | --- |
-| Capability indexed load/store | 4 bytes on every indexed dereference; no intermediate capability materialized | **Code size** | One Sail clause; one case each in `CJ-TAL-SOUND`, `CJ-CERISE` | **Bank** |
 | Multi-bit bitfield extract/insert | Bit-aligned wire-format decode (UPER, IEI/TLV, MLME) | **Code size** | Two Sail clauses | **Conditional** on measured Narcissus output |
 | Test-bit-and-branch | 4 bytes on a low-frequency pattern | Fails gate 1 | n/a | **Declined** |
 | Bespoke base ISA | Encoding elegance | Fails gates 1 and 5 | Loses Sail model, CompCert backend, differential oracles, FEV reference | **Declined** |
 | Bespoke capability semantics | n/a | Fails gate 5 | Forfeits the Cambridge security results | **Declined** |
 
-## 8. What moves if the banked item lands
+## 7. What an item that lands has to move
 
-Recorded because an amendment to a derived view is defective unless the register moves first (R-05-152), and because the blast radius is the thing most likely to be underestimated.
-
-**Capability indexed load/store:**
-- [isa-profile.md](isa-profile.md) §3: new row, custom opcode space, no standards-track re-pin target
-- R-15-031b: the offset-then-dereference pair narrows to the cases the new instruction does not cover; the pair is **not** deleted, since fusion costs nothing to keep and the sequence remains legal
-- Row 15 (`CJ-WCET` latency magnitudes): one entry
-- `CJ-TAL-SOUND`, `CJ-CERISE`, `CJ-COMPCERT`: one case each
+Recorded because an amendment to a derived view is defective unless the register moves first (R-05-152), and because the blast radius is the thing most likely to be underestimated. Any item leaving this list moves, at minimum: the register entry and its acceptance criterion; the normative prose and its bookmark; [isa-profile.md](isa-profile.md) §3 and every other row of that view the amendment narrows; R-18-014a, where the backend owes the selection rule; one entry in the timing-annotated model behind row 15 (`CJ-WCET`); and one case each in `CJ-TAL-SOUND`, `CJ-CERISE`, and `CJ-COMPCERT`.
 
 **And with it:** R-18-034's review-gate rerun, and a re-freeze of row 4.
