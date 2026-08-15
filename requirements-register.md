@@ -4436,6 +4436,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: mitigations are open RTL, multi-sourcing, and IRIS backside optical verification, none complete.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-060)
 
+**R-17-060a** MUST: The residual's interval is split at the mask set, and the design-to-mask half is discharged as the source-to-binary half is (R-09-027, R-13-026), by regeneration and comparison rather than by trusting the producing tooling: the tapeout artifact is a deterministic function of the RTL of record, the pinned toolchain, and the pinned configuration, so an independent party re-runs the flow and compares digests exactly as it rebuilds the base image.
+· Accept: determinism is an obligation on the flow rather than a property of the tools, since commercial synthesis and place-and-route are not deterministic by default; pinned versions and libraries, a fixed compute shape, seeded and ordered traversal, and a timestamp-free database are stated on the tapeout path (R-18-013a), and a step that cannot be made to meet them is a delivery finding rather than a caveat.
+· Trace: CJ-T, CJ-RTL-SAIL · [§17](verification-maximal-os.md#r-17-060a)
+
+**R-17-060b** IS: Reproducibility fixes the artifact and not its semantics: two parties agreeing on a layout database establishes that the flow was run as declared and never that it preserved what the RTL meant, and the vehicles carrying the semantic step (logic-equivalence checking against the synthesized netlist, layout-versus-schematic against the extracted one) are commercial tools whose verdict is trusted rather than re-checked in the prover.
+· Accept: the step lands on the same evidence rung as the Sail-FEV gate and the imported cores' netlist audit (R-17-039, R-17-040), not on the Coq close: RTL ⊑ Sail closes above the netlist and nothing closes RTL-to-layout as a theorem, which is where the design-to-mask half is weaker than its software analogue rather than merely newer.
+· Trace: CJ-RTL-SAIL · [§17](verification-maximal-os.md#r-17-060b)
+
+**R-17-060c** IS: Reproduction is not identity, which is where the analogy to a compiled binary stops: optical proximity correction and mask data preparation are lossy resolution-driven transformations and the fab applies its own process-dependent corrections beneath them, so what reproduces bit-for-bit is the artifact at the agreed handoff and the relation back to the reviewed layout is a named, re-runnable transformation rather than an equality.
+· Accept: the claim is stated as the weaker one it is, with every arrow below the handoff the fab's; a statement of bit-for-bit identity between the reviewed layout and the fabricated structure is a review-gate finding against this requirement.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-060c)
+
+**R-17-060d** MUST: The tapeout artifact carries a digest, the digest is signed at handoff by the parties that reviewed the layout, and a fielded part's attested identity names the mask-set digest it claims to be, which is what gives R-09-003's *attested mask set* a referent rather than an assumption.
+· Accept: a substitution between review and handoff is a digest mismatch rather than an invisible event, and a part claiming a mask set nobody reviewed is a claim a relying party can refuse rather than one it cannot evaluate; the obligations on the path are R-18-013a.
+· Trace: CJ-DEVTREE, CJ-T · [§17](verification-maximal-os.md#r-17-060d)
+
 **R-17-061** IS: IRIS claims evidence for the bottom logic tier (where every structure whose trust is structural lives and the only tier that computes) and does *not* claim it for the upper memory tiers, whose assurance is that they are passive arrays executing nothing, fabricated in the same lot from the same mask set.
 · Accept: the honest statement is not "everything is imaged" but "everything that *acts* is imaged, and what is not imaged cannot act."
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-061)
@@ -4451,6 +4467,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-17-063** IS: The ceiling stays named: IRIS resolves coarser structure far better than the smallest features, it is evidence and not proof, and a fab-level adversary below its resolution remains in scope.
 · Accept: none of the three mitigations is complete.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-063)
+
+**R-17-063a** IS: The design-to-mask split buys a smaller thing for the evidence to carry rather than a narrower ceiling: the residual is one arrow instead of three, *the die may not match the mask set* rather than *the die may not match the design*, and a fab that deviates from the mask set is answered by the inspection evidence and by nothing in R-17-060a through R-17-060d.
+· Accept: no requirement claims that the design-to-mask half reaches the fab, and none states a mode above *evidence* for the mask-to-die arrow; a claim of either is a review-gate finding.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-063a)
 
 ### 17.8 The composition obligation
 
@@ -4533,6 +4553,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-18-013** IS: RTL ⊑ Sail degrades gracefully, unlike the certifying compilers: rvfi and Isla obligations ship long before the Coq refinement closes, so base bring-up is not blocked on the full proof; only the *unbounded* claim is.
 · Accept: the disposition is stated per workstream rather than uniformly, and the tier it leaves a pre-close unit entitled to assert is carried by G2 and the defended set (R-01-002a, R-01-002b, R-03-006) rather than held only in this section.
 · Trace: CJ-RTL-SAIL · [§18](verification-maximal-os.md#r-18-013)
+
+**R-18-013a** MUST: The tapeout path continues that arrow below the RTL as a workstream rather than a handoff, carrying the design-to-mask half of R-17-060 as three deliverables: (a) a reproducible physical flow, with pinned tool versions and libraries, a fixed compute shape, seeded and ordered traversal, and no timestamp in the database; (b) the equivalence evidence carrying the RTL of record down to the layout, logic-equivalence checking against the synthesized netlist and layout-versus-schematic against the extracted one; (c) the mask-set digest and its attestation, signed at handoff by the parties that reviewed the layout and named in the part's attested identity.
+· Accept: (a) is accepted on two independent runs on different hosts yielding one digest, with a step that resists determinism reported as a finding rather than absorbed; (b) is reported at the Sail-FEV evidence rung and never as a theorem (R-17-060b); (c) discharges R-17-060d and gives R-09-003's *attested mask set* a referent. Deliverables (a) and (c) need no silicon and gate on nothing above them.
+· Trace: CJ-RTL-SAIL, CJ-DEVTREE · [§18](verification-maximal-os.md#r-18-013a)
+
+**R-18-013b** IS: The tapeout path is the one place on this schedule where deferral is irreversible: a mask set not produced reproducibly and not digested at handoff cannot be made so afterwards, so the design-to-mask half is lost for that part permanently rather than backfilled the way a proof is.
+· Accept: this is why R-18-013a's cheap deliverables are stated as early rather than as gated, unlike the graceful degradation R-18-013 allows the arrow above them.
+· Trace: CJ-RTL-SAIL · [§18](verification-maximal-os.md#r-18-013b)
 
 ### 18.3 The toolchain
 
@@ -4652,7 +4680,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1070 requirements. §19 is non-normative and yields none. Counts include the 151 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1077 requirements. §19 is non-normative and yields none. Counts include the 158 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4672,8 +4700,8 @@ All eighteen normative sections are extracted, at 1070 requirements. §19 is non
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **289** |
 | **§16 Reliability** | **extracted** | **28** |
-| **§17 Residual Risks** | **extracted** | **82** |
-| **§18 Realization** | **extracted** | **43** |
+| **§17 Residual Risks** | **extracted** | **87** |
+| **§18 Realization** | **extracted** | **45** |
 
 §19 is non-normative and yields no requirements.
 
