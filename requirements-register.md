@@ -11,8 +11,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ```
 **R-ss-nnn** MUST: the obligation, stated so that a reviewer can agree or disagree with it alone
 · Accept: what a reviewer, auditor, or tool checks to decide the obligation is met
+· Fail-closed: (where the obligation specifies a refusal) what stops, and what the stop costs
+· RoT-fresh: (where the obligation places state under the monotonic counter) which state, and what advances it
 · Trace: CJ-… (the crown-jewel spec it constrains) · [§n](verification-maximal-os.md#r-ss-nnn) (prose rationale)
 ```
+
+**Two of those lines confer membership in a set another entry collects, and they exist because a collected set that certifies its own totality by inspection is a list that silently stops being the set.** This is the failure R-17-016 was repaired for, and the repair was conferral: membership asserted by each entry that has it, gathered in one place, and checked in both directions rather than by roll-call. `· Fail-closed:` confers membership in the §17 fail-closed seam register (R-17-030r) and `· RoT-fresh:` in the §10 freshness enumeration (R-10-013a), so a conferral no register collects and a register member no entry confers are both findings. What that closes is the register's disagreement with the requirements. It does not close completeness, because *fails closed* and *needs freshness* are judgments no tool decides; against that residue `tools/check.ps1` over-approximates the vocabulary of each and requires every entry it catches to be conferred or dispositioned, which makes the totality claim an agenda regenerated on every run rather than a reading nobody repeats.
 
 **Traces are bookmarks, not line numbers.** Each entry names a `<a id="r-ss-nnn">` bookmark carried by the prose line it was extracted from, so editing the prose moves the target with the text and a trace cannot go stale. The display text is the prose section the bookmark sits in, and a second citation of the same requirement takes the suffix `-2`. A line number would be a derived fact restated in a second document with nothing checking it; a bookmark is not, which is why traces are symbolic. `tools/check.ps1` holds what a symbolic reference can still violate silently (R-05-151a).
 
@@ -150,12 +154,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the defended half is decidable against the matrix rather than against this sentence, every `P-5` cell being present and resting on a requirement per R-17-001b; a §3 that obliges availability at every boundary while declining to say whether a denial adversary is in scope at all is the defect this closes.
 · Trace: CJ-T · [§3](verification-maximal-os.md#r-03-007)
 
-**R-03-008** IS: Denial achieved by provoking the platform's own refusals is residual, and is residual as a *composition* rather than as any single mechanism: thermal trip, watchdog reset, containment of an attacked surface, admission refusal, the sealed cutoffs, and the emergency path's coverage floor are each individually correct and individually an availability cost, and their conjunction is the fail-closed seam register (R-17-030a).
-· Accept: this residual maps to a §17 entry as R-03-004's do, and the entry it maps to is a register rather than a single item, because the object being booked is the conjunction; a member booked in its own section and absent from that register is a review-gate finding against R-17-030a.
+**R-03-008** IS: Denial achieved by provoking the platform's own refusals is residual, and is residual as a *composition* rather than as any single mechanism: thermal trip, watchdog reset, containment of an attacked surface, admission refusal, the sealed cutoffs, the emergency path's coverage floor, and every fault detector's answer to detection are each individually correct and individually an availability cost, and their conjunction is the fail-closed seam register (R-17-030a).
+· Accept: this residual maps to a §17 entry as R-03-004's do, and the entry it maps to is a register rather than a single item, because the object being booked is the conjunction; a member booked in its own section and absent from that register is a review-gate finding against R-17-030a, and R-17-030r is what decides it, this criterion having been discharged by inspection until then.
 · Trace: CJ-T · [§3](verification-maximal-os.md#r-03-008)
 
 **R-03-009** IS: Neither list claims a device-level availability guarantee. The invariant held across every fail-closed path is that none of them costs confidentiality, integrity, or authority, a refusal always being the safe direction; the platform does not promise that the device stays up, and the places where it deliberately may not are enumerated rather than left to be assembled.
-· Accept: the invariant is checkable member by member against R-17-030b through R-17-030k, each of which must spend availability alone; a member whose refusal costs one of the other three properties belongs in R-03-004's residual set instead, and the enumeration is what makes that decidable.
+· Accept: the invariant is checkable member by member against the R-17-030 seams, each of which must spend availability alone; a member whose refusal costs one of the other three properties belongs in R-03-004's residual set instead, and the enumeration is what makes that decidable. R-17-030o is the one member whose *weakening* would cost confidentiality, which is why it is retained as a refusal rather than repaired into a degraded mode.
 · Trace: CJ-T, CJ-NI · [§3](verification-maximal-os.md#r-03-009)
 
 ---
@@ -1746,6 +1750,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-09-023** IS: The erase is one-way and non-rollbackable, rooted in the RoT's monotonic-counter and sealing machinery, followed by an RoT reset, and indistinguishable to an observer from an ordinary failed attempt until it completes.
 · Accept: the holder can be compelled to enter *a* credential, never the *right* one.
+· RoT-fresh: the key-wrapping and sealing-root version (R-10-013), advancing on the duress erase and on key rotation.
 · Trace: CJ-CRYPTO-SPEC · [§9](verification-maximal-os.md#r-09-023), [§9](verification-maximal-os.md#r-09-023-2)
 
 **R-09-024** MUST: The erase is scoped to user-data key custody and not the system image, so the device is left clean rather than bricked: it re-derives a fresh identity from the RoT and boots the untouched signed generation into a clean first-run BFU state.
@@ -1768,6 +1773,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-09-028** MUST: The platform carries A/B images, RoT boot counting with automatic revert, and a monotonic anti-rollback floor for security updates.
 · Accept: all three are RoT duties.
+· RoT-fresh: the base-image security-version floor (R-10-013), advancing on signed security updates.
 · Trace: CJ-DEVTREE · [§9](verification-maximal-os.md#r-09-028)
 
 **R-09-029** MUST: User-selectable generation boot is a signed recovery generation, not a pre-kernel menu: a boot-time signal latched by the RoT into a one-bit boot-target register, measured into the chain like every other input, selects a minimal signed image whose sole role is to run the rollback-manager UI and the credential/unlock compartment.
@@ -1877,8 +1883,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CRYPTO-SPEC · [§10](verification-maximal-os.md#r-10-012)
 
 **R-10-013** MUST: The RoT monotonic counter is spent only on low-rate security-critical state, and that set is enumerated: the base-image security-version floor, and the key-wrapping/sealing-root and credential attempt-counter versions, advancing on signed updates, key rotation, or authentication attempts, and never on a data commit.
-· Accept: the enumeration is closed by amendment to this register; it is what blocks downgrade to a vulnerable generation, un-revoking a key, resurrecting an old password, and replaying the lockout counter.
+· Accept: the enumeration is closed by conferral rather than by amendment (R-10-013a); it is what blocks downgrade to a vulnerable generation, un-revoking a key, resurrecting an old password, and replaying the lockout counter.
 · Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013)
+
+**R-10-013a** MUST: Membership in that enumeration is conferred entry by entry: a requirement placing state under the RoT monotonic counter confers the membership against itself, R-10-013 is where the conferrals are collected, and neither a member no requirement confers nor a conferral R-10-013 does not carry is admitted.
+· Accept: R-10-013 names the attacks the set blocks and asserts nothing about the map from attack to counter-protected state being total, so a state that later needs freshness and does not get it is invisible to it; conferral closes the disagreement between the set and the requirements and does not close completeness, which is the same honest half R-17-030r claims for the fail-closed register.
+· Accept: state deliberately left out is recorded as a decision rather than surviving as an absence, R-10-011 being the instance and the mutable volume the state.
+· Accept: three requirements confer freshness, and a fourth conferral is not admitted until R-10-013 names the state it adds.
+· Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013a)
 
 **R-10-014** MUST: Secure erase is crypto-erase: the volume keys being RoT-sealed and core-resident, destroying the sealing root renders the encrypted user data unrecoverable in the time to zeroize a key.
 · Accept: rolling the disk back yields only stale ciphertext an attacker cannot read and cannot pair with a resurrected key.
@@ -2195,7 +2207,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§12](verification-maximal-os.md#r-12-016)
 
 **R-12-017** MUST: Attempt rate-limiting and a monotonic attempt counter are RoT duties, so a stolen device cannot brute-force the credential offline.
-· Accept: the counter is one of the enumerated RoT-fresh items (R-10-013).
+· RoT-fresh: the credential attempt-counter version (R-10-013), advancing on authentication attempts.
 · Trace: CJ-DEVTREE · [§12](verification-maximal-os.md#r-12-017)
 
 **R-12-018** MUST: The same compartment recognizes a distinct duress credential that, on match, commands an RoT crypto-erase instead of an unlock, indistinguishable from a normal attempt until it completes.
@@ -2378,6 +2390,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-050** IS: Because emergency registration attaches on the IMEI with no subscription secret, the mode needs no eUICC and works identically at Before First Unlock, after a duress crypto-erase, or with no eUICC provisioned; on call end the compartment is torn down and eager-zeroized.
 · Accept: no state carries into normal operation; the 5G/6G coverage limit is booked in §15 and §17.
+· Fail-closed: emergency service exists only inside 5G-SA or 6G coverage (R-17-030g); outside it the cost is the call itself.
 · Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-050)
 
 **R-12-051** MUST: The microphone reaches the emergency compartment by the ordinary rule, not an exception: the same unspoofable local act is the consent act on which the powerbox mints a microphone capability bounded to that compartment alone.
@@ -2394,6 +2407,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-054** MUST: The sealed physical cutoffs still dominate and are not overridden: a thrown microphone switch yields a connected but mute emergency call, and a thrown radio switch yields none at all.
 · Accept: a software path able to re-enable a sealed cutoff for emergencies is a software path able to re-enable it; the direction is booked in §17.
+· Fail-closed: a thrown cutoff is not overridden, emergency calling included (R-17-030f); the cost is the sensor or radio the user sealed.
 · Trace: CJ-T · [§12](verification-maximal-os.md#r-12-054)
 
 ### 12.10 Regulatory layering
@@ -2492,6 +2506,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-076** MUST: Consent for a powerbox grant is owned by a separate, small, verified trusted-path agent, not the compositor: it renders the consent surface into a region it holds by capability, is attested by an RoT-driven hardware secure-attention indicator the compositor cannot draw, and takes the response over the input front-end itself.
 · Accept: the compositor can deny service, an availability fault, but cannot spoof a grant or capture a response.
+· Fail-closed: a compositor or touch driver that fights the ownership transition reaches denial of the prompt (R-17-030i); the cost is the grant and never a forged one.
 · Trace: CJ-NI, CJ-DEVTREE · [§12](verification-maximal-os.md#r-12-076)
 
 **R-12-077** MUST NOT: The touch driver does not join the consent TCB: for the prompt's duration the touch front-end is re-delegated to the agent, its capability-bounded DMA window *and* its configuration MMIO leaving the driver together.
@@ -3628,6 +3643,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-171** MUST: The roster is fit to the budget explicitly, and a workload that does not fit is refused at admission, not paged: there is no swap and no overcommit anywhere, every resident byte being a capability-delegated SRAM byte.
 · Accept: browser origins take a composition-sized budget with crash-only eviction; the inference server serves the 1–4 B-parameter class on a phone and the 7 B-plus class on laptop/desktop.
+· Fail-closed: a workload that does not fit the budget is refused at admission (R-17-030q); the cost is delivery of that workload.
 · Trace: CJ-MEMPLAN · [§15](verification-maximal-os.md#r-15-171)
 
 **R-15-172** IS: Island exclusivity is a booked capacity tax: whole-macro or whole-tier binding forfeits pooling, so each island is sized to its peak rather than the machine to the sum of averages.
@@ -3722,6 +3738,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-193** MUST: Thermal posture is fail-stop, not modulation: TDP-provisioned so throttling never engages normally, with critical temperature triggering a rare attested global transition (orderly halt or a proved low-power/recovery mode).
 · Accept: a ~1-bit event rather than continuous throttling's data-dependent channel; temperature read-out is a gated capability.
+· Fail-closed: thermal trip stops everything running (R-17-030b); the cost is the work in progress and nothing else.
 · Trace: CJ-NI · [§15](verification-maximal-os.md#r-15-193)
 
 **R-15-194** MUST: There is exactly one management processor, the RoT: power sequencing, reset, mode orchestration, and the watchdog are RoT duties, verified, in the TCB, never resident on or above the application cores.
@@ -3770,6 +3787,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-204** IS: Tag integrity is an ECC property, not a cryptographic one, because the tag bits never leave the die; a tag-integrity failure is an ECC event and a fail-stop sentinel event.
 · Accept: non-capability transducer and DMA writes clear the corresponding tag bit by construction.
+· Fail-closed: an uncorrectable ECC or tag-integrity event stops the machine (R-17-030n); the cost is the running state, against a silent integrity failure as the alternative.
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-204)
 
 ### 15.26 Capability-checked DMA
@@ -3894,6 +3912,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-231** MUST: Display underrun is a §16 sentinel fault class, not a load outcome: affected lines blank visibly as the presentation of a caught fail-stop, never a silent display of unauthenticated bytes.
 · Accept: recovery is the ordinary §16 restart of the display path.
+· Fail-closed: an underrun blanks the affected lines (R-17-030p); the cost is what the display was showing, a consent prompt included.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-231)
 
 **R-15-232** IS: The internal display link is dedicated, fixed-function, and point-to-point (eDP for laptop-class, MIPI DSI for phone or tablet) with no hot-plug negotiation against an untrusted device.
@@ -3964,6 +3983,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-241b** MUST: The noise source runs start-up health tests over a fixed sample budget before its first output leaves the RoT and continuous on-line tests thereafter, sized against the source's stochastic model, and the sole failure action is fail-stop: the root latches a failure state reported as a §16 fault class.
 · Accept: no reduced-rate, best-effort, or last-known-good output path exists in hardware or firmware, so a detected failure cannot become an undetected one by degrading.
+· Fail-closed: a failed health test latches the noise source off with no degraded path (R-17-030o); the cost is every operation needing fresh randomness.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-241b)
 
 **R-15-241c** MUST: Raw source output reaches no consumer: it is conditioned in the RoT by a vetted non-keyed cryptographic conditioner whose input entropy rate is claimed from the source's stochastic model and whose output is full-entropy at the claimed rate, with the DRBG the only interface a consumer holds.
@@ -4010,6 +4030,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-16-002** IS: A radio-stack crash costs connectivity until restart, never platform integrity.
 · Accept: the radio stack is wholly non-TCB (R-06-021).
+· Fail-closed: a radio-stack crash stops the stack (R-17-030j); the cost is connectivity until restart.
 · Trace: CJ-CERISE · [§16](verification-maximal-os.md#r-16-002)
 
 **R-16-002a** MUST: The fault path is held to the confidentiality policy on three mechanisms: an in-model fault is secret-independent wherever a constant-time obligation binds, since CT verification makes control flow and access sequence, hence the traps reachable, functions of public inputs; the restart is paid from the faulting partition's own slots, so it moves no peer's timing; and the fault class reaches the sentinel telemetry monitor as a labeled flow over a closed enumeration rather than an ambient log.
@@ -4028,6 +4049,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-16-005** MUST: Watchdogs are layered: the sentinel-resident monitor responds surgically (restart, revoke, roll back) before escalation, and the RoT watchdog is the last resort, where bite equals reset, safe because state is transactional and nothing is lost but uncommitted work.
 · Accept: the two tiers are distinct components with distinct failure domains.
+· Fail-closed: watchdog bite is reset (R-17-030c); the cost is uncommitted work, bounded into a recovery state by R-16-007.
 · Trace: CJ-DEVTREE · [§16](verification-maximal-os.md#r-16-005)
 
 **R-16-006** IS: The bark's notice window is one slot, not trap latency, because asynchronous interrupt delivery does not exist: the bark sets a pending bit the boundary-timer handler reads, so a core alive but wedged is reached at its next slot boundary.
@@ -4054,10 +4076,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-16-008c** MUST: Three sequences carry a compiler-emitted running control-flow signature and no other sequence does: the measured-boot chain's per-stage verify-then-transfer, the credential comparison at the RoT gate, and the lifecycle transition over one-way fuse state. Each basic block of a protected region folds a compose-time constant into a signature register and the region's exit compares the accumulation against the value its control-flow graph predicts, a mismatch raising the fail-stop class an uncorrectable ECC event raises. The decision each sequence reaches is encoded so that omitting work refuses: acceptance is a multi-bit token computed from the comparison, which no fall-through, skipped branch, or truncated region produces, and the comparison is performed twice with the signature check between the two.
 · Accept: the set is these three and extending it is an amendment, not a reading; the predicted value is derived from the region's control-flow graph rather than annotated by hand, so where the artifact passes admission the instrumentation is checked on the final binary with the other type-level obligations (R-05-029) and where it lives in the boot ROM it is fixed at tapeout and measured with the ROM (R-09-002); the emitted instructions are ordinary instructions and enter the syntax-directed WCET cost (R-05-102). Coverage is evidence and is booked at R-17-058b.
+· Fail-closed: a control-flow signature mismatch raises the class an uncorrectable ECC event raises (R-17-030n); the cost is the protected sequence and the boot or credential decision it carried.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET · [§16](verification-maximal-os.md#r-16-008c)
 
 **R-16-008d** MUST: The S-class sentinel core is realized as a detection-only lockstepped pair presenting one architectural core: two instances execute the same instruction stream, a comparator checks their committed results and bus traffic, and a divergence latches a fail-stop reported to the RoT rather than to the sentinel, whose response is the watchdog bite R-16-005 already defines.
 · Accept: the sentinel is the one core software redundancy cannot serve, because the pass would run on the core being doubted and the tier above catches a sentinel that stops (R-16-005) and not one that continues having suppressed an event; determinism (R-15-100, R-16-011) makes the comparison exact, so there is no false-divergence rate; the comparator holds no architectural state and changes no committed result, so the Sail model and R-18-010's refinement obligation are unchanged, on the ground R-15-157 states for radiation hardening.
+· Fail-closed: a lockstep divergence latches a fail-stop to the RoT (R-17-030n); the cost is the sentinel, and with it the tier that watches the rest.
 · Trace: CJ-RTL-SAIL, CJ-DEVTREE · [§16](verification-maximal-os.md#r-16-008d)
 
 **R-16-008e** MUST NOT: No control-flow-signature hardware, no landing-pad or shadow-stack mechanism, and no ISA surface of any kind is added for R-16-008c, which is compiler-emitted instrumentation in three named regions; and no core other than the S-class pair is replicated, no comparator votes, and no third instance exists, so masking, its voting-correctness proof, and the explicit fault model such a proof needs are all absent.
@@ -4068,6 +4092,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-16-009** MUST: Time-to-remediation is a first-class property budgeted separately from time-to-full-fix: a live remote exploit is answered at detection latency, the sentinel triggering an attested transition that revokes the compromised compartment's capabilities, withdraws its rings, and fails its surface closed.
 · Accept: this needs no new proof, because narrowing authority is monotone and cannot violate a safety theorem; the §6 checker still gates any replacement code.
+· Fail-closed: containment withdraws the compromised compartment's authority and runs the surface degraded until remediation (R-17-030d); the cost is that surface's duty cycle.
 · Trace: CJ-CERISE, CJ-NI · [§16](verification-maximal-os.md#r-16-009)
 
 **R-16-010** IS: Containment latency is therefore the §8 bounded-revocation constant, budgeted like detection latency, while the full proof-carrying fix follows off the critical path.
@@ -4168,6 +4193,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-17-005** IS: Cost (1): background share collapses as roughly 1/n and the absolute numbers are small: on the reference instantiation a background origin at the 32-rung holds on the order of one percent of one core, around four percent at the 8-rung. The foreground is fast and the background very nearly stopped.
 · Accept: this is a materially different performance *shape* from a work-conserving machine that is merely slower, and it is stated as the shape to plan against.
+· Fail-closed: the background floor is what the rest of the register degrades toward rather than a response of its own (R-17-030k); the cost is background progress.
 · Trace: CJ-WCET · [§17](verification-maximal-os.md#r-17-005)
 
 **R-17-006** IS: Cost (2): idle discretionary time is structurally unreclaimable and will remain so, because the donation mechanism that would reclaim it *is* the channel whose deletion the design is buying.
@@ -4354,6 +4380,28 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: R-16-009 budgets one window and R-17-035 books its cost, and neither expresses windows per unit time; without this, an attacker holding a surface degraded indefinitely is reported by the platform as a mechanism working correctly, once per window, forever. The record is a §16 event class and adds no trusted component, the sentinel already driving the attested transition it counts.
 · Trace: CJ-DEVTREE, CJ-WCET · [§17](verification-maximal-os.md#r-17-030m)
 
+**R-17-030n** IS: Fail-closed seam **detector trip ⋈ continued operation**: every fault detector answers detection by stopping, an uncorrectable ECC event and a tag-integrity failure being fail-stop sentinel events (R-15-204, R-16-008b), a control-flow signature mismatch on the three protected sequences raising the same class (R-16-008c), a divergence on the sentinel's lockstepped pair latching a fail-stop to the RoT (R-16-008d), and residual synchronizer failure landing in the same place (R-15-197).
+· Accept: the member whose provocation needs no software access, because the adversary it answers is the radiated-EMI and electromagnetic-fault-injection adversary in scope by name (R-03-003, R-15-155), so a probe held near the enclosure stops a correctly behaving device; each detector is right to stop and the composition is the finding, not any member of it.
+· Trace: CJ-SAIL, CJ-RTL-SAIL · [§17](verification-maximal-os.md#r-17-030n)
+
+**R-17-030o** IS: Fail-closed seam **entropy health-test failure ⋈ every operation needing fresh randomness**: the noise source's start-up and continuous on-line health tests have fail-stop as their sole failure action, with no reduced-rate, best-effort, or last-known-good path in hardware or firmware (R-15-241b), so key generation, sealing, attestation, and every protocol needing a fresh nonce stop with the source.
+· Accept: the refusal is correct because every alternative turns a detected failure into an undetected one, which is the one member of this register whose weakening would cost confidentiality rather than availability; it is therefore stated as a member and not repaired into a degraded mode, and an adversary who can bias a source into tripping its own test denies more than the RoT.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§17](verification-maximal-os.md#r-17-030o)
+
+**R-17-030p** IS: Fail-closed seam **display underrun ⋈ the trusted path**: an underrun blanks the affected lines visibly as the presentation of a caught fail-stop rather than displaying unauthenticated bytes (R-15-231, R-16-004), and the consent surface a user must see to grant authority is drawn on the path that blanks.
+· Accept: this member reaches denial of the prompt from a direction R-17-030i does not cover, needing no software compromise to produce; recovery is the ordinary restart of the display path, so the cost is availability of the prompt and never a forged or captured grant.
+· Trace: CJ-ISOL, CJ-NI · [§17](verification-maximal-os.md#r-17-030p)
+
+**R-17-030q** IS: Fail-closed seam **budget admission refusal ⋈ the roster**: a workload that does not fit the static budget is refused at admission rather than paged, there being no swap and no overcommit anywhere (R-15-171), which is a precondition of the timing argument rather than a shortfall in it.
+· Accept: the second delivery-side member beside R-17-030e, named because a refusal provoked by ordinary growth rather than by an adversary is still a refusal, and a register carrying only the adversary-provokable members would be a threat model rather than an inventory.
+· Trace: CJ-MEMPLAN, CJ-WCET · [§17](verification-maximal-os.md#r-17-030q)
+
+**R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
+· Accept: this is R-17-016's repair applied to the other register, and it closes the register's disagreement with the requirements, which is the direction R-03-008 already calls a review-gate finding and nothing enforced; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
+· Accept: against the completeness residue `tools/check.ps1` over-approximates the vocabulary of refusal across the whole register and requires every entry it catches to be conferred or explicitly dispositioned, so the totality claim is discharged against an agenda regenerated on every run; R-17-030n, R-17-030o, R-17-030p, and R-17-030q were found by running it and not by inspection.
+· Accept: sixteen requirements confer a refusal and fourteen seams collect them, both figures recomputed rather than maintained here.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-030r)
+
 ### 17.7 Admission and tooling seams
 
 **R-17-031** IS: The compilation ⋈ robust-safety seam is closed at a price: the robust-preservation theorem is a heavier obligation than plain compiler correctness.
@@ -4366,6 +4414,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-17-033** IS: The certifying compiler's preservation theorem is off the trust path, a completeness property, not a soundness one: a buggy or adversarial certifying compiler can only fail to emit a valid derivation for a safe program, which is an availability failure, never a safety breach.
 · Accept: the theorem ships tested-but-unproven and is backfilled as assurance against Radium; there is no interim weakening, so the residual is a *delivery* risk rather than degraded admission.
+· Fail-closed: admission refuses a safe program the certifier could not derive (R-17-030e); the cost lands on delivery and not on a running unit.
 · Trace: CJ-TAL-SOUND · [§17](verification-maximal-os.md#r-17-033)
 
 **R-17-034** IS: The typed callee set is the sharpest instance of that completeness residual: a compiler that cannot enumerate a site emits no derivation and the binary is refused, and cannot mint one that type-checks yet under-declares.
@@ -4468,6 +4517,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-17-054** IS: The lock-state seam books three limits: at-rest security is bounded by the credential and its rate-limiter; the unlocked window is shortened but not closed; and duress crypto-erase is a countermeasure rather than a guarantee, protecting future recoverability only and being irreversible on accidental entry.
 · Accept: biometrics are deliberately excluded from cold or idle-locked key release for exactly the false-accept and presentation-attack reason.
+· Fail-closed: the duress credential erases rather than unlocking (R-17-030h); the cost is irreversible on accidental entry.
 · Trace: CJ-CRYPTO-SPEC · [§17](verification-maximal-os.md#r-17-054)
 
 **R-17-055** IS: Hardware-random link-layer addressing is necessary but not sufficient for unlinkability: RF fingerprinting, frame sequence numbers and timing, and higher-layer identifiers each re-link sessions a random address alone would separate; and because framing is SoftMAC the address is inserted by a memory-safe but not functionally-proven compartment.
@@ -4746,7 +4796,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1093 requirements. §19 is non-normative and yields none. Counts include the 171 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1099 requirements. §19 is non-normative and yields none. Counts include the 177 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4759,14 +4809,14 @@ All eighteen normative sections are extracted, at 1093 requirements. §19 is non
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **53** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
-| **§10 Storage & State** | **extracted** | **40** |
+| **§10 Storage & State** | **extracted** | **41** |
 | **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **30** |
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **289** |
 | **§16 Reliability** | **extracted** | **28** |
-| **§17 Residual Risks** | **extracted** | **100** |
+| **§17 Residual Risks** | **extracted** | **105** |
 | **§18 Realization** | **extracted** | **45** |
 
 §19 is non-normative and yields no requirements.

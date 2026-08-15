@@ -9,6 +9,7 @@
 #   names    the vocabulary   every R-, CJ-, A-, B- and P- id used, against its declarer
 #   links    the pointer      every cross-document link and every §n.m a sentence names
 #   views    the membership   what a derived view carries, checked in both directions
+#   confers  the enumeration  every set closed by conferral, and the agenda for what it misses
 #   counts   the cardinality  every figure any document asserts, against its artifact
 #
 # Two further groups check what a document is made of rather than what it says, where a
@@ -75,6 +76,7 @@ $subsection = @{}          # id -> "15.4", the ### n.m it sits in, where there i
 $body       = @{}          # id -> the entry line itself
 $traceOf    = @{}          # id -> its · Trace: line
 $perSection = [ordered]@{} # section -> entry count, in document order
+$confers    = @{}          # "Fail-closed"/"RoT-fresh" -> (id -> its conferral line)
 $dcsrRows   = 0
 
 $sec = $null; $sub = $null; $current = $null; $inDefects = $false
@@ -92,6 +94,11 @@ foreach ($line in $regLines) {
         $subsection[$current] = $sub
         $body[$current]       = $line
         if ($sec) { $perSection[$sec]++ }
+    } elseif ($current -and $line -match '^· (Fail-closed|RoT-fresh):') {
+        # a property line conferring membership in a set some other entry collects
+        $kind = $Matches[1]
+        if (-not $confers.ContainsKey($kind)) { $confers[$kind] = [ordered]@{} }
+        $confers[$kind][$current] = $line
     } elseif ($current -and $line -match '^· Trace:') {
         $traceOf[$current] = $line
         $current = $null
@@ -427,6 +434,155 @@ foreach ($v in $views) {
 ""
 
 # =================================================================================
+# confers: every enumeration closed by conferral, and the agenda for what it misses
+# =================================================================================
+#
+# Three sets here are enumerations of a judgment: the crown-jewel specifications, the
+# fail-closed refusals, and the state the RoT counter keeps fresh. Each was first
+# written as a list somebody believed complete on the day they wrote it, which is the
+# failure R-17-016 was repaired for: a list restated anywhere is a list that silently
+# stops being the set. The repair was not a better-maintained list but **conferral**,
+# where membership is asserted by each requirement that has it and collected in exactly
+# one place, so the two can be checked against each other instead of against a memory.
+#
+# What conferral closes is the collection's disagreement with the requirements, and
+# that is all it closes. It cannot decide whether a requirement that *should* confer
+# does, because *is a crown jewel*, *fails closed* and *needs freshness* are judgments
+# and no tool holds them. Pretending otherwise would put the defect one level up, in a
+# checker that certifies a set it cannot see the whole of.
+#
+# So each set carries a second instrument against that residue, and it is deliberately
+# a weak one honestly described: the vocabulary of the judgment is over-approximated
+# across every requirement body, and each entry the vocabulary catches must confer, be
+# collected, or be dispositioned here by name with a reason. That is lexical and proves
+# no totality. What it buys is that the totality claim is discharged against an agenda
+# regenerated on every run rather than against a reading nobody repeats, and it is not
+# hypothetical: run against the ten-seam fail-closed register it returned the detector
+# class (R-17-030n), the entropy health test (R-17-030o), the display path (R-17-030p),
+# and budget admission (R-17-030q), none of which any reading had found.
+#
+# A disposition is a decision, so it is recorded here beside the rule rather than as a
+# marker in the prose. A marker would tax the vocabulary instead of the judgment, and
+# an author who has to spend a word to avoid a finding rewords the sentence rather than
+# making the decision, which is the check defeating its own purpose quietly.
+
+"=== confers: every enumeration closed by conferral, both directions ==="
+
+# --- the crown-jewel inventory: rows against the requirements conferring the status ---
+#
+# The views group above checks that every conferring requirement reaches the inventory,
+# the direction where a row goes missing. This is the other one R-17-016 names, the
+# direction where a row is *added*: a specification the view grants the status and the
+# register never did. Conferral is the whole membership rule, so a row standing behind
+# no conferring requirement is the view legislating, which a derived view may not do.
+# Rows only: the theorem table is targets, not specifications.
+
+$cjConfer = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' })
+Report 'crown-jewel row(s) no requirement confers:' `
+       @(foreach ($row in $cjRows) {
+           $cites = @([regex]::Matches($row, 'R-\d\d-\d+[a-z]?') | ForEach-Object { $_.Value })
+           if (-not @($cites | Where-Object { $_ -in $cjConfer }).Count) {
+               "row $((($row -split '\|')[1]).Trim()): $((($row -split '\|')[2]).Trim())"
+           }
+       }) "every row cites one of the $($cjConfer.Count) requirements that confer the status"
+
+# --- the fail-closed seam register: conferrals against the seams that collect them ----
+#
+# Here the collection is not a separate document but the R-17-030 seam entries, each
+# naming the requirements whose refusal it composes (R-17-030r). Both directions are
+# owed and they fail differently: a conferral no seam collects is a refusal booked
+# correctly in its own section and absent from the composition, which R-03-008 already
+# calls a review-gate finding and nothing enforced until now; a seam collecting no
+# conferral is the register composing a refusal no requirement specifies.
+
+$fcSeams  = @($body.Keys | Where-Object { $body[$_] -match 'Fail-closed seam \*\*' })
+$fcConfer = @(if ($confers.ContainsKey('Fail-closed')) { $confers['Fail-closed'].Keys })
+$fcCited  = @{}
+foreach ($s in $fcSeams) {
+    foreach ($m in [regex]::Matches($body[$s], 'R-\d\d-\d+[a-z]?')) { $fcCited[$m.Value] = $s }
+}
+
+Report 'fail-closed conferral(s) no seam collects:' `
+       @($fcConfer | Where-Object { -not $fcCited.ContainsKey($_) } |
+         ForEach-Object { "$_ confers a refusal no R-17-030 seam names" }) `
+       "all $($fcConfer.Count) conferred refusals reach the register"
+
+Report 'fail-closed seam(s) no requirement confers:' `
+       @(foreach ($s in $fcSeams) {
+           $cites = @([regex]::Matches($body[$s], 'R-\d\d-\d+[a-z]?') | ForEach-Object { $_.Value })
+           if (-not @($cites | Where-Object { $_ -in $fcConfer }).Count) {
+               "$s composes a refusal no requirement confers"
+           }
+       }) "all $($fcSeams.Count) seams stand on a conferred refusal"
+
+# --- the RoT-fresh enumeration: conferrals against the entry that collects them -------
+#
+# The collection here is one entry's prose enumeration rather than a row or a seam, so
+# only the outbound direction is symbolic: every conferral names R-10-013. The inbound
+# direction is the count claim below, which fails when a conferral is added and the
+# enumeration it must join is not amended.
+
+$rfConfer = @(if ($confers.ContainsKey('RoT-fresh')) { $confers['RoT-fresh'].Keys })
+Report 'RoT-fresh conferral(s) not naming the enumeration:' `
+       @($rfConfer | Where-Object { $confers['RoT-fresh'][$_] -notmatch 'R-10-013' } |
+         ForEach-Object { "$_ confers freshness without citing R-10-013" }) `
+       "all $($rfConfer.Count) conferred states name the enumeration"
+
+# --- the agenda: what the vocabulary catches and the conferral did not ----------------
+
+$agendas = @(
+    @{ Set   = 'fail-closed'
+       Vocab = 'fail-stop|fail-closed|fail closed|refuse|refuses|refused|refusal|denial of service|permanent DoS'
+       Held  = @($fcConfer) + @($fcCited.Keys) + @($fcSeams)
+       # the entries that state the set rather than belonging to it
+       Ruling = 'R-03-008','R-03-009','R-17-030a','R-17-030l','R-17-030m','R-17-030r'
+       Disposition = [ordered]@{
+           'R-03-003'  = 'threat scope, not a refusal: the refusals an EM adversary provokes are composed at R-17-030n'
+           'R-05-051c' = 'a specification-time exclusion: the role is denied to a format when its descriptor is written, and no running unit stops'
+           'R-05-118'  = 'an instance of the admission refusal composed at R-17-030e'
+           'R-05-125'  = 'the same admission refusal, stated as the contrast with a runtime trap'
+           'R-08-008'  = 'a denial priced out structurally, not a refusal the platform performs'
+           'R-08-019'  = 'an instance of the budget refusal composed at R-17-030q'
+           'R-13-014'  = 'the policy name for the admission refusal composed at R-17-030e'
+           'R-14-010'  = 'a designed non-refusal, kept for the contrast: past the ceiling the browser evicts and the platform does not refuse'
+           'R-15-155'  = 'the countermeasure, whose caught-fault path is the refusal composed at R-17-030n'
+           'R-17-034'  = 'the sharpest instance of the admission refusal composed at R-17-030e'
+           'R-17-047'  = 'a tooling choice refused at specification time, with no runtime failure action'
+           'R-17-058b' = 'the coverage residual behind R-17-030n detectors, not a refusal of its own'
+       } }
+
+    @{ Set   = 'RoT-fresh'
+       Vocab = 'monotonic counter|monotonic anti-rollback|monotonic attempt counter|anti-rollback floor|freshness-protected'
+       Held  = @($rfConfer)
+       Ruling = 'R-10-013','R-10-013a'
+       Disposition = [ordered]@{
+           'R-06-005' = 'enforces the floor R-09-028 confers; places no further state under the counter'
+           'R-06-022' = 'enforces the same floor from the untrusted side'
+           'R-09-001' = 'provides the counter; places no state under it'
+           'R-09-005' = 'checks the floor before executing a byte; places no state under it'
+           'R-09-008' = 'provides the counter operations as a functional surface'
+           'R-09-013' = 'a property of the counter, that it is not a clock'
+           'R-09-030' = 'bounds bootability by the floor R-09-028 confers'
+           'R-10-011' = 'the recorded exclusion R-10-013a requires: the mutable volume is deliberately outside the set'
+           'R-10-031' = 'selects a root within the floor; places no state under the counter'
+           'R-11-002' = 'pins a root subject to the floor; places no state under the counter'
+           'R-16-008' = 'the same pinning through the trusted transactor'
+       } }
+)
+
+$dispositions = @($agendas | ForEach-Object { $_.Disposition.Count } | Measure-Object -Sum).Sum
+$rotCases     = @($agendas | Where-Object { $_.Set -eq 'RoT-fresh' }).Disposition.Count
+
+foreach ($a in $agendas) {
+    $held = [System.Collections.Generic.HashSet[string]]::new([string[]](@($a.Held) + @($a.Ruling) + @($a.Disposition.Keys)))
+    $open = @($ids | Where-Object { $body[$_] -match $a.Vocab -and -not $held.Contains($_) })
+    Report "$($a.Set) candidate(s) neither conferred nor dispositioned:" `
+           @($open | ForEach-Object { "$_ uses the vocabulary of $($a.Set) and is in no column" }) `
+           "every $($a.Set) candidate is conferred, collected, or dispositioned"
+}
+""
+
+# =================================================================================
 # counts: every figure any document asserts, against the artifact it derives from
 # =================================================================================
 #
@@ -449,7 +605,11 @@ $q = [ordered]@{
     'cj-theorems'   = @($cj | Where-Object { $_ -match '^\| `CJ-[A-Z-]+` \|' }).Count
     'cj-conferring' = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' }).Count
     'seams'         = @($body.Keys | Where-Object { $body[$_] -match ' Seam: \*\*' }).Count
-    'fc-seams'      = @($body.Keys | Where-Object { $body[$_] -match 'Fail-closed seam \*\*' }).Count
+    'fc-seams'      = $fcSeams.Count
+    'fc-conferrals' = $fcConfer.Count
+    'rot-fresh'     = $rfConfer.Count
+    'dispositions'  = $dispositions
+    'rot-cases'     = $rotCases
     'views'         = $views.Count
     'boundaries'    = $cmBounds.Count
     'properties'    = $cmProps.Count
@@ -484,6 +644,11 @@ $claims = @(
     # the prose states the size of each seam register it carries
     @{ File = 'verification-maximal-os.md'; Q = 'fc-seams'; Style = 'words'; Pattern = '[\w-]+(?= fail-closed seams are named with owners)' }
 
+    # and the register states the shape of each enumeration it closes by conferral
+    @{ File = 'requirements-register.md'; Q = 'fc-conferrals'; Style = 'words'; Pattern = '[\w-]+(?= requirements confer a refusal)' }
+    @{ File = 'requirements-register.md'; Q = 'fc-seams';      Style = 'words'; Pattern = '(?<=and )[\w-]+(?= seams collect them)' }
+    @{ File = 'requirements-register.md'; Q = 'rot-fresh';     Style = 'words'; Pattern = '[\w-]+(?= requirements confer freshness)' }
+
     # the coverage matrix states the shape of its own product
     @{ File = 'coverage-matrix.md'; Q = 'boundaries'; Style = 'words'; Pattern = '(?<=below are )[\w-]+(?= boundaries)' }
     @{ File = 'coverage-matrix.md'; Q = 'properties'; Style = 'words'; Pattern = '(?<=boundaries and )[\w-]+(?= properties)' }
@@ -503,7 +668,11 @@ $claims = @(
     @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '(?<=register and the )[\w-]+(?= derived views)' }
     @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= derived views and `tools/check\.ps1`)' }
     @{ File = 'critique.md'; Q = 'seams';         Style = 'words';  Pattern = '[\w-]+(?= hardware seams are named with owners)' }
-    @{ File = 'critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '[\w-]+(?= fail-closed seams, each)' }
+    @{ File = 'critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '[\w-]+(?= fail-closed seams stand there now)' }
+    @{ File = 'critique.md'; Q = 'fc-conferrals'; Style = 'words';  Pattern = '[\w-]+(?= conferrals against)' }
+    @{ File = 'critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '(?<=conferrals against )[\w-]+(?= seams)' }
+    @{ File = 'critique.md'; Q = 'dispositions';  Style = 'words';  Pattern = '[\w-]+(?= candidates were dispositioned)' }
+    @{ File = 'critique.md'; Q = 'rot-cases';     Style = 'words';  Pattern = '(?<=[Tt]he )[\w-]+(?= on the RoT-fresh side)' }
     @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown-jewel specifications are named)' }
     @{ File = 'critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '[\w-]+(?= theorem targets are named)' }
     @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)' }
@@ -579,25 +748,6 @@ if ($findings -eq $countFindings -and -not $Fix) { "ok: all $($claims.Count) ass
 Report 'crown-jewel row(s) whose status is in no class:' `
        @($cjRows | Where-Object { -not (Get-CjClass $_) } | ForEach-Object { "row $((($_ -split '\|')[1]).Trim()): $(Get-Status $_)" }) `
        "$($q['cj-specs']) rows partition into $($q['cj-authored']) authored, $($q['cj-partial']) partial, $($q['cj-unauthored']) not authored"
-
-# --- membership, in the direction the view could invent it -------------------------
-#
-# The views group checks that every conferring requirement reaches the inventory. That
-# is the direction where a row goes missing. This is the other one R-17-016 names, the
-# direction where a row is *added*: a specification the view grants the status and the
-# register never did. Conferral is the whole membership rule, so a row standing behind
-# no conferring requirement is the view legislating, which is exactly what a derived
-# view may not do. Rows only: the theorem table is targets, not specifications.
-
-$conferring = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' })
-$unconferred = @(foreach ($row in $cjRows) {
-    $cites = @([regex]::Matches($row, 'R-\d\d-\d+[a-z]?') | ForEach-Object { $_.Value })
-    if (-not @($cites | Where-Object { $_ -in $conferring }).Count) {
-        "row $((($row -split '\|')[1]).Trim()): $((($row -split '\|')[2]).Trim())"
-    }
-})
-Report 'crown-jewel row(s) no requirement confers:' $unconferred `
-       "every row cites one of the $($conferring.Count) requirements that confer the status"
 
 # --- a figure stated where no claim holds it ---------------------------------------
 #
