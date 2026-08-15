@@ -20,7 +20,8 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | ABI mode | **purecap only**: no hybrid, no plain-RV64 target anywhere | R-15-001, R-18-002 |
 | Atomics | `A` narrowed to **`Zaamo` + `Zabha`** | R-15-001, R-15-024 |
 | Scalar FP | **none**: V supplies all floating point, computed at VL=1 | R-15-001, R-15-039 |
-| Compressed | **none**: unique 4-byte-aligned decode | R-15-001, R-15-036 |
+| `C` extension | **excluded**: no variable-length, ambiguously-aligned encoding | R-15-001, R-15-036 |
+| Instruction encoding | **fixed-rate dictionary format** (§1.1), the platform's only fetch format; decode is a function of bundle contents and slot index | R-15-036a, R-15-036b |
 | Privilege | **Machine mode only**; privilege is the CHERI access-system-registers permission on the PCC, not a ring | R-15-003 |
 | Address space | **single physical, 36 bits wide**; no MMU, `satp` fixed Bare; the map is dense by obligation | R-15-002, R-15-002a, R-15-002b |
 | Memory model | **Ztso** (RVTSO), normatively in place of RVWMO | R-15-004, R-15-015 |
@@ -29,6 +30,29 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | Model | exactly **one** Sail model, parameterized by core class; exactly **one** capability encoding | R-15-005 |
 
 **Ztso is the specified model, and sequential consistency is not a pending change.** SC was evaluated and rejected on four platform-specific grounds, none of which has a hart-count or issue-width term: single-copy memory keeps the deviation from SC local to each hart's store buffer (R-15-087), so the rejection holds at any core count and gets *stronger* with width; §18 names it as a question worth revisiting, which is a question and not a deliverable (R-15-018). A curator implements Ztso.
+
+### 1.1 The instruction encoding
+
+Code is resident, fetched, and decoded in one fixed-rate **dictionary format**. It is a fetch container below the instruction level, not an extension: it allocates no opcode, adds no instruction, and changes no semantics.
+
+| Field | Reference value | Note | Governing |
+| --- | --- | --- | --- |
+| bundle | 128 bits | bundle-aligned, fixed latency, flat SRAM; a DSE parameter frozen with the profile | R-15-036a, R-15-036e |
+| header | 16 bits | one escape-start bit per slot; remaining bits reserved and **trapping** | R-15-036a, R-15-014 |
+| slots | 7 × 16 bits | each an index into the immutable dictionary, or part of an escape | R-15-036a |
+| escape | exactly 2 slots | one canonical 32-bit instruction verbatim; **may not straddle a bundle boundary** | R-15-036a, R-15-036b |
+| dictionary | ≤ 2^16 entries, realized size frozen | complete canonical instructions; indices above the realized size **trap** | R-15-036a, R-15-014 |
+
+**Four consequences a curator should not have to re-derive.**
+
+- **Decode is a function of (bundle, slot index), not of decode history.** Entering a bundle at slot *k* yields exactly what a linear decode yields from slot *k*, so mid-instruction reinterpretation has no representation rather than being argued away. There is no carried fragment, no alignment buffer, and no decoder state (R-15-036b). This is what the `C` exclusion was protecting, obtained more cheaply than `C` could have given it back.
+- **The proof obligation is bounded at the decoder.** The dictionary is a total `Fin N → Instr` into the already-admitted instruction type, so `∀ i, exec(dict i) ≡ exec(canonical i)` discharges by reflection over N constant entries and no obligation above the decoder moves (R-15-036c).
+- **Two obligations do move, and both are composition-time.** Control-flow targets are slot-aligned and escapes are bundle-contained, enforced by the encoder (R-15-036b); and constant-time balancing of secret-dependent arms is stated over **encoded bundle count** rather than instruction count, since equal instruction counts can differ in escape density (R-15-036f).
+- **The scope line is normative.** The encoder is composition-time only, the resident decoder is hardware, the encoding reaches nothing but immutable code, and no secret may be a composition-time input to an encoded image, so link-time specialization may not specialize on a confidential value (R-15-036g). The filesystem-compression exclusion (R-10-018) and the no-memory-path-cryptography rule (R-15-199) are untouched.
+
+**Density is a model, not a quotation.** At the reference instantiation encoded size per instruction is 36.6 − 18.3*p* bits for dictionary hit rate *p*: 60–69% of the canonical stream at *p* between 0.95 and 0.80, against the 70–75% `C` would give (R-15-036h). *p* is measured against the composed image, and the dictionary is selected from that measurement.
+
+**Two costs, booked.** §13's whole-image dead and duplication elimination (R-13-010a, R-13-010b) is partly **substitutive** with the encoding rather than additive and is measured composed, never multiplied; and it is ordered first, since a dictionary chosen against an unmerged image is chosen against the wrong histogram. The dictionary is a **permanent freeze-time commitment** of the same class as the capability format: a later change invalidates stored executable objects wholesale (R-15-036i).
 
 ## 2. Adopted extensions
 
@@ -177,7 +201,7 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 
 | Excluded | Ground | Governing |
 | --- | --- | --- |
-| `C` (compressed) | unique 4-byte decode for binary-level proofs; ~33–43% code size accepted | R-15-036 |
+| `C` (compressed), and a restricted `VerifiedOS-C` alike | unambiguous decode for binary-level proofs; the code-size cost is **recovered, not accepted**, by the §1.1 dictionary encoding, which is denser and deletes the ambiguity rather than mitigating it | R-15-036, R-15-036a |
 | `F` / `D` scalar FP, `f0`–`f31`, dynamic `frm` | all FP is vector; fixed-latency contract stated once | R-15-039, R-15-083 |
 | `vstart` element-restart state | no consumer: nothing on this machine resumes a vector instruction mid-element, so the element loop runs from zero in every vector instruction's Sail definition | R-15-039a |
 | `Zalrsc` | per-hart reservation register is hidden inter-instruction state (test 3); spurious SC failure (test 1); reservation-granule contention is a cross-hart channel | R-15-025 |
@@ -217,6 +241,8 @@ R-18-006 makes these part of the platform definition from first FPGA bring-up, n
 | Static-only prediction | backward-taken / forward-not-taken, a fixed function of encoding and displacement sign, **zero mutable predictor state**; no BHT, BTB, RAS, or dynamic direction/target/return predictor in any RTL | R-15-019 |
 | Predictor deletion is structural | discharged by the microarchitectural absence contract, **not** by RTL ⊑ Sail; nothing joins the `fence.t` flush set and no residual completeness obligation exists | R-15-020, R-15-021 |
 | Fetch discipline | run-ahead only down the statically determined path; the only run-ahead structure is the static-path fetch buffer | R-15-022 |
+| Instruction decode | one fetch format, the fixed-rate dictionary encoding (§1.1); a stateless decoder over a bundle and a slot index, with **no** alignment buffer, carried fragment, decompression table, or decoder state in any RTL. The dictionary is a ROM constant, so it joins no flush set and adds no admission-test case | R-15-036a, R-15-036b, R-15-036d |
+| Fetch cost unit | every bundle is charged the same fixed latency and decodes at most a fixed instruction count; a block's fetch term in §11 is its **bundle count** | R-15-036e |
 | Accepted cost | full pipeline-latency mispredict-equivalent penalties on forward conditional, indirect, and call/return dispatch, priced into WCET; the RAS is excluded despite its IPC value | R-15-023 |
 | Ztso realization | in-order issue plus a FIFO store buffer; the only reordering is store→later-load bypass. **TSO is a system property, so the discharge is three-part**: the FIFO (per core), single-copy memory whose bank arbiter is the order-determining point (per location), and the NoC/memory-controller obligation to preserve per-hart request order across banks, macros, and **device endpoints** (across locations), the last preferentially met by constraining the composition-time TDM schedule. The bring-up gate covers the whole path, not the buffer alone. **The buffer holds SRAM-space stores only**: a device-space store issues only once it has drained and completes at the endpoint's accept before retiring, keeping the `fence.t` constant a function of the class (R-15-218) and keeping SRAM-store→device-store inside TSO. *Drained* is **issued into the fabric**, so the core confers issue order and the fabric clause confers arrival, which is why descriptor-before-doorbell, whose observer is the DMA engine and not the issuing hart, needs both | R-15-015, R-15-015a, R-15-015b, R-15-016 |
 | Device grants are provisioned by latency class | the corollary of charging the accept to the issuing compartment: a bound is set by the slowest endpoint a grant can *reach*, so the attested devicetree partitions device authority by worst-case accept, one compartment holding only endpoints of the same order and a dominating slow endpoint (the eUICC's divided card clock) taking its own thin driver compartment. It narrows a grant rather than sharpening an analysis, so no mechanism, interface, ordering rule, or proof obligation moves; bounded by the divisor it spends, the split being taken only where the slow endpoint **dominates** the compartment's §11 bound | R-15-015c, R-15-015d |

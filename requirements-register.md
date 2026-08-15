@@ -382,8 +382,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the consumer-side TCB inventory names none of them.
 · Trace: CJ-COMPCERT · [§5](verification-maximal-os.md#r-05-034)
 
-**R-05-035** IS: Every instruction has exactly one 4-byte-aligned decoding, so binary-level proofs discharge no overlapping-stream interpretation.
-· Accept: the §15 profile excludes the C extension; the TAL's decode relation is a function.
+**R-05-035** IS: Every instruction has exactly one decoding, anchored to the fixed slot grid of a bundle-aligned fetch unit and independent of where decoding started, so binary-level proofs discharge no overlapping-stream interpretation and no reachable-entry-point argument.
+· Accept: the §15 profile excludes the C extension (R-15-036) and encodes code in the fixed-rate dictionary format (R-15-036a); the TAL's decode relation is a function of bundle contents and slot index (R-15-036b).
 · Trace: CJ-SAIL · [§5](verification-maximal-os.md#r-05-035); constrains R-15-*
 
 ### 5.7 The three checker moves
@@ -1923,7 +1923,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET, CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-019)
 
 **R-10-020** IS: Build-time compression buys *stored* bytes, never *resident* ones: every live byte is a capability-delegated SRAM byte with no swap, no overcommit, and no demand paging.
-· Accept: it is not a capacity lever and recovers none of the C extension's code size.
+· Accept: it is not a capacity lever. The resident-code axis is a separate question with a separate answer, settled by the dictionary encoding (R-15-036a), which is the *resident* form rather than a stored one and so does touch the ceiling this requirement says artifact compression does not.
 · Trace: CJ-MEMPLAN · [§10](verification-maximal-os.md#r-10-020)
 
 **R-10-021** IS: Replication, erasure coding, tiering, the bucket allocator with copying garbage collector, and the host-side FTL server over raw NAND sit below the integrity line as contained block services trusted only for availability.
@@ -2627,6 +2627,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the source-correspondence theorem and CHERI-TAL derivation cover the stripped image itself; every retained object has a reachability root; and stripping changes no rooted symbol, capability edge, interface, or proof obligation.
 · Trace: CJ-FORMAT, CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-010a)
 
+**R-13-010b** MUST: Package construction also performs whole-image **duplication** elimination over the reachable closure, available at a scale conventional systems cannot reach because whole-system static composition knows every compartment's closure at one time: identical-function merging across the composed roster, outlining and tail merging of recurring sequences, link-time specialization of call sites the frozen graph fixes, and one shared service compartment in place of a library statically linked into each consumer. Immutable code-and-rodata objects are mapped into multiple compartments through capabilities rather than copied, requiring no virtual memory and no coherence.
+· Accept: authority is unchanged, each compartment still receiving only its declared sentry entries and a shared object conferring execute authority over the object and never over another holder's state; the source-correspondence theorem and CHERI-TAL derivation cover the **merged** image, and construction is rejected if a merge changes a rooted symbol, capability edge, interface, or proof obligation.
+· Trace: CJ-FORMAT, CJ-TAL-SOUND, CJ-MEMPLAN · [§13](verification-maximal-os.md#r-13-010b)
+
+**R-13-010c** MUST NOT: Relocations, symbols, debug data, unwind metadata, and ELF-style container structure never occupy execution SRAM, and neither do source closures, derivations, or proof artifacts, which are resident in the authenticated store (§10) and consumed at admission rather than at run time.
+· Accept: the resident image is code-and-rodata plus the capability-wiring table's product, nothing else; the largest single footprint reduction in R-13-010b is this removal rather than a merge.
+· Trace: CJ-FORMAT, CJ-MEMPLAN · [§13](verification-maximal-os.md#r-13-010b)
+
+**R-13-010d** MUST NOT: Link-time specialization may not specialize on a confidential value.
+· Accept: the §15 dictionary encoding makes a specialized image's encoded length a function of what it was specialized on, so this is a scope condition of R-15-036g rather than a style preference; R-15-202's key containment and §13's admission rules already keep secrets out of images, and this states the consequence for the specialization pass.
+· Trace: CJ-NI, CJ-LEAK · [§13](verification-maximal-os.md#r-13-010b)
+
+**R-13-010e** IS: The duplication pass is **partly substitutive** with the §15 dictionary encoding rather than additive, each recurring sequence it removes also removing instances the dictionary would have covered.
+· Accept: the two are measured composed and never multiplied, and this pass is ordered **first**, a dictionary selected against an unmerged image being selected against the wrong histogram (R-15-036i).
+· Trace: CJ-MEMPLAN, CJ-FORMAT · [§13](verification-maximal-os.md#r-13-010b)
+
 ### 13.2 Assurance tiers
 
 **R-13-011** IS: There are exactly three assurance tiers. **Tier 0** (TCB components): full functional refinement at binary level, robust preservation of compartment isolation, and the non-interference theorem over the full component graph, admitted by CIC proof terms mostly checked at release time. **Tier 1** (servers crossing confidentiality boundaries): binary-level policy proofs (memory/ABI conformance, handler termination, information-flow theorems from the IDL annotations, and constant-time for secret-labeled paths), admitted by CHERI-TAL taint typing where structured. **Tier 2** (apps and contained code): a mandatory binary-level memory-safety certificate, admitted by a typing derivation the on-device type-checker checks.
@@ -2805,7 +2821,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 15.1 ISA baseline
 
-**R-15-001** IS: The ISA is RV64IMV + CHERI: base IM_Zicsr, `A` narrowed to `Zaamo`+`Zabha`, no scalar `F`/`D`, V supplying all floating point, no C/compressed, purecap-only with no hybrid mode.
+**R-15-001** IS: The ISA is RV64IMV + CHERI: base IM_Zicsr, `A` narrowed to `Zaamo`+`Zabha`, no scalar `F`/`D`, V supplying all floating point, no C extension (code density is carried instead by the fixed-rate dictionary encoding, R-15-036a, which is a fetch format and not an extension), purecap-only with no hybrid mode.
 · Accept: the frozen profile (the artifact required by R-15-001a) enumerates exactly this extension set; any encoding outside it traps (R-15-014).
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-001)
 
@@ -3029,9 +3045,45 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: one tag plane exists in the SRAM word, not two (R-15-165); the deletion recovers one bit per granule, its DECTED coverage, a Sail invariant, an RTL ⊑ Sail obligation, and a DSE parameter.
 · Trace: CJ-RTL-SAIL, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-035)
 
-**R-15-036** MUST NOT: The C (compressed) extension is excluded; the accepted cost is ~33–43% code size (RVC's 25–30% saving inverted).
-· Accept: unique 4-byte-aligned decode, no overlapping 16-bit-aligned decodings, no decode ambiguity for binary-level proofs (R-05-035).
+**R-15-036** MUST NOT: The C (compressed) extension is excluded, and a restricted `VerifiedOS-C` profile with it; the code-size cost is no longer accepted but recovered by the dictionary encoding (R-15-036a), which is denser and deletes the ambiguity rather than mitigating it.
+· Accept: no overlapping 16-bit-aligned decodings, no decode ambiguity for binary-level proofs (R-05-035), and no variable-length fetch, mid-instruction reinterpretation, or alignment-fragment machinery anywhere in the front end.
 · Trace: CJ-SAIL, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-036)
+
+**R-15-036a** MUST: Code is resident, fetched, and decoded in one fixed-rate **dictionary encoding**, the platform's only instruction-fetch format: a fixed-width bundle-aligned fetch unit carrying a fixed-width header and a fixed number of fixed-width slots, each slot either an index into an immutable ISA-fixed dictionary of complete canonical instructions or part of a two-slot escape carrying one canonical 32-bit instruction verbatim, with one escape-start bit per slot in the header. Reference instantiation: a 128-bit bundle, a 16-bit header, seven 16-bit slots, widths frozen with the profile as a DSE parameter.
+· Accept: no mode bit, no second decoder path, no per-object format attribute; no adaptive coding, history, or runtime-populated table; reserved header bits and indices above the realized dictionary size trap under R-15-014.
+· Trace: CJ-SAIL, CJ-FORMAT · [§15](verification-maximal-os.md#r-15-036a)
+
+**R-15-036b** IS: Decode is a pure function of a bundle's contents and a slot index, so mid-instruction reinterpretation has no representation: entering at slot *k* yields exactly what a linear decode of that bundle yields from slot *k*, slot boundaries and escape marks being properties of the bundle rather than of decode history. This is strictly stronger than the entry-point argument RVC would require.
+· Accept: no carried fragment between bundles, no alignment buffer, no decoder state of any kind; two composition-time placement rules hold it, an escape never straddling a bundle boundary (the encoder padding with a reserved slot) and every control-flow target being slot-aligned, so the architectural PC stays a byte address at the reference slot width and no capability-bounds, PC-arithmetic, or `MEPCC` rule changes.
+· Trace: CJ-SAIL, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-036b)
+
+**R-15-036c** IS: The obligation is a finite enumeration bounded at the decoder: the dictionary is a total function `Fin N → Instr` whose codomain is exactly the admitted instruction type, so `∀ i, exec(dict i) ≡ exec(canonical i)` discharges by reflection over N constant entries and nothing above the decoder moves.
+· Accept: CHERI-TAL, Cerise, CompCert, constant-time, and non-interference obligations are stated over unchanged semantics; no expansion function performing field extraction, sign extension, immediate scaling, or register remapping enters the model, and no RVC reserved, hint, or illegal-immediate case is inherited.
+· Trace: CJ-SAIL, CJ-RTL-SAIL, CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-036c)
+
+**R-15-036d** IS: The encoding clears all five gates of the ISA-amendment test rather than being excused from it: it wins on code size and not cycles; its dictionary is selected from the composed image's own instruction histogram (R-15-031a's discipline in its strongest instance); it adds no architectural state, flush-set member, admission-test case, or mutable microarchitectural structure, the dictionary being a ROM constant and the decoder stateless; it consumes no opcode space, being a container below the instruction level, so no collision and no re-pin obligation arises; and its cost is booked as the deletion it is.
+· Accept: the amendment class recorded as closed in [Evaluated Architectural Alternatives](architectural-alternatives.md) reopens for this item and resolves in favour, on the gate as written.
+· Trace: CJ-SAIL, CJ-FORMAT · [§15](verification-maximal-os.md#r-15-036d)
+
+**R-15-036e** IS: Fetch timing is fixed per bundle: same latency, a fixed maximum instruction count, flat SRAM, no I-cache, no predictor, no decompression table, no data-dependent term. What changes in §11's inputs is a unit, a block's fetch cost becoming its bundle count rather than its instruction count.
+· Accept: bundle count is a static property of the frozen encoding of a frozen image; no new WCET mechanism or variance term appears.
+· Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-036e)
+
+**R-15-036f** MUST: Constant-time balancing of secret-dependent arms is an obligation over **encoded bundle count**, not instruction count, two arms of equal instruction count being able to differ in escape density.
+· Accept: discharged statically at composition, the encoding being deterministic and the layout frozen; a new case for the §5 constant-time checker, not a new mechanism, and no runtime behavior varies.
+· Trace: CJ-CT-SOUND, CJ-NI · [§15](verification-maximal-os.md#r-15-036f)
+
+**R-15-036g** MUST: The encoding's scope is exactly the immutable, freeze-committed code object and reaches no data, heap, stack, IPC buffer, filesystem extent, or memory-path granule; no compressor exists on any runtime path, the encoder being a composition-time transform and the resident artifact a hardware decoder in the fetch stage; and no secret may be a compile-time or composition-time input to an encoded image, so link-time specialization MUST NOT specialize on a confidential value.
+· Accept: the compress-then-encrypt ratio oracle (R-10-018) needs attacker-influenced plaintext, a secret in the same compression context, and an observable re-provokable length, and none of the three exists here: a decoder consumes a length rather than producing one, W^X with no on-device codegen (§14) leaves no path to create a compressor, and the encoded image's hash is already public in the reference integrity manifest (§9, §10). R-10-018 and R-15-199 stand unchanged; R-15-202's key containment becomes load-bearing for this requirement.
+· Trace: CJ-NI, CJ-LEAK, CJ-CRYPTO-SPEC · [§15](verification-maximal-os.md#r-15-036g)
+
+**R-15-036h** IS: The density claim is a model with a measured input: for slot width *w*, *k* slots and an *h*-bit header per bundle, and dictionary hit rate *p*, encoded size per instruction is (*w* + *h*/*k*)·*p* + (2*w* + 2*h*/*k*)·(1 − *p*) bits, which at the reference instantiation is 36.6 − 18.3*p*, i.e. 60% to 69% of the canonical stream at hit rates of 0.95 down to 0.80, against the 70–75% RVC would give.
+· Accept: *p* is measured against the composed image and the dictionary is selected from that measurement, never quoted from the general code-compression literature.
+· Trace: CJ-FORMAT, CJ-MEMPLAN · [§15](verification-maximal-os.md#r-15-036h)
+
+**R-15-036i** IS: Two costs are booked. The §10/§13 duplication-removal levers are **partly substitutive** with the encoding rather than additive, each recurring sequence they remove also removing instances the dictionary would have covered, so the two are measured composed and never multiplied; and they are nonetheless ordered first, a dictionary selected against an unstripped image being selected against the wrong histogram. The dictionary is a **permanent freeze-time commitment** of the same class as the capability format (R-15-007d): every stored executable object is in this encoding, so a later change invalidates stored code wholesale rather than costing a recompile.
+· Accept: selection happens after the stripping levers land and against the composed roster; the realized size is chosen with headroom and unallocated indices trap under R-15-014.
+· Trace: CJ-MEMPLAN, CJ-FORMAT · [§15](verification-maximal-os.md#r-15-036i)
 
 **R-15-037** MUST NOT: `Zkr` (entropy-source CSR) is excluded: the platform has exactly one entropy root, the RoT TRNG through the verified DRBG.
 · Accept: no second entropy root exists in hardware or software.
@@ -4858,7 +4910,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1113 requirements. §19 is non-normative and yields none. Counts include the 191 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1126 requirements. §19 is non-normative and yields none. Counts include the 204 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4874,9 +4926,9 @@ All eighteen normative sections are extracted, at 1113 requirements. §19 is non
 | **§10 Storage & State** | **extracted** | **41** |
 | **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
-| **§13 Packaging & Supply Chain** | **extracted** | **30** |
+| **§13 Packaging & Supply Chain** | **extracted** | **34** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **302** |
+| **§15 Hardware Platform** | **extracted** | **311** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **105** |
 | **§18 Realization** | **extracted** | **45** |
