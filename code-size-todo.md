@@ -20,7 +20,7 @@ The group's decade of work sorts into classes of redundancy. The dictionary coll
 | Class | Zc instrument | Status under R-15-036a |
 | --- | --- | --- |
 | **Per-instruction** — a small set of opcode+operand patterns dominates the histogram | `Zca`, `Zcb` | **Subsumed, and strictly better.** A dictionary index *is* a 16-bit encoding of an existing instruction, selected by measurement rather than by committee, allocating no opcode and creating no decode ambiguity |
-| **Cross-reference** — call targets and address materialization | `Zcmt` | **Not collected, and adversarial to the dictionary**, a PC-relative displacement being a distinct entry per site (R-15-036k). Its insight is imported at R-15-036l; its mechanism is rejected at item 2 |
+| **Cross-reference** — call targets and address materialization | `Zcmt` | **Not collected, and adversarial to the dictionary**, a PC-relative displacement being a distinct entry per site (R-15-036k). Its insight is imported at R-15-036l; its mechanism is normatively rejected at R-15-036q |
 
 The first row is the load-bearing one and it is a **free confirmation the profile should collect**, of the same class as the matrix's two: `Zcb`'s entire premise is that a handful of already-existing instructions dominates emitted code. That is R-15-036h's premise, reached independently, measured on a real corpus, and shipped. R-15-036h currently rests the density claim on an unattributed hit rate; a citation costs one clause.
 
@@ -35,17 +35,7 @@ An item belongs here iff it clears all four:
 
 ---
 
-## 1. [NO] `Zcmt` table jump — reject the mechanism, keep the insight
-
-- [ ] **Record the rejection, since the profile currently rejects it only by accident of encoding space.**
-
-  A table jump puts a **runtime memory read in the branch path** with an address derived from a table, on a machine whose forward-edge CFI is sentry-based (R-15-008) and which is explicit that a sentry deliberately does *not* decide target membership (R-15-072). The JVT is a CSR: new architectural state, a `fence.t` flush-set member (R-15-062), and a context-switch line item. The table read is also an address-derived access in the fetch path, adjacent to the address-timing channel R-15-085a fences off.
-
-  The strongest evidence is already in this repo: [cheri-version-matrix.md](cheri-version-matrix.md) §9.1 records that at v0.7.1–v0.8.3 **`Zcmt` checking was moved to PCC bounds in legacy mode** — the standards line had to invent a bespoke authority rule for the JVT fetch the moment capabilities arrived. That is the mechanism failing to compose with CHERI upstream, independently.
-
-  The insight survives and is booked at R-15-036l: *index the target, do not displace to it*. On this platform it reduces to *use composition-time absolute targets*, which needs no table.
-
-## 2. [YES] The measurement instrument, which the profile owes six times over
+## 1. [YES] The measurement instrument, which the profile owes six times over
 
 - [ ] **Name a corpus, a tool, and a threshold.**
 
@@ -73,8 +63,6 @@ An item belongs here iff it clears all four:
 ---
 
 ## What the list says
-
-**One rejection worth writing down**, because the profile currently gets the right answer on `Zcmt` for a reason (encoding-space collision with `C.LY`/`C.SY`) that does not apply to a machine with no `C`.
 
 **One free confirmation.** `Zcb` is the dictionary's premise, reached independently and measured on a real corpus, and R-15-036h should cite it.
 

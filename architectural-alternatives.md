@@ -291,6 +291,16 @@ Non-normative as to the three instruction candidates; the encoding entry above r
 
 ---
 
+## `Zcmt` table jumps: keep the indexed-target insight, reject the JVT mechanism
+
+`Zcmt` attacks the dictionary's worst operand class: a PC-relative call displacement differs at every site, while a small target index repeats. Its `cm.jt`/`cm.jalt` realization is nevertheless the wrong mechanism for this profile independently of the purecap `C.LY`/`C.SY` encoding collision. A jump-vector table puts a runtime, address-derived memory read in the branch path; the JVT base CSR adds architectural state, a context-switch rule, and a candidate member of `fence.t`'s enumerated flush set; and a capability machine must introduce an authority rule for the table read. The CHERI standards lineage exposed that last cost when legacy-mode `Zcmt` checking moved to PCC bounds.
+
+The index insight survives in R-15-036l without a runtime index: the position-fixed image already knows each target at composition, so a measured direct absolute form makes every call to one callee share one dictionary entry. It remains one canonical instruction and adds no table, CSR, memory read, target-membership structure, or flush obligation. Sentry authority and the typed callee set remain the only forward-edge CFI instruments.
+
+**Disposition:** reject `cm.jt`, `cm.jalt`, and the JVT mechanism at R-15-036q; retain only the composition-time absolute-target candidate at R-15-036l. The rejection is structural, not an encoding-space accident, and it creates no separately scored performance loss against the conventional RVA23/RVC baseline used by [performance-estimates.md](performance-estimates.md), which does not supply a JVT call path.
+
+---
+
 ## Asynchronous (clockless) logic: rejected at the timing axiom; data-dependent latency is the channel the profile is built to forbid
 
 The proposal is to implement the datapath as **self-timed / clockless** logic (delay-insensitive or bundled-data asynchronous circuits with handshake-driven completion) rather than a globally-clocked synchronous pipeline, trading worst-case for **average-case** completion and shedding the clock-distribution network, with lower power and electromagnetic emission as the draw.
