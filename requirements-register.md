@@ -146,6 +146,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: for each defended entry, the mechanism R-03-001 requires it to name is read against the tier definition, and no entry is asserted above the tier of its own mechanism; the containment mechanism most entries share reads as evidence tier for as long as R-18-010's unbounded rung is open.
 · Trace: CJ-T, CJ-CERISE · [§3](verification-maximal-os.md#r-03-006)
 
+**R-03-007** MUST: An adversary whose objective is to make the device stop is in scope, and the threat model states the disposition in both directions rather than omitting the objective: denial attempted *through* a boundary is defended, discharged by the `P-5` row of every boundary the coverage matrix enumerates, with forced-sweep denial priced to the aggressor (R-08-008) and reset-loop abuse bounded to downtime (R-16-007).
+· Accept: the defended half is decidable against the matrix rather than against this sentence, every `P-5` cell being present and resting on a requirement per R-17-001b; a §3 that obliges availability at every boundary while declining to say whether a denial adversary is in scope at all is the defect this closes.
+· Trace: CJ-T · [§3](verification-maximal-os.md#r-03-007)
+
+**R-03-008** IS: Denial achieved by provoking the platform's own refusals is residual, and is residual as a *composition* rather than as any single mechanism: thermal trip, watchdog reset, containment of an attacked surface, admission refusal, the sealed cutoffs, and the emergency path's coverage floor are each individually correct and individually an availability cost, and their conjunction is the fail-closed seam register (R-17-030a).
+· Accept: this residual maps to a §17 entry as R-03-004's do, and the entry it maps to is a register rather than a single item, because the object being booked is the conjunction; a member booked in its own section and absent from that register is a review-gate finding against R-17-030a.
+· Trace: CJ-T · [§3](verification-maximal-os.md#r-03-008)
+
+**R-03-009** IS: Neither list claims a device-level availability guarantee. The invariant held across every fail-closed path is that none of them costs confidentiality, integrity, or authority, a refusal always being the safe direction; the platform does not promise that the device stays up, and the places where it deliberately may not are enumerated rather than left to be assembled.
+· Accept: the invariant is checkable member by member against R-17-030b through R-17-030k, each of which must spend availability alone; a member whose refusal costs one of the other three properties belongs in R-03-004's residual set instead, and the enumeration is what makes that decidable.
+· Trace: CJ-T, CJ-NI · [§3](verification-maximal-os.md#r-03-009)
+
 ---
 
 ## §4. Organizing Principle
@@ -4288,7 +4300,61 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: discharged by R-12-045 through R-12-047.
 · Trace: CJ-FORMAT · [§17](verification-maximal-os.md#r-17-030)
 
-### 17.6 Admission and tooling seams
+### 17.6 The fail-closed seam register
+
+**R-17-030a** MUST: The fail-closed seams are a named register with owners, on R-17-017's rule applied to the other axis: a refusal admitted alone is not admitted until its meetings are, because each refusal is booked honestly in its own section and the position their conjunction describes is stated in none of them.
+· Accept: every mechanism whose failure action is to stop, refuse, erase, or cut appears below or is a review-gate finding; the composition is owed here rather than in the coverage matrix, which decomposes by boundary and cannot see a device silenced by mechanisms each behaving correctly at its own.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-030a)
+
+**R-17-030b** IS: Fail-closed seam **thermal trip ⋈ the work in progress**: critical temperature triggers a rare attested global transition exempting nothing that is running (R-15-193), the correct trade against continuous throttling's data-dependent channel and nonetheless a denial the platform performs on itself.
+· Accept: reachable by an adversary who can raise die temperature and by an ordinary hot enclosure, so it is not conditioned on an attacker being present.
+· Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-030b)
+
+**R-17-030c** IS: Fail-closed seam **watchdog bite ⋈ restart cadence**: bite equals reset and is safe because state is transactional (R-16-005), with boot counting bounding the loop into a minimal recovery state so the worst case is bounded downtime (R-16-007).
+· Accept: the one member already composed with its own abuse case before this register existed, and the shape the others are held to.
+· Trace: CJ-DEVTREE · [§17](verification-maximal-os.md#r-17-030c)
+
+**R-17-030d** IS: Fail-closed seam **containment ⋈ the attacked surface's duty cycle**: containment is fast and monotone while full remediation stays proof-gated, so the surface runs degraded between the two and that window is budgeted (R-16-009, R-17-035); what is budgeted is one window, and repeated forcing is visible only as windows per unit time.
+· Accept: an adversary who can force the degraded subset on demand holds durable partial denial under cover of containment having worked, which R-16-009's per-incident budget cannot express; the obligation that makes it expressible is R-17-030m.
+· Trace: CJ-CERISE · [§17](verification-maximal-os.md#r-17-030d)
+
+**R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022).
+· Accept: the one member whose denial cannot reach a running unit, named so that the register is not read as uniformly a field risk.
+· Trace: CJ-TAL-SOUND · [§17](verification-maximal-os.md#r-17-030e)
+
+**R-17-030f** IS: Fail-closed seam **the sealed cutoffs ⋈ emergency calling**: a thrown microphone switch yields a connected but mute emergency call and a thrown radio switch yields none at all (R-12-054, R-15-145), deliberately not overridden.
+· Accept: a software override for the emergency case is a software override, so it would hand every compromised stack the same lever; the refusal is retained and the cost is stated rather than narrowed.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-030f)
+
+**R-17-030g** IS: Fail-closed seam **the coverage floor ⋈ emergency calling**: emergency service runs over 5G-SA or 6G and nothing else, the legacy generations a fallback would reach being absent from the silicon rather than refused in software (R-12-041, R-12-050), so outside that coverage the device places no emergency call at all.
+· Accept: the sharpest member, because unlike a thrown switch it is a denial the user has not chosen and cannot see coming; R-12-050 books the coverage limit, and what this entry adds is that it composes with R-17-030b, R-17-030c, and R-17-030f into one life-safety case rather than three separate costs.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-030g)
+
+**R-17-030h** IS: Fail-closed seam **duress erase ⋈ accidental entry**: the duress credential crypto-erases rather than unlocking, protecting future recoverability only and irreversible on the wrong side of a human protocol this design does not model (R-17-054).
+· Accept: booked as a countermeasure rather than a guarantee, and carried here because irreversibility is an availability cost the user pays without an adversary needing to be present.
+· Trace: CJ-CRYPTO-SPEC · [§17](verification-maximal-os.md#r-17-030h)
+
+**R-17-030i** IS: Fail-closed seam **the untrusted compositor and driver ⋈ the consent path**: a compromised compositor's best play is premature revocation and a hostile touch driver's is to fight the ownership transition (R-12-076, R-12-082-2, R-17-010), so both reach denial of the prompt and neither reaches a forged or captured grant.
+· Accept: the bound is deliberate and identical in both cases, and it is still a denial, which is what makes an authority the user cannot obtain indistinguishable at the surface from one the platform refused.
+· Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-030i)
+
+**R-17-030j** IS: Fail-closed seam **the radio stack crash ⋈ connectivity**: a crash costs connectivity until restart and never platform integrity, the stack being wholly non-TCB (R-16-002).
+· Accept: contained exactly as intended, and the containment is what makes the restart the user's whole experience of it.
+· Trace: CJ-CERISE · [§17](verification-maximal-os.md#r-17-030j)
+
+**R-17-030k** IS: Fail-closed seam **the background floor ⋈ degradation**: a background origin holds on the order of one percent of one core, the foreground fast and the background very nearly stopped (R-17-005).
+· Accept: not itself a fail-closed response, and named here because it is the floor the rest of this register degrades toward, so a composition read against a work-conserving machine's idea of *degraded* reads the whole set too gently.
+· Trace: CJ-WCET · [§17](verification-maximal-os.md#r-17-030k)
+
+**R-17-030l** IS: Composed, the members above describe a device an adversary able to provoke faults, thermal events, or crash-restart loops can degrade or silence, whose refusals are individually correct and jointly a life-safety case: a user cannot place an emergency call because the platform fail-stopped, or is outside the only coverage its emergency path admits, or has a sealed switch closed that no software may reopen.
+· Accept: three distinct causes for one outcome, which booking the members separately hides; each is retained on its own terms, and what changes is that the composition is stated where the claim is read (R-03-008) rather than assembled by a reader from §12, §15, §16, and three entries here. No mechanism is proposed against it, every candidate being the wrong trade in this design's own currency: a software override deletes the property the cutoff exists for, a legacy emergency fallback reintroduces the attach surface R-12-041 removed from the silicon, and continuing through a thermal event reopens the channel R-15-193 deleted.
+· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-030l)
+
+**R-17-030m** MUST: The degraded-subset *rate* is budgeted, not only the individual window: entries into containment are recorded as an attested, countable event class rather than absorbed as containment succeeding, so repeated forcing is observable in a quantity the per-incident budget does not carry.
+· Accept: R-16-009 budgets one window and R-17-035 books its cost, and neither expresses windows per unit time; without this, an attacker holding a surface degraded indefinitely is reported by the platform as a mechanism working correctly, once per window, forever. The record is a §16 event class and adds no trusted component, the sentinel already driving the attested transition it counts.
+· Trace: CJ-DEVTREE, CJ-WCET · [§17](verification-maximal-os.md#r-17-030m)
+
+### 17.7 Admission and tooling seams
 
 **R-17-031** IS: The compilation ⋈ robust-safety seam is closed at a price: the robust-preservation theorem is a heavier obligation than plain compiler correctness.
 · Accept: discharged by R-05-024.
@@ -4370,7 +4436,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: both lists are stated rather than summarized.
 · Trace: CJ-SAIL · [§17](verification-maximal-os.md#r-17-048)
 
-### 17.7 Crypto, regulatory, and physical ceilings
+### 17.8 Crypto, regulatory, and physical ceilings
 
 **R-17-048a** IS: Retiring the RVY re-pin (R-15-007) spends **oracles rather than a badge**: `sail-cheri-riscv` becomes a model this platform parameterizes and maintains rather than one it inherits, and the CHERI half of the differential-testing surface (Spike, QEMU, and the CHERI test suites) degrades in proportion to the parameterization rather than all at once. What is not spent is the algebra: the Cambridge monotonicity, provenance, and non-forgeability results are statements about it, and they are inherited under R-15-007a.
 · Accept: booked as an evidence loss rather than as trust growth, nothing joining the trusted set. The instrument spent is the one that reports spec-versus-intent divergence, which no proof covers (R-17-016), so the compensating obligations are named rather than assumed: the representation-correctness proof (R-15-007a), the enumerated permission lattice (R-15-007b), and the bounds-precision cost carried by the static memory plan (R-15-007c). The rule the case establishes for any later amendment is that conformance is worth what its oracles are worth, so the number of amendments to the frozen dialect is itself a quantity to keep small.
@@ -4472,7 +4538,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no requirement claims that the design-to-mask half reaches the fab, and none states a mode above *evidence* for the mask-to-die arrow; a claim of either is a review-gate finding.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-063a)
 
-### 17.8 The composition obligation
+### 17.9 The composition obligation
 
 **R-17-064** IS: The residual the whole list rolls up into is the composition meta-lemma: that the capability-safety substrate and the seam lemmas, transported down the refinement tower, entail T.
 · Accept: it is the single largest verification deliverable and exists for no system of this scope; the single-prover discipline makes it literal proof composition rather than cross-tool glue, which is what makes it tractable, not what makes it done.
@@ -4680,13 +4746,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1077 requirements. §19 is non-normative and yields none. Counts include the 158 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1093 requirements. §19 is non-normative and yields none. Counts include the 171 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
 | **§1 Goals** | **extracted** | **8** |
 | **§2 Non-Goals** | **extracted** | **7** |
-| **§3 Threat Model** | **extracted** | **6** |
+| **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **12** |
 | **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
@@ -4700,7 +4766,7 @@ All eighteen normative sections are extracted, at 1077 requirements. §19 is non
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **289** |
 | **§16 Reliability** | **extracted** | **28** |
-| **§17 Residual Risks** | **extracted** | **87** |
+| **§17 Residual Risks** | **extracted** | **100** |
 | **§18 Realization** | **extracted** | **45** |
 
 §19 is non-normative and yields no requirements.

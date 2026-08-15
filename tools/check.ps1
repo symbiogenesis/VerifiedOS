@@ -449,6 +449,7 @@ $q = [ordered]@{
     'cj-theorems'   = @($cj | Where-Object { $_ -match '^\| `CJ-[A-Z-]+` \|' }).Count
     'cj-conferring' = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' }).Count
     'seams'         = @($body.Keys | Where-Object { $body[$_] -match ' Seam: \*\*' }).Count
+    'fc-seams'      = @($body.Keys | Where-Object { $body[$_] -match 'Fail-closed seam \*\*' }).Count
     'views'         = $views.Count
     'boundaries'    = $cmBounds.Count
     'properties'    = $cmProps.Count
@@ -480,6 +481,9 @@ $claims = @(
     @{ File = 'crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=the )[\w-]+(?= theorem targets above cannot start)' }
     @{ File = 'crown-jewels.md'; Q = 'cj-conferring'; Style = 'words';  Pattern = '(?<=There are )[\w-]+(?= such entries)' }
 
+    # the prose states the size of each seam register it carries
+    @{ File = 'verification-maximal-os.md'; Q = 'fc-seams'; Style = 'words'; Pattern = '[\w-]+(?= fail-closed seams are named with owners)' }
+
     # the coverage matrix states the shape of its own product
     @{ File = 'coverage-matrix.md'; Q = 'boundaries'; Style = 'words'; Pattern = '(?<=below are )[\w-]+(?= boundaries)' }
     @{ File = 'coverage-matrix.md'; Q = 'properties'; Style = 'words'; Pattern = '(?<=boundaries and )[\w-]+(?= properties)' }
@@ -499,6 +503,7 @@ $claims = @(
     @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '(?<=register and the )[\w-]+(?= derived views)' }
     @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= derived views and `tools/check\.ps1`)' }
     @{ File = 'critique.md'; Q = 'seams';         Style = 'words';  Pattern = '[\w-]+(?= hardware seams are named with owners)' }
+    @{ File = 'critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '[\w-]+(?= fail-closed seams, each)' }
     @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown-jewel specifications are named)' }
     @{ File = 'critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '[\w-]+(?= theorem targets are named)' }
     @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)' }
