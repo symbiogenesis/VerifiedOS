@@ -50,6 +50,19 @@ Once it exists every C-path component below compiles straight to purecap RV64IMV
 **No purecap CertiCoq GC is on this critical path**, because the on-device lowering is GC-free (above), CertiCoq's collector is only ever exercised host-side on the stock Wasm engine, so it never has to be ported to purecap; the discipline *removes* a priority-zero deliverable rather than adding one.
 The arena-extraction route that targets Rust (MetaCoq→Rust, §8) instead rides the certifying Rust→RV64+CHERI compiler, itself already priority zero in the spec (§18).
 
+### The profile-freeze measurement instrument
+
+The profile's code-size choices depend on generated artifacts that do not exist before bring-up, so their common measurement instrument is built as part of this plan rather than tracked as an open import question.
+It is one deliverable with two milestones:
+
+1. **M0 defines the measurement contract with the profile.**
+   Name and version the freeze corpus, its generated-source inputs, the composition recipe, the admitted region classes, and the acceptance threshold for every choice; define the emitter-provenance schema that labels operand classes before assembly; and establish one report format that records the realized dictionary, bytes, and Sail-model worst-case cycles.
+   The corpus includes the composed base image; generated Narcissus UPER RRC and IEI/TLV codecs; generated MMIO accessors; and the generated prologues, epilogues, calls, and global-address materializations in that image.
+2. **M1 builds and wires the instrument into the functional CHERI-CompCert backend.**
+   Add an ELF/link-map/provenance analyzer under `tools/`, make the backend emit the operand-class and region-class sidecars it consumes, and take cycle deltas from §1's Sail timing table rather than host timing.
+   Run the report in this fixed order: compose and merge first (R-15-036i); select and report the dictionary with hit rate stratified by operand class (R-15-036h, R-15-036k); measure outlining and tail merging as a bytes-and-worst-case-cycles pair per admitted region class (R-15-036o, R-15-036p); then measure PC-relative versus composition-time-absolute call/address forms (R-15-036l), the single-check multi-register save/restore decision (R-15-036n), `bfext`/`bfins` forms (R-15-067d), and the indexed load/store scale immediate (R-15-007g).
+   Publish the corpus manifest, tool version, thresholds, per-extension deltas, and realized choices with the profile freeze; CI rejects a freeze whose report omits a required corpus member, provenance stratum, region class, byte column, or worst-case-cycle column.
+
 ### Explicit scope cut (what this plan deliberately does **not** build yet)
 
 Per the mandate to produce a fast golden model rather than the optimized variants, the following §5/§6/§18 workstreams are **out of scope for bring-up** and are named here only so their absence is honest:
@@ -314,9 +327,10 @@ The **riscv-formal/rvfi** BMC bring-up gate (on the generated SystemVerilog), th
 Bottom-up, each milestone runnable against the prior one:
 
 1. **M0, Hardware reference.**
-   Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green.
+  Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green. Define the profile-freeze measurement contract (§0): versioned corpus manifest, emitter-provenance schema, report schema, admitted region classes, and per-choice acceptance thresholds.
 2. **M1, Toolchain spine, incl. the CHERI-CompCert prerequisite.**
    Build the *functional* CHERI-RISC-V CompCert backend **first** (no purecap CertiCoq GC is needed, the on-device path is GC-free, §0), then bring up both roles, the host-side **CertiCoq → Wasm** oracle and the **GC-free on-device lowering** (CompCert-C/VST through CHERI-CompCert; arena extraction via MetaCoq→Rust onto the Rust→CHERI compiler for the allocation-light components), producing runnable purecap artifacts from a trivial Gallina program on the M0 emulator.
+    Build the profile-freeze analyzer and backend provenance outputs (§0), then publish its ordered dictionary, outlining, operand-form, bitfield, stack-save, and indexed-address reports against the generated corpus.
    Every later milestone is purecap and managed-runtime-free from here.
 3. **M2, Boot chain.**
    RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → the emulator reaches the Machine-mode kernel.
