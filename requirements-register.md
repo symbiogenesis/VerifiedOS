@@ -2036,6 +2036,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a wrong table cannot silently pass admission; only a wrong timing-annotation *statement* can, and that is a crown-jewel spec.
 · Trace: CJ-WCET, CJ-SAIL · [§11](verification-maximal-os.md#r-11-015)
 
+**R-11-015a** IS: A bound is a quantity the toolchain chooses and not merely one it reports: the frame being non-work-conserving, a task's billed width is its bound rather than its elapsed time, so each tightening the R-18-014c backends earn returns to this check as frame capacity to allocate (a longer discretionary band, a higher population rung, or a task set that would not otherwise admit).
+· Accept: the direction is one-way and requires no trust in the producer, admission always consuming the bound re-derived from the shipped binary (R-11-015), so bad lowering costs capacity and never soundness, and a claimed tightening the derivation does not support fails admission rather than shipping a schedule that does not hold.
+· Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-015a)
+
 **R-11-016** IS: The control tier's WCET is structural rather than estimated: Lustre/Vélus control planes compile to loop-free, statically-sized reactions, so the estimator's loop-bound and path analysis concentrate on the Rust data planes.
 · Accept: consistent with R-05-054.
 · Trace: CJ-VELUS, CJ-WCET · [§11](verification-maximal-os.md#r-11-016)
@@ -4501,6 +4505,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-18-014b** MUST: The link-time step that already emits the static slot assignment implements the R-08-012a lexicographic objective from the R-08-012b profile-free inputs, with a determinism test (one source closure, two builds, one identical placement map) and a non-regression test (no island's peak footprint and no admitted §11 bound worse than under a footprint-only plan).
 · Accept: the work plan names no separate placement tool, profile pipeline, optimizer, or workstream, and no consumer-side checker is added: the placed image is validated by the same TAL interference check and the same R-05-023 translation validation as before.
 · Trace: CJ-COMPCERT, CJ-MEMPLAN, CJ-WCET · [§18](verification-maximal-os.md#r-18-014b)
+
+**R-18-014c** MUST: Bound-directed lowering belongs to the same two compiler deliverables: where two lowerings are architecturally equivalent and both fit the §15 image budget, the backend emits the one whose R-18-024 cost annotation yields the smaller bound even where its expected-case cost is worse (expected-case cost is the tie-break, never the criterion), and it takes the legal transformations that replace a data-dependent trip count with a statically declared one or hoist variable-trip-count control flow out of a bounded region, so that R-11-015's loop-bound discharge succeeds syntactically rather than through its manual escape hatch. The R-18-014a `Zicond` if-conversion duty is the first instance of this rule, not a separate facility.
+· Accept: backend tests contain a case where the bound-directed and average-directed choices differ and the emitted code is the bound-directed one, a loop-bound case discharging syntactically where the untransformed form needed the escape hatch, and a non-regression case in which no admitted §11 bound is worse and no island's image share exceeds its §15 budget; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, or workstream for the duty, and no consumer-side machinery is added, admission still deciding against the bound re-derived from the shipped binary (R-11-015a).
+· Trace: CJ-WCET, CJ-COMPCERT, CJ-TAL-SOUND · [§18](verification-maximal-os.md#r-18-014c)
+
+**R-18-014d** MUST NOT: Image size is a constraint on that choice and not a term in it: a bound-directed lowering that would displace another admitted component from the §15 capacity budget is inadmissible however much it tightens.
+· Accept: the same arbitration R-18-014b's non-regression test states on the data side; until the timing-annotated Sail model lands for a core class the rule runs against the bring-up measured table exactly as sound §11 admission does (R-18-025).
+· Trace: CJ-WCET, CJ-COMPCERT · [§18](verification-maximal-os.md#r-18-014d)
 
 **R-18-015** IS: The certifying Rust compiler's shape is a front end over safe-Rust MIR carrying the source type system's memory-safety fact through lowering and emitting a CHERI-TAL derivation; CHERI discharges spatial safety, so the preserved obligation is the temporal-safety and typed-control-flow residual.
 · Accept: no per-app manual proof is required for pure-safe-Rust code.
