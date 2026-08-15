@@ -4508,8 +4508,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each of the five is stated elsewhere in the specification as available immediately, and none has a prerequisite that is itself unbuilt; three of the five attack the two least-built layers (R-17-039, R-17-064). A day-one deliverable found to have an unbuilt prerequisite is a review-gate finding against this requirement.
 · Trace: CJ-T, CJ-RTL-SAIL · [§18](verification-maximal-os.md#r-18-003b)
 
-**R-18-004** IS: First release is scoped to prove the thesis, not complete the roster: Wi-Fi-only, deferring the eUICC, cellular certification, the HARQ hard-real-time class, and the 5G-AKA key hierarchy; the browser is likewise deferred as the largest porting program.
-· Accept: neither is a design cut: full cellular and the browser remain in the specification, sequenced behind the smaller surface that proves the core claims.
+**R-18-004** IS: First release carries the radio roster whole (cellular, the eUICC, carrier certification, the HARQ hard-real-time class, and the 5G-AKA key hierarchy arrive with the first parts alongside 802.11 and Bluetooth), and the single roster deferral is the browser, the largest porting program.
+· Accept: the radio program is staged inside the release, so FEC-unit bring-up (R-18-005) and carrier certification are on the critical path to first parts rather than behind them; the browser's deferral is not a design cut, its no-JIT per-origin design remaining in the specification.
 · Trace: CJ-T · [§18](verification-maximal-os.md#r-18-004)
 
 **R-18-005** IS: The heterogeneous die is staged class by class: C-class + RVV under CHERI → V-class → M-class → FEC units → islands and TDM NoC → capability-checked DMA engines and the capability/tag-carrying fabric.

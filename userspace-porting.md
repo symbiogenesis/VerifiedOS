@@ -43,7 +43,7 @@ The four obstacles below still bind on whatever code these do reuse, but *which 
   These are the net-new co-design booked in §17, not re-targets: the firmware-free part does not exist to port from.
 - **Radio L2/L3 servers** (§12, §15): the software half of the dissolved-radio thesis, the 802.11 MLME element grammars and the cellular RRC/NAS ASN.1 UPER path, which §5 names as the most-attacked remote parse surfaces in consumer computing and holds to the Narcissus discipline, with the protocol state machines beside them as Lustre/Vélus control planes (§5, §12).
   Authored by necessity, since the firmware-free implementation is precisely what does not exist, which is the thesis: srsRAN/srsUE, OpenAirInterface, and openwifi are the feasibility existence proofs §18 names rather than lifts, and asn1scc and the Wireshark dissectors are differential oracles that enter no trust base (§5).
-  This is required userland for the first release, not deferred with cellular: §18 ships Wi-Fi-only, so the 802.11 half of it is on the critical path.
+  This is required userland for the first release in both halves: §18 ships the radio roster whole, so the 802.11 and the cellular RRC/NAS paths are alike on the critical path.
 - **Time service** (§12, §9): one wall clock disciplined from three graded authenticated sources (Roughtime, then NTS, then secure PTP over the hardware timestamp unit), with precision itself a capability (§8).
   `roughenough` appears below as a start-from for one source; the service that cross-checks all three, and holds the monotonic floor across a cold boot on a machine with no real-time clock, is authored.
 - **Telemetry monitor and emergency-call compartment** (§12): the former permanently resident on the S-class sentinel core, the latter a zero-authority compartment reachable at Before First Unlock.
@@ -56,7 +56,7 @@ The split runs through COSMIC: the **compositor** is required userland, the **sh
 
 ## Roster: the elective applications
 
-These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes two points in it, shipping Wi-Fi-only and deferring the browser.
+These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes one point in it, deferring the browser.
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
 - **Zed**, the reference editor, a software-rendered Tier-2 app: its GPU-first framework and its C parsing runtime are both bounded re-targets, it carries no language-support commitment, and it is the reference client of the editor-agent protocol the next entry uses.
@@ -374,6 +374,7 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
    Service manager, filesystem, block and storage servers, drivers, the radio L2/L3 servers, the network stack, sealing and attestation, the time service, the telemetry monitor.
    This is the minimum for a machine that boots, keeps state, knows the time, reaches a network, and can take a signed generation.
    The update path comes first among equals: a system that cannot be updated cannot safely be iterated on, so every later stage presupposes it.
+   The radio servers arrive here in both halves, the cellular one gated by the hardware order alone: the RRC/NAS compartments, the HARQ hard-real-time task class (§11), and the eUICC wait on FEC-unit bring-up and carrier certification, both of which §18 places inside the first release rather than after it.
 2. **Consent and recovery.**
    The render substrate, and then its first two clients: the trusted-path agent and the rollback-manager UI, with the credential and unlock service beside them.
    The renderer's first client is the consent path, not the desktop.
@@ -388,7 +389,7 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
 5. **Deferred by the specification itself.**
    §18 defers the **browser**, the largest porting program here and the one gated on a pure-interpreter JavaScript engine that does not yet exist.
    The **inference server** is optional in §12 and waits on M-class bring-up (M8).
-   **Cellular** follows the Wi-Fi-only first release: the RRC/NAS compartments, the HARQ hard-real-time task class (§11), and the eUICC wait on FEC-unit bring-up and carrier certification.
+   These two are the whole of this stage: the radio roster is not in it, sitting in stage 1 with its delivery gated on FEC-unit bring-up.
 
 **What would reorder this.**
 The order is a consequence of exactly two things, the prerequisite with no fallback and the class order §18 fixes, so it moves only when one of those moves.
