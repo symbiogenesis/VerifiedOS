@@ -16,7 +16,7 @@
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 0 |
-| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 11 in 7 clusters |
+| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 10 in 6 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 6 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
@@ -117,11 +117,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 - [ ] **State the composition of "only active elements are subject to CHERI checks" with R-15-085.** *R-15-115, R-15-085 · §8/§9 · Matrix §9.2.*
   R-15-085's mask-independence contract **forbids skipping cycles or memory accesses for masked-off elements**. RVY checks only active elements. The two are compatible — *check everything, fault only on active elements* — but one is a security contract and the other a timing one, and the composition should be **stated rather than left to a reader to reconcile**.
-
-### 4G. Multi-rooted capability hierarchy
-
-- [ ] **Disjoint RX / RW / sealing roots, so no W+X root exists** (CHERIoT). *R-14-002 · Matrix §10.*
-  R-14-002 proves system-wide W^X as an invariant of the derivation forest, via a machine-checked absence of Store∧Execute **in the static initial capability distribution**. Disjoint roots would make the same property **structural — unforgeable by construction rather than true of one audited initial state** — and the profile already fixes the initial distribution at composition, so the cost is close to zero. Worth weighing precisely because **R-15-076 books the concentration of everything onto CHERI's own correctness**.
 
 ---
 
