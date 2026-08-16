@@ -116,6 +116,8 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 *Grouped, because several of these are one question wearing different hats and deciding them separately is how a format acquires an inconsistency.*
 
+*Which freeze, of the two R-15-014a names: an item conditioned on a measurement against generated output falls to the **final** freeze, and every other item here to the **provisional** one. Only 4C's `CSetBounds` large immediate is so conditioned (R-15-067d), so the rest of this section is day-one work and not work that waits on a backend.*
+
 ### 4A. The bit budget — decide as one, at the lattice enumeration
 
 *The format has **zero** spare bits (36+4+5+5+8+6 = 64). Every row here spends the same currency. This cluster cannot be decided piecewise.*

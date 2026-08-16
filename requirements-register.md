@@ -2955,6 +2955,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the decode traps every unallocated encoding; no encoding is a no-op by default.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-014)
 
+**R-15-014a** MUST: The freeze R-15-014 names is reached in **two acts**, because several of its decisions are re-derived from measurement against generated output (R-15-036i, R-15-036k, R-15-036l, R-15-036n, R-15-067d) and no such output exists until a backend and a composed image do. The **provisional freeze** fixes everything not conditioned on that measurement and is a specification act with no build prerequisite: the extension set (R-15-001), the capability format and its permanent width (R-15-007d), the privilege, address, and memory models (R-15-003, R-15-002, R-15-004), the CSR bank (R-15-001b), the exclusions, and the encoding's structure (R-15-036a, R-15-036b). The **final freeze** is the act the proof is taken with, and the delta between the two is closed and enumerated: (i) the realized dictionary size, its entry selection, and the site-varying policy (R-15-036i, R-15-036k); (ii) the bundle, header, and slot widths carried as a DSE parameter (R-15-036a), the one structural item in the delta and one that changes no instruction semantics, the format allocating no opcode; (iii) whether the emitted call and global-address-materialization forms are PC-relative or composition-time absolute, with any absolute form's reachable-region parameter (R-15-036l); (iv) whether the single-check multi-register save and restore is carried, and at which register-list lengths (R-15-036n); (v) the bitfield pair's field-specifier form, whether its insert form is carried, and whether the pair is carried at all (R-15-067d), together with any further code-size candidate weighed in that same act (R-15-036n); (vi) the capability indexed load/store's scale immediate (R-15-007g); (vii) the frozen fusion set's membership (R-15-031a). A change outside that list at the final freeze is an amendment that reruns the review gate (R-18-034) and not a second-act decision.
+· Accept: what sorts a decision into the second act is that it is conditioned on a measurement against generated output, not that it is merely open when the first act is taken, so an open question carrying no such conditioning (the permission-lattice enumeration, the dynamic-narrowing instructions, the trap-path residue) is decided at the provisional freeze or not at all. Every delta item has a **declining provisional value**, no admission, PC-relative forms, and an unselected dictionary, so the provisional profile is a total compilation target rather than a partial one and the toolchain, the Sail model, and the CompCert backend (R-18-003a) target it without waiting; each item admitted at the final freeze then costs one selection pattern, one Sail clause, and a dictionary regeneration, which extends that work rather than invalidating it. Permanence attaches to the second act only: no image encoded under the provisional dictionary is deployed or stored, so R-15-036i's wholesale-invalidation cost and R-15-007d's width commitment land where the proof does. The gating artifacts of the second act are R-18-003c's and are not restated here.
+· Trace: CJ-SAIL, CJ-FORMAT · [§15](verification-maximal-os.md#r-15-014a)
+
 ### 15.3 Memory model
 
 **R-15-015** IS: Ztso is implemented natively by in-order issue plus a FIFO store buffer, at essentially no microarchitectural cost.
@@ -4803,12 +4807,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND · [§18](verification-maximal-os.md#r-18-003)
 
 **R-18-003a** MUST: The frozen instruction-set profile (§15) is the root of the schedule rather than the toolchain: the toolchain, the Sail model, and the CompCert backend all target it, so freezing it precedes all three.
-· Accept: the profile freeze is a specification act with no build prerequisite; R-18-006 already makes it part of the platform definition from first bring-up, and R-18-014's re-homing of SECOMP2CHERI has no target until it lands.
+· Accept: the act with no build prerequisite is the **provisional** freeze, R-15-014a splitting the freeze in two and R-18-003c gating the measured act; R-18-006 already makes it part of the platform definition from first bring-up, and R-18-014's re-homing of SECOMP2CHERI has no target until it lands.
 · Trace: CJ-SAIL, CJ-COMPCERT · [§18](verification-maximal-os.md#r-18-003a)
 
-**R-18-003b** MUST: Five deliverables are day-one and gate on nothing, and are enumerated so that R-18-003 is not read as prohibiting all work until the compilers exist: (i) the profile freeze and its Sail curation (R-18-003a); (ii) the microarchitectural absence contract (R-18-012); (iii) the machine-checked statement of T and the seam lemmas (R-18-031(a), R-18-032); (iv) the atomic-requirements register (R-18-034); (v) the proof-artifact hygiene gates (R-05-163, R-05-166, per R-05-168).
+**R-18-003b** MUST: Five deliverables are day-one and gate on nothing, and are enumerated so that R-18-003 is not read as prohibiting all work until the compilers exist: (i) the provisional profile freeze and its Sail curation (R-18-003a, R-15-014a); (ii) the microarchitectural absence contract (R-18-012); (iii) the machine-checked statement of T and the seam lemmas (R-18-031(a), R-18-032); (iv) the atomic-requirements register (R-18-034); (v) the proof-artifact hygiene gates (R-05-163, R-05-166, per R-05-168).
 · Accept: each of the five is stated elsewhere in the specification as available immediately, and none has a prerequisite that is itself unbuilt; three of the five attack the two least-built layers (R-17-039, R-17-064). A day-one deliverable found to have an unbuilt prerequisite is a review-gate finding against this requirement.
 · Trace: CJ-T, CJ-RTL-SAIL · [§18](verification-maximal-os.md#r-18-003b)
+
+**R-18-003c** MUST: The final freeze (R-15-014a) gates on three artifacts and on nothing else: the functional core of the CHERI-CompCert backend (R-18-014) with its outlining and tail-merging pass landed (R-15-036o), R-15-036p ordering that measurement first; a composed image over the roster taken after the §10 and §13 duplication-removal levers land (R-15-036i), against which *p* is measured stratified by operand class (R-15-036k); and the corpora R-15-067d fixes by name, the UPER RRC and IEI/TLV descriptors and the generated register accessors. No other workstream waits on it, every consumer of the profile targeting the provisional act, which is the schedule root R-18-003a names.
+· Accept: the resulting order is acyclic, the provisional freeze and its Sail curation preceding the backend, the backend and the stripping levers preceding the corpus, and the corpus preceding the final freeze and the proof taken with it. Images built under the provisional baseline are measurement artifacts, neither deployed nor stored, so no item in R-15-014a's delta invalidates a shipped object; and no proof is taken with the provisional profile (R-15-014), so Coq and Sail work authored between the acts is re-checked against a closed delta rather than re-authored. A gating artifact absent from this list is a finding against this requirement, exactly as an unbuilt prerequisite is one against R-18-003b.
+· Trace: CJ-SAIL, CJ-COMPCERT · [§18](verification-maximal-os.md#r-18-003c)
 
 **R-18-004** IS: First release carries the radio roster whole (cellular, the eUICC, carrier certification, the HARQ hard-real-time class, and the 5G-AKA key hierarchy arrive with the first parts alongside 802.11 and Bluetooth), and the single roster deferral is the browser, the largest porting program.
 · Accept: the radio program is staged inside the release, so FEC-unit bring-up (R-18-005) and carrier certification are on the critical path to first parts rather than behind them; the browser's deferral is not a design cut, its no-JIT per-origin design remaining in the specification.
@@ -4982,7 +4990,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1144 requirements. §19 is non-normative and yields none. Counts include the 222 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1146 requirements. §19 is non-normative and yields none. Counts include the 224 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5000,10 +5008,10 @@ All eighteen normative sections are extracted, at 1144 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **34** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **323** |
+| **§15 Hardware Platform** | **extracted** | **324** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **105** |
-| **§18 Realization** | **extracted** | **45** |
+| **§18 Realization** | **extracted** | **46** |
 
 §19 is non-normative and yields no requirements.
 

@@ -8,7 +8,7 @@
 
 R-15-001's acceptance criterion reads *"the frozen profile enumerates exactly this extension set."* Without this document there is no such enumeration: the profile would be an emergent property of some seventy requirements spread across §15.1–§15.12 and §15.16, and the criterion would name an artifact a reviewer cannot open. Four criteria test membership in the profile this way (R-15-014, R-15-024, R-15-042, R-15-067), so all four are decidable only against this document.
 
-It matters beyond review hygiene. R-18-003a makes the profile freeze the **root of the schedule** (the toolchain, the Sail model, and the CHERI-CompCert backend all target it, so it precedes all three), and R-18-003b(i) makes *"the profile freeze and its Sail curation"* the first day-one deliverable. This is the document that deliverable consumes: what a Sail curator removes from `sail-riscv` ⋈ `sail-cheri-riscv`, and what the backend's target description must match.
+It matters beyond review hygiene. R-18-003a makes the profile freeze the **root of the schedule** (the toolchain, the Sail model, and the CHERI-CompCert backend all target it, so it precedes all three), and R-18-003b(i) makes *"the provisional profile freeze and its Sail curation"* the first day-one deliverable, that being the first of the freeze's two acts (§11, R-15-014a). This is the document that deliverable consumes: what a Sail curator removes from `sail-riscv` ⋈ `sail-cheri-riscv`, and what the backend's target description must match.
 
 ## 1. Base
 
@@ -309,7 +309,21 @@ The RISC-V Debug Module exists in silicon but is **lifecycle-fused at the hardwa
 
 ## 11. Freeze and re-pin obligations
 
-The profile is frozen **with the proof** (R-15-014). Two components carry standing re-pin obligations, and each re-pins to a ratified base rather than to a private snapshot:
+**The freeze is two acts** (R-15-014a). Several decisions in this document are re-derived from measurement against generated output, and that output does not exist before a backend and a composed image do, so the freeze splits: the **provisional freeze** fixes everything not so conditioned and is the schedule root R-18-003a names, while the **final freeze** is the act "frozen with the proof" refers to. Every *decided at the freeze from measurement* in this document is decided at the second act; everything else is decided at the first. The delta between them is closed:
+
+| Decided at the final freeze | Governing |
+| --- | --- |
+| Realized dictionary size, entry selection, and the site-varying-operand policy | R-15-036i, R-15-036k |
+| Bundle, header, and slot widths (§1.1's reference instantiation), the one structural item, allocating no opcode and changing no semantics | R-15-036a |
+| Call and global-address materialization: PC-relative or composition-time absolute, and any absolute form's reachable-region parameter | R-15-036l |
+| Single-check multi-register save and restore: carried, and at which register-list lengths, or dropped | R-15-036n |
+| `bfext` / `bfins`: field-specifier form, whether the insert form is carried, whether the pair is carried, with any further code-size candidate weighed in the same act | R-15-067d |
+| Capability indexed load/store: whether the scale immediate earns its encoding bits | R-15-007g |
+| Frozen fusion-set membership | R-15-031a |
+
+Each row has a **declining provisional value** (no admission, PC-relative forms, an unselected dictionary), so the provisional profile is a complete compilation target rather than a partial one, and an item admitted at the final freeze costs one selection pattern, one Sail clause, and a dictionary regeneration. A change outside the table is an amendment and reruns the review gate (R-18-034). The gating artifacts of the second act are R-18-003c's: the CHERI-CompCert functional core with outlining landed, a composed image taken after the §10 and §13 stripping levers, and the corpora R-15-067d names. Permanence attaches to the second act alone, no image encoded under the provisional dictionary being deployed or stored, which is what keeps R-15-036i's wholesale-invalidation cost and R-15-007d's width commitment where the proof is.
+
+Two components carry standing re-pin obligations, and each re-pins to a ratified base rather than to a private snapshot:
 
 - **Matrix extension** → a ratified AME/IME-lineage extension when one supersedes it (R-15-009)
 - **Keccak** → RVG-84 when the RISC-V PQC Task Group's instruction ratifies (R-15-057)
