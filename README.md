@@ -1,6 +1,6 @@
 # VerifiedOS
 
-Design for an end-to-end formally verified computer, built around a bespoke in-order RV64IMV+CHERI system-on-chip and a seL4-inspired multikernel operating system. The proof chain is meant to run unbroken from abstract specification through source, binary, and ISA down to the modeled hardware. Engineering effort is treated as free and trust as the scarce resource, so security is placed ahead of performance and broad compatibility with other hardware or software; the reference instantiation is a mobile/laptop-class device, form-factor-agnostic in principle.
+Design for an end-to-end formally verified computer, built around a bespoke in-order CHERI-enabled RV64IMV-inspired system-on-chip and a seL4-inspired multikernel operating system. The proof chain is meant to run unbroken from abstract specification through source, binary, and ISA down to the modeled hardware. Engineering effort is treated as free and trust as the scarce resource, so security is placed ahead of performance and broad compatibility with other hardware or software; the reference instantiation is a mobile/laptop-class device, form-factor-agnostic in principle.
 
 > This repository is a living design specification. Nothing here is built or released.
 
