@@ -62,8 +62,6 @@ The adopted half is the authority model's current shape: cross-domain authority 
 
 The failure mode is asymmetric: if any non-common case survives, the system carries the filter **and** the table, which is worse than either alone.
 
-**TAL checker only on-device; source-correspondence off-device.** · *Open, no decision recorded.* The observation that a source-correspondence proof binds bytes to source that may itself be malicious is correct, and it is already the stratification's stated scope (R-13-023, R-13-028, and R-17-038's split by proof scale). What the proposal changes is which side of the release/install line the CIC kernel sits on, which is a live trade rather than a defect.
-
 **Filesystem in contained safe Rust first.** · *Open, no decision recorded.* R-10-009 already makes the four-layer stack wholly non-TCB with a small verified reader carrying integrity, so this is a scheduling claim about the four fresh proof programs rather than an architectural one, and it disturbs no stated obligation.
 
 **Decide the product fork explicitly.** · *Open, and it is finding 3 restated as a decision rather than as a gap.* R-15-162 declines chiplets and bonded die-stacking outright, and R-15-163 makes the monolithic vertical lever conditional on an unsolved low-temperature p-type device result. Accepting authenticated external or bonded memory reopens R-15-162, which is a deliberate refusal carrying a stated ground, so this is not a free choice between two equally open options.

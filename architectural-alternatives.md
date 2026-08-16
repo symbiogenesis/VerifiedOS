@@ -1122,6 +1122,18 @@ Non-normative; no spec-body change.
 
 ---
 
+## Source correspondence checked off-device, leaving only the TAL checker on the install path: declined
+
+The proposal is to move the CIC kernel wholly to the release side, so that on-device admission is the CHERI-TAL type-checker alone, on the observation that a correspondence proof binds bytes to a source closure which may itself be malicious.
+
+The observation is correct and is already the stated scope of the split, not a defect in it: R-13-023 divides supply-chain defense into checked correspondence against a *corrupted* artifact and compose-time confinement against a *subverted-but-memory-safe upstream*, and neither half claims the other's coverage. What the observation does not reach is the conclusion, because the value of the check on the install path was never source virtue. It is the binding: the correspondence theorem is the only step at which *these* installed bytes are tied to the source closure the manifest names (R-13-003), and every other artifact in that manifest, the typing derivation, the tier certificate, the capability manifest, is stated about that closure. Checked only off-device, the binding reaches the device as a producer's assertion about an artifact admitted on a signature, so admission gates on pedigree rather than on evidence: exactly what R-05-008 forbids, what R-13-022 means by *no trusted-toolchain fallback*, and what R-13-026 spends when it admits a nondeterministic producer on correspondence rather than on reproducibility.
+
+The saving is also the smaller half of the seam. R-13-027 already keeps compilation and proving off-device, and R-13-028 already puts the deep composed proofs at release time bound into the measured-boot root; what remains on-device is one artifact-local theorem per install. The stratification is by **proof scale**, and re-cutting it at the **device boundary** deletes the cheap half and pays for it with the binding.
+
+**Disposition:** declined. The CIC kernel stays on the install path and the per-install source-correspondence check is mandatory on-device, with no release-time substitute (R-05-026, R-05-027, R-06-008, R-06-010, R-13-027). Non-normative; the normative position is unchanged and no spec-body change is made by this entry.
+
+---
+
 ## CompCert-CT: constant-time by compiler preservation, declined for on-artifact verification
 
 **CompCert-CT** (Barthe, Blazy, et al., POPL 2020) modifies CompCert to preserve a source-level constant-time property through compilation.
