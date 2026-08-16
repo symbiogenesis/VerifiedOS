@@ -101,7 +101,7 @@ The type theory is fixed and closed by this document, and the four absences belo
 3. **No universes and no universe polymorphism.**
    One sort of types, no cumulativity, no universe-constraint graph and no acyclicity solver.
 4. **No user-extensible inductive definitions.**
-   The type constructors are a fixed, closed vocabulary: capability or pointer types with their bounds, permissions, revocation colour, and initialization flag; code types as register-file preconditions carrying the callee set at indirect transfers; the aggregate and existential formers an ABI needs; the linear, affine, and relevance grades; the taint labels; and the cost annotations.
+   The type constructors are a fixed, closed vocabulary: capability or pointer types with their bounds, permissions, grant binding (bare, or a handle to a grant slot), and initialization flag; code types as register-file preconditions carrying the callee set at indirect transfers; the aggregate and existential formers an ABI needs; the linear, affine, and relevance grades; the taint labels; and the cost annotations.
    There is no positivity check, no guard condition, and no eliminator generation, and the vocabulary grows by amendment to this document, never at install time.
 
 **What makes the four load-bearing is what they delete from a checker.**

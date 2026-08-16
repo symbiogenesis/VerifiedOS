@@ -13,7 +13,7 @@
 | Class | Meaning | Count |
 | --- | --- | --- |
 | **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions" — and the one clause that collapses six of it. | 1 |
-| **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 4 |
+| **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 3 |
 | **§2 Corrections** | Claims the profile makes that were true when written and are now imprecise. The conclusions stand; the arguments need restating. | 4 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 5 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 19 in 9 clusters |
@@ -70,12 +70,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 *The register requires it and the profile does not carry it. These are not preferences.*
 
-- [ ] **The revocation colour has no bits.**
-  *Governing:* R-08-004, R-08-004a · *Lands:* §4.1 (capability format) · *Matrix:* §6
-  R-08-004a stamps a colour at derivation and retires colours as a set, which is what buys subtree revocation with no derivation tree. §4.1's field table spends all 64 bits: 36 + 4 + 5 + 5 + 8 + 6 = 64, with the tag outside. **It cannot be both required and unrepresentable.** Exactly one of these must land:
-  - the colour is *not* capability metadata, living instead in the filter's shadow structure keyed by address — in which case R-08-004a's explicit preference for **ancestry** keying over address keying must be re-argued, not quietly dropped; or
-  - a field is found, which at this width means taking bits from the object type or a mantissa, and the cost lands on R-15-007c's exactness threshold or R-07-002b's otype set.
-
 - [ ] **Close `mcause`/`mtval` with `xtval`.**
   *Governing:* §5.3, R-07-022, R-15-073 · *Lands:* §5.3 → §5.1 · *Matrix:* §1, §6, §7, §9.2 `Xtval2`
   §5.3 books this as an extraction defect: the trap path is specified in capability terms (`MTCC` installed, `MEPCC` saved, authority from `MTDC`) but no requirement names a cause register, a trap-value register, or the CHERI cause encoding. **ISAv8 settled it and ISAv9 and RVY both keep it:** capability exceptions report through the existing trap-value CSR, not a bespoke cause register. It is also the cheaper answer — reuse `mtval` rather than add a bank. RVY's `Xtval2` confirms the shape from the other side: one trap-value register is where CHERI exception detail belongs.
@@ -130,7 +124,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 - [ ] **The load instruction must permit revocation-driven tag clearing.**
   *Governing:* R-08-005, R-15-007 · *Lands:* §4 · *Matrix:* §9.2 `Svyrg`
-  RVY amended `LY`'s definition at v0.9.6.1 to allow exactly this. It is the architectural clause the profile's load filter needs and does not have — **the same one-line fix as defect 1, seen from the instruction side rather than the mechanism side**, and it should land in the same edit.
+  RVY amended `LY`'s definition at v0.9.6.1 to allow exactly this. It is the architectural clause the profile's load filter needs and does not have: **R-08-005 makes the per-load check architectural and the clearing happens *on the load*, so the load instruction's own definition has to permit it** rather than leaving it to the filter's prose. Now the only mechanism the subtree case rests on (R-08-004a), it carries more weight than when the colour was also in play.
 
 - [ ] **A vector store clears the capability tag of every granule it overwrites.**
   *Governing:* R-15-115 · *Lands:* §8 (core classes), beside the existing "vector data carries no tags" clause · *Matrix:* §9.2
@@ -148,7 +142,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 ### 4A. The bit budget — decide as one, at the lattice enumeration
 
-*The format has **zero** spare bits (36+4+5+5+8+6 = 64). Every row here spends the same currency, and defect 2's revocation colour competes for it too. This cluster cannot be decided piecewise.*
+*The format has **zero** spare bits (36+4+5+5+8+6 = 64). Every row here spends the same currency. This cluster cannot be decided piecewise.*
 
 - [ ] **Software-defined permission bits.** *R-15-007b · §4.1 · Matrix §1, §9.2*
   The 5-bit lattice carries no SDP bits. **RVY mandates a 4-bit SDP field** for all encodings and gave it adjacent reserved space at v0.9.9; CHERIoT carries them. Ground for declining exists — a static task set, sealing over a fixed otype set — but **it is not stated**, and the lattice enumeration at freeze is where it must be settled.
@@ -260,12 +254,12 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 | §1 Base | merged register file; no runtime CHERI disable | defect, statement |
 | §3 Custom instructions | `YSH1ADD` re-pin-target correction; opcode-space choice (see below) | correction |
 | §4 CHERI feature set | revocation-driven tag clearing on load; tag-clearing-vs-trapping | defect, statement |
-| §4.1 Capability format | revocation colour; zeroed-granule NULL; SDP bits; seal/unseal separability; malformed-bounds checks | defect ×2, cluster 4A |
+| §4.1 Capability format | zeroed-granule NULL; SDP bits; seal/unseal separability; malformed-bounds checks | defect, cluster 4A |
 | §5.1 / §5.3 CSR bank | `xtval` closure + sentry-on-`mret`, unaligned-base cause, `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | defect, cluster 4F, statement, 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
 | §8 Core classes | vector store clears tags; active-element ⋈ mask-independence | statement, 4H |
 | §10 Debug | what the fuse is refusing | 5A |
 | §11 Freeze / re-pin | R-17-048a two-term estimate; parameterized-encoding-format argument; **residual-semantics clause** (or §4.1) | corrections 2, 3, **§0** |
-| Register (not the profile) | R-15-007b rationale re-word; R-08-004a keying | correction 4, defect 2 |
+| Register (not the profile) | R-15-007b rationale re-word | correction 4 |
 
 **One item has no landing row and should get one at the freeze:** the profile places three bespoke instructions — the capability indexed load/store and `bfext`/`bfins` — in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that correction 3 would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-014; matrix §9.2).

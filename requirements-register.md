@@ -898,7 +898,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 5.20 Representation and provenance: five deletions
 
-**R-05-136** MUST NOT: (1) No integer→capability provenance: no integer-to-pointer cast, no address literal that becomes a capability, and no reconstruction of a capability from its bit pattern. The only capability-producing operations are the monotone derivations (bounds and permission restriction, sealing, revocation-colour assignment) applied to a capability already held.
+**R-05-136** MUST NOT: (1) No integer→capability provenance: no integer-to-pointer cast, no address literal that becomes a capability, and no reconstruction of a capability from its bit pattern. The only capability-producing operations are the monotone derivations (bounds and permission restriction, sealing) applied to a capability already held.
 · Accept: the checker finds no integer inhabiting a capability type; the derivation's capability-producing rules are exactly the monotone set.
 · Trace: CJ-CERISE, CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-136)
 
@@ -1436,20 +1436,32 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 8.2 Revocation
 
-**R-08-004** MUST: The kernel layer provides object capabilities with first-class revocation, and the mechanism is the CHERI one alone: revocation epoch, revocation colour, budgeted sweep, and per-load filter. There is no capability derivation tree. Revocation runs within a guaranteed time bound, so time-to-containment is a bounded constant, including the distributed case, where capabilities delegated over cross-core grant edges revoke via a verified bounded-round protocol of local epoch advance plus proxy notification along the same static edges.
+**R-08-004** MUST: The kernel layer provides object capabilities with first-class revocation, and the mechanism is the CHERI one alone: revocation epoch, budgeted sweep, and per-load filter. There is no capability derivation tree. Revocation runs within a guaranteed time bound, so time-to-containment is a bounded constant, including the distributed case, where capabilities delegated over cross-core grant edges revoke via a verified bounded-round protocol of local epoch advance plus proxy notification along the same static edges.
 · Accept: the bound is stated per composition and enters the §11 schedule; exactly one revocation mechanism appears in the kernel spec and its proof.
 · Trace: CJ-CERISE, CJ-WCET · [§8](verification-maximal-os.md#r-08-004)
 
-**R-08-004a** IS: Subtree revocation is retained and is carried by the revocation colour: a colour is stamped at derivation and retired as a set, so revoking what one principal delegated without disturbing capabilities to the same object derived by another is decided by the load filter rather than by a kernel walk over a derivation tree.
-· Accept: the one capability ancestry keying held over address keying is discharged by a mechanism R-05-136 already admits as a monotone capability-producing operation; retaining a tree beside it would be a hedge on a verified primary under R-15-013.
+**R-08-004a** MUST: Subtree revocation is retained and is a grant-layer property rather than a capability-format one. Cross-domain authority that must be independently revocable is delegated as a sealed grant handle and not as a bare capability: the kernel mints a grant slot in a kernel-owned grant table, stores the underlying capability in it, and hands the delegate a capability bounded to that slot and sealed with a composition-fixed otype (R-07-002b). Retiring the delegation sets the R-08-005a revocation bit for the *slot's* granule, not the object's.
+· Accept: the one thing ancestry keying held over address keying was that a delegation had no address of its own; giving each delegation a slot supplies one, so revoking what one principal delegated leaves every other principal's capability to the same object untouched (a different address, a different bit), and the subtree case is decided by the existing load filter rather than by a kernel walk over a derivation tree. Retaining a tree beside it would be a hedge on a verified primary under R-15-013.
 · Trace: CJ-CERISE · [§8](verification-maximal-os.md#r-08-004a)
+
+**R-08-004b** MUST NOT: No revocation colour is stamped into any capability, and the capability format carries no colour field.
+· Accept: this closes the bit budget rather than deferring it. R-15-007's format spends all 64 bits (36+4+5+5+8+6), so a colour could come only from the object type or a mantissa, where the cost would land on R-15-007c's 256-byte exactness threshold and therefore on the R-15-007e/R-15-007f admissibility argument for the capability indexed load/store. The grant table of R-08-004a spends no capability bit, adds no field, and reuses the R-08-005a sidecar, the R-08-007 sweep, and the R-08-008 quarantine rather than standing a second revocation mechanism beside them, which is what R-08-004's *exactly one mechanism* acceptance requires.
+· Trace: CJ-CERISE, CJ-SAIL · [§8](verification-maximal-os.md#r-08-004b)
+
+**R-08-004c** IS: The grant table's three costs are booked, not absorbed. (1) One kernel-mediated indirection on *cross-domain* authority use (the delegate invokes through the handle, and the kernel unseals the slot and yields the underlying capability for the duration of the call), and none on intra-domain loads, which stay bare capabilities. (2) Grant-table capacity is a composition-time constant charged against the R-15-002a SRAM budget by the R-08-010 static memory plan exactly as the R-08-005a bitmap payload is. (3) A bare capability handed across a domain boundary is revocable only with its object.
+· Accept: the indirection is priced against the cross-domain call it rides and not against the load path; admission rejects a composition whose simultaneous live grant count exceeds the table, so exhaustion is a build-time rejection and never a runtime failure; and which cross-domain edges are grant-mediated is fixed at composition by the manifest and the R-05-159 linear-capability discipline, never chosen by a principal at runtime.
+· Trace: CJ-CERISE, CJ-MEMPLAN, CJ-WCET · [§8](verification-maximal-os.md#r-08-004c)
+
+**R-08-004d** IS: The grant table is not the capability space R-07-002b deletes.
+· Accept: there is no capability-address translation, no index namespace, and no guarded radix lookup: the handle is a hardware capability whose *bounds* name the slot, so the kernel dereferences a capability it was handed rather than resolving a name, and the table is ordinary kernel-owned memory sited in an R-08-005a revocable interval, not a restored object class with invariants of its own.
+· Trace: CJ-CERISE · [§8](verification-maximal-os.md#r-08-004d)
 
 **R-08-005** MUST: *Freed ⇒ unreachable* holds at *access* time, not only at sweep completion: a per-load revocation check (load filter or barrier) invalidates a stale capability the moment it is loaded.
 · Accept: the check is deterministic and architectural, fixed-latency, riding the load with no added memory traffic, so it passes the §15 admission test.
 · Trace: CJ-CERISE, CJ-LEAK · [§8](verification-maximal-os.md#r-08-005)
 
 **R-08-005a** MUST: The load filter is backed by a dedicated ECC-protected revocation bitmap over a composition-fixed union of 64-byte-aligned revocable SRAM intervals, with one architectural revocation bit per 8-byte capability granule: `0` is live and `1` is revoked. For covered intervals *I*, its payload is exactly Σ|*I*|/64 bytes; the static memory plan charges that payload, its ECC bits, and macro periphery against the §15 SRAM capacity budget, and admission rejects a composition that does not fit. The interval map and resulting bitmap size are attested-devicetree constants; ordinary compartments cannot address the bitmap, and only the kernel revocation path may update it.
-· Accept: this is the CHERIoT non-MMU realization, not RVY `Svyrg`: the loaded capability's base selects the bit and a set bit clears its tag before architectural writeback. RVY's four-bit PTE state machine has no PTE in which to live here and is not silently compressed into one bit; epoch, colour-retirement, sweep, and quarantine state remain in their separately specified protocol, while this array carries only the load-time live/revoked predicate. The bitmap is a bank-side sidecar read with the data/tag access, not a second fabric or main-memory transaction.
+· Accept: this is the CHERIoT non-MMU realization, not RVY `Svyrg`: the loaded capability's base selects the bit and a set bit clears its tag before architectural writeback. RVY's four-bit PTE state machine has no PTE in which to live here and is not silently compressed into one bit; epoch, sweep, and quarantine state remain in their separately specified protocol, while this array carries only the load-time live/revoked predicate. The covered union includes the R-08-004a grant table, whose per-slot bits carry the subtree case. The bitmap is a bank-side sidecar read with the data/tag access, not a second fabric or main-memory transaction.
 · Trace: CJ-CERISE, CJ-WCET, CJ-SAIL · [§8](verification-maximal-os.md#r-08-005a)
 
 **R-08-006** IS: Containment and reclamation split: containment is the revocation-epoch advance the load filter checks against (a register-write-class constant, microseconds), while the sweep is reclamation, milliseconds to seconds of memory traffic that no security property waits on.
@@ -1459,6 +1471,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-08-007** MUST: The sweep runs as an incremental, preemptible kernel task in its own §11-admitted background slot class, per core, sized at composition, never in another partition's time.
 · Accept: its completion latency is a derived per-domain constant: the domain's capability-bearing footprint over the per-frame sweep quantum.
 · Trace: CJ-WCET · [§8](verification-maximal-os.md#r-08-007)
+
+**R-08-007a** MUST: Nothing in the revocation protocol wraps, and no revocable resource is reused before it is dead. The epoch is a 64-bit monotone kernel counter naming containment events, advanced only on kernel-mediated teardown. A revocation bit and the granule under it return to service only once a full sweep pass has covered every revocable interval since the bit was set.
+· Accept: at one advance per microsecond the epoch does not wrap in 5 × 10⁵ years, so wrap is not a reachable state and no reuse semantics are owed; reset is not a wrap, since the R-15-182 eager zeroize leaves no capability alive to be misread under a restarted counter. The reuse gate is the R-08-008 quarantine seen from the reuse side, and it is what makes the address key sound for R-08-004a's subtree case: a grant slot cannot be re-minted into while a stale handle bounded to it might still be loadable. The quarantine pool is composition-sized, so the set-to-reuse interval is a derived constant. There is no colour space to exhaust and no retirement set to bound under R-08-004b; the grant-slot count that stands in its place exhausts as a capacity under R-08-004c, not as a namespace.
+· Trace: CJ-CERISE, CJ-WCET · [§8](verification-maximal-os.md#r-08-007a)
 
 **R-08-008** MUST: Forced-sweep denial of service is priced out structurally: revocation is triggered only by kernel-mediated teardown, so a compartment that churns grants forces sweeps only of its own footprint, paid from its own and the sweeper's fixed slots.
 · Accept: the cost of queued sweeps is delayed reclamation of the *requester's* quarantined memory, bounded by the composition-sized quarantine pool, never schedule perturbation of any hard task.
@@ -4946,7 +4962,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1135 requirements. §19 is non-normative and yields none. Counts include the 213 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1139 requirements. §19 is non-normative and yields none. Counts include the 217 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4957,7 +4973,7 @@ All eighteen normative sections are extracted, at 1135 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
-| **§8 Authority Model** | **extracted** | **55** |
+| **§8 Authority Model** | **extracted** | **59** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **41** |
 | **§11 Updates** | **extracted** | **28** |

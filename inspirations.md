@@ -297,7 +297,7 @@ It is also the most *fabricated* of the CHERI ancestors, with first silicon tape
 - **PMP dropped, on CHERIoT's own argument.**
   It drops PMP outright (*"the RISC-V PMP provides a subset of the protections of a CHERI system and so it, too, can be removed"*), which is the precedent §15 follows, with the CHERIoT-Ibex conformance result and Codasip's shipping app-class core as the assurance that makes dropping the coarse hedge defensible rather than reckless (the full adopted rationale is retained below).
 - **An object model with no CNodes, which is what let seL4's runtime layer go.**
-  Capabilities live in registers and tagged memory, objects are named by **sealed capabilities**, and revocation is by **colour and epoch under a load filter** rather than by a derivation tree.
+  Capabilities live in registers and tagged memory, objects are named by **sealed capabilities**, and revocation is by **epoch and address-keyed load filter** rather than by a derivation tree.
   That answer is what makes untyped memory, retype, the capability space, and the CDT deletable once the object graph is fixed at composition (§7, §8), and §5 had already conceded the direction, describing what is proved as *"more precisely a CHERIoT-class static separation kernel that borrows seL4's object vocabulary"*; the deletion finishes that sentence by dropping the vocabulary too.
   Its heap **claims** (a hold keeping a shared allocation alive against the holder's quota) and its deterministic load filter are the same temporal-safety-in-a-shared-address-space discipline noted under CheriOS above.
 
@@ -1050,8 +1050,8 @@ The deletion finishes that sentence, dropping the vocabulary along with the mach
 R-08-004 states the duplication in a single clause: *"first-class revocation (derivation-tree revoke **+** CHERI sweep)."*
 The CHERI side is fully specified and load-bearing on its own: the epoch advance is the bounded containment constant, the per-load filter makes *freed implies unreachable* hold at access time rather than at sweep completion, the sweep is sized background reclamation in its own admitted slot class, and the quarantine pool prices forced-sweep denial of service to the aggressor (R-08-005 through R-08-009).
 It also covers strictly more than the CDT ever could, because it reaches every capability on the machine, including the userland capabilities in registers and tagged memory that no kernel derivation tree records.
-The one thing ancestry keying buys over address keying is **subtree** revocation, revoking what one principal delegated without disturbing capabilities to the same object derived by another, and that is already bought by a primitive the profile lists among the monotone capability-producing operations: **revocation-colour assignment** (§5).
-A colour is stamped at derivation and revoked as a set, which is subtree revocation performed by the load filter at hardware speed rather than by a kernel walk over a tree.
+The one thing ancestry keying buys over address keying is **subtree** revocation, revoking what one principal delegated without disturbing capabilities to the same object derived by another, and the reason address keying seems unable to express it is narrower than it looks: a *delegation* has no address of its own, so two principals' capabilities to one object key the same granule.
+The authority model gives it one. Independently revocable cross-domain authority is delegated as a sealed capability bounded to a kernel-owned **grant slot**, so retiring the delegation sets the sidecar bit for the slot's granule and not the object's, and the subtree case falls out of the same load filter at hardware speed rather than a kernel walk over a tree (R-08-004a, R-08-004b).
 Two mechanisms, one property, one of them verified hardware and the other the most expensive software proof in the plan: this is precisely the shape *verify rather than hedge* (R-15-013) exists to reject, and the design has applied that rule against the initialization-tag plane, MTE, shadow stacks, PMP, and the IOMMU while leaving its own kernel carrying a duplicate.
 
 **Proof surface removed.**
@@ -1065,7 +1065,7 @@ The residual kernel proof is what §7 already says is the genuinely novel work a
 (2) **Performance:** a gain, and on the hot path.
 Capability transfer in IPC becomes a register operand the hardware validates, with no CSpace lookup and no guarded radix walk, which is the kernel's most frequent operation and one of the two paths R-07-050 verifies at binary level.
 (3) **Security:** nothing shed.
-Confinement was CHERI's before this change (R-07-006, R-08-003); revocation was already specified end to end on the CHERI side, and colours cover the ancestry case; typing and rights move from CNode fields to sealing and permissions, which are unforgeable in hardware rather than in a proof.
+Confinement was CHERI's before this change (R-07-006, R-08-003); revocation was already specified end to end on the CHERI side, and the grant slot covers the ancestry case; typing and rights move from CNode fields to sealing and permissions, which are unforgeable in hardware rather than in a proof.
 (4) **Grounds:** no-consumer parsimony for untyped and retype, *verify rather than hedge* for the CDT, *delete rather than defend* for the capability space.
 (5) **Relocation:** none.
 The composition tool already emits the graph, the firmware already installs it under an existing proof obligation, and the static memory plan already places and checks the slots.
@@ -1085,7 +1085,7 @@ The offset is that the fresh artifact is dramatically smaller: an authored speci
 Both costs land on labour and freshness, the axis the engineering-free axiom exists to absorb, and neither adds a member to the trusted set.
 
 **Scope of extrapolation.**
-The extrapolation assumes that the CHERIoT lineage's answer (capabilities in registers and tagged memory, objects named by sealed capabilities, revocation by colour and epoch under a load filter) is sufficient for a kernel whose object graph is fixed at composition, and that nothing in seL4's dynamic object machinery is load-bearing once that graph cannot change.
+The extrapolation assumes that the CHERIoT lineage's answer (capabilities in registers and tagged memory, objects named by sealed capabilities, revocation by epoch under an address-keyed load filter) is sufficient for a kernel whose object graph is fixed at composition, and that nothing in seL4's dynamic object machinery is load-bearing once that graph cannot change.
 It is a bounded extrapolation of the same kind as the single-address-space and single-privilege-mode bets, and bounded for the same reason: CHERIoT ships this model, the design has already imported its switcher, sealing, and sentries, and what changes is which mechanism names an object, never what authority the object confers.
 
 **What the platform takes.**
