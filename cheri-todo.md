@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions". | 0 |
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
-| **§2 Corrections** | Claims the profile makes that were true when written and are now imprecise. The conclusions stand; the arguments need restating. | 4 |
+| **§2 Corrections** | Claims the profile makes that were true when written and are now imprecise. The conclusions stand; the arguments need restating. | 3 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 2 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 17 in 9 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 7 + 2 |
@@ -38,7 +38,7 @@
 - **Upstream's realization uses a mechanism the profile deleted.** ISAv8 and RVY both realize the load barrier as per-page PTE bits. Inheriting the *statement* buys nothing with no MMU to hang it on — the profile owes the other realization, and no pin writes it.
 - **"The latest" is three lineages that disagree.** The per-load tag check is architectural in CHERIoT and deliberately implementation-defined in RVY (`Svucrglct` dropped). Compressed permissions shipped in CHERIoT and were reverted in RVY. The sentry split is in CHERIoT and is a *future* CT value in RVY. Choosing which line wins per feature **is** the item-by-item work.
 - **Some questions are created by this platform's deletions and have no upstream answer at all.** ISAv9 deleted `CClearRegs` because a merged file made it meaningless — but the switcher still clears registers on every cross-compartment call, on a machine with no `C` extension. The pin hands over upstream's deletion, which is the wrong answer here for a reason upstream never had. `CMOVN`/`CMOVZ` has the same shape: `Zicond` suffices upstream because upstream has a dynamic predictor.
-- **Four items are prose corrections about the standards landscape** (§2). No pin restates an argument.
+- **Three items are prose corrections about the standards landscape** (§2). No pin restates an argument.
 
 ### Where a blanket pin actively backfires
 
@@ -63,10 +63,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 ## 2. Corrections
 
 *True when written, imprecise now. In every case the conclusion stands and the argument needs restating — do not reopen the decision.*
-
-- [ ] **"No re-pin target" for the capability indexed load/store overstates it.**
-  *Governing:* R-15-007e, R-15-067d · *Lands:* §3 (custom and fork-and-frozen instructions) · *Matrix:* §9.2 `YSH1ADD`
-  §3 records the capability indexed load/store as having **"none: bespoke with the dialect"** for a re-pin target. RVY places capability shift-and-add (`YSH1ADD`…`YSH4ADD`) in `Zba`, **an extension this profile adopts**. It is genuinely a different instruction — it materializes the intermediate capability, which is exactly what R-15-007f's admissibility argument turns on avoiding — but it covers the address-formation half, so "none exists" is too strong.
 
 - [ ] **R-17-048a's cost estimate is now optimistic; restate it in two terms.**
   *Governing:* R-17-048a · *Lands:* §11 (freeze and re-pin obligations), and R-17-048a itself · *Matrix:* §9.2, last row
@@ -191,7 +187,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 - [ ] **`Zicfiss` is incompatible with CHERI** — its push/pop instructions would need modifying. *R-15-044 · §6 · Matrix §9.2.*
   RVY reaches R-15-044's conclusion **from the encoding side rather than the principle side**. Collect it: two independent grounds for one exclusion.
 
-*Two convergences are already recorded correctly and need no work — **physical-address capabilities** (ISAv7 experimental appendix → ISAv9 model section, and this platform's entire address model) and the **64-bit Concentrate format** (the literal base of the frozen format). A third, compressed non-orthogonal permissions, is not a convergence: see correction 4.*
+*Two convergences are already recorded correctly and need no work — **physical-address capabilities** (ISAv7 experimental appendix → ISAv9 model section, and this platform's entire address model) and the **64-bit Concentrate format** (the literal base of the frozen format). A third, compressed non-orthogonal permissions, is not a convergence: see correction 3.*
 
 ---
 
@@ -213,13 +209,12 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 | Profile section | Items | Class |
 | --- | --- | --- |
 | §1 Base | no runtime CHERI disable | statement |
-| §3 Custom instructions | `YSH1ADD` re-pin-target correction; opcode-space choice (see below) | correction |
 | §4.1 Capability format | SDP bits; seal/unseal separability; malformed-bounds checks | cluster 4A |
 | §5.1 / §5.3 CSR bank | `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | 4F, statement, 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
 | §8 Core classes | active-element ⋈ mask-independence | 4H |
 | §10 Debug | what the fuse is refusing | 5A |
-| §11 Freeze / re-pin | R-17-048a two-term estimate; parameterized-encoding-format argument | corrections 2, 3 |
-| Register (not the profile) | R-15-007b rationale re-word | correction 4 |
+| §11 Freeze / re-pin | R-17-048a two-term estimate; parameterized-encoding-format argument | corrections 1, 2 |
+| Register (not the profile) | R-15-007b rationale re-word | correction 3 |
 
-**One item has no landing row and should get one at the freeze:** the profile places three bespoke instructions — the capability indexed load/store and `bfext`/`bfins` — in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that correction 3 would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-014; matrix §9.2).
+**One item has no landing row and should get one at the freeze:** the profile places three bespoke instructions — the capability indexed load/store and `bfext`/`bfins` — in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that correction 2 would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-014; matrix §9.2).

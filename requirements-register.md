@@ -2941,7 +2941,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-007d)
 
 **R-15-007e** IS: The frozen profile carries a **capability indexed load and store** in custom opcode space (`cld rd, cs1[rs2 << imm]` and its store form): bounds and permissions are checked on the authorizing capability at base plus scaled index and the access is performed there, with **no intermediate capability materialized** at any point.
-· Accept: it is admitted on code size rather than on cycles, the offset-then-dereference pair it replaces being fused already (R-15-031b), so what it collects is the four bytes of image and of fetch bandwidth a fused pair still occupies, against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the §15 SRAM capacity budget; it is the highest-frequency dereference sequence a purecap target emits, it carries full Sail semantics and is frozen with the proof like every other encoding the profile allocates (R-15-014), and being bespoke with the dialect it records no standards-track re-pin target (R-15-007d, R-17-048a).
+· Accept: it is admitted on code size rather than on cycles, the offset-then-dereference pair it replaces being fused already (R-15-031b), so what it collects is the four bytes of image and of fetch bandwidth a fused pair still occupies, against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the §15 SRAM capacity budget; it is the highest-frequency dereference sequence a purecap target emits, it carries full Sail semantics and is frozen with the proof like every other encoding the profile allocates (R-15-014), and its recorded re-pin target is **partial**: RVY places a capability shift-and-add (`YSH1ADD`…`YSH4ADD`) in `Zba`, which this profile adopts, so the address-formation half has a standards-track form, but that form materializes the intermediate capability R-15-007f turns on never constructing, and the fusion of check-at-base-plus-index with the access — which is the whole of the instruction — stays bespoke with the dialect (R-15-007d, R-17-048a).
 · Trace: CJ-SAIL, CJ-CERISE · [§15](verification-maximal-os.md#r-15-007e)
 
 **R-15-007f** IS: The instruction takes capability semantics **off** the dereference path rather than adding them: `cincoffset` may produce a capability outside the representable region, a case the Sail model, the CHERI-TAL soundness metatheorem, and the Cerise universal contract each carry, and a single indexed access never constructs that intermediate.
@@ -5038,7 +5038,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1156 requirements. §19 is non-normative and yields none. Counts include the 234 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1157 requirements. §19 is non-normative and yields none. Counts include the 235 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5056,7 +5056,7 @@ All eighteen normative sections are extracted, at 1156 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **34** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **325** |
+| **§15 Hardware Platform** | **extracted** | **326** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **106** |
 | **§18 Realization** | **extracted** | **46** |
