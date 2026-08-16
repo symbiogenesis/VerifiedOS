@@ -1909,18 +1909,37 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-011)
 
 **R-10-012** IS: The mutable volume carries confidentiality and tamper-*detection* from the per-extent AEAD with volume keys resident only in the crypto core, so offline forgery or corruption is caught on the authenticate-then-return read path; only *freshness* is surrendered.
-· Accept: a whole-volume rollback to an authenticated-but-stale state is a below-the-line availability/consistency event, not an integrity breach, since a physical adversary who can rewrite the disk can equally destroy it.
+· Accept: a whole-volume rollback to an authenticated-but-stale state is a below-the-line availability/consistency event for the bulk class, not an integrity breach, since a physical adversary who can rewrite the disk can equally destroy it; the reading is scoped to that class rather than asserted of every stored byte, R-10-013b taking the security-bearing state out of it by declaration.
 · Trace: CJ-CRYPTO-SPEC · [§10](verification-maximal-os.md#r-10-012)
 
-**R-10-013** MUST: The RoT monotonic counter is spent only on low-rate security-critical state, and that set is enumerated: the base-image security-version floor, and the key-wrapping/sealing-root and credential attempt-counter versions, advancing on signed updates, key rotation, or authentication attempts, and never on a data commit.
-· Accept: the enumeration is closed by conferral rather than by amendment (R-10-013a); it is what blocks downgrade to a vulnerable generation, un-revoking a key, resurrecting an old password, and replaying the lockout counter.
+**R-10-013** MUST: The RoT monotonic counter is spent only on low-rate security-critical state, and that set is enumerated: the base-image security-version floor, the key-wrapping/sealing-root and credential attempt-counter versions, and the durable-state freshness-epoch root, advancing on signed updates, key rotation, authentication attempts, or a sealed epoch, and never on a data commit.
+· Accept: the enumeration is closed by conferral rather than by amendment (R-10-013a); it is what blocks downgrade to a vulnerable generation, un-revoking a key, resurrecting an old password, replaying the lockout counter, and replaying a spent payment, a superseded revocation list, or a consumed one-time operation.
 · Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013)
 
 **R-10-013a** MUST: Membership in that enumeration is conferred entry by entry: a requirement placing state under the RoT monotonic counter confers the membership against itself, R-10-013 is where the conferrals are collected, and neither a member no requirement confers nor a conferral R-10-013 does not carry is admitted.
 · Accept: R-10-013 names the attacks the set blocks and asserts nothing about the map from attack to counter-protected state being total, so a state that later needs freshness and does not get it is invisible to it; conferral closes the disagreement between the set and the requirements and does not close completeness, which is the same honest half R-17-030r claims for the fail-closed register.
-· Accept: state deliberately left out is recorded as a decision rather than surviving as an absence, R-10-011 being the instance and the mutable volume the state.
-· Accept: three requirements confer freshness, and a fourth conferral is not admitted until R-10-013 names the state it adds.
+· Accept: state deliberately left out is recorded as a decision rather than surviving as an absence, R-10-011 being the instance and the mutable volume the state, and a class taken back out of that exclusion is recorded the same way, R-10-013b being that instance.
+· Accept: four requirements confer freshness, and a fifth conferral is not admitted until R-10-013 names the state it adds.
 · Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013a)
+
+**R-10-013b** IS: The asset-class split under the RoT monotonic counter is three-way and not two: beside the low-rate platform state the counter keeps fresh and the bulk user data whose freshness is surrendered stands durable application state whose staleness is itself the security event, declared `Fresh` and carried by a freshness epoch rather than by the mutable volume's root.
+· Accept: a spent payment record, a revocation or consumed-token list, a one-time operation's completion mark, and an application's own attempt counter are `Fresh` by declaration in a manifest admission prices, never by a per-feature runtime judgment.
+· Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013b)
+
+**R-10-013c** MUST: The crypto core computes one root over the version of every `Fresh` region and the RoT advances a reserved counter and seals that root once per sealed epoch, never once per data commit; a `Fresh` write is acknowledged when its epoch seals, and an epoch that does not seal loses its writes rather than presenting them as fresh.
+· Accept: the epoch root is a crypto-core operation beside seal/open and the keyed dedup digest, so the class widens an existing TCB interface and adds no trusted component and no §12 compartment; what the counter spends is set by the epoch rate and not by the write rate, which is the objection R-10-011 raises against sealing the volume root.
+· RoT-fresh: the durable-state freshness-epoch root (R-10-013), advancing once per sealed epoch.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013c)
+
+**R-10-013d** MUST: The sustained epoch ceiling is a composition constant computed from the monotonic counter's rated endurance and the target service life, each compartment declares the `Fresh` regions it owns and the commit rate it needs, and admission refuses a composition whose declared rates sum past that ceiling.
+· Accept: a compartment committing faster than its admitted share blocks until its next epoch rather than advancing the counter out of turn, and the platform state R-10-013 enumerates holds a reserve no application rate can crowd out.
+· Fail-closed: a composition whose declared freshness commit rates exceed the counter's rated endurance is refused at admission (R-17-030q); the cost lands on delivery rather than on a running unit.
+· Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013d)
+
+**R-10-013e** MUST: A `Fresh` region whose version does not verify against the sealed epoch root is refused rather than returned, so a rolled-back volume denies that state instead of resurrecting it.
+· Accept: the refusal is the property rather than a consequence of it, and the availability cost falls on exactly the class whose staleness would otherwise be a security event.
+· Fail-closed: a `Fresh` read that cannot be proved fresh refuses (R-17-030s); a physical adversary with access to the storage thereby holds a permanent denial of that state.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013e)
 
 **R-10-014** MUST: Secure erase is crypto-erase: the volume keys being RoT-sealed and core-resident, destroying the sealing root renders the encrypted user data unrecoverable in the time to zeroize a key.
 · Accept: rolling the disk back yields only stale ciphertext an attacker cannot read and cannot pair with a resurrected key.
@@ -2013,6 +2032,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-10-035** MUST: A compartment declares its durable state as typed regions in its manifest, within the enumerated mutable volumes, and the platform checkpoints them into the owning confidentiality domain's subvolume under that domain's key; applications author no serializer, autosave loop, or recovery path.
 · Accept: the durable path is the verified L0/L1/L2 stack, so per-application persistence inherits its crash-refinement theorem rather than each application's ad-hoc recovery being an unproved crash surface.
 · Trace: CJ-DEVTREE, CJ-FORMAT · [§10](verification-maximal-os.md#r-10-035)
+
+**R-10-035a** MUST: A declared durable region is either `Fresh` or rollbackable and its declared type carries the kind, the platform promoting or demoting no region between the two.
+· Accept: a `Fresh` region is admitted against the epoch quota, commits on an epoch seal, and denies a read it cannot prove fresh, while every other region is the ordinary class whose restore point is the checkpoint before it; the explicit commit an externally visible or non-repeatable effect is told to take (R-17-043a) is this declaration and not an obligation handed back to the application.
+· Trace: CJ-DEVTREE, CJ-FORMAT · [§10](verification-maximal-os.md#r-10-035a)
 
 **R-10-036** MUST: A checkpoint is taken only at a declared quiescent point and committed as a single L0 journal transaction; restoring is never a resume but a measured boot, a manifest-reconstructed compartment, ordinary initialization, and only then a read of the durable regions.
 · Accept: the checkpoint is an admitted slot rather than a preemption, no partially updated region is ever committed, and durable state is bound to its schema and image generation so an update supplies a checked migration or discards.
@@ -4582,14 +4605,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: this member reaches denial of the prompt from a direction R-17-030i does not cover, needing no software compromise to produce; recovery is the ordinary restart of the display path, so the cost is availability of the prompt and never a forged or captured grant.
 · Trace: CJ-ISOL, CJ-NI · [§17](verification-maximal-os.md#r-17-030p)
 
-**R-17-030q** IS: Fail-closed seam **budget admission refusal ⋈ the roster**: a workload that does not fit the static budget is refused at admission rather than paged, there being no swap and no overcommit anywhere (R-15-171), which is a precondition of the timing argument rather than a shortfall in it.
+**R-17-030q** IS: Fail-closed seam **budget admission refusal ⋈ the roster**: a workload that does not fit the static budget is refused at admission rather than paged, there being no swap and no overcommit anywhere (R-15-171), and a composition whose declared freshness commit rates sum past the counter's rated endurance is refused on the same pass (R-10-013d), each a precondition of the argument it serves rather than a shortfall in it.
 · Accept: the second delivery-side member beside R-17-030e, named because a refusal provoked by ordinary growth rather than by an adversary is still a refusal, and a register carrying only the adversary-provokable members would be a threat model rather than an inventory.
 · Trace: CJ-MEMPLAN, CJ-WCET · [§17](verification-maximal-os.md#r-17-030q)
+
+**R-17-030s** IS: Fail-closed seam **freshness refusal ⋈ durable application state**: a `Fresh` region that does not verify against the sealed epoch root is refused rather than returned (R-10-013e), so an adversary with physical access to the storage holds a permanent denial of that state and an exhausted commit quota holds a temporary one.
+· Accept: the refusal is retained because every alternative presents a superseded state as current, which is what the class exists to prevent; the member is a denial an adversary provokes without software access, reached from a direction R-17-030n does not cover, and it is bounded to the declared class rather than to the volume.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§17](verification-maximal-os.md#r-17-030s)
 
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
 · Accept: this is R-17-016's repair applied to the other register, and it closes the register's disagreement with the requirements, which is the direction R-03-008 already calls a review-gate finding and nothing enforced; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: against the completeness residue `tools/check.ps1` over-approximates the vocabulary of refusal across the whole register and requires every entry it catches to be conferred or explicitly dispositioned, so the totality claim is discharged against an agenda regenerated on every run; R-17-030n, R-17-030o, R-17-030p, and R-17-030q were found by running it and not by inspection.
-· Accept: eighteen requirements confer a refusal and fourteen seams collect them, both figures recomputed rather than maintained here.
+· Accept: twenty requirements confer a refusal and fifteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T · [§17](verification-maximal-os.md#r-17-030r)
 
 ### 17.7 Admission and tooling seams
@@ -4643,12 +4670,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: scope is a labeling obligation, so a secret reaching an un-CT-verified compartment is a spec or label error the flow theorems must catch, not a tooling gap.
 · Trace: CJ-CT-SOUND · [§17](verification-maximal-os.md#r-17-042)
 
-**R-17-043** IS: The verified-storage seam carries six residuals, all of a *verified but contained* stack: freshness rather than trust; L0 re-proved over C rather than ported by a bespoke tool; the AE ⋈ noninterference composition seam; the liveness ⋈ schedulability seam; the dedup keyed-digest interface and its domain-confined equality revelation; and user-data freshness surrendered by design.
-· Accept: the stack carries no TCB membership at all, so system integrity rides the small reader and transactor instead.
+**R-17-043** IS: The verified-storage seam carries six residuals, all of a *verified but contained* stack: freshness rather than trust; L0 re-proved over C rather than ported by a bespoke tool; the AE ⋈ noninterference composition seam; the liveness ⋈ schedulability seam; the dedup keyed-digest interface and its domain-confined equality revelation; and bulk user-data freshness surrendered by design, the security-bearing class being taken out of the surrender by declaration rather than left inside it.
+· Accept: the stack carries no TCB membership at all, so system integrity rides the small reader and transactor instead; the freshness exception widens the crypto-core interface exactly as the dedup digest does and adds no component to that set.
 · Trace: CJ-NI, CJ-REDUCTION · [§17](verification-maximal-os.md#r-17-043)
 
 **R-17-043a** IS: Declarative durable state books the storage seam's seventh residual: it buys the deletion of per-application persistence code at the price of the one state class that outlives the reboot which clears everything else, costing a rollback window between checkpoints, a standing schema-migration obligation across generations, and the only place on the machine where a defect can be durable.
-· Accept: the class stays typed, per-domain, non-TCB, and discardable and is never extended to system or kernel state; externally visible or non-repeatable effects still take an explicit commit rather than riding the checkpoint.
+· Accept: the class stays typed, per-domain, non-TCB, and discardable and is never extended to system or kernel state; externally visible or non-repeatable effects still take an explicit commit rather than riding the checkpoint, and that commit is the `Fresh` declaration of R-10-035a rather than an obligation handed back to the application.
 · Trace: CJ-DEVTREE · [§17](verification-maximal-os.md#r-17-043a)
 
 **R-17-044** IS: The synchronous-control-plane seam adds no fresh axiom (Vélus is Coq-verified) and carries two residuals: the Lustre program and the control/data boundary are crown-jewel specs, and the offset is a net shrink: WCET, the memory-safety certificate, and determinism become structural for the control tier.
@@ -4990,7 +5017,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1146 requirements. §19 is non-normative and yields none. Counts include the 224 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1152 requirements. §19 is non-normative and yields none. Counts include the 230 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5003,14 +5030,14 @@ All eighteen normative sections are extracted, at 1146 requirements. §19 is non
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **60** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
-| **§10 Storage & State** | **extracted** | **41** |
+| **§10 Storage & State** | **extracted** | **46** |
 | **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **34** |
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **324** |
 | **§16 Reliability** | **extracted** | **28** |
-| **§17 Residual Risks** | **extracted** | **105** |
+| **§17 Residual Risks** | **extracted** | **106** |
 | **§18 Realization** | **extracted** | **46** |
 
 §19 is non-normative and yields no requirements.
