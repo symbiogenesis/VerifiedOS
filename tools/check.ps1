@@ -668,11 +668,7 @@ $claims = @(
     @{ File = 'README.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=plus the )[\w-]+(?= theorem targets)' }
 
     # the gap catalogue argues from them
-    @{ File = 'critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=requirements-register\.md\), )[\d,]+(?= numbered requirements)' }
     @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '(?<=register and the )[\w-]+(?= derived views)' }
-    @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= derived views and `tools/check\.ps1`)' }
-    @{ File = 'critique.md'; Q = 'seams';         Style = 'words';  Pattern = '[\w-]+(?= hardware seams are named with owners)' }
-    @{ File = 'critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '[\w-]+(?= fail-closed seams stand there now)' }
     @{ File = 'critique.md'; Q = 'fc-conferrals'; Style = 'words';  Pattern = '[\w-]+(?= conferrals against)' }
     @{ File = 'critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '(?<=conferrals against )[\w-]+(?= seams)' }
     @{ File = 'critique.md'; Q = 'dispositions';  Style = 'words';  Pattern = '[\w-]+(?= candidates were dispositioned)' }

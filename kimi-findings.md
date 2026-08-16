@@ -16,7 +16,7 @@
 
 **Devices and peripherals.** External roaming authenticators, DIVA, dedicated fixed-function GPUs, uniform graphics widening, Vulkan and software GPU personalities, OLED aging compensation, Adaptive-Sync, firmware-driven NPUs, physical bifurcation of the radio onto a second die, and FullMAC radio controllers are each declined. General lockstep and TMR are deployment-deferred rather than rejected, available as graded options where a safety case pays for them.
 
-**Memory technology.** Memory encryption and the integrity tree declined outright, memory cryptography protecting an interface this machine does not have. SRAM chiplets and bonded die-stacking declined, each die being a separate mask set and supply-chain entity. Dynamic and adaptive low-leakage SRAM techniques, active sub-threshold memory, transparent variable-rate compression, and runtime deduplication declined. Non-volatile main memory and unified SOT-MRAM storage now carries a full five-claim decomposition and a disposition: reject the wholesale all-CAAC-IGZO, all-SOT-MRAM single-level store as the base, keeping bespoke volatile SRAM normative. Static code overlays are deferred behind a measured trigger rather than rejected. Deleting the store buffer for sequential consistency by absence clears four of five gates and is booked as an open design-space question with an explicit falsifier.
+**Memory technology.** Memory encryption and the integrity tree declined outright, memory cryptography protecting an interface this machine does not have. SRAM chiplets and bonded die-stacking declined, each die being a separate mask set and supply-chain entity. Dynamic and adaptive low-leakage SRAM techniques, active sub-threshold memory, transparent variable-rate compression, and runtime deduplication declined. Non-volatile main memory and unified SOT-MRAM storage carries a full five-claim decomposition and a disposition: reject the wholesale all-CAAC-IGZO, all-SOT-MRAM single-level store as the base, keeping bespoke volatile SRAM normative. Static code overlays are deferred behind a measured trigger rather than rejected. Deleting the store buffer for sequential consistency by absence clears four of five gates and is booked as an open design-space question with an explicit falsifier.
 
 ---
 
@@ -78,7 +78,7 @@ No contradictions were found on the checked points for the MCS deletion against 
 
 ## 6. Redundancy and complexity the documents admit
 
-**The duplicate revocation mechanism was admitted and is gone.** The derivation tree was a second mechanism for a property the CHERI machinery already delivered over strictly more of the machine, and R-08-004 now carries the CHERI mechanism alone. IN records the argument rather than the duplication, which is the right residue: the deletion is the load-bearing half of taking the CHERIoT-shaped object model.
+**There is no duplicate revocation mechanism.** A derivation tree would be a second mechanism for a property the CHERI machinery delivers over strictly more of the machine, and R-08-004 carries the CHERI mechanism alone. IN records the argument rather than the duplication, which is the right residue: the exclusion is the load-bearing half of taking the CHERIoT-shaped object model.
 
 **The store buffer meets four of five deletion gates and is retained pending a measurement.** By the design's own logic it is a structure currently carried as a candidate for deletion.
 

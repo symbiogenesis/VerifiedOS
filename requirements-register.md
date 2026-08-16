@@ -4069,7 +4069,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-KERNEL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-214)
 
 **R-15-215** MUST: Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: no predictor, no reservation, no prefetcher, no TLB or walk cache, no cache of any kind, no scalar-FP or rounding-mode state, the register files by total restore, and the vector/matrix and scratchpad state by the §7 eager zeroize.
-· Accept: each is a distinct named mechanism, not the fence's job. With the V/M save deleted (R-07-014a) the last two converge: both are discharged by what the switch *writes* before the successor's first instruction, neither by a snapshot carried across, so R-15-217's class (a) sees one sub-case where it formerly saw two.
+· Accept: each is a distinct named mechanism, not the fence's job. With the V/M save deleted (R-07-014a) the last two converge: both are discharged by what the switch *writes* before the successor's first instruction, neither by a snapshot carried across, so R-15-217's class (a) has one sub-case rather than two.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-215)
 
 **R-15-216** IS: `fence.t` does not touch state that is partitioned rather than time-shared (SRAM banks/macros/tiers, TDM NoC slots, per-partition interrupt-file state), and in-flight DMA is not its concern: device windows are torn down or re-authorized by the capability machinery at the boundary.
@@ -4972,7 +4972,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the standalone CT verifier folds into the certifying-compiler/TAL workstream rather than being net-new, degrading gracefully with Binsec/Rel carrying bring-up.
 · Trace: CJ-REDUCTION, CJ-CT-SOUND · [§18](verification-maximal-os.md#r-18-021)
 
-**R-18-022** MUST NOT: The fourth deliverable an earlier revision carried, the CryptOpt-style translation-validation toolchain, is deleted rather than deferred, because its whole yield was speed on an already-sound path.
+**R-18-022** MUST NOT: The fourth candidate deliverable, the CryptOpt-style translation-validation toolchain, is deleted rather than deferred, because its whole yield is speed on an already-sound path.
 · Accept: deleting it retires a net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category, and this workstream, at the price of hand-assembly-grade ECC throughput.
 · Trace: CJ-CRYPTO-SPEC · [§18](verification-maximal-os.md#r-18-022)
 
@@ -5082,10 +5082,10 @@ Normative claims that resist atomic restatement, per R-05-153. This is the regis
 
 The `tselect` / `tdata` row is the one with a security consequence rather than a surface consequence, and it is the row that most repays being asked early.
 
-An empty list was not the same as a swept one, and that distinction is what this entry vindicates: the three sweeps below closed the three lists they found, and the standing instruction below (assume further instances present rather than absent) is what found the fourth. Three sweeps have been run over the register and each found instances the one before it could not see:
+An empty list is not the same as a swept one, which is what this entry turns on. Three sweeps run over the register, each finding instances the one before it could not see:
 
-1. **What does a reviewer open to decide this?** Asked of one acceptance criterion at a time. Criteria that quantify over a list no artifact holds are the class this found; it is closed for the three lists it found (the frozen profile, the absence contract, the crown-jewel inventory), each now a derived view under R-15-001a, R-15-100a, and R-17-016a.
-2. **What does the register restate that nothing checks?** The widened form of the same class, covering any claim held in a second place with no artifact checking the two agree. This is what moved traces from line numbers to bookmarks, and it is why the derived views are machine-checked in both directions rather than maintained by care.
-3. **Which enumerations disagree?** Asked of every list stated more than once. The type-level obligations (R-05-029) and the axiom set (R-06-011) are each now stated once and cited elsewhere.
+1. **What does a reviewer open to decide this?** Asked of one acceptance criterion at a time. Criteria that quantify over a list no artifact holds are the class this finds; it is closed for the three lists it found (the frozen profile, the absence contract, the crown-jewel inventory), each a derived view under R-15-001a, R-15-100a, and R-17-016a.
+2. **What does the register restate that nothing checks?** The widened form of the same class, covering any claim held in a second place with no artifact checking the two agree. This is why traces are bookmarks rather than line numbers, and why the derived views are machine-checked in both directions rather than maintained by care.
+3. **Which enumerations disagree?** Asked of every list stated more than once. The type-level obligations (R-05-029) and the axiom set (R-06-011) are each stated once and cited elsewhere.
 
 The standing instruction is that sweep 2's question has not been asked exhaustively, so further instances should be assumed present rather than absent. `tools/check.ps1` decides the instances already found; a newly found one is a spec defect booked here with a disposition, and a repair whose correctness nothing checks is itself an instance of the class.

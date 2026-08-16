@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions". | 0 |
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
-| **§2 Corrections** | Claims the profile makes that were true when written and are now imprecise. The conclusions stand; the arguments need restating. | 0 |
+| **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 2 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 17 in 9 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 7 + 2 |
@@ -61,7 +61,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 ## 2. Corrections
 
-*True when written, imprecise now. In every case the conclusion stands and the argument needs restating — do not reopen the decision.*
+*An upstream change has made the argument imprecise. In every case the conclusion stands and the argument needs restating — do not reopen the decision.*
 
 ---
 
@@ -75,7 +75,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 - [ ] **State that CHERI is unconditionally enabled and no enable bit exists.**
   *Governing:* §5.3, R-15-049 · *Lands:* §5.3 → §5.2 · *Matrix:* §7, §9.2
-  ISAv9 and RVY both put a CHERI enable/disable bit in `menvcfg`/`senvcfg` (RVY moved its position twice during v0.9.9 review, so it is settled architecture rather than a placeholder). §5.3 indicates deleting `menvcfg` on R-15-049's ground — its bits gate a less-privileged mode that does not exist — and **that ground survives contact with the change**. But the conclusion now needs saying out loud, so a curator reading `menvcfg → deletion` does not silently delete the CHERI enable along with it. *Filed here rather than in §4 because the deletion ground is intact; only the explicitness is missing.*
+  ISAv9 and RVY both put a CHERI enable/disable bit in `menvcfg`/`senvcfg` (RVY moved its position twice during v0.9.9 review, so it is settled architecture rather than a placeholder). §5.3 indicates deleting `menvcfg` on R-15-049's ground — its bits gate a less-privileged mode that does not exist — and **that ground survives contact with the change**. But the conclusion needs saying out loud, so a curator reading `menvcfg → deletion` does not silently delete the CHERI enable along with it. *Filed here rather than in §4 because the deletion ground is intact; only the explicitness is missing.*
 
 ---
 
