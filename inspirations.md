@@ -1354,7 +1354,11 @@ This takes system-level timing-domain separation without making datapath complet
 
 SRAM leakage is reduced by **static** cell and circuit choices: a high-Vt storage core with low-Vt periphery, gate-length biasing, state-retentive sleep-transistor gating, a low-leakage process flavour, and fixed reverse body bias where the substrate permits it.
 Near-threshold retention is allowed for idle banks; sub-threshold active memory, workload-tracking body bias, activity-driven gating, and adaptive assist are not.
-The 6T versus decoupled-read multi-port cell remains a per-tier density/stability choice, with static write assist where required.
+**The bitcell itself stays 6T, and the transistor-count question is settled on the security axis rather than left open on it.**
+The decoupled-read multi-port cells (8T, 9T, 10T, Schmitt-trigger, dual- and two-port) remain a per-tier and per-structure density and stability choice, with static write assist where required, and they are taken where multiple ports are functionally required, at the vector register files and matrix scratchpads rather than at main memory.
+They are taken on **no** side-channel ground: the read-decoupled cell's single-ended read buffer makes the fetched word's Hamming weight a first-order term in read current, where the 6T differential read is comparatively balanced, and the leakage-power-analysis literature measures the canonical Schmitt-trigger 10T as very nearly separable between storing a zero and a one, building its symmetric 12T countermeasure on top of that cell rather than out of it.
+The genuinely security-oriented cells are a different family ordered differently by count (a 7T for the dynamic write channel, a 12T for the static one), and they are declined as platform mechanisms alongside the cheaper periphery randomization unit, at the same test §17 applies to masking: their deliverable is a measured attenuation factor rather than a statement over the leakage model the theorems are stated in.
+The residual this leaves is leakage power analysis against arrays held in long retention, which is a different exposure window from the crypto core's operating analog channel.
 
 Process technology is graded by tier.
 The bottom logic tier uses an IRIS-resolvable **silicon-on-insulator** process with frontside power: the buried oxide gives a repeatable backside reveal stop, latch-up isolation, a smaller upset volume, and static body bias.
