@@ -1464,6 +1464,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: this is the CHERIoT non-MMU realization, not RVY `Svyrg`: the loaded capability's base selects the bit and a set bit clears its tag before architectural writeback. RVY's four-bit PTE state machine has no PTE in which to live here and is not silently compressed into one bit; epoch, sweep, and quarantine state remain in their separately specified protocol, while this array carries only the load-time live/revoked predicate. The covered union includes the R-08-004a grant table, whose per-slot bits carry the subtree case. The bitmap is a bank-side sidecar read with the data/tag access, not a second fabric or main-memory transaction.
 · Trace: CJ-CERISE, CJ-WCET, CJ-SAIL · [§8](verification-maximal-os.md#r-08-005a)
 
+**R-08-005b** MUST: The **load instruction's own definition** permits the revocation-driven tag clear: a capability-width load whose result is revoked writes the value back with its validity tag cleared, and that is a defined result of the load rather than an effect the filter's prose layers onto it.
+· Accept: every capability-width load in the Sail model carries the revoked case as one of its defined results, at the single fixed latency R-08-005a and R-08-006 state, so the bank-side filter realizes an architectural result rather than acting outside the instruction that provoked it; a load definition admitting only an unmodified tag or a trap cannot express R-08-005's check at all. Both address-keyed cases rest on this clause and have no second mechanism, the object case and R-08-004a's delegation case each clearing the tag on the load with the revocation colour declined at R-08-004b.
+· Trace: CJ-SAIL, CJ-CERISE · [§8](verification-maximal-os.md#r-08-005b)
+
 **R-08-006** IS: Containment and reclamation split: containment is the revocation-epoch advance the load filter checks against (a register-write-class constant, microseconds), while the sweep is reclamation, milliseconds to seconds of memory traffic that no security property waits on.
 · Accept: the bounded constant claimed in R-08-004 is the epoch flip, not sweep completion.
 · Trace: CJ-CERISE · [§8](verification-maximal-os.md#r-08-006)
@@ -2913,6 +2917,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: whether the shift amount earns its encoding bits, or an unscaled index suffices because element strides are known where the slot plan is decided (R-08-011), is a recorded selection against a measured mix rather than a backend preference; the choice is frozen with the profile (R-15-014) and the Sail clause states one form.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-007g)
 
+**R-15-007h** IS: Non-monotonic capability modification **clears the validity tag**; it does not raise an exception. A derivation that would widen bounds or add permissions yields an untagged result, so a failed derivation is a data result faulting at its next dereference rather than a control-flow event.
+· Accept: this states which side of ISAv9's Morello-derived rule the "instruction semantics unchanged" of R-15-007 lands on, and the profile is committed to it already: R-15-007e and R-15-007f turn entirely on `cincoffset` producing a capability outside the representable region as a *carried* result rather than a trap. Nothing is owed to the trap path by it: no CHERI cause code and no `mtval` case (R-15-073a), and no failed derivation contributes a control-flow term to a §15 WCET entry. The tag clear is inherited semantics stated, not a divergence, so R-15-007a's representation-correctness proof is unaffected.
+· Trace: CJ-SAIL, CJ-CERISE · [§15](verification-maximal-os.md#r-15-007h)
+
+**R-15-007i** IS: The architectural register file is **merged**: one file of 32 registers of 64+1 bits, each holding a capability with its validity tag, an integer operand being that register's address field read as an integer. No separate capability register bank exists and no instruction moves a value between banks.
+· Accept: the total restore of R-07-015 and R-15-214 therefore quantifies over **one** file of 32 × (64+1) bits together with the CSR bank R-15-001b encloses, not over an integer file and a capability file read as two, and that single set is what the totality obligation is stated against and what keeps the register files out of the `fence.t` flush set. ISAv9 makes the merged file normative for every CHERI architecture, so this is inherited rather than divergent, and the profile's silence was an omission rather than a choice.
+· Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-007i)
+
 **R-15-008** IS: The base sealed-entry and forward/backward-edge sentry semantics are the only sentry semantics the profile carries; the frozen dialect adds no sentry surface to the standard-track base.
 · Accept: CHERIoT's interrupt-state sentry variants are absent (R-15-078).
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-008)
@@ -3325,6 +3337,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the single-Machine-mode trap path is expressible; a trap-data capability bootstraps the handler's authority on entry.
 · Trace: CJ-KERNEL · [§15](verification-maximal-os.md#r-15-073)
 
+**R-15-073a** IS: Capability exceptions report through the **existing trap-value CSR**: `mcause` and `mtval` are present, a CHERI capability violation raises one CHERI cause code in `mcause`, and `mtval` carries the violation's detail, being the capability cause type and the register or field that raised it. No bespoke CHERI cause or trap-value bank exists.
+· Accept: the profile's CSR bank carries `mcause` and `mtval` as present rows citing this entry, and the extraction defect that booked them as undecided closes with it: R-07-022 and R-15-073 specify the trap path entirely in capability terms and name no cause register, which leaves a handler with a trap and no cause. The CHERI cause codes are ISAv9's and are frozen with the profile (R-15-014), so the encoding is not left to an implementation. Reusing one trap-value register rather than adding a bank is both the standards-track answer (ISAv8 settled it, ISAv9 keeps it, RVY's `Xtval2` confirms it from the other side) and the cheaper one.
+· Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-073a)
+
 **R-15-074** MUST: Local/global capabilities and the `store-local` permission (with `load-global`/`load-mutable` transitivity) are adopted: a local capability may be stored only through a capability bearing `store-local`, which by construction only the stack carries.
 · Accept: a buffer handed to an untrusted codec cannot be retained past the call; the convention that authority cannot cross into long-lived shared memory is an ISA-enforced invariant.
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-074)
@@ -3518,6 +3534,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-115** MUST NOT: V-class is vector, not fixed-function graphics and not SIMT: no rasterizer, no texture units, no ROPs, no command processor, and no hardware warp scheduler.
 · Accept: CHERI stays a single-front-end problem; vector data carries no tags and checks land on scalar-issued vector memory ops, per-element for gather/scatter.
 · Trace: CJ-CERISE, CJ-WCET · [§15](verification-maximal-os.md#r-15-115)
+
+**R-15-115a** MUST: A vector store **clears the capability validity tag of every granule it overwrites**, partial-granule writes included.
+· Accept: R-15-115's *vector data carries no tags* is a statement about what a vector store writes, not about the tag of what it replaces, and without this clause a vector store reads as leaving a stale tag standing over data it has overwritten, which is a forgery primitive rather than a residue. Every vector store's Sail definition carries the tag clear over the granules its access covers, so it is a defined architectural result and not an implementation choice; it adds no architectural state and no admission-test case (R-15-012), the tag write being the one a scalar store already performs.
+· Trace: CJ-SAIL, CJ-CERISE · [§15](verification-maximal-os.md#r-15-115a)
 
 **R-15-116** MUST: The bespoke matrix extension is admitted only where it clears an order-of-magnitude sustained dense-GEMM margin (about 8–10× throughput, wider per-watt) over the same GEMM expressed as RVV on the M-class's own VLEN=1024 unit.
 · Accept: dense int8/bf16 inference clears the bar and the extension is kept; small, irregular, or low-reuse GEMM does not and folds onto the vector unit.
@@ -4962,7 +4982,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1139 requirements. §19 is non-normative and yields none. Counts include the 217 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1144 requirements. §19 is non-normative and yields none. Counts include the 222 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -4973,14 +4993,14 @@ All eighteen normative sections are extracted, at 1139 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **57** |
-| **§8 Authority Model** | **extracted** | **59** |
+| **§8 Authority Model** | **extracted** | **60** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **41** |
 | **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **34** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **319** |
+| **§15 Hardware Platform** | **extracted** | **323** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **105** |
 | **§18 Realization** | **extracted** | **45** |
@@ -4991,13 +5011,12 @@ All eighteen normative sections are extracted, at 1139 requirements. §19 is non
 
 Normative claims that resist atomic restatement, per R-05-153. This is the register's standing output and the review gate's agenda (R-18-035): an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is itself a spec defect by R-05-153's own rule. A claim booked here is a defect in [verification-maximal-os.md](verification-maximal-os.md) to be repaired there, never a register omission to be worked around here.
 
-**Open defects: one, with seven rows.**
+**Open defects: one, with six rows.**
 
 **D-CSR: the surviving CSR bank is not decided register by register.** Sweep 1's class, found in a fourth list: §15 enumerates the deleted CSRs by name and states the residue nowhere, while R-07-015 and R-15-214 both quantify over "every CSR a partition can name." R-15-001b closes the *artifact* half (the enumeration now exists, in [isa-profile.md](isa-profile.md) §5) and this entry holds the rows the enumeration found that no requirement decides. Each is a defect in [verification-maximal-os.md](verification-maximal-os.md) §15 to be repaired there; the profile view carries the same rows marked **open** and decides none of them.
 
 | Row | What is undecided | Indicated |
 | --- | --- | --- |
-| `mcause` / `mtval` | the trap path is specified in capability terms (R-07-022, R-15-073) but names no cause register, no trap-value register, and no cause encoding for a CHERI capability exception | present, a hole, not a deletion |
 | `mie` / `mip` | the machine-timer bits have a consumer (R-07-043, R-15-063); the external- and software-interrupt bits do not (R-15-065, R-15-066) | present, narrowed to the timer bits |
 | `menvcfg` | R-15-049's ground against `Smstateen` applies word for word and is stated only for `Smstateen`; `Zicboz`'s `CBZE` bit is the case to check (R-15-060) | deletion |
 | `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | one Sail model frozen with the proof (R-15-005) has no runtime discovery consumer | hardwired zero |

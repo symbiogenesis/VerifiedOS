@@ -18,6 +18,7 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | Vector | **V** (RVV), VLEN per core class (§8) | R-15-001, R-15-113 |
 | Capabilities | **CHERI**, **64+1-bit** purecap encoding: re-parameterized CHERI Concentrate, standard algebra, narrowed fields (§4.1) | R-15-001, R-15-007 |
 | ABI mode | **purecap only**: no hybrid, no plain-RV64 target anywhere | R-15-001, R-18-002 |
+| Register file | **merged**: one file of 32 × (64+1) bits, each register a capability with its tag, an integer operand being that register's address field; no separate capability bank and no move between banks, so the total restore quantifies over one file | R-15-007i, R-07-015, R-15-214 |
 | Atomics | `A` narrowed to **`Zaamo` + `Zabha`** | R-15-001, R-15-024 |
 | Scalar FP | **none**: V supplies all floating point, computed at VL=1 | R-15-001, R-15-039 |
 | `C` extension | **excluded**: no variable-length, ambiguously-aligned encoding | R-15-001, R-15-036 |
@@ -117,6 +118,7 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, reachable only with access-system-registers | R-15-073 |
 | Local/global + `store-local` | with `load-global`/`load-mutable` transitivity; only the stack carries `store-local` | R-15-074 |
 | Revocation load filter | every tagged capability load checks the dedicated revocation sidecar at the granule containing the loaded capability's base; a revoked result clears the loaded tag before architectural writeback rather than trapping | R-08-004, R-08-005, R-08-005a, R-08-009 |
+| Tag clearing on non-monotonic modification | a derivation that would widen bounds or add permissions yields an **untagged** result rather than trapping: a failed derivation is a data result faulting at its next dereference, carrying no cause code and no control-flow term in a WCET entry | R-15-007h |
 | access-system-registers permission | *is* the privilege mechanism, replacing the S/U ring | R-15-003 |
 
 **Excluded**
@@ -129,6 +131,8 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | **Revocation colour as a capability field** | no colour is stamped at derivation and the format carries no colour field: subtree revocation is a grant-layer property, keyed by the address of a kernel-owned grant slot, so the same address-keyed filter decides it | R-08-004a, R-08-004b |
 
 **The load filter uses the CHERIoT non-MMU realization, not a page-table surrogate.** The attested devicetree gives a composition-fixed union of 64-byte-aligned revocable SRAM intervals. A dedicated sidecar bitmap carries one revocation bit per 8-byte capability granule in those intervals (`0` live, `1` revoked), so for intervals *I* its payload is exactly Σ|*I*|/64 bytes. The static memory plan charges the payload, ECC bits, and macro periphery against the SRAM capacity budget. The bitmap carries only the load-time live/revoked predicate; RVY `Svyrg`'s four-bit PTE protocol is not imported, and epoch, sweep, and quarantine state are not collapsed into this bit (R-08-005a, R-15-175).
+
+**The tag clear is part of the load's own definition, not an effect layered onto it.** Every capability-width load carries the revoked case as one of its defined results: the value is written back with its validity tag cleared, at the one fixed latency §9 states. So the bank-side filter realizes an architectural result rather than acting outside the instruction that provoked it, and a load definition admitting only an unmodified tag or a trap could not express the check at all. With no colour in the format, this one clause is what both address-keyed cases rest on, the object case and the delegation case alike (R-08-005b, R-08-004a).
 
 **Address keying is the whole mechanism, and it covers the subtree case too.** The one property ancestry keying held over address keying was revoking what one principal delegated without disturbing another principal's capabilities to the same object, and the profile buys it without a colour field because the authority model gives each *delegation* an address of its own: independently revocable cross-domain authority is a sealed capability bounded to a kernel-owned grant slot, so retiring it sets the bit for the slot's granule and not the object's (R-08-004a, R-08-004b). Nothing here is a format obligation: the grant table is kernel memory inside the covered union, and the filter that reads it is the one already specified above. This is what keeps §4.1's field table at 64 bits with no colour competing for them.
 
@@ -169,6 +173,7 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | `misa` | **read-only**; writes have no effect, so no runtime ISA morphing | R-15-052 |
 | `mstatus` | present for **`VS`/`XS`**, the vector/matrix state gate, set at partition setup and paired with eager zeroize; this is the mechanism `Smstateen` was deleted in favor of. `FS` has no referent with scalar FP deleted | R-07-012, R-15-049, R-15-039 |
 | `MTCC` / `MEPCC` / `MTDC` | capability trap registers, **in place of** `mtvec` / `mepc` / trap-scratch, reachable only with access-system-registers. A trap installs `MTCC` as the executing PCC, saves the interrupted PCC as `MEPCC`, and bootstraps the handler's authority from `MTDC` | R-15-073, R-07-022, R-07-023 |
+| `mcause` / `mtval` | present: a CHERI capability violation raises one CHERI cause code in `mcause` and reports its detail (the capability cause type, and the register or field that raised it) in `mtval`. The cause codes are ISAv9's, frozen with the profile; **no bespoke CHERI cause or trap-value bank exists** | R-15-073a, R-07-022, R-15-014 |
 | `vtype` / `vl` / `vlenb` / `vxrm` / `vxsat` / `vcsr` | present with **V**; `vstart` is not among them, excluded in §5.2. The partition switch **zeroizes and does not save** them, so no vector CSR context-switches and none joins the `fence.t` flush set, the property R-15-083 deletes `frm` to obtain, obtained here structurally. The standard reachable `vtype` configuration space remains intact; the profile imposes no narrower subset | R-15-001, R-07-014, R-07-014a, R-15-214 |
 | `dcsr` / `dpc` / `dscratch0–1` | Debug Module state: present in silicon, **unreachable in the production lifecycle state**, where the RoT's OTP fuse holds the DM's clock and reset gated off and its fabric port electrically quiesced | R-15-078, R-15-079 |
 
@@ -199,7 +204,6 @@ Booked as an extraction defect in the register. Each states what is indicated an
 
 | CSR | What the register does and does not say | Indicated | Bearing |
 | --- | --- | --- | --- |
-| `mcause` / `mtval` | The trap path is specified in capability terms (`MTCC` installed, `MEPCC` saved, authority from `MTDC`) but no requirement names a cause register, a trap-value register, or the cause encoding for a CHERI capability exception. A handler needs a cause | **present**; this is a hole, not a deletion | R-07-022, R-15-073 |
 | `mie` / `mip` | The machine-timer bits have a consumer: the slot-boundary timer is the core's only asynchronous trap. The external- and software-interrupt bits do not: an MSI sets an IMSIC pending bit read by an ordinary load and never vectors the core, and no wired level interrupt exists on the die | **present, narrowed to the timer bits**; the deletion is of fields, not registers | R-07-038, R-07-043, R-15-063, R-15-065, R-15-066 |
 | `menvcfg` | Every bit gates a *less-privileged* mode's access to an extension feature. R-15-049's ground against `Smstateen` (with no less-privileged mode its bits gate nothing reachable) applies word for word, and is stated only for `Smstateen`. `Zicboz`'s `CBZE` bit is the case to check: `cbo.zero` is unconditionally permitted in M-mode | **deletion** | R-15-049, R-15-060, R-15-003 |
 | `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | Read-only identification. RISC-V permits all four to read zero, and a profile frozen with the proof, carrying exactly one Sail model, has no runtime discovery consumer | **hardwired zero** | R-15-005, R-15-014 |
@@ -278,7 +282,7 @@ One shared scalar front end (CVA6-class, modified to static-only prediction) acr
 | **S** | scalar sentinel | vectorless; hashes SHA-3/SHAKE in plain 64-bit integer with `Zbb` rotations (R-15-041) |
 | **RoT** | OpenTitan-class scalar RV64+CHERI, own clock/power island | no V/M; main-die purecap capability format, **not** CHERIoT's encoding (R-15-005, R-15-113) |
 
-Capability checks land on scalar-issued vector/matrix memory operations, per-element for gather/scatter; vector data carries no tags, keeping CHERI a single-front-end problem (R-15-115).
+Capability checks land on scalar-issued vector/matrix memory operations, per-element for gather/scatter; vector data carries no tags, keeping CHERI a single-front-end problem (R-15-115). A vector store therefore **clears the capability tag of every granule it overwrites**, partial-granule writes included: *vector data carries no tags* says what a vector store writes, not what happens to the tag of what it replaces, and a stale tag left standing over overwritten data is a forgery primitive rather than a residue (R-15-115a).
 
 ## 9. Implementation timing contracts
 

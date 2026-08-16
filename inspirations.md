@@ -1046,13 +1046,13 @@ This is not a substitution proposed here; it is what the CHERIoT lineage this de
 The spec has in fact already conceded the point in §5: what is proved is *"more precisely a CHERIoT-class static separation kernel that borrows seL4's object vocabulary."*
 The deletion finishes that sentence, dropping the vocabulary along with the machinery, because CHERIoT has no CNodes.
 
-**The CDT is a second revocation mechanism for a property the first already delivers.**
-R-08-004 states the duplication in a single clause: *"first-class revocation (derivation-tree revoke **+** CHERI sweep)."*
+**The CDT was a second revocation mechanism for a property the first already delivers, which is why R-08-004 now carries the CHERI mechanism alone and states that no capability derivation tree exists.**
+The argument that retired it is recorded here because the deletion is the load-bearing half of taking the CHERIoT-shaped object model.
 The CHERI side is fully specified and load-bearing on its own: the epoch advance is the bounded containment constant, the per-load filter makes *freed implies unreachable* hold at access time rather than at sweep completion, the sweep is sized background reclamation in its own admitted slot class, and the quarantine pool prices forced-sweep denial of service to the aggressor (R-08-005 through R-08-009).
 It also covers strictly more than the CDT ever could, because it reaches every capability on the machine, including the userland capabilities in registers and tagged memory that no kernel derivation tree records.
 The one thing ancestry keying buys over address keying is **subtree** revocation, revoking what one principal delegated without disturbing capabilities to the same object derived by another, and the reason address keying seems unable to express it is narrower than it looks: a *delegation* has no address of its own, so two principals' capabilities to one object key the same granule.
 The authority model gives it one. Independently revocable cross-domain authority is delegated as a sealed capability bounded to a kernel-owned **grant slot**, so retiring the delegation sets the sidecar bit for the slot's granule and not the object's, and the subtree case falls out of the same load filter at hardware speed rather than a kernel walk over a tree (R-08-004a, R-08-004b).
-Two mechanisms, one property, one of them verified hardware and the other the most expensive software proof in the plan: this is precisely the shape *verify rather than hedge* (R-15-013) exists to reject, and the design has applied that rule against the initialization-tag plane, MTE, shadow stacks, PMP, and the IOMMU while leaving its own kernel carrying a duplicate.
+Two mechanisms, one property, one of them verified hardware and the other the most expensive software proof in the plan: that is precisely the shape *verify rather than hedge* (R-15-013) exists to reject, and the rule had already been applied against the initialization-tag plane, MTE, shadow stacks, PMP, and the IOMMU, so applying it inside the kernel was the consistent move rather than a new one.
 
 **Proof surface removed.**
 The combined seL4/CertiKOS route originally made **CDT revocation**, the hardest part of the l4v corpus, its early kill-switch proof.

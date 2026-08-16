@@ -12,15 +12,15 @@
 
 | Class | Meaning | Count |
 | --- | --- | --- |
-| **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions" — and the one clause that collapses six of it. | 1 |
-| **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 3 |
+| **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions" — and the one clause that collapses three of it. | 1 |
+| **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Claims the profile makes that were true when written and are now imprecise. The conclusions stand; the arguments need restating. | 4 |
-| **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 5 |
+| **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 3 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 19 in 9 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 7 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
-*The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**. Three rows the matrix files as decisions (the `menvcfg` explicitness, the vector store's tag clearing, the zeroed-granule NULL) resolve to a clause the profile owes either way, so they sit in §3 here.*
+*The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**. Two rows the matrix files as decisions (the `menvcfg` explicitness and the zeroed-granule NULL) resolve to a clause the profile owes either way, so they sit in §3 here.*
 
 ---
 
@@ -43,16 +43,13 @@
 ### What a tighter pin *would* collapse
 
 - [ ] **Add a residual-semantics clause to R-15-007.** *R-15-007, R-15-007a · Lands:* §4.1 or §11
-  Of the form: *where this profile is silent, ISAv9 semantics govern, and the deviation list is exhaustive.* Cheap, and the highest-leverage single edit on this list — it closes six items outright:
+  Of the form: *where this profile is silent, ISAv9 semantics govern, and the deviation list is exhaustive.* Cheap, and the highest-leverage single edit on this list — it closes three items outright:
 
   | Item | Carried by the clause? |
   | --- | --- |
-  | Tag-clearing vs. trapping (defect 4) | fully |
-  | Merged register file (defect 5) | fully |
   | Zeroed granule decodes as NULL (§3) | fully |
   | Sentry unseal on `mret` (4F) | fully |
   | Unaligned-base cause encoding (4F) | fully |
-  | `xtval` (defect 3) | **semantics only** — §5's table is closed, so the row must still be written |
 
 ### Where a blanket pin actively backfires
 
@@ -69,19 +66,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 ## 1. Defects
 
 *The register requires it and the profile does not carry it. These are not preferences.*
-
-- [ ] **Close `mcause`/`mtval` with `xtval`.**
-  *Governing:* §5.3, R-07-022, R-15-073 · *Lands:* §5.3 → §5.1 · *Matrix:* §1, §6, §7, §9.2 `Xtval2`
-  §5.3 books this as an extraction defect: the trap path is specified in capability terms (`MTCC` installed, `MEPCC` saved, authority from `MTDC`) but no requirement names a cause register, a trap-value register, or the CHERI cause encoding. **ISAv8 settled it and ISAv9 and RVY both keep it:** capability exceptions report through the existing trap-value CSR, not a bespoke cause register. It is also the cheaper answer — reuse `mtval` rather than add a bank. RVY's `Xtval2` confirms the shape from the other side: one trap-value register is where CHERI exception detail belongs.
-  Adopting it settles the profile's own named hole and **takes three §4 decision rows with it** — see cluster **4F**.
-
-- [ ] **State the tag-clearing-versus-trapping discipline.**
-  *Governing:* R-15-007, R-15-007e · *Lands:* §4.1 or §4 · *Matrix:* §7
-  ISAv9 adopted Morello's rule: non-monotonic modification **clears the tag** rather than raising an exception. The profile inherits "instruction semantics unchanged" without saying which side it lands on, and the two are not equivalent here — trapping makes every failed derivation a control-flow event with a WCET term and a cause encoding; tag clearing makes it a silent data result that faults later at dereference. R-15-007e already reasons about `cincoffset` producing an out-of-representable-region result, **which only coheres on the tag-clearing side**. The profile is already committed; it should say so.
-
-- [ ] **State the merged register file.**
-  *Governing:* R-07-015, R-15-214 · *Lands:* §1 (Base) · *Matrix:* §7
-  ISAv9 made the merged file normative for all CHERI architectures and the profile never states it. Not cosmetic: R-07-015 and R-15-214 make the partition-switch restore total over "every general-purpose register, **capability register**, and CSR a partition can name" — phrasing that reads as an enumeration over *two* files. On a merged file the restore set is **one file of 32 × (64+1) bits**, and that is the set the totality obligation quantifies over — which is in turn why the register files are not in the `fence.t` flush set. One row in §1.
 
 ---
 
@@ -122,14 +106,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
   *Governing:* R-15-052 · *Lands:* §1 or §6 (exclusions) · *Matrix:* §9.2 `misa.Y`
   RVY's `misa.Y` now resets to 1, and **clearing it disables CHERI entirely** — gated only by a check that `pc`, `xtvec`, and `xepc` hold root capabilities. R-15-052's read-only `misa` already refuses this, but on a machine whose entire protection story is CHERI, "no runtime ISA morphing" and "no runtime CHERI disable" are the same sentence and only one of them is written.
 
-- [ ] **The load instruction must permit revocation-driven tag clearing.**
-  *Governing:* R-08-005, R-15-007 · *Lands:* §4 · *Matrix:* §9.2 `Svyrg`
-  RVY amended `LY`'s definition at v0.9.6.1 to allow exactly this. It is the architectural clause the profile's load filter needs and does not have: **R-08-005 makes the per-load check architectural and the clearing happens *on the load*, so the load instruction's own definition has to permit it** rather than leaving it to the filter's prose. Now the only mechanism the subtree case rests on (R-08-004a), it carries more weight than when the colour was also in play.
-
-- [ ] **A vector store clears the capability tag of every granule it overwrites.**
-  *Governing:* R-15-115 · *Lands:* §8 (core classes), beside the existing "vector data carries no tags" clause · *Matrix:* §9.2
-  R-15-115 says vector data carries no tags; it does **not** say what a vector store does to the tag of the granule it overwrites. RVY answers: clear it. Without that clause, a vector store can be read as leaving a stale tag over overwritten data — **a forgery primitive**. One clause.
-
 - [ ] **State that CHERI is unconditionally enabled and no enable bit exists.**
   *Governing:* §5.3, R-15-049 · *Lands:* §5.3 → §5.2 · *Matrix:* §7, §9.2
   ISAv9 and RVY both put a CHERI enable/disable bit in `menvcfg`/`senvcfg` (RVY moved its position twice during v0.9.9 review, so it is settled architecture rather than a placeholder). §5.3 indicates deleting `menvcfg` on R-15-049's ground — its bits gate a less-privileged mode that does not exist — and **that ground survives contact with the change**. But the conclusion now needs saying out loud, so a curator reading `menvcfg → deletion` does not silently delete the CHERI enable along with it. *Filed here rather than in §4 because the deletion ground is intact; only the explicitness is missing.*
@@ -149,7 +125,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 - [ ] **Whether `Permit_Seal` and `Permit_Unseal` are separable.** *R-15-007b · §4.1 · Matrix §5*
   Not a free inheritance: the 5-bit lattice enumerates *which permission sets exist*, so separability is a decision the enumeration makes at freeze, and R-15-007b does not record it. Reducing unseal-only privilege is why upstream split them at 7.0-A1.
 - [ ] **Malformed-capability integrity checks.** *R-15-007a · §4.1 · Matrix §9.2*
-  RVY enforced integrity checks at v0.9.6.1 and split them into **mandatory and optional** sets at v0.9.9, alongside a "legal permissions invariant for tagged capabilities" at v0.9.2. Half is obviated here — there are no reserved bits to check, all 64 being spent — and half is not: **malformed bounds is a property of the bounds algorithm**, and at 8/6-bit mantissas the reachable malformed set differs from RV64LYA's. R-15-007a's representation-correctness proof is the natural home and should name it. The mandatory/optional split is itself instructive: RVY found some integrity checks must be architectural and some may be implementation choices, **which is the same question the profile faces on the load filter** (defect 1).
+  RVY enforced integrity checks at v0.9.6.1 and split them into **mandatory and optional** sets at v0.9.9, alongside a "legal permissions invariant for tagged capabilities" at v0.9.2. Half is obviated here — there are no reserved bits to check, all 64 being spent — and half is not: **malformed bounds is a property of the bounds algorithm**, and at 8/6-bit mantissas the reachable malformed set differs from RV64LYA's. R-15-007a's representation-correctness proof is the natural home and should name it. The mandatory/optional split is itself instructive: RVY found some integrity checks must be architectural and some may be implementation choices, **which is the same question the profile faces on the load filter** (the `Svucrglct` divergence, §5A).
 
 ### 4B. Dynamic bounds narrowing — three answers to one question
 
@@ -183,14 +159,14 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 - [ ] **`CMOVN`/`CMOVZ`.** *R-15-054, R-15-019, R-15-023 · Matrix §4.*
   The one obviated-looking row that is not obviated. `Zicond` is adopted **precisely because** branchless select is doubly load-bearing under static-only prediction with a full mispredict penalty on every forward conditional — but `czero.eqz`/`czero.nez` selects an *integer*, and on a purecap machine the selected value is frequently a **capability**. Either a capability-aware conditional move exists, or every conditional pointer select pays a mispredict-equivalent penalty and **breaks the constant-time story R-15-054 was bought to protect**. The argument is stronger here than the one ISAv6 made upstream, because the fallback is a branch this profile has deliberately made expensive.
 
-### 4F. The trap-path residue — rides the `xtval` fix
+### 4F. The trap-path residue
 
-*All three close in the same edit as defect 3. §5's table is closed, so silence on each is a decision rather than an omission.*
+*R-15-073a fixes where a capability exception reports; these three are what it leaves open. §5's table is closed, so silence on each is a decision rather than an omission.*
 
 - [ ] **Does a sentry installed in `MEPCC` unseal on `mret`?** *R-15-073, R-07-022 · Matrix §6.*
   ISAv8 made sentries auto-unseal when installed in the exception PC, not only when jumped to. The trap path installs `MTCC` and saves `MEPCC`; the profile does not answer this, and **it is on the domain-entry path**.
 - [ ] **The unaligned-base CHERI exception code.** *R-15-084, §5.3 · Matrix §6.*
-  The *behavior* is settled — misaligned data accesses trap (R-15-084) and fetch is bundle-aligned. What is unsettled is the **cause encoding**, which belongs with the `mcause` row.
+  The *behavior* is settled — misaligned data accesses trap (R-15-084) and fetch is bundle-aligned. What is unsettled is the **cause encoding**: R-15-073a fixes where a capability exception reports and leaves open whether an unaligned base reports as a CHERI cause at all or as the standard misaligned one.
 - [ ] **`ErrorEPCC` — a trap taken inside the handler.** *R-07-022, §5.3 · Matrix §5.*
   Modeled on MIPS `ErrorEPC` and not carried into RISC-V, where the equivalent question is what happens to a fault inside a fault handler. Low cost; §5.3 is the right place to settle it.
 
@@ -251,13 +227,12 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 | Profile section | Items | Class |
 | --- | --- | --- |
-| §1 Base | merged register file; no runtime CHERI disable | defect, statement |
+| §1 Base | no runtime CHERI disable | statement |
 | §3 Custom instructions | `YSH1ADD` re-pin-target correction; opcode-space choice (see below) | correction |
-| §4 CHERI feature set | revocation-driven tag clearing on load; tag-clearing-vs-trapping | defect, statement |
-| §4.1 Capability format | zeroed-granule NULL; SDP bits; seal/unseal separability; malformed-bounds checks | defect, cluster 4A |
-| §5.1 / §5.3 CSR bank | `xtval` closure + sentry-on-`mret`, unaligned-base cause, `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | defect, cluster 4F, statement, 4C |
+| §4.1 Capability format | zeroed-granule NULL; SDP bits; seal/unseal separability; malformed-bounds checks | statement, cluster 4A |
+| §5.1 / §5.3 CSR bank | sentry-on-`mret`, unaligned-base cause, `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | cluster 4F, statement, 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
-| §8 Core classes | vector store clears tags; active-element ⋈ mask-independence | statement, 4H |
+| §8 Core classes | active-element ⋈ mask-independence | 4H |
 | §10 Debug | what the fuse is refusing | 5A |
 | §11 Freeze / re-pin | R-17-048a two-term estimate; parameterized-encoding-format argument; **residual-semantics clause** (or §4.1) | corrections 2, 3, **§0** |
 | Register (not the profile) | R-15-007b rationale re-word | correction 4 |
