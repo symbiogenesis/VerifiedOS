@@ -169,4 +169,50 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ---
 
+## 12. The work list
+
+*Distilled from the sections above; non-normative like the rest of this document. Items are grouped by what closing one costs, not by where it was found: **A** is a text edit whose answer the documents already contain, **B** is a call somebody has to make, **C** needs work that does not exist yet: a measurement, an argument, or a reading of the outside world. Each item names the requirements it lands on.*
+
+**Convention.** When an item lands, delete the bullet. No departure notes, no strikethroughs: git history is the narrative, and what stands here is the open agenda.
+
+### A. Defects: the answer is already in the documents
+
+1. **Give the Tier-2 certificate one enumeration.** R-05-094's four conjuncts against R-13-012's six-item subset of R-05-029. Decide which is the content, then make the other cite rather than restate, which is the self-sourcing rule R-13-012's accept text invokes.
+2. **Retire the raw-counter phrase from R-16-015.** The counters do not exist (R-15-077, R-08-031); the replay-nondeterminism source is time-service reads at granted precision.
+3. **Name the exemption in R-08-040.** The emergency-call microphone grant (R-12-052) is the sole grant without a kernel-enforced duration ceiling, and R-08-040 currently states the ceiling unconditionally.
+4. **Move R-16-012's reconciliation into its statement.** *No verbose logging mode exists* means no unlabeled ambient sink; the capability-scoped, lifecycle-gated diagnostic sink of R-16-021 is not one, and only the accept text says so.
+5. **Split R-05-022's five-entry anchor list.** aiT and Binsec/Rel are outside the trust base by R-05-109 and R-05-073, so they are not anchors and carry no retirement rule.
+6. **Qualify R-15-177's scrubbing claim** to powered domains, matching R-15-189k, which already carries the reconciliation.
+7. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with R-15-184's residual SRAM disturb modes as the qualifier on whichever wording survives.
+8. **Fix the flush-set wording in the RVV/`Zfinx` entry.** The store buffer is the sole `fence.t` flush-set member (R-15-213), and register-file membership is declined (R-07-016).
+9. **Restore one `· Accept:` per entry.** R-08-012e, R-10-013a, and R-17-030r carry three; R-15-190 and R-15-189j carry two. Either fold each set into one criterion or amend the header grammar to say which bullet decides; silence on that point is the actual defect.
+10. **Collapse the derived-view boilerplate.** R-15-001a, R-15-100a, R-17-001b, and R-17-016a state it near-verbatim; one requirement cited four times is the register's own rule.
+11. **Break the circular acceptance criteria.** R-05-151 (its criterion is the document containing it), R-01-001 against R-04-001, and R-03-008 against R-17-030r, whose own half is conceded to be a review-gate finding with nothing enforced.
+12. **Give §1 and §3 criteria a decision procedure or §17's preamble.** Goal and threat entries currently restate their premises without §17's explicit *booked with its owner and scope rather than absorbed* excuse.
+
+### B. Decisions: someone has to make the call
+
+13. **Decide the surviving CSR bank register by register.** `isa-profile.md` §5.3 holds the enumeration with rows open, and no requirement decides membership, while R-07-015 and R-15-214 quantify total-restore over *every CSR a partition can name*. The trigger module leads: machine-mode-accessible in standard RISC-V, reachable in the production lifecycle state, and mutable hidden state surviving a partition switch, which is the shape admission test 3 rejects. Then cause and trap-value reporting, interrupt-enable and pending, `menvcfg`, the identification registers, `mhartid`, and `DDC`.
+14. **Resolve the store buffer.** Four of five deletion gates clear; the fifth is a measurement. Take it, then either delete the buffer and execute the attached spec-body change list or close sequential-consistency-by-absence against its own falsifier, leaving `Ztso` normative (R-15-004, R-15-088).
+15. **Take or drop the quiescent point.** Binding revocation-sweep quanta to slot boundaries deletes a proof obligation; R-08-007 specifies the incremental preemptible form. The proposal is unresolved by design and should stop being so.
+16. **Book the tooling.** `tools/check.ps1 -Fix` writes the normative document it checks and appears in no trust-base inventory or axiom set, and derived figures in normative prose rot silently when it is not run. R-05-151a's negative-testing reasoning applies to the fixer's write authority, not only to the trace checker.
+17. **Decide whether the register argues or cites.** The dictionary-encoding entries and several multi-paragraph accept texts re-argue the design in place; the derived-view rule already settles the same content-versus-container question elsewhere.
+18. **Price the coverage matrix.** A full bipartite product is tool-checked and therefore consistent, but its failure mode, a pair citing a requirement that does not carry it, is the fidelity gap the checker admits it does not close. Decide whether the maintenance cost buys anything the per-requirement traces do not.
+19. **Decide the conferral's direction and its forcing function.** Nothing makes an author writing a refusal add the `· Fail-closed:` line except the vocabulary scan and the review gate, and R-10-013a's rule that R-10-013 must name the state first makes the collector gate the conferral rather than the reverse.
+20. **State the *no foreign computers* criterion.** The radio turnaround sequencer, FEC blocks, and the USB-PD sequencer are admitted as matter while GPUs, NPUs, FullMAC radios, and external authenticators are declined, with the zero-authority eUICC a named exception. Write the line, or record it as a judgment call taken case by case.
+21. **Settle the admission test's standing.** Either justify the five parts against alternatives once, or restate the dispositions that turn on *fails admission test N* as consequences of prior commitments rather than as independent grounds. The same applies to choosing the ISA of record by whose semantics is already mechanized, and to rejecting VLIW for violating a rule written to exclude such couplings: both are sound and neither is evidence.
+22. **Replace the aesthetic ground in the EDGE-over-belt preference.** *Rhymes with the rest of the architecture* is not an admission-test criterion; give the disposition a criterion or mark the ground explicitly non-deciding.
+
+### C. Analysis and research: work that does not exist yet
+
+23. **Argue the single-prover axiom, or narrow what it decides.** It underwrites SecureBOOM/UPEC, GLIFT/SecVerilog, riscv-formal, EasyCrypt, HACL\*/libcrux, Verve, VeriBetrFS/Perennial, and the refusal to inherit seL4's Isabelle proof, and *two checkers are worse than one* is a value judgment against a standard counter-position. Needs a written argument against proof diversity, including current practice outside this project, or a restatement of the dependent rejections on grounds that survive without it.
+24. **State the fallback if the Sail-to-RTL layer does not scale.** R-17-039 records it as least-built with no artifact at full-application-core scale, and R-17-037 books the concentration; the PMP-backstop, IOMMU, MTE, shadow-stack, and initialization-plane rejections all spend that future artifact. Write what each becomes if it lands late or partially.
+25. **Grade the memory bet, and state what degrades with it.** R-15-163 makes vertical tier count conditional on a low-temperature p-type result demonstrated in the laboratory rather than at array quality or manufacturable scale. Needs a current reading of that device line, and a stated position on the out-of-order rejection under a single-planar-tier outcome, since *the latency wall is deleted* weakens in proportion.
+26. **Analyze the separate-key-holder constructions against R-17-059.** The memory-encryption rejection asserts that an attacker at that level equally reaches the keys; the constructions that exist to complicate exactly that claim are not addressed, and R-17-059 already calls the scope line load-bearing.
+27. **Restate the substrate-cost disqualifier at honest maturity.** The CHERI-CompCert backend is priority-zero and unbuilt, SECOMP2CHERI is workshop-stage, and the CHERI-TAL soundness metatheorem is unauthored, while EPIC, OISC and TTA, Wasm, HLLCA, and bespoke ISAs are declined for forfeiting them. The asymmetry is real and smaller than stated; the restatement wants a periodic refresh of upstream status.
+28. **Measure allocation churn or defer the claim.** Static composition minimizing churn is asserted for a device whose allocation behavior is unmeasured, while static code overlays are deferred precisely for want of a measured roster. Run the measurement, or put the churn argument behind the same trigger.
+29. **Make the deferred-machinery contingency visible.** Static code overlays and generation-tag temporal safety each reintroduce a mechanism family deleted elsewhere, so the complexity-deleted ledger is contingent on the capacity bets holding. Name which families, in the ledger.
+
+---
+
 *The documents are internally disciplined about booking honest residuals, and most of the weaknesses in section 2 are acknowledged somewhere in the text. The critique is that the dispositions cite those premises as settled when arguing against alternatives.*
