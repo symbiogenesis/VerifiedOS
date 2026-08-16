@@ -15,12 +15,12 @@
 | **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions". | 0 |
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
-| **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 2 |
+| **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 0 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 17 in 9 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 7 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
-*The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**. The one row the matrix files as a decision that resolves to a clause the profile owes either way — the `menvcfg` explicitness — sits in §3 here.*
+*The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**.*
 
 ---
 
@@ -43,7 +43,7 @@
 
 *What backfires is the **membership** half, which is exactly the half R-15-007j does not carry: it governs the behaviour of constructs the profile already carries and admits nothing. Both objections below are objections to widening it.*
 
-**On the refusals.** A membership-inheriting clause imports ISAv9's CHERI enable bit, which is precisely what R-15-049 deletes and R-15-052 refuses. The `menvcfg` statement and "no runtime CHERI disable" (§3) get *harder* to state under such a pin, not easier — they are refusals of upstream features, and inheritance-by-default argues the other way.
+**On the refusals.** A membership-inheriting clause imports ISAv9's CHERI enable bit, which the profile refuses by name in two places: no enable bit exists (§5.2) and no runtime CHERI disable exists (§1). Both are refusals of upstream features, and inheritance-by-default argues the other way, so widening the pin would put it at odds with clauses the profile carries.
 
 **On the admission discipline, which is the deeper conflict.** Six decision items — `CRAM`/`CRRL`, `CSetBoundsExact` (4B), `CLoadTags`, `CClearTags` (4D), `CMOVN`/`CMOVZ` (4E), `CTestSubset` (4G) — are instructions that **already exist in ISAv8/v9**. A blanket pin decides every one of them at a stroke, in the *include* direction. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
 
@@ -68,14 +68,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 ## 3. Statements to add
 
 *Each is one or two clauses. Each is needed because a standards line has now made the opposite statement explicit, so silence has stopped being neutral.*
-
-- [ ] **No runtime CHERI disable.**
-  *Governing:* R-15-052 · *Lands:* §1 or §6 (exclusions) · *Matrix:* §9.2 `misa.Y`
-  RVY's `misa.Y` now resets to 1, and **clearing it disables CHERI entirely** — gated only by a check that `pc`, `xtvec`, and `xepc` hold root capabilities. R-15-052's read-only `misa` already refuses this, but on a machine whose entire protection story is CHERI, "no runtime ISA morphing" and "no runtime CHERI disable" are the same sentence and only one of them is written.
-
-- [ ] **State that CHERI is unconditionally enabled and no enable bit exists.**
-  *Governing:* §5.3, R-15-049 · *Lands:* §5.3 → §5.2 · *Matrix:* §7, §9.2
-  ISAv9 and RVY both put a CHERI enable/disable bit in `menvcfg`/`senvcfg` (RVY moved its position twice during v0.9.9 review, so it is settled architecture rather than a placeholder). §5.3 indicates deleting `menvcfg` on R-15-049's ground — its bits gate a less-privileged mode that does not exist — and **that ground survives contact with the change**. But the conclusion needs saying out loud, so a curator reading `menvcfg → deletion` does not silently delete the CHERI enable along with it. *Filed here rather than in §4 because the deletion ground is intact; only the explicitness is missing.*
 
 ---
 
@@ -192,9 +184,8 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 | Profile section | Items | Class |
 | --- | --- | --- |
-| §1 Base | no runtime CHERI disable | statement |
 | §4.1 Capability format | SDP bits; seal/unseal separability; malformed-bounds checks | cluster 4A |
-| §5.1 / §5.3 CSR bank | `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | 4F, statement, 4C |
+| §5.1 / §5.3 CSR bank | `ErrorEPCC`; `mshwm`/`mshwmb` | 4F, 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
 | §8 Core classes | active-element ⋈ mask-independence | 4H |
 | §10 Debug | what the fuse is refusing | 5A |
