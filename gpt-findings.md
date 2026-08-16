@@ -40,7 +40,7 @@ Failed verdicts: §17's relevance residual states that the must-examine rule mak
 
 **Scalar "VerifiedOS Core" first.** · *Open, no decision recorded.* This is finding 1's sequencing argument applied to the artifact rather than to the proof. It collides with R-15-007d's *the width is permanent*: every capability in the immutable image and every sealed blob is stored in the frozen format, so a later width change invalidates stored authority wholesale rather than costing a recompile. *Add the narrowed format only after a measured failure* is therefore unavailable for that one item, whatever its merit for the matrix unit, FEC, cellular, and dictionary encoding.
 
-**Decide the product fork explicitly.** · *Open, and it is finding 2 restated as a decision rather than as a gap.* R-15-162 declines chiplets and bonded die-stacking outright, and R-15-163 makes the monolithic vertical lever conditional on an unsolved low-temperature p-type device result. Accepting authenticated external or bonded memory reopens R-15-162, which is a deliberate refusal carrying a stated ground, so this is not a free choice between two equally open options.
+**Decide the product fork explicitly.** · *Open, and it is finding 2 restated as a decision rather than as a gap.* R-15-162 declines chiplets and bonded die-stacking outright, and R-15-163 makes the monolithic vertical lever conditional on a low-temperature p-type device result that laboratory work has reached and array-grade manufacturing has not. Accepting authenticated external or bonded memory reopens R-15-162, which is a deliberate refusal carrying a stated ground, so this is not a free choice between two equally open options.
 
 ---
 

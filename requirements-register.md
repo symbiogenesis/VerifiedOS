@@ -3778,11 +3778,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: multi-tier capacity is taken monolithically by sequential 3D, sharing one mask set, one fab lot, one package, and one attested identity, with no die-to-die link anywhere.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-162)
 
-**R-15-163** IS: Three consequences of sequential 3D are normative: static body bias is a logic-tier lever only; the shared thermal budget caps upper-tier device quality and tightens sustained-power headroom; and that budget makes the vertical lever conditional on a materials result rather than graded by effort, a 6T cell being complementary while low-temperature p-type devices are unsolved and the back-end-survivable oxide semiconductors are n-type only.
+**R-15-163** IS: Three consequences of sequential 3D are normative: static body bias is a logic-tier lever only; the shared thermal budget caps upper-tier device quality and tightens sustained-power headroom; and that budget makes the vertical lever conditional on a materials result rather than graded by effort, a 6T cell being complementary while the back-end-survivable oxide semiconductors that reach array-grade device metrics are n-type.
 · Accept: the first two are carried in the §16 thermal posture and the leakage story; the third is carried as the two-case exposure in R-15-173 and the discrete manufacturing risk in R-18-008.
+· Accept: the materials state the condition names is **demonstrated but not industrialized**, not absent, and the requirement is stated against that reading rather than against an empty literature. Low-temperature p-type oxide devices exist (sputtered SnOx near 39 cm²/V·s hole mobility driving all-oxide CFET-like inverters with IGZO, and IGZO/SnO complementary circuits including SRAM cells), as does a complementary back-end silicon route (roll-transfer-printed single-crystal nanomembranes, junctionless devices, three tiers of inverters through SRAM, at a ≤400 °C process). What none of them yet supplies is an SRAM array's device budget: p-type oxide on/off ratio sits near 10³ against the 10⁶ and above a dense low-leakage cell needs, subthreshold swing near 240 mV/dec, and the demonstrated tiers carry hundreds of transistors rather than billions. The gate is therefore real and its ground is device quality and scale, not the non-existence of a device.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-163)
 
-**R-15-163a** IS: The n-type-only limit binds the complementary cell rather than every back-end macro: a two-transistor magnetic cell selects and reads through n-type devices alone, so a back-end memory of that shape is not gated by the p-type result the SRAM tier waits on.
+**R-15-163a** IS: The n-type limit binds the complementary cell rather than every back-end macro: a two-transistor magnetic cell selects and reads through n-type devices alone, so a back-end memory of that shape is not gated by the p-type result the SRAM tier waits on.
 · Accept: it bears on the §10 freshness lever (R-10-013f) and does not reopen this one, whose argument is 6T bit density and which the observation does not touch.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-163a)
 
@@ -3827,7 +3828,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the fallback is stated as a composition change, not an architectural one.
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-173), [§15](verification-maximal-os.md#r-15-173-2)
 
-**R-15-173a** IS: The tier-count exposure is two-case rather than a continuum: where complementary back-end devices exist, tier count is an ordinary yield-and-cost question and R-15-173 runs as written; where they do not, the vertical lever is absent rather than reduced, capacity is the single planar tier at order 1–2 GB, and the phone envelope is unreachable rather than late.
+**R-15-173a** IS: The tier-count exposure is two-case rather than a continuum: where complementary back-end devices reach array-grade quality and manufacturable scale, tier count is an ordinary yield-and-cost question and R-15-173 runs as written; where they do not, the vertical lever is absent rather than reduced, capacity is the single planar tier at order 1–2 GB, and the phone envelope is unreachable rather than late.
 · Accept: both cases bend the roster and neither returns a mechanism, so the disposition is unchanged; what the second case forbids is treating the 8-to-16-tier step as a schedule item, and the roster shown to close is the one-tier roster (R-18-030a).
 · Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-173a)
 
@@ -4881,7 +4882,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-15-173.
 · Trace: CJ-DEVTREE · [§18](verification-maximal-os.md#r-18-008)
 
-**R-18-008a** IS: That risk is discrete, not gradual, and the plan is written against its worse branch: tier count is gated on complementary devices at the back-end thermal budget, which either exist (tier count is then an ordinary yield-and-cost question) or do not (the machine is one planar tier at order 1–2 GB permanently, not as a first step).
+**R-18-008a** IS: That risk is discrete, not gradual, and the plan is written against its worse branch: tier count is gated on complementary devices at the back-end thermal budget reaching array-grade quality and manufacturable scale, which they either do (tier count is then an ordinary yield-and-cost question) or do not (the machine is one planar tier at order 1–2 GB permanently, not as a first step). The branch point is that threshold and not the existence of a laboratory device, several of which are on record (R-15-163).
 · Accept: a manufacturing dependency in both branches and a proof obligation in neither, so the §17 frontier is unmoved; what moves is R-18-030, which plans the multi-tier envelope as upside and must show the roster closing on the single tier.
 · Trace: CJ-DEVTREE · [§18](verification-maximal-os.md#r-18-008a)
 
