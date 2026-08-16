@@ -12,15 +12,15 @@
 
 | Class | Meaning | Count |
 | --- | --- | --- |
-| **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions" — and the one clause that collapses three of it. | 1 |
+| **§0 The pin** | Why the list does not collapse into "pin the latest version, minus exclusions". | 0 |
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Claims the profile makes that were true when written and are now imprecise. The conclusions stand; the arguments need restating. | 4 |
-| **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 3 |
-| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 19 in 9 clusters |
+| **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 2 |
+| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 17 in 9 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 7 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
-*The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**. Two rows the matrix files as decisions (the `menvcfg` explicitness and the zeroed-granule NULL) resolve to a clause the profile owes either way, so they sit in §3 here.*
+*The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**. The one row the matrix files as a decision that resolves to a clause the profile owes either way — the `menvcfg` explicitness — sits in §3 here.*
 
 ---
 
@@ -28,7 +28,7 @@
 
 *The first question at the review gate will be whether the whole list collapses into "pin the latest upstream version, minus the exclusions." It does not, and the reason is worth writing down once rather than re-deriving.*
 
-**The pin already exists and has already done most of the collapsing.** R-15-007 makes the format a re-parameterization of `sail-cheri-riscv`, whose capability functions *are* the ISAv8/v9 CHERI-RISC-V ones, and R-15-007a inherits the monotonicity, provenance, and non-forgeability results from it. That is the matrix's ⚙️ class — carried whether or not the profile names it — and at roughly thirty rows it is the largest class in the document. **This list is by construction the residue the pin does not reach.**
+**The pin already exists and has already done most of the collapsing.** R-15-007 makes the format a re-parameterization of `sail-cheri-riscv`, whose capability functions *are* the ISAv8/v9 CHERI-RISC-V ones, and R-15-007a inherits the monotonicity, provenance, and non-forgeability results from it; R-15-007j states the pin's residual reach outright, so where the profile is silent on *behaviour*, ISAv9 governs. That is the matrix's ⚙️ class — carried whether or not the profile names it — and at roughly thirty rows it is the largest class in the document. **This list is by construction the residue the pin does not reach.**
 
 **"The latest" can only mean ISAv9.** Pinning to RVY is not on the menu: R-15-007 and R-17-048a retire that re-pin outright, and a 36-bit address with 8/6-bit mantissas falls outside anything RVY will ratify. ISAv9 is already the pin.
 
@@ -40,20 +40,11 @@
 - **Some questions are created by this platform's deletions and have no upstream answer at all.** ISAv9 deleted `CClearRegs` because a merged file made it meaningless — but the switcher still clears registers on every cross-compartment call, on a machine with no `C` extension. The pin hands over upstream's deletion, which is the wrong answer here for a reason upstream never had. `CMOVN`/`CMOVZ` has the same shape: `Zicond` suffices upstream because upstream has a dynamic predictor.
 - **Four items are prose corrections about the standards landscape** (§2). No pin restates an argument.
 
-### What a tighter pin *would* collapse
-
-- [ ] **Add a residual-semantics clause to R-15-007.** *R-15-007, R-15-007a · Lands:* §4.1 or §11
-  Of the form: *where this profile is silent, ISAv9 semantics govern, and the deviation list is exhaustive.* Cheap, and the highest-leverage single edit on this list — it closes three items outright:
-
-  | Item | Carried by the clause? |
-  | --- | --- |
-  | Zeroed granule decodes as NULL (§3) | fully |
-  | Sentry unseal on `mret` (4F) | fully |
-  | Unaligned-base cause encoding (4F) | fully |
-
 ### Where a blanket pin actively backfires
 
-**On the refusals.** A default-inherit clause imports ISAv9's CHERI enable bit, which is precisely what R-15-049 deletes and R-15-052 refuses. The `menvcfg` statement and "no runtime CHERI disable" (§3) get *harder* to state under a pin, not easier — they are refusals of upstream features, and inheritance-by-default argues the other way.
+*What backfires is the **membership** half, which is exactly the half R-15-007j does not carry: it governs the behaviour of constructs the profile already carries and admits nothing. Both objections below are objections to widening it.*
+
+**On the refusals.** A membership-inheriting clause imports ISAv9's CHERI enable bit, which is precisely what R-15-049 deletes and R-15-052 refuses. The `menvcfg` statement and "no runtime CHERI disable" (§3) get *harder* to state under such a pin, not easier — they are refusals of upstream features, and inheritance-by-default argues the other way.
 
 **On the admission discipline, which is the deeper conflict.** Six decision items — `CRAM`/`CRRL`, `CSetBoundsExact` (4B), `CLoadTags`, `CClearTags` (4D), `CMOVN`/`CMOVZ` (4E), `CTestSubset` (4G) — are instructions that **already exist in ISAv8/v9**. A blanket pin decides every one of them at a stroke, in the *include* direction. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
 
@@ -97,10 +88,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 ## 3. Statements to add
 
 *Each is one or two clauses. Each is needed because a standards line has now made the opposite statement explicit, so silence has stopped being neutral.*
-
-- [ ] **A zeroed granule decodes as untagged NULL.**
-  *Governing:* R-15-182, R-15-060 · *Lands:* §4.1 · *Matrix:* §1
-  Load-bearing here rather than merely conventional: `cbo.zero` writes zeroed data *and* cleared tags (R-15-182), and eager zeroize is the platform's Write-before-Read mechanism. "All-zeroes, untagged, decodes as NULL" is therefore a property the **format must state**, not one a reader should assume. One line.
 
 - [ ] **No runtime CHERI disable.**
   *Governing:* R-15-052 · *Lands:* §1 or §6 (exclusions) · *Matrix:* §9.2 `misa.Y`
@@ -163,12 +150,8 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 ### 4F. The trap-path residue
 
-*R-15-073a fixes where a capability exception reports; these three are what it leaves open. §5's table is closed, so silence on each is a decision rather than an omission.*
+*R-15-073a fixes where a capability exception reports; this is what it leaves open. §5's table is closed, so silence is a decision rather than an omission.*
 
-- [ ] **Does a sentry installed in `MEPCC` unseal on `mret`?** *R-15-073, R-07-022 · Matrix §6.*
-  ISAv8 made sentries auto-unseal when installed in the exception PC, not only when jumped to. The trap path installs `MTCC` and saves `MEPCC`; the profile does not answer this, and **it is on the domain-entry path**.
-- [ ] **The unaligned-base CHERI exception code.** *R-15-084, §5.3 · Matrix §6.*
-  The *behavior* is settled — misaligned data accesses trap (R-15-084) and fetch is bundle-aligned. What is unsettled is the **cause encoding**: R-15-073a fixes where a capability exception reports and leaves open whether an unaligned base reports as a CHERI cause at all or as the standard misaligned one.
 - [ ] **`ErrorEPCC` — a trap taken inside the handler.** *R-07-022, §5.3 · Matrix §5.*
   Modeled on MIPS `ErrorEPC` and not carried into RISC-V, where the equivalent question is what happens to a fault inside a fault handler. Low cost; §5.3 is the right place to settle it.
 
@@ -231,12 +214,12 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 | --- | --- | --- |
 | §1 Base | no runtime CHERI disable | statement |
 | §3 Custom instructions | `YSH1ADD` re-pin-target correction; opcode-space choice (see below) | correction |
-| §4.1 Capability format | zeroed-granule NULL; SDP bits; seal/unseal separability; malformed-bounds checks | statement, cluster 4A |
-| §5.1 / §5.3 CSR bank | sentry-on-`mret`, unaligned-base cause, `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | cluster 4F, statement, 4C |
+| §4.1 Capability format | SDP bits; seal/unseal separability; malformed-bounds checks | cluster 4A |
+| §5.1 / §5.3 CSR bank | `ErrorEPCC`; `menvcfg` explicitness; `mshwm`/`mshwmb` | 4F, statement, 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
 | §8 Core classes | active-element ⋈ mask-independence | 4H |
 | §10 Debug | what the fuse is refusing | 5A |
-| §11 Freeze / re-pin | R-17-048a two-term estimate; parameterized-encoding-format argument; **residual-semantics clause** (or §4.1) | corrections 2, 3, **§0** |
+| §11 Freeze / re-pin | R-17-048a two-term estimate; parameterized-encoding-format argument | corrections 2, 3 |
 | Register (not the profile) | R-15-007b rationale re-word | correction 4 |
 
 **One item has no landing row and should get one at the freeze:** the profile places three bespoke instructions — the capability indexed load/store and `bfext`/`bfins` — in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that correction 3 would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-014; matrix §9.2).
