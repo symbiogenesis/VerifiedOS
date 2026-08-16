@@ -1941,6 +1941,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Fail-closed: a `Fresh` read that cannot be proved fresh refuses (R-17-030s); a physical adversary with access to the storage thereby holds a permanent denial of that state.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013e)
 
+**R-10-013f** IS: R-10-011's exclusion rests on a memory technology's wear budget rather than on the architecture, so it is a conditional lever: a RoT monotonic counter medium with no wear-out mechanism would collapse the epoch and its quota into a per-commit seal, and the named candidate is spin-orbit-torque MRAM, whose write current passes through a track beside the tunnel barrier rather than through it.
+· Accept: the candidate is named so the condition is checkable rather than aspirational, the dielectric-breakdown mechanism producing the retention-versus-endurance trade in the spin-transfer-torque cell being absent from it rather than mitigated.
+· Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013f)
+
+**R-10-013g** MUST: Reopening R-10-011 requires both that the medium's rated endurance cover a per-commit seal over the target service life with margin at full non-volatile retention rather than at the cache-lifetime retention the published back-end-integrated results assume, and that the tamper class the medium introduces be closed, by a medium carrying no net moment for a field to torque or by a field-and-temperature sentinel in the detector class.
+· Accept: satisfying both retires R-10-013c and R-10-013d and reaches R-10-013e not at all, a region that cannot be proved fresh being refused whatever the counter is made of; until both hold the epoch stands, and an endurance figure quoted at cache retention discharges neither.
+· Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013g)
+
+**R-10-013h** IS: Magnetoelectric antiferromagnetic memory is the medium that would close R-10-013g's second condition outright, carrying no net moment for a field to torque, and it is recorded at the maturity it has: prototype voltage-driven Néel-vector rotation in zero applied field, with no addressable array, no endurance or retention figure, no read margin at scale, and an ordering temperature close enough to the operating range that a thermal excursion becomes a question about the stored state.
+· Accept: the electrical-switching literature it rests on carries published nulls, switching-shaped transport signatures reproduced in structures containing no antiferromagnet and scaling with substrate heat conduction, so the entry exists to stop *antiferromagnets are field-immune* being read as evidence that the memory exists.
+· Trace: CJ-DEVTREE · [§10](verification-maximal-os.md#r-10-013h)
+
 **R-10-014** MUST: Secure erase is crypto-erase: the volume keys being RoT-sealed and core-resident, destroying the sealing root renders the encrypted user data unrecoverable in the time to zeroize a key.
 · Accept: rolling the disk back yields only stale ciphertext an attacker cannot read and cannot pair with a resurrected key.
 · Trace: CJ-CRYPTO-SPEC · [§10](verification-maximal-os.md#r-10-014)
@@ -3770,6 +3782,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the first two are carried in the §16 thermal posture and the leakage story; the third is carried as the two-case exposure in R-15-173 and the discrete manufacturing risk in R-18-008.
 · Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-163)
 
+**R-15-163a** IS: The n-type-only limit binds the complementary cell rather than every back-end macro: a two-transistor magnetic cell selects and reads through n-type devices alone, so a back-end memory of that shape is not gated by the p-type result the SRAM tier waits on.
+· Accept: it bears on the §10 freshness lever (R-10-013f) and does not reopen this one, whose argument is 6T bit density and which the observation does not touch.
+· Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-163a)
+
 **R-15-164** MUST NOT: There are no hardware caches: no L1, no L2, no last-level cache, and no cache-coherence protocol.
 · Accept: the cache hierarchy is deleted, not partitioned; the coherence protocol and directory leave the Sail model; the way-partitioning apparatus is unneeded; the `fence.t` flush set shrinks toward the store buffer alone.
 · Trace: CJ-SAIL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-164)
@@ -5017,7 +5033,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1152 requirements. §19 is non-normative and yields none. Counts include the 230 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1156 requirements. §19 is non-normative and yields none. Counts include the 234 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5030,12 +5046,12 @@ All eighteen normative sections are extracted, at 1152 requirements. §19 is non
 | **§7 Kernel** | **extracted** | **57** |
 | **§8 Authority Model** | **extracted** | **60** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
-| **§10 Storage & State** | **extracted** | **46** |
+| **§10 Storage & State** | **extracted** | **49** |
 | **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **34** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **324** |
+| **§15 Hardware Platform** | **extracted** | **325** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **106** |
 | **§18 Realization** | **extracted** | **46** |
