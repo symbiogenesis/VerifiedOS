@@ -3486,7 +3486,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-073b** MUST NOT: No second saved-PC bank exists. `ErrorEPCC` (the MIPS-lineage CHERI register modeled on `ErrorEPC`) and `Smrnmi`'s `mnscratch`/`mnepc`/`mncause`/`mnstatus` are not admitted, and no architectural state saves a program counter, a capability, or a cause for a trap taken while the trap path is live.
 · Accept: **a saved program counter exists to be returned to, and nothing returns.** The kernel is entered for exactly two reasons and both are the trap path (R-07-021), so a trap taken between that entry and the `mret` that leaves it is a **synchronous fault in kernel code** (a capability violation under R-15-073a, a misaligned access under R-15-084, or an unallocated encoding under R-15-014), which refutes the kernel proof rather than presenting a recovery arm, and whose disposition is the crash-only fail-stop and supervised restart the rest of the system takes (R-12-001, R-16-005). The bank costs a capability-width register and its tag, one more location the total restore must name (R-07-015) and the flush-set argument quantifies over (R-15-214), one Sail case, and one RTL location, against a resumption that does not happen.
-· Accept: **the asynchronous classes the bank exists for are already off the trap path, so this is a decline rather than a hedge declined.** `ErrorEPC` and `mnepc` bank reset, NMI, machine check, and cache error; the platform is MSI-only with the timer core-local and its only non-MSI signals the RoT's reset and watchdog-bite lines, which are resets outside the interrupt model (R-07-045, R-15-066); an uncorrectable ECC or tag-integrity event is a fail-stop sentinel event and not a trap into `MTCC` (R-15-204); and the slot-boundary timer, the machine's sole asynchronous trap, is unmaskable by software precisely because it needs no enable bit, the trap path suppressing delivery and the timer not re-arming until the handler reprograms `mtimecmp` (R-07-040). The nesting the bank survives is not a state this machine reaches.
+· Accept: **the asynchronous classes the bank exists for are already off the trap path, so this is a decline rather than a hedge declined.** `ErrorEPC` and `mnepc` bank reset, NMI, machine check, and cache error; the platform is MSI-only with the timer core-local and its only non-MSI signals the resets R-15-066 places outside the interrupt model (R-07-045); an uncorrectable ECC or tag-integrity event is a fail-stop sentinel event and not a trap into `MTCC` (R-15-204); and the slot-boundary timer, the machine's sole asynchronous trap, is unmaskable by software precisely because it needs no enable bit, the trap path suppressing delivery and the timer not re-arming until the handler reprograms `mtimecmp` (R-07-040). The nesting the bank survives is not a state this machine reaches.
 · Trace: CJ-SAIL, CJ-KERNEL
 
 **R-15-073c** MUST: A trap taken while the trap path is live does not vector to `MTCC` and does not write `MEPCC`, `mcause`, or `mtval`; the core latches a fail-stop to the RoT, taking the watchdog bite and the boot-counted recovery (R-16-005, R-16-007). The condition is **one bit of trap-path state and no software-visible field**: set when a trap installs `MTCC`, cleared by the `mret`, never read or written by software, so `mstatus` carries no `Smdbltrp` `MDT` bit and the CSR enumeration of R-15-001b is unchanged.
@@ -4185,8 +4185,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the predictor-history, transient, and cache-state classes are absent by construction rather than flushed.
 · Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-213), [§15](verification-maximal-os.md#r-15-213-2)
 
-**R-15-214** MUST: The register files are deliberately not in the flush set; what replaces flush-set membership is an obligation on the primary: the kernel's restore set is total over architectural register state, every general-purpose, capability, and CSR location a partition can name being written before the successor partition's first instruction.
-· Accept: residue is impossible rather than cleared, and a register outside the restore set is a failure of the kernel proof.
+**R-15-214** MUST: The register files are deliberately not in the flush set; what replaces flush-set membership is an obligation on the primary, the total restore R-07-015 states.
+· Accept: the flush set carries no register-file entry, R-07-015's totality standing in its place, which is the guarantee R-07-016 states once rather than twice.
 · Trace: CJ-KERNEL, CJ-ISOL
 
 **R-15-215** MUST: Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: no predictor, no reservation, no prefetcher, no TLB or walk cache, no cache of any kind, no scalar-FP or rounding-mode state, the register files by total restore, and the vector/matrix and scratchpad state by the §7 eager zeroize.
@@ -4691,7 +4691,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: reachable by an adversary who can raise die temperature and by an ordinary hot enclosure, so it is not conditioned on an attacker being present.
 · Trace: CJ-NI
 
-**R-17-030c** IS: Fail-closed seam **watchdog bite ⋈ restart cadence**: bite equals reset and is safe because state is transactional (R-16-005), with boot counting bounding the loop into a minimal recovery state so the worst case is bounded downtime (R-16-007).
+**R-17-030c** IS: Fail-closed seam **watchdog bite ⋈ restart cadence**: bite equals reset and is safe because state is transactional (R-16-005), with boot counting bounding the loop as R-16-007 states.
 · Accept: the one member already composed with its own abuse case before this register existed, and the shape the others are held to.
 · Trace: CJ-DEVTREE
 
@@ -4703,7 +4703,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the one member whose denial cannot reach a running unit, named so that the register is not read as uniformly a field risk.
 · Trace: CJ-TAL-SOUND
 
-**R-17-030f** IS: Fail-closed seam **the sealed cutoffs ⋈ emergency calling**: a thrown microphone switch yields a connected but mute emergency call and a thrown radio switch yields none at all (R-12-054, R-15-145), deliberately not overridden.
+**R-17-030f** IS: Fail-closed seam **the sealed cutoffs ⋈ emergency calling**: the thrown-cutoff consequences R-12-054 states (R-15-145), deliberately not overridden.
 · Accept: a software override for the emergency case is a software override, so it would hand every compromised stack the same lever; the refusal is retained and the cost is stated rather than narrowed.
 · Trace: CJ-T
 
@@ -4751,7 +4751,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the second delivery-side member beside R-17-030e, named because a refusal provoked by ordinary growth rather than by an adversary is still a refusal, and a register carrying only the adversary-provokable members would be a threat model rather than an inventory.
 · Trace: CJ-MEMPLAN, CJ-WCET
 
-**R-17-030s** IS: Fail-closed seam **freshness refusal ⋈ durable application state**: a `Fresh` region that does not verify against the sealed epoch root is refused rather than returned (R-10-013e), so an adversary with physical access to the storage holds a permanent denial of that state and an exhausted commit quota holds a temporary one.
+**R-17-030s** IS: Fail-closed seam **freshness refusal ⋈ durable application state**: the refusal R-10-013e states, so an adversary with physical access to the storage holds a permanent denial of that state and an exhausted commit quota holds a temporary one.
 · Accept: the refusal is retained because every alternative presents a superseded state as current, which is what the class exists to prevent; the member is a denial an adversary provokes without software access, reached from a direction R-17-030n does not cover, and it is bounded to the declared class rather than to the volume.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
