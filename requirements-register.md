@@ -4472,11 +4472,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: off-device introspection is unbounded and carries no on-device confidentiality cost.
 · Trace: CJ-SAIL, CJ-RTL-SAIL
 
-**R-16-015** IS: Determinism holds *given the inputs and the recorded nondeterminism*, and the second half is enumerated as exactly four sources: every draw from the single entropy root (protocol nonces, IVs, ephemeral key material, blinding factors); the link-layer address draws behind MAC randomization; raw counter reads by holders of the fine-grained-time permission; and the physical event stream the sentinel consumes.
+**R-16-015** IS: Determinism holds *given the inputs and the recorded nondeterminism*, and the second half is enumerated as exactly four sources: every draw from the single entropy root (protocol nonces, IVs, ephemeral key material, blinding factors); the link-layer address draws behind MAC randomization; time-service reads at granted precision; and the physical event stream the sentinel consumes.
 · Accept: the list is closed by amendment to this register; omitted, a replay diverges at the first draw. No degraded or fuzzed timing value appears among the four, there being no such mechanism to record (R-08-031a).
 · Trace: CJ-NI
 
-**R-16-016** MUST: Public nondeterminism is recorded verbatim: the drawn link-layer address, counter values, and the sentinel's physical-event stream.
+**R-16-016** MUST: Public nondeterminism is recorded verbatim: the drawn link-layer address, time-service reads, and the sentinel's physical-event stream.
 · Accept: each discloses nothing the crash record does not already carry, and replay reproduces them exactly.
 · Trace: CJ-NI
 
