@@ -82,6 +82,7 @@ A consumer running unverified native code beside admitted code needs a cited pro
 **The route that is refused.**
 Spatial safety by **index refinement** (dependent or singleton types over lengths, the DTAL and Xanadu line) is not an admissible fourth route, because deciding it requires arithmetic constraint solving over open terms.
 That would violate §3's absence (2) directly, turn the checker from an attribute evaluator into a solver, and falsify the category claim §1 rests on.
+The refusal is made knowing the bounded form exists: Wasm-precheck (Geller, Frank, and Bowman, POPL 2024) keeps an indexed-type discipline inside a linear-pass validator with no SMT solver, and it is declined here anyway, because even a restricted constraint entailment is a decision over open terms, and the difference between the two checker kinds is categorical rather than a matter of solver size.
 Refusing it is what keeps every profile's checker the same *kind* of artifact, differing in the size of its attribute set and never in what it must decide.
 
 **Profiles are frozen and versioned like the theory.**
@@ -245,16 +246,28 @@ Proof-carrying code already covers binary machine code from an untrusted produce
 **Certificate-directed checking.**
 Rose, *Lightweight Bytecode Verification* (JAR 2003); Klein and Nipkow, *Verified Lightweight Bytecode Verification*.
 This is the closest precedent for §1's architecture, and the reason the no-fixpoint claim is stated as a property of certificate *consumption* rather than as an absence of analysis anywhere in the pipeline.
+It is also the one piece of the design with a planetary-scale deployment and a live revival on both flanks: the JVM's split verifier (JSR 202's stack-map frames, mandatory since class-file version 51) is this architecture in production, its type-checking core a few thousand lines over a richer vocabulary than §3's, and Klein and Nipkow's account is *maintained*, re-checked against every Isabelle release in the Archive of Formal Proofs; CertrBPF (Yuan et al., CAV 2022) is a Coq-verified admission checker extracted to C and shipped in an embedded operating system; and BCF (Sun and Su, SOSP 2025) has the Linux eBPF verifier accept load-time certificates proved in user space and checked by a small checker in the kernel.
+The counter-experiment is on the record too: VeriWasm re-derived the safety of compiled native code by analysis rather than certificate, and its revival was abandoned when the analysis could not keep pace with the compiler, which is the analyzer-rot failure mode a shipped derivation does not have.
+
+**Typed admission in production.**
+The Move bytecode verifier checks linear resources, definite initialization, and a borrow discipline at publish time on chains that hold real value, and WebAssembly's shipped type system makes an indirect call through `call_ref` a load-time-checked typed callee set, so most of §4's attribute classes have a production admission precedent, taint alone having none anywhere.
+Both are fixpoint analyzers rather than certificate consumers, and Move's unreachable-code soundness bug (Zellic, 2023: code in unreachable blocks evading the reference-safety passes on every deployed chain at once) is the concrete argument for a checker small enough to verify.
 
 **Final machine code.**
 Morrisett et al., *RockSalt* (PLDI 2012); Sammler et al., *Islaris* (PLDI 2022); Armstrong et al., *ISA Semantics for ARMv8-A, RISC-V, and CHERI-MIPS* (POPL 2019).
 RockSalt parses a real binary image and applies a generated checker proved sound against a machine model; Islaris verifies binary machine code against full Sail-derived Arm and RISC-V semantics.
 Together they are the precedent for the seam this language stands on, final bytes against an authoritative machine semantics (§8).
+The seam has since been re-walked at full architectural scale: Morello-Cerise (PLDI 2025) proves strong encapsulation for the shipped Morello machine against its authoritative Sail semantics through Isla-generated traces, which is the current state of the bridge a profile's soundness instantiation (§6) must cross.
 
 **Capability machines.**
 Watson et al., the CHERI ISA specification (University of Cambridge technical report); the CHERI-RISC-V Sail model; Nienhuis et al., *Rigorous Engineering for Hardware Security* (S&P 2020).
 These are what a citing profile cites (§2): tagged capabilities, bounds, permissions, sealing, provenance validity, and guarded monotone derivation.
 Their published qualifications, inexact compressed bounds and the privileged and transition cases of monotonicity, are what a profile's declaration must state rather than gloss.
+
+**Capability-machine logics and universal contracts.**
+Georges et al., *Cerise* (JACM 2024); Huyghebaert, Keuchel, De Roover, and Devriese, *ISA Security Guarantees as Universal Contracts* (CCS 2023, on the Katamaran verifier); Bauereiss et al., *Verified Security for the Morello Capability-enhanced Prototype Arm Architecture* (ESOP 2022).
+This is the road the field took instead of typed assembly: a program logic whose logical relation gives *arbitrary* code a universal contract, which is the mechanized form of exactly what a citing profile cites (§2) and the defense in depth beneath a checker or metatheorem error.
+Each member is idealized (Cerise's machine, Katamaran's MinimalCaps case study) or in another prover (the Morello monotonicity proof is Isabelle), and none yields a per-binary certificate; the distance between a universal contract over all code and a derivation about this binary is exactly the language.
 
 **Linear control and ownership.**
 Skorstengaard, Devriese, and Birkedal, *StkTokens* (POPL 2019); Crary, Walker, and Morrisett, *Typed Memory Management in a Calculus of Capabilities* (POPL 1999); Smith, Walker, and Morrisett, *Alias Types* (ESOP 2000); Jung et al., *RustBelt* (POPL 2018).
@@ -264,10 +277,12 @@ It does not establish general heap temporal safety on ordinary capability hardwa
 **Constant-time typing.**
 Watt et al., *CT-Wasm* (POPL 2019); Barthe et al., *System-level Non-interference for Constant-time Cryptography* (CCS 2014); Almeida et al., *Verifying Constant-Time Implementations* (USENIX Security 2016).
 CT-Wasm is the direct precedent for §4's taint-typing route, mechanized through semantics, checker, and soundness together, and its guarantee is relative to an explicit leakage model rather than absolute.
+Two recent results confirm the route from either end: SecSep (Song et al., CCS 2025) is a literal taint-typed assembly language for x86-64 cryptographic code, annotations inferred by a producer and re-checked over the final assembly, carrying exactly this obligation and no other; and the structured-leakage line in the Jasmin compiler (Barthe et al., CCS 2021) transports constant-time and cost facts together through compilation as Coq-proved leakage transformers, the nearest mechanized metatheory to hold §4's two boundary cases in one frame.
 
 **Cost certificates.**
 Shaw, *Reasoning About Time in Higher-Level Language Software* (TSE 1989); Li and Malik, implicit path enumeration (1995); Carbonneaux et al., *Automated Resource Analysis with Coq Proof Objects* (CAV 2017).
 These support compositional timing annotations and independently checked resource bounds, under exactly the side conditions §4 states and not otherwise.
+The certificate form itself has one shipped ancestor and one typed one, both defunct: the Mobile Resource Guarantees project (Hofmann, Jost, Aspinall et al., ~2004) made the resource-typing derivation the certificate a consumer replays over JVM bytecode, CerCo (2013) carried exact per-block machine costs through a verified compiler in Matita, and Crary and Weirich's *Resource Bound Certification* (POPL 2000) put the clock in a TAL's types on paper alone; the attribute's precedent is therefore method rather than code, and §10 counts it so.
 
 **Certifying compilation.**
 Necula and Lee, *The Design and Implementation of a Certifying Compiler* (PLDI 1998); Kang et al., *Crellvm* (PLDI 2018); the translation-validation and CompCert lines.
@@ -285,6 +300,12 @@ That is a claim about the arrangement rather than about any component, and it is
 Unbuilt, in all three parts: the type system, the checker, and the soundness proof.
 The prior art it stands on is real and mechanized and is set out in §9, so the *type-soundness discipline* is not a gamble; the instantiation is.
 One caution about the closest mechanized soundness result of this shape: WasmCert-Coq mechanizes WebAssembly's semantics, binary format, typing, and type soundness, but for a *bytecode* rather than a native instruction set, and its published account left end-to-end work unfinished, so it is a template for the metatheorem's shape and not evidence that the same has been carried out over an ISA semantics.
+
+**The artifact landscape, so the start-from is named rather than presumed.**
+The founding lineage yields no code to inherit: the TALx86 toolset survives as a 2002 all-rights-reserved download, the Twelf mechanization of foundational TAL and Princeton's LTAL checker were never publicly released, and the Necula-line certifying compilers died closed-source, so §9's first two groups contribute design and metatheory only, with the FPCC trusted-base accounting (a sub-thousand-line C checker over a fixed logic signature) the closest published relative of §3's budget claim.
+What a `cheri-rv64` instantiation stands on today is short and live: the CHERI-RISC-V Sail model's generated Coq, the one existing route to theorems over the real ISA and one over which no published development has yet proved anything, so the profile instantiation is a first rather than a repetition; Katamaran, the actively developed contract verifier over a Sail-like embedding with a capability-machine case study, the natural engine for the per-instruction lemmas and cited-invariant premises; WasmCert-Coq as the maintained skeleton for a checker verified sound and complete against its type system; the Isla-trace route of Islaris and Morello-Cerise for taming a full model; and CT-Wasm's extracted verified checker as the taint attribute's port target, its artifact pinned to a 2017 Isabelle.
+Every mechanized relative of the metatheorem chose an idealized machine to stay tractable, which locates the risk precisely: not in the discipline, which is inherited, but in being first to instantiate it over an ISA-scale semantics.
+The nearest active lines (universal contracts and secure calling conventions on CHERI-RISC-V at KU Leuven and VUB, taint-typed assembly at MIT) are each approaching one slice of the menu, none the assembly.
 
 Factoring it out of an operating-system specification changes three things and no others:
 
