@@ -1,6 +1,8 @@
 # VerifiedOS
 
-Design for an end-to-end formally verified computer, built around a bespoke in-order CHERI-enabled RV64IMV-inspired system-on-chip and a seL4-inspired multikernel operating system. The proof chain is meant to run unbroken from abstract specification through source, binary, and ISA down to the modeled hardware. Engineering effort is treated as free and trust as the scarce resource, so security is placed ahead of performance and broad compatibility with other hardware or software; the reference instantiation is a mobile/laptop-class device, form-factor-agnostic in principle.
+Design for an end-to-end formally verified computer, built around a bespoke in-order CHERI-enabled RV64IMV-inspired system-on-chip and a seL4-inspired multikernel operating system. The proof chain is meant to run unbroken from abstract specification through source, binary, and ISA down to the modeled hardware.
+
+Engineering effort is treated as free and trust as the scarce resource, so security is placed ahead of performance and broad compatibility with other hardware or software; the reference instantiation is a mobile/laptop-class device, form-factor-agnostic in principle.
 
 > This repository is a living design specification. Nothing here is built or released.
 
@@ -196,7 +198,11 @@ These three limits are real obligations met outside the platform. Rows make each
 
 ### What this inventory does not claim
 
-This inventory does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol flaw. Canonicity covers this platform's encodings, not whether an independent peer accepts the same language; no single-party proof can establish that, so parser differentials remain untrusted evidence and a §17 residual. The transferred rows count limits owned elsewhere. The normative specification's §17 and [critique.md](critique.md) record those limits and open proof work. This inventory summarizes named archetypes; it is not the coverage claim, because such a list can never be complete. The register-computed [coverage matrix](coverage-matrix.md), spanning every boundary and property, makes that claim.
+This inventory does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol flaw. Canonicity covers this platform's encodings, not whether an independent peer accepts the same language; no single-party proof can establish that, so parser differentials remain untrusted evidence and a §17 residual.
+
+The transferred rows count limits owned elsewhere. The normative specification's §17 and [critique.md](critique.md) record those limits and open proof work.
+
+This inventory summarizes named archetypes; it is not the coverage claim, because such a list can never be complete. The register-computed [coverage matrix](coverage-matrix.md), spanning every boundary and property, makes that claim.
 
 ## Specification
 
@@ -208,16 +214,18 @@ One part is specified as a project in its own right rather than as a component: 
 
 ### The atomic-requirements register
 
-Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md): each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1192 numbered requirements. Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list is empty, which the register declines to read as a clean bill: its standing instruction is that the sweep finding such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
+Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md): each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1192 numbered requirements.
+
+Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list is empty, which the register declines to read as a clean bill: its standing instruction is that the sweep finding such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
 ### Derived views
 
 Four **derived views** collect what the register states across many entries but no document held:
 
-- The [frozen instruction-set profile](isa-profile.md): the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. This is what §18's schedule root and first day-one deliverable consume.
-- The [microarchitectural absence contract](absence-contract.md): sixteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. Per §18 it is buildable on day one and is the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
-- The [crown-jewel inventory](crown-jewels.md): the twenty-two specifications the §5 review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the seven theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
-- The [coverage matrix](coverage-matrix.md): the boundaries of the system against the properties each must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above enumerates named bug classes, this enumerates the boundaries and quantifies over them, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
+- **The [frozen instruction-set profile](isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. This is what §18's schedule root and first day-one deliverable consume.
+- **The [microarchitectural absence contract](absence-contract.md)**: sixteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. Per §18 it is buildable on day one and is the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
+- **The [crown-jewel inventory](crown-jewels.md)**: the twenty-two specifications the §5 review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the seven theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
+- **The [coverage matrix](coverage-matrix.md)**: the boundaries of the system against the properties each must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above enumerates named bug classes, this enumerates the boundaries and quantifies over them, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
 
 Each cites the governing requirement for every row and is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither that reference nor any figure these documents assert is maintained by hand.
 
@@ -225,4 +233,6 @@ Each cites the governing requirement for every row and is defective, never autho
 
 `tools/check.ps1` holds all of it and exits non-zero on any finding: every citation resolves to something live, no view drops a requirement in the subsections it bears, and every asserted count matches the artifact that owns it, rewritten in place under `-Fix`. It is one tool because a derived fact restated where nothing checks it is one defect: a line number, a membership list, and a count are the same mistake at three granularities.
 
-It also holds the sets that are enumerations of a *judgment*, where the mistake is one granularity coarser: the crown-jewel specifications, the fail-closed refusals (R-17-030r), and the state the RoT counter keeps fresh (R-10-013a). Each closes by **conferral**, membership asserted by each requirement that has it and collected in exactly one place, so the collection and the requirements are checked against each other rather than against a memory. That closes their disagreement and not their completeness, which no tool decides; against completeness the checker over-approximates the vocabulary of each judgment and requires every requirement it catches to confer, be collected, or be dispositioned by name, so the totality claim is an agenda regenerated on every run. Run against a fail-closed register believed complete, that agenda returned four members it did not carry.
+It also holds the sets that are enumerations of a *judgment*, where the mistake is one granularity coarser: the crown-jewel specifications, the fail-closed refusals (R-17-030r), and the state the RoT counter keeps fresh (R-10-013a). Each closes by **conferral**, membership asserted by each requirement that has it and collected in exactly one place, so the collection and the requirements are checked against each other rather than against a memory.
+
+That closes their disagreement and not their completeness, which no tool decides; against completeness the checker over-approximates the vocabulary of each judgment and requires every requirement it catches to confer, be collected, or be dispositioned by name, so the totality claim is an agenda regenerated on every run. Run against a fail-closed register believed complete, that agenda returned four members it did not carry.
