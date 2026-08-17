@@ -17,7 +17,7 @@
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral, a standards line having now made the opposite statement explicit. | 0 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 0 |
-| **§5 Confirmations** | Free confirmations, collected so a later reader does not mistake one for drift. | 2 |
+| **§5 Confirmations** | Free confirmations, collected so a later reader does not mistake one for drift. | 0 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they bear on a decision the profile has taken. | 4 |
 
 *The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**.*
@@ -79,11 +79,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 ## 5. Free confirmations to collect
 
-- [ ] **`Zcd`, `Zcmp`, and `Zcmt` are incompatible with any purecap RV64 CHERI machine.** *R-15-036, R-15-036a · §6 · Matrix §9.2.*
-  Purecap needs the 16-bit load/store encoding space for `C.LY`/`C.SY`, so the **code-size half of the `Zc*` family (push/pop multiple and table jump) was never on offer**, standards-track or not. The profile's `C` exclusion therefore forgoes less than a naive reading suggests: two of the three code-size instruments were unavailable regardless. It also removes a hypothetical objection, since `Zcmt`'s jump-vector table is a target-membership structure that would sit awkwardly beside sentry CFI and R-15-072's typed callee set anyway.
-- [ ] **`Zicfiss` is incompatible with CHERI**: its push/pop instructions would need modifying. *R-15-044 · §6 · Matrix §9.2.*
-  RVY reaches R-15-044's conclusion **from the encoding side rather than the principle side**. Collect it: two independent grounds for one exclusion.
-
 *Two convergences are already recorded correctly and need no work: **physical-address capabilities** (ISAv7 experimental appendix → ISAv9 model section, and this platform's entire address model) and the **64-bit Concentrate format** (the literal base of the frozen format). A third, compressed non-orthogonal permissions, is **not** a convergence (RVY attempted a compressed AP encoding at v0.9.9 and reverted), and R-15-007b's rationale now records CHERIoT's 6-bit encoding as the sole shipped precedent.*
 
 ---
@@ -100,11 +95,5 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 ---
 
 ## Where the work lands
-
-*Several findings collapse into one edit. This is the grouping to work in, not the order above.*
-
-| Profile section | Items | Class |
-| --- | --- | --- |
-| §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations | §5 |
 
 **One item has no landing row and should get one at the freeze:** the profile places four bespoke instructions (the capability indexed load/store, `bfext`/`bfins`, and `cclear`) in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that §11's parameterized-encoding-format argument would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-069a, R-15-014; matrix §9.2).
