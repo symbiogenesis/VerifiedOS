@@ -365,6 +365,8 @@ The order records a sequencing decision rather than an accident: realization is 
 
 The milestones are also the review gate's clock: a crown-jewel row a milestone flips to `authored` enters R-05-150's independent specification review at the flip, not in a release-time batch, so each specification is read at the edition the proofs will be stated against rather than re-read from a corpus that has moved on.
 
+One crown-jewel row retires off this clock: the pinned Wasm guest semantics (inventory row 25, R-14-013b) gates no M-milestone, because the platform interpreter it serves ships with the §18-deferred application program rather than the base system, and its curation is scheduled there: it is the inventory's cheapest retirement, a version-pin of the mechanized WasmCert lineage whose soundness and confinement theorems arrive with the artifact, so the authoring cost is the pin, the subset cut, and the review, not a formalization. The M1 CertiCoq → Wasm host-side oracle is unrelated to it: that is build-farm machinery on the host, and R-05-085's device claim is untouched by it.
+
 1. **M0, Hardware reference.**
   Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green. Define the profile-freeze measurement contract (§0): versioned corpus manifest, emitter-provenance schema, report schema, admitted region classes, and per-choice acceptance thresholds. Publish the shared differential-testing corpus and the capability-widened commit-trace schema (§10) that every later executor emits.
 2. **M1, Toolchain spine, incl. the CHERI-CompCert prerequisite.**

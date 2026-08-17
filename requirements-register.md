@@ -55,6 +55,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 | `CJ-IDL` | The §12 IDL wire-format mapping |
 | `CJ-DEVTREE` | The RoT-attested devicetree (§9) |
 | `CJ-ISOL` | The formal isolation semantics of the §15 partitioning hardware |
+| `CJ-WASM` | The pinned Wasm guest semantics the platform interpreter's theorems are stated against (§14) |
+| `CJ-WASM-SOUND` | Platform-interpreter soundness and robust guest confinement over the pinned guest semantics (§14) |
 
 ---
 
@@ -620,7 +622,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-TAL-SOUND
 
 **R-05-085** MUST NOT: Wasm/WASI is not an execution target anywhere in the system.
-· Accept: no Wasm runtime, interpreter, or JIT exists in any image.
+· Accept: no admitted component is delivered as Wasm, no Wasm-to-native path or JIT exists on the device, and Wasm bytes gain execution only as guest content under pure interpretation (R-14-008a, R-14-013, R-14-013a); no execute authority is ever derived from Wasm content.
 · Trace: CJ-TAL-SOUND
 
 ### 5.12 No ambient state
@@ -2935,9 +2937,21 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: build-time composition may deterministically join or shadow fragments, but runtime mount/bind/union mutation, a global service directory, path-based capability lookup, and namespace escape are absent.
 · Trace: CJ-NI, CJ-CERISE
 
-**R-14-013** IS: *WASI-shaped* is API vocabulary, not substrate: everything compiles to native RV64+CHERI, and Wasm is not a system execution target. An app may embed an interpreter-mode Wasm engine as its private plugin mechanism, invisible to the architecture.
+**R-14-013** IS: *WASI-shaped* is API vocabulary, not substrate: everything compiles to native RV64+CHERI, and Wasm is not a system execution target. An app may embed an interpreter-mode Wasm engine as its private plugin mechanism, invisible to the architecture; the platform gives that choice a reason to be rare (R-14-013a).
 · Accept: no Wasm runtime exists in any system image (R-05-085).
 · Trace: CJ-TAL-SOUND
+
+**R-14-013a** MUST: The platform ships exactly one pure-interpreter Wasm engine as a §13 library compartment any application may bind for untrusted dynamic content: no JIT or runtime code generation, guest state inside the embedding's CHERI-bounded memory plan, the guest reaching its host only through host functions the embedding's manifest names, and the engine carrying machine-checked soundness (the executable interpreter refines the pinned guest semantics, R-14-013b) and robust guest confinement (an adversarial module influences its host and peers only through its declared imports and exports).
+· Accept: one Wasm interpreter artifact exists in the platform image; both theorems check against the pinned semantics at build; binding the engine grants an embedding no authority beyond its own manifest, and a hostile guest module reaches nothing its embedding did not import to it. What the embedding exposes to its guest, and guest-observable timing inside the embedding's own slot, are excluded from the claim.
+· Trace: CJ-WASM, CJ-WASM-SOUND
+
+**R-14-013b** MUST: The engine's theorems are stated against a pinned Wasm guest semantics, a crown-jewel specification curated rather than authored: a version-frozen semantics of the admitted guest subset (core Wasm, no threads, its numeric semantics included), a curation of the mechanized WasmCert lineage into the platform's one prover with the SpecTec-mechanized official specification as its tracked upstream. Its fidelity half, that the pinned semantics is the Wasm the outside world compiles to, is the R-17-016b agreement gap on a language rather than a format and takes the same posture.
+· Accept: the pinned-semantics artifact appears in the crown-jewel inventory with its version frozen; both R-14-013a theorems name it as their sole language premise; the official conformance suite and differential runs against independently mechanized interpreters are producer-side evidence entering no trust base, and no requirement claims the agreement gap closed.
+· Trace: CJ-WASM
+
+**R-14-013c** MUST: The browser's Wasm interpreter (R-14-008a) is the R-14-013a platform engine, one interpreter rather than two, so R-14-008d's differential-testing obligation runs its Wasm half against the theorem-carrying caches-disabled configuration. Web JavaScript is outside the offer: no verified JS engine exists at engine-grade coverage, so web JS stays contained per origin under R-14-008 and the interpreter transfer's standing case stays booked unnarrowed.
+· Accept: the browser image binds the platform engine rather than a second interpreter for Wasm content, and the JavaScript declination is recorded here rather than implied.
+· Trace: CJ-WASM-SOUND
 
 ---
 
@@ -5241,7 +5255,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1207 requirements. §19 is non-normative and yields none. Counts include the 285 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1210 requirements. §19 is non-normative and yields none. Counts include the 288 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5258,7 +5272,7 @@ All eighteen normative sections are extracted, at 1207 requirements. §19 is non
 | **§11 Updates** | **extracted** | **36** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
-| **§14 Userland** | **extracted** | **22** |
+| **§14 Userland** | **extracted** | **25** |
 | **§15 Hardware Platform** | **extracted** | **353** |
 | **§16 Reliability** | **extracted** | **29** |
 | **§17 Residual Risks** | **extracted** | **110** |

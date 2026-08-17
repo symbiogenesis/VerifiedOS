@@ -308,9 +308,30 @@ As an ISA it also pays the full substrate cost: a variable-length, LEB128, struc
 A JIT adds hidden translation state and violates W^X; interpretation retains the decode/validation surface at unacceptable cost; Wasm threads bring a relaxed memory model into a Ztso design.
 
 **Disposition:** reject Wasm as hardware ISA, CHERI sandbox target, and system execution substrate.
-A contained application may still embed a private interpreter, which is ordinary software rather than an architectural import.
+A contained application may still embed a private interpreter, which is ordinary software rather than an architectural import; the platform now makes that the declining case, offering one verified interpreter (R-14-013a) whose adoption takes Wasm's mechanized semantics as a *guest language* while every ground above still refuses it as substrate, so the rejection and the offer are the same judgment read at two layers.
 The interface lineage actually used by the platform is documented in [Inspirations & Prior Art](inspirations.md).
 Non-normative; no spec-body change.
+
+---
+
+## The guest-language slot: verified JavaScript, CakeML, and K-generated interpreters, declined for the one pinned Wasm guest semantics
+
+The R-14-013a platform interpreter needed a guest language whose mechanized semantics and theorems could be curated rather than authored, and the candidates other than core Wasm fail that test in four different ways.
+
+A **verified JavaScript engine** fails on scale: the standing mechanizations cover the core of one superseded edition without libraries, garbage collection, or realistic performance, the language's specification runs to hundreds of pages and grows yearly, its regex chapter alone sustained a dedicated multi-year mechanization effort, and its dynamism (effectful property access, proxies, `eval`, the last banned here anyway) resists exactly the small-step pinning the theorems need.
+Even under this project's effort premise the artifact is a research program, not a curation, so web JavaScript stays contained per origin (R-14-008) and the declination is normative at R-14-013c.
+
+**CakeML** is the one verified managed-language runtime with an RV64 backend and machine-code theorems, and is declined on three mismatches: its proofs live in a different prover, so its theorems could be consumed only as axioms against the one-prover discipline; its REPL and `Eval` path is runtime code generation the platform forbids, leaving only the install-time AOT half; and its surface language is one applications do not embed for untrusted content, so it would fill the slot without serving the slot's purpose.
+
+**K-framework-generated interpreters** buy real-language coverage from one semantics, but the generating toolchain is unverified and its proof-object emission program incomplete, so adopting one is trusting a large translator, the shape the certifying-toolchain discipline (§13) exists to refuse: the checker must be small and the pedigree untrusted.
+
+**MSWasm as the admitted guest dialect** was declined even though its handles are CHERI-shaped and its security invariants are mechanized: admitting it would put a second capability vocabulary beside the architectural one inside the guest boundary, for safety the embedding's CHERI-bounded memory plan already enforces from outside.
+It is retained as design vocabulary where guest handles lower onto real capabilities.
+
+**Verified install-time AOT of guest content** fails at the definition: guest content is dynamic and has no install point (R-14-008f), so the AOT route exists only for content shipped through §13 admission, where it is the ordinary native path rather than a Wasm story.
+
+**Disposition:** the guest language is core Wasm under the R-14-013b pinned semantics, no threads, curated from the WasmCert lineage with SpecTec as tracked upstream; the four candidates above are declined on the grounds stated, and the JS declination is the one carried normatively (R-14-013c) because it bounds what the offer can ever claim to reach.
+Non-normative; the normative change is §14's.
 
 ---
 

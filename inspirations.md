@@ -1290,6 +1290,29 @@ This is the adopted form of the indexed-target insight: resolve once at composit
 
 ---
 
+## WasmCert, Iris-Wasm, and SpecTec: the platform interpreter's theorems bought by curation, with every agreement instrument kept untrusted
+
+The §14 platform interpreter (R-14-013a) is the one place the platform executes a guest language it did not define, and its assurance is bought the way the kernel's and the parsers' were: adopt the mechanized lineage whose theorems already exist, curate it into the one prover, and let nothing ecosystem-facing enter the trust base.
+
+- **WasmCert-Coq and its certified interpreters: the executable core.**
+  The Rocq mechanization of WebAssembly (Watt, Bodin, Gardner, Pichon-Pharabod, Rao; FM 2021 onward) carries type safety, a sound-and-complete type checker, instantiation soundness, and an extracted interpreter proved against the relational semantics, with the successor interpreter carrying soundness *and* progress through erasable certificates (POPL 2025).
+  This is the artifact the R-14-013b curation names first: the semantics and the interpreter arrive with their theorems attached, in the platform's own prover, which is what lets the crown jewel be *curated rather than authored*.
+- **Iris-Wasm: the confinement statement worth citing.**
+  The robust-safety logical relation (PLDI 2023, on WasmCert-Coq) states exactly the property R-14-013a's second theorem claims: adversarial code influences other modules only through the functions it was explicitly given.
+  Its MSWasm extension (OOPSLA 2024) mechanizes the handle vocabulary, CHERI-shaped capabilities inside the guest, and is retained as design vocabulary for lowering guest handles onto real capabilities, not as an admitted dialect.
+- **SpecTec: the upstream that stops mechanization drift.**
+  The W3C-adopted mechanized specification format authors the official Wasm standard from one formal source with a Rocq backend, so the pinned semantics tracks a mechanized upstream rather than transcribing prose, the failure mode the hand-transcribed NAS grammar (R-05-050) exists to manage.
+- **WasmRef-Isabelle and the conformance suite: the oracle, untrusted.**
+  A second verified interpreter, refined in a different prover and deployed industrially as a fuzzing oracle, plus the official conformance suite, are the differential instruments of R-14-013b's fidelity posture: producer-side evidence against the agreement gap, entering no trust base, the exact stance R-17-016b takes for wire formats.
+- **CertrBPF, Cedar, and Microvium-on-CHERIoT: the shipped pattern this generalizes.**
+  Every fielded verified evaluator for untrusted content pairs a deliberately small language with an install-time check and a verified evaluator, and the one shipped interpreter-in-a-compartment precedent on capability hardware ran unmodified inside a compartment.
+  The platform interpreter is that pattern with the platform's own admission and manifest machinery as the checker half.
+
+**What the platform takes.** One pure-interpreter engine as a §13 library compartment, its soundness and confinement theorems consumed from the WasmCert/Iris-Wasm lineage against the R-14-013b pinned semantics; SpecTec as tracked upstream; conformance and differential execution as untrusted producer-side evidence; the MSWasm handle model as vocabulary only.
+**Honest residual (§17).** The fidelity of the pinned semantics to the Wasm the world compiles to is the R-17-016b agreement gap on a language, booked and never claimed closed; the theorems say nothing about what an embedding chooses to expose to its guest, which stays the transferred obligation's surviving edge; and no verified JS engine exists to extend the offer to the browser's other half, a declination R-14-013c records.
+
+---
+
 ## PRET, PATMOS/T-CREST, and FlexPRET: timing as an architectural property
 
 The deterministic timing profile converges on the **precision-timed architecture** lineage from the real-time side.
