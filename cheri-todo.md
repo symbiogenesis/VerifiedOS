@@ -16,9 +16,9 @@
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral, a standards line having now made the opposite statement explicit. | 0 |
-| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 2 in 1 cluster |
+| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 0 |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 6 + 2 |
-| **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
+| **§6 Watch** | External lines with no obligation attached, tracked because they bear on a decision the profile has taken. | 4 |
 
 *The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**.*
 
@@ -45,11 +45,11 @@
 
 **On the refusals.** A membership-inheriting clause imports ISAv9's CHERI enable bit, which the profile refuses by name in two places: no enable bit exists (§5.2) and no runtime CHERI disable exists (§1). Both are refusals of upstream features, and inheritance-by-default argues the other way, so widening the pin would put it at odds with clauses the profile carries.
 
-**On the admission discipline, which is the deeper conflict.** Two decision items are instructions that **already exist in ISAv8/v9**: `CLoadTags` and `CClearTags` (4A). A blanket pin decides both at a stroke, in the *include* direction, as it would have decided the conditional capability move that instead came in on a ground of its own. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
+**On the admission discipline, which is the deeper conflict.** Several instructions the profile decides **already exist in ISAv8/v9**, and a blanket pin decides every one of them at a stroke, in the *include* direction: `CLoadTags`, `CClearTags`, `CTestSubset`, and the conditional capability move. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
 
-> §5's CSR table is **closed**, §6 enumerates exclusions **by name**, and R-15-014 traps unallocated encodings. The profile is **closed-by-default with opt-in admission and a stated ground per instruction.** "Everything ISAv9 has, minus exclusions" is open-by-default, and imports two instructions' worth of silicon, encoding space, and Sail cases that nothing has priced against the emitted mix.
+> §5's CSR table is **closed**, §6 enumerates exclusions **by name**, and R-15-014 traps unallocated encodings. The profile is **closed-by-default with opt-in admission and a stated ground per instruction.** "Everything ISAv9 has, minus exclusions" is open-by-default, and imports silicon, encoding space, and Sail cases that nothing has priced against the emitted mix.
 
-The conflict is architectural rather than stylistic: adopting it trades a curated profile for a subtractive one, and the *unallocated encodings trap* property is downstream of that choice. **The two stay individual, and each is admitted on a measured ground or declined on a stated one.**
+The conflict is architectural rather than stylistic: adopting it trades a curated profile for a subtractive one, and the *unallocated encodings trap* property is downstream of that choice. The decisions themselves are the discipline's evidence, and the pin gets two of the four wrong: `CLoadTags` is admitted on the sweep's own quantum and `CTestSubset` declined on where the domain boundary validates, the conditional move admitted on an idiom `Zicond` has no capability form of and `CClearTags` declined on a write path that already clears tags. **Each is admitted on a measured ground or declined on a stated one.**
 
 ---
 
@@ -73,16 +73,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 ## 4. Decisions the freeze must make
 
-*Grouped, because several of these are one question wearing different hats and deciding them separately is how a format acquires an inconsistency.*
-
-*Which freeze, of the two R-15-014a names: an item conditioned on a measurement against generated output falls to the **final** freeze, and every other item here to the **provisional** one. No item below is so conditioned, so this section is day-one work in its entirety and not work that waits on a backend.*
-
-### 4A. Sweep support
-
-- [ ] **`CLoadTags`.** *R-08-007, R-15-203 · Matrix §5, §6 (marked **yes** in both).*
-  The §8 sweep is an incremental software task whose completion latency is "the domain's capability-bearing footprint over the per-frame sweep quantum", i.e. **entirely a memory-traffic quantity**. `CLoadTags` reads a granule group's tags without reading the data, and with native SRAM tag bits read in parallel with data (R-15-203) it is close to free in silicon. **Mature since ISAv8, so the "experimental" objection is gone. Nothing in the profile carries it and no requirement declines it**, the strongest lean in this section.
-- [ ] **`CClearTags`.** *R-15-182, R-08-007 · Matrix §6.*
-  Partly covered already: `cbo.zero` allocates whole lines with zeroed data *and* cleared tags at one fixed latency (R-15-182). The residue is **tag-only clearing where data must survive**, a sweep-side want, not a zeroize-side one. Decide with `CLoadTags`.
+*Grouped, because several of these are one question wearing different hats and deciding them separately is how a format acquires an inconsistency. Which freeze, of the two R-15-014a names: an item conditioned on a measurement against generated output falls to the **final** freeze, and every other one to the **provisional** freeze, which is day-one work and not work that waits on a backend.*
 
 ---
 
@@ -110,7 +101,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 ## 6. Watch
 
-*No obligation attached. Tracked because each aims at a question §4 leaves open, or because a release would rerun the review gate.*
+*No obligation attached. Tracked because each bears on a decision the profile has already taken, or because a release would rerun the review gate.*
 
 - [ ] **`ZcheriSanitary`**: cleaning capabilities on compartment switch. *Research, needs a PR.* **The one to watch**, and the profile's **recorded re-pin target** for `cclear` (R-15-069b) rather than a question beside it: if it ratifies, the obligation opens on a frozen encoding, which is the one watch row here that would touch §3 rather than only rerun the gate.
 - [ ] **`ZcheriTraceTag`**: data capability trace with tags. *Research, needs a PR.* Irrelevant in production (trace rides the lifecycle fuse, R-15-079) but relevant in the **development** lifecycle state, where §10 permits trace and R-15-077 points development measurement at it.
