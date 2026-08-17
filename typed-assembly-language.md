@@ -57,13 +57,13 @@ The routes are ordered by preference and the ordering is the design: a cited inv
 **Two profiles are specified, and they differ only in routing: every obligation `cheri-rv64` cites moves down the table under `bare-rv64`, and no other route changes.**
 
 - **`cheri-rv64`**, the profile VerifiedOS pins.
-  Bounds, tags, monotone derivation, and sealed entry are architectural, so spatial memory safety, no-runtime-codegen, and the run-time half of control-flow integrity — which authority may be executed, and where an entry may land — are **cited**, and of that cluster the type system carries only the residual the hardware does not enforce: temporal safety, exclusive access, and typed control flow.
+  Bounds, tags, monotone derivation, and sealed entry are architectural, so spatial memory safety, no-runtime-codegen, and the run-time half of control-flow integrity (which authority may be executed, and where an entry may land) are **cited**, and of that cluster the type system carries only the residual the hardware does not enforce: temporal safety, exclusive access, and typed control flow.
   Control-flow integrity is the easiest of these to overstate, and the split is worth naming: the machine bounds executable authority and entry, while the legal target set of an indirect transfer and the signature of the code it reaches stay **attributed**, a type match being a policy no instruction set states.
   This is the profile in which the language is small.
 - **`bare-rv64`**, the profile with no capability hardware.
   Nothing is cited.
   Spatial safety becomes **inserted** (bounds checks the type system locates and requires) or, at the producer's option, a fat-pointer ABI in which a bounds pair is an ordinary aggregate the type fixes the representation of.
-  No-runtime-codegen and the run-time half of control-flow integrity become **attributed**: with every store and every indirect transfer typed, the classical TAL account — no writable authority over code, typed jumps — decides statically what the hardware no longer checks, and both halves of control flow then rest on one attribute.
+  No-runtime-codegen and the run-time half of control-flow integrity become **attributed**: with every store and every indirect transfer typed, the classical TAL account (no writable authority over code, typed jumps) decides statically what the hardware no longer checks, and both halves of control flow then rest on one attribute.
   Provenance survives as an **attributed** property, because the integer-to-pointer deletion (§5, move III) is already a type-system fact rather than a hardware one.
 
 **A citation is a theorem about the machine, and citing carelessly is the likeliest way for everything downstream of it to be wrong.**
@@ -107,7 +107,7 @@ The type theory is fixed and closed by this document, and the four absences belo
 
 **What makes the four load-bearing is what they delete from a checker.**
 A term checker for a full calculus of inductive constructions spends its tens of thousands of lines on four hard structures: universe constraints, conversion, positivity, and the guard condition.
-Absences (2), (3), and (4) delete exactly those four, and absence (1) removes the instantiation and inference problems higher-rank polymorphism would reintroduce, so what remains is not a small dependent-type checker but *not a dependent-type checker at all*, and the line budget — on the order of a thousand lines of shipped checker — is a consequence of that rather than a target an implementation is asked to hit.
+Absences (2), (3), and (4) delete exactly those four, and absence (1) removes the instantiation and inference problems higher-rank polymorphism would reintroduce, so what remains is not a small dependent-type checker but *not a dependent-type checker at all*, and the line budget (on the order of a thousand lines of shipped checker) is a consequence of that rather than a target an implementation is asked to hit.
 What the checker does instead is evaluate a fixed attribute set over the already-typed control-flow graph (the type under structural equality, the threaded linear context, the taint lattice, the cost semiring, the callee set), taking the abstract state at each join from the derivation rather than computing it, and confirm each *local* constraint: tens of lines of evaluator per attribute.
 
 **What the figure counts, so the budget is auditable rather than rhetorical.**
