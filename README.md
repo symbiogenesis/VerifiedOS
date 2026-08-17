@@ -70,7 +70,7 @@ No firmware coprocessors. Graphics, machine learning, signal processing, and eve
 
 ### On-die OpenTitan-class root of trust
 
-A scalar RV64+CHERI core, the platform's only management processor, handles measured boot, key custody, and attestation.
+A scalar CHERI-enabled RV64 core under the same ISA, capability model, and proofs, the platform's only management processor, handles measured boot, key custody, and attestation.
 
 ## Bug classes removed by construction
 
