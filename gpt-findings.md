@@ -28,12 +28,6 @@ Worth noting for whoever authors row 15: the static memory plan already emits a 
 
 R-04-008 fixes every compartment at composition and R-07-025 fixes the component graph and capability distribution at build time, while R-12-024b compiles a handler and translator graph from installed packages and R-13-001 gives each package a capability manifest. The finding's two candidate readings (atomic next-boot recomposition, or binding into pre-proved empty slots) are the right pair, and the lifecycle specifies neither.
 
-**5. Two README closures are stronger than the normative design.** · **Open, both halves, and both are conceded in the specification's own residuals.**
-
-Integer overflow: §17's residual (6), *totalized arithmetic is per-install decidable only where the bounds are closed*, states the split directly, an overflow obligation over closed numerals being decided per-install while one depending on a runtime value descends to a release-time proof term that does not reach the installed-app population. The tier obligations are R-13-011 and R-13-012.
-
-Failed verdicts: §17's relevance residual states that the must-examine rule makes dropping a verdict structurally impossible and does not constrain the response. Both are honest residuals in the design document and are overstated in the README, which is a README defect rather than a design one.
-
 ---
 
 **Radical Simplifications, dispositioned**
@@ -44,6 +38,6 @@ Failed verdicts: §17's relevance residual states that the must-examine rule mak
 
 ---
 
-**What remains concretely closeable:** wrong responses to failed verdicts, runtime-dependent Tier-2 overflow, and non-atomic package recomposition.
+**What remains concretely closeable:** non-atomic package recomposition.
 
-Analog power and EM leakage, human consent, protocol-standard flaws, and fail-closed denial remain honestly recorded as residuals rather than overlooked bugs.
+Wrong responses to a failed verdict, runtime-value-dependent overflow, analog power and EM leakage, human consent, protocol-standard flaws, and fail-closed denial remain honestly recorded as residuals rather than overlooked bugs.
