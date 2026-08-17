@@ -1656,8 +1656,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a compromised compositor's best play is premature revocation, an availability fault, never silent extension.
 · Trace: CJ-NI · [§8](verification-maximal-os.md#r-08-039)
 
-**R-08-040** MUST: (2) A trusted ceiling bounds the lease: the grant carries a maximum continued duration per resource class, measured on the kernel's trusted timebase and enforced by the powerbox through kernel-mediated grant expiry, past which only a fresh consent act restores authority.
-· Accept: the worst case against a compromised compositor colluding with a compromised app is *bounded* continued access.
+**R-08-040** MUST: (2) A trusted ceiling bounds the lease: the grant carries a maximum continued duration per resource class, measured on the kernel's trusted timebase and enforced by the powerbox through kernel-mediated grant expiry, past which only a fresh consent act restores authority; one grant is exempt and only one, the emergency-call microphone of R-12-052, bounded by the call's own lifetime enforced at teardown rather than by expiry.
+· Accept: the worst case against a compromised compositor colluding with a compromised app is *bounded* continued access; the single exemption is enumerated at R-12-052 and bounded there.
 · Trace: CJ-NI, CJ-WCET · [§8](verification-maximal-os.md#r-08-040)
 
 **R-08-041** MUST: (3) The unconditional cuts dominate the lease: the attested lock state and idle-lock, the away-gesture, the physical cutoffs, and the camera's mechanical shutter end a while-active grant whatever any software claims about focus.
