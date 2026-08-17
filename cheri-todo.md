@@ -16,7 +16,7 @@
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 0 |
-| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 5 in 4 clusters |
+| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 4 in 3 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 6 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
@@ -45,11 +45,11 @@
 
 **On the refusals.** A membership-inheriting clause imports ISAv9's CHERI enable bit, which the profile refuses by name in two places: no enable bit exists (§5.2) and no runtime CHERI disable exists (§1). Both are refusals of upstream features, and inheritance-by-default argues the other way, so widening the pin would put it at odds with clauses the profile carries.
 
-**On the admission discipline, which is the deeper conflict.** Four decision items — `CLoadTags`, `CClearTags` (4A), `CMOVN`/`CMOVZ` (4B), `CTestSubset` (4D) — are instructions that **already exist in ISAv8/v9**. A blanket pin decides every one of them at a stroke, in the *include* direction. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
+**On the admission discipline, which is the deeper conflict.** Three decision items — `CLoadTags`, `CClearTags` (4A), and `CMOVN`/`CMOVZ` (4B) — are instructions that **already exist in ISAv8/v9**. A blanket pin decides every one of them at a stroke, in the *include* direction. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
 
-> §5's CSR table is **closed**, §6 enumerates exclusions **by name**, and R-15-014 traps unallocated encodings. The profile is **closed-by-default with opt-in admission and a stated ground per instruction.** "Everything ISAv9 has, minus exclusions" is open-by-default, and imports four instructions' worth of silicon, encoding space, and Sail cases that nothing has priced against the emitted mix.
+> §5's CSR table is **closed**, §6 enumerates exclusions **by name**, and R-15-014 traps unallocated encodings. The profile is **closed-by-default with opt-in admission and a stated ground per instruction.** "Everything ISAv9 has, minus exclusions" is open-by-default, and imports three instructions' worth of silicon, encoding space, and Sail cases that nothing has priced against the emitted mix.
 
-The conflict is architectural rather than stylistic: adopting it trades a curated profile for a subtractive one, and the *unallocated encodings trap* property is downstream of that choice. **The four stay individual, and each is admitted on a measured ground or declined on a stated one.**
+The conflict is architectural rather than stylistic: adopting it trades a curated profile for a subtractive one, and the *unallocated encodings trap* property is downstream of that choice. **The three stay individual, and each is admitted on a measured ground or declined on a stated one.**
 
 ---
 
@@ -95,11 +95,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 - [ ] **`ErrorEPCC` — a trap taken inside the handler.** *R-07-022, §5.3 · Matrix §5.*
   Modeled on MIPS `ErrorEPC` and not carried into RISC-V, where the equivalent question is what happens to a fault inside a fault handler. Low cost; §5.3 is the right place to settle it.
-
-### 4D. Argument validation at a domain boundary
-
-- [ ] **`CTestSubset` / RVY `YSS`.** *R-07-031a · Matrix §5, §9.2.*
-  Upstream's first consumer is a garbage collector, which this platform has not got. **Its second consumer is argument validation at a domain boundary, which this platform has**: the switcher checks delegated buffers on every cross-compartment call. RVY **promoted it out of the experimental appendix into the base ISA**, which weakens the "no consumer" reading considerably.
 
 ---
 
