@@ -716,7 +716,7 @@ $agendas = @(
            'R-17-013e' = 'a consent residual: the refusing party is the user on reflection, and the refused mechanisms are declined at specification time; no failure action, nothing stops'
            'R-17-034'  = 'the sharpest instance of the admission refusal composed at R-17-030e'
            'R-17-047'  = 'a tooling choice refused at specification time, with no runtime failure action'
-           'R-17-058b' = 'the coverage residual behind R-17-030n detectors, not a refusal of its own'
+           'R-17-058b' = 'the residual beyond the R-16-008f fault model behind R-17-030n detectors, not a refusal of its own'
        } }
 
     @{ Set   = 'RoT-fresh'

@@ -13,7 +13,7 @@ Membership is **conferred, never declared in bulk**: a specification is a crown 
 Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
 
 1. the register's **`CJ-` trace-target table**, 21 entries, all used, internally consistent, but a *legend of trace targets* rather than an enumeration of specifications (below);
-2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §11, §12, §15, and §17. There are twenty-five such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
+2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §11, §12, §15, §16, and §17. There are twenty-seven such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
 
 Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, a row no conferring requirement stands behind, and a row citing an identifier the register does not hold.
 
@@ -34,7 +34,7 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 | 2 | **The security policy model**, including the delimited-release bound and the robust-declassification statement | `CJ-NI` | **R-08-028**, **R-17-012** | not authored |
 | 3 | **The IDL wire-format mapping**, the profile's mapping, the contract the IDL's types only document | `CJ-IDL` | **R-12-013** | not authored |
 | 4 | **The frozen ISA-profile definition** | `CJ-SAIL` | R-15-001, **R-15-001a**, R-15-014 | **authored**: [isa-profile.md](isa-profile.md) |
-| 5 | **The `Zkt`/`Zvkt` leakage-model statement**, the single leakage model constant-time verification is stated against | `CJ-LEAK` | **R-15-053**, R-05-070 | partial: enumerated in the profile (§2); the instruction list itself rides the ratified `Zkt`/`Zvkt` definition |
+| 5 | **The `Zkt`/`Zvkt` leakage-model statement**, the architectural leakage model constant-time verification is stated against | `CJ-LEAK` | **R-15-053**, R-05-070 | partial: enumerated in the profile (§2); the instruction list itself rides the ratified `Zkt`/`Zvkt` definition |
 | 6 | **The frozen profile's Sail semantics**: the Ztso and static-prediction fetch statements, the frozen matrix-extension semantics, the **re-parameterized capability encoding** with its representation-correctness proof and enumerated permission lattice, and the native tag-bit layout, one model rather than three | `CJ-SAIL`, `CJ-RTL-SAIL` | **R-15-005**, R-15-004, R-15-016, R-15-019, R-15-086, R-15-095, R-15-009, R-15-116, R-15-117, R-15-118, R-15-175, R-15-035, R-15-007, R-15-007a, R-15-007b, R-15-007e, R-15-007f, R-15-067a, R-15-067c | partial: each is stated in prose by the profile (§1, §2, §3, §4.1, §6, §7); no Sail-model statement of any of them is authored, and the capability encoding, the indexed load/store, and the bitfield extract/insert are original authorship rather than curation of the upstream model |
 | 7 | **The `fence.t` flush-set statement**, now over one structure rather than two | `CJ-ISOL` | R-15-213, R-15-215, R-15-217, **R-15-221** | partial: the four-class map is carried in [absence-contract.md](absence-contract.md) §6; the Sail statement is not authored |
 | 8 | **The NoC/island isolation model**, whose non-interference statement is what temporal isolation is decided against, including the memory controller's per-island arbitration carrying TDM-NoC-class non-interference in the Sail model | `CJ-ISOL` | **R-15-211**, R-15-222, R-15-223, R-15-228 | not authored |
@@ -52,6 +52,8 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 | 20 | **The 5G NAS reference state machine**, including 5G-AKA | `CJ-VELUS` | R-12-043b, **R-12-043c** | not authored |
 | 21 | **The 802.11 MLME reference state machine**, including the WPA3/SAE handshake | `CJ-VELUS` | R-12-043b, **R-12-043c** | not authored |
 | 22 | **The BT L2CAP/GATT pairing reference state machine** | `CJ-VELUS` | R-12-043b, **R-12-043c** | not authored |
+| 23 | **The probing-model statement**, the glitch-extended *d*-probing and composition statement the crypto core's masking theorems are verified against, an axiom about the silicon rather than a theorem over the Sail model | `CJ-LEAK` | **R-15-053a**, R-05-004a, R-17-058a | not authored |
+| 24 | **The protected-sequence fault model**, the single-fault transition relation the R-16-008c signature-and-token detection theorem is proved over | `CJ-SAIL` | **R-16-008f**, R-16-008c, R-17-058b | not authored |
 
 Two rules decide how finely conferral is cut, and they cut in opposite directions. **A row is one specification, never one clause of one** (R-17-016a: *one row per crown-jewel specification*), so where a single artifact carries several statements it is one row: row 6 is the frozen profile's Sail model, not three rows for the three statements it will make, and row 8 is the isolation model, not a row per mechanism inside it, because R-15-211 makes non-interference *"decided against the isolation model's non-interference statement rather than against the list of mechanisms above it"* and a row per mechanism would reinstate that list. **But where a requirement confers per member, the members are rows**, which is why rows 19–22 are four and not one: R-12-043c confers *per protocol rather than per stack* and its acceptance criterion requires the inventory to carry **one row per reference model**, since it is a particular standard's state machine a particular sequencer is proved to refine. Row 10 sits between the two: R-05-046 confers on each descriptor individually, but the descriptor set is not knowable until R-05-042's inventory exists, so the row carries the enumeration obligation and names the member classes, and the per-descriptor enumeration lands in it as that artifact is authored. Row 14 shares that shape: R-05-076 confers on each primitive's functional specification, and the per-primitive enumeration lands with the crypto inventory R-05-059 requires.
 
@@ -69,7 +71,7 @@ The remaining seven `CJ-` targets name **theorems, not specifications**, things 
 | `CJ-CT-SOUND` | Constant-time type soundness over the leakage model | the `Zkt`/`Zvkt` statement (row 5) |
 | `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions | each primitive's functional specification (row 14) |
 
-The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and seventeen of those twenty-two are not authored.
+The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and nineteen of those twenty-four are not authored.
 
 ## What the `CJ-` table is, and is not
 
@@ -80,7 +82,7 @@ So the two artifacts answer different questions and both are needed:
 | Artifact | Question it answers | Granularity |
 | --- | --- | --- |
 | `CJ-` table (in the register) | *which crown jewel does this requirement constrain?* | 21 coarse targets |
-| This inventory | *what are the crown jewels, and does each one exist yet?* | 22 specifications, per-member where a requirement demands it |
+| This inventory | *what are the crown jewels, and does each one exist yet?* | 24 specifications, per-member where a requirement demands it |
 
 ## Standing obligations
 
@@ -91,8 +93,8 @@ So the two artifacts answer different questions and both are needed:
 
 ## Reading the status column
 
-Two of twenty-two are authored outright (row 4, the frozen ISA profile, and row 1, the apex theorem's machine-checked statement), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Seventeen are not authored.
+Two of twenty-four are authored outright (row 4, the frozen ISA profile, and row 1, the apex theorem's machine-checked statement), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Nineteen are not authored.
 
-That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-two are *named, constrained, and traced*; the as-existing assurance is low because seventeen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
+That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-four are *named, constrained, and traced*; the as-existing assurance is low because nineteen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
 
 **The column is a burn-down with a stated direction, not a census.** The obligation count rises with every hardening, each one adding a row, and falls only when an artifact is authored, so the ratio is read for its direction over the git history rather than as a snapshot: `tools/check.ps1` recomputes the classes at each edition, and the [implementation plan](implementation-plan.md)'s milestones are the retirement mechanism, each flipping the rows whose artifacts it lands (M0's curated Sail model alone bears on rows 6, 7, and 15). A run of milestones that flips no row is the column reporting that the specification half is not being discharged, which is what the inventory exists to make visible.

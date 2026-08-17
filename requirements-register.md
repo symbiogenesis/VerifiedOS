@@ -39,7 +39,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 | `CJ-RTL-SAIL` | RTL ⊑ Sail, functional and hyperproperty halves (§15, §18) |
 | `CJ-TAL-SOUND` | CHERI-TAL soundness metatheorem: well-typed ⇒ safe and data-race-free over the Sail model (§5) |
 | `CJ-CT-SOUND` | Constant-time type-soundness metatheorem over the §15 leakage model (§5) |
-| `CJ-LEAK` | The `Zkt`/`Zvkt` leakage model (§15) |
+| `CJ-LEAK` | The leakage statements: the `Zkt`/`Zvkt` architectural model and the crypto core's probing model (§15) |
 | `CJ-WCET` | The timing-annotated Sail model and the derived per-(class, operating-point) bounds (§5, §11, §15) |
 | `CJ-COMPCERT` | CHERI-CompCert correctness (§5, §6) |
 | `CJ-SECOMP` | Robust preservation of compartment isolation by the verified compiler (§5) |
@@ -237,6 +237,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-05-004** MUST: The crypto core's constant-time property is verified on the artifact against the §15 leakage model.
 · Accept: each crypto binary carries artifact-level CT evidence (taint-typing derivation or relational proof term); no CT claim in the crypto core cites compiler preservation as its ground.
 · Trace: CJ-CT-SOUND, CJ-LEAK
+
+**R-05-004a** MUST: The crypto core's secret-handling datapath is masked: every operation over secret material runs as a *d*-th-order sharing, and its *d*-probing security and its composition property (the guarantee holds of the composed implementation, never gadget by gadget) are machine-checked and verified on the artifact against the §15 probing-model statement (R-15-053a), as R-05-004 already verifies constant time against the architectural one.
+· Accept: each masked binary carries artifact-level probing evidence naming its sharing order and composition notion; no probing claim cites compiler preservation or a measured trace set as its ground; and the per-operation masking randomness is drawn from the R-15-241 root, entered in the crypto core's §11 slot budget, and accounted for in the nondeterminism record like every draw.
+· Trace: CJ-LEAK, CJ-CRYPTO-SPEC
 
 **R-05-005** MUST: The crypto core's field-arithmetic kernels are verified C compiled through CHERI-CompCert.
 · Accept: every field-arithmetic object is in the CompCert build manifest; no field-arithmetic object is a checker-admitted assembly leaf.
@@ -3376,8 +3380,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 15.8 Adopted extensions
 
 **R-15-053** IS: `Zkt` + `Zvkt` is the keystone: the architectural contract that a listed instruction set runs in data-independent latency. The leakage model it fixes is a crown-jewel spec: constant-time soundness is proved against the model, and a model weaker than the silicon verifies perfectly and leaks.
-· Accept: the list is (a) the single leakage model constant-time verification is stated against and (b) an RTL-against-Sail proof obligation.
+· Accept: the list is (a) the architectural leakage model constant-time verification is stated against, the probing-model statement (R-15-053a) standing beside it for the R-05-004a masking obligations, and (b) an RTL-against-Sail proof obligation.
 · Trace: CJ-LEAK, CJ-RTL-SAIL
+
+**R-15-053a** MUST: A second leakage statement stands beside the architectural one: the probing model, a glitch-extended *d*-probing statement over the crypto core's implementation with an explicit composition notion, the model the R-05-004a masking obligations are verified against. The statement it fixes is a crown-jewel spec beside the `Zkt`/`Zvkt` one, and it is an axiom about the silicon in the R-06-011 sense rather than a theorem over the Sail model: a physical model the die does not satisfy verifies perfectly and leaks, so the statement carries a bring-up characterization obligation and independent review (R-05-150) rather than an assumed fit.
+· Accept: the statement names its probe class, order *d*, glitch extension, and composition notion; every masking theorem names it as its model; and no claim over it is quoted against an adversary outside it, the outside remaining booked at R-17-058a.
+· Trace: CJ-LEAK
 
 **R-15-054** IS: `Zicond` (czero.eqz/nez) is adopted as the branchless constant-time select, doubly load-bearing given static-only prediction.
 · Accept: it is the mandated vehicle for branchless-on-secrets hardening (R-05-067).
@@ -4476,7 +4484,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL, CJ-KERNEL
 
 **R-16-008c** MUST: Three sequences carry a compiler-emitted running control-flow signature and no other sequence does: the measured-boot chain's per-stage verify-then-transfer, the credential comparison at the RoT gate, and the lifecycle transition over one-way fuse state. Each basic block of a protected region folds a compose-time constant into a signature register and the region's exit compares the accumulation against the value its control-flow graph predicts, a mismatch raising the fail-stop class an uncorrectable ECC event raises. The decision each sequence reaches is encoded so that omitting work refuses: acceptance is a multi-bit token computed from the comparison, which no fall-through, skipped branch, or truncated region produces, and the comparison is performed twice with the signature check between the two.
-· Accept: the set is these three and extending it is an amendment, not a reading; the predicted value is derived from the region's control-flow graph rather than annotated by hand, so where the artifact passes admission the instrumentation is checked on the final binary with the other type-level obligations (R-05-029) and where it lives in the boot ROM it is fixed at tapeout and measured with the ROM (R-09-002); the emitted instructions are ordinary instructions and enter the syntax-directed WCET cost (R-05-102). Coverage is evidence and is booked at R-17-058b.
+· Accept: the set is these three and extending it is an amendment, not a reading; the predicted value is derived from the region's control-flow graph rather than annotated by hand, so where the artifact passes admission the instrumentation is checked on the final binary with the other type-level obligations (R-05-029) and where it lives in the boot ROM it is fixed at tapeout and measured with the ROM (R-09-002); the emitted instructions are ordinary instructions and enter the syntax-directed WCET cost (R-05-102). Coverage within the stated single-fault model is R-16-008f's theorem; beyond it, evidence, booked at R-17-058b.
 · Fail-closed: a control-flow signature mismatch raises the class an uncorrectable ECC event raises (R-17-030n); the cost is the protected sequence and the boot or credential decision it carried.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET
 
@@ -4488,6 +4496,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-16-008e** MUST NOT: No control-flow-signature hardware, no landing-pad or shadow-stack mechanism, and no ISA surface of any kind is added for R-16-008c, which is compiler-emitted instrumentation in three named regions; and no core other than the S-class pair is replicated, no comparator votes, and no third instance exists, so masking, its voting-correctness proof, and the explicit fault model such a proof needs are all absent.
 · Accept: R-15-044 and R-15-245 stand unamended, the frozen profile gains no instruction and no CSR, and the core-class table carries replication for the S-class row alone; a request for masking is a G5 deployment question against the redundant-execution disposition, not a platform change.
 · Trace: CJ-SAIL, CJ-RTL-SAIL
+
+**R-16-008f** MUST: The three R-16-008c sequences carry their detection as a theorem over a stated fault model rather than as coverage alone. The protected-sequence fault model (at most one skipped or corrupted instruction per protected region per activation, stated as a transition relation over the frozen profile's semantics) is a crown-jewel spec and an axiom about the silicon in the R-06-011 sense, and over it the signature-and-token construction is proved: no in-model fault yields the acceptance token, so the decision the sequence reaches is withheld rather than reached wrongly. The theorem is checked on the final binary where the sequence passes admission and fixed at tapeout where it lives in ROM, the split R-16-008c already takes.
+· Accept: the proof quantifies over every in-model fault of each protected region rather than sampling them; what the model excludes (a second fault in one activation, any fault outside a protected region, and the transient datapath strike) remains booked at R-17-058b; and R-16-008d and R-16-008e stand unamended, the model being the premise of a software theorem and never a hardware, voting, or RTL ⊑ Sail obligation.
+· Trace: CJ-SAIL, CJ-TAL-SOUND
 
 ### 16.4 Time-to-remediation
 
@@ -4952,12 +4964,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each names the mechanism that narrows it and the scope line that bounds it.
 · Trace: CJ-T
 
-**R-17-058a** IS: The crypto core carries no masking, and resistance to a probing adversary is not claimed: every constant-time obligation (R-05-004, R-05-062) is stated against the architectural §15 leakage model (`Zkt`/`Zvkt`, R-15-053), which covers instruction latency and emitted addresses and not instantaneous power draw or near-field electromagnetic emission, so differential and correlation power analysis and their electromagnetic equivalents are unaddressed by construction rather than narrowed. The shield cans and enclosure (R-15-153) and the RoT's own clock/power island (R-15-113) attenuate and separate; neither bounds what a measurement yields, and no claim rests on either.
-· Accept: no row, mode, or theorem anywhere claims analog side-channel resistance, and a claim resting on the enclosure is a spec defect in the R-05-153 sense. The reversal is named and is four things together: a masked datapath in the crypto core; a probing-model leakage statement authored and conferred beside the `Zkt`/`Zvkt` one, carrying its own axiom because a physical leakage model is an assumption about the silicon in the R-06-011 sense; *d*-probing and composition theorems verified on the crypto artifacts as R-05-004 already requires of constant time; and per-operation randomness booked against the entropy root (R-15-241) and the crypto core's slot. Absent all four the residual stands, and adopting masking amends this entry rather than reinterpreting it.
+**R-17-058a** IS: The crypto core's analog channel is answered by a masked implementation and bounded by an axiom rather than closed: the secret-handling datapath is masked (R-05-004a) with *d*-probing and composition theorems verified on the artifact against the probing-model statement (R-15-053a), while every constant-time obligation (R-05-004, R-05-062) remains stated against the architectural §15 leakage model (`Zkt`/`Zvkt`, R-15-053), which covers instruction latency and emitted addresses and not instantaneous power draw or near-field electromagnetic emission. The construction is four obligations together: the masked datapath and its artifact-level theorems (R-05-004a), the conferred probing statement (R-15-053a), and the per-operation randomness booked against the entropy root (R-15-241) and the crypto core's slot; what this entry books is the axiom the four rest on. The probing model is an assumption about the silicon in the R-06-011 sense, so the residual is the model rather than the class: its faithfulness to the die, a glitch or transition it does not carry, and collection beyond its order. The shield cans and enclosure (R-15-153) and the RoT's own clock/power island (R-15-113) attenuate and separate; neither bounds what a measurement yields, and no claim rests on either.
+· Accept: every analog side-channel claim names R-15-053a as its model and the sharing order it holds at; no claim is quoted against an adversary outside the model; and a claim resting on the enclosure is a spec defect in the R-05-153 sense.
 · Trace: CJ-LEAK
 
-**R-17-058b** IS: Fault injection's detector positions (R-16-008c, R-16-008d) buy coverage and never a theorem, because the fault is the Sail model's hypothesis failing rather than a behavior it admits. Four limits are named: signature coverage is evidence, a divergence that lands the signature register on its predicted value being uncaught; a fault inside the compare-and-fail-stop epilogue is not caught by that epilogue, doubling raising the cost of the attempt rather than closing the case; lockstep is decided for the S-class core alone, so the C-, V-, and M-class cores and the RoT's continuous operation carry no comparator; and the transient datapath strike is unclaimed at consumer grade, its answer being deployment-graded software redundancy.
-· Accept: no row, mode, or requirement states a detection *probability* or claims a mode above *detected* for this class; what would raise it is a stated fault model the silicon is claimed to satisfy plus a detection statement proved over it, the shape R-17-058a already uses for masking.
+**R-17-058b** IS: Fault injection's detector positions (R-16-008c, R-16-008d) carry a theorem exactly as far as the protected-sequence fault model reaches (R-16-008f) and coverage beyond it, because the fault is the Sail model's hypothesis failing rather than a behavior it admits. Four limits are named: beyond the single-fault model, signature coverage is evidence, a second fault in one activation or a divergence that lands the signature register on its predicted value being uncaught; a fault inside the compare-and-fail-stop epilogue is not caught by that epilogue, doubling raising the cost of the attempt rather than closing the case; lockstep is decided for the S-class core alone, so the C-, V-, and M-class cores and the RoT's continuous operation carry no comparator; and the transient datapath strike is unclaimed at consumer grade, its answer being deployment-graded software redundancy.
+· Accept: within the R-16-008f model the mode is proved and the axiom is the model's, whose faithfulness carries a bring-up characterization obligation and independent review rather than an assumed fit, the shape R-15-053a takes for leakage; outside it no row, mode, or requirement states a detection *probability* or claims a mode above *detected*.
 · Trace: CJ-T, CJ-SAIL
 
 **R-17-059** IS: The memory path is defended by the *absence of a surface* rather than by a mechanism, and the residual is the scope line itself: the honest statement is not "replay is undetected" but "the whole class is out of scope, and nothing on the memory path would detect it if it were in scope."
@@ -5224,7 +5236,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1203 requirements. §19 is non-normative and yields none. Counts include the 281 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1206 requirements. §19 is non-normative and yields none. Counts include the 284 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5232,7 +5244,7 @@ All eighteen normative sections are extracted, at 1203 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **195** |
+| **§5 Languages & Verification** | **extracted** | **196** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **59** |
 | **§8 Authority Model** | **extracted** | **61** |
@@ -5242,8 +5254,8 @@ All eighteen normative sections are extracted, at 1203 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **352** |
-| **§16 Reliability** | **extracted** | **28** |
+| **§15 Hardware Platform** | **extracted** | **353** |
+| **§16 Reliability** | **extracted** | **29** |
 | **§17 Residual Risks** | **extracted** | **109** |
 | **§18 Realization** | **extracted** | **48** |
 
