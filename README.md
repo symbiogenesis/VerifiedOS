@@ -96,14 +96,14 @@ All seven are stronger and narrower claims than “written in a safe language.�
 
 | Potential bug or attack class | Construction | Mode |
 | --- | --- | --- |
-| Spectre, Meltdown, transient execution, and microarchitectural data sampling | No speculative execution, transient state, reorder buffer, or reservation stations exist | **🕳️ Absent** |
+| Transient-execution attacks, from Spectre and Meltdown to microarchitectural data sampling | No speculative execution, transient state, reorder buffer, or reservation stations exist | **🕳️ Absent** |
 | Cross-thread SMT leakage and sibling-thread state corruption | One hardware thread per core; there is no second thread context | **🕳️ Absent** |
-| Branch-predictor poisoning, BTB aliasing, and return-stack poisoning | Prediction is static-only; BHT/PHT, BTB, and RAS state do not exist | **🕳️ Absent** |
+| Poisoning or aliasing of any dynamic predictor state | Prediction is static-only; BHT/PHT, BTB, and RAS state do not exist | **🕳️ Absent** |
 | Cache timing and cache-eviction side channels | Flat SRAM replaces the cache hierarchy, leaving no hit/miss latency or eviction pattern to modulate | **🕳️ Absent** |
 | Cache-coherence protocol and stale-cache bugs | With no cached copies there is no coherence protocol to get wrong and no stale line to serve | **🕳️ Absent** |
-| TLB, page-table-walk, A/D-bit, alias-mapping, and TLB-shootdown bugs | Virtual memory, the MMU, page tables, TLBs, and walk caches are deleted | **🕳️ Absent** |
+| Address-translation and paging bugs | Virtual memory, the MMU, page tables, TLBs, walk caches, and the shootdown protocol are deleted | **🕳️ Absent** |
 | Privilege-ring confusion and S/U transition bugs | Machine mode is the only mode; privileged operations require an unforgeable CHERI permission on PCC | **🕳️ Absent**<br>**🛡️ Enforced** |
-| PMP, IOMMU, and IOPMP configuration gaps or inconsistent protection views | Those parallel protection mechanisms are deleted; one capability model governs CPU and DMA access | **🕳️ Absent** |
+| Configuration gaps and inconsistent views across parallel protection hardware | PMP, IOMMU, and IOPMP are deleted; one capability model governs CPU and DMA access | **🕳️ Absent** |
 | LR/SC livelock and spurious-failure retry loops | `Zalrsc` is excluded, and admitted code has no such retry loop | **🕳️ Absent**<br>**✋ Rejected** |
 | CAS retry and capability-sized ABA machinery | `Zacas` is excluded, so no compare-and-swap exists to retry or to hand a recycled value | **🕳️ Absent** |
 | Self-modifying-code and instruction-stream synchronization bugs | Runtime code generation, writable executable memory, `fence.i`, and writable-to-executable promotion are absent | **🕳️ Absent** |
@@ -129,11 +129,11 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 
 | Potential bug or attack class | Construction | Mode |
 | --- | --- | --- |
-| Stack, heap, object, and sub-object buffer overflows or out-of-bounds reads | Every usable pointer is a tagged capability with hardware-enforced bounds | **🛡️ Enforced** |
-| Pointer forgery, integer-to-pointer confusion, and fabricated device addresses | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **🛡️ Enforced** |
+| Buffer overflows and out-of-bounds access at any granularity, down to sub-object fields | Every usable pointer is a tagged capability with hardware-enforced bounds | **🛡️ Enforced** |
+| Pointer and device-address forgery | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **🛡️ Enforced** |
 | Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **🛡️ Enforced**<br>**🕳️ Absent** |
 | Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **🛡️ Enforced** |
-| Cross-object, cross-compartment, and cross-kernel-partition corruption | Each object and partition is reachable only through bounded capabilities rooted in the static distribution | **🛡️ Enforced** |
+| Corruption reaching across any isolation boundary | Each object, compartment, and kernel partition is reachable only through bounded capabilities rooted in the static distribution | **🛡️ Enforced** |
 | C/C++, assembly, unsafe-Rust, or compiler-emitted code bypassing spatial checks | Capability checks apply to emitted machine accesses regardless of source language | **🛡️ Enforced** |
 | DMA bypassing spatial checks | Device transfers carry explicit capability operands, checked like CPU accesses | **🛡️ Enforced** |
 | Writable-code injection and executable-data promotion | The initial capability forest contains no Store-and-Execute authority, and monotonicity preserves that W^X invariant | **🛡️ Enforced**<br>**✅ Proved** |
@@ -144,10 +144,10 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 
 | Potential bug or attack class | Construction | Mode |
 | --- | --- | --- |
-| Ambient authority, global namespace privilege, and authority acquired by name | A compartment can name only capabilities in its manifest; no global namespace or ambient device access exists | **🕳️ Absent**<br>**🛡️ Enforced** |
+| Ambient authority and authority acquired by name | A compartment can name only capabilities in its manifest; no global namespace or ambient device access exists | **🕳️ Absent**<br>**🛡️ Enforced** |
 | `setuid`-style privilege escalation | There is no uid/gid identity to assume and no `fork()` to inherit it through; authority is only what the manifest delegates | **🕳️ Absent** |
 | Path traversal and `../` escape | A path is only an app-local alias for a manifest capability; no runtime `mount`/`bind`, global directory, or path-based capability lookup can reach outside the manifest | **🕳️ Absent** |
-| Symlink and hardlink races and `/tmp`-style filename TOCTOU | The capability *is* the object, and no symlink indirection exists, leaving no re-resolution window between check and use | **🕳️ Absent** |
+| TOCTOU races through filename and link re-resolution | The capability *is* the object, and no symlink indirection exists, leaving no re-resolution window between check and use | **🕳️ Absent** |
 | Shell injection and `system()`-style string-to-process execution | There is no shell, `fork()`/`exec()`, or `PATH` lookup to turn composed text into an action; *run this command* asks the service manager to start a capability-delegated compartment | **🕳️ Absent** |
 | Environment-variable injection | No environment block exists to inherit or poison | **🕳️ Absent** |
 | Argument injection between composed commands | The command interpreter pipes typed values between typed-signature commands, never byte streams for each stage to reparse | **🕳️ Absent** |
@@ -187,7 +187,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 
 | Potential bug class | Construction | Mode |
 | --- | --- | --- |
-| Reads of uninitialized locals, heap slots, fields, or representation padding | A load type-checks only where the slot's initialization attribute is set on every incoming control-flow path | **✋ Rejected** |
+| Reads of any uninitialized location, representation padding included | A load type-checks only where the slot's initialization attribute is set on every incoming control-flow path | **✋ Rejected** |
 | Disclosure of a prior tenant's data through unwritten memory | Allocation eagerly zeroizes the slot before it enters its new live range | **🕳️ Absent** |
 | Treating device-filled memory as initialized before DMA completion | The verified HAL consumes exclusive CPU ownership and returns initialized ownership only on completion | **✋ Rejected**<br>**✅ Proved** |
 | Partial or ambiguous initialization across an IPC boundary | Typed IDL messages and copy-once parsers write fixed destinations whole and carry initialization state explicitly | **✋ Rejected**<br>**✅ Proved** |
@@ -207,15 +207,15 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Overflow in code admitted at Tier 2 | Tier 2 scopes the range obligation out, a recorded residual; in-range but wrong remains functional correctness at every tier | **🚩 Residual** |
 | Silently dropped security-bearing verdicts: integrity, freshness, admission, transaction | Relevance typing denies weakening a security-bearing result, so a binary cannot eliminate a verdict without examining it | **✋ Rejected**<br>**✅ Proved** |
 | A wrong response to an examined verdict | The grade bounds the *drop*, never the *response*: proceeding after an examined failure remains functional correctness, a recorded residual | **🚩 Residual** |
-| Hidden mutable globals, lazy statics, thread-locals, and singleton state escaping the authority graph | The image is inspected for ambient mutable state and capabilities outside its declared initial set | **✋ Rejected** |
+| Ambient mutable state escaping the authority graph | The image is inspected for hidden mutable state (globals, lazy statics, thread-locals, singletons) and capabilities outside its declared initial set | **✋ Rejected** |
 | Secret-dependent branches, addresses, or variable-latency operations | Secret taint is checked by the constant-time type discipline; unstructured residuals carry a relational proof over the leakage model | **✋ Rejected**<br>**✅ Proved** |
 | Nonce and initialization-vector reuse | A linear nonce is consumed by sealing and cannot be duplicated, stored, or reached twice, even across a restored checkpoint or a re-derived key | **✋ Rejected** |
 | Secret residue in scalar registers and compiler-introduced spill slots | Final-binary checking requires every secret-typed value, including unseen spills, to reach an erasing operation | **✋ Rejected** |
 | Secret residue in the frames of a compartment that returns | Restart erases the compartment's whole footprint before any reuse | **🕳️ Absent** |
 | Secret-dependent traps and the restart they cause | Constant-time typing makes trap choice a function of public inputs, and restart consumes only the offender's slots | **✋ Rejected**<br>**🕳️ Absent** |
 | A crash record disclosing more than its labeled fault class | The sentinel receives a labeled fault from a closed enumeration, never verbose logs; that the record's shape bounds the class has no theorem, a recorded residual | **🕳️ Absent**<br>**🚩 Residual** |
-| Unit, dimension, and clock-domain confusion in budget, frame, and deadline arithmetic | Quantities carry a phantom dimension decided by type equality and erased before code generation, so cycles cannot stand in for microseconds or bytes for elements | **✋ Rejected** |
-| Unbounded loops, handlers that outlive a slot, and timing-budget overruns | Syntax-directed WCET costs and loop-bound proofs must fit the static cyclic-executive slot | **✋ Rejected**<br>**✅ Proved** |
+| Unit, dimension, and clock-domain confusion in quantity arithmetic | Quantities carry a phantom dimension decided by type equality and erased before code generation, so cycles cannot stand in for microseconds or bytes for elements | **✋ Rejected** |
+| Unbounded or slot-overrunning execution | Syntax-directed WCET costs and loop-bound proofs must fit the static cyclic-executive slot | **✋ Rejected**<br>**✅ Proved** |
 | Stack exhaustion and unbounded recursion | The enumerated callee set proves call-graph acyclicity and recursion depth, so worst-case stack use is static; unbounded depth is refused | **✋ Rejected** |
 | Stack-clash writes into adjacent objects | A bounds-checked stack capability makes overrun fault rather than reach a neighboring object, with no guard page to bypass | **🛡️ Enforced** |
 | Compiler-created memory-safety regressions | Safety is checked from the final machine code and its derivation; compiler pedigree is not an admission input | **✋ Rejected** |
@@ -243,12 +243,12 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Test-mode re-entry, TAP unlock, and factory-mode escape | A fixed acyclic lifecycle over one-way OTP fuses omits these transitions: leaving test disables every debug and manufacturing interface at once, and nothing reopens them | **🕳️ Absent**<br>**🛡️ Enforced** |
 | RMA returning a production device to a debuggable state with its secrets intact | Production's one outgoing edge is an authenticated, terminal RMA transition, preceded by crypto-erase, with no return path | **🛡️ Enforced**<br>**🕳️ Absent** |
 | Engineering-key acceptance outside the factory | Lifecycle state enters the measured chain before ROM verifies any payload, making every transition attested, while state-diversified verification roots leave no engineering key acceptable in production | **🛡️ Enforced** |
-| Loader, dynamic-linker, relocation, and executable-format parser bugs | There is no on-device ELF loader or dynamic linker; a small verified content-addressed image reader and capability-wiring table replace them | **🕳️ Absent**<br>**✅ Proved** |
-| Malicious compiler, package, dependency, or build-farm output bypassing platform safety | Admission re-checks the final artifact's types and proofs with no trust in its build pedigree, the correspondence theorem above ties it to its included source closure, and source-level malicious dependencies remain least-authority contained | **✋ Rejected**<br>**✅ Proved**<br>**🛡️ Enforced** |
+| Executable-loading and dynamic-linking bugs | There is no on-device ELF loader, dynamic linker, relocation pass, or executable-format parser; a small verified content-addressed image reader and capability-wiring table replace them | **🕳️ Absent**<br>**✅ Proved** |
+| Malicious or compromised supply-chain output bypassing platform safety | Admission re-checks the final artifact's types and proofs with no trust in its build pedigree, the correspondence theorem above ties it to its included source closure, and source-level malicious dependencies remain least-authority contained | **✋ Rejected**<br>**✅ Proved**<br>**🛡️ Enforced** |
 | Protocol downgrade and negotiation confusion | Each protocol has one composition-fixed configuration, ciphersuite, and version, with no capability-driven fallback; downgrade generations are absent from silicon | **🕳️ Absent** |
 | Link and radio state-machine flaws | A Lustre control plane refines a formal model of the standard's state machine, making unmodeled states, transitions, and timers unreachable | **✅ Proved** |
 | Model unfaithfulness and composed session security | The state-machine claim is conformance, not protocol security: model faithfulness is review-gated, and composed session security a recorded residual | **🚩 Residual** |
-| Firmware bugs in basebands, SSD controllers, GPUs, NPUs, sensor hubs, and management engines | Those programmable foreign computers are absent; fixed-function matter is driven by verified host software | **🕳️ Absent** |
+| Firmware bugs in auxiliary processors, baseband to management engine | Those programmable foreign computers are absent; fixed-function matter is driven by verified host software | **🕳️ Absent** |
 
 
 ### Faults the machine detects rather than prevents
