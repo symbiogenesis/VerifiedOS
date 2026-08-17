@@ -61,7 +61,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ## §1. Goals
 
 **R-01-001** IS: G1: minimal attack surface.
-· Accept: every element of the specification shrinks the TCB, deepens its proof, or contains the non-TCB (R-04-001).
+· Accept: discharged by R-04-001, the goal's operative form, which states the test once with its decision procedure; this entry carries no second copy to drift.
 · Trace: CJ-T
 
 **R-01-002** IS: G2: defense in depth. Compromising any non-TCB component yields only its explicitly granted authority.
@@ -157,7 +157,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T
 
 **R-03-008** IS: Denial achieved by provoking the platform's own refusals is residual, and is residual as a *composition* rather than as any single mechanism: thermal trip, watchdog reset, containment of an attacked surface, admission refusal, the sealed cutoffs, the emergency path's coverage floor, and every fault detector's answer to detection are each individually correct and individually an availability cost, and their conjunction is the fail-closed seam register (R-17-030a).
-· Accept: this residual maps to a §17 entry as R-03-004's do, and the entry it maps to is a register rather than a single item, because the object being booked is the conjunction; a member booked in its own section and absent from that register is a review-gate finding against R-17-030a, and R-17-030r is what decides it, this criterion having been discharged by inspection until then.
+· Accept: this residual maps to a §17 entry as R-03-004's do, and the entry it maps to is a register rather than a single item (R-17-030a), because the object being booked is the conjunction; membership is conferred member by member under R-17-030r, `tools/check.ps1` failing on a conferral no seam collects and on a seam no requirement confers, and a member the conferral misses is what the R-17-030t vocabulary scan exists to catch.
 · Trace: CJ-T
 
 **R-03-009** IS: Neither list claims a device-level availability guarantee. The invariant held across every fail-closed path is that none of them costs confidentiality, integrity, or authority, a refusal always being the safe direction; the platform does not promise that the device stays up, and the places where it deliberately may not are enumerated rather than left to be assembled.
@@ -169,7 +169,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ## §4. Organizing Principle
 
 **R-04-001** MUST: Every element of the specification must shrink the TCB, deepen its proof, or contain the non-TCB.
-· Accept: an addition meeting none of the three is inadmissible.
+· Accept: the test is applied at the R-05-150 review gate to every addition or amendment; an entry meeting none of the three is inadmissible, and the finding lands in the R-05-152 review record against the entry's ID.
 · Trace: CJ-T
 
 **R-04-002** IS: Two orthogonal security properties are both required: capabilities control *access* and information-flow control governs *propagation*, each blind to the other.
@@ -967,7 +967,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T
 
 **R-05-151** MUST: A companion atomic-requirements register exists, in which each normative obligation is a numbered, individually-reviewable requirement with its acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale.
-· Accept: **this document**. All eighteen normative sections are extracted; whether every obligation *within* them is captured is itself the first question the review gate asks, and the register is the artifact that makes the question answerable.
+· Accept: every entry carries a number, at least one criterion, and a trace, and `tools/check.ps1` fails on one missing any of them (R-05-151a); all eighteen normative sections are extracted; and whether every obligation *within* them is captured is the first question the R-05-150 review gate asks, a claim that cannot be so captured being an extraction defect under R-05-153.
 · Trace: CJ-T
 
 **R-05-151a** MUST: The register's traces to the prose are decided mechanically rather than by reading, and the citation is derived rather than carried: a trace names its `CJ-` targets alone and cites the prose at `#r-<id>`, the bookmark its requirement number gives. Every derived bookmark resolves exactly once in the prose, every requirement carries a trace, every `r-*` bookmark in the prose names a live requirement, a trace is written out only where it departs from the derived form, and one that does displays the section its bookmark sits in.
@@ -4770,7 +4770,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
-· Accept: this is R-17-016's repair applied to the other register, and it closes the register's disagreement with the requirements, which is the direction R-03-008 already calls a review-gate finding and nothing enforced; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
+· Accept: R-17-016's conferral rule applied to the other register: `tools/check.ps1` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: twenty-one requirements confer a refusal and fifteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 

@@ -813,13 +813,13 @@ The platform combines those precedents by treating a scalar float as a VL=1 vect
 
 **What is redundant, and what is not.**
 The vector FPU performs the same IEEE-754 arithmetic; a "scalar" float is just a single-element (VL=1) vector operation on it.
-So the scalar instruction class, the `f`-register file (context-switch state and a fence.t flush-set member), and, decisively, the *scalar* fixed-latency-FPU-including-subnormals timing contract plus the scalar `FDIV`/`FSQRT` constant-time carve-out are all redundant.
+So the scalar instruction class, the `f`-register file (context-switch state, one more term in the total-restore obligation that stands in place of flush-set membership, R-15-214), and, decisively, the *scalar* fixed-latency-FPU-including-subnormals timing contract plus the scalar `FDIV`/`FSQRT` constant-time carve-out are all redundant.
 That last item is the prize: it is **one of the two floating-point timing crown jewels** (§15), and folding onto the vector unit *deletes* it rather than re-proving it: the contract is stated once, for the one FPU, not twice.
 What does **not** vanish is the FP arithmetic itself (adders, multipliers, subnormal handling, divide/sqrt): it lives on the retained vector FPU, which still owes the fixed-latency-including-subnormals contract.
 This is a consolidation-and-deletion of the *scalar wrapper*, honestly, not an elimination of floating point.
 
 **Static rounding falls out for free.**
-With no scalar FP, the only remaining rounding-mode consumer is vector FP, and mandating **static rounding** (the mode encoded per-instruction, default round-to-nearest-even) deletes the dynamic `frm` CSR: a mutable field that would otherwise context-switch and join the fence.t set; exactly the determinism the profile already imposes on branch prediction and atomics (no hidden mutable state surviving a partition switch).
+With no scalar FP, the only remaining rounding-mode consumer is vector FP, and mandating **static rounding** (the mode encoded per-instruction, default round-to-nearest-even) deletes the dynamic `frm` CSR: a mutable field that would otherwise context-switch under that same total-restore obligation; exactly the determinism the profile already imposes on branch prediction and atomics (no hidden mutable state surviving a partition switch).
 
 **Residuals: ABI, setup cost, and profile divergence.**
 Two things are genuinely given up.

@@ -52,8 +52,6 @@ The MultiZone entry is the bluntest: PMP-only's appeal is real and almost entire
 
 ## 4. Tensions with the normative specification
 
-**The register-file flush-set wording is stale in IN.** The RVV/Zfinx entry calls the scalar f-register file a `fence.t` flush-set member, while R-15-213 makes the store buffer the sole member and R-07-016 declines register-file membership under *verify rather than hedge*. The AA store-buffer entry is consistent with the normative text; the RVV entry is loose against it.
-
 **The Oberon quiescent-point proposal is an open, documented tension.** IN proposes binding revocation-sweep quanta to slot boundaries and says explicitly that it is proposed and not taken, since R-08-007 specifies the incremental preemptible form. IN is arguing that the normative spec carries a deletable proof obligation. That is unresolved by design rather than by oversight.
 
 **The store-buffer entry enumerates a pending change list.** `Ztso` with a retained store buffer stays normative (R-15-004, R-15-088), and AA books sequential-consistency-by-absence as an open question with a future spec-body change list attached. Consistent today, conflicting on resolution.
@@ -117,7 +115,7 @@ Roughly a fifth of acceptance criteria are documentation-presence checks, consis
 | §1, §3 | Weak without §17's excuse: goal and threat entries whose criteria restate their own premises |
 | §9, §11, §13, §14 | Mostly crisp |
 
-Explicitly circular cases are worth separating from merely weak ones. R-05-151's criterion is the document containing it. R-01-001 and R-04-001 are each the other's check. R-03-008 and R-17-030r each name the other as decider, and R-17-030r concedes its half is a review-gate finding with nothing enforced. The recurring *the §17 residual entry exists* pattern is sound bookkeeping and content-free about the underlying claim.
+The recurring *the §17 residual entry exists* pattern is sound bookkeeping and content-free about the underlying claim.
 
 ---
 
@@ -154,9 +152,7 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 ### A. Defects: the answer is already in the documents
 
 3. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with R-15-184's residual SRAM disturb modes as the qualifier on whichever wording survives.
-4. **Fix the flush-set wording in the RVV/`Zfinx` entry.** The store buffer is the sole `fence.t` flush-set member (R-15-213), and register-file membership is declined (R-07-016).
 6. **Collapse the derived-view boilerplate.** R-15-001a, R-15-100a, R-17-001b, and R-17-016a state it near-verbatim; one requirement cited four times is the register's own rule.
-7. **Break the circular acceptance criteria.** R-05-151 (its criterion is the document containing it), R-01-001 against R-04-001, and R-03-008 against R-17-030r, whose own half is conceded to be a review-gate finding with nothing enforced.
 8. **Give §1 and §3 criteria a decision procedure or §17's preamble.** Goal and threat entries currently restate their premises without §17's explicit *booked with its owner and scope rather than absorbed* excuse.
 
 ### B. Decisions: someone has to make the call
