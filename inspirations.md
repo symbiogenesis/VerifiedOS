@@ -444,6 +444,16 @@ Here units are **compiled to typed, signed configuration objects per generation*
 
 ---
 
+## greetd: the privilege-separated login surface, and the greeter nobody here may replace
+
+greetd contributed the *shape* of a minimal login manager: a privileged daemon owning authentication and session start, an **unprivileged greeter** owning nothing but the conversation surface, and a small IPC protocol between them; it enters this design's orbit as a member of the COSMIC closure (`cosmic-greeter` is a libcosmic greetd greeter, its companion daemon driving PAM), where [userspace-porting.md](userspace-porting.md) gives it its disposition.
+The *split* is kept and sharpened: the credential authority is the credential & unlock service (§9, §12), matching against the crypto core and RoT with no PAM conversation in between, and the surface that collects the credential holds no credential logic, exactly greetd's division of labor with a typed IDL ring in place of the socket.
+The *mechanism* is refused at every layer: PAM deletes with the ambient user database beneath it (§2, §8), session start becomes the service manager's static supervision tree behind the measured Before-First-Unlock → After-First-Unlock transition (§9, §12), and locking stops being a session state at all, becoming key eviction back to Before First Unlock (§9).
+The defining feature is *inverted* rather than ported: greeter-agnosticism, any unprivileged program may be the greeter, is a spoofing surface by construction, and the trusted-path agent under the RoT secure-attention indicator (§6, §9, §12) exists precisely so that nothing can imitate or substitute for the surface that takes the credential.
+greetd is thus the login pattern's nearest ancestor and its cleanest foil: the same three-piece decomposition, with the piece greetd lets anyone supply made the one piece nobody may.
+
+---
+
 ## NixOS: the purely functional build: reproducible from source, config as a derivation
 
 NixOS (with **Guix** its Guile-Scheme sibling on the same store model) is the demonstration of **purely functional software deployment** (Dolstra's model): every package is built by a hermetic function of its *complete declared input closure* (source, compiler, flags, patches, dependencies), with undeclared inputs structurally unavailable at build time, so the build is reproducible *from source* and a package's identity hashes its **recipe**, not merely its bytes.

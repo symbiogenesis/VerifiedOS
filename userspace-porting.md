@@ -28,6 +28,7 @@ The four obstacles below still bind on whatever code these do reuse, but *which 
   Not a Rust port at all: its control plane is the canonical synchronous Lustre program compiled through Vélus (§5, §12), so it is authored in the control-plane language and inherits structural WCET and determinism instead of being re-targeted from an existing init.
 - **Credential & unlock service** (§12, §9): primary-credential matching, the biometric matcher confined to its own sub-manifest (§14), the duress credential, and the Before-First-Unlock to After-First-Unlock key-custody transition.
   Authored; the matcher is the only part with plausible upstream, and is precisely the part that must be contained.
+  The desktop's stock unlock surface, greetd and its `cosmic-greeter`, seeds none of this: it arrives in the COSMIC closure and deletes there (**Targets**, below).
 - **Sealing & attestation service** (§12): the crypto core's userspace face (seal/unseal, quotes, reference-manifest retrieval, monotonic counters) and, as protocol-credential broker, the non-exportable typed credential capabilities TLS, WireGuard, and WebAuthn clients hold instead of a signing oracle.
   Plan 9's Factotum is the design ancestor for the protocol-code-versus-key-custody split, not a lift.
   The client library and credential helpers applications reach it *through* are a roster entry below rather than part of this half: the service is required, the vocabulary that fronts it is stageable.
@@ -153,8 +154,14 @@ The compositor is the half that needs the work, and its renderer is a backend ag
 
 Because the compositor mediates between mutually distrusting clients, many origins' and apps' surfaces and input events, it is a cross-domain **Tier-1** server carrying the §13 information-flow theorems that decide which surface may observe which input; the panel, launcher, settings, and applets are ordinary **Tier-2** apps built on `libcosmic`. libinput/evdev collapse to register-slave scan drivers (§12), and `fork`-spawned session helpers become supervision-tree compartments (obstacle 3).
 
+**The suite's login-and-lock member deletes whole, and its slot is not refilled.**
+Upstream, the desktop's credential surface is `cosmic-greeter`, a libcosmic application running as a **greetd** greeter at boot and as the session locker thereafter, its companion daemon driving PAM and leaning on logind over D-Bus, so adopting the suite pulls greetd's IPC and the PAM stack into the audited closure.
+Every layer of it takes closure disposition 2: the PAM conversation has no counterpart because the credential & unlock service *is* the authenticator (§9, §12), greetd's session start is the supervision tree behind the measured Before-First-Unlock → After-First-Unlock transition rather than an `exec` under a fresh uid (§2, §12), and locking here is not a session state at all but key eviction back to Before First Unlock (§9).
+Nothing survives, and deliberately: greetd's defining feature, an operator-replaceable unprivileged greeter, is exactly the spoofable unlock surface the trusted-path agent under the RoT secure-attention indicator exists to make unexpressible (§9, §12), so the ported shell draws no credential prompt and merely observes lock state, the unlock UI belonging to the consent TCB and the matching to the credential & unlock service (both above); the pattern greetd does contribute, the privilege split between the credential authority and the surface that collects the credential, is credited in [inspirations.md](inspirations.md).
+
 **Disposition:** adopt `cosmic-comp` as the reference display-server seed and `libcosmic`/`iced` as the app toolkit, keeping the Wayland surface model as *vocabulary* while its enforcement moves to capabilities.
 The largest work is not the renderer: it is shedding smithay's Linux backend layer (DRM and GBM, EGL, libinput, udev, session and seat), which goes with the assumption that motivated it (closure disposition 2), and re-grounding the compositor's mediation on per-surface and per-input capabilities under Tier-1 information-flow obligations no other target on this roster carries.
+`cosmic-greeter`, with greetd and PAM beneath it, goes the same way (above), the credential surface being the consent TCB's rather than the shell's.
 
 ### Zed: the reference editor
 
