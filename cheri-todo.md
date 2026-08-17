@@ -16,7 +16,7 @@
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral, a standards line having now made the opposite statement explicit. | 0 |
-| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 4 in 3 clusters |
+| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 3 in 2 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 6 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
@@ -89,13 +89,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 - [ ] **`CMOVN`/`CMOVZ`.** *R-15-054, R-15-019, R-15-023 · Matrix §4.*
   The one obviated-looking row that is not obviated. `Zicond` is adopted **precisely because** branchless select is doubly load-bearing under static-only prediction with a full mispredict penalty on every forward conditional, but `czero.eqz`/`czero.nez` selects an *integer*, and on a purecap machine the selected value is frequently a **capability**. Either a capability-aware conditional move exists, or every conditional pointer select pays a mispredict-equivalent penalty and **breaks the constant-time story R-15-054 was bought to protect**. The argument is stronger here than the one ISAv6 made upstream, because the fallback is a branch this profile has deliberately made expensive.
 
-### 4C. The trap-path residue
-
-*R-15-073a fixes where a capability exception reports; this is what it leaves open. §5's table is closed, so silence is a decision rather than an omission.*
-
-- [ ] **`ErrorEPCC`: a trap taken inside the handler.** *R-07-022, §5.3 · Matrix §5.*
-  Modeled on MIPS `ErrorEPC` and not carried into RISC-V, where the equivalent question is what happens to a fault inside a fault handler. Low cost; §5.3 is the right place to settle it.
-
 ---
 
 ## 5. Records to add
@@ -137,7 +130,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 | Profile section | Items | Class |
 | --- | --- | --- |
-| §5.1 / §5.3 CSR bank | `ErrorEPCC` | 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
 | §10 Debug | what the fuse is refusing | 5A |
 
