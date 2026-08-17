@@ -5100,6 +5100,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the same arbitration R-18-014b's non-regression test states on the data side; until the timing-annotated Sail model lands for a core class the rule runs against the bring-up measured table exactly as sound §11 admission does (R-18-025).
 · Trace: CJ-WCET, CJ-COMPCERT
 
+**R-18-014e** MUST: The link step performs size-constrained LTO with selective inlining, loop unrolling, and superblock formation on measured hot paths as baseline completeness of the required toolchain: the transforms delete call/return pairs whose returns no return-address stack predicts (R-15-023), cut static branch density, and widen the straight-line window the R-18-014a scheduler fills and the vectorizer sees.
+· Accept: each site is admitted by the R-18-014d constraint taken in encoded form, growth charged in whole bundles (R-15-036e) against the dictionary hit rate the image was sized to (R-15-036i), the block's static Sail cost and §11 bound no worse (R-18-014c), and the image fitting without displacing an admitted component; selectivity is one decision with R-15-036o's outlining and tail merging under R-15-036p's bytes-and-cycles measurement, so the size-growing and size-shrinking directions cannot claim the same code twice.
+· Trace: CJ-COMPCERT, CJ-WCET, CJ-FORMAT
+
 **R-18-015** IS: The certifying Rust compiler's shape is a front end over safe-Rust MIR carrying the source type system's memory-safety fact through lowering and emitting a CHERI-TAL derivation; CHERI discharges spatial safety, so the preserved obligation is the temporal-safety and typed-control-flow residual.
 · Accept: no per-app manual proof is required for pure-safe-Rust code.
 · Trace: CJ-TAL-SOUND
@@ -5196,7 +5200,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1196 requirements. §19 is non-normative and yields none. Counts include the 274 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1197 requirements. §19 is non-normative and yields none. Counts include the 275 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5217,7 +5221,7 @@ All eighteen normative sections are extracted, at 1196 requirements. §19 is non
 | **§15 Hardware Platform** | **extracted** | **352** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **109** |
-| **§18 Realization** | **extracted** | **46** |
+| **§18 Realization** | **extracted** | **47** |
 
 §19 is non-normative and yields no requirements.
 
