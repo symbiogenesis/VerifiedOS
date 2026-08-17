@@ -4,6 +4,8 @@
 > This is the **bring-up realization** of §18: how to stand the whole verified stack up as a *fast, executable golden model* generated **directly from the two verification languages**, before any of the optimized/production workstreams exist.
 > It is non-normative; §N references point at the specification.
 > Where the spec describes the *hardened* artifact (CompCert-CHERI *robust preservation*, on-artifact constant-time verification, RTL ⊑ Sail, WCET certificates), this document describes the *reference* artifact that comes first and that everything else is later checked against.
+> Two executors run everything it builds: the Sail-generated **golden emulator**, the reference, and a **CHERI-QEMU fork** curated to the same frozen profile, the fast untrusted vehicle (§10).
+> The plan's most important milestone (§12, M8) is the full stack running on the second, cross-checked against the first, with the **matching scalar RTL artifact** already in hand and corpus-green in co-simulation (§11).
 
 ## 0. The discipline: two languages, two golden models
 
@@ -12,13 +14,14 @@ The entire base system is written in exactly two languages, and each yields an e
 - **Hardware, Sail.**
   One Sail model of the machine (ISA + datapath + modeled devices), parameterized by core class (§15).
   Its **C backend generates the golden-model emulator**, the executable ISA reference.
+  Beside it runs a second executor of the same frozen profile, the **CHERI-QEMU fork** of §10, **untrusted evidence-producing machinery** like the compilers and analyzers (main-spec §6): the whole-machine iteration vehicle and the differential rig's second implementation, never the reference, every divergence adjudicated against the Sail model.
   The *same* Sail source later feeds the RTL flow (the **net-new blocks authored in Kôika/Kami** with the imported cores given Sail-generated-SystemVerilog-plus-commercial-FEV evidence, PipelineGen as scaffolding, SystemVerilog generated for synthesis, main-spec §15) and the proof tools (Sail → Coq, Isla, and the **one Iris-over-Sail program logic** with its four theories, Islaris/Cerise/Katamaran among them, main-spec §13), whose deferred proofs are discharged with the modern Coq automation stack (SMTCoq, **Diaframe**-class Iris automation, learned tactic synthesis) as re-checked oracles (main-spec §5); none of that is on the bring-up path.
 - **Software, Rocq/Coq (Gallina).**
   Every TCB and base-system component is written in Gallina from one source, then lowered two different ways for two different roles, and **the on-device lowering carries no garbage collector.**
   The main spec's storage rule, *"no managed runtime … the GC runtime is banned"* (§10), is the discipline for the *whole* base here, not just the filesystem: a tracing GC is inadmissible twice over, putting an unverified runtime in the TCB and, with its unbounded pauses, breaking the WCET real-time path (§11).
   So `CertiCoq → Clight` (which emits a GC) is used **host-side only**, never in a shipped image:
   - **Host-side functional oracle, CertiCoq → Wasm.**
-    Run each component on a stock Wasm engine (wasmtime/Wasmtime-class, **standard Wasm, not CHERI-Wasm**) to iterate on OS *logic* at native-ish speed before the ISA emulator is fast enough or complete.
+    Run each component on a stock Wasm engine (wasmtime/Wasmtime-class, **standard Wasm, not CHERI-Wasm**) to iterate on OS *logic* at native-ish speed before a component is even lowered; whole-*machine* speed is the §10 fork's job, so this leg's standing value is needing no toolchain, no image, and no machine model at all.
     This leg tests logic and values, not capability *enforcement*, enforcement is validated on the purecap-on-Sail path below, so no CHERI semantics are needed here (Wasm is a system execution target nowhere in this design, §14; a research-grade CHERI-Wasm engine would only forfeit the mature host tooling that justifies this leg).
     Here a GC is harmless, it rides the host engine, is never shipped, never enters the TCB, never touches a timing bound, so this stays the quick inner loop *and* the differential-testing spec-oracle for the path below; if a component is too slow or the backend too immature, fall back to standard `Extraction` to OCaml for that component only.
   - **On-device purecap artifact, GC-free, by the component's memory behavior.**
@@ -31,10 +34,11 @@ The entire base system is written in exactly two languages, and each yields an e
       Like Narcissus and Fiat-Crypto it is a Coq-verified DSL, **not a third trust language**, the two languages are the trust bases (Sail + Coq), and Lustre's meaning *and* its compilation are both Coq objects.
 
 **The two golden models are validated independently first, then composed.**
-The Sail-C emulator is exercised by assembly/ISA tests; the Gallina components are exercised as Wasm host-side; then the components are lowered **GC-free** to purecap RV64+CHERI (above) and run *on* the emulator for the composed, full-system golden model.
+The Sail-C emulator is exercised by assembly/ISA tests; the Gallina components are exercised as Wasm host-side; then the components are lowered **GC-free** to purecap RV64+CHERI (above) and run *on* the emulated machine for the composed, full-system golden model.
+Day to day that composed system runs on the **fast emulator** (the CHERI-QEMU fork, §10), with the Sail-generated emulator re-running the same boots in CI, so iteration speed and reference fidelity are two machines rather than one compromise.
 
 **One toolchain contract, stated once for every Gallina component below.**
-Unless an entry notes otherwise, each base-system component is written in **Gallina**, exercised host-side on the **CertiCoq → Wasm** oracle, lowered on-device **GC-free** by one of the four routes above, and compiled to purecap **RV64IMV+CHERI**, the *same* binary running on the emulator (§10) and the FPGA (§11).
+Unless an entry notes otherwise, each base-system component is written in **Gallina**, exercised host-side on the **CertiCoq → Wasm** oracle, lowered on-device **GC-free** by one of the four routes above, and compiled to purecap **RV64IMV+CHERI**, the *same* binary running on both emulators (§10), the RTL in co-simulation, and the FPGA (§11).
 So each entry below gives only its **Toolchain** (the GC-free route, and why the component's allocation behavior fits it), its **Start-from**, and its **Plan**, showing Language or Compiler-target only where a component genuinely differs (the Sail cores of §1 and §2, the Lustre control plane of §8, the two-checker split of §9).
 The Wasm oracle and the standing ban on the GC'd `CertiCoq → Clight` path are this section's rule, not repeated per component.
 
@@ -46,7 +50,10 @@ This is engineering, not a new axiom: the *working* backend, **differential-test
 The spec already lists this backend as a hard prerequisite, *"nothing boots without it"* (§6), so front-loading it, **priority zero, ahead of any Emulation (§10) or FPGA (§11) work**, is the spec-consistent choice.
 Completing the backend includes the main spec's R-18-014a baseline target support in the same deliverable: ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion and its capability arm on the conditional capability move, and fusion-pair emission and adjacency preservation; none is a separate optimization workstream or deferred hardening item.
 The same deliverable carries **R-18-014c's bound-directed lowering** (of two architecturally equivalent lowerings that both fit the image budget, emit the one whose cost annotation yields the tighter bound, average cost being the tie-break only), which is a *choice rule inside the backend* rather than a pass to build, and which is gated on its input rather than on itself: the WCET cost-annotation pass is scope-cut for bring-up (below), so until it lands the rule runs against the emulator-measured table, exactly as sound §11 admission does (main spec R-18-025).
-Once it exists every C-path component below compiles straight to purecap RV64IMV+CHERI, and the *same* binaries run on the emulator (§10) and the FPGA (§11).
+The deliverable is bounded below by the compiler, not by the image, so the same milestone carries the rest of the binary path: an **assembler, linker, and image composer for the frozen dialect**.
+CompCert emits assembly, and no stock binutils assembles a 64+1-bit purecap dialect (isa-profile §4.1), so LLVM's MC layer and `lld` are re-homed to the profile as the untrusted assembler/linker, the slot GNU `as`/`ld` occupy under stock CompCert, and the image composer emits the position-fixed image whose composition-time-absolute call and address forms the profile's code-size decisions quantify over (R-15-036l), reproducibly, reproducible build being part of the checkers' bootstrap-root story (§9).
+Verified assembly, linking, and image construction are deferred hardening exactly like the backend's own proof, they are what the §5 source-correspondence theorem later covers; the *working* binary path ships inside M1, because nothing downstream links without it.
+Once it exists every C-path component below compiles straight to purecap RV64IMV+CHERI, and the *same* binaries run on both emulators (§10), the RTL in co-simulation, and the FPGA (§11).
 **No purecap CertiCoq GC is on this critical path**, because the on-device lowering is GC-free (above), CertiCoq's collector is only ever exercised host-side on the stock Wasm engine, so it never has to be ported to purecap; the discipline *removes* a priority-zero deliverable rather than adding one.
 The arena-extraction route that targets Rust (MetaCoq→Rust, §8) instead rides the certifying Rust→RV64+CHERI compiler, itself already priority zero in the spec (§18).
 
@@ -250,29 +257,39 @@ Both are the component class whose *golden model is essentially its production f
 
 ---
 
-## 10. Emulating the hardware
+## 10. Emulating the hardware: the golden emulator and the fast emulator
 
-The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardware" is standing up the whole-machine emulator around it and booting the GC-free purecap software (§0) on it.
+The hardware golden model *is* the Sail-C emulator of §1; "emulating the hardware" is standing up two whole machines around the same frozen profile, the golden one generated from Sail and the fast one forked from CHERI-QEMU, and booting the GC-free purecap software (§0) on both.
 
 - **Single-core ISA emulator (day one).**
   `sail -c` on the curated model (§1) gives a fast single-core RV64IMV+CHERI emulator.
   Drive it with hand-written and randomly-generated ISA tests; this validates the *hardware* reference independently of any software.
 - **Whole-machine harness.**
-  Wrap the Sail-generated core with a thin host-C system harness that provides: **multiple core instances** (C-class ×N, V-class, M-class, the S-class sentinel, and the RoT RV64 core of §2), **physical memory** with the modeled ECC behavior as no-ops-with-latency (there is no memory cryptography to model, §15), and the **modeled devices**, capability-checked DMA (default-deny capability-bounds checks on device transfers), the register-slave transceiver stream (with its fixed-function link-layer timing sequencer, §15), the scanout DMA block, and the RoT peripherals.
+  Wrap the Sail-generated core with a thin host-C system harness that provides: **multiple core instances** (C-class ×N, V-class, M-class, the S-class sentinel, and the RoT RV64 core of §2), **physical memory** with the modeled ECC behavior as no-ops-with-latency (there is no memory cryptography to model, §15), and the **modeled devices**: a UART console (modeled first, nothing is debuggable before output exists), the block device the storage stack (§7) mounts, capability-checked DMA (default-deny capability-bounds checks on device transfers), the register-slave transceiver stream (with its fixed-function link-layer timing sequencer, §15), the scanout DMA block, and the RoT peripherals.
   Devices are modeled either as Sail memory-mapped regions (preferred, keeps them in the one language) or as C shims in the harness where that is faster to iterate.
   The **NoC and islands** are modeled as a simple address-routing layer in bring-up (the TDM schedule and non-interference semantics are §15 hardening, not needed for functional emulation).
 - **Composed full-system golden model.**
   Boot the stack in the spec's §9 order on the harness: RoT core + firmware (§2) → M-mode firmware (§3) → one kernel instance per core (§5) → init (§8) → object system/transactor (§6), filesystem (§7), crypto core (§4), checker (§9), every image **GC-free purecap RV64IMV+CHERI**, produced by the §0 on-device routes (CompCert-C/VST through CHERI-CompCert, or arena extraction through the Rust→CHERI compiler), *never* the GC'd `CertiCoq → Clight` path.
   This is the reference machine: purecap, managed-runtime-free software on the verified-by-generation ISA.
-- **Fast software-only reference (parallel track).**
-  For OS-logic iteration that does not need the ISA in the loop, run the *same* Gallina components as **CertiCoq → Wasm** on a host Wasm engine.
-  This is the "is Wasm fast enough?" lever: it is the quick inner loop; the RV64-on-Sail path is the faithful outer loop.
-  Both come from one source, so a bug found in either is fixed once.
-- **Test generation and differential testing.**
+- **The fast whole-machine emulator: a CHERI-QEMU fork (the daily driver).**
+  A Sail-generated interpreter is faithful, not fast; the machine the stack is *developed on* is a **fork of CHERI-QEMU** curated to the same frozen profile, which buys TCG JIT speed, a GDB stub, deterministic `icount` execution, snapshots and record-replay, and mature machine/device scaffolding on day one.
+  It is **untrusted evidence-producing machinery** (§0, main-spec §6), like the compilers and analyzers: it joins no trust base, is never the reference, and every divergence is adjudicated against the Sail golden model, so the only possible outcomes are a fixed fork or a genuine spec-versus-intent finding, the error class no proof covers (R-17-016).
+  The fork is a re-parameterization, not a checkout, because the dialect is bespoke (R-15-007): stock CHERI-QEMU implements the ISAv8/v9 128-bit lineage, so the work is narrowing its `cheri-compressed-cap` library (already carrying 64- and 128-bit instantiations) to the §4.1 fields, implementing the frozen decode surface (the custom and fork-and-frozen instructions in, the excluded extensions out), deleting the MMU path (`satp` Bare, no S/U modes), adding the VLEN=4096 RVV datapath and the matrix/FEC units with per-element capability checks, and defining one machine type that models exactly the harness's device list above, no virtio, no PCI, no stock `virt` zoo.
+  RVTSO is honored by construction in bring-up: deterministic round-robin `icount` execution is sequentially consistent, every behavior it exhibits is TSO-legal, and the weak outcomes an SC executor cannot exhibit belong to Isla's litmus exploration, not to this vehicle.
+  This is exactly the instrument R-17-048a prices: the bespoke dialect degrades the stock instruction-level oracles (Spike, QEMU, the CHERI test suites), and the fork is the compensating purchase, a second implementation of the profile from an independent code lineage, maintained alongside the Sail model, so spec-versus-intent divergence always has two executors to disagree.
+  The plan's **intermediate goal** is the full §9-order boot on this fork; the composed Sail emulator re-runs the same boot in CI as the golden cross-check.
+- **Three loops, one source.**
+  For OS-logic iteration that needs no ISA in the loop at all, run the *same* Gallina components as **CertiCoq → Wasm** on a host Wasm engine: the inner loop, no toolchain, image, or machine model required.
+  The QEMU fork is the middle loop, the whole machine at JIT speed; the Sail-C emulator is the outer loop, the reference every divergence returns to.
+  All three execute artifacts of one source, so a bug found in any loop is fixed once.
+- **Test generation and differential testing: one corpus, one trace format, three executors.**
   Use **Isla** (symbolic execution over the Sail model) to derive ISA test vectors and the concurrency/Ztso litmus set from the frozen model, normalizing every legal `fence` encoding to the profile's two outcomes (`drain | nop`) rather than generating predecessor/successor-set cases.
-  Keep the emulator as the **differential-testing oracle** for everything downstream (the FPGA in §11 is checked against it).
+  The rig is a named deliverable rather than a habit: the corpus is versioned at M0, and its executions are compared through one **capability-widened RVFI-style commit trace** (PC, instruction, register and memory effects, plus tag, bounds, permissions, and seal state) emitted by the Sail emulator, the QEMU fork, and the RTL (via its `rvfi` port, §11; R-15-094 already names `rvfi` the cheapest bring-up evidence).
+  One CI runner diffs the trace per-instruction over the corpus, and per-boot (console, event, and final-state digests) over the composed images where instruction lockstep is too slow.
+  The Sail emulator stays the **oracle** for everything downstream; the QEMU fork and the FPGA are both checked against it, never against each other alone.
 - **Staging.**
   C-class scalar emulator + software rendering first; add the V-class vector datapath, then M-class matrix, then FEC, then multi-core + islands, mirroring §18, each class extending the *same* Sail model and re-generating the emulator.
+  Each class lands in the Sail model first, then in the fork, then in RTL (§11's ordering rule), so every executor is brought up against an already-validated predecessor.
 
 ---
 
@@ -312,7 +329,14 @@ Per the two-language ideal and the semantic-anchor budget (main-spec §5), RTL �
   Two documents decide this and neither is restated here: the [frozen instruction-set profile](isa-profile.md) says what the hardware must implement, and the [microarchitectural absence contract](absence-contract.md) says what it must not contain and what evidence an auditor searches the elaborated netlist for.
   The second runs *during* FPGA bring-up rather than waiting on it: the imported cores exist today, so the contract's state enumeration and its synthesis-configuration provenance are recorded at the moment a core is first elaborated, which is also the moment the disabling parameters are chosen.
   Each row of either document is *less* hardware than the stock core, not more.
+  One item is a re-parameterization rather than a removal, and it paces the scalar milestone: the imported cores implement the ISAv8/v9 128-bit capability lineage while the frozen dialect is 64+1-bit (isa-profile §4.1), so the CVA6-CHERI datapath's capability format is **re-parameterized, not configured**.
+  The bespoke format is thus implemented three times across the plan, Sail first (the definition), the QEMU fork second (the fast oracle), RTL last (the implementation), landed in that order so each implementation is brought up against an already-validated predecessor.
+- **Co-simulation is the RTL gate; the board is not.**
+  The deliverable the MVP names (§12, M8) is an **RTL artifact of record**: a versioned, lint-clean, elaborated SoC top, the curated C-class scalar core, the RoT core and its peripherals, the tag-carrying interconnect, boot ROM, UART, and block device, generated SystemVerilog where authored and curated SystemVerilog where imported, published with its synthesis-configuration provenance and absence-contract evidence recorded at first elaboration (above).
+  It is *matching* when, under **Verilator co-simulation**, its capability-widened `rvfi` commit trace (§10) agrees with the golden model across the shared corpus, CVA6's existing `rvfi`/tracer port being the hook, and the composed purecap image boots to the same console and event digests as both emulators.
+  Every clause in that sentence runs in CI with no hardware attached, so *a solid RTL file in hand* is a software-visible, reproducible claim; FPGA synthesis afterward validates timing closure and resource fit, not function.
 - **Synthesis + bring-up staging.**
+  Synthesis follows the co-simulation gate: the artifact that boots in Verilator is the one synthesized.
   Target a large FPGA (Xilinx/AMD UltraScale+ or Versal class, or an open board where capacity allows).
   Bring up **C-class scalar first** (boots the same M-mode firmware → kernel → init stack from §10), then **V → M → FEC → NoC → islands**, class by class, each differentially tested against the Sail golden model.
   The **S-class sentinel** and RoT are small and come early.
@@ -324,27 +348,44 @@ The **riscv-formal/rvfi** BMC bring-up gate (on the generated SystemVerilog), th
 
 ## 12. Build order and milestones
 
-Bottom-up, each milestone runnable against the prior one:
+Bottom-up, each milestone runnable against the prior one; the software track (M-numbers) and the RTL track (R-numbers) proceed in parallel after M0 and meet at the MVP gate, M8.
 
 1. **M0, Hardware reference.**
-  Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green. Define the profile-freeze measurement contract (§0): versioned corpus manifest, emitter-provenance schema, report schema, admitted region classes, and per-choice acceptance thresholds.
+  Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green. Define the profile-freeze measurement contract (§0): versioned corpus manifest, emitter-provenance schema, report schema, admitted region classes, and per-choice acceptance thresholds. Publish the shared differential-testing corpus and the capability-widened commit-trace schema (§10) that every later executor emits.
 2. **M1, Toolchain spine, incl. the CHERI-CompCert prerequisite.**
    Build the *functional* CHERI-RISC-V CompCert backend **first** (no purecap CertiCoq GC is needed, the on-device path is GC-free, §0), then bring up both roles, the host-side **CertiCoq → Wasm** oracle and the **GC-free on-device lowering** (CompCert-C/VST through CHERI-CompCert; arena extraction via MetaCoq→Rust onto the Rust→CHERI compiler for the allocation-light components), producing runnable purecap artifacts from a trivial Gallina program on the M0 emulator.
+    Ship the frozen-dialect **assembler, linker, and image composer** (§0) in the same milestone; nothing downstream links without them.
     Build the profile-freeze analyzer and backend provenance outputs (§0), then publish its ordered dictionary, outlining, operand-form, bitfield, stack-save, and indexed-address reports against the generated corpus.
    Every later milestone is purecap and managed-runtime-free from here.
-3. **M2, Boot chain.**
-   RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → the emulator reaches the Machine-mode kernel.
-4. **M3, Kernel.**
-   Gallina microkernel (§5), one instance per emulated core; capability/IPC tests green host-side (Wasm) and on-emulator (RV64).
-5. **M4, Storage + objects.**
+3. **M2, Fast emulator.**
+   The CHERI-QEMU fork (§10), curated to the frozen profile: corpus-lockstep green against the M0 emulator, and booting M1's purecap hello-world as its exit test.
+   It gates on M0, not M1, so it proceeds in parallel with the toolchain spine; from here it is the daily driver and the Sail emulator is the CI cross-check.
+4. **M3, Boot chain.**
+   RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → both emulators reach the Machine-mode kernel.
+5. **M4, Kernel.**
+   Gallina microkernel (§5), one instance per emulated core; capability/IPC tests green host-side (Wasm) and on-emulator (RV64, both machines).
+6. **M5, Storage + objects.**
    Journal/index/FS (§7) and the content-addressed object store + transactor (§6); system-integrity instance first, then user-data.
-6. **M5, Userland spine.**
+7. **M6, Userland spine.**
   Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set; the package composer emits the finite typed handler/translator graph and pre-admitted media templates, and the contained object router exercises private namespaces, intents, live queries, deterministic translation caching, and protocol-bound credential handles over the existing IDL and rings.
-7. **M6, Full-system golden model.**
-   The composed emulator (§10) boots the whole stack; the Wasm track runs the same components fast for iteration.
-8. **M7, FPGA scalar (purecap).**
-   Bring up an existing CHERI RV64 scalar soft core (§11); the purecap golden-model images (M1–M6) boot on it directly, differentially tested against M6; CHERI ISA tests from the Sail model green.
-9. **M8, CHERI V/M/FEC datapath.**
-   Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M7, so the FPGA then matches the golden model across all core classes.
+8. **M7, Full system, emulated.**
+   The composed stack boots in the spec's §9 order on the **fast emulator**, the plan's intermediate goal; the composed Sail emulator (§10) re-runs the same boot as the golden cross-check; the Wasm track keeps running the same components host-side for iteration.
 
-Everything past M8, the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), the binary-level constant-time verifier, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement, is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.
+The RTL track, in parallel from the M0 freeze:
+
+- **R1, Scalar RTL curation.**
+  CVA6-CHERI re-parameterized to the 64+1-bit dialect and curated per the profile and absence contract (§11: MMU deleted, static-only prediction, TSO store buffer), plus the RoT core, tag-carrying interconnect, boot ROM, UART, and block device; absence-contract state enumeration and synthesis-configuration provenance recorded at first elaboration.
+- **R2, Corpus green in co-simulation.**
+  The shared corpus passes under Verilator with the commit-trace diff against the golden model, `rvfi` the hook; a riscv-formal-style BMC smoke on the curated scalar core runs here as cheap bring-up evidence (R-15-094), distinct from the deferred FEV and refinement work.
+- **R3, Image boot in co-simulation.**
+  The composed purecap image (M7's) boots on the RTL in Verilator to the same console and event digests as both emulators; the **RTL artifact of record** (§11) is versioned and published.
+
+9. **M8, the MVP gate: emulated system ⋈ matching RTL.**
+   M7 and R3 together: the whole base system running in emulation, and the RTL artifact of record in hand, corpus-green and booting the same images in co-simulation.
+   This is the plan's most important milestone; everything after it is hardware realization and hardening.
+10. **M9, FPGA scalar (purecap).**
+   Synthesize the R3 artifact for the board (§11); the purecap golden-model images (M1–M7) boot on it directly, differentially tested against M7; CHERI ISA tests from the Sail model green on the FPGA.
+11. **M10, CHERI V/M/FEC datapath.**
+   Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M9, so the FPGA then matches the golden model across all core classes.
+
+Everything past M10, the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), the binary-level constant-time verifier, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement, is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.

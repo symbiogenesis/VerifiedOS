@@ -373,11 +373,11 @@ Both halves of the userland gate on the same handful of net-new artifacts, so th
 Two gates order this work, not one.
 The **software gate** is the prerequisites above: nothing exists before the certifying toolchain, and nothing with a surface exists before the render substrate.
 The **hardware gate** is §18's own staging, which brings the die up class by class (C-class scalar with software rendering, then V-class, then M-class, then the FEC units), so a target cannot be *delivered* before the core class it runs on exists.
-The two gates are not the same date: the golden model boots the whole stack at M6 of the [implementation plan](implementation-plan.md), functionally and slowly, long before any of it is deliverable, so the class order gates delivery rather than existence.
+The two gates are not the same date: the emulated system boots the whole stack at M7 of the [implementation plan](implementation-plan.md), long before any of it is deliverable, so the class order gates delivery rather than existence.
 
 Stages, not a schedule: within a stage nothing is serialized, and each stage presupposes only the one before it.
 
-1. **The spine**, arriving with the userland milestone (M5).
+1. **The spine**, arriving with the userland milestone (M6).
    Service manager, filesystem, block and storage servers, drivers, the radio L2/L3 servers, the network stack, sealing and attestation, the time service, the telemetry monitor.
    This is the minimum for a machine that boots, keeps state, knows the time, reaches a network, and can take a signed generation.
    The update path comes first among equals: a system that cannot be updated cannot safely be iterated on, so every later stage presupposes it.
@@ -395,12 +395,12 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
    An editor follows the compositor rather than preceding it, for want of a surface to draw on, and the coding agent arrives with it: the agent gates on the network stack rather than on the renderer, and would sit in stage 3 the moment a headless client for it exists.
 5. **Deferred by the specification itself.**
    §18 defers the **browser**, the largest porting program here and the one gated on a pure-interpreter JavaScript engine that does not yet exist.
-   The **inference server** is optional in §12 and waits on M-class bring-up (M8).
+   The **inference server** is optional in §12 and waits on M-class bring-up (M10).
    These two are the whole of this stage: the radio roster is not in it, sitting in stage 1 with its delivery gated on FEC-unit bring-up.
 
 **What would reorder this.**
 The order is a consequence of exactly two things, the prerequisite with no fallback and the class order §18 fixes, so it moves only when one of those moves.
-A target advances by shedding a gate, never by priority: an editor needing no surface would sit in stage 3 rather than stage 4, and an inference runtime targeting the V-class vector unit rather than the systolic array would not wait on M8.
+A target advances by shedding a gate, never by priority: an editor needing no surface would sit in stage 3 rather than stage 4, and an inference runtime targeting the V-class vector unit rather than the systolic array would not wait on M10.
 Nothing here promises dates, and nothing here is a design cut: a later stage is later, not smaller.
 
 ---
