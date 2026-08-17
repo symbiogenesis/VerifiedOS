@@ -34,7 +34,6 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
   - [The typed assembly language](#the-typed-assembly-language)
   - [The atomic-requirements register](#the-atomic-requirements-register)
   - [Derived views](#derived-views)
-  - [The consistency checker](#the-consistency-checker)
 
 </details>
 
@@ -328,12 +327,3 @@ Four **derived views** collect what the register states across many entries but 
 - **The [coverage matrix](coverage-matrix.md)**: every boundary of the system against every property it must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above names bug classes, this quantifies over the boundaries, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
 
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.
-
-
-### The consistency checker
-
-`tools/check.ps1` enforces all of it and exits non-zero on any finding: every citation resolves to something live, no view drops a requirement in the subsections it bears, and every asserted count matches the artifact that owns it (rewritten in place under `-Fix`). It is one tool because a line number, a membership list, and a count are the same mistake at three granularities: a derived fact restated where nothing checks it.
-
-It also holds the sets that enumerate a *judgment*, the same mistake one granularity coarser: the crown-jewel specifications, the fail-closed refusals (R-17-030r), and the state the RoT counter keeps fresh (R-10-013a). Each closes by **conferral**: membership is asserted by each requirement that has it and collected in exactly one place, so the collection and the requirements are checked against each other rather than against a memory.
-
-Conferral closes their disagreement, not their completeness, which no tool decides. Against completeness the checker over-approximates each judgment's vocabulary and requires every requirement it catches to confer, be collected, or be dispositioned by name, so the totality claim is an agenda regenerated on every run. Run against a fail-closed register believed complete, that agenda returned four members it did not carry.
