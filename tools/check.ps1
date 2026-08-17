@@ -535,7 +535,7 @@ $agendas = @(
        Vocab = 'fail-stop|fail-closed|fail closed|refuse|refuses|refused|refusal|denial of service|permanent DoS'
        Held  = @($fcConfer) + @($fcCited.Keys) + @($fcSeams)
        # the entries that state the set rather than belonging to it
-       Ruling = 'R-03-008','R-03-009','R-17-030a','R-17-030l','R-17-030m','R-17-030r'
+       Ruling = 'R-03-008','R-03-009','R-17-030a','R-17-030l','R-17-030m','R-17-030r','R-17-030t'
        Disposition = [ordered]@{
            'R-03-003'  = 'threat scope, not a refusal: the refusals an EM adversary provokes are composed at R-17-030n'
            'R-05-051c' = 'a specification-time exclusion: the role is denied to a format when its descriptor is written, and no running unit stops'
@@ -564,7 +564,7 @@ $agendas = @(
            'R-09-008' = 'provides the counter operations as a functional surface'
            'R-09-013' = 'a property of the counter, that it is not a clock'
            'R-09-030' = 'bounds bootability by the floor R-09-028 confers'
-           'R-10-011' = 'the recorded exclusion R-10-013a requires: the mutable volume is deliberately outside the set'
+           'R-10-011' = 'the recorded exclusion R-10-013i requires: the mutable volume is deliberately outside the set'
            'R-10-013b' = 'classifies the state the counter carries; the class it names is placed under the counter by R-10-013c'
            'R-10-013d' = 'bounds the rate at which R-10-013c may advance the counter; places no state under it'
            'R-10-013f' = 'names the device fact R-10-011 excludes on; places no state under the counter and changes nothing until R-10-013g is met'
