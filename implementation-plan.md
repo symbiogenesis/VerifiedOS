@@ -114,7 +114,7 @@ One model, parameterized by class.
 
 ### Choosing the frozen parameters: a proof-aware design-space exploration
 
-The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs, issue width and pipeline depth, the SRAM bank/macro/tier-to-island map, software-scratchpad sizes, and the TDM-NoC schedule, are not guessed (there are no hardware caches to size and no integrity-tree structure to size, main-spec §15).
+The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs, core count per class, issue width and pipeline depth, the SRAM bank/macro/tier-to-island map, software-scratchpad sizes, and the TDM-NoC schedule, are not guessed (there are no hardware caches to size and no integrity-tree structure to size, main-spec §15).
 They are chosen by a **design-space exploration (DSE)** run off-model, ahead of RTL and silicon, whose utility function is **multi-objective: performance, area, power, WCET, and, as a first-class term, *proof simplicity*** (main-spec §15).
 
 - **Proof simplicity is an explicit objective, not an afterthought.**

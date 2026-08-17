@@ -1754,18 +1754,24 @@ The dividend lands on `fence.t`: its enumerated flush set (the store buffer alon
 The contract is a distinct §18 bring-up gate and a named §17 residual: the one obligation class in the profile whose imported-core half closes on audit rather than on proof. <a id="r-15-107"></a>
 
 **Parameter selection is a proof-aware design-space exploration.** <a id="r-15-108"></a>
-The frozen microarchitectural parameters (VLEN per class, issue width and pipeline depth, the SRAM bank/macro/tier-to-island assignment, scratchpad sizes, and the TDM-NoC schedule; there is no cache or way-coloring split to choose and no integrity-tree structure to size, §15) are not hand-tuned but selected by a composition-time, pre-silicon **design-space exploration** whose utility function is **multi-objective and carries proof simplicity as a first-class term** alongside performance, area, power, and WCET.
+The frozen microarchitectural parameters (VLEN per class, core count per class, issue width and pipeline depth, the SRAM bank/macro/tier-to-island assignment, scratchpad sizes, and the TDM-NoC schedule; there is no cache or way-coloring split to choose and no integrity-tree structure to size, §15) are not hand-tuned but selected by a composition-time, pre-silicon **design-space exploration** whose utility function is **multi-objective and carries proof simplicity as a first-class term** alongside performance, area, power, and WCET.
 That term is load-bearing, not decorative: a smaller and more regular microarchitecture is a smaller Sail model and a cheaper **RTL ⊑ Sail** refinement (the least-built arrow just named) so the same search that recovers performance *shrinks the crown jewel it must prove*, spending the free currency (search compute) to buy down the scarce one (proof surface).
 This is the inverse of the usual performance-for-trust trade and the reason the search is admitted where reactive microarchitecture is not (§1).
 The **five-part admission test above and the §8 non-interference / §11 WCET obligations are hard constraints, not objectives**: every candidate must satisfy them to be admissible, so the search optimizes strictly *within* the proven-safe envelope and widens no trust base. <a id="r-15-109"></a>
 Its output is a single frozen, Sail-modeled, admission-checked configuration; the exploration tool is itself untrusted evidence-producing machinery (§6) whose choice the per-class RTL ⊑ Sail proof (§18) then discharges: so the proof-simplicity term is only a **proxy** (Sail-surface size and refinement-effort estimates), and a poor proxy costs search quality, never soundness. <a id="r-15-110"></a>
 A candidate that runs faster but is demonstrably harder to prove is a Pareto point the search **surfaces rather than buries**, resolved by the proof-simplicity weight toward the design's standing priority (§1).
 
+**Core count per class is in that set because the reticle prices it.** <a id="r-15-108a"></a>
+The High-NA half field (~430 mm²) that hard-bounds the die (memory subsystem, below) caps the **logic tier** absolutely on a machine with no second die and no die-to-die link (below): capacity escapes the cap vertically, in tiers, and logic does not, and in the single-tier case (below) the cores share the one planar tier with the array itself, so a core's area is capacity forgone directly.
+Core count and issue width therefore spend the same fixed, non-stackable planar area and are weighed as **one explicit Pareto axis** rather than inherited width-first from machines with a chiplet escape.
+The weighing is asymmetric by construction: the profile's in-order single/dual issue caps what a wider core can return, and the profile-matched fusion set (above) is that width's strongest consumer, while each additional C-class core is a **whole partition-switch budget deleted** for a server the §11 switch-duty rule pins (below) and one more core relieving the §17 population-wall divisor.
+A fewer-but-wider candidate is therefore surfaced as a Pareto point exactly as a faster-but-harder-to-prove one is (above), never resolved by a convention set on machines where neither side of the asymmetry exists.
+
 ### Heterogeneous single-die topology <a id="r-15-005-3"></a>
 
 All compute on one die, one base ISA, one kernel binary, one parameterized formal model. <a id="r-15-111"></a>
 Scalar front ends are one shared microarchitecture (CVA6-class, **modified to static-only prediction per the profile**) across all classes, so kernel-path WCET is a single analysis. <a id="r-15-112"></a>
-The core classes are the canonical **core-class table** below; the counts are a reference instantiation (composition parameters, disjointness machine-checked as in §7), and every other section names a class and refers here rather than re-listing them.
+The core classes are the canonical **core-class table** below; the counts are a reference instantiation (composition parameters the parameter selection above searches, disjointness machine-checked as in §7), and every other section names a class and refers here rather than re-listing them.
 
 | Class | Count | Datapath | Role and typical owners <a id="r-15-113"></a> |
 | --- | --- | --- | --- |

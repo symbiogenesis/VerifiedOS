@@ -3670,8 +3670,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 15.15 Parameter selection
 
 **R-15-108** MUST: The frozen microarchitectural parameters are selected by a composition-time, pre-silicon design-space exploration whose utility function carries proof simplicity as a first-class term alongside performance, area, power, and WCET.
-· Accept: the parameter set is VLEN per class, issue width and pipeline depth, SRAM bank/macro/tier-to-island assignment, scratchpad sizes, and the TDM-NoC schedule; there is no cache, way-colouring, or integrity-tree parameter to choose.
+· Accept: the parameter set is VLEN per class, core count per class, issue width and pipeline depth, SRAM bank/macro/tier-to-island assignment, scratchpad sizes, and the TDM-NoC schedule; there is no cache, way-colouring, or integrity-tree parameter to choose.
 · Trace: CJ-RTL-SAIL
+
+**R-15-108a** IS: Core count per class is searched rather than inherited because the High-NA half field prices it: the ~430 mm² planar boundary (R-15-170) caps the logic tier absolutely on a machine with no second die and no die-to-die link (R-15-111, R-15-173), capacity escapes that cap vertically while logic does not, and in the single-tier case (R-15-173a) the cores share the one planar tier with the array itself, so a core's area is capacity forgone directly. Core count and issue width therefore spend the same fixed, non-stackable area and are weighed as one explicit Pareto axis.
+· Accept: the weighing is asymmetric by construction: the profile's in-order single/dual issue caps a wider core's return, while each added C-class core is a whole partition-switch budget deleted for a server the switch-duty rule pins (R-11-011, R-15-114) and one more core against the population wall's divisor (R-17-004); a fewer-but-wider candidate, worth more per core to the profile-matched fusion set (R-15-031a), is surfaced as a Pareto point exactly as R-15-110 surfaces a faster-but-harder-to-prove one, never resolved by the width-first convention of machines with a chiplet escape and no switch cost to delete.
+· Trace: CJ-RTL-SAIL, CJ-WCET
 
 **R-15-109** MUST: The five-part admission test and the §8 non-interference / §11 WCET obligations are hard constraints on the search, not objectives.
 · Accept: every candidate satisfies them to be admissible; the search optimizes strictly within the proven-safe envelope and widens no trust base.
@@ -5180,7 +5184,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1192 requirements. §19 is non-normative and yields none. Counts include the 270 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1193 requirements. §19 is non-normative and yields none. Counts include the 271 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5198,7 +5202,7 @@ All eighteen normative sections are extracted, at 1192 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **350** |
+| **§15 Hardware Platform** | **extracted** | **351** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **108** |
 | **§18 Realization** | **extracted** | **46** |
