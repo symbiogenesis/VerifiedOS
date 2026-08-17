@@ -30,7 +30,7 @@ $ErrorActionPreference = 'Stop'
 
 $findings = 0
 function Report([string]$Label, $Items, [string]$Ok = '', [string]$Pad = '') {
-    # @($null).Count is 1, and an empty pipeline result is $null — filter before counting
+    # @($null).Count is 1, and an empty pipeline result is $null, so filter before counting
     $found = @(@($Items) | Where-Object { $_ })
     if ($found.Count) {
         $script:findings += $found.Count
@@ -233,7 +233,7 @@ $orphans = @()
 foreach ($id in $anchorCount.Keys) {
     if ($id -notmatch '^r-\d\d-\d') { continue }
     $reqId = 'R' + ($id -replace '^(r-\d\d-\d\d\d[a-z]?)-\d+$', '$1').Substring(1)
-    if (-not $ids.Contains($reqId)) { $orphans += "#$id — no requirement $reqId in the register" }
+    if (-not $ids.Contains($reqId)) { $orphans += "#${id}: no requirement $reqId in the register" }
 }
 Report 'prose bookmark(s) naming no live requirement' ($orphans | Sort-Object) 'every prose r-* bookmark names a live requirement'
 
@@ -727,7 +727,7 @@ foreach ($c in $claims) {
 
     if ($hits.Count -eq 0) {
         $findings++
-        "FAIL: $($c.File): no claim matches /$($c.Pattern)/ — the wording moved; re-anchor the claim or drop it"
+        "FAIL: $($c.File): no claim matches /$($c.Pattern)/, the wording moved; re-anchor the claim or drop it"
         continue
     }
     $wrong = @($hits | Where-Object { $_.Value.ToLower().Replace(',','') -ne $expected })
@@ -901,11 +901,11 @@ Report 'run(s) of table rows carrying no header rule:' $ruleless 'every table ro
 # The rule is absolute, and that is a decision rather than an oversight. It stood failing
 # across nine files for as long as it did because it conflated prose punctuation with two
 # structural uses that no rewrite can reach: the register's entry header (`**R-nn-nnn**
-# MUST — obligation`) and its section headings (`## §n — Title`), a delimiter and a title
-# separator, one per requirement and one per section. Neither has a sentence whose meaning
-# could be decided. Both were changed to ASCII (`MUST: ` and `## §n. `) rather than
-# exempted here, because an exemption is a proviso that must itself be audited, and a rule
-# with no carve-out is closed by construction: any U+2014 anywhere is a finding, and a
+# MUST <U+2014> obligation`) and its section headings (`## §n <U+2014> Title`), a delimiter
+# and a title separator, one per requirement and one per section. Neither has a sentence
+# whose meaning could be decided. Both were changed to ASCII (`MUST: ` and `## §n. `) rather
+# than exempted here, because an exemption is a proviso that must itself be audited, and a
+# rule with no carve-out is closed by construction: any U+2014 anywhere is a finding, and a
 # table cell meaning *not applicable* is spelled `n/a` rather than left as a bare dash.
 
 "=== glyphs: forbidden punctuation and encoding damage ==="
