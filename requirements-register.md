@@ -652,8 +652,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no contained binary is admitted without one.
 · Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-093)
 
-**R-05-094** IS: That certificate is a CHERI-TAL typing derivation covering temporal safety, control-flow integrity, no-runtime-codegen, and ABI/type conformance, stated at binary level against the Sail model, and it is not full functional correctness.
-· Accept: the certificate's four conjuncts are present; functional correctness remains a Tier-0/1 obligation.
+**R-05-094** IS: That certificate is a CHERI-TAL typing derivation stated at binary level against the Sail model, carrying the Tier-2 subset of R-05-029's eleven type-level obligations that R-13-012 scopes, and it is not full functional correctness.
+· Accept: this entry cites R-13-012's tier scoping rather than enumerating the certificate's content, so the two cannot disagree; functional correctness remains a Tier-0/1 obligation.
 · Trace: CJ-TAL-SOUND, CJ-SAIL · [§5](verification-maximal-os.md#r-05-094)
 
 **R-05-095** IS: For admitted code, rustc and LLVM leave the intra-compartment memory-safety trust base.
