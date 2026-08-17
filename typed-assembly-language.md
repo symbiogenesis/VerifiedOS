@@ -5,12 +5,12 @@
 > It is factored out as a project in its own right because its dependency set is a machine semantics and a type theory and nothing else: no kernel, no storage stack, no authority model, and no hardware beyond the target's own instruction semantics.
 >
 > **Normative for the language; not a derived view.**
-> The frozen profile, the absence contract, the crown-jewel inventory, and the coverage matrix are derived views of [requirements-register.md](requirements-register.md) and state no obligation of their own.
+> The [frozen instruction-set profile](isa-profile.md), the [absence contract](absence-contract.md), the [crown-jewel inventory](crown-jewels.md), and the [coverage matrix](coverage-matrix.md) are derived views of [requirements-register.md](requirements-register.md) and state no obligation of their own.
 > This document is the opposite: it states the language's obligations, and VerifiedOS *depends* on one instantiation of it and pins a version.
 > Where the two disagree about what VerifiedOS requires, the register wins; where they disagree about what the language is, this document wins.
 >
 > **The name is provisional and the instantiation keeps its own.**
-> *Typed Assembly language* is descriptive rather than chosen.
+> *Typed Assembly Language* is descriptive rather than chosen.
 > The CHERI-RISC-V instantiation is *CHERI-TAL* throughout the VerifiedOS corpus and stays so: this factoring renames nothing.
 >
 > **Nothing here is built.**
@@ -23,7 +23,7 @@
 
 A **typed assembly language** in the Necula ⋈ Morrisett lineage: final machine code carrying a **typing derivation**, checked before the code is permitted to run.
 
-Three commitments distinguish it from that lineage rather than one:
+Three commitments, not one, distinguish it from that lineage:
 
 - **The check is certificate-directed dataflow validation, not proof checking.**
   What the checker decides is a fixed set of attributes over an already-typed control-flow graph, evaluated in one syntax-directed pass whose abstract state at every join is *supplied by the derivation* rather than discovered, so the consumer runs no fixpoint and reduces no open term.
@@ -54,16 +54,17 @@ For every obligation in §4 a profile declares exactly one discharge route:
 
 The routes are ordered by preference and the ordering is the design: a cited invariant costs no software, an attributed one is paid once at admission, and an inserted one is paid on every execution forever.
 
-**Two profiles are specified, and they differ by exactly one line of the table.**
+**Two profiles are specified, and they differ only in routing: every obligation `cheri-rv64` cites moves down the table under `bare-rv64`, and no other route changes.**
 
 - **`cheri-rv64`**, the profile VerifiedOS pins.
-  Bounds, tags, monotone derivation, and sealed entry are architectural, so spatial memory safety and no-runtime-codegen are **cited**, capability integrity constrains which authority may be executed and where an entry may land, and the type system carries only the residual the hardware does not enforce: temporal safety, exclusive access, and typed control flow.
+  Bounds, tags, monotone derivation, and sealed entry are architectural, so spatial memory safety, no-runtime-codegen, and the run-time half of control-flow integrity — which authority may be executed, and where an entry may land — are **cited**, and of that cluster the type system carries only the residual the hardware does not enforce: temporal safety, exclusive access, and typed control flow.
   Control-flow integrity is the easiest of these to overstate, and the split is worth naming: the machine bounds executable authority and entry, while the legal target set of an indirect transfer and the signature of the code it reaches stay **attributed**, a type match being a policy no instruction set states.
   This is the profile in which the language is small.
 - **`bare-rv64`**, the profile with no capability hardware.
   Nothing is cited.
   Spatial safety becomes **inserted** (bounds checks the type system locates and requires) or, at the producer's option, a fat-pointer ABI in which a bounds pair is an ordinary aggregate the type fixes the representation of.
-  Provenance survives as an **attributed** property, because the integer-to-capability deletion (§3) is already a type-system fact rather than a hardware one.
+  No-runtime-codegen and the run-time half of control-flow integrity become **attributed**: with every store and every indirect transfer typed, the classical TAL account — no writable authority over code, typed jumps — decides statically what the hardware no longer checks, and both halves of control flow then rest on one attribute.
+  Provenance survives as an **attributed** property, because the integer-to-pointer deletion (§5, move III) is already a type-system fact rather than a hardware one.
 
 **A citation is a theorem about the machine, and citing carelessly is the likeliest way for everything downstream of it to be wrong.**
 The capability literature is explicit about the qualifications, and a profile's declaration is defective if it does not carry them.
@@ -97,7 +98,7 @@ The type theory is fixed and closed by this document, and the four absences belo
    Instantiation is first-order substitution, so there is no impredicative self-instantiation to justify and no rank-*n* inference to decide.
 2. **No type-level computation.**
    Type equality is syntactic, α-equivalence over first-order terms, decided by structural comparison and not by conversion: no βδιζη-reduction, no normalizer, no evaluation of open terms, and therefore no strong-normalization premise inside the checker.
-   This is the largest deletion and the one that makes termination syntactic rather than a metatheoretic side condition the admission axiom would have to carry.
+   This is the largest deletion and the one that makes termination syntactic rather than a metatheoretic side condition the trusted base (§6) would have to carry.
 3. **No universes and no universe polymorphism.**
    One sort of types, no cumulativity, no universe-constraint graph and no acyclicity solver.
 4. **No user-extensible inductive definitions.**
@@ -106,7 +107,7 @@ The type theory is fixed and closed by this document, and the four absences belo
 
 **What makes the four load-bearing is what they delete from a checker.**
 A term checker for a full calculus of inductive constructions spends its tens of thousands of lines on four hard structures: universe constraints, conversion, positivity, and the guard condition.
-The absences above are precisely the deletion of those four, so what remains is not a small dependent-type checker but *not a dependent-type checker at all*, and the line budget is a consequence of that rather than a target an implementation is asked to hit.
+Absences (2), (3), and (4) delete exactly those four, and absence (1) removes the instantiation and inference problems higher-rank polymorphism would reintroduce, so what remains is not a small dependent-type checker but *not a dependent-type checker at all*, and the line budget — on the order of a thousand lines of shipped checker — is a consequence of that rather than a target an implementation is asked to hit.
 What the checker does instead is evaluate a fixed attribute set over the already-typed control-flow graph (the type under structural equality, the threaded linear context, the taint lattice, the cost semiring, the callee set), taking the abstract state at each join from the derivation rather than computing it, and confirm each *local* constraint: tens of lines of evaluator per attribute.
 
 **What the figure counts, so the budget is auditable rather than rhetorical.**
@@ -120,7 +121,7 @@ The linear and affine discipline and the relevance grading are context-splitting
 Absence of ambient mutable state is decided by inspecting the image's static data for a set tag.
 The callee set is a finite collection of first-order code labels whose membership test is structural set comparison, so it refines an existing former by amendment (absence (4)'s own reserved mechanism) rather than adding a grade axis.
 The initialization flag is a two-point meet-semilattice riding the capability-type former over the slots the consumer's memory plan already fixes, the oldest attribute in the lineage and structurally the same table lookup, and taint is a join in a two-point lattice, another one.
-The representation and provenance rules add no former and no grade at all, four of the five being *absences* the checker confirms by inspecting a derivation it already builds.
+The representation and provenance rules add no former and no grade at all: they are the five deletions move III of §5 enumerates, four of them *absences* the checker confirms by inspecting a derivation it already reads.
 The three grade re-uses add nothing either: *use-once* is the linear grade the context-splitting side condition already runs, *must-erase* is its relevance polarity, and a *dimension* is a phantom parameter under absence (2)'s syntactic type equality, inhabited by no term and erased before code generation.
 
 **The amendment rule.**
@@ -141,7 +142,7 @@ A certifying compiler may be written in, and reason with, whatever theory it lik
 
 The language offers a **menu**, and a consumer requires a subset of it.
 This document says what is expressible and decidable; the consumer's own specification says what it demands, so the two cannot come to disagree about a list.
-VerifiedOS requires eleven of these, canonically enumerated at R-05-029 of its register.
+The menu is the eleven obligations below; VerifiedOS requires all eleven, canonically enumerated at R-05-029 of its register, and its lower assurance tier scopes a stated subset of the same list rather than a list of its own.
 
 Memory safety (spatial and temporal), definite initialization, data-race freedom, control-flow integrity in both its run-time and callee-set-enumeration halves, no-runtime-codegen, type and ABI conformance, examined verdicts (relevance grading), absence of ambient mutable state, representation and provenance conformance, secret-taint constant-time, and worst-case execution cost.
 
@@ -172,7 +173,7 @@ The checker handles the whole menu with exactly three moves, and the profile of 
 | **II. Evaluate an attribute** | Runs a local, syntax-directed attribute pass over the typed control-flow graph, taking the abstract state at each join from the derivation and confirming the linear contexts agree there. | Each attribute has a finite domain and a local rule, and the derivation supplies the joins a fixpoint would otherwise have to find. |
 | **III. Confirm a deletion** | Checks that constructs which would make the static account lie are absent. | These are one-pass inspections of absences: no integer-to-pointer construction, no type punning, no variadic arity, no unbounded recursive former, no implicit conversion. |
 
-Move I is empty in a profile that cites nothing, which is the precise sense in which a bare target is more expensive than a capability one: the same obligations survive, and they move rightward through the §2 table.
+Move I is empty in a profile that cites nothing, which is the precise sense in which a bare target is more expensive than a capability one: the same obligations survive, and they move down the §2 table.
 
 The word *attribute* is Knuth's, and the analogy is deliberately partial: an attribute grammar decorates a tree, while a machine-code control-flow graph is cyclic, which is precisely why the derivation carries the abstract state at every merge and the checker validates rather than solves (§1).
 
@@ -258,7 +259,7 @@ Their published qualifications, inexact compressed bounds and the privileged and
 **Linear control and ownership.**
 Skorstengaard, Devriese, and Birkedal, *StkTokens* (POPL 2019); Crary, Walker, and Morrisett, *Typed Memory Management in a Calculus of Capabilities* (POPL 1999); Smith, Walker, and Morrisett, *Alias Types* (ESOP 2000); Jung et al., *RustBelt* (POPL 2018).
 StkTokens is the direct precedent for a linear capability discipline proving well-bracketed control flow and stack encapsulation.
-It does not establish general heap temporal safety on ordinary capability hardware, which is why the revocation discipline of §4 owes an allocator-and-reuse theorem of its own (§6) rather than inheriting one.
+It does not establish general heap temporal safety on ordinary capability hardware, which is why the temporal-safety obligation of §4 owes an allocator-and-reuse theorem of its own (§6) rather than inheriting one.
 
 **Constant-time typing.**
 Watt et al., *CT-Wasm* (POPL 2019); Barthe et al., *System-level Non-interference for Constant-time Cryptography* (CCS 2014); Almeida et al., *Verifying Constant-Time Implementations* (USENIX Security 2016).
@@ -289,6 +290,6 @@ Factoring it out of an operating-system specification changes three things and n
 
 1. **The review surface improves.** The language can be reviewed, and its soundness proof read, by someone who has no opinion about capability operating systems.
 2. **The cost becomes shareable.** A second consumer at a different profile pays for its own machine-dependent cases and shares the core.
-3. **A version seam appears where a freeze used to be.** A theory frozen inside one document is frozen by that document's amendment process; a theory frozen in a dependency is frozen by a pin, and a consumer that fails to re-review on a version bump has silently widened its own axiom.
+3. **A version seam appears where a freeze used to be.** A theory frozen inside one document is frozen by that document's amendment process; a theory frozen in a dependency is frozen by a pin, and a consumer that fails to re-review on a version bump has silently widened its own axiom set.
 
 None of these is a reduction in the work, and the first consumer's schedule is unchanged by the factoring.
