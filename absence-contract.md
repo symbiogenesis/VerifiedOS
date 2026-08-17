@@ -8,7 +8,7 @@
 
 R-15-100's acceptance criterion reads *"each appears in the **absence-contract register** with a discharge."* R-15-021 requires that predictor absence *"appears in the absence-contract register, not among the refinement obligations."* R-15-107 requires that *"both entries exist."* This document is the register all three quantify over; without it none of them is decidable.
 
-It lands on the deliverable the specification is most emphatic is available now. R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"*: the sole part of RTL ⊑ Sail (R-17-039, the least-built layer of the stack) that can be discharged before any RTL of record exists. R-18-003b(ii) makes it day-one deliverable number two. This is the checklist that deliverable runs.
+It lands on the deliverable the specification is most emphatic is available now. R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"*: the sole part of the Sail ⋈ RTL seam (R-17-039, the least-built layer of the stack) that can be discharged before any RTL of record exists. R-18-003b(ii) makes it day-one deliverable number two. This is the checklist that deliverable runs.
 
 ## 1. What the contract is, and why it is a separate register
 
@@ -29,7 +29,7 @@ The contract does **not** prove that hyperproperty over a cycle-accurate model. 
 
 ## 3. The register
 
-Each row is a structure whose **absence** is claimed, with the discharge form that closes it. Discharge form is fixed by who authored the block, not by the structure (§4).
+Each row is a structure whose **absence** is claimed, with the discharge form that closes it. Discharge form is fixed by who authored the block, not by the structure (§4). The numbered tests in the ground column are R-15-010's five admission tests: (1) deterministic architectural semantics, (2) data-independent timing, (3) no hidden microarchitectural state surviving a partition switch un-flushed by `fence.t`, (4) no authority path outside capabilities, (5) no autonomous behaviour.
 
 | # | Structure | Ground | Netlist evidence sought | Governing |
 | --- | --- | --- | --- | --- |
@@ -47,7 +47,7 @@ Each row is a structure whose **absence** is claimed, with the discharge form th
 | **A-12** | DVFS / frequency control | power states are schedule artifacts, never control loops | no PLL or DVFS control path, no frequency-scaling state machine | R-15-100, R-15-103 |
 | **A-12a** | Activity-driven memory power gating (idle-timer / watermark bank shutdown, wake-on-access) | the saving is taken statically instead: the memory plan's per-mode occupancy map decides which macros and tiers are powered, so the detector has nothing left to detect | no per-domain idle counter, access counter, or watermark register; no access-history state in the power controller; no request path from an address decode to a rail enable; the rail-state inputs are the mode index and the attested power vector alone | R-15-189a, R-15-189d, R-15-189h |
 
-**Absences the `fence.t` completeness argument additionally relies on.** These are discharged elsewhere (each is already absent by an ISA-visible removal or covered by its own named mechanism) but the flush-set claim depends on them, so the audit confirms them rather than assuming them (R-15-215):
+**Absences the audit confirms rather than assumes.** Each is discharged elsewhere, being already absent by an ISA-visible removal or covered by its own named mechanism. A-13 through A-15 are confirmed because the `fence.t` flush-set claim depends on them: they are the would-be members R-15-215 names beyond the §3 rows. A-16 is confirmed because its acceptance is likewise structural: one tag plane in the SRAM word, not two (R-15-035):
 
 | # | Structure | Discharged by | Governing |
 | --- | --- | --- | --- |
@@ -90,7 +90,7 @@ Every stateful structure in the RTL maps to **exactly one of four classes**, and
 | `fence.t`-flushed | **a single structure: the store buffer**, drained rather than merely fenced, and holding **SRAM-space stores only**, which is what keeps the drain's bound a function of the class rather than of an endpoint's accept latency | R-15-213, R-15-217, R-15-015b |
 | Stream-determined pipeline state | the static-path fetch buffer and the decode and execute latches, emptied by the fence's pipeline drain; **bounded by the same table-freeness test** as §5 | R-15-217, R-15-104 |
 
-*"Did we flush everything"* is discharged against the RTL state inventory rather than a hand-maintained list (R-15-217). Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: the A-13 through A-16 rows above are that argument's dependencies (R-15-215).
+*"Did we flush everything"* is discharged against the RTL state inventory rather than a hand-maintained list (R-15-217). Nothing else joins the flush set, each would-be member being already absent or covered elsewhere (R-15-215): the absent ones are the §3 predictor, prefetcher, and cache rows and A-13 through A-15 above; the covered ones are the register files, by the total restore, and the vector/matrix and scratchpad state, by the eager zeroize.
 
 ## 7. Disposition
 
