@@ -16,7 +16,7 @@
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral — a standards line has now made the opposite statement explicit. | 0 |
-| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 6 in 5 clusters |
+| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 5 in 4 clusters |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 6 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
@@ -101,11 +101,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 - [ ] **`CTestSubset` / RVY `YSS`.** *R-07-031a · Matrix §5, §9.2.*
   Upstream's first consumer is a garbage collector, which this platform has not got. **Its second consumer is argument validation at a domain boundary, which this platform has**: the switcher checks delegated buffers on every cross-compartment call. RVY **promoted it out of the experimental appendix into the base ISA**, which weakens the "no consumer" reading considerably.
 
-### 4E. Vector checking versus mask independence
-
-- [ ] **State the composition of "only active elements are subject to CHERI checks" with R-15-085.** *R-15-115, R-15-085 · §8/§9 · Matrix §9.2.*
-  R-15-085's mask-independence contract **forbids skipping cycles or memory accesses for masked-off elements**. RVY checks only active elements. The two are compatible — *check everything, fault only on active elements* — but one is a security contract and the other a timing one, and the composition should be **stated rather than left to a reader to reconcile**.
-
 ---
 
 ## 5. Records to add
@@ -149,7 +144,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 | --- | --- | --- |
 | §5.1 / §5.3 CSR bank | `ErrorEPCC` | 4C |
 | §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
-| §8 Core classes | active-element ⋈ mask-independence | 4E |
 | §10 Debug | what the fuse is refusing | 5A |
 
 **One item has no landing row and should get one at the freeze:** the profile places four bespoke instructions — the capability indexed load/store, `bfext`/`bfins`, and `cclear` — in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that §11's parameterized-encoding-format argument would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-069a, R-15-014; matrix §9.2).

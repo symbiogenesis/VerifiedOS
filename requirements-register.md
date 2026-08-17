@@ -3614,6 +3614,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: R-15-115's *vector data carries no tags* is a statement about what a vector store writes, not about the tag of what it replaces, and without this clause a vector store reads as leaving a stale tag standing over data it has overwritten, which is a forgery primitive rather than a residue. Every vector store's Sail definition carries the tag clear over the granules its access covers, so it is a defined architectural result and not an implementation choice; it adds no architectural state and no admission-test case (R-15-012), the tag write being the one a scalar store already performs.
 · Trace: CJ-SAIL, CJ-CERISE · [§15](verification-maximal-os.md#r-15-115a)
 
+**R-15-115b** MUST: Only an **active** element of a vector memory operation raises a capability exception. Where R-15-085's mask-independence contract requires the accesses and cycles of masked-off elements to be performed regardless, their capability checks are performed with them at the cost an active element's check takes, and the result is discarded rather than raised; a masked-off element whose check fails takes the bank cycle its access would have taken as a padded access presenting no address.
+· Accept: the two contracts compose as *check every element, fault only on the active ones*, which is the only realization satisfying both rather than a compromise between them: skipping a masked-off element's check hands back cycles the timing contract holds and so leaks the mask through timing and memory traffic, while raising its fault leaks the mask through the trap and departs from the element-wise semantics R-15-115 defines the check against. Padding the failing masked-off access rather than issuing it keeps an address the domain holds no authority for off the fabric at no timing cost, an on-list access's bank sequence being a function of element width and a granule-aligned base alone (R-15-085a).
+· Trace: CJ-SAIL, CJ-LEAK · [§15](verification-maximal-os.md#r-15-115b)
+
 **R-15-116** MUST: The bespoke matrix extension is admitted only where it clears an order-of-magnitude sustained dense-GEMM margin (about 8–10× throughput, wider per-watt) over the same GEMM expressed as RVV on the M-class's own VLEN=1024 unit.
 · Accept: dense int8/bf16 inference clears the bar and the extension is kept; small, irregular, or low-reuse GEMM does not and folds onto the vector unit.
 · Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-116)
@@ -5070,7 +5074,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1163 requirements. §19 is non-normative and yields none. Counts include the 241 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1164 requirements. §19 is non-normative and yields none. Counts include the 242 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5088,7 +5092,7 @@ All eighteen normative sections are extracted, at 1163 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **34** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **332** |
+| **§15 Hardware Platform** | **extracted** | **333** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **106** |
 | **§18 Realization** | **extracted** | **46** |
