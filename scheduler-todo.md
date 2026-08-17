@@ -13,7 +13,7 @@
 | Class | Meaning | Count |
 | --- | --- | --- |
 | **§0 The mechanism** | Why the list does not collapse into "adopt a conventional scheduler". | 0 |
-| **§1 Defects** | A quantity the register claims to bound and does not. | 1 |
+| **§1 Defects** | A quantity the register claims to bound and does not. | 0 |
 | **§2 Corrections** | Arguments that need restating; the conclusions stand. | 0 |
 | **§3 Statements** | Clauses the schedule model should add because something it depends on is inferable rather than stated. | 4 |
 | **§4 Decisions** | Genuine open questions. One cluster, two questions that stand or fall together. | 1 in 1 cluster |
@@ -38,12 +38,7 @@
 
 ## 1. Defects
 
-*The register claims to bound a quantity and does not. This is not a preference.*
-
-- [ ] **The phase relation between per-core frames is unbound, so cross-core response time has no derivation.** *[R-11-014](verification-maximal-os.md#r-11-014), [R-07-042](verification-maximal-os.md#r-07-042), [R-11-006](verification-maximal-os.md#r-11-006) · lands in §11.*
-  [R-11-014](verification-maximal-os.md#r-11-014) reduces the heterogeneous-multiprocessor problem to independent per-core uniprocessor analyses, which is sound for *schedulability*: each core's slot WCETs fit its own major frame whatever the neighbouring core is doing. It is not sufficient for *latency*. Slot widths and offsets are fixed per core; **the offset of one core's frame against another's is named nowhere**, so a request crossing a core boundary waits for the callee partition's next slot: worst case a full major frame per hop, and a client → server → driver chain multiplies it. Nothing in §11 admits that quantity, and [R-07-042](verification-maximal-os.md#r-07-042) states that worst-case service latency is a schedule corollary **without exception**, which under an unbound phase has exactly one.
-  **This is not the NoC question already treated.** [performance-recovery-todo.md](performance-recovery-todo.md) sizes ring windows so a logical exchange lands inside one TDM slot and batches IPI round-trips at the source; that governs when the *message* moves. This governs when the *peer partition next runs to consume it*, which is a partition-schedule parameter and a different term.
-  **The fix costs nothing on the scarce axis.** Frame offsets are static, public, composition-fixed constants exactly as widths are, so no channel opens and no runtime decision appears; [R-11-023](verification-maximal-os.md#r-11-023) already records that the interval arithmetic quantifies over widths **and offsets**, so the admission machinery reads the parameter it needs today. What is missing is that anything *binds* it, and that the synthesis pass has a cross-core chain-latency objective to bind it against. The same clause covers data-parallel work spanning several V-class cores, which serializes across unaligned wheels for the same reason and by the same amount.
+*None. The class is a quantity the register claims to bound and does not: a finding, never a preference.*
 
 ---
 
@@ -121,5 +116,5 @@
 | Section | Items | Class |
 | --- | --- | --- |
 | §7.7 Scheduling | intra-compartment concurrency model; second-level divergence record; both confirmations | 3, 5A, 5B |
-| §11 Timing and scheduling | frame offsets and cross-core response; discretionary frame period; harmonization as tool duty; schedule synthesis | 1, 3 |
+| §11 Timing and scheduling | discretionary frame period; harmonization as tool duty; schedule synthesis | 3 |
 | §17.2 Timing and scheduling | the intra-label half of the population wall, if 4A is answered that way | 4A |

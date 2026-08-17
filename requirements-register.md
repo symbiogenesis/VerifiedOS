@@ -2121,6 +2121,22 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no global multiprocessor schedulability argument is required.
 · Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-014)
 
+**R-11-014a** MUST: Each core's major frame carries a composition-fixed phase offset against one platform-wide origin, stated in spine cycles (R-15-195) and emitted in the admission artifact beside the slot widths, the OPP assignment, and the TDM NoC schedule.
+· Accept: no per-core schedule is admitted without its offset, and the offsets are public constants of the generation exactly as the widths are, so the binding introduces no runtime decision and no new observable.
+· Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-014a)
+
+**R-11-014b** MUST: The admission artifact carries a derived worst-case end-to-end bound for every cross-core chain the composition declares, computed from the frame offsets and the per-hop slot periods over the R-07-007 edges, a pinned core (R-11-011) contributing its poll-loop period in place of a frame offset; a chain whose derived bound exceeds the deadline its declaration carries fails admission.
+· Accept: R-07-042 holds without exception where a hop is a core boundary rather than a slot boundary, and no admitted chain carries an underived latency.
+· Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-014b)
+
+**R-11-014c** MUST: The composition tool chooses the offsets against the R-11-014b bounds as an objective, phasing a callee's slot behind its caller's and aligning the wheels of the several V-class cores one data-parallel task spans.
+· Accept: the offsets are inputs the R-11-006 check re-reads, quantifying over widths and offsets and never occupants (R-11-023), so a poor choice costs latency and never soundness, the R-15-110 shape applied to the schedule as R-11-015a applies it to the bounds.
+· Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-014c)
+
+**R-11-014d** MUST: Every rung of the R-11-021 ladder shares one major-frame length, subdividing the discretionary band rather than lengthening the frame (its reserved band being identical across rungs by R-11-020), so no rung swap shifts a frame origin.
+· Accept: the R-11-014b bounds are proved once per generation rather than per rung; a global mode change (R-11-018) re-phases and carries its own offsets and chain bounds as part of being an independently admitted complete schedule.
+· Trace: CJ-WCET · [§11](verification-maximal-os.md#r-11-014d)
+
 **R-11-015** MUST: WCET tables are derived, not asserted: each per-(class, operating-point) entry is a syntax-directed max-path sum over the binary's typed control-flow graph with the timing-annotated Sail model as its per-instruction latency table, riding as cost annotations on the CHERI-TAL derivation the on-device checker already validates.
 · Accept: a wrong table cannot silently pass admission; only a wrong timing-annotation *statement* can, and that is a crown-jewel spec.
 · Trace: CJ-WCET, CJ-SAIL · [§11](verification-maximal-os.md#r-11-015)
@@ -5096,7 +5112,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1169 requirements. §19 is non-normative and yields none. Counts include the 247 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1173 requirements. §19 is non-normative and yields none. Counts include the 251 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5110,7 +5126,7 @@ All eighteen normative sections are extracted, at 1169 requirements. §19 is non
 | **§8 Authority Model** | **extracted** | **60** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **49** |
-| **§11 Updates** | **extracted** | **28** |
+| **§11 Updates** | **extracted** | **32** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |
