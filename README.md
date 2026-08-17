@@ -109,9 +109,9 @@ All seven are stronger and narrower claims than “written in a safe language.�
 | TLB, page-table-walk, A/D-bit, alias-mapping, and TLB-shootdown bugs | Virtual memory, the MMU, page tables, TLBs, and walk caches are deleted | **🕳️ Absent** |
 | Privilege-ring confusion and S/U transition bugs | Machine mode is the only mode; privileged operations require an unforgeable CHERI permission on PCC | **🕳️ Absent**<br>**🛡️ Enforced** |
 | PMP, IOMMU, and IOPMP configuration gaps or inconsistent protection views | Those parallel protection mechanisms are deleted; one capability model governs CPU and DMA access | **🕳️ Absent** |
-| LR/SC livelock and spurious-failure retry loops | `Zalrsc` is excluded, and admitted code has no such retry loop | **🕳️ Absent** |
+| LR/SC livelock and spurious-failure retry loops | `Zalrsc` is excluded, and admitted code has no such retry loop | **🕳️ Absent**<br>**✋ Rejected** |
 | CAS retry and capability-sized ABA machinery | `Zacas` is excluded, so no compare-and-swap exists to retry or to hand a recycled value | **🕳️ Absent** |
-| Self-modifying-code and instruction-stream synchronization bugs | Runtime code generation, writable executable memory, `fence.i`, and writable-to-executable promotion are absent | **🕳️ Absent**<br>**✋ Rejected** |
+| Self-modifying-code and instruction-stream synchronization bugs | Runtime code generation, writable executable memory, `fence.i`, and writable-to-executable promotion are absent | **🕳️ Absent** |
 | Rowhammer, RowPress, and DRAM read-disturbance bit flips | An SRAM latch has no leaking capacitor or refresh cycle to disturb; SRAM's far weaker disturb modes are detected faults below | **🕳️ Absent** |
 | Memory-bus probing and DIMM or module interposition | On-die SRAM has no external memory bus, module, or die-to-die link to probe, so the memory encryption and anti-replay tree a DRAM design needs is deleted | **🕳️ Absent** |
 | Cold-boot remanence | Near-zero volatile remanence plus zeroization leaves no powered-down data to recover | **🕳️ Absent** |
@@ -136,7 +136,7 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 | --- | --- | --- |
 | Stack, heap, object, and sub-object buffer overflows or out-of-bounds reads | Every usable pointer is a tagged capability with hardware-enforced bounds | **🛡️ Enforced** |
 | Pointer forgery, integer-to-pointer confusion, and fabricated device addresses | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **🛡️ Enforced** |
-| Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **🛡️ Enforced**<br>**✋ Rejected** |
+| Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **🛡️ Enforced**<br>**🕳️ Absent** |
 | Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **🛡️ Enforced** |
 | Cross-object, cross-compartment, and cross-kernel-partition corruption | Each object and partition is reachable only through bounded capabilities rooted in the static distribution | **🛡️ Enforced** |
 | C/C++, assembly, unsafe-Rust, or compiler-emitted code bypassing spatial checks | Capability checks apply to emitted machine accesses regardless of source language | **🛡️ Enforced** |
@@ -181,7 +181,7 @@ A compartment receives a fixed-table slot or whole core at composition; no runti
 | Priority inversion and priority-inheritance chains | There are no priorities to invert, so no inheritance chain can form | **🕳️ Absent** |
 | Kernel lock contention | There is no shared mutable kernel data, no kernel locks, and no kernel threads; the kernel runs on the caller's budget | **🕳️ Absent** |
 | Interrupt storms and interrupt-driven preemption of an unrelated partition | Interrupt arrival is latched pending state read by ordinary loads in the owner's own slot; the slot-boundary timer is the machine's only asynchronous trap | **🕳️ Absent** |
-| Termination and progress channels: one partition observing another's completion, progress, or fault | The frame is non-work-conserving: a partition that idles, diverges, or faults burns its slot without moving any boundary, so peers observe the schedule, never its progress. A compartment can read its own slot width, a recorded residual | **🕳️ Absent** |
+| Termination and progress channels: one partition observing another's completion, progress, or fault | The frame is non-work-conserving: a partition that idles, diverges, or faults burns its slot without moving any boundary, so peers observe the schedule, never its progress. A compartment can read its own slot width, a recorded residual | **🕳️ Absent**<br>**🚩 Residual** |
 | Slot overruns spilling into another partition's time | An interval-arithmetic admission proof fits every slot budget within the major frame, and overrun restarts the offender | **🕳️ Absent**<br>**✅ Proved** |
 | Forced revocation sweeps spilling into another partition's time | Grant churn sweeps only the granter's footprint, within fixed slots that cannot grow | **🕳️ Absent**<br>**✅ Proved** |
 
@@ -218,7 +218,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Secret residue in scalar registers and compiler-introduced spill slots | Final-binary checking requires every secret-typed value, including unseen spills, to reach an erasing operation | **✋ Rejected** |
 | Secret residue in the frames of a compartment that returns | Restart erases the compartment's whole footprint before any reuse | **🕳️ Absent** |
 | Secret-dependent traps and the restart they cause | Constant-time typing makes trap choice a function of public inputs, and restart consumes only the offender's slots | **✋ Rejected**<br>**🕳️ Absent** |
-| A crash record disclosing more than its labeled fault class | The sentinel receives a labeled fault from a closed enumeration, never verbose logs; that the record's shape bounds the class has no theorem, a recorded residual | **🕳️ Absent** |
+| A crash record disclosing more than its labeled fault class | The sentinel receives a labeled fault from a closed enumeration, never verbose logs; that the record's shape bounds the class has no theorem, a recorded residual | **🕳️ Absent**<br>**🚩 Residual** |
 | Unit, dimension, and clock-domain confusion in budget, frame, and deadline arithmetic | Quantities carry a phantom dimension decided by type equality and erased before code generation, so cycles cannot stand in for microseconds or bytes for elements | **✋ Rejected** |
 | Unbounded loops, handlers that outlive a slot, and timing-budget overruns | Syntax-directed WCET costs and loop-bound proofs must fit the static cyclic-executive slot | **✋ Rejected**<br>**✅ Proved** |
 | Stack exhaustion and unbounded recursion | The enumerated callee set proves call-graph acyclicity and recursion depth, so worst-case stack use is static; unbounded depth is refused | **✋ Rejected** |
@@ -245,11 +245,11 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Offline storage tampering and ciphertext substitution | Authenticate-then-return AEAD and the Merkle structure reject unauthenticated data before any byte is returned | **🛡️ Enforced**<br>**✅ Proved** |
 | Silent storage corruption and bit rot | Patrol reads scrub decay and read-disturb, rewriting pages approaching the correction limit; corruption that outruns the scrub fails authentication rather than returning silently | **🔔 Detected** |
 | Unauthorized rollback of system generations | Signed roots, monotonic counters, and an anti-rollback floor constrain which generation may boot | **🛡️ Enforced**<br>**✅ Proved** |
-| Test-mode re-entry, TAP unlock, and factory-mode escape | A fixed acyclic lifecycle over one-way OTP fuses omits these transitions: leaving test disables every debug and manufacturing interface at once, and nothing reopens them | **🛡️ Enforced** |
-| RMA returning a production device to a debuggable state with its secrets intact | Production's one outgoing edge is an authenticated, terminal RMA transition, preceded by crypto-erase, with no return path | **🛡️ Enforced** |
+| Test-mode re-entry, TAP unlock, and factory-mode escape | A fixed acyclic lifecycle over one-way OTP fuses omits these transitions: leaving test disables every debug and manufacturing interface at once, and nothing reopens them | **🕳️ Absent**<br>**🛡️ Enforced** |
+| RMA returning a production device to a debuggable state with its secrets intact | Production's one outgoing edge is an authenticated, terminal RMA transition, preceded by crypto-erase, with no return path | **🛡️ Enforced**<br>**🕳️ Absent** |
 | Engineering-key acceptance outside the factory | Lifecycle state enters the measured chain before ROM verifies any payload, making every transition attested, while state-diversified verification roots leave no engineering key acceptable in production | **🛡️ Enforced** |
 | Loader, dynamic-linker, relocation, and executable-format parser bugs | There is no on-device ELF loader or dynamic linker; a small verified content-addressed image reader and capability-wiring table replace them | **🕳️ Absent**<br>**✅ Proved** |
-| Malicious compiler, package, dependency, or build-farm output bypassing platform safety | The final artifact is independently type- or proof-checked and proved to correspond to its included source closure; source-level malicious dependencies remain least-authority contained | **✋ Rejected**<br>**✅ Proved** |
+| Malicious compiler, package, dependency, or build-farm output bypassing platform safety | The final artifact is independently type- or proof-checked and proved to correspond to its included source closure; source-level malicious dependencies remain least-authority contained | **✋ Rejected**<br>**✅ Proved**<br>**🛡️ Enforced** |
 | Protocol downgrade and negotiation confusion | Each protocol has one composition-fixed configuration, ciphersuite, and version, with no capability-driven fallback; downgrade generations are absent from silicon | **🕳️ Absent** |
 | Link and radio state-machine flaws | A Lustre control plane refines a formal model of the standard's state machine, making unmodeled states, transitions, and timers unreachable | **✅ Proved** |
 | Model unfaithfulness and composed session security | The state-machine claim is conformance, not protocol security: model faithfulness is review-gated, and composed session security a recorded residual | **🚩 Residual** |
@@ -267,12 +267,12 @@ Unlike the rows above, these allow the fault to occur but prevent it from passin
 | Latent errors accumulating past the correction distance | Background scrubbing finds and repairs errors while they are still correctable | **🔔 Detected** |
 | An uncorrectable error | The access fails stop rather than returning a value | **🔔 Detected** |
 | SRAM read-disturb, write-disturb, and half-select upsets | The same end-to-end ECC corrects these operationally induced flips, the far weaker analogs of the deleted DRAM disturbance classes | **🔔 Detected** |
-| A dead, stuck, or narrowly trimmed noise source weakening the one entropy root | Independent sources spanning at least two physical mechanisms are health-tested at startup and continuously after; failure is fail-stop, never a degraded draw. A failure the tests miss remains a recorded residual | **🔔 Detected** |
+| A dead, stuck, or narrowly trimmed noise source weakening the one entropy root | Independent sources spanning at least two physical mechanisms are health-tested at startup and continuously after; failure is fail-stop, never a degraded draw. A failure the tests miss remains a recorded residual | **🔔 Detected**<br>**🚩 Residual** |
 | Voltage or clock glitching, laser, and electromagnetic fault injection | ECC corrects stored-state faults, capability corruption traps on tag and bounds checks, the multikernel confines live-kernel faults for crash-only restart, and layered watchdogs reach wedged cores | **🔔 Detected** |
 | A fault the layered detectors miss | Coverage is evidence rather than theorem, and consumer-grade transient datapath strikes are unclaimed; both are recorded residuals | **🚩 Residual** |
 | Skipped critical instructions under an injected fault | The certifying compiler maintains control-flow signatures over boot verification, credential comparison, and lifecycle transitions; acceptance requires a comparison-derived token that fall-through or truncation cannot produce | **🔔 Detected** |
 | A fault-corrupted detector that cannot report itself | The sentinel is a detection-only lockstepped pair whose divergence latches fail-stop to the root of trust, with no third replicated core and no voting | **🔔 Detected** |
-| A partition alive but wedged, or a runaway holding its core | Watchdogs occupy failure domains disjoint from the cores, clock tree, and scheduler: the sentinel monitor restarts, revokes, or rolls back first, and the root of trust's always-on timer on an independent slow clock is the last resort. Only bite responds within a slot, a recorded limit | **🔔 Detected** |
+| A partition alive but wedged, or a runaway holding its core | Watchdogs occupy failure domains disjoint from the cores, clock tree, and scheduler: the sentinel monitor restarts, revokes, or rolls back first, and the root of trust's always-on timer on an independent slow clock is the last resort. Only bite responds within a slot, a recorded limit | **🔔 Detected**<br>**🚩 Residual** |
 | Reset loops hardening into permanent denial of service | Boot counting breaks a reset loop into minimal recovery, bounding downtime rather than permitting it | **🔔 Detected** |
 
 
@@ -284,7 +284,7 @@ These three limits are real obligations met outside the platform. Rows make each
 | --- | --- | --- |
 | Injection into an interpreter an application brings with it, web content in the browser being the standing case | **The compartment author.** An app's own string parser remains injectable within its compartment; manifest capabilities bound the blast radius to app authority | **🤝 Transferred** |
 | Upset rates and component reliability beyond what the die's own correction covers | **The deployment.** The platform mandates correction at every point; the deployment selects the radiation-hardening grade, the one source-rate lever an enclosure cannot supply | **🤝 Transferred** |
-| The user granting the authority they meant to grant | **The human.** The attested, unspoofable powerbox makes the grant mechanism trustworthy and CHERI-bounded, but no proof can establish that the user named the right object; the abuse-resistance half of that ceiling is booked open | **🤝 Transferred** |
+| The user granting the authority they meant to grant | **The human.** The attested, unspoofable powerbox makes the grant mechanism trustworthy and CHERI-bounded, but no proof can establish that the user named the right object; the abuse-resistance half of that ceiling is booked open | **🤝 Transferred**<br>**🚩 Residual** |
 
 
 ### The proof artifacts themselves
