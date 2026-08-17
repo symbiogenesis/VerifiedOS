@@ -15,7 +15,7 @@
 | **§0 The mechanism** | Why the list does not collapse into "adopt a conventional scheduler". | 0 |
 | **§1 Defects** | A quantity the register claims to bound and does not. | 0 |
 | **§2 Corrections** | Arguments that need restating; the conclusions stand. | 0 |
-| **§3 Statements** | Clauses the schedule model should add because something it depends on is inferable rather than stated. | 4 |
+| **§3 Statements** | Clauses the schedule model should add because something it depends on is inferable rather than stated. | 3 |
 | **§4 Decisions** | Genuine open questions. One cluster, two questions that stand or fall together. | 1 in 1 cluster |
 | **§5 Records** | A deliberate divergence and two free confirmations, recorded so a later reader does not mistake either for drift. | 1 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because each aims at what §0 settles. | 2 |
@@ -58,9 +58,6 @@
   [R-11-006](verification-maximal-os.md#r-11-006) requires each task's period to be harmonic with the major frame, stated as a property the admitted task set *has*. Real cadences do not have it: display refresh, radio frame timings, touch sampling and audio buffer periods are not mutually harmonic, so something must make them so, and the only two instruments are period distortion (running a task faster than its deadline needs, which spends capacity) and hyperperiod growth (which spends frame length). Optimal harmonic period assignment is itself NP-hard with known approximation algorithms, so this is tool work, not authoring guidance. **The clause to add is that the tool owns it and declares the cost**, because [R-11-015a](verification-maximal-os.md#r-11-015a) already makes frame capacity a quantity the toolchain chooses rather than merely reports, and harmonization spends it silently today.
 - [ ] **The intra-compartment concurrency model is run-to-completion over syntactic poll sites, and is stated rather than inferred.** *[R-07-039](verification-maximal-os.md#r-07-039), [R-07-043](verification-maximal-os.md#r-07-043) · lands in §7.7.*
   The model deletes the second scheduling level that ARINC 653 keeps and does not say what stands in its place. The rest of the design answers the question, since [R-07-043](verification-maximal-os.md#r-07-043) loses the preemption term precisely *because* the remaining trap points are syntactic poll sites already in the typed control-flow graph, which presumes a compartment structured as a cooperative reaction rather than as blocking threads; but the answer is load-bearing and unstated. It constrains every server and application author (no blocking call, no internal thread, cooperative structure throughout), and an author cannot conform to a rule that is only a consequence of someone else's WCET argument.
-- [ ] **Static schedule synthesis is a composition-tool duty, not an optional lever.** *[R-15-110](verification-maximal-os.md#r-15-110), [R-18-014c](verification-maximal-os.md#r-18-014c), [R-11-015a](verification-maximal-os.md#r-11-015a) · lands in §11 or §18; delete the corresponding `[U]` item and its table row from [performance-recovery-todo.md](performance-recovery-todo.md) when it does.*
-  Frame construction is strongly NP-hard, and the cyclic-executive literature from Baker and Shaw onward treats packing quality as the thing that decides whether a task set fits at all. Utilization loss is this model's headline cost, and better packing is the only lever that attacks it while changing no mechanism, no boundary, and no theorem. **The synthesizer spends no trust:** its output is validated by the interval-arithmetic admission check, the same untrusted-evidence-producing-machinery shape [R-15-110](verification-maximal-os.md#r-15-110) already applies to the design-space explorer, where a poor proxy costs search quality and never soundness. On an objective where engineering effort is free and trust is scarce, an *optional* marker on a zero-trust lever against the headline cost is the one place the schedule model's bookkeeping disagrees with the platform's own cost model.
-
 ---
 
 ## 4. Decisions
@@ -115,5 +112,5 @@
 | Section | Items | Class |
 | --- | --- | --- |
 | §7.7 Scheduling | intra-compartment concurrency model; second-level divergence record; both confirmations | 3, 5A, 5B |
-| §11 Timing and scheduling | discretionary frame period; harmonization as tool duty; schedule synthesis | 3 |
+| §11 Timing and scheduling | discretionary frame period; harmonization as tool duty | 3 |
 | §17.2 Timing and scheduling | the intra-label half of the population wall, if 4A is answered that way | 4A |

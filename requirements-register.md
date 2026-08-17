@@ -2152,6 +2152,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the direction is one-way and requires no trust in the producer, admission always consuming the bound re-derived from the shipped binary (R-11-015), so bad lowering costs capacity and never soundness, and a claimed tightening the derivation does not support fails admission rather than shipping a schedule that does not hold.
 · Trace: CJ-WCET
 
+**R-11-015b** MUST: Frame construction is a composition-tool duty discharged by search: the tool packs the cyclic-executive slots and the TDM NoC schedule with an ILP, SMT, or evolutionary optimizer whose feasibility oracle is the R-11-006 interval-arithmetic check, one loop with the R-18-014c lowering whose tightened bounds are its input.
+· Accept: the synthesizer is untrusted evidence-producing machinery of the R-15-110 shape, its output entering admission only through the slot widths, offsets, and NoC schedule the check re-reads (R-11-023), so a poor packing costs capacity and never soundness; the emitted frame remains non-work-conserving (R-07-036), with no slack donation and no runtime decision.
+· Trace: CJ-WCET
+
 **R-11-016** IS: The control tier's WCET is structural rather than estimated: Lustre/Vélus control planes compile to loop-free, statically-sized reactions, so the estimator's loop-bound and path analysis concentrate on the Rust data planes.
 · Accept: consistent with R-05-054.
 · Trace: CJ-VELUS, CJ-WCET
@@ -5192,7 +5196,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1195 requirements. §19 is non-normative and yields none. Counts include the 273 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1196 requirements. §19 is non-normative and yields none. Counts include the 274 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5206,7 +5210,7 @@ All eighteen normative sections are extracted, at 1195 requirements. §19 is non
 | **§8 Authority Model** | **extracted** | **61** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
-| **§11 Updates** | **extracted** | **32** |
+| **§11 Updates** | **extracted** | **33** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |

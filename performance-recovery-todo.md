@@ -65,24 +65,6 @@ Untrusted-producer status is necessary and not sufficient, though: where a trans
 
 ---
 
-## 2. Off-device design-space search: admission tests as hard constraints
-
-*Optimize the **instantiation**, never the specification.
-Every candidate is frozen at composition time, Sail-modeled, and must clear the five-part §15 admission test plus §8 NI / §11 schedulability, the proof obligations serving as the feasibility oracle.
-The spec stays invariant, so this widens no trust base, and is the correct reading of "run a search over the design."
-DSE is ordinary chip-design practice and the conventional baseline is itself a DSE output, so the **default** class here is **[U]**: it keeps the secure instantiation from being needlessly detuned rather than closing distance.
-The search itself is specified in §15 (normative) and [implementation-plan.md](implementation-plan.md) §1, with the §17 Sail ⋈ RTL residual naming it the standing mitigation; what remains open is below.
-**Profile-matched fusion-set selection has left this list**, landing normatively at R-15-031a/b/c (preamble); it is recorded here only because it is the worked example of what this section is for, a search over the instantiation that recovered a loss row without touching a theorem.*
-
-- [ ] **[U] Static schedule synthesis.**
-  Pack the cyclic-executive slots (§7) and the TDM-NoC arbitration schedule (§15) with an ILP / SMT / evolutionary optimizer, subject to the §11 interval-arithmetic schedulability check.
-  Tighter packing recovers the non-work-conserving-scheduler idle (−10% to −30%) and TDM-NoC (−5% to −12%) rows.
-  Compounds directly with the **bound-directed lowering** both compilers now owe (R-18-014c): the synthesizer's input *is* the WCET table, so every bound the backend tightens is frame capacity this pass can then allocate, and the two run as one loop rather than as two passes with a shared input.
-  This shrinks the design's **self-imposed** idle only; it can never reach the baseline's work-conserving efficiency (that would need slack donation = a timing channel), so the row is narrowed, not closed.
-  *Keeps it pure:* the frame stays **non-work-conserving**, no slack donation, no runtime scheduling decision, it is merely a better-packed static frame.
-
----
-
 ## Tensions between levers
 
 The list is not internally free: two pairs pull against each other, and each is arbitrated rather than merely noted.
@@ -101,7 +83,6 @@ The third column gives the class from **The two classes**, above.
 |---|---|---|
 | Software pipelining / modulo scheduling | In-order issue; no hardware caches | **[U]** Advanced cross-iteration scheduling only, and **optional**: mandating it would put modulo variable expansion's code growth on the required path. Ordinary latency scheduling is mandatory backend completeness under R-18-014a. Cheap here because §11's mandatory loop bounds *are* its input, and concentrated on the RVV kernels that have no fixed-function fallback. No no-prefetch row to claim (scored ≈0%; charging it double-counts) |
 | Size-constrained LTO / selective inlining / unrolling | Static prediction + in-order (compounding) | **[U]** Admitted only when image size and static Sail cost do not worsen |
-| Static schedule synthesis | Non-work-conserving scheduler; TDM NoC | **[U]** Shrinks a self-imposed idle; never reaches work-conserving. Loops with the mandatory bound-directed lowering (R-18-014c), whose tightened bounds are this pass's input |
 
 ---
 
@@ -118,7 +99,7 @@ The entries that restore deliberately deleted mechanisms describe the **irreduci
 - **DVFS / turbo, reactive clocking**, a data-dependent frequency channel; power states are static schedule artifacts (§7/§15).
 - **Prefetch / non-temporal hints (`Zicbop`/`Zihintntl`), a return-address stack, LR/SC**, reintroduce µarch state that WCET must model and admission-test-3 forbids.
   The pure-win substitute for prefetch is static load hoisting (§1); note that the estimates score no-prefetch at ≈0%, so the substitute is collecting a cost that was never booked as a loss.
-- **Slack donation / work-conserving scheduling / any reclaim of idle discretionary slots**, recorded here because §17 names it as the mechanism that will never be added: reclaiming an idle slot across a confidentiality boundary *is* the timing channel the non-work-conserving frame is buying. The pure-win substitutes are schedule synthesis (§2), the bound-directed lowering now normative at R-18-014c, and the composition-time granularity budget now normative at R-14-007a, none of which reclaim anything.
+- **Slack donation / work-conserving scheduling / any reclaim of idle discretionary slots**, recorded here because §17 names it as the mechanism that will never be added: reclaiming an idle slot across a confidentiality boundary *is* the timing channel the non-work-conserving frame is buying. The pure-win substitutes are the schedule synthesis now normative at R-11-015b, the bound-directed lowering now normative at R-18-014c, and the composition-time granularity budget now normative at R-14-007a, none of which reclaim anything.
 - **A hardware reference-count or ownership primitive (a capability-copy-intercepting counter, hardware *linear* capabilities)**, recovers refcount traffic only by adding microarchitecture: a new mutable per-object counter or a non-duplication check in the pipeline is exactly the hidden shared state admission-test-3 (§15) forbids, and it breaks the "no new µarch" premise the list rests on.
   There is no open performance substitute: temporal safety already rides the tag + revocation machinery and the linear/affine capability types (§8, §5, §13). Compiler work that merely realizes that required discipline is §13 hygiene, not a recovery lever until a scored instrumentation cost exists.
 - **Mandating V/M-class pinning to delete the eager-zeroize obligation.** §7 offers either static pinning of a V/M-class core to a single domain (preferred) or eager zeroize at the switch, and making pinning *mandatory* is proposed as **negative** proof surface: a register file that never crosses a domain has no residue question to discharge. It fails on two independent grounds.
@@ -140,7 +121,7 @@ The entries that restore deliberately deleted mechanisms describe the **irreduci
   **The available validation does not cover what the transformation can break.** Alive2-class translation validation checks LLVM IR refinement under the LLVM memory model; it models neither capability provenance, tags, bounds monotonicity, nor the purecap ABI, and it models neither constant-timeness nor WCET. Closing that gap means a CHERI-aware verified equivalence checker, which is exactly the artifact R-05-064 / R-18-022 deleted and R-05-065 forbids re-minting. The proposal therefore terminates either in unvalidated search output entering Tier-2 or in the deleted checker.
   **The reliability exposure is real precisely because admission is silent on it.** Admission decides memory safety, the CT taint discipline, and WCET typing, never Tier-2 functional correctness, so a well-typed wrong kernel is admitted and runs, and search-derived code is the class most likely to produce one.
   **The target is also mismatched.** Superoptimization returns on scalar bit and integer sequences, where `Zba`/`Zbb`/`Zbs` already books +2% to +12%, while the rows that dominate here are in-order latency and no-caches on the RVV kernels these tools do not address.
-  **What stays admissible is search as offline *discovery*:** Souper- or egg-class search may propose peephole patterns a human then lands in the ordinary backend, under normal review and the existing test suites. That yields optimizations, not shipped binaries. Search over **schedules and instantiation parameters** (§2) is untouched by this entry and remains open for the opposite reason: its output is a schedule or a parameter set, decided in full by the §11 schedulability check and the five-part §15 admission test, so none of it rests on unchecked functional correctness.
+  **What stays admissible is search as offline *discovery*:** Souper- or egg-class search may propose peephole patterns a human then lands in the ordinary backend, under normal review and the existing test suites. That yields optimizations, not shipped binaries. Search over **schedules and instantiation parameters** is untouched by this entry for the opposite reason, and is normative rather than open (R-11-015b; the §15 parameter search): its output is a schedule or a parameter set, decided in full by the §11 schedulability check and the five-part §15 admission test, so none of it rests on unchecked functional correctness.
 - **Restoring saved vector/matrix state across a partition switch.** The switch zeroizes and saves nothing (§7, R-07-014a); reintroducing a save to spare a slot-spanning computation its own state sink (R-07-014b) buys back availability convenience at the cost of a per-partition save area, a kernel save/restore path and its proof, and a resident copy of one domain's vector state between switches. The deletion argument is normative in §7 (R-07-014).
 - **Adding memory encryption or a memory integrity tree back**, and any capability-scoped variant of either.
   These are not on this list because they are not levers at all here: the memory path carries no cryptography (§15), so there is nothing to tune, amortize, or partition.
