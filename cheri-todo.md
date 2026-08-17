@@ -17,7 +17,7 @@
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral, a standards line having now made the opposite statement explicit. | 0 |
 | **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 0 |
-| **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 6 + 2 |
+| **§5 Confirmations** | Free confirmations, collected so a later reader does not mistake one for drift. | 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they bear on a decision the profile has taken. | 4 |
 
 *The matrix's own §11 summary tallies these differently, and lower. It counts by matrix **row**; this counts by **edit**.*
@@ -77,18 +77,7 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 ---
 
-## 5. Records to add
-
-### 5A. Deliberate divergences, recorded so a later reader does not read them as drift
-
-- [ ] **4-bit object type against RVY's 1-bit CT field.** *R-15-007, R-07-002b · Matrix §9.2.* A divergence in both directions, and the profile is not behind: RVY's base keeps one sealing bit where the profile keeps four otype bits.
-- [ ] **The forward/backward sentry split is ahead of RVY's base, not adrift from it.** *R-15-071 · Matrix §9.2.* CHERIoT 1.0 added it for exactly the profile's reason; RVY lists it as a *future* CT value and has **reserved encoding room**: `YSENTRY`'s `rs1` is held for a future `YSEAL` taking an authorizing capability.
-- [ ] **`YBLD` is base functionality upstream and forbidden at the root here.** *R-05-136 · Matrix §4, §9.2.* No reconstruction of a capability from its bit pattern, ever; the upstream use cases (swap, VM migration, runtime linking) are each independently absent.
-- [ ] **Pointer masking**, which RVY integrates for RVA23 compatibility and R-15-043 deletes. *R-15-043 · Matrix §9.2.* The divergence is **entirely a profile-compatibility artifact**: RVY must coexist with a ratified application profile; this platform curates its own.
-- [ ] **The per-load tag check is architectural here and implementation-defined upstream.** *R-08-005 · Matrix §9.2 `Svucrglct`.* RVY **dropped** `Svucrglct` on the ground that software must assume the check might not happen, so naming it buys nothing. The profile cannot take that position: R-08-005 makes the check architectural and fixed-latency **because containment latency is a proof obligation and a §11 schedule term**. Same mechanism, opposite conclusion, and the profile's reason is specific to it.
-- [ ] **Also record what §10 is actually refusing.** *R-15-078, R-15-079 · §10 · Matrix §9.2.* RVY spends real effort making a debugger work against capability state: CHERI mode on debug entry, `dpcc`, `drootcsel`, capability-width abstract commands. The profile's answer is orthogonal and stronger: the Debug Module is **lifecycle-fused in hardware**, clock and reset gated off in production. §10 states the fuse without stating that **the capability-debug surface is what the fuse is refusing**, worth one clause, so the profile does not read as merely *missing* the debug work.
-
-### 5B. Free confirmations to collect
+## 5. Free confirmations to collect
 
 - [ ] **`Zcd`, `Zcmp`, and `Zcmt` are incompatible with any purecap RV64 CHERI machine.** *R-15-036, R-15-036a · §6 · Matrix §9.2.*
   Purecap needs the 16-bit load/store encoding space for `C.LY`/`C.SY`, so the **code-size half of the `Zc*` family (push/pop multiple and table jump) was never on offer**, standards-track or not. The profile's `C` exclusion therefore forgoes less than a naive reading suggests: two of the three code-size instruments were unavailable regardless. It also removes a hypothetical objection, since `Zcmt`'s jump-vector table is a target-membership structure that would sit awkwardly beside sentry CFI and R-15-072's typed callee set anyway.
@@ -116,7 +105,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
 
 | Profile section | Items | Class |
 | --- | --- | --- |
-| §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations; divergence records | confirmations, 5A |
-| §10 Debug | what the fuse is refusing | 5A |
+| §6 Exclusions | `Zcd`/`Zcmp`/`Zcmt` and `Zicfiss` confirmations | §5 |
 
 **One item has no landing row and should get one at the freeze:** the profile places four bespoke instructions (the capability indexed load/store, `bfext`/`bfins`, and `cclear`) in "custom opcode space". At v0.9.8 **RVY relocated its own instructions into what is Custom-3 for RVI and reserved Custom1–3 wholesale** when the base ISA is RVY. There is **no defect today**, since the profile is not RVY-based. But it forecloses the encoding-level rapprochement that §11's parameterized-encoding-format argument would otherwise leave open, so **the encoding should be chosen knowing the standards line has claimed the same real estate** (R-15-007e, R-15-067a, R-15-069a, R-15-014; matrix §9.2).
