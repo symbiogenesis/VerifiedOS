@@ -1354,6 +1354,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: §11 makes population its own schedule axis (a proved rung ladder, distinct from the global mode transition and deliberately not rare), and §17 books what the division costs and what the rung index leaks.
 · Trace: CJ-WCET, CJ-NI
 
+**R-07-037a** MUST: A partition's internal concurrency model is run-to-completion over syntactic poll sites: a compartment is one cooperative reaction that runs from poll site to poll site, with no blocking call, no internal thread, no intra-partition preemption, and no inner scheduler, so nothing but the boundary timer ever takes the core from a running partition.
+· Accept: the rule is normative on every server and application author rather than inferred from a WCET argument: it is because compartments are structured this way that the remaining trap points are syntactic and R-07-043 loses the preemption term, and the §5/§12 plane split already compiles to the shape (R-05-054, R-12-002).
+· Trace: CJ-WCET, CJ-KERNEL
+
 ### 7.8 Interrupts
 
 **R-07-038** MUST NOT: Asynchronous interrupt delivery does not exist: an MSI sets a pending bit and does nothing else, and no pending bit ever vectors the core to `MTCC`.
@@ -2096,6 +2100,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the proof is a Coq artifact, not an analysis report.
 · Trace: CJ-WCET
 
+**R-11-006a** MUST: Harmonization is a composition-tool duty that declares what it spends: real cadences (display refresh, radio frame timings, touch sampling, audio buffer periods) are not mutually harmonic, so the tool assigns each task its admitted period by period distortion (which spends frame capacity) or hyperperiod growth (which spends frame length), inside the R-11-015b search loop, and the admission artifact carries each task's assigned period beside its deadline-derived one.
+· Accept: optimal harmonic period assignment is NP-hard, so the assignment is untrusted search of the R-15-110 shape: the R-11-006 check re-reads the assigned periods, so a poor assignment costs capacity and never soundness, and the capacity distortion spends is a declared quantity the R-11-015a accounting sees rather than slack that vanishes.
+· Trace: CJ-WCET
+
 **R-11-007** MUST: Monitor availability and watchdog-before-deadline ship as theorems; radio deadlines (HARQ feedback, ACK windows, idle-mode DRX paging reception, link-layer connection-event anchoring) are admitted hard tasks; the same proof yields the hardware watchdog's window parameters.
 · Accept: one artifact yields all three.
 · Trace: CJ-WCET
@@ -2184,6 +2192,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-11-022** MUST: (3) Within a rung the discretionary band is shaped as one focus slot plus (n−1) background slots, the focus slot taking a composition-fixed majority of the band.
 · Accept: interactive latency does not divide by *n* even though aggregate share does.
+· Trace: CJ-WCET
+
+**R-11-022a** MUST: The focus visit period is sized against input-event cadence (touch sampling and display refresh) exactly as R-07-042 sizes a device's poll cadence to its deadline, and the admission artifact carries a derived worst-case input-to-response bound (input event latched, focus slot entered, submitted frame caught by the display reservation's next scanout); a composition whose bound exceeds the deadline it declares fails admission.
+· Accept: focus-slot count per frame is a named schedule-shape choice the R-11-015b synthesizer may spend, two shorter focus slots per frame halving the focus visit period at identical share, admissible because the interval arithmetic quantifies over widths and offsets and never occupants (R-11-023).
 · Trace: CJ-WCET
 
 **R-11-023** MUST: (4) Which compartment occupies which slot is a permutation, not a schedule: slot widths and offsets are fixed by the rung, and the compositor requests a focus rebinding at a major-frame boundary which the kernel enacts by permuting the slot→compartment map.
@@ -5204,7 +5216,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1198 requirements. §19 is non-normative and yields none. Counts include the 276 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1201 requirements. §19 is non-normative and yields none. Counts include the 279 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5214,11 +5226,11 @@ All eighteen normative sections are extracted, at 1198 requirements. §19 is non
 | **§4 Organizing Principle** | **extracted** | **12** |
 | **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
-| **§7 Kernel** | **extracted** | **57** |
+| **§7 Kernel** | **extracted** | **58** |
 | **§8 Authority Model** | **extracted** | **61** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
-| **§11 Updates** | **extracted** | **33** |
+| **§11 Updates** | **extracted** | **35** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |

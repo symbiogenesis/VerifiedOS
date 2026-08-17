@@ -15,7 +15,7 @@
 | **§0 The mechanism** | Why the list does not collapse into "adopt a conventional scheduler". | 0 |
 | **§1 Defects** | A quantity the register claims to bound and does not. | 0 |
 | **§2 Corrections** | Arguments that need restating; the conclusions stand. | 0 |
-| **§3 Statements** | Clauses the schedule model should add because something it depends on is inferable rather than stated. | 3 |
+| **§3 Statements** | Clauses the schedule model should add because something it depends on is inferable rather than stated. | 0 |
 | **§4 Decisions** | Genuine open questions. One cluster, two questions that stand or fall together. | 1 in 1 cluster |
 | **§5 Records** | A deliberate divergence and two free confirmations, recorded so a later reader does not mistake either for drift. | 1 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because each aims at what §0 settles. | 2 |
@@ -32,7 +32,7 @@
 
 **The proof-cost half is measured, not asserted.** Connecting Prosa's mechanized response-time analysis to RT-CertiKOS (single-core, sequential, fixed-priority) took roughly 4,100 lines of Rocq for the connection alone, 1,900 of them interface translation (Liu et al., CAV 2019). seL4's MCS branch, the mechanism [R-07-035](verification-maximal-os.md#r-07-035) deletes, reached functional correctness on RISC-V in June 2026, roughly eight years after the mechanism was published, and its integrity and confidentiality proofs are outstanding still. An interval-arithmetic check over a harmonic task set ([R-11-006](verification-maximal-os.md#r-11-006)) is close to the cheapest schedulability obligation on offer, and on an objective that treats trust as the scarce resource that is the whole argument.
 
-**So the list is by construction the residue the mechanism choice does not reach.** Every item below leaves [R-07-032](verification-maximal-os.md#r-07-032), [R-07-036](verification-maximal-os.md#r-07-036), and [R-07-038](verification-maximal-os.md#r-07-038) exactly as they are. Three of the five spend no trust at all; the fourth (§4) is the one that would, and it is stated as a question rather than a proposal for that reason.
+**So the list is by construction the residue the mechanism choice does not reach.** Every item below leaves [R-07-032](verification-maximal-os.md#r-07-032), [R-07-036](verification-maximal-os.md#r-07-036), and [R-07-038](verification-maximal-os.md#r-07-038) exactly as they are. Only §4 would spend trust, and it is stated as a question rather than a proposal for that reason.
 
 ---
 
@@ -44,20 +44,14 @@
 
 ## 2. Corrections
 
-*None. In particular, [R-11-022](verification-maximal-os.md#r-11-022)'s claim survives inspection: with the discretionary band subdivided rather than the frame lengthened, a focus compartment is visited once per major frame at every rung, so interactive latency genuinely does not divide by* n *even though aggregate share does. What no requirement fixes is the constant it does not divide, which is [§3](#3-statements-to-add) below and not a correction to this one.*
+*None. In particular, [R-11-022](verification-maximal-os.md#r-11-022)'s claim survives inspection: with the discretionary band subdivided rather than the frame lengthened, a focus compartment is visited once per major frame at every rung, so interactive latency genuinely does not divide by* n *even though aggregate share does. The constant it does not divide is the focus visit period, which [R-11-022a](verification-maximal-os.md#r-11-022a) sizes against input-event cadence.*
 
 ---
 
 ## 3. Statements to add
 
-*Each is one or two clauses. Each is needed because something the model already depends on is inferable rather than stated, and silence about a load-bearing dependency is not neutral.*
+*None. The class is a clause the schedule model should add because something it depends on is inferable rather than stated, and silence about a load-bearing dependency is not neutral.*
 
-- [ ] **The discretionary frame period is sized against input-event cadence, and the resulting input-to-response bound is admitted.** *[R-11-008](verification-maximal-os.md#r-11-008), [R-11-022](verification-maximal-os.md#r-11-022) · lands in §11.*
-  [R-11-008](verification-maximal-os.md#r-11-008) sizes every *device's* poll cadence or sporadic slot to its deadline and admits the result. The discretionary band has no equivalent: its period falls out of composition rather than being sized against the deadline that governs it, which for the focus compartment is a human-perceptual one set by touch sampling and display refresh. The quantity that decides whether the machine feels responsive is therefore the one quantity in §11 that no requirement bounds. State it the way device latency is stated, and the useful corollary follows for free: two shorter focus slots per frame halve focus latency at identical share, which is a schedule-shape choice admission can make once it is written down as a choice.
-- [ ] **Harmonization is a composition-tool duty that reports the capacity it spends.** *[R-11-006](verification-maximal-os.md#r-11-006), [R-11-015a](verification-maximal-os.md#r-11-015a) · lands in §11.*
-  [R-11-006](verification-maximal-os.md#r-11-006) requires each task's period to be harmonic with the major frame, stated as a property the admitted task set *has*. Real cadences do not have it: display refresh, radio frame timings, touch sampling and audio buffer periods are not mutually harmonic, so something must make them so, and the only two instruments are period distortion (running a task faster than its deadline needs, which spends capacity) and hyperperiod growth (which spends frame length). Optimal harmonic period assignment is itself NP-hard with known approximation algorithms, so this is tool work, not authoring guidance. **The clause to add is that the tool owns it and declares the cost**, because [R-11-015a](verification-maximal-os.md#r-11-015a) already makes frame capacity a quantity the toolchain chooses rather than merely reports, and harmonization spends it silently today.
-- [ ] **The intra-compartment concurrency model is run-to-completion over syntactic poll sites, and is stated rather than inferred.** *[R-07-039](verification-maximal-os.md#r-07-039), [R-07-043](verification-maximal-os.md#r-07-043) · lands in §7.7.*
-  The model deletes the second scheduling level that ARINC 653 keeps and does not say what stands in its place. The rest of the design answers the question, since [R-07-043](verification-maximal-os.md#r-07-043) loses the preemption term precisely *because* the remaining trap points are syntactic poll sites already in the typed control-flow graph, which presumes a compartment structured as a cooperative reaction rather than as blocking threads; but the answer is load-bearing and unstated. It constrains every server and application author (no blocking call, no internal thread, cooperative structure throughout), and an author cannot conform to a rule that is only a consequence of someone else's WCET argument.
 ---
 
 ## 4. Decisions
@@ -111,6 +105,5 @@
 
 | Section | Items | Class |
 | --- | --- | --- |
-| §7.7 Scheduling | intra-compartment concurrency model; second-level divergence record; both confirmations | 3, 5A, 5B |
-| §11 Timing and scheduling | discretionary frame period; harmonization as tool duty | 3 |
+| §7.7 Scheduling | second-level divergence record; both confirmations | 5A, 5B |
 | §17.2 Timing and scheduling | the intra-label half of the population wall, if 4A is answered that way | 4A |
