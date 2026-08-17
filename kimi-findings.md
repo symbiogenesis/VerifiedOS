@@ -106,17 +106,7 @@ No contradictions were found on the checked points for the MCS deletion against 
 
 ---
 
-## 8. Register: the open extraction defect
-
-The surviving CSR bank was never decided register by register. Deleted CSRs are enumerated by name while the residue is stated nowhere, and both R-07-015 and R-15-214 quantify the total-restore obligation over *every CSR a partition can name* without that list existing. R-15-001b closed only the artifact half, `isa-profile.md` §5.3 now holding the enumeration with its rows marked open; no requirement yet decides membership.
-
-Of the open rows, the trigger module is the one with a security consequence rather than a documentation one: in standard RISC-V its CSRs are machine-mode accessible and therefore reachable in the production lifecycle state, and a trigger is mutable hidden state that fires on an address or data match and survives a partition switch, which is the shape admission test 3 rejects. The remaining rows are cause and trap-value reporting, the interrupt-enable and pending bits, `menvcfg`, the identification registers, `mhartid`, and `DDC`.
-
-The defect is also the register's own exhibit for its standing instruction: three enumeration-closing sweeps ran, and the assumption that a fourth list existed is what surfaced this one.
-
----
-
-## 9. Register: weak acceptance criteria
+## 8. Register: weak acceptance criteria
 
 Roughly a fifth of acceptance criteria are documentation-presence checks, consistency citations, tautologies, or existence-of-a-booking checks rather than decision procedures. The distribution is uneven and mostly explicable:
 
@@ -131,7 +121,7 @@ Explicitly circular cases are worth separating from merely weak ones. R-05-151's
 
 ---
 
-## 10. Register: the conferral mechanism
+## 9. Register: the conferral mechanism
 
 Requirements carrying `· Fail-closed:` confer into R-17-030r's seam register, and those carrying `· RoT-fresh:` confer into R-10-013a's freshness enumeration, with both directions checked: an unconferred member and an uncollected conferral each fail the build. Spot-checking the fail-closed conferrals against the text found them consistent with the collector.
 
@@ -141,7 +131,7 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ---
 
-## 11. Register: machinery cost
+## 10. Register: machinery cost
 
 **The derived-view boilerplate is restated near-verbatim four times**, in R-15-001a, R-15-100a, R-17-001b, and R-17-016a. It should be one requirement cited four times, which is the register's own rule for a set stated in more than one place, and the pattern its third sweep exists to remove.
 
@@ -155,7 +145,7 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ---
 
-## 12. The work list
+## 11. The work list
 
 *Distilled from the sections above; non-normative like the rest of this document. Items are grouped by what closing one costs, not by where it was found: **A** is a text edit whose answer the documents already contain, **B** is a call somebody has to make, **C** needs work that does not exist yet: a measurement, an argument, or a reading of the outside world. Each item names the requirements it lands on.*
 
@@ -171,7 +161,6 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ### B. Decisions: someone has to make the call
 
-9. **Decide the surviving CSR bank register by register.** `isa-profile.md` §5.3 holds the enumeration with rows open, and no requirement decides membership, while R-07-015 and R-15-214 quantify total-restore over *every CSR a partition can name*. The trigger module leads: machine-mode-accessible in standard RISC-V, reachable in the production lifecycle state, and mutable hidden state surviving a partition switch, which is the shape admission test 3 rejects. Then cause and trap-value reporting, interrupt-enable and pending, `menvcfg`, the identification registers, `mhartid`, and `DDC`.
 10. **Resolve the store buffer.** Four of five deletion gates clear; the fifth is a measurement. Take it, then either delete the buffer and execute the attached spec-body change list or close sequential-consistency-by-absence against its own falsifier, leaving `Ztso` normative (R-15-004, R-15-088).
 11. **Take or drop the quiescent point.** Binding revocation-sweep quanta to slot boundaries deletes a proof obligation; R-08-007 specifies the incremental preemptible form. The proposal is unresolved by design and should stop being so.
 12. **Book the tooling.** `tools/check.ps1 -Fix` writes the normative document it checks and appears in no trust-base inventory or axiom set, and derived figures in normative prose rot silently when it is not run. R-05-151a's negative-testing reasoning applies to the fixer's write authority, not only to the trace checker.

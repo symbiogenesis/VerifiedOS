@@ -2925,7 +2925,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL
 
 **R-15-001b** MUST: The surviving CSR bank is enumerated in that same view as the deletions are: register by register, each row citing the requirement that admits or excludes it. The enumeration closes the CSR address space (an address absent from the table is unallocated and traps under R-15-014, by that rule and not a second mechanism), so the "every CSR a partition can name" that the total restore quantifies over (R-07-015, R-15-214) is a list a reviewer can open.
-· Accept: [isa-profile.md](isa-profile.md) carries the table; every row cites a governing requirement or is marked **open**, and every open row is booked in the extraction defects with a disposition. This entry states no membership of its own: it requires the enumeration to exist and to be closed, exactly as R-15-001a requires both for the extension set, and admits no CSR that the requirements its rows cite do not already admit.
+· Accept: [isa-profile.md](isa-profile.md) carries the table, and every row cites a governing requirement that admits or excludes it, so a row deciding its own membership is a finding rather than a row awaiting one. This entry states no membership of its own: it requires the enumeration to exist and to be closed, exactly as R-15-001a requires both for the extension set, and admits no CSR that the requirements its rows cite do not already admit.
+· Trace: CJ-SAIL, CJ-KERNEL
+
+**R-15-001c** MUST NOT: `DDC` is absent: the default data capability exists to relocate and bound an integer-addressed access, which is the hybrid mode this platform does not have, so no instruction reads it, no trap installs it, and no partition can name it.
+· Accept: no `DDC` register appears in the Sail model, in any instruction's semantics, or among the state R-07-015's total restore quantifies over; the hybrid-mode exclusion that deletes its consumer is R-15-001's purecap-only ISA and R-15-242's anti-feature set, so a legacy integer-addressed load has no encoding for it to relocate.
 · Trace: CJ-SAIL, CJ-KERNEL
 
 **R-15-002** IS: The platform is single-physical-address-space under CHERI: no MMU, `satp` fixed to Bare, no Sv39 translation.
@@ -3321,6 +3325,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the CSR bank is absent.
 · Trace: CJ-SAIL
 
+**R-15-049a** MUST NOT: `menvcfg` is excluded on R-15-049's ground unchanged: every bit of it gates a *less-privileged* mode's access to an extension feature, and no less-privileged mode exists.
+· Accept: the register is absent, and the two bits that would otherwise be read as live are decided rather than assumed: `cbo.zero` is unconditionally permitted by R-15-060 rather than by a `CBZE` gate, and no capability-enforcement bit is deleted along with it, the platform being purecap-only with no capability-degraded state (R-15-001, R-18-002), so nothing in the deletion can turn enforcement off.
+· Trace: CJ-SAIL
+
 **R-15-050** MUST NOT: `Ssqosid` / CBQRI-shaped memory-bandwidth partitioning is excluded: bandwidth is not a quantity this platform allocates at runtime.
 · Accept: no `srmcfg` CSR, no RCID/MCID request tagging, no allocation or monitoring registers; each island's ceiling is read off the TDM NoC slot schedule and the bank/macro/tier binding by the §11 admission proof.
 · Trace: CJ-ISOL, CJ-WCET
@@ -3332,6 +3340,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-052** MUST: `misa` is read-only: no runtime ISA morphing.
 · Accept: writes to `misa` have no effect.
 · Trace: CJ-SAIL
+
+**R-15-052a** MUST: `mvendorid`, `marchid`, `mimpid`, and `mconfigptr` are hardwired zero, the reading RISC-V permits for all four.
+· Accept: each reads zero in every lifecycle state and is unwritable; no kernel path, admitted binary, or Sail definition branches on an implementation identifier, there being exactly one model frozen with the proof (R-15-005) and therefore no discovery question to ask.
+· Trace: CJ-SAIL
+
+**R-15-052b** MUST: `mhartid` is present and read-only, and is the sole implementation identifier with a consumer: one kernel binary runs unmodified on every core class (R-07-012), selecting its per-hart state, the core's class, and the island binding from it at boot.
+· Accept: the reachable value space is a composition-time constant fixed by the core roster rather than a discovered quantity, so a hart identity outside the composed roster is not a value the machine can present; the register is otherwise inert, carrying no writable field and no per-partition state.
+· Trace: CJ-SAIL, CJ-KERNEL
 
 ### 15.8 Adopted extensions
 
@@ -3408,6 +3424,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-066** IS: The platform is MSI-only and the curated device set makes that complete: every admitted device signals by an IMSIC store through the capability-checked fabric; the timer is core-local `mtimecmp`; the only non-MSI signals are the RoT's reset and watchdog-bite lines, which are resets outside the interrupt model.
 · Accept: no wired level interrupt exists on the die.
 · Trace: CJ-SAIL
+
+**R-15-066a** MUST: `mie` and `mip` are present narrowed to the machine-timer bits, which deletes fields rather than registers: `MTIE` and `MTIP` arm and report the slot-boundary timer, the core's only asynchronous trap (R-07-038, R-07-043, R-15-063).
+· Accept: the external-interrupt, software-interrupt, and supervisor-mode fields are hardwired zero and unwritable, so no partition can arm a delivery path that does not exist; MSI arrival remains latched pending state read with an ordinary load (R-15-065, R-15-066), and a set bit in either register therefore has exactly one meaning.
+· Trace: CJ-SAIL, CJ-KERNEL
 
 **R-15-067** IS: `Zba`/`Zbb`/`Zbs` (fixed-latency bit-manipulation) and `Zvfbfwma` (M-class bf16) are adopted.
 · Accept: they appear in the frozen profile with fixed-latency dispositions.
@@ -3512,6 +3532,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-079** MUST: In development and RMA lifecycle states, DM entry is an RoT challenge-response (ML-DSA-signed, serial-bound), the RoT key hierarchy diversifies by lifecycle state, and moving a fielded device to a debuggable state crypto-erases first; trace rides the same fuse.
 · Accept: a debuggable part cannot unseal production-sealed material, and the move that makes a fielded part debuggable is RMA, which is forward and terminal (R-09-035).
 · Trace: CJ-DEVTREE
+
+**R-15-079a** MUST NOT: The trigger module is implemented in no lifecycle state: `tselect`, `tdata1`–`tdata3`, and the match logic behind them are deleted rather than fused with the Debug Module, because their CSRs are machine-mode-accessible and machine mode is the only mode here, so a fused trigger module would still leave a comparator any compartment holding access-system-registers permission can arm, firing on an address or data match and holding its arming across a partition switch.
+· Accept: no trigger CSR, match comparator, or trigger-fired trap cause enters Sail or RTL, so the structure is named by neither the total restore (R-07-015) nor the flush set (R-15-213, R-15-215) because it does not exist rather than because it is gated, and the hidden-state case admission test (3) rejects (R-15-010, R-15-012) does not arise in the production state or in any other. The cost is stated rather than hedged: development debugging carries no hardware watchpoint, its whole instrument being DM halt, single-step, abstract register access, and lifecycle-gated trace (R-15-078, R-15-079), with a wild write bounded by CHERI and reported through `mcause`/`mtval` (R-15-073a) in place of a data watchpoint.
+· Trace: CJ-SAIL, CJ-ISOL
 
 ### 15.12 Implementation timing contracts
 
@@ -5156,7 +5180,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1186 requirements. §19 is non-normative and yields none. Counts include the 264 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1192 requirements. §19 is non-normative and yields none. Counts include the 270 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5174,7 +5198,7 @@ All eighteen normative sections are extracted, at 1186 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **344** |
+| **§15 Hardware Platform** | **extracted** | **350** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **108** |
 | **§18 Realization** | **extracted** | **46** |
@@ -5185,22 +5209,9 @@ All eighteen normative sections are extracted, at 1186 requirements. §19 is non
 
 Normative claims that resist atomic restatement, per R-05-153. This is the register's standing output and the review gate's agenda (R-18-035): an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is itself a spec defect by R-05-153's own rule. A claim booked here is a defect in [verification-maximal-os.md](verification-maximal-os.md) to be repaired there, never a register omission to be worked around here.
 
-**Open defects: one, with six rows.**
+**Open defects: none.**
 
-**D-CSR: the surviving CSR bank is not decided register by register.** Sweep 1's class, found in a fourth list: §15 enumerates the deleted CSRs by name and states the residue nowhere, while R-07-015 and R-15-214 both quantify over "every CSR a partition can name." R-15-001b closes the *artifact* half (the enumeration now exists, in [isa-profile.md](isa-profile.md) §5) and this entry holds the rows the enumeration found that no requirement decides. Each is a defect in [verification-maximal-os.md](verification-maximal-os.md) §15 to be repaired there; the profile view carries the same rows marked **open** and decides none of them.
-
-| Row | What is undecided | Indicated |
-| --- | --- | --- |
-| `mie` / `mip` | the machine-timer bits have a consumer (R-07-043, R-15-063); the external- and software-interrupt bits do not (R-15-065, R-15-066) | present, narrowed to the timer bits |
-| `menvcfg` | R-15-049's ground against `Smstateen` applies word for word and is stated only for `Smstateen`; `Zicboz`'s `CBZE` bit is the case to check (R-15-060) | deletion |
-| `mvendorid` / `marchid` / `mimpid` / `mconfigptr` | one Sail model frozen with the proof (R-15-005) has no runtime discovery consumer | hardwired zero |
-| `mhartid` | one kernel binary across core classes needs hart identity (R-07-012); no requirement says so | present |
-| `tselect` / `tdata1–3` | the lifecycle fuse is stated for the Debug Module and trace (R-15-078, R-15-079); the trigger module is not named, and its CSRs are M-mode-accessible in standard RISC-V: mutable hidden state surviving a partition switch, the shape admission test (3) rejects (R-15-010, R-15-012) | absent, or fused with the DM |
-| `DDC` | purecap-only with no hybrid mode (R-15-001) leaves it without a consumer, but nothing retires it and the total restore would have to name it (R-07-015) | absent |
-
-The `tselect` / `tdata` row is the one with a security consequence rather than a surface consequence, and it is the row that most repays being asked early.
-
-An empty list is not the same as a swept one, which is what this entry turns on. Three sweeps run over the register, each finding instances the one before it could not see:
+An empty list is not the same as a swept one, which is what this section turns on. Three sweeps run over the register, each finding instances the one before it could not see:
 
 1. **What does a reviewer open to decide this?** Asked of one acceptance criterion at a time. Criteria that quantify over a list no artifact holds are the class this finds; it is closed for the three lists it found (the frozen profile, the absence contract, the crown-jewel inventory), each a derived view under R-15-001a, R-15-100a, and R-17-016a.
 2. **What does the register restate that nothing checks?** The widened form of the same class, covering any claim held in a second place with no artifact checking the two agree. This is why traces are bookmarks rather than line numbers, and why the derived views are machine-checked in both directions rather than maintained by care.

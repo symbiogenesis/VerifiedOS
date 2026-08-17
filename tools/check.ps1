@@ -354,7 +354,7 @@ foreach ($v in $vocab) {
 # both at a distance from the edit that caused them.
 #
 # The §n.m half resolves against the numbered headings of the whole repository rather
-# than one document's, because the numbering is shared: §5.3 is the register's
+# than one document's, because the numbering is shared: §5.2 is the register's
 # subsection and the profile's CSR section, and which is meant is the sentence's
 # business. What the check holds is the weaker property that closes the drift: a number
 # no document carries at all is a reference to a section that has been renumbered away.
@@ -680,7 +680,6 @@ $claims = @(
     @{ File = 'requirements-register.md'; Q = 'sections';      Style = 'words';  Pattern = '[\w-]+(?= normative sections are extracted)' }
     @{ File = 'requirements-register.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=extracted, at )[\d,]+(?= requirements)' }
     @{ File = 'requirements-register.md'; Q = 'lettered';      Style = 'digits'; Pattern = '(?<=Counts include the )[\w,-]+(?= letter-suffixed entries)' }
-    @{ File = 'requirements-register.md'; Q = 'dcsr-rows';     Style = 'words';  Pattern = '(?<=one, with )[\w-]+(?= rows)' }
 
     # the crown-jewel inventory states its own status ratio
     @{ File = 'crown-jewels.md'; Q = 'cj-targets';    Style = 'digits'; Pattern = '[\d]+(?= entries, all used)' }
@@ -716,7 +715,6 @@ $claims = @(
     @{ File = 'README.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= \*\*derived views\*\* collect)' }
     @{ File = 'README.md'; Q = 'sections';      Style = 'words';  Pattern = '(?<=covers all )[\w-]+(?= normative sections)' }
     @{ File = 'README.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=sections as )[\d,]+(?= numbered requirements)' }
-    @{ File = 'README.md'; Q = 'dcsr-rows';     Style = 'words';  Pattern = '(?<=whose )[\w-]+(?= rows are surviving CSRs)' }
     @{ File = 'README.md'; Q = 'absences';      Style = 'words';  Pattern = '[\w-]+(?= enumerated absences)' }
     @{ File = 'README.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=the )[\w-]+(?= specifications the §5 review gate audits)' }
     @{ File = 'README.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=plus the )[\w-]+(?= theorem targets)' }
@@ -734,8 +732,6 @@ $claims = @(
     @{ File = 'critique.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '(?<=\*\*)[\w-]+(?= are not authored\*\*)' }
     @{ File = 'critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=The )[\w-]+(?= theorem targets each depend)' }
     @{ File = 'critique.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of those premises do not exist)' }
-    @{ File = 'critique.md'; Q = 'dcsr-rows';     Style = 'words';  Pattern = '(?<=one defect with )[\w-]+(?= rows)' }
-    @{ File = 'critique.md'; Q = 'dcsr-rows';     Style = 'words';  Pattern = '(?<=All )[\w-]+(?= rows are one class)' }
     @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown jewels, each a small oracle)' }
     @{ File = 'critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=of )[\d,]+(?= acceptance criteria)' }
     @{ File = 'critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=of the )[\d,]+(?= requirements has yet been booked)' }
