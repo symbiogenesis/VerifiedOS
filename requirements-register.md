@@ -4919,7 +4919,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: mitigations are module certification with inheritance, RoT attestation giving stronger version binding than the industry norm, and private-network deployment as the lighter-certification first ring.
 · Trace: CJ-DEVTREE
 
-**R-17-051** IS: The 5G/6G-only generation floor narrows deployability, and emergency calling inherits it: emergency reach equals 5G/6G coverage reach, a coverage-for-security trade extended to E911/E112 by decision rather than by silence.
+**R-17-051** IS: The 5G/6G-only generation floor narrows deployability, and emergency calling inherits it and narrows further: emergency reach equals the reach of 5G-SA/6G networks carrying IMS emergency over VoNR, a set lagging SA radio coverage itself since EPS fallback is excluded, a coverage-for-security trade extended to E911/E112 by decision rather than by silence.
 · Accept: the trade is stated in §15, §12, and here.
 · Trace: CJ-SAIL · [§17](verification-maximal-os.md#r-17-051), [§17](verification-maximal-os.md#r-17-051-2)
 
