@@ -4460,8 +4460,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each enabling property is a §15 mandate.
 · Trace: CJ-WCET, CJ-SAIL
 
-**R-16-012** MUST NOT: No verbose logging mode exists: one that captured data-dependent runtime state would be an unlabeled cross-boundary channel the non-interference theorem forbids and a forensic surface on a seized device.
-· Accept: capability use *is* declassification, so an ambient log has no lawful form.
+**R-16-012** MUST NOT: No ambient verbose logging mode exists: an unlabeled sink capturing data-dependent runtime state would be a cross-boundary channel the non-interference theorem forbids and a forensic surface on a seized device. R-16-021's labeled, capability-scoped, lifecycle-gated sink is not one of those and is not prohibited here.
+· Accept: capability use *is* declassification, so an ambient log has no lawful form; the absence check ranges over unlabeled sinks, R-16-021's gated form being lawful under that same test.
 · Trace: CJ-NI
 
 **R-16-013** MUST: A fault raises a bounded, authenticated crash record through the sentinel telemetry monitor: fault class, faulting capability and program counter, compartment identity, the ECC or tag-trap cause, and a sealed input trace, schema-bounded like any §5 wire format, never free-form text.

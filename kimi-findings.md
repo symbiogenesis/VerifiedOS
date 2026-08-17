@@ -100,8 +100,6 @@ No contradictions were found on the checked points for the MCS deletion against 
 
 ## 7. Register: contradictions and overlaps
 
-**R-16-012 against R-16-021.** An unqualified *no verbose logging mode exists* against a mandated capability-scoped, lifecycle-gated diagnostic sink. The reconciliation (unlabeled and ambient versus labeled and gated) lives only in R-16-012's accept text, not in its statement.
-
 **R-05-022 against R-05-109 and R-05-073.** R-05-022 counts aiT and Binsec/Rel among five interim non-Coq anchors carrying retirement rules, while R-05-109 says no admitted bound cites aiT as its ground and R-05-073 says Binsec/Rel is never the axiom. An artifact outside the trust base is not an anchor and needs no retirement, so the five-entry list mixes two categories.
 
 **R-17-058 against R-15-184.** Rowhammer is *dramatically reduced rather than mitigated* in one place and has *no charge-disturbance analog in SRAM*, apparatus *deleted rather than tuned*, in the other. Reconcilable through R-15-184's own residual on SRAM disturb modes, but the two headlines disagree in strength.
@@ -147,7 +145,7 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ## 11. Register: machinery cost
 
-**The entry grammar is violated by the register itself.** The header specifies one `· Accept:` line per entry. R-08-012e, R-10-013a, and R-17-030r carry three each; R-15-190 and R-15-189j carry two. Which bullet decides the requirement is undefined, in a document whose premise is one decidable criterion per obligation. This is the clearest and cheapest fix in this section.
+**The entry grammar is violated by the register itself.** The header specifies one `· Accept:` line per entry. Eleven entries carry more than one, twenty extra lines in all: R-15-054a carries five, R-15-007k and R-15-007q four each, R-15-007l and R-15-007m three, and R-10-013a, R-15-007r, R-15-073b, R-15-073c, R-15-163, and R-17-030r two apiece. Which bullet decides the requirement is undefined, in a document whose premise is one decidable criterion per obligation. The concentration in §15.1 is the signal: the multi-criterion entries are the ones arguing a disposition against named alternatives, which is a shape the grammar has no line for.
 
 **The derived-view boilerplate is restated near-verbatim four times**, in R-15-001a, R-15-100a, R-17-001b, and R-17-016a. It should be one requirement cited four times, which is the register's own rule for a set stated in more than one place, and the pattern its third sweep exists to remove.
 
@@ -169,11 +167,10 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ### A. Defects: the answer is already in the documents
 
-1. **Move R-16-012's reconciliation into its statement.** *No verbose logging mode exists* means no unlabeled ambient sink; the capability-scoped, lifecycle-gated diagnostic sink of R-16-021 is not one, and only the accept text says so.
 2. **Split R-05-022's five-entry anchor list.** aiT and Binsec/Rel are outside the trust base by R-05-109 and R-05-073, so they are not anchors and carry no retirement rule.
 3. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with R-15-184's residual SRAM disturb modes as the qualifier on whichever wording survives.
 4. **Fix the flush-set wording in the RVV/`Zfinx` entry.** The store buffer is the sole `fence.t` flush-set member (R-15-213), and register-file membership is declined (R-07-016).
-5. **Restore one `· Accept:` per entry.** R-10-013a and R-17-030r carry two. Either fold each set into one criterion or amend the header grammar to say which bullet decides; silence on that point is the actual defect.
+5. **Settle the `· Accept:` grammar.** Eleven entries carry more than one criterion, R-15-054a five and R-15-007k and R-15-007q four. Folding twenty lines back into eleven is no longer the cheap half; amending the header to say the lines are conjunctive, and letting `tools/check.ps1` enforce that reading, is. Silence on which bullet decides is the actual defect.
 6. **Collapse the derived-view boilerplate.** R-15-001a, R-15-100a, R-17-001b, and R-17-016a state it near-verbatim; one requirement cited four times is the register's own rule.
 7. **Break the circular acceptance criteria.** R-05-151 (its criterion is the document containing it), R-01-001 against R-04-001, and R-03-008 against R-17-030r, whose own half is conceded to be a review-gate finding with nothing enforced.
 8. **Give §1 and §3 criteria a decision procedure or §17's preamble.** Goal and threat entries currently restate their premises without §17's explicit *booked with its owner and scope rather than absorbed* excuse.
