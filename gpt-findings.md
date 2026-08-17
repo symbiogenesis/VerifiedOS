@@ -24,10 +24,6 @@ Uniform flat SRAM access latency is what replaces DRAM's row-buffer variance and
 
 Worth noting for whoever authors row 15: the static memory plan already emits a per-mode occupancy map over banks, macros, and tiers (R-08-012a, R-08-012e), so most of the placement machinery a fixed-latency-class hierarchy would need already exists. What does not exist is any requirement making the classes architecturally visible.
 
-**4. Package installation conflicts with build-time composition.** · **Open.**
-
-R-04-008 fixes every compartment at composition and R-07-025 fixes the component graph and capability distribution at build time, while R-12-024b compiles a handler and translator graph from installed packages and R-13-001 gives each package a capability manifest. The finding's two candidate readings (atomic next-boot recomposition, or binding into pre-proved empty slots) are the right pair, and the lifecycle specifies neither.
-
 ---
 
 **Radical Simplifications, dispositioned**
@@ -38,6 +34,6 @@ R-04-008 fixes every compartment at composition and R-07-025 fixes the component
 
 ---
 
-**What remains concretely closeable:** non-atomic package recomposition.
+**What remains concretely closeable:** nothing on this list. Findings 1 and 2 are product and sequencing decisions, and finding 3 waits on an unauthored artifact.
 
 Wrong responses to a failed verdict, runtime-value-dependent overflow, analog power and EM leakage, human consent, protocol-standard flaws, and fail-closed denial remain honestly recorded as residuals rather than overlooked bugs.

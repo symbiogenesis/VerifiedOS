@@ -2335,8 +2335,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no VFS, registry, metadata database, or launcher is added; the service holds no standing cross-caller namespace authority, each delegation ending with its session at the revocation epoch; and compromise costs correct routing or availability rather than authority confinement.
 · Trace: CJ-NI, CJ-CERISE, CJ-IDL · [§12](verification-maximal-os.md#r-12-024a)
 
-**R-12-024b** MUST: The handler and translator graph is a finite signed composition-time object compiled from installed packages' interface descriptors and rebuilt and re-signed at package install rather than only at a system-generation flip, with deterministic typed routing and no runtime registration, executable lookup, shell command, plugin load, or content sniffing.
-· Accept: the graph is a typed signed configuration object admitted on the ordinary install path (R-13-001, R-13-002), and an intent naming no admitted edge fails closed.
+**R-12-024b** MUST: The handler and translator graph is a finite signed composition-time object compiled from installed packages' interface descriptors and rebuilt and re-signed with the generation an install composes (R-13-001a), never amended in a running one, with deterministic typed routing and no runtime registration, executable lookup, shell command, plugin load, or content sniffing.
+· Accept: the graph is a typed signed configuration object carried by the generation root and admitted on the ordinary install path (R-13-001, R-13-002), and an intent naming no admitted edge fails closed.
 · Trace: CJ-IDL, CJ-DEVTREE, CJ-NI · [§12](verification-maximal-os.md#r-12-024b)
 
 **R-12-024c** MUST: One-shot translation and streaming media use the same static typed graph: streaming binds a composition-time template from pre-composed node and bounded-ring pools, with every node's WCET, memory, labels, and device reservation admitted under §11 before it may be bound, at release time for base-image nodes and at install time for package-supplied ones.
@@ -2645,6 +2645,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-13-001** IS: A package is content plus its exact content-addressed source closure, a capability manifest, and a proof object; installation is proof check, store insertion, and capability wiring.
 · Accept: source, generated inputs, dependency sources, configuration, and semantic-anchor version are hash-named in the closure; no other installation step exists.
 · Trace: CJ-TAL-SOUND · [§13](verification-maximal-os.md#r-13-001)
+
+**R-13-001a** MUST: An install is a generation, not an amendment to one: installing, removing, or reconfiguring a package composes a new signed generation over the resulting roster and commits it through the one A/B transactor (R-11-001, R-11-005), and that composition takes effect at the next boot. R-13-001's *capability wiring* is the construction of the new generation's initial distribution (R-07-019, R-13-006), never a mint into a running one, so R-04-008 and R-07-025 hold across the install path rather than carrying an exception for it.
+· Accept: the install is therefore atomic, is an ordinary point in the signed diffable generation history (R-10-030), inherits health-gated auto-rollback so a package that wedges the boot is reverted with no user present (R-11-001), and takes the anti-rollback floor and the durable-state schema-migration rule already stated for a generation change (R-09-030, R-10-036) rather than a second set; no reachable state has some compartments running the old composition and some the new, and uninstalling is the same operation over a roster with the package removed rather than a distinct teardown path.
+· Trace: CJ-DEVTREE, CJ-CERISE · [§13](verification-maximal-os.md#r-13-001a)
+
+**R-13-001b** MUST NOT: There are no pre-proved empty compartment slots: no reservation is composed and admitted ahead of the content that would occupy it, and no package binds into one.
+· Accept: such a reservation would have to carry banks in the per-mode occupancy map (R-08-012a, R-08-012e), a schedule slot with a WCET and a switch-duty ratio (R-11-006, R-11-009), a standing NoC reservation (R-11-008), and a share of the initial distribution (R-07-019), each sized for an occupant that does not exist yet, which is worst-case sizing plus a dynamic allocator wearing static syntax; and the whole-image dead and duplication passes read the composed roster (R-13-010a, R-13-010b), so an empty slot is precisely what they cannot see into. The composition-time template of R-12-024c is not this and survives unchanged: it binds nodes already composed and already admitted under §11, creating no compartment, no edge type, and no reservation.
+· Trace: CJ-MEMPLAN, CJ-WCET · [§13](verification-maximal-os.md#r-13-001b)
+
+**R-13-001c** MUST: The composer that turns a roster into a generation is an untrusted producer and is off-device with the rest of the certifying toolchain (R-13-010), because the whole-image passes emit new bytes and must emit the CHERI-TAL derivation and source-correspondence theorem covering them (R-13-010a, R-13-010b); the device names the roster it wants, fetches the objects it lacks (R-13-008), and admits the result through the ordinary checks (R-06-008, R-11-005).
+· Accept: this is artifact-not-pedigree (R-13-013) applied to the composer, which accordingly joins no trust base and may be any party, the user's own machine included; a composer that gets the memory plan, schedule, wiring table, or handler graph wrong fails admission rather than shipping, which is R-17-033's completeness polarity arriving at composition rather than at a single artifact. What it costs is booked in R-17-035a.
+· Trace: CJ-TAL-SOUND, CJ-DEVTREE · [§13](verification-maximal-os.md#r-13-001c)
 
 **R-13-002** MUST NOT: There are no maintainer scripts, no post-install execution, and no runtime code fetching by system components.
 · Accept: the installation path executes no package-supplied code.
@@ -4705,6 +4717,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the window is budgeted, not hidden, and deliberately preferred over a fast unverified hot-patch.
 · Trace: CJ-CERISE · [§17](verification-maximal-os.md#r-17-035)
 
+**R-17-035a** IS: The generation-boundary seam is that same window on the install path, and it has two halves. **Latency:** because an install is a generation (R-13-001a), adding a package costs a boot, and the atomicity, the whole-roster memory plan, the schedulability proof, and the cross-roster merge are all bought at the price of immediacy, with the reboot additionally discarding everything outside the enumerated mutable volumes (R-10-026). **Disclosure:** a generation is roster-specific, so composing one off-device (R-13-001c) tells the composer what the device has installed.
+· Accept: both are stated rather than answered by a mechanism. The latency is the cost of refusing a running-system mutation, which is the same refusal R-17-035 pays for above and not a second one, and the discarded volatile state is exactly the class R-10-035's declared durable regions exist to take out of the discard. The disclosure narrows to nothing where the user composes locally, the composer being any party rather than a vendor (R-13-013), at the price of running the certifying toolchain themself; a device that will not do that discloses its roster, and no on-device composition path is offered instead, because one would have to certify what it emits (R-13-001c).
+· Trace: CJ-DEVTREE, CJ-NI · [§17](verification-maximal-os.md#r-17-035a)
+
 **R-17-036** IS: On-device verbose diagnostics remain an observation capability deliberately confined rather than eliminated, its confinement resting on the lifecycle-state gate and the sink's confidentiality label.
 · Accept: discharged by R-16-021.
 · Trace: CJ-NI · [§17](verification-maximal-os.md#r-17-036)
@@ -5080,7 +5096,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1165 requirements. §19 is non-normative and yields none. Counts include the 243 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1169 requirements. §19 is non-normative and yields none. Counts include the 247 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5096,11 +5112,11 @@ All eighteen normative sections are extracted, at 1165 requirements. §19 is non
 | **§10 Storage & State** | **extracted** | **49** |
 | **§11 Updates** | **extracted** | **28** |
 | **§12 System Servers** | **extracted** | **105** |
-| **§13 Packaging & Supply Chain** | **extracted** | **34** |
+| **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **334** |
 | **§16 Reliability** | **extracted** | **28** |
-| **§17 Residual Risks** | **extracted** | **106** |
+| **§17 Residual Risks** | **extracted** | **107** |
 | **§18 Realization** | **extracted** | **46** |
 
 §19 is non-normative and yields no requirements.
