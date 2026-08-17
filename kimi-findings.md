@@ -100,8 +100,6 @@ No contradictions were found on the checked points for the MCS deletion against 
 
 ## 7. Register: contradictions and overlaps
 
-**R-05-022 against R-05-109 and R-05-073.** R-05-022 counts aiT and Binsec/Rel among five interim non-Coq anchors carrying retirement rules, while R-05-109 says no admitted bound cites aiT as its ground and R-05-073 says Binsec/Rel is never the axiom. An artifact outside the trust base is not an anchor and needs no retirement, so the five-entry list mixes two categories.
-
 **R-17-058 against R-15-184.** Rowhammer is *dramatically reduced rather than mitigated* in one place and has *no charge-disturbance analog in SRAM*, apparatus *deleted rather than tuned*, in the other. Reconcilable through R-15-184's own residual on SRAM disturb modes, but the two headlines disagree in strength.
 
 **Aligned restatements**, stated two or three times each and worth citing rather than repeating: no asynchronous interrupt delivery; no MMU and a single address space; biometrics never releasing at-rest keys; sealed cutoffs dominating emergency call; lockout cutting microphone, camera, and USB while the radio stays pageable; global mode transitions being rare and never load-following; no link-time specialization on confidential values; no POSIX shim; no dynamic speculation. Three earlier collisions are self-documented as repaired (competing axiom enumerations scoped, crown-jewel roll-call drift closed by conferral, the obligation list replaced by citation), and the repair pattern is consistent.
@@ -167,7 +165,6 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ### A. Defects: the answer is already in the documents
 
-2. **Split R-05-022's five-entry anchor list.** aiT and Binsec/Rel are outside the trust base by R-05-109 and R-05-073, so they are not anchors and carry no retirement rule.
 3. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with R-15-184's residual SRAM disturb modes as the qualifier on whichever wording survives.
 4. **Fix the flush-set wording in the RVV/`Zfinx` entry.** The store buffer is the sole `fence.t` flush-set member (R-15-213), and register-file membership is declined (R-07-016).
 5. **Settle the `· Accept:` grammar.** Eleven entries carry more than one criterion, R-15-054a five and R-15-007k and R-15-007q four. Folding twenty lines back into eleven is no longer the cheap half; amending the header to say the lines are conjunctive, and letting `tools/check.ps1` enforce that reading, is. Silence on which bullet decides is the actual defect.

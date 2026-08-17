@@ -323,7 +323,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-COMPCERT, CJ-VELUS
 
 **R-05-022** MUST: Every interim non-Coq anchor carries a named Coq-native destination and is governed by one stated retirement rule: an interim retires when its destination has passed admission for every consumer that currently rides the interim, and is struck from the trust-base inventory in that same generation.
-· Accept: *retired* is decided by inspecting two lists (the interim's consumer set and the destination's admitted artifacts) rather than by judgment. The five entries (F\*/Z3 for libcrux/HACL\*, EasyCrypt's Why3/SMT, aiT, Binsec/Rel, Cranelift/Crocus's SMT) each carry a destination and a consumer list.
+· Accept: *retired* is decided by inspecting two lists (the interim's consumer set and the destination's admitted artifacts) rather than by judgment. The three entries (F\*/Z3 for libcrux/HACL\*, EasyCrypt's Why3/SMT, Cranelift/Crocus's SMT) each carry a destination and a consumer list. aiT and Binsec/Rel are not interim anchors and carry no retirement rule: nothing rides either as its ground (R-05-109, R-05-073), so neither is in the trust-base inventory to be struck from.
 · Trace: CJ-T
 
 **R-05-022a** MUST: An interim whose consumer set grows without its destination advancing is a review-gate finding, not a silent extension.
