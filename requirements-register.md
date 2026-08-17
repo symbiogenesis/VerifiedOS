@@ -1350,13 +1350,17 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: there is no donation mechanism for slack to leak through.
 · Trace: CJ-NI, CJ-ISOL
 
-**R-07-037** IS: Because the frame divides rather than shares, compartment population is a first-class schedule parameter: a partition's capacity *is* its slot width, and the number of compartments on one core's wheel is a composition constant with a hard ceiling rather than a soft degradation curve.
+**R-07-037** IS: Because the frame divides rather than shares, tenant population is a first-class schedule parameter: a tenant's capacity *is* its slot width (a tenant being a sole compartment or one R-07-037b same-label group), and the number of tenants on one core's wheel is a composition constant with a hard ceiling rather than a soft degradation curve.
 · Accept: §11 makes population its own schedule axis (a proved rung ladder, distinct from the global mode transition and deliberately not rare), and §17 books what the division costs and what the rung index leaks.
 · Trace: CJ-WCET, CJ-NI
 
 **R-07-037a** MUST: A partition's internal concurrency model is run-to-completion over syntactic poll sites: a compartment is one cooperative reaction that runs from poll site to poll site, with no blocking call, no internal thread, no intra-partition preemption, and no inner scheduler, so nothing but the boundary timer ever takes the core from a running partition.
 · Accept: the rule is normative on every server and application author rather than inferred from a WCET argument: it is because compartments are structured this way that the remaining trap points are syntactic and R-07-043 loses the preemption term, and the §5/§12 plane split already compiles to the shape (R-05-054, R-12-002).
 · Trace: CJ-WCET, CJ-KERNEL
+
+**R-07-037b** MUST: The tenant of a discretionary slot is a confidentiality label, not a compartment: a slot may be assigned at composition to an ordered set of same-label partitions dispatched by a composition-fixed rotation over their syntactic poll sites, a member's poll-site yield being a synchronous kernel invocation that advances the rotation in fixed order and wraps while slot time remains; the rotation holds no priority, no budget, no inner timer, and no runtime decision, the intra-slot step swaps register and partition context and omits fence.t, eager zeroize, and OPP relock (every flow those constants cut is internal to one label; all three return at the slot boundary), group membership, order, and cadences are composition constants so a tenant launches, suspends, and permutes whole, and the reserved band takes no part, a hard task keeping sole tenancy.
+· Accept: nothing observable outside the label moves with any member's behaviour, the outer boundaries staying timer-fixed, so R-07-036 and R-07-038 hold unchanged and R-07-043 keeps its lost term; intra-group cadence is the R-11-006b admission obligation rather than a runtime mechanism, every member reaction carrying a derived WCET the admitted binary cannot exceed on any input; the preemptive and budgeted inner forms are declined in architectural-alternatives.md, an inner enforcement timer being a second asynchronous trap and the restoration of the preemption term; the cost is one ABI invocation, an intra-slot switch path that is a strict subset of the partition switch, and one label-internal case in the non-interference unwinding.
+· Trace: CJ-NI, CJ-WCET, CJ-KERNEL
 
 ### 7.8 Interrupts
 
@@ -2104,6 +2108,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: optimal harmonic period assignment is NP-hard, so the assignment is untrusted search of the R-15-110 shape: the R-11-006 check re-reads the assigned periods, so a poor assignment costs capacity and never soundness, and the capacity distortion spends is a declared quantity the R-11-015a accounting sees rather than slack that vanishes.
 · Trace: CJ-WCET
 
+**R-11-006b** MUST: For every R-07-037b same-label group the admission artifact carries each member's declared visit cadence beside the rotation order, and the check verifies the rotation meets every declared cadence with the rotation-step constant counted per visit: the same interval arithmetic over the same derived per-reaction bounds (R-11-015), in the same checker, so a group whose arithmetic does not close fails admission, and a grouped endpoint's declared cadence is what the R-11-014b cross-core chain bounds consume for it.
+· Accept: no runtime mechanism enforces the inner level and none is needed: a member's per-reaction bound is a theorem over the admitted binary, sound on every input, so the intra-group guarantee has the same standing as the outer frame's, the boundary timer capping the group whole and the R-11-007 watchdog theorems the detection backstop; the periodic-resource condition a budgeted inner server would need is declined with the server in architectural-alternatives.md.
+· Trace: CJ-WCET
+
 **R-11-007** MUST: Monitor availability and watchdog-before-deadline ship as theorems; radio deadlines (HARQ feedback, ACK windows, idle-mode DRX paging reception, link-layer connection-event anchoring) are admitted hard tasks; the same proof yields the hardware watchdog's window parameters.
 · Accept: one artifact yields all three.
 · Trace: CJ-WCET
@@ -2198,7 +2206,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: focus-slot count per frame is a named schedule-shape choice the R-11-015b synthesizer may spend, two shorter focus slots per frame halving the focus visit period at identical share, admissible because the interval arithmetic quantifies over widths and offsets and never occupants (R-11-023).
 · Trace: CJ-WCET
 
-**R-11-023** MUST: (4) Which compartment occupies which slot is a permutation, not a schedule: slot widths and offsets are fixed by the rung, and the compositor requests a focus rebinding at a major-frame boundary which the kernel enacts by permuting the slot→compartment map.
+**R-11-023** MUST: (4) Which tenant occupies which slot is a permutation, not a schedule: slot widths and offsets are fixed by the rung, and the compositor requests a focus rebinding at a major-frame boundary which the kernel enacts by permuting the slot→tenant map (a tenant being a sole compartment or one R-07-037b same-label group, permuted whole).
 · Accept: every admission property is invariant under the permutation, the interval arithmetic quantifying over widths and offsets and never occupants; the untrusted compositor steers responsiveness without touching the admitted schedule, the same shape §8 gives its focus judgment.
 · Trace: CJ-WCET, CJ-NI
 
@@ -2206,11 +2214,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: it may fire every time the user opens or closes a tab.
 · Trace: CJ-WCET
 
-**R-11-025** IS: (6) It is still not load-following: the rung index is a function of the count of live discretionary compartments, moving only on an explicit user-originated lifecycle event and never on utilization, queue depth, or any compartment's computation.
+**R-11-025** IS: (6) It is still not load-following: the rung index is a function of the count of live discretionary tenants, moving only on an explicit user-originated lifecycle event and never on utilization, queue depth, or any compartment's computation.
 · Accept: what is given up is the *rarity*, not the *non-reactivity*, and the residual channel that buys is booked in §17.
 · Trace: CJ-NI
 
-**R-11-026** MUST: (7) The top rung is a hard ceiling: past it a new compartment receives no slot rather than a thinner one, and the owning population manager suspends a live compartment to retained state to make room.
+**R-11-026** MUST: (7) The top rung is a hard ceiling: past it a new tenant receives no slot rather than a thinner one, and the owning population manager suspends a live tenant to retained state to make room.
 · Accept: suspension keeps state and removes a slot; it is not termination, and it is the mechanism, not a heuristic.
 · Trace: CJ-WCET
 
@@ -2866,8 +2874,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a compromised codec reaches only the buffer capabilities it was passed, and because those buffers are handed over as *local* capabilities it cannot retain them past the call to exfiltrate later.
 · Trace: CJ-CERISE
 
-**R-14-007a** MUST: Above the R-14-007 floor, discretionary compartment granularity is a budgeted composition-time quantity and not an inherited consequence of source factoring: the frame is non-work-conserving across confidentiality boundaries (R-07-036), so every live discretionary compartment is a divisor of the discretionary band and an idle one burns a slot no mechanism reclaims (R-17-004, R-17-006).
-· Accept: the composition records its discretionary compartment count as a capacity decision against the §11 population rung (R-11-021); one compartment doing batched work is preferred to several waiting ones, and deep sets are held as retained state (R-14-011) rather than as live compartments. The lever recovers no scored row: the wall is a capacity statement rather than a percentage, so what the budget decides is where a composition sits against it.
+**R-14-007a** MUST: Above the R-14-007 floor, discretionary label count is the budgeted composition-time quantity and compartment count inside one label is not: the frame is non-work-conserving across confidentiality boundaries (R-07-036), so every live discretionary label is a divisor of the discretionary band and an idle one burns a slot no mechanism reclaims (R-17-004, R-17-006), while same-label compartments share one slot under the R-07-037b rotation and spend group cadence (R-11-006b) rather than slots.
+· Accept: the composition records its discretionary label count as a capacity decision against the §11 population rung (R-11-021); one tenant doing batched work is preferred to several waiting ones, and deep sets are held as retained state (R-14-011) rather than as live tenants. The lever recovers no scored row: the wall is a capacity statement rather than a percentage, so what the budget decides is where a composition sits against it.
 · Trace: CJ-CERISE, CJ-WCET
 
 **R-14-007b** MUST NOT: No compartment boundary R-14-007 requires is merged to shrink the divisor.
@@ -3105,8 +3113,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no grant spans a fabric-rate register block and a divided-clock endpoint (R-12-046), so no compartment's MMIO is priced at a worst case it does not incur. The rule narrows an authority grant inside the sole origin of device authority (R-05-138), from which the verified HAL derives rather than fabricates: no mechanism, interface, or ordering rule changes and no proof obligation moves, R-15-015b pricing each store exactly as before. What is removed is the reachability that created the term, not the margin on it.
 · Trace: CJ-CERISE, CJ-WCET
 
-**R-15-015d** MUST: The R-15-015c split is taken only where the slow endpoint's worst case dominates the compartment's §11 bound, never merely because two endpoints differ, because each additional driver compartment is one more tenant dividing the non-work-conserving frame (R-07-036) and one more slot against the population wall (R-17-004, R-17-006).
-· Accept: a split that meaningfully shortens no slot is not admitted; where the slow endpoint does dominate, the split is taken, a slot width set by a divided card clock being the larger loss. This is the same trade R-14-007a states from the compartment-count side, and the two are arbitrated together rather than as independent preferences.
+**R-15-015d** MUST: The R-15-015c split is taken only where the slow endpoint's worst case dominates the compartment's §11 bound, never merely because two endpoints differ, because a driver compartment in its own label is one more tenant dividing the non-work-conserving frame (R-07-036) and one more slot against the population wall (R-17-004, R-17-006), and even a same-label split is one more member whose cadence the shared slot's rotation must fit (R-07-037b, R-11-006b).
+· Accept: a split that meaningfully shortens no slot is not admitted; where the slow endpoint does dominate, the split is taken, a slot width set by a divided card clock being the larger loss. This is the same trade R-14-007a states from the label-count side, and the two are arbitrated together rather than as independent preferences.
 · Trace: CJ-WCET
 
 **R-15-016** MUST: The Ztso guarantee is an RTL-against-Sail proof obligation stated over the whole memory path: the store buffer provably exposes no ordering weaker than TSO, and the fabric beneath it provably preserves per-hart request order (R-15-015a).
@@ -4580,7 +4588,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the inventory row and the coverage cell read absent for the disjoint binding and residual for the shared macro, and neither reads proved while that model is unauthored (R-15-211, R-15-225, R-15-228); whole-macro or whole-tier exclusivity is mandatory for high-assurance islands (R-15-226), so no crown-jewel domain sits inside the shared-macro case, and the shared case is narrowed by scheduling rather than by throttling (R-15-227).
 · Trace: CJ-ISOL, CJ-NI
 
-**R-17-004** IS: The population wall: a non-work-conserving frame divides rather than shares, so discretionary capacity is divided among live compartments and no scheduling work recovers the difference.
+**R-17-004** IS: The population wall: a non-work-conserving frame divides rather than shares, so discretionary capacity is divided among live tenants and no scheduling work recovers the difference; the division stops at the label (R-07-037b), so what the wall counts is confidentiality labels, each browser origin being its own.
 · Accept: the §11 population rungs change the *shape* of the division, not the fact of it.
 · Trace: CJ-WCET
 
@@ -4589,11 +4597,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Fail-closed: the background floor is what the rest of the register degrades toward rather than a response of its own (R-17-030k); the cost is background progress.
 · Trace: CJ-WCET
 
-**R-17-006** IS: Cost (2): idle discretionary time is structurally unreclaimable and will remain so, because the donation mechanism that would reclaim it *is* the channel whose deletion the design is buying.
-· Accept: the mixed-load figure in the performance companion scores idle-slot waste at low population and does not cover this; past a few discretionary compartments per core the division dominates.
+**R-17-006** IS: Cost (2): idle discretionary time is structurally unreclaimable and will remain so, because the donation mechanism that would reclaim it *is* the channel whose deletion the design is buying; within one label nothing needs reclaiming, the R-07-037b rotation passing an idle member's turn by the member's own yield, so what stays unreclaimable is the slot of an idle label.
+· Accept: the mixed-load figure in the performance companion scores idle-slot waste at low population and does not cover this; past a few discretionary tenants per core the division dominates.
 · Trace: CJ-WCET, CJ-NI
 
-**R-17-007** IS: Cost (3): the rung index is a residual channel: every discretionary compartment reads its own slot width, hence the rung, hence a log-coarse count of live discretionary compartments, and the focus permutation timestamps focus changes to the unfocused.
+**R-17-007** IS: Cost (3): the rung index is a residual channel: every discretionary compartment reads its own slot width, hence the rung, hence a log-coarse count of live discretionary tenants, and the focus permutation timestamps focus changes to the unfocused.
 · Accept: both are user-originated, the state space is a handful of rungs, and the rate is bounded by human lifecycle actions, so it is a coarse low-bandwidth channel an origin can observe but not clock, a channel nonetheless, and the price of not making a tab an attested global transition.
 · Trace: CJ-NI
 
@@ -5216,7 +5224,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1201 requirements. §19 is non-normative and yields none. Counts include the 279 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1203 requirements. §19 is non-normative and yields none. Counts include the 281 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5226,11 +5234,11 @@ All eighteen normative sections are extracted, at 1201 requirements. §19 is non
 | **§4 Organizing Principle** | **extracted** | **12** |
 | **§5 Languages & Verification** | **extracted** | **195** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
-| **§7 Kernel** | **extracted** | **58** |
+| **§7 Kernel** | **extracted** | **59** |
 | **§8 Authority Model** | **extracted** | **61** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
-| **§11 Updates** | **extracted** | **35** |
+| **§11 Updates** | **extracted** | **36** |
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |
