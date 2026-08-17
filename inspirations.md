@@ -549,6 +549,8 @@ The transformation is the usual one: **the split is off-the-shelf and the verifi
 None of these artifacts is formally verified or Sail-modeled, so what the platform builds is a fixed-function timing sequencer inside the register-slave transceiver datapath: a hardware timer and small finite state machine with no instruction fetch, no writable program, no firmware, and no protocol decision. It is Sail-modeled and capability-gated, one more fixed-latency entry riding the existing transceiver RTL ⊑ Sail and WCET obligations (§11, §15).
 That is what keeps it on the *matter, not software* side of §4's line, alongside the digital front end, the FEC blocks, and the I/Q-streaming DMA.
 
+The doctrine's one tolerated exception, the carrier-mandated eUICC (§4, §12), has field evidence for its zero-authority framing: a GSMA consumer certificate was extracted from a certified production eUICC in 2025 (the Kigen disclosure, root-caused to publicized test-profile keysets and patched over the air), so a certified secure element failing is an observed event rather than a hypothetical, and the containment that makes it non-lethal here — a register-slave crypto oracle with no DMA and nothing to grant — is doing real work.
+
 The partition generalizes past the radio into the standing **sensor-front-end doctrine** (§12, §15): the analog front end plus a fixed-cadence scan or sample sequencer stays matter, streaming raw samples over a capability-bounded DMA window, while all signal processing, including capacitive touch, the audio front end, the image sensor's raw Bayer path, IMU and motion, and the fingerprint AFE, dissolves onto the host V-cores.
 Honest residual (§17): the radio case has an off-the-shelf firmware-free part to point at and the sensor cases do not, since commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware, so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design.
 
@@ -1372,6 +1374,7 @@ The residual this leaves is leakage power analysis against arrays held in long r
 
 Process technology is graded by tier.
 The bottom logic tier uses an IRIS-resolvable **silicon-on-insulator** process with frontside power: the buried oxide gives a repeatable backside reveal stop, latch-up isolation, a smaller upset volume, and static body bias.
+The discipline has a production-scale existence proof: bunnie Huang's Baochip-1x shipped as the DEF CON 34 badge (2026) on a 22 nm frontside-power process packaged specifically for IRIS backside inspection, end users verifying transistor patterns against the published RTL with a camera modification on the order of $180 — optically checkable silicon at production volume is practicable, not aspirational.
 Gate-all-around and later CFET density are confined to upper passive SRAM tiers, where they cannot execute and sit outside the backside optical path; backside power delivery is refused because opaque metal would block that path.
 Sequential monolithic 3D is admitted for those passive tiers, with Nano-CT, acoustic microscopy, thermography, dark-field inspection, virtual metrology, and BIST as defect evidence, never as a replacement for IRIS on the acting logic tier.
 Silicon-carbide-on-insulator, 2D-material logic, tunnel FETs, carbon-nanotube FETs, bonded logic stacking, and chiplets remain outside the base.
@@ -1396,6 +1399,8 @@ Emergency calling is a separate **zero-authority mode**, not a fallback negotiat
 Entry is an unspoofable local act; the compartment holds no user keys or data and exposes only regulation-mandated identity and location, so an unauthenticated or null-cipher bearer cannot be used to bid ordinary service down.
 The supported bearer is 5G-standalone or 6G emergency registration.
 No legacy emergency-only receiver, turbo/convolutional decoder, or old-generation RF path exists, and the honest cost is no emergency call where only legacy or 5G-non-standalone coverage is available.
+Regulation runs the same direction rather than against it: no jurisdiction requires a handset legacy fallback, the EU's NG eCall makes packet-switched IMS eCall mandatory for new vehicle types from 2026 with circuit-switched no longer accepted for type approval, and Australian rules have carriers block handsets that cannot complete a VoLTE emergency call — the mandate pressure is toward packet-switched emergency.
+The cost is sharper than SA coverage alone states: an SA-only emergency call needs IMS emergency over VoNR, which lags SA radio deployment (roughly 85 operators in 47 countries have launched SA while commercial VoNR remains a short list), so the honest bound is VoNR availability, not SA coverage.
 
 ---
 
