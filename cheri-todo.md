@@ -16,7 +16,7 @@
 | **§1 Defects** | The register requires something the profile does not carry, or the profile names a hole it can now close. The profile is defective until these land. | 0 |
 | **§2 Corrections** | Arguments the profile makes that a change upstream has made imprecise. The conclusions stand; the arguments need restating. | 0 |
 | **§3 Statements** | Cheap clauses the profile should add because silence has stopped being neutral, a standards line having now made the opposite statement explicit. | 0 |
-| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 3 in 2 clusters |
+| **§4 Decisions** | Genuine open questions the freeze must answer. Grouped into clusters, because several are one question wearing different hats. | 2 in 1 cluster |
 | **§5 Records** | Deliberate divergences and free confirmations, recorded so a later reader does not mistake either for drift. | 6 + 2 |
 | **§6 Watch** | External lines with no obligation attached, tracked because they aim at questions §4 leaves open. | 4 |
 
@@ -45,11 +45,11 @@
 
 **On the refusals.** A membership-inheriting clause imports ISAv9's CHERI enable bit, which the profile refuses by name in two places: no enable bit exists (§5.2) and no runtime CHERI disable exists (§1). Both are refusals of upstream features, and inheritance-by-default argues the other way, so widening the pin would put it at odds with clauses the profile carries.
 
-**On the admission discipline, which is the deeper conflict.** Three decision items are instructions that **already exist in ISAv8/v9**: `CLoadTags`, `CClearTags` (4A), and `CMOVN`/`CMOVZ` (4B). A blanket pin decides every one of them at a stroke, in the *include* direction. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
+**On the admission discipline, which is the deeper conflict.** Two decision items are instructions that **already exist in ISAv8/v9**: `CLoadTags` and `CClearTags` (4A). A blanket pin decides both at a stroke, in the *include* direction, as it would have decided the conditional capability move that instead came in on a ground of its own. That batch decision is genuinely available, and it is the strongest case for the pin. It is nonetheless declined:
 
-> §5's CSR table is **closed**, §6 enumerates exclusions **by name**, and R-15-014 traps unallocated encodings. The profile is **closed-by-default with opt-in admission and a stated ground per instruction.** "Everything ISAv9 has, minus exclusions" is open-by-default, and imports three instructions' worth of silicon, encoding space, and Sail cases that nothing has priced against the emitted mix.
+> §5's CSR table is **closed**, §6 enumerates exclusions **by name**, and R-15-014 traps unallocated encodings. The profile is **closed-by-default with opt-in admission and a stated ground per instruction.** "Everything ISAv9 has, minus exclusions" is open-by-default, and imports two instructions' worth of silicon, encoding space, and Sail cases that nothing has priced against the emitted mix.
 
-The conflict is architectural rather than stylistic: adopting it trades a curated profile for a subtractive one, and the *unallocated encodings trap* property is downstream of that choice. **The three stay individual, and each is admitted on a measured ground or declined on a stated one.**
+The conflict is architectural rather than stylistic: adopting it trades a curated profile for a subtractive one, and the *unallocated encodings trap* property is downstream of that choice. **The two stay individual, and each is admitted on a measured ground or declined on a stated one.**
 
 ---
 
@@ -83,11 +83,6 @@ The conflict is architectural rather than stylistic: adopting it trades a curate
   The §8 sweep is an incremental software task whose completion latency is "the domain's capability-bearing footprint over the per-frame sweep quantum", i.e. **entirely a memory-traffic quantity**. `CLoadTags` reads a granule group's tags without reading the data, and with native SRAM tag bits read in parallel with data (R-15-203) it is close to free in silicon. **Mature since ISAv8, so the "experimental" objection is gone. Nothing in the profile carries it and no requirement declines it**, the strongest lean in this section.
 - [ ] **`CClearTags`.** *R-15-182, R-08-007 · Matrix §6.*
   Partly covered already: `cbo.zero` allocates whole lines with zeroed data *and* cleared tags at one fixed latency (R-15-182). The residue is **tag-only clearing where data must survive**, a sweep-side want, not a zeroize-side one. Decide with `CLoadTags`.
-
-### 4B. A capability conditional move
-
-- [ ] **`CMOVN`/`CMOVZ`.** *R-15-054, R-15-019, R-15-023 · Matrix §4.*
-  The one obviated-looking row that is not obviated. `Zicond` is adopted **precisely because** branchless select is doubly load-bearing under static-only prediction with a full mispredict penalty on every forward conditional, but `czero.eqz`/`czero.nez` selects an *integer*, and on a purecap machine the selected value is frequently a **capability**. Either a capability-aware conditional move exists, or every conditional pointer select pays a mispredict-equivalent penalty and **breaks the constant-time story R-15-054 was bought to protect**. The argument is stronger here than the one ISAv6 made upstream, because the fallback is a branch this profile has deliberately made expensive.
 
 ---
 

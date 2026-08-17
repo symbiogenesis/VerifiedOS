@@ -73,7 +73,7 @@ Code is resident, fetched, and decoded in one fixed-rate **dictionary format**. 
 | `Zabha` | byte + halfword width cases on the above: width cases, not a new operation class; justified by lowering-admissibility, not traffic | R-15-024, R-15-027, R-15-028 |
 | `Zba` / `Zbb` / `Zbs` | fixed-latency bit manipulation; **single-bit** only at `Zbs`, the multi-bit bitfield case being carried bespoke (§3) | R-15-067 |
 | `Zbkb` / `Zbkc` / `Zbkx` | scalar crypto bit-manipulation, retained for software crypto on vectorless cores; **not** an AES/SHA-2 round datapath | R-15-042, R-15-055 |
-| `Zicond` | branchless constant-time select (`czero.eqz/nez`); doubly load-bearing under static-only prediction | R-15-054 |
+| `Zicond` | branchless constant-time select (`czero.eqz/nez`); doubly load-bearing under static-only prediction. **Integers only**: the capability half is the conditional capability move (§4), the zero-then-OR idiom having no capability form | R-15-054, R-15-054a |
 | `Zicboz` | `cbo.zero`; makes eager-zeroize near-free and carries the disclosure half of Write-before-Read | R-15-060 |
 | `Zvkned` / `Zvknhb` / `Zvkg` / `Zvbb` / `Zvbc` | table-free vector AES / SHA-2 / GHASH; `Zvbb`/`Zvbc` also carry baseline Keccak, NTT rides plain RVV | R-15-055 |
 | `Zvfbfwma` | M-class bf16 | R-15-067 |
@@ -129,6 +129,7 @@ There is **no scalar Keccak instruction on the RISC-V standards track and none p
 | Revocation load filter | every tagged capability load checks the dedicated revocation sidecar at the granule containing the loaded capability's base; a revoked result clears the loaded tag before architectural writeback rather than trapping | R-08-004, R-08-005, R-08-005a, R-08-009 |
 | Tag clearing on non-monotonic modification | a derivation that would widen bounds or add permissions yields an **untagged** result rather than trapping: a failed derivation is a data result faulting at its next dereference, carrying no cause code and no control-flow term in a WCET entry | R-15-007h |
 | access-system-registers permission | *is* the privilege mechanism, replacing the S/U ring | R-15-003 |
+| **Conditional capability move** (`cmovz` / `cmovn`, both polarities) | the capability half of the branchless select: the destination is written whole, tag included, on the taken arm and left untouched on the other. `Zicond` selects an integer, and its zero-then-OR idiom has no capability form, the recombining `or` being reconstruction from a bit pattern; the merge form is what a capability select needs. Fixed latency, dialect encoding, no custom opcode space | R-15-054a, R-15-054, R-15-019 |
 
 **Excluded**
 
@@ -324,6 +325,7 @@ These are the entries the timing-annotated Sail model carries, and the projectio
 | `Zvkt`-listed vector operations execute in **mask-independent** time: an implementation may not skip memory accesses or cycles for masked-off elements, so the mask is unobservable through timing or memory traffic. The per-element capability check is one of the cycles this forbids skipping, and §8 states how it composes with faulting on active elements only | R-15-085, R-15-115b |
 | Vector memory access splits on its address pattern. **On** the list: unit-stride, segment, and whole-register, whose bank sequence follows from the element width and a granule-aligned base. **Off** it: indexed `vluxei`/`vloxei`/`vsuxei`/`vsoxei` and runtime-strided `vlse`/`vsse`, whose latency is a function of how element addresses distribute over the SRAM banks, admissible only on the discharged proof that no secret-labeled value reaches an element address, never self-declaration | R-15-085a, R-15-011 |
 | An off-list vector access enters the timing-annotated model at its **fully-conflicted** bound, every element to one bank, so a variable observed latency still yields one sound WCET entry | R-15-085b |
+| The conditional capability move completes at one fixed latency independent of operand values **and of which arm is taken**, so a secret-dependent pointer select is one entry in the model and not a branch whose timing reports the condition | R-15-054a |
 | `cclear` completes at one fixed latency independent of operand values **and of the mask's population**, so the compartment switcher's scrub is one entry in the model rather than a function of how many registers it names | R-15-069a, R-15-069b |
 | Branch-resolution latency is a fixed function of the static rule, so fetch timing depends on architectural state only | R-15-086 |
 | `Zaamo` / `Zabha` AMOs complete as single bounded memory transactions with data-independent latency at the SRAM bank's serialization point, which is the whole of what a coherence point would otherwise name | R-15-087 |
