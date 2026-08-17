@@ -2784,8 +2784,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-15-035 and R-05-119.
 · Trace: CJ-CERISE
 
-**R-13-016** MUST: The universal contract is stated over the CHERI-RISC-V Sail model, with Katamaran discharging the per-instruction separation-logic obligations between Isla and Islaris, and Cerisier extending the Cerise contract to attestation.
-· Accept: capability safety plus local attestation is Coq-native prior art rather than an unmodeled seam.
+**R-13-016** MUST: The universal contract is stated over the CHERI-RISC-V Sail model, with Katamaran discharging the per-instruction separation-logic obligations between Isla and Islaris, and Cerisier extending the Cerise contract to attestation. Katamaran consumes μSail, its own Coq embedding of a Sail-like language, not Sail itself, so the route owes a translation of the profile's instruction subset into μSail whose agreement with the pinned model is shown rather than assumed.
+· Accept: capability safety plus local attestation is Coq-native prior art, and the route's one genuine seam, the Sail→μSail translation, is named with its faithfulness obligation rather than glossed as absent.
 · Trace: CJ-CERISE, CJ-SAIL
 
 **R-13-017** IS: These are one Iris-over-Sail program logic with four theories, not five frameworks: unary safety, the Cerise/Cerisier universal contract, relational constant-time, and syntax-directed cost, all instantiating the same leakage- and cost-annotated Sail semantics, with StkTokens supplying the linear/affine stack discipline.
