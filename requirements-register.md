@@ -3673,7 +3673,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the parameter set is VLEN per class, core count per class, issue width and pipeline depth, SRAM bank/macro/tier-to-island assignment, scratchpad sizes, and the TDM-NoC schedule; there is no cache, way-colouring, or integrity-tree parameter to choose.
 · Trace: CJ-RTL-SAIL
 
-**R-15-108a** IS: Core count per class is searched rather than inherited because the High-NA half field prices it: the ~430 mm² planar boundary (R-15-170) caps the logic tier absolutely on a machine with no second die and no die-to-die link (R-15-111, R-15-173), capacity escapes that cap vertically while logic does not, and in the single-tier case (R-15-173a) the cores share the one planar tier with the array itself, so a core's area is capacity forgone directly. Core count and issue width therefore spend the same fixed, non-stackable area and are weighed as one explicit Pareto axis.
+**R-15-108a** IS: Core count per class is searched rather than inherited because the High-NA half field prices it: the ~400 mm² usable planar boundary (R-15-170) caps the logic tier absolutely on a machine with no second die and no die-to-die link (R-15-111, R-15-173), capacity escapes that cap vertically while logic does not, and in the single-tier case (R-15-173a) the cores share the one planar tier with the array itself, so a core's area is capacity forgone directly. Core count and issue width therefore spend the same fixed, non-stackable area and are weighed as one explicit Pareto axis.
 · Accept: the weighing is asymmetric by construction: the profile's in-order single/dual issue caps a wider core's return, while each added C-class core is a whole partition-switch budget deleted for a server the switch-duty rule pins (R-11-011, R-15-114) and one more core against the population wall's divisor (R-17-004); a fewer-but-wider candidate, worth more per core to the profile-matched fusion set (R-15-031a), is surfaced as a Pareto point exactly as R-15-110 surfaces a faster-but-harder-to-prove one, never resolved by the width-first convention of machines with a chiplet escape and no switch cost to delete.
 · Trace: CJ-RTL-SAIL, CJ-WCET
 
@@ -3948,7 +3948,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no conformance exception is claimed on this account.
 · Trace: CJ-SAIL
 
-**R-15-170** IS: The capacity budget is arithmetic: ~30–50 Mb/mm² of macro, so one gigabyte is roughly 160–270 mm² of raw array and a flat 4 GB is on the order of a full reticle or more; the High-NA half field (~430 mm²) is the hard planar boundary, so capacity is bought vertically.
+**R-15-170** IS: The capacity budget is arithmetic: ~30–50 Mb/mm² of macro, so one gigabyte is roughly 160–270 mm² of raw array and a flat 4 GB is on the order of a full reticle or more; the High-NA half field is the hard planar boundary at ~400 mm² usable (the ~430 mm² field less scribe, seal ring, black-border keep-out, and the per-tier overlay-metrology and IRIS-fiducial real estate a sequential-3D flow multiplies), so capacity is bought vertically.
 · Accept: the reference instantiation budgets ~4–8 GB phone-class (8–16 memory tiers) and 16–32 GB laptop/desktop-class, as composition-time constants in the attested devicetree; every figure above the single planar tier is contingent on R-15-173a and is not to be read as scheduled.
 · Trace: CJ-DEVTREE
 
