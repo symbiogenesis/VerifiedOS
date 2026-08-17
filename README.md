@@ -4,6 +4,27 @@ Design for an end-to-end formally verified computer, built around a bespoke in-o
 
 > This repository is a living design specification. Nothing here is built or released.
 
+## Contents
+
+- [Design highlights](#design-highlights)
+- [Bug classes removed by construction](#bug-classes-removed-by-construction)
+  - [RISC-V and microarchitectural omissions](#risc-v-and-microarchitectural-omissions)
+  - [CHERI capability tags, bounds, and monotonicity](#cheri-capability-tags-bounds-and-monotonicity)
+  - [CHERIoT-lineage compartments, sentries, and lifetime](#cheriot-lineage-compartments-sentries-and-lifetime)
+  - [Static time partitioning](#static-time-partitioning)
+  - [Mon CHÉRI property, re-homed without a second tag plane](#mon-chéri-property-re-homed-without-a-second-tag-plane)
+  - [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission)
+  - [Verified OS, I/O, storage, and supply-chain construction](#verified-os-io-storage-and-supply-chain-construction)
+  - [Faults the machine detects rather than prevents](#faults-the-machine-detects-rather-than-prevents)
+  - [Obligations discharged elsewhere](#obligations-discharged-elsewhere)
+  - [The proof artifacts themselves](#the-proof-artifacts-themselves)
+  - [What this inventory does not claim](#what-this-inventory-does-not-claim)
+- [Specification](#specification)
+  - [The typed assembly language](#the-typed-assembly-language)
+  - [The atomic-requirements register](#the-atomic-requirements-register)
+  - [Derived views](#derived-views)
+  - [The consistency checker](#the-consistency-checker)
+
 ## Design highlights
 
 - **Bespoke seL4-inspired multikernel.** A minimal capability kernel, one instance per core, taking seL4's endpoint model and non-interference statement rather than being ported from it, with everything else running as unprivileged, capability-confined compartments. The rest of seL4's object model is deleted: with the object graph fixed at composition and capabilities carried by the CHERI tag plane, untyped memory and retype, the capability space, and the derivation tree each have no consumer or duplicate a hardware mechanism, which retires the CDT revocation proof that was the plan's hardest scheduled subproof.
@@ -18,7 +39,17 @@ Design for an end-to-end formally verified computer, built around a bespoke in-o
 
 ## Bug classes removed by construction
 
-This inventory states the guarantees targeted by the **full specified stack**, not by an existing system: nothing is built, and many crown-jewel specifications and proofs remain unauthored. Each row claims one or more of seven discharge modes: **absent**, the bug's enabling mechanism is deleted; **hardware-enforced**, the CHERI machine checks every access; **admission-rejected**, CHERI-TAL refuses the binary before installation; **proved**, the shipped artifact or composition carries a machine-checked theorem subject to the two proof-artifact gates below; **detected**, the fault is not prevented but cannot pass silently, being corrected where the code reaches it and otherwise contained fail-stop; **transferred**, the obligation is real but belongs to the named party; or **residual**, a named part of the row that nothing here closes. The first four say the class cannot occur. **Detected** claims only a bounded consequence and machine response, never absence of the fault. **Transferred** neither discharges the obligation nor says it is met; naming its owner makes the caveat countable. **Residual** marks the row as partial and states in the cell what is left over, §17 carrying it in the normative design; a row claiming it is not coverage. These claims are stronger and narrower than “written in a safe language.”
+This inventory states the guarantees targeted by the **full specified stack**, not by an existing system: nothing is built, and many crown-jewel specifications and proofs remain unauthored. Each row claims one or more of seven discharge modes:
+
+- **Absent**: the bug's enabling mechanism is deleted.
+- **Hardware-enforced**: the CHERI machine checks every access.
+- **Admission-rejected**: CHERI-TAL refuses the binary before installation.
+- **Proved**: the shipped artifact or composition carries a machine-checked theorem subject to the two proof-artifact gates below.
+- **Detected**: the fault is not prevented but cannot pass silently, being corrected where the code reaches it and otherwise contained fail-stop.
+- **Transferred**: the obligation is real but belongs to the named party.
+- **Residual**: a named part of the row that nothing here closes.
+
+The first four say the class cannot occur. **Detected** claims only a bounded consequence and machine response, never absence of the fault. **Transferred** neither discharges the obligation nor says it is met; naming its owner makes the caveat countable. **Residual** marks the row as partial and states in the cell what is left over, §17 carrying it in the normative design; a row claiming it is not coverage. These claims are stronger and narrower than “written in a safe language.”
 
 ### RISC-V and microarchitectural omissions
 
@@ -163,15 +194,23 @@ These three limits are real obligations met outside the platform. Rows make each
 | A shipped theorem resting on an admitted lemma, an unresolved obligation, or an axiom nobody declared | The proof term enumerates each theorem's axioms and assumptions for exact comparison with the requirements-register declaration rather than a development-local set; any extra or missing member fails the build | **Proved** |
 | A theorem that is true and empty: a premise nothing satisfies, a specification permissive enough that anything refines it, or a quantifier ranging over nothing | Each theorem carries a machine-checked satisfiability witness and, for refinement or policy claims, an instance the specification rejects. Because general vacuity is undecidable, this is a per-theorem obligation rather than another checker | **Proved** |
 
+### What this inventory does not claim
+
 This inventory does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol flaw. Canonicity covers this platform's encodings, not whether an independent peer accepts the same language; no single-party proof can establish that, so parser differentials remain untrusted evidence and a §17 residual. The transferred rows count limits owned elsewhere. The normative specification's §17 and [critique.md](critique.md) record those limits and open proof work. This inventory summarizes named archetypes; it is not the coverage claim, because such a list can never be complete. The register-computed [coverage matrix](coverage-matrix.md), spanning every boundary and property, makes that claim.
 
 ## Specification
 
 The normative design lives in [verification-maximal-os.md](verification-maximal-os.md), with non-normative companions covering [prior art](inspirations.md), [evaluated architectural alternatives](architectural-alternatives.md), an [implementation plan](implementation-plan.md), and [performance estimates](performance-estimates.md).
 
+### The typed assembly language
+
 One part is specified as a project in its own right rather than as a component: the [typed assembly language](typed-assembly-language.md), the typed machine-code language and per-install check that binaries are admitted with. Its dependency set is a machine semantics and a type theory and nothing else, so its correctness argument mentions no operating system; this platform depends on its `cheri-rv64` instantiation, which the corpus calls CHERI-TAL, and pins a version of it. It is neither a companion nor a derived view, and it is written to stand alone.
 
+### The atomic-requirements register
+
 Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md): each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1192 numbered requirements. Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list is empty, which the register declines to read as a clean bill: its standing instruction is that the sweep finding such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
+
+### Derived views
 
 Four **derived views** collect what the register states across many entries but no document held:
 
@@ -181,6 +220,8 @@ Four **derived views** collect what the register states across many entries but 
 - The [coverage matrix](coverage-matrix.md): the boundaries of the system against the properties each must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above enumerates named bug classes, this enumerates the boundaries and quantifies over them, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
 
 Each cites the governing requirement for every row and is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither that reference nor any figure these documents assert is maintained by hand.
+
+### The consistency checker
 
 `tools/check.ps1` holds all of it and exits non-zero on any finding: every citation resolves to something live, no view drops a requirement in the subsections it bears, and every asserted count matches the artifact that owns it, rewritten in place under `-Fix`. It is one tool because a derived fact restated where nothing checks it is one defect: a line number, a membership list, and a count are the same mistake at three granularities.
 
