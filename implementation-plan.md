@@ -117,6 +117,7 @@ One model, parameterized by class.
 
 The class parameters above (VLEN per class, matrix geometry) and the platform's other frozen microarchitectural knobs, core count per class, issue width and pipeline depth, the SRAM bank/macro/tier-to-island map, software-scratchpad sizes, and the TDM-NoC schedule, are not guessed (there are no hardware caches to size and no integrity-tree structure to size, main-spec §15).
 They are chosen by a **design-space exploration (DSE)** run off-model, ahead of RTL and silicon, whose utility function is **multi-objective: performance, area, power, WCET, and, as a first-class term, *proof simplicity*** (main-spec §15).
+One knob is not the search's to turn: the vertical tier count is bounded by R-15-163's conditional materials grading, a reading of the outside world rather than a point in the space, so the DSE ranges under whatever bound that grading returns.
 
 - **Proof simplicity is an explicit objective, not an afterthought.**
   A smaller, more regular microarchitecture is a smaller Sail model and a cheaper **RTL ⊑ Sail** refinement (the FPGA/silicon arrow of §11; deferred, main-spec §18, the least-built layer of the stack), so the DSE that improves performance can *reduce* the verification surface at the same time.
@@ -358,6 +359,8 @@ Bottom-up, each milestone runnable against the prior one; the software track (M-
 
 The order records a sequencing decision rather than an accident: realization is **scalar-first**, the V/M/FEC datapaths arriving last (M10), and the staging discipline of *add a unit only after a measured need* applies to the units alone, never to the capability width. R-15-007d freezes the width with the profile at M0, permanently, every capability in the immutable image and every sealed blob stored in the frozen format, so no later measurement can reopen it without invalidating stored authority wholesale; the width is decided once, at the freeze, and only the units are staged.
 
+The milestones are also the review gate's clock: a crown-jewel row a milestone flips to `authored` enters R-05-150's independent specification review at the flip, not in a release-time batch, so each specification is read at the edition the proofs will be stated against rather than re-read from a corpus that has moved on.
+
 1. **M0, Hardware reference.**
   Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green. Define the profile-freeze measurement contract (§0): versioned corpus manifest, emitter-provenance schema, report schema, admitted region classes, and per-choice acceptance thresholds. Publish the shared differential-testing corpus and the capability-widened commit-trace schema (§10) that every later executor emits.
 2. **M1, Toolchain spine, incl. the CHERI-CompCert prerequisite.**
@@ -378,6 +381,7 @@ The order records a sequencing decision rather than an accident: realization is 
   Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set; the package composer emits the finite typed handler/translator graph and pre-admitted media templates, and the contained object router exercises private namespaces, intents, live queries, deterministic translation caching, and protocol-bound credential handles over the existing IDL and rings.
 8. **M7, Full system, emulated.**
    The composed stack boots in the spec's §9 order on the **fast emulator**, the plan's intermediate goal; the composed Sail emulator (§10) re-runs the same boot as the golden cross-check; the Wasm track keeps running the same components host-side for iteration.
+   The composed system is also the first artifact able to measure **allocation churn**, so the measurement is booked here: the static-composition low-churn argument and the static-code-overlay deferral both wait on the same measured roster, and the elective applications widen the measurement later rather than gating it.
 
 The RTL track, in parallel from the M0 freeze:
 
@@ -397,3 +401,4 @@ The RTL track, in parallel from the M0 freeze:
    Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M9, so the FPGA then matches the golden model across all core classes.
 
 Everything past M10, the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), the binary-level constant-time verifier, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement, is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.
+One statement is owed at that program's opening rather than inside it: the RTL ⊑ Sail arrow is the least-built layer of the stack (R-17-039) and the hedge deletions spend it (R-17-037), so the program starts by writing the fallback position, what each of the PMP-backstop, IOMMU, MTE, shadow-stack, and initialization-plane rejections becomes if the refinement lands late or partially, so the schedule risk is stated where it is spent.
