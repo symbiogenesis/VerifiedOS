@@ -77,9 +77,12 @@ $body       = @{}          # id -> the entry line itself
 $traceOf    = @{}          # id -> its · Trace: line
 $perSection = [ordered]@{} # section -> entry count, in document order
 $confers    = @{}          # "Fail-closed"/"RoT-fresh" -> (id -> its conferral line)
+$accepts    = @{}          # id -> how many conjunctive · Accept: lines it carries
+$lateAccept = @()          # ids stating a criterion after a conferral or the trace
 $dcsrRows   = 0
 
-$sec = $null; $sub = $null; $current = $null; $inDefects = $false
+$sec = $null; $sub = $null; $current = $null; $entry = $null
+$sawTail = $false; $inDefects = $false
 foreach ($line in $regLines) {
     if ($line -match '^## §(\d+)') {
         $sec = $Matches[1]; $sub = $null
@@ -90,18 +93,29 @@ foreach ($line in $regLines) {
 
     if ($line -match '^\*\*(R-\d\d-\d+[a-z]?)\*\* (IS|MUST NOT|MUST)') {
         $current = $Matches[1]
+        $entry   = $current
+        $sawTail = $false
         $ids.Add($current)
         $subsection[$current] = $sub
         $body[$current]       = $line
+        $accepts[$current]    = 0
         if ($sec) { $perSection[$sec]++ }
+    } elseif ($entry -and $line -match '^· Accept:') {
+        # criteria are conjunctive, and they come before the lines that follow them:
+        # $entry outlives the trace where $current does not, so one written below the
+        # trace is caught here rather than going uncounted
+        $accepts[$entry]++
+        if ($sawTail) { $lateAccept += $entry }
     } elseif ($current -and $line -match '^· (Fail-closed|RoT-fresh):') {
         # a property line conferring membership in a set some other entry collects
         $kind = $Matches[1]
         if (-not $confers.ContainsKey($kind)) { $confers[$kind] = [ordered]@{} }
         $confers[$kind][$current] = $line
+        $sawTail = $true
     } elseif ($current -and $line -match '^· Trace:') {
         $traceOf[$current] = $line
         $current = $null
+        $sawTail = $true
     }
 
     if ($line -match '^\| `(CJ-[A-Z-]+)`')        { $cjTargets.Add($Matches[1]) }
@@ -254,6 +268,18 @@ Report 'bookmark(s) declared more than once in one document' $twiceHere 'every b
 Report 'bookmark(s) buried in a fenced block' $buried 'every bookmark is addressable where it is written'
 
 Report 'requirement(s) with no trace' @($ids | Where-Object { -not $traceOf.ContainsKey($_) }) 'every requirement carries a trace'
+
+# An entry with no criterion is an obligation nothing decides, which is the one thing
+# this register is for; an entry whose criteria straddle its conferrals reads as though
+# the lines below the first one were something other than the rest of the criterion.
+
+Report 'requirement(s) with no acceptance criterion:' `
+    @($ids | Where-Object { -not $accepts[$_] } | ForEach-Object { "$_ carries no · Accept: line" }) `
+    'every requirement carries at least one acceptance criterion'
+
+Report 'requirement(s) whose criteria straddle a conferral or the trace:' `
+    @($lateAccept | Select-Object -Unique | ForEach-Object { "$_ states a criterion below a line that must follow the criteria" }) `
+    'every entry states its criteria before its conferrals and its trace'
 
 # r-ss-nnn, r-ss-nnna (a letter-suffixed requirement) and r-ss-nnn-2 (the nth citation
 # of one requirement) all resolve to the same register id.

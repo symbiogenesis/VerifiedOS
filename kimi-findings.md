@@ -143,8 +143,6 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 ## 11. Register: machinery cost
 
-**The entry grammar is violated by the register itself.** The header specifies one `· Accept:` line per entry. Eleven entries carry more than one, twenty extra lines in all: R-15-054a carries five, R-15-007k and R-15-007q four each, R-15-007l and R-15-007m three, and R-10-013a, R-15-007r, R-15-073b, R-15-073c, R-15-163, and R-17-030r two apiece. Which bullet decides the requirement is undefined, in a document whose premise is one decidable criterion per obligation. The concentration in §15.1 is the signal: the multi-criterion entries are the ones arguing a disposition against named alternatives, which is a shape the grammar has no line for.
-
 **The derived-view boilerplate is restated near-verbatim four times**, in R-15-001a, R-15-100a, R-17-001b, and R-17-016a. It should be one requirement cited four times, which is the register's own rule for a set stated in more than one place, and the pattern its third sweep exists to remove.
 
 **The tooling is an unbooked precondition.** Derived figures embedded in normative prose are correct today and silently rotten if the checker is not run, so the register assumes its own tooling permanently. More sharply, `check.ps1 -Fix` rewrites the normative document it checks, and the tool that edits the register appears in no trust-base inventory or axiom set. R-05-151a already mandates negative-testing the trace checker against deliberately broken copies on the ground that a checker that has never failed is indistinguishable from one that cannot fail; the same reasoning applies to the tool's authority to write.
@@ -167,7 +165,6 @@ Two gaps are admitted rather than hidden. A refusal phrased in words the over-ap
 
 3. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with R-15-184's residual SRAM disturb modes as the qualifier on whichever wording survives.
 4. **Fix the flush-set wording in the RVV/`Zfinx` entry.** The store buffer is the sole `fence.t` flush-set member (R-15-213), and register-file membership is declined (R-07-016).
-5. **Settle the `· Accept:` grammar.** Eleven entries carry more than one criterion, R-15-054a five and R-15-007k and R-15-007q four. Folding twenty lines back into eleven is no longer the cheap half; amending the header to say the lines are conjunctive, and letting `tools/check.ps1` enforce that reading, is. Silence on which bullet decides is the actual defect.
 6. **Collapse the derived-view boilerplate.** R-15-001a, R-15-100a, R-17-001b, and R-17-016a state it near-verbatim; one requirement cited four times is the register's own rule.
 7. **Break the circular acceptance criteria.** R-05-151 (its criterion is the document containing it), R-01-001 against R-04-001, and R-03-008 against R-17-030r, whose own half is conceded to be a review-gate finding with nothing enforced.
 8. **Give §1 and §3 criteria a decision procedure or §17's preamble.** Goal and threat entries currently restate their premises without §17's explicit *booked with its owner and scope rather than absorbed* excuse.
