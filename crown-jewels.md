@@ -30,7 +30,7 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 
 | # | Crown-jewel specification | `CJ-` target | Constrained by | Status |
 | --- | --- | --- | --- | --- |
-| 1 | **The apex theorem T**, the statement itself, with all four elements: the quantifier over adversary sets *C*, the value-and-timing-and-architectural observation, the *modulo D* clause, and the *relative to Ax* clause | `CJ-T` | **R-05-156**, R-05-157, R-17-065 | not authored |
+| 1 | **The apex theorem T**, the statement itself, with all four elements: the quantifier over adversary sets *C*, the value-and-timing-and-architectural observation, the *modulo D* clause, and the *relative to Ax* clause | `CJ-T` | **R-05-156**, R-05-157, R-17-065 | **authored**: [ApexTheorem.v](proofs/ApexTheorem.v), with the nine seam-lemma statements; its interface vocabularies are parameters, bound as the rows carrying them are authored |
 | 2 | **The security policy model**, including the delimited-release bound and the robust-declassification statement | `CJ-NI` | **R-08-028**, **R-17-012** | not authored |
 | 3 | **The IDL wire-format mapping**, the profile's mapping, the contract the IDL's types only document | `CJ-IDL` | **R-12-013** | not authored |
 | 4 | **The frozen ISA-profile definition** | `CJ-SAIL` | R-15-001, **R-15-001a**, R-15-014 | **authored**: [isa-profile.md](isa-profile.md) |
@@ -69,7 +69,7 @@ The remaining seven `CJ-` targets name **theorems, not specifications**, things 
 | `CJ-CT-SOUND` | Constant-time type soundness over the leakage model | the `Zkt`/`Zvkt` statement (row 5) |
 | `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions | each primitive's functional specification (row 14) |
 
-The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and eighteen of those twenty-two are not authored.
+The split is the reason the inventory and the trace legend cannot be the same artifact. **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, and seventeen of those twenty-two are not authored.
 
 ## What the `CJ-` table is, and is not
 
@@ -91,6 +91,6 @@ So the two artifacts answer different questions and both are needed:
 
 ## Reading the status column
 
-One of twenty-two is authored outright (row 4, the frozen ISA profile), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Eighteen are not authored.
+Two of twenty-two are authored outright (row 4, the frozen ISA profile, and row 1, the apex theorem's machine-checked statement), and three more are partial: rows 5, 6, and 7, each carried in part by a day-one deliverable of R-18-003b. Seventeen are not authored.
 
-That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-two are *named, constrained, and traced*; the as-existing assurance is low because eighteen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
+That ratio is the specification half of R-01-003's honest position: the as-specified assurance is very high because these twenty-two are *named, constrained, and traced*; the as-existing assurance is low because seventeen of them are not yet written, and the seven theorem targets above cannot start until their premises are. The inventory does not change the ratio: it makes it countable, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
