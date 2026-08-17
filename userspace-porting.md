@@ -101,7 +101,7 @@ The single address space (no MMU, §7) already helps pointer-chasing on its own.
 
 Nothing here is specific to this design, and a conventional chip benefits from the same rewrite, so this moves work onto fast paths both machines share rather than closing distance against one.
 Its **marginal return** is nonetheless higher here, for the same reason the memory plan's locality objective (R-08-012a) pays: there is no cache to rescue a bad access pattern, and source structure is all that plan has to work with.
-That is why it is recorded as porting discipline rather than as a recovery lever in [performance-recovery-todo.md](performance-recovery-todo.md): it changes no mechanism, no schedule, and no theorem, so there is nothing for the spec to land.
+That is why it is porting discipline rather than a recovery lever ([architectural-alternatives.md](architectural-alternatives.md), the recovery gate): it changes no mechanism, no schedule, and no theorem, so there is nothing for the spec to land.
 
 ---
 

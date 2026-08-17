@@ -15,6 +15,8 @@
 - **The percentages are per-workload multipliers, NOT additive.**
   Each row is the approximate change *on the workload it applies to*, holding everything else equal. They compound **multiplicatively** and are **gated by workload** (a vector gain and an in-order loss rarely touch the same cycle).
   The totals section is therefore a reasoned synthesis, not a column sum.
+- **Recovery levers are scored inside their rows, and a pass the baseline also runs does not cancel one.**
+  Where a row states a worse end "scored with X in place", X is a normative lever whose recovery is measured *intra-design* (the same frozen instantiation, un-optimized vs. optimized). Running the same pass on both machines cancels nothing unless the deltas are the same, and they are not: the marginal return of static scheduling and code and data layout is low against an out-of-order core with a dynamic predictor, whose hardware recovers dynamically from whatever the compiler got wrong, and high here, where the compiler is the only latency-hiding mechanism, the only placement mechanism, and the only branch-prediction-recovery mechanism that exists. Wherever the deltas differ, the difference is inter-design gap genuinely closed. What no lever narrows is the residual after every pass has run on both machines: the deleted dynamic mechanisms, booked as this table's accepted costs. Proposals evaluated as recovery levers and rejected are recorded in [architectural-alternatives.md](architectural-alternatives.md) under the recovery gate.
 - **Sign convention:** negative = slower than baseline; positive = faster.
   `×` denotes a multiple (e.g. `+900%` = `10×`).
 
