@@ -3963,8 +3963,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: there is no die-to-die interface to protect; every hop is on-die. The one re-encoding point on the path, the memory controller's sub-granule read-modify-write stage (R-15-181), does not mask a transit fault, because the existing codeword's check is verified *before* the merge, so the stage catches a corrupt granule rather than laundering it into a fresh codeword.
 · Trace: CJ-SAIL
 
-**R-15-177** MUST: Physical bit-interleaving and background scrubbing are mandated, not optional: a multi-cell upset presents as separable SECDED-correctable single-bit errors, and a latent single-bit error never accumulates into an uncorrectable double.
-· Accept: both are present on every array.
+**R-15-177** MUST: Physical bit-interleaving and background scrubbing are mandated, not optional: a multi-cell upset presents as separable SECDED-correctable single-bit errors, and a latent single-bit error never accumulates into an uncorrectable double on a powered array. Interleaving is structural and holds in every power state; scrubbing is an activity, so a domain held RETAINED accumulates under the bound and discharge R-15-189k sets.
+· Accept: interleaving is present on every array, scrubbing on every ON domain, and RETAINED domains are governed by R-15-189k.
 · Trace: CJ-SAIL
 
 **R-15-178** MUST: The CHERI validity tag bits take the stronger DECTED code, because a flipped tag forges or destroys a capability.
