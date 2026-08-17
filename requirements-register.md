@@ -518,8 +518,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the CHERI-CompCert theorem statement contains no CT conjunct, and no artifact cites one.
 · Trace: CJ-COMPCERT, CJ-CT-SOUND · [§5](verification-maximal-os.md#r-05-063)
 
-**R-05-064** MUST NOT: The CryptOpt-style route (untrusted superoptimizer plus a net-new Coq-verified assembly↔Fiat-Crypto equivalence checker) is deleted, not deferred.
-· Accept: §18 carries no such workstream; the checker inventory contains no equivalence checker.
+**R-05-064** MUST NOT: The CryptOpt-style route (untrusted superoptimizer plus a net-new Coq-verified assembly↔Fiat-Crypto equivalence checker) is deleted, not deferred. What goes with it is a net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category, and a §18 workstream, at the price of hand-assembly-grade ECC throughput. This list is canonical: every other section that observes the absence cites it rather than restating it.
+· Accept: §18 carries no such workstream and the checker inventory contains no equivalence checker; the consequence list is stated once, so R-06-026 and R-18-022 cannot come to disagree with it.
 · Trace: CJ-CRYPTO-SPEC · [§5](verification-maximal-os.md#r-05-064), [§5](verification-maximal-os.md#r-05-064-2)
 
 **R-05-065** MUST NOT: Standing rule: any net-new verified artifact whose only yield is performance on a path already correct and already leak-free is inadmissible; the slower sound artifact is taken.
@@ -1159,7 +1159,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-COMPCERT · [§6](verification-maximal-os.md#r-06-025)
 
 **R-06-026** MUST NOT: A fifth entry, the CryptOpt-style verified translation-validation toolchain for the crypto core's field arithmetic, is deleted rather than deferred and is named in §6 so its absence is legible.
-· Accept: with it go a net-new Coq development, the checker-admitted-artifacts TCB category, and a §18 workstream.
+· Accept: the TCB inventory carries no checker-admitted-artifacts category and the required-but-untrusted build-artifact list has four entries rather than five (R-06-004, R-06-024); what the deletion costs is read off R-05-064 rather than enumerated here.
 · Trace: CJ-CRYPTO-SPEC · [§6](verification-maximal-os.md#r-06-026)
 
 **R-06-027** IS: Constant-time verification degrades gracefully: bounded Binsec/Rel evidence carries bring-up, and the taint-typing plus residual certificate close it.
@@ -3799,8 +3799,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: entering emergency-call mode mints a microphone capability bounded to the zero-authority emergency compartment, so *cut on lockout* and *available to an emergency call at BFU* are one rule about grants, not a rule plus an exception.
 · Trace: CJ-CERISE · [§15](verification-maximal-os.md#r-15-147)
 
-**R-15-148** IS: The sealed manual cutoffs dominate every software enable: a thrown microphone switch yields a connected but mute emergency call, and no software path re-opens it.
-· Accept: the cutoff state dominates any firmware or software enable, with no firmware in the loop.
+**R-15-148** IS: The sealed manual cutoffs dominate every software enable electrically rather than by mediation: the break sits in the power, bias, or data-lane path with no firmware in the loop, so there is no enable for software to interpose on. **What a thrown switch costs is R-12-054's statement**, cited here rather than restated.
+· Accept: the dominance is a property of where the break sits, read against R-15-150 and R-15-151; the emergency-service consequence is read off R-12-054 rather than enumerated here, so the two cannot disagree.
 · Trace: CJ-T · [§15](verification-maximal-os.md#r-15-148), [§15](verification-maximal-os.md#r-15-148-2)
 
 **R-15-149** IS: In the mobile form factor the phone is always ringable: the away-gesture keeps the minimal cellular paging and voice-call grant alive while revoking every other radio and modem grant; only an airplane or high-assurance policy, or the manual radio switch, revokes the cellular ring itself.
@@ -5058,7 +5058,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-REDUCTION, CJ-CT-SOUND · [§18](verification-maximal-os.md#r-18-021)
 
 **R-18-022** MUST NOT: The fourth candidate deliverable, the CryptOpt-style translation-validation toolchain, is deleted rather than deferred, because its whole yield is speed on an already-sound path.
-· Accept: deleting it retires a net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category, and this workstream, at the price of hand-assembly-grade ECC throughput.
+· Accept: §18 carries three crypto deliverables rather than four (R-18-021), and this is the fourth's absence; what the deletion costs is read off R-05-064 rather than enumerated here.
 · Trace: CJ-CRYPTO-SPEC · [§18](verification-maximal-os.md#r-18-022)
 
 **R-18-023** IS: The formosa-crypto ML-KEM effort is the existence proof for what remains, so the reduction and composition deliverables are a Coq-native restatement of finished work rather than a from-scratch research program; an EasyCrypt reduction is admissible interim assurance exactly as libcrux/HACL\* is.
