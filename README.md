@@ -65,13 +65,9 @@ Cores issue in order with static-only branch prediction, so the entire transient
 
 Each core runs a single hardware thread, so SMT's cross-thread contention and shared-resource timing channels do not exist, and execution timing stays deterministic.
 
-### Graphics, AI, and signal processing on general-purpose cores
+### Everything on general-purpose verified cores
 
-Rendering, machine learning, and radio or sensor signal processing run on general-purpose vector (RVV) and matrix cores that share the scalar cores' base ISA, capability model, and proofs; there is no fixed-function GPU, discrete accelerator, or opaque coprocessor. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is throughput in the class of a 2010s integrated GPU or early NPU.
-
-### No firmware coprocessors
-
-Radios, sensors, and inputs are driven by ordinary verified CPU cores under one ISA and one set of proofs, never by opaque baseband or controller firmware.
+No firmware coprocessors. Graphics, machine learning, signal processing, and every radio, sensor, and input device run on general-purpose scalar, vector (RVV), and matrix cores that share one base ISA, one capability model, and one set of proofs. There is no fixed-function GPU, discrete accelerator, or opaque baseband or controller firmware: no processor on the chip runs code the proofs do not cover. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is compute throughput in the class of a 2010s integrated GPU or early NPU.
 
 ### On-die OpenTitan-class root of trust
 
