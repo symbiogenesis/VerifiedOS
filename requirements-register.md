@@ -1347,7 +1347,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET
 
 **R-07-036** MUST: Across confidentiality boundaries the schedule is non-work-conserving: an idle slot stays idle rather than yielding, so no slack ever crosses a partition boundary.
-· Accept: there is no donation mechanism for slack to leak through.
+· Accept: there is no donation mechanism for slack to leak through; the rationale is a published impossibility rather than a design judgement (leakage through a deterministic work-conserving scheduler is unavoidable, the privacy-optimal member of that class still leaking, so elimination surrenders work conservation), and what the surrender closes is the offline-time half of time protection, the gap between a domain's executions, the `fence.t` and eager-zeroize switch constants closing only the online half, a domain's view of its own uninterrupted execution (R-07-040, R-15-220).
 · Trace: CJ-NI, CJ-ISOL
 
 **R-07-037** IS: Because the frame divides rather than shares, tenant population is a first-class schedule parameter: a tenant's capacity *is* its slot width (a tenant being a sole compartment or one R-07-037b same-label group), and the number of tenants on one core's wheel is a composition constant with a hard ceiling rather than a soft degradation curve.

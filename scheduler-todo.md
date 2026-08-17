@@ -17,7 +17,7 @@
 | **§2 Corrections** | Arguments that need restating; the conclusions stand. | 0 |
 | **§3 Statements** | Clauses the schedule model should add because something it depends on is inferable rather than stated. | 0 |
 | **§4 Decisions** | Genuine open questions. | 0 |
-| **§5 Records** | Two free confirmations, recorded so a later reader does not mistake either for drift. | 2 |
+| **§5 Records** | Confirmations the literature supplies for free, recorded so a later reader does not mistake one for drift. | 0 |
 | **§6 Watch** | External lines with no obligation attached, tracked because each aims at what §0 settles. | 2 |
 
 ---
@@ -62,12 +62,7 @@
 
 ## 5. Records
 
-### 5B. Free confirmations to collect
-
-- [ ] **The literature contains the impossibility result that [R-07-036](verification-maximal-os.md#r-07-036) currently argues from first principles.** *[R-07-036](verification-maximal-os.md#r-07-036), [R-17-006](verification-maximal-os.md#r-17-006) · §7.7, §17.2.*
-  Gong and Kiyavash quantify leakage through deterministic work-conserving schedulers and show it is unavoidable within that class, work-conserving TDMA being privacy-optimal and still leaking. The requirement's rationale, that donated time is a timing channel, is presently stated as a design judgement. It is a published result, and citing it converts a judgement into a confirmation at the cost of one clause.
-- [ ] **The online/offline-time split names what [R-07-036](verification-maximal-os.md#r-07-036) buys that flushing alone does not.** *[R-07-036](verification-maximal-os.md#r-07-036), [R-07-040](verification-maximal-os.md#r-07-040) · §7.7.*
-  Time protection's two channels are separable: `fence.t` and eager zeroize close the online half, and only a behaviour-independent schedule closes the offline half. The model does both and nowhere says so, which understates it: a reader who knows the time-protection line will otherwise read the switch cost as buying what flushing already bought.
+*None. The class is a confirmation the literature supplies for free; both collected are recorded at [R-07-036](verification-maximal-os.md#r-07-036), which cites the deterministic work-conserving impossibility and names time protection's online/offline-time split.*
 
 ---
 
@@ -75,15 +70,11 @@
 
 *No obligation attached. Each aims at what §0 settles, so a movement on either would rerun that argument rather than open an item here.*
 
-- [ ] **The time-protection proof line.** Buckley, Sison, Wistoff, Millar, Murray, Klein and Heiser mechanize time protection against seL4. It is the nearest external work to this model's own obligation, and its residuals are the ones §17.2 should expect to inherit.
-- [ ] **Any published work-conserving scheduler carrying an offline-time leakage proof.** This is the one result that would reopen §0 and with it the whole reservation-based family. Gong and Kiyavash argue it cannot exist for deterministic schedulers, but their model is a shared queueing server rather than a partitioned CPU, so the impossibility is narrower than a casual reading makes it.
+- [ ] **The time-protection proof line.** Buckley, Sison, Wistoff, Millar, Murray, Klein and Heiser (FM 2023) machine-check time protection as a dynamic, observer-relative, intransitive nonleakage property — over a generic OS model, not seL4 itself. Instantiating it onto seL4's proof stack is the active work as of 2025–26 (Sison, Isabelle Workshop 2026, with l4v-invariant and touched-address groundwork underneath; funded under Cyberagentur's PISTIS-V), and on the hardware side `fence.t.s` extends the flush primitive to out-of-order cores (Wistoff, Heiser and Benini, 2024). It is the nearest external work to this model's own obligation, and the residuals §17.2 should expect to inherit are the ones the project itself states: the hardware–software contract is not fully formalized, the `fence.t` implementation is unverified, and seL4's information-flow proofs do not yet reach timing.
+- [ ] **Any published work-conserving scheduler carrying an offline-time leakage proof.** This is the one result that would reopen §0 and with it the whole reservation-based family. None exists as of August 2026, and the current literature runs the other way: new scheduler side-channel attacks and leakage quantification on one side, and on the other mitigations that obtain privacy precisely by surrendering work conservation or adding pacing delay. Gong and Kiyavash argue the proof cannot exist for deterministic schedulers, but their model is a shared queueing server rather than a partitioned CPU, so the impossibility is narrower than a casual reading makes it — a gap now a decade old, neither closed nor exploited.
 
 ---
 
 ## Where the work lands
 
-*Several items collapse into one edit. This is the grouping to work in, not the order above.*
-
-| Section | Items | Class |
-| --- | --- | --- |
-| §7.7 Scheduling | both confirmations | 5B |
+*Nothing outstanding.*
