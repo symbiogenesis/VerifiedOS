@@ -201,14 +201,33 @@ foreach ($line in Get-Content 'coverage-matrix.md') {
 # inside a fenced block is now a finding on its own: the fence displays the anchor rather
 # than declaring it, so the trace that cites it points at nothing while the prose looks
 # like it carries the target. That defect was repaired by hand once and nothing held it.
+#
+# The citation itself is now derived rather than written: a trace naming only its crown
+# jewels cites #r-<id>, the bookmark its own requirement number gives. That closes the
+# last place the register carried a derived fact by hand, and it is the counts group's
+# rule applied to a reference instead of a figure, so the third property below is the
+# one that keeps it closed: a trace written out where the derived form would do is a
+# restatement, and is reported exactly as an unheld figure is.
 
 "=== traces: the register's references against the prose ==="
 
-$badTarget = @(); $wrongSec = @()
+$badTarget = @(); $wrongSec = @(); $restated = @()
 foreach ($id in $ids) {
     $t = $traceOf[$id]
     if (-not $t) { continue }
-    foreach ($m in [regex]::Matches($t, '\[§([\d.]+)\]\(verification-maximal-os\.md#([^)]+)\)')) {
+    $derived = 'r-' + $id.Substring(2).ToLower()
+    $links   = [regex]::Matches($t, '\[§([\d.]+)\]\(verification-maximal-os\.md#([^)]+)\)')
+
+    if ($links.Count -eq 0) {
+        # the derived form: one citation, at the bookmark the id names
+        if (-not $anchorCount.ContainsKey($derived)) {
+            $badTarget += "$id derives #$derived, which is no bookmark in the prose"
+        }
+        continue
+    }
+
+    # written out, so it departs from the derived form and must say how
+    foreach ($m in $links) {
         $anchor = $m.Groups[2].Value
         if (-not $anchorCount.ContainsKey($anchor)) { $badTarget += "$id cites #$anchor, which is no bookmark in the prose" }
 
@@ -218,8 +237,17 @@ foreach ($id in $ids) {
             $wrongSec += "$id shows §$shown for #$anchor, which sits in §$actual"
         }
     }
+
+    # a second citation, another requirement's bookmark, or a note after the link are the
+    # three departures; anything else written out is the derived citation, spelled by hand
+    $tail = $t -replace '\[§[\d.]+\]\(verification-maximal-os\.md#[^)]+\)', ''
+    if ($links.Count -eq 1 -and $links[0].Groups[2].Value -eq $derived -and $tail -notmatch ';') {
+        $restated += "$id writes out #$derived, which its id already derives"
+    }
 }
 Report 'unresolvable trace target(s)' $badTarget 'every cited bookmark resolves'
+
+Report 'trace(s) restating the derived citation:' $restated 'every trace is derived, or departs from the derived form'
 
 Report 'bookmark(s) declared more than once in one document' $twiceHere 'every bookmark id is unique where it is declared'
 
