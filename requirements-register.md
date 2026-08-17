@@ -4245,6 +4245,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the cross-domain coherence-traffic channel is deleted structurally, there being no coherence traffic anywhere on the die.
 · Trace: CJ-ISOL, CJ-NI
 
+**R-15-223a** MUST: Every declared ring exchange is laid out against the schedule at composition: buffers at tag-granule alignment (R-15-183), the exchange sized and phased to complete within one granted slot of its window's TDM grant rather than straddling two, and its notification batched at the source, one interrupt-file store per batch rather than per element.
+· Accept: the derived R-11-014b chain bounds carry each declared exchange's slot-local fabric-wait constant with no full-TDM-rotation term, and the slot allocation, arbitration, and window addressing are identical with and without the layout, the duty being R-11-014c's shape (a poor layout costs latency and never a theorem, the bounds re-derived from the shipped artifact).
+· Trace: CJ-WCET
+
 **R-15-224** MUST: The radio-pinned V-cores form their own island and take the top rung of every graded axis: a separate SRAM macro or tier, and their own clock/power island.
 · Accept: the on-die power-delivery droop coupling a shared-die radio would leave is deleted on one die rather than by a second package.
 · Trace: CJ-ISOL
@@ -5188,7 +5192,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1194 requirements. §19 is non-normative and yields none. Counts include the 272 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1195 requirements. §19 is non-normative and yields none. Counts include the 273 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5206,7 +5210,7 @@ All eighteen normative sections are extracted, at 1194 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **105** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **22** |
-| **§15 Hardware Platform** | **extracted** | **351** |
+| **§15 Hardware Platform** | **extracted** | **352** |
 | **§16 Reliability** | **extracted** | **28** |
 | **§17 Residual Risks** | **extracted** | **109** |
 | **§18 Realization** | **extracted** | **46** |

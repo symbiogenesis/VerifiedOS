@@ -19,7 +19,7 @@
 
 Every item is tagged with one, and the tag is the honest statement of what it buys:
 
-- **[D] Differential.** The lever exploits structure the conventional baseline **does not have** (a compose-time-frozen component graph, capability bounds and tags on die, a WCET-bounded frame, a partitioned SRAM map). Its marginal return is strictly higher here, so it narrows the inter-design gap by that difference. Several still only *offset a self-imposed tax* and never overtake the baseline; the item says which.
+- **[D] Differential.** The lever exploits structure the conventional baseline **does not have** (a compose-time-frozen component graph, capability bounds and tags on die, a WCET-bounded frame, a partitioned SRAM map). Its marginal return is strictly higher here, so it narrows the inter-design gap by that difference.
 - **[U] Universal, higher margin.** An ordinary optimizing-compiler pass the baseline runs too, but whose marginal return is larger here because no dynamic mechanism papers over its absence. It narrows the gap by the difference in marginal return, which is smaller than a [D] lever's and is not zero.
 
 ## The pure-win gate
@@ -47,17 +47,6 @@ This single fact is what makes the whole list pure.
 The output carries the same memory-safety / constant-time / WCET certificates (§5, §13); the optimizer only makes the same-certified binary faster.
 Nothing here contradicts the §5 rule that deleted the CryptOpt toolchain (R-05-064, R-18-022): that rule bans minting a **net-new verified artifact** whose only yield is speed, and every tool below is untrusted producer-side machinery that mints nothing.
 Untrusted-producer status is necessary and not sufficient, though: where a transformation's *mandatory* producer-side validation cannot be discharged by tools that already exist, supplying it means minting the very checker that rule deleted, and the lever is declined rather than shipped unvalidated (**Out of scope**, search-based codegen).*
-
-### 1A. Differential levers
-
-- [ ] **[D] Ring-window and message layout for the multikernel.**
-  Share-nothing per-core kernels exchange messages through shared-SRAM ring windows under `Ztso` fences (§7, §15) across a TDM NoC with static slots. So align ring buffers to the 8-byte tag granule (which §12's allocation discipline already makes free), size and batch transfers so a logical exchange lands **inside one TDM slot** rather than straddling two, and amortize IPI round-trips by batching at the source.
-  Differential: a coherent baseline has no slot cadence to align to and no granule write path to respect; the compiler and the composition tooling here both know the schedule.
-  Attacks the cross-core-coordination (−2% to −15%), TDM-NoC (−5% to −15%), and no-coherence (−5% to −20%) rows.
-  **It pays on the bound and not only on the average**, which is the more valuable half: an exchange phased to land inside its own granted slot has a worst-case fabric wait that *equals* its typical one, so the §11 input stops carrying a full-wheel rotation the traffic never actually experiences. That is the general shape of the strongest remaining WCET lever in the design, and it is worth naming as such: on the core itself the per-instruction term is already exact (in-order, fixed-latency, no cache) and the in-slot control-flow term is the mandatory backend's under R-18-014c, so what schedulable-utilization loss remains open sits in the *fabric and endpoint* terms, and the way to attack those is to **make the worst case equal the typical case** rather than to sharpen an analysis. The device-endpoint instance of the same move is normative at R-15-015c and is not a lever on this list.
-  *Keeps it pure:* it changes the *shape* of traffic inside a compartment's own statically granted slots and windows, never the slot allocation, the arbitration, or who may address what.
-
-### 1B. Universal passes whose marginal return is higher here
 
 - [ ] **[U] Software pipelining / modulo scheduling beyond the mandatory backend scheduler.**
   R-18-014a already requires ordinary latency-aware scheduling, including local load-use separation, as backend completeness. This optional lever is only the advanced cross-iteration transform: overlap iterations and hoist loads across iteration boundaries.
@@ -87,7 +76,7 @@ The search itself is specified in §15 (normative) and [implementation-plan.md](
 
 - [ ] **[U] Static schedule synthesis.**
   Pack the cyclic-executive slots (§7) and the TDM-NoC arbitration schedule (§15) with an ILP / SMT / evolutionary optimizer, subject to the §11 interval-arithmetic schedulability check.
-  Tighter packing recovers the non-work-conserving-scheduler idle (−10% to −30%) and TDM-NoC (−5% to −15%) rows.
+  Tighter packing recovers the non-work-conserving-scheduler idle (−10% to −30%) and TDM-NoC (−5% to −12%) rows.
   Compounds directly with the **bound-directed lowering** both compilers now owe (R-18-014c): the synthesizer's input *is* the WCET table, so every bound the backend tightens is frame capacity this pass can then allocate, and the two run as one loop rather than as two passes with a shared input.
   This shrinks the design's **self-imposed** idle only; it can never reach the baseline's work-conserving efficiency (that would need slack donation = a timing channel), so the row is narrowed, not closed.
   *Keeps it pure:* the frame stays **non-work-conserving**, no slack donation, no runtime scheduling decision, it is merely a better-packed static frame.
@@ -98,7 +87,7 @@ The search itself is specified in §15 (normative) and [implementation-plan.md](
 
 The list is not internally free: two pairs pull against each other, and each is arbitrated rather than merely noted.
 
-- **Advanced scheduling vs. macro-op fusion.** R-18-014a makes the frozen fusion table a mandatory scheduler input and preserves pair adjacency unless the same block's static Sail cost is strictly lower when broken. Optional modulo scheduling may make that measured trade; it may not silently give back the booked +5% to +15% to an unmeasured heuristic. The profile-matched set (R-15-031b) raises the stake on both sides: the pairs now include every indexed capability dereference, so there is both more to win by preserving adjacency and more code in which a scheduler might break it. **Arbitration:** this is half of why modulo scheduling stays optional (§1B) rather than becoming backend completeness; a transform that reorders through the fusion pairs belongs on the measured path, not the mandatory one.
+- **Advanced scheduling vs. macro-op fusion.** R-18-014a makes the frozen fusion table a mandatory scheduler input and preserves pair adjacency unless the same block's static Sail cost is strictly lower when broken. Optional modulo scheduling may make that measured trade; it may not silently give back the booked +5% to +15% to an unmeasured heuristic. The profile-matched set (R-15-031b) raises the stake on both sides: the pairs now include every indexed capability dereference, so there is both more to win by preserving adjacency and more code in which a scheduler might break it. **Arbitration:** this is half of why modulo scheduling stays optional (§1) rather than becoming backend completeness; a transform that reorders through the fusion pairs belongs on the measured path, not the mandatory one.
 - **Inlining and unrolling vs. code size.** Speed bought with size lands on a machine with no I-cache and a hard SRAM capacity budget (§15), so it can regress the very fetch-bandwidth pressure PGO/BOLT layout exists to relieve, and it consumes budget the §15 roster is fit to explicitly. Two encoding-specific effects sharpen it rather than soften it: the unit that matters is now the **bundle** (R-15-036e), so growth is charged in whole bundles; and an unrolled or inlined body that displaces recurring sequences can *lower* the dictionary hit rate the image was sized against (R-15-036i), making the size cost slightly superlinear in the encoded form. **Arbitration:** gate 6. Size is a constrained objective in the optimizer, not a free variable, and profile-directed selectivity (inline and unroll on measured hot paths only) is the standing form. **The same pair now runs in the other direction and is arbitrated the same way.** Outlining and tail merging are the mirror image, size bought with speed: they collect the one redundancy class the dictionary cannot name, they are normative and owned by the backend (R-15-036o), and each outlined region pays a call and a return whose return no RAS predicts. That fails gate 6 on the cycle axis exactly as inlining fails it on the byte axis, so it is settled by the same rule rather than by preference: R-15-036p makes it a two-axis measurement, bytes removed and worst-case cycles added, which is what keeps a region whose inflation a slot cannot absorb from being outlined for its bytes. The two passes also fight for the same code, so the selectivity above is one decision and not two.
 
 ---
@@ -106,11 +95,10 @@ The list is not internally free: two pairs pull against each other, and each is 
 ## What each lever recovers
 
 Rows are named from [performance-estimates.md](performance-estimates.md) (figures live there, so this stays in sync).
-The third column gives the class from **The two classes**, above: **[D]** exploits structure the baseline lacks and so narrows the gap by its higher marginal return, while **[U]** is a universal pass whose marginal return is nonetheless higher here.
+The third column gives the class from **The two classes**, above.
 
 | Pure-win lever | Rows it attacks | Class and marginal-return note |
 |---|---|---|
-| Ring-window / message layout | Cross-core coordination; TDM NoC; no coherence | **[D]** Aligns to a slot cadence and granule write path the baseline does not have; pays on the *bound*, making the worst-case fabric wait equal the typical one |
 | Software pipelining / modulo scheduling | In-order issue; no hardware caches | **[U]** Advanced cross-iteration scheduling only, and **optional**: mandating it would put modulo variable expansion's code growth on the required path. Ordinary latency scheduling is mandatory backend completeness under R-18-014a. Cheap here because §11's mandatory loop bounds *are* its input, and concentrated on the RVV kernels that have no fixed-function fallback. No no-prefetch row to claim (scored ≈0%; charging it double-counts) |
 | Size-constrained LTO / selective inlining / unrolling | Static prediction + in-order (compounding) | **[U]** Admitted only when image size and static Sail cost do not worsen |
 | Static schedule synthesis | Non-work-conserving scheduler; TDM NoC | **[U]** Shrinks a self-imposed idle; never reaches work-conserving. Loops with the mandatory bound-directed lowering (R-18-014c), whose tightened bounds are this pass's input |
@@ -129,7 +117,7 @@ The entries that restore deliberately deleted mechanisms describe the **irreduci
   The substitute is a faster pure interpreter, and it is normative rather than open: R-14-008a admits threaded dispatch, an off-device-selected superinstruction set whose bodies are AOT image code, and data-plane inline caches, under the size budget of R-14-008b and the §8 argument of R-14-008c. Web JS and Wasm are dynamic content, so no AOT shortcut exists *on the web delivery path*; the §13 install path is a different matter (R-14-008f).
 - **DVFS / turbo, reactive clocking**, a data-dependent frequency channel; power states are static schedule artifacts (§7/§15).
 - **Prefetch / non-temporal hints (`Zicbop`/`Zihintntl`), a return-address stack, LR/SC**, reintroduce µarch state that WCET must model and admission-test-3 forbids.
-  The pure-win substitute for prefetch is static load hoisting (§1B); note that the estimates score no-prefetch at ≈0%, so the substitute is collecting a cost that was never booked as a loss.
+  The pure-win substitute for prefetch is static load hoisting (§1); note that the estimates score no-prefetch at ≈0%, so the substitute is collecting a cost that was never booked as a loss.
 - **Slack donation / work-conserving scheduling / any reclaim of idle discretionary slots**, recorded here because §17 names it as the mechanism that will never be added: reclaiming an idle slot across a confidentiality boundary *is* the timing channel the non-work-conserving frame is buying. The pure-win substitutes are schedule synthesis (§2), the bound-directed lowering now normative at R-18-014c, and the composition-time granularity budget now normative at R-14-007a, none of which reclaim anything.
 - **A hardware reference-count or ownership primitive (a capability-copy-intercepting counter, hardware *linear* capabilities)**, recovers refcount traffic only by adding microarchitecture: a new mutable per-object counter or a non-duplication check in the pipeline is exactly the hidden shared state admission-test-3 (§15) forbids, and it breaks the "no new µarch" premise the list rests on.
   There is no open performance substitute: temporal safety already rides the tag + revocation machinery and the linear/affine capability types (§8, §5, §13). Compiler work that merely realizes that required discipline is §13 hygiene, not a recovery lever until a scored instrumentation cost exists.
