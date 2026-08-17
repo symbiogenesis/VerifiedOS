@@ -4599,8 +4599,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: both appear in the crown-jewel inventory.
 · Trace: CJ-NI
 
-**R-17-013** IS: Cost (3): the user is outside the theorem. An unspoofable, attested, correctly-bounded prompt still rests on the human granting the right authority; *the user consented to the wrong thing* is the irreducible ceiling no proof reaches.
+**R-17-013** IS: Cost (3), the comprehension half: the user is outside the theorem. An unspoofable, attested, correctly-bounded prompt still rests on the human granting the right authority; *the user did not understand what they authorized* is the irreducible ceiling no proof reaches.
 · Accept: no claim elsewhere in the specification implies otherwise.
+· Trace: CJ-NI
+
+**R-17-013e** IS: Cost (3), the abuse-resistance half, open rather than irreducible: a correctly-rendered, genuinely-attested prompt can be issued often enough, or shaped well enough, that a competent user authorizes what they would refuse on reflection, and no mechanism in the design addresses it, the only rate-limiter guarding unlock attempts (R-09-018, R-12-017), never grants. It stays open because the candidate mechanisms (grant rate-limiting, consent-pattern anomaly detection, habituation heuristics) are policy oracles with no specification to prove them against, added to the one path §6 keeps smallest, deciding by heuristic on the user's behalf what the design elsewhere refuses to decide without a theorem.
+· Accept: the ceiling's two halves carry distinct entries; no claim elsewhere in the specification cites the prompt's unspoofability as bounding this half; and no mechanism is claimed to close it.
 · Trace: CJ-NI
 
 **R-17-013a** IS: The autonomous-agent residual: the §12 posture bounds what an agent may hold, and two costs remain that belong to the residual rather than to the mechanism.
@@ -4611,7 +4615,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the claim recorded for agents is containment and legibility of the request, not correctness of the request.
 · Trace: CJ-NI
 
-**R-17-013c** IS: Cost (2): the consent ceiling of R-17-013 is exercised at machine rate, the human adjudicator being the scarce resource; standing grants relieve the fatigue by widening and lengthening the hold, which is where the bound weakens.
+**R-17-013c** IS: Cost (2): the abuse-resistance half of the consent ceiling (R-17-013e) is exercised at machine rate, the human adjudicator being the scarce resource; standing grants relieve the fatigue by widening and lengthening the hold, which is where the bound weakens.
 · Accept: no mechanism is claimed to decide the fatigue-versus-scope trade on the user's behalf.
 · Trace: CJ-NI
 
@@ -5184,7 +5188,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1193 requirements. §19 is non-normative and yields none. Counts include the 271 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1194 requirements. §19 is non-normative and yields none. Counts include the 272 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5204,7 +5208,7 @@ All eighteen normative sections are extracted, at 1193 requirements. §19 is non
 | **§14 Userland** | **extracted** | **22** |
 | **§15 Hardware Platform** | **extracted** | **351** |
 | **§16 Reliability** | **extracted** | **28** |
-| **§17 Residual Risks** | **extracted** | **108** |
+| **§17 Residual Risks** | **extracted** | **109** |
 | **§18 Realization** | **extracted** | **46** |
 
 §19 is non-normative and yields no requirements.

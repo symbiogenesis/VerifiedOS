@@ -197,7 +197,7 @@ Record Vocabulary : Type := {
 
   die_matches_rtl : Prop;
   hardness_conjectures : Prop;           (* MLWE/MSIS, ECDLP/CDH (R-17-049)    *)
-  consent_correctness : Prop;            (* the human half (R-17-013)          *)
+  consent_correctness : Prop;            (* the human half (R-17-013, R-17-013e) *)
   Ax : Prop;
   ax_carries_die_matches_rtl : Ax -> die_matches_rtl;
   ax_carries_hardness : Ax -> hardness_conjectures;

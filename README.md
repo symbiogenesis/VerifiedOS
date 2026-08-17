@@ -185,7 +185,7 @@ These three limits are real obligations met outside the platform. Rows make each
 | --- | --- | --- |
 | Injection into an interpreter an application brings with it, web content in the browser being the standing case | **The compartment author.** Only platform name resolution, command execution, search, and configuration are structured rather than textual. An app's own string parser remains injectable within its compartment. The platform bounds rather than fixes this: manifest capabilities limit the blast radius to app authority. Functional correctness is mandatory for the TCB, not arbitrary apps | **Transferred** |
 | Upset rates, environmental envelope, and component reliability beyond what the die's own correction covers: automotive, avionic, and orbital duty | **The deployment.** Radiation hardening is the source-rate lever an enclosure cannot supply and changes no computation; panels and links are graded likewise. Automotive and space instances select higher grades on the same stated axis; consumer instances use a commodity panel behind the same fixed-function controller. The platform mandates correction at every point; deployment selects the grade | **Transferred** |
-| The user granting the authority they meant to grant | **The human.** The sole runtime declassifier is an attested, unspoofable powerbox whose grants are CHERI-bounded to the named object, making the mechanism trustworthy and auditable. No proof can establish that the user named the right object; §17 records this irreducible ceiling | **Transferred** |
+| The user granting the authority they meant to grant | **The human.** The sole runtime declassifier is an attested, unspoofable powerbox whose grants are CHERI-bounded to the named object, making the mechanism trustworthy and auditable. No proof can establish that the user named the right object; §17 splits that ceiling in two, the comprehension half irreducible, the abuse-resistance half (a well-shaped or oft-repeated ask a competent user grants and would refuse on reflection) booked open | **Transferred** |
 
 ### The proof artifacts themselves
 
@@ -214,7 +214,7 @@ One part is specified as a project in its own right rather than as a component: 
 
 ### The atomic-requirements register
 
-Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md): each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1192 numbered requirements.
+Per §5, the artifact the independent-specification-review release gate audits is the [atomic-requirements register](requirements-register.md): each normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1194 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as spec defects to repair in the prose rather than register omissions to work around. That list is empty, which the register declines to read as a clean bill: its standing instruction is that the sweep finding such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
