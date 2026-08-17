@@ -51,25 +51,65 @@ function Report([string]$Label, $Items, [string]$Ok = '', [string]$Pad = '') {
 # entry template cites `#r-ss-nnn`, which must not read as a dangling trace. Every
 # group that reads whole documents reads them through this, so the rule is stated
 # once and every group inherits it.
+#
+# Each document keeps its raw text beside its lines, plus a table of line-start
+# offsets. The groups below scan the raw text once with one regex and resolve a hit
+# back to its line by binary search, rather than walking every line once per group;
+# the reports are the same, arrived at in one pass instead of many.
 
-$docs = @(foreach ($f in Get-ChildItem -Path . -Filter *.md -Recurse | Sort-Object FullName) {
-    $lines  = [System.IO.File]::ReadAllLines($f.FullName)
+function Get-LineIndex([int[]]$Starts, [int]$Offset) {
+    # the 0-based line containing a raw-text offset
+    $i = [System.Array]::BinarySearch($Starts, $Offset)
+    if ($i -lt 0) { $i = -$i - 2 }
+    $i
+}
+
+# [^\S\r\n] is \s minus the line breaks, which on a single line is the same class;
+# over the raw text it keeps ^ from drifting across a blank line onto the fence
+$fenceRe = [regex]'(?m)^[^\S\r\n]*```'
+
+$mdOpts = [System.IO.EnumerationOptions]::new()   # skips hidden and system, as the provider does
+$mdOpts.RecurseSubdirectories = $true
+$mdFiles = [System.IO.Directory]::GetFiles($PWD.Path, '*.md', $mdOpts)
+[System.Array]::Sort($mdFiles)
+
+$docs = @(foreach ($f in $mdFiles) {
+    $raw   = [System.IO.File]::ReadAllText($f)
+    $lines = [System.IO.File]::ReadAllLines($f)
+
+    # one split hands back every segment with its terminator's length implied, so the
+    # offsets accumulate without touching the text again
+    $parts  = $raw.Split([char]10)
+    $starts = New-Object 'int[]' $parts.Count
+    $off = 0; $i = 0
+    foreach ($p in $parts) { $starts[$i++] = $off; $off += $p.Length + 1 }
+
+    # every fence marker toggles, so the odd-even pairs span the displayed lines,
+    # markers included; an unclosed fence displays to the end of the file. The match
+    # is ^-anchored, so its offset is a line start and the search is an exact hit.
     $fenced = New-Object 'bool[]' $lines.Count
-    $open   = $false
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        if ($lines[$i] -match '^\s*```') { $fenced[$i] = $true; $open = -not $open }
-        else                             { $fenced[$i] = $open }
+    $marks  = @(foreach ($m in $fenceRe.Matches($raw)) { [System.Array]::BinarySearch($starts, $m.Index) })
+    for ($k = 0; $k -lt $marks.Count; $k += 2) {
+        $a = $marks[$k]
+        $b = if ($k + 1 -lt $marks.Count) { $marks[$k + 1] } else { $lines.Count - 1 }
+        for ($j = $a; $j -le $b; $j++) { $fenced[$j] = $true }
     }
+
     [pscustomobject]@{
-        Name   = (Resolve-Path -Relative $f.FullName) -replace '^\.[\\/]', ''
+        Name   = [System.IO.Path]::GetRelativePath($PWD.Path, $f) -replace '^\.[\\/]', ''
+        Raw    = $raw
         Lines  = $lines
+        Starts = $starts
         Fenced = $fenced
     }
 })
 
+$docByName = @{}
+foreach ($d in $docs) { $docByName[$d.Name] = $d }
+
 # --- the register: ids, where each sits, its body, and the trace it carries -------
 
-$regLines   = Get-Content 'requirements-register.md'
+$regLines   = $docByName['requirements-register.md'].Lines
 $ids        = [System.Collections.Generic.List[string]]::new()
 $cjTargets  = [System.Collections.Generic.List[string]]::new()
 $subsection = @{}          # id -> "15.4", the ### n.m it sits in, where there is one
@@ -81,45 +121,57 @@ $accepts    = @{}          # id -> how many conjunctive · Accept: lines it carr
 $lateAccept = @()          # ids stating a criterion after a conferral or the trace
 $dcsrRows   = 0
 
+# every line kind this parse reads announces itself in its first character, so the
+# dispatch below spends a regex only on the few lines whose kind it could be
 $sec = $null; $sub = $null; $current = $null; $entry = $null
 $sawTail = $false; $inDefects = $false
 foreach ($line in $regLines) {
-    if ($line -match '^## §(\d+)') {
-        $sec = $Matches[1]; $sub = $null
-        if (-not $perSection.Contains($sec)) { $perSection[$sec] = 0 }
+    if ($line.Length -eq 0) { continue }
+    switch ($line[0]) {
+        '#' {
+            if ($line -match '^## §(\d+)') {
+                $sec = $Matches[1]; $sub = $null
+                if (-not $perSection.Contains($sec)) { $perSection[$sec] = 0 }
+            }
+            elseif ($line -match '^### (\d+\.\d+) ')       { $sub = $Matches[1] }
+            elseif ($line -match '^## Extraction defects') { $inDefects = $true }
+        }
+        '*' {
+            if ($line -match '^\*\*(R-\d\d-\d+[a-z]?)\*\* (IS|MUST NOT|MUST)') {
+                $current = $Matches[1]
+                $entry   = $current
+                $sawTail = $false
+                $ids.Add($current)
+                $subsection[$current] = $sub
+                $body[$current]       = $line
+                $accepts[$current]    = 0
+                if ($sec) { $perSection[$sec]++ }
+            }
+        }
+        '·' {
+            if ($entry -and $line -match '^· Accept:') {
+                # criteria are conjunctive, and they come before the lines that follow them:
+                # $entry outlives the trace where $current does not, so one written below the
+                # trace is caught here rather than going uncounted
+                $accepts[$entry]++
+                if ($sawTail) { $lateAccept += $entry }
+            } elseif ($current -and $line -match '^· (Fail-closed|RoT-fresh):') {
+                # a property line conferring membership in a set some other entry collects
+                $kind = $Matches[1]
+                if (-not $confers.ContainsKey($kind)) { $confers[$kind] = [ordered]@{} }
+                $confers[$kind][$current] = $line
+                $sawTail = $true
+            } elseif ($current -and $line -match '^· Trace:') {
+                $traceOf[$current] = $line
+                $current = $null
+                $sawTail = $true
+            }
+        }
+        '|' {
+            if ($line -match '^\| `(CJ-[A-Z-]+)`')        { $cjTargets.Add($Matches[1]) }
+            elseif ($inDefects -and $line -match '^\| `') { $dcsrRows++ }
+        }
     }
-    if ($line -match '^### (\d+\.\d+) ')       { $sub = $Matches[1] }
-    if ($line -match '^## Extraction defects') { $inDefects = $true }
-
-    if ($line -match '^\*\*(R-\d\d-\d+[a-z]?)\*\* (IS|MUST NOT|MUST)') {
-        $current = $Matches[1]
-        $entry   = $current
-        $sawTail = $false
-        $ids.Add($current)
-        $subsection[$current] = $sub
-        $body[$current]       = $line
-        $accepts[$current]    = 0
-        if ($sec) { $perSection[$sec]++ }
-    } elseif ($entry -and $line -match '^· Accept:') {
-        # criteria are conjunctive, and they come before the lines that follow them:
-        # $entry outlives the trace where $current does not, so one written below the
-        # trace is caught here rather than going uncounted
-        $accepts[$entry]++
-        if ($sawTail) { $lateAccept += $entry }
-    } elseif ($current -and $line -match '^· (Fail-closed|RoT-fresh):') {
-        # a property line conferring membership in a set some other entry collects
-        $kind = $Matches[1]
-        if (-not $confers.ContainsKey($kind)) { $confers[$kind] = [ordered]@{} }
-        $confers[$kind][$current] = $line
-        $sawTail = $true
-    } elseif ($current -and $line -match '^· Trace:') {
-        $traceOf[$current] = $line
-        $current = $null
-        $sawTail = $true
-    }
-
-    if ($line -match '^\| `(CJ-[A-Z-]+)`')        { $cjTargets.Add($Matches[1]) }
-    elseif ($inDefects -and $line -match '^\| `') { $dcsrRows++ }
 }
 
 # --- every bookmark: where it is declared, how often, and the prose §n it sits in --
@@ -134,24 +186,43 @@ $anchorsOf   = @{}         # file -> (bookmark -> count), the whole corpus
 $buried      = @()         # anchors a fence displays instead of declaring
 $twiceHere   = @()
 
-$sec = $null
+$anchorRe   = [regex]'<a id="([^"]+)"'
+$proseSecRe = [regex]'(?m)^## (\d+)\.'
+
 foreach ($d in $docs) {
     $prose = $d.Name -eq 'verification-maximal-os.md'
     $here  = @{}
-    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
-        $line = $d.Lines[$i]
-        if ($prose -and -not $d.Fenced[$i] -and $line -match '^## (\d+)\.') { $sec = $Matches[1] }
-        foreach ($m in [regex]::Matches($line, '<a id="([^"]+)"')) {
-            $id = $m.Groups[1].Value
-            if ($d.Fenced[$i]) {
-                $buried += "$($d.Name):$($i + 1) buries #$id in a fenced block, where it is text and not a bookmark"
-                continue
-            }
-            $here[$id] = 1 + $here[$id]
-            if ($here[$id] -eq 2) { $twiceHere += "$($d.Name) declares #$id more than once; a link to it resolves to whichever comes first" }
-            if ($prose) {
-                $anchorCount[$id] = 1 + $anchorCount[$id]
-                if (-not $anchorSec.ContainsKey($id)) { $anchorSec[$id] = $sec }
+    $starts = $d.Starts
+
+    # the prose's section headings, by offset, so each anchor takes the §n of the
+    # last heading above it; the heading match is ^-anchored, an exact line start
+    $headOffs = $null; $headSecs = $null
+    if ($prose) {
+        $ho = [System.Collections.Generic.List[int]]::new()
+        $hs = [System.Collections.Generic.List[string]]::new()
+        foreach ($m in $proseSecRe.Matches($d.Raw)) {
+            if ($d.Fenced[[System.Array]::BinarySearch($starts, $m.Index)]) { continue }
+            $ho.Add($m.Index); $hs.Add($m.Groups[1].Value)
+        }
+        $headOffs = $ho.ToArray(); $headSecs = $hs
+    }
+
+    foreach ($m in $anchorRe.Matches($d.Raw)) {
+        $i = [System.Array]::BinarySearch($starts, $m.Index)
+        if ($i -lt 0) { $i = -$i - 2 }
+        $id = $m.Groups[1].Value
+        if ($d.Fenced[$i]) {
+            $buried += "$($d.Name):$($i + 1) buries #$id in a fenced block, where it is text and not a bookmark"
+            continue
+        }
+        $here[$id] = 1 + $here[$id]
+        if ($here[$id] -eq 2) { $twiceHere += "$($d.Name) declares #$id more than once; a link to it resolves to whichever comes first" }
+        if ($prose) {
+            $anchorCount[$id] = 1 + $anchorCount[$id]
+            if (-not $anchorSec.ContainsKey($id)) {
+                $j = [System.Array]::BinarySearch($headOffs, $m.Index)
+                if ($j -lt 0) { $j = -$j - 2 }
+                $anchorSec[$id] = if ($j -ge 0) { $headSecs[$j] } else { $null }
             }
         }
     }
@@ -160,7 +231,7 @@ foreach ($d in $docs) {
 
 # --- the counted artifacts: the inventory, the profile, the absence contract ------
 
-$cj = Get-Content 'crown-jewels.md'
+$cj = $docByName['crown-jewels.md'].Lines
 $cjRows = @($cj | Where-Object { $_ -match '^\| \d+ \|' })
 function Get-Status($row) { (($row -split '\|')[-2]).Trim() }
 
@@ -176,11 +247,11 @@ function Get-CjClass($row) {
     $null
 }
 
-$absenceIds = @(Get-Content 'absence-contract.md' |
+$absenceIds = @($docByName['absence-contract.md'].Lines |
                 ForEach-Object { if ($_ -match '^\| \*\*(A-\d+)\*\*') { $Matches[1] } })
 
 $openCsr = 0; $inOpen = $false
-foreach ($line in Get-Content 'isa-profile.md') {
+foreach ($line in $docByName['isa-profile.md'].Lines) {
     if ($line -match '^### 5\.3 ') { $inOpen = $true; continue }
     if ($inOpen -and $line -match '^(##|---)') { $inOpen = $false }
     if ($inOpen -and $line -match '^\| `') { $openCsr++ }
@@ -194,7 +265,7 @@ $cmBounds = [System.Collections.Generic.List[string]]::new()
 $cmProps  = [System.Collections.Generic.List[string]]::new()
 $cmCells  = [ordered]@{}
 $cmTwice  = @()
-foreach ($line in Get-Content 'coverage-matrix.md') {
+foreach ($line in $docByName['coverage-matrix.md'].Lines) {
     if     ($line -match '^\| `(B-\d\d)` \| `(P-\d)` \|') {
         $pair = "$($Matches[1]) by $($Matches[2])"
         if ($cmCells.Contains($pair)) { $cmTwice += "$pair has more than one cell" }
@@ -225,15 +296,25 @@ foreach ($line in Get-Content 'coverage-matrix.md') {
 
 "=== traces: the register's references against the prose ==="
 
+$traceLinkRe = [regex]'\[§([\d.]+)\]\(verification-maximal-os\.md#([^)]+)\)'
+
 $badTarget = @(); $wrongSec = @(); $restated = @()
 foreach ($id in $ids) {
     $t = $traceOf[$id]
     if (-not $t) { continue }
     $derived = 'r-' + $id.Substring(2).ToLower()
-    $links   = [regex]::Matches($t, '\[§([\d.]+)\]\(verification-maximal-os\.md#([^)]+)\)')
+
+    if (-not $t.Contains('[§')) {
+        # the derived form: one citation, at the bookmark the id names
+        if (-not $anchorCount.ContainsKey($derived)) {
+            $badTarget += "$id derives #$derived, which is no bookmark in the prose"
+        }
+        continue
+    }
+    $links = $traceLinkRe.Matches($t)
 
     if ($links.Count -eq 0) {
-        # the derived form: one citation, at the bookmark the id names
+        # '[§' present but not this reference's shape, so it is no citation at all
         if (-not $anchorCount.ContainsKey($derived)) {
             $badTarget += "$id derives #$derived, which is no bookmark in the prose"
         }
@@ -254,8 +335,8 @@ foreach ($id in $ids) {
 
     # a second citation, another requirement's bookmark, or a note after the link are the
     # three departures; anything else written out is the derived citation, spelled by hand
-    $tail = $t -replace '\[§[\d.]+\]\(verification-maximal-os\.md#[^)]+\)', ''
-    if ($links.Count -eq 1 -and $links[0].Groups[2].Value -eq $derived -and $tail -notmatch ';') {
+    $tail = $traceLinkRe.Replace($t, '')
+    if ($links.Count -eq 1 -and $links[0].Groups[2].Value -eq $derived -and -not $tail.Contains(';')) {
         $restated += "$id writes out #$derived, which its id already derives"
     }
 }
@@ -267,14 +348,14 @@ Report 'bookmark(s) declared more than once in one document' $twiceHere 'every b
 
 Report 'bookmark(s) buried in a fenced block' $buried 'every bookmark is addressable where it is written'
 
-Report 'requirement(s) with no trace' @($ids | Where-Object { -not $traceOf.ContainsKey($_) }) 'every requirement carries a trace'
+Report 'requirement(s) with no trace' @(foreach ($id in $ids) { if (-not $traceOf.ContainsKey($id)) { $id } }) 'every requirement carries a trace'
 
 # An entry with no criterion is an obligation nothing decides, which is the one thing
 # this register is for; an entry whose criteria straddle its conferrals reads as though
 # the lines below the first one were something other than the rest of the criterion.
 
 Report 'requirement(s) with no acceptance criterion:' `
-    @($ids | Where-Object { -not $accepts[$_] } | ForEach-Object { "$_ carries no · Accept: line" }) `
+    @(foreach ($id in $ids) { if (-not $accepts[$id]) { "$id carries no · Accept: line" } }) `
     'every requirement carries at least one acceptance criterion'
 
 Report 'requirement(s) whose criteria straddle a conferral or the trace:' `
@@ -283,11 +364,12 @@ Report 'requirement(s) whose criteria straddle a conferral or the trace:' `
 
 # r-ss-nnn, r-ss-nnna (a letter-suffixed requirement) and r-ss-nnn-2 (the nth citation
 # of one requirement) all resolve to the same register id.
+$idSet = [System.Collections.Generic.HashSet[string]]::new($ids)
 $orphans = @()
 foreach ($id in $anchorCount.Keys) {
     if ($id -notmatch '^r-\d\d-\d') { continue }
     $reqId = 'R' + ($id -replace '^(r-\d\d-\d\d\d[a-z]?)-\d+$', '$1').Substring(1)
-    if (-not $ids.Contains($reqId)) { $orphans += "#${id}: no requirement $reqId in the register" }
+    if (-not $idSet.Contains($reqId)) { $orphans += "#${id}: no requirement $reqId in the register" }
 }
 Report 'prose bookmark(s) naming no live requirement' ($orphans | Sort-Object) 'every prose r-* bookmark names a live requirement'
 
@@ -309,8 +391,10 @@ Report "trace(s) whose display section is wrong" $wrongSec "every trace displays
 
 "=== names: every id used, against the artifact that declares it ==="
 
+$idTally = [ordered]@{}
+foreach ($id in $ids) { $idTally[$id] = 1 + $idTally[$id] }
 Report 'requirement id(s) the register declares twice:' `
-       @($ids | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "$($_.Name), declared $($_.Count) times" }) `
+       @(foreach ($k in $idTally.Keys) { if ($idTally[$k] -gt 1) { "$k, declared $($idTally[$k]) times" } }) `
        "all $($ids.Count) register ids are distinct"
 
 $vocab = @(
@@ -321,22 +405,33 @@ $vocab = @(
     @{ Kind = 'property';           Token = 'P-\d+';            Declared = $cmProps;    Home = 'coverage-matrix.md' }
 )
 
+# the five tokens start with five different letters, so one alternation walks the
+# corpus once and the first letter of each hit picks its vocabulary back out
+$byInitial = @{}
 foreach ($v in $vocab) {
-    $declared = [System.Collections.Generic.HashSet[string]]::new([string[]]@($v.Declared))
-    $pattern  = [regex]"(?<![\w-])$($v.Token)(?![\w-])"
-    $unknown  = @()
-    foreach ($d in $docs) {
-        for ($i = 0; $i -lt $d.Lines.Count; $i++) {
-            if ($d.Fenced[$i]) { continue }
-            foreach ($m in $pattern.Matches($d.Lines[$i])) {
-                if (-not $declared.Contains($m.Value)) {
-                    $unknown += "$($d.Name):$($i + 1) uses $($m.Value), which $($v.Home) does not declare"
-                }
-            }
-        }
+    $v.DeclaredSet = [System.Collections.Generic.HashSet[string]]::new([string[]]@($v.Declared))
+    $v.Unknown     = [System.Collections.Generic.List[string]]::new()
+    $byInitial[[string]$v.Token[0]] = $v
+}
+$namesRe = [regex]::new('(?<![\w-])(?:' + (($vocab | ForEach-Object { $_.Token }) -join '|') + ')(?![\w-])', 'Compiled')
+
+# a declared id is the overwhelming case and needs no line, so it is one set lookup;
+# only an unknown id pays for finding its line, and a fenced one names nothing anyway
+foreach ($d in $docs) {
+    $starts = $d.Starts; $fenced = $d.Fenced
+    foreach ($m in $namesRe.Matches($d.Raw)) {
+        $v = $byInitial[[string]$m.Value[0]]
+        if ($v.DeclaredSet.Contains($m.Value)) { continue }
+        $i = [System.Array]::BinarySearch($starts, $m.Index)
+        if ($i -lt 0) { $i = -$i - 2 }
+        if ($fenced[$i]) { continue }
+        $v.Unknown.Add("$($d.Name):$($i + 1) uses $($m.Value), which $($v.Home) does not declare")
     }
-    Report "$($v.Kind) id(s) naming nothing:" $unknown `
-           "every $($v.Kind) id used names one of the $($declared.Count) $($v.Home) declares"
+}
+
+foreach ($v in $vocab) {
+    Report "$($v.Kind) id(s) naming nothing:" $v.Unknown `
+           "every $($v.Kind) id used names one of the $($v.DeclaredSet.Count) $($v.Home) declares"
 }
 ""
 
@@ -361,48 +456,59 @@ foreach ($v in $vocab) {
 
 "=== links: every cross-reference against what it points at ==="
 
-function ConvertTo-Slug([string]$Heading) {
-    (($Heading -replace '<[^>]+>', '' -replace '`', '').Trim().ToLower() -replace '[^\w\s-]', '' -replace '\s+', '-')
-}
+$headRe   = [regex]'(?m)^#{1,6}[ \t]+([^\r\n]+)'
+$linkRe   = [regex]'\]\(([^)\s#]*)(?:#([^)\s]+))?\)'
+$secRefRe = [regex]'§(\d+(?:\.\d+)*)'
 
 $targets  = @{}   # file -> every id a link may name: its bookmarks and its heading slugs
 $numbered = @{}   # "15.12" -> the number is carried by a heading somewhere
 foreach ($d in $docs) {
     $set = [System.Collections.Generic.HashSet[string]]::new([string[]]@($anchorsOf[$d.Name].Keys))
-    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
-        if ($d.Fenced[$i] -or $d.Lines[$i] -notmatch '^#{1,6}\s+(.+)$') { continue }
-        $heading = $Matches[1]
-        [void]$set.Add((ConvertTo-Slug $heading))
+    foreach ($m in $headRe.Matches($d.Raw)) {
+        if ($d.Fenced[[System.Array]::BinarySearch($d.Starts, $m.Index)]) { continue }
+        $heading = $m.Groups[1].Value
+        # the slug rule: tags and backticks vanish, punctuation vanishes, spaces hyphenate
+        [void]$set.Add((($heading -replace '<[^>]+>', '' -replace '`', '').Trim().ToLower() -replace '[^\w\s-]', '' -replace '\s+', '-'))
         if ($heading -match '^§?(\d+(?:\.\d+)*)[.:) ]') { $numbered[$Matches[1]] = $true }
     }
     $targets[$d.Name] = $set
 }
 
+# a link that resolves and a §n.m a heading carries are the overwhelming cases and
+# report nothing, so each is judged before its line is looked up; only a would-be
+# finding pays for the line, and one a fence displays is dropped there as text
 $dead = @(); $unnumbered = [ordered]@{}; $exists = @{}
 foreach ($d in $docs) {
-    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
+    $starts = $d.Starts
+    foreach ($m in $linkRe.Matches($d.Raw)) {
+        $file = $m.Groups[1].Value -replace '^\./', ''
+        $frag = $m.Groups[2].Value
+        if ($file -match '^[a-z][a-z0-9+.-]*:') { continue }   # off the repository, not ours to hold
+        if (-not $file) { $file = $d.Name }
+        if (-not $exists.ContainsKey($file)) {
+            $abs = [System.IO.Path]::Combine($PWD.Path, $file)
+            $exists[$file] = [System.IO.File]::Exists($abs) -or [System.IO.Directory]::Exists($abs)
+        }
+        $bad = if (-not $exists[$file]) {
+                   "points at $file, which is not in the repository"
+               } elseif ($frag -and $targets.ContainsKey($file) -and -not $targets[$file].Contains($frag)) {
+                   "points at $file#$frag, which is no bookmark or heading there"
+               }
+        if (-not $bad) { continue }
+        $i = [System.Array]::BinarySearch($starts, $m.Index)
+        if ($i -lt 0) { $i = -$i - 2 }
         if ($d.Fenced[$i]) { continue }
-        $line = $d.Lines[$i]
+        $dead += "$($d.Name):$($i + 1) $bad"
+    }
 
-        foreach ($m in [regex]::Matches($line, '\]\(([^)\s#]*)(?:#([^)\s]+))?\)')) {
-            $file = $m.Groups[1].Value -replace '^\./', ''
-            $frag = $m.Groups[2].Value
-            if ($file -match '^[a-z][a-z0-9+.-]*:') { continue }   # off the repository, not ours to hold
-            if (-not $file) { $file = $d.Name }
-            if (-not $exists.ContainsKey($file)) { $exists[$file] = Test-Path $file }
-            if (-not $exists[$file]) {
-                $dead += "$($d.Name):$($i + 1) points at $file, which is not in the repository"
-            } elseif ($frag -and $targets.ContainsKey($file) -and -not $targets[$file].Contains($frag)) {
-                $dead += "$($d.Name):$($i + 1) points at $file#$frag, which is no bookmark or heading there"
-            }
-        }
-
-        foreach ($m in [regex]::Matches($line, '§(\d+(?:\.\d+)*)')) {
-            $n = $m.Groups[1].Value
-            if ($numbered.Contains($n)) { continue }
-            if (-not $unnumbered.Contains($n)) { $unnumbered[$n] = @() }
-            $unnumbered[$n] += "$($d.Name):$($i + 1)"
-        }
+    foreach ($m in $secRefRe.Matches($d.Raw)) {
+        $n = $m.Groups[1].Value
+        if ($numbered.Contains($n)) { continue }
+        $i = [System.Array]::BinarySearch($starts, $m.Index)
+        if ($i -lt 0) { $i = -$i - 2 }
+        if ($d.Fenced[$i]) { continue }
+        if (-not $unnumbered.Contains($n)) { $unnumbered[$n] = @() }
+        $unnumbered[$n] += "$($d.Name):$($i + 1)"
     }
 }
 
@@ -447,19 +553,25 @@ $views = @(
        MustCoverCells = $true }
 )
 
+$reqTokenRe = [regex]'R-\d\d-\d+[a-z]?'
+
 "=== views: what each derived view carries, both directions ==="
 foreach ($v in $views) {
     "$($v.File) (per $($v.Governing))"
     if (-not (Test-Path $v.File)) { "  FAIL: missing"; $findings++; continue }
 
-    $cited = Select-String -Path $v.File -Pattern 'R-\d\d-\d+[a-z]?' -AllMatches |
-             ForEach-Object { $_.Matches } | ForEach-Object { $_.Value } | Sort-Object -Unique
+    $cited = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($m in $reqTokenRe.Matches($docByName[$v.File].Raw)) { [void]$cited.Add($m.Value) }
 
     if ($v.Secs) {
-        $uncovered = $subsection.Keys | Where-Object { $subsection[$_] -in $v.Secs -and $_ -notin $cited } | Sort-Object
+        $uncovered = @(foreach ($k in $subsection.Keys) {
+            if ($subsection[$k] -in $v.Secs -and -not $cited.Contains($k)) { $k }
+        }) | Sort-Object
         Report 'bearing requirement(s) not carried:' $uncovered 'all bearing requirements are carried' '  '
     } elseif ($v.BodyPattern) {
-        $uncovered = $body.Keys | Where-Object { $body[$_] -match $v.BodyPattern -and $_ -notin $cited } | Sort-Object
+        $uncovered = @(foreach ($k in $body.Keys) {
+            if ($body[$k] -match $v.BodyPattern -and -not $cited.Contains($k)) { $k }
+        }) | Sort-Object
         Report 'bearing requirement(s) not carried:' $uncovered 'all bearing requirements are carried' '  '
     }
 
@@ -480,7 +592,7 @@ foreach ($v in $views) {
 
     # a view standing in for the CJ- vocabulary must account for every target
     if ($v.MustCiteTargets) {
-        $raw = Get-Content $v.File -Raw
+        $raw = $docByName[$v.File].Raw
         Report 'CJ- target(s) unaccounted for:' @($cjTargets | Where-Object { $raw -notmatch [regex]::Escape($_) }) `
                "all $($cjTargets.Count) CJ- targets accounted for" '  '
     }
@@ -531,7 +643,7 @@ foreach ($v in $views) {
 # no conferring requirement is the view legislating, which a derived view may not do.
 # Rows only: the theorem table is targets, not specifications.
 
-$cjConfer = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' })
+$cjConfer = @(foreach ($k in $body.Keys) { if ($body[$k] -match 'crown.jewel spec') { $k } })
 Report 'crown-jewel row(s) no requirement confers:' `
        @(foreach ($row in $cjRows) {
            $cites = @([regex]::Matches($row, 'R-\d\d-\d+[a-z]?') | ForEach-Object { $_.Value })
@@ -549,7 +661,7 @@ Report 'crown-jewel row(s) no requirement confers:' `
 # calls a review-gate finding and nothing enforced until now; a seam collecting no
 # conferral is the register composing a refusal no requirement specifies.
 
-$fcSeams  = @($body.Keys | Where-Object { $body[$_] -match 'Fail-closed seam \*\*' })
+$fcSeams  = @(foreach ($k in $body.Keys) { if ($body[$k] -match 'Fail-closed seam \*\*') { $k } })
 $fcConfer = @(if ($confers.ContainsKey('Fail-closed')) { $confers['Fail-closed'].Keys })
 $fcCited  = @{}
 foreach ($s in $fcSeams) {
@@ -633,7 +745,7 @@ $rotCases     = @($agendas | Where-Object { $_.Set -eq 'RoT-fresh' }).Dispositio
 
 foreach ($a in $agendas) {
     $held = [System.Collections.Generic.HashSet[string]]::new([string[]](@($a.Held) + @($a.Ruling) + @($a.Disposition.Keys)))
-    $open = @($ids | Where-Object { $body[$_] -match $a.Vocab -and -not $held.Contains($_) })
+    $open = @(foreach ($id in $ids) { if ($body[$id] -match $a.Vocab -and -not $held.Contains($id)) { $id } })
     Report "$($a.Set) candidate(s) neither conferred nor dispositioned:" `
            @($open | ForEach-Object { "$_ uses the vocabulary of $($a.Set) and is in no column" }) `
            "every $($a.Set) candidate is conferred, collected, or dispositioned"
@@ -649,9 +761,12 @@ foreach ($a in $agendas) {
 # computed here; each claim says where it is asserted and in which style, and captures
 # the number alone, so -Fix is the substitution of a single token.
 
+$lettered = 0; foreach ($id in $ids) { if ($id -match '[a-z]$') { $lettered++ } }
+$seams = 0; foreach ($k in $body.Keys) { if ($body[$k] -match ' Seam: \*\*') { $seams++ } }
+
 $q = [ordered]@{
     'requirements'  = $ids.Count
-    'lettered'      = @($ids | Where-Object { $_ -match '[a-z]$' }).Count
+    'lettered'      = $lettered
     'sections'      = $perSection.Count
     'cj-targets'    = $cjTargets.Count
     'dcsr-rows'     = $dcsrRows
@@ -661,8 +776,8 @@ $q = [ordered]@{
     'cj-partial'    = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'partial' }).Count
     'cj-unauthored' = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'unauthored' }).Count
     'cj-theorems'   = @($cj | Where-Object { $_ -match '^\| `CJ-[A-Z-]+` \|' }).Count
-    'cj-conferring' = @($body.Keys | Where-Object { $body[$_] -match 'crown.jewel spec' }).Count
-    'seams'         = @($body.Keys | Where-Object { $body[$_] -match ' Seam: \*\*' }).Count
+    'cj-conferring' = $cjConfer.Count
+    'seams'         = $seams
     'fc-seams'      = $fcSeams.Count
     'fc-conferrals' = $fcConfer.Count
     'rot-fresh'     = $rfConfer.Count
@@ -767,15 +882,52 @@ function Restore-Case([string]$found, [string]$expected) {
     $expected
 }
 
+# A claim pattern opens with a character class or a lookbehind, which the regex engine
+# retries at every offset of the file. Every claim also carries a long literal fragment
+# it cannot match without, and match plus lookarounds sit on one line, so the fragment
+# is found by ordinal IndexOf and the pattern runs only over the lines that carry it.
+# A fragment the pattern outgrew falls back to the full scan, so the shortcut can only
+# ever be faster, never blinder; hits come back as (Index, Length, Value) spans.
+function Get-ClaimHits([string]$Raw, [string]$Pattern) {
+    $lit = ''
+    foreach ($frag in ($Pattern -split '[\\\[\](){}|?*+.^$<=!]')) {
+        if ($frag.Length -gt $lit.Length) { $lit = $frag }
+    }
+    if ($lit.Length -lt 8) { return [regex]::Matches($Raw, $Pattern) }
+
+    $hits = [System.Collections.Generic.List[object]]::new()
+    $seen = [System.Collections.Generic.HashSet[int]]::new()
+    $at   = $Raw.IndexOf($lit, [System.StringComparison]::Ordinal)
+    while ($at -ge 0) {
+        $from = $Raw.LastIndexOf([char]10, $at) + 1
+        $to   = $Raw.IndexOf([char]10, $at + $lit.Length)
+        if ($to -lt 0) { $to = $Raw.Length }
+        foreach ($m in [regex]::Matches($Raw.Substring($from, $to - $from), $Pattern)) {
+            if ($seen.Add($from + $m.Index)) {
+                $hits.Add([pscustomobject]@{ Index = $from + $m.Index; Length = $m.Length; Value = $m.Value })
+            }
+        }
+        $at = $Raw.IndexOf($lit, $at + 1, [System.StringComparison]::Ordinal)
+    }
+    if ($hits.Count -eq 0) { return [regex]::Matches($Raw, $Pattern) }
+    $hits
+}
+
 "=== counts: every asserted figure against its artifact ==="
 
 $fixedFiles = @{}
+$claimSpans = @{}   # file -> every span a claim matched, kept for the loose-figure sweep
 $countFindings = $findings
 foreach ($c in $claims) {
     if (-not (Test-Path $c.File)) { "FAIL: $($c.File) missing"; $findings++; continue }
-    $raw = if ($fixedFiles.ContainsKey($c.File)) { $fixedFiles[$c.File] } else { Get-Content $c.File -Raw }
+    $doc = $docByName[$c.File]
+    $raw = if ($fixedFiles.ContainsKey($c.File)) { $fixedFiles[$c.File] }
+           elseif ($doc) { $doc.Raw }
+           else { Get-Content $c.File -Raw }
     $expected = Get-Expected $c.Q $c.Style
-    $hits = [regex]::Matches($raw, $c.Pattern)
+    $hits = @(Get-ClaimHits $raw $c.Pattern)
+    if (-not $claimSpans.ContainsKey($c.File)) { $claimSpans[$c.File] = [System.Collections.Generic.List[object]]::new() }
+    foreach ($h in $hits) { $claimSpans[$c.File].Add($h) }
 
     if ($hits.Count -eq 0) {
         $findings++
@@ -827,20 +979,46 @@ foreach ($k in $q.Keys) {
     }
 }
 
+# one alternation over all the distinctive forms, longest first so a compound word
+# form is never eaten by its own prefix; the hits are grouped back by form so the
+# findings keep the per-form order the register of quantities gives them
 $loose = @()
-foreach ($file in $docs.Name) {
-    $raw = if ($fixedFiles.ContainsKey($file)) { $fixedFiles[$file] } else { Get-Content $file -Raw }
-    if (-not $raw) { continue }
-    $held = @($claims | Where-Object { $_.File -eq $file } |
-              ForEach-Object { [regex]::Matches($raw, $_.Pattern) } | ForEach-Object { $_ })
+if ($distinct.Count) {
+    $forms  = @($distinct.Keys | Sort-Object { $_.Length } -Descending)
+    $formRe = [regex]::new('(?i)(?<![\w-])(?:' + (($forms | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')(?![\w-])', 'Compiled')
 
-    foreach ($form in $distinct.Keys) {
-        foreach ($m in [regex]::Matches($raw, "(?i)(?<![\w-])$form(?![\w-])")) {
-            $rest = $raw.Substring($m.Index, [math]::Min(80, $raw.Length - $m.Index)) -replace '(?s)\r?\n.*', ''
-            if ($rest -notmatch $countedNoun) { continue }
-            if ($held | Where-Object { $m.Index -ge $_.Index -and $m.Index -lt $_.Index + $_.Length }) { continue }
-            $line = 1 + [regex]::Matches($raw.Substring(0, $m.Index), "`n").Count
-            $loose += "${file}:${line} states '$($m.Value)' where no claim holds it, for $($distinct[$form] -join ' or ')"
+    foreach ($d in $docs) {
+        $file  = $d.Name
+        $fixed = $fixedFiles.ContainsKey($file)
+        $raw   = if ($fixed) { $fixedFiles[$file] } else { $d.Raw }
+        if (-not $raw) { continue }
+
+        # a fixed file's offsets moved, so its held spans are found again on the new
+        # text; everywhere else the spans the claims loop already found are reused
+        $held = if ($fixed) {
+            @($claims | Where-Object { $_.File -eq $file } |
+              ForEach-Object { [regex]::Matches($raw, $_.Pattern) } | ForEach-Object { $_ })
+        } elseif ($claimSpans.ContainsKey($file)) { $claimSpans[$file] } else { @() }
+
+        $byForm = @{}
+        foreach ($m in $formRe.Matches($raw)) {
+            $f = $m.Value.ToLower()
+            if (-not $byForm.ContainsKey($f)) { $byForm[$f] = [System.Collections.Generic.List[object]]::new() }
+            $byForm[$f].Add($m)
+        }
+
+        foreach ($form in $distinct.Keys) {
+            if (-not $byForm.ContainsKey($form)) { continue }
+            foreach ($m in $byForm[$form]) {
+                $rest = $raw.Substring($m.Index, [math]::Min(80, $raw.Length - $m.Index)) -replace '(?s)\r?\n.*', ''
+                if ($rest -notmatch $countedNoun) { continue }
+                $covered = $false
+                foreach ($s in $held) { if ($m.Index -ge $s.Index -and $m.Index -lt $s.Index + $s.Length) { $covered = $true; break } }
+                if ($covered) { continue }
+                $line = if ($fixed) { 1 + [regex]::Matches($raw.Substring(0, $m.Index), "`n").Count }
+                        else        { 1 + (Get-LineIndex $d.Starts $m.Index) }
+                $loose += "${file}:${line} states '$($m.Value)' where no claim holds it, for $($distinct[$form] -join ' or ')"
+            }
         }
     }
 }
@@ -851,7 +1029,7 @@ Report 'unheld restatement(s) of a counted figure:' $loose 'every stated figure 
 # The trailing lookahead keeps CRLF out of the match: .NET's (?m)$ sits before the \n,
 # so an anchored \|$ never matches a CRLF file, and every row reads as missing.
 $rowPattern = '(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|(?=\r?$)'
-$regRaw = if ($fixedFiles.ContainsKey('requirements-register.md')) { $fixedFiles['requirements-register.md'] } else { Get-Content 'requirements-register.md' -Raw }
+$regRaw = if ($fixedFiles.ContainsKey('requirements-register.md')) { $fixedFiles['requirements-register.md'] } else { $docByName['requirements-register.md'].Raw }
 $rows = [regex]::Matches($regRaw, $rowPattern)
 
 $listed = @($rows | ForEach-Object { $_.Groups[1].Value })
@@ -909,25 +1087,33 @@ function Format-Sites([string]$File, [int[]]$Lines) {
 
 "=== tables: every row against the width its header declares ==="
 
+# only the rows are visited: the matcher hands back every pipe-led line with its
+# offset, an offset is its line by exact search (the match is ^-anchored), and a run
+# is rows on consecutive lines; a fenced row is display text, and the line it holds
+# breaks the adjacency exactly as any prose line does
+$rowRe = [regex]'(?m)^[^\S\r\n]*\|[^\r\n]*'
+
 $ragged = @(); $ruleless = @()
 foreach ($d in $docs) {
-    $bad = @(); $width = 0; $start = 0; $rows = 0; $rule = $false
+    $bad = @(); $width = 0; $startLi = 0; $rows = 0; $rule = $false; $prevLi = -2
 
-    for ($i = 0; $i -le $d.Lines.Count; $i++) {
-        $line = if ($i -lt $d.Lines.Count -and -not $d.Fenced[$i]) { $d.Lines[$i] } else { '' }
-
-        if ($line -match '^\s*\|') {
-            # an escaped pipe is a character inside a cell, not a wall between two
-            $cells = ($line.TrimEnd() -replace '\\\|', '').Split('|').Count - 2
-            if ($rows -eq 0)           { $start = $i + 1; $width = $cells }
-            elseif ($cells -ne $width) { $bad += $i + 1 }
-            if ($line -match '^\s*\|[\s:|-]+\|\s*$') { $rule = $true }
-            $rows++
-        } elseif ($rows) {
-            if (-not $rule) { $ruleless += "$($d.Name):$start, $rows row(s) with no header rule" }
+    foreach ($m in $rowRe.Matches($d.Raw)) {
+        $li = [System.Array]::BinarySearch($d.Starts, $m.Index)
+        if ($d.Fenced[$li]) { continue }
+        if ($rows -and $li -ne $prevLi + 1) {
+            if (-not $rule) { $ruleless += "$($d.Name):$($startLi + 1), $rows row(s) with no header rule" }
             $rows = 0; $rule = $false
         }
+        $line = $m.Value
+        # an escaped pipe is a character inside a cell, not a wall between two
+        $cells = ($line.TrimEnd() -replace '\\\|', '').Split('|').Count - 2
+        if ($rows -eq 0)           { $startLi = $li; $width = $cells }
+        elseif ($cells -ne $width) { $bad += $li + 1 }
+        if ($line -match '^\s*\|[\s:|-]+\|\s*$') { $rule = $true }
+        $rows++
+        $prevLi = $li
     }
+    if ($rows -and -not $rule) { $ruleless += "$($d.Name):$($startLi + 1), $rows row(s) with no header rule" }
     if ($bad.Count) { $ragged += Format-Sites $d.Name $bad }
 }
 
@@ -974,9 +1160,17 @@ $mojibake = [regex]"[\u00C2\u00C3\u00E2\u00F0][$cp1252]|\uFFFD"
 $emHits = @(); $mojibakeHits = @()
 foreach ($d in $docs) {
     $em = @(); $mb = @()
-    for ($i = 0; $i -lt $d.Lines.Count; $i++) {
-        if ($d.Lines[$i].Contains($emDash))  { $em += $i + 1 }
-        if ($mojibake.IsMatch($d.Lines[$i])) { $mb += $i + 1 }
+    $last = -1
+    $pos = $d.Raw.IndexOf($emDash)
+    while ($pos -ge 0) {
+        $i = Get-LineIndex $d.Starts $pos
+        if ($i -ne $last) { $em += $i + 1; $last = $i }
+        $pos = $d.Raw.IndexOf($emDash, $pos + 1)
+    }
+    $last = -1
+    foreach ($m in $mojibake.Matches($d.Raw)) {
+        $i = Get-LineIndex $d.Starts $m.Index
+        if ($i -ne $last) { $mb += $i + 1; $last = $i }
     }
     if ($em.Count) { $emHits       += Format-Sites $d.Name $em }
     if ($mb.Count) { $mojibakeHits += Format-Sites $d.Name $mb }
