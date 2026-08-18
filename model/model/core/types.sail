@@ -89,7 +89,7 @@ function privLevel_to_str (p : Privilege) -> string =
   match (p) {
     User              => "U",
     VirtualUser       => "VU",
-    Supervisor        => if currentlyEnabled(Ext_H) then "HS" else "S",
+    Supervisor        => "S",
     VirtualSupervisor => "VS",
     Machine           => "M"
   }
@@ -406,11 +406,9 @@ type csrRW = bits(2)  // read/write
 
 // Wait state reasons
 
-enum WaitReason = {WAIT_WFI, WAIT_WRS_STO, WAIT_WRS_NTO}
+enum WaitReason = {WAIT_WFI}
 mapping wait_name : WaitReason <-> string = {
   WAIT_WFI     <-> "WAIT-WFI",
-  WAIT_WRS_STO <-> "WAIT-WRS-STO",
-  WAIT_WRS_NTO <-> "WAIT-WRS-NTO",
 }
 
 overload to_str = {wait_name}

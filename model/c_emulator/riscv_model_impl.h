@@ -5,7 +5,7 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <random>
+#include <string>
 #include <vector>
 
 #include "sail.h"
@@ -147,9 +147,6 @@ private:
   unit tlb_flush_begin_callback(unit) override;
   unit tlb_flush_callback(uint64_t index) override;
   unit tlb_flush_end_callback(TLB tlb) override;
-  // Provides entropy for the scalar cryptography extension.
-  mach_bits plat_get_16_random_bits(unit) override;
-
   unit load_reservation(sbits, uint64_t) override;
   bool match_reservation(sbits) override;
   unit cancel_reservation(unit) override;
@@ -206,14 +203,6 @@ private:
   bool m_reservation_invalidate_on_same_hart_store = false;
 
   bool m_enable_experimental_extensions = false;
-
-  static unsigned seed() {
-    std::random_device rd;
-    return rd();
-  }
-
-  // Randomly seeded PRNG.
-  std::mt19937_64 m_gen64{seed()};
 
   // Trace log file
   FILE *m_trace_log = stdout;

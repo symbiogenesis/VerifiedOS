@@ -67,9 +67,6 @@ public:
   virtual unit tlb_flush_callback(uint64_t index);
   virtual unit tlb_flush_end_callback(hart::zz5vecz8z5unionz0zzoptionzzIRTLB_EntryzzKz9 tlb);
 
-  // Provides entropy for the scalar cryptography extension.
-  virtual mach_bits plat_get_16_random_bits(unit);
-
   virtual unit load_reservation(sbits, uint64_t);
   virtual bool match_reservation(sbits);
   virtual unit cancel_reservation(unit);

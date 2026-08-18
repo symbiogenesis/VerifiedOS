@@ -1,5 +1,3 @@
-variable RMEM = false
-
 prelude {
   files
     prelude/prelude.sail,
@@ -97,10 +95,7 @@ extensions {
 
       files
         extensions/I/base_insts.sail,
-        if $RMEM then
-          extensions/I/jalr_rmem.sail
-        else
-          extensions/I/jalr_seq.sail
+        extensions/I/jalr_seq.sail
     }
   }
 
@@ -111,10 +106,6 @@ extensions {
     Zaamo {
       requires core, sys, A_types
       files extensions/A/zaamo_insts.sail
-    }
-    Zalrsc {
-      requires core, sys, A_types
-      files extensions/A/zalrsc_insts.sail
     }
   }
 
@@ -170,14 +161,6 @@ extensions {
       requires exceptions, sys, I, B, M
       files extensions/C/zcb_insts.sail
     }
-  }
-
-  // Hypervisor
-  H {
-    requires core
-
-    files
-      extensions/H/hext_insts.sail
   }
 
   // Floating point (F and D extensions)
@@ -248,18 +231,6 @@ extensions {
     K_core {
       files extensions/K/types_kext.sail
     }
-    Zkn {
-      requires sys, K_core
-      files extensions/K/zkn_insts.sail
-    }
-    Zks {
-      requires sys, K_core
-      files extensions/K/zks_insts.sail
-    }
-    Zkr {
-      requires sys, K_core
-      files extensions/K/zkr_control.sail
-    }
     Zbkb {
       requires sys, B_types
       files extensions/K/zbkb_insts.sail
@@ -295,30 +266,9 @@ extensions {
       requires sys, V, K, Zvk_core
       files extensions/vector_crypto/zvkned_insts.sail
     }
-    Zvksed {
-      requires sys, V, K, Zvk_core
-      files extensions/vector_crypto/zvksed_insts.sail
-    }
     Zvknhab {
       requires sys, V, K, Zvk_core
       files extensions/vector_crypto/zvknhab_insts.sail
-    }
-    Zvksh {
-      requires sys, V, K, Zvk_core
-      files extensions/vector_crypto/zvksh_insts.sail
-    }
-  }
-
-  Zvabd {
-    requires core
-
-    Zvabd_types {
-      before sys
-      files extensions/Zvabd/zvabd_types.sail
-    }
-    Zvabd_insts {
-      requires sys, V, Zvabd_types
-      files extensions/Zvabd/zvabd_insts.sail
     }
   }
 
@@ -336,54 +286,9 @@ extensions {
     }
   }
 
-  Svinval {
-    requires core, sys, I
-    files extensions/Svinval/svinval_insts.sail
-  }
-
-  Zihpm {
-    requires core
-    files extensions/Zihpm/zihpm.sail
-  }
-
   Smcntrpmf {
     requires core
     files extensions/Smcntrpmf/smcntrpmf.sail
-  }
-
-  Sscofpmf {
-    requires core, Zihpm
-    files extensions/Sscofpmf/sscofpmf.sail
-  }
-
-  Sstc {
-    requires core, sys
-    files extensions/Sstc/sstc.sail
-  }
-
-  Zawrs {
-    requires core
-
-    Zawrs_types {
-      before sys
-      files extensions/Zawrs/zawrs_types.sail
-    }
-    Zawrs_insts {
-      requires sys, Zawrs_types
-      files extensions/Zawrs/zawrs_insts.sail
-    }
-  }
-
-  Zicfiss {
-    requires core
-
-    Zicfiss_regs {
-      files extensions/cfi/zicfiss_regs.sail
-    }
-    Zicfiss_insts {
-      requires sys, exceptions, CFI_types, Zicfiss_regs, A_types
-      files extensions/cfi/zicfiss_insts.sail
-    }
   }
 
   Zicond {
@@ -428,50 +333,9 @@ extensions {
   }
 
 
-  Zibi {
-    Zibi_types {
-      before core
-      files extensions/Zibi/zibi_types.sail
-    }
-    Zibi_insts {
-      requires core, sys, I_insts, Zibi_types
-      files extensions/Zibi/zibi_insts.sail
-    }
-  }
-
   Zicboz {
     requires core, sys
     files extensions/Zicboz/zicboz_insts.sail
-  }
-
-  Zifencei {
-    requires core, sys
-    files extensions/Zifencei/zifencei_insts.sail
-  }
-
-  Zihintntl {
-    requires core
-
-    Zihintntl_types {
-      before sys // needs to appear before definition of `instruction`
-      files extensions/Zihintntl/zihintntl_types.sail
-    }
-    Zihintntl_insts {
-      requires sys, Zihintntl_types
-      before I_insts, Zca // NTL instructions override ADD, C.NTL overrides C.ADD
-      files extensions/Zihintntl/zihintntl_insts.sail
-    }
-  }
-
-  Zihintpause {
-    requires core, sys
-    before I_insts // PAUSE overrides a FENCE
-    files extensions/Zihintpause/zihintpause_insts.sail
-  }
-
-  Ssqosid {
-    requires core
-    files extensions/Ssqosid/ssqosid.sail
   }
 
   CFI {
@@ -539,33 +403,10 @@ extensions {
     }
   }
 
-  rmem {
-    requires core, sys
-    files
-      if $RMEM then
-        extensions/rmem/insts_rmem.sail
-      else []
-  }
-
-}
-
-// May-be-operations (MOPS) defined after extensions so they can be
-// overridden by earlier extensions
-mops {
-  after extensions
-  requires prelude, core, sys
-
-  Zimop {
-    files mops/Zimop/zimop_insts.sail
-  }
-
-  Zcmop {
-    files mops/Zcmop/zcmop_insts.sail
-  }
 }
 
 postlude {
-  after extensions, mops, core
+  after extensions, core
 
   requires prelude, core, sys, exceptions, Smcntrpmf, pmp, Zicfilp_regs, Zicfilp_insts
 

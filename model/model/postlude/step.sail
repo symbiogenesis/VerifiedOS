@@ -30,23 +30,9 @@ private function run_hart_waiting(_step_no : nat, wr: WaitReason, instbits : ins
     return Step_Execute(Retire_Success(), instbits)
   };
 
-  match (wr, valid_reservation(), exit_wait) {
-    (WAIT_WRS_STO, false, _) => {
-      if   get_config_print_instr()
-      then print_log("reservation invalid exit from " ^ wait_name(WAIT_WRS_STO) ^ " state at PC " ^ bits_str(PC));
-
-      hart_state = HART_ACTIVE();
-      Step_Execute(Retire_Success(), instbits)
-    },
-    (WAIT_WRS_NTO, false, _) => {
-      if   get_config_print_instr()
-      then print_log("reservation invalid exit from " ^ wait_name(WAIT_WRS_NTO) ^ " state at PC " ^ bits_str(PC));
-
-      hart_state = HART_ACTIVE();
-      Step_Execute(Retire_Success(), instbits)
-    },
+  match (wr, exit_wait) {
     // Transition out of waiting states as instructed.
-    (WAIT_WFI, _, true) => {
+    (WAIT_WFI, true) => {
       if   get_config_print_instr()
       then print_log("forced exit from " ^ wait_name(WAIT_WFI) ^ " state at PC " ^ bits_str(PC));
 
@@ -67,26 +53,8 @@ private function run_hart_waiting(_step_no : nat, wr: WaitReason, instbits : ins
       then Step_Execute(Illegal_Instruction(), instbits)
       else Step_Execute(Retire_Success(), instbits);
     },
-    (WAIT_WRS_STO, _, true) => {
-      if   get_config_print_instr()
-      then print_log("timed-out exit from " ^ wait_name(WAIT_WRS_STO) ^ " state at PC " ^ bits_str(PC));
-
-      hart_state = HART_ACTIVE();
-      Step_Execute(Retire_Success(), instbits)
-    },
-    (WAIT_WRS_NTO, _, true) => {
-      if   get_config_print_instr()
-      then print_log("timed-out exit from " ^ wait_name(WAIT_WRS_NTO) ^ " state at PC " ^ bits_str(PC));
-
-      hart_state = HART_ACTIVE();
-      // TODO: This is similar to WFI above for now, but will change to handle
-      // VS/VU modes and hstatus.VTW.
-      if   (cur_privilege == Machine | mstatus[TW] == 0b0)
-      then Step_Execute(Retire_Success(), instbits)
-      else Step_Execute(Illegal_Instruction(), instbits)
-    },
     // remain waiting
-    (_, _, false) => {
+    (_, false) => {
       if   get_config_print_instr()
       then print_log("remaining in " ^ wait_name(wr) ^ " state at PC " ^ bits_str(PC));
       Step_Waiting(wr)
@@ -162,8 +130,6 @@ private function run_hart_active(step_no: nat) -> Step = {
 private function wait_is_nop(wr : WaitReason) -> bool =
   match wr {
     WAIT_WFI     => config platform.wfi_is_nop,
-    WAIT_WRS_STO => config extensions.Zawrs.sto.is_nop,
-    WAIT_WRS_NTO => config extensions.Zawrs.nto.is_nop,
   }
 
 // The `try_step` function is the main internal driver of the Sail

@@ -96,6 +96,31 @@ endforeach()
 # Download and add RISC-V tests.
 option(ENABLE_RISCV_TESTS "Enable riscv-tests" OFF)
 
+function(filter_riscv_tests test_elfs elfs_to_use_varname)
+    # These tests exercise surface the frozen profile deletes
+    # (docs/isa-profile.md, M0.6c). They are excluded rather than expected
+    # to fail: the instructions they execute no longer decode.
+
+    # Zalrsc: no load-reserved/store-conditional (R-15-024).
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)ua-[pv]-lrsc$")
+
+    # Zifencei: no instruction-fetch fence.  This takes three groups with it,
+    # not just the instruction's own test:
+    #   - the `fence_i` tests themselves,
+    #   - `uziccid`, which executes FENCE.I directly to test fetch coherence,
+    #   - the whole `-v-` (virtual-memory) half, whose shared riscv-tests
+    #     environment runs FENCE.I in its page-fault handler, so every `-v-`
+    #     binary traps into an unhandled illegal instruction regardless of
+    #     what it was written to test.
+    # The `-v-` half was booked for removal with the S/U and translation cut;
+    # FENCE.I's absence brings it forward to this batch.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)ui-[pv]-fence_i$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uziccid-[pv]-ziccid$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*-v-.*")
+
+    set(${elfs_to_use_varname} "${test_elfs}" PARENT_SCOPE)
+endfunction()
+
 if(ENABLE_RISCV_TESTS)
     set(TARBALL_NAME "riscv-tests")
     set(DOWNLOAD_PATH "${CMAKE_CURRENT_BINARY_DIR}/${TEST_DOWNLOAD_VERSION}")
@@ -111,6 +136,10 @@ if(ENABLE_RISCV_TESTS)
         file(GLOB elf_list CONFIGURE_DEPENDS LIST_DIRECTORIES false
            "${DOWNLOAD_PATH}/${TARBALL_NAME}/rv${xlen}*"
         )
+
+        # Drop the tests for deleted profile surface.
+        filter_riscv_tests("${elf_list}" elf_list)
+
         foreach(elf IN LISTS elf_list)
             file(RELATIVE_PATH elf_name "${CMAKE_CURRENT_BINARY_DIR}" ${elf})
             add_test(

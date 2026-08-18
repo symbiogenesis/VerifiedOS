@@ -65,14 +65,7 @@ function clause hartSupports(Ext_S) = config extensions.S.supported
 enum clause extension = Ext_U
 mapping clause extensionName = Ext_U <-> "u"
 function clause hartSupports(Ext_U) = config extensions.U.supported
-// Hypervisor
-enum clause extension = Ext_H
-mapping clause extensionName = Ext_H <-> "h"
-function clause hartSupports(Ext_H) = false
 
-enum clause extension = Ext_Zibi
-mapping clause extensionName = Ext_Zibi <-> "zibi"
-function clause hartSupports(Ext_Zibi) = sys_enable_experimental_extensions() & config extensions.Zibi.supported
 // Cache block size is 64 bytes
 enum clause extension = Ext_Zic64b
 mapping clause extensionName = Ext_Zic64b <-> "zic64b"
@@ -94,10 +87,6 @@ function clause hartSupports(Ext_Zicboz) = config extensions.Zicboz.supported
 enum clause extension = Ext_Zicfilp
 mapping clause extensionName = Ext_Zicfilp <-> "zicfilp"
 function clause hartSupports(Ext_Zicfilp) = config extensions.Zicfilp.supported
-// Control-flow Integrity: Shadow Stack
-enum clause extension = Ext_Zicfiss
-mapping clause extensionName = Ext_Zicfiss <-> "zicfiss"
-function clause hartSupports(Ext_Zicfiss) = config extensions.Zicfiss.supported
 // Base Counters and Timers
 enum clause extension = Ext_Zicntr
 mapping clause extensionName = Ext_Zicntr <-> "zicntr"
@@ -110,26 +99,6 @@ function clause hartSupports(Ext_Zicond) = config extensions.Zicond.supported
 enum clause extension = Ext_Zicsr
 mapping clause extensionName = Ext_Zicsr <-> "zicsr"
 function clause hartSupports(Ext_Zicsr) = config extensions.Zicsr.supported
-// Instruction-Fetch Fence
-enum clause extension = Ext_Zifencei
-mapping clause extensionName = Ext_Zifencei <-> "zifencei"
-function clause hartSupports(Ext_Zifencei) = config extensions.Zifencei.supported
-// Non-temporal Locality Hints
-enum clause extension = Ext_Zihintntl
-mapping clause extensionName = Ext_Zihintntl <-> "zihintntl"
-function clause hartSupports(Ext_Zihintntl) = config extensions.Zihintntl.supported
-// Pause Hint
-enum clause extension = Ext_Zihintpause
-mapping clause extensionName = Ext_Zihintpause <-> "zihintpause"
-function clause hartSupports(Ext_Zihintpause) = config extensions.Zihintpause.supported
-// Hardware Performance Counters
-enum clause extension = Ext_Zihpm
-mapping clause extensionName = Ext_Zihpm <-> "zihpm"
-function clause hartSupports(Ext_Zihpm) = config extensions.Zihpm.supported
-// May-Be-Operations
-enum clause extension = Ext_Zimop
-mapping clause extensionName = Ext_Zimop <-> "zimop"
-function clause hartSupports(Ext_Zimop) = config extensions.Zimop.supported
 
 // Multiplication and Division: Multiplication only
 enum clause extension = Ext_Zmmul
@@ -148,26 +117,11 @@ function clause hartSupports(Ext_Zabha) = config extensions.Zabha.supported
 enum clause extension = Ext_Zacas
 mapping clause extensionName = Ext_Zacas <-> "zacas"
 function clause hartSupports(Ext_Zacas) = config extensions.Zacas.supported
-// Load-Reserved/Store-Conditional Instructions
-enum clause extension = Ext_Zalrsc
-mapping clause extensionName = Ext_Zalrsc <-> "zalrsc"
-function clause hartSupports(Ext_Zalrsc) = config extensions.Zalrsc.supported
 // Extension for 16-byte Misaligned Atomicity
 enum clause extension = Ext_Zama16b
 mapping clause extensionName = Ext_Zama16b <-> "zama16b"
 function clause hartSupports(Ext_Zama16b) = config extensions.Zama16b.supported
 function clause currentlyEnabled(Ext_Zama16b) = hartSupports(Ext_Zama16b)
-// Wait-On-Reservation-Set
-enum clause extension = Ext_Zawrs
-mapping clause extensionName = Ext_Zawrs <-> "zawrs"
-function clause hartSupports(Ext_Zawrs) = config extensions.Zawrs.supported
-// Maximum reservation set sizes
-enum clause extension = Ext_Za64rs
-mapping clause extensionName = Ext_Za64rs <-> "za64rs"
-function clause hartSupports(Ext_Za64rs) = plat_reservation_set_size_exp <= 6 & (config extensions.Zalrsc.supported : bool | config extensions.A.supported : bool)
-enum clause extension = Ext_Za128rs
-mapping clause extensionName = Ext_Za128rs <-> "za128rs"
-function clause hartSupports(Ext_Za128rs) = plat_reservation_set_size_exp <= 7 & (config extensions.Zalrsc.supported : bool | config extensions.A.supported : bool)
 
 // Additional Floating-Point Instructions
 enum clause extension = Ext_Zfa
@@ -211,10 +165,6 @@ function clause hartSupports(Ext_Zcd) = config extensions.Zcd.supported
 enum clause extension = Ext_Zcf
 mapping clause extensionName = Ext_Zcf <-> "zcf"
 function clause hartSupports(Ext_Zcf) = config extensions.Zcf.supported : bool & (xlen == 32)
-// Compressed May-Be-Operations
-enum clause extension = Ext_Zcmop
-mapping clause extensionName = Ext_Zcmop <-> "zcmop"
-function clause hartSupports(Ext_Zcmop) = config extensions.Zcmop.supported
 // Compressed Instructions
 // C is supported if all of the following are true:
 //   - Zca is supported
@@ -271,35 +221,7 @@ enum clause extension = Ext_Zicclsm
 mapping clause extensionName = Ext_Zicclsm <-> "zicclsm"
 function clause hartSupports(Ext_Zicclsm) = config extensions.Zicclsm.supported
 function clause currentlyEnabled(Ext_Zicclsm) = hartSupports(Ext_Zicclsm)
-// Main memory supports forward progress on LR/SC sequences
-enum clause extension = Ext_Ziccrse
-mapping clause extensionName= Ext_Ziccrse <-> "ziccrse"
-function clause hartSupports(Ext_Ziccrse) = config extensions.Ziccrse.supported
 
-// Scalar & Entropy Source Instructions: NIST Suite: AES Decryption
-enum clause extension = Ext_Zknd
-mapping clause extensionName = Ext_Zknd <-> "zknd"
-function clause hartSupports(Ext_Zknd) = config extensions.Zknd.supported
-// Scalar & Entropy Source Instructions: NIST Suite: AES Encryption
-enum clause extension = Ext_Zkne
-mapping clause extensionName = Ext_Zkne <-> "zkne"
-function clause hartSupports(Ext_Zkne) = config extensions.Zkne.supported
-// Scalar & Entropy Source Instructions: NIST Suite: Hash Function Instructions
-enum clause extension = Ext_Zknh
-mapping clause extensionName = Ext_Zknh <-> "zknh"
-function clause hartSupports(Ext_Zknh) = config extensions.Zknh.supported
-// Scalar & Entropy Source Instructions: Entropy Source Extension
-enum clause extension = Ext_Zkr
-mapping clause extensionName = Ext_Zkr <-> "zkr"
-function clause hartSupports(Ext_Zkr) = config extensions.Zkr.supported
-// Scalar & Entropy Source Instructions: ShangMi Suite: SM4 Block Cipher Instructions
-enum clause extension = Ext_Zksed
-mapping clause extensionName = Ext_Zksed <-> "zksed"
-function clause hartSupports(Ext_Zksed) = config extensions.Zksed.supported
-// Scalar & Entropy Source Instructions: ShangMi Suite: SM3 Hash Cipher Instructions
-enum clause extension = Ext_Zksh
-mapping clause extensionName = Ext_Zksh <-> "zksh"
-function clause hartSupports(Ext_Zksh) = config extensions.Zksh.supported
 // Data Independent Execution Latency
 enum clause extension = Ext_Zkt
 mapping clause extensionName = Ext_Zkt <-> "zkt"
@@ -351,10 +273,6 @@ function clause hartSupports(Ext_Zve64f) = sizeof(elen_exp) >= 6 & vector_suppor
 enum clause extension = Ext_Zve64x
 mapping clause extensionName = Ext_Zve64x <-> "zve64x"
 function clause hartSupports(Ext_Zve64x) = sizeof(elen_exp) >= 6 & vector_support_level >= Integer
-// Vector Integer Absolute Difference
-enum clause extension = Ext_Zvabd
-mapping clause extensionName = Ext_Zvabd <-> "zvabd"
-function clause hartSupports(Ext_Zvabd) = sys_enable_experimental_extensions() & config extensions.Zvabd.supported
 // Vector BF16 Converts
 enum clause extension = Ext_Zvfbfmin
 mapping clause extensionName = Ext_Zvfbfmin <-> "zvfbfmin"
@@ -400,14 +318,6 @@ function clause hartSupports(Ext_Zvknha) = config extensions.Zvknha.supported
 enum clause extension = Ext_Zvknhb
 mapping clause extensionName = Ext_Zvknhb <-> "zvknhb"
 function clause hartSupports(Ext_Zvknhb) = config extensions.Zvknhb.supported
-// ShangMi Suite: SM4 Block Cipher
-enum clause extension = Ext_Zvksed
-mapping clause extensionName = Ext_Zvksed <-> "zvksed"
-function clause hartSupports(Ext_Zvksed) = config extensions.Zvksed.supported
-// ShangMi Suite: SM3 Secure Hash
-enum clause extension = Ext_Zvksh
-mapping clause extensionName = Ext_Zvksh <-> "zvksh"
-function clause hartSupports(Ext_Zvksh) = config extensions.Zvksh.supported
 // Vector Data Independent Execution Latency
 enum clause extension = Ext_Zvkt
 mapping clause extensionName = Ext_Zvkt <-> "zvkt"
@@ -434,34 +344,11 @@ enum clause extension = Ext_Zvkng
 mapping clause extensionName = Ext_Zvkng <-> "zvkng"
 function clause hartSupports(Ext_Zvkng) = hartSupports(Ext_Zvkn) & hartSupports(Ext_Zvkg)
 function clause currentlyEnabled(Ext_Zvkng) = hartSupports(Ext_Zvkng)
-// ShangMi Algorithm Suite
-enum clause extension = Ext_Zvks
-mapping clause extensionName = Ext_Zvks <-> "zvks"
-function clause hartSupports(Ext_Zvks) =
-  hartSupports(Ext_Zvksed) &
-  hartSupports(Ext_Zvksh)  &
-  hartSupports(Ext_Zvkb)   &
-  hartSupports(Ext_Zvkt)
-function clause currentlyEnabled(Ext_Zvks) = hartSupports(Ext_Zvks)
-// ShangMi Algorithm Suite with carryless multiplication
-enum clause extension = Ext_Zvksc
-mapping clause extensionName = Ext_Zvksc <-> "zvksc"
-function clause hartSupports(Ext_Zvksc) = hartSupports(Ext_Zvks) & hartSupports(Ext_Zvbc)
-function clause currentlyEnabled(Ext_Zvksc) = hartSupports(Ext_Zvksc)
-// ShangMi Algorithm Suite with GCM
-enum clause extension = Ext_Zvksg
-mapping clause extensionName = Ext_Zvksg <-> "zvksg"
-function clause hartSupports(Ext_Zvksg) = hartSupports(Ext_Zvks) & hartSupports(Ext_Zvkg)
-function clause currentlyEnabled(Ext_Zvksg) = hartSupports(Ext_Zvksg)
 
 // Main memory supports page table reads
 enum clause extension = Ext_Ssccptr
 mapping clause extensionName = Ext_Ssccptr <-> "ssccptr"
 function clause hartSupports(Ext_Ssccptr) = config extensions.Ssccptr.supported
-// Count Overflow and Mode-Based Filtering
-enum clause extension = Ext_Sscofpmf
-mapping clause extensionName = Ext_Sscofpmf <-> "sscofpmf"
-function clause hartSupports(Ext_Sscofpmf) = config extensions.Sscofpmf.supported
 // Support writeable enables for any supported counter
 enum clause extension = Ext_Sscounterenw
 mapping clause extensionName = Ext_Sscounterenw <-> "sscounterenw"
@@ -475,10 +362,6 @@ function clause currentlyEnabled(Ext_Ssnpm) = hartSupports(Ext_Ssnpm) & currentl
 enum clause extension = Ext_Ssstateen
 mapping clause extensionName = Ext_Ssstateen <-> "ssstateen"
 function clause hartSupports(Ext_Ssstateen) = config extensions.Stateen.Ssstateen.supported
-// Supervisor-mode Timer Interrupts
-enum clause extension = Ext_Sstc
-mapping clause extensionName = Ext_Sstc <-> "sstc"
-function clause hartSupports(Ext_Sstc) = config extensions.Sstc.supported
 // `stval` provides all needed values
 enum clause extension = Ext_Sstvala
 mapping clause extensionName = Ext_Sstvala <-> "sstvala"
@@ -519,10 +402,6 @@ function clause hartSupports(Ext_Svade) = config extensions.Svade.supported
 enum clause extension = Ext_Svadu
 mapping clause extensionName = Ext_Svadu <-> "svadu"
 function clause hartSupports(Ext_Svadu) = config extensions.Svadu.supported
-// Fine-Grained Address-Translation Cache Invalidation
-enum clause extension = Ext_Svinval
-mapping clause extensionName = Ext_Svinval <-> "svinval"
-function clause hartSupports(Ext_Svinval) = config extensions.Svinval.supported
 // NAPOT Translation Contiguity
 enum clause extension = Ext_Svnapot
 mapping clause extensionName = Ext_Svnapot <-> "svnapot"
@@ -559,11 +438,6 @@ enum clause extension = Ext_Smstateen
 mapping clause extensionName = Ext_Smstateen <-> "smstateen"
 function clause hartSupports(Ext_Smstateen) = config extensions.Stateen.Smstateen.supported
 
-// QoS identifiers
-enum clause extension = Ext_Ssqosid
-mapping clause extensionName = Ext_Ssqosid <-> "ssqosid"
-function clause hartSupports(Ext_Ssqosid) = config extensions.Ssqosid.supported
-
 // Environment extensions
 // These extensions are not configurable via the config file
 // To avoid ordering issues, they are placed at the bottom
@@ -589,15 +463,12 @@ function hartSupports_measure(ext : extension) -> int =
     Ext_Sstvecd => 1, // > S
     Ext_Ssu64xl => 1, // > S
     Ext_Zvkn => 1, // > Zvkned
-    Ext_Zvks => 1, // > Zvksed
     Ext_Sspm => 1, // > S
     Ext_Supm => 1, // > S
 
     Ext_C => 2, // > D
     Ext_Zvknc => 2, // > Zvkn
     Ext_Zvkng => 2, // > Zvkn
-    Ext_Zvksc => 2, // > Zvks
-    Ext_Zvksg => 2, // > Zvks
 
     _ => 0,
   }
@@ -620,16 +491,13 @@ function currentlyEnabled_measure(ext : extension) -> int =
     Ext_Zvl128b => 0,
     Ext_Zvl32b => 0,
     Ext_Zvl64b => 0,
-    Ext_Zimop => 0,
 
     Ext_D => 1, // > Zicsr
     Ext_F => 1, // > Zicsr
     Ext_S => 1, // > Zicsr
     Ext_Zaamo => 1, // > A
-    Ext_Zalrsc => 1, // > A
     Ext_Zca => 1, // > C
     Ext_Zicntr => 1, // > Zicsr
-    Ext_Zihpm => 1, // > Zicsr
     Ext_Zve32x => 1, // > Zvl32b
     Ext_Smstateen => 1, // > Zicsr
     Ext_Ssstateen => 1, // > Zicsr
@@ -642,8 +510,6 @@ function currentlyEnabled_measure(ext : extension) -> int =
     Ext_Zvbb => 2, // > Zve32x
     Ext_Zve32f => 2, // > Zve32x
     Ext_Zve64x => 2, // > Zve32x
-    Ext_Zcmop => 2, // > Zca
-    Ext_Zicfiss => 2, // > Zaamo
 
     Ext_Ssccptr => 3, // > Sv39
     Ext_Supm => 3, // > U
@@ -659,7 +525,6 @@ function currentlyEnabled_measure(ext : extension) -> int =
     Ext_Zvkb => 3, // > Zvbb
     Ext_Zvknhb => 3, // > Zve64x
 
-    Ext_H => 4, // > virtual_mem_supported
     Ext_Zve64d => 4, // > Zve64f
     Ext_Zvfbfwma => 4, // > Zvfbfmin
     Ext_Zvfh => 4, // > Zfhmin
@@ -691,13 +556,11 @@ let extensions_ordered_for_isa_string = [
   Ext_B,
   // Ext_P,
   Ext_V,
-  Ext_H,
-  // S and U are not valid extensions in the device-tree, whereas H is.
+  // S and U are not valid extensions in the device-tree.
 
   // Z extensions, ordered by category and then alphabetically.
   // Zi
   Ext_Zic64b,
-  Ext_Zibi,
   Ext_Zicbom,
   Ext_Zicbop,
   Ext_Zicboz,
@@ -705,30 +568,19 @@ let extensions_ordered_for_isa_string = [
   Ext_Ziccamoc,
   Ext_Ziccif,
   Ext_Zicclsm,
-  Ext_Ziccrse,
   Ext_Zicfilp,
-  Ext_Zicfiss,
   Ext_Zicntr,
   Ext_Zicond,
   Ext_Zicsr,
-  Ext_Zifencei,
-  Ext_Zihintntl,
-  Ext_Zihintpause,
-  Ext_Zihpm,
-  Ext_Zimop,
 
   // Zm
   Ext_Zmmul,
 
   // Za
-  Ext_Za128rs,
-  Ext_Za64rs,
   Ext_Zaamo,
   Ext_Zabha,
   Ext_Zacas,
-  Ext_Zalrsc,
   Ext_Zama16b,
-  Ext_Zawrs,
 
   // Zf, Zd, and Zq
   Ext_Zfa,
@@ -745,7 +597,6 @@ let extensions_ordered_for_isa_string = [
   Ext_Zcb,
   Ext_Zcd,
   Ext_Zcf,
-  Ext_Zcmop,
 
   // Zb
   Ext_Zba,
@@ -757,16 +608,7 @@ let extensions_ordered_for_isa_string = [
   Ext_Zbs,
 
   // Zk
-  Ext_Zknd,
-  Ext_Zkne,
-  Ext_Zknh,
-  Ext_Zkr,
-  Ext_Zksed,
-  Ext_Zksh,
   Ext_Zkt,
-
-  //Zvabd
-  Ext_Zvabd,
 
   // Zvb
   Ext_Zvbb,
@@ -796,11 +638,6 @@ let extensions_ordered_for_isa_string = [
   Ext_Zvkng,
   Ext_Zvknha,
   Ext_Zvknhb,
-  Ext_Zvks,
-  Ext_Zvksc,
-  Ext_Zvksed,
-  Ext_Zvksg,
-  Ext_Zvksh,
   Ext_Zvkt,
 
   // Zvl
@@ -813,20 +650,16 @@ let extensions_ordered_for_isa_string = [
 
   // Supervisor extensions, ordered alphabetically.
   Ext_Ssccptr,
-  Ext_Sscofpmf,
   Ext_Sscounterenw,
   Ext_Ssnpm,
   Ext_Sspm,
-  Ext_Ssqosid,
   Ext_Ssstateen,
-  Ext_Sstc,
   Ext_Sstvala,
   Ext_Sstvecd,
   Ext_Ssu64xl,
   Ext_Supm,
   Ext_Svade,
   Ext_Svadu,
-  Ext_Svinval,
   Ext_Svnapot,
   Ext_Svpbmt,
   Ext_Svrsw60t59b,

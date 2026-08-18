@@ -1,7 +1,6 @@
 #include "riscv_model_impl.h"
 #include <algorithm>
 #include <cassert>
-#include <random>
 #include <unistd.h>
 
 #include "config_utils.h"
@@ -200,13 +199,6 @@ unit ModelImpl::tlb_flush_end_callback(TLB tlb) {
     c->tlb_flush_end_callback(*this, tlb);
   }
   return UNIT;
-}
-
-// Provides entropy for the scalar cryptography extension.
-mach_bits ModelImpl::plat_get_16_random_bits(unit) {
-  // This function can be changed to support deterministic sequences of
-  // pseudo-random bytes. This is useful for testing.
-  return m_gen64() & 0xFFFF;
 }
 
 // Note: Store-Conditionals are allowed to spuriously fail. If you want

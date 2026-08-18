@@ -88,12 +88,6 @@ let sys_enable_writable_misa : bool = config base.writable_misa
 // supervisor mode is implemented and non-bare addressing modes are supported.
 let sys_enable_writable_fiom : bool = config base.writable_fiom
 
-// Which HPM counters are supported (as a bit mask). Bits [2 .. 0] are ignored.
-let sys_writable_hpm_counters : bits(32) = config base.writable_hpm_counters
-
-// Supervisor timecmp
-function clause currentlyEnabled(Ext_Sstc) = hartSupports(Ext_Sstc)
-
 // This function allows an extension to veto a write to Misa
 // if it would violate an alignment restriction on
 // unsetting C. If it returns true the write will have no effect.
@@ -110,7 +104,7 @@ private function legalize_misa(m : Misa, v : xlenbits) -> Misa = {
     C = if hartSupports(Ext_C) then v[C] else 0b0,
     D = if hartSupports(Ext_D) & v[F] == 0b1 then v[D] else 0b0,
     F = if hartSupports(Ext_F) then v[F] else 0b0,
-    H = if hartSupports(Ext_H) then v[H] else 0b0, // TODO: Not fully supported yet
+    H = 0b0,
     // Writable I is not currently supported.
     I = bool_to_bit(not(base_E_enabled)),
     E = bool_to_bit(base_E_enabled),
@@ -311,21 +305,14 @@ bitfield Seccfg : bits(64) = {
 }
 
 private function legalize_mseccfg(o : Seccfg, v : bits(64)) -> Seccfg = {
-  let sseed_read_only_zero =
-      (config extensions.Zkr.sseed_read_only_zero : bool)
-    | not(currentlyEnabled(Ext_S))
-    | not(currentlyEnabled(Ext_Zkr));
-  let useed_read_only_zero =
-      (config extensions.Zkr.useed_read_only_zero : bool)
-    | not(currentlyEnabled(Ext_U))
-    | not(currentlyEnabled(Ext_Zkr));
-
   let v = Mk_Seccfg(v);
   [o with
     PMM   = if currentlyEnabled(Ext_Smmpm) & is_supported_pmm(PM_SMMPM, pmm_mode(v[PMM])) then v[PMM] else o[PMM],
     MLPE  = if hartSupports(Ext_Zicfilp) then v[MLPE] else 0b0,
-    SSEED = if sseed_read_only_zero then 0b0 else v[SSEED],
-    USEED = if useed_read_only_zero then 0b0 else v[USEED],
+    // Zkr is not implemented, so the SEED CSR does not exist and its
+    // access-enable bits are read-only zero.
+    SSEED = 0b0,
+    USEED = 0b0,
   ]
 }
 
@@ -335,8 +322,8 @@ mapping clause csr_name_map = 0x747  <-> "mseccfg"
 mapping clause csr_name_map = 0x757  <-> "mseccfgh"
 
 // For Sm1p12 and later, "mseccfg exists if Zkr is implemented, or if it is required by other processor features."
-function clause is_CSR_accessible(0x747, _, _) = mseccfg_csrs_are_defined & (currentlyEnabled(Ext_Zkr) | hartSupports(Ext_Zicfilp) | currentlyEnabled(Ext_Smmpm)) // mseccfg
-function clause is_CSR_accessible(0x757, _, _) = mseccfg_csrs_are_defined & (currentlyEnabled(Ext_Zkr) | hartSupports(Ext_Zicfilp)) & xlen == 32 // mseccfgh
+function clause is_CSR_accessible(0x747, _, _) = mseccfg_csrs_are_defined & (hartSupports(Ext_Zicfilp) | currentlyEnabled(Ext_Smmpm)) // mseccfg
+function clause is_CSR_accessible(0x757, _, _) = mseccfg_csrs_are_defined & hartSupports(Ext_Zicfilp) & xlen == 32 // mseccfgh
 
 function clause read_CSR(0x747) = mseccfg.bits[xlen - 1 .. 0]
 function clause read_CSR(0x757 if xlen == 32) = mseccfg.bits[63 .. 32]
@@ -412,11 +399,11 @@ private function legalize_menvcfg(o : MEnvcfg, v : bits(64)) -> MEnvcfg = {
   [o with
     FIOM = if sys_enable_writable_fiom then v[FIOM] else 0b0,
     LPE  = if hartSupports(Ext_Zicfilp) then v[LPE] else 0b0,
-    SSE  = if hartSupports(Ext_Zicfiss) then v[SSE] else 0b0,
+    SSE  = 0b0,
     CBZE = if currentlyEnabled(Ext_Zicboz) then v[CBZE] else 0b0,
     CBCFE = if currentlyEnabled(Ext_Zicbom) then v[CBCFE] else 0b0,
     CBIE = if currentlyEnabled(Ext_Zicbom) then legalize_xenvcfg_cbie(v[CBIE]) else 0b00,
-    STCE = if currentlyEnabled(Ext_Sstc) then v[STCE] else 0b0,
+    STCE = 0b0,
     PMM = if currentlyEnabled(Ext_Smnpm) & is_supported_pmm(PM_SMNPM, pmm_mode(v[PMM])) then v[PMM] else o[PMM],
     ADUE = if currentlyEnabled(Ext_Svadu) then v[ADUE] else 0b0,
     PBMTE = if currentlyEnabled(Ext_Svpbmt) then v[PBMTE] else 0b0,
@@ -433,7 +420,7 @@ private function legalize_senvcfg(o : SEnvcfg, v : bits(64)) -> SEnvcfg = {
     // but does control the reads.  This way, senvcfg[SSE] does not have to be modified
     // when menvcfg[SSE] is cleared.  The "CSR Field Modulation" section of the
     // privileged specification has relevant discussion.
-    SSE = if hartSupports(Ext_Zicfiss) then v[SSE] else 0b0,
+    SSE = 0b0,
     CBZE = if currentlyEnabled(Ext_Zicboz) then v[CBZE] else 0b0,
     CBCFE = if currentlyEnabled(Ext_Zicbom) then v[CBCFE] else 0b0,
     CBIE = if currentlyEnabled(Ext_Zicbom) then legalize_xenvcfg_cbie(v[CBIE]) else 0b00,
@@ -636,8 +623,9 @@ bitfield Counterin : bits(32) = {
 }
 
 private function legalize_mcountinhibit(_c : Counterin, v : xlenbits) -> Counterin = {
+  // Zihpm is not implemented, so there are no HPM counters to inhibit.
   // Note the 0 in 0b101 is because the mtimer counter can't be paused.
-  let supported_counters = sys_writable_hpm_counters[31 .. 3] @ 0b101;
+  let supported_counters : bits(32) = zeros(29) @ 0b101;
   Mk_Counterin(v[31 .. 0] & supported_counters)
 }
 
@@ -853,19 +841,6 @@ mapping clause csr_name_map = 0x7a3  <-> "tdata3"
 function clause is_CSR_accessible(0x7a0, _, _) = true
 function clause read_CSR(0x7a0) = ~(tselect)  // this indicates we don't have any trigger support
 function clause write_CSR(0x7a0, value) = { tselect = value; Ok(tselect) }
-
-//
-// Entropy Source - Platform access to random bits.
-// NOTE: This would be better placed in platform.sail, but that file
-// appears _after_ this one in the compile order meaning the valspec
-// for this function is unavailable when it's first encountered in
-// read_seed_csr. Hence it appears here.
-val get_16_random_bits = impure {
-    interpreter: "Platform.get_16_random_bits",
-    cpp: "plat_get_16_random_bits",
-    lem: "plat_get_16_random_bits"
-} : unit -> bits(16)
-
 
 enum FeatureEnabledResult = {FEATURE_ENABLED, FEATURE_ILLEGAL, FEATURE_VIRTUAL}
 

@@ -28,10 +28,7 @@ private function privLevel_to_CSR_privbits(p : Privilege) -> nom_priv_bits =
   match p {
     User              => 0b00,
     VirtualUser       => 0b00,
-    // Note that this `if` is not strictly necessary. We could return
-    // 0b10 unconditionally if other checks ensure that hypervisor
-    // CSRs do not exist if H is not enabled.
-    Supervisor        => if currentlyEnabled(Ext_H) then 0b10 else 0b01,
+    Supervisor        => 0b01,
     VirtualSupervisor => 0b01,
     Machine           => 0b11,
   }
@@ -382,11 +379,6 @@ function reset_sys() -> unit = {
   // "Writable PMP registers’ A and L fields are set to 0, unless the platform
   // mandates a different reset value for some PMP registers’ A and L fields."
   reset_pmp();
-
-  // "The [s,u]seed bits must have a defined reset value. The system must
-  // not allow them to be in an undefined state after a reset."
-  mseccfg[SSEED] = bool_to_bit(config extensions.Zkr.sseed_reset_value : bool);
-  mseccfg[USEED] = bool_to_bit(config extensions.Zkr.useed_reset_value : bool);
 
   // If the Zicfilp extension is implemented, the mseccfg.MLPE field is reset to 0.
   if hartSupports(Ext_Zicfilp) then mseccfg[MLPE] = 0b0;

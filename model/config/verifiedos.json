@@ -1,11 +1,12 @@
-// M0.6b: the profile configuration, the measurement pass of the curation
-// (docs/implementation-checklist.md). Every row the JSON config system can
-// express is set to the frozen profile (docs/isa-profile.md); rows it cannot
-// express are recorded as the residue in the checklist entry and become the
-// source-level worklist. Two deliberate non-profile values, both residue:
-// F and D are ON because the config validator requires scalar F/D under any
-// float-capable V level, while the profile's vector-FP-without-scalar-FP is
-// a Sail-modeled fork (R-15-040) that only source curation can express.
+// The profile configuration (docs/isa-profile.md). Every row the JSON config
+// system can express is set to the frozen profile; rows it cannot express are
+// the source-level worklist recorded in docs/implementation-checklist.md.
+// Keys disappear from this file as M0.6c deletes the surface behind them: an
+// extension cut out of the model has no `supported` switch left to set.
+// One deliberate non-profile value, the standing residue: F and D are ON
+// because the config validator requires scalar F/D under any float-capable V
+// level, while the profile's vector-FP-without-scalar-FP is the R-15-040
+// Sail-modeled fork, booked for M0.6c's c4 batch.
 {
   "base": {
     "xlen": 64,
@@ -15,7 +16,6 @@
     // no less-privileged mode for FIOM to order against (R-15-003).
     "writable_fiom": false,
     // R-15-077: counters deleted; all read-only zero is the closest config form.
-    "writable_hpm_counters": { "len": 32, "value": "0x0000_0000" },
     "scounteren_writable_bits": { "len": 32, "value": "0x0000_0000" },
     "mcounteren_writable_bits": { "len": 32, "value": "0x0000_0000" },
     // direct-only trap entry; MTCC replaces mtvec at the M0.6e transplant (R-15-073).
@@ -184,7 +184,7 @@
     "hartid": 0,
     // the CBO block Zicboz allocates and cloadtags groups by (R-15-060, R-15-007q).
     "cache_block_size_exp": 6,
-    // ignored with Zalrsc off; schema requires legal values.
+    // no reservations exist (R-15-024); schema requires legal values.
     "reservation": {
       "reservation_set_size_exp": 3,
       "require_exact_reservation_addr": false,
@@ -225,7 +225,6 @@
     "B": { "supported": true },
     "S": { "supported": false },
     "U": { "supported": false },
-    "Zibi": { "supported": false },
     "Zic64b": { "supported": false },
     "Zicbom": { "supported": false },
     "Zicbop": { "supported": false },
@@ -234,28 +233,15 @@
     "Ziccamoc": { "supported": false },
     "Ziccif": { "supported": false },
     "Zicclsm": { "supported": false },
-    "Ziccrse": { "supported": false },
     "Zicfilp": { "supported": false },
-    "Zicfiss": { "supported": false },
     "Zicond": { "supported": true },
     "Zicntr": { "supported": false },
     "Zicsr": { "supported": true },
-    "Zifencei": { "supported": false },
-    "Zihintntl": { "supported": false },
-    "Zihintpause": { "supported": false },
-    "Zihpm": { "supported": false },
-    "Zimop": { "supported": false },
     "Zmmul": { "supported": false },
     "Zaamo": { "supported": true },
     "Zabha": { "supported": true },
     "Zacas": { "supported": false },
-    "Zalrsc": { "supported": false },
     "Zama16b": { "supported": false },
-    "Zawrs": {
-      "supported": false,
-      "nto": { "is_nop": false },
-      "sto": { "is_nop": false }
-    },
     "Zfa": { "supported": false },
     "Zfbfmin": { "supported": false },
     "Zfh": { "supported": false },
@@ -266,7 +252,6 @@
     "Zcf": { "supported": false },
     "Zcd": { "supported": false },
     "Zcb": { "supported": false },
-    "Zcmop": { "supported": false },
     "Zba": { "supported": false },
     "Zbb": { "supported": false },
     "Zbs": { "supported": false },
@@ -274,22 +259,9 @@
     "Zbkb": { "supported": true },
     "Zbkc": { "supported": true },
     "Zbkx": { "supported": true },
-    "Zknd": { "supported": false },
-    "Zkne": { "supported": false },
-    "Zknh": { "supported": false },
-    "Zkr": {
-      "supported": false,
-      "sseed_reset_value": false,
-      "useed_reset_value": false,
-      "sseed_read_only_zero": false,
-      "useed_read_only_zero": false
-    },
-    "Zksed": { "supported": false },
-    "Zksh": { "supported": false },
     "Zkt": { "supported": true },
     "Zhinx": { "supported": false },
     "Zhinxmin": { "supported": false },
-    "Zvabd": { "supported": false },
     "Zvfbfmin": { "supported": false },
     "Zvfbfwma": { "supported": false },
     "Zvfh": { "supported": false },
@@ -301,17 +273,12 @@
     "Zvkned": { "supported": true },
     "Zvknha": { "supported": false },
     "Zvknhb": { "supported": true },
-    "Zvksed": { "supported": false },
-    "Zvksh": { "supported": false },
     "Zvkt": { "supported": true },
     "Ssccptr": { "supported": false },
-    "Sscofpmf": { "supported": false },
     "Sscounterenw": { "supported": false },
-    "Sstc": { "supported": false },
     "Sstvala": { "supported": false },
     "Svade": { "supported": false },
     "Svadu": { "supported": false },
-    "Svinval": { "supported": false },
     "Svrsw60t59b": { "supported": false },
     "Svnapot": { "supported": false },
     "Ssnpm": { "supported": false, "supported_pmlen_7": false, "supported_pmlen_16": false },
@@ -329,7 +296,6 @@
       "C_readonly_zero": true,
       "SE0_readonly_zero": false
     },
-    "Ssqosid": { "supported": false, "rcid_length": 1, "mcid_length": 1 },
     "Svpbmt": { "supported": false },
     "Svvptc": { "supported": false }
   }

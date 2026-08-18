@@ -134,10 +134,6 @@ unit PlatformInterface::tlb_flush_end_callback([[maybe_unused]] hart::zz5vecz8z5
   return UNIT;
 }
 
-mach_bits PlatformInterface::plat_get_16_random_bits(unit) {
-  return 0;
-}
-
 unit PlatformInterface::load_reservation(sbits, uint64_t) {
   return UNIT;
 }

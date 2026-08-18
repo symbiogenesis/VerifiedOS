@@ -15,8 +15,8 @@ private function legalize_smcntrpmf(c : CountSmcntrpmf, value : bits(64)) -> Cou
     MINH  = v[MINH],
     SINH  = if currentlyEnabled(Ext_S) then v[SINH] else 0b0,
     UINH  = if currentlyEnabled(Ext_U) then v[UINH] else 0b0,
-    VSINH = if currentlyEnabled(Ext_H) then v[VSINH] else 0b0,
-    VUINH = if currentlyEnabled(Ext_H) then v[VUINH] else 0b0,
+    VSINH = 0b0,
+    VUINH = 0b0,
   ]
 }
 

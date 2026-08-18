@@ -18,22 +18,11 @@
     "E": false,
     "writable_misa": true,
     "writable_fiom": true,
-    // The top 29 bits in this value control whether the corresponding
-    // HPM counters (hpmcounter31 .. hpmcounter3) are supported
-    // (i.e. are not read-only zero). A set bit specifies that the
-    // corresponding counter is supported. The lowest 3 bits
-    // (writable_hpm_counters[2 .. 0]) are ignored.
-    "writable_hpm_counters": {
-      "len": 32,
-      "value": "0xFFFF_FFFF"
-    },
     // The bits in this value control whether the corresponding bits
-    // of the `scounteren` CSR that control access to HPM counters,
-    // and `cycle`, `time` and `instret` registers, are read-only
-    // zero. A set bit specifies that the corresponding bit of
-    // `scounteren` is writable, otherwise the bit is read-only zero.
-    // If Sscounterenw is supported the top 29 bits must be a superset of
-    // the top 29 bits of `writable_hpm_counters`.
+    // of the `scounteren` CSR that control access to the `cycle`,
+    // `time` and `instret` registers are read-only zero. A set bit
+    // specifies that the corresponding bit of `scounteren` is
+    // writable, otherwise the bit is read-only zero.
     "scounteren_writable_bits": {
       "len": 32,
       "value": "0xFFFF_FFFF"
@@ -399,8 +388,8 @@
     "cache_block_size_exp": 6,
     "reservation": {
       // This specifies both the size and alignment of the reservation set, specified as a power of 2.
-      // It must be at least 2 on RV32 and 3 on RV64 to support Zalrsc.  It must not be more than
-      // 6 for Za64rs and 7 for Za128rs.  In all cases, it must be less than or equal to 12.
+      // It must be at least 2 on RV32 and 3 on RV64 to support A.  In all cases,
+      // it must be less than or equal to 12.
       "reservation_set_size_exp": 3,
       // Some implementations (e.g. Spike) require the Store-Conditional to provide the same
       // address as the matching Load-Reserve in order to succeed, regardless of the
@@ -519,7 +508,7 @@
         "zero_required": {
           // Whether vector arithmetic instructions raise an illegal instruction
           // exception when `vstart` is non-zero. This also governs instructions
-          // from the Zvbb, Zvbc, Zvabd, Zvfbfmin, and Zvfbfwma extensions.
+          // from the Zvbb, Zvbc, Zvfbfmin, and Zvfbfwma extensions.
           "arith": true,
           // Whether the vector scalar move instructions (vmv.x.s, vmv.s.x,
           // vfmv.f.s and vfmv.s.f) raise an illegal instruction exception when
@@ -535,9 +524,6 @@
       "supported": true
     },
     "U": {
-      "supported": true
-    },
-    "Zibi": {
       "supported": true
     },
     // This extension just asserts that the cache block size is 64 bytes.
@@ -567,13 +553,7 @@
     "Zicclsm": {
       "supported": true
     },
-    "Ziccrse": {
-      "supported": true
-    },
     "Zicfilp": {
-      "supported": true
-    },
-    "Zicfiss": {
       "supported": true
     },
     "Zicond": {
@@ -583,21 +563,6 @@
       "supported": true
     },
     "Zicsr": {
-      "supported": true
-    },
-    "Zifencei": {
-      "supported": true
-    },
-    "Zihintntl": {
-      "supported": true
-    },
-    "Zihintpause": {
-      "supported": true
-    },
-    "Zihpm": {
-      "supported": true
-    },
-    "Zimop": {
       "supported": true
     },
     "Zmmul": {
@@ -612,9 +577,6 @@
     "Zacas": {
       "supported": true
     },
-    "Zalrsc": {
-      "supported": false
-    },
     // This extension just asserts that each memory region has a MAG
     // PMA of 16 bytes.  If you enable this you also need to ensure
     // `misaligned_atomicity_granule_size_exp` for each coherent and
@@ -622,19 +584,6 @@
     // config validation error.
     "Zama16b": {
       "supported": true
-    },
-    "Zawrs": {
-      "supported": true,
-      // Whether `WRS.NTO` and `WRS.STO` behave as NOPS.  If they do
-      // not, see above note for `platform.max_time_to_wait`.  If
-      // Zawrs is not supported, these `is_nop` fields need to be
-      // present but their boolean values are ignored.
-      "nto": {
-        "is_nop": false
-      },
-      "sto": {
-        "is_nop": false
-      }
     },
     "Zfa": {
       "supported": true
@@ -666,9 +615,6 @@
     "Zcb": {
       "supported": true
     },
-    "Zcmop": {
-      "supported": true
-    },
     "Zba": {
       "supported": false
     },
@@ -690,30 +636,6 @@
     "Zbkx": {
       "supported": true
     },
-    "Zknd": {
-      "supported": true
-    },
-    "Zkne": {
-      "supported": true
-    },
-    "Zknh": {
-      "supported": true
-    },
-    "Zkr": {
-      "supported": true,
-      // If Zkr is not supported, these fields need to be present but
-      // their boolean values are ignored.
-      "sseed_reset_value": false,
-      "useed_reset_value": false,
-      "sseed_read_only_zero": false,
-      "useed_read_only_zero": false
-    },
-    "Zksed": {
-      "supported": true
-    },
-    "Zksh": {
-      "supported": true
-    },
     "Zkt": {
       "supported": true
     },
@@ -722,9 +644,6 @@
     },
     "Zhinxmin": {
       "supported": false
-    },
-    "Zvabd": {
-      "supported": true
     },
     "Zvfbfmin": {
       "supported": true
@@ -759,25 +678,13 @@
     "Zvknhb": {
       "supported": @CONFIG_ELEN_IS_64@
     },
-    "Zvksed": {
-      "supported": true
-    },
-    "Zvksh": {
-      "supported": true
-    },
     "Zvkt": {
       "supported": true
     },
     "Ssccptr": {
       "supported": true
     },
-    "Sscofpmf": {
-      "supported": true
-    },
     "Sscounterenw": {
-      "supported": true
-    },
-    "Sstc": {
       "supported": true
     },
     // Enabling Sstvala requires that the exceptions specified in the extension
@@ -789,9 +696,6 @@
       "supported": true
     },
     "Svadu": {
-      "supported": true
-    },
-    "Svinval": {
       "supported": true
     },
     "Svrsw60t59b": {
@@ -843,14 +747,6 @@
       },
       "C_readonly_zero": true,
       "SE0_readonly_zero": false
-    },
-    "Ssqosid": {
-      "supported": true,
-      // These lengths should be between 1 and 12, inclusive.
-      // If Ssqosid is not supported, this should be left as 1
-      // (or any other legal value).
-      "rcid_length": 12,
-      "mcid_length": 12
     },
     "Svpbmt": {
       "supported": @CONFIG_XLEN_IS_64@

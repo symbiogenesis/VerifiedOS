@@ -247,14 +247,6 @@ private function check_vext_config() -> bool = {
     valid = false;
     print_endline("Zvknhb is enabled but Zve64x and V are disabled: Zvknhb requires Zve64x or V.");
   };
-  if (config extensions.Zvksed.supported : bool) & not(hartSupports(Ext_Zve32x)) then {
-    valid = false;
-    print_endline("Zvksed is enabled but Zve32x is disabled: Zvksed requires Zve32x.");
-  };
-  if (config extensions.Zvksh.supported : bool) & not(hartSupports(Ext_Zve32x)) then {
-    valid = false;
-    print_endline("Zvksh is enabled but Zve32x is disabled: Zvksh requires Zve32x.");
-  };
   if (config extensions.Zvkt.supported : bool) & not(hartSupports(Ext_Zve32x)) then {
     valid = false;
     print_endline("Zvkt is enabled but Zve32x is disabled: Zvkt requires Zve32x.");
@@ -297,7 +289,6 @@ private struct pma_check_opts = {
   ziccamoc : bool,
   ziccif   : bool,
   zicclsm  : bool,
-  ziccrse  : bool,
   ssccptr  : bool,
   svadu    : bool,
 }
@@ -357,10 +348,6 @@ private function check_pma_regions(regions : list(PMA_Region), prev_base : bits(
             return false;
           };
         };
-        if check_opts.ziccrse & attributes.reservability != RsrvEventual then {
-          print_endline("Main memory region starting at " ^ bits_str(region.base) ^ " is coherent and cacheable with " ^ reservability_str(attributes.reservability) ^ " reservability support, but Ziccrse is enabled which requires RsrvEventual support.");
-          return false;
-        };
         if check_opts.ssccptr & not(attributes.supports_pte_read) then {
           print_endline("Main memory region starting at " ^ bits_str(region.base) ^ " is coherent and cacheable without hardware page-table read support, but Ssccptr is enabled which requires this support.");
           return false;
@@ -408,7 +395,6 @@ private function check_mem_layout() -> bool =
       ziccamoc = config extensions.Ziccamoc.supported,
       ziccif   = config extensions.Ziccif.supported,
       zicclsm  = config extensions.Zicclsm.supported,
-      ziccrse  = config extensions.Ziccrse.supported,
       ssccptr  = config extensions.Ssccptr.supported,
       svadu    = config extensions.Svadu.supported,
     };
@@ -489,11 +475,6 @@ private function check_misc_extension_dependencies() -> bool = {
     valid = false;
     print_endline("The Zicfilp extension is enabled but Zicsr is disabled: supporting Zicfilp requires Zicsr.");
   };
-  // See https://github.com/riscv/sail-riscv/issues/1508
-  if (config extensions.Zicfiss.supported : bool) & not((config extensions.Zicsr.supported : bool) & (config extensions.Zimop.supported : bool) & ((config extensions.Zaamo.supported : bool) | (config extensions.A.supported : bool))) then {
-    valid = false;
-    print_endline("The Zicfiss extension is enabled but one or more of Zicsr, Zimop and (Zaamo or A) are disabled: supporting Zicfiss requires Zicsr, Zimop and (Zaamo or A).");
-  };
   if (config extensions.Zfbfmin.supported : bool) & not(config extensions.F.supported : bool) then {
     valid = false;
     print_endline("The Zfbfmin extension is enabled but F is disabled: supporting Zfbfmin requires F.");
@@ -528,14 +509,6 @@ private function check_misc_extension_dependencies() -> bool = {
     valid = valid & check_required_sstvala_option("hardware breakpoint exceptions", hardware_breakpoint_writes_xtval);
     valid = valid & check_required_sstvala_option("illegal instruction exceptions", illegal_instruction_writes_xtval);
   };
-  if (config extensions.Ssqosid.supported : bool) & not(config extensions.Zicsr.supported : bool) then {
-    valid = false;
-    print_endline("The Ssqosid extension is enabled but Zicsr is disabled: supporting Ssqosid requires Zicsr.");
-  };
-  if (config extensions.Sscounterenw.supported : bool) & ((sys_writable_hpm_counters[31 .. 3] & sys_scounteren_writable_bits[31 .. 3]) != sys_writable_hpm_counters[31 .. 3]) then {
-    valid = false;
-    print_endline("The Sscounterenw extension is enabled but `scounteren` is not writable (via `base.scounteren_writable_bits`) for some supported HPM counters (specified in `base.writable_hpm_counters`).");
-  };
   if (xlen == 32 & ((config extensions.Ssnpm.supported : bool) | (config extensions.Smmpm.supported : bool) | (config extensions.Smnpm.supported : bool))) then {
     valid = false;
     print_endline("The Ssnpm, Smmpm and Smnpm extensions are not supported on RV32.");
@@ -550,9 +523,9 @@ private function check_extension_param_constraints() -> bool = {
     print_endline("The Zic64b extension is enabled but the cache block size is not 64 bytes.");
   };
   let min_rss_exp = log2_xlen - 3;
-  if ((config extensions.A.supported : bool) | (config extensions.Zalrsc.supported : bool)) & (plat_reservation_set_size_exp < min_rss_exp) then {
+  if (config extensions.A.supported : bool) & (plat_reservation_set_size_exp < min_rss_exp) then {
     valid = false;
-    print_endline("The A or Zalrsc extensions are enabled, but the reservation set size of 2^" ^ dec_str(plat_reservation_set_size_exp) ^
+    print_endline("The A extension is enabled, but the reservation set size of 2^" ^ dec_str(plat_reservation_set_size_exp) ^
                   " is too small; it should be at least 2^" ^ dec_str(min_rss_exp) ^
                   " for the LR/SC operands on this platform.");
   };
@@ -596,10 +569,6 @@ private function check_extension_param_constraints() -> bool = {
 private function check_stateen_config() -> bool = {
   if not(config extensions.Stateen.Smstateen.supported : bool) & not(config extensions.Stateen.Ssstateen.supported : bool) then return true;
   var valid : bool = true;
-  if config extensions.Stateen.SE0_readonly_zero : bool & hartSupports(Ext_H) then {
-    valid = false;
-    print_endline("Stateen SE0_readonly_zero is true but H extension is supported: SE0 must be writable when H is implemented.");
-  };
   // TODO: Update when Zcmt is implemented
   if config extensions.Stateen.SE0_readonly_zero : bool & ((config extensions.Zfinx.supported : bool) | not(config extensions.Stateen.C_readonly_zero : bool)) then {
     valid = false;

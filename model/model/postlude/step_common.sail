@@ -10,20 +10,17 @@
 //
 // The RISC-V hart could either be active (fetching and executing
 // instructions) or waiting (e.g. for an interrupt).  The transition
-// from `active` to `wait` occurs on instructions such as WFI and
-// WRS.{NTO,STO}. The transition from `wait` to `active` can occur
-// if (i) the hart detects an interrupt or (in the case of
-// WRS.{NTO,STO}) a reservation set is invalidated, or (ii) if the
-// external non-Sail emulator harness indicates that the waiting
-// instruction should finish execution.  Note that in the latter
-// case, the platform can decide to end the stall for any reason,
-// even if there are no interrupts or invalidated reservation set.
+// from `active` to `wait` occurs on WFI. The transition from `wait`
+// to `active` can occur if (i) the hart detects an interrupt, or
+// (ii) if the external non-Sail emulator harness indicates that the
+// waiting instruction should finish execution.  Note that in the
+// latter case, the platform can decide to end the stall for any
+// reason, even if there are no interrupts.
 union HartState = {
   HART_ACTIVE  : unit,
   // The instruction that caused the wait. This is needed
-  // because WFI and WRS can time out and cause an illegal
-  // instruction exception so we need to know what to write
-  // to mtval.
+  // because WFI can time out and cause an illegal instruction
+  // exception so we need to know what to write to mtval.
   HART_WAITING : (WaitReason, instbits),
 }
 

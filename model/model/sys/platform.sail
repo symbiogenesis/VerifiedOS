@@ -59,9 +59,6 @@ private function within_htif_readable forall 'n, 0 < 'n <= max_mem_access . (add
 // hard-coded to use the mtimecmp for hart 0.
 register mtimecmp : bits(64)
 
-// Unlike mtimecmp, stimecmp is a real CSR; not memory mapped.
-register stimecmp : bits(64)
-
 // CLINT memory-mapped IO
 
 // relative address map:
@@ -141,9 +138,6 @@ function clint_load(access, paddr, width) = {
 function clint_dispatch(mip_was_written : bool) -> unit = {
   let old_mip = mip.bits;
   mip[MTI] = bool_to_bit(mtimecmp <=_u mtime);
-  if currentlyEnabled(Ext_Sstc) & menvcfg[STCE] == 0b1 then {
-    mip[STI] = bool_to_bit(stimecmp <=_u mtime);
-  };
   if get_config_print_clint()
   then print_log("clint mtime " ^ bits_str(mtime));
   if old_mip != mip.bits | mip_was_written then {
