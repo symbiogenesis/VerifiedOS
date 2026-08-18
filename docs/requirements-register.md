@@ -687,7 +687,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a derivation that drops a relevance-graded value fails to type-check.
 · Trace: CJ-TAL-SOUND
 
-**R-05-098** IS: The scope of relevance grading is every result encoding whether an authority-, integrity-, or freshness-bearing action succeeded: attestation and appraisal verdicts, ECC and memory-authentication status, capability-derivation and revocation results, IDL call outcomes, admission-check verdicts, and storage-transaction commit results.
+**R-05-098** IS: The scope of relevance grading is every result encoding whether an authority-, integrity-, or freshness-bearing action succeeded: attestation and appraisal verdicts, ECC and memory-authentication status, capability-derivation and revocation results, IDL call outcomes, admission-check verdicts, bounded-pool binding outcomes (R-08-047), and storage-transaction commit results.
 · Accept: each listed result type carries the grade in its IDL or ABI declaration; the list is closed by amendment to this register.
 · Trace: CJ-IDL, CJ-TAL-SOUND
 
@@ -1590,6 +1590,19 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-08-020** MUST NOT: Compaction and relocation never arise: there is nothing to move at runtime because the packing already happened at compile time.
 · Accept: no relocation mechanism exists.
 · Trace: CJ-MEMPLAN
+
+**R-08-045** MUST NOT: The admitted machine has no global out-of-memory execution state: every physical byte (kernel objects, stacks, register-save areas, DMA windows, rings, grant slots, quarantine entries, interpreter object arenas, recovery workspaces, application payloads) is charged to the signed composition, aggregate physical insufficiency rejects the generation at admission, and no runtime path requests unplanned physical storage from a global pool or invokes runtime victim selection.
+· Accept: the checker derives a closed capacity equation covering application payloads and all platform metadata for every admitted generation; no emergency allocator, hidden application-reachable reserve, OOM daemon, badness score, or global victim scan exists for the absence to regress into.
+· Trace: CJ-MEMPLAN, CJ-WCET
+
+**R-08-046** MUST: Every resource whose backing storage is static but whose occupancy varies at runtime is a declared bounded pool, its manifest entry stating the owning compartment, element type and fixed capacity, bind and release authority, the binding and release state machine over the monotone member lifecycle (Free → Bound → Quiescing → Revoked → Sweeping → Reusable), low and exhausted thresholds, the maximum time from release request to Reusable, the exhaustion action, any recovery reserve, the confidentiality label of occupancy and telemetry, and restart and generation-migration semantics.
+· Accept: this register carries the inventory of every runtime-varying pool: origin compartments, connection and session slots, grant slots, quarantine entries, protocol control blocks, interpreter object arenas, device descriptors, ring entries, checkpoint transaction slots, storage epochs, and sentinel event records; an unclassified counter, bitmap, free list, arena, queue, or table that can influence admission or forward progress is a review-gate finding.
+· Trace: CJ-MEMPLAN
+
+**R-08-047** MUST: A request to bind a member of a full pool returns a typed `CapacityExhausted(pool)` verdict, relevance-graded under R-05-097's discipline: it cannot be dropped, converted into an implicit wait, or answered by borrowing from another pool.
+· Accept: the CHERI-TAL derivation proves every capacity-producing operation handles the exhausted arm through one of the pool's manifest-declared R-12-087 actions, so no capacity request blocks indefinitely or falls through to an ambient supervisor decision.
+· Fail-closed: a full pool declines the binding rather than blocking, borrowing, or overcommitting; the cost is loss of that pool's service to the requester until the R-16-025 ladder restores capacity, composed at R-17-030u.
+· Trace: CJ-TAL-SOUND, CJ-IDL
 
 ### 8.4 Non-interference
 
@@ -2642,6 +2655,23 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the supervision tree is an authority re-instantiator, never a minter; the powerbox alone mints, and it alone joins the TCB.
 · Trace: CJ-NI, CJ-KERNEL
 
+**R-12-087** MUST: Capacity handling is a finite composition-time mapping from enumerated detectors (pool low, pool exhausted, oldest waiter past bound, quarantine backlog past bound, release missed deadline, restart rate past bound, population ceiling reached, checkpoint space unavailable) to enumerated actions (refuse the new request, shed owner-local state, suspend a manifest-named tenant, checkpoint and terminate a manifest-named tenant, terminate an ownership-closed group, step down a population rung, disable a nonessential service, restart the owning subtree, fail-stop the owning subsystem, escalate to RoT reset where R-16-005 already authorizes it), compiled into the same synchronous Lustre control plane as the supervision tree; no runtime-loaded policy, plugin, BPF-class hook, script, rule parser, or generic callback participates.
+· Accept: every detector/action pair is visible in the signed composition and carries a finite transition proof; no detector searches the component graph and no action computes a victim score at runtime.
+· Fail-closed: the admitted actions run from declining one request through fail-stop of the owning subsystem, each spending availability of the owner's own service and never another partition's schedule, memory, or authority; composed at R-17-030u.
+· Trace: CJ-VELUS
+
+**R-12-088** MUST: Capacity intervention triggers on resource-specific forward-progress signals (remaining pool members, oldest-waiter age, quarantined-but-not-reusable count, failed bindings per fixed window, completion age of teardown, zeroization, checkpoint, and sweep work, ring occupancy where the occupancy label permits, repeated restart or eviction counts), each with a fixed sampling cadence, a public threshold, a bounded reaction time, and a declared observer label; no aggregate utilization or PSI-class stall-time metric exists or is consumed.
+· Accept: each signal's detection latency and reaction slot are admitted under §11; collection performs no scan proportional to the number of compartments and alters no other partition's schedule.
+· Trace: CJ-VELUS, CJ-WCET
+
+**R-12-089** MUST: Every dynamically occupiable tenant and pool member carries one composition-fixed criticality class (non-sacrificable, suspendable, checkpoint-and-terminable, restartable without checkpoint, or discardable) plus any all-or-nothing dependency group and the ordered action ladder permitted for that group, and runtime focus selects among candidates only inside an equivalence class whose sacrifice policy is identical and whose selection observation is already permitted.
+· Accept: no lower-criticality principal can cause termination of a higher-criticality unit by consuming a shared pool, because critical capacity is physically or logically reserved rather than protected by a score adjustment; no `oom_score_adj` analog, hierarchy traversal, or runtime scoring exists.
+· Trace: CJ-NI, CJ-VELUS
+
+**R-12-090** MUST: A pool owner may declare at most one optional owner-local shedding action ahead of suspension or termination: it runs at an admitted quiescent point, consumes a fixed slot, touches only the owner's manifest-bounded state, and returns a relevance-graded result naming the entries made reusable, which the monitor verifies against the pool's R-16-025 completion predicate rather than trusting.
+· Accept: the shedding action cannot receive extra time, allocate from a reserve, scan another owner, or delay the mandatory action ladder beyond a fixed bound.
+· Trace: CJ-VELUS, CJ-WCET
+
 ### 12.14 Display, render, and the consent path
 
 **R-12-075** MUST: Display and render use per-surface and per-input capabilities with no ambient observation of input or output, so keylogging and screen-scraping are unexpressible.
@@ -2953,6 +2983,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-17-002.
 · Trace: CJ-WCET
 
+**R-14-014** MUST: The origin pool's eviction policy is declared rather than improvised: its manifest states the victim equivalence class; which origin states are protected (focused, consent-bearing, audio-active, mid-transaction, non-checkpointable); a deterministic tie-break among equivalent candidates; whether the action is suspension, checkpoint-and-termination, or discard; the bound by which the evicted member is Reusable; the declared outcome when every origin is protected; and repeated-eviction rate telemetry.
+· Accept: the browser chooses user-experience policy only within the statically bounded candidate set, and cannot alter slot widths, borrow memory, evade quarantine, or terminate a different confidentiality label (R-14-010 contains the authority; this pins the policy); the eviction rate enters the R-17-030m accounting through R-16-027.
+· Trace: CJ-WCET, CJ-NI
+
 **R-14-012** MUST NOT: There is no Linux-personality shim, ever, and no VM: faithful syscall translation is an ambient-authority emulator, and foreign binaries simply do not run.
 · Accept: the only on-ramp is source-level recompilation against a WASI-shaped capability libc whose filesystem is a private, manifest-backed namespace; such ports are ordinary Tier-2 citizens.
 · Trace: CJ-CERISE
@@ -2976,6 +3010,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-14-013c** MUST: The browser's Wasm interpreter (R-14-008a) is the R-14-013a platform engine, one interpreter rather than two, so R-14-008d's differential-testing obligation runs its Wasm half against the theorem-carrying caches-disabled configuration. Web JavaScript is outside the offer: no verified JS engine exists at engine-grade coverage, so web JS stays contained per origin under R-14-008 and the interpreter transfer's standing case stays booked unnarrowed.
 · Accept: the browser image binds the platform engine rather than a second interpreter for Wasm content, and the JavaScript declination is recorded here rather than implied.
 · Trace: CJ-WASM-SOUND
+
+**R-14-015** MUST: Every interpreter whose guest can create a runtime-dependent number of objects uses a composition-sized fixed object arena conforming to the R-08-046 bounded-pool contract and distinct from the online allocator R-08-010 deletes: fixed object-size classes or a statically proved bounded representation, a maximum live object count per class, a declared selection and release algorithm, declared handling of cyclic guest graphs where admitted, the R-08-047 exhausted arm when no slot is available, and, where guest-level collection exists, its complete WCET and non-interference model with host behavior after guest exhaustion declared beside it.
+· Accept: no browser or Wasm/JS interpreter relies on an unspecified malloc, tracing collector, compactor, or variable-time emergency collection path; guest exhaustion consumes neither host-reserved state nor another origin's arena.
+· Trace: CJ-WASM-SOUND, CJ-MEMPLAN
 
 ---
 
@@ -4601,6 +4639,32 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the two-class entropy record is what keeps this true.
 · Trace: CJ-NI
 
+### 16.6 Capacity exhaustion
+
+**R-16-023** MUST: Every capacity-recovery path is pre-funded at composition, in memory, schedule, NoC bandwidth, storage transaction space, grant slots, and telemetry capacity: supervisor and sentinel execution slots, restart and teardown metadata, revocation and quarantine bookkeeping, zeroization and sweep progress state, checkpoint transaction capacity where checkpoint is an admitted action, one preallocated terminal fault record held even when the ordinary telemetry ring is full, and the authority to quiesce DMA and revoke grants; recovery performs no operation whose own success depends on the exhausted pool.
+· Accept: fault injection that fills the target pool and every nonreserved adjacent queue cannot prevent the declared recovery transition from completing within its bound.
+· Trace: CJ-WCET, CJ-MEMPLAN
+
+**R-16-024** MUST: A capacity victim is a manifest-declared ownership-closed unit (a compartment, a same-label compartment group, a browser origin, an application tenant, or a complete supervised subtree), never an arbitrary thread or internal process, and its termination is total: scheduled entry stops, bounded DMA is quiesced or cancelled, exported grants and session handles are revoked, the containment epoch advances, durable state commits or is discarded per the declared action, private state is zeroized, members enter quarantine until the sweep establishes reusability, and restart re-grants only manifest-fixed authority.
+· Accept: the compositor proves the teardown closure: every object and grant the unit exclusively owns appears in it, and shared services and other confidentiality labels are excluded.
+· Trace: CJ-NI, CJ-KERNEL
+
+**R-16-025** MUST: An exhaustion action succeeds only when the pool's resource-specific completion predicate holds and the promised capacity is reusable: every declared action carries `reclaim_min` and `complete_by`, the monitor verifies both, and a shortfall on either executes the next pre-certified action in the pool's finite ladder, whose default order is decline where the service contract permits, one bounded owner-local shed, suspend or checkpoint or terminate one manifest-permitted group, verify reclamation by the deadline, escalate to the next group or a lower population rung, restart the owning subtree, stop the owning subsystem, and RoT reset only where R-16-005 already authorizes it.
+· Accept: marking a victim dead discharges nothing; for memory-backed pools the predicate is execution stopped, DMA quiesced, authority revoked, zeroization complete, any required checkpoint committed or deliberately discarded, quarantine sweep complete, and at least `reclaim_min` members returned to Reusable; no ladder step borrows another partition's memory or schedule, weakens capability enforcement, skips quarantine, or invents a victim class at runtime.
+· Trace: CJ-VELUS, CJ-WCET
+
+**R-16-026** MUST: Each pool member advances the monotone lifecycle its pool declares, at most one teardown owns a member, a repeated detector event against a member already past Bound coalesces with the teardown in progress rather than selecting a second victim, and no member rebinds before Reusable.
+· Accept: model checking covers repeated detector events, supervisor restart during every transition, duplicate release requests, and reset in every lifecycle state.
+· Trace: CJ-VELUS, CJ-KERNEL
+
+**R-16-027** MUST: Every detector/action pair declares assertion and clear thresholds, a minimum dwell time, maximum interventions per time window, restart and eviction backoff, and the escalation action past the rate limit, and entries into capacity actions are counted in the attested event class R-17-030m requires.
+· Accept: a workload oscillating at a threshold cannot create an unbounded restart, checkpoint, sweep, or eviction loop, and sustained forcing is a reported quantity rather than a mechanism reported as succeeding once per window.
+· Trace: CJ-VELUS, CJ-WCET
+
+**R-16-028** MUST: A capacity event emits one closed, schema-bounded record through the sentinel telemetry path, carrying pool identity, detector class, threshold and observed bounded value, selected ownership group, action taken, promised and actual reclaimed capacity, lifecycle state reached, completion-latency bucket, escalation count, generation and population rung, and terminal failure class if any, under the pool's confidentiality label, with no process list, pointer, free-form string, stack dump, or ambient log.
+· Accept: the path retains R-16-023's preallocated terminal record when the ordinary ring is full, and a logging failure cannot delay the recovery action it describes.
+· Trace: CJ-IDL, CJ-NI
+
 ---
 
 ## §17. Residual Risks
@@ -4856,9 +4920,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the refusal is retained because every alternative presents a superseded state as current, which is what the class exists to prevent; the member is a denial an adversary provokes without software access, reached from a direction R-17-030n does not cover, and it is bounded to the declared class rather than to the volume.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
+**R-17-030u** IS: Fail-closed seam **pool exhaustion ⋈ the action ladder**: a full bounded pool answers a binding request with the typed exhausted verdict R-08-047 confers and its owner walks the finite pre-certified ladder R-12-087 fixes, so a principal that can legitimately fill a pool holds a bounded denial of that pool's service, priced to itself where R-08-008 reaches, while no global reserve, victim search, or emergency allocator exists to move the shortage onto another owner.
+· Accept: the runtime sibling of R-17-030q's delivery-side member: the shortage is met by a declared per-pool ladder rather than by a machine-wide event, its rate is counted under R-17-030m through R-16-027, and the worst case is availability of the exhausted pool's service, never another label's schedule, memory, or authority.
+· Trace: CJ-MEMPLAN, CJ-VELUS
+
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.ps1` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
-· Accept: twenty-one requirements confer a refusal and fifteen seams collect them, both figures recomputed rather than maintained here.
+· Accept: twenty-three requirements confer a refusal and sixteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.ps1` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -5275,6 +5343,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the defect list is carried in the register with a disposition per entry, and the gate's record cites it.
 · Trace: CJ-T
 
+**R-18-036** MUST: The conformance suite generates capacity-exhaustion campaigns for every declared bounded pool and every action ladder: fill to exactly capacity, one request beyond capacity, repeated requests under the static schedule, crash during each teardown state, duplicate detector events, an action returning less than `reclaim_min`, an action missing `complete_by`, a full telemetry ring, unavailable checkpoint space, stalled DMA quiescence, threshold oscillation, reset during quarantine, an all-protected candidate set, and an owner that does not shed.
+· Accept: model checking proves the finite state machines, FPGA fault campaigns validate timing and reset behavior, and the replay harness reproduces each detector and action sequence from the closed R-16-028 event record.
+· Trace: CJ-VELUS, CJ-WCET
+
 **R-18-033** MUST: Two requirements never trade: the verified TCB, and capabilities as the sole authority. Everything else (ship date, core counts, radio bandwidth, acceleration) bends around them.
 · Accept: any proposed change is checked against these two first.
 · Trace: CJ-T, CJ-CERISE
@@ -5283,7 +5355,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1217 requirements. §19 is non-normative and yields none. Counts include the 295 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1234 requirements. §19 is non-normative and yields none. Counts include the 296 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5294,17 +5366,17 @@ All eighteen normative sections are extracted, at 1217 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **200** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **59** |
-| **§8 Authority Model** | **extracted** | **61** |
+| **§8 Authority Model** | **extracted** | **64** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
 | **§11 Updates** | **extracted** | **36** |
-| **§12 System Servers** | **extracted** | **107** |
+| **§12 System Servers** | **extracted** | **111** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
-| **§14 Userland** | **extracted** | **25** |
+| **§14 Userland** | **extracted** | **27** |
 | **§15 Hardware Platform** | **extracted** | **353** |
-| **§16 Reliability** | **extracted** | **29** |
-| **§17 Residual Risks** | **extracted** | **111** |
-| **§18 Realization** | **extracted** | **48** |
+| **§16 Reliability** | **extracted** | **35** |
+| **§17 Residual Risks** | **extracted** | **112** |
+| **§18 Realization** | **extracted** | **49** |
 
 §19 is non-normative and yields no requirements.
 
