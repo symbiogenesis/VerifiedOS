@@ -1,116 +1,233 @@
-# Implementation Checklist
+# Implementation Checklist and Estimates
 
-> Execution tracker for [implementation-plan.md](implementation-plan.md).
-> Non-normative twice over: the plan stays the authority on *what and why*, and this file records only *what is done, in flight, and next*, with the evidence for every checked box written beside it.
-> Tasks here are split and reprioritized as implementation teaches, that is this file's job; a split never changes a milestone's meaning, and any finding that would belongs in the plan or the register, not here.
-> Later milestones are deliberately coarse, one box per deliverable; each is split into tasks like M0's on entry, not before, so the decomposition reflects what bring-up has actually taught by the time it is needed.
-> Milestones M0 to M7 are the software track and R1 to R3 the RTL track, meeting at M8 (plan §12).
+Execution tracker for [implementation-plan.md](implementation-plan.md). The plan defines scope and rationale; this file records status, evidence, dependencies, and estimates.
 
-## M0, Hardware reference
+## Conventions
 
-- [x] **M0.1, Pin the upstream start-froms.**
-  Done: `upstream/sail-riscv` pinned at `8f91355e` (the model's current home `riscv/sail-riscv`, formerly rems-project, 2026-08-14) and `upstream/sail-cheri-riscv` pinned at `bb07488d` (CTSRD-CHERI, 2025-07-10), both as git submodules; the checker's sweep excludes submodule paths, upstream prose answering to its own repository.
-  Finding, booked as M0.5: the CHERI model embeds its *own* `sail-riscv` submodule pinned to an older rems-project baseline, so the plan's join of the two models starts from two different bases to reconcile, not one tree to configure.
-- [x] **M0.2, Stand up the Sail toolchain.**
-  Done: the build environment is WSL (Ubuntu 24.04; the Windows host carries no OCaml toolchain): opam 2.1.5, switch `default` on the system OCaml 4.14.1, `opam install sail` landing Sail 0.20.2 with z3 4.8.12 beside it. 0.20.2 is exactly the floor the pinned model's `cmake/sail_required_version.txt` demands, the requirement tracking Sail's newest release, and it is the pinned compiler version the generated emulator's fidelity is claimed against, recorded here beside the M0.1 model pins.
-- [x] **M0.3, Baseline build, stock sail-riscv.**
-  Done: the pinned model built unmodified with the M0.2 toolchain into `sail_riscv_sim` (out-of-tree on the WSL filesystem, the submodule working tree untouched) and its bundled suite runs 664 of 664 green under `ctest`: the 2026-06-10 `sail-riscv-tests` ELFs across rv32 and rv64, the first-party tests, the SMT property checks discharged by z3, and the unit tests; this artifact is the baseline every curation diff is measured from. One environment finding, standing for every later regeneration of the model: Sail 0.20.2's C++ emission overflows the default 8MB OCaml stack on the full model, twice reproduced, and raising the limit (`ulimit -s 131072`) before the build is the fix, baked into the build script.
-- [x] **M0.4, Baseline build, stock sail-cheri-riscv.**
-  Done: `cheri_riscv_sim_RV64` built from `bb07488d` against the embedded `sail-riscv` at `b748a82` (a 0.5-era baseline, `0.5-211-gb748a823`, fetched from the pre-move `rems-project/sail-riscv`), and all 229 bundled rv64 `riscv-tests` ELFs pass under the repository's own protocol (the `run_tests.sh` C-emulator half: `-p`, 5s timeout, `SUCCESS` grep); the OCaml-emulator half was not exercised. CHERI-executing by construction, no CHERI test binaries being bundled upstream, the capability-level corpus being M0.12's deliverable. Two findings: Sail 0.20.2 compiles this model unmodified, so the one toolchain switch serves both baselines, the repository's CI having installed whatever sail opam then carried rather than pinning; and the Makefile builds in-tree, so the baseline was built from a copy on the WSL filesystem, the pinned submodule working tree untouched and the Windows checkout's CRLF normalized in the copy.
-- [x] **M0.5, Reconcile the two baselines.**
-  Done, both halves settled. The join's base is the current `sail-riscv` at `8f91355e`, and the CHERI model contributes the capability layer as a transplant rather than a base: the trees are too far apart for a patch-level rebase (the 0.5-era flat file list became the extensions tree with a project file, a JSON config system, and the C++ backend), so the join is semantic, the capability files carried into the new structure. The grounds: the profile's adopted surface exists only on the current base (ratified RVV for the V-class, `Zicond`, `Zicboz`, `Zabha`, the `Zvk*` vector-crypto rows; AIA, first listed here too, turns out to exist on *neither* base, the current tree carrying only a TODO comment for it, so it is fresh surface either way and moves to M0.6g without touching the decision), and the plan's own start-from note, `Zabha` "already present in sail-riscv", is true of `8f91355e` and false of the 2022 embedded base, so curation stays the subtractive act plan §1 designs rather than a backporting program; the M0.10 golden emulator, the M0.12 trace schema, and the prover generation ride the current base's toolchain; and the transplant is smaller than the raw CHERI diff because the profile deletes the invasive share outright (no MMU so `cheri_pte`/`cheri_ptw` never port, no hybrid mode, no `DDC`, no S-mode bank), leaving the capability algebra, the merged register file, the machine-mode trap plumbing, the load/store checks, and tag memory. The capability lineage rides R-15-007's own text: the format is a re-parameterization of `sail-cheri-riscv` with R-17-048a retiring the RVY re-pin, so the CTSRD model is the base, and a standard-lineage Sail model would import the named divergences the register refuses (SDP, CT-field sealing, `YBLD`, the Custom-3 opcode relocation, `misa.Y`). The M0.4 composite stands as the running capability-semantics oracle the transplant is differentially checked against.
-- [ ] **M0.6, Curate to the frozen profile.**
-  Make the joined model agree with [isa-profile.md](isa-profile.md): base and ABI mode, adopted extensions in, excluded extensions out, CHERI feature set, CSR bank. Overwhelmingly subtractive (plan §1); split on entry into the tasks below, the row groups being the profile's own sections, ordered subtractive-first so every diff lands on a green build and the M0.5 transplant lands on an already-narrowed base. One entry finding shapes the split: the current base's JSON config system expresses a large share of the §2/§6 rows as per-extension `supported` booleans (plus `physaddr_bits`, PMP entry count, S/U toggles, misaligned-trap behavior, read-only `misa`), but a config-disabled extension is dead Sail surface still in the build, and curation's point is surface that never has to be modeled again, so configuration is the *measurement pass* that produces the source-deletion worklist, not the curation itself.
-  - [x] **M0.6a, Stand up the curated tree.**
-    Done: `model/` vendored verbatim from the pinned `sail-riscv` at `8f91355e` via git blobs (LF bytes, `-text` in `.gitattributes`, staged blobs hash-identical to upstream's, spot-checked; the first extraction came out CRLF because `git archive` honors `autocrlf=true`, so the vendor was redone with conversion off); the checker's markdown sweep excludes `model/` on the submodule rationale; `tools/build-model.sh` builds out-of-tree on WSL with the `ulimit -s 131072` fix baked in. Exit met: build green and the bundled suite 664 of 664 under ctest, exact parity with the M0.3 baseline, so every curation diff is now a tracked commit against a green tree.
-  - [x] **M0.6b, Configuration-level curation, the measurement pass.**
-    Done: `model/config/verifiedos.json` validates against the built sim's schema and expresses every row the config system carries: xlen 64, `physaddr_bits` 36, PMP count 0, S and U off, the `Zc*` family off, `Zaamo`+`Zabha` on with `A`/`Zalrsc`/`Zacas`/`Zawrs` off, the §2 adopted rows on, the §6 config-expressible exclusions off, V at the C-class VLEN=256 (per-class parameterization stays M0.8), misaligned accesses trapping, `writable_misa` false, counters read-only zero, ids zero, direct-only `mtvec`. Under it the sim runs the adopted families' physical-variant tests at 132 of 134, and both failures are the profile refusing what it excludes: `rv64ui-p-ma_data` expects misaligned accesses to complete where R-15-084 traps them, and `clmulr` is the one `Zbc` instruction outside the adopted `Zbkb`/`Zbkc`. Excluded surface refuses as it should: compressed, LR/SC, `Zfh`, and every `-v-` virtual-memory variant with S off. The recorded residue, c's and d's worklist: scalar F and D stay on, the config validator requiring them under any float-capable V level, so the vector-FP-without-scalar-FP fork (R-15-040) is source-level work; a config-disabled extension is dead Sail surface still in the build, which is c's whole point; and `mie`/`mip` field narrowing, unallocated-CSR trap totality, `vstart` deletion, and the AIA pending array have no config lever at all.
-  - [ ] **M0.6c, Source-level subtraction, §6 exclusions and §1 base rows.**
-    Delete the excluded Sail surface outright: extension directories out of the project file with their decode clauses and config hooks, the S/U privilege machinery, translation (`satp`, `Sv*`, the PTW), PMP, the counter bank, the `vstart` term in every vector definition. Build and profile-subset tests green at every step. Split on the entry reconnaissance into batches by entanglement, the mechanics per deletion being six touches: the module block out of `riscv.sail_project`, the extension directory, the enum/name/`hartSupports` triple out of `core/extensions.sail` plus its `currentlyEnabled_measure` and devicetree-list rows, the `config.json.in` key, the cmake test-list rows, and a whole-tree sweep for `config extensions.<Name>` readers outside the extension's own directory. The sixth touch is c1's correction to the entry reconnaissance, which counted five: a stray config read is invisible to the typechecker and surfaces only when the generated schema collides with the config file, a full C++ emission downstream, so it is swept for before the cut rather than discovered after it. `tools/check-model.sh` is c1's other instrument, `sail --just-check` over the project file, which finds every source-level dangling reference in about thirty seconds against the full build's fifteen minutes; the build stays the exit criterion.
-    - [x] **c1, the leaf batch.**
-      Done: the modules nothing else requires are gone, 3079 lines out against 77 in over 50 files: `H`, `Svinval`, `Sstc`, `Zawrs`, `Zicfiss`, `Zibi`, `Zifencei`, `Zihintntl`, `Zihintpause`, `Ssqosid`, `Sscofpmf` with `Zihpm`, `Zalrsc`, `Zkn`/`Zks`/`Zkr` (keeping `K_core`, `Zbkb`, `Zbkx`, and the `Zbc` files that carry `Zbkc`), `Zvksed`/`Zvksh` with their SM3 and SM4 helpers out of the kept `zvk_utils.sail`, `Zvabd`, the whole `mops` section, and `rmem` with the `RMEM` project variable, the `jalr_rmem` fork, and the dormant cmake lem/marshal targets that passed the variable. The entropy hook went with `Zkr`, `get_16_random_bits` and its emulator PRNG. The measured state: build green, 352 of 352 under ctest, and the profile configuration validates against the freshly generated schema with the required-key set and the config-key set now exactly equal, in both `verifiedos.json` and the generated maximal config. Under the profile the sim runs 173 of 199 rv64 physical-variant tests, every one of the 26 failures being the profile refusing what it excludes: the c1 cuts themselves (`lrsc`, `fence_i`, `ziccid`), the standing M0.6b pair (`ma_data` under R-15-084, `clmulr` as the one `Zbc` instruction outside the adopted rows), and surface later batches take (`zicntr` and `instret_overflow`, `pmpaddr`, the `rv64si` set, `napot`, `rvc`, `zfh`).
-      Three findings. Two dependents the batch list did not name fell out of it and were taken: `Za64rs`/`Za128rs`, reservation-set-size declarations with no reservations left to size, and `Ziccrse`, whose `currentlyEnabled` clause lived inside `zalrsc_insts.sail` and whose config read hid in the PMA-check struct of `postlude/validate_config.sail`, the instance that produced the sixth touch. Third and largest, the `-v-` test-list half is not separable from `Zifencei`: the riscv-tests virtual-memory environment executes `FENCE.I` in its page-fault handler, so all 303 remaining `-v-` binaries trap into an unhandled illegal instruction whatever they were written to test. That half was booked for the c3 cut; `FENCE.I`'s absence brings it forward to here, and c3 inherits a smaller test-list task than the split predicted. The reservation *plumbing* is deliberately not in this batch and is booked for c3: `sys/sys_reservation.sail`'s four externs, the `res` parameter threaded through the memory subsystem, and the `platform.reservation` config block are required by more than the two modules c1 deletes, and unpicking them is memory-subsystem work that lands where c3 already opens `sys`. One artifact is knowingly left stale, the vendored tree's own `.github` CI, which names deleted modules in a `SAIL_MODULES` list; it answers to upstream and this repository does not run it.
-    - [ ] **c2, the entangled batch**: extensions with hooks in core plumbing: `C` (`Ext_Zca` in `postlude/fetch.sail`, `fetch_rvfi.sail`, `step.sail`, plus `zcf`/`zcd` files inside `FD`), `Zicbom`/`Zicbop` (types required by `core`, `pmp`, `sys`), `pointer_masking` (`PM_types` in `core`, `PM_utils` in `sys`), `Stateen` (required by `sys` and `FD_core`), `CFI`/`Zicfilp` (`Zicfilp_regs` in `sys` and `I_insts`), `Smcntrpmf` (required by `sys`), `Zicntr` (its consumer `Smcntrpmf` goes with it).
-    - [ ] **c3, the privilege and translation batch**: S/U modes and their CSR bank, trap delegation, `satp` and the `Sv*` walkers, PMP, the `-v-` test-list half; the largest cut and the one that touches `sys` throughout.
-    - [ ] **c4, the vector-fork batch**: the `vstart` term out of every vector definition (R-15-039a) and the V-requires-scalar-FP validator coupling (R-15-040), the two Sail-modeled forks configuration could not express.
-  - [ ] **M0.6d, CSR bank to the closed table, §5.**
-    Present rows narrowed as specified (`mie`/`mip` to the machine-timer bits, ids hardwired zero, `misa` read-only), absent rows deleted by name, an unallocated CSR address trapping as an unallocated encoding does (R-15-014).
-  - [ ] **M0.6e, The CHERI transplant, §4 adopted rows from `bb07488d`.**
-    Carry the capability layer into the curated tree as its own extensions-tree entry: capability type and CHERI Concentrate functions, the merged register file, tag memory, PCC and the sentry types with `cjalr`, the `MTCC`/`MEPCC`/`MTDC` trap plumbing, the load/store checks, ISAv9 cause codes into `mcause`/`mtval`; differentially checked against the M0.4 composite, the running capability-semantics oracle M0.5 names.
-  - [ ] **M0.6f, Re-parameterize the format to 64+1 and take the §4 exclusions.**
-    Field widths per §4.1 (address 36, otype 4, permissions 5, exponent 5, mantissas 8 and 6, tag outside), the permission field a total decode over 32 enumerated codepoints, all-zeroes decoding to untagged NULL; no `DDC`, no hybrid mode, no SDP bits, no reconstruction ops (`CBuildCap` family), no `CRAM`/`CRRL`/`CSetBoundsExact`, no `CTestSubset`, no `CClearTags`, no colour field. The representation-correctness obligation (R-15-007a) is booked for the proof track, not discharged here.
-  - [ ] **M0.6g, Profile rows with no upstream form.**
-    The §4 adopted rows needing fresh Sail (`cmovz`/`cmovn`, `cloadtags`, the revocation load filter and its sidecar bitmap), §3's unconditionally admitted scalar customs (`fence.t` as specified surface, the capability indexed load/store, `cclear`), and the AIA machine-level pending array at its §2 scope, a memory-mapped device beside the CLINT rather than CSR machinery, which exists on neither upstream base (the entry finding under M0.5). The measurement-conditioned rows (`bfext`/`bfins`, the multi-save, the `csetbounds` immediate, the realized dictionary) stay at their declining provisional values per profile §11 and are not modeled here.
-- [ ] **M0.7, Ztso and static-only prediction as model properties** (plan §1); the store-buffer deletion stays the open DSE question [architectural-alternatives.md](architectural-alternatives.md) books, not closed here.
-- [ ] **M0.8, Parameterize by core class.**
-  V-class RVV (VLEN=4096), the M-class fork-and-frozen matrix extension, and the FEC and optional Keccak units as capability-checked, core-issued operations; C-class scalar first per the staging rule (plan §10), split per class on entry.
-- [ ] **M0.9, Timing annotations as a documented layer**, checked by measurement in bring-up (plan §1).
-- [ ] **M0.10, Generate and freeze the golden emulator.**
-  The curated single-core RV64IMV+CHERI emulator, ISA tests green: the executable ISA reference everything downstream runs against.
-- [ ] **M0.11, Profile-freeze measurement contract** (plan §0): corpus manifest, generated-source inputs, composition recipe, admitted region classes, per-choice acceptance thresholds, emitter-provenance schema, and the one report format.
-- [ ] **M0.12, Differential corpus and commit-trace schema.**
-  Version the shared test corpus and the capability-widened RVFI-style commit-trace schema every later executor emits (plan §10).
+* Checked items include concise completion evidence.
+* Open-item estimates are attended agent-session hours and are re-priced when split. Percentages are rounded shares of the 776.9 h grand total.
+* `Parallel` means the item can proceed in a separate worktree and build directory.
+* Later milestones remain deliverable-level until entry.
+* The software track is M0–M7, the RTL track is R1–R3, and both meet at M8.
 
-## M1, Toolchain spine
+## Current summary
 
-- [ ] **M1.1, Locate and pin the SECOMP2CHERI artifact** (the CompCert-through-CHERI backend the prerequisite re-homes, plan §0); its availability and state are unverified, so the first subtask is obtaining it and recording what it actually carries.
-- [ ] **M1.2, Re-home the backend to the §15 purecap profile**, functional and differential-tested against the M0 emulator; the correctness proof stays deferred hardening.
-- [ ] **M1.3, Baseline target support and the bound-directed lowering rule** in the same deliverable (R-18-014a, R-18-014c), the rule running against the emulator-measured table until the WCET pass lands.
-- [ ] **M1.4, Frozen-dialect assembler, linker, and image composer**: LLVM MC and `lld` re-homed to the profile, reproducible composition (plan §0).
-- [ ] **M1.5, Host-side CertiCoq → Wasm oracle** running a trivial Gallina program on a stock engine.
-- [ ] **M1.6, GC-free on-device lowering routes stood up**: the CompCert-C path, and the MetaCoq → Rust arena path onto the Rust → CHERI compiler.
-- [ ] **M1.7, Purecap hello-world from Gallina boots on the M0 emulator**, the milestone's exit test.
-- [ ] **M1.8, Profile-freeze instrument built and wired** (plan §0): the analyzer under `tools/`, the backend's operand-class and region-class sidecars, and the ordered report against the generated corpus.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, and the initial check/emit/FAST tooling.
+* Current serial path: c2 → c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
+* Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M1.1, M1.5, M2.1, and M4.1.
+* Total estimate: 776.9 h midpoint, approximately 435–1,105 h.
+* Progress by estimate: 5.9 of 776.9 h complete (0.8%); 771.0 h remaining (99.2%).
+* M8 estimate after planned optimizations: approximately 620–655 h total, with a 340–380 h critical chain.
 
-## M2, Fast emulator (gates on M0, parallel to M1)
+## M0 — Hardware reference
 
-- [ ] **M2.1, Fork CHERI-QEMU and narrow `cheri-compressed-cap`** to the frozen 64+1-bit fields.
-- [ ] **M2.2, Frozen decode surface and machine type**: custom instructions in, excluded extensions out, MMU path deleted, one bespoke machine modeling exactly the harness device list, no virtio, no PCI.
-- [ ] **M2.3, VLEN=4096 RVV datapath and matrix/FEC units** with per-element capability checks.
-- [ ] **M2.4, Corpus lockstep green against the M0 emulator**, and M1's purecap hello-world boots: the exit test, after which this fork is the daily driver.
+### Baselines
 
-## M3, Boot chain
+* [x] **M0.1 — Pin upstream models** — 0.4 h actual — 0.1%
+  * `sail-riscv` pinned at `8f91355e`; `sail-cheri-riscv` pinned at `bb07488d`.
+  * Finding: the CHERI tree embeds older `sail-riscv` commit `b748a82`; reconciliation therefore requires a semantic transplant, not configuration of one shared base.
 
-- [ ] **M3.1, RoT Sail core and peripherals** (scalar RV64+CHERI profile, OTP, TRNG-as-PRNG, counters, watchdog, plan §2).
-- [ ] **M3.2, RoT firmware in Gallina**: measured boot, seal/unseal, attestation quote, anti-rollback.
-- [ ] **M3.3, M-mode firmware in Gallina** (plan §3): initial capability distribution and boot handoff, written fresh against the OpenSBI checklist.
-- [ ] **M3.4, Crypto module in Gallina** (plan §4): hash, AEAD, ML-KEM, ML-DSA, DRBG, known-answer tests green via Wasm.
-- [ ] **M3.5, Both emulators reach the Machine-mode kernel** through the measured-boot chain.
+* [x] **M0.2 — Stand up the Sail toolchain** — 0.5 h actual — 0.1%
+  * WSL Ubuntu 24.04, opam 2.1.5, OCaml 4.14.1, Sail 0.20.2, and z3 4.8.12.
+  * Sail 0.20.2 is the required and fidelity-pinned compiler version.
 
-## M4, Kernel
+* [x] **M0.3 — Build stock `sail-riscv` baseline** — 0.6 h actual — 0.1%
+  * `sail_riscv_sim` built out of tree; 664/664 tests pass.
+  * Build scripts raise the OCaml stack limit with `ulimit -s 131072`.
 
-- [ ] **M4.1, Take or drop the revocation-sweep-quanta call** before authoring begins (plan §5, the [inspirations.md](inspirations.md) proposal against R-08-007's incremental form).
-- [ ] **M4.2, Translate the seL4 executable spec's surviving object types to Gallina via `hs-to-coq`**, revocation authored fresh against the CHERI epoch/grant-table/load-filter model.
-- [ ] **M4.3, Exercise host-side via Wasm**: capability lifecycle, IPC round-trips, slot-overrun faults.
-- [ ] **M4.4, C bring-up from CHERI-seL4/Microkit through CHERI-CompCert**, one instance per emulated core, strictly disjoint state.
+* [x] **M0.4 — Build stock `sail-cheri-riscv` baseline** — 0.5 h actual — 0.1%
+  * `cheri_riscv_sim_RV64` built against embedded commit `b748a82`; 229/229 bundled RV64 tests pass under the repository’s C-emulator protocol.
+  * This build remains the capability-semantics oracle; no upstream CHERI test corpus is bundled.
 
-## M5, Storage and objects
+* [x] **M0.5 — Reconcile the baselines** — 0.2 h actual — 0.0%
+  * Use current `sail-riscv` as the base and transplant the CTSRD capability layer.
+  * Rationale: the current base contains required modern extensions and tooling, while excluded CHERI features substantially reduce the transplant surface.
+  * AIA exists on neither base and is fresh work under M0.6g.
 
-- [ ] **M5.1, L0 journal and L1 CoW B-tree index in Gallina** (plan §7).
-- [ ] **M5.2, L2 semantics and L3 confidentiality composed**, exercised host-side against an in-memory disk.
-- [ ] **M5.3, System-integrity instance on-emulator against the modeled block device**, then the user-data instance on the same codebase.
-- [ ] **M5.4, Object store and update transactor** (plan §6): content addressing, read-verify, A/B commit, anti-rollback floor.
+### M0.6 — Curate the frozen profile
 
-## M6, Userland spine
+* [x] **M0.6a — Stand up the curated tree** — 0.5 h actual — 0.1%
+  * Vendored `model/` byte-identically from `8f91355e` with LF normalization fixed.
+  * `tools/build-model.sh` builds out of tree with the larger OCaml stack.
+  * Exit evidence: build green; 664/664 tests pass.
 
-- [ ] **M6.1, Init supervision tree in Lustre via Vélus**, with the Gallina reference model as Wasm oracle (plan §8).
-- [ ] **M6.2, Admission checkers refined to CompCert-C** (plan §9): the CIC kernel against MetaCoq, the CHERI-TAL type-checker against its metatheorem, derivations thin until the proofs exist.
-- [ ] **M6.3, Package composer and contained object router** exercising the plan's M6 surface.
+* [x] **M0.6b — Measure configuration-level curation** — 0.4 h actual — 0.1%
+  * `model/config/verifiedos.json` captures all profile rows supported by the config schema.
+  * Profile run: 132/134 adopted-family physical tests pass; both failures are expected profile refusals.
+  * Source-level residue: scalar F/D coupling, CSR narrowing and trap totality, `vstart`, and AIA.
+  * Decision: configuration identifies the deletion worklist but does not substitute for source removal.
 
-## M7, Full system, emulated
+* [ ] **M0.6c — Remove excluded source surface**
+  * For every removed extension, update the project file, extension directory, extension registry, config schema, test lists, and stray config readers.
+  * Require `tools/check-model.sh`, full build, schema validation, and profile-subset tests after each batch.
 
-- [ ] **M7.1, The composed stack boots in the §9 order on the fast emulator**, the plan's intermediate goal, with the Sail emulator re-running the boot in CI.
-- [ ] **M7.2, Allocation-churn measurement** over the composed roster, booked here by the plan.
+  * [x] **c1 — Leaf extensions** — 1.9 h actual — 0.2%
+    * Removed unentangled excluded modules, obsolete reservation-size declarations, entropy hooks, dormant targets, and the virtual-memory test half made unusable by removing `FENCE.I`.
+    * Net change: 3,079 lines removed and 77 added across 50 files.
+    * Exit evidence: build green; 352/352 tests pass; generated and profile config keys match exactly.
+    * Expected profile refusals: 26 of 199 physical-variant tests.
+    * Reservation plumbing remains for c3.
 
-## R-track, RTL (parallel from the M0 freeze)
+  * [ ] **c2 — Entangled extensions** — 3 h, range 2–4 — 0.4%
+    * Remove `C`, `Zicbom`, `Zicbop`, pointer masking, `Stateen`, CFI/`Zicfilp`, `Smcntrpmf`, and `Zicntr`, including their core and system hooks.
 
-- [ ] **R1, Scalar RTL curation**: CVA6-CHERI re-parameterized to the 64+1-bit dialect per profile and absence contract, plus RoT core, tag-carrying interconnect, boot ROM, UART, block device; absence-contract evidence recorded at first elaboration.
-- [ ] **R2, Corpus green in co-simulation** under Verilator with the commit-trace diff, `rvfi` the hook, and the riscv-formal-style BMC smoke (R-15-094).
-- [ ] **R3, Image boot in co-simulation**; the RTL artifact of record versioned and published.
+  * [ ] **c3 — Privilege and translation batch** — 6 h, range 4–8 — 0.8%
+    * Remove S/U modes, delegation, `satp`, `Sv*` walkers, PMP, reservation plumbing, counters, and remaining virtual-memory tests.
 
-## M8 to M10, and after
+* [ ] **M0.6d — Close the CSR bank** — 3 h, range 2–4 — 0.4%
+  * Narrow `mie`/`mip`, hardwire IDs to zero, make `misa` read-only, delete absent CSRs, and trap on unallocated CSR addresses.
+  * Implement in the same source pass as c3 where practical, but retain separate completion and estimate tracking.
 
-- [ ] **M8, the MVP gate**: M7 and R3 together.
-- [ ] **M9, FPGA scalar, purecap**: the R3 artifact synthesized and booting the golden-model images, differentially tested against M7.
-- [ ] **M10, CHERI V/M/FEC datapath** extended to capability checks across all classes.
-- [ ] **Post-M10 opening obligations, stated before the hardening program runs**: the RTL ⊑ Sail fallback position for the hedge deletions (R-17-037, R-17-039); the R-17-058d reduction-theorem verification plan beside the masking obligations; and the R-15-053a bring-up characterization rehearsed on FPGA, executed at first silicon.
+  * [ ] **c4 — Vector fork** — 3 h, range 2–4 — 0.4% — Parallel with c2
+    * Remove `vstart` from vector definitions and decouple vector FP from scalar F/D validation.
+
+* [ ] **M0.6e — Transplant CHERI capability semantics** — 18 h, range 12–24 — 2.3%
+  * Port capability types and compression, merged registers, tag memory, PCC/sentries, machine trap capabilities, load/store checks, and ISAv9 trap causes.
+  * Differentially compare RVFI-style traces with the M0.4 oracle.
+  * Parallel staging now: map old flat files into the extension tree and stand up the differential harness; land after c3.
+
+* [ ] **M0.6f — Re-parameterize to 64+1 bits** — 12 h, range 8–16 — 1.5%
+  * Implement the §4.1 field widths and total 32-codepoint permission decode; all-zeroes must decode to untagged NULL.
+  * Remove hybrid mode, DDC, SDP, reconstruction operations, exact-bounds operations, subset tests, tag clearing, and colour fields.
+  * Representation correctness remains a proof-track obligation.
+
+* [ ] **M0.6g — Add profile rows absent upstream** — 15 h, range 10–20 — 1.9%
+  * Add `cmovz`/`cmovn`, `cloadtags`, revocation filtering and bitmap, `fence.t`, capability indexed load/store, `cclear`, and the machine-level AIA pending array.
+  * Do not model measurement-conditioned provisional rows yet.
+
+### Remaining M0 deliverables
+
+* [ ] **M0.7 — Model Ztso and static-only prediction** — 3 h, range 2–4 — 0.4% — Parallel
+* [ ] **M0.8 — Parameterize by core class** — 28 h, range 20–36 — 3.6%
+  * Freeze C-class first; defer roughly 26 h of V/M/FEC work until needed before M2.3.
+* [ ] **M0.9 — Add documented timing annotations** — 4.5 h, range 3–6 — 0.6% — Parallel
+* [ ] **M0.10 — Generate and freeze the C-class golden emulator** — 2 h, range 1–3 — 0.3%
+  * Exit: curated single-core emulator with ISA tests green.
+* [ ] **M0.11 — Define the profile-freeze measurement contract** — 6 h, range 4–8 — 0.8% — Parallel
+  * Include corpus manifest, generation inputs, composition recipe, admitted regions, thresholds, emitter provenance, and report format.
+* [ ] **M0.12 — Version the differential corpus and capability trace schema** — 4.5 h, range 3–6 — 0.6% — Parallel draft
+  * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
+
+**M0 subtotal:** 113 h — 15%; approximately 5 h complete.
+
+## M1 — Toolchain spine
+
+* [ ] **M1.1 — Locate and pin SECOMP2CHERI** — 2 h, range 1–3 — 0.3% — Parallel now
+  * Record availability, provenance, condition, and carried features.
+* [ ] **M1.2 — Re-home the backend to the purecap profile** — 37.5 h, range 25–50 — 4.8%
+  * Functional and differential testing required; add 20–40 h if the artifact is unusable.
+* [ ] **M1.3 — Add baseline target support and bound-directed lowering** — 12 h, range 8–16 — 1.5%
+* [ ] **M1.4 — Re-home LLVM MC/`lld` and compose static images** — 22.5 h, range 15–30 — 2.9%
+  * Exclude general dynamic linking.
+* [ ] **M1.5 — Run the CertiCoq-to-Wasm oracle** — 3.5 h, range 2–5 — 0.5% — Parallel
+* [ ] **M1.6 — Stand up GC-free lowering routes** — 18.5 h, range 12–25 — 2.4% — Parallel with M1.4
+* [ ] **M1.7 — Boot purecap Gallina hello-world on the M0 emulator** — 9 h, range 6–12 — 1.2%
+* [ ] **M1.8 — Build and wire the profile-freeze analyzer** — 11.5 h, range 8–15 — 1.5% — Parallel
+
+**M1 subtotal:** 116.5 h — 15%.
+
+## M2 — Fast emulator
+
+Gate M2.2–M2.3 on measured Sail-emulator performance. If Sail is sufficient through M6, defer approximately 35 h beyond M8.
+
+* [ ] **M2.1 — Fork CHERI-QEMU and narrow compressed capabilities** — 7.5 h, range 5–10 — 1.0% — Parallel
+* [ ] **M2.2 — Implement the frozen decode surface and bespoke machine** — 12 h, range 8–16 — 1.5%
+* [ ] **M2.3 — Add VLEN=4096 RVV, matrix, and FEC datapaths** — 30 h, range 20–40 — 3.9%
+* [ ] **M2.4 — Reach corpus lockstep with M0 and boot M1 hello-world** — 9 h, range 6–12 — 1.2%
+
+**M2 subtotal:** 58.5 h — 8%.
+
+## M3 — Boot chain
+
+* [ ] **M3.1 — Add RoT configuration and peripherals to the curated Sail tree** — 18 h, range 12–24 — 2.3%
+  * Reuse the same model tree with a scalar `verifiedos-rot.json`; do not fork another model.
+* [ ] **M3.2 — Implement RoT firmware in Gallina** — 22.5 h, range 15–30 — 2.9%
+* [ ] **M3.3 — Implement M-mode firmware in Gallina** — 18 h, range 12–24 — 2.3%
+* [ ] **M3.4 — Integrate verified cryptographic artifacts** — 26.5 h, range 18–35 — 3.4%
+  * Prefer pinned upstream verified implementations over fresh authoring.
+* [ ] **M3.5 — Reach the machine-mode kernel through measured boot on both emulators** — 11.5 h, range 8–15 — 1.5%
+
+**M3 subtotal:** 96.5 h — 12%.
+
+## M4 — Kernel
+
+* [ ] **M4.1 — Decide revocation sweep quanta** — 1.5 h, range 1–2 — 0.2% — Parallel
+* [ ] **M4.2 — Translate surviving seL4 executable-spec objects to Gallina** — 22.5 h, range 15–30 — 2.9%
+  * Time-box `hs-to-coq` recovery to eight hours, then hand-translate if necessary.
+* [ ] **M4.3 — Exercise capability lifecycle, IPC, and slot faults through Wasm** — 9 h, range 6–12 — 1.2%
+* [ ] **M4.4 — Bring up one isolated C instance per emulated core** — 26.5 h, range 18–35 — 3.4%
+
+**M4 subtotal:** 59.5 h — 8%.
+
+## M5 — Storage and objects
+
+* [ ] **M5.1 — Implement the L0 journal and L1 CoW B-tree in Gallina** — 21.5 h, range 15–28 — 2.8%
+* [ ] **M5.2 — Compose L2 semantics and L3 confidentiality host-side** — 14 h, range 10–18 — 1.8%
+* [ ] **M5.3 — Run system-integrity and user-data instances on the emulator** — 12 h, range 8–16 — 1.5%
+* [ ] **M5.4 — Implement the object store and update transactor** — 18 h, range 12–24 — 2.3% — Parallel where possible
+
+**M5 subtotal:** 65.5 h — 8%.
+
+## M6 — Userland spine
+
+* [ ] **M6.1 — Build the init supervision tree in Lustre via Vélus** — 15 h, range 10–20 — 1.9%
+* [ ] **M6.2 — Refine admission checkers to CompCert-C** — 26.5 h, range 18–35 — 3.4%
+* [ ] **M6.3 — Build the package composer and contained object router** — 15 h, range 10–20 — 1.9%
+
+**M6 subtotal:** 56.5 h — 7%.
+
+## M7 — Full emulated system
+
+* [ ] **M7.1 — Boot the composed stack on the fast emulator and rerun it under Sail in CI** — 22.5 h, range 15–30 — 2.9%
+* [ ] **M7.2 — Measure allocation churn across the composed roster** — 4.5 h, range 3–6 — 0.6%
+
+**M7 subtotal:** 27 h — 3%.
+
+## RTL track
+
+* [ ] **R1 — Curate scalar CVA6-CHERI RTL and required platform devices** — 45 h, range 30–60 — 5.8%
+  * Re-parameterize the dialect, enforce the absence contract, and include RoT, tag-carrying interconnect, ROM, UART, and block device.
+* [ ] **R2 — Reach corpus-green Verilator co-simulation with trace diff and BMC smoke** — 22.5 h, range 15–30 — 2.9%
+* [ ] **R3 — Boot the image in co-simulation and publish the versioned RTL artifact** — 15 h, range 10–20 — 1.9%
+
+**RTL subtotal:** 82.5 h — 11%.
+
+## M8–M10 and later
+
+* [ ] **M8 — MVP gate: M7 and R3 complete** — 3 h, range 2–4 — 0.4%
+* [ ] **M9 — Synthesize and boot scalar purecap on FPGA** — 30 h, range 20–40 — 3.9%
+* [ ] **M10 — Extend CHERI checks across V/M/FEC datapaths** — 45 h, range 30–60 — 5.8%
+* [ ] **Post-M10 — Publish opening hardening obligations** — 8 h, range 6–10 — 1.0%
+  * State the RTL-to-Sail fallback, reduction-theorem verification plan, masking obligations, and first-silicon characterization plan.
+
+**M8–M10 subtotal:** 86 h — 11%.
+
+## Build-loop instruments
+
+These items are outside milestone estimates except where explicitly included. Every change must be benchmarked before adoption; canonical `-O2` RelWithDebInfo remains the exit criterion.
+
+* [x] **Initial check/emit/FAST tooling** — 0.9 h actual — 0.1%
+* [ ] **I1 — Move sources to WSL ext4 and uncap local parallelism**
+  * Move the checkout to `~/src/VerifiedOS`, use Remote-WSL, set `ctest -j$(nproc)`, and avoid cache-hostile WSL memory reclamation.
+* [ ] **I2 — Use one shared content-keyed SMT memo cache**
+* [ ] **I3 — Benchmark a current z3 binary on a cold emission**
+* [ ] **I4 — Add shared ccache, then emit only when generated output changes**
+* [ ] **I5 — Benchmark generated-TU flags, clang versus gcc, and mold**
+* [ ] **I6 — Benchmark the same Sail 0.20.2 binary built with flambda**
+* [ ] **I7 — Run canonical builds in the background and standardize worktree lanes**
+* [ ] **I8 — Optionally move quick checks to push CI and canonical tests to nightly CI**
+
+**Instrument subtotal:** 15.4 h — 2%, including 0.9 h complete; open range 8–21 h.
+
+## Estimate and schedule basis
+
+* Completed estimates are actual elapsed session intervals with overlapping build waits apportioned approximately.
+* Open work classes:
+  * A — pinning, configuration, and mechanical curation
+  * B — semantic porting and tool re-homing with differential tests
+  * C — fresh systems authoring with functional tests
+  * D — RTL and FPGA work
+* Confidence ranges: M0.6 approximately ±50%; M1–M3 approximately 2×; later work approximately 2.5×.
+* Grand total: 776.9 h midpoint, approximately 435–1,105 h.
+* Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
+* At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.
