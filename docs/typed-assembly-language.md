@@ -1,88 +1,88 @@
 # The Typed Assembly Language
 
 > **What this is.**
-> The specification of the typed machine-code language, and the check over it, that [VerifiedOS](spec.md) admits binaries with.
-> It is factored out as a project in its own right because its dependency set is a machine semantics and a type theory and nothing else: no kernel, no storage stack, no authority model, and no hardware beyond the target's own instruction semantics.
+> This document specifies the typed machine-code language—and its admission check—that [VerifiedOS](spec.md) uses to admit binaries.
+> It is factored into a project of its own because it depends only on a machine semantics and a type theory. It does not depend on a kernel, storage stack, authority model, or hardware beyond the target's instruction semantics.
 >
 > **Normative for the language; not a derived view.**
 > The [frozen instruction-set profile](isa-profile.md), the [absence contract](absence-contract.md), the [crown-jewel inventory](crown-jewels.md), and the [coverage matrix](coverage-matrix.md) are derived views of [requirements-register.md](requirements-register.md) and state no obligation of their own.
-> This document is the opposite: it states the language's obligations, and VerifiedOS *depends* on one instantiation of it and pins a version.
-> Where the two disagree about what VerifiedOS requires, the register wins; where they disagree about what the language is, this document wins.
+> This document is different: it states the language's obligations. VerifiedOS depends on one instantiation and pins its version.
+> If this document and the register disagree about VerifiedOS requirements, the register governs. If they disagree about the language itself, this document governs.
 >
 > **The name is provisional and the instantiation keeps its own.**
 > *Typed Assembly Language* is descriptive rather than chosen.
-> The CHERI-RISC-V instantiation is *CHERI-TAL* throughout the VerifiedOS corpus and stays so: this factoring renames nothing.
+> The VerifiedOS corpus continues to call the CHERI-RISC-V instantiation *CHERI-TAL*; this factoring changes no name.
 >
 > **Nothing here is built.**
-> The type system, the checker, and the soundness proof are all unwritten, and factoring the specification out relocates that work rather than reducing it.
-> What it buys is a reviewable artifact whose correctness does not depend on any claim about an operating system, and a cost that more than one consumer could share.
+> The type system, checker, and soundness proof have not been written. Factoring out this specification relocates that work; it does not reduce it.
+> The benefit is a reviewable artifact whose correctness is independent of operating-system claims, together with an implementation cost that multiple consumers could share.
 
 ---
 
 ## 1. What the language is
 
-A **typed assembly language** in the Necula ⋈ Morrisett lineage: final machine code carrying a **typing derivation**, checked before the code is permitted to run.
+This is a **typed assembly language** in the Necula ⋈ Morrisett lineage: final machine code carries a **typing derivation**, which is checked before the code may run.
 
-Three commitments, not one, distinguish it from that lineage:
+Three additional commitments distinguish this language from that lineage:
 
 - **The check is certificate-directed dataflow validation, not proof checking.**
-  What the checker decides is a fixed set of attributes over an already-typed control-flow graph, evaluated in one syntax-directed pass whose abstract state at every join is *supplied by the derivation* rather than discovered, so the consumer runs no fixpoint and reduces no open term.
-  The exact precedent is **lightweight bytecode verification** (Rose, JAR 2003; Klein and Nipkow's verified account), where stack maps carry the abstract state at each merge and reduce the verifier from a dataflow solver to a checker of local transfer constraints (§9).
-  The producer may run whatever fixpoint analysis it likes to *compute* those annotations; the no-fixpoint claim is about certificate consumption alone (§7).
-  This is a *category* claim, and every other budget in this document is a consequence of it rather than a target set beside it.
+  The checker decides a fixed set of attributes over an already-typed control-flow graph. The derivation supplies the abstract state at every join, so certificate consumption requires neither fixpoint computation nor reduction of open terms.
+  The closest precedent is **lightweight bytecode verification** (Rose, JAR 2003; Klein and Nipkow's verified account). There, stack maps carry the abstract state at each merge, reducing verification from dataflow solving to checking local transfer constraints (§9).
+  A producer may use any fixpoint analysis it chooses to compute those annotations. The no-fixpoint claim applies only to certificate consumption (§7).
+  This is a claim about the kind of checker being specified. Every budget below follows from that classification; the budgets are not independent targets.
 - **The theory is frozen, and freezing it is the mechanism, not an austerity.**
-  A line budget over an unspecified theory constrains nothing, because what makes a checker large is what it must decide (§3).
+  A line budget does not constrain an unspecified theory: checker size is driven by what the checker must decide (§3).
 - **The target's own guarantees are a parameter, not an assumption.**
-  A hardware invariant the machine already enforces is *cited* rather than re-proved, and which invariants those are is exactly what a target profile declares (§2).
+  A target profile declares which machine-enforced invariants the derivation may *cite* instead of re-proving (§2).
 
 The check is per-install, decidable, syntactically terminating, and local.
-It is not a proof checker and cannot become one: obligations that do not fit descend to a consumer's own proof kernel as release-time proof terms (§4), which is the stratification's whole purpose.
+It is not—and may not become—a proof checker. Obligations that do not fit are discharged by the consumer's proof kernel as release-time proof terms (§4); that separation is the purpose of the stratification.
 
 ---
 
 ## 2. The parameter: the machine profile
 
-A target is described by a **machine profile** with two parts: the **machine semantics** the derivation is stated against, and the **cited invariant set**, the properties that semantics enforces at run time with no cooperation from the type system.
+A **machine profile** has two parts: the **machine semantics** againstwhich the derivation is stated, and the **cited invariant set** containing the properties those semantics enforce at run time without help from the type system.
 
 For every obligation in §4 a profile declares exactly one discharge route:
 
 | Route | Meaning | Cost |
 | --- | --- | --- |
-| **Cited** | The machine enforces it; the derivation records which invariant it relies on and the checker inspects that reliance. | None at check time; no additional *software* check at run time, the machine's own checks still executing. |
+| **Cited** | The machine enforces it. The derivation records the invariant on which it relies, and the checker validates that citation. | Citation validation at check time; no additional *software* run-time check. The machine's own checks still execute. |
 | **Attributed** | The type system decides it statically as a §5 attribute. | Check time only. |
 | **Inserted** | The producer emits an ordinary run-time check and the type system requires that check to dominate every access it guards. | Run time. |
 
-The routes are ordered by preference and the ordering is the design: a cited invariant costs no software, an attributed one is paid once at admission, and an inserted one is paid on every execution forever.
+The route order is intentional. A cited invariant adds no software enforcement; an attributed invariant is checked once at admission; an inserted invariant is checked on every execution.
 
-**Two profiles are specified, and they differ only in routing: every obligation `cheri-rv64` cites moves down the table under `bare-rv64`, and no other route changes.**
+**This document specifies two profiles. They differ only in routing: every obligation cited by `cheri-rv64` moves to a lower route under `bare-rv64`; all other routes remain unchanged.**
 
 - **`cheri-rv64`**, the profile VerifiedOS pins.
   Bounds, tags, monotone derivation, and sealed entry are architectural, so spatial memory safety, no-runtime-codegen, and the run-time half of control-flow integrity (which authority may be executed, and where an entry may land) are **cited**, and of that cluster the type system carries only the residual the hardware does not enforce: temporal safety, exclusive access, and typed control flow.
-  Control-flow integrity is the easiest of these to overstate, and the split is worth naming: the machine bounds executable authority and entry, while the legal target set of an indirect transfer and the signature of the code it reaches stay **attributed**, a type match being a policy no instruction set states.
+  Control-flow integrity requires particular care. The machine bounds executable authority and valid entry points; the legal target set of each indirect transfer and the signature of the target remain **attributed**, because an instruction set does not define that policy.
   This is the profile in which the language is small.
 - **`bare-rv64`**, the profile with no capability hardware.
-  Nothing is cited.
+  This profile cites no invariant.
   Spatial safety becomes **inserted** (bounds checks the type system locates and requires) or, at the producer's option, a fat-pointer ABI in which a bounds pair is an ordinary aggregate the type fixes the representation of.
   No-runtime-codegen and the run-time half of control-flow integrity become **attributed**: with every store and every indirect transfer typed, the classical TAL account (no writable authority over code, typed jumps) decides statically what the hardware no longer checks, and both halves of control flow then rest on one attribute.
-  Provenance survives as an **attributed** property, because the integer-to-pointer deletion (§5, move III) is already a type-system fact rather than a hardware one.
+  Provenance remains **attributed** because the integer-to-pointer deletion (§5, move III) is a type-system fact, not a hardware fact.
 
-**A citation is a theorem about the machine, and citing carelessly is the likeliest way for everything downstream of it to be wrong.**
-The capability literature is explicit about the qualifications, and a profile's declaration is defective if it does not carry them.
-Compressed capability encodings admit **inexact bounds**, so a cited spatial-safety invariant holds up to the representable-region rounding the encoding defines rather than to the byte the source intended.
+**A citation is a theorem about the machine. An unsound citation invalidates everything that depends on it.**
+The capability literature states important qualifications; a profile that omits them is defective.
+Compressed capability encodings permit **inexact bounds**. A cited spatial-safety invariant therefore holds for the rounded representable region defined by the encoding, not necessarily for the exact byte range intended by the source.
 Monotone derivation has **privileged and transition cases**, the instructions and states in which authority is installed rather than narrowed, and a citation must name them rather than quantify over the whole machine.
-Capability hardware does not by itself supply **temporal safety, exact callee sets, or ABI conformance**, and its immutable-code guarantee is conditional on an initial capability distribution from which no writable-and-executable authority is derivable, which is a property of the loader rather than of the instruction set.
+Capability hardware alone does not provide **temporal safety, exact callee sets, or ABI conformance**. Its immutable-code guarantee also depends on an initial capability distribution from which no writable-and-executable authority can be derived—a loader property, not an instruction-set property.
 `cheri-rv64` therefore declares, beside the four architectural facts above, the execution-mode, loader, privilege, and memory-permission assumptions under which they hold, and every one of those is a premise the profile's soundness instantiation (§6) discharges rather than assumes.
 
-**What a bare profile does not recover, and the specification says so rather than implying otherwise.**
-A cited invariant holds against *arbitrary co-resident code*, because the machine checks every access whoever issued it.
-An attributed or inserted one holds only while everything in the address space is well-typed.
+**What a bare profile does not recover.**
+A cited invariant holds against *arbitrary co-resident code* because the machine checks every access, regardless of who issued it.
+An attributed or inserted invariant holds only while all code in the address space is well-typed.
 The guarantee is therefore **open-world** under `cheri-rv64` and **closed-world** under `bare-rv64`, and no amount of type-system work closes that gap: it is the difference between a machine that checks and a machine that was persuaded.
 A consumer running unverified native code beside admitted code needs a cited profile or an isolation mechanism outside this language.
 
 **The route that is refused.**
 Spatial safety by **index refinement** (dependent or singleton types over lengths, the DTAL and Xanadu line) is not an admissible fourth route, because deciding it requires arithmetic constraint solving over open terms.
 That would violate §3's absence (2) directly, turn the checker from an attribute evaluator into a solver, and falsify the category claim §1 rests on.
-The refusal is made knowing the bounded form exists: Wasm-precheck (Geller, Frank, and Bowman, POPL 2024) keeps an indexed-type discipline inside a linear-pass validator with no SMT solver, and it is declined here anyway, because even a restricted constraint entailment is a decision over open terms, and the difference between the two checker kinds is categorical rather than a matter of solver size.
+This refusal is deliberate despite the existence of a bounded form. Wasm-precheck (Geller, Frank, and Bowman, POPL 2024) places an indexed-type discipline inside a linear-pass validator without an SMT solver. This language still declines that approach because even restricted constraint entailment decides propositions over open terms; the distinction is one of checker kind, not solver size.
 Refusing it is what keeps every profile's checker the same *kind* of artifact, differing in the size of its attribute set and never in what it must decide.
 
 **Profiles are frozen and versioned like the theory.**
@@ -92,7 +92,7 @@ A profile is admitted only on a shown demonstration that every obligation has a 
 
 ## 3. The frozen theory
 
-The type theory is fixed and closed by this document, and the four absences below are what make the check a dataflow validation rather than proof checking:
+This document fixes and closes the type theory. The following four absences make checking a dataflow validation rather than proof checking:
 
 1. **Predicative, rank-1 prenex polymorphism.**
    Type variables are quantified only at the outermost position of a code type and instantiated only at monotypes: the classical TALx86 use (polymorphism over callee-saved registers and stack tails) and no more.
@@ -101,18 +101,18 @@ The type theory is fixed and closed by this document, and the four absences belo
    Type equality is syntactic, α-equivalence over first-order terms, decided by structural comparison and not by conversion: no βδιζη-reduction, no normalizer, no evaluation of open terms, and therefore no strong-normalization premise inside the checker.
    This is the largest deletion and the one that makes termination syntactic rather than a metatheoretic side condition the trusted base (§6) would have to carry.
 3. **No universes and no universe polymorphism.**
-   One sort of types, no cumulativity, no universe-constraint graph and no acyclicity solver.
+   There is one sort of types, with no cumulativity, universe-constraint graph, or acyclicity solver.
 4. **No user-extensible inductive definitions.**
    The type constructors are a fixed, closed vocabulary: capability or pointer types with their bounds, permissions, grant binding (bare, or a handle to a grant slot), and initialization flag; code types as register-file preconditions carrying the callee set at indirect transfers; the aggregate and existential formers an ABI needs; the linear, affine, and relevance grades; the taint labels; and the cost annotations.
-   There is no positivity check, no guard condition, and no eliminator generation, and the vocabulary grows by amendment to this document, never at install time.
+   The checker performs no positivity check, guard check, or eliminator generation. The vocabulary may grow only by amendment to this document, never at install time.
 
-**What makes the four load-bearing is what they delete from a checker.**
+**Why the four absences are load-bearing.**
 A term checker for a full calculus of inductive constructions spends its tens of thousands of lines on four hard structures: universe constraints, conversion, positivity, and the guard condition.
 Absences (2), (3), and (4) delete exactly those four, and absence (1) removes the instantiation and inference problems higher-rank polymorphism would reintroduce, so what remains is not a small dependent-type checker but *not a dependent-type checker at all*, and the line budget (on the order of a thousand lines of shipped checker) is a consequence of that rather than a target an implementation is asked to hit.
 What the checker does instead is evaluate a fixed attribute set over the already-typed control-flow graph (the type under structural equality, the threaded linear context, the taint lattice, the cost semiring, the callee set), taking the abstract state at each join from the derivation rather than computing it, and confirm each *local* constraint: tens of lines of evaluator per attribute.
 
 **What the figure counts, so the budget is auditable rather than rhetorical.**
-It counts the attribute evaluator, the derivation reader, and the image scan, together, in the shipped source of the checker.
+The figure includes the shipped source for the attribute evaluator, derivation reader, and image scan.
 It excludes the frozen type-constructor vocabulary and the attribute tables (data fixed by this document, whose size is bounded by amendment rather than by implementation), a consumer's own proof kernel (a separate checker with its own budget), and the metatheory.
 A checker that met the figure by moving decisions into a generated table would fail the claim, the category fact being what the budget actually asserts.
 
@@ -126,7 +126,7 @@ The representation and provenance rules add no former and no grade at all: they 
 The three grade re-uses add nothing either: *use-once* is the linear grade the context-splitting side condition already runs, *must-erase* is its relevance polarity, and a *dimension* is a phantom parameter under absence (2)'s syntactic type equality, inhabited by no term and erased before code generation.
 
 **The amendment rule.**
-A proposed attribute is admitted only on a *shown* demonstration that it (1) has a finite semilattice or monoid domain decided with no open-term reduction and preserves syntactic type equality, (2) duplicates no existing grade or label axis, and (3) has a local, syntax-directed rule.
+A proposed attribute is admitted only after a demonstration that it (1) has a finite semilattice or monoid domain, is decided without open-term reduction, and preserves syntactic type equality; (2) duplicates no existing grade or label axis; and (3) has a local, syntax-directed rule.
 A feature that fails is not lost: it descends to the consumer's proof kernel as a release-time proof term, at the price of ceasing to be per-install checkable.
 
 **One computation is permitted and its boundary is stated.**
@@ -141,13 +141,23 @@ A certifying compiler may be written in, and reason with, whatever theory it lik
 
 ## 4. The obligations the language can carry
 
-The language offers a **menu**, and a consumer requires a subset of it.
+The language defines a **menu** of obligations; each consumer selects the subset it requires.
 This document says what is expressible and decidable; the consumer's own specification says what it demands, so the two cannot come to disagree about a list.
 The menu is the eleven obligations below; VerifiedOS requires all eleven, canonically enumerated at R-05-029 of its register, and its lower assurance tier scopes a stated subset of the same list rather than a list of its own.
 
-Memory safety (spatial and temporal), definite initialization, data-race freedom, control-flow integrity in both its run-time and callee-set-enumeration halves, no-runtime-codegen, type and ABI conformance, examined verdicts (relevance grading), absence of ambient mutable state, representation and provenance conformance, secret-taint constant-time, and worst-case execution cost.
+1. Memory safety, including spatial and temporal safety.
+2. Definite initialization.
+3. Data-race freedom.
+4. Control-flow integrity, including its run-time and callee-set-enumeration halves.
+5. No run-time code generation.
+6. Type and ABI conformance.
+7. Examined verdicts through relevance grading.
+8. Absence of ambient mutable state.
+9. Representation and provenance conformance.
+10. Secret-taint constant-time behavior.
+11. Worst-case execution cost.
 
-Two of these are boundary cases worth naming, because a reader who knows the literature will expect them to be proof obligations:
+Two obligations require explanation because the literature usually treats them as proof obligations:
 
 - **Constant-time** is a 2-safety hyperproperty, which a type system cannot state in general, but the CT-Wasm result makes it a **taint-typing** obligation for structured code: secret-labeled values the type system forbids from reaching a branch condition, a memory address, or a variable-latency operation.
   Only the genuinely unstructured residual descends to a relational proof.
@@ -155,8 +165,8 @@ Two of these are boundary cases worth naming, because a reader who knows the lit
 - **Worst-case cost** is a quantitative property, but for structured code it is a syntax-directed max-path sum over the already-typed control-flow graph (Shaw's timing schema), carried as a cost annotation rather than produced by a separate analyzer.
   The sum is sound only given supplied loop and recursion bounds, the path facts that exclude infeasible worst cases, and a machine cost model in which per-instruction costs actually compose: caches, pipelines, speculation, interrupts, and shared resources each falsify that composition, so a profile that neither deletes nor bounds them owes an inserted-route argument rather than an attributed one.
 
-What the language does **not** carry, at any profile, is the deep tier: functional refinement, whole-system non-interference, cryptographic reduction security, and linearizability or liveness.
-No decidable type system states these, and pretending otherwise is how a type system becomes a prover.
+No profile carries the deep tier: functional refinement, whole-system non-interference, cryptographic reduction security, linearizability, or liveness.
+These are outside the decidable type system and remain proof obligations.
 
 **The menu is not a routine consequence of having finite attribute domains, and the hard cases are known in advance.**
 Temporal safety over a real allocator, data-race freedom under a weak memory model, cost over a genuinely unstructured control-flow graph, and constant-time preserved down to native code are the four places where the soundness argument is hard, independently of how small the checker is.
@@ -166,7 +176,7 @@ A profile or an instantiation that presents any of them as a small case of §5's
 
 ## 5. The three moves
 
-The checker handles the whole menu with exactly three moves, and the profile of §2 decides which obligations reach which:
+The checker handles the menu using exactly three moves. The profile in §2 determines how obligations are routed to them:
 
 | Move | What the checker does | Why it stays small |
 | --- | --- | --- |
@@ -174,7 +184,7 @@ The checker handles the whole menu with exactly three moves, and the profile of 
 | **II. Evaluate an attribute** | Runs a local, syntax-directed attribute pass over the typed control-flow graph, taking the abstract state at each join from the derivation and confirming the linear contexts agree there. | Each attribute has a finite domain and a local rule, and the derivation supplies the joins a fixpoint would otherwise have to find. |
 | **III. Confirm a deletion** | Checks that constructs which would make the static account lie are absent. | These are one-pass inspections of absences: no integer-to-pointer construction, no type punning, no variadic arity, no unbounded recursive former, no implicit conversion. |
 
-Move I is empty in a profile that cites nothing, which is the precise sense in which a bare target is more expensive than a capability one: the same obligations survive, and they move down the §2 table.
+Move I is empty for a profile that cites no invariants. In that precise sense, a bare target is more expensive than a capability target: the obligations remain, but move to lower routes in the §2 table.
 
 The word *attribute* is Knuth's, and the analogy is deliberately partial: an attribute grammar decorates a tree, while a machine-code control-flow graph is cyclic, which is precisely why the derivation carries the abstract state at every merge and the checker validates rather than solves (§1).
 
@@ -182,11 +192,11 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 
 ## 6. Soundness
 
-The metatheorem is **well-typed implies safe**, stated over the machine semantics of a profile: a well-typed program's every execution satisfies the obligations its derivation claims, in the foundational-TAL, RustBelt, and WasmCert-Coq lineage.
+The metatheorem is **well-typed implies safe**, stated over a profile's machine semantics: every execution of a well-typed program satisfies the obligations claimed by its derivation. This follows the foundational-TAL, RustBelt, and WasmCert-Coq lineage.
 
 It is **parameterized over the profile and discharged per instantiation**.
 The core carries every proof obligation that does not mention the machine; a profile discharges the rest by supplying, for each cited invariant, a theorem of its own machine semantics, and for each inserted check, a domination argument.
-So a second profile does not re-open the whole proof, but neither is it free: it owes exactly the machine-dependent cases, and a profile that cites an invariant its semantics does not actually enforce produces a proof about a machine nobody built.
+A second profile therefore need not reopen the entire proof, but it is not free: it must discharge every machine-dependent case. If it cites an invariant absent from its semantics, the resulting proof describes a machine that does not exist.
 
 The metatheorem is the language's *main trusted theorem*, and freezing the theory bounds its size just as it bounds the checker's: the two shrink together.
 Calling it the single axiom would understate the base, and the honest list is short but longer than one: a consumer also trusts the machine semantics and its correspondence to the silicon that runs it, the profile's cited invariants, the decoder that recovers instructions from the image, the loader and initial-state model the derivation is stated against, and the implementation of the checker itself.
@@ -197,32 +207,32 @@ A mis-stated typing rule admits an unsafe binary that type-checks perfectly, exa
 
 ## 7. Producers
 
-**Admission gates on the derivation, never on the producer.**
+**Admission depends on the derivation, never on producer identity.**
 Any producer of a well-typed binary is admissible by definition, and a consumer's reference compiler is a reference rather than a gate.
 
 **A producer may be built on an existing unverified toolchain, and should be.**
 The practical shape is **hinted mirroring**: the untrusted compiler records hints through lowering and a small trusted replayer reconstructs the derivation the checker re-validates.
-That is a small replayer plus an arbitrary producer, not a whole-compiler preservation proof, and it is why an LLVM backend is a reasonable way to build one.
+This architecture requires a small replayer beside an arbitrary producer, not a whole-compiler preservation proof. An LLVM backend is therefore a reasonable implementation path.
 The precedent is Necula and Lee's certifying compiler and, closer to this shape, **Crellvm**, in which an untrusted optimizer emits hints a verified checker reconstructs and validates; Crellvm covered selected intermediate-representation optimizations rather than native code generation, so it supports the architecture without completing it (§9).
 
-**What that does not buy is language-independence of the guarantee, and the distinction is the important one.**
+**This does not make guarantees independent of the source language.**
 A compiler intermediate representation carries none of the facts the derivation asserts: ownership, lifetime, exclusivity, initialization, taint, dimension, and callee sets come from the *source* type system, not from the lowering.
-A fact the source never established cannot be preserved by anything downstream.
+Downstream tooling cannot preserve a fact that the source never established.
 
-So a source language is admissible on one of three terms, and it is worth being explicit about which:
+A source language is therefore admissible on one of three grounds:
 
 1. **It establishes the facts itself** (an ownership discipline, a synchronous dataflow language, a proof assistant's term language, or verified C with its own proofs), in which case the producer preserves them and the derivation is cheap.
 2. **It accepts insertion**, in which case the producer emits run-time checks and the type system requires them, exactly as the `bare-rv64` profile does for bounds: the guarantee holds, and it is paid for on every execution.
 3. **It ships a source-level proof** elaborated into a semantics the consumer already reviews.
 
-A language that does none of the three is not admitted, and no backend choice changes that.
+A language satisfying none of these conditions is not admitted; choosing a different backend does not change that result.
 This is the same fact as §2's profile table seen from the other end: when an invariant is not supplied by the environment, the language must demand a proof or insert a check, and it makes no difference whether the environment that failed to supply it was the hardware or the source language.
 
 ---
 
 ## 8. What this is not
 
-- **Not an isolation mechanism.** Its guarantee is over admitted code; a system that runs anything else needs hardware or a supervisor, and under a bare profile that is not optional (§2).
+- **Not an isolation mechanism.** Its guarantees apply to admitted code. A system that also runs other code needs hardware isolation or a supervisor; under a bare profile, that requirement is mandatory (§2).
 - **Not an intermediate representation.** It types final machine code against a machine semantics, so a target needs an ISA semantics of the quality of a Sail model before it can have a profile at all.
   That this is achievable rather than aspirational is the RockSalt and Islaris result: a decoded binary image checked against a machine model proved sound in a proof assistant, and binary machine code reasoned about against full Sail-derived semantics (§9).
 - **Not a proof system.** The deep tier stays with a proof kernel (§4), and every proposal to move an obligation inward is decided by §3's amendment rule rather than by appetite.
@@ -232,7 +242,7 @@ This is the same fact as §2's profile table seen from the other end: when an in
 
 ## 9. Prior art
 
-The design is a synthesis of several mature lines rather than an instance of any one of them, and the honest way to read it is as an assembly whose parts are each well precedented and whose *combination* is not.
+The design synthesizes several mature lines of work rather than instantiating any one of them. Its components have precedent; their *combination* does not.
 
 **Typed assembly language.**
 Morrisett, Walker, Crary, and Glew, *From System F to Typed Assembly Language* (TOPLAS 1999); Morrisett et al., *TALx86: A Realistic Typed Assembly Language* (WCSSS 1999); Crary, *Toward a Foundational Typed Assembly Language* (POPL 2003).
@@ -288,7 +298,7 @@ The certificate form itself has one shipped ancestor and one typed one, both def
 Necula and Lee, *The Design and Implementation of a Certifying Compiler* (PLDI 1998); Kang et al., *Crellvm* (PLDI 2018); the translation-validation and CompCert lines.
 Crellvm is the closest match to §7's hinted mirroring, over selected intermediate-representation optimizations rather than native code generation.
 
-**What is not precedented is the assembly.**
+**The combination is the novel part.**
 Not typed assembly language, not proof-carrying code, not capability typing, not taint typing, and not resource certificates, each of which is someone else's result.
 The combination is: a fixed, non-extensible certificate language carrying all of them at once, assigning every obligation an explicit cited, attributed, or inserted discharge against a *versioned machine profile*, and checking final decoded machine code without invoking a general proof kernel at install time.
 That is a claim about the arrangement rather than about any component, and it is the part a reviewer should attack first.
@@ -297,8 +307,8 @@ That is a claim about the arrangement rather than about any component, and it is
 
 ## 10. Status and honest accounting
 
-Unbuilt, in all three parts: the type system, the checker, and the soundness proof.
-The prior art it stands on is real and mechanized and is set out in §9, so the *type-soundness discipline* is not a gamble; the instantiation is.
+All three parts remain unbuilt: the type system, checker, and soundness proof.
+Section 9 identifies the relevant prior art and mechanizations. The general *type-soundness discipline* is established; this instantiation is not.
 One caution about the closest mechanized soundness result of this shape: WasmCert-Coq mechanizes WebAssembly's semantics, binary format, typing, and type soundness, but for a *bytecode* rather than a native instruction set, and its published account left end-to-end work unfinished, so it is a template for the metatheorem's shape and not evidence that the same has been carried out over an ISA semantics.
 
 **The artifact landscape, so the start-from is named rather than presumed.**
@@ -307,10 +317,10 @@ What a `cheri-rv64` instantiation stands on today is short and live: the CHERI-R
 Every mechanized relative of the metatheorem chose an idealized machine to stay tractable, which locates the risk precisely: not in the discipline, which is inherited, but in being first to instantiate it over an ISA-scale semantics.
 The nearest active lines (universal contracts and secure calling conventions on CHERI-RISC-V at KU Leuven and VUB, taint-typed assembly at MIT) are each approaching one slice of the menu, none the assembly.
 
-Factoring it out of an operating-system specification changes three things and no others:
+Factoring the language out of the operating-system specification changes exactly three things:
 
 1. **The review surface improves.** The language can be reviewed, and its soundness proof read, by someone who has no opinion about capability operating systems.
 2. **The cost becomes shareable.** A second consumer at a different profile pays for its own machine-dependent cases and shares the core.
 3. **A version seam appears where a freeze used to be.** A theory frozen inside one document is frozen by that document's amendment process; a theory frozen in a dependency is frozen by a pin, and a consumer that fails to re-review on a version bump has silently widened its own axiom set.
 
-None of these is a reduction in the work, and the first consumer's schedule is unchanged by the factoring.
+None reduces the work, and the factoring does not change the first consumer's schedule.
