@@ -73,6 +73,18 @@ $mdOpts.RecurseSubdirectories = $true
 $mdFiles = [System.IO.Directory]::GetFiles($PWD.Path, '*.md', $mdOpts)
 [System.Array]::Sort($mdFiles)
 
+# a submodule's markdown is upstream prose, not this corpus: every path .gitmodules books
+# is a pinned start-from whose documents answer to their own repository, so the sweep
+# excludes them wholesale rather than holding them to a house style they never saw
+$subPaths = @(if (Test-Path (Join-Path $PWD.Path '.gitmodules')) {
+    foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText((Join-Path $PWD.Path '.gitmodules')), '(?m)^\s*path\s*=\s*(\S+)')) {
+        [System.IO.Path]::GetFullPath((Join-Path $PWD.Path $m.Groups[1].Value)) + [System.IO.Path]::DirectorySeparatorChar
+    }
+})
+if ($subPaths.Count) {
+    $mdFiles = @($mdFiles | Where-Object { $f = $_; -not @($subPaths | Where-Object { $f.StartsWith($_) }).Count })
+}
+
 $docs = @(foreach ($f in $mdFiles) {
     $raw   = [System.IO.File]::ReadAllText($f)
     $lines = [System.IO.File]::ReadAllLines($f)

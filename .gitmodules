@@ -1,0 +1,6 @@
+[submodule "upstream/sail-riscv"]
+	path = upstream/sail-riscv
+	url = https://github.com/riscv/sail-riscv
+[submodule "upstream/sail-cheri-riscv"]
+	path = upstream/sail-cheri-riscv
+	url = https://github.com/CTSRD-CHERI/sail-cheri-riscv

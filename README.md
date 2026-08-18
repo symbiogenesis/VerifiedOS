@@ -304,7 +304,7 @@ This inventory summarizes named archetypes; it is not the coverage claim, becaus
 
 ## Specification
 
-The normative design lives in [verification-maximal-os.md](verification-maximal-os.md), with non-normative companions covering [prior art](inspirations.md), [evaluated architectural alternatives](architectural-alternatives.md), an [implementation plan](implementation-plan.md), and [performance estimates](performance-estimates.md).
+The normative design lives in [verification-maximal-os.md](verification-maximal-os.md), with non-normative companions covering [prior art](inspirations.md), [evaluated architectural alternatives](architectural-alternatives.md), an [implementation plan](implementation-plan.md) with its [execution checklist](implementation-checklist.md), and [performance estimates](performance-estimates.md).
 
 
 ### The typed assembly language
