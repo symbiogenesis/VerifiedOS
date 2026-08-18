@@ -53,7 +53,7 @@ Every pointer is a CHERI capability (a tagged, hardware-checked value carrying i
 
 ### Temporal safety and no uninitialized reads
 
-CHERI's bounds are spatial; a mandatory typed assembly language (TAL) checks two more guarantees at install time. Use-after-free: freed memory is made unreachable by capability revocation (a budgeted sweep plus a per-access check) and by linear and affine capabilities, which cannot be duplicated. Uninitialized reads: the TAL rejects any binary that could read a location before writing it, and allocation zeroes memory so no earlier tenant's data survives. Neither costs dedicated hardware.
+CHERI's bounds are spatial; a mandatory typed assembly language (TAL) checks two more guarantees at install time. Use-after-free: freed memory is made unreachable by capability revocation (a budgeted sweep plus a per-access check) and by linear and affine capabilities, which cannot be duplicated. Uninitialized reads: the TAL rejects any binary that could read a location before writing it, and allocation zeroes memory so no earlier tenant's data survives. Neither adds a hardware engine.
 
 ### No speculative or out-of-order execution
 
@@ -88,9 +88,6 @@ Three claim something weaker:
 - 🤝 **Transferred**: a real obligation owned by the named party; naming it makes it countable, nothing more.
 - 🚩 **Residual**: the row names what it leaves open; the spec's [residual-risks](docs/verification-maximal-os.md#17-residual-risks-the-honest-ceiling) section carries it.
 
-All seven are stronger and narrower claims than “written in a safe language.”
-
-
 ### RISC-V and microarchitectural omissions
 
 | Potential bug or attack class | Construction | Mode |
@@ -119,7 +116,7 @@ All seven are stronger and narrower claims than “written in a safe language.�
 | Variable-latency `vfdiv`/`vfsqrt` reached by a secret | The one exception to fixed latency is flow-rejected: no admitted crypto kernel uses either instruction | **✋&nbsp;Rejected** |
 | Secret-dependent address timing across SRAM banks | The flow discipline rejects secret-labeled element addresses, and the non-work-conserving schedule confines what remains to the issuing partition's slot | **✋&nbsp;Rejected** |
 
-The timing rows claim architectural timing only: power and near-field electromagnetic leakage are outside that model and are answered separately, by the crypto core's masked datapath, whose *d*-probing and composition theorems are verified on the artifact against a stated probing model, itself an axiom about the silicon whose faithfulness is a recorded residual.
+The timing rows claim architectural timing only: power and near-field electromagnetic leakage are outside that model, answered by the crypto core's masked datapath, whose row in [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission) carries the probing-model residual.
 
 The auditable list of invisible hardware structures is the [microarchitectural absence contract](docs/absence-contract.md); the complete architectural profile is the [frozen ISA profile](docs/isa-profile.md).
 
@@ -254,7 +251,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 
 ### Faults the machine detects rather than prevents
 
-Unlike the rows above, these allow the fault to occur but prevent it from passing *silently* and bound its consequence. They follow a single doctrine: *detect, correct, or contain, never shield*. **Detected** therefore never means absent.
+These rows follow a single doctrine: *detect, correct, or contain, never shield*. **Detected** therefore never means absent.
 
 | Potential bug or fault class | Construction | Mode |
 | --- | --- | --- |
@@ -274,7 +271,7 @@ Unlike the rows above, these allow the fault to occur but prevent it from passin
 
 ### Obligations discharged elsewhere
 
-These three limits are real obligations met outside the platform. Rows make each transfer countable and name its owner; an unnamed transfer would drop the obligation.
+Each row names the owner of a real obligation met outside the platform; an unnamed transfer would drop the obligation.
 
 | Class the platform does not close | Where the obligation goes, and what the platform still contributes | Mode |
 | --- | --- | --- |
@@ -314,18 +311,18 @@ The [typed assembly language](docs/typed-assembly-language.md), the typed machin
 
 ### The atomic-requirements register
 
-The [atomic-requirements register](docs/requirements-register.md) is the artifact §5's independent-specification-review release gate audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1217 numbered requirements.
+The [atomic-requirements register](docs/requirements-register.md) is the artifact that the specification's [independent-review release gate](docs/verification-maximal-os.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1217 numbered requirements.
 
-Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
+Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
 
 ### Derived views
 
 Four **derived views** collect what the register states across many entries but no document held:
 
-- **The [frozen instruction-set profile](docs/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. §18's schedule root and first day-one deliverable consume it.
-- **The [microarchitectural absence contract](docs/absence-contract.md)**: sixteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. Per §18 it is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
-- **The [crown-jewel inventory](docs/crown-jewels.md)**: the twenty-five specifications the §5 review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the eight theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
+- **The [frozen instruction-set profile](docs/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. The schedule root and first day-one deliverable of the spec's [realization plan](docs/verification-maximal-os.md#18-realization-mid-2026) consume it.
+- **The [microarchitectural absence contract](docs/absence-contract.md)**: sixteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
+- **The [crown-jewel inventory](docs/crown-jewels.md)**: the twenty-five specifications the review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the eight theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
 - **The [coverage matrix](docs/coverage-matrix.md)**: every boundary of the system against every property it must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above names bug classes, this quantifies over the boundaries, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
 
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.
