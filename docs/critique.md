@@ -24,7 +24,7 @@ So the rule is sound at the fixed point and its premise is false everywhere befo
 
 **1. Nothing load-bearing is built, and the specification is precise enough to say how little.** [crown-jewels.md](crown-jewels.md) is the instrument that says so, and its status column reads: of twenty-five crown-jewel specifications, **two are authored** (the frozen ISA profile and the apex theorem's machine-checked statement), three are partial, **twenty are not authored**. The eight theorem targets each depend on a row above; twenty of those premises do not exist, so most of the proof program cannot begin rather than merely being unfinished.
 
-The repository's own ledger sharpens this. As of 2026-08-17: forty-three days, four-hundred-odd commits, roughly 2.5 MB of design documents, and **zero lines of system code**. The non-Markdown paths `git ls-files` returns are the consistency checker and the apex-theorem statement artifact with its assumption gate, and nothing yet compiles to the machine. The loose figures are deliberate: every exact count in this catalogue sits under a `check.ps1` claim, and no claim holds these.
+The repository's own ledger sharpens this. As of 2026-08-17: forty-three days, four-hundred-odd commits, roughly 2.5 MB of design documents, and **zero lines of system code**. The non-Markdown paths `git ls-files` returns are the consistency checker, the apex-theorem statement artifact with its assumption gate, and the two pinned upstream Sail-model submodules, which are start-froms rather than authored code, and nothing this project has written compiles to the machine. The loose figures are deliberate: every exact count in this catalogue sits under a `check.ps1` claim, and no claim holds these.
 
 The project's only demonstrated velocity is in producing obligations. That is a defensible way to spend an early phase, and §18 and R-01-003 are candid that the as-existing assurance is low. What no artifact states is the ratio's direction: the obligation count grows monotonically and the discharge count is two. Every hardening that makes the design safer adds a crown jewel, and nothing in the process retires one except authoring it; the inventory declares its status column a **burn-down with exactly that direction stated**, the implementation plan's milestones as its retirement mechanism, so the open question is no longer the instrument but whether the discharge count moves.
 
@@ -191,8 +191,6 @@ Requirements carrying `· Fail-closed:` confer into R-17-030r's seam register, a
 
 ## Register: machinery cost
 
-**The derived-view boilerplate is restated near-verbatim four times**, in R-15-001a, R-15-100a, R-17-001b, and R-17-016a. It should be one requirement cited four times, which is the register's own rule for a set stated in more than one place, and the pattern its third sweep exists to remove.
-
 **Letter-suffix density is a signal worth reading.** Roughly a fifth of entries are post-hoc insertions. Prose-order numbering with permanent IDs is a deliberate and defensible choice, and this is not an argument against it; the density is evidence about edit rate against review stability, which is a different question the register does not ask.
 
 **Two blocks read as specification rather than as requirements.** The dictionary-encoding entries and several multi-paragraph accept texts re-argue the design in place. This blurs the register's normative role, and it is the same content-versus-container question the derived-view rule settles elsewhere.
@@ -208,7 +206,6 @@ Requirements carrying `· Fail-closed:` confer into R-17-030r's seam register, a
 ### A. Defects: the answer is already in the documents
 
 3. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with R-15-184's residual SRAM disturb modes as the qualifier on whichever wording survives.
-6. **Collapse the derived-view boilerplate.** R-15-001a, R-15-100a, R-17-001b, and R-17-016a state it near-verbatim; one requirement cited four times is the register's own rule.
 8. **Give §1 and §3 criteria a decision procedure or §17's preamble.** Goal and threat entries currently restate their premises without §17's explicit *booked with its owner and scope rather than absorbed* excuse.
 
 ### B. Decisions: someone has to make the call
