@@ -86,7 +86,7 @@ Three claim something weaker:
 
 - 🔔 **Detected**: the fault can occur but never silently: it is corrected or contained fail-stop, never claimed absent.
 - 🤝 **Transferred**: a real obligation owned by the named party; naming it makes it countable, nothing more.
-- 🚩 **Residual**: the row names what it leaves open; the spec's [residual-risks](verification-maximal-os.md#17-residual-risks-the-honest-ceiling) section carries it.
+- 🚩 **Residual**: the row names what it leaves open; the spec's [residual-risks](docs/verification-maximal-os.md#17-residual-risks-the-honest-ceiling) section carries it.
 
 All seven are stronger and narrower claims than “written in a safe language.”
 
@@ -121,7 +121,7 @@ All seven are stronger and narrower claims than “written in a safe language.�
 
 The timing rows claim architectural timing only: power and near-field electromagnetic leakage are outside that model and are answered separately, by the crypto core's masked datapath, whose *d*-probing and composition theorems are verified on the artifact against a stated probing model, itself an axiom about the silicon whose faithfulness is a recorded residual.
 
-The auditable list of invisible hardware structures is the [microarchitectural absence contract](absence-contract.md); the complete architectural profile is the [frozen ISA profile](isa-profile.md).
+The auditable list of invisible hardware structures is the [microarchitectural absence contract](docs/absence-contract.md); the complete architectural profile is the [frozen ISA profile](docs/isa-profile.md).
 
 
 ### CHERI capability tags, bounds, and monotonicity
@@ -298,23 +298,23 @@ These three limits are real obligations met outside the platform. Rows make each
 
 This inventory does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol flaw. Canonicity covers this platform's encodings, not whether an independent peer accepts the same language; no single-party proof can establish that, so parser differentials remain untrusted evidence and a recorded residual.
 
-The transferred rows count limits owned elsewhere. The specification's [residual-risks section](verification-maximal-os.md#17-residual-risks-the-honest-ceiling) and [critique.md](critique.md) record those limits and open proof work.
+The transferred rows count limits owned elsewhere. The specification's [residual-risks section](docs/verification-maximal-os.md#17-residual-risks-the-honest-ceiling) and [critique.md](docs/critique.md) record those limits and open proof work.
 
-This inventory summarizes named archetypes; it is not the coverage claim, because such a list can never be complete. The register-computed [coverage matrix](coverage-matrix.md), spanning every boundary and property, makes that claim.
+This inventory summarizes named archetypes; it is not the coverage claim, because such a list can never be complete. The register-computed [coverage matrix](docs/coverage-matrix.md), spanning every boundary and property, makes that claim.
 
 ## Specification
 
-The normative design lives in [verification-maximal-os.md](verification-maximal-os.md), with non-normative companions covering [prior art](inspirations.md), [evaluated architectural alternatives](architectural-alternatives.md), an [implementation plan](implementation-plan.md) with its [execution checklist](implementation-checklist.md), and [performance estimates](performance-estimates.md).
+The normative design lives in [verification-maximal-os.md](docs/verification-maximal-os.md), with non-normative companions covering [prior art](docs/inspirations.md), [evaluated architectural alternatives](docs/architectural-alternatives.md), an [implementation plan](docs/implementation-plan.md) with its [execution checklist](docs/implementation-checklist.md), and [performance estimates](docs/performance-estimates.md).
 
 
 ### The typed assembly language
 
-The [typed assembly language](typed-assembly-language.md), the typed machine-code language and per-install check that binaries are admitted with, is specified as a standalone project rather than a component: it depends on a machine semantics and a type theory and nothing else, so its correctness argument mentions no operating system. This platform pins a version of its `cheri-rv64` instantiation, which the corpus calls CHERI-TAL.
+The [typed assembly language](docs/typed-assembly-language.md), the typed machine-code language and per-install check that binaries are admitted with, is specified as a standalone project rather than a component: it depends on a machine semantics and a type theory and nothing else, so its correctness argument mentions no operating system. This platform pins a version of its `cheri-rv64` instantiation, which the corpus calls CHERI-TAL.
 
 
 ### The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact §5's independent-specification-review release gate audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1217 numbered requirements.
+The [atomic-requirements register](docs/requirements-register.md) is the artifact §5's independent-specification-review release gate audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1217 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
@@ -323,9 +323,9 @@ Its standing output is the extraction-defect list: normative claims that resist 
 
 Four **derived views** collect what the register states across many entries but no document held:
 
-- **The [frozen instruction-set profile](isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. §18's schedule root and first day-one deliverable consume it.
-- **The [microarchitectural absence contract](absence-contract.md)**: sixteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. Per §18 it is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
-- **The [crown-jewel inventory](crown-jewels.md)**: the twenty-five specifications the §5 review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the eight theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
-- **The [coverage matrix](coverage-matrix.md)**: every boundary of the system against every property it must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above names bug classes, this quantifies over the boundaries, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
+- **The [frozen instruction-set profile](docs/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. §18's schedule root and first day-one deliverable consume it.
+- **The [microarchitectural absence contract](docs/absence-contract.md)**: sixteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. Per §18 it is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
+- **The [crown-jewel inventory](docs/crown-jewels.md)**: the twenty-five specifications the §5 review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the eight theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
+- **The [coverage matrix](docs/coverage-matrix.md)**: every boundary of the system against every property it must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above names bug classes, this quantifies over the boundaries, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
 
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.

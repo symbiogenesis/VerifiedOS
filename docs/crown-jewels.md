@@ -30,7 +30,7 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 
 | # | Crown-jewel specification | `CJ-` target | Constrained by | Status |
 | --- | --- | --- | --- | --- |
-| 1 | **The apex theorem T**, the statement itself, with all four elements: the quantifier over adversary sets *C*, the value-and-timing-and-architectural observation, the *modulo D* clause, and the *relative to Ax* clause | `CJ-T` | **R-05-156**, R-05-157, R-17-065 | **authored**: [ApexTheorem.v](proofs/ApexTheorem.v), with the nine seam-lemma statements; its interface vocabularies are parameters, bound as the rows carrying them are authored |
+| 1 | **The apex theorem T**, the statement itself, with all four elements: the quantifier over adversary sets *C*, the value-and-timing-and-architectural observation, the *modulo D* clause, and the *relative to Ax* clause | `CJ-T` | **R-05-156**, R-05-157, R-17-065 | **authored**: [ApexTheorem.v](../proofs/ApexTheorem.v), with the nine seam-lemma statements; its interface vocabularies are parameters, bound as the rows carrying them are authored |
 | 2 | **The security policy model**, including the delimited-release bound and the robust-declassification statement | `CJ-NI` | **R-08-028**, **R-17-012** | not authored |
 | 3 | **The IDL wire-format mapping**, the profile's mapping, the contract the IDL's types only document | `CJ-IDL` | **R-12-013** | not authored |
 | 4 | **The frozen ISA-profile definition** | `CJ-SAIL` | R-15-001, **R-15-001a**, R-15-014 | **authored**: [isa-profile.md](isa-profile.md) |

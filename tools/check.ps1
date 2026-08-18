@@ -108,7 +108,7 @@ $docs = @(foreach ($f in $mdFiles) {
     }
 
     [pscustomobject]@{
-        Name   = [System.IO.Path]::GetRelativePath($PWD.Path, $f) -replace '^\.[\\/]', ''
+        Name   = [System.IO.Path]::GetRelativePath($PWD.Path, $f) -replace '^\.[\\/]', '' -replace '\\', '/'
         Raw    = $raw
         Lines  = $lines
         Starts = $starts
@@ -121,7 +121,7 @@ foreach ($d in $docs) { $docByName[$d.Name] = $d }
 
 # --- the register: ids, where each sits, its body, and the trace it carries -------
 
-$regLines   = $docByName['requirements-register.md'].Lines
+$regLines   = $docByName['docs/requirements-register.md'].Lines
 $ids        = [System.Collections.Generic.List[string]]::new()
 $cjTargets  = [System.Collections.Generic.List[string]]::new()
 $subsection = @{}          # id -> "15.4", the ### n.m it sits in, where there is one
@@ -202,7 +202,7 @@ $anchorRe   = [regex]'<a id="([^"]+)"'
 $proseSecRe = [regex]'(?m)^## (\d+)\.'
 
 foreach ($d in $docs) {
-    $prose = $d.Name -eq 'verification-maximal-os.md'
+    $prose = $d.Name -eq 'docs/verification-maximal-os.md'
     $here  = @{}
     $starts = $d.Starts
 
@@ -243,7 +243,7 @@ foreach ($d in $docs) {
 
 # --- the counted artifacts: the inventory, the profile, the absence contract ------
 
-$cj = $docByName['crown-jewels.md'].Lines
+$cj = $docByName['docs/crown-jewels.md'].Lines
 $cjRows = @($cj | Where-Object { $_ -match '^\| \d+ \|' })
 function Get-Status($row) { (($row -split '\|')[-2]).Trim() }
 
@@ -259,11 +259,11 @@ function Get-CjClass($row) {
     $null
 }
 
-$absenceIds = @($docByName['absence-contract.md'].Lines |
+$absenceIds = @($docByName['docs/absence-contract.md'].Lines |
                 ForEach-Object { if ($_ -match '^\| \*\*(A-\d+)\*\*') { $Matches[1] } })
 
 $openCsr = 0; $inOpen = $false
-foreach ($line in $docByName['isa-profile.md'].Lines) {
+foreach ($line in $docByName['docs/isa-profile.md'].Lines) {
     if ($line -match '^### 5\.3 ') { $inOpen = $true; continue }
     if ($inOpen -and $line -match '^(##|---)') { $inOpen = $false }
     if ($inOpen -and $line -match '^\| `') { $openCsr++ }
@@ -277,7 +277,7 @@ $cmBounds = [System.Collections.Generic.List[string]]::new()
 $cmProps  = [System.Collections.Generic.List[string]]::new()
 $cmCells  = [ordered]@{}
 $cmTwice  = @()
-foreach ($line in $docByName['coverage-matrix.md'].Lines) {
+foreach ($line in $docByName['docs/coverage-matrix.md'].Lines) {
     if     ($line -match '^\| `(B-\d\d)` \| `(P-\d)` \|') {
         $pair = "$($Matches[1]) by $($Matches[2])"
         if ($cmCells.Contains($pair)) { $cmTwice += "$pair has more than one cell" }
@@ -412,9 +412,9 @@ Report 'requirement id(s) the register declares twice:' `
 $vocab = @(
     @{ Kind = 'requirement';        Token = 'R-\d\d-\d+[a-z]?'; Declared = $ids;        Home = 'the register' }
     @{ Kind = 'crown-jewel target'; Token = 'CJ-[A-Z][A-Z-]*';  Declared = $cjTargets;  Home = "the register's CJ- table" }
-    @{ Kind = 'absence';            Token = 'A-\d+';            Declared = $absenceIds; Home = 'absence-contract.md' }
-    @{ Kind = 'boundary';           Token = 'B-\d+';            Declared = $cmBounds;   Home = 'coverage-matrix.md' }
-    @{ Kind = 'property';           Token = 'P-\d+';            Declared = $cmProps;    Home = 'coverage-matrix.md' }
+    @{ Kind = 'absence';            Token = 'A-\d+';            Declared = $absenceIds; Home = 'docs/absence-contract.md' }
+    @{ Kind = 'boundary';           Token = 'B-\d+';            Declared = $cmBounds;   Home = 'docs/coverage-matrix.md' }
+    @{ Kind = 'property';           Token = 'P-\d+';            Declared = $cmProps;    Home = 'docs/coverage-matrix.md' }
 )
 
 # the five tokens start with five different letters, so one alternation walks the
@@ -496,7 +496,12 @@ foreach ($d in $docs) {
         $file = $m.Groups[1].Value -replace '^\./', ''
         $frag = $m.Groups[2].Value
         if ($file -match '^[a-z][a-z0-9+.-]*:') { continue }   # off the repository, not ours to hold
-        if (-not $file) { $file = $d.Name }
+        # a relative target resolves against the document that carries it, not the root
+        $file = if (-not $file) { $d.Name } else {
+            $dir = [System.IO.Path]::GetDirectoryName($d.Name)
+            [System.IO.Path]::GetRelativePath($PWD.Path,
+                [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($PWD.Path, $dir, $file))) -replace '\\', '/'
+        }
         if (-not $exists.ContainsKey($file)) {
             $abs = [System.IO.Path]::Combine($PWD.Path, $file)
             $exists[$file] = [System.IO.File]::Exists($abs) -or [System.IO.Directory]::Exists($abs)
@@ -550,17 +555,17 @@ Report 'section reference(s) naming no numbered heading:' `
 # also owed in the other direction.
 
 $views = @(
-    @{ File = 'isa-profile.md'
+    @{ File = 'docs/isa-profile.md'
        Governing = 'R-15-001a'
        Secs = '15.1','15.3','15.4','15.5','15.6','15.7','15.8','15.9','15.10','15.11','15.12' }
-    @{ File = 'absence-contract.md'
+    @{ File = 'docs/absence-contract.md'
        Governing = 'R-15-100a'
        Secs = '15.14' }
-    @{ File = 'crown-jewels.md'
+    @{ File = 'docs/crown-jewels.md'
        Governing = 'R-17-016a'
        BodyPattern = 'crown.jewel spec'
        MustCiteTargets = $true }
-    @{ File = 'coverage-matrix.md'
+    @{ File = 'docs/coverage-matrix.md'
        Governing = 'R-17-001b'
        MustCoverCells = $true }
 )
@@ -805,39 +810,39 @@ $q = [ordered]@{
 
 $claims = @(
     # the register states its own coverage
-    @{ File = 'requirements-register.md'; Q = 'sections';      Style = 'words';  Pattern = '[\w-]+(?= normative sections are extracted)' }
-    @{ File = 'requirements-register.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=extracted, at )[\d,]+(?= requirements)' }
-    @{ File = 'requirements-register.md'; Q = 'lettered';      Style = 'digits'; Pattern = '(?<=Counts include the )[\w,-]+(?= letter-suffixed entries)' }
+    @{ File = 'docs/requirements-register.md'; Q = 'sections';      Style = 'words';  Pattern = '[\w-]+(?= normative sections are extracted)' }
+    @{ File = 'docs/requirements-register.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=extracted, at )[\d,]+(?= requirements)' }
+    @{ File = 'docs/requirements-register.md'; Q = 'lettered';      Style = 'digits'; Pattern = '(?<=Counts include the )[\w,-]+(?= letter-suffixed entries)' }
 
     # the crown-jewel inventory states its own status ratio
-    @{ File = 'crown-jewels.md'; Q = 'cj-targets';    Style = 'digits'; Pattern = '[\d]+(?= entries, all used)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=The remaining )[\w-]+(?= `CJ-` targets name)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of those [\w-]+ are not authored)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of those )[\w-]+(?= are not authored)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-targets';    Style = 'digits'; Pattern = '[\d]+(?= targets, every one used)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-targets';    Style = 'digits'; Pattern = '[\d]+(?= coarse targets)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-specs';      Style = 'digits'; Pattern = '[\d]+(?= specifications, per-member)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-authored';   Style = 'words';  Pattern = '[\w-]+(?= of [\w-]+ are authored outright)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= are authored outright)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-partial';    Style = 'words';  Pattern = '(?<=and )[\w-]+(?= more are partial)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '(?<=\. )[A-Z][\w-]+(?= are not authored\.)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=because these )[\w-]+(?= are \*named)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of them are not yet written)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=the )[\w-]+(?= theorem targets above cannot start)' }
-    @{ File = 'crown-jewels.md'; Q = 'cj-conferring'; Style = 'words';  Pattern = '(?<=There are )[\w-]+(?= such entries)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-targets';    Style = 'digits'; Pattern = '[\d]+(?= entries, all used)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=The remaining )[\w-]+(?= `CJ-` targets name)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of those [\w-]+ are not authored)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of those )[\w-]+(?= are not authored)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-targets';    Style = 'digits'; Pattern = '[\d]+(?= targets, every one used)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-targets';    Style = 'digits'; Pattern = '[\d]+(?= coarse targets)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-specs';      Style = 'digits'; Pattern = '[\d]+(?= specifications, per-member)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-authored';   Style = 'words';  Pattern = '[\w-]+(?= of [\w-]+ are authored outright)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= are authored outright)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-partial';    Style = 'words';  Pattern = '(?<=and )[\w-]+(?= more are partial)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '(?<=\. )[A-Z][\w-]+(?= are not authored\.)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=because these )[\w-]+(?= are \*named)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of them are not yet written)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=the )[\w-]+(?= theorem targets above cannot start)' }
+    @{ File = 'docs/crown-jewels.md'; Q = 'cj-conferring'; Style = 'words';  Pattern = '(?<=There are )[\w-]+(?= such entries)' }
 
     # the prose states the size of each seam register it carries
-    @{ File = 'verification-maximal-os.md'; Q = 'fc-seams'; Style = 'words'; Pattern = '[\w-]+(?= fail-closed seams are named with owners)' }
+    @{ File = 'docs/verification-maximal-os.md'; Q = 'fc-seams'; Style = 'words'; Pattern = '[\w-]+(?= fail-closed seams are named with owners)' }
 
     # and the register states the shape of each enumeration it closes by conferral
-    @{ File = 'requirements-register.md'; Q = 'fc-conferrals'; Style = 'words'; Pattern = '[\w-]+(?= requirements confer a refusal)' }
-    @{ File = 'requirements-register.md'; Q = 'fc-seams';      Style = 'words'; Pattern = '(?<=and )[\w-]+(?= seams collect them)' }
-    @{ File = 'requirements-register.md'; Q = 'rot-fresh';     Style = 'words'; Pattern = '[\w-]+(?= requirements confer freshness)' }
+    @{ File = 'docs/requirements-register.md'; Q = 'fc-conferrals'; Style = 'words'; Pattern = '[\w-]+(?= requirements confer a refusal)' }
+    @{ File = 'docs/requirements-register.md'; Q = 'fc-seams';      Style = 'words'; Pattern = '(?<=and )[\w-]+(?= seams collect them)' }
+    @{ File = 'docs/requirements-register.md'; Q = 'rot-fresh';     Style = 'words'; Pattern = '[\w-]+(?= requirements confer freshness)' }
 
     # the coverage matrix states the shape of its own product
-    @{ File = 'coverage-matrix.md'; Q = 'boundaries'; Style = 'words'; Pattern = '(?<=below are )[\w-]+(?= boundaries)' }
-    @{ File = 'coverage-matrix.md'; Q = 'properties'; Style = 'words'; Pattern = '(?<=boundaries and )[\w-]+(?= properties)' }
-    @{ File = 'coverage-matrix.md'; Q = 'cells';      Style = 'words'; Pattern = '(?<=carries all )[\w-]+(?= of their pairs)' }
+    @{ File = 'docs/coverage-matrix.md'; Q = 'boundaries'; Style = 'words'; Pattern = '(?<=below are )[\w-]+(?= boundaries)' }
+    @{ File = 'docs/coverage-matrix.md'; Q = 'properties'; Style = 'words'; Pattern = '(?<=boundaries and )[\w-]+(?= properties)' }
+    @{ File = 'docs/coverage-matrix.md'; Q = 'cells';      Style = 'words'; Pattern = '(?<=carries all )[\w-]+(?= of their pairs)' }
 
     # the README summarizes them
     @{ File = 'README.md'; Q = 'views';         Style = 'words';  Pattern = '[\w-]+(?= \*\*derived views\*\* collect)' }
@@ -848,23 +853,23 @@ $claims = @(
     @{ File = 'README.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=plus the )[\w-]+(?= theorem targets)' }
 
     # the gap catalogue argues from them
-    @{ File = 'critique.md'; Q = 'views';         Style = 'words';  Pattern = '(?<=register and the )[\w-]+(?= derived views)' }
-    @{ File = 'critique.md'; Q = 'fc-conferrals'; Style = 'words';  Pattern = '[\w-]+(?= conferrals against)' }
-    @{ File = 'critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '(?<=conferrals against )[\w-]+(?= seams)' }
-    @{ File = 'critique.md'; Q = 'dispositions';  Style = 'words';  Pattern = '[\w-]+(?= candidates were dispositioned)' }
-    @{ File = 'critique.md'; Q = 'rot-cases';     Style = 'words';  Pattern = '(?<=[Tt]he )[\w-]+(?= on the RoT-fresh side)' }
-    @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown-jewel specifications are named)' }
-    @{ File = 'critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '[\w-]+(?= theorem targets are named)' }
-    @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)' }
-    @{ File = 'critique.md'; Q = 'cj-authored';   Style = 'words';  Pattern = '(?<=are named; \*\*)[\w-]+(?=\*\* are authored)' }
-    @{ File = 'critique.md'; Q = 'cj-authored';   Style = 'words';  Pattern = '[\w-]+(?= are authored\*\* \(the frozen)' }
-    @{ File = 'critique.md'; Q = 'cj-partial';    Style = 'words';  Pattern = '(?<=machine-checked statement\), )[\w-]+(?= are partial)' }
-    @{ File = 'critique.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '(?<=\*\*)[\w-]+(?= are not authored\*\*)' }
-    @{ File = 'critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=The )[\w-]+(?= theorem targets each depend)' }
-    @{ File = 'critique.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of those premises do not exist)' }
-    @{ File = 'critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown jewels, each a small oracle)' }
-    @{ File = 'critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=of )[\d,]+(?= acceptance criteria)' }
-    @{ File = 'critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=of the )[\d,]+(?= requirements has yet been booked)' }
+    @{ File = 'docs/critique.md'; Q = 'views';         Style = 'words';  Pattern = '(?<=register and the )[\w-]+(?= derived views)' }
+    @{ File = 'docs/critique.md'; Q = 'fc-conferrals'; Style = 'words';  Pattern = '[\w-]+(?= conferrals against)' }
+    @{ File = 'docs/critique.md'; Q = 'fc-seams';      Style = 'words';  Pattern = '(?<=conferrals against )[\w-]+(?= seams)' }
+    @{ File = 'docs/critique.md'; Q = 'dispositions';  Style = 'words';  Pattern = '[\w-]+(?= candidates were dispositioned)' }
+    @{ File = 'docs/critique.md'; Q = 'rot-cases';     Style = 'words';  Pattern = '(?<=[Tt]he )[\w-]+(?= on the RoT-fresh side)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown-jewel specifications are named)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '[\w-]+(?= theorem targets are named)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= crown-jewel specifications, \*\*)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-authored';   Style = 'words';  Pattern = '(?<=are named; \*\*)[\w-]+(?=\*\* are authored)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-authored';   Style = 'words';  Pattern = '[\w-]+(?= are authored\*\* \(the frozen)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-partial';    Style = 'words';  Pattern = '(?<=machine-checked statement\), )[\w-]+(?= are partial)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '(?<=\*\*)[\w-]+(?= are not authored\*\*)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=The )[\w-]+(?= theorem targets each depend)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of those premises do not exist)' }
+    @{ File = 'docs/critique.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '[\w-]+(?= crown jewels, each a small oracle)' }
+    @{ File = 'docs/critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=of )[\d,]+(?= acceptance criteria)' }
+    @{ File = 'docs/critique.md'; Q = 'requirements';  Style = 'digits'; Pattern = '(?<=of the )[\d,]+(?= requirements has yet been booked)' }
 )
 
 # --- number words, so a claim may read as prose without becoming unmaintainable ----
@@ -1042,7 +1047,7 @@ Report 'unheld restatement(s) of a counted figure:' $loose 'every stated figure 
 # The trailing lookahead keeps CRLF out of the match: .NET's (?m)$ sits before the \n,
 # so an anchored \|$ never matches a CRLF file, and every row reads as missing.
 $rowPattern = '(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|(?=\r?$)'
-$regRaw = if ($fixedFiles.ContainsKey('requirements-register.md')) { $fixedFiles['requirements-register.md'] } else { $docByName['requirements-register.md'].Raw }
+$regRaw = if ($fixedFiles.ContainsKey('docs/requirements-register.md')) { $fixedFiles['docs/requirements-register.md'] } else { $docByName['docs/requirements-register.md'].Raw }
 $rows = [regex]::Matches($regRaw, $rowPattern)
 
 $listed = @($rows | ForEach-Object { $_.Groups[1].Value })
@@ -1053,7 +1058,7 @@ Report 'Coverage row(s) not matching the section list:' $mismatched "$($rows.Cou
 
 $bad = @($rows | Where-Object { [int]$_.Groups[2].Value -ne $perSection[$_.Groups[1].Value] })
 if ($bad.Count -and $Fix) {
-    $fixedFiles['requirements-register.md'] = [regex]::Replace($regRaw, $rowPattern, {
+    $fixedFiles['docs/requirements-register.md'] = [regex]::Replace($regRaw, $rowPattern, {
         param($m) $m.Value -replace '\*\*\d+\*\* \|$', "**$($perSection[$m.Groups[1].Value])** |"
     })
     $bad | ForEach-Object { "fixed: Coverage §$($_.Groups[1].Value): $($_.Groups[2].Value) -> $($perSection[$_.Groups[1].Value])" }
