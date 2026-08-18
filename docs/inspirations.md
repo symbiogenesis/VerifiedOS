@@ -1,6 +1,6 @@
 # Inspirations & Prior Art (non-normative)
 
-> Companion to [verification-maximal-os.md](verification-maximal-os.md).
+> Companion to [spec.md](spec.md).
 > This document records the **existing systems and research artifacts this design descends from**: what each contributed, where it lands in the spec, and how the design transforms it.
 > It is **not** part of the normative spec; cross-references of the form §N point to sections of that specification.
 > Architectural alternatives that were *evaluated and rejected* live in [architectural-alternatives.md](architectural-alternatives.md), not here; this page is the roads **taken**.

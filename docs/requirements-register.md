@@ -1,12 +1,12 @@
 # Atomic Requirements Register
 
-*Normative. This register, not the prose, is the artifact the §5 independent-specification-review release gate audits. [verification-maximal-os.md](verification-maximal-os.md) is its rationale and commentary.*
+*Normative. This register, not the prose, is the artifact the §5 independent-specification-review release gate audits. [spec.md](spec.md) is its rationale and commentary.*
 
 **Status: complete. All eighteen normative sections are extracted.** Until coverage is complete the review gate cannot be claimed as met; see [Coverage](#coverage).
 
 ## How to read this
 
-Each entry is one atomic obligation, individually reviewable, with an acceptance criterion that decides it without reference to the prose. Per [§5](verification-maximal-os.md#atomic-restatement-rule), *a normative claim that cannot be restated as an atomic, testable requirement is a spec defect, not prose to be admired*; claims that resisted restatement are booked in [Extraction defects](#extraction-defects) rather than dropped or paraphrased into something the spec does not say.
+Each entry is one atomic obligation, individually reviewable, with an acceptance criterion that decides it without reference to the prose. Per [§5](spec.md#atomic-restatement-rule), *a normative claim that cannot be restated as an atomic, testable requirement is a spec defect, not prose to be admired*; claims that resisted restatement are booked in [Extraction defects](#extraction-defects) rather than dropped or paraphrased into something the spec does not say.
 
 ```
 **R-ss-nnn** MUST: the obligation, stated so that a reviewer can agree or disagree with it alone
@@ -277,7 +277,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-012** MUST: The kernel is seL4's design re-proved end-to-end in Coq, not seL4's Isabelle proof adopted.
 · Accept: no Isabelle artifact appears in the trust base; the kernel refinement proof is a Coq development.
-· Trace: CJ-KERNEL · [§5](verification-maximal-os.md#r-05-012), [§5](verification-maximal-os.md#r-05-012-2)
+· Trace: CJ-KERNEL · [§5](spec.md#r-05-012), [§5](spec.md#r-05-012-2)
 
 **R-05-013** MUST: The kernel is compiled through CompCert/SECOMP.
 · Accept: the kernel image's build manifest names the SECOMP-criterion CHERI backend.
@@ -393,7 +393,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-035** IS: Every instruction has exactly one decoding, anchored to the fixed slot grid of a bundle-aligned fetch unit and independent of where decoding started, so binary-level proofs discharge no overlapping-stream interpretation and no reachable-entry-point argument.
 · Accept: the §15 profile excludes the C extension (R-15-036) and encodes code in the fixed-rate dictionary format (R-15-036a); the TAL's decode relation is a function of bundle contents and slot index (R-15-036b).
-· Trace: CJ-SAIL · [§5](verification-maximal-os.md#r-05-035); constrains R-15-*
+· Trace: CJ-SAIL · [§5](spec.md#r-05-035); constrains R-15-*
 
 ### 5.7 The three checker moves
 
@@ -529,7 +529,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-064** MUST NOT: The CryptOpt-style route (untrusted superoptimizer plus a net-new Coq-verified assembly↔Fiat-Crypto equivalence checker) is deleted, not deferred. What goes with it is a net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category, and a §18 workstream, at the price of hand-assembly-grade ECC throughput. This list is canonical: every other section that observes the absence cites it rather than restating it.
 · Accept: §18 carries no such workstream and the checker inventory contains no equivalence checker; the consequence list is stated once, so R-06-026 and R-18-022 cannot come to disagree with it.
-· Trace: CJ-CRYPTO-SPEC · [§5](verification-maximal-os.md#r-05-064), [§5](verification-maximal-os.md#r-05-064-2)
+· Trace: CJ-CRYPTO-SPEC · [§5](spec.md#r-05-064), [§5](spec.md#r-05-064-2)
 
 **R-05-065** MUST NOT: Standing rule: any net-new verified artifact whose only yield is performance on a path already correct and already leak-free is inadmissible; the slower sound artifact is taken.
 · Accept: every admitted net-new verified artifact has a stated yield other than performance.
@@ -653,7 +653,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-092** IS: The rule forbids *re-manufacturing* a global and says nothing about *over-injecting* one: a component handed broad authority at construction and threading it everywhere is well-typed and over-privileged, and that residual is booked in §17.
 · Accept: the §17 residual entry exists; no register requirement claims least-authority as a consequence of R-05-086.
-· Trace: CJ-CERISE · [§5](verification-maximal-os.md#r-05-092), [§17](verification-maximal-os.md#r-05-092-2)
+· Trace: CJ-CERISE · [§5](spec.md#r-05-092), [§17](spec.md#r-05-092-2)
 
 ### 5.13 Certifying userspace compilation
 
@@ -787,7 +787,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-120** MUST NOT: No hardware Write-before-Read metadata plane exists.
 · Accept: the §15 memory subsystem carries no initialization-tag plane, no associated DECTED coverage, no Sail invariant, and no RTL ⊑ Sail obligation for one.
-· Trace: CJ-RTL-SAIL · [§5](verification-maximal-os.md#r-05-120), [§5](verification-maximal-os.md#r-05-120-2)
+· Trace: CJ-RTL-SAIL · [§5](spec.md#r-05-120), [§5](spec.md#r-05-120-2)
 
 **R-05-121** IS: The attribute domain is the two-point lattice *uninitialized* ⊑ *initialized*, met at control-flow merges: a store sets its slot's flag, a load's typing premise is that the flag is set, and a merge takes the meet.
 · Accept: the rule is local and syntax-directed; the domain is finite; no open-term reduction occurs.
@@ -811,7 +811,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-126** MUST: Memory is eager-zeroized at allocation, so an unwritten slot reads a deterministic zero rather than residue.
 · Accept: the §7 zeroize discipline covers every slot; `Zicboz` (`cbo.zero`) is in the §15 profile.
-· Trace: CJ-MEMPLAN, CJ-SAIL · [§15](verification-maximal-os.md#r-05-126); constrains R-15-*
+· Trace: CJ-MEMPLAN, CJ-SAIL · [§15](spec.md#r-05-126); constrains R-15-*
 
 ### 5.18 Use-once, must-erase, and dimension: three re-uses of the existing grades
 
@@ -845,7 +845,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-126h** IS: The cost of the three is one further narrowing of the admitted library set: no runtime check, no silicon, no new semantic anchor, no new grade axis, and no new crown jewel, each adding one rule to the CHERI-TAL and one case to its soundness metatheorem.
 · Accept: no §15 mechanism, Sail surface, or crown-jewel target is added; the three are shown to fit the frozen theory exactly as its other riders are.
-· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-126h), [§5](verification-maximal-os.md#r-05-126h-2)
+· Trace: CJ-TAL-SOUND · [§5](spec.md#r-05-126h), [§5](spec.md#r-05-126h-2)
 
 **R-05-126i** IS: A grade binds the label, never the judgment that assigned it: a value never typed as a nonce, a secret never labeled one, or a quantity given the wrong dimension is admitted with the obligation discharged and the property absent.
 · Accept: the residual is booked in §17 as the wrong-label case, the same shape as the mislabeled-secret residual of the constant-time discipline; what the three delete is the unenforced-obligation class.
@@ -945,7 +945,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-145** MUST: Arithmetic is total by typing: neither trapping nor wrapping. Overflow-freedom rides as range side conditions on the existing arithmetic rules.
 · Accept: no arithmetic operation traps; no operation wraps implicitly; each arithmetic rule carries its range side condition.
-· Trace: CJ-TAL-SOUND · [§5](verification-maximal-os.md#r-05-145), [§5](verification-maximal-os.md#r-05-145-2)
+· Trace: CJ-TAL-SOUND · [§5](spec.md#r-05-145), [§5](spec.md#r-05-145-2)
 
 **R-05-146** MUST: Overflow side conditions are decided in the §6 checker wherever the operands' bounds are closed numerals, and descend to the CIC proof kernel as a release-time obligation wherever a bound depends on a runtime value.
 · Accept: each arithmetic site has one of the two dispositions recorded; none is waived.
@@ -979,7 +979,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-151a** MUST: The register's traces to the prose are decided mechanically rather than by reading, and the citation is derived rather than carried: a trace names its `CJ-` targets alone and cites the prose at `#r-<id>`, the bookmark its requirement number gives. Every derived bookmark resolves exactly once in the prose, every requirement carries a trace, every `r-*` bookmark in the prose names a live requirement, a trace is written out only where it departs from the derived form, and one that does displays the section its bookmark sits in.
 · Accept: `tools/check.ps1` decides all of them and exits non-zero on any finding, the last of them being the derived-facts rule applied to the register's own references: a trace written out where the derived form would do is reported exactly as an unheld figure is. A symbolic reference cannot go *stale*, but it can be absent, misspelled, or duplicated, and a dangling Markdown anchor fails silently, so the check is what keeps the reference discipline honest rather than merely well-intentioned. Each property is negative-tested against a deliberately broken copy (a mistyped anchor, a duplicated bookmark id, a deleted trace line, a bookmark naming a retired ID, a display section disagreeing with its target, a derived citation spelled by hand), because a checker that has never failed is indistinguishable from one that cannot. It checks *reference*, not *fidelity*: a trace landing on prose that does not support its requirement is a review-gate finding against R-05-151.
-· Trace: CJ-T · [§5](verification-maximal-os.md#r-05-151)
+· Trace: CJ-T · [§5](spec.md#r-05-151)
 
 **R-05-152** IS: The gate audits the register; the prose specification is commentary rather than the thing reviewed.
 · Accept: the review record cites requirement IDs, not prose sections.
@@ -1355,7 +1355,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-07-032** MUST: Each core runs a table-driven static cyclic executive: a composition-time schedule of fixed, time-triggered slots, with no priorities, no scheduling-context capabilities, no budget donation, and no runtime scheduling decision.
 · Accept: temporal authority is fixed at composition, not a runtime capability.
-· Trace: CJ-WCET · [§7](verification-maximal-os.md#r-07-032), [§7](verification-maximal-os.md#r-07-032-2)
+· Trace: CJ-WCET · [§7](spec.md#r-07-032), [§7](spec.md#r-07-032-2)
 
 **R-07-033** IS: Temporal isolation *is* the slot: a partition runs only in its assigned slots and cannot overrun them, the timer switching at the boundary, so a spinning compartment wastes only its own time.
 · Accept: overrun is prevented by mechanism, not convention.
@@ -1537,11 +1537,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-08-012a** MUST: The plan's objective is lexicographic: the peak-liveness footprint first, which locality may never worsen, then locality, whose three terms are co-location of objects the typed structure shows are reached together, field partitioning so frequently-reached fields share whole granules and rarely-reached ones leave them, and spreading concurrently-live objects across the island's own banks and macros.
 · Accept: the degrees of freedom a peak-optimal colouring leaves over are recorded as spent on those three terms under a fixed tie-break rather than on an arbitrary one; with no cache on the die the plan is the machine's only placement mechanism, so an unspent degree of freedom is latency nothing else recovers.
-· Trace: CJ-MEMPLAN, CJ-WCET · [§8](verification-maximal-os.md#r-08-012a), [§15](verification-maximal-os.md#r-08-012a-2)
+· Trace: CJ-MEMPLAN, CJ-WCET · [§8](spec.md#r-08-012a), [§15](spec.md#r-08-012a-2)
 
 **R-08-012b** MUST: Reach frequency is decided from artifacts the build already carries (the typed callee graph, the typed control-flow graph and its loop nesting, the §11 declared loop bounds, and the manifest's declared region types) under a fixed tie-break, with no PGO corpus, sampled frequency, learned weight, or runtime feedback.
 · Accept: two builds of one source closure yield an identical placement map, so the map is reproducible and attestable and the plan is not a reactive feedback loop rebuilt in the toolchain; the discipline is R-10-034's, applied to data.
-· Trace: CJ-MEMPLAN, CJ-DEVTREE · [§8](verification-maximal-os.md#r-08-012b), [§10](verification-maximal-os.md#r-08-012b-2)
+· Trace: CJ-MEMPLAN, CJ-DEVTREE · [§8](spec.md#r-08-012b), [§10](spec.md#r-08-012b-2)
 
 **R-08-012c** MUST: Every slot the plan assigns lies inside the region the owning island's root capability bounds, and the bank/macro/tier→island map is read and never written, so no placement moves an island boundary, borrows another island's array, changes a bandwidth ceiling, or places two confidentiality domains in one granule.
 · Accept: an out-of-island placement has no capability derivation rather than a new admission test to fail; consistent with R-07-006, R-15-226, R-15-228, and R-15-228a.
@@ -1657,7 +1657,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-08-032** MUST: Interrupt-send is authority: an interrupt is a store to an interrupt file, so *who may interrupt whom* is a write capability in the static capability topology rather than a separate routing table. Interrupt-receive is a load from state the partition already owns and needs no separate authority.
 · Accept: no interrupt-routing side table exists.
-· Trace: CJ-CERISE · [§8](verification-maximal-os.md#r-08-032), [§8](verification-maximal-os.md#r-08-032-2)
+· Trace: CJ-CERISE · [§8](spec.md#r-08-032), [§8](spec.md#r-08-032-2)
 
 **R-08-033** IS: There is no authority to *disable* interrupts, because there is no asynchronous delivery to disable: the attack the interrupt-state sentry discipline existed to stop is absent rather than bounded, and its two lemmas are vacuous rather than discharged.
 · Accept: the boundary timer is unmaskable by construction, so the overhang is zero rather than capped (R-07-041).
@@ -1751,7 +1751,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-09-008** IS: The RoT realizes the TPM 2.0 *functional* surface (measured boot, seal/unseal, attestation quotes, monotonic anti-rollback counters) on the on-die RoT and verified crypto core, and not as a standardized TPM.
 · Accept: the seal/unseal/quote surface is exposed to userspace as a capability-gated IPC service: a TPM's operations, never its command protocol.
-· Trace: CJ-CRYPTO-SPEC · [§9](verification-maximal-os.md#r-09-008), [§9](verification-maximal-os.md#r-09-008-2)
+· Trace: CJ-CRYPTO-SPEC · [§9](spec.md#r-09-008), [§9](spec.md#r-09-008-2)
 
 **R-09-009** MUST NOT: A discrete TPM is declined as an unverified vendor black box over an external bus; a firmware TPM is declined for want of a foreign TEE; and running the RoT in TCG TPM 2.0 mode is declined on the command surface: a large, grammar-heavy register-slave command stream, an ambient send-commands interface rather than a capability-scoped typed IDL, with an algorithm-agility menu that readmits non-PQ primitives.
 · Accept: the eUICC stays the only tolerated foreign trust domain.
@@ -1816,7 +1816,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-09-023** IS: The erase is one-way and non-rollbackable, rooted in the RoT's monotonic-counter and sealing machinery, followed by an RoT reset, and indistinguishable to an observer from an ordinary failed attempt until it completes.
 · Accept: the holder can be compelled to enter *a* credential, never the *right* one.
 · RoT-fresh: the key-wrapping and sealing-root version (R-10-013), advancing on the duress erase and on key rotation.
-· Trace: CJ-CRYPTO-SPEC · [§9](verification-maximal-os.md#r-09-023), [§9](verification-maximal-os.md#r-09-023-2)
+· Trace: CJ-CRYPTO-SPEC · [§9](spec.md#r-09-023), [§9](spec.md#r-09-023-2)
 
 **R-09-024** MUST: The erase is scoped to user-data key custody and not the system image, so the device is left clean rather than bricked: it re-derives a fresh identity from the RoT and boots the untouched signed generation into a clean first-run BFU state.
 · Accept: erasing the reproducible system image would buy no confidentiality and would only signal resistance.
@@ -2580,7 +2580,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-060** IS: USB is profiled by capability, not specification version, on two rules that do not turn on which generation a port negotiates.
 · Accept: a newer physical layer and FEC are admitted freely where throughput warrants, and lower-generation devices stay supported as data devices on the same terms.
-· Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-060), [§12](verification-maximal-os.md#r-12-060-2)
+· Trace: CJ-CERISE · [§12](spec.md#r-12-060), [§12](spec.md#r-12-060-2)
 
 **R-12-061** MUST: The floor is cryptographic device and cable authentication before a data role is granted, re-grounded on ML-DSA identities rather than the stock profile's ECDSA and carried by Narcissus-checked parsers; an unauthenticated device is held charging-only exactly as a locked one is.
 · Accept: the DMA window stays unopened until a post-unlock powerbox consent admits it.
@@ -2675,7 +2675,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-082** IS: Rendering is software on V-class cores: graphics acceleration is the general-purpose RVV datapath, so the render and compositor servers are the whole of the graphics driver.
 · Accept: there is no GPU driver, no command-stream validator, and no shader-IR compiler in the display path.
-· Trace: CJ-CERISE · [§12](verification-maximal-os.md#r-12-082), [§12](verification-maximal-os.md#r-12-082-2)
+· Trace: CJ-CERISE · [§12](spec.md#r-12-082), [§12](spec.md#r-12-082-2)
 
 **R-12-083** IS: The 2D and text substrate has safe-Rust start-froms, but there is no viable no-JIT software 3D, so the RVV software rasterizer for 3D is genuinely net-new engineering.
 · Accept: llvmpipe JITs, which W^X forbids.
@@ -2783,15 +2783,15 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-13-010c** MUST NOT: Relocations, symbols, debug data, unwind metadata, and ELF-style container structure never occupy execution SRAM, and neither do source closures, derivations, or proof artifacts, which are resident in the authenticated store (§10) and consumed at admission rather than at run time.
 · Accept: the resident image is code-and-rodata plus the capability-wiring table's product, nothing else; the largest single footprint reduction in R-13-010b is this removal rather than a merge.
-· Trace: CJ-FORMAT, CJ-MEMPLAN · [§13](verification-maximal-os.md#r-13-010b)
+· Trace: CJ-FORMAT, CJ-MEMPLAN · [§13](spec.md#r-13-010b)
 
 **R-13-010d** MUST NOT: Link-time specialization may not specialize on a confidential value.
 · Accept: the §15 dictionary encoding makes a specialized image's encoded length a function of what it was specialized on, so this is a scope condition of R-15-036g rather than a style preference; R-15-202's key containment and §13's admission rules already keep secrets out of images, and this states the consequence for the specialization pass.
-· Trace: CJ-NI, CJ-LEAK · [§13](verification-maximal-os.md#r-13-010b)
+· Trace: CJ-NI, CJ-LEAK · [§13](spec.md#r-13-010b)
 
 **R-13-010e** IS: The duplication pass is **partly substitutive** with the §15 dictionary encoding rather than additive, each recurring sequence it removes also removing instances the dictionary would have covered.
 · Accept: the two are measured composed and never multiplied, and this pass is ordered **first**, a dictionary selected against an unmerged image being selected against the wrong histogram (R-15-036i).
-· Trace: CJ-MEMPLAN, CJ-FORMAT · [§13](verification-maximal-os.md#r-13-010b)
+· Trace: CJ-MEMPLAN, CJ-FORMAT · [§13](spec.md#r-13-010b)
 
 ### 13.2 Assurance tiers
 
@@ -3001,7 +3001,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-002** IS: The platform is single-physical-address-space under CHERI: no MMU, `satp` fixed to Bare, no Sv39 translation.
 · Accept: the Sail model carries no translation state; no page-table walker exists in any RTL.
-· Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-002), [§15](verification-maximal-os.md#r-15-002-2)
+· Trace: CJ-SAIL, CJ-KERNEL · [§15](spec.md#r-15-002), [§15](spec.md#r-15-002-2)
 
 **R-15-002a** IS: That address space is architecturally **36 bits wide**. A capability's address field holds 36 bits, so no access above 2^36 is representable; integer registers stay 64-bit and no path runs from an out-of-range integer to an access, a purecap load or store taking no integer base (R-15-031b).
 · Accept: the width is bounded by fabricable on-die SRAM rather than by architecture, which is what makes it safe to freeze permanently: the roster tops out at 16–32 GB laptop/desktop-class and at 1–2 GB in the single-planar-tier case (R-15-170, R-15-173a), main memory is on-die SRAM with no external bus and therefore no DRAM growth axis (R-15-158), and 64 GB is beyond any capacity this design plans for. It is not a window onto a wider space: no extension, segment, or bank register widens it, and the 36 bits are what put R-15-007's format inside 64 bits.
@@ -3013,15 +3013,15 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-003** IS: There is a single privilege mode (Machine only). Privilege is a CHERI permission on the PCC (access-system-registers), not a ring.
 · Accept: the S/U CSR banks, trap delegation (`medeleg`/`mideleg`), `sret`, and `Sstc`'s `stimecmp` are absent from the decode, the CSR bank, and the kernel proof.
-· Trace: CJ-SAIL, CJ-KERNEL · [§15](verification-maximal-os.md#r-15-003), [§15](verification-maximal-os.md#r-15-003-2)
+· Trace: CJ-SAIL, CJ-KERNEL · [§15](spec.md#r-15-003), [§15](spec.md#r-15-003-2)
 
 **R-15-004** IS: The architectural memory model is Ztso (RVTSO), adopted normatively in place of RVWMO.
 · Accept: RVWMO is retained neither in hardware nor in proof reasoning; every ring proof is restated under Ztso.
-· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-004), [§15](verification-maximal-os.md#r-15-004-2)
+· Trace: CJ-SAIL · [§15](spec.md#r-15-004), [§15](spec.md#r-15-004-2)
 
 **R-15-005** MUST: There is exactly one Sail model, parameterized by core class (VLEN, matrix geometry), and exactly one capability encoding. That model's semantics are a crown-jewel spec: every architectural proof is stated against the model, and the model's faithfulness to what the profile intends is what no such proof checks.
 · Accept: no second CHERI dialect (CHERIoT's compressed RV32 format included) exists; no second capability encoding forks the model, the RoT's scalar core included.
-· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-005), [§14](verification-maximal-os.md#r-15-005-2), [§15](verification-maximal-os.md#r-15-005-3)
+· Trace: CJ-SAIL · [§15](spec.md#r-15-005), [§14](spec.md#r-15-005-2), [§15](spec.md#r-15-005-3)
 
 **R-15-006** MUST NOT: No hypervisor extension: the platform hosts no guests.
 · Accept: the profile excludes H; the guest/VS interrupt-file machinery is absent (R-15-062).
@@ -3146,7 +3146,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-015a** MUST: Ztso is a system property whose structural discharge has three parts: the per-core FIFO store buffer (R-15-015), single-copy memory whose bank arbiter is the per-location order-determining point (R-15-087), and the NoC and memory controller preserving each hart's program order of memory requests across banks, macros, shared cross-island ring windows, **and device endpoints**. The third is not conferred by the store buffer's shape and is a named obligation in its own right.
 · Accept: two stores from one hart to distinct banks reach their arbiters in issue order, and no later load returns a value the coherence order places before an earlier load's. Discharged either structurally, where per-hart request order is a static property of the composition-time TDM slot schedule and per-island arbitration and reordering is unrepresentable in the fabric (preferred), or by an ordering lemma over the NoC and memory-controller RTL. Bare per-core reasoning is not a discharge. The destination set includes device endpoints because R-15-015b's drain confers *issue* order only, an edge whose observer is a device rather than a hart (descriptor-before-doorbell) being an arrival property across two independent fabric paths.
-· Trace: CJ-SAIL, CJ-ISOL · [§15](verification-maximal-os.md#r-15-015a), [§15](verification-maximal-os.md#r-15-015a-2)
+· Trace: CJ-SAIL, CJ-ISOL · [§15](spec.md#r-15-015a), [§15](spec.md#r-15-015a-2)
 
 **R-15-015b** MUST: The store buffer holds SRAM-space stores only: a device-space store does not enter it, issuing only once the buffer has drained and completing at the endpoint's accept before it retires. **Drained** means every prior buffered store has been issued into the fabric, not that it has reached its bank arbiter: the core confers issue order, and the arrival half of any edge whose observer is not the issuing hart is R-15-015a's obligation. The exclusion is forced by R-15-218, whose padded constant is stated over the class's depth and memory bandwidth and would otherwise be set by the slowest endpoint's accept latency (R-12-046's divided card clock being an on-die existence proof, and R-15-196's island-clock FIFO narrowing that to the common case without closing the full-FIFO backpressure worst case a pad must price); the drain-first half is forced by R-15-015, a device store leaving the core ahead of a buffered SRAM store being a store→store reordering Ztso does not permit.
 · Accept: no device-space entry is representable in the buffer in the RTL, and the issue condition is one statically-decoded stall on one instruction class rather than the load-path bypass-correctness obligation R-15-018 ground (3) rejects. The two halves close, **at the core**, exactly the edges between requests the core itself sequences: device-store→device-store, serialized by the accept, and the MMIO read-back. **Descriptor→doorbell is not one of them**, its observer being the DMA engine, so that edge is discharged by R-15-015a over device endpoints, the drain supplying its issue-order half and the fabric its arrival half; with both in place the `PI`/`PO` axis separates nothing. The endpoint's accept latency, evicted from R-15-218's constant, lands in the device store's own per-instruction latency (R-05-103) with the full-FIFO crossing as its worst case, charged to the issuing compartment rather than to every partition switch, and at rate only on the MSI send (R-15-064, R-08-032), mitigated by R-11-010's ring-depth amortization.
@@ -3162,7 +3162,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-016** MUST: The Ztso guarantee is an RTL-against-Sail proof obligation stated over the whole memory path: the store buffer provably exposes no ordering weaker than TSO, and the fabric beneath it provably preserves per-hart request order (R-15-015a).
 · Accept: the obligation is a named bring-up gate alongside the `Zkt`/`Zvkt` timing obligation, and its statement covers the NoC and memory controller rather than the store buffer alone.
-· Trace: CJ-RTL-SAIL · [§15](verification-maximal-os.md#r-15-016), [§15](verification-maximal-os.md#r-15-016-2)
+· Trace: CJ-RTL-SAIL · [§15](spec.md#r-15-016), [§15](spec.md#r-15-016-2)
 
 **R-15-017** IS: Legal standard `fence` encodings collapse to two semantics: a normal `fence` drains the store buffer iff its predecessor set contains a write (`PW` or `PO`) and its successor set contains a read (`PR` or `PI`); every other predecessor/successor combination and `fence.tso` are semantic no-ops. Reserved `fm` values still trap. The drain remains available for userspace store→later-load synchronization; SPSC rings, cross-island rings, MMIO, and DMA-descriptor visibility are not consumers.
 · Accept: the Sail model and Isla litmus oracle carry `drain | nop`, not the 256-case predecessor/successor lattice or separate `fm` semantics; all legal standard encodings remain accepted, the canonical ring algorithm contains no fence, and no cache-management instruction accompanies it.
@@ -3170,7 +3170,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-018** IS: Sequential consistency was evaluated and rejected on four platform-specific grounds, none of which carries a hart-count or issue-width term: single-copy memory (R-15-087) makes the deviation from SC local to each hart's own store buffer rather than coherence-borne, so there is no traffic term for hart count to scale, and wider issue deepens the buffer each load must wait out. SC is named in §18 as a question worth revisiting, not as a pending change.
 · Accept: Ztso is the specified model; the §18 entry is a question, not a deliverable. The rejection is stated over the platform, not over a configuration of it, and ground (4)'s saving is the single store→later-load relaxation that single-copy memory leaves: one clause of the ordering relation, not the memory model.
-· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-018), [§15](verification-maximal-os.md#r-15-018-2)
+· Trace: CJ-SAIL · [§15](spec.md#r-15-018), [§15](spec.md#r-15-018-2)
 
 ### 15.4 Control-flow prediction
 
@@ -3202,7 +3202,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-025** IS: `Zalrsc` is excluded because its per-hart reservation register is hidden inter-instruction state (test 3), SC may fail spuriously (test 1), and reservation-granule contention is a cross-hart channel.
 · Accept: the Sail model carries no reservation set, no spurious-failure nondeterminism, and no constrained-LR/SC forward-progress rules.
-· Trace: CJ-SAIL · [§15](verification-maximal-os.md#r-15-025), [§15](verification-maximal-os.md#r-15-025-2)
+· Trace: CJ-SAIL · [§15](spec.md#r-15-025), [§15](spec.md#r-15-025-2)
 
 **R-15-026** IS: `Zacas` is excluded for want of a consumer: the multikernel is share-nothing with no kernel locks, rings are single-writer SPSC under Ztso, refcounts and status flags are single-instruction `Zaamo`, and no capability ever resides in shared mutable memory.
 · Accept: no admitted software requires compare-and-swap; the 128-bit CAS coherence point is absent from the memory model.
@@ -3370,7 +3370,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-044** MUST NOT: `Zicfiss`/`Zicfilp` (shadow stacks / landing pads) are excluded: CFI is a theorem for verified code and CHERI-enforced for the rest, concretely by the forward/backward-edge sentries.
 · Accept: the exactness landing pads would buy is taken as the CHERI-TAL typed callee set (R-05-113) at zero silicon.
-· Trace: CJ-TAL-SOUND · [§15](verification-maximal-os.md#r-15-044), [§15](verification-maximal-os.md#r-15-044-2)
+· Trace: CJ-TAL-SOUND · [§15](spec.md#r-15-044), [§15](spec.md#r-15-044-2)
 
 **R-15-045** MUST NOT: ARM MTE-class memory tagging is excluded: its detection is probabilistic (~93% on 4-bit tags over 16-byte granules), blind to intra-granule overflow, and a statistic rather than a theorem.
 · Accept: spatial safety is CHERI's deterministic byte-granular bounds; temporal safety is budgeted revocation plus Rust ownership.
@@ -3924,7 +3924,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-148** IS: The sealed manual cutoffs dominate every software enable electrically rather than by mediation: the break sits in the power, bias, or data-lane path with no firmware in the loop, so there is no enable for software to interpose on. **What a thrown switch costs is R-12-054's statement**, cited here rather than restated.
 · Accept: the dominance is a property of where the break sits, read against R-15-150 and R-15-151; the emergency-service consequence is read off R-12-054 rather than enumerated here, so the two cannot disagree.
-· Trace: CJ-T · [§15](verification-maximal-os.md#r-15-148), [§15](verification-maximal-os.md#r-15-148-2)
+· Trace: CJ-T · [§15](spec.md#r-15-148), [§15](spec.md#r-15-148-2)
 
 **R-15-149** IS: In the mobile form factor the phone is always ringable: the away-gesture keeps the minimal cellular paging and voice-call grant alive while revoking every other radio and modem grant; only an airplane or high-assurance policy, or the manual radio switch, revokes the cellular ring itself.
 · Accept: the away-gesture is form-factor-specific (lid close, face-down, or lockout alone) and triggers lockout.
@@ -3972,7 +3972,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-159** IS: Density and leakage are bought by static, transistor-level levers only: sequential 3D tiers, CFET-stacked cells, gate-all-around, High-NA EUV patterning; asymmetric-Vt cells, gate-length biasing, state-retentive sleep-transistor gating, fixed logic-tier body bias, and a fixed composition-time read/write assist.
 · Accept: the dynamic, adaptive, or data-dependent variants (adaptive assist, workload- or temperature-tracking body bias, activity-driven power gating) are declined; sub-threshold operation is admitted only as near-threshold idle-bank retention.
-· Trace: CJ-LEAK · [§15](verification-maximal-os.md#r-15-159), [§15](verification-maximal-os.md#r-15-159-2)
+· Trace: CJ-LEAK · [§15](spec.md#r-15-159), [§15](spec.md#r-15-159-2)
 
 **R-15-160** MUST NOT: Backside power delivery is declined for the whole machine, because it would occlude the IRIS backside optical inspection path; the die keeps frontside power delivery.
 · Accept: the leakage and IR-drop cost is booked against the static cell levers.
@@ -4005,7 +4005,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-166** IS: A structure holding *recently-used* anything fails that test however it is indexed, which is one of the grounds on which the memory integrity tree's node buffer is declined.
 · Accept: the flat-latency claim holds precisely because no structure of the kind is present.
-· Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-166), [§15](verification-maximal-os.md#r-15-166-2)
+· Trace: CJ-WCET · [§15](spec.md#r-15-166), [§15](spec.md#r-15-166-2)
 
 **R-15-167** IS: Fast local memory, where a datapath needs it, is an explicit scratchpad: capability-governed plain memory at a fixed address range, WCET-exact and coherence-exempt, holding no reactive or hidden state.
 · Accept: it adds no timing channel and no flush obligation beyond the eager zeroize already accounted at a partition switch.
@@ -4034,7 +4034,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-173** MUST: Should the density levers under-deliver, the fallback bends capacity (fewer origins, smaller models, a leaner roster), never the mechanism: DRAM does not return and neither does a second die.
 · Accept: the fallback is stated as a composition change, not an architectural one.
-· Trace: CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-173), [§15](verification-maximal-os.md#r-15-173-2)
+· Trace: CJ-DEVTREE · [§15](spec.md#r-15-173), [§15](spec.md#r-15-173-2)
 
 **R-15-173a** IS: The tier-count exposure is two-case rather than a continuum: where complementary back-end devices reach array-grade quality and manufacturable scale, tier count is an ordinary yield-and-cost question and R-15-173 runs as written; where they do not, the vertical lever is absent rather than reduced, capacity is the single planar tier at order 1–2 GB, and the phone envelope is unreachable rather than late.
 · Accept: both cases bend the roster and neither returns a mechanism, so the disposition is unchanged; what the second case forbids is treating the 8-to-16-tier step as a schedule item, and the roster shown to close is the one-tier roster (R-18-030a).
@@ -4112,7 +4112,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-189b** IS: Static allocation makes the unused array set knowable: with no allocator, no swap, no overcommit, and no demand growth, the whole-program memory plan's slot assignment is the complete and final statement of which bytes an admitted composition can touch, so its complement is a build constant.
 · Accept: the conventional idle-timer bank-gating controller is refused as a reactive loop from access history to power state whose supply-current signature follows the tenant's access pattern; the saving it chases is taken statically instead.
-· Trace: CJ-MEMPLAN, CJ-NI · [§15](verification-maximal-os.md#r-15-189b), [§15](verification-maximal-os.md#r-15-189b-2), [§15](verification-maximal-os.md#r-15-189b-3)
+· Trace: CJ-MEMPLAN, CJ-NI · [§15](spec.md#r-15-189b), [§15](spec.md#r-15-189b-2), [§15](spec.md#r-15-189b-3)
 
 **R-15-189d** MUST: Each gating domain occupies exactly one of three states, ON, RETAINED (state-retentive, contents and tags preserved, not addressable), or OFF (rail collapsed, data, tag plane, and check bits destroyed), and transitions occur only at a global mode transition, commanded only by the RoT, from the mode's pre-proved descriptor.
 · Accept: no edge in the lattice is traversable by an access, a timer, a counter, or a temperature; a domain's power state is a function of the mode schedule and the current mode index, never of access history, occupancy watermark, idle timer, or observed leakage.
@@ -4150,11 +4150,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-189k** MUST: Background scrubbing runs on ON domains only, so the retention voltage floor is set by DECTED tag-plane margin at the worst characterized corner, and any mode holding a domain RETAINED longer than the §16 accumulation bound must schedule a periodic ON scrub interval or perform a full verify-and-correct sweep on the exit path before admission.
 · Accept: all three are composition-time constants, none a timer firing on an observed error rate; in standby the DRX period is the scrub period, the live island's bank returning to ON at every paging occasion.
-· Trace: CJ-SAIL, CJ-WCET · [§15](verification-maximal-os.md#r-15-189k), [§15](verification-maximal-os.md#r-15-189k-2)
+· Trace: CJ-SAIL, CJ-WCET · [§15](spec.md#r-15-189k), [§15](spec.md#r-15-189k-2)
 
 **R-15-189l** IS: Leakage is proportional to powered bitcell count, so island exclusivity becomes a capacity tax and not a leakage tax, a deployment pays leakage for the roster it composed rather than the capacity fabricated, and standby leaks in proportion to the retained tens of megabytes rather than the fabricated gigabytes.
 · Accept: retention runs roughly an order of magnitude below active-voltage idle per bit and collapse one to two further orders below retention; absolute figures are per-process characterization inputs to the §11 and §16 budgets, the structure of the saving being what is normative; collapsed tiers also relieve sequential 3D's shared heat path and sustained-power headroom.
-· Trace: CJ-DEVTREE, CJ-ISOL · [§15](verification-maximal-os.md#r-15-189l), [§15](verification-maximal-os.md#r-15-189l-2)
+· Trace: CJ-DEVTREE, CJ-ISOL · [§15](spec.md#r-15-189l), [§15](spec.md#r-15-189l-2)
 
 **R-15-189m** IS: A domain's power state is a function of the mode index alone, and the mode index is already a declared, RoT-attested, log₂(#modes)-bit public event, so an adversary observing supply current, di/dt, electromagnetic emission, or thermal signature learns the mode and nothing about any partition's data, access pattern, or occupancy.
 · Accept: this is the property activity-driven gating cannot have, its operating principle being to make the rail a function of tenant behavior, and it is the whole of why one form is admitted and the other declined.
@@ -4162,7 +4162,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-190** MUST: Standby is a partial-power global mode (mechanism 3), not whole-machine deep sleep: exactly one island stays live at low duty cycle while every other island is sealed and powered off.
 · Accept: the live set is enumerated as the radio island, its kernel instance, the cellular paging path, the DRX wake timer, the island's bound SRAM bank in low-leakage retention, and the RoT, a composition-time constant attested on entry.
-· Trace: CJ-ISOL, CJ-DEVTREE · [§15](verification-maximal-os.md#r-15-190), [§15](verification-maximal-os.md#r-15-190-2)
+· Trace: CJ-ISOL, CJ-DEVTREE · [§15](spec.md#r-15-190), [§15](spec.md#r-15-190-2)
 
 **R-15-190a** MUST: Outside standby's live set every macro and tier is collapsed outright rather than retained (R-15-189a).
 · Accept: the sealed islands hold no live allocation to preserve across a mode whose exit re-measures them, so their OFF→ON clear on wake (R-15-189j) is subsumed by that re-measurement, and standby leaks in proportion to the live set alone (R-15-189l).
@@ -4272,7 +4272,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-213** MUST: The `fence.t` flush set is a single structure: the store buffer, drained rather than merely fenced, so no old-partition store can land or become visible after the switch.
 · Accept: the predictor-history, transient, and cache-state classes are absent by construction rather than flushed.
-· Trace: CJ-ISOL · [§15](verification-maximal-os.md#r-15-213), [§15](verification-maximal-os.md#r-15-213-2)
+· Trace: CJ-ISOL · [§15](spec.md#r-15-213), [§15](spec.md#r-15-213-2)
 
 **R-15-214** MUST: The register files are deliberately not in the flush set; what replaces flush-set membership is an obligation on the primary, the total restore R-07-015 states.
 · Accept: the flush set carries no register-file entry, R-07-015's totality standing in its place, which is the guarantee R-07-016 states once rather than twice.
@@ -4292,7 +4292,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-218** MUST: `fence.t`'s cost is a padded per-class constant and the fence completes at that bound, never early.
 · Accept: the worst case is the store buffer's drain latency at the class's depth and memory bandwidth, a data-independent entry in the timing-annotated model. The bound is over SRAM and holds because R-15-015b keeps device-space stores out of the buffer, so no endpoint's accept latency is inside it and the constant is a function of the class rather than of what the outgoing partition was last talking to.
-· Trace: CJ-WCET, CJ-LEAK · [§15](verification-maximal-os.md#r-15-218), [§15](verification-maximal-os.md#r-15-218-2)
+· Trace: CJ-WCET, CJ-LEAK · [§15](spec.md#r-15-218), [§15](spec.md#r-15-218-2)
 
 **R-15-219** IS: That constancy, not the draining, is why a plain `fence` cannot replace it: a `fence` completes when the buffer happens to empty, making its duration a function of the outgoing partition's store-buffer occupancy, a partition-switch-duration channel.
 · Accept: the temporal fence makes the term data-independent, a property no ordering fence has.
@@ -4300,7 +4300,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-220** MUST: Partition-switch cost is three terms, not four: the `fence.t` padded constant (which *is* the store-buffer drain, counted once), eager vector/matrix zeroize (zeroize only; the switch saves nothing, R-07-014a), and OPP relock where operating points differ.
 · Accept: listing the fence and the drain separately would inflate every switch bound feeding §11 by a full drain.
-· Trace: CJ-WCET · [§15](verification-maximal-os.md#r-15-220), [§15](verification-maximal-os.md#r-15-220-2)
+· Trace: CJ-WCET · [§15](spec.md#r-15-220), [§15](spec.md#r-15-220-2)
 
 **R-15-221** IS: The flush-set statement is itself a crown-jewel spec, now over one structure rather than two.
 · Accept: it appears in the crown-jewel inventory and is subject to independent review.
@@ -4728,7 +4728,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-17-017** MUST: The hardware seams are a named register with owners rather than an emergent property, and a future mechanism's admission review walks this list *before* the five-part admission test's clauses, because at this design's maturity a gap is a seam, not a subsystem.
 · Accept: a mechanism admitted alone is not admitted until its meetings are; the register below is the standing companion the five-part test lacked.
-· Trace: CJ-T · [§17](verification-maximal-os.md#r-17-017), [§17](verification-maximal-os.md#r-17-017-2)
+· Trace: CJ-T · [§17](spec.md#r-17-017), [§17](spec.md#r-17-017-2)
 
 **R-17-018** IS: Seam: **interrupts ⋈ the cyclic executive**, dissolved rather than reconciled: asynchronous delivery deleted, arrival latched state read by ordinary loads, the slot-boundary timer the sole asynchronous trap, service latency a schedule corollary, the residual a watchdog bark noticed at slot rather than trap latency.
 · Accept: discharged by R-07-038 through R-07-047 and R-16-006.
@@ -4972,7 +4972,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-17-051** IS: The 5G/6G-only generation floor narrows deployability, and emergency calling inherits it and narrows further: emergency reach equals the reach of 5G-SA/6G networks carrying IMS emergency over VoNR, a set lagging SA radio coverage itself since EPS fallback is excluded, a coverage-for-security trade extended to E911/E112 by decision rather than by silence.
 · Accept: the trade is stated in §15, §12, and here.
-· Trace: CJ-SAIL · [§17](verification-maximal-os.md#r-17-051), [§17](verification-maximal-os.md#r-17-051-2)
+· Trace: CJ-SAIL · [§17](spec.md#r-17-051), [§17](spec.md#r-17-051-2)
 
 **R-17-052** IS: The emergency-calling seam admits an unauthenticated, possibly null-ciphered session (the one place the radio's verified crypto posture is deliberately not in force), contained by non-interference and zero standing authority rather than excepted.
 · Accept: it is also the one place a sensitive peripheral is granted at Before First Unlock, and the residual runs the *other* way: the sealed cutoffs are not overridden, because a software override for the emergency case is a software override.
@@ -5310,7 +5310,7 @@ All eighteen normative sections are extracted, at 1217 requirements. §19 is non
 
 ## Extraction defects
 
-Normative claims that resist atomic restatement, per R-05-153. This is the register's standing output and the review gate's agenda (R-18-035): an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is itself a spec defect by R-05-153's own rule. A claim booked here is a defect in [verification-maximal-os.md](verification-maximal-os.md) to be repaired there, never a register omission to be worked around here.
+Normative claims that resist atomic restatement, per R-05-153. This is the register's standing output and the review gate's agenda (R-18-035): an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is itself a spec defect by R-05-153's own rule. A claim booked here is a defect in [spec.md](spec.md) to be repaired there, never a register omission to be worked around here.
 
 **Open defects: none.**
 

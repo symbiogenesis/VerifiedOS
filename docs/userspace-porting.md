@@ -1,6 +1,6 @@
 # Userspace Porting Targets (non-normative)
 
-> Externalized companion to [verification-maximal-os.md](verification-maximal-os.md).
+> Externalized companion to [spec.md](spec.md).
 > This is a **non-normative roadmap**, not part of the specification: an inventory of the userland the platform must have, followed by the first applications slated for porting, each mapped to the normative mechanism (§N of that document) it is authored or re-targeted onto.
 > It is the userland analogue of [Evaluated Architectural Alternatives](architectural-alternatives.md) and carries no normative weight: every target still enters through the Tier-2/Tier-1 admission discipline of §13, and a name here is a *statement of intent*, not a grant of exception.
 

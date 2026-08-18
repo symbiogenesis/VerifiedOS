@@ -1,6 +1,6 @@
 # Performance Estimates: What the Security Choices Cost (and Buy) (non-normative)
 
-> Externalized companion to [verification-maximal-os.md](verification-maximal-os.md).
+> Externalized companion to [spec.md](spec.md).
 > A **non-normative estimate**, not part of the specification: an engineering-judgment accounting of the performance-relevant features the spec removes, adds, or substitutes, and the resulting net delta.
 > Cross-references of the form §N point to sections of that specification.
 > Every figure is a **coarse range with wide error bars**, not a benchmark; performance was deliberately subordinated to security (§1), so this document quantifies the accepted price rather than defending it.

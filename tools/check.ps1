@@ -205,7 +205,7 @@ $anchorRe   = [regex]'<a id="([^"]+)"'
 $proseSecRe = [regex]'(?m)^## (\d+)\.'
 
 foreach ($d in $docs) {
-    $prose = $d.Name -eq 'docs/verification-maximal-os.md'
+    $prose = $d.Name -eq 'docs/spec.md'
     $here  = @{}
     $starts = $d.Starts
 
@@ -311,7 +311,7 @@ foreach ($line in $docByName['docs/coverage-matrix.md'].Lines) {
 
 "=== traces: the register's references against the prose ==="
 
-$traceLinkRe = [regex]'\[§([\d.]+)\]\(verification-maximal-os\.md#([^)]+)\)'
+$traceLinkRe = [regex]'\[§([\d.]+)\]\(spec\.md#([^)]+)\)'
 
 $badTarget = @(); $wrongSec = @(); $restated = @()
 foreach ($id in $ids) {
@@ -834,7 +834,7 @@ $claims = @(
     @{ File = 'docs/crown-jewels.md'; Q = 'cj-conferring'; Style = 'words';  Pattern = '(?<=There are )[\w-]+(?= such entries)' }
 
     # the prose states the size of each seam register it carries
-    @{ File = 'docs/verification-maximal-os.md'; Q = 'fc-seams'; Style = 'words'; Pattern = '[\w-]+(?= fail-closed seams are named with owners)' }
+    @{ File = 'docs/spec.md'; Q = 'fc-seams'; Style = 'words'; Pattern = '[\w-]+(?= fail-closed seams are named with owners)' }
 
     # and the register states the shape of each enumeration it closes by conferral
     @{ File = 'docs/requirements-register.md'; Q = 'fc-conferrals'; Style = 'words'; Pattern = '[\w-]+(?= requirements confer a refusal)' }

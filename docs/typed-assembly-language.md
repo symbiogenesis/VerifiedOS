@@ -1,7 +1,7 @@
 # The Typed Assembly Language
 
 > **What this is.**
-> The specification of the typed machine-code language, and the check over it, that [VerifiedOS](verification-maximal-os.md) admits binaries with.
+> The specification of the typed machine-code language, and the check over it, that [VerifiedOS](spec.md) admits binaries with.
 > It is factored out as a project in its own right because its dependency set is a machine semantics and a type theory and nothing else: no kernel, no storage stack, no authority model, and no hardware beyond the target's own instruction semantics.
 >
 > **Normative for the language; not a derived view.**

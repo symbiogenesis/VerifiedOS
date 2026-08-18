@@ -274,7 +274,7 @@ Every exclusion below is a `MUST NOT` in the register. Where a feature was exclu
 | S/U modes, `medeleg` / `mideleg`, `sret`, `mcounteren` / `scounteren` | single Machine mode | R-15-003, R-15-077 |
 | PMP / `Smepmp` | CHERI is the sole memory-protection mechanism; the three roles a locked-PMP backstop would serve each map onto a named CHERI or crypto-core mechanism | R-15-075 |
 | MTE-class memory tagging | ~93% probabilistic detection, blind to intra-granule overflow: a statistic, not a theorem | R-15-045 |
-| Initialization-tag plane (Mon CHÉRI-derived) | carried instead by the definite-initialization attribute of [verification-maximal-os.md](verification-maximal-os.md) §5; one tag plane per SRAM word, not two | R-15-035 |
+| Initialization-tag plane (Mon CHÉRI-derived) | carried instead by the definite-initialization attribute of [spec.md](spec.md) §5; one tag plane per SRAM word, not two | R-15-035 |
 | RVWMO | retained neither in hardware nor in proof reasoning; every ring proof restated under Ztso | R-15-004 |
 | Speculation, SMT, dynamic branch prediction | fail admission tests (1)–(3), (3), and (3) respectively | R-15-012, R-15-019 |
 

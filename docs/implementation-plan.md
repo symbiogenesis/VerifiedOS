@@ -1,6 +1,6 @@
 # Golden-Model Implementation Plan: Two Languages, One Machine
 
-> Companion to [verification-maximal-os.md](verification-maximal-os.md).
+> Companion to [spec.md](spec.md).
 > Execution state is tracked in [implementation-checklist.md](implementation-checklist.md), where each milestone is split into checkable tasks as it is entered; this document stays the authority on what each milestone means and why.
 > This is the **bring-up realization** of §18: how to stand the whole verified stack up as a *fast, executable golden model* generated **directly from the two verification languages**, before any of the optimized/production workstreams exist.
 > It is non-normative; §N references point at the specification.
