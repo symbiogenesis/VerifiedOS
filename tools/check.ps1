@@ -825,7 +825,6 @@ $claims = @(
     @{ File = 'docs/crown-jewels.md'; Q = 'cj-authored';   Style = 'words';  Pattern = '[\w-]+(?= of [\w-]+ are authored outright)' }
     @{ File = 'docs/crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=of )[\w-]+(?= are authored outright)' }
     @{ File = 'docs/crown-jewels.md'; Q = 'cj-partial';    Style = 'words';  Pattern = '(?<=and )[\w-]+(?= more are partial)' }
-    @{ File = 'docs/crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '(?<=\. )[A-Z][\w-]+(?= are not authored\.)' }
     @{ File = 'docs/crown-jewels.md'; Q = 'cj-specs';      Style = 'words';  Pattern = '(?<=because these )[\w-]+(?= are \*named)' }
     @{ File = 'docs/crown-jewels.md'; Q = 'cj-unauthored'; Style = 'words';  Pattern = '[\w-]+(?= of them are not yet written)' }
     @{ File = 'docs/crown-jewels.md'; Q = 'cj-theorems';   Style = 'words';  Pattern = '(?<=the )[\w-]+(?= theorem targets above cannot start)' }

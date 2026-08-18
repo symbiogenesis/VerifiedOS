@@ -8,7 +8,7 @@
 
 R-15-100's acceptance criterion reads *"each appears in the **absence-contract register** with a discharge."* R-15-021 requires that predictor absence *"appears in the absence-contract register, not among the refinement obligations."* R-15-107 requires that *"both entries exist."* This document is the register all three quantify over; without it none of them is decidable.
 
-It lands on the deliverable the specification is most emphatic is available now. R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"*: the sole part of the Sail ⋈ RTL seam (R-17-039, the least-built layer of the stack) that can be discharged before any RTL of record exists. R-18-003b(ii) makes it day-one deliverable number two. This is the checklist that deliverable runs.
+R-18-012 calls the absence contract *"buildable on day one and cheap"* and *"the one part of the least-built layer that does not need the layer to exist first"*: the sole part of the Sail ⋈ RTL seam (R-17-039, the least-built layer of the stack) that can be discharged before any RTL of record exists. R-18-003b(ii) makes it day-one deliverable number two. This document is that deliverable's checklist, and §8 is the procedure that runs it.
 
 ## 1. What the contract is, and why it is a separate register
 
@@ -18,7 +18,7 @@ The semantic content of every removal in this document is **one hyperproperty** 
 
 > Cycle-level timing and memory traffic are a function of the instruction stream and architectural state alone, never of prior execution history.
 
-The contract does **not** prove that hyperproperty over a cycle-accurate model. It discharges a **sufficient structural condition** for it: that the enumerated structures and their state elements do not exist (R-15-101). That is what makes it cheap, and it is the whole argument for preferring removal to partitioning: every microarchitectural removal converts a correctness obligation into an absence obligation, moving work out of the least-built arrow. Deletion is preferred to partitioning **even where partitioning would suffice** (R-15-105).
+The contract does **not** prove that hyperproperty over a cycle-accurate model. It discharges a **sufficient structural condition** for it: that the enumerated structures and their state elements do not exist (R-15-101). That is what makes it cheap, and the cheapness is the whole argument for preferring removal to partitioning (R-18-012): every microarchitectural removal converts a correctness obligation into an absence obligation, moving work out of the least-built arrow. Deletion is preferred to partitioning **even where partitioning would suffice** (R-15-105).
 
 ## 2. Scope: what owes this contract and what does not
 
@@ -47,7 +47,7 @@ Each row is a structure whose **absence** is claimed, with the discharge form th
 | **A-12** | DVFS / frequency control | power states are schedule artifacts, never control loops | no PLL or DVFS control path, no frequency-scaling state machine | R-15-100, R-15-103 |
 | **A-12a** | Activity-driven memory power gating (idle-timer / watermark bank shutdown, wake-on-access) | the saving is taken statically instead: the memory plan's per-mode occupancy map decides which macros and tiers are powered, so the detector has nothing left to detect | no per-domain idle counter, access counter, or watermark register; no access-history state in the power controller; no request path from an address decode to a rail enable; the rail-state inputs are the mode index and the attested power vector alone | R-15-189a, R-15-189d, R-15-189h |
 
-**Absences the audit confirms rather than assumes.** Each is discharged elsewhere, being already absent by an ISA-visible removal or covered by its own named mechanism. A-13 through A-15 are confirmed because the `fence.t` flush-set claim depends on them: they are the would-be members R-15-215 names beyond the §3 rows. A-16 is confirmed because its acceptance is likewise structural: one tag plane in the SRAM word, not two (R-15-035):
+**Absences the audit confirms rather than assumes.** Each is discharged elsewhere, being already absent by an ISA-visible removal or covered by its own named mechanism. A-13 through A-15 are confirmed because the `fence.t` flush-set claim depends on them: they are the would-be members R-15-215 names beyond the §3 rows. A-16 is confirmed because its acceptance criterion is one the same netlist audit can check: one tag plane in the SRAM word, not two (R-15-035):
 
 | # | Structure | Discharged by | Governing |
 | --- | --- | --- | --- |
@@ -104,7 +104,7 @@ Every stateful structure in the RTL maps to **exactly one of four classes**, and
 
 ## 8. Running it on day one
 
-The contract needs no RTL of record, no toolchain, and no Sail model, only the imported cores, which exist today (R-18-012). Concretely, for each of the CHERI-CVA6 front end, Ara, and Gemmini (R-15-090):
+The contract needs no RTL of record, no Sail model, and no proof toolchain: only an elaborator and the imported cores, which exist today (R-18-012). Concretely, for each of the CHERI-CVA6 front end, Ara, and Gemmini (R-15-090):
 
 1. **Elaborate** the core at its intended synthesis configuration.
 2. **Enumerate** every state element in the elaborated netlist.
