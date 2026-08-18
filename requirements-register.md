@@ -1003,6 +1003,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: one theorem statement exists with all four elements: the quantifier over *C*, the value-and-timing-and-architectural observation, the *modulo D* clause, and the *relative to Ax* clause.
 · Trace: CJ-T
 
+**R-05-156a** IS: T's *Input* is the whole-system input: the content and cycle-level arrival timing of every external stimulus, radio, wired peripheral, sensor, and DMA-visible device event alike, which is what entitles the statement to model execution as a function of the input (R-15-101's hyperproperty plus the R-07-021 entry discipline) rather than as a relation over device nondeterminism. The entitlement's cost is stated with it: a device-borne quantity the indistinguishability relation equates across the input pair is quantified out of T rather than covered by it, so the policy model states which device observations an adversary set's indistinguishability classes agree on, device arrival timing named rather than defaulted.
+· Accept: the apex statement's input decision cites this entry, and the R-08-028 policy model carries an explicit device-observation clause; a device timing absent from that clause is outside T by construction and booked as such, never silently equated.
+· Trace: CJ-T, CJ-NI
+
+**R-05-156b** IS: T instantiated at a victim-shaped *C* is the influence direction: where *P* denies *C* sight of an attacker's compartments, two inputs varying only in that attacker's behavior are indistinguishable to *C*, and T forces *C*'s observations equal, so the attacker's behavior cannot influence what *C* observes. The reading holds exactly under two provisos on the R-08-028 policy model: the quantifier's domain admits victim-shaped sets, and the indistinguishability relation is stated over what *C* may observe rather than over what *C* controls; under both, T is a noninfluence-strength statement and not only a nonleakage one.
+· Accept: both provisos are discharged or refuted where the policy model is authored; if either fails, the surface nonleakage reading is the claim and this entry is amended rather than quietly kept.
+· Trace: CJ-T, CJ-NI
+
 **R-05-157** IS: T is the formal reading of *hyper-secure* (§1) and of G2; *on the fabricated die* is what makes it a statement about the machine rather than the model.
 · Accept: §1's and §3's claims cite T; no stronger informal claim appears anywhere in the specification.
 · Trace: CJ-T
@@ -1023,8 +1031,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the coverage argument is written and reviewed; each seam's interface types are shown to meet.
 · Trace: CJ-T
 
+**R-05-161a** MUST: The binding between the composed artifact and the booted die has two halves, both carried in the apex vocabulary: the ninth seam's image binding, which is code identity, and R-07-028's initialisation refinement, which is the installed capability distribution; the refinement enters the ninth seam as a premise beside attestation and capability safety, so the graph whose permitted adversary sets T quantifies over is the graph the booted machine runs, not only the one the image was composed against.
+· Accept: the apex statement carries the initialisation refinement as a named field some workstream must instantiate; a discharge of T consuming the adversary quantifier without it is a coverage finding against R-05-161.
+· Trace: CJ-T, CJ-KERNEL
+
 **R-05-162** MUST: T's boundary is stated rather than hidden: it holds modulo *D* and relative to *Ax*, the hardness conjectures, the die-matches-RTL fabrication gap, specification faithfulness, human consent correctness, and invasive physical attack.
 · Accept: each boundary element is a §17 residual; everything outside *D* and *Ax* is inside T.
+· Trace: CJ-T
+
+**R-05-162a** MUST: The *Ax* ledger is indexed by claim class rather than held as one undifferentiated conjunction: each element is a machine axiom (die-matches-RTL, specification faithfulness, invasive physical attack), a computational-hardness conjecture, or a human premise (consent correctness); T is relative to the whole conjunction, and a companion theorem stated over the same vocabulary cites only the classes it consumes, so what any one claim rests on is answerable per claim rather than as everything at once.
+· Accept: the R-18-031 ledger records each element's class, and the apex statement carries the classes as separate constituents whose conjunction is *Ax*; a theorem stated relative to a class it does not consume is a review-gate finding.
 · Trace: CJ-T
 
 ### 5.23 Proof-artifact hygiene
@@ -1618,7 +1634,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-NI
 
 **R-08-028** IS: The security policy model, including the delimited-release bound and the robust-declassification statement, is a crown-jewel spec.
-· Accept: it appears in the crown-jewel inventory and is subject to independent review.
+· Accept: it appears in the crown-jewel inventory and is subject to independent review. Two obligations from the apex statement ride with it: the device-observation clause of R-05-156a, and the two victim-shaped-set provisos of R-05-156b, each discharged or refuted where this model is authored.
 · Trace: CJ-NI
 
 **R-08-029** IS: Declassification is explicit capability use of exactly two kinds: the compose-time kind, manifest-declared as an edge in the capDL-class spec and covered by the base theorem directly; and the runtime kind, the powerbox grant, the sole source of an inter-level edge not in the manifest.
@@ -5255,7 +5271,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1210 requirements. §19 is non-normative and yields none. Counts include the 288 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1214 requirements. §19 is non-normative and yields none. Counts include the 292 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5263,7 +5279,7 @@ All eighteen normative sections are extracted, at 1210 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **196** |
+| **§5 Languages & Verification** | **extracted** | **200** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **59** |
 | **§8 Authority Model** | **extracted** | **61** |

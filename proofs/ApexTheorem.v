@@ -32,8 +32,9 @@
       further source of nondeterminism for the observations T ranges
       over.
    2. The refinement tower conjoins four theorem rungs; the fifth,
-      die-matches-RTL, is an element of Ax rather than a conjunct
-      (R-05-158: "the last an axiom and the rest theorems"; R-05-162).
+      die-matches-RTL, is an element of Ax's machine class rather than a
+      conjunct (R-05-158: "the last an axiom and the rest theorems";
+      R-05-162, R-05-162a).
    3. NI joins timing and WCET joins isolation at the same premise, the
       one timing_isolation field, per R-17-041: "WCET soundness and
       timing-channel deletion share one non-interference proof".
@@ -62,6 +63,32 @@
       observations live inside the channels per R-08-027a, bound when
       row 2's policy model lands; "in-scope" is §17's scoping, so the
       analog power and EM observation is outside T (R-05-162, R-17-058a).
+   10. Ax is three classes, not one pool (R-05-162a): machine, hardness,
+      and human, each a field, with Ax the definition conjoining them; a
+      companion theorem over this record cites only the classes it
+      consumes, and the ledger elements some seam or rung consumes are
+      pinned inside their classes by the coercions.
+   11. The boot binding has two halves (R-05-161a): the ninth seam
+      consumes R-07-028's initialisation refinement as a third premise,
+      and the image binding it concludes is code identity and installed
+      capability distribution at once, which is what entitles exec and
+      graph_permits to be stated of the booted machine.
+   12. The admission judgment's locus is decided elsewhere and read here:
+      admission_type_check is concluded on-device by the R-06-008
+      checkers, themselves built like the TCB (R-06-012) and bottoming
+      out at the R-06-014 De Bruijn root, an element of the R-05-164
+      declared set rather than of Ax, so this record carries no
+      checker-trust field.
+   13. Input is the whole-system input (R-05-156a): the content and
+      cycle-level arrival timing of every external stimulus, DMA-visible
+      device events included; decision 1's functionality rests on
+      R-15-101 plus the R-07-021 entry discipline, and every device-borne
+      quantity indist equates across a pair is quantified out of T, so
+      row 2's policy model names the device observations it equates.
+   14. T at a victim-shaped C is the influence direction (R-05-156b),
+      noninfluence rather than only nonleakage, under that entry's two
+      provisos on row 2's policy model; if either fails, the surface
+      nonleakage reading is the claim.
 
    The lemmas at the end are the statement's own non-vacuity witnesses
    (R-05-165, R-05-166): a model in which T is provable, so no premise
@@ -164,7 +191,11 @@ Record Vocabulary : Type := {
                                             row 6 Sail model (CJ-TAL-SOUND)   *)
   admission_type_check : Prop;           (* every admitted binary is
                                             well-typed (R-05-159's fourth
-                                            carrier)                          *)
+                                            carrier); concluded on-device by
+                                            the R-06-008 checkers, whose own
+                                            trust is the R-06-014 root in the
+                                            R-05-164 declared set, not in Ax
+                                            (decision 12)                     *)
   admitted_binaries_safe : Prop;
   crypto_reductions : Prop;              (* the CJ-REDUCTION games over
                                             row 14's functional specs         *)
@@ -182,27 +213,49 @@ Record Vocabulary : Type := {
                                             consent act authorized, D being
                                             this record's own D (decision 8
                                             above)                            *)
+  init_realizes_topology : Prop;         (* R-07-028: the M-mode firmware
+                                            installs exactly the composed cap
+                                            graph as running kernel state; the
+                                            ninth seam's third premise
+                                            (R-05-161a, decision 11)          *)
   attestation_chain : Prop;              (* the §9 measured chain              *)
   image_binding : Prop;                  (* the attested image is the composed
-                                            image the proofs are about, which
-                                            is what entitles exec to stand
-                                            for it                            *)
+                                            image the proofs are about and its
+                                            installed capability distribution
+                                            is the composed graph, which
+                                            together is what entitles exec and
+                                            graph_permits to stand for the
+                                            booted machine (R-05-161a)        *)
 
-  (* --- the boundary (R-05-162): Ax abbreviates the conjunction of the
-         R-18-031(c) ledger, and the three of its elements that some seam
-         or rung consumes are pinned inside it by the coercions below.
+  (* --- the boundary (R-05-162, R-05-162a): the R-18-031(c) ledger is
+         indexed by claim class, machine, hardness, and human, each class
+         a field here, with Ax defined below as their conjunction; a
+         companion theorem over this record cites only the classes it
+         consumes (decision 10). The three ledger elements some seam or
+         rung consumes are pinned inside their classes by the coercions.
          Specification faithfulness and invasive physical attack are
-         boundary elements no Prop of this statement can carry; they stay
-         §17 residuals. --------------------------------------------------- *)
+         machine-class elements no Prop of this statement can carry; they
+         stay §17 residuals. ----------------------------------------------- *)
 
   die_matches_rtl : Prop;
   hardness_conjectures : Prop;           (* MLWE/MSIS, ECDLP/CDH (R-17-049)    *)
   consent_correctness : Prop;            (* the human half (R-17-013, R-17-013e) *)
-  Ax : Prop;
-  ax_carries_die_matches_rtl : Ax -> die_matches_rtl;
-  ax_carries_hardness : Ax -> hardness_conjectures;
-  ax_carries_consent : Ax -> consent_correctness
+  Ax_machine : Prop;                     (* die-matches-RTL, specification
+                                            faithfulness, invasive physical
+                                            attack                            *)
+  Ax_hardness : Prop;
+  Ax_human : Prop;
+  ax_machine_carries_die_matches_rtl : Ax_machine -> die_matches_rtl;
+  ax_hardness_carries_conjectures : Ax_hardness -> hardness_conjectures;
+  ax_human_carries_consent : Ax_human -> consent_correctness
 }.
+
+(* Ax abbreviates the whole indexed ledger (R-05-162, R-05-162a): T below
+   is relative to the conjunction, while a companion theorem over the same
+   Vocabulary cites only the classes it consumes, which is the indexing's
+   point: what each claim rests on is answerable per claim. *)
+Definition Ax (v : Vocabulary) : Prop :=
+  v.(Ax_machine) /\ v.(Ax_hardness) /\ v.(Ax_human).
 
 (* -------------------------------------------------------------------------
    The apex theorem T (R-05-156), with its four elements in order: the
@@ -226,7 +279,7 @@ Definition observation_equal_modulo_D
    = v.(release_arch) v.(D) (v.(observe_arch) C t2).
 
 Definition T (v : Vocabulary) : Prop :=
-  v.(Ax) ->
+  Ax v ->
   forall C : v.(Compartment) -> Prop,
     admissible v C ->
     forall i1 i2 : v.(Input),
@@ -291,21 +344,24 @@ Definition seam_liveness_schedulability (v : Vocabulary) : Prop :=
   -> v.(progress_guarantee).
 
 (* 7. Consent joins declassification, at T's own D; the premise is inside
-      Ax (R-05-162), so within T's scope it is discharged by
-      ax_carries_consent. *)
+      Ax's human class (R-05-162, R-05-162a), so within T's scope it is
+      discharged by ax_human_carries_consent. *)
 Definition seam_consent_declassification (v : Vocabulary) : Prop :=
   v.(consent_correctness) -> v.(declassified_flows_authorized).
 
-(* 8. Crypto joins hardness (R-17-049); the hardness side is inside Ax,
-      and the conclusion is seam 5's premise. *)
+(* 8. Crypto joins hardness (R-17-049); the hardness side is Ax's hardness
+      class, and the conclusion is seam 5's premise. *)
 Definition seam_crypto_hardness (v : Vocabulary) : Prop :=
   v.(crypto_reductions) /\ v.(hardness_conjectures)
   -> v.(ae_ind_cca_int_ctxt).
 
 (* 9. Attestation joins capability safety, the substrate's spatial_safety
-      (R-05-159); concludes the image binding T's preamble needs. *)
+      (R-05-159); consumes R-07-028's initialisation refinement as its
+      third premise (R-05-161a) and concludes the two-halved image binding
+      T's preamble needs: code identity and installed capability
+      distribution at once. *)
 Definition seam_attestation_capability_safety (v : Vocabulary) : Prop :=
-  v.(attestation_chain) /\ v.(spatial_safety)
+  v.(attestation_chain) /\ v.(spatial_safety) /\ v.(init_realizes_topology)
   -> v.(image_binding).
 
 (* The list is closed by amendment to R-05-160; a tenth conjunct here
@@ -391,15 +447,18 @@ Definition trivial_vocabulary : Vocabulary := {|
   kernel_liveness := True;
   progress_guarantee := True;
   declassified_flows_authorized := True;
+  init_realizes_topology := True;
   attestation_chain := True;
   image_binding := True;
   die_matches_rtl := True;
   hardness_conjectures := True;
   consent_correctness := True;
-  Ax := True;
-  ax_carries_die_matches_rtl := fun _ => I;
-  ax_carries_hardness := fun _ => I;
-  ax_carries_consent := fun _ => I
+  Ax_machine := True;
+  Ax_hardness := True;
+  Ax_human := True;
+  ax_machine_carries_die_matches_rtl := fun _ => I;
+  ax_hardness_carries_conjectures := fun _ => I;
+  ax_human_carries_consent := fun _ => I
 |}.
 
 Lemma statement_inhabitation_witness : T trivial_vocabulary.
@@ -468,21 +527,24 @@ Definition leaky_vocabulary : Vocabulary := {|
   kernel_liveness := True;
   progress_guarantee := True;
   declassified_flows_authorized := True;
+  init_realizes_topology := True;
   attestation_chain := True;
   image_binding := True;
   die_matches_rtl := True;
   hardness_conjectures := True;
   consent_correctness := True;
-  Ax := True;
-  ax_carries_die_matches_rtl := fun _ => I;
-  ax_carries_hardness := fun _ => I;
-  ax_carries_consent := fun _ => I
+  Ax_machine := True;
+  Ax_hardness := True;
+  Ax_human := True;
+  ax_machine_carries_die_matches_rtl := fun _ => I;
+  ax_hardness_carries_conjectures := fun _ => I;
+  ax_human_carries_consent := fun _ => I
 |}.
 
 Lemma statement_distinguishing_instance : ~ T leaky_vocabulary.
 Proof.
   intros H.
-  specialize (H I (fun _ => True)
+  specialize (H (conj I (conj I I)) (fun _ => True)
                 (conj I (fun _ _ contra => contra))
                 true false I).
   destruct H as [Hvalue _].

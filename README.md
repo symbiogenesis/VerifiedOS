@@ -314,7 +314,7 @@ The [typed assembly language](typed-assembly-language.md), the typed machine-cod
 
 ### The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact §5's independent-specification-review release gate audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1210 numbered requirements.
+The [atomic-requirements register](requirements-register.md) is the artifact §5's independent-specification-review release gate audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1214 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
