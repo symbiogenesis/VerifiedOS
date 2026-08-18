@@ -142,8 +142,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-15-153 through R-15-157.
 · Trace: CJ-T
 
-**R-03-004** IS: The residual set is enumerated: timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; protocol-level security above the scheme level (the composed session security of TLS 1.3, WireGuard, and the cellular AKA, which the §5 crypto assurance does not reach); invasive physical attack; malicious silicon fabrication; and carrier or certification-body acceptance of an open cellular stack.
-· Accept: each maps to a §17 entry: the protocol-level entry to R-17-049, which is the exclusion R-05-078 states and the largest scope boundary the word *hyper-secure* crosses.
+**R-03-004** IS: The residual set is enumerated: timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; protocol-level security above the scheme level (the composed session security of TLS 1.3 and WireGuard, which the §5 crypto assurance does not reach, and for the four radio protocols the R-12-043f remainder of that layer, the analyzed models' faithfulness to the prose standards and the symbolic abstraction, their session security being machine-checked upstream per R-12-043e); invasive physical attack; malicious silicon fabrication; and carrier or certification-body acceptance of an open cellular stack.
+· Accept: each maps to a §17 entry: the protocol-level entry to R-17-049, which is the exclusion R-05-078 states and the largest scope boundary the word *hyper-secure* crosses, its radio share narrowed to the R-12-043f remainder and its TLS and WireGuard share unnarrowed.
 · Trace: CJ-T
 
 **R-03-005** IS: Invasive physical attack is the only way to reach main memory at all, main memory being on-die, so delidding and probing is the entry price; the line is what scopes the memory path in §15, and drawing it elsewhere would make every on-die interface a defended one.
@@ -2494,8 +2494,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the inventory carries one row per reference model, each subject to the R-05-150 independent specification review; a refinement claimed under R-12-043b against a model absent from the inventory is a review-gate finding.
 · Trace: CJ-VELUS
 
-**R-12-043d** IS: R-12-043b claims conformance to the reference model, not security of the protocol: the model's faithfulness to the published standard is unverifiable, and the composed session security of the standard itself remains the residual R-03-004 enumerates.
-· Accept: no requirement cites R-12-043b for a session-security property; the §17 protocol-composition residual is narrowed on its implementation half and is otherwise unchanged.
+**R-12-043d** IS: R-12-043b claims conformance to the reference model, not security of the protocol, and with R-12-043e in force the two statements compose: the model the sequencer refines is the model whose session security the upstream analysis machine-checks, so an attack on the deployed sequencer inside the analysis's adversary model is a trace the analysis proves absent, and what stands between that composition and the prose standard is the R-12-043f remainder rather than the whole of composed session security.
+· Accept: no requirement cites R-12-043b alone for a session-security property; a session-security statement cites the R-12-043b ⋈ R-12-043e composition and carries the R-12-043f remainder; the residual class R-03-004 books is narrowed for the four radio protocols and unchanged for TLS 1.3 and WireGuard.
+· Trace: CJ-VELUS
+
+**R-12-043e** MUST: Each reference state machine is curated rather than authored where the literature carries a machine-checked symbolic security analysis of its protocol: the analyzed model, over which mutual authentication, agreement, and session-key secrecy are machine-checked, is the row's version-pinned tracked upstream, and the reference model is its transcription into the platform's prover rather than an original reading of the prose standard: the Tamarin 5G authentication lineage for 5G NAS including 5G-AKA, the Tamarin RRC-layer analyses for NR RRC, the Tamarin 802.11 handshake model with the machine-checked SAE analyses for the MLME, and the Tamarin Bluetooth key-agreement lineage for L2CAP/GATT pairing.
+· Accept: each of inventory rows 19–22 names its upstream analysis lineage with the pinned artifact recorded as the row is authored; the transcription's correspondence to the analyzed model enters the R-05-150 review as a formal-to-formal comparison, clause against clause, rather than a reading of prose; a reference model authored from the prose standard where an analyzed model exists is a review-gate finding; a procedure no published analysis covers is transcribed from the standard under R-05-050's hand-transcription posture and named as such in the row.
+· Trace: CJ-VELUS
+
+**R-12-043f** IS: The composition's remainder is three named parts, none claimed closed: the analyzed model's faithfulness to the prose standard, an R-17-016b-class agreement gap on a protocol rather than a format, permanent because the upstream is prose and capping every implementer identically; the symbolic abstraction, the analysis treating the §5 primitives as ideal so that its guarantee composes with the scheme-level reductions by assumption rather than by a computational-soundness theorem; and the analyses' provers, which stand outside the one-prover discipline, so each imported statement is producer-side evidence entering no trust base and no Ax class, never a platform theorem.
+· Accept: the three parts stay booked; no requirement claims composed session security as a platform theorem or cites an imported analysis inside Ax; the analyses' conformance to their standards-body feedback loops and their published attack findings are producer-side evidence in R-17-016b's stance, and no requirement claims the agreement gap closed.
 · Trace: CJ-VELUS
 
 **R-12-044** MUST: Cellular and Wi-Fi session keys live in crypto-core-backed compartments; the air-interface stack sees only the handles it needs.
@@ -4951,7 +4959,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL, CJ-RTL-SAIL
 
 **R-17-049** IS: Reductions isolate axioms but do not remove them: hardness assumptions (MLWE/MSIS, ECDLP/CDH) are irreducible, and the implementation ⋈ reduction seam joins at the primitive's functional specification, a crown-jewel spec neither side catches.
-· Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach.
+· Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach, machine-checked upstream over the analyzed models for the four radio protocols (R-12-043e) with the R-12-043f remainder booked, and unnarrowed for TLS 1.3 and WireGuard.
 · Trace: CJ-REDUCTION
 
 **R-17-049a** IS: The entropy residual is subversion, not failure: a dead, stuck, biased, or dying source is a stated fault (R-15-241b, R-15-241e, R-09-006a), while a source trimmed at fabrication to a distribution that passes exactly the tests it will be given is the fab residual (R-17-060) read on the noise source rather than on the logic, and inherits its ceiling without narrowing it.
@@ -5271,7 +5279,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1214 requirements. §19 is non-normative and yields none. Counts include the 292 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1216 requirements. §19 is non-normative and yields none. Counts include the 294 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5286,7 +5294,7 @@ All eighteen normative sections are extracted, at 1214 requirements. §19 is non
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
 | **§11 Updates** | **extracted** | **36** |
-| **§12 System Servers** | **extracted** | **105** |
+| **§12 System Servers** | **extracted** | **107** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **25** |
 | **§15 Hardware Platform** | **extracted** | **353** |

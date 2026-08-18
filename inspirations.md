@@ -1332,6 +1332,31 @@ The §14 platform interpreter (R-14-013a) is the one place the platform executes
 
 ---
 
+## Tamarin at the radio: the session-security half of the reference machines, bought by curation
+
+The four radio reference state machines (R-12-043c, inventory rows 19–22) are the second place the platform curates a mechanized upstream rather than authoring one, and the reason is the same as the interpreter's: the theorems already exist, in a lineage that has spent a decade being checked against the deployed world, and an original reading of a prose standard would discard them. R-12-043e names the lineages; this entry records the artifacts and what each one demonstrated.
+
+- **The 5G authentication lineage: the analyzed model that corrected the standard.**
+  The first full Tamarin model of 5G-AKA (Basin, Dreier, Hirschi, Radomirović, Sasse, Stettler; CCS 2018) extracted precise security goals from TS 33.501 and fed underspecification findings back to 3GPP before the standard froze; the component-based successor (Cremers, Dehnel-Wild; NDSS 2019) modeled every party the specification defines and showed the protocol's security resting on unstated channel assumptions, with a race a provider can implement "correctly" and insecurely, and a session-confusion misbinding.
+  That is the exact class a curated upstream keeps out of a transcribed reference model: the flaw lives in a defensible reading of the prose, and only a model that has been adversarially analyzed knows which readings are wrong.
+- **The RRC layer: the handover analyses, and the thinnest lane named as such.**
+  The Tamarin analysis of the 5G handover protocols (Peltonen, Sasse, Basin; WiSec 2021) models the RRC-layer procedures and derives for each the minimal assumption set under which its goals hold.
+  RRC coverage in the literature is thinner than AKA coverage, which the row records rather than smooths over: a procedure no published analysis reaches is transcribed from the prose under the R-05-050 hand-transcription posture, the fallback the curation rule leaves for exactly this case.
+- **The 802.11 model detailed enough to catch KRACK.**
+  The Tamarin WPA2 model (Cremers, Kiesl, Medinger; USENIX Security 2020) carries the four-way handshake, the group-key handshake, WNM sleep mode, and the data-confidentiality protocol with their interactions, is the first model detailed enough to exhibit the key-reinstallation attacks, and gives the first security argument in any formalism that the patched protocol meets its claims.
+  Key reinstallation on a handshake replay is R-12-043b's named class verbatim, and this artifact is why the MLME row's upstream is a model rather than a reading.
+- **SAE and its adversarial complement.**
+  WPA3's SAE handshake carries machine-checked symbolic analyses in ProVerif whose findings fed revisions of the 802.11 specification, while Dragonblood's timing and cache attacks on the same handshake sit outside the symbolic boundary by construction.
+  The pair marks the division of labor the import makes explicit: the symbolic model checks the message-level protocol, and the side-channel class it cannot see lands on the §5 constant-time discipline, which is this platform's own obligation and nobody's import.
+- **Bluetooth: the pairing-confusion lineage.**
+  The Tamarin sweep of the Bluetooth key-agreement protocols across BR/EDR, BLE, and Mesh (ESORICS 2023) surfaced two practical pairing-confusion attacks, validated against off-the-shelf devices and registered as CVEs by the Bluetooth SIG, and the BLE Secure Connections pairing analysis with machine-checked patches (USENIX Security 2023) covers the machine row 22 transcribes.
+  Pairing-method confusion is the second of R-12-043b's named classes, found by exactly the instrument the rows now pin.
+
+**What the platform takes.** The analyzed model as each row's version-pinned tracked upstream (R-12-043e); the reference machine as its transcription into the one prover, reviewed formal-to-formal, clause against clause; the analyses' security statements as producer-side evidence composing with the R-12-043b refinement, so the machine the device provably runs is the machine the field analyzed; and the analyses' attack findings as the review gate's checklist of wrong readings.
+**Honest residual (§17).** The R-12-043f remainder, none of it claimed closed: faithfulness of the analyzed models to the prose 3GPP, IEEE, and Bluetooth SIG standards, the R-17-016b-class agreement gap on a protocol, permanent because the upstream is prose and capping every implementer identically; the symbolic abstraction, whose composition with the §5 scheme-level reductions is assumed rather than proved, no computational-soundness theorem being claimed; the Tamarin and ProVerif provers standing outside the one-prover discipline, so the imported statements enter no trust base and no Ax class; and the standards' own motion beneath the pins, carried as ordinary curation drift the way SpecTec's upstream is.
+
+---
+
 ## PRET, PATMOS/T-CREST, and FlexPRET: timing as an architectural property
 
 The deterministic timing profile converges on the **precision-timed architecture** lineage from the real-time side.

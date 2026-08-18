@@ -1372,6 +1372,27 @@ The zero-authority emergency mode and its explicit coverage cost are documented 
 
 ---
 
+## The session-security slot: authored protocol proofs, computational-model upstreams, and trusted external provers, declined for curated symbolic upstreams
+
+R-12-043e pins each radio reference state machine to the machine-checked symbolic security analysis of its protocol, and three other ways of buying the session-security half were declined for it.
+
+**Authoring original protocol-security proofs in the platform's own prover** fails the same test the guest-language candidates failed: it converts a curation into a research program.
+The Tamarin and ProVerif analyses of 5G-AKA, the 802.11 handshakes, SAE, and Bluetooth pairing embody a decade of adversarial refinement, standards-body feedback, and published attacks that a fresh Coq formalization would re-derive from zero, in a prover whose automation was not built for unbounded-session Dolev-Yao reasoning; and since the imported statements enter no trust base (R-12-043f), the one-prover discipline, which governs what enters the trust base, is not violated by leaving them where they were checked.
+
+**Computational-model upstreams** (CryptoVerif, Squirrel-class analyses) were declined as the pin on coverage: the symbolic lineage carries full-protocol models of all four reference machines against their current standards, and no computational analysis does.
+The cost of the symbolic choice is stated rather than hidden, as the second part of the R-12-043f remainder: composition with the §5 scheme-level reductions is assumed rather than proved.
+A computational analysis of any of the four protocols remains welcome as further producer-side evidence, narrowing that part without any change to the design.
+
+**Consuming the analyses' statements as axioms** (admitting Tamarin or ProVerif into the trust base, the way an external theorem is imported as an axiom) was declined on the CakeML ground: theorems in a different prover are consumed as axioms or not at all, and here the axiom is unnecessary, because the platform's own claim is the R-12-043b conformance theorem and the analysis stands upstream of the specification rather than inside the proof.
+
+**Extending the import to TLS 1.3 and WireGuard** was declined for now, and the boundary is the conferral rather than the literature: machine-checked symbolic analyses of both exist at full-protocol scale, but R-12-043c confers reference-model rows on the radio control planes alone, so those stacks have no crown-jewel state machine for an analyzed model to stand upstream of, and their composed session security stays booked whole at R-03-004.
+The raise is named: conferring reference-model rows for the TLS and WireGuard client state machines, with the same refinement obligation, would extend the same narrowing at the same price.
+
+**Disposition:** the four radio reference machines take curated symbolic upstreams under R-12-043e with the R-12-043f remainder booked; the three alternatives above are declined on the grounds stated.
+Non-normative; the normative change is §12's.
+
+---
+
 ## Kernel-in-gateware: the benefit needs the whole kernel, the safety only a frozen subset; the one separable primitive worth fusing is already CHERI
 
 The proposal is to express the capability/endpoint/scheduler machine **directly in a formal-semantics HDL** (Kôika/Kami) rather than as Machine-mode software, so the kernel's correctness proof folds into the **RTL ⊑ Sail** refinement already in scope (§18) and the Machine-mode software TCB on application cores collapses toward zero.

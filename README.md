@@ -248,7 +248,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Malicious or compromised supply-chain output bypassing platform safety | Admission re-checks the final artifact's types and proofs with no trust in its build pedigree, the correspondence theorem above ties it to its included source closure, and source-level malicious dependencies remain least-authority contained | **✋ Rejected**<br>**✅ Proved**<br>**🛡️ Enforced** |
 | Protocol downgrade and negotiation confusion | Each protocol has one composition-fixed configuration, ciphersuite, and version, with no capability-driven fallback; downgrade generations are absent from silicon | **🕳️ Absent** |
 | Link and radio state-machine flaws | A Lustre control plane refines a formal model of the standard's state machine, making unmodeled states, transitions, and timers unreachable | **✅ Proved** |
-| Model unfaithfulness and composed session security | The state-machine claim is conformance, not protocol security: model faithfulness is review-gated, and composed session security a recorded residual | **🚩 Residual** |
+| Model unfaithfulness and composed session security | Each reference model is curated from the machine-checked symbolic security analysis of its protocol, so the machine the sequencer provably runs is the machine whose session security the analysis checks; what remains recorded is the analyzed model's faithfulness to the prose standard, the symbolic abstraction of the primitives, and the imported analyses standing as evidence outside the trust base | **🚩 Residual** |
 | Firmware bugs in auxiliary processors, baseband to management engine | Those programmable foreign computers are absent; fixed-function matter is driven by verified host software | **🕳️ Absent** |
 
 
@@ -314,7 +314,7 @@ The [typed assembly language](typed-assembly-language.md), the typed machine-cod
 
 ### The atomic-requirements register
 
-The [atomic-requirements register](requirements-register.md) is the artifact §5's independent-specification-review release gate audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1214 numbered requirements.
+The [atomic-requirements register](requirements-register.md) is the artifact §5's independent-specification-review release gate audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1216 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which §5 treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
