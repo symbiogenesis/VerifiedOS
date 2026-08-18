@@ -1,6 +1,6 @@
 # Evaluated Architectural Alternatives (non-normative)
 
-> Externalized from [spec.md](spec.md).
+> Companion to [spec.md](spec.md).
 > This document records only evaluated proposals that were **rejected, deferred, or imported in no part**; it is **not** part of the normative spec.
 > Decisions and prior art that the normative design actually adopted live in [inspirations.md](inspirations.md), not here.
 > Cross-references of the form §N point to sections of that specification.
