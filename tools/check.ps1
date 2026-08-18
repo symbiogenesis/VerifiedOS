@@ -75,12 +75,15 @@ $mdFiles = [System.IO.Directory]::GetFiles($PWD.Path, '*.md', $mdOpts)
 
 # a submodule's markdown is upstream prose, not this corpus: every path .gitmodules books
 # is a pinned start-from whose documents answer to their own repository, so the sweep
-# excludes them wholesale rather than holding them to a house style they never saw
+# excludes them wholesale rather than holding them to a house style they never saw;
+# model/ is the same prose vendored rather than pinned, the curated tree M0.6a stands
+# up from the sail-riscv blobs, so it is excluded on the same rationale
 $subPaths = @(if (Test-Path (Join-Path $PWD.Path '.gitmodules')) {
     foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText((Join-Path $PWD.Path '.gitmodules')), '(?m)^\s*path\s*=\s*(\S+)')) {
         [System.IO.Path]::GetFullPath((Join-Path $PWD.Path $m.Groups[1].Value)) + [System.IO.Path]::DirectorySeparatorChar
     }
 })
+$subPaths += [System.IO.Path]::GetFullPath((Join-Path $PWD.Path 'model')) + [System.IO.Path]::DirectorySeparatorChar
 if ($subPaths.Count) {
     $mdFiles = @($mdFiles | Where-Object { $f = $_; -not @($subPaths | Where-Object { $f.StartsWith($_) }).Count })
 }

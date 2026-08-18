@@ -1,0 +1,101 @@
+name: Rocq
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  ocaml_version: 5.2.1
+  rocq_core_version: 9.1.1
+  rocq_stdlib_version: 9.0.0
+  rocq_stdpp_version: 1.13.0
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          # Git history is needed for `git describe` in the build to work.
+          fetch-depth: 0
+
+      - name: System dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=3 install -y opam
+
+      - name: Extract version numbers
+        run: |
+          if [ -f cmake/sail_required_version_rocq.txt ]; then \
+            echo "SAIL_VERSION=$(cat cmake/sail_required_version_rocq.txt)" >> "$GITHUB_ENV"; \
+          else \
+            echo "SAIL_VERSION=$(cat cmake/sail_required_version.txt)" >> "$GITHUB_ENV"; \
+          fi
+
+      - name: Common setup
+        uses: ./.github/actions/sail-setup
+        with:
+          sail-version: ${{ env.SAIL_VERSION }}
+
+      - name: Restore cached opam
+        id: cache-rocq-opam-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.opam
+          key: rocq-opam-${{ runner.os }}-${{ runner.arch }}-ocaml-${{ env.ocaml_version }}-sail-${{ env.SAIL_VERSION }}-rocq-${{ env.rocq_core_version}}-stdlib-${{ env.rocq_stdlib_version }}-stdpp-${{ env.rocq_stdpp_version }}
+
+      - name: Install Rocq-specific opam packages
+        if: steps.cache-rocq-opam-restore.outputs.cache-hit != 'true'
+        run: |
+          opam init --yes --no-setup --shell=sh --compiler=${{ env.ocaml_version }}
+          eval `opam env --safe`
+          opam repo add --yes rocq-released https://rocq-prover.org/opam/released
+          opam update -y
+          opam install -y rocq-core=${{ env.rocq_core_version }} rocq-stdlib=${{ env.rocq_stdlib_version }} rocq-stdpp-bitvector=${{ env.rocq_stdpp_version }} rocq-sail-stdpp=$SAIL_VERSION
+          # We're using the Sail binary release, so fake sail opam packages
+          # This will also install fake dependencies, so it has to be the last install before the build
+          opam install --fake --yes \
+            sail.$SAIL_VERSION \
+            sail_c_backend.$SAIL_VERSION \
+            sail_coq_backend.$SAIL_VERSION \
+            sail_doc_backend.$SAIL_VERSION \
+            sail_latex_backend.$SAIL_VERSION \
+            sail_lean_backend.$SAIL_VERSION \
+            sail_lem_backend.$SAIL_VERSION \
+            sail_smt_backend.$SAIL_VERSION \
+            sail_sv_backend.$SAIL_VERSION \
+            sail_ocaml_backend.$SAIL_VERSION \
+            sail_output.$SAIL_VERSION
+          # Reduce size for caching
+          opam clean -y
+
+      - name: Cache Rocq opam packages
+        id: cache-rocq-opam-save
+        # Only on the master branch to reduce storage use
+        if: steps.cache-rocq-opam-restore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/master'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.opam
+          key: ${{ steps.cache-rocq-opam-restore.outputs.cache-primary-key }}
+
+      - name: Build Rocq model
+        run: |
+          eval `opam env --safe`
+          # The cmake fragment that computes the version uses git, which needs to be
+          # reassured about github action's use of root.
+          git config --global --add safe.directory /__w/sail-riscv/sail-riscv
+          cmake -P rocq-sail-riscv.cmake
+          # Ignore dune constraints because they come from the fake sail packages
+          # Assume depexts because we've already installed cmake, but opam doesn't realise
+          opam install --yes --ignore-constraints-on=dune --assume-depexts ./rocq-sail-riscv.opam
+
+      - name: Locate Rocq sources
+        run: |
+          eval `opam env --safe`
+          echo "artifactPath=$(rocq c -where)/user-contrib/Riscv/*.v" >> $GITHUB_ENV
+          echo "artifactName=rocq-sail-riscv-$(opam var rocq-sail-riscv:version)-ci" >> $GITHUB_ENV
+
+      - name: Upload Rocq sources
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.artifactName }}
+          path: ${{ env.artifactPath }}

@@ -1,0 +1,94 @@
+name: Build and test Lean backend
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  OPAMVERBOSE: 1
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          # Git history is needed for `git describe` in the build to work.
+          fetch-depth: 0
+
+      - name: System dependencies (ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt install cvc4
+
+      - name: Common setup
+        uses: ./.github/actions/sail-setup
+        with:
+          sail-version: "latest"
+
+      - name: Build the Sail RISCV Model for Lean
+        run: |
+          eval $(opam config env)
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -G Ninja
+          cmake --build build/ --target generated_lean_rv64d
+
+      # Use a separate initial setup step so that we can run lake update before the build
+      - name: Setup Lean
+        uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          lake-package-directory: "build/model/Lean_RV64D/"
+
+      - name: Update Lean dependencies to include Sail support library
+        working-directory: ./build/model/Lean_RV64D
+        run: lake update
+
+      - name: Use Lean to build the model and report errors
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: "build/model/Lean_RV64D/"
+
+  lean-emulator:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          # Git history is needed for `git describe` in the build to work.
+          fetch-depth: 0
+
+      - name: System dependencies (ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt install cvc4
+
+      - name: Common setup
+        uses: ./.github/actions/sail-setup
+        with:
+          sail-version: "latest"
+
+      - name: Configure the build
+        run: |
+          eval $(opam config env)
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSAIL_MODULES="H;Zca;Zicbom_insts;Zicboz;Zicsr_insts;Zkr;Sscofpmf;postlude" -DPRINT_EFFECTS=true -DENABLE_LEAN_EMULATOR_TESTS=TRUE
+
+      - name: Setup Lean
+        uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          lake-package-directory: "lean_emulator"
+
+      - name: Build and test the Lean emulator
+        run: |
+          eval $(opam config env)
+          cmake --build build --target build_lean_emulator
+          ctest --test-dir build -R lean_emulator
