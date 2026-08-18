@@ -733,6 +733,7 @@ $agendas = @(
            'R-13-014'  = 'the policy name for the admission refusal composed at R-17-030e'
            'R-14-010'  = 'a designed non-refusal, kept for the contrast: past the ceiling the browser evicts and the platform does not refuse'
            'R-15-155'  = 'the countermeasure, whose caught-fault path is the refusal composed at R-17-030n'
+           'R-15-177a' = 'an instance of the uncorrectable-ECC fail-stop R-15-179 specifies, composed at R-17-030n'
            'R-17-013e' = 'a consent residual: the refusing party is the user on reflection, and the refused mechanisms are declined at specification time; no failure action, nothing stops'
            'R-17-034'  = 'the sharpest instance of the admission refusal composed at R-17-030e'
            'R-17-047'  = 'a tooling choice refused at specification time, with no runtime failure action'

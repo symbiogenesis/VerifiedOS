@@ -1,7 +1,7 @@
 # The Typed Assembly Language
 
 > **What this is.**
-> This document specifies the typed machine-code language—and its admission check—that [VerifiedOS](spec.md) uses to admit binaries.
+> This document specifies the typed machine-code language, and its admission check, that [VerifiedOS](spec.md) uses to admit binaries.
 > It is factored into a project of its own because it depends only on a machine semantics and a type theory. It does not depend on a kernel, storage stack, authority model, or hardware beyond the target's instruction semantics.
 >
 > **Normative for the language; not a derived view.**
@@ -36,7 +36,7 @@ Three additional commitments distinguish this language from that lineage:
   A target profile declares which machine-enforced invariants the derivation may *cite* instead of re-proving (§2).
 
 The check is per-install, decidable, syntactically terminating, and local.
-It is not—and may not become—a proof checker. Obligations that do not fit are discharged by the consumer's proof kernel as release-time proof terms (§4); that separation is the purpose of the stratification.
+It is not a proof checker, and may not become one. Obligations that do not fit are discharged by the consumer's proof kernel as release-time proof terms (§4); that separation is the purpose of the stratification.
 
 ---
 
@@ -70,7 +70,7 @@ The route order is intentional. A cited invariant adds no software enforcement; 
 The capability literature states important qualifications; a profile that omits them is defective.
 Compressed capability encodings permit **inexact bounds**. A cited spatial-safety invariant therefore holds for the rounded representable region defined by the encoding, not necessarily for the exact byte range intended by the source.
 Monotone derivation has **privileged and transition cases**, the instructions and states in which authority is installed rather than narrowed, and a citation must name them rather than quantify over the whole machine.
-Capability hardware alone does not provide **temporal safety, exact callee sets, or ABI conformance**. Its immutable-code guarantee also depends on an initial capability distribution from which no writable-and-executable authority can be derived—a loader property, not an instruction-set property.
+Capability hardware alone does not provide **temporal safety, exact callee sets, or ABI conformance**. Its immutable-code guarantee also depends on an initial capability distribution from which no writable-and-executable authority can be derived: a loader property, not an instruction-set property.
 `cheri-rv64` therefore declares, beside the four architectural facts above, the execution-mode, loader, privilege, and memory-permission assumptions under which they hold, and every one of those is a premise the profile's soundness instantiation (§6) discharges rather than assumes.
 
 **What a bare profile does not recover.**

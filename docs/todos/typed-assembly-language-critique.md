@@ -6,7 +6,7 @@ The design makes sense as an architectural proposal. Its central idea is clear a
 
 The document is not yet a complete language specification, however. It is currently a high-level design contract and rationale. Several normative statements disagree about routing granularity, guarantee scope, and how inserted checks fit the three-move checker. Those issues should be resolved before the grammar, checker, or soundness theorem is implemented, because each resolution changes the theorem that must be proved.
 
-This critique compares the document with the [requirements register](requirements-register.md), the [VerifiedOS specification](spec.md), the [crown-jewel inventory](crown-jewels.md), and the [prior-art survey](inspirations.md).
+This critique compares the document with the [requirements register](../requirements-register.md), the [VerifiedOS specification](../spec.md), the [crown-jewel inventory](../crown-jewels.md), and the [prior-art survey](../inspirations.md).
 
 ## What already works well
 
@@ -56,7 +56,7 @@ The document fixes a design envelope but does not define:
 * the exact soundness theorem;
 * malformed-input behavior and resource bounds.
 
-This matters because the [crown-jewel inventory](crown-jewels.md) treats the TAL soundness theorem as depending on the ISA profile and Sail semantics, while the [requirements register](requirements-register.md) expects this document to own the theory, menu, profile rule, and soundness statement. A prose architecture cannot yet serve as the complete premise of that theorem.
+This matters because the [crown-jewel inventory](../crown-jewels.md) treats the TAL soundness theorem as depending on the ISA profile and Sail semantics, while the [requirements register](../requirements-register.md) expects this document to own the theory, menu, profile rule, and soundness statement. A prose architecture cannot yet serve as the complete premise of that theorem.
 
 ### 6. “One syntax-directed pass” is stronger than the rest of the document supports
 
@@ -102,7 +102,7 @@ The profile includes execution-mode, loader, privilege, initial-distribution, an
 
 Sections 9 and 10 contain valuable research context, but they dominate the document and include time-sensitive empirical claims. That makes it harder to identify the actual language contract and creates unnecessary amendment pressure when literature status changes.
 
-Move prior art and artifact-landscape material to [inspirations.md](inspirations.md), leaving stable normative requirements and a short rationale here.
+Move prior art and artifact-landscape material to [inspirations.md](../inspirations.md), leaving stable normative requirements and a short rationale here.
 
 ## Redundancy and suboptimal presentation
 
@@ -167,7 +167,7 @@ Replace “one pass” and line-count implications with a checkable bound, such 
 
 ### 7. Strengthen the amendment criterion
 
-Permit finitely represented, certificate-bounded domains only when their representation size and every operation have a stated bound. Require an amendment to provide termination, complexity, soundness, and negative tests—not only algebraic shape and locality.
+Permit finitely represented, certificate-bounded domains only when their representation size and every operation have a stated bound. Require an amendment to provide termination, complexity, soundness, and negative tests, not only algebraic shape and locality.
 
 ### 8. Define the WCET evidence boundary
 

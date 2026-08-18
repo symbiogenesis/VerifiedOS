@@ -1456,7 +1456,7 @@ If the kernel spec were genuinely frozen forever, fusing it would merge the kern
 - **What remains to accelerate cannot justify the added proof surface.**
   Static composition and the cyclic executive remove most dynamic RTOS work, but gateware could still shorten partition switches, endpoint lookup, bounded capability-table operations, notification delivery, revocation scanning, zeroization, and timer-boundary handling. Those are real performance and WCET-constant opportunities.
   They do not, however, collapse the TCB unless the whole capability/endpoint/scheduler machine moves with them. Partial fusion leaves the software kernel in place and adds a verified hardware/software seam; whole fusion freezes the least mature and least patchable parts.
-  The defensible claim is therefore not that gateware buys nothing, but that its remaining gains buy performance or a smaller WCET constant—not enough TCB reduction to compensate for a new unpatchable hardware proof surface.
+  The defensible claim is therefore not that gateware buys nothing, but that its remaining gains buy performance or a smaller WCET constant: not enough TCB reduction to compensate for a new unpatchable hardware proof surface.
 
 **The distilled atom: already banked, following the belt→spiller / EPIC→NaR discipline.**
 The non-redundant idea is *a single genuinely-frozen, cleanly-separable primitive as a verified hardware block*, and it is **already present**: the highest-value such primitive: **spatial capability enforcement** (bounds, tags, monotonicity); is in gateware as **CHERI**, with its own Sail semantics and RTL ⊑ Sail obligation (§1, §18), reached **not** by fusing seL4 but by a hardware capability model.
