@@ -11,8 +11,8 @@
 - [x] **M0.1, Pin the upstream start-froms.**
   Done: `upstream/sail-riscv` pinned at `8f91355e` (the model's current home `riscv/sail-riscv`, formerly rems-project, 2026-08-14) and `upstream/sail-cheri-riscv` pinned at `bb07488d` (CTSRD-CHERI, 2025-07-10), both as git submodules; the checker's sweep excludes submodule paths, upstream prose answering to its own repository.
   Finding, booked as M0.5: the CHERI model embeds its *own* `sail-riscv` submodule pinned to an older rems-project baseline, so the plan's join of the two models starts from two different bases to reconcile, not one tree to configure.
-- [ ] **M0.2, Stand up the Sail toolchain.**
-  The Windows host carries no OCaml toolchain and the WSL Ubuntu carries only a bare `ocaml`, so the build environment is WSL: `opam init`, `opam install sail`, then record the pinned Sail compiler version beside the model pins, it being the version the generated emulator's fidelity is claimed against.
+- [x] **M0.2, Stand up the Sail toolchain.**
+  Done: the build environment is WSL (Ubuntu 24.04; the Windows host carries no OCaml toolchain): opam 2.1.5, switch `default` on the system OCaml 4.14.1, `opam install sail` landing Sail 0.20.2 with z3 4.8.12 beside it. 0.20.2 is exactly the floor the pinned model's `cmake/sail_required_version.txt` demands, the requirement tracking Sail's newest release, and it is the pinned compiler version the generated emulator's fidelity is claimed against, recorded here beside the M0.1 model pins.
 - [ ] **M0.3, Baseline build, stock sail-riscv.**
   Build the pinned model's C emulator unmodified and run its bundled tests green: the baseline every curation diff is measured from.
 - [ ] **M0.4, Baseline build, stock sail-cheri-riscv.**
