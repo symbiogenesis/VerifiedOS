@@ -137,6 +137,7 @@ $traceOf    = @{}          # id -> its · Trace: line
 $perSection = [ordered]@{} # section -> entry count, in document order
 $confers    = @{}          # "Fail-closed"/"RoT-fresh" -> (id -> its conferral line)
 $accepts    = @{}          # id -> how many conjunctive · Accept: lines it carries
+$acceptText = @{}          # id -> its · Accept: lines, concatenated
 $lateAccept = @()          # ids stating a criterion after a conferral or the trace
 $dcsrRows   = 0
 
@@ -164,6 +165,7 @@ foreach ($line in $regLines) {
                 $subsection[$current] = $sub
                 $body[$current]       = $line
                 $accepts[$current]    = 0
+                $acceptText[$current] = ''
                 if ($sec) { $perSection[$sec]++ }
             }
         }
@@ -173,6 +175,7 @@ foreach ($line in $regLines) {
                 # $entry outlives the trace where $current does not, so one written below the
                 # trace is caught here rather than going uncounted
                 $accepts[$entry]++
+                $acceptText[$entry] += ' ' + $line
                 if ($sawTail) { $lateAccept += $entry }
             } elseif ($current -and $line -match '^· (Fail-closed|RoT-fresh):') {
                 # a property line conferring membership in a set some other entry collects
@@ -675,6 +678,28 @@ Report 'crown-jewel row(s) no requirement confers:' `
                "row $((($row -split '\|')[1]).Trim()): $((($row -split '\|')[2]).Trim())"
            }
        }) "every row cites one of the $($cjConfer.Count) requirements that confer the status"
+
+# --- the acceptance criteria: an assertion of the status outside the entry line -------
+#
+# Conferral lives in the entry's normative line, never in a criterion: an Accept line
+# tests the obligation and states none, so the sweep above rightly does not read it.
+# But the vocabulary can still appear there, and a conferral someone writes only into
+# a criterion would evade both directions above without this sweep: every Accept-line
+# use of the vocabulary belongs to an entry that confers on its own line, or carries a
+# disposition here naming the entry whose conferral it references.
+
+$cjAcceptDisposition = [ordered]@{
+    'R-11-015' = 'references the timing-annotation statement, whose status R-17-041 confers'
+    'R-13-009' = 'references the format-descriptor status R-05-046 confers on every member'
+}
+Report 'Accept-line crown-jewel assertion(s) neither conferred nor dispositioned:' `
+       @(foreach ($id in $ids) {
+           if ($acceptText[$id] -match 'crown.jewel spec' -and
+               $id -notin $cjConfer -and
+               -not $cjAcceptDisposition.Contains($id)) {
+               "$id asserts the status in a criterion and confers on no entry line"
+           }
+       }) "every Accept-line use of the status is a conferrer's or dispositioned"
 
 # --- the fail-closed seam register: conferrals against the seams that collect them ----
 #

@@ -13,9 +13,9 @@ Membership is **conferred, never declared in bulk**: a specification is a crown 
 Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
 
 1. the register's **`CJ-` trace-target table**, 23 entries, all used, internally consistent, but a *legend of trace targets* rather than an enumeration of specifications (below);
-2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §11, §12, §14, §15, §16, and §17. There are twenty-eight such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
+2. the **conferring requirements**, the entries whose entry line asserts crown-jewel status, scattered across §5, §8, §10, §11, §12, §14, §15, §16, and §17. There are twenty-eight such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership. Conferral lives in the entry's normative line, never in an acceptance criterion, which tests an obligation and states none: the two criteria that mention the status (R-11-015's and R-13-009's) each reference a conferral made elsewhere, R-17-041's and R-05-046's.
 
-Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, a row no conferring requirement stands behind, and a row citing an identifier the register does not hold.
+Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, a row no conferring requirement stands behind, a row citing an identifier the register does not hold, and a status assertion living only in an acceptance criterion without a recorded disposition.
 
 ## Why it matters for implementation
 
