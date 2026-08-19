@@ -2318,6 +2318,51 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: cross-service linked ops and any credential or personality registration are absent by design.
 · Trace: CJ-WCET, CJ-CERISE
 
+**R-12-091** MUST: Every ring instance carries composition-time constants in the generated interface artifact (capacity, index width, descriptor size and alignment, maximum batch size, and a session generation), its header exactly a producer index, a consumer index, a notification word, and a generation word, the first three the R-12-008a atomics and the generation immutable between reinitializations.
+· Accept: indices are interpreted modulo the declared capacity with sequence information distinguishing full from empty; no implementation infers validity from descriptor contents; the common ring schema and lifecycle are content of R-12-013's wire-format mapping rather than a second normative ring-semantics artifact beside it.
+· Trace: CJ-IDL, CJ-TAL-SOUND, CJ-WCET
+
+**R-12-092** MUST: Every descriptor is a member of its interface's closed IDL variant carrying exactly an operation tag, a request identifier unique among the session's live requests, bounded operation-specific scalars, zero or more buffer references (session-table index, offset, length, direction, declared content type), an optional deadline drawn from the interface's finite deadline classes, and a closed flag set; the server validates bounds, permissions, direction, content type, and generation against the pre-delegated session table before the operation becomes eligible to execute.
+· Accept: an unknown tag, reserved flag, malformed bound, duplicate live identifier, or stale generation produces a defined refusal completion and never extends the vocabulary or triggers fallback interpretation; no field admits a path, raw address, capability encoding, executable name, recursive value, or unbounded collection (R-12-006, R-12-012).
+· Trace: CJ-IDL, CJ-CERISE
+
+**R-12-093** MUST: Every accepted request receives exactly one terminal completion carrying its request identifier, a status from the closed common set (`ok`, `refused`, `invalid`, `cancelled`, `deadline_expired`, `peer_restarted`, `device_fault`, `resource_exhausted`), bounded result metadata, consumed and produced byte counts where applicable, and the server generation, unless the session itself is torn down, teardown being represented out of band by revocation plus a generation change after which every formerly live request has the logical result `peer_restarted`.
+· Accept: an interface may refine the statuses with a closed operation-specific result variant but cannot alter their lifecycle meaning; no separate server-unavailable status exists, the generation change carrying that fact.
+· Trace: CJ-IDL, CJ-TAL-SOUND
+
+**R-12-094** MUST: Each request slot advances the monotone six-state lifecycle Free → Writing → Submitted → Accepted → Terminal → Reclaimed: publication consumes writable ownership, reclamation restores it only after every reader and DMA holder has completed or been revoked, and a malformed request moves from Submitted directly to Terminal without acquiring device authority or beginning payload mutation.
+· Accept: the CHERI-TAL derivation rejects mutation of a published descriptor, reuse of a live request identifier, reclamation under an outstanding reader, and acceptance before validation; the lifecycle refines R-12-008a's transitions without weakening them.
+· Trace: CJ-TAL-SOUND, CJ-HAL
+
+**R-12-095** MUST: Ring capacity is an admission parameter and exhaustion is fail-closed on both sides: the producer tests capacity before reserving and never overwrites an unconsumed entry, submission against a full request ring has the sole typed result `would_block` with no partial enqueue, and a server accepts a request only against completion capacity at least its maximum number of simultaneously accepted requests, established at composition rather than by a runtime credit protocol.
+· Accept: no terminal completion is dropped or overwritten to recover space; `would_block` is the ring pool's R-08-047 exhausted arm, relevance-graded under R-05-097, answered by retry in a later slot or after a completion notification, and busy-waiting outside the client's own slot is unexpressible under the non-work-conserving schedule (R-07-036).
+· Fail-closed: a full ring declines the submission rather than overwriting, borrowing, or blocking another partition's schedule; the cost is availability of that session's service until completions drain, composed at R-17-030u.
+· Trace: CJ-WCET, CJ-TAL-SOUND, CJ-IDL
+
+**R-12-096** MUST: Notifications are coalescible hints and the indices the source of truth: the producer publishes with release ordering and signals only when the consumer may sleep; the consumer drains within its admitted budget, arms its notification word, re-reads the producer index, and sleeps only if the recheck still shows no work; the notification word is a binary armed state with defined reset, and no notification counter exists.
+· Accept: the canonical ring proof excludes every execution in which published work stays hidden behind a lost wakeup; spurious and coalesced notifications are admitted and cost one bounded empty drain.
+· Trace: CJ-TAL-SOUND, CJ-WCET
+
+**R-12-097** MUST: Cancellation is a typed control-plane request naming its target by generation and request identifier, with deterministic race semantics: a target still Submitted completes `cancelled` unstarted; one past a declared cancellation point completes `cancelled` there; one past its declared commit point answers `too_late` and completes normally; anything else answers `not_live`. Every cancellable operation declares its cancellation points, commit point, cleanup bound, DMA-quiescence rule, and maximum time to terminal completion, and an operation without the declaration is non-cancellable; deadlines come from the interface's finite classes, are evaluated only at declared decision points on the scheduled time base, and imply no preemption, donation, or device reset.
+· Accept: a client wait timeout changes only the client's willingness to wait; cancellation releases the operation's held references after cleanup and revokes no authority apart from session teardown; admission accounts the maximum interval from expiry observation to terminal completion; no dedicated cancellation ring exists, the synchronous path sufficing unless an amendment (R-18-034) shows a high-rate consumer.
+· Trace: CJ-IDL, CJ-WCET, CJ-HAL
+
+**R-12-098** MUST: A batch is an amortization unit and never a transaction: publication and drain are bounded by the declared maximum batch size and the work admitted for the slot, every member validates, accepts, cancels, completes, and accounts independently, no descriptor names a predecessor or encodes cross-request control flow, and an interface needing compound atomicity defines one bounded typed operation carrying one proof and one WCET bound.
+· Accept: failure of one batch member cannot implicitly cancel, commit, or roll back another; cross-service linked operations stay absent (R-12-009).
+· Trace: CJ-IDL, CJ-WCET
+
+**R-12-099** MUST: Every ring and descriptor is bound to a session generation that changes before any reuse across peer restart, device reset, or revocation: new submissions are refused, DMA capabilities are revoked or quiesce under the session's declared bound, no old-generation descriptor is accepted, indices and the notification word are reinitialized before the new generation is live, and no operation is replayed implicitly, retry being an interface-level policy that, where it claims idempotence, names the operation subset, the stable request identity, the deduplication retention bound, and the duplicate-effect proof.
+· Accept: restart tests show stale descriptors refused and old capabilities dead; an uncorrectable ring-memory ECC error, an impossible ownership transition, a generation mismatch after acceptance, or DMA missing its quiescence bound fail-stops the session or server under the §16 supervision policy.
+· Trace: CJ-HAL, CJ-CERISE, CJ-WCET
+
+**R-12-100** MUST: Zero-copy DMA executes only through a session-table capability whose permissions match the descriptor's declared direction, the complete extent validated before the transfer starts and never reinterpreted after; scatter/gather exists only as a bounded list with a fixed maximum segment count, each segment checked independently and the WCET charged at the maximum where the constant-time policy requires that treatment; no capability is retained past terminal completion.
+· Accept: the DMA engine presents the capability to the fabric for every access (R-12-009, R-15-206); a non-capability DMA write clears the tags of every granule it covers (R-15-183).
+· Trace: CJ-HAL, CJ-CERISE, CJ-WCET
+
+**R-12-101** MUST: For every operation variant the generated interface artifact records validation cost, maximum payload and segment counts, the device-service bound imported from the device contract, cancellation cleanup cost, completion-publication cost, maximum notifications generated, and maximum requests drained per activation, and the composition proves that capacity, batch size, polling cadence, slot budget, and device latency jointly prevent overwrite and meet the declared progress bound.
+· Accept: ring occupancy causes no priority change, donated budget, or execution outside the server's slots or pinned core; where the required polling cadence would make partition switching dominant, the answer is the existing pair, deepen the ring or pin the server, never a schedule change.
+· Trace: CJ-WCET, CJ-IDL
+
 ### 12.3 The interface layer
 
 **R-12-010** MUST: All server protocols and capability manifests are expressed in one typed IDL profile, fork-and-frozen: resources map to capabilities, worlds map to manifests, and marshalling, the verified parsers, and Coq interface skeletons are all generated from the same types.
@@ -4945,13 +4990,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the refusal is retained because every alternative presents a superseded state as current, which is what the class exists to prevent; the member is a denial an adversary provokes without software access, reached from a direction R-17-030n does not cover, and it is bounded to the declared class rather than to the volume.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
-**R-17-030u** IS: Fail-closed seam **pool exhaustion ⋈ the action ladder**: a full bounded pool answers a binding request with the typed exhausted verdict R-08-047 confers and its owner walks the finite pre-certified ladder R-12-087 fixes, so a principal that can legitimately fill a pool holds a bounded denial of that pool's service, priced to itself where R-08-008 reaches, while no global reserve, victim search, or emergency allocator exists to move the shortage onto another owner.
+**R-17-030u** IS: Fail-closed seam **pool exhaustion ⋈ the action ladder**: a full bounded pool answers a binding request with the typed exhausted verdict R-08-047 confers and its owner walks the finite pre-certified ladder R-12-087 fixes, R-12-095's full I/O ring the same refusal in its data-plane instance, so a principal that can legitimately fill a pool holds a bounded denial of that pool's service, priced to itself where R-08-008 reaches, while no global reserve, victim search, or emergency allocator exists to move the shortage onto another owner.
 · Accept: the runtime sibling of R-17-030q's delivery-side member: the shortage is met by a declared per-pool ladder rather than by a machine-wide event, its rate is counted under R-17-030m through R-16-027, and the worst case is availability of the exhausted pool's service, never another label's schedule, memory, or authority.
 · Trace: CJ-MEMPLAN, CJ-VELUS
 
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.ps1` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
-· Accept: twenty-three requirements confer a refusal and sixteen seams collect them, both figures recomputed rather than maintained here.
+· Accept: twenty-four requirements confer a refusal and sixteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.ps1` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -5372,6 +5417,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: model checking proves the finite state machines, FPGA fault campaigns validate timing and reset behavior, and the replay harness reproduces each detector and action sequence from the closed R-16-028 event record.
 · Trace: CJ-VELUS, CJ-WCET
 
+**R-18-037** MUST: The ring contract is one canonical proof and a per-interface conformance campaign: SPSC memory safety and race freedom under Ztso, the arm-recheck lost-wakeup exclusion, the request- and completion-capacity invariants, typestate preservation across publication, cancellation, completion, and reclamation, stale-generation rejection, the DMA authority, extent, and quiescence invariants, per-operation WCET with bounded cleanup, containment of malformed and adversarial descriptors, and conformance among the generated client, server, parsers, and Coq interface skeleton.
+· Accept: the suite generates each interface world's tests from the artifact's own constants: fill to capacity and one past it, cancellation and reset in every lifecycle state, duplicate and stale identifiers, the notification race at the sleep boundary, and maximum-segment DMA; no interface world declaring rings is admitted before its campaign runs.
+· Trace: CJ-TAL-SOUND, CJ-IDL, CJ-WCET
+
 **R-18-033** MUST: Two requirements never trade: the verified TCB, and capabilities as the sole authority. Everything else (ship date, core counts, radio bandwidth, acceleration) bends around them.
 · Accept: any proposed change is checked against these two first.
 · Trace: CJ-T, CJ-CERISE
@@ -5380,7 +5429,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1240 requirements. §19 is non-normative and yields none. Counts include the 302 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1252 requirements. §19 is non-normative and yields none. Counts include the 302 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5395,13 +5444,13 @@ All eighteen normative sections are extracted, at 1240 requirements. §19 is non
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
 | **§11 Updates** | **extracted** | **36** |
-| **§12 System Servers** | **extracted** | **111** |
+| **§12 System Servers** | **extracted** | **122** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **27** |
 | **§15 Hardware Platform** | **extracted** | **357** |
 | **§16 Reliability** | **extracted** | **35** |
 | **§17 Residual Risks** | **extracted** | **112** |
-| **§18 Realization** | **extracted** | **49** |
+| **§18 Realization** | **extracted** | **50** |
 
 §19 is non-normative and yields no requirements.
 

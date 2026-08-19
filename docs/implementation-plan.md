@@ -388,9 +388,11 @@ Four more rows take their upstreams off this clock while their authoring rides t
    Journal/index/FS (§7) and the content-addressed object store + transactor (§6); system-integrity instance first, then user-data.
 7. **M6, Userland spine.**
   Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set; the package composer emits the finite typed handler/translator graph and pre-admitted media templates, and the contained object router exercises private namespaces, intents, live queries, deterministic translation caching, and protocol-bound credential handles over the existing IDL and rings.
+  The ring data plane is brought up in its contract order: the common ring schema and lifecycle authored in the IDL profile with the reference client/server bindings and Coq interface skeleton generated from it, then one copy-based service carrying the SPSC, notification, and capacity proofs, then one DMA service adding the extent, cancellation, teardown, and quiescence proofs, so the contract's constants and generated-proof interfaces are validated on two real services before every other server rides them. No service is grandfathered: one that cannot state its finite capacities, lifecycle semantics, cleanup bounds, and per-operation WCET is not admitted through the ring profile.
 8. **M7, Full system, emulated.**
    The composed stack boots in the spec's §9 order on the **fast emulator**, the plan's intermediate goal; the composed Sail emulator (§10) re-runs the same boot as the golden cross-check; the Wasm track keeps running the same components host-side for iteration.
    The composed system is also the first artifact able to measure **allocation churn**, so the measurement is booked here: the static-composition low-churn argument and the static-code-overlay deferral both wait on the same measured roster, and the elective applications widen the measurement later rather than gating it.
+   The same roster carries the ring-parameter measurement: queue depths, batch sizes, notification cadence, and slot budgets are read off the composed system against the §12 per-operation accounting, so the contract's constants are chosen from a measured roster rather than estimated per service.
 
 The RTL track, in parallel from the M0 freeze:
 
