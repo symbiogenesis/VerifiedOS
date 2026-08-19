@@ -1,39 +1,39 @@
 # The Typed Assembly Language
 
 > **What this is.**
-> This document specifies the typed machine-code language, and its admission check, that [VerifiedOS](spec.md) uses to admit binaries.
-> It is factored into a project of its own because it depends only on a machine semantics and a type theory. It does not depend on a kernel, storage stack, authority model, or hardware beyond the target's instruction semantics.
+> This document specifies the typed machine-code language, and its admission check, by which [VerifiedOS](spec.md) admits binaries.
+> It stands as a project of its own because it depends on nothing but a machine semantics and a type theory: no kernel, no storage stack, no authority model, and no hardware beyond the target's instruction semantics.
 >
 > **Normative for the language; not a derived view.**
 > The [frozen instruction-set profile](isa-profile.md), the [absence contract](absence-contract.md), the [crown-jewel inventory](crown-jewels.md), and the [coverage matrix](coverage-matrix.md) are derived views of [requirements-register.md](requirements-register.md) and state no obligation of their own.
-> This document is different: it states the language's obligations, as numbered requirements carrying acceptance criteria. VerifiedOS depends on one instantiation and pins its version.
-> If this document and the register disagree about VerifiedOS requirements, the register governs. If they disagree about the language itself, this document governs.
+> This document states obligations of its own, as numbered requirements carrying acceptance criteria; VerifiedOS depends on one instantiation and pins its version.
+> Where this document and the register disagree about VerifiedOS requirements, the register governs; where they disagree about the language, this document governs.
 >
 > **How to read it.**
 > Sections 1 to 15 are normative. Every obligation is a numbered `TAL-` requirement; the prose around them is rationale and binds nothing.
-> Appendices A to D are not normative: they record where the design comes from, what it cites, what the artifact landscape looked like on a stated date, and the order in which the normative content must be settled.
-> A reference of the form §n names a section *of this document*. References to other documents are links.
+> Appendices A to D are not: they record where the design comes from, what it cites, the artifact landscape on a stated date, and the order in which the normative content must be settled.
+> A reference of the form §n names a section *of this document*; references to other documents are links.
 >
 > **The name is provisional and the instantiation keeps its own.**
 > *Typed Assembly Language* is descriptive rather than chosen.
 > The VerifiedOS corpus continues to call the CHERI-RISC-V instantiation *CHERI-TAL*; this factoring changes no name.
 >
 > **Nothing here is built.**
-> The type system, checker, and soundness proof have not been written. Factoring out this specification relocates that work; it does not reduce it.
-> The benefit is a reviewable artifact whose correctness is independent of operating-system claims, together with an implementation cost that multiple consumers could share.
+> The type system, checker, and soundness proof have not been written. Factoring this specification out relocates that work; it does not reduce it.
+> What it buys is a reviewable artifact whose correctness rests on no operating-system claim, at an implementation cost multiple consumers could share.
 
 ---
 
 ## 1. What the language is
 
-This is a **typed assembly language** in the Necula and Morrisett lineage: final machine code carries a **typing derivation**, which is checked before the code may run.
+This is a **typed assembly language** in the Necula and Morrisett lineage: final machine code carries a **typing derivation**, checked before the code may run.
 
 Three commitments distinguish this language from that lineage.
 
 - **The check is certificate-directed dataflow validation, not proof checking.**
   The checker decides a fixed set of attributes over an already-typed control-flow graph. The derivation supplies the abstract state at every join, so certificate consumption requires neither fixpoint computation nor reduction of open terms.
-  A producer may use any fixpoint analysis it chooses to compute those annotations; the no-fixpoint property is a property of consumption alone (§12).
-  This is a claim about the *kind* of checker being specified. The complexity contract (§10.3) and the audit budget (§10.6) follow from that classification rather than standing as independent targets.
+  A producer may use any fixpoint analysis to compute those annotations; the no-fixpoint property is one of consumption alone (§12).
+  This is a claim about the *kind* of checker specified: the complexity contract (§10.3) and the audit budget (§10.6) follow from that classification rather than standing as independent targets.
 - **The theory is frozen, and freezing it is the mechanism.**
   A line budget does not constrain an unspecified theory. What the checker must decide is fixed in §7, and the cost of deciding it follows.
 - **The target's own guarantees are a parameter, not an assumption.**
@@ -111,11 +111,11 @@ The terms below are load-bearing in the soundness statement, so each is fixed he
 - **Facet.** An atomic obligation, the unit that carries exactly one discharge route (§4.2).
 - **Route.** How a facet is discharged: cited, attributed, or inserted (§5.2).
 - **Move.** What the checker does about a facet: cite an invariant, evaluate an attribute, or confirm a deletion (§10.1).
-- **Well-typed.** The checker accepts the artifact and certificate under a profile. *Safe* is not a synonym: an artifact is safe with respect to the facets its profile routes and the ledger its profile consumes, and with respect to nothing else (§11.5).
+- **Well-typed.** The checker accepts the artifact and certificate under a profile. *Safe* is not a synonym: an artifact is safe with respect to the facets its profile routes and the ledger it consumes, and nothing else (§11.5).
 - **Memory safety.** Two facets, never one. *Spatial*: every memory access lies within the bounds and permissions of the authority it derives from. *Temporal*: no access uses authority over a storage object outside that object's lifetime.
-- **Control-flow integrity.** Two facets. *Run-time*: every control transfer targets authority the profile declares executable and lands at a valid entry. *Callee set*: every realized target of an indirect transfer is a member of the finite set the derivation declares at that transfer site.
-- **Constant-time.** Non-interference of a declared leakage model from secret-labeled inputs: no secret-labeled value reaches a branch condition, a memory address, or an operand of a variable-latency operation. The obligation is relative to the profile's declared leakage model and to nothing stronger.
-- **Local (of a rule).** Its premises mention only the instruction being typed, the states the certificate records for that instruction's block and its successors, and records the certificate declares for that site.
+- **Control-flow integrity.** Two facets. *Run-time*: every control transfer targets authority the profile declares executable and lands at a valid entry. *Callee set*: every realized target of an indirect transfer is in the finite set the derivation declares at that site.
+- **Constant-time.** Non-interference of a declared leakage model from secret-labeled inputs: no secret-labeled value reaches a branch condition, a memory address, or an operand of a variable-latency operation. The obligation is relative to the profile's declared leakage model and nothing stronger.
+- **Local (of a rule).** Its premises mention only the instruction being typed, the states the certificate records for that instruction's block and its successors, and the records the certificate declares for that site.
 - **Structured (of code).** Its control-flow graph is reducible, every back edge names a header the certificate declares, and every loop carries a trip bound (§8.5).
 - **Open-world (of a guarantee).** It holds against arbitrary co-resident code, subject only to the machine premises its ledger names.
 - **Address-space-closed.** It holds while every instruction stream with authority over the same objects is admitted under this language.
@@ -152,7 +152,7 @@ VerifiedOS requires all eleven, canonically enumerated at R-05-029 of its regist
 
 ### 4.2 The facets
 
-The eleven rows are the user-facing grouping. They are not the unit of routing, because a profile may discharge the halves of one row differently: on capability hardware the machine enforces spatial safety and not temporal safety, and enforces where an indirect transfer may land but not which callee is legal there.
+The eleven rows are the user-facing grouping, not the unit of routing, because a profile may discharge the halves of one row differently: on capability hardware the machine enforces spatial safety but not temporal, and where an indirect transfer may land but not which callee is legal there.
 
 **TAL-012** IS: The unit of routing is the **facet**. The fifteen facets below partition the eleven menu rows; no facet belongs to two rows, and every row has at least one facet.
 
@@ -189,7 +189,7 @@ The eleven rows are the user-facing grouping. They are not the unit of routing, 
 
 The literature usually treats these two as proof obligations rather than as type-level ones, so the ground for carrying them here is stated.
 
-- **Constant-time** is a 2-safety hyperproperty, which a type system cannot state in general, but the CT-Wasm result makes it a **taint-typing** obligation for structured code: secret-labeled values the type system forbids from reaching a branch condition, a memory address, or a variable-latency operation.
+- **Constant-time** is a 2-safety hyperproperty, which a type system cannot state in general, but the CT-Wasm result makes it a **taint-typing** obligation for structured code: the type system forbids a secret-labeled value from reaching a branch condition, a memory address, or a variable-latency operation.
   Only the genuinely unstructured residual descends to a relational proof.
   The guarantee is relative to the profile's declared leakage model rather than absolute, and it does not survive a lowering the type system never sees, which is why the obligation is stated over final code rather than over a source or intermediate form (§14).
 - **Worst-case cost** is a quantitative property, but for structured code it is a max-path sum over the certificate's declared loop nest (Shaw's timing schema), carried as a cost attribute rather than produced by a separate analyzer.
@@ -336,7 +336,7 @@ That would violate §7.1's absence (2) directly, turn the checker from an attrib
 · Accept: no rule table premise mentions a constraint, an entailment, or a solver call.
 · Trace: §7.1, §7.5
 
-This refusal is deliberate despite the existence of a bounded form. Wasm-precheck [GFB24] places an indexed-type discipline inside a linear-pass validator without an SMT solver. This language still declines that approach because even restricted constraint entailment decides propositions over open terms; the distinction is one of checker kind, not solver size.
+The refusal stands even though a bounded form exists. Wasm-precheck [GFB24] places an indexed-type discipline inside a linear-pass validator with no SMT solver; this language still declines it, because even restricted constraint entailment decides propositions over open terms. The distinction is checker kind, not solver size.
 
 ### 5.8 Profiles are frozen and versioned like the theory
 
@@ -418,10 +418,10 @@ The profile VerifiedOS pins. Bounds, tags, monotone derivation, and sealed entry
 
 **The qualifications a citing profile must state.**
 A citation is a theorem about the machine, and an unsound citation invalidates everything that depends on it.
-Compressed capability encodings permit **inexact bounds**, so M1 holds for the rounded representable region defined by the encoding, not necessarily for the exact byte range the source intended; `mem.spatial` is stated over the representable region accordingly.
+Compressed capability encodings permit **inexact bounds**, so M1 holds for the encoding's rounded representable region, not necessarily for the exact byte range the source intended; `mem.spatial` is stated over the representable region accordingly.
 Monotone derivation has **privileged and transition cases**, the instructions and states in which authority is installed rather than narrowed, and M2 names them rather than quantifying over the whole machine.
 Capability hardware alone provides no **temporal safety, exact callee set, or ABI conformance**, which is why those three facets are attributed here.
-Its immutable-code guarantee rests on an initial capability distribution from which no writable-and-executable authority can be derived, which is a loader property, and appears as L1 rather than as a machine theorem.
+Its immutable-code guarantee rests on an initial capability distribution from which no writable-and-executable authority can be derived: a loader property, carried as L1 rather than as a machine theorem.
 
 ### 6.3 `bare-rv64`
 
@@ -467,7 +467,7 @@ The profile with no capability hardware. It cites no invariant, so move I is emp
 
 **The fat-pointer representation is not a route.** A bounds pair carried as an ordinary aggregate is how the inserted check obtains the bounds it compares against; the discharge is still the check that executes, and `repr.conform` fixes the layout the check reads.
 
-**What a bare profile does not recover.** Every open-world line of §6.2 becomes address-space-closed here. A consumer that runs unverified native code beside admitted code under `bare-rv64` has no guarantee at all from those facets, which is why TAL-026 makes the closure premise explicit rather than implied.
+**What a bare profile does not recover.** Every open-world line of §6.2 becomes address-space-closed here. A consumer that runs unverified native code beside admitted code under `bare-rv64` gets no guarantee from those facets at all, which is why TAL-026 makes the closure premise explicit.
 
 ---
 
@@ -475,7 +475,7 @@ The profile with no capability hardware. It cites no invariant, so move I is emp
 
 ### 7.1 The four absences
 
-This document fixes and closes the type theory. The following four absences are what make checking a dataflow validation rather than proof checking.
+This document fixes and closes the type theory. Four absences are what make checking a dataflow validation rather than proof checking.
 
 1. **Predicative, rank-1 prenex polymorphism.**
    Type variables are quantified only at the outermost position of a code type and instantiated only at monotypes: the classical TALx86 use (polymorphism over callee-saved registers and stack tails) and no more.
@@ -524,7 +524,7 @@ The three grade re-uses add nothing either: *use-once* is the linear grade the c
 
 ### 7.4 What the vocabulary contains
 
-The closed vocabulary is the grammar of §8.2 and nothing beside it. A former not in that grammar does not exist for any profile, and a profile may not extend it.
+The closed vocabulary is the grammar of §8.2 and nothing beside it: a former absent from that grammar exists for no profile, and no profile may extend it.
 
 **TAL-036** MUST NOT: A profile adds no type former, no grade, and no label. A profile chooses routes, rules, limits, models, and a ledger, and nothing else.
 · Accept: two profiles' rule tables range over the same type grammar; a profile-local former is a specification defect.
@@ -721,7 +721,7 @@ The clauses of a rule are exactly the attributes of §8.5, one clause each; a ru
 
 ### 8.7 Declared premises
 
-Some facets need a number the checker cannot infer and must not guess: a trip bound for a loop whose count is not structural, a depth bound for a recursive component. The language admits these as premises rather than pretending to decide them, and refuses to admit anything else that way.
+Some facets need a number the checker cannot infer and must not guess: a trip bound for a loop whose count is not structural, a depth bound for a recursive component. The language admits these as declared premises rather than deciding them, and admits nothing else that way.
 
 **TAL-060** IS: A declared premise is a certificate record carrying a class, a statement, a closed numeral, and an evidence tag naming the consumer-side obligation that discharges it. The checker validates the record's form and that the profile permits its class, and treats the numeral as given.
 · Accept: premises are the only certificate content the checker does not decide, and each appears in the verdict.
@@ -759,7 +759,7 @@ Some facets need a number the checker cannot infer and must not guess: a trip bo
 
 ## 9. Binding the certificate to the installed artifact
 
-A derivation about bytes that are not the installed bytes proves nothing about what runs. This is the seam at which annotated assembly can silently differ from an installed image, and the binding below is what closes it.
+A derivation about bytes that are not the installed bytes proves nothing about what runs. This is the seam at which annotated assembly can silently differ from an installed image; the binding below closes it.
 
 ### 9.1 The commitment
 
@@ -811,7 +811,7 @@ A derivation about bytes that are not the installed bytes proves nothing about w
 
 Move I is empty for a profile that cites no invariants. In that precise sense a bare target is more expensive than a capability target: the facets remain, and move to lower routes.
 
-The word *attribute* is Knuth's, and the analogy is deliberately partial: an attribute grammar decorates a tree, while a machine-code control-flow graph is cyclic, which is precisely why the derivation carries the abstract state at every merge and the checker validates rather than solves.
+The word *attribute* is Knuth's, and the analogy is deliberately partial: an attribute grammar decorates a tree, while a machine-code control-flow graph is cyclic, which is why the derivation carries the abstract state at every merge and the checker validates rather than solves.
 
 ### 10.2 The algorithm
 
@@ -820,7 +820,7 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 | Phase | What it does | Traversals |
 | --- | --- | --- |
 | 0. Bind | Recompute the eight commitments of §9.1 over the installed bytes; compare versions | One pass over the artifact's bytes |
-| 1. Parse and limit | Parse the certificate canonically; check the twelve limits of §8.9 | One forward pass over the certificate |
+| 1. Parse and limit | Parse the certificate canonically; check the thirteen limits of §8.9 | One forward pass over the certificate |
 | 2. Decode and structure | Decode every executable extent; check the block partition, the edge table, the loop nest, the call order, and the static-extent cover | One pass over decoded instructions, one over the tables |
 | 3. Deletions (move III) | The five absences, the static-authority scan, the root table's cover, and the provenance chains | One pass over decoded instructions, one over static extents, one over the chain records |
 | 4. Citations (move I) | Each reliance site against the profile's cited set and applicability class | One pass over the citation table |
@@ -840,7 +840,7 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 · Trace: §10.2
 
 **TAL-077** MUST NOT: No phase performs a fixpoint iteration, a dominator computation, an ancestor query, a transitive-closure computation, or a search over paths.
-· Accept: the four are absent from the implementation; the guard-token attribute replaces dominance, and the declared call order replaces reachability over the call graph.
+· Accept: all five are absent from the implementation; the guard-token attribute replaces dominance, and the declared call order replaces reachability over the call graph.
 · Trace: §8.6, §8.5
 
 ### 10.4 Acceptance and rejection
@@ -861,7 +861,7 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 
 ### 10.6 The audit budget
 
-**TAL-081** IS: The line budget is a secondary audit figure, not the contract. The contract is §10.3. The budget counts the shipped source of the attribute evaluator, the derivation reader, the binding check, and the image scan, on the order of a thousand lines, and excludes the frozen vocabulary and attribute tables (data fixed by this document), a consumer's proof kernel, and the metatheory.
+**TAL-081** IS: The line budget is a secondary audit figure; the contract is §10.3. The budget counts the shipped source of the attribute evaluator, the derivation reader, the binding check, and the image scan, on the order of a thousand lines, and excludes the frozen vocabulary and attribute tables (data fixed by this document), a consumer's proof kernel, and the metatheory.
 · Accept: the figure is reported with its exclusions stated; an implementation that met a line figure by moving decisions into a generated table fails §10.3 and therefore fails the claim, whatever its line count.
 · Trace: §10.3
 
@@ -891,14 +891,14 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 · Accept: every matrix line's lemma name resolves to a proved statement in that profile's development; a lemma citing an invariant absent from the semantics is a defect that invalidates the instantiation.
 · Trace: §6.2, §6.3
 
-**TAL-086** IS: The core carries every proof obligation that does not mention the machine, so a second profile does not reopen the whole development; it discharges every machine-dependent case, which is not free.
+**TAL-086** IS: The core carries every proof obligation that does not mention the machine, so a second profile does not reopen the whole development; it discharges every machine-dependent case of its own, which is not free.
 · Accept: the development is factored into a machine-independent core and per-profile instantiations, and the factoring is visible in the proof structure.
 · Trace: §11.1
 
 ### 11.4 The trusted base
 
 The metatheorem is the language's main trusted theorem, and freezing the theory bounds its size as it bounds the checker's.
-Calling it the single axiom would understate the base. A consumer also trusts the machine semantics and its correspondence to the silicon (ledger entry S1), the profile's cited invariants, the decoder that recovers instructions from the image, the loader and initial-state model, and the implementation of the checker.
+It is not the whole base: a consumer also trusts the machine semantics and its correspondence to the silicon (ledger entry S1), the profile's cited invariants, the decoder that recovers instructions from the image, the loader and initial-state model, and the checker implementation.
 The claim worth making is that this list is small, fixed, separately reviewable, and enumerated in one place, not that it has one element.
 
 **TAL-087** MUST: The trusted base is enumerated as the profile's ledger plus the checker implementation plus the metatheorem, and a consumer can read it off an accepted verdict.
@@ -944,7 +944,7 @@ A compiler intermediate representation carries none of the facts the derivation 
 · Accept: no artifact is admitted with a facet unrouted or a route unsupported by certificate evidence, whatever exists at source.
 · Trace: §8.7, §5.2
 
-This is §5.2's route table seen from the other end: when an invariant is not supplied by the environment, the language demands evidence or a check, and it makes no difference whether the environment that failed to supply it was the hardware or the source language.
+This is §5.2's route table seen from the other end: when the environment does not supply an invariant, the language demands evidence or a check, whether the environment that failed to supply it was the hardware or the source language.
 
 ---
 
@@ -992,7 +992,7 @@ This is §5.2's route table seen from the other end: when an invariant is not su
 ## 15. Status
 
 All three parts remain unbuilt: the type system, the checker, and the soundness proof.
-The general type-soundness discipline is established and is inherited rather than gambled on; this instantiation is not, and the risk is located precisely: being first to instantiate the discipline over an ISA-scale semantics rather than an idealized machine.
+The general type-soundness discipline is established and inherited rather than gambled on; this instantiation is not, and the risk is precisely located: being first to instantiate the discipline over an ISA-scale semantics rather than an idealized machine.
 
 Factoring the language out of the operating-system specification changes exactly three things:
 
@@ -1008,11 +1008,11 @@ None reduces the work, and the factoring does not change the first consumer's sc
 
 This appendix is rationale. It binds nothing, and a change in the literature's status is not an amendment to §1 to §15. Citation keys resolve in Appendix B. Broader system lineage lives in [inspirations.md](inspirations.md).
 
-**Typed assembly language.** [MWCG99], [TALx86], [Crary03] supply polymorphic code-pointer types, register-file preconditions, stack polymorphism, initialization tracking, typed indirect jumps, and producer-supplied derivations, which is most of §8.2's vocabulary. Two boundaries in that lineage are the ones this document has to cross: TALx86 checked annotated assembly rather than independently decoded bytes, which §9 answers, and foundational TAL separates abstract-machine soundness from the correspondence with a concrete architecture, which §5 and §11 make a profile's obligation.
+**Typed assembly language.** [MWCG99], [TALx86], [Crary03] supply polymorphic code-pointer types, register-file preconditions, stack polymorphism, initialization tracking, typed indirect jumps, and producer-supplied derivations, which is most of §8.2's vocabulary. This document has to cross two boundaries in that lineage: TALx86 checked annotated assembly rather than independently decoded bytes, which §9 answers, and foundational TAL separates abstract-machine soundness from the correspondence with a concrete architecture, which §5 and §11 make a profile's obligation.
 
-**Proof-carrying code.** [Necula97], [Appel01], [Hamid02]. Proof-carrying code already covers binary machine code from an untrusted producer checked against a consumer-defined policy; the foundational account makes decoding, machine semantics, and the safety predicate foundational; and the syntactic account factors a certificate into a typing derivation plus a reusable soundness proof, which is this document's split between §4 and §11.
+**Proof-carrying code.** [Necula97], [Appel01], [Hamid02]. The line already covers binary machine code from an untrusted producer checked against a consumer-defined policy; the foundational account states decoding, machine semantics, and the safety predicate from first principles; and the syntactic account factors a certificate into a typing derivation plus a reusable soundness proof, which is this document's split between §4 and §11.
 
-**Certificate-directed checking.** [Rose03], [KleinNipkow]. This is the closest precedent for §1's architecture and the reason the no-fixpoint property is stated of consumption rather than of the pipeline. Stack maps carry the abstract state at each merge, reducing verification from dataflow solving to checking local transfer constraints, which is §8.5 with a smaller attribute set. The counter-experiment is on the record too: [VeriWasm] re-derived the safety of compiled native code by analysis rather than certificate, and could not keep pace with the compiler, which is the analyzer-rot failure mode a shipped derivation does not have.
+**Certificate-directed checking.** [Rose03], [KleinNipkow]. This is the closest precedent for §1's architecture and the reason the no-fixpoint property is stated of consumption rather than of the pipeline. Stack maps carry the abstract state at each merge, reducing verification from dataflow solving to checking local transfer constraints, which is §8.5 with a smaller attribute set. The counter-experiment is on the record too: [VeriWasm] re-derived the safety of compiled native code by analysis rather than by certificate and could not keep pace with the compiler, the analyzer-rot failure mode a shipped derivation does not have.
 
 **Typed admission in production.** [Move], [WasmCallRef]. A publish-time verifier for linear resources, definite initialization, and a borrow discipline, and a load-time-checked typed callee set, are production precedent for most of §4.2's attribute classes; taint alone has none. Both are fixpoint analyzers rather than certificate consumers, and [MoveBug]'s unreachable-code soundness defect is the concrete argument for a checker small enough to verify.
 
@@ -1030,7 +1030,7 @@ This appendix is rationale. It binds nothing, and a change in the literature's s
 
 **Certifying compilation.** [NeculaLee98], [Crellvm], [CompCert]. Crellvm is the closest match to §12's hinted mirroring, over selected intermediate-representation optimizations rather than native code generation, so it supports the architecture without completing it.
 
-**The combination is the novel part.** Not typed assembly language, not proof-carrying code, not capability typing, not taint typing, and not resource certificates, each of which is someone else's result. The combination is a fixed, non-extensible certificate language carrying all of them at once, assigning every facet an explicit cited, attributed, or inserted discharge against a versioned machine profile, and checking final decoded machine code without invoking a general proof kernel at install time. That is a claim about the arrangement, and it is the part a reviewer should attack first.
+**The combination is the novel part.** Not typed assembly language, not proof-carrying code, not capability typing, not taint typing, and not resource certificates, each of which is someone else's result. The combination is a fixed, non-extensible certificate language carrying all of them at once, assigning every facet an explicit cited, attributed, or inserted discharge against a versioned machine profile, and checking final decoded machine code without invoking a general proof kernel at install time. That is a claim about the arrangement, and the part a reviewer should attack first.
 
 ---
 
@@ -1095,7 +1095,7 @@ Keys are document-local and stable across versions of this document; they assert
 
 **Deployment and revival evidence for the certificate architecture.** The JVM's split verifier (stack-map frames, mandatory since class-file version 51) is this architecture in production at large scale, its type-checking core a few thousand lines over a richer vocabulary than §8.2's. Klein and Nipkow's account is re-checked against every Isabelle release in the Archive of Formal Proofs. CertrBPF (CAV 2022) is a Coq-verified admission checker extracted to C and shipped in an embedded operating system. BCF (SOSP 2025) has the Linux eBPF verifier accept load-time certificates proved in user space and checked by a small kernel-side checker.
 
-**Adjacent active lines.** Universal contracts and secure calling conventions on CHERI-RISC-V, and taint-typed assembly for cryptographic code, each approach one slice of the menu; none approaches the assembly language.
+**Adjacent active lines.** Universal contracts and secure calling conventions on CHERI-RISC-V, and taint-typed assembly for cryptographic code, each cover one slice of the menu; none is the assembly language.
 
 ---
 
