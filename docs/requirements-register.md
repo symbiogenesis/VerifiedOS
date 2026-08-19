@@ -2768,6 +2768,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: consistent with R-15-229.
 · Trace: CJ-CERISE
 
+**R-12-084a** IS: The media decode server is its own compartment, neither folded into the Tier-1 compositor nor left inside the application: it holds a decode session's ring, its frame pool, and nothing else, mints nothing, names no device, returns decoded frames as ordinary untrusted surfaces, and faults as the contained crash R-16-001 restarts.
+· Accept: its syntax layer is a Narcissus-derived parser over the bitstream grammar (R-05-042, R-15-238a), putting the most-attacked half of a codec under the discipline the RRC and MLME grammars take, while the pixel stages are ordinary RVV code for which open decoders are algorithm and conformance references rather than lifts.
+· Trace: CJ-FORMAT, CJ-CERISE
+
+**R-12-084b** MUST: The server's slot, its worker set across V-class cores, and its frame pool are fixed at composition against the decode ceiling R-15-238c declares: a stream inside the ceiling plays inside an admitted slot and a stream above it is refused when the session opens.
+· Accept: nothing is elastic, the alternative to refusing being a session admitted against a slot no schedulability proof covers (R-11-006, R-07-036).
+· Trace: CJ-WCET, CJ-ISOL
+
 ### 12.15 Inference and telemetry
 
 **R-12-085** IS: The inference server is an optional Tier-1 compartment exposing quantized-inference sessions over rings, with weights de-quantized and any microscaling block-scale applied in software on the M-class vector unit.
@@ -3619,6 +3627,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-067e** IS: The one **further code-size candidate** the freeze's single measured act (R-15-014a) weighs is named rather than left open: a `csetbounds` taking a large immediate length, in CHERIoT's form. It is carried as a candidate and not as a commitment, decided by that measurement against R-15-036p's outlined corpus, and the expected outcome is that it is dropped.
 · Accept: the consumer here is not the upstream one, allocation being composition-time, so a narrowing the backend emits takes its length from a type rather than from a request (R-15-007k), which makes the length a composition-time constant materialized immediately before the narrow. What that pair costs is halved by the encoding for R-15-036m's reason: a site-invariant constant materialization is one dictionary entry reused at every site narrowing to that length (R-15-036k), so the pair is already two slots and the immediate form collects one 16-bit slot rather than four bytes. It competes for the same custom opcode space and the same measurement as the instructions already admitted on code size (R-15-007e, R-15-067a), and an immaterial measured delta drops it rather than carrying it into the frozen profile on the argument alone.
 · Trace: CJ-SAIL, CJ-FORMAT
+
+**R-15-067f** IS: The frozen profile carries a **fixed-latency range-coder step** in the same custom opcode space: `rcstep rd, rs1, rs2` takes the coder state packed into one register (value window, 16-bit range, and the count of window bits held) and the bracketing cumulative-frequency pair the symbol search has produced, and returns the updated state, which is the multi-symbol range decoder's whole per-symbol loop (range narrowing, the leading-zero-driven variable shift of range and window, and the bit-count decrement) as one instruction.
+· Accept: it carries full Sail semantics and is frozen with the profile like every other encoding it allocates (R-15-014); the packing into a single state register is what lets one destination carry the whole update; the symbol search stays outside it as RVV compare-and-count or a short branchless scalar sequence, and the refill stays outside it as an ordinary capability-checked load tested against the count field with R-15-067a's extract, so the instruction reads no memory.
+· Trace: CJ-SAIL
+
+**R-15-067g** IS: It is admitted on **cycles** as R-15-069a is, against the one video-decode stage no vector length reaches: the range decoder's per-symbol dependence is serial and its two branches are data-dependent, so it is measured at roughly 45% of decode time where the pixel stages are already vectorized and its branches are already dynamically predicted, and on this machine, with the stages beside it at VLEN=4096 and no dynamic predictor beneath it (R-15-019), it is most of the frame.
+· Accept: deterministic in architectural state (R-15-010 test 1); one latency independent of the state, the frequency pair, and the number of renormalization shifts performed, which puts it on the R-15-053 list with one entry in the timing-annotated model (R-15-095) and **deletes** a data-dependent-timing site rather than adding one, the software loop's shift count and refill frequency being functions of the coded bits inside a compartment whose input is attacker-authored wire (R-12-084a); holding no state across a partition switch, the coder state being an ordinary register and no bitstream register file existing, so nothing joins the R-15-214 flush set (test 3); minting no authority (test 4); and ending at the step it names, the next symbol being the decoder's own next instruction (test 5), which is the line that separates it from the autonomous bitstream engine R-15-238b refuses.
+· Trace: CJ-SAIL, CJ-WCET, CJ-LEAK
+
+**R-15-067h** MUST: Its carriage is decided at the freeze by the same single measured act as the byte instruments (R-15-014a), on the cycle axis: the decoder's worst-case cycles per frame over the conformance corpus (R-15-238d), taken from the timing-annotated model and set against the §11 slot the media server is admitted at and the ceiling that slot declares (R-15-238c, R-12-084b).
+· Accept: an instrument that does not move that bound is dropped at the freeze rather than carried into the frozen profile on the argument alone, on the terms R-15-067d holds `bfext` to; it contends for the same custom opcode space as R-15-007e and R-15-067a; carriage costs a review-gate rerun (R-18-034), one Sail clause, and one instruction-selection rule per production backend (R-18-014a); being bespoke it records no standards-track re-pin target, no entropy-coding instruction existing on the RISC-V track, and the obligation opens if one ratifies.
+· Trace: CJ-SAIL, CJ-WCET
 
 ### 15.9 CHERI capability-ISA features
 
@@ -4519,6 +4539,26 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no codec block appears in the device inventory.
 · Trace: CJ-FORMAT
 
+**R-15-238a** IS: The ban is stated over the decoder's stages rather than over the word codec, only one of which is grammar: the **syntax layer** is a Narcissus-derived parser in host software and never silicon (R-05-042, R-12-084a); **symbol decoding** against a software-supplied and software-adapted cumulative-frequency table is grammar-free arithmetic on a fixed structure, the R-15-119 category, and is admitted to the ISA as R-15-067f and never as a block; **reconstruction**, the **in-loop filters** with film grain, and **colour conversion and scaling** are geometry and are RVV code on the V-class (R-15-113, R-12-082).
+· Accept: the line is R-15-119's admission and R-15-239's refusal applied one level finer: what may be fixed is arithmetic whose shape is fixed, and what may not is anything deciding what comes next.
+· Trace: CJ-SAIL, CJ-FORMAT
+
+**R-15-238b** MUST NOT: No autonomous bitstream engine exists: the commodity realization of the symbol-decode stage, a block handed a descriptor and left to walk the coded data on its own mastership, is refused under admission test 5 (R-15-010) exactly as the CHERIoT sweep engine is (R-08-009), and the core-issued instruction carrying its inner loop is admitted in its place (R-15-067f).
+· Accept: the M-class systolic array is not an alternative path either, the inverse transforms being bit-exact integer butterflies an int8/bf16 array cannot produce (R-15-116).
+· Trace: CJ-SAIL, CJ-ISOL
+
+**R-15-238c** MUST: Decode capacity is a ceiling declared at composition and refused above, never degraded through: formats, levels, resolutions, and frame rates are admitted against a fixed worker set and a fixed slot, as the scanout reservation is admitted at its maximum (R-15-236b), and content outside the ceiling is refused when the session opens.
+· Accept: tile and frame parallelism are bitstream properties, so throughput would otherwise be content-discovered inside a frame whose slots are composition constants (R-07-032, R-11-006); a decoder missing frames in a non-work-conserving frame is spending a slot another partition was admitted on rather than degrading gracefully (R-07-036, R-12-084b).
+· Trace: CJ-WCET, CJ-ISOL
+
+**R-15-238d** IS: The decoder is contained rather than trusted and its correctness evidence is conformance rather than proof: nothing above the syntax layer is in any trusted set, a decoder being an ordinary Tier-2 compartment whose fault is the contained crash R-16-001 restarts, and the pixel kernels' evidence is bit-exact conformance against a formally derived stream corpus and per-frame digests, booked as testing.
+· Accept: **no verified equivalence checker is minted to close that gap**, the CHERI-aware checker admitting search-derived or hand-written kernels being the artifact R-05-064 deleted and R-05-065 forbids re-minting; codec kernels are ordinary verified-compiler output and any search or model assistance in producing them is oracle and never checker (R-05-016).
+· Trace: CJ-TAL-SOUND, CJ-FORMAT
+
+**R-15-238e** MUST NOT: No protected media path exists and none is admissible: a hardware-enforced content path is memory its owner may not inspect and a decoder attested to a third party rather than to its owner, which is the enclave inversion R-15-245 refuses and the transparency §9 rests on.
+· Accept: the consequence is booked as a product ceiling in R-17-053a rather than as an unimplemented feature.
+· Trace: CJ-NI, CJ-CERISE
+
 **R-15-239** MUST NOT: The GPU command-processor surface class is deleted: there is no GPU, no GPU driver, and no separate graphics-driver trust surface. Work reaches V/M cores as ordinary capability-confined native code and ring-fed data.
 · Accept: the render and compositor servers, safe Rust on RVV, are that driver.
 · Trace: CJ-CERISE
@@ -5120,6 +5160,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: discharged by R-15-137 through R-15-139.
 · Trace: CJ-ISOL
 
+**R-17-053a** IS: The media ceiling books three costs of deleting the codec block: decode capacity is a declared ceiling refused above rather than an open capability (R-15-238c); energy per frame stays a multiple of a fixed-function block's, on the axis §2 subordinates, and the range-coder instrument buys cycles and bound tightness rather than joules (R-15-067g); and no protected media path exists or is admissible (R-15-238e), so the content tiers requiring one are unreachable rather than unimplemented.
+· Accept: the first two are stated in [performance-estimates.md](performance-estimates.md)'s media rows and the third is a product ceiling this design accepts rather than a gap it intends to close.
+· Trace: CJ-NI, CJ-WCET
+
 **R-17-054** IS: The lock-state seam books three limits: at-rest security is bounded by the credential and its rate-limiter; the unlocked window is shortened but not closed; and duress crypto-erase is a countermeasure rather than a guarantee, protecting future recoverability only and being irreversible on accidental entry.
 · Accept: biometrics are deliberately excluded from cold or idle-locked key release for exactly the false-accept and presentation-attack reason.
 · Fail-closed: the duress credential erases rather than unlocking (R-17-030h); the cost is irreversible on accidental entry.
@@ -5429,7 +5473,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1252 requirements. §19 is non-normative and yields none. Counts include the 302 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1263 requirements. §19 is non-normative and yields none. Counts include the 313 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5444,12 +5488,12 @@ All eighteen normative sections are extracted, at 1252 requirements. §19 is non
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
 | **§11 Updates** | **extracted** | **36** |
-| **§12 System Servers** | **extracted** | **122** |
+| **§12 System Servers** | **extracted** | **124** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **27** |
-| **§15 Hardware Platform** | **extracted** | **357** |
+| **§15 Hardware Platform** | **extracted** | **365** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **112** |
+| **§17 Residual Risks** | **extracted** | **113** |
 | **§18 Realization** | **extracted** | **50** |
 
 §19 is non-normative and yields no requirements.
