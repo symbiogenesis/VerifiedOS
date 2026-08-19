@@ -373,7 +373,7 @@ Both halves of the userland gate on the same handful of net-new artifacts, so th
 Two gates order this work, not one.
 The **software gate** is the prerequisites above: nothing exists before the certifying toolchain, and nothing with a surface exists before the render substrate.
 The **hardware gate** is §18's own staging, which brings the die up class by class (C-class scalar with software rendering, then V-class, then M-class, then the FEC units), so a target cannot be *delivered* before the core class it runs on exists.
-The two gates are not the same date: the emulated system boots the whole stack at M7 of the [implementation plan](implementation-plan.md), long before any of it is deliverable, so the class order gates delivery rather than existence.
+The two gates are not the same date: the emulated system boots the whole stack at M7 of the [implementation plan](implementation-checklist.md), long before any of it is deliverable, so the class order gates delivery rather than existence.
 
 Stages, not a schedule: within a stage nothing is serialized, and each stage presupposes only the one before it.
 
@@ -408,7 +408,7 @@ Nothing here promises dates, and nothing here is a design cut: a later stage is 
 ## Deterministic simulation testing: catching what the certificate does not prove
 
 The Tier-2 admission floor (§13) certifies *memory safety*, CHERI enforcing spatial bounds at runtime while the certificate discharges the temporal-safety, CFI, and no-runtime-codegen residual, and says nothing about *behavioral* correctness: gitoxide's delta resolution and merge, Servo's pure-interpreter event loop, `cosmic-comp`'s surface-to-input mediation, and Zed's language-server orchestration are all memory-safe-by-certificate yet logic-correct-by-nothing.
-That un-proven behavioral space, the bugs no one thinks to write a test for, is where a **deterministic simulation testing** harness earns its keep in continuous integration, and the [golden-model implementation plan](implementation-plan.md) already supplies the one artifact such a harness is otherwise hardest to build: a **deterministic, full-system substrate**.
+That un-proven behavioral space, the bugs no one thinks to write a test for, is where a **deterministic simulation testing** harness earns its keep in continuous integration, and the [golden-model implementation plan](implementation-checklist.md) already supplies the one artifact such a harness is otherwise hardest to build: a **deterministic, full-system substrate**.
 The Sail C-backend emulator is that substrate by construction, the CertiCoq→Wasm host-side reference is a second one for fast iteration, and the plan already leans on **differential testing against the Sail golden model** as its bring-up oracle, simulation testing is that same move made systematic: fault-injecting, coverage-guided, and replay-exact.
 Four properties of the machine make it unusually amenable:
 

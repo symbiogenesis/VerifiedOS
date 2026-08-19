@@ -2877,7 +2877,7 @@ The residuals group by trust source, indexed below and developed in the entries 
 
 ## 18. Realization (mid-2026)
 
-The normative workstream definitions and acceptance criteria live in [requirements-register.md](requirements-register.md); the executable golden-model sequence, toolchain contracts, and per-component milestones live in [implementation-plan.md](implementation-plan.md). This section keeps the ordering rationale, maturity distinctions, and unresolved branches.
+The normative workstream definitions and acceptance criteria live in [requirements-register.md](requirements-register.md); the executable golden-model sequence, toolchain contracts, and per-component milestones live in [implementation-checklist.md](implementation-checklist.md). This section keeps the ordering rationale, maturity distinctions, and unresolved branches.
 
 **Constraints and priority.** RV64 application-class CHERI is available only as licensable IP and FPGA soft cores; Morello is ARM, speculative, and loan-only. Codasip X730 is sub-5%-area shipping evidence and a route to first silicon, but its proprietary CodAL RTL, like open CVA6-CHERI, is a reference rather than the trusted base: the RTL of record is authored in Kôika/Kami. <a id="r-18-001"></a> Every stage is **purecap-only**, with no non-CHERI host, degraded-capability interim, or plain-RV64 target: prove the TCB on RV64 CHERI FPGA soft cores, then gate desktop deployment on RV64 CHERI silicon. <a id="r-18-002"></a>
 
