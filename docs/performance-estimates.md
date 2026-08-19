@@ -96,6 +96,18 @@ Figures are the compounded synthesis of the applicable rows above.
 | Public-key crypto / handshake (ECDH, ECDSA, RSA, PQC big-integer) | **−40% to −70%** | The one archetype inside the accelerated set where the machine is *slower*, and the reason "crypto" is not one number here. Field arithmetic runs at verified-C codegen speed, the superoptimized-assembly route being deleted rather than deferred (R-05-064). It is a handshake and key-agreement cost; bulk traffic is symmetric and takes the row above. |
 | Dense GEMM / AI inference (M-class) | **+3900% to +9900% (40–100×)** vs scalar | Systolic units; competitive with early-NPU-class parts. The floor follows from the §15 admission threshold (an order of magnitude over the M-class's own VLEN=1024 RVV GEMM), not from an independent estimate. |
 
+### The compounding check behind the general-scalar band
+
+The band is a synthesis rather than a column sum, so it is *checked* against a product rather than derived from one: over the **dominant terms only**, the rows the reading above names as setting the ends (in-order issue, static prediction, the flat hierarchy, and the sustained half of the clock gap), with each end's gains paired to the **same workload property** that drives that end's losses, the large-footprint pointer-chasing work that takes in-order issue and the flat hierarchy to their worse ends being the same work that takes no-MMU and macro-op fusion to their better ones. The product is recomputed from those rows mechanically, so a lever scored into a row but not into the band is a finding rather than a drift. Everything else this archetype touches lands **inside** the band rather than multiplied onto it, separate rows reaching their worse ends on disjoint sub-workloads.
+
+| End | Product | Credit against the band |
+|---|---|---|
+| Better | −42% | 3 points conservative |
+| Worse | −75% | 5 points optimistic |
+
+The product column is recomputed from those rows and carries no judgment, so it is rewritten rather than reviewed; the band is stated once, in the archetype table above, and never restated here.
+**The credit is the authored half and the judgment the product cannot make, and it is what decides whether a future lever moves the band:** even the dominant rows do not peak together, the pointer-chase that takes the no-cache row to its worse end not being the dependent branchy code that takes in-order issue to that row's. A lever is scored into its own row first and the product recomputed; while it stays within the credit the band holds, and when it crosses, the band moves rather than the credit growing to absorb it.
+
 ---
 
 ## Headline total

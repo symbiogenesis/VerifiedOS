@@ -2,7 +2,7 @@
 #
 # A derived fact is anything one document holds only because another document already
 # determined it. Restated by hand it drifts silently, in whichever direction nobody
-# looked, which is the defect the register's sweep 2 names. The defect takes five
+# looked, which is the defect the register's sweep 2 names. The defect takes seven
 # granularities, and they are one mistake, so they are one tool:
 #
 #   traces   the reference    every bookmark a trace cites, and the section it displays
@@ -11,6 +11,7 @@
 #   views    the membership   what a derived view carries, checked in both directions
 #   confers  the enumeration  every set closed by conferral, and the agenda for what it misses
 #   counts   the cardinality  every figure any document asserts, against its artifact
+#   compounds the arithmetic  the archetype band against the product of the rows beneath it
 #
 # Two further groups check what a document is made of rather than what it says, where a
 # fault survives a rendered read because the render succeeds:
@@ -18,8 +19,9 @@
 #   tables   the shape        every row against the width its header declares
 #   glyphs   the characters   punctuation the house style forbids, and encoding damage
 #
-# Run with -Fix to rewrite the asserted counts from their artifacts. Every other finding
-# has no mechanical repair: it is a person's edit, reported not guessed.
+# Run with -Fix to rewrite the asserted counts, and the compounded product, from their
+# artifacts. Every other finding has no mechanical repair: it is a person's edit,
+# reported not guessed.
 #
 # Exit 0 clean, 1 on any finding. Run from the repository root.
 
@@ -1080,6 +1082,126 @@ if ($q['dcsr-rows'] -ne $q['open-csr-rows']) {
     "FAIL: the register books $($q['dcsr-rows']) D-CSR row(s); isa-profile.md §5.3 carries $($q['open-csr-rows'])"
 } else {
     "ok: $($q['dcsr-rows']) open CSR rows in both the register and the profile"
+}
+""
+
+# =================================================================================
+# compounds: the archetype band against the product of the rows it rests on
+# =================================================================================
+#
+# The estimates carry two layers of figure and only one of them is anybody's artifact.
+# A big-table row is scored against the baseline and moves when a lever lands in it;
+# the archetype band beneath is a synthesis over those rows, restated by hand, and it
+# moves when someone remembers. Nothing renders wrong when they part: the row reads
+# correctly, the band reads correctly, and only the arithmetic between them is gone.
+# That is the drift this group closes, and it has already happened once, a commit
+# re-scoring the in-order row and leaving the static-prediction row it landed in the
+# same paragraph as, so the two ends of one lever disagreed for a day.
+#
+# The product is the dominant terms only, and that is the whole of what makes it
+# meaningful. Multiplying every applicable row runs past -90% and describes no workload
+# that exists, because separate rows reach their worse ends on disjoint sub-workloads:
+# the pointer-chase that empties the cache row is not the branchy dependent code that
+# empties the in-order one. So the terms are declared here, four losses and two gains,
+# each naming the row it reads and the range inside that row's figure, and each end's
+# gains are taken at the end the same workload property drives them to.
+#
+# What the check cannot decide is the credit: the band's worse end stands a few points
+# optimistic of the product for exactly the non-simultaneity above, and how many points
+# that is worth is a judgment. So the document states it, the check recomputes the
+# product from the rows, and the two are required to agree. A lever that tightens a row
+# then has one of two consequences and no third: the credit absorbs it, or the band
+# moves. Neither is silent.
+#
+# The document is regularized so that the two halves separate cleanly. The product is
+# arithmetic over the rows and nobody's judgment, so -Fix rewrites it. The credit is
+# the author's, and it has no repair: a row that moves changes the product under a
+# credit that no longer matches it, and whether that spends the credit or moves the
+# band is exactly the decision this group exists to force. Running -Fix therefore
+# leaves the finding standing rather than absorbing it, which is the point.
+#
+# The band is stated once, in the archetype table, and the credit table does not restate
+# it: with the product recomputed and the band read from its own row, the credit is the
+# gap between them, and its sense follows from which side of the product the band sits.
+
+"=== compounds: the archetype band against the product of the rows it rests on ==="
+
+$perfName = 'docs/performance-estimates.md'
+$perfDoc  = $docByName[$perfName]
+$perfRaw  = if ($fixedFiles.ContainsKey($perfName)) { $fixedFiles[$perfName] } else { $perfDoc.Raw }
+
+# each term names the big-table row it reads; the clock row states two ranges and only
+# the sustained one enters, which is the whole of the variation between the six
+$terms = @(
+    [pscustomobject]@{ Row = 'In-order issue, no speculation/OoO'; Gain = $false; Tail = '' }
+    [pscustomobject]@{ Row = 'Static-only branch prediction';      Gain = $false; Tail = '' }
+    [pscustomobject]@{ Row = 'No hardware caches, flat SRAM';      Gain = $false; Tail = '' }
+    [pscustomobject]@{ Row = 'Fixed modest clocks, no turbo';      Gain = $false; Tail = ' sustained' }
+    [pscustomobject]@{ Row = 'No MMU / single address space';      Gain = $true;  Tail = '' }
+    [pscustomobject]@{ Row = 'Macro-op fusion';                    Gain = $true;  Tail = '' }
+)
+
+$unread = @(); $ends = @()
+foreach ($t in $terms) {
+    $hit = @($perfDoc.Lines | Where-Object { $_.StartsWith('|') -and $_.Contains($t.Row) })
+    if ($hit.Count -ne 1) { $unread += "'$($t.Row)': $($hit.Count) big-table row(s) match"; continue }
+    $sign = if ($t.Gain) { '\+' } else { '−' }
+    $m = [regex]::Match(($hit[0] -split '\|')[4], "$sign(\d+)% to $sign(\d+)%$($t.Tail)")
+    if (-not $m.Success) { $unread += "'$($t.Row)': its figure states no $sign range$($t.Tail)"; continue }
+    $ends += [pscustomobject]@{ Gain = $t.Gain; Min = [int]$m.Groups[1].Value; Max = [int]$m.Groups[2].Value }
+}
+Report 'dominant term(s) whose row or figure the big table no longer carries:' $unread `
+       "all $($terms.Count) dominant terms read their own row"
+
+# the band the archetype table states, and the credit table standing under the product
+$bandM   = [regex]::Match($perfRaw, '(?m)^\| General scalar[^|]*\| \*\*−(\d+)% to −(\d+)%\*\*')
+$creditRe = [regex]'(?m)^\| (Better|Worse) \| −(\d+)% \| (\d+) points (optimistic|conservative) \|'
+$credits = @($creditRe.Matches($perfRaw))
+
+if ($unread.Count) { }                       # reported above; without every term there is no product
+elseif (-not $bandM.Success -or $credits.Count -ne 2) {
+    $findings++
+    "FAIL: the general-scalar band or its credit table is not in the form this check reads"
+} else {
+    # the better end takes every term's smaller figure and the worse end every term's
+    # larger, gains included: the pairing rule, not a choice of which end to be kind at
+    $product = @{}
+    foreach ($end in 'Better', 'Worse') {
+        $p = 1.0
+        foreach ($e in $ends) {
+            $v = if ($end -eq 'Better') { $e.Min } else { $e.Max }
+            $p *= if ($e.Gain) { 1 + $v / 100 } else { 1 - $v / 100 }
+        }
+        $product[$end] = [int][math]::Round((1 - $p) * 100)
+    }
+    $band = @{ Better = [int]$bandM.Groups[1].Value; Worse = [int]$bandM.Groups[2].Value }
+
+    $stale = @($credits | Where-Object { [int]$_.Groups[2].Value -ne $product[$_.Groups[1].Value] })
+    if ($stale.Count -and $Fix) {
+        $fixedFiles[$perfName] = $creditRe.Replace($perfRaw, {
+            param($m)
+            $end = $m.Groups[1].Value
+            "| $end | −$($product[$end])% | $($m.Groups[3].Value) points $($m.Groups[4].Value) |"
+        })
+        $stale | ForEach-Object { "fixed: $($_.Groups[1].Value) product: $($_.Groups[2].Value)% -> $($product[$_.Groups[1].Value])%" }
+    } else {
+        Report 'product cell(s) disagreeing with the rows they compound:' `
+               @($stale | ForEach-Object { "$($_.Groups[1].Value): the table says $($_.Groups[2].Value)%, the rows compound to $($product[$_.Groups[1].Value])%" }) `
+               "the general-scalar band stands $($product['Better'])% to $($product['Worse'])% by its rows"
+    }
+
+    # the band is optimistic where it is nearer zero than the product and conservative
+    # where it is further, so neither the gap nor its sense is free to state
+    $miscredited = @(foreach ($c in $credits) {
+        $end  = $c.Groups[1].Value
+        $gap  = [math]::Abs($band[$end] - $product[$end])
+        $want = if ($band[$end] -lt $product[$end]) { 'optimistic' } else { 'conservative' }
+        if ([int]$c.Groups[3].Value -ne $gap -or $c.Groups[4].Value -ne $want) {
+            "${end}: the table credits $($c.Groups[3].Value) points $($c.Groups[4].Value), the band stands $gap points $want of the product"
+        }
+    })
+    Report 'credit(s) the band and the product do not support:' $miscredited `
+           'every credit is the gap between the band and its product'
 }
 ""
 
