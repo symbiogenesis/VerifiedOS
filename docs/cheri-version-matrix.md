@@ -316,7 +316,7 @@ Naming changed twice along the way: the `Zcheri*` extension names of the 2024–
 **Two rows are live code-size questions the freeze measurement answers.**
 
 1. **`AUICGP`, for global-address materialization.** R-15-036k decides this rather than relocatability: a dictionary entry carries its immediate, so a `cgp`-relative offset, identical at every site that names one global, is a single entry shared across the image, while the `auipcc` displacement it replaces is an entry per site. The question is hit rate, and R-15-036l sends it to the same freeze measurement. CHERIoT has since answered for its own lineage: v2 removes `AUICGP` in favour of linker-relaxed `auipcc` sequences, on the finding that the instruction is almost universally relaxed away once the address is known at link time. Addresses here are known at composition time, so the external evidence leans toward dropping; the measurement still decides.
-2. **`CSetBounds` with a large immediate.** R-15-067e names it as the one further candidate R-15-036n's single freeze act weighs against actual generated output, and the expected outcome is that it is dropped, the dictionary already collecting the site-invariant length materialization it would replace.
+2. **`CSetBounds` with a large immediate.** R-15-067e names it as the one further candidate the freeze's single measured act (R-15-014a) weighs against actual generated output, and the expected outcome is that it is dropped, the dictionary already collecting the site-invariant length materialization it would replace.
 
 **Two rows bear on arguments the profile makes rather than on its content.**
 
