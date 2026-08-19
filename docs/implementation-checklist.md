@@ -381,12 +381,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M1.1, and the initial check/emit/FAST tooling.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M1.1, M1.5, and the initial check/emit/FAST tooling.
 * Current serial path: c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
-* Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M1.5, M2.1, and M4.1.
-* Total estimate: 816.3 h midpoint, range 549.3–1,083.3 h.
-* Progress by estimate: 8.3 of 816.3 h complete (1.0%); 808 h remaining (99.0%).
-* M8 gate: 733.3 h of the 816.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M2.1, and M4.1.
+* Total estimate: 815.8 h midpoint, range 550.3–1,081.3 h.
+* Progress by estimate: 11.3 of 815.8 h complete (1.4%); 804.5 h remaining (98.6%).
+* M8 gate: 732.8 h of the 815.8 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -508,12 +508,15 @@ Every later milestone is purecap and managed-runtime-free from here.
 * [ ] **M1.3 · Add baseline target support and bound-directed lowering** · 12 h, range 8–16 · 1.5%
 * [ ] **M1.4 · Re-home LLVM MC/`lld` and compose static images** · 22.5 h, range 15–30 · 2.8%
   * Exclude general dynamic linking.
-* [ ] **M1.5 · Run the CertiCoq-to-Wasm oracle** · 3.5 h, range 2–5 · 0.4% · Parallel
+* [x] **M1.5 · Run the CertiCoq-to-Wasm oracle** · 3 h actual · 0.4%
+  * The loop closes end to end in a container ([tools/wasm-oracle/](../tools/wasm-oracle/)): `demo.v`'s `Nat.eqb (fib 20) 6765` compiled by `CertiRocq Compile Wasm` and run on stock Node prints `true`, the §0 inner loop with no cross-toolchain, no image, and no machine model involved.
+  * Pin and condition: CertiRocq main carries the merged CPP 2025 CertiCoq-Wasm backend (`theories/CodegenWasm`, proven against WasmCert-Coq) that the 0.9 opam release predates, but its tip tracks the *unreleased* MetaRocq 9.1 branch on both sides of released 1.5.1, so the oracle pins the last pre-drift commit `4f53ca97` plus a two-site compat patch (the erasure inlining toggle moved into `unsafe_passes`). Rocq is 9.1.1 by CertiRocq's own `< 9.2~` constraint, not staleness, and it is the same prover version SECOMP states, so M1.2 shares this environment.
+  * Environment findings, booked for later lanes: this workstation's WSL has no compiler toolchain and no passwordless sudo, so the oracle rides Docker (daemon and group membership already present); the WSL VM idles out between commands and takes containers with it, so long builds need a keepalive plus container auto-restart; and Cisco Umbrella re-signs `release-assets.githubusercontent.com`, so the Windows-exported proxy root CA must be installed into any Linux trust store that fetches GitHub release assets.
 * [ ] **M1.6 · Stand up GC-free lowering routes** · 18.5 h, range 12–25 · 2.3% · Parallel with M1.4
 * [ ] **M1.7 · Boot purecap Gallina hello-world on the M0 emulator** · 9 h, range 6–12 · 1.1%
 * [ ] **M1.8 · Build and wire the profile-freeze analyzer** · 11.5 h, range 8–15 · 1.4% · Parallel
 
-**M1 subtotal:** 115 h · 14% · 0.5 h complete · open range 76–153 h.
+**M1 subtotal:** 114.5 h · 14% · 3.5 h complete · open range 74–148 h.
 
 ### M2 · Fast emulator
 
@@ -652,6 +655,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 816.3 h midpoint over a 549.3–1,083.3 h range.
+* Grand total: the sum of the item cells, 815.8 h midpoint over a 550.3–1,081.3 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.
