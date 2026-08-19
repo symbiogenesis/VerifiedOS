@@ -95,9 +95,10 @@ Execution tracker for [implementation-plan.md](implementation-plan.md). The plan
   * Add `cmovz`/`cmovn`, `cloadtags`, revocation filtering and bitmap, `fence.t`, capability indexed load/store, `cclear`, and the machine-level AIA pending array.
   * Do not model measurement-conditioned provisional rows yet. The single-check multi-register save is struck from the freeze set (R-15-036n) and is not modeled at all.
 
-* [ ] **M0.6h · Add the three determinations instructions** · 6 h, range 4–8 · 0.8%
-  * Add `vmclear` (R-15-069d), `creclaim` (R-15-007s), and `cbo.scrub` (R-15-177a) per [the hardware-acceleration determinations](todos/hardware_acceleration_determinations.md): one Sail clause each, fixed-latency, on the constant-time list.
+* [ ] **M0.6h · Add the three bespoke block instructions** · 6 h, range 4–8 · 0.8%
+  * Add `vmclear` (R-15-069d), `creclaim` (R-15-007s), and `cbo.scrub` (R-15-177a): one Sail clause each, fixed-latency, on the constant-time list.
   * `vmclear` clears vector RF, vector CSRs, matrix state, and scratchpad per class; `creclaim` composes the load's revoked case with the `cloadtags` group read; `cbo.scrub` is architecturally a fixed-latency block pass with telemetry and fail-stop hooks.
+  * None of the three is inherited from `sail-riscv` or `sail-cheri-riscv`, so each is net-new model surface with no upstream oracle; the differential harness takes the software equivalent instead, which each admission was shaped to leave trivial: a `cbo.zero` plus `cclear` loop for `vmclear`, `cloadtags` plus a capability load per tagged granule for `creclaim`, and ordinary loads through the ECC check for `cbo.scrub`.
   * Depends on M0.6g's revocation bitmap and CBO plumbing; lands after it.
 
 ### Remaining M0 deliverables
