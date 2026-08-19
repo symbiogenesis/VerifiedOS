@@ -16,7 +16,15 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-out=$(coqc -q proofs/ApexTheorem.v)
+# The statement artifact compiles first because every companion imports it;
+# the rest follow in name order. -Q roots the logical path so a companion's
+# Require Import resolves to the .vo built here, never to an installed one.
+out=$(coqc -q -Q proofs '' proofs/ApexTheorem.v)
+for f in proofs/*.v; do
+    [ "$f" = "proofs/ApexTheorem.v" ] && continue
+    out="$out
+$(coqc -q -Q proofs '' "$f")"
+done
 
 bad=$(printf '%s\n' "$out" | grep -v '^Closed under the global context$' | grep -v '^[[:space:]]*$' || :)
 closed=$(printf '%s\n' "$out" | grep -c '^Closed under the global context$' || :)
