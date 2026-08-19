@@ -1130,25 +1130,59 @@ $perfName = 'docs/performance-estimates.md'
 $perfDoc  = $docByName[$perfName]
 $perfRaw  = if ($fixedFiles.ContainsKey($perfName)) { $fixedFiles[$perfName] } else { $perfDoc.Raw }
 
-# each term names the big-table row it reads; the clock row states two ranges and only
-# the sustained one enters, which is the whole of the variation between the six
+# The column is one shape, stated in the document's own how-to-read: clauses joined by
+# '; ', each a range over the scope it names, or `n/a` where the row carries no figure
+# of its own. Checking it is what lets everything below read a figure by position rather
+# than by pattern, and it catches the row that states its cost in prose, which renders
+# as an estimate and is read by nothing.
+$point   = '≈?[−+]?\d+%'
+$shapeRe = [regex]"^(n/a|$point( to $point)?( \([^)]*\))?( [^;]+)?(; $point( to $point)?( \([^)]*\))?( [^;]+)?)*)$"
+
+$misshapen = @()
+foreach ($line in $perfDoc.Lines) {
+    if (-not $line.StartsWith('|')) { continue }
+    $cells = $line -split '\|'
+    if ($cells.Count -lt 8) { continue }                       # the big table alone is this wide
+    $figure = $cells[4].Trim() -replace '^\*\*|\*\*$', ''
+    if ($figure -in 'Est. Δ perf', '---' -or -not $figure) { continue }
+    if ($shapeRe.IsMatch($figure)) { continue }
+    $label = ($cells[2].Trim() -replace '\s*\(§.*$', '')
+    $misshapen += "${label}: '$figure'"
+}
+Report 'figure cell(s) outside the column''s declared shape:' $misshapen `
+       'every figure is a range over its scope, or n/a'
+
+# each term names the big-table row it reads and, where that row's figure states more
+# than one clause, the scope of the clause that enters: the clock row's sustained half
+# is the only one, and it is selected the same way any other scoped clause would be
 $terms = @(
-    [pscustomobject]@{ Row = 'In-order issue, no speculation/OoO'; Gain = $false; Tail = '' }
-    [pscustomobject]@{ Row = 'Static-only branch prediction';      Gain = $false; Tail = '' }
-    [pscustomobject]@{ Row = 'No hardware caches, flat SRAM';      Gain = $false; Tail = '' }
-    [pscustomobject]@{ Row = 'Fixed modest clocks, no turbo';      Gain = $false; Tail = ' sustained' }
-    [pscustomobject]@{ Row = 'No MMU / single address space';      Gain = $true;  Tail = '' }
-    [pscustomobject]@{ Row = 'Macro-op fusion';                    Gain = $true;  Tail = '' }
+    [pscustomobject]@{ Row = 'In-order issue, no speculation/OoO'; Scope = '' }
+    [pscustomobject]@{ Row = 'Static-only branch prediction';      Scope = '' }
+    [pscustomobject]@{ Row = 'No hardware caches, flat SRAM';      Scope = '' }
+    [pscustomobject]@{ Row = 'Fixed modest clocks, no turbo';      Scope = 'sustained' }
+    [pscustomobject]@{ Row = 'No MMU / single address space';      Scope = '' }
+    [pscustomobject]@{ Row = 'Macro-op fusion';                    Scope = '' }
 )
+
+# one range reads every figure in the corpus, the column having one shape: a signed
+# pair, its sign carrying whether the term is a loss or a gain, so neither is declared
+$rangeRe = [regex]'([−+])(\d+)% to \1(\d+)%'
 
 $unread = @(); $ends = @()
 foreach ($t in $terms) {
     $hit = @($perfDoc.Lines | Where-Object { $_.StartsWith('|') -and $_.Contains($t.Row) })
     if ($hit.Count -ne 1) { $unread += "'$($t.Row)': $($hit.Count) big-table row(s) match"; continue }
-    $sign = if ($t.Gain) { '\+' } else { '−' }
-    $m = [regex]::Match(($hit[0] -split '\|')[4], "$sign(\d+)% to $sign(\d+)%$($t.Tail)")
-    if (-not $m.Success) { $unread += "'$($t.Row)': its figure states no $sign range$($t.Tail)"; continue }
-    $ends += [pscustomobject]@{ Gain = $t.Gain; Min = [int]$m.Groups[1].Value; Max = [int]$m.Groups[2].Value }
+
+    # the figure cell is clauses joined by '; ', each a range over the scope it names
+    $clause = @(($hit[0] -split '\|')[4] -split '; ' | Where-Object { $_.Contains($t.Scope) })
+    if ($clause.Count -ne 1) { $unread += "'$($t.Row)': $($clause.Count) figure clause(s) scoped '$($t.Scope)'"; continue }
+    $m = $rangeRe.Match($clause[0])
+    if (-not $m.Success) { $unread += "'$($t.Row)': the clause '$($clause[0].Trim())' states no range"; continue }
+    $ends += [pscustomobject]@{
+        Gain = $m.Groups[1].Value -eq '+'
+        Min  = [int]$m.Groups[2].Value
+        Max  = [int]$m.Groups[3].Value
+    }
 }
 Report 'dominant term(s) whose row or figure the big table no longer carries:' $unread `
        "all $($terms.Count) dominant terms read their own row"
