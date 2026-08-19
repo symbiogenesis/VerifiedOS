@@ -381,12 +381,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, and the initial check/emit/FAST tooling.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M1.1, and the initial check/emit/FAST tooling.
 * Current serial path: c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
-* Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M1.1, M1.5, M2.1, and M4.1.
-* Total estimate: 817.8 h midpoint, range 549.8–1,085.8 h.
-* Progress by estimate: 7.8 of 817.8 h complete (1.0%); 810 h remaining (99.0%).
-* M8 gate: 734.8 h of the 817.8 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M1.5, M2.1, and M4.1.
+* Total estimate: 816.3 h midpoint, range 549.3–1,083.3 h.
+* Progress by estimate: 8.3 of 816.3 h complete (1.0%); 808 h remaining (99.0%).
+* M8 gate: 733.3 h of the 816.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -498,8 +498,11 @@ Ship the frozen-dialect **assembler, linker, and image composer** (§0) in the s
 Build the profile-freeze analyzer and backend provenance outputs (§0), then publish its ordered dictionary, outlining, operand-form, bitfield, stack-save, and indexed-address reports against the generated corpus.
 Every later milestone is purecap and managed-runtime-free from here.
 
-* [ ] **M1.1 · Locate and pin SECOMP2CHERI** · 2 h, range 1–3 · 0.2% · Parallel now
-  * Record availability, provenance, condition, and carried features.
+* [x] **M1.1 · Locate and pin SECOMP2CHERI** · 0.5 h actual · 0.1%
+  * `upstream/SECOMP` pinned at `5c20b839` (`ccs-main` head): the PriSC'23 abstract's `secure-compilation/CompCert` link redirects here (GitHub rename), so SECOMP2CHERI and the CCS 2024 SECOMP artifact are one repository, a CompCert **3.12** fork on the 64-bit RISC-V backend, permanently archived at DOI `10.5281/zenodo.11007678`; license is CompCert's (INRIA non-commercial for the core), a provenance fact the fork inherits.
+  * Condition: alive, not abandoned (pushed June 2026; blame merged March 2026). Compartment-aware CompCert holds through every pass with the correctness proof adapted (admits confined to `Stackingproof.v` pending recent changes); recomposition and blame proofs complete; back-translation complete on `ccs-backtranslation`; the top-level RSCC theorem is formalized in `security/RSC.v` but not yet integrated with those three. Builds with Rocq 9.1 / OCaml 5.2.1 / Menhir.
+  * Carried features, the CHERI half: the capability backend lives in-tree under `cheririscV/` (33 files: `CapAsm.v`, `CapAsmgen.v`, `CapAsmgenproof*.v`, capability memory model `CapMemory.v`, Georges-et-al calling convention with uninitialized/directed capabilities), emitted via `-dcapasm` with an admittedly incomplete pretty-printer; per the abstract it is "for the most part also implemented in Coq, but not yet fully integrated with CompCert and not verified". Branch `fix-cap-backend` (`1881ed0f`, June 2024) is 15 commits of unmerged backend work ahead; the 2022 `cheri-backend` branch is superseded.
+  * Implication for M1.2: the artifact is usable, so the +20–40 h contingency is not triggered; the re-homing's real gap is the unverified, unintegrated capability backend and its ISAv8-lineage capability model versus the §4.1 64+1-bit purecap dialect, exactly the residual [inspirations.md](inspirations.md) states.
 * [ ] **M1.2 · Re-home the backend to the purecap profile** · 37.5 h, range 25–50 · 4.6%
   * Functional and differential testing required; add 20–40 h if the artifact is unusable.
 * [ ] **M1.3 · Add baseline target support and bound-directed lowering** · 12 h, range 8–16 · 1.5%
@@ -510,7 +513,7 @@ Every later milestone is purecap and managed-runtime-free from here.
 * [ ] **M1.7 · Boot purecap Gallina hello-world on the M0 emulator** · 9 h, range 6–12 · 1.1%
 * [ ] **M1.8 · Build and wire the profile-freeze analyzer** · 11.5 h, range 8–15 · 1.4% · Parallel
 
-**M1 subtotal:** 116.5 h · 14% · open range 77–156 h.
+**M1 subtotal:** 115 h · 14% · 0.5 h complete · open range 76–153 h.
 
 ### M2 · Fast emulator
 
@@ -649,6 +652,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 817.8 h midpoint over a 549.8–1,085.8 h range.
+* Grand total: the sum of the item cells, 816.3 h midpoint over a 549.3–1,083.3 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

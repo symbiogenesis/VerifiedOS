@@ -4,3 +4,6 @@
 [submodule "upstream/sail-cheri-riscv"]
 	path = upstream/sail-cheri-riscv
 	url = https://github.com/CTSRD-CHERI/sail-cheri-riscv
+[submodule "upstream/SECOMP"]
+	path = upstream/SECOMP
+	url = https://github.com/secure-compilation/SECOMP
