@@ -9,15 +9,17 @@
 # check is an approximation of the sim's own --validate-config (which also runs
 # the model's semantic config_is_valid), so the full build stays the exit
 # criterion for each batch.
-ulimit -s 131072
-eval $(opam env --switch=default)
+VOS_TOOLS=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)
+[ -f "$VOS_TOOLS/wsl-env.sh" ] || VOS_TOOLS=/mnt/c/Users/symbi/source/repos/VerifiedOS/tools
+. "$VOS_TOOLS/wsl-env.sh"
 SRC=/mnt/c/Users/symbi/source/repos/VerifiedOS/model
 BLD=/root/build/verifiedos-model
 # Reuse build-model.sh's configured canonical build tree; configure if absent.
 if [ ! -f "$BLD/build.ninja" ]; then
-  cmake -S "$SRC" -B "$BLD" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_GMP=FALSE -DENABLE_RISCV_TESTS=TRUE || exit 1
+  cmake -S "$SRC" -B "$BLD" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_GMP=FALSE -DENABLE_RISCV_TESTS=TRUE "${VOS_CMAKE_CCACHE[@]}" || exit 1
 fi
-cmake --build "$BLD" --target generated_sail_riscv_model || exit 1
+# Single-threaded stage; -j is passed for uniformity, not for speed.
+vos_stage emit cmake --build "$BLD" -j "$VOS_JOBS" --target generated_sail_riscv_model || exit 1
 python3 - "$BLD/sail_riscv_config_schema.json" "$SRC/config/verifiedos.json" <<'EOF'
 import json
 import sys
