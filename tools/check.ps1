@@ -588,6 +588,12 @@ $views = @(
     @{ File = 'docs/coverage-matrix.md'
        Governing = 'R-17-001b'
        MustCoverCells = $true }
+    # the freeze's second act is the one place a requirement defers its own decision to a
+    # measurement, so the entries naming that deferral are what the contract must carry:
+    # each either puts a choice into the measured act or states the act's gating artifacts
+    @{ File = 'docs/freeze-measurement-contract.md'
+       Governing = 'R-15-014a'
+       BodyPattern = 'R-15-014a|the freeze from measurement|re-derived at the freeze' }
 )
 
 $reqTokenRe = [regex]'R-\d\d-\d+[a-z]?'

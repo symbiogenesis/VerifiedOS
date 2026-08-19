@@ -66,9 +66,11 @@ It is one deliverable with two milestones:
 1. **M0 defines the measurement contract with the profile.**
    Name and version the freeze corpus, its generated-source inputs, the composition recipe, the admitted region classes, and the acceptance threshold for every choice; define the emitter-provenance schema that labels operand classes before assembly; and establish one report format that records the realized dictionary, bytes, and Sail-model worst-case cycles.
    The corpus includes the composed base image; generated Narcissus UPER RRC and IEI/TLV codecs; generated MMIO accessors; and the generated prologues, epilogues, calls, and global-address materializations in that image.
+   The contract is authored as the [profile-freeze measurement contract](freeze-measurement-contract.md), which is the authority on every corpus member, recipe step, provenance stratum, region class, threshold, report column, and CI predicate the two paragraphs here name; this section stays the authority on what the deliverable is and why it is split across two milestones.
 2. **M1 builds and wires the instrument into the functional CHERI-CompCert backend.**
    Add an ELF/link-map/provenance analyzer under `tools/`, make the backend emit the operand-class and region-class sidecars it consumes, and take cycle deltas from §1's Sail timing table rather than host timing.
-   Run the report in this fixed order: compose and merge first (R-15-036i); select and report the dictionary with hit rate stratified by operand class (R-15-036h, R-15-036k); measure outlining and tail merging as a bytes-and-worst-case-cycles pair per admitted region class (R-15-036o, R-15-036p); then measure PC-relative versus composition-time-absolute call/address forms (R-15-036l), the single-check multi-register save/restore decision (R-15-036n), `bfext`/`bfins` forms (R-15-067d), and the indexed load/store scale immediate (R-15-007g).
+   Run the report in this fixed order: compose and merge first (R-15-036i); select and report the dictionary with hit rate stratified by operand class (R-15-036h, R-15-036k); measure outlining and tail merging as a bytes-and-worst-case-cycles pair per admitted region class (R-15-036o, R-15-036p); then measure PC-relative versus composition-time-absolute call/address forms (R-15-036l), `bfext`/`bfins` forms (R-15-067d), the one further code-size candidate the same act weighs (R-15-067e), the indexed load/store scale immediate (R-15-007g), and the emitted adjacency histogram the frozen fusion set is selected against (R-15-031a), whose admission is the §15 exploration's rather than the report's.
+   The single-check multi-register save/restore is a **nil row**: it is struck ahead of the freeze (R-15-036n), so the report carries the strike and leaves its byte and cycle columns empty, and a measured row against it is an amendment rather than a freeze.
    One choice in that act is measured on cycles rather than bytes and so takes a corpus of its own: `rcstep`'s carriage is decided by the decoder's worst-case cycles per frame over the conformance streams, against the slot and the decode ceiling the media server is admitted at (R-15-067h, R-15-238c), and it is reported in the same freeze report with the byte columns left empty rather than in a second one.
    Publish the corpus manifest, tool version, thresholds, per-extension deltas, and realized choices with the profile freeze; CI rejects a freeze whose report omits a required corpus member, provenance stratum, region class, byte column, or worst-case-cycle column.
 
@@ -381,12 +383,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M1.1, M1.5, and the initial check/emit/FAST tooling.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
 * Current serial path: c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
-* Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M2.1, and M4.1.
-* Total estimate: 815.8 h midpoint, range 550.3–1,081.3 h.
-* Progress by estimate: 11.3 of 815.8 h complete (1.4%); 804.5 h remaining (98.6%).
-* M8 gate: 732.8 h of the 815.8 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Available parallel work: c4, M0.6e staging, M0.7, M0.12 drafting, M2.1, and M4.1.
+* Total estimate: 812.3 h midpoint, range 548.8–1,075.8 h.
+* Progress by estimate: 13.8 of 812.3 h complete (1.7%); 798.5 h remaining (98.3%).
+* M8 gate: 729.3 h of the 812.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -484,12 +486,16 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.9 · Add documented timing annotations** · 4.5 h, range 3–6 · 0.6% · Parallel
 * [ ] **M0.10 · Generate and freeze the C-class golden emulator** · 2 h, range 1–3 · 0.2%
   * Exit: curated single-core emulator with ISA tests green.
-* [ ] **M0.11 · Define the profile-freeze measurement contract** · 6 h, range 4–8 · 0.7% · Parallel
-  * Include corpus manifest, generation inputs, composition recipe, admitted regions, thresholds, emitter provenance, and report format.
+* [x] **M0.11 · Define the profile-freeze measurement contract** · 2.5 h actual · 0.3%
+  * [docs/freeze-measurement-contract.md](freeze-measurement-contract.md): six corpus members (`FM-1` to `FM-6`), a seven-step composition recipe, five operand classes and five admitted region classes with four enumerated refusal reasons, nine decisions (`FD-1` to `FD-9`) each carrying question, corpus, unit, procedure, threshold, default, and report columns, one report in two renderings generated from one record, eight declared parameters, and twelve CI predicates (`G-1` to `G-12`). Registered as a view in `tools/check.ps1`, so the requirements it must carry are checked in both directions.
+  * Three methodological rules do the work, and each closes a way the measurement could be true and useless: bytes are **measured** on the encoder's output with R-15-036h/j reported beside them as a residual check rather than in place of them; the dictionary is **re-selected inside every variant**, a candidate instrument changing the histogram it would be scored against; and a **closing pass** at the admitted configuration produces the realized dictionary, so the frozen one is the machine's and not the sweep's.
+  * Thresholds are derived where the register fixes the quantity and declared where it does not. Derived: 22.4 encoded bits per instruction, the optimistic `C` counterfactual at 70% of a 32-bit stream, which is R-15-036k's *p* = 0.804 expressed through the axis actually observed; **zero slot widenings** for outlining, since a partition's capacity is its slot width (R-07-032, R-07-037, R-15-036p); and for `rcstep`, that it move at least one tuple from refused to admitted, a decode ceiling being refused above rather than degraded through (R-15-238c). Declared, and collected in one table: two materiality floors keyed on what the choice costs, 0.5% of encoded text where it consumes custom opcode space and 0.1% where it only selects among forms of admitted instructions.
+  * Three findings against §0's ordered act, all now corrected there. It named the single-check multi-register save/restore as a measured row, which R-15-036n strikes ahead of the freeze, so it is a nil row and a measured row against it is an amendment (`G-5`). It omitted two rows R-15-014a's closed delta carries, R-15-067e's further code-size candidate and R-15-031a's fusion set; the second is the one row whose admission is the deferred §15 exploration's, so the instrument owes it the emitted adjacency histogram and the report carries it as pending.
+  * One narrowing of a delta item, stated rather than swept: R-15-036a carries the slot width as a DSE parameter, but a two-slot escape holding one canonical 32-bit instruction verbatim forces `2w ≥ 32`, and any wider slot wastes escape bits and buys index space above the profile's own 2^16 dictionary bound, so `w` = 16 and the knob is the `(h, k)` pair at `bundle = h + 16k` with `h ≥ k`. The delta item is unchanged; the search is smaller, and a report sweeping `w` is recognizable as covering a space the format does not admit.
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 117.9 h · 14% · 6.9 h complete · open range 75–147 h.
+**M0 subtotal:** 114.4 h · 14% · 9.4 h complete · open range 71–139 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -540,7 +546,7 @@ RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → both emu
   * Reuse the same model tree with a scalar `verifiedos-rot.json`; do not fork another model.
 * [ ] **M3.2 · Implement RoT firmware in Gallina** · 22.5 h, range 15–30 · 2.8%
 * [ ] **M3.3 · Implement M-mode firmware in Gallina** · 18 h, range 12–24 · 2.2%
-* [ ] **M3.4 · Integrate verified cryptographic artifacts** · 26.5 h, range 18–35 · 3.2%
+* [ ] **M3.4 · Integrate verified cryptographic artifacts** · 26.5 h, range 18–35 · 3.3%
   * Prefer pinned upstream verified implementations over fresh authoring.
 * [ ] **M3.5 · Reach the machine-mode kernel through measured boot on both emulators** · 11.5 h, range 8–15 · 1.4%
 
@@ -554,7 +560,7 @@ Gallina microkernel (§5), one instance per emulated core; capability/IPC tests 
 * [ ] **M4.2 · Translate surviving seL4 executable-spec objects to Gallina** · 22.5 h, range 15–30 · 2.8%
   * Time-box `hs-to-coq` recovery to eight hours, then hand-translate if necessary.
 * [ ] **M4.3 · Exercise capability lifecycle, IPC, and slot faults through Wasm** · 9 h, range 6–12 · 1.1%
-* [ ] **M4.4 · Bring up one isolated C instance per emulated core** · 26.5 h, range 18–35 · 3.2%
+* [ ] **M4.4 · Bring up one isolated C instance per emulated core** · 26.5 h, range 18–35 · 3.3%
 
 **M4 subtotal:** 59.5 h · 7% · open range 40–79 h.
 
@@ -575,7 +581,7 @@ Init/supervision tree (§8) brings up the reference components; admission checke
 The ring data plane is brought up in its contract order: the common ring schema and lifecycle authored in the IDL profile with the reference client/server bindings and Coq interface skeleton generated from it, then one copy-based service carrying the SPSC, notification, and capacity proofs, then one DMA service adding the extent, cancellation, teardown, and quiescence proofs, so the contract's constants and generated-proof interfaces are validated on two real services before every other server rides them. No service is grandfathered: one that cannot state its finite capacities, lifecycle semantics, cleanup bounds, and per-operation WCET is not admitted through the ring profile.
 
 * [ ] **M6.1 · Build the init supervision tree in Lustre via Vélus** · 15 h, range 10–20 · 1.8%
-* [ ] **M6.2 · Refine admission checkers to CompCert-C** · 26.5 h, range 18–35 · 3.2%
+* [ ] **M6.2 · Refine admission checkers to CompCert-C** · 26.5 h, range 18–35 · 3.3%
 * [ ] **M6.3 · Build the package composer and contained object router** · 15 h, range 10–20 · 1.8%
 * [ ] **M6.4 · Author the ring-contract schema and generate the reference bindings** · 9 h, range 6–12 · 1.1%
   * The common ring schema and lifecycle in the IDL profile (R-12-091 through R-12-101), with the reference client/server bindings and the Coq interface skeleton generated from it.
@@ -655,6 +661,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 815.8 h midpoint over a 550.3–1,081.3 h range.
+* Grand total: the sum of the item cells, 812.3 h midpoint over a 548.8–1,075.8 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.
