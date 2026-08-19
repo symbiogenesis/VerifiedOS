@@ -1529,6 +1529,43 @@ The translation-validation role already adopted for source correspondence and co
 
 ---
 
+## The emit-in-logic compiler lineage: the CakeML bootstrap, Pancake, and the Bedrock2 crypto-server; declined for the compiler slot, and three atoms are banked
+
+The proposal is to fill or flank the CHERI-CompCert slot with a compiler in the CakeML shape: the backend theorem is about the byte image the compiler lays out in memory, emission happens inside the prover, and the bootstrap evaluates the compiler on its own AST in-logic, so the theorem's subject term is the released binary's hex and the assembler, linker, and image composer stop existing as trusted or validated steps. The lineage is live at both ends. **Pancake** (PLOS 2023) is the C-like, GC-free systems-language instance over CakeML's verified backend, with a performant Ethernet driver verified in 2025 at a reported cost near three person-months (its functional-property route currently trusting an unverified Pancake-to-Viper transpiler). The **Bedrock2 crypto-server theorem** (PLDI 2024, the garage-door system) is the strongest whole-system statement in the literature: one Coq theorem from application specification to RISC-V machine code whose trusted base is the proof kernel and the ISA model, with the earlier lightbulb result (PLDI 2021) extending the same stack beneath the ISA into a Kami-verified processor.
+
+The steelman is exact: the seam this lineage deletes is the one R-05-023 pays for, and a survey of the field finds no stronger answer to that seam than not having it. It is declined for the compiler slot on four grounds. First, the prover: CakeML and Pancake live in HOL4, and the ground already on the books (the CakeML ground: theorems in a different prover are consumed as axioms or not at all) applies here with more force than anywhere, because a compiler theorem consumed as an axiom would sit beneath every Tier-0 artifact at once. Second, the backend: no target in the lineage emits a purecap capability dialect, so adoption means authoring a CHERI backend inside HOL4, the exact cost the SECOMP start-from was chosen to avoid, relocated into the wrong prover. Third, the criterion: R-05-024's robust preservation has no analogue in the lineage, whose theorems are whole-program, and the compartment hyperproperty is precisely what the slot is being strengthened toward, so the trade would re-open the seam R-05-024 closes in order to close one R-05-023a already covers. Fourth, for Bedrock2, which is at least in the right prover: its compiler is deliberately naive exactly where R-18-014a demands completeness (scheduling, vectorization, if-conversion, fusion adjacency), and the crypto-server statement's scale is an appliance, not a platform.
+
+Three atoms are banked. The **statement shape**, one theorem, application specification to ISA, trusted base equal to kernel plus machine model, is the external review benchmark the R-18-032 composition statement should be read against when the apex theorem's seams are audited. The **driver economics**, a verified performant NIC driver at single-digit person-months in a language whose theorem reaches the binary, is external calibration for the certifying-toolchain estimates, on the record even though the vehicle is declined. And **in-logic emission** is kept as vocabulary: it is the limiting shape of the R-05-023a instrument (a validation record over an emission the prover already owns is trivially discharged), worth restating if the base image's composer is ever re-homed into Coq.
+
+**Disposition:** declined for the compiler slot; CHERI-CompCert and the R-05-023a instrument stand, and CakeML, Pancake, and the Bedrock2 compiler import in no part. The three atoms above are banked as benchmark, calibration, and vocabulary, none a workstream.
+Non-normative; the normative change reviewed alongside this entry is §5's R-05-023a, recorded in the spec body rather than here.
+
+---
+
+## The deleted assembly-equivalence checker, re-run against the record since: the deletion stands, and its falsifier is now named
+
+R-05-064, R-06-026, and R-18-022 deleted the CryptOpt-style route, an untrusted superoptimizer beside a net-new Coq-verified assembly-to-Fiat-Crypto equivalence checker, on the ground that its entire remaining yield was throughput on a path already correct and already leak-free: a net-new verified artifact bought for speed alone. R-05-065 extends the same rule to the codec kernels.
+
+The record has since moved on one axis the deletion did not price, and this entry states it rather than absorbing it silently. The checker genus is no longer a speed purchase in the field: BoringSSL ships hand-optimized ADX curve arithmetic whose admission evidence is exactly that Coq-verified checker; the Bedrock2 crypto-server theorem (PLDI 2024) consumes the same checker foundationally inside a whole-system statement; and s2n-bignum re-certifies superoptimizer-scheduled assembly by automated equivalence checking in HOL Light, in production at AWS. The genus has become the standing industrial form of *the optimized artifact is the proof subject*, a second yield beside the throughput the deletion priced.
+
+The deletion stands anyway, because the second yield is one this platform buys elsewhere: R-05-026 already states every certificate at binary level, and R-05-023a names the general instrument, decompilation into logic over the pinned Sail term, of which a straight-line equivalence checker is the loop-free special case. A second, narrower validator standing beside the named instrument would be an interim with no retirement story, the shape §5's inventory discipline exists to prevent, and the throughput it would re-buy remains surrendered by the deletion's own arithmetic.
+
+**Disposition:** the deletion stands; R-05-064, R-06-026, R-18-022, and R-05-065 are unchanged. One falsifier is booked: if the R-05-023a instrument, once built, cannot close the straight-line kernel classes (field arithmetic, the codec inner loops) at tolerable proof cost, the equivalence checker is the named fallback for exactly those classes, its modern evidence the record above, and re-opening it is triggered by that measurement rather than by calendar.
+Non-normative; no spec-body change.
+
+---
+
+## Closing the De Bruijn root with a theorem: a binary-level proof of the admission checkers over Sail, deferred behind the R-05-023a instrument
+
+R-06-014 books the two checkers' binaries as the one irreducible trusted residual, held by reproducible build, diverse double-compiling, and root-of-trust measurement into the boot chain: the De Bruijn root, named as an axiom rather than hidden. The proposal is to upgrade the holder from a build-diversity argument to a theorem: apply the R-07-050 pattern, a direct binary proof over the Sail model with the compiler seam off the trust path, to the CHERI-TAL checker binary first and the CIC kernel after it, so the root's artifact becomes a proof subject. Feasibility is not speculative: the CakeML bootstrap makes a shipped binary the subject term of its own correctness theorem, and the Milawa-to-Candle line carries a prover's soundness down to the machine code that runs it, both in another prover but on point about scale. The TAL checker is also the natural first subject on this platform's own terms: its complexity contract ([typed-assembly-language.md](typed-assembly-language.md) §10.3) makes it a linear-pass evaluator whose audit budget (§10.6) is on the order of a thousand lines, the smallest artifact under the whole trust structure.
+
+It is deferred rather than adopted for two reasons. The machinery it rides is the R-05-023a instrument, which is unbuilt, and sequencing the upgrade ahead of the instrument inverts the dependency. And DDC plus measurement is not wrong but weaker, so the upgrade competes for scarce-axis spend only once the instrument is amortized on the records it exists for.
+
+**Disposition:** deferred behind a named trigger: when the R-05-023a instrument closes its first non-fast-path artifact, the TAL checker binary is its next subject, and R-06-014's story is restated with the theorem ahead of the diversity argument. Until then R-06-014 is unchanged.
+Non-normative; no spec-body change.
+
+---
+
 ## Re-homing the fast emulator off CHERI-QEMU: Pydrofoil, OpenVMM, and the surveyed field, declined; every challenger holds one conjunct of the incumbent's conjunction, and the one live find accelerates the golden model instead
 
 The proposal is to re-home the fast whole-machine vehicle (the CHERI-QEMU fork of [implementation-checklist.md](implementation-checklist.md) §10) onto a safer, faster, better-architected substrate, with **OpenVMM** (Microsoft's Rust VMM, the OpenHCL substrate) the named candidate, on three claimed grounds: the bespoke dialect (R-15-007) deviates far enough from stock CHERI-RISC-V that the fork's inheritance is small anyway; Rust buys memory safety; a modern, actively maintained codebase buys speed and maintainability over a fork-of-a-fork. Because *engineering is free while trust is scarce*, rebuild cost alone cannot decline the proposal, so the disposition runs the whole field against the role's criteria, not just the named candidate.
@@ -1554,6 +1591,19 @@ The synthesis is that QEMU's advantage is the **conjunction, not any conjunct**:
 
 **Disposition:** declined; the §10 fast vehicle stays the CHERI-QEMU fork against OpenVMM and the surveyed field, and OpenVMM imports in no part. Three residues are booked: **Pydrofoil** is tracked as a golden-loop accelerator candidate (consuming the curated Sail model unchanged, never a second-lineage executor); **Rust device models inside the fork** are evaluated when the fork is cut; and the **interpreter genus** (Spike/Dromajo/Whisper) remains the named cheap third executor if additional lineage evidence is ever wanted.
 Non-normative; no spec-body or checklist change.
+
+---
+
+## The executable specification as the shipped artifact: the thesis named once, its instantiations collected, and its admission boundary stated
+
+The corpus holds one thesis in five places without naming it, and the external record now has a name-able frontier, so this entry collects the instances and states the boundary they already obey; it proposes nothing.
+
+The instances: the platform Wasm engine ships as a verified extracted interpreter, the semantics and evaluator arriving with their theorems attached (R-14-013b); the Coq-native generators, Vélus, Narcissus, Fiat-Crypto, are specifications whose output is the artifact, admitted freely as proof transport (R-05-021); the RTL evidence rung runs commercial equivalence checking against SystemVerilog generated from the Sail model (R-15-090); Pydrofoil is tracked in the entry above as a golden-loop accelerator, the specification made fast enough to sit at; and hs-to-coq carries seL4's executable model in as a refinement target rather than a paraphrase. The external record is the same shape shipped: WasmRef-Isabelle running as a verified oracle inside Wasmtime's continuous integration, SpecTec making the Wasm standard's text an executable artifact, and CHERIoT-Ibex proving production silicon against RTL generated from its Sail specification.
+
+The boundary, already implicit in the five and here stated once: an executable specification may ship, or generate what ships, exactly when its generator is verified in the one prover or its output is re-checked by a named checker on the artifact; an unverified generator is the K-framework shape the guest-language entry already declines; and a lineage-independence role (R-17-048a) is never filled by anything generated from the specification it is meant to check. What naming the thesis buys is adjudication: the next executable-spec proposal is read against one stated boundary instead of rediscovering these instances one entry at a time.
+
+**Disposition:** nothing changes; the thesis and its boundary are recorded for future entries to cite.
+Non-normative; no spec-body change.
 
 ---
 

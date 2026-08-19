@@ -345,6 +345,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: every trusted image has a validation record covering each post-CompCert step.
 · Trace: CJ-SAIL, CJ-COMPCERT
 
+**R-05-023a** MUST: The R-05-023 validation record is produced by decompilation into logic over the pinned Sail term and checked by the CIC kernel as a refinement theorem in the §13 program logic, never by a solver-trusted validator.
+· Accept: the record's checker is the proof kernel over the R-05-019b Sail definitions and the R-13-017 logic; no SMT solver or second checker enters the trust base for any post-CompCert step; and the R-07-050 fast-path proof and the validation records are theorems of one logic.
+· Trace: CJ-SAIL, CJ-COMPCERT
+
 **R-05-024** MUST: The CHERI-RISC-V CompCert backend satisfies a secure-compilation (robust-preservation) criterion: it preserves compartment isolation against an adversarial linked context, not merely refinement of well-defined whole-program behaviour.
 · Accept: the backend's top-level theorem statement quantifies over an adversarial linked context.
 · Trace: CJ-SECOMP
@@ -5473,7 +5477,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1263 requirements. §19 is non-normative and yields none. Counts include the 313 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1264 requirements. §19 is non-normative and yields none. Counts include the 314 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5481,7 +5485,7 @@ All eighteen normative sections are extracted, at 1263 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **200** |
+| **§5 Languages & Verification** | **extracted** | **201** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **60** |
 | **§8 Authority Model** | **extracted** | **65** |

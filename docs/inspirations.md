@@ -1487,6 +1487,7 @@ Translation validation is already part of the adopted proof path, but in a bound
 CompCert handles verified C compilation; validation against the CHERI-RISC-V Sail semantics covers assembly, linking, stripping, capability wiring, dictionary encoding, and image construction outside that theorem (§5, §13).
 Every package carries a source-correspondence theorem binding the final installed bytes to the exact content-addressed source closure, so a build-farm corruption or trusting-trust injection not permitted by that source is rejected regardless of producer pedigree.
 Islaris-style direct binary proof covers paths with no verified compiler in the loop.
+The instrument is normative rather than open: R-05-023a fixes the record's production as decompilation into logic over the pinned Sail term, checked as refinement in the one §13 logic, so the validation records and the §7 fast-path proof are theorems of the same logic.
 
 The whole-compiler seL4-style alternative remains a fallback if CHERI-CompCert proves intractable, not the primary route.
 Per-build proof search and SMT reconstruction are less reusable than one compiler theorem and do not themselves establish robust preservation against every adversarial linked context; CHERI and Cerise recover much of the practical boundary at runtime, but not the compiler-level hyperproperty.
