@@ -118,6 +118,16 @@ function(filter_riscv_tests test_elfs elfs_to_use_varname)
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uziccid-[pv]-ziccid$")
     list(FILTER test_elfs EXCLUDE REGEX ".*-v-.*")
 
+    # C: no compressed instructions (R-15-007a); ILEN is fixed at 32 bits, so
+    # every 16-bit parcel is an illegal instruction.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uc-[pv]-rvc$")
+
+    # Zicntr: no unprivileged or machine cycle/time/instret CSRs (R-15-077).
+    # `instret_overflow` goes with it: it writes `minstret` to set up the
+    # overflow it tests, and that CSR no longer exists.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-zicntr$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-instret_overflow$")
+
     set(${elfs_to_use_varname} "${test_elfs}" PARENT_SCOPE)
 endfunction()
 

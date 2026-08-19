@@ -438,10 +438,6 @@ private function check_required_sstvala_option(name : string, value : bool) -> b
 
 private function check_misc_extension_dependencies() -> bool = {
   var valid : bool = true;
-  if (config extensions.Zcf.supported : bool) & xlen == 64 then {
-    valid = false;
-    print_endline("The Zcf extension is enabled: Zcf is not supported on RV64.");
-  };
   if (config extensions.F.supported : bool) & (config extensions.Zfinx.supported : bool) then {
     valid = false;
     print_endline("The F and Zfinx extensions are mutually exclusive and cannot be supported simultaneously.");
@@ -470,10 +466,6 @@ private function check_misc_extension_dependencies() -> bool = {
   if (config extensions.Zhinxmin.supported : bool) & not(config extensions.Zfinx.supported : bool) then {
     valid = false;
     print_endline("The Zhinxmin extensions is enabled but Zfinx is disabled: supporting Zhinxmin requires Zfinx.");
-  };
-  if (config extensions.Zicfilp.supported : bool) & not(config extensions.Zicsr.supported : bool) then {
-    valid = false;
-    print_endline("The Zicfilp extension is enabled but Zicsr is disabled: supporting Zicfilp requires Zicsr.");
   };
   if (config extensions.Zfbfmin.supported : bool) & not(config extensions.F.supported : bool) then {
     valid = false;
@@ -508,10 +500,6 @@ private function check_misc_extension_dependencies() -> bool = {
     valid = valid & check_required_sstvala_option("misaligned fetch exceptions", misaligned_fetch_writes_xtval);
     valid = valid & check_required_sstvala_option("hardware breakpoint exceptions", hardware_breakpoint_writes_xtval);
     valid = valid & check_required_sstvala_option("illegal instruction exceptions", illegal_instruction_writes_xtval);
-  };
-  if (xlen == 32 & ((config extensions.Ssnpm.supported : bool) | (config extensions.Smmpm.supported : bool) | (config extensions.Smnpm.supported : bool))) then {
-    valid = false;
-    print_endline("The Ssnpm, Smmpm and Smnpm extensions are not supported on RV32.");
   };
   valid
 }
@@ -562,17 +550,6 @@ private function check_extension_param_constraints() -> bool = {
       valid = false;
       print_endline("Bits for reserved interrupts are set in `base.mideleg.delegatable_bits`.");
     }
-  };
-  valid
-}
-
-private function check_stateen_config() -> bool = {
-  if not(config extensions.Stateen.Smstateen.supported : bool) & not(config extensions.Stateen.Ssstateen.supported : bool) then return true;
-  var valid : bool = true;
-  // TODO: Update when Zcmt is implemented
-  if config extensions.Stateen.SE0_readonly_zero : bool & ((config extensions.Zfinx.supported : bool) | not(config extensions.Stateen.C_readonly_zero : bool)) then {
-    valid = false;
-    print_endline("Stateen SE0_readonly_zero is true but sstateen0 has writable bits (FCSR due to Zfinx support or C due to disabled C_readonly_zero): SE0 must be writable.");
   };
   valid
 }
@@ -667,5 +644,4 @@ function config_is_valid() -> bool = {
   & check_misc_extension_dependencies()
   & check_extension_param_constraints()
   & check_version_constraints()
-  & check_stateen_config()
 }

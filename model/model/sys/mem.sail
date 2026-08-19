@@ -129,29 +129,6 @@ private function pmaCheck forall 'n, 0 < 'n <= max_mem_access .
     // zero instructions are a supported access type."
     CacheAccess(CB_zero())      => attributes.writable & attributes.supports_cbo_zero,
 
-    // "A cache-block management instruction is permitted to
-    // access the specified cache block whenever a load
-    // instruction or store instruction is permitted to access
-    // the corresponding physical addresses. If neither a load
-    // instruction nor store instruction is permitted to
-    // access the physical addresses, but an instruction fetch
-    // is permitted to access the physical addresses, whether
-    // a cache-block management instruction is permitted to
-    // access the cache block is UNSPECIFIED."
-    // TODO: handle the second sentence.
-    CacheAccess(CB_manage(_))   => attributes.readable | attributes.writable,
-
-    // "A cache-block prefetch instruction is permitted to
-    // access the specified cache block whenever a load
-    // instruction, store instruction, or instruction fetch is
-    // permitted to access the corresponding physical
-    // addresses."
-    CacheAccess(CB_prefetch(p)) => match p {
-      PREFETCH_R => attributes.readable,
-      PREFETCH_W => attributes.writable,
-      PREFETCH_I => attributes.executable,
-    },
-
     LoadReserved(_, _, p)          => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for LoadReserved."),
     StoreConditional(_, _, p)      => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for StoreConditional."),
 

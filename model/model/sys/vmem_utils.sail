@@ -57,13 +57,9 @@ private function offset_virtaddr_by(
 
 // External API
 
-// Transforms the effective address based on PMM settings and the current translation mode.
-function transform_effective_address(vaddr : virtaddr, access : MemoryAccessType(mem_payload)) -> virtaddr = {
-  let eff_privilege = effectivePrivilege(access, mstatus, cur_privilege);
-  let pmlen = get_pmlen(access, eff_privilege);
-  let mode = translationMode(eff_privilege);
-  if mode == Bare then pm_transform_PA(vaddr, pmlen) else pm_transform_VA(vaddr, pmlen)
-}
+// With pointer masking deleted there is nothing to transform: the effective
+// address is the address the instruction computed.
+function transform_effective_address(vaddr : virtaddr, _access : MemoryAccessType(mem_payload)) -> virtaddr = vaddr
 
 // Helper for translated read access.
 private function translate_and_read_value forall 'width, 0 < 'width <= max_mem_access.

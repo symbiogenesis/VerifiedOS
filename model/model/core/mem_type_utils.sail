@@ -32,19 +32,8 @@ function accessFaultFromAccessType(access : MemoryAccessType(mem_payload)) -> Ex
     StoreConditional(_, _, p)           => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for StoreConditional."),
     Atomic(_, _, _, rp, wp)             => internal_error(__FILE__, __LINE__, "Invalid payloads (" ^ mem_payload_name(rp) ^ ", " ^ mem_payload_str(wp) ^ ") for Atomic."),
 
-    // Cache-block management (CB_manage) and zero (CB_zero)
-    // instructions raise store faults.
-    CacheAccess(CB_manage(_))           => E_SAMO_Access_Fault(),
+    // Cache-block zero (CB_zero) instructions raise store faults.
     CacheAccess(CB_zero())              => E_SAMO_Access_Fault(),
-    // Though prefetches don't raise exceptions, we return a nominal
-    // exception here to propagate the failed address translation to
-    // the execute of the calling instruction so that it could decide
-    // whether to actually proceed with a prefetch.
-    CacheAccess(CB_prefetch(p)) => match p {
-      PREFETCH_R => E_Load_Access_Fault(),
-      PREFETCH_W => E_SAMO_Access_Fault(),
-      PREFETCH_I => E_Fetch_Access_Fault(),
-    },
   }
 
 function alignmentFaultFromAccessType(access : MemoryAccessType(mem_payload)) -> ExceptionType =
@@ -73,17 +62,6 @@ function alignmentFaultFromAccessType(access : MemoryAccessType(mem_payload)) ->
     StoreConditional(_, _, p)           => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for StoreConditional."),
     Atomic(_, _, _, rp, wp)             => internal_error(__FILE__, __LINE__, "Invalid payloads (" ^ mem_payload_name(rp) ^ ", " ^ mem_payload_str(wp) ^ ") for Atomic."),
 
-    // Cache-block management (CB_manage) and zero (CB_zero)
-    // instructions raise store faults.
-    CacheAccess(CB_manage(_))           => E_SAMO_Addr_Align(),
+    // Cache-block zero (CB_zero) instructions raise store faults.
     CacheAccess(CB_zero())              => E_SAMO_Addr_Align(),
-    // Though prefetches don't raise exceptions, we return a nominal
-    // exception here to propagate the failed address translation to
-    // the execute of the calling instruction so that it could decide
-    // whether to actually proceed with a prefetch.
-    CacheAccess(CB_prefetch(p)) => match p {
-      PREFETCH_R => E_Load_Addr_Align(),
-      PREFETCH_W => E_SAMO_Addr_Align(),
-      PREFETCH_I => E_Fetch_Addr_Align(),
-    },
   }

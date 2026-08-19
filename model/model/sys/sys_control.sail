@@ -52,7 +52,6 @@ function check_CSR(csr : csreg, p : Privilege, access_type : CSRAccessType) -> b
     check_CSR_priv(csr, p)
   & check_CSR_access(csr, access_type)
   & is_CSR_accessible(csr, p, access_type)
-  & stateen_allows_CSR_access(csr, p, access_type)
 
 function check_CSR_result(csr : csreg, p : Privilege, access_type : CSRAccessType) -> CSRCheckResult = {
   if check_CSR(csr, p, access_type) then
@@ -200,8 +199,6 @@ function trap_handler(del_priv : Privilege, c : TrapCause, pc : xlenbits, info :
                       ^ " at priv " ^ to_str(del_priv)
                       ^ " with tval " ^ bits_str(tval(info)));
 
-  if hartSupports(Ext_Zicfilp) then zicfilp_preserve_elp_on_trap(del_priv);
-
   match (del_priv) {
     Machine => {
       mcause[IsInterrupt] = bool_to_bit(is_interrupt);
@@ -307,7 +304,7 @@ function handle_interrupt(i : InterruptType, del_priv : Privilege) -> unit =
 // Reset misa to enable the maximal set of supported extensions.
 function reset_misa() -> unit = {
   misa[A]   = bool_to_bit(hartSupports(Ext_A));   // atomics
-  misa[C]   = bool_to_bit(hartSupports(Ext_C));   // RVC
+  misa[C]   = 0b0;                                // no compressed instructions
   misa[B]   = bool_to_bit(hartSupports(Ext_B));   // Bit-manipulation
   misa[M]   = bool_to_bit(hartSupports(Ext_M));   // integer multiply/divide
   misa[U]   = bool_to_bit(hartSupports(Ext_U));   // user-mode
@@ -379,12 +376,6 @@ function reset_sys() -> unit = {
   // "Writable PMP registers’ A and L fields are set to 0, unless the platform
   // mandates a different reset value for some PMP registers’ A and L fields."
   reset_pmp();
-
-  // If the Zicfilp extension is implemented, the mseccfg.MLPE field is reset to 0.
-  if hartSupports(Ext_Zicfilp) then mseccfg[MLPE] = 0b0;
-
-  // "On reset, all writable mstateen bits are initialized by the hardware to zeros."
-  reset_stateen();
 
   // TODO: Probably need to remove these vector resets too but it needs
   // refactoring anyway. See https://github.com/riscv/sail-riscv/issues/566 etc.

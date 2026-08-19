@@ -9,9 +9,6 @@
 // *****************************************************************
 // This file specifies the instructions in the base integer set.
 
-function clause currentlyEnabled(Ext_C) = hartSupports(Ext_C) & misa[C] == 0b1
-function clause currentlyEnabled(Ext_Zca) = hartSupports(Ext_Zca) & (currentlyEnabled(Ext_C) | not(hartSupports(Ext_C)))
-
 // *****************************************************************
 union clause instruction = UTYPE : (bits(20), regidx, uop)
 
@@ -57,9 +54,9 @@ function jump_to(target : xlenbits) -> ExecutionResult = {
   // Check target is at least 2-byte aligned (callers must ensure
   // this so it can be an assertion).
   assert(target[0] == 0b0);
-  // If it is not 4-byte aligned and compressed instructions are
-  // not enabled then raise an alignment exception.
-  if bit_to_bool(target[1]) & not(currentlyEnabled(Ext_Zca))
+  // There are no compressed instructions, so a target that is not
+  // 4-byte aligned raises an alignment exception.
+  if bit_to_bool(target[1])
   then return memory_exception(Virtaddr(target), E_Fetch_Addr_Align());
 
   set_next_pc(target);
@@ -576,9 +573,6 @@ function clause execute MRET() = {
     if   cur_privilege != Machine
     then mstatus[MPRV] = 0b0;
 
-    if   hartSupports(Ext_Zicfilp)
-    then zicfilp_restore_elp_on_xret(mRET, cur_privilege);
-
     long_csr_write_callback("mstatus", "mstatush", mstatus.bits);
 
     if   get_config_print_exception()
@@ -619,9 +613,6 @@ function clause execute SRET() = {
     mstatus[SPP]  = 0b0;
     if   cur_privilege != Machine
     then mstatus[MPRV] = 0b0;
-
-    if   hartSupports(Ext_Zicfilp)
-    then zicfilp_restore_elp_on_xret(sRET, cur_privilege);
 
     long_csr_write_callback("mstatus", "mstatush", mstatus.bits);
 

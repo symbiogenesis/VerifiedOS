@@ -77,28 +77,13 @@ private function run_hart_active(step_no: nat) -> Step = {
       sail_instr_announce(h);
       fetch_callback(h);
       let instbits : instbits = zero_extend(h);
-      let instruction = ext_decode_compressed(h);
       if   get_config_print_instr()
       then {
-        print_log_instr("[" ^ dec_str(step_no) ^ "] [" ^ to_str(cur_privilege) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(h) ^ ") " ^ to_str(instruction), zero_extend(PC));
+        print_log_instr("[" ^ dec_str(step_no) ^ "] [" ^ to_str(cur_privilege) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(h) ^ ") " ^ to_str(ext_decode_compressed(h)), zero_extend(PC));
       };
-      // When ELP is set to LP_EXPECTED, the next instruction needs to be
-      // the non-RVC `LPAD` instruction.
-      if is_landing_pad_expected() then {
-        let r = trap(make_landing_pad_exception());
-        Step_Execute(r, instbits)
-      }
-      // check for RVC once here instead of every RVC execute clause.
-      else if currentlyEnabled(Ext_Zca) then {
-        nextPC = PC + 2;
-        let result : ExecutionResult = match execute(instruction) {
-          ExecuteAs(other_inst) => execute(other_inst),
-          result => result,
-        };
-        Step_Execute(result, instbits)
-      } else {
-        Step_Execute(Illegal_Instruction(), instbits)
-      }
+      // ILEN is fixed at 32 bits: no compressed instruction exists, so a
+      // 16-bit parcel always decodes to C_ILLEGAL and traps.
+      Step_Execute(Illegal_Instruction(), instbits)
     },
     F_Base(w) => {
       sail_instr_announce(w);
@@ -109,20 +94,12 @@ private function run_hart_active(step_no: nat) -> Step = {
       then {
         print_log_instr("[" ^ dec_str(step_no) ^ "] [" ^ to_str(cur_privilege) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(w) ^ ") " ^ to_str(instruction), zero_extend(PC));
       };
-      // When ELP is set to LP_EXPECTED, if the next instruction in
-      // the instruction stream is not LPAD, then a software check
-      // exception with a landing pad fault code is thrown.
-      if is_landing_pad_expected() & not(is_lpad_instruction(instruction)) then {
-        let r = trap(make_landing_pad_exception());
-        Step_Execute(r, instbits)
-      } else {
-        nextPC = PC + 4;
-        let result : ExecutionResult = match execute(instruction) {
-          ExecuteAs(other_inst) => execute(other_inst),
-          result => result,
-        };
-        Step_Execute(result, instbits)
-      }
+      nextPC = PC + 4;
+      let result : ExecutionResult = match execute(instruction) {
+        ExecuteAs(other_inst) => execute(other_inst),
+        result => result,
+      };
+      Step_Execute(result, instbits)
     }
   }
 }

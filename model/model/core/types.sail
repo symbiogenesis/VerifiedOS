@@ -99,9 +99,7 @@ overload to_str = {privLevel_to_str}
 // memory access types
 
 union cacheop = {
-  CB_manage   : cbop_zicbom,
   CB_zero     : unit,
-  CB_prefetch : cbop_zicbop,
 }
 
 // The two bool parameters are the `aq` and `rl` instruction
@@ -126,12 +124,6 @@ function is_load_store forall ('a : Type) . (access : MemoryAccessType('a)) -> b
     Atomic(_)           => true,
     InstructionFetch(_) => false,
     CacheAccess(_)      => true,
-  }
-
-function is_prefetch_access forall ('a : Type) . (access : MemoryAccessType('a)) -> bool =
-  match access {
-    CacheAccess(CB_prefetch(_)) => true,
-    _ => false,
   }
 
 function is_store_conditional forall ('a : Type) . (access : MemoryAccessType('a)) -> bool =

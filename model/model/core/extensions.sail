@@ -71,26 +71,10 @@ enum clause extension = Ext_Zic64b
 mapping clause extensionName = Ext_Zic64b <-> "zic64b"
 function clause hartSupports(Ext_Zic64b) = config extensions.Zic64b.supported
 function clause currentlyEnabled(Ext_Zic64b) = hartSupports(Ext_Zic64b)
-// Cache-Block Management Instructions
-enum clause extension = Ext_Zicbom
-mapping clause extensionName = Ext_Zicbom <-> "zicbom"
-function clause hartSupports(Ext_Zicbom) = config extensions.Zicbom.supported
-// Cache-Block Prefetch Instructions
-enum clause extension = Ext_Zicbop
-mapping clause extensionName = Ext_Zicbop <-> "zicbop"
-function clause hartSupports(Ext_Zicbop) = config extensions.Zicbop.supported
 // Cache-Block Zero Instructions
 enum clause extension = Ext_Zicboz
 mapping clause extensionName = Ext_Zicboz <-> "zicboz"
 function clause hartSupports(Ext_Zicboz) = config extensions.Zicboz.supported
-// Control-flow Integrity: Landing Pad
-enum clause extension = Ext_Zicfilp
-mapping clause extensionName = Ext_Zicfilp <-> "zicfilp"
-function clause hartSupports(Ext_Zicfilp) = config extensions.Zicfilp.supported
-// Base Counters and Timers
-enum clause extension = Ext_Zicntr
-mapping clause extensionName = Ext_Zicntr <-> "zicntr"
-function clause hartSupports(Ext_Zicntr) = config extensions.Zicntr.supported
 // Integer Conditional Operations
 enum clause extension = Ext_Zicond
 mapping clause extensionName = Ext_Zicond <-> "zicond"
@@ -148,31 +132,6 @@ function clause hartSupports(Ext_Zfinx) = config extensions.Zfinx.supported
 enum clause extension = Ext_Zdinx
 mapping clause extensionName = Ext_Zdinx <-> "zdinx"
 function clause hartSupports(Ext_Zdinx) = config extensions.Zdinx.supported
-
-// Code Size Reduction: compressed instructions excluding floating point loads and stores
-enum clause extension = Ext_Zca
-mapping clause extensionName = Ext_Zca <-> "zca"
-function clause hartSupports(Ext_Zca) = config extensions.Zca.supported
-// Code Size Reduction: additional 16-bit aliases
-enum clause extension = Ext_Zcb
-mapping clause extensionName = Ext_Zcb <-> "zcb"
-function clause hartSupports(Ext_Zcb) = config extensions.Zcb.supported
-// Code Size Reduction: compressed double precision floating point loads and stores
-enum clause extension = Ext_Zcd
-mapping clause extensionName = Ext_Zcd <-> "zcd"
-function clause hartSupports(Ext_Zcd) = config extensions.Zcd.supported
-// Code Size Reduction: compressed single precision floating point loads and stores
-enum clause extension = Ext_Zcf
-mapping clause extensionName = Ext_Zcf <-> "zcf"
-function clause hartSupports(Ext_Zcf) = config extensions.Zcf.supported : bool & (xlen == 32)
-// Compressed Instructions
-// C is supported if all of the following are true:
-//   - Zca is supported
-//   - Zcf is supported if F is supported (on rv32)
-//   - Zcd is supported if D is supported
-enum clause extension = Ext_C
-mapping clause extensionName = Ext_C <-> "c"
-function clause hartSupports(Ext_C) = hartSupports(Ext_Zca) & (hartSupports(Ext_Zcf) | not(hartSupports(Ext_F)) | xlen != 32) & (hartSupports(Ext_Zcd) | not(hartSupports(Ext_D)))
 
 // Bit Manipulation: Address generation
 enum clause extension = Ext_Zba
@@ -353,15 +312,6 @@ function clause hartSupports(Ext_Ssccptr) = config extensions.Ssccptr.supported
 enum clause extension = Ext_Sscounterenw
 mapping clause extensionName = Ext_Sscounterenw <-> "sscounterenw"
 function clause hartSupports(Ext_Sscounterenw) = config extensions.Sscounterenw.supported
-// Supervisor-Level pointer masking for next lower privilege mode
-enum clause extension = Ext_Ssnpm
-mapping clause extensionName = Ext_Ssnpm <-> "ssnpm"
-function clause hartSupports(Ext_Ssnpm) = config extensions.Ssnpm.supported : bool & (xlen == 64)
-function clause currentlyEnabled(Ext_Ssnpm) = hartSupports(Ext_Ssnpm) & currentlyEnabled(Ext_S)
-// Supervisor-mode view of the state-enable extension
-enum clause extension = Ext_Ssstateen
-mapping clause extensionName = Ext_Ssstateen <-> "ssstateen"
-function clause hartSupports(Ext_Ssstateen) = config extensions.Stateen.Ssstateen.supported
 // `stval` provides all needed values
 enum clause extension = Ext_Sstvala
 mapping clause extensionName = Ext_Sstvala <-> "sstvala"
@@ -419,40 +369,6 @@ enum clause extension = Ext_Svvptc
 mapping clause extensionName = Ext_Svvptc <-> "svvptc"
 function clause hartSupports(Ext_Svvptc) = config extensions.Svvptc.supported
 
-// Cycle and Instret Privilege Mode Filtering
-enum clause extension = Ext_Smcntrpmf
-mapping clause extensionName = Ext_Smcntrpmf <-> "smcntrpmf"
-function clause hartSupports(Ext_Smcntrpmf) = config extensions.Smcntrpmf.supported
-// Machine-Level pointer masking for machine mode
-enum clause extension = Ext_Smmpm
-mapping clause extensionName = Ext_Smmpm <-> "smmpm"
-function clause hartSupports(Ext_Smmpm) = config extensions.Smmpm.supported : bool & (xlen == 64)
-function clause currentlyEnabled(Ext_Smmpm) = hartSupports(Ext_Smmpm)
-// Machine-Level pointer masking for next lower privilege mode
-enum clause extension = Ext_Smnpm
-mapping clause extensionName = Ext_Smnpm <-> "smnpm"
-function clause hartSupports(Ext_Smnpm) = config extensions.Smnpm.supported : bool & (xlen == 64)
-function clause currentlyEnabled(Ext_Smnpm) = hartSupports(Ext_Smnpm)
-// Machine-mode view of the state-enable extension
-enum clause extension = Ext_Smstateen
-mapping clause extensionName = Ext_Smstateen <-> "smstateen"
-function clause hartSupports(Ext_Smstateen) = config extensions.Stateen.Smstateen.supported
-
-// Environment extensions
-// These extensions are not configurable via the config file
-// To avoid ordering issues, they are placed at the bottom
-
-// Indicates whether pointer masking support is available in supervisor mode
-enum clause extension = Ext_Sspm
-mapping clause extensionName = Ext_Sspm <-> "sspm"
-function clause hartSupports(Ext_Sspm) = hartSupports(Ext_Smnpm) & hartSupports(Ext_S)
-function clause currentlyEnabled(Ext_Sspm) = hartSupports(Ext_Sspm) & currentlyEnabled(Ext_S)
-// Indicates whether pointer masking support is available in user mode
-enum clause extension = Ext_Supm
-mapping clause extensionName = Ext_Supm <-> "supm"
-function clause hartSupports(Ext_Supm) = hartSupports(Ext_U) & (if hartSupports(Ext_S) then hartSupports(Ext_Ssnpm) else hartSupports(Ext_Smnpm))
-function clause currentlyEnabled(Ext_Supm) = hartSupports(Ext_Supm) & currentlyEnabled(Ext_U)
-
 // When adding a new extension X, we need to make sure that if X being supported
 // depends on Y being supported, then the value associated to X is _greater_ than
 // the value associated to Y. The default value is 0.
@@ -463,10 +379,7 @@ function hartSupports_measure(ext : extension) -> int =
     Ext_Sstvecd => 1, // > S
     Ext_Ssu64xl => 1, // > S
     Ext_Zvkn => 1, // > Zvkned
-    Ext_Sspm => 1, // > S
-    Ext_Supm => 1, // > S
 
-    Ext_C => 2, // > D
     Ext_Zvknc => 2, // > Zvkn
     Ext_Zvkng => 2, // > Zvkn
 
@@ -485,7 +398,6 @@ function currentlyEnabled_measure(ext : extension) -> int =
   match ext {
     Ext_A => 0,
     Ext_B => 0,
-    Ext_C => 0,
     Ext_M => 0,
     Ext_Zicsr => 0,
     Ext_Zvl128b => 0,
@@ -496,11 +408,7 @@ function currentlyEnabled_measure(ext : extension) -> int =
     Ext_F => 1, // > Zicsr
     Ext_S => 1, // > Zicsr
     Ext_Zaamo => 1, // > A
-    Ext_Zca => 1, // > C
-    Ext_Zicntr => 1, // > Zicsr
     Ext_Zve32x => 1, // > Zvl32b
-    Ext_Smstateen => 1, // > Zicsr
-    Ext_Ssstateen => 1, // > Zicsr
 
     // Note: even though these match the default case, making them explicit to
     // annotate the chain of dependencies
@@ -512,13 +420,11 @@ function currentlyEnabled_measure(ext : extension) -> int =
     Ext_Zve64x => 2, // > Zve32x
 
     Ext_Ssccptr => 3, // > Sv39
-    Ext_Supm => 3, // > U
     Ext_Svnapot => 3, // > Sv39
     Ext_Svpbmt => 3, // > Sv39
     Ext_Svvptc => 3, // > Sv39
     Ext_Svrsw60t59b => 3, // > Sv39
     Ext_Zfhmin => 3, // > Zfh
-    Ext_Zicfilp => 3, // > get_xLPE
     Ext_Zvbc => 3, // > Zve64x
     Ext_Zve64f => 3, // > Zve64x
     Ext_Zvfbfmin => 3, // > Zve32f
@@ -532,7 +438,7 @@ function currentlyEnabled_measure(ext : extension) -> int =
     Ext_V => 5, // > Zve64d
     Ext_Zvfhmin => 5, // > Zvfh
 
-    Ext_Zfinx => 9, // > is_zfinx_enabled_by_stateen
+    Ext_Zfinx => 9, // > Zicsr
 
     Ext_Zdinx => 10, // > Zdinx
     Ext_Zhinx => 10, // > Zfinx
@@ -552,7 +458,6 @@ let extensions_ordered_for_isa_string = [
   Ext_D,
   // Ext_G,
   // Ext_Q,
-  Ext_C,
   Ext_B,
   // Ext_P,
   Ext_V,
@@ -561,15 +466,11 @@ let extensions_ordered_for_isa_string = [
   // Z extensions, ordered by category and then alphabetically.
   // Zi
   Ext_Zic64b,
-  Ext_Zicbom,
-  Ext_Zicbop,
   Ext_Zicboz,
   Ext_Ziccamoa,
   Ext_Ziccamoc,
   Ext_Ziccif,
   Ext_Zicclsm,
-  Ext_Zicfilp,
-  Ext_Zicntr,
   Ext_Zicond,
   Ext_Zicsr,
 
@@ -591,12 +492,6 @@ let extensions_ordered_for_isa_string = [
   Ext_Zdinx,
   Ext_Zhinx,
   Ext_Zhinxmin,
-
-  // Zc
-  Ext_Zca,
-  Ext_Zcb,
-  Ext_Zcd,
-  Ext_Zcf,
 
   // Zb
   Ext_Zba,
@@ -651,13 +546,9 @@ let extensions_ordered_for_isa_string = [
   // Supervisor extensions, ordered alphabetically.
   Ext_Ssccptr,
   Ext_Sscounterenw,
-  Ext_Ssnpm,
-  Ext_Sspm,
-  Ext_Ssstateen,
   Ext_Sstvala,
   Ext_Sstvecd,
   Ext_Ssu64xl,
-  Ext_Supm,
   Ext_Svade,
   Ext_Svadu,
   Ext_Svnapot,
@@ -668,8 +559,4 @@ let extensions_ordered_for_isa_string = [
   // Hypervisor extensions, ordered alphabetically.
 
   // Machine mode extensions, ordered alphabetically.
-  Ext_Smcntrpmf,
-  Ext_Smmpm,
-  Ext_Smnpm,
-  Ext_Smstateen,
 ]

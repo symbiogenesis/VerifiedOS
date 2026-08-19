@@ -5,7 +5,7 @@ prelude {
 }
 
 core {
-  requires prelude, A_types, Zicbop_types, Zicbom_types, PM_types
+  requires prelude, A_types
 
   files
     core/isa_version.sail,
@@ -38,7 +38,6 @@ core {
     core/interrupt_regs.sail,
     core/addr_checks_common.sail,
     core/addr_checks.sail,
-    core/misa_ext.sail,
     core/softfloat_interface.sail,
 }
 
@@ -51,7 +50,7 @@ exceptions {
 }
 
 pmp {
-  requires prelude, core, Zicbop_types
+  requires prelude, core
 
   files
     pmp/pmp_regs.sail,
@@ -59,7 +58,7 @@ pmp {
 }
 
 sys {
-  requires prelude, core, exceptions, pmp, V_core, Smcntrpmf, Zicfilp_regs, A_types, Stateen, Zicbop_types, PM_utils
+  requires prelude, core, exceptions, pmp, V_core, A_types
 
   files
     sys/sys_reservation.sail,
@@ -91,7 +90,7 @@ extensions {
       files extensions/I/base_types.sail
     }
     I_insts {
-      requires exceptions, sys, I_types, Zicfilp_regs
+      requires exceptions, sys, I_types
 
       files
         extensions/I/base_insts.sail,
@@ -149,27 +148,11 @@ extensions {
     }
   }
 
-  // Compressed instructions
-  C {
-    requires core
-
-    Zca {
-      requires exceptions, sys, I
-      files extensions/C/zca_insts.sail
-    }
-    Zcb {
-      requires exceptions, sys, I, B, M
-      files extensions/C/zcb_insts.sail
-    }
-  }
-
   // Floating point (F and D extensions)
   FD {
     requires core
 
     FD_core {
-      // for Zfinx
-      requires Stateen_regs
       before sys
       files
         extensions/FD/freg_type.sail,
@@ -181,9 +164,7 @@ extensions {
       requires sys, I, FD_core
       files
         extensions/FD/fext_insts.sail,
-        extensions/FD/zcf_insts.sail,
         extensions/FD/dext_insts.sail,
-        extensions/FD/zcd_insts.sail,
         extensions/FD/zfh_insts.sail,
         extensions/FD/zfa_insts.sail,
     }
@@ -286,11 +267,6 @@ extensions {
     }
   }
 
-  Smcntrpmf {
-    requires core
-    files extensions/Smcntrpmf/smcntrpmf.sail
-  }
-
   Zicond {
     requires core
 
@@ -304,57 +280,9 @@ extensions {
     }
   }
 
-  Zicntr {
-    requires core
-    files extensions/Zicntr/zicntr_control.sail
-  }
-
-  Zicbom {
-    Zicbom_types {
-      files extensions/Zicbom/zicbom_types.sail
-    }
-    Zicbom_insts {
-      requires core, sys, Zicbom_types
-      files extensions/Zicbom/zicbom_insts.sail
-    }
-  }
-
-  Zicbop {
-    Zicbop_types {
-      before core
-      files extensions/Zicbop/zicbop_types.sail
-    }
-    Zicbop_insts {
-      // PREFETCH.{I,R,W} instructions override ORI hints (rd=0)
-      before I_insts
-      requires core, sys, Zicbop_types
-      files extensions/Zicbop/zicbop_insts.sail
-    }
-  }
-
-
   Zicboz {
     requires core, sys
     files extensions/Zicboz/zicboz_insts.sail
-  }
-
-  CFI {
-    requires core
-
-    CFI_types {
-      before sys
-      files extensions/cfi/cfi_types.sail
-    }
-    Zicfilp {
-      Zicfilp_regs {
-        files extensions/cfi/zicfilp_regs.sail
-      }
-      Zicfilp_insts {
-        requires sys, exceptions, CFI_types, Zicfilp_regs
-        before I_insts // LPAD overrides AUIPC
-        files extensions/cfi/zicfilp_insts.sail
-      }
-    }
   }
 
   bfloat16 {
@@ -378,37 +306,12 @@ extensions {
     }
   }
 
-  Stateen {
-    requires core
-
-    Stateen_regs {
-      files extensions/Stateen/stateen_regs.sail
-    }
-    Stateen_csrs {
-      requires Stateen_regs
-      before sys
-      files
-        extensions/Stateen/stateen_csrs.sail,
-        extensions/Stateen/stateen_access_checks.sail,
-    }
-  }
-
-  PM {
-    PM_types {
-      files extensions/pointer_masking/pm_types.sail
-    }
-    PM_utils {
-      requires core, PM_types
-      files extensions/pointer_masking/pm_utils.sail
-    }
-  }
-
 }
 
 postlude {
   after extensions, core
 
-  requires prelude, core, sys, exceptions, Smcntrpmf, pmp, Zicfilp_regs, Zicfilp_insts
+  requires prelude, core, sys, exceptions, pmp
 
   files
     postlude/insts_end.sail,

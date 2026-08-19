@@ -61,7 +61,9 @@ private function fetch() -> FetchResult = {
     None()  => (),
   };
 
-  if   (PC[0] != 0b0 | (PC[1] != 0b0 & not(currentlyEnabled(Ext_Zca))))
+  // Instructions are 32 bits wide and 4-byte aligned: there are no
+  // compressed instructions to relax this to 2-byte alignment.
+  if   PC[1 .. 0] != 0b00
   then return F_Error(E_Fetch_Addr_Align(), PC);
 
   // For a PC aligned at ILEN=32, perform an atomic fetch for Ziccif.

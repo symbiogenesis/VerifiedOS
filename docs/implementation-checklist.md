@@ -373,17 +373,17 @@ Four more rows take their upstreams off this clock while their authoring rides t
 ### Checklist conventions
 
 * Checked items include concise completion evidence.
-* Open-item estimates are attended agent-session hours and are re-priced when split. Percentages are rounded shares of the 818.9 h grand total.
+* Open-item estimates are attended agent-session hours and are re-priced when split. Percentages are rounded shares of the 817.8 h grand total.
 * `Parallel` means the item can proceed in a separate worktree and build directory.
 * Later milestones remain deliverable-level until entry.
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, and the initial check/emit/FAST tooling.
-* Current serial path: c2 → c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, and the initial check/emit/FAST tooling.
+* Current serial path: c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
 * Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M1.1, M1.5, M2.1, and M4.1.
-* Total estimate: 818.9 h midpoint, approximately 463–1,161 h.
-* Progress by estimate: 5.9 of 818.9 h complete (0.7%); 813.0 h remaining (99.3%).
+* Total estimate: 817.8 h midpoint, approximately 463–1,159 h.
+* Progress by estimate: 7.8 of 817.8 h complete (1.0%); 810.0 h remaining (99.0%).
 * M8 estimate after planned optimizations: approximately 650–709 h total, with a 361–422 h critical chain.
 
 ### M0 · Hardware reference
@@ -437,8 +437,12 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
     * Expected profile refusals: 26 of 199 physical-variant tests.
     * Reservation plumbing remains for c3.
 
-  * [ ] **c2 · Entangled extensions** · 3 h, range 2–4 · 0.4%
-    * Remove `C`, `Zicbom`, `Zicbop`, pointer masking, `Stateen`, CFI/`Zicfilp`, `Smcntrpmf`, and `Zicntr`, including their core and system hooks.
+  * [x] **c2 · Entangled extensions** · 1.9 h actual · 0.2%
+    * Removed `C` (`Zca`, `Zcb`, `Zcf`, `Zcd`), `Zicbom`, `Zicbop`, pointer masking, `Stateen`, CFI/`Zicfilp`, `Smcntrpmf`, and `Zicntr` with their core and system hooks: the `cacheop` union narrowed to `CB_zero` alone and its arms dropped from the PMA, PMP, page-table, and fault-type matches; `mseccfg` deleted outright; `MPELP`/`SPELP`/`LPE`/`PMM`/`CBIE`/`CBCFE` gone from `mstatus`, `sstatus`, and the `envcfg` pair; `misa[C]` hardwired to zero with the `ext_veto_disable_C` hook and its file; the landing-pad checks out of the step function; and `transform_effective_address` reduced to the identity.
+    * Net change: 2,494 lines removed and 69 added across 47 files, 19 of them deleted.
+    * Exit evidence: build green; 346/346 tests pass; `verifiedos.json` validates against the regenerated schema with key sets consistent.
+    * Expected profile refusals: 27 of 199 physical-variant tests, every one explained: the three c1 cuts, the standing M0.6b pair, nine supervisor and PMP tests c3 takes, ten `Zfh` tests the profile excludes, plus `zicntr` with `instret_overflow` and `uc-p-rvc` from this batch. The sweep now caps each run at ten seconds, which books `rv64si-p-dirty`, whose handler never terminates with S off, as a refusal rather than a hang.
+    * Three findings. Fixed-width fetch is a *deletion of gating*, not of the 16-bit path: the parcel check stays, because ILEN=32 makes a 16-bit parcel an illegal instruction rather than a misaligned fetch, so `C_ILLEGAL` and the compressed decode mapping are load-bearing with zero real clauses behind them. The alignment relaxation lives in four places, not one, `fetch`, `rvfi_fetch`, `jump_to`, and the `xepc` legalization pair, and only the first two are obvious from the extension registry. And the Lean emulator's handwritten register initializer was already stale from c1 (it wrote `stimecmp`, deleted with `Sstc`), which the typechecker cannot see because that target is dormant; it and the two `SAIL_MODULES` lists naming deleted modules are corrected here.
 
   * [ ] **c3 · Privilege and translation batch** · 6 h, range 4–8 · 0.7%
     * Remove S/U modes, delegation, `satp`, `Sv*` walkers, PMP, reservation plumbing, counters, and remaining virtual-memory tests.
@@ -483,7 +487,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.5% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 119 h · 15%; approximately 5 h complete.
+**M0 subtotal:** 117.9 h · 14%; approximately 7 h complete.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -643,6 +647,6 @@ These items are outside milestone estimates except where explicitly included. Ev
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence ranges: M0.6 approximately ±50%; M1–M3 approximately 2×; later work approximately 2.5×.
-* Grand total: 818.9 h midpoint, approximately 463–1,161 h.
+* Grand total: 817.8 h midpoint, approximately 463–1,159 h.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

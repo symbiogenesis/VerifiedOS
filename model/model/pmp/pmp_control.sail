@@ -33,19 +33,7 @@ private function pmpCheckRWX(ent : Pmpcfg_ent, access : MemoryAccessType(mem_pay
     StoreConditional(_, _, p)     => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for StoreConditional."),
     Atomic(_, _, _, rp, wp)       => internal_error(__FILE__, __LINE__, "Invalid payloads (" ^ mem_payload_name(rp) ^ ", " ^ mem_payload_str(wp) ^ ") for Atomic."),
 
-    // TODO: "If neither a load instruction nor store instruction is
-    // permitted to access the physical addresses, but an instruction
-    // fetch is permitted to access the physical addresses, whether a
-    // cache-block management instruction is permitted to access the
-    // cache block is UNSPECIFIED."
-    CacheAccess(CB_manage(_))   => ent[R] == 0b1 | ent[W] == 0b1,
-
     CacheAccess(CB_zero())      => ent[W] == 0b1,
-    CacheAccess(CB_prefetch(p)) => match p {
-      PREFETCH_I => ent[X] == 0b1,
-      PREFETCH_R => ent[R] == 0b1,
-      PREFETCH_W => ent[W] == 0b1,
-    },
   }
 
 

@@ -88,20 +88,16 @@ let sys_enable_writable_misa : bool = config base.writable_misa
 // supervisor mode is implemented and non-bare addressing modes are supported.
 let sys_enable_writable_fiom : bool = config base.writable_fiom
 
-// This function allows an extension to veto a write to Misa
-// if it would violate an alignment restriction on
-// unsetting C. If it returns true the write will have no effect.
-val ext_veto_disable_C : unit -> bool
-
 private function legalize_misa(m : Misa, v : xlenbits) -> Misa = {
   let v = Mk_Misa(v);
-  // Suppress updates to MISA if MISA is not writable or if by disabling C next PC would become misaligned or an extension vetoes
-  if   not(sys_enable_writable_misa) | (v[C] == 0b0 & (nextPC[1] == 0b1 | ext_veto_disable_C()))
+  // Suppress updates to MISA if MISA is not writable.
+  if   not(sys_enable_writable_misa)
   then m
   else [m with
     A = if hartSupports(Ext_A) then v[A] else 0b0,
     B = if hartSupports(Ext_B) then v[B] else 0b0,
-    C = if hartSupports(Ext_C) then v[C] else 0b0,
+    // Compressed instructions are not implemented, so misa.C is read-only zero.
+    C = 0b0,
     D = if hartSupports(Ext_D) & v[F] == 0b1 then v[D] else 0b0,
     F = if hartSupports(Ext_F) then v[F] else 0b0,
     H = 0b0,
@@ -162,7 +158,7 @@ bitfield Mstatus : bits(64) = {
   SD   : xlen - 1,
 
   //MDT  : 42,
-  MPELP: 41,
+  //MPELP: 41,
 
   //MPV  : 39,
   //GVA  : 38,
@@ -174,7 +170,7 @@ bitfield Mstatus : bits(64) = {
   UXL  : 33 .. 32,
 
   //SDT  : 24,
-  SPELP: 23,
+  //SPELP: 23,
   TSR  : 22,
   TW   : 21,
   TVM  : 20,
@@ -204,7 +200,7 @@ private function legalize_mstatus(o : Mstatus, v : bits(64)) -> Mstatus = {
 
   let o = [o with
     // MDT = v[MDT],
-    MPELP = if hartSupports(Ext_Zicfilp) then v[MPELP] else 0b0,
+    // MPELP = v[MPELP],
     // MPV = v[MPV],
     // GVA = v[GVA],
     // We don't currently support changing MBE and SBE.
@@ -214,7 +210,7 @@ private function legalize_mstatus(o : Mstatus, v : bits(64)) -> Mstatus = {
     // SXL = if xlen == 64 then v[SXL] else o[SXL],
     // UXL = if xlen == 64 then v[UXL] else o[UXL],
     // SDT = v[SDT],
-    SPELP = if hartSupports(Ext_Zicfilp) then v[SPELP] else 0b0,
+    // SPELP = v[SPELP],
     TSR = if currentlyEnabled(Ext_S) then v[TSR] else 0b0,
     TW = if currentlyEnabled(Ext_U) then v[TW] else 0b0,
     TVM = if currentlyEnabled(Ext_S) then v[TVM] else 0b0,
@@ -293,53 +289,8 @@ function in32BitMode() -> bool = {
   architecture(cur_privilege) == RV32
 }
 
-bitfield Seccfg : bits(64) = {
-  // Pointer Masking Extension
-  PMM    : 33 .. 32,
-  // Enable Zicfilp in M-mode
-  MLPE   : 10,
-  // Enable access to SEED in S-mode
-  SSEED  : 9,
-  // Enable access to SEED in U-mode
-  USEED  : 8,
-}
-
-private function legalize_mseccfg(o : Seccfg, v : bits(64)) -> Seccfg = {
-  let v = Mk_Seccfg(v);
-  [o with
-    PMM   = if currentlyEnabled(Ext_Smmpm) & is_supported_pmm(PM_SMMPM, pmm_mode(v[PMM])) then v[PMM] else o[PMM],
-    MLPE  = if hartSupports(Ext_Zicfilp) then v[MLPE] else 0b0,
-    // Zkr is not implemented, so the SEED CSR does not exist and its
-    // access-enable bits are read-only zero.
-    SSEED = 0b0,
-    USEED = 0b0,
-  ]
-}
-
-register mseccfg : Seccfg = legalize_mseccfg(Mk_Seccfg(zeros()), zeros())
-
-mapping clause csr_name_map = 0x747  <-> "mseccfg"
-mapping clause csr_name_map = 0x757  <-> "mseccfgh"
-
-// For Sm1p12 and later, "mseccfg exists if Zkr is implemented, or if it is required by other processor features."
-function clause is_CSR_accessible(0x747, _, _) = mseccfg_csrs_are_defined & (hartSupports(Ext_Zicfilp) | currentlyEnabled(Ext_Smmpm)) // mseccfg
-function clause is_CSR_accessible(0x757, _, _) = mseccfg_csrs_are_defined & hartSupports(Ext_Zicfilp) & xlen == 32 // mseccfgh
-
-function clause read_CSR(0x747) = mseccfg.bits[xlen - 1 .. 0]
-function clause read_CSR(0x757 if xlen == 32) = mseccfg.bits[63 .. 32]
-
-function clause write_CSR((0x747, value) if xlen == 32) = {
-  mseccfg = legalize_mseccfg(mseccfg, mseccfg.bits[63 .. 32] @ value);
-  Ok(mseccfg.bits[31 .. 0])
-}
-function clause write_CSR((0x747, value) if xlen == 64) = {
-  mseccfg = legalize_mseccfg(mseccfg, value);
-  Ok(mseccfg.bits)
-}
-function clause write_CSR((0x757, value) if xlen == 32) = {
-  mseccfg = legalize_mseccfg(mseccfg, value @ mseccfg.bits[31 .. 0]);
-  Ok(mseccfg.bits[63 .. 32])
-}
+// `mseccfg` is not defined: it exists only for Zkr or for a feature that
+// requires it, and Zkr, Smepmp, Zicfilp and pointer masking are all absent.
 
 
 // envcfg Resisters
@@ -350,61 +301,30 @@ bitfield MEnvcfg : bits(64) = {
   PBMTE  : 62,
   // Svadu
   ADUE   : 61,
-  // Pointer Masking Extension
-  PMM    : 33 .. 32,
   // Cache Block Zero instruction Enable
   CBZE   : 7,
-  // Cache Block Clean and Flush instruction Enable
-  CBCFE  : 6,
-  // Cache Block Invalidate instruction Enable
-  CBIE   : 5 .. 4,
   // Shadow Stack Enable
   SSE    : 3,
-  // Landing Pad Enable
-  LPE    : 2,
   // Fence of I/O implies Memory
   FIOM   : 0,
 }
 
-// NOTE: senvcfg's actual width is SXLEN, but this cannot currently be expressed in Sail,
-// as PMM occupies bits above 31 and conditional enable/disable of bits is not supported.
 bitfield SEnvcfg : bits(64) = {
-  // Pointer Masking Extension
-  PMM    : 33 .. 32,
   // Cache Block Zero instruction Enable
   CBZE   : 7,
-  // Cache Block Clean and Flush instruction Enable
-  CBCFE  : 6,
-  // Cache Block Invalidate instruction Enable
-  CBIE   : 5 .. 4,
   // Shadow Stack Enable
   SSE    : 3,
-  // Landing Pad Enable
-  LPE    : 2,
   // Fence of I/O implies Memory
   FIOM   : 0,
-}
-
-private function legalize_xenvcfg_cbie(cbie : bits(2)) -> bits(2) = {
-  if cbie != 0b10 then {
-    cbie
-  } else match xenvcfg_cbie_reserved_behavior {
-      Xenvcfg_Fatal => reserved_behavior("xenvcfg.CBIE = 0b10"),
-      Xenvcfg_ClearPermissions => 0b00,
-    }
 }
 
 private function legalize_menvcfg(o : MEnvcfg, v : bits(64)) -> MEnvcfg = {
   let v = Mk_MEnvcfg(v);
   [o with
     FIOM = if sys_enable_writable_fiom then v[FIOM] else 0b0,
-    LPE  = if hartSupports(Ext_Zicfilp) then v[LPE] else 0b0,
     SSE  = 0b0,
     CBZE = if currentlyEnabled(Ext_Zicboz) then v[CBZE] else 0b0,
-    CBCFE = if currentlyEnabled(Ext_Zicbom) then v[CBCFE] else 0b0,
-    CBIE = if currentlyEnabled(Ext_Zicbom) then legalize_xenvcfg_cbie(v[CBIE]) else 0b00,
     STCE = 0b0,
-    PMM = if currentlyEnabled(Ext_Smnpm) & is_supported_pmm(PM_SMNPM, pmm_mode(v[PMM])) then v[PMM] else o[PMM],
     ADUE = if currentlyEnabled(Ext_Svadu) then v[ADUE] else 0b0,
     PBMTE = if currentlyEnabled(Ext_Svpbmt) then v[PBMTE] else 0b0,
     // Other extensions are not implemented yet so all other fields are read only zero.
@@ -415,16 +335,12 @@ private function legalize_senvcfg(o : SEnvcfg, v : bits(64)) -> SEnvcfg = {
   let v = Mk_SEnvcfg(v);
   [o with
     FIOM = if sys_enable_writable_fiom then v[FIOM] else 0b0,
-    LPE = if hartSupports(Ext_Zicfilp) then v[LPE] else 0b0,
     // In this implementation, menvcfg[SSE] does not control the writes to senvcfg[SSE],
     // but does control the reads.  This way, senvcfg[SSE] does not have to be modified
     // when menvcfg[SSE] is cleared.  The "CSR Field Modulation" section of the
     // privileged specification has relevant discussion.
     SSE = 0b0,
     CBZE = if currentlyEnabled(Ext_Zicboz) then v[CBZE] else 0b0,
-    CBCFE = if currentlyEnabled(Ext_Zicbom) then v[CBCFE] else 0b0,
-    CBIE = if currentlyEnabled(Ext_Zicbom) then legalize_xenvcfg_cbie(v[CBIE]) else 0b00,
-    PMM = if currentlyEnabled(Ext_Ssnpm) & is_supported_pmm(PM_SSNPM, pmm_mode(v[PMM])) then v[PMM] else o[PMM],
     // Other extensions are not implemented yet so all other fields are read only zero.
   ]
 }
@@ -448,8 +364,6 @@ mapping clause csr_name_map = 0x10A  <-> "senvcfg"
 function clause is_CSR_accessible(0x30A, _, _) = currentlyEnabled(Ext_U) & xenvcfg_csrs_are_defined // menvcfg
 function clause is_CSR_accessible(0x31A, _, _) = currentlyEnabled(Ext_U) & (xlen == 32) & xenvcfg_csrs_are_defined // menvcfgh
 
-// This should ideally also check `xstateen.ENVCFG`, but due to module
-// interdependency issues, that is handled by `stateen_allows_CSR_access`.
 function clause is_CSR_accessible(0x10A, _, _) = currentlyEnabled(Ext_S) & xenvcfg_csrs_are_defined // senvcfg
 
 function clause read_CSR(0x30A) = menvcfg.bits[xlen - 1 .. 0]
@@ -542,22 +456,14 @@ function clause currentlyEnabled(Ext_Sstvecd) = hartSupports(Ext_Sstvecd) & curr
 
 register mepc : xlenbits
 
-// The xepc legalization zeroes xepc[1:0] when Zca is not supported.
-// When Zca is supported (whether it is enabled or not), it zeroes only xepc[0].
+// With no compressed instructions the minimum PC alignment is four bytes,
+// so the xepc legalization zeroes xepc[1:0].
 // PUBLIC: invoked from set_xepc() [exceptions/sys_exceptions.sail]
-function legalize_xepc(v : xlenbits) -> xlenbits = {
-  if   hartSupports(Ext_Zca)
-  then [v with 0 = 0b0]
-  else [v with 1..0 = zeros()]
-}
+function legalize_xepc(v : xlenbits) -> xlenbits = [v with 1..0 = zeros()]
 
 // Align value to min supported PC alignment. This is used to
 // legalize xepc reads.
-function align_pc(addr : xlenbits) -> xlenbits = {
-  if currentlyEnabled(Ext_Zca)
-  then [addr with 0 = 0b0]
-  else [addr with 1..0 = zeros()]
-}
+function align_pc(addr : xlenbits) -> xlenbits = [addr with 1..0 = zeros()]
 
 // auxiliary exception registers
 
@@ -687,7 +593,7 @@ bitfield Sstatus : bits(64) = {
 
   UXL   : 33 .. 32,
 //  SDT   : 24,
-  SPELP : 23,
+//  SPELP : 23,
   MXR   : 19,
   SUM   : 18,
   XS    : 16 .. 15,
@@ -706,7 +612,7 @@ private function lower_mstatus(m : Mstatus) -> Sstatus = {
     SD = m[SD],
     UXL = m[UXL],
     //SDT = m[SDT],
-    SPELP = m[SPELP],
+    //SPELP = m[SPELP],
     MXR = m[MXR],
     SUM = m[SUM],
     XS = m[XS],
@@ -726,7 +632,7 @@ private function lift_sstatus(m : Mstatus, s : Sstatus) -> Mstatus = {
     SD = bool_to_bit(dirty),
     UXL = s[UXL],
     //SDT = s[SDT],
-    SPELP = s[SPELP],
+    //SPELP = s[SPELP],
     MXR = s[MXR],
     SUM = s[SUM],
     XS = s[XS],

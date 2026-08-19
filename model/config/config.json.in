@@ -135,9 +135,6 @@
       // "PMP_ClearPermissions" – convert a PMP entry with R=0, W=1 to R=0, W=0, X=0.
       "pmpcfg_write_only": "PMP_ClearPermissions",
       // The configuration option determines how to handle the reserved behavior `xenvcfg.CBIE` with 0b10.
-      // "Xenvcfg_Fatal"  – raise a Sail exception, stopping execution.
-      // "Xenvcfg_ClearPermissions" – convert CBIE with 0b10 to 0b00.
-      "xenvcfg_cbie": "Xenvcfg_ClearPermissions",
       // The configuration option determines how to handle the reserved behavior `xtvec[Mode] >= 2`.
       // "Xtvec_Fatal"  – raise a Sail exception, stopping execution.
       // "Xtvec_Ignore" – use old Mode of xtvec.
@@ -532,12 +529,6 @@
     "Zic64b": {
       "supported": true
     },
-    "Zicbom": {
-      "supported": true
-    },
-    "Zicbop": {
-      "supported": true
-    },
     "Zicboz": {
       "supported": true
     },
@@ -553,13 +544,7 @@
     "Zicclsm": {
       "supported": true
     },
-    "Zicfilp": {
-      "supported": true
-    },
     "Zicond": {
-      "supported": true
-    },
-    "Zicntr": {
       "supported": true
     },
     "Zicsr": {
@@ -602,18 +587,6 @@
     },
     "Zdinx": {
       "supported": false
-    },
-    "Zca": {
-      "supported": true
-    },
-    "Zcf": {
-      "supported": @CONFIG_XLEN_IS_32@
-    },
-    "Zcd": {
-      "supported": true
-    },
-    "Zcb": {
-      "supported": true
     },
     "Zba": {
       "supported": false
@@ -704,24 +677,6 @@
     "Svnapot": {
       "supported": @CONFIG_XLEN_IS_64@
     },
-    "Ssnpm": {
-      "supported": @CONFIG_XLEN_IS_64@,
-      "supported_pmlen_7": true,
-      "supported_pmlen_16": true
-    },
-    "Smnpm": {
-      "supported": @CONFIG_XLEN_IS_64@,
-      "supported_pmlen_7": true,
-      "supported_pmlen_16": true
-    },
-    "Smmpm": {
-      "supported": @CONFIG_XLEN_IS_64@,
-      "supported_pmlen_7": true,
-      "supported_pmlen_16": true
-    },
-    "Smcntrpmf": {
-      "supported": true
-    },
     "Svbare": {
       "supported": true,
       "sfence_vma_illegal_if_svbare_only": true
@@ -737,16 +692,6 @@
     },
     "Sv57": {
       "supported": @CONFIG_XLEN_IS_64@
-    },
-    "Stateen": {
-      "Smstateen": {
-        "supported": true
-      },
-      "Ssstateen": {
-        "supported": true
-      },
-      "C_readonly_zero": true,
-      "SE0_readonly_zero": false
     },
     "Svpbmt": {
       "supported": @CONFIG_XLEN_IS_64@

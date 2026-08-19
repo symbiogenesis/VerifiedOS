@@ -198,13 +198,14 @@ function clint_store(paddr, width, data) = {
   }
 }
 
-// Counters and timers are affected by Smcntrpmf (and the forthcoming Sdext extension).
+// Counters and timers. With Smcntrpmf deleted there is no privilege-mode
+// filtering left, so `mcountinhibit` alone decides.
 
-function should_inc_mcycle(priv : Privilege) -> bool =
-  mcountinhibit[CY] == 0b0 & counter_priv_filter_bit(mcyclecfg, priv) == 0b0
+function should_inc_mcycle(_priv : Privilege) -> bool =
+  mcountinhibit[CY] == 0b0
 
-function should_inc_minstret(priv : Privilege) -> bool =
-  mcountinhibit[IR] == 0b0 & counter_priv_filter_bit(minstretcfg, priv) == 0b0
+function should_inc_minstret(_priv : Privilege) -> bool =
+  mcountinhibit[IR] == 0b0
 
 function tick_clock() -> unit = {
   if   should_inc_mcycle(cur_privilege)

@@ -15,8 +15,6 @@ function clause execute JALR(imm, rs1, rd) = {
   // some manner, but for now, we just keep a reordered definition to improve simulator
   // performance.
 
-  update_elp_state(rs1);
-
   let link_address = get_next_pc();
   let target = X(rs1) + sign_extend(imm);
   match jump_to([target with 0 = 0b0]) {

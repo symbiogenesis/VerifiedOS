@@ -92,24 +92,8 @@ function translationException(access : MemoryAccessType(mem_payload),
     (InstructionFetch(), PTW_No_Access())        => E_Fetch_Access_Fault(),
     (InstructionFetch(), _)                      => E_Fetch_Page_Fault(),
 
-    (CacheAccess(CB_manage(_)), PTW_No_Access()) => E_SAMO_Access_Fault(),
-    (CacheAccess(CB_manage(_)), _)               => E_SAMO_Page_Fault(),
     (CacheAccess(CB_zero()), PTW_No_Access())    => E_SAMO_Access_Fault(),
     (CacheAccess(CB_zero()), _)                  => E_SAMO_Page_Fault(),
-    // Though prefetches don't raise exceptions, we return a nominal
-    // exception here to propagate the failed address translation to
-    // the execute of the calling instruction so that it can decide
-    // whether to actually proceed with a prefetch.
-    (CacheAccess(CB_prefetch(p)), PTW_No_Access()) => match p {
-      PREFETCH_R => E_Load_Access_Fault(),
-      PREFETCH_W => E_SAMO_Access_Fault(),
-      PREFETCH_I => E_Fetch_Access_Fault(),
-    },
-    (CacheAccess(CB_prefetch(p)), _) => match p {
-      PREFETCH_R => E_Load_Page_Fault(),
-      PREFETCH_W => E_SAMO_Page_Fault(),
-      PREFETCH_I => E_Fetch_Page_Fault(),
-    },
 
     (LoadReserved(_, _, p), _)          => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for LoadReserved."),
     (StoreConditional(_, _, p), _)      => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for StoreConditional."),

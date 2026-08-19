@@ -18,8 +18,8 @@ private function rvfi_fetch() -> FetchResult = {
     None()  => (),
   };
 
-  // Then check PC alignment
-  if   (PC[0] != 0b0 | (PC[1] != 0b0 & not(currentlyEnabled(Ext_Zca))))
+  // Then check PC alignment: instructions are 32 bits wide and 4-byte aligned.
+  if   PC[1 .. 0] != 0b00
   then return F_Error(E_Fetch_Addr_Align(), PC);
 
   match translateAddr(Virtaddr(PC), InstructionFetch()) {
