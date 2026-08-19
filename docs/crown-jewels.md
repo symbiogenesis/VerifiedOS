@@ -1,19 +1,19 @@
 # The Crown-Jewel Inventory
 
-*Normative as a **view**. This document is the artifact **R-17-016a** mandates and R-05-046, R-05-076, R-08-028, R-12-043c, R-14-013b, R-15-221, R-17-012, and R-17-016 depend on: the enumerated inventory of crown-jewel specifications. It is **derived from** [requirements-register.md](requirements-register.md), which remains the audited artifact per R-05-152.*
+*Normative as a **view**. This document is the artifact **R-17-016a** mandates and R-05-046, R-05-050, R-05-076, R-08-028, R-12-043c, R-14-013b, R-15-221, R-17-012, and R-17-016 depend on: the enumerated inventory of crown-jewel specifications. It is **derived from** [requirements-register.md](requirements-register.md), which remains the audited artifact per R-05-152.*
 
 > **Precedence.** Where this document and the register disagree, **the register wins and this document is defective.** Every row cites the requirements that govern it. This document adds no obligation of its own.
 
 ## Why this document exists
 
-Nine acceptance criteria quantify over *the crown-jewel inventory*: R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-12-043c ("the inventory carries one row per reference model"), R-14-013b ("the pinned-semantics artifact appears in the crown-jewel inventory"), R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). This document is that inventory; without it none of the nine is decidable.
+Ten acceptance criteria quantify over *the crown-jewel inventory*: R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-050 ("the NAS descriptor is flagged in the crown-jewel inventory as hand-transcribed"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-12-043c ("the inventory carries one row per reference model"), R-14-013b ("the pinned-semantics artifact appears in the crown-jewel inventory"), R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). This document is that inventory; without it none of the ten is decidable.
 
 Membership is **conferred, never declared in bulk**: a specification is a crown jewel because some requirement says of it that proofs against it can only match it, never check it, so no single entry can hold the list and R-17-016 does not try to. What stays distributed is the conferral; what is collected here is the set.
 
 Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
 
 1. the register's **`CJ-` trace-target table**, 23 entries, all used, internally consistent, but a *legend of trace targets* rather than an enumeration of specifications (below);
-2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §11, §12, §15, §16, and §17. There are twenty-eight such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
+2. the **conferring requirements**, the entries whose own text asserts crown-jewel status, scattered across §5, §8, §10, §11, §12, §14, §15, §16, and §17. There are twenty-eight such entries; each confers the status on one specification or speaks about the set, and not one of them states the membership.
 
 Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.ps1` reports a conferring requirement this document fails to carry, a row no conferring requirement stands behind, and a row citing an identifier the register does not hold.
 
