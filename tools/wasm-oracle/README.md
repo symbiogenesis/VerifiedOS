@@ -19,6 +19,17 @@ true
 
 `demo.v` is the M1.5 smoke program in the oracle's intended shape: a pure Gallina computation checked against a known answer *inside* Gallina (the §4 crypto module's KAT pattern), so only one boolean crosses the Wasm boundary. `run_demo.mjs` decodes it per the upstream value representation (nullary constructors are odd-tagged unboxed scalars). The `--stack-size` flag matches the upstream harness: the generated code recurses deeply and overflows V8's default stack.
 
+## Keeping the VM under the container
+
+WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:
+
+```console
+$ wsl -d Ubuntu -u root -e bash -c '. tools/wsl-env.sh'
+KEEPALIVE pid=... hours=8 pidfile=/tmp/vos-keepalive.pid
+```
+
+It is idempotent, expires on its own, and stops early with `vos_keepalive_stop`; see the keepalive section of [tools/wsl-env.sh](../wsl-env.sh) for why it is a process and not a setting. The `certicoq-oracle` container carries `--restart unless-stopped` so it also comes back by itself after a teardown that happens anyway.
+
 ## Corporate-network note
 
 On a TLS-intercepting network the opam downloads from GitHub release assets fail certificate verification (here: Cisco Umbrella re-signs `release-assets.githubusercontent.com`). Export the proxy root CA from the Windows store, place it beside the Dockerfile as `proxy-root-ca.crt`, and uncomment the two CA lines in the Dockerfile.

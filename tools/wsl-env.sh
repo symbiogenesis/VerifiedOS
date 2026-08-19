@@ -7,7 +7,10 @@
 # %USERPROFILE%\.wslconfig, which is the only place WSL2's CPU and RAM
 # allocation can be set and which applies to every distribution at once. The
 # measurements below say that file would not help anyway; see "what the numbers
-# say" at the bottom.
+# say" at the bottom. The single thing here that outlives a build is the
+# keepalive near the bottom, and it is a bounded background process rather than
+# a line in that global file for exactly the same reason: it buys the effect
+# this repository needs, scoped to the work, and expires on its own.
 #
 # Two invariants every loop needs, previously copied into each script by hand:
 #
@@ -16,7 +19,10 @@
 #   2. The Sail toolchain lives in the opam `default` switch, which a bare
 #      `wsl -e bash script.sh` does not put on PATH.
 ulimit -s 131072
-eval $(opam env --switch=default)
+# Guarded because the Docker lanes source this prelude too, only for the
+# keepalive at the bottom, and they have no opam. Nothing is masked by the
+# guard: a Sail loop without the switch fails loudly at `sail --version`.
+command -v opam >/dev/null 2>&1 && eval $(opam env --switch=default)
 
 # ---------------------------------------------------------------------------
 # What the VM actually has
@@ -103,6 +109,47 @@ vos_stage() {
   shift
   /usr/bin/time -f "STAGE $name wall=%es cpu=%P maxrss=%MkB" "$@"
 }
+
+# ---------------------------------------------------------------------------
+# VM keepalive
+# ---------------------------------------------------------------------------
+# Why a process and not a setting. WSL2 starts its vmIdleTimeout only once
+# every instance has stopped, and the default 60s is short enough that work
+# left running between two `wsl -e` invocations loses the VM underneath it,
+# taking the docker daemon and any container with it (the M1.5 finding). The
+# switch that disables the timer, `[wsl2] vmIdleTimeout=-1`, exists in exactly
+# one place, %USERPROFILE%\.wslconfig: global to every distribution, permanent
+# until a human deletes it, and outside anything this repository should own. A
+# detached bounded sleep buys the same effect from inside: while it lives the
+# distribution has a running process, so no instance ever stops, so the timer
+# never starts; when it expires the machine is back to stock with nothing left
+# behind. It also covers the Docker lanes, which need the daemon's distribution
+# alive rather than any build environment.
+#
+# Idempotent via the pidfile, so sourcing this prelude in every loop starts at
+# most one. Set VOS_KEEPALIVE_HOURS=0 to opt out, or call vos_keepalive_stop to
+# end one early.
+VOS_KEEPALIVE_PIDFILE=${VOS_KEEPALIVE_PIDFILE:-/tmp/vos-keepalive.pid}
+
+vos_keepalive() {
+  local hours=${1:-${VOS_KEEPALIVE_HOURS:-8}}
+  [ "$hours" -gt 0 ] 2>/dev/null || return 0
+  if [ -r "$VOS_KEEPALIVE_PIDFILE" ] &&
+     kill -0 "$(cat "$VOS_KEEPALIVE_PIDFILE" 2>/dev/null)" 2>/dev/null; then
+    return 0
+  fi
+  nohup sleep $(( hours * 3600 )) >/dev/null 2>&1 &
+  echo $! > "$VOS_KEEPALIVE_PIDFILE"
+  echo "KEEPALIVE pid=$! hours=$hours pidfile=$VOS_KEEPALIVE_PIDFILE" >&2
+}
+
+vos_keepalive_stop() {
+  [ -r "$VOS_KEEPALIVE_PIDFILE" ] || return 0
+  kill "$(cat "$VOS_KEEPALIVE_PIDFILE" 2>/dev/null)" 2>/dev/null
+  rm -f "$VOS_KEEPALIVE_PIDFILE"
+}
+
+vos_keepalive
 
 # ---------------------------------------------------------------------------
 # What the numbers say (measured 2026-08-18, 12-core Snapdragon X Elite,
