@@ -1,9 +1,10 @@
 # Checks every derived fact in this repository against the artifact that owns it.
 #
 # A derived fact is anything one document holds only because another document already
-# determined it. Restated by hand it drifts silently, in whichever direction nobody
-# looked, which is the defect the register's sweep 2 names. The defect takes seven
-# granularities, and they are one mistake, so they are one tool:
+# determined it, or because its own parts already do. Restated by hand it drifts
+# silently, in whichever direction nobody looked, which is the defect the register's
+# sweep 2 names. The defect takes eight granularities, and they are one mistake, so
+# they are one tool:
 #
 #   traces   the reference    every bookmark a trace cites, and the section it displays
 #   names    the vocabulary   every R-, CJ-, A-, B- and P- id used, against its declarer
@@ -12,6 +13,7 @@
 #   confers  the enumeration  every set closed by conferral, and the agenda for what it misses
 #   counts   the cardinality  every figure any document asserts, against its artifact
 #   compounds the arithmetic  the archetype band against the product of the rows beneath it
+#   estimates the arithmetic  every checklist total and share against the item hours beneath it
 #
 # Two further groups check what a document is made of rather than what it says, where a
 # fault survives a rendered read because the render succeeds:
@@ -19,9 +21,9 @@
 #   tables   the shape        every row against the width its header declares
 #   glyphs   the characters   punctuation the house style forbids, and encoding damage
 #
-# Run with -Fix to rewrite the asserted counts, and the compounded product, from their
-# artifacts. Every other finding has no mechanical repair: it is a person's edit,
-# reported not guessed.
+# Run with -Fix to rewrite the asserted counts, the compounded product, and the
+# checklist's totals and shares from their artifacts. Every other finding has no
+# mechanical repair: it is a person's edit, reported not guessed.
 #
 # Exit 0 clean, 1 on any finding. Run from the repository root.
 
@@ -1236,6 +1238,241 @@ elseif (-not $bandM.Success -or $credits.Count -ne 2) {
     })
     Report 'credit(s) the band and the product do not support:' $miscredited `
            'every credit is the gap between the band and its product'
+}
+""
+
+# =================================================================================
+# estimates: every total and share against the item hours beneath it
+# =================================================================================
+#
+# The implementation checklist prices itself twice. Once per item, where an estimate is
+# somebody's judgment about a piece of work, and once in the subtotals, shares, and
+# progress figures, which are arithmetic over those judgments and nobody's opinion at
+# all. The second layer is the one that rots: re-pricing an item, splitting it, or
+# checking it off moves every figure above it, and a subtotal that no longer sums still
+# renders as a subtotal, so the drift survives exactly the reading anyone gives it.
+#
+# So the document declares one shape and this group owns everything derived from it.
+# Two things are authored: an open item's range and a completed item's actual. The
+# midpoint is the mean of the range ends, an item's share is that midpoint over the
+# grand total, and every subtotal, the grand range, and the progress pair are sums over
+# the items beneath them. All of it is arithmetic, so -Fix rewrites all of it; unlike
+# the compounded product above, there is no judgment layer here to leave standing.
+#
+# What the group does not compute is what the sums cannot give: the optimization and
+# gating adjustments and the critical chain are the author's, stated beside the derived
+# M8 figure rather than folded into it, so the two kinds of figure stay separable.
+#
+# An item carrying no cell at all is legal in one place, a parent whose children carry
+# the estimates, which is why the check reads the indent rather than demanding a figure
+# of every bullet: the parent is a heading with a checkbox, and its children are already
+# counted. Anything else missing a cell is counted by nothing and is the finding.
+
+# hours read as they are written, the trailing .0 dropped; percentages keep their place
+function Format-Hours([double]$v) {
+    $r = [math]::Round($v, 1)
+    if ($r -eq [math]::Floor($r)) { '{0:N0}' -f $r } else { '{0:N1}' -f $r }
+}
+function Get-Share([double]$v, [double]$total, [int]$digits) {
+    if ($total -eq 0) { return 0 }
+    [math]::Round($v / $total * 100, $digits, [System.MidpointRounding]::AwayFromZero)
+}
+
+"=== estimates: every total and share against the item hours beneath it ==="
+
+$planName = 'docs/implementation-checklist.md'
+$planDoc  = $docByName[$planName]
+if (-not $planDoc) {
+    $findings++
+    "FAIL: $planName missing"
+} else {
+
+$planRaw = if ($fixedFiles.ContainsKey($planName)) { $fixedFiles[$planName] } else { $planDoc.Raw }
+
+# an item line or a subtotal line, in document order: the subtotal closes the run of
+# items above it, which is the whole of how an item finds the total it belongs to
+$scanRe = [regex]'(?m)^(?<ind>[^\S\r\n]*)(?:\* \[(?<box>[ x])\] \*\*(?<label>[^*]+)\*\*(?<rest>[^\r\n]*)|\*\*(?<sec>[^*]+) subtotal:\*\*(?<tail>[^\r\n]*))'
+
+# the estimate cell in its two forms, each capturing the tail after it, which is prose
+# (`Parallel`, and what it is parallel with) that no figure here may disturb
+$doneRe = [regex]'^ · (?<h>[\d.,]+) h actual · (?<pct>[\d.]+)%(?<tail>.*)$'
+$openRe = [regex]'^ · (?<h>[\d.,]+) h, range (?<lo>[\d.,]+)–(?<hi>[\d.,]+) · (?<pct>[\d.]+)%(?<tail>.*)$'
+
+$items = @(); $sections = @(); $bucket = @(); $malformed = @(); $pending = $null
+
+function Read-Hours([string]$s) { [double]($s -replace ',', '') }
+
+foreach ($m in $scanRe.Matches($planRaw)) {
+    if ($m.Groups['sec'].Success) {
+        if ($pending) { $malformed += "$($pending.Label): no estimate cell, and no nested item to carry one"; $pending = $null }
+        $sections += [pscustomobject]@{ Name = $m.Groups['sec'].Value; Line = $m.Value; Head = $m.Value.Substring(0, $m.Value.Length - $m.Groups['tail'].Value.Length); Tail = $m.Groups['tail'].Value; Items = $bucket }
+        $bucket = @()
+        continue
+    }
+
+    $label = $m.Groups['label'].Value.Trim()
+    $ind   = $m.Groups['ind'].Value.Length
+    $rest  = $m.Groups['rest'].Value
+
+    # a parent is an item with no cell whose children are indented under it; the next
+    # item at the same depth or shallower means the children never came
+    if ($pending) {
+        if ($ind -le $pending.Indent) { $malformed += "$($pending.Label): no estimate cell, and no nested item to carry one" }
+        $pending = $null
+    }
+
+    $d = $doneRe.Match($rest)
+    $o = $openRe.Match($rest)
+    if (-not $d.Success -and -not $o.Success) {
+        if ($rest.Trim()) { $malformed += "${label}: '$($rest.Trim())' is not an estimate cell" }
+        else { $pending = [pscustomobject]@{ Label = $label; Indent = $ind } }
+        continue
+    }
+
+    $g  = if ($d.Success) { $d } else { $o }
+    $lo = if ($o.Success) { Read-Hours $o.Groups['lo'].Value } else { 0.0 }
+    $hi = if ($o.Success) { Read-Hours $o.Groups['hi'].Value } else { 0.0 }
+    # every sum below reads Hours, and for an open item that is the range's mean rather
+    # than the midpoint as written: the range is the estimate, so a stated midpoint that
+    # disagrees with it is a stale token, reported and rewritten, never an input
+    $item = [pscustomobject]@{
+        Label  = $label
+        Line   = $m.Value
+        Head   = $m.Value.Substring(0, $m.Value.Length - $rest.Length)
+        Done   = $d.Success
+        Stated = Read-Hours $g.Groups['h'].Value
+        Hours  = if ($o.Success) { [math]::Round(($lo + $hi) / 2, 1) } else { Read-Hours $g.Groups['h'].Value }
+        Lo     = $lo
+        Hi     = $hi
+        Pct    = $g.Groups['pct'].Value
+        Tail   = $g.Groups['tail'].Value
+    }
+    $items  += $item
+    $bucket += $item
+}
+if ($pending)      { $malformed += "$($pending.Label): no estimate cell, and no nested item to carry one" }
+if ($bucket.Count) { $malformed += "$($bucket.Count) item(s) after the last subtotal, counted by no total: $($bucket[0].Label) onward" }
+
+Report 'item(s) whose estimate cell the document cannot read:' $malformed `
+       "all $($items.Count) items carry a cell in the declared shape, and every one is under a subtotal"
+
+# an open item's midpoint is the mean of its range, so the range is the only figure in
+# the cell anybody wrote; a completed item's actual has no range to disagree with
+# under -Fix the cell rewrite below carries the repair, so the mismatch is reported
+# only where nothing is going to correct it
+if (-not $Fix) {
+    $offMid = @($items | Where-Object { -not $_.Done -and $_.Stated -ne $_.Hours } |
+                ForEach-Object { "$($_.Label): $(Format-Hours $_.Stated) h against a $(Format-Hours $_.Lo)–$(Format-Hours $_.Hi) range, whose mean is $(Format-Hours $_.Hours) h" })
+    Report 'open item(s) whose midpoint is not the mean of its range:' $offMid `
+           'every open midpoint is the mean of its own range'
+}
+
+$openItems = @($items | Where-Object { -not $_.Done })
+$grand  = [math]::Round([double](@($items | ForEach-Object { $_.Hours }) | Measure-Object -Sum).Sum, 1)
+$doneH  = [math]::Round([double](@($items | Where-Object Done | ForEach-Object { $_.Hours }) | Measure-Object -Sum).Sum, 1)
+$openLo = [math]::Round([double](@($openItems | ForEach-Object { $_.Lo }) | Measure-Object -Sum).Sum, 1)
+$openHi = [math]::Round([double](@($openItems | ForEach-Object { $_.Hi }) | Measure-Object -Sum).Sum, 1)
+
+# the M8 gate figure is the total less the work that lands after the gate, and the items
+# that do are named here rather than inferred, everything else falling at or before it
+$afterGate = 'M9', 'M10', 'Post-M10'
+$after = @($items | Where-Object { ($_.Label -split ' · ')[0] -in $afterGate })
+if ($after.Count -ne $afterGate.Count) {
+    $findings++
+    "FAIL: $($afterGate.Count) items land after the M8 gate; the document carries $($after.Count) of those labels"
+}
+$gateH = [math]::Round($grand - [double](@($after | ForEach-Object { $_.Hours }) | Measure-Object -Sum).Sum, 1)
+
+# every derived token, old against new; nothing here is a judgment, so -Fix takes all
+$edits = @()
+
+foreach ($it in $items) {
+    $pct  = '{0:N1}' -f (Get-Share $it.Hours $grand 1)
+    $cell = if ($it.Done) { " · $(Format-Hours $it.Hours) h actual · $pct%" }
+            else          { " · $(Format-Hours $it.Hours) h, range $(Format-Hours $it.Lo)–$(Format-Hours $it.Hi) · $pct%" }
+    $new = $it.Head + $cell + $it.Tail
+    if ($new -ne $it.Line) { $edits += [pscustomobject]@{ What = $it.Label; Old = $it.Line; New = $new } }
+}
+
+foreach ($s in $sections) {
+    $open  = @($s.Items | Where-Object { -not $_.Done })
+    $tot   = [math]::Round([double](@($s.Items | ForEach-Object { $_.Hours }) | Measure-Object -Sum).Sum, 1)
+    $sDone = [math]::Round([double](@($s.Items | Where-Object Done | ForEach-Object { $_.Hours }) | Measure-Object -Sum).Sum, 1)
+    $tail  = " $(Format-Hours $tot) h · $('{0:N0}' -f (Get-Share $tot $grand 0))%"
+    if ($sDone -gt 0) { $tail += " · $(Format-Hours $sDone) h complete" }
+    if ($open.Count)  {
+        $sLo = [math]::Round([double](@($open | ForEach-Object { $_.Lo }) | Measure-Object -Sum).Sum, 1)
+        $sHi = [math]::Round([double](@($open | ForEach-Object { $_.Hi }) | Measure-Object -Sum).Sum, 1)
+        $tail += " · open range $(Format-Hours $sLo)–$(Format-Hours $sHi) h"
+    }
+    $tail += '.'
+    if ($tail -ne $s.Tail) { $edits += [pscustomobject]@{ What = "$($s.Name) subtotal"; Old = $s.Line; New = $s.Head + $tail } }
+}
+
+if ($edits.Count -and $Fix) {
+    foreach ($e in $edits) {
+        $pat = '(?m)^' + [regex]::Escape($e.Old) + '(?=\r?$)'
+        $n   = [regex]::Matches($planRaw, $pat).Count
+        if ($n -ne 1) {
+            $findings++
+            "FAIL: ${planName}: '$($e.What)' matches $n lines; the line is not unique enough to rewrite"
+            continue
+        }
+        $planRaw = [regex]::Replace($planRaw, $pat, { param($mm) $e.New })
+        "fixed: $($e.What): $($e.Old.Trim()) -> $($e.New.Trim())"
+    }
+    $fixedFiles[$planName] = $planRaw
+} else {
+    Report 'item or subtotal figure(s) disagreeing with the hours beneath them:' `
+           @($edits | ForEach-Object { "$($_.What): $($_.New.Trim())" }) `
+           "all $($items.Count) item cells and $($sections.Count) subtotals agree with their hours"
+}
+
+# the figures the summary and the basis restate, each captured alone so the prose that
+# carries them stays the document's; the same claim-and-token shape the counts use
+$grandT = Format-Hours $grand
+$loT    = Format-Hours ($doneH + $openLo)
+$hiT    = Format-Hours ($doneH + $openHi)
+$figures = @(
+    @{ What = 'total midpoint';   T = $grandT; P = '(?<=^\* Total estimate: )[\d.,]+' }
+    @{ What = 'total range low';  T = $loT;    P = '(?<=^\* Total estimate: [\d.,]+ h midpoint, range )[\d.,]+' }
+    @{ What = 'total range high'; T = $hiT;    P = '(?<=^\* Total estimate: [\d.,]+ h midpoint, range [\d.,]+–)[\d.,]+' }
+
+    @{ What = 'hours complete';   T = (Format-Hours $doneH);                          P = '(?<=^\* Progress by estimate: )[\d.,]+' }
+    @{ What = 'progress total';   T = $grandT;                                        P = '(?<=^\* Progress by estimate: [\d.,]+ of )[\d.,]+' }
+    @{ What = 'complete share';   T = ('{0:N1}' -f (Get-Share $doneH $grand 1));      P = '(?<=^\* Progress by estimate: [\d.,]+ of [\d.,]+ h complete \()[\d.]+' }
+    @{ What = 'hours remaining';  T = (Format-Hours ($grand - $doneH));               P = '(?<=^\* Progress by estimate: [\d.,]+ of [\d.,]+ h complete \([\d.]+%\); )[\d.,]+' }
+    @{ What = 'remaining share';  T = ('{0:N1}' -f (Get-Share ($grand - $doneH) $grand 1)); P = '(?<=^\* Progress by estimate: [\d.,]+ of [\d.,]+ h complete \([\d.]+%\); [\d.,]+ h remaining \()[\d.]+' }
+
+    @{ What = 'M8 gate hours';    T = (Format-Hours $gateH); P = '(?<=^\* M8 gate: )[\d.,]+' }
+    @{ What = 'M8 gate total';    T = $grandT;               P = '(?<=^\* M8 gate: [\d.,]+ h of the )[\d.,]+' }
+
+    @{ What = 'basis midpoint';   T = $grandT; P = '(?<=^\* Grand total: the sum of the item cells, )[\d.,]+' }
+    @{ What = 'basis range low';  T = $loT;    P = '(?<=^\* Grand total: the sum of the item cells, [\d.,]+ h midpoint over a )[\d.,]+' }
+    @{ What = 'basis range high'; T = $hiT;    P = '(?<=^\* Grand total: the sum of the item cells, [\d.,]+ h midpoint over a [\d.,]+–)[\d.,]+' }
+)
+
+$stated = @()
+foreach ($f in $figures) {
+    $pat  = '(?m)' + $f.P
+    $hits = @([regex]::Matches($planRaw, $pat))
+    if ($hits.Count -ne 1) {
+        $findings++
+        "FAIL: ${planName}: the $($f.What) figure matches $($hits.Count) place(s); re-anchor the sentence or the pattern"
+        continue
+    }
+    if ($hits[0].Value -eq $f.T) { continue }
+    if ($Fix) {
+        $planRaw = [regex]::Replace($planRaw, $pat, $f.T)
+        $fixedFiles[$planName] = $planRaw
+        "fixed: $($f.What): $($hits[0].Value) -> $($f.T)"
+    } else {
+        $stated += "$($f.What): the document says $($hits[0].Value), the items give $($f.T)"
+    }
+}
+Report 'restated total(s) disagreeing with the items beneath them:' $stated `
+       "all $($figures.Count) restated totals agree with the items"
+
 }
 ""
 

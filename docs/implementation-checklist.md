@@ -373,7 +373,8 @@ Four more rows take their upstreams off this clock while their authoring rides t
 ### Checklist conventions
 
 * Checked items include concise completion evidence.
-* Open-item estimates are attended agent-session hours and are re-priced when split. Percentages are rounded shares of the 817.8 h grand total.
+* **Every item carries one estimate cell, and only what is inside it is authored.** An open item reads `· 6 h, range 4–8 · 0.7%`, a completed one `· 1.9 h actual · 0.2%`; the range and the actual are the estimates, in attended agent-session hours, and are re-priced when split. The rest is arithmetic: the midpoint is the mean of the range ends, and the percentage is that midpoint's share of the grand total. An item whose children carry the estimates carries none of its own.
+* **Every subtotal, the grand total, its range, and the progress figures are sums over those cells**, recomputed by `tools/check.ps1` (`-Fix` rewrites them), so a re-priced item moves everything resting on it in the same edit.
 * `Parallel` means the item can proceed in a separate worktree and build directory.
 * Later milestones remain deliverable-level until entry.
 
@@ -382,9 +383,9 @@ Four more rows take their upstreams off this clock while their authoring rides t
 * Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, and the initial check/emit/FAST tooling.
 * Current serial path: c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
 * Available parallel work: c4, M0.6e staging, M0.7, M0.11, M0.12 drafting, M1.1, M1.5, M2.1, and M4.1.
-* Total estimate: 817.8 h midpoint, approximately 463–1,159 h.
-* Progress by estimate: 7.8 of 817.8 h complete (1.0%); 810.0 h remaining (99.0%).
-* M8 estimate after planned optimizations: approximately 650–709 h total, with a 361–422 h critical chain.
+* Total estimate: 817.8 h midpoint, range 549.8–1,085.8 h.
+* Progress by estimate: 7.8 of 817.8 h complete (1.0%); 810 h remaining (99.0%).
+* M8 gate: 734.8 h of the 817.8 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -447,12 +448,12 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * [ ] **c3 · Privilege and translation batch** · 6 h, range 4–8 · 0.7%
     * Remove S/U modes, delegation, `satp`, `Sv*` walkers, PMP, reservation plumbing, counters, and remaining virtual-memory tests.
 
+  * [ ] **c4 · Vector fork** · 3 h, range 2–4 · 0.4% · Parallel
+    * Remove `vstart` from vector definitions and decouple vector FP from scalar F/D validation.
+
 * [ ] **M0.6d · Close the CSR bank** · 3 h, range 2–4 · 0.4%
   * Narrow `mie`/`mip`, hardwire IDs to zero, make `misa` read-only, delete absent CSRs, and trap on unallocated CSR addresses.
   * Implement in the same source pass as c3 where practical, but retain separate completion and estimate tracking.
-
-  * [ ] **c4 · Vector fork** · 3 h, range 2–4 · 0.4% · Parallel with c2
-    * Remove `vstart` from vector definitions and decouple vector FP from scalar F/D validation.
 
 * [ ] **M0.6e · Transplant CHERI capability semantics** · 18 h, range 12–24 · 2.2%
   * Port capability types and compression, merged registers, tag memory, PCC/sentries, machine trap capabilities, load/store checks, and ISAv9 trap causes.
@@ -479,15 +480,15 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.7 · Model Ztso and static-only prediction** · 3 h, range 2–4 · 0.4% · Parallel
 * [ ] **M0.8 · Parameterize by core class** · 28 h, range 20–36 · 3.4%
   * Freeze C-class first; defer roughly 26 h of V/M/FEC work until needed before M2.3.
-* [ ] **M0.9 · Add documented timing annotations** · 4.5 h, range 3–6 · 0.5% · Parallel
+* [ ] **M0.9 · Add documented timing annotations** · 4.5 h, range 3–6 · 0.6% · Parallel
 * [ ] **M0.10 · Generate and freeze the C-class golden emulator** · 2 h, range 1–3 · 0.2%
   * Exit: curated single-core emulator with ISA tests green.
 * [ ] **M0.11 · Define the profile-freeze measurement contract** · 6 h, range 4–8 · 0.7% · Parallel
   * Include corpus manifest, generation inputs, composition recipe, admitted regions, thresholds, emitter provenance, and report format.
-* [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.5% · Parallel draft
+* [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 117.9 h · 14%; approximately 7 h complete.
+**M0 subtotal:** 117.9 h · 14% · 6.9 h complete · open range 75–147 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -501,14 +502,14 @@ Every later milestone is purecap and managed-runtime-free from here.
 * [ ] **M1.2 · Re-home the backend to the purecap profile** · 37.5 h, range 25–50 · 4.6%
   * Functional and differential testing required; add 20–40 h if the artifact is unusable.
 * [ ] **M1.3 · Add baseline target support and bound-directed lowering** · 12 h, range 8–16 · 1.5%
-* [ ] **M1.4 · Re-home LLVM MC/`lld` and compose static images** · 22.5 h, range 15–30 · 2.7%
+* [ ] **M1.4 · Re-home LLVM MC/`lld` and compose static images** · 22.5 h, range 15–30 · 2.8%
   * Exclude general dynamic linking.
 * [ ] **M1.5 · Run the CertiCoq-to-Wasm oracle** · 3.5 h, range 2–5 · 0.4% · Parallel
 * [ ] **M1.6 · Stand up GC-free lowering routes** · 18.5 h, range 12–25 · 2.3% · Parallel with M1.4
 * [ ] **M1.7 · Boot purecap Gallina hello-world on the M0 emulator** · 9 h, range 6–12 · 1.1%
 * [ ] **M1.8 · Build and wire the profile-freeze analyzer** · 11.5 h, range 8–15 · 1.4% · Parallel
 
-**M1 subtotal:** 116.5 h · 14%.
+**M1 subtotal:** 116.5 h · 14% · open range 77–156 h.
 
 ### M2 · Fast emulator
 
@@ -522,7 +523,7 @@ Gate M2.2–M2.3 on measured Sail-emulator performance. If Sail is sufficient th
 * [ ] **M2.3 · Add VLEN=4096 RVV, matrix, and FEC datapaths** · 30 h, range 20–40 · 3.7%
 * [ ] **M2.4 · Reach corpus lockstep with M0 and boot M1 hello-world** · 9 h, range 6–12 · 1.1%
 
-**M2 subtotal:** 58.5 h · 7%.
+**M2 subtotal:** 58.5 h · 7% · open range 39–78 h.
 
 ### M3 · Boot chain
 
@@ -530,25 +531,25 @@ RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → both emu
 
 * [ ] **M3.1 · Add RoT configuration and peripherals to the curated Sail tree** · 18 h, range 12–24 · 2.2%
   * Reuse the same model tree with a scalar `verifiedos-rot.json`; do not fork another model.
-* [ ] **M3.2 · Implement RoT firmware in Gallina** · 22.5 h, range 15–30 · 2.7%
+* [ ] **M3.2 · Implement RoT firmware in Gallina** · 22.5 h, range 15–30 · 2.8%
 * [ ] **M3.3 · Implement M-mode firmware in Gallina** · 18 h, range 12–24 · 2.2%
 * [ ] **M3.4 · Integrate verified cryptographic artifacts** · 26.5 h, range 18–35 · 3.2%
   * Prefer pinned upstream verified implementations over fresh authoring.
 * [ ] **M3.5 · Reach the machine-mode kernel through measured boot on both emulators** · 11.5 h, range 8–15 · 1.4%
 
-**M3 subtotal:** 96.5 h · 12%.
+**M3 subtotal:** 96.5 h · 12% · open range 65–128 h.
 
 ### M4 · Kernel
 
 Gallina microkernel (§5), one instance per emulated core; capability/IPC tests green host-side (Wasm) and on-emulator (RV64, both machines).
 
 * [ ] **M4.1 · Decide revocation sweep quanta** · 1.5 h, range 1–2 · 0.2% · Parallel
-* [ ] **M4.2 · Translate surviving seL4 executable-spec objects to Gallina** · 22.5 h, range 15–30 · 2.7%
+* [ ] **M4.2 · Translate surviving seL4 executable-spec objects to Gallina** · 22.5 h, range 15–30 · 2.8%
   * Time-box `hs-to-coq` recovery to eight hours, then hand-translate if necessary.
 * [ ] **M4.3 · Exercise capability lifecycle, IPC, and slot faults through Wasm** · 9 h, range 6–12 · 1.1%
 * [ ] **M4.4 · Bring up one isolated C instance per emulated core** · 26.5 h, range 18–35 · 3.2%
 
-**M4 subtotal:** 59.5 h · 7%.
+**M4 subtotal:** 59.5 h · 7% · open range 40–79 h.
 
 ### M5 · Storage and objects
 
@@ -559,7 +560,7 @@ Journal/index/FS (§7) and the content-addressed object store + transactor (§6)
 * [ ] **M5.3 · Run system-integrity and user-data instances on the emulator** · 12 h, range 8–16 · 1.5%
 * [ ] **M5.4 · Implement the object store and update transactor** · 18 h, range 12–24 · 2.2% · Parallel where possible
 
-**M5 subtotal:** 65.5 h · 8%.
+**M5 subtotal:** 65.5 h · 8% · open range 45–86 h.
 
 ### M6 · Userland spine
 
@@ -571,10 +572,10 @@ The ring data plane is brought up in its contract order: the common ring schema 
 * [ ] **M6.3 · Build the package composer and contained object router** · 15 h, range 10–20 · 1.8%
 * [ ] **M6.4 · Author the ring-contract schema and generate the reference bindings** · 9 h, range 6–12 · 1.1%
   * The common ring schema and lifecycle in the IDL profile (R-12-091 through R-12-101), with the reference client/server bindings and the Coq interface skeleton generated from it.
-* [ ] **M6.5 · Port one copy-based and one DMA service through the ring contract** · 22.5 h, range 15–30 · 2.7%
+* [ ] **M6.5 · Port one copy-based and one DMA service through the ring contract** · 22.5 h, range 15–30 · 2.8%
   * The copy-based service carries the SPSC, notification, and capacity proofs; the DMA service adds extent, cancellation, teardown, and quiescence; together they validate descriptor sizes, completion capacity, and the generated-proof interfaces (R-18-037) before other servers ride the contract.
 
-**M6 subtotal:** 88 h · 11%.
+**M6 subtotal:** 88 h · 11% · open range 59–117 h.
 
 ### M7 · Full emulated system
 
@@ -582,12 +583,12 @@ The composed stack boots in the spec's §9 order on the **fast emulator**, the p
 The composed system is also the first artifact able to measure **allocation churn**, so the measurement is booked here: the static-composition low-churn argument and the static-code-overlay deferral both wait on the same measured roster, and the elective applications widen the measurement later rather than gating it.
 The same roster carries the ring-parameter measurement: queue depths, batch sizes, notification cadence, and slot budgets are read off the composed system against the §12 per-operation accounting, so the contract's constants are chosen from a measured roster rather than estimated per service.
 
-* [ ] **M7.1 · Boot the composed stack on the fast emulator and rerun it under Sail in CI** · 22.5 h, range 15–30 · 2.7%
-* [ ] **M7.2 · Measure allocation churn across the composed roster** · 4.5 h, range 3–6 · 0.5%
-* [ ] **M7.3 · Measure ring parameters across the composed roster** · 4.5 h, range 3–6 · 0.5%
+* [ ] **M7.1 · Boot the composed stack on the fast emulator and rerun it under Sail in CI** · 22.5 h, range 15–30 · 2.8%
+* [ ] **M7.2 · Measure allocation churn across the composed roster** · 4.5 h, range 3–6 · 0.6%
+* [ ] **M7.3 · Measure ring parameters across the composed roster** · 4.5 h, range 3–6 · 0.6%
   * Queue depths, batch sizes, notification cadence, and slot budgets read off the composed system against the §12 per-operation accounting.
 
-**M7 subtotal:** 31.5 h · 4%.
+**M7 subtotal:** 31.5 h · 4% · open range 21–42 h.
 
 ### RTL track
 
@@ -595,12 +596,12 @@ The RTL track, in parallel from the M0 freeze:
 
 * [ ] **R1 · Curate scalar CVA6-CHERI RTL and required platform devices** · 45 h, range 30–60 · 5.5%
   * CVA6-CHERI re-parameterized to the 64+1-bit dialect and curated per the profile and absence contract (§11: MMU deleted, static-only prediction, TSO store buffer), plus the RoT core, tag-carrying interconnect, boot ROM, UART, and block device; absence-contract state enumeration and synthesis-configuration provenance recorded at first elaboration.
-* [ ] **R2 · Reach corpus-green Verilator co-simulation with trace diff and BMC smoke** · 22.5 h, range 15–30 · 2.7%
+* [ ] **R2 · Reach corpus-green Verilator co-simulation with trace diff and BMC smoke** · 22.5 h, range 15–30 · 2.8%
   * The shared corpus passes under Verilator with the commit-trace diff against the golden model, `rvfi` the hook; a riscv-formal-style BMC smoke on the curated scalar core runs here as cheap bring-up evidence (R-15-094), distinct from the deferred FEV and refinement work.
 * [ ] **R3 · Boot the image in co-simulation and publish the versioned RTL artifact** · 15 h, range 10–20 · 1.8%
   * The composed purecap image (M7's) boots on the RTL in Verilator to the same console and event digests as both emulators; the **RTL artifact of record** (§11) is versioned and published.
 
-**RTL subtotal:** 82.5 h · 10%.
+**RTL subtotal:** 82.5 h · 10% · open range 55–110 h.
 
 ### M8–M10 and later
 
@@ -619,24 +620,24 @@ Two more are owed at the same opening: the combined-adversary route is already s
 * [ ] **Post-M10 · Publish opening hardening obligations** · 8 h, range 6–10 · 1.0%
   * State the RTL-to-Sail fallback, reduction-theorem verification plan, masking obligations, and first-silicon characterization plan.
 
-**M8–M10 subtotal:** 86 h · 11%.
+**M8–M10 subtotal:** 86 h · 11% · open range 58–114 h.
 
 ## Build-loop instruments
 
-These items are outside milestone estimates except where explicitly included. Every change must be benchmarked before adoption; canonical `-O2` RelWithDebInfo remains the exit criterion.
+These items sit outside the milestone subtotals but inside the grand total, and each carries its own estimate cell like any other item. Every change must be benchmarked before adoption; canonical `-O2` RelWithDebInfo remains the exit criterion.
 
 * [x] **Initial check/emit/FAST tooling** · 0.9 h actual · 0.1%
-* [ ] **I1 · Move sources to WSL ext4 and uncap local parallelism**
+* [ ] **I1 · Move sources to WSL ext4 and uncap local parallelism** · 2 h, range 1–3 · 0.2%
   * Move the checkout to `~/src/VerifiedOS`, use Remote-WSL, set `ctest -j$(nproc)`, and avoid cache-hostile WSL memory reclamation.
-* [ ] **I2 · Use one shared content-keyed SMT memo cache**
-* [ ] **I3 · Benchmark a current z3 binary on a cold emission**
-* [ ] **I4 · Add shared ccache, then emit only when generated output changes**
-* [ ] **I5 · Benchmark generated-TU flags, clang versus gcc, and mold**
-* [ ] **I6 · Benchmark the same Sail 0.20.2 binary built with flambda**
-* [ ] **I7 · Run canonical builds in the background and standardize worktree lanes**
-* [ ] **I8 · Optionally move quick checks to push CI and canonical tests to nightly CI**
+* [ ] **I2 · Use one shared content-keyed SMT memo cache** · 2.5 h, range 1–4 · 0.3%
+* [ ] **I3 · Benchmark a current z3 binary on a cold emission** · 1.5 h, range 1–2 · 0.2%
+* [ ] **I4 · Add shared ccache, then emit only when generated output changes** · 2 h, range 1–3 · 0.2%
+* [ ] **I5 · Benchmark generated-TU flags, clang versus gcc, and mold** · 2 h, range 1–3 · 0.2%
+* [ ] **I6 · Benchmark the same Sail 0.20.2 binary built with flambda** · 1.5 h, range 1–2 · 0.2%
+* [ ] **I7 · Run canonical builds in the background and standardize worktree lanes** · 1.5 h, range 1–2 · 0.2%
+* [ ] **I8 · Optionally move quick checks to push CI and canonical tests to nightly CI** · 1.5 h, range 1–2 · 0.2%
 
-**Instrument subtotal:** 15.4 h · 2%, including 0.9 h complete; open range 8–21 h.
+**Instrument subtotal:** 15.4 h · 2% · 0.9 h complete · open range 8–21 h.
 
 ## Estimate and schedule basis
 
@@ -646,7 +647,7 @@ These items are outside milestone estimates except where explicitly included. Ev
   * B · semantic porting and tool re-homing with differential tests
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
-* Confidence ranges: M0.6 approximately ±50%; M1–M3 approximately 2×; later work approximately 2.5×.
-* Grand total: 817.8 h midpoint, approximately 463–1,159 h.
+* Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
+* Grand total: the sum of the item cells, 817.8 h midpoint over a 549.8–1,085.8 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.
