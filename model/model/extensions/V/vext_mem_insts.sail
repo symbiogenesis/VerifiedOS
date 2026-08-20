@@ -63,7 +63,7 @@ function clause execute VLSEGTYPE(nf, vm, rs1, width, vd) = {
   let num_elem = get_num_elem(EMUL_pow, EEW); // # of element of each register group
   assert(num_elem > 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_pow) | illegal_load(vd, vm, nf, EEW, EMUL_pow) | not(valid_reg_group(vd, EMUL_pow))
+  if illegal_load(vd, vm, nf, EEW, EMUL_pow) | not(valid_reg_group(vd, EMUL_pow))
   then return Illegal_Instruction();
 
   let EMUL_reg = 2 ^ max(EMUL_pow, 0);
@@ -76,7 +76,6 @@ function clause execute VLSEGTYPE(nf, vm, rs1, width, vd) = {
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
-      set_vstart(to_bits_unsafe(16, i));
       foreach (j from 0 to (nf - 1)) {
         let elem_offset = (i * nf + j) * load_width_bytes;
         match data_read(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Load(Vector), false, false) {
@@ -84,7 +83,7 @@ function clause execute VLSEGTYPE(nf, vm, rs1, width, vd) = {
           Err(e)   => return e,
         }
       }
-    } else { // prestart, masked or tail segments
+    } else { // masked or tail segments
       foreach (j from 0 to (nf - 1)) {
         let skipped_elem = (result[i] >> (j * load_width_bytes * 8))[(load_width_bytes * 8 - 1) .. 0];
         write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_reg)), skipped_elem)
@@ -92,7 +91,6 @@ function clause execute VLSEGTYPE(nf, vm, rs1, width, vd) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -120,7 +118,7 @@ function clause execute VLSEGFFTYPE(nf, vm, rs1, width, vd) = {
   let num_elem = get_num_elem(EMUL_pow, EEW);
   assert(num_elem > 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_pow) | illegal_load(vd, vm, nf, EEW, EMUL_pow) | not(valid_reg_group(vd, EMUL_pow))
+  if illegal_load(vd, vm, nf, EEW, EMUL_pow) | not(valid_reg_group(vd, EMUL_pow))
   then return Illegal_Instruction();
 
   let EMUL_reg = 2 ^ max(EMUL_pow, 0);
@@ -148,7 +146,7 @@ function clause execute VLSEGFFTYPE(nf, vm, rs1, width, vd) = {
                         },
           }
         }
-      } else { // prestart, masked or tail segments
+      } else { // masked or tail segments
         foreach (j from 0 to (nf - 1)) {
           let skipped_elem = (result[i] >> (j * load_width_bytes * 8))[(load_width_bytes * 8 - 1) .. 0];
           write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_reg)), skipped_elem)
@@ -166,7 +164,6 @@ function clause execute VLSEGFFTYPE(nf, vm, rs1, width, vd) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -194,8 +191,7 @@ function clause execute VSSEGTYPE(nf, vm, rs1, width, vs3) = {
   let num_elem = get_num_elem(EMUL_pow, EEW);
   assert(num_elem > 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_pow) |
-     illegal_store(vs3, nf, EEW, EMUL_pow) |
+  if illegal_store(vs3, nf, EEW, EMUL_pow) |
      not(valid_reg_group(vs3, EMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs3, EEW))
   then return Illegal_Instruction();
@@ -209,7 +205,6 @@ function clause execute VSSEGTYPE(nf, vm, rs1, width, vs3) = {
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
-      set_vstart(to_bits_unsafe(16, i));
       foreach (j from 0 to (nf - 1)) {
         let elem_offset = (i * nf + j) * load_width_bytes;
         let vs = vregidx_offset(vs3, to_bits_unsafe(5, j * EMUL_reg));
@@ -223,7 +218,6 @@ function clause execute VSSEGTYPE(nf, vm, rs1, width, vs3) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -251,7 +245,7 @@ function clause execute VLSSEGTYPE(nf, vm, rs2, rs1, width, vd) = {
   let num_elem = get_num_elem(EMUL_pow, EEW);
   assert(num_elem > 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_pow) | illegal_load(vd, vm, nf, EEW, EMUL_pow) | not(valid_reg_group(vd, EMUL_pow))
+  if illegal_load(vd, vm, nf, EEW, EMUL_pow) | not(valid_reg_group(vd, EMUL_pow))
   then return Illegal_Instruction();
 
   let EMUL_reg = 2 ^ max(EMUL_pow, 0);
@@ -265,7 +259,6 @@ function clause execute VLSSEGTYPE(nf, vm, rs2, rs1, width, vd) = {
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
-      set_vstart(to_bits_unsafe(16, i));
       foreach (j from 0 to (nf - 1)) {
         let elem_offset = i * rs2_val + j * load_width_bytes;
         match data_read(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Load(Vector), false, false) {
@@ -273,7 +266,7 @@ function clause execute VLSSEGTYPE(nf, vm, rs2, rs1, width, vd) = {
           Err(e)   => return e,
         }
       }
-    } else { // prestart, masked or tail segments
+    } else { // masked or tail segments
       foreach (j from 0 to (nf - 1)) {
         let skipped_elem = (result[i] >> (j * load_width_bytes * 8))[(load_width_bytes * 8 - 1) .. 0];
         write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_reg)), skipped_elem)
@@ -281,7 +274,6 @@ function clause execute VLSSEGTYPE(nf, vm, rs2, rs1, width, vd) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -309,8 +301,7 @@ function clause execute VSSSEGTYPE(nf, vm, rs2, rs1, width, vs3) = {
   let num_elem = get_num_elem(EMUL_pow, EEW);
   assert(num_elem > 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_pow) |
-     illegal_store(vs3, nf, EEW, EMUL_pow) |
+  if illegal_store(vs3, nf, EEW, EMUL_pow) |
      not(valid_reg_group(vs3, EMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs3, EEW))
   then return Illegal_Instruction();
@@ -325,7 +316,6 @@ function clause execute VSSSEGTYPE(nf, vm, rs2, rs1, width, vs3) = {
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
-      set_vstart(to_bits_unsafe(16, i));
       foreach (j from 0 to (nf - 1)) {
         let elem_offset = i * rs2_val + j * load_width_bytes;
         let vs = vregidx_offset(vs3, to_bits_unsafe(5, j * EMUL_reg));
@@ -339,7 +329,6 @@ function clause execute VSSSEGTYPE(nf, vm, rs2, rs1, width, vs3) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -372,8 +361,7 @@ function clause execute VLXSEGTYPE(nf, vm, vs2, rs1, width, vd, _mop) = {
     then not(valid_reg_overlap(vs2, vd, EMUL_index_pow, EMUL_data_pow))          // non-segment indexed load
     else not(valid_disjoint_reg_groups_segmented(vs2, vd, EMUL_index_pow, EMUL_data_pow, nf)); // segment indexed load
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_data_pow) |
-     illegal_indexed_load(vd, vm, nf, 2 ^ EEW_index_pow, EMUL_index_pow, EMUL_data_pow) |
+  if illegal_indexed_load(vd, vm, nf, 2 ^ EEW_index_pow, EMUL_index_pow, EMUL_data_pow) |
      index_dst_overlap |
      not(valid_vm_src_overlap(vm, vs2, EEW_index))
   then return Illegal_Instruction();
@@ -391,7 +379,6 @@ function clause execute VLXSEGTYPE(nf, vm, vs2, rs1, width, vd, _mop) = {
   // As mentioned above, currently mop = 1 (unordered) or 3 (ordered) do the same operations.
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
-      set_vstart(to_bits_unsafe(16, i));
       foreach (j from 0 to (nf - 1)) {
         let elem_offset : int = unsigned(vs2_val[i]) + j * EEW_data_bytes;
         match data_read(rs1, to_bits_unsafe(xlen, elem_offset), EEW_data_bytes, Load(Vector), false, false) {
@@ -399,7 +386,7 @@ function clause execute VLXSEGTYPE(nf, vm, vs2, rs1, width, vd, _mop) = {
           Err(e)   => return e,
         }
       }
-    } else { // prestart, masked or tail segments
+    } else { // masked or tail segments
       foreach (j from 0 to (nf - 1)) {
         let skipped_elem = (result[i] >> (j * EEW_data_bytes * 8))[(EEW_data_bytes * 8 - 1) .. 0];
         write_single_element(EEW_data_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_data_reg)), skipped_elem)
@@ -407,7 +394,6 @@ function clause execute VLXSEGTYPE(nf, vm, vs2, rs1, width, vd, _mop) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -437,8 +423,7 @@ function clause execute VSXSEGTYPE(nf, vm, vs2, rs1, width, vs3, _mop) = {
 
   assert(num_elem > 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_data_pow) |
-     illegal_indexed_store(vs3, nf, 2 ^ EEW_index_pow, EMUL_index_pow, EMUL_data_pow) |
+  if illegal_indexed_store(vs3, nf, 2 ^ EEW_index_pow, EMUL_index_pow, EMUL_data_pow) |
      not(valid_src_overlap(vs2, EEW_index, EMUL_index_pow, vs3, EEW_data, EMUL_data_pow)) |
      not(valid_vm_src_overlap(vm, vs2, EEW_index)) |
      not(valid_vm_src_overlap(vm, vs3, EEW_data))
@@ -455,7 +440,6 @@ function clause execute VSXSEGTYPE(nf, vm, vs2, rs1, width, vs3, _mop) = {
   // As mentioned above, currently mop = 1 (unordered) or 3 (ordered) do the same operations.
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
-      set_vstart(to_bits_unsafe(16, i));
       foreach (j from 0 to (nf - 1)) {
         let elem_offset : int = unsigned(vs2_val[i]) + j * EEW_data_bytes;
         let vs = vregidx_offset(vs3, to_bits_unsafe(5, j * EMUL_data_reg));
@@ -469,7 +453,6 @@ function clause execute VSXSEGTYPE(nf, vm, vs2, rs1, width, vs3, _mop) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -491,33 +474,15 @@ function clause execute VLRETYPE(nf, rs1, width, vd) = {
   let elem_per_reg = vlen / EEW;
   assert(elem_per_reg >= 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, nf * elem_per_reg, 0) | not(valid_whole_register(vd, nf)) then return Illegal_Instruction();
+  if not(valid_whole_register(vd, nf)) then return Illegal_Instruction();
 
-  let start_element = get_start_element();
-  // NOTE: Non-trapping path, vstart >= evl writes no elements. Currently
-  // unreachable because illegal_vstart above always traps on out-of-bounds
-  // vstart, but kept so this stays correct if that trap is ever made optional.
-  if start_element >= nf * elem_per_reg then return RETIRE_SUCCESS;
-  let elem_to_align : int = start_element % elem_per_reg;
-  var cur_field : int = start_element / elem_per_reg;
-  var cur_elem  : int = start_element;
+  // The whole-register transfer starts at element zero: with `vstart` deleted
+  // (R-15-039a) there is no partially-transferred register to align back to,
+  // so the field loop below is the whole instruction.
+  var cur_elem : int = 0;
 
-  if elem_to_align > 0 then {
-    foreach (i from elem_to_align to (elem_per_reg - 1)) {
-      set_vstart(to_bits_unsafe(16, cur_elem));
-      let elem_offset = cur_elem * load_width_bytes;
-      match data_read(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Load(Vector), false, false) {
-        Ok(elem) => write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, cur_field)), elem),
-        Err(e)   => return e,
-      };
-      cur_elem = cur_elem + 1
-    };
-    cur_field = cur_field + 1
-  };
-
-  foreach (j from cur_field to (nf - 1)) {
+  foreach (j from 0 to (nf - 1)) {
     foreach (i from 0 to (elem_per_reg - 1)) {
-      set_vstart(to_bits_unsafe(16, cur_elem));
       let elem_offset = cur_elem * load_width_bytes;
       match data_read(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Load(Vector), false, false) {
         Ok(elem) => write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j)), elem),
@@ -527,7 +492,6 @@ function clause execute VLRETYPE(nf, rs1, width, vd) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -547,37 +511,14 @@ function clause execute VSRETYPE(nf, rs1, vs3) = {
   let elem_per_reg = vlen / EEW;
   assert(elem_per_reg >= 0);
 
-  if illegal_vstart(VSTART_LOAD_STORE, nf * elem_per_reg, 0) | not(valid_whole_register(vs3, nf)) then return Illegal_Instruction();
+  if not(valid_whole_register(vs3, nf)) then return Illegal_Instruction();
 
-  let start_element = get_start_element();
-  // NOTE: Non-trapping path, vstart >= evl writes no elements. Currently
-  // unreachable because illegal_vstart above always traps on out-of-bounds
-  // vstart, but kept so this stays correct if that trap is ever made optional.
-  if start_element >= nf * elem_per_reg then return RETIRE_SUCCESS;
-  let elem_to_align : int = start_element % elem_per_reg;
-  var cur_field : int = start_element / elem_per_reg;
-  var cur_elem  : int = start_element;
+  // As in VLRETYPE: element zero is the only start (R-15-039a).
+  var cur_elem : int = 0;
 
-  if elem_to_align > 0 then {
-    foreach (i from elem_to_align to (elem_per_reg - 1)) {
-      set_vstart(to_bits_unsafe(16, cur_elem));
-      let elem_offset : int = cur_elem * load_width_bytes;
-      let vs = vregidx_offset(vs3, to_bits_unsafe(5, cur_field));
-      let data = read_single_element(load_width_bytes * 8, i, vs);
-      match data_write(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, data, Store(Vector), false, false) {
-        Ok(true)  => (),
-        Ok(false) => internal_error(__FILE__, __LINE__, "store got false from data_write"),
-        Err(e)    => return e,
-      };
-      cur_elem = cur_elem + 1
-    };
-    cur_field = cur_field + 1
-  };
-
-  foreach (j from cur_field to (nf - 1)) {
+  foreach (j from 0 to (nf - 1)) {
     let vs3_val = read_vreg(elem_per_reg, load_width_bytes * 8, 0, vregidx_offset(vs3, to_bits_unsafe(5, j)));
     foreach (i from 0 to (elem_per_reg - 1)) {
-      set_vstart(to_bits_unsafe(16, cur_elem));
       let elem_offset = cur_elem * load_width_bytes;
       match data_write(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, vs3_val[i], Store(Vector), false, false) {
         Ok(true)  => (),
@@ -588,7 +529,6 @@ function clause execute VSRETYPE(nf, rs1, vs3) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -614,16 +554,14 @@ function clause execute VMTYPE(rs1, vd_or_vs3, op) = {
   let evl : int = if vl_val % 8 == 0 then vl_val / 8 else vl_val / 8 + 1; // the effective vector length is evl=ceil(vl/8)
   let num_elem = get_num_elem(EMUL_pow, EEW);
 
-  if illegal_vstart(VSTART_LOAD_STORE, num_elem, EMUL_pow) | illegal_vd_unmasked() then return Illegal_Instruction();
+  if illegal_vd_unmasked() then return Illegal_Instruction();
 
   assert(evl >= 0);
-  let start_element = get_start_element();
   let 'n = num_elem;
   let vd_or_vs3_val : vector('n, bits(8)) = read_vreg(num_elem, 8, 0, vd_or_vs3);
 
-  foreach (i from start_element to (num_elem - 1)) {
+  foreach (i from 0 to (num_elem - 1)) {
     if i < evl then { // active elements
-      set_vstart(to_bits_unsafe(16, i));
       if op == VLM then { // load
         match data_read(rs1, to_bits_unsafe(xlen, i), 1, Load(Vector), false, false) {
           Ok(elem) => write_single_element(8, i, vd_or_vs3, elem),
@@ -644,7 +582,6 @@ function clause execute VMTYPE(rs1, vd_or_vs3, op) = {
     }
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 

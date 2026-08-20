@@ -6,7 +6,10 @@
 //  SPDX-License-Identifier: BSD-2-Clause
 //=======================================================================================
 
-function clause currentlyEnabled(Ext_Zvfbfwma) = hartSupports(Ext_Zvfbfwma) & currentlyEnabled(Ext_Zvfbfmin) & currentlyEnabled(Ext_Zfbfmin)
+// Upstream also requires the scalar bf16 converts `Zfbfmin`, which are scalar
+// floating point and are excluded (R-15-039); the vector widening multiply-add
+// stands on the vector converts alone.
+function clause currentlyEnabled(Ext_Zvfbfwma) = hartSupports(Ext_Zvfbfwma) & currentlyEnabled(Ext_Zvfbfmin)
 
 union clause instruction = VFWMACCBF16_VV : (bits(1), vregidx, vregidx, vregidx)
 
@@ -16,7 +19,7 @@ mapping clause encdec = VFWMACCBF16_VV(vm, vs2, vs1, vd)
   when currentlyEnabled(Ext_Zvfbfwma) & get_sew() == 16
 
 function clause execute VFWMACCBF16_VV(vm, vs2, vs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -24,8 +27,7 @@ function clause execute VFWMACCBF16_VV(vm, vs2, vs1, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs1, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs1, SEW)) |
@@ -54,22 +56,21 @@ function clause execute VFWMACCBF16_VV(vm, vs2, vs1, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
 mapping clause assembly = VFWMACCBF16_VV(vm, vs2, vs1, vd)
   <-> "vfwmaccbf16.vv" ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs1) ^ spc() ^ vreg_name(vs2) ^ maybe_vmask(vm)
 
-union clause instruction = VFWMACCBF16_VF : (bits(1), vregidx, fregidx, vregidx)
+union clause instruction = VFWMACCBF16_VF : (bits(1), vregidx, regidx, vregidx)
 
 $[wavedrom "vfwmaccbf16 _ _ _ OPFVF _ OP-V"]
 mapping clause encdec = VFWMACCBF16_VF(vm, vs2, rs1, vd)
-  <-> 0b111011 @ vm @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> 0b111011 @ vm @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when currentlyEnabled(Ext_Zvfbfwma) & get_sew() == 16
 
 function clause execute VFWMACCBF16_VF(vm, vs2, rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -79,8 +80,7 @@ function clause execute VFWMACCBF16_VF(vm, vs2, rs1, vd) = {
 
   assert(LMUL_pow_widen <= 3);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -98,7 +98,9 @@ function clause execute VFWMACCBF16_VF(vm, vs2, rs1, vd) = {
   let (initial_result, mask) : (vector('n, bits('o)), bits('n)) = init_masked_result(num_elem, SEW_widen, LMUL_pow_widen, vd_val, vm_val);
   var result = initial_result;
 
-  let rs1_val = bf16_to_f32_set_flags(F_BF16(rs1));
+  // The bf16 scalar operand is the low 16 bits of an integer register, the
+  // same re-homing every other `.vf` form takes (R-15-039, R-15-040).
+  let rs1_val = bf16_to_f32_set_flags(get_scalar_fp(rs1, 16));
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then {
@@ -107,9 +109,8 @@ function clause execute VFWMACCBF16_VF(vm, vs2, rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
 mapping clause assembly = VFWMACCBF16_VF(vm, vs2, vs1, vd)
-  <-> "vfwmaccbf16.vf" ^ spc() ^ vreg_name(vd) ^ sep() ^ freg_name(vs1) ^ spc() ^ vreg_name(vs2) ^ maybe_vmask(vm)
+  <-> "vfwmaccbf16.vf" ^ spc() ^ vreg_name(vd) ^ sep() ^ reg_name(vs1) ^ spc() ^ vreg_name(vs2) ^ maybe_vmask(vm)

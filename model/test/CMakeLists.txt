@@ -145,6 +145,14 @@ function(filter_riscv_tests test_elfs elfs_to_use_varname)
     # reads back what it wrote to decide how many triggers exist.
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-breakpoint$")
 
+    # Scalar floating point: `F`, `D`, and `Zfh` are excluded entirely
+    # (R-15-039), so the `f0`-`f31` register file, `fcsr`, and every scalar
+    # FP instruction these families execute are gone.  All floating point on
+    # this machine is vector (R-15-040), which the vector test suites cover.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uf-[pv]-.*")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)ud-[pv]-.*")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uzfh-[pv]-.*")
+
     # Svnapot, and address translation with it (R-15-002, R-15-038).
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ssvnapot-[pv]-napot$")
 

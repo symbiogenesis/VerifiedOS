@@ -56,23 +56,11 @@
       // "AMOCAS_Fatal"  – raise a Sail exception, stopping execution.
       // "AMOCAS_Illegal" – treat it as an illegal instruction.
       "amocas_odd_register": "AMOCAS_Illegal",
-      // The configuration option determines how to handle execution of a floating-point
-      // instruction with DYN (dynamic) rounding mode when `fcsr.FRM` contains a
-      // reserved value (0b101, 0b110, 0b111).
-      // This does not affect the execution of floating-point instructions that have a
-      // reserved rounding mode statically encoded in the instruction.
-      // "Fcsr_RM_Fatal"  – raise a Sail exception, stopping execution.
-      // "Fcsr_RM_Illegal" – treat it as an illegal instruction.
-      "fcsr_rm": "Fcsr_RM_Illegal",
       // The configuration option determines how to handle the reserved behavior `xenvcfg.CBIE` with 0b10.
       // The configuration option determines how to handle the reserved behavior `xtvec[Mode] >= 2`.
       // "Xtvec_Fatal"  – raise a Sail exception, stopping execution.
       // "Xtvec_Ignore" – use old Mode of xtvec.
-      "xtvec_mode": "Xtvec_Ignore",
-      // The configuration option determines how to handle the reserved behavior: Odd-numbered registers for RV32Zdinx.
-      // "Zdinx_Fatal"  – raise a Sail exception, stopping execution.
-      // "Zdinx_Illegal" – treat it as an illegal instruction.
-      "rv32zdinx_odd_register": "Zdinx_Illegal"
+      "xtvec_mode": "Xtvec_Ignore"
     },
     "mstatus": {
       // The legal values for the FS and VS fields in this CSR are
@@ -81,7 +69,6 @@
       // - "ExtContext_FourState" allows all values {Off, Initial, Clean, Dirty}.
       // - "ExtContext_TwoState" allows {Off, Dirty}, and writes of Initial and Clean get written as Dirty.
       // - "ExtContext_Off" allows only {Off}.  This makes the field read-only zero.
-      "fs_legal_states": "ExtContext_FourState",
       "vs_legal_states": "ExtContext_FourState"
     },
     // Set the version of the privileged ISA. `"Privileged_ISA_1_13"`
@@ -318,22 +305,6 @@
     "A": {
       "supported": true
     },
-    "F": {
-      "supported": true,
-      // When to set mstatus[FS] and mstatus[SD] to 1, as a result of fflags
-      // being set. There are three options:
-      //
-      // - Fflags_Dirty_Precise: Only set FS/SD when absolutely required, because
-      //                         fflags has actually changed value.
-      // - Fflags_Dirty_Flag: Set FS/SD when the instruction sets a flag, even
-      //                      if that flag is already set.
-      // - Fflags_Dirty_Instruction: Set FS/SD when we execute an instruction that
-      //                             might set a flag, even if it actually doesn't.
-      "fflags_dirty_policy": "Fflags_Dirty_Precise"
-    },
-    "D": {
-      "supported": true
-    },
     "V": {
       // `support_level` must be one of the below strings:
       // . "Disabled" for no vector extension support
@@ -355,37 +326,16 @@
       "reserved_behavior": {
         // This determines how to handle attempts by vsetvli, vsetivli,
         // and vsetvl to set an unsupported or reserved vtype.
-        // "IllegalVtype_SetVill" - set vtype.vill, set vl to zero, clear vstart, and write rd.
+        // "IllegalVtype_SetVill" - set vtype.vill, set vl to zero, and write rd.
         // "IllegalVtype_Illegal" - treat it as an illegal instruction.
         // "IllegalVtype_Fatal"   - raise a Sail exception, stopping execution.
-        "illegal_vtype": "IllegalVtype_SetVill",
-        // This determines how to handle an out-of-bounds vstart (vstart >= VLMAX), which the
-        // vector spec marks reserved and recommends, but does not require, trapping.
-        // "Vstart_Illegal" - raise an illegal instruction exception.
-        // "Vstart_Ignore"  - treat as a no-op, the instruction writes nothing.
-        "vstart_out_of_bounds": "Vstart_Illegal"
+        "illegal_vtype": "IllegalVtype_SetVill"
       },
       "vl_use_ceil": false,
       // The maximum index EEW for indexed vector addressing mode, as
       // a power of 2.  This must be at least 3 but must not exceed
       // the supported ELEN.
-      "max_index_eew_exp": @CONFIG__V__ELEN_EXP@,
-      "vstart": {
-        // The vector specification permits implementations to raise an
-        // illegal instruction exception when `vstart` is non-zero for
-        // instructions that cannot produce such a `vstart` value through
-        // normal execution.
-        "zero_required": {
-          // Whether vector arithmetic instructions raise an illegal instruction
-          // exception when `vstart` is non-zero. This also governs instructions
-          // from the Zvbb, Zvbc, Zvfbfmin, and Zvfbfwma extensions.
-          "arith": true,
-          // Whether the vector scalar move instructions (vmv.x.s, vmv.s.x,
-          // vfmv.f.s and vfmv.s.f) raise an illegal instruction exception when
-          // `vstart` is non-zero.
-          "scalar_move": true
-        }
-      }
+      "max_index_eew_exp": @CONFIG__V__ELEN_EXP@
     },
     "B": {
       "supported": true
@@ -437,24 +387,6 @@
     "Zama16b": {
       "supported": true
     },
-    "Zfa": {
-      "supported": true
-    },
-    "Zfbfmin": {
-      "supported": true
-    },
-    "Zfh": {
-      "supported": true
-    },
-    "Zfhmin": {
-      "supported": true
-    },
-    "Zfinx": {
-      "supported": false
-    },
-    "Zdinx": {
-      "supported": false
-    },
     "Zba": {
       "supported": false
     },
@@ -478,12 +410,6 @@
     },
     "Zkt": {
       "supported": true
-    },
-    "Zhinx": {
-      "supported": false
-    },
-    "Zhinxmin": {
-      "supported": false
     },
     "Zvfbfmin": {
       "supported": true

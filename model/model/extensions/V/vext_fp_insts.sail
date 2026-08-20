@@ -34,13 +34,12 @@ mapping clause encdec = FVVTYPE(funct6, vm, vs2, vs1, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute FVVTYPE(funct6, vm, vs2, vs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_normal(vd, vm, SEW, rm_3b) |
+  if illegal_fp_normal(vd, vm, SEW) |
      not(valid_reg_group(vs1, LMUL_pow)) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
@@ -78,7 +77,6 @@ function clause execute FVVTYPE(funct6, vm, vs2, vs1, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -119,13 +117,12 @@ mapping clause encdec = FVVMATYPE(funct6, vm, vs2, vs1, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute FVVMATYPE(funct6, vm, vs2, vs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_normal(vd, vm, SEW, rm_3b) |
+  if illegal_fp_normal(vd, vm, SEW) |
      not(valid_reg_group(vs1, LMUL_pow)) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
@@ -162,7 +159,6 @@ function clause execute FVVMATYPE(funct6, vm, vs2, vs1, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -195,7 +191,7 @@ mapping clause encdec = FWVVTYPE(funct6, vm, vs2, vs1, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 32)
 
 function clause execute FWVVTYPE(funct6, vm, vs2, vs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -203,8 +199,7 @@ function clause execute FWVVTYPE(funct6, vm, vs2, vs1, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs1, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs1, SEW)) |
@@ -237,7 +232,6 @@ function clause execute FWVVTYPE(funct6, vm, vs2, vs1, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -267,7 +261,7 @@ mapping clause encdec = FWVVMATYPE(funct6, vm, vs1, vs2, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 32)
 
 function clause execute FWVVMATYPE(funct6, vm, vs1, vs2, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -275,8 +269,7 @@ function clause execute FWVVMATYPE(funct6, vm, vs1, vs2, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs1, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs1, SEW)) |
@@ -310,7 +303,6 @@ function clause execute FWVVMATYPE(funct6, vm, vs1, vs2, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -338,7 +330,7 @@ mapping clause encdec = FWVTYPE(funct6, vm, vs2, vs1, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 32)
 
 function clause execute FWVTYPE(funct6, vm, vs2, vs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -346,8 +338,7 @@ function clause execute FWVTYPE(funct6, vm, vs2, vs1, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs1, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_src_overlap(vs2, SEW_widen, LMUL_pow_widen, vs1, SEW, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs1, SEW)) |
@@ -379,7 +370,6 @@ function clause execute FWVTYPE(funct6, vm, vs2, vs1, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -410,13 +400,12 @@ mapping clause encdec = VFUNARY0(vm, vs2, vfunary0, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute VFUNARY0(vm, vs2, vfunary0, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_normal(vd, vm, SEW, rm_3b) |
+  if illegal_fp_normal(vd, vm, SEW) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -438,57 +427,51 @@ function clause execute VFUNARY0(vm, vs2, vfunary0, vd) = {
     if mask[i] == 0b1 then {
       result[i] = match vfunary0 {
         FV_CVT_XU_F      => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 16 => riscv_f16ToUi16(rm_3b, vs2_val[i]),
                                 32 => riscv_f32ToUi32(rm_3b, vs2_val[i]),
                                 64 => riscv_f64ToUi64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FV_CVT_X_F       => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 16 => riscv_f16ToI16(rm_3b, vs2_val[i]),
                                 32 => riscv_f32ToI32(rm_3b, vs2_val[i]),
                                 64 => riscv_f64ToI64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FV_CVT_F_XU      => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 16 => riscv_ui32ToF16(rm_3b, zero_extend(vs2_val[i])),
                                 32 => riscv_ui32ToF32(rm_3b, vs2_val[i]),
                                 64 => riscv_ui64ToF64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FV_CVT_F_X       => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 16 => riscv_i32ToF16(rm_3b, sign_extend(vs2_val[i])),
                                 32 => riscv_i32ToF32(rm_3b, vs2_val[i]),
                                 64 => riscv_i64ToF64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FV_CVT_RTZ_XU_F  => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 16 => riscv_f16ToUi16(0b001, vs2_val[i]),
                                 32 => riscv_f32ToUi32(0b001, vs2_val[i]),
                                 64 => riscv_f64ToUi64(0b001, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FV_CVT_RTZ_X_F   => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 16 => riscv_f16ToI16(0b001, vs2_val[i]),
                                 32 => riscv_f32ToI32(0b001, vs2_val[i]),
                                 64 => riscv_f64ToI64(0b001, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             }
       }
@@ -496,7 +479,6 @@ function clause execute VFUNARY0(vm, vs2, vfunary0, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -530,7 +512,7 @@ mapping clause encdec = VFWUNARY0(vm, vs2, vfwunary0, vd)
   when valid_widening_fp_conversion(vfwunary0)
 
 function clause execute VFWUNARY0(vm, vs2, vfwunary0, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -538,8 +520,7 @@ function clause execute VFWUNARY0(vm, vs2, vfwunary0, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -562,66 +543,59 @@ function clause execute VFWUNARY0(vm, vs2, vfwunary0, vd) = {
     if mask[i] == 0b1 then {
       result[i] = match vfwunary0 {
         FWV_CVT_XU_F     => {
-                              let (fflags, elem) : (bits_fflags, bits('o)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('o)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_f16ToUi32(rm_3b, vs2_val[i]),
                                 32 => riscv_f32ToUi64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FWV_CVT_X_F      => {
-                              let (fflags, elem) : (bits_fflags, bits('o)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('o)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_f16ToI32(rm_3b, vs2_val[i]),
                                 32 => riscv_f32ToI64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FWV_CVT_F_XU     => {
-                              let (fflags, elem) : (bits_fflags, bits('o)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('o)) = match 'm {
                                 8  => riscv_ui32ToF16(rm_3b, zero_extend(vs2_val[i])),
                                 16 => riscv_ui32ToF32(rm_3b, zero_extend(vs2_val[i])),
                                 32 => riscv_ui32ToF64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FWV_CVT_F_X      => {
-                              let (fflags, elem) : (bits_fflags, bits('o)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('o)) = match 'm {
                                 8  => riscv_i32ToF16(rm_3b, sign_extend(vs2_val[i])),
                                 16 => riscv_i32ToF32(rm_3b, sign_extend(vs2_val[i])),
                                 32 => riscv_i32ToF64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FWV_CVT_F_F      => {
-                              let (fflags, elem) : (bits_fflags, bits('o)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('o)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_f16ToF32(rm_3b, vs2_val[i]),
                                 32 => riscv_f32ToF64(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FWV_CVT_RTZ_XU_F => {
-                              let (fflags, elem) : (bits_fflags, bits('o)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('o)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_f16ToUi32(0b001, vs2_val[i]),
                                 32 => riscv_f32ToUi64(0b001, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FWV_CVT_RTZ_X_F  => {
-                              let (fflags, elem) : (bits_fflags, bits('o)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('o)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_f16ToI32(0b001, vs2_val[i]),
                                 32 => riscv_f32ToI64(0b001, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             }
       }
@@ -629,7 +603,6 @@ function clause execute VFWUNARY0(vm, vs2, vfwunary0, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -665,7 +638,7 @@ mapping clause encdec = VFNUNARY0(vm, vs2, vfnunary0, vd)
   when valid_narrowing_fp_conversion(vfnunary0)
 
 function clause execute VFNUNARY0(vm, vs2, vfnunary0, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -673,8 +646,7 @@ function clause execute VFNUNARY0(vm, vs2, vfnunary0, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow_widen, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW_widen))
   then return Illegal_Instruction();
@@ -696,75 +668,67 @@ function clause execute VFNUNARY0(vm, vs2, vfnunary0, vd) = {
     if mask[i] == 0b1 then {
       result[i] = match vfnunary0 {
         FNV_CVT_XU_F     => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => riscv_f16ToUi8(rm_3b, vs2_val[i]),
                                 16 => riscv_f32ToUi16(rm_3b, vs2_val[i]),
                                 32 => riscv_f64ToUi32(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FNV_CVT_X_F      => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => riscv_f16ToI8(rm_3b, vs2_val[i]),
                                 16 => riscv_f32ToI16(rm_3b, vs2_val[i]),
                                 32 => riscv_f64ToI32(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FNV_CVT_F_XU     => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_ui32ToF16(rm_3b, vs2_val[i]),
                                 32 => riscv_ui64ToF32(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FNV_CVT_F_X      => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_i32ToF16(rm_3b, vs2_val[i]),
                                 32 => riscv_i64ToF32(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FNV_CVT_F_F      => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_f32ToF16(rm_3b, vs2_val[i]),
                                 32 => riscv_f64ToF32(rm_3b, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FNV_CVT_ROD_F_F  => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => return Illegal_Instruction(),
                                 16 => riscv_f32ToF16(0b110, vs2_val[i]),
                                 32 => riscv_f64ToF32(0b110, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FNV_CVT_RTZ_XU_F => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => riscv_f16ToUi8(0b001, vs2_val[i]),
                                 16 => riscv_f32ToUi16(0b001, vs2_val[i]),
                                 32 => riscv_f64ToUi32(0b001, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             },
         FNV_CVT_RTZ_X_F  => {
-                              let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                              let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                                 8  => riscv_f16ToI8(0b001, vs2_val[i]),
                                 16 => riscv_f32ToI16(0b001, vs2_val[i]),
                                 32 => riscv_f64ToI32(0b001, vs2_val[i])
                               };
-                              accrue_fflags(fflags);
                               elem
                             }
       }
@@ -772,7 +736,6 @@ function clause execute VFNUNARY0(vm, vs2, vfnunary0, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -807,13 +770,12 @@ mapping clause encdec = VFUNARY1(vm, vs2, vfunary1, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute VFUNARY1(vm, vs2, vfunary1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_normal(vd, vm, SEW, rm_3b) |
+  if illegal_fp_normal(vd, vm, SEW) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -835,30 +797,27 @@ function clause execute VFUNARY1(vm, vs2, vfunary1, vd) = {
     if mask[i] == 0b1 then {
       result[i] = match vfunary1 {
         FVV_VSQRT      => {
-                            let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                            let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                               16  => riscv_f16Sqrt(rm_3b, vs2_val[i]),
                               32  => riscv_f32Sqrt(rm_3b, vs2_val[i]),
                               64  => riscv_f64Sqrt(rm_3b, vs2_val[i])
                             };
-                            accrue_fflags(fflags);
                             elem
                           },
         FVV_VRSQRT7    => {
-                            let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                            let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                               16  => riscv_f16Rsqrte7(rm_3b, vs2_val[i]),
                               32  => riscv_f32Rsqrte7(rm_3b, vs2_val[i]),
                               64  => riscv_f64Rsqrte7(rm_3b, vs2_val[i])
                             };
-                            accrue_fflags(fflags);
                             elem
                           },
         FVV_VREC7      => {
-                            let (fflags, elem) : (bits_fflags, bits('m)) = match 'm {
+                            let (_, elem) : (bits_fflags, bits('m)) = match 'm {
                               16  => riscv_f16Recip7(rm_3b, vs2_val[i]),
                               32  => riscv_f32Recip7(rm_3b, vs2_val[i]),
                               64  => riscv_f64Recip7(rm_3b, vs2_val[i])
                             };
-                            accrue_fflags(fflags);
                             elem
                           },
         FVV_VCLASS     => zero_extend(float_class_onehot_bits(float_classify(vs2_val[i]))),
@@ -867,7 +826,6 @@ function clause execute VFUNARY1(vm, vs2, vfunary1, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -882,23 +840,21 @@ mapping clause assembly = VFUNARY1(vm, vs2, vfunary1, vd)
   <-> vfunary1_mnemonic(vfunary1) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ maybe_vmask(vm)
 
 // ***************************** OPFVV (VWFUNARY0) ******************************
-union clause instruction = VFMVFS : (vregidx, fregidx)
+union clause instruction = VFMVFS : (vregidx, regidx)
 
 mapping clause encdec = VFMVFS(vs2, rd)
-  <-> 0b010000 @ 0b1 @ encdec_vreg(vs2) @ 0b00000 @ 0b001 @ encdec_freg(rd) @ 0b1010111
+  <-> 0b010000 @ 0b1 @ encdec_vreg(vs2) @ 0b00000 @ 0b001 @ encdec_reg(rd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute VFMVFS(vs2, rd) = {
-  let rm_3b    = fcsr[FRM];
   let SEW      = get_sew();
   let num_elem = get_num_elem(0, SEW);
-  // See comment in VMVXS for the use of LMUL
-  let LMUL_pow = get_lmul_pow();
-  let num_elem_vstart = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_SCALAR_MOVE, num_elem_vstart, LMUL_pow) | illegal_fp_vd_unmasked(SEW, rm_3b) | SEW > flen
+  // The destination is an integer register (R-15-039, R-15-040), so the width
+  // it must hold the element in is XLEN rather than the deleted FLEN.
+  if illegal_fp_vd_unmasked(SEW) | SEW > xlen
   then return Illegal_Instruction();
 
   assert(num_elem > 0 & SEW != 8);
@@ -907,21 +863,19 @@ function clause execute VFMVFS(vs2, rd) = {
   let 'm = SEW;
 
   let vs2_val : vector('n, bits('m)) = read_vreg(num_elem, SEW, 0, vs2);
-  match 'm {
-    16 => F_H(rd) = vs2_val[0],
-    32 => F_S(rd) = vs2_val[0],
-    64 => F_D(rd) = vs2_val[0]
-  };
-  set_vstart(zeros());
+  // Zero-extended, not NaN-boxed: the destination is a bit pattern in an
+  // integer register and there is no wider floating-point register to box it
+  // into. `vmv.x.s` sign-extends because its element is a number.
+  X(rd) = zero_extend(vs2_val[0]);
 
   RETIRE_SUCCESS
 }
 
 mapping clause assembly = VFMVFS(vs2, rd)
-  <-> "vfmv.f.s" ^ spc() ^ freg_name(rd) ^ sep() ^ vreg_name(vs2)
+  <-> "vfmv.f.s" ^ spc() ^ reg_name(rd) ^ sep() ^ vreg_name(vs2)
 
 // ****************************** OPFVF (VFtype) ********************************
-union clause instruction = FVFTYPE : (fvffunct6, bits(1), vregidx, fregidx, vregidx)
+union clause instruction = FVFTYPE : (fvffunct6, bits(1), vregidx, regidx, vregidx)
 
 mapping encdec_fvffunct6 : fvffunct6 <-> bits(6) = {
   VF_VADD          <-> 0b000000,
@@ -940,13 +894,13 @@ mapping encdec_fvffunct6 : fvffunct6 <-> bits(6) = {
 }
 
 mapping clause encdec = FVFTYPE(funct6, vm, vs2, rs1, vd)
-  <-> encdec_fvffunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> encdec_fvffunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute FVFTYPE(funct6, vm, vs2, rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -956,8 +910,7 @@ function clause execute FVFTYPE(funct6, vm, vs2, rs1, vd) = {
   // group. Otherwise, the instruction encoding is reserved."
   let src_dst_overlap = funct6 == VF_VSLIDE1UP & vs2 == vd;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_normal(vd, vm, SEW, rm_3b) |
+  if illegal_fp_normal(vd, vm, SEW) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW)) |
@@ -1004,7 +957,6 @@ function clause execute FVFTYPE(funct6, vm, vs2, rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -1025,11 +977,11 @@ mapping fvftype_mnemonic : fvffunct6 <-> string = {
 }
 
 mapping clause assembly = FVFTYPE(funct6, vm, vs2, rs1, vd)
-  <-> fvftype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ freg_name(rs1) ^ maybe_vmask(vm)
+  <-> fvftype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ reg_name(rs1) ^ maybe_vmask(vm)
 
 // ************************ OPFVF (VFtype Multiply-Add) *************************
 // Multiply-Add instructions switch the order of source operands in assembly (vs1/rs1 before vs2)
-union clause instruction = FVFMATYPE : (fvfmafunct6, bits(1), vregidx, fregidx, vregidx)
+union clause instruction = FVFMATYPE : (fvfmafunct6, bits(1), vregidx, regidx, vregidx)
 
 mapping encdec_fvfmafunct6 : fvfmafunct6 <-> bits(6) = {
   VF_VMADD      <-> 0b101000,
@@ -1043,19 +995,18 @@ mapping encdec_fvfmafunct6 : fvfmafunct6 <-> bits(6) = {
 }
 
 mapping clause encdec = FVFMATYPE(funct6, vm, vs2, rs1, vd)
-  <-> encdec_fvfmafunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> encdec_fvfmafunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute FVFMATYPE(funct6, vm, vs2, rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_normal(vd, vm, SEW, rm_3b) |
+  if illegal_fp_normal(vd, vm, SEW) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -1090,7 +1041,6 @@ function clause execute FVFMATYPE(funct6, vm, vs2, rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -1106,10 +1056,10 @@ mapping fvfmatype_mnemonic : fvfmafunct6 <-> string = {
 }
 
 mapping clause assembly = FVFMATYPE(funct6, vm, vs2, rs1, vd)
-  <-> fvfmatype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ freg_name(rs1) ^ sep() ^ vreg_name(vs2) ^ maybe_vmask(vm)
+  <-> fvfmatype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ reg_name(rs1) ^ sep() ^ vreg_name(vs2) ^ maybe_vmask(vm)
 
 // ************************** OPFVF (VFTYPE Widening) ***************************
-union clause instruction = FWVFTYPE : (fwvffunct6, bits(1), vregidx, fregidx, vregidx)
+union clause instruction = FWVFTYPE : (fwvffunct6, bits(1), vregidx, regidx, vregidx)
 
 mapping encdec_fwvffunct6 : fwvffunct6 <-> bits(6) = {
   FWVF_VADD       <-> 0b110000,
@@ -1118,12 +1068,12 @@ mapping encdec_fwvffunct6 : fwvffunct6 <-> bits(6) = {
 }
 
 mapping clause encdec = FWVFTYPE(funct6, vm, vs2, rs1, vd)
-  <-> encdec_fwvffunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> encdec_fwvffunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 32)
 
 function clause execute FWVFTYPE(funct6, vm, vs2, rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -1131,8 +1081,7 @@ function clause execute FWVFTYPE(funct6, vm, vs2, rs1, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -1163,7 +1112,6 @@ function clause execute FWVFTYPE(funct6, vm, vs2, rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -1174,11 +1122,11 @@ mapping fwvftype_mnemonic : fwvffunct6 <-> string = {
 }
 
 mapping clause assembly = FWVFTYPE(funct6, vm, vs2, rs1, vd)
-  <-> fwvftype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ freg_name(rs1) ^ maybe_vmask(vm)
+  <-> fwvftype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ reg_name(rs1) ^ maybe_vmask(vm)
 
 // ******************* OPFVF (VFtype Widening Multiply-Add) *********************
 // Multiply-Add instructions switch the order of source operands in assembly (vs1/rs1 before vs2)
-union clause instruction = FWVFMATYPE : (fwvfmafunct6, bits(1), fregidx, vregidx, vregidx)
+union clause instruction = FWVFMATYPE : (fwvfmafunct6, bits(1), regidx, vregidx, vregidx)
 
 mapping encdec_fwvfmafunct6 : fwvfmafunct6 <-> bits(6) = {
   FWVF_VMACC      <-> 0b111100,
@@ -1188,12 +1136,12 @@ mapping encdec_fwvfmafunct6 : fwvfmafunct6 <-> bits(6) = {
 }
 
 mapping clause encdec = FWVFMATYPE(funct6, vm, rs1, vs2, vd)
-  <-> encdec_fwvfmafunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> encdec_fwvfmafunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 32)
 
 function clause execute FWVFMATYPE(funct6, vm, rs1, vs2, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -1201,8 +1149,7 @@ function clause execute FWVFMATYPE(funct6, vm, rs1, vs2, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -1234,7 +1181,6 @@ function clause execute FWVFMATYPE(funct6, vm, rs1, vs2, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -1246,10 +1192,10 @@ mapping fwvfmatype_mnemonic : fwvfmafunct6 <-> string = {
 }
 
 mapping clause assembly = FWVFMATYPE(funct6, vm, rs1, vs2, vd)
-  <-> fwvfmatype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ freg_name(rs1) ^ sep() ^ vreg_name(vs2) ^ maybe_vmask(vm)
+  <-> fwvfmatype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ reg_name(rs1) ^ sep() ^ vreg_name(vs2) ^ maybe_vmask(vm)
 
 // ************************** OPFVF (WFTYPE Widening) ***************************
-union clause instruction = FWFTYPE : (fwffunct6, bits(1), vregidx, fregidx, vregidx)
+union clause instruction = FWFTYPE : (fwffunct6, bits(1), vregidx, regidx, vregidx)
 
 mapping encdec_fwffunct6 : fwffunct6 <-> bits(6) = {
   FWF_VADD       <-> 0b110100,
@@ -1257,12 +1203,12 @@ mapping encdec_fwffunct6 : fwffunct6 <-> bits(6) = {
 }
 
 mapping clause encdec = FWFTYPE(funct6, vm, vs2, rs1, vd)
-  <-> encdec_fwffunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> encdec_fwffunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 32)
 
 function clause execute FWFTYPE(funct6, vm, vs2, rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -1270,8 +1216,7 @@ function clause execute FWFTYPE(funct6, vm, vs2, rs1, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_group(vs2, LMUL_pow_widen)) |
      not(valid_reg_group(vd, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW_widen))
@@ -1302,7 +1247,6 @@ function clause execute FWFTYPE(funct6, vm, vs2, rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -1312,29 +1256,27 @@ mapping fwftype_mnemonic : fwffunct6 <-> string = {
 }
 
 mapping clause assembly = FWFTYPE(funct6, vm, vs2, rs1, vd)
-  <-> fwftype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ freg_name(rs1) ^ maybe_vmask(vm)
+  <-> fwftype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ reg_name(rs1) ^ maybe_vmask(vm)
 
 // ************************* OPFVF (Merge Instruction) **************************
 // This instruction operates on all body elements regardless of mask value
-union clause instruction = VFMERGE : (vregidx, fregidx, vregidx)
+union clause instruction = VFMERGE : (vregidx, regidx, vregidx)
 
 mapping clause encdec = VFMERGE(vs2, rs1, vd)
-  <-> 0b010111 @ 0b0 @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> 0b010111 @ 0b0 @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute VFMERGE(vs2, rs1, vd) = {
-  let rm_3b         = fcsr[FRM];
-  let start_element = get_start_element();
+  let rm_3b         = fp_static_rm;
   let end_element   = get_end_element();
   let SEW           = get_sew();
   let LMUL_pow      = get_lmul_pow();
   let num_elem      = get_num_elem(LMUL_pow, SEW); // max(VLMAX,VLEN/SEW))
   let real_num_elem = if LMUL_pow >= 0 then num_elem else num_elem / (0 - LMUL_pow); // VLMAX
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_vd_masked(vd, SEW, rm_3b) |
+  if illegal_fp_vd_masked(vd, SEW) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(0b0, vs2, SEW))
@@ -1353,9 +1295,7 @@ function clause execute VFMERGE(vs2, rs1, vd) = {
 
   let tail_ag : agtype = get_vtype_vta();
   foreach (i from 0 to (num_elem - 1)) {
-    if i < start_element then {
-      result[i] = vd_val[i]
-    } else if i > end_element | i >= real_num_elem then {
+    if i > end_element | i >= real_num_elem then {
       result[i] = match tail_ag {
         UNDISTURBED => vd_val[i],
         AGNOSTIC    => vd_val[i] // TODO: configuration support
@@ -1367,31 +1307,29 @@ function clause execute VFMERGE(vs2, rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
 mapping clause assembly = VFMERGE(vs2, rs1, vd)
-  <-> "vfmerge.vfm" ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ freg_name(rs1) ^ sep() ^ "v0"
+  <-> "vfmerge.vfm" ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ reg_name(rs1) ^ sep() ^ "v0"
 
 // ************************* OPFVF (Move Instruction) ***************************
 // This instruction shares the encoding with vfmerge.vfm, but with vm=1 and vs2=v0
-union clause instruction = VFMV : (fregidx, vregidx)
+union clause instruction = VFMV : (regidx, vregidx)
 
 mapping clause encdec = VFMV(rs1, vd)
-  <-> 0b010111 @ 0b1 @ 0b00000 @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> 0b010111 @ 0b1 @ 0b00000 @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute VFMV(rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_vd_unmasked(SEW, rm_3b) |
+  if illegal_fp_vd_unmasked(SEW) |
      not(valid_reg_group(vd, LMUL_pow))
   then return Illegal_Instruction();
 
@@ -1411,31 +1349,27 @@ function clause execute VFMV(rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
 mapping clause assembly = VFMV(rs1, vd)
-  <-> "vfmv.v.f" ^ spc() ^ vreg_name(vd) ^ sep() ^ freg_name(rs1)
+  <-> "vfmv.v.f" ^ spc() ^ vreg_name(vd) ^ sep() ^ reg_name(rs1)
 
 // ***************************** OPFVF (VRFUNARY0) ******************************
-union clause instruction = VFMVSF : (fregidx, vregidx)
+union clause instruction = VFMVSF : (regidx, vregidx)
 
 mapping clause encdec = VFMVSF(rs1, vd)
-  <-> 0b010000 @ 0b1 @ 0b00000 @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> 0b010000 @ 0b1 @ 0b00000 @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute VFMVSF(rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let num_elem = get_num_elem(0, SEW);
-  // See VMVXS for LMUL usage here
-  let LMUL_pow = get_lmul_pow();
-  let num_elem_vstart = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_SCALAR_MOVE, num_elem_vstart, LMUL_pow) | illegal_fp_vd_unmasked(SEW, rm_3b) then return Illegal_Instruction();
+  if illegal_fp_vd_unmasked(SEW) then return Illegal_Instruction();
 
   assert(num_elem > 0 & SEW != 8);
 
@@ -1461,9 +1395,8 @@ function clause execute VFMVSF(rs1, vd) = {
   };
 
   write_vreg(num_elem, SEW, 0, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
 mapping clause assembly = VFMVSF(rs1, vd)
-  <-> "vfmv.s.f" ^ spc() ^ vreg_name(vd) ^ sep() ^ freg_name(rs1)
+  <-> "vfmv.s.f" ^ spc() ^ vreg_name(vd) ^ sep() ^ reg_name(rs1)

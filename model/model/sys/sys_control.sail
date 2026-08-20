@@ -160,14 +160,9 @@ function reset_misa() -> unit = {
   misa[E] = bool_to_bit(base_E_enabled);
   misa[I] = ~(misa[E]);
 
-  if   hartSupports(Ext_F) & hartSupports(Ext_Zfinx)
-  then internal_error(__FILE__, __LINE__, "F and Zfinx cannot both be enabled!");
-
-  // We currently support both F and D
-  misa[F]   = bool_to_bit(hartSupports(Ext_F));      // single-precision
-  misa[D]   = if   flen >= 64
-              then bool_to_bit(hartSupports(Ext_D))  // double-precision
-              else 0b0;
+  // `misa[F]`, `misa[D]`, and `misa[Q]` are left at their reset zero: scalar
+  // floating point is excluded entirely (R-15-039) and all floating point is
+  // vector, which `misa[V]` above reports.
   csr_write_callback("misa", misa.bits);
 }
 
@@ -217,7 +212,6 @@ function reset_sys() -> unit = {
   // If they are kept then callbacks need to be added.
 
   // initialize vector csrs
-  vstart           = zeros();
   vl               = zeros();
   vcsr[vxrm]       = 0b00;
   vcsr[vxsat]      = 0b0;

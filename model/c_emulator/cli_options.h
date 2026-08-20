@@ -41,7 +41,6 @@ struct CLIOptions {
 
   bool config_print_instr = false;
   bool config_print_gpr = false;
-  bool config_print_fpr = false;
   bool config_print_vreg = false;
   bool config_print_csr = false;
   bool config_print_mem_access = false;

@@ -55,14 +55,14 @@ struct GlobalMisalignedExceptions = {
 // The global handling of misaligned accesses.
 let plat_misaligned_access : GlobalMisalignedExceptions = config memory.misaligned.exceptions
 
-// Legal values for FS and VS.  This is an enumeration to avoid lists.
+// Legal values for VS.  This is an enumeration to avoid lists. `FS` is gone
+// with scalar floating point (R-15-039), so `VS` is the only user.
 enum ExtContextPolicy = {
   ExtContext_Off,        // The extension is always off.
   ExtContext_TwoState,   // Legal values are Off and Dirty.
   ExtContext_FourState,  // Legal values are Off, Initial, Clean and Dirty.
 }
 
-let plat_mstatus_legal_fs : ExtContextPolicy = config base.mstatus.fs_legal_states
 let plat_mstatus_legal_vs : ExtContextPolicy = config base.mstatus.vs_legal_states
 
 // Location of clock-interface, which should match with the spec in the DTB
@@ -97,20 +97,12 @@ enum AmocasOddRegisterReservedBehavior = {
   AMOCAS_Illegal,
 }
 
-enum FcsrRmReservedBehavior = {
-  Fcsr_RM_Fatal,
-  Fcsr_RM_Illegal,
-}
 
 enum XtvecModeReservedBehavior = {
   Xtvec_Fatal,
   Xtvec_Ignore,
 }
 
-enum RV32ZdinxOddRegisterReservedBehavior = {
-  Zdinx_Fatal,
-  Zdinx_Illegal,
-}
 
 enum IllegalVtypeReservedBehavior = {
   IllegalVtype_SetVill,
@@ -118,25 +110,10 @@ enum IllegalVtypeReservedBehavior = {
   IllegalVtype_Fatal,
 }
 
-enum OOBVstartReservedBehavior = {
-  Vstart_Illegal,
-  Vstart_Ignore,
-}
-
 let amocas_odd_register_reserved_behavior : AmocasOddRegisterReservedBehavior = config base.reserved_behavior.amocas_odd_register
-let fcsr_rm_reserved_behavior : FcsrRmReservedBehavior = config base.reserved_behavior.fcsr_rm
 let xtvec_mode_reserved_behavior : XtvecModeReservedBehavior = config base.reserved_behavior.xtvec_mode
-let rv32zdinx_odd_register_reserved_behavior : RV32ZdinxOddRegisterReservedBehavior = config base.reserved_behavior.rv32zdinx_odd_register
 let illegal_vtype_reserved_behavior : IllegalVtypeReservedBehavior = config extensions.V.reserved_behavior.illegal_vtype
-let vstart_reserved_behavior : OOBVstartReservedBehavior = config extensions.V.reserved_behavior.vstart_out_of_bounds
 
-enum FflagsDirtyPolicy = {
-  // Only set dirty bits when required (fflags value changes).
-  Fflags_Dirty_Precise,
-  // Set dirty bits when an instruction would set a new fflag (even if it was already set).
-  Fflags_Dirty_Flag,
-  // Set dirty bits when an instruction is executed that *could* set an fflag.
-  Fflags_Dirty_Instruction,
-}
-
-let fflags_dirty_policy : FflagsDirtyPolicy = config extensions.F.fflags_dirty_policy
+// The dynamic-rounding-mode and accrued-flag policies went with `fcsr`
+// (R-15-039, R-15-083), and the RV32 `Zdinx` register-pair rule with the
+// in-integer-register floating point that had the pairs.

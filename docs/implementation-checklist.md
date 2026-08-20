@@ -383,12 +383,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M0.6c/c3, M0.6d, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
 * Current serial path: M0.6e → M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
-* Available parallel work: c4, M0.6e staging, M0.7, M0.12 drafting, M2.1, and M4.1.
-* Total estimate: 809.8 h midpoint, range 549.3–1,070.3 h.
-* Progress by estimate: 20.3 of 809.8 h complete (2.5%); 789.5 h remaining (97.5%).
-* M8 gate: 726.8 h of the 809.8 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Available parallel work: M0.6e staging, M0.7, M0.12 drafting, M2.1, and M4.1.
+* Total estimate: 810.3 h midpoint, range 550.8–1,069.8 h.
+* Progress by estimate: 23.8 of 810.3 h complete (2.9%); 786.5 h remaining (97.1%).
+* M8 gate: 727.3 h of the 810.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -430,7 +430,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * Source-level residue: scalar F/D coupling, CSR narrowing and trap totality, `vstart`, and AIA.
   * Decision: configuration identifies the deletion worklist but does not substitute for source removal.
 
-* [ ] **M0.6c · Remove excluded source surface**
+* [x] **M0.6c · Remove excluded source surface**
   * For every removed extension, update the project file, extension directory, extension registry, config schema, test lists, and stray config readers.
   * Require `tools/check-model.sh`, full build, schema validation, and profile-subset tests after each batch.
 
@@ -455,8 +455,14 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
     * Expected profile refusals: 28 of 199 physical-variant tests, every one explained: ten `Zfh` tests the profile excludes, the three c1 cuts, the three c2 cuts, the standing M0.6b pair, and this batch's ten, being the seven supervisor tests, `pmpaddr`, `ssvnapot-p-napot`, and the RV64 machine-CSR test. Under the max configuration the same cut excludes 17 tests, the RV32 and RV64 halves of the supervisor family and `pmpaddr` plus the two RV64-only rows; the RV32 machine-CSR test still passes and is not excluded.
     * Four findings. `minstret` had a consumer that is not architectural, RVFI's `order` field, so deleting the counter would have deleted the differential rig's instruction ordering with it; a model-internal `retire_count` register with no CSR address replaces it. The reservation flag on the memory API was never only a reservation flag: `res`/`con` selected the reserved-read and conditional-write kinds of the concurrency interface, and after `Zalrsc` its one caller is the AMO, whose two halves are exactly those, so the parameter is *derived* from `is_amo_access(access)` rather than deleted, and stops being passable independently of the access it describes. Two tests hang rather than fail and so cannot be left to a ctest timeout: `rv32si-p-dirty` and `rv64si-p-dirty`, whose handlers wait on a page-table A/D update that never comes with S off, which is the same behaviour c2 booked as a profile refusal now appearing where it blocks. And `pagesize_bits` survives the walker: PMA regions are still required to be 4 KiB-aligned so a PMA property cannot change inside one access, so the constant is renamed `pma_granule_bits` rather than deleted, under a name that no longer implies pages.
 
-  * [ ] **c4 · Vector fork** · 3 h, range 2–4 · 0.4% · Parallel
-    * Remove `vstart` from vector definitions and decouple vector FP from scalar F/D validation.
+  * [x] **c4 · Vector fork** · 3.5 h actual · 0.4%
+    * Removed `vstart` and, with scalar floating point, the whole coupling it was named beside: the `f0`–`f31` register file, `fcsr`/`frm`/`fflags`, `mstatus.FS`, the `F`/`D`/`Zfh`/`Zfhmin`/`Zfa`/`Zfinx`/`Zdinx`/`Zhinx`/`Zhinxmin` extensions with their instruction files, and the scalar half of the bf16 converts. The two forks the profile books (R-15-040, R-15-040a) are now the model's shape rather than a residue in its configuration: `Zve32f` no longer requires `F` and `Zve64d` no longer requires `D`, and the validator rule that demanded them is gone.
+    * The vector unit keeps every floating-point form it had. The scalar operand of a `.vf` instruction is the low SEW bits of an **integer** register, which is where a soft-float-register calling convention already puts a floating-point scalar (R-15-039, R-15-040, [spec.md](spec.md) §15); `vfmv.f.s` writes its element zero-extended into one rather than NaN-boxed, there being no wider register to box into; and rounding is the static RNE of R-15-083, since RVV encodes no rounding-mode field and the conversions that name round-toward-zero pass it themselves.
+    * Net change: 5,448 lines removed and 430 added across 56 files, nine deleted outright. The `c_emulator` harness is in that count: the GDB stub's floating-point annex, the `--trace-fpr` option, and the `freg`/`fcsr` accessors and write callback all named registers that no longer exist.
+    * Exit evidence: build green; 261/261 tests pass; `verifiedos.json` validates against the regenerated schema and its key set agrees with the generated max configuration at 129 keys ([tools/config-keys.py](../tools/config-keys.py)), 29 fewer than M0.6d's 158.
+    * Expected profile refusals: 53 of 199 physical-variant tests, 52 refusals and the standing `rv64si-p-dirty` hang. This batch adds 24 to M0.6d's 29: eleven `rv64uf`, twelve `rv64ud`, and one more `rv64uzfh`, the test that had passed on F/D register moves while the residue stood. The ctest suite loses the same three families in both XLENs, 66 tests, which is the whole of 327 → 261.
+    * Four findings. **The `.vf` forms had to be re-homed, not deleted**: ten instruction families name an `f` register upstream, and deleting the register file leaves the encodings needing a source, so the operand moves to the integer file and no encoding changes; the cost is that `vfmv.v.f` and `vfmv.s.f` become bit-for-bit duplicates of `vmv.v.x` and `vmv.s.x`, and `vfmv.f.s` differs from `vmv.x.s` only in zero- versus sign-extension, which is three encodings the freeze can reclaim and not a curation batch's call. **`fflags` has no destination and two comparisons still read it**: 44 accrual sites go, and the softfloat interface's flag half is discarded everywhere except `fp_gt`/`fp_ge`, where the invalid-operation flag *is* the result (a quiet comparison answers false on a NaN), so it is read where the interface returns it; the software-visible consequence is that no sticky IEEE flag is readable and a program that must detect an invalid or inexact result tests the result. **The scalar files were carrying the vector unit's classification predicates**, 33 of them (`f_is_*_{H,S,D}`) plus `negate_{H,S,D}`, and the Sail float library's width-generic `float_is_*` are the same tests, so each three-way dispatch collapses to one line and the negate to a sign-bit flip; only `canonical_NaN` and three flag constructors had to move, to [float_classify.sail](../model/model/core/float_classify.sail). And **the `vstart` cut deleted an implementation-compatibility hack**: the four scalar-move instructions computed an LMUL-based element count only to match the bound other implementations chose for the `vstart` check, so the count, the LMUL read, and the question go together; the whole-register load and store lose their partial-register prologue, and the vector-crypto element-group start collapses to zero.
+    * Two residues, both booked rather than closed. R-15-039a states that a vector operation is all-or-nothing, and the model writes elements as it goes, so a fault at element *i* leaves the elements before it written with nothing recording where; on this machine that is a fail-stop program error rather than a resumable trap, but whether the register-group write should be buffered to make the claim literal is a question for the capability-fault path M0.6e authors and is settled there. And the dormant first-party test harness (`FIRST_PARTY_TESTS` is off) now names scalar-FP surface too, `test_bf16_nan_boxing.S` and the hard-float ISA strings every test compiles with, joining the PMP, `satp`, `minstret`, and LR/SC tests c1–c3 left stale; the Lean emulator's initializer is corrected here as c2 corrected it, but the first-party set wants one pass of its own.
 
 * [x] **M0.6d · Close the CSR bank** · 2.5 h actual · 0.3%
   * Narrowed `mie`/`mip` to the machine-timer bits, hardwired the implementation identifiers to zero, made `misa` read-only, and deleted `Sdtrig`'s `tselect`. `MEIE`/`MEIP` and `MSIE`/`MSIP` are gone as *fields*: the `Minterrupts` bitfield carries `MTI` alone, so the unnamed bits of the underlying `xlenbits` are the hardwiring and no legalization can set them. `mip` becomes read-only outright, its one writer the timer comparator.
@@ -502,7 +508,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 111.9 h · 14% · 15.9 h complete · open range 65–127 h.
+**M0 subtotal:** 112.4 h · 14% · 19.4 h complete · open range 63–123 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -669,6 +675,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 809.8 h midpoint over a 549.3–1,070.3 h range.
+* Grand total: the sum of the item cells, 810.3 h midpoint over a 550.8–1,069.8 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

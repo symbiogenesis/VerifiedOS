@@ -92,15 +92,15 @@ function clause write_CSR(0x301, _) = Ok(misa.bits)
 // retarget (MPRV), the effective-XLEN fields for the lower modes (SXL,
 // UXL), the byte-endianness control for supervisor accesses (SBE), and
 // the previous-mode and supervisor interrupt-enable stacks (MPP, SPP,
-// SPIE, SIE). `FS` stays for now: scalar F/D is still modeled and is
-// cut with the vector fork.
+// SPIE, SIE). `FS` goes with scalar floating point (R-15-039): all
+// floating point is vector, so `VS` is the machine's only extension-state
+// gate and `FS` is not a field any code can name.
 bitfield Mstatus : bits(64) = {
   SD   : xlen - 1,
 
   MBE  : 37,
 
   XS   : 16 .. 15,
-  FS   : 14 .. 13,
 
   VS   : 10 .. 9,
 
@@ -120,8 +120,7 @@ private function legalize_mstatus(o : Mstatus, v : bits(64)) -> Mstatus = {
 
     // We don't have any extension context yet.
     XS = extStatus_map(Off),
-    // Validate FS and VS against their allowed set.
-    FS = legalize_extStatus(plat_mstatus_legal_fs, v[FS]),
+    // Validate VS against its allowed set.
     VS = legalize_extStatus(plat_mstatus_legal_vs, v[VS]),
 
     MPIE = v[MPIE],
@@ -129,8 +128,7 @@ private function legalize_mstatus(o : Mstatus, v : bits(64)) -> Mstatus = {
   ];
 
   // Set dirty bit to OR of other status bits.
-  let dirty = extStatus_map(o[FS]) == Dirty |
-              extStatus_map(o[XS]) == Dirty |
+  let dirty = extStatus_map(o[XS]) == Dirty |
               extStatus_map(o[VS]) == Dirty;
 
   [o with SD = bool_to_bit(dirty)]

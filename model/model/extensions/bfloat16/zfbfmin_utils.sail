@@ -16,16 +16,17 @@ function bf16_to_f32 (v : bits(16)) -> (bits_fflags, bits(32)) = {
   let is_inf = exp == ones() & mant == zeros();
 
   let fflags = if is_nan & signed(mant) >= 0 then nvFlag() else zeros();
-  let value =
-    if is_nan then canonical_NaN_S()
-    else if is_inf then fmake_S(sign, ones(), zeros())
-    else fmake_S(sign, exp, mant @ zeros(16));
+  // `canonical_NaN_S` and `fmake_S` were scalar-F/D helpers (R-15-039); the
+  // single-precision assembly is written out here instead.
+  let value : bits(32) =
+    if is_nan then canonical_NaN(32)
+    else if is_inf then sign @ ones(8) @ zeros(23)
+    else sign @ exp @ mant @ zeros(16);
 
   (fflags, value)
 }
 
 function bf16_to_f32_set_flags(nval : bits(16)) -> bits(32) = {
-  let (fflags, wval) = bf16_to_f32(nval);
-  accrue_fflags(fflags);
+  let (_, wval) = bf16_to_f32(nval);
   wval
 }

@@ -46,12 +46,6 @@ void callbacks_if::xreg_full_write_callback(
 ) {
 }
 
-void callbacks_if::freg_write_callback(
-  [[maybe_unused]] ModelImpl &model,
-  [[maybe_unused]] unsigned reg,
-  [[maybe_unused]] sbits value
-) {
-}
 
 void callbacks_if::csr_full_write_callback(
   [[maybe_unused]] ModelImpl &model,

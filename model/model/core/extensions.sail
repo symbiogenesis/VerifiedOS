@@ -39,16 +39,7 @@ function clause hartSupports(Ext_M) = config extensions.M.supported
 enum clause extension = Ext_A
 mapping clause extensionName = Ext_A <-> "a"
 function clause hartSupports(Ext_A) = config extensions.A.supported
-// Single-Precision Floating-Point
-enum clause extension = Ext_F
-mapping clause extensionName = Ext_F <-> "f"
-function clause hartSupports(Ext_F) = config extensions.F.supported
-// Double-Precision Floating-Point
-// TODO: Ideally we'd use `config extensions.D.supported` here but it doesn't
-// work due to https://github.com/rems-project/sail/issues/1255
-enum clause extension = Ext_D
-mapping clause extensionName = Ext_D <-> "d"
-function clause hartSupports(Ext_D) = constraint(ext_d_supported) & hartSupports(Ext_F)
+
 // Bit Manipulation
 enum clause extension = Ext_B
 mapping clause extensionName = Ext_B <-> "b"
@@ -101,31 +92,6 @@ mapping clause extensionName = Ext_Zama16b <-> "zama16b"
 function clause hartSupports(Ext_Zama16b) = config extensions.Zama16b.supported
 function clause currentlyEnabled(Ext_Zama16b) = hartSupports(Ext_Zama16b)
 
-// Additional Floating-Point Instructions
-enum clause extension = Ext_Zfa
-mapping clause extensionName = Ext_Zfa <-> "zfa"
-function clause hartSupports(Ext_Zfa) = config extensions.Zfa.supported
-// Scalar BF16 Converts
-enum clause extension = Ext_Zfbfmin
-mapping clause extensionName = Ext_Zfbfmin <-> "zfbfmin"
-function clause hartSupports(Ext_Zfbfmin) = config extensions.Zfbfmin.supported
-// Half-Precision Floating-Point
-enum clause extension = Ext_Zfh
-mapping clause extensionName = Ext_Zfh <-> "zfh"
-function clause hartSupports(Ext_Zfh) = config extensions.Zfh.supported
-// Minimal Half-Precision Floating-Point
-enum clause extension = Ext_Zfhmin
-mapping clause extensionName = Ext_Zfhmin <-> "zfhmin"
-function clause hartSupports(Ext_Zfhmin) = config extensions.Zfhmin.supported
-// Floating-Point in Integer Registers (single precision)
-enum clause extension = Ext_Zfinx
-mapping clause extensionName = Ext_Zfinx <-> "zfinx"
-function clause hartSupports(Ext_Zfinx) = config extensions.Zfinx.supported
-
-// Floating-Point in Integer Registers (double precision)
-enum clause extension = Ext_Zdinx
-mapping clause extensionName = Ext_Zdinx <-> "zdinx"
-function clause hartSupports(Ext_Zdinx) = config extensions.Zdinx.supported
 
 // Bit Manipulation: Address generation
 enum clause extension = Ext_Zba
@@ -181,14 +147,6 @@ mapping clause extensionName = Ext_Zkt <-> "zkt"
 function clause hartSupports(Ext_Zkt) = config extensions.Zkt.supported
 function clause currentlyEnabled(Ext_Zkt) = hartSupports(Ext_Zkt)
 
-// Floating-Point in Integer Registers (half precision)
-enum clause extension = Ext_Zhinx
-mapping clause extensionName = Ext_Zhinx <-> "zhinx"
-function clause hartSupports(Ext_Zhinx) = config extensions.Zhinx.supported
-// Floating-Point in Integer Registers (minimal half precision)
-enum clause extension = Ext_Zhinxmin
-mapping clause extensionName = Ext_Zhinxmin <-> "zhinxmin"
-function clause hartSupports(Ext_Zhinxmin) = config extensions.Zhinxmin.supported
 
 // Standard Vector Extensions
 // Minimum Vector Length Standard Extensions
@@ -311,7 +269,6 @@ function clause currentlyEnabled(Ext_Zvkng) = hartSupports(Ext_Zvkng)
 
 function hartSupports_measure(ext : extension) -> int =
   match ext {
-    Ext_D => 1, // > F
     Ext_Zvkn => 1, // > Zvkned
 
     Ext_Zvknc => 2, // > Zvkn
@@ -338,19 +295,15 @@ function currentlyEnabled_measure(ext : extension) -> int =
     Ext_Zvl32b => 0,
     Ext_Zvl64b => 0,
 
-    Ext_D => 1, // > Zicsr
-    Ext_F => 1, // > Zicsr
     Ext_Zaamo => 1, // > A
     Ext_Zve32x => 1, // > Zvl32b
 
     // Note: even though these match the default case, making them explicit to
     // annotate the chain of dependencies
-    Ext_Zfh => 2, // > F
     Ext_Zvbb => 2, // > Zve32x
     Ext_Zve32f => 2, // > Zve32x
     Ext_Zve64x => 2, // > Zve32x
 
-    Ext_Zfhmin => 3, // > Zfh
     Ext_Zvbc => 3, // > Zve64x
     Ext_Zve64f => 3, // > Zve64x
     Ext_Zvfbfmin => 3, // > Zve32f
@@ -359,17 +312,10 @@ function currentlyEnabled_measure(ext : extension) -> int =
 
     Ext_Zve64d => 4, // > Zve64f
     Ext_Zvfbfwma => 4, // > Zvfbfmin
-    Ext_Zvfh => 4, // > Zfhmin
+    Ext_Zvfh => 4, // > Zve32f
 
     Ext_V => 5, // > Zve64d
     Ext_Zvfhmin => 5, // > Zvfh
-
-    Ext_Zfinx => 9, // > Zicsr
-
-    Ext_Zdinx => 10, // > Zdinx
-    Ext_Zhinx => 10, // > Zfinx
-
-    Ext_Zhinxmin => 11, // > Zhinx
 
     _ => 2
   }
@@ -380,8 +326,6 @@ let extensions_ordered_for_isa_string = [
   // Single letter extensions.
   Ext_M,
   Ext_A,
-  Ext_F,
-  Ext_D,
   // Ext_G,
   // Ext_Q,
   Ext_B,
@@ -408,15 +352,8 @@ let extensions_ordered_for_isa_string = [
   Ext_Zacas,
   Ext_Zama16b,
 
-  // Zf, Zd, and Zq
-  Ext_Zfa,
-  Ext_Zfbfmin,
-  Ext_Zfh,
-  Ext_Zfhmin,
-  Ext_Zfinx,
-  Ext_Zdinx,
-  Ext_Zhinx,
-  Ext_Zhinxmin,
+  // Zf, Zd, and Zq have no members: scalar floating point is excluded
+  // entirely (R-15-039).
 
   // Zb
   Ext_Zba,

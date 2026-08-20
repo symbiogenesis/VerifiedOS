@@ -15,14 +15,21 @@ function clause currentlyEnabled(Ext_Zvl1024b) = hartSupports(Ext_Zvl1024b)
 
 // TODO: the interaction of Ext_Zve32x with a writable misa.V when misa.V == 0 needs settling.
 function clause currentlyEnabled(Ext_Zve32x) = hartSupports(Ext_Zve32x) & currentlyEnabled(Ext_Zvl32b) & (mstatus[VS] != 0b00) & currentlyEnabled(Ext_Zicsr)
-function clause currentlyEnabled(Ext_Zve32f) = hartSupports(Ext_Zve32f) & currentlyEnabled(Ext_Zve32x) & currentlyEnabled(Ext_F)
+// The vector floating-point levels stand on their own: standard RVV makes
+// `Zve32f` require scalar `F` and `Zve64d` require `D`, and this profile has
+// neither (R-15-039). That is the vector-FP-without-scalar-FP fork R-15-040
+// books, and this is where the model takes it: a float-capable vector level
+// needs a vector unit and an element width, not a scalar FP register file.
+function clause currentlyEnabled(Ext_Zve32f) = hartSupports(Ext_Zve32f) & currentlyEnabled(Ext_Zve32x)
 function clause currentlyEnabled(Ext_Zve64x) = hartSupports(Ext_Zve64x) & currentlyEnabled(Ext_Zvl64b) & currentlyEnabled(Ext_Zve32x)
 function clause currentlyEnabled(Ext_Zve64f) = hartSupports(Ext_Zve64f) & currentlyEnabled(Ext_Zve64x) & currentlyEnabled(Ext_Zve32f)
-function clause currentlyEnabled(Ext_Zve64d) = hartSupports(Ext_Zve64d) & currentlyEnabled(Ext_Zve64f) & currentlyEnabled(Ext_D)
+function clause currentlyEnabled(Ext_Zve64d) = hartSupports(Ext_Zve64d) & currentlyEnabled(Ext_Zve64f)
 
 function clause currentlyEnabled(Ext_V) = hartSupports(Ext_V) & (misa[V] == 0b1) & currentlyEnabled(Ext_Zvl128b) & currentlyEnabled(Ext_Zve64d)
 
-function clause currentlyEnabled(Ext_Zvfh)    = hartSupports(Ext_Zvfh)     & currentlyEnabled(Ext_Zve32f) & currentlyEnabled(Ext_Zfhmin)
+// Likewise the vector half-precision levels, which upstream hang off scalar
+// `Zfhmin`.
+function clause currentlyEnabled(Ext_Zvfh)    = hartSupports(Ext_Zvfh)     & currentlyEnabled(Ext_Zve32f)
 function clause currentlyEnabled(Ext_Zvfhmin) = (hartSupports(Ext_Zvfhmin) & currentlyEnabled(Ext_Zve32f)) | currentlyEnabled(Ext_Zvfh)
 
 let max_index_eew_exp : nat = config extensions.V.max_index_eew_exp

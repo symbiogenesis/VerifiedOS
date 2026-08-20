@@ -36,9 +36,8 @@ function clause execute VAESDF(funct6, vs2, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let state = get_velem_quad(vd_val, i);
@@ -53,7 +52,6 @@ function clause execute VAESDF(funct6, vs2, vd) = {
     write_velem_quad(vd, SEW, ark, i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -93,9 +91,8 @@ function clause execute VAESDM(funct6, vs2, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let state = get_velem_quad(vd_val, i);
@@ -111,7 +108,6 @@ function clause execute VAESDM(funct6, vs2, vd) = {
     write_velem_quad(vd, SEW, mix, i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -151,9 +147,8 @@ function clause execute VAESEF(funct6, vs2, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let state = get_velem_quad(vd_val, i);
@@ -168,7 +163,6 @@ function clause execute VAESEF(funct6, vs2, vd) = {
     write_velem_quad(vd, SEW, ark, i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -208,9 +202,8 @@ function clause execute VAESEM(funct6, vs2, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let state = get_velem_quad(vd_val, i);
@@ -226,7 +219,6 @@ function clause execute VAESEM(funct6, vs2, vd) = {
     write_velem_quad(vd, SEW, ark, i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -269,9 +261,8 @@ function clause execute VAESKF1_VI(vs2, rnd, vd) = {
   var w : vector(4, bits(32)) = vector_init(zeros());
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let current_round_key = get_velem_quad_vec(vs2_val, i);
@@ -285,7 +276,6 @@ function clause execute VAESKF1_VI(vs2, rnd, vd) = {
     write_velem_quad_vec(vd, SEW, w, i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -321,9 +311,8 @@ function clause execute VAESKF2_VI(vs2, rnd, vd) = {
   var w : vector(4, bits(32)) = vector_init(zeros());
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let current_round_key = get_velem_quad_vec(vs2_val, i);
@@ -340,7 +329,6 @@ function clause execute VAESKF2_VI(vs2, rnd, vd) = {
     write_velem_quad_vec(vd, SEW, w, i)
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -369,9 +357,8 @@ function clause execute VAESZ_VS(vs2, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let state = get_velem_quad(vd_val, i);
@@ -381,7 +368,6 @@ function clause execute VAESZ_VS(vs2, vd) = {
     write_velem_quad(vd, SEW, ark, i)
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 

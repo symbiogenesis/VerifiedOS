@@ -4,13 +4,13 @@
 #include <sstream>
 
 register_map get_register_map() {
+  // The floating-point annex is gone with scalar floating point
+  // (docs/isa-profile.md, R-15-039): there are no `f0`-`f31` and no `fcsr`,
+  // so the debugger sees the integer registers and the PC and nothing after
+  // them.  Vector state is not exposed here either, as upstream does not.
   register_map map = {
     // TODO: handle the E base ISA
     .pc_offset = 32,
-    .fpr_offset = 33,
-    // `fcsr` could be duplicated, as under `fpu` and `csr`.  We put
-    // it only in the fpu annex.
-    .fcsr_offset = 65,
   };
   return map;
 }
@@ -54,41 +54,8 @@ std::string get_target_xml(const ModelImpl &model) {
   xml << "  <reg name=\"pc\" bitsize=\"" << model.xlen() << "\" type=\"code_ptr\"/>" << std::endl;
   xml << "</feature>" << std::endl;
 
-  ++regnum;
-  assert(regnum == map.fpr_offset);
-
-  bool have_double = get_config_bool({"extensions", "D", "supported"});
-  bool have_single = get_config_bool({"extensions", "F", "supported"});
-  if (have_double || have_single) {
-    // The `org.gnu.gdb.riscv.fpu` feature is optional. If present, it
-    // should contain registers `f0` through `f31`, `fflags`, `frm`,
-    // and `fcsr`. As with the cpu feature, either the architectural
-    // register names, or the ABI names can be used.
-    std::string fpu_type;
-    xml << R"(<feature name="org.gnu.gdb.riscv.fpu">)" << std::endl;
-    if (have_double) {
-      assert(model.flen() == 64);
-      // The registers can hold both ieee_single and ieee_double.
-      xml << R"(  <union id="riscv_double">
-    <field name="float" type="ieee_single"/>
-    <field name="double" type="ieee_double"/>
-  </union>
-)";
-      fpu_type = "riscv_double";
-    } else {
-      fpu_type = "ieee_single";
-    }
-    for (int i = 0; i < 32; ++i) {
-      xml << "  <reg name=\"f" << i << "\" bitsize=\"" << model.flen() << "\" type=\"" << fpu_type << "\"";
-      if (i == 0) {
-        xml << " regnum = \"" << regnum << "\"";
-      }
-      xml << "/>" << std::endl;
-      ++regnum;
-    }
-    xml << "  <reg name=\"fcsr\" bitsize=\"32\" type=\"int\" regnum=\"" << regnum << "\"/>" << std::endl;
-    xml << "</feature>" << std::endl;
-  }
+  // The optional `org.gnu.gdb.riscv.fpu` feature is not emitted: it holds
+  // `f0`-`f31` and `fcsr`, none of which exist here (R-15-039).
 
   xml << "</target>" << std::endl;
   return xml.str();
@@ -128,17 +95,6 @@ std::string get_general_regs(ModelImpl &model) {
     append_reg(buf, val, int_width_bytes);
   }
   append_reg(buf, model.pc(), int_width_bytes);
-
-  bool have_double = get_config_bool({"extensions", "D", "supported"});
-  bool have_single = get_config_bool({"extensions", "F", "supported"});
-  if (have_double || have_single) {
-    int64_t float_width_bytes = model.flen() / 8;
-    for (int64_t i = 0; i < 32; ++i) {
-      const uint64_t val = model.freg(i);
-      append_reg(buf, val, float_width_bytes);
-    }
-    append_reg(buf, model.fcsr(), 4);
-  }
   return buf.str();
 }
 
@@ -150,23 +106,11 @@ std::string get_register(ModelImpl &model, uint64_t regidx) {
   buf << std::hex << std::setfill('0');
   int64_t int_width_bytes = model.xlen() / 8;
 
-  bool have_double = get_config_bool({"extensions", "D", "supported"});
-  bool have_single = get_config_bool({"extensions", "F", "supported"});
-
   if (0 <= idx && idx < map.pc_offset) {
     uint64_t val = model.xreg(idx);
     append_reg(buf, val, int_width_bytes);
   } else if (idx == map.pc_offset) {
     append_reg(buf, model.pc(), int_width_bytes);
-  } else if ((have_single || have_double) && map.fpr_offset <= idx && idx <= map.fcsr_offset) {
-    if (idx == map.fcsr_offset) {
-      append_reg(buf, model.fcsr(), 4);
-    } else {
-      idx -= map.fpr_offset;
-      const uint64_t val = model.freg(idx);
-      int64_t float_width_bytes = model.flen() / 8;
-      append_reg(buf, val, float_width_bytes);
-    }
   } else {
     buf << "E.invalid_register_idx";
   }
@@ -177,20 +121,10 @@ std::string set_register(ModelImpl &model, uint64_t regidx, uint64_t val) {
   int64_t reg = static_cast<int64_t>(regidx);
   const register_map map = get_register_map();
 
-  bool have_double = get_config_bool({"extensions", "D", "supported"});
-  bool have_single = get_config_bool({"extensions", "F", "supported"});
-
   if (0 <= reg && reg < map.pc_offset) {
     model.set_xreg(reg, val);
   } else if (reg == map.pc_offset) {
     model.set_pc(val);
-  } else if ((have_single || have_double) && map.fpr_offset <= reg && reg <= map.fcsr_offset) {
-    if (reg == map.fcsr_offset) {
-      model.set_fcsr(val);
-    } else {
-      reg -= map.fpr_offset;
-      model.set_freg(reg, val);
-    }
   } else {
     return "E.invalid_register_idx";
   }

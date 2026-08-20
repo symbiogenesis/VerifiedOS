@@ -16,58 +16,6 @@ mapping maybe_vmask : string <-> bits(1) = {
   sep() ^ "v0.t"  <-> 0b0
 }
 
-let vstart_arith_zero_required : bool = config extensions.V.vstart.zero_required.arith
-let vstart_scalar_move_zero_required : bool = config extensions.V.vstart.zero_required.scalar_move
-
-// Returns true if the instruction should raise an illegal instruction
-// exception due to a non-zero vstart, depending on the instruction class.
-//
-// VSTART_ARITH       - Standard arithmetic instructions. The model never
-//                  produces a non-zero vstart for these instructions, so
-//                  the spec permits trapping on a non-zero vstart. This
-//                  is configurable via `extensions.V.vstart.zero_required.arith`.
-//
-// VSTART_LOAD_STORE  - Memory instructions (loads, stores, segment, indexed,
-//                  fault-only-first, whole-register, and mask load/store).
-//                  Any in-bounds vstart is allowed since vstart is required
-//                  for trap resumption; only an out-of-bounds vstart (greater
-//                  than the largest element index) traps. Not configurable.
-//
-// VSTART_SCALAR_MOVE - Scalar move instructions (vmv.x.s, vmv.s.x, vfmv.f.s,
-//                  vfmv.s.f). Both trapping and not trapping on a non-zero
-//                  vstart are permitted, see https://github.com/riscv/riscv-isa-manual/issues/2564
-//                  Configurable via `extensions.V.vstart.zero_required.scalar_move`
-//
-// VSTART_MANDATORY   - Instructions where the spec explicitly requires an
-//                  illegal instruction exception when vstart is non-zero:
-//                  all reductions, vcompress, vcpop.m, vfirst.m,
-//                  vmsbf/sif/sof.m, and viota.m. Always traps, not
-//                  configurable.
-//
-// num_elem is what get_num_elem returned, and EMUL_pow is the EMUL used
-// to compute it. A vstart past the largest element index (VLMAX - 1) is
-// reserved. We need EMUL_pow to work out VLMAX when LMUL is fractional.
-function illegal_vstart(cls : vstart_class, num_elem : nat, EMUL_pow : int) -> bool = {
-  let vs = unsigned(vstart);
-  // For fractional LMUL, get_num_elem returns a whole register of elements,
-  // which is bigger than VLMAX, so divide to get VLMAX. When EMUL_pow >= 0,
-  // num_elem already equals VLMAX and we use it as-is.
-  let VLMAX = if EMUL_pow >= 0 then num_elem else num_elem / (2 ^ (0 - EMUL_pow));
-  // An out-of-bounds vstart (>= VLMAX) is reserved. The spec recommends but
-  // does not require trapping, whether it traps is configurable.
-  let out_of_bounds : bool = match vstart_reserved_behavior {
-    Vstart_Illegal => vs >= VLMAX,
-    Vstart_Ignore  => false,
-  };
-  match cls {
-    // Out-of-bounds vstart traps per config, in-bounds non-zero traps per config.
-    VSTART_ARITH       => out_of_bounds | (vstart_arith_zero_required & vs != 0),
-    VSTART_LOAD_STORE  => out_of_bounds,
-    VSTART_SCALAR_MOVE => out_of_bounds | (vstart_scalar_move_zero_required & vs != 0),
-    VSTART_MANDATORY   => vs != 0
-  }
-}
-
 // Check for valid EEW and EMUL values in:
 //
 // 1. vector widening/narrowing instructions
@@ -380,15 +328,10 @@ function write_velem_quad_vec(vd, SEW, input, i) = {
     write_single_element(SEW, 4 * i + j, vd, input[j]);
 }
 
-// Get the starting element index from the vstart csr. The validity of
-// vstart is checked by illegal_vstart at the start of each instruction,
-// so this just returns the value.
-function get_start_element() -> nat = unsigned(vstart)
-
 // Get the ending element index from csr vl
 function get_end_element() -> int = unsigned(vl) - 1
 
-// Mask handling; creates a pre-masked result vector for vstart, vl, vta/vma, and vm
+// Mask handling; creates a pre-masked result vector for vl, vta/vma, and vm
 // vm should be baked into vm_val from doing read_vmask
 // tail masking when lmul < 1 is handled in write_vreg
 // Returns two vectors:
@@ -397,7 +340,6 @@ function get_end_element() -> int = unsigned(vl) - 1
 //     in the result vector should be updated by the calling instruction
 val init_masked_result : forall 'n 'm 'p, 'n >= 0 . (int('n), int('m), int('p), vector('n, bits('m)), bits('n)) -> (vector('n, bits('m)), bits('n))
 function init_masked_result(num_elem, _EEW, LMUL_pow, vd_val, vm_val) = {
-  let start_element = get_start_element();
   let end_element   = get_end_element();
   let tail_ag : agtype = get_vtype_vta();
   let mask_ag : agtype = get_vtype_vma();
@@ -409,11 +351,7 @@ function init_masked_result(num_elem, _EEW, LMUL_pow, vd_val, vm_val) = {
   assert(num_elem >= real_num_elem);
 
   foreach (i from 0 to (num_elem - 1)) {
-    if i < start_element then {
-      // Prestart elements defined by vstart
-      result[i] = vd_val[i];
-      mask[i] = 0b0
-    } else if i > end_element then {
+    if i > end_element then {
       // Tail elements defined by vl
       result[i] = match tail_ag {
         UNDISTURBED => vd_val[i],
@@ -444,12 +382,11 @@ function init_masked_result(num_elem, _EEW, LMUL_pow, vd_val, vm_val) = {
 }
 
 // For instructions like vector reduction and vector store,
-// masks on prestart, inactive and tail elements only affect the validation of source register elements
+// masks on inactive and tail elements only affect the validation of source register elements
 // (vs3 for store and vs2 for reduction). There's no destination register to be masked.
 // In these cases, this function can be called to simply get the mask vector for vs (without the prepared vd result vector).
 val init_masked_source : forall 'n 'p, 'n > 0. (int('n), int('p), bits('n)) -> bits('n)
 function init_masked_source(num_elem, LMUL_pow, vm_val) = {
-  let start_element = get_start_element();
   let end_element   = get_end_element();
   var mask : bits('n) = undefined;
 
@@ -458,10 +395,7 @@ function init_masked_source(num_elem, LMUL_pow, vm_val) = {
   assert(num_elem >= real_num_elem);
 
   foreach (i from 0 to (num_elem - 1)) {
-    if i < start_element then {
-      // Prestart elements defined by vstart
-      mask[i] = 0b0
-    } else if i > end_element then {
+    if i > end_element then {
       // Tail elements defined by vl
       mask[i] = 0b0
     } else if i >= real_num_elem then {
@@ -480,10 +414,9 @@ function init_masked_source(num_elem, LMUL_pow, vm_val) = {
 }
 
 // Mask handling for carry functions that use masks as input/output
-// Only prestart and tail elements are masked in a mask value
+// Only tail elements are masked in a mask value
 val init_masked_result_carry : forall 'n, 'n >= 0 . (int('n), sew_bitsize, int, bits('n)) -> (bits('n), bits('n))
 function init_masked_result_carry(num_elem, _EEW, LMUL_pow, vd_val) = {
-  let start_element = get_start_element();
   let end_element   = get_end_element();
   var mask : bits('n) = undefined;
   var result : bits('n) = undefined;
@@ -493,11 +426,7 @@ function init_masked_result_carry(num_elem, _EEW, LMUL_pow, vd_val) = {
   assert(num_elem >= real_num_elem);
 
   foreach (i from 0 to (num_elem - 1)) {
-    if i < start_element then {
-      // Prestart elements defined by vstart
-      result[i] = vd_val[i];
-      mask[i] = 0b0
-    } else if i > end_element then {
+    if i > end_element then {
       // Tail elements defined by vl
       // Mask tail is always agnostic
       result[i] = vd_val[i]; // TODO: configuration support
@@ -519,7 +448,6 @@ function init_masked_result_carry(num_elem, _EEW, LMUL_pow, vd_val) = {
 // Mask handling for cmp functions that use masks as output
 val init_masked_result_cmp : forall 'n, 'n >= 0 . (int('n), sew_bitsize, int, bits('n), bits('n)) -> (bits('n), bits('n))
 function init_masked_result_cmp(num_elem, _EEW, LMUL_pow, vd_val, vm_val) = {
-  let start_element = get_start_element();
   let end_element   = get_end_element();
   let mask_ag : agtype = get_vtype_vma();
   var mask : bits('n) = undefined;
@@ -530,11 +458,7 @@ function init_masked_result_cmp(num_elem, _EEW, LMUL_pow, vd_val, vm_val) = {
   assert(num_elem >= real_num_elem);
 
   foreach (i from 0 to (num_elem - 1)) {
-    if i < start_element then {
-      // Prestart elements defined by vstart
-      result[i] = vd_val[i];
-      mask[i] = 0b0
-    } else if i > end_element then {
+    if i > end_element then {
       // Tail elements defined by vl
       // Mask tail is always agnostic
       result[i] = vd_val[i]; // TODO: configuration support

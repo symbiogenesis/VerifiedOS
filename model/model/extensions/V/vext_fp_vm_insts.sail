@@ -29,13 +29,12 @@ mapping clause encdec = FVVMTYPE(funct6, vm, vs2, vs1, vd)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute FVVMTYPE(funct6, vm, vs2, vs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_vd_unmasked(SEW, rm_3b) |
+  if illegal_fp_vd_unmasked(SEW) |
      not(valid_reg_group(vs1, LMUL_pow)) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs1, SEW)) |
@@ -68,7 +67,6 @@ function clause execute FVVMTYPE(funct6, vm, vs2, vs1, vd) = {
   };
 
   write_vmask(num_elem, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -84,7 +82,7 @@ mapping clause assembly = FVVMTYPE(funct6, vm, vs2, vs1, vd)
 
 // ****************************** OPFVF (VFMTYPE) *******************************
 // VFM instructions' destination is a mask register
-union clause instruction = FVFMTYPE : (fvfmfunct6, bits(1), vregidx, fregidx, vregidx)
+union clause instruction = FVFMTYPE : (fvfmfunct6, bits(1), vregidx, regidx, vregidx)
 
 mapping encdec_fvfmfunct6 : fvfmfunct6 <-> bits(6) = {
   VFM_VMFEQ      <-> 0b011000,
@@ -96,19 +94,18 @@ mapping encdec_fvfmfunct6 : fvfmfunct6 <-> bits(6) = {
 }
 
 mapping clause encdec = FVFMTYPE(funct6, vm, vs2, rs1, vd)
-  <-> encdec_fvfmfunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_freg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
+  <-> encdec_fvfmfunct6(funct6) @ vm @ encdec_vreg(vs2) @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
   when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
      | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
      | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
 
 function clause execute FVFMTYPE(funct6, vm, vs2, rs1, vd) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_vd_unmasked(SEW, rm_3b) |
+  if illegal_fp_vd_unmasked(SEW) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -141,7 +138,6 @@ function clause execute FVFMTYPE(funct6, vm, vs2, rs1, vd) = {
   };
 
   write_vmask(num_elem, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -155,4 +151,4 @@ mapping fvfmtype_mnemonic : fvfmfunct6 <-> string = {
 }
 
 mapping clause assembly = FVFMTYPE(funct6, vm, vs2, rs1, vd)
-  <-> fvfmtype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ freg_name(rs1) ^ maybe_vmask(vm)
+  <-> fvfmtype_mnemonic(funct6) ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ reg_name(rs1) ^ maybe_vmask(vm)

@@ -60,18 +60,15 @@ private function check_vext_config() -> bool = {
     valid = false;
     print_endline("The maximum index EEW is 2^" ^ dec_str(max_index_eew) ^ " but it should be at least 2^3.");
   };
-  if vector_support_level >= Float_single & not(config extensions.F.supported : bool) then {
-    valid = false;
-    print_endline("Zve*f is enabled but F is disabled: supporting Zve*f requires F.");
-  };
+  // Upstream requires scalar `F` under a float-capable vector level and `D`
+  // under a double-capable one. Those two checks are the validator half of the
+  // vector-FP-without-scalar-FP fork (R-15-040): with scalar floating point
+  // excluded (R-15-039) the element width is the only real precondition, and
+  // this is the configuration the profile actually runs.
   if vector_support_level >= Float_double then {
     if (elen_exp : nat) < 6 then {
       valid = false;
       print_endline("Zve*d is enabled but ELEN is 2^" ^ dec_str(elen_exp) ^ ": ELEN must be >= 2^6");
-    };
-    if not(hartSupports(Ext_D)) then {
-      valid = false;
-      print_endline("Zve*d is enabled but D is disabled: supporting Zve*d requires D.");
     };
   };
   if hartSupports(Ext_Zve32x) & not(config extensions.Zicsr.supported : bool) then {
@@ -94,9 +91,10 @@ private function check_vext_config() -> bool = {
     valid = false;
     print_endline("Zvfhmin is enabled but Zve32f is disabled: Zvfhmin requires Zve32f.");
   };
-  if (config extensions.Zvfh.supported : bool) & (not(hartSupports(Ext_Zve32f)) | not(config extensions.Zfhmin.supported : bool)) then {
+  // Upstream also requires the scalar `Zfhmin` converts here (R-15-039).
+  if (config extensions.Zvfh.supported : bool) & not(hartSupports(Ext_Zve32f)) then {
     valid = false;
-    print_endline("Zvfh is enabled but Zve32f and/or Zfhmin are disabled: Zvfh requires Zve32f and Zfhmin.");
+    print_endline("Zvfh is enabled but Zve32f is disabled: Zvfh requires Zve32f.");
   };
   // Cryptography Extensions: Vector Instructions
   if (config extensions.Zvbb.supported : bool) & not(hartSupports(Ext_Zve32x)) then {
@@ -276,10 +274,7 @@ private function check_mem_layout() -> bool =
 
 private function check_misc_extension_dependencies() -> bool = {
   var valid : bool = true;
-  if (config extensions.F.supported : bool) & (config extensions.Zfinx.supported : bool) then {
-    valid = false;
-    print_endline("The F and Zfinx extensions are mutually exclusive and cannot be supported simultaneously.");
-  };
+
   // See https://github.com/riscv/sail-riscv/issues/1508 for the next two checks.
   if (config extensions.Zabha.supported : bool) & not((config extensions.Zaamo.supported : bool) | (config extensions.A.supported : bool)) then {
     valid = false;
@@ -289,33 +284,15 @@ private function check_misc_extension_dependencies() -> bool = {
     valid = false;
     print_endline("The Zacas extension is enabled but Zaamo and A are disabled: supporting Zacas requires Zaamo or A.");
   };
-  if (config extensions.Zfinx.supported : bool) & not(config extensions.Zicsr.supported : bool) then {
-    valid = false;
-    print_endline("The Zfinx extensions is enabled but Zicsr is disabled: supporting Zfinx requires Zicsr.");
-  };
-  if (config extensions.Zdinx.supported : bool) & not(config extensions.Zfinx.supported : bool) then {
-    valid = false;
-    print_endline("The Zdinx extensions is enabled but Zfinx is disabled: supporting Zdinx requires Zfinx.");
-  };
-  if (config extensions.Zhinx.supported : bool) & not(config extensions.Zfinx.supported : bool) then {
-    valid = false;
-    print_endline("The Zhinx extensions is enabled but Zfinx is disabled: supporting Zhinx requires Zfinx.");
-  };
-  if (config extensions.Zhinxmin.supported : bool) & not(config extensions.Zfinx.supported : bool) then {
-    valid = false;
-    print_endline("The Zhinxmin extensions is enabled but Zfinx is disabled: supporting Zhinxmin requires Zfinx.");
-  };
-  if (config extensions.Zfbfmin.supported : bool) & not(config extensions.F.supported : bool) then {
-    valid = false;
-    print_endline("The Zfbfmin extension is enabled but F is disabled: supporting Zfbfmin requires F.");
-  };
+
   if (config extensions.Zvfbfmin.supported : bool) & not(hartSupports(Ext_Zve32f)) then {
     valid = false;
     print_endline("The Zvfbfmin extension is enabled but Zve32f is disabled: supporting Zvfbfmin requires Zve32f.")
   };
-  if (config extensions.Zvfbfwma.supported : bool) & (not(config extensions.Zfbfmin.supported : bool) | not(config extensions.Zvfbfmin.supported : bool)) then {
+  // Upstream also requires the scalar bf16 converts `Zfbfmin` here (R-15-039).
+  if (config extensions.Zvfbfwma.supported : bool) & not(config extensions.Zvfbfmin.supported : bool) then {
     valid = false;
-    print_endline("The Zvfbfwma extension is enabled but either Zfbfmin or Zvfbfmin is disabled: supporting Zvfbfwma requires Zfbfmin and Zvfbfmin.")
+    print_endline("The Zvfbfwma extension is enabled but Zvfbfmin is disabled: supporting Zvfbfwma requires Zvfbfmin.")
   };
   valid
 }
@@ -346,22 +323,8 @@ private function check_extension_param_constraints() -> bool = {
 private function check_mstatus_fields() -> bool = {
   var valid : bool = true;
 
-  let legal_fs : ExtContextPolicy = config base.mstatus.fs_legal_states;
-  if (config extensions.Zfinx.supported : bool) then {
-    if legal_fs != ExtContext_Off then {
-      valid = false;
-      print_endline("The Zfinx extension is enabled but `base.mstatus.fs_legal_states` is not set to `ExtContext_Off`: `mstatus.FS` needs to be read-only zero (i.e. `base.mstatus.fs_legal_states` should be set to `ExtContext_Off`).")
-    }
-  } else if (config extensions.F.supported : bool) then {
-    if legal_fs == ExtContext_Off then {
-      valid = false;
-      print_endline("The F extension is enabled but `base.mstatus.fs_legal_states` is set to `ExtContext_Off`, which makes `mstatus.FS` read-only zero: it cannot be read-only zero.")
-    }
-  } else if legal_fs != ExtContext_Off then {
-    valid = false;
-    print_endline("The F extension is not enabled, but `base.mstatus.fs_legal_states` is not set to `ExtContext_Off`; i.e. `mstatus.FS` is not read-only zero: it should be read-only zero.");
-  };
-
+  // `mstatus.FS` has no rows here: the field is deleted with scalar floating
+  // point (R-15-039), so `VS` is the only extension-context state left.
   let legal_vs : ExtContextPolicy = config base.mstatus.vs_legal_states;
   if vector_support_level >= Integer then {
     if legal_vs == ExtContext_Off then {

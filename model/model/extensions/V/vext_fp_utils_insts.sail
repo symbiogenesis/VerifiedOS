@@ -10,197 +10,127 @@
 // This file implements functions used by vector instructions.
 // ******************************************************************************
 
-// Check for valid floating-point operation types
-// 1. Valid element width of floating-point numbers
-// 2. Valid floating-point rounding mode
-function valid_fp_op(SEW : sew_bitsize, rm_3b : bits(3)) -> bool = {
+// The rounding mode every vector floating-point instruction uses. Rounding is
+// static here (R-15-083): the dynamic `frm` CSR went with scalar floating
+// point (R-15-039) and RVV encodes no rounding-mode field, so round-to-nearest
+// -ties-to-even is the mode, and the conversions that name round-toward-zero
+// architecturally still pass their own mode to the softfloat interface.
+let fp_static_rm : bits(3) = 0b000 // RNE
+
+// Check for valid floating-point operation types: the element width. The
+// rounding mode is not checked, there being no dynamic mode to be reserved.
+function valid_fp_op(SEW : sew_bitsize) -> bool =
   // SEW=8 is valid for conversions between INT8 and FP16(vfncvt[.rtz].x[u].f.w, etc.)
-  let valid_sew = (SEW >= 8 & SEW <= 64);
-  let valid_rm = not(rm_3b == 0b101 | rm_3b == 0b110 | rm_3b == 0b111);
-  valid_sew & valid_rm
-}
+  SEW >= 8 & SEW <= 64
 
 // a. Normal check for floating-point instructions
-function illegal_fp_normal(vd : vregidx, vm : bits(1), SEW : sew_bitsize, rm_3b : bits(3)) -> bool = {
-  not(valid_vtype()) | not(valid_rd_mask(vd, vm)) | not(valid_fp_op(SEW, rm_3b))
+function illegal_fp_normal(vd : vregidx, vm : bits(1), SEW : sew_bitsize) -> bool = {
+  not(valid_vtype()) | not(valid_rd_mask(vd, vm)) | not(valid_fp_op(SEW))
 }
 
 // b. Masked check for floating-point instructions encoded with vm = 0
-function illegal_fp_vd_masked(vd : vregidx, SEW : sew_bitsize, rm_3b : bits(3)) -> bool = {
-  not(valid_vtype()) | vd == zvreg | not(valid_fp_op(SEW, rm_3b))
+function illegal_fp_vd_masked(vd : vregidx, SEW : sew_bitsize) -> bool = {
+  not(valid_vtype()) | vd == zvreg | not(valid_fp_op(SEW))
 }
 
 // c. Unmasked check for floating-point instructions encoded with vm = 1
-function illegal_fp_vd_unmasked(SEW : sew_bitsize, rm_3b : bits(3)) -> bool = {
-  not(valid_vtype()) | not(valid_fp_op(SEW, rm_3b))
+function illegal_fp_vd_unmasked(SEW : sew_bitsize) -> bool = {
+  not(valid_vtype()) | not(valid_fp_op(SEW))
 }
 
 // d. Variable width check for floating-point widening/narrowing instructions
-function illegal_fp_variable_width(vd : vregidx, vm : bits(1), SEW : sew_bitsize, rm_3b : bits(3), SEW_new : nat, LMUL_pow_new : int) -> bool = {
-  not(valid_vtype()) | not(valid_rd_mask(vd, vm)) | not(valid_fp_op(SEW, rm_3b)) |
+function illegal_fp_variable_width(vd : vregidx, vm : bits(1), SEW : sew_bitsize, SEW_new : nat, LMUL_pow_new : int) -> bool = {
+  not(valid_vtype()) | not(valid_rd_mask(vd, vm)) | not(valid_fp_op(SEW)) |
   not(valid_eew_emul(SEW_new, LMUL_pow_new))
 }
 
 // e. Normal check for floating-point reduction instructions
-function illegal_fp_reduction(SEW : sew_bitsize, rm_3b : bits(3)) -> bool = {
-  not(valid_vtype()) | not(valid_fp_op(SEW, rm_3b))
+function illegal_fp_reduction(SEW : sew_bitsize) -> bool = {
+  not(valid_vtype()) | not(valid_fp_op(SEW))
 }
 
 // f. Variable width check for floating-point widening reduction instructions
-function illegal_fp_widening_reduction(SEW : sew_bitsize, rm_3b : bits(3), EEW : nat) -> bool = {
-  illegal_fp_reduction(SEW, rm_3b) | not(EEW >= 8 & EEW <= elen)
+function illegal_fp_widening_reduction(SEW : sew_bitsize, EEW : nat) -> bool = {
+  illegal_fp_reduction(SEW) | not(EEW >= 8 & EEW <= elen)
 }
 
-// Floating point classification functions
+// Floating point classification. The per-width `f_is_*_{H,S,D}` definitions
+// went with the scalar F/D instruction files (R-15-039); these are the same
+// predicates over the Sail float library's width-generic ones.
 val f_is_neg_inf : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_neg_inf(xf) = {
-  match 'm {
-    16 => f_is_neg_inf_H(xf),
-    32 => f_is_neg_inf_S(xf),
-    64 => f_is_neg_inf_D(xf)
-  }
-}
+function f_is_neg_inf(xf) = float_is_negative(xf) & float_is_inf(xf)
 
 val f_is_neg_norm : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_neg_norm(xf) = {
-  match 'm {
-    16 => f_is_neg_norm_H(xf),
-    32 => f_is_neg_norm_S(xf),
-    64 => f_is_neg_norm_D(xf)
-  }
-}
+function f_is_neg_norm(xf) = float_is_negative(xf) & float_is_normal(xf)
 
 val f_is_neg_subnorm : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_neg_subnorm(xf) = {
-  match 'm {
-    16 => f_is_neg_subnorm_H(xf),
-    32 => f_is_neg_subnorm_S(xf),
-    64 => f_is_neg_subnorm_D(xf)
-  }
-}
+function f_is_neg_subnorm(xf) = float_is_negative(xf) & float_is_subnormal(xf)
 
 val f_is_neg_zero : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_neg_zero(xf) = {
-  match 'm {
-    16 => f_is_neg_zero_H(xf),
-    32 => f_is_neg_zero_S(xf),
-    64 => f_is_neg_zero_D(xf)
-  }
-}
+function f_is_neg_zero(xf) = float_is_negative(xf) & float_is_zero(xf)
 
 val f_is_pos_zero : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_pos_zero(xf) = {
-  match 'm {
-    16 => f_is_pos_zero_H(xf),
-    32 => f_is_pos_zero_S(xf),
-    64 => f_is_pos_zero_D(xf)
-  }
-}
+function f_is_pos_zero(xf) = float_is_positive(xf) & float_is_zero(xf)
 
 val f_is_pos_subnorm : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_pos_subnorm(xf) = {
-  match 'm {
-    16 => f_is_pos_subnorm_H(xf),
-    32 => f_is_pos_subnorm_S(xf),
-    64 => f_is_pos_subnorm_D(xf)
-  }
-}
+function f_is_pos_subnorm(xf) = float_is_positive(xf) & float_is_subnormal(xf)
 
 val f_is_pos_norm : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_pos_norm(xf) = {
-  match 'm {
-    16 => f_is_pos_norm_H(xf),
-    32 => f_is_pos_norm_S(xf),
-    64 => f_is_pos_norm_D(xf)
-  }
-}
+function f_is_pos_norm(xf) = float_is_positive(xf) & float_is_normal(xf)
 
 val f_is_pos_inf : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_pos_inf(xf) = {
-  match 'm {
-    16 => f_is_pos_inf_H(xf),
-    32 => f_is_pos_inf_S(xf),
-    64 => f_is_pos_inf_D(xf)
-  }
-}
+function f_is_pos_inf(xf) = float_is_positive(xf) & float_is_inf(xf)
 
 val f_is_SNaN : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_SNaN(xf) = {
-  match 'm {
-    16 => f_is_SNaN_H(xf),
-    32 => f_is_SNaN_S(xf),
-    64 => f_is_SNaN_D(xf)
-  }
-}
+function f_is_SNaN(xf) = float_is_snan(xf)
 
 val f_is_QNaN : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_QNaN(xf) = {
-  match 'm {
-    16 => f_is_QNaN_H(xf),
-    32 => f_is_QNaN_S(xf),
-    64 => f_is_QNaN_D(xf)
-  }
-}
+function f_is_QNaN(xf) = float_is_qnan(xf)
 
 val f_is_NaN : forall 'm, 'm in {16, 32, 64}. bits('m) -> bool
-function f_is_NaN(xf) = {
-  match 'm {
-    16 => f_is_NaN_H(xf),
-    32 => f_is_NaN_S(xf),
-    64 => f_is_NaN_D(xf)
-  }
-}
+function f_is_NaN(xf) = float_is_nan(xf)
 
-// Scalar register shaping for floating point operations
-val get_scalar_fp : forall 'n, 'n in {16, 32, 64}. (fregidx, int('n)) -> bits('n)
+// Scalar register shaping for floating point operations. The operand comes
+// from the integer register file: with no `f0`-`f31` (R-15-039) a scalar
+// floating-point value is a bit pattern in an integer register, which is what
+// the soft-float-register calling convention R-15-040 books already assumes.
+// The instructions that use this check `SEW <= xlen` in their illegal
+// condition, so the low SEW bits are the whole operand.
+val get_scalar_fp : forall 'n, 'n in {16, 32, 64}. (regidx, int('n)) -> bits('n)
 function get_scalar_fp(rs1, SEW) = {
-  assert(flen >= SEW, "invalid vector floating-point type width: FLEN < SEW");
-  match SEW {
-    16 => F_H(rs1),
-    32 => F_S(rs1),
-    64 => F_D(rs1)
-  }
+  assert(xlen >= SEW, "invalid vector floating-point operand width: XLEN < SEW");
+  X(rs1)[SEW - 1 .. 0]
 }
 
-// Get the floating point rounding mode from csr fcsr
-function get_fp_rounding_mode() -> rounding_mode = encdec_rounding_mode(fcsr[FRM])
-
-// Negate a floating point number
+// Negate a floating point number: flip the sign bit, at any element width.
+// The per-width `negate_{H,S,D}` went with the scalar F/D files (R-15-039).
 val negate_fp : forall 'm, 'm in {16, 32, 64}. bits('m) -> bits('m)
-function negate_fp(xf) = {
-  match 'm {
-    16 => negate_H(xf),
-    32 => negate_S(xf),
-    64 => negate_D(xf)
-  }
-}
+function negate_fp(xf) = (0b1 @ zeros('m - 1)) ^ xf
 
 // Floating point functions using softfloat interface
 val fp_add: forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m)) -> bits('m)
 function fp_add(rm_3b, op1, op2) = {
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16Add(rm_3b, op1, op2),
     32  => riscv_f32Add(rm_3b, op1, op2),
     64  => riscv_f64Add(rm_3b, op1, op2)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_sub: forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m)) -> bits('m)
 function fp_sub(rm_3b, op1, op2) = {
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16Sub(rm_3b, op1, op2),
     32  => riscv_f32Sub(rm_3b, op1, op2),
     64  => riscv_f64Sub(rm_3b, op1, op2)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_min : forall 'm, 'm in {16, 32, 64}. (bits('m), bits('m)) -> bits('m)
 function fp_min(op1, op2) = {
-  let (fflags, op1_lt_op2) : (bits_fflags, bool) = match 'm {
+  let (_, op1_lt_op2) : (bits_fflags, bool) = match 'm {
     16  => riscv_f16Lt_quiet(op1, op2),
     32  => riscv_f32Lt_quiet(op1, op2),
     64  => riscv_f64Lt_quiet(op1, op2)
@@ -213,13 +143,12 @@ function fp_min(op1, op2) = {
                 else if (f_is_neg_zero(op2) & f_is_pos_zero(op1)) then op2
                 else if op1_lt_op2 then op1
                 else op2;
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_max : forall 'm, 'm in {16, 32, 64}. (bits('m), bits('m)) -> bits('m)
 function fp_max(op1, op2) = {
-  let (fflags, op1_lt_op2) : (bits_fflags, bool) = match 'm {
+  let (_, op1_lt_op2) : (bits_fflags, bool) = match 'm {
     16  => riscv_f16Lt_quiet(op1, op2),
     32  => riscv_f32Lt_quiet(op1, op2),
     64  => riscv_f64Lt_quiet(op1, op2)
@@ -232,121 +161,114 @@ function fp_max(op1, op2) = {
                 else if (f_is_neg_zero(op2) & f_is_pos_zero(op1)) then op1
                 else if op1_lt_op2 then op2
                 else op1;
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_eq : forall 'm, 'm in {16, 32, 64}. (bits('m), bits('m)) -> bool
 function fp_eq(op1, op2) = {
-  let (fflags, result_val) : (bits_fflags, bool) = match 'm {
+  let (_, result_val) : (bits_fflags, bool) = match 'm {
     16  => riscv_f16Eq(op1, op2),
     32  => riscv_f32Eq(op1, op2),
     64  => riscv_f64Eq(op1, op2)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_gt : forall 'm, 'm in {16, 32, 64}. (bits('m), bits('m)) -> bool
 function fp_gt(op1, op2) = {
-  let (fflags, temp_val) : (bits_fflags, bool) = match 'm {
+  let (invalid, temp_val) : (bits_fflags, bool) = match 'm {
     16  => riscv_f16Le(op1, op2),
     32  => riscv_f32Le(op1, op2),
     64  => riscv_f64Le(op1, op2)
   };
-  let result_val = (if fflags == 0b10000 then false else not(temp_val));
-  accrue_fflags(fflags);
+  // The invalid-operation flag decides the result here, so it is read where
+  // the softfloat interface returns it rather than accrued: `fflags` is gone
+  // with scalar floating point (R-15-039) and reaches no architectural state.
+  let result_val = (if invalid == nvFlag() then false else not(temp_val));
   result_val
 }
 
 val fp_ge : forall 'm, 'm in {16, 32, 64}. (bits('m), bits('m)) -> bool
 function fp_ge(op1, op2) = {
-  let (fflags, temp_val) : (bits_fflags, bool) = match 'm {
+  let (invalid, temp_val) : (bits_fflags, bool) = match 'm {
     16  => riscv_f16Lt(op1, op2),
     32  => riscv_f32Lt(op1, op2),
     64  => riscv_f64Lt(op1, op2)
   };
-  let result_val = (if fflags == 0b10000 then false else not(temp_val));
-  accrue_fflags(fflags);
+  // As in fp_gt: read where returned, never accrued (R-15-039).
+  let result_val = (if invalid == nvFlag() then false else not(temp_val));
   result_val
 }
 
 val fp_lt : forall 'm, 'm in {16, 32, 64}. (bits('m), bits('m)) -> bool
 function fp_lt(op1, op2) = {
-  let (fflags, result_val) : (bits_fflags, bool) = match 'm {
+  let (_, result_val) : (bits_fflags, bool) = match 'm {
     16  => riscv_f16Lt(op1, op2),
     32  => riscv_f32Lt(op1, op2),
     64  => riscv_f64Lt(op1, op2)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_le : forall 'm, 'm in {16, 32, 64}. (bits('m), bits('m)) -> bool
 function fp_le(op1, op2) = {
-  let (fflags, result_val) : (bits_fflags, bool) = match 'm {
+  let (_, result_val) : (bits_fflags, bool) = match 'm {
     16  => riscv_f16Le(op1, op2),
     32  => riscv_f32Le(op1, op2),
     64  => riscv_f64Le(op1, op2)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_mul : forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m)) -> bits('m)
 function fp_mul(rm_3b, op1, op2) = {
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16Mul(rm_3b, op1, op2),
     32  => riscv_f32Mul(rm_3b, op1, op2),
     64  => riscv_f64Mul(rm_3b, op1, op2)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_div : forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m)) -> bits('m)
 function fp_div(rm_3b, op1, op2) = {
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16Div(rm_3b, op1, op2),
     32  => riscv_f32Div(rm_3b, op1, op2),
     64  => riscv_f64Div(rm_3b, op1, op2)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_muladd : forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m), bits('m)) -> bits('m)
 function fp_muladd(rm_3b, op1, op2, opadd) = {
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16MulAdd(rm_3b, op1, op2, opadd),
     32  => riscv_f32MulAdd(rm_3b, op1, op2, opadd),
     64  => riscv_f64MulAdd(rm_3b, op1, op2, opadd)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_nmuladd : forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m), bits('m)) -> bits('m)
 function fp_nmuladd(rm_3b, op1, op2, opadd) = {
   let op1 = negate_fp(op1);
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16MulAdd(rm_3b, op1, op2, opadd),
     32  => riscv_f32MulAdd(rm_3b, op1, op2, opadd),
     64  => riscv_f64MulAdd(rm_3b, op1, op2, opadd)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_mulsub : forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m), bits('m)) -> bits('m)
 function fp_mulsub(rm_3b, op1, op2, opsub) = {
   let opsub = negate_fp(opsub);
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16MulAdd(rm_3b, op1, op2, opsub),
     32  => riscv_f32MulAdd(rm_3b, op1, op2, opsub),
     64  => riscv_f64MulAdd(rm_3b, op1, op2, opsub)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
@@ -354,23 +276,21 @@ val fp_nmulsub : forall 'm, 'm in {16, 32, 64}. (bits(3), bits('m), bits('m), bi
 function fp_nmulsub(rm_3b, op1, op2, opsub) = {
   let opsub = negate_fp(opsub);
   let op1 = negate_fp(op1);
-  let (fflags, result_val) : (bits_fflags, bits('m)) = match 'm {
+  let (_, result_val) : (bits_fflags, bits('m)) = match 'm {
     16  => riscv_f16MulAdd(rm_3b, op1, op2, opsub),
     32  => riscv_f32MulAdd(rm_3b, op1, op2, opsub),
     64  => riscv_f64MulAdd(rm_3b, op1, op2, opsub)
   };
-  accrue_fflags(fflags);
   result_val
 }
 
 val fp_widen : forall 'm, 'm in {16, 32}. bits('m) -> bits('m * 2)
 function fp_widen(nval) = {
-  let rm_3b = fcsr[FRM];
-  let (fflags, wval) : (bits_fflags, bits('m * 2)) = match 'm {
+  let rm_3b = fp_static_rm;
+  let (_, wval) : (bits_fflags, bits('m * 2)) = match 'm {
     16 => riscv_f16ToF32(rm_3b, nval),
     32 => riscv_f32ToF64(rm_3b, nval)
   };
-  accrue_fflags(fflags);
   wval
 }
 

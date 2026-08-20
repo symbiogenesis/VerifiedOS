@@ -24,8 +24,7 @@ function clause execute VANDN_VV(vm, vs1, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs1, LMUL_pow)) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
@@ -49,7 +48,6 @@ function clause execute VANDN_VV(vm, vs1, vs2, vd) = {
       result[i] = ~(vs1_val[i]) & vs2_val[i];
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -68,8 +66,7 @@ function clause execute VANDN_VX(vm, vs2, rs1, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -91,7 +88,6 @@ function clause execute VANDN_VX(vm, vs2, rs1, vd) = {
       result[i] = ~(rs1_val) & vs2_val[i];
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -110,8 +106,7 @@ function clause execute VBREV_V(vm, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -136,7 +131,6 @@ function clause execute VBREV_V(vm, vs2, vd) = {
     };
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -155,8 +149,7 @@ function clause execute VBREV8_V(vm, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -178,7 +171,6 @@ function clause execute VBREV8_V(vm, vs2, vd) = {
     };
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -197,8 +189,7 @@ function clause execute VREV8_V(vm, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -220,7 +211,6 @@ function clause execute VREV8_V(vm, vs2, vd) = {
     };
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -239,8 +229,7 @@ function clause execute VCLZ_V(vm, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -263,7 +252,6 @@ function clause execute VCLZ_V(vm, vs2, vd) = {
     };
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -282,8 +270,7 @@ function clause execute VCTZ_V(vm, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -306,7 +293,6 @@ function clause execute VCTZ_V(vm, vs2, vd) = {
     };
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -325,8 +311,7 @@ function clause execute VCPOP_V(vm, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -352,7 +337,6 @@ function clause execute VCPOP_V(vm, vs2, vd) = {
     };
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -372,8 +356,7 @@ function clause execute VROL_VV(vm, vs1, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs1, LMUL_pow)) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
@@ -397,7 +380,6 @@ function clause execute VROL_VV(vm, vs1, vs2, vd) = {
       result[i] = vs2_val[i] <<< vs1_val[i][SEW_pow - 1 .. 0];
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -417,8 +399,7 @@ function clause execute VROL_VX(vm, vs2, rs1, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -440,7 +421,6 @@ function clause execute VROL_VX(vm, vs2, rs1, vd) = {
       result[i] = vs2_val[i] <<< rs1_val[SEW_pow - 1 .. 0];
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -460,8 +440,7 @@ function clause execute VROR_VV(vm, vs1, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs1, LMUL_pow)) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
@@ -485,7 +464,6 @@ function clause execute VROR_VV(vm, vs1, vs2, vd) = {
       result[i] = vs2_val[i] >>> vs1_val[i][SEW_pow - 1 .. 0];
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -505,8 +483,7 @@ function clause execute VROR_VX(vm, vs2, rs1, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -528,7 +505,6 @@ function clause execute VROR_VX(vm, vs2, rs1, vd) = {
       result[i] = vs2_val[i] >>> rs1_val[SEW_pow - 1 .. 0];
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -548,8 +524,7 @@ function clause execute VROR_VI(vm, vs2, uimm, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_reg_group(vd, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -571,7 +546,6 @@ function clause execute VROR_VI(vm, vs2, uimm, vd) = {
       result[i] = vs2_val[i] >>> uimm_val[SEW_pow - 1 .. 0];
   };
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -592,8 +566,7 @@ function clause execute VWSLL_VV(vm, vs2, vs1, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_variable_width(vd, vm, SEW_widen, LMUL_pow_widen) |
+  if illegal_variable_width(vd, vm, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs1, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs1, SEW)) |
@@ -624,7 +597,6 @@ function clause execute VWSLL_VV(vm, vs2, vs1, vd) = {
     };
   };
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -645,8 +617,7 @@ function clause execute VWSLL_VX(vm, vs2, rs1, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_variable_width(vd, vm, SEW_widen, LMUL_pow_widen) |
+  if illegal_variable_width(vd, vm, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -674,7 +645,6 @@ function clause execute VWSLL_VX(vm, vs2, rs1, vd) = {
     };
   };
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -695,8 +665,7 @@ function clause execute VWSLL_VI(vm, vs2, uimm, vd) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_variable_width(vd, vm, SEW_widen, LMUL_pow_widen) |
+  if illegal_variable_width(vd, vm, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -724,6 +693,5 @@ function clause execute VWSLL_VI(vm, vs2, uimm, vd) = {
     };
   };
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }

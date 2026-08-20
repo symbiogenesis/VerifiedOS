@@ -6,7 +6,6 @@
 
 log_callbacks::log_callbacks(
   bool config_print_gpr,
-  bool config_print_fpr,
   bool config_print_vreg,
   bool config_print_csr,
   bool config_print_mem_access,
@@ -14,7 +13,6 @@ log_callbacks::log_callbacks(
   FILE *trace_log
 ) :
     config_print_gpr(config_print_gpr),
-    config_print_fpr(config_print_fpr),
     config_print_vreg(config_print_vreg),
     config_print_csr(config_print_csr),
     config_print_mem_access(config_print_mem_access),
@@ -65,14 +63,6 @@ void log_callbacks::xreg_full_write_callback(ModelImpl &, const_sail_string abi_
   }
 }
 
-void log_callbacks::freg_write_callback(ModelImpl &, unsigned reg, sbits value) {
-  // TODO: will only print bits; should we print in floating point format?
-  if (trace_log != nullptr && config_print_fpr) {
-    // TODO: Might need to change from PRIX64 to PRIX128 once the "Q"
-    // extension is supported
-    fprintf(trace_log, "f%d <- 0x%0*" PRIX64 "\n", reg, static_cast<int>(value.len / 4), value.bits);
-  }
-}
 
 void log_callbacks::csr_full_write_callback(ModelImpl &, const_sail_string csr_name, unsigned reg, sbits value) {
   if (trace_log != nullptr && config_print_csr) {

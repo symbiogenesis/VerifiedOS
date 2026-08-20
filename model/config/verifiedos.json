@@ -3,10 +3,11 @@
 // the source-level worklist recorded in docs/implementation-checklist.md.
 // Keys disappear from this file as M0.6c deletes the surface behind them: an
 // extension cut out of the model has no `supported` switch left to set.
-// One deliberate non-profile value, the standing residue: F and D are ON
-// because the config validator requires scalar F/D under any float-capable V
-// level, while the profile's vector-FP-without-scalar-FP is the R-15-040
-// Sail-modeled fork, booked for M0.6c's c4 batch.
+// The F/D residue is gone: the c4 batch took scalar floating point out of the
+// model (R-15-039) and with it the validator rule that required F/D under a
+// float-capable V level, so the vector-FP-without-scalar-FP fork (R-15-040) is
+// the configuration rather than a deviation from it. No key here is a
+// deliberate non-profile value.
 {
   "base": {
     "xlen": 64,
@@ -29,13 +30,9 @@
     },
     "reserved_behavior": {
       "amocas_odd_register": "AMOCAS_Illegal",
-      "fcsr_rm": "Fcsr_RM_Illegal",
-      "xtvec_mode": "Xtvec_Ignore",
-      "rv32zdinx_odd_register": "Zdinx_Illegal"
+      "xtvec_mode": "Xtvec_Ignore"
     },
     "mstatus": {
-      // FS live only while the F/D residue stands; VS is the profile's state gate (R-07-012).
-      "fs_legal_states": "ExtContext_FourState",
       "vs_legal_states": "ExtContext_FourState"
     },
     "privileged_isa_version": "Privileged_ISA_1_13"
@@ -151,23 +148,16 @@
     "M": { "supported": true },
     // A narrowed to Zaamo + Zabha (R-15-024): the umbrella is off, the parts are on.
     "A": { "supported": false },
-    // residue: ON only because the validator requires scalar F/D under float-capable V;
-    // the profile's vector-FP-without-scalar-FP is the R-15-040 source-level fork.
-    "F": { "supported": true, "fflags_dirty_policy": "Fflags_Dirty_Precise" },
-    "D": { "supported": true },
     // C-class first: VLEN=256, ELEN=64 (per-class parameterization is M0.8).
     "V": {
       "support_level": "Full",
       "vlen_exp": 8,
       "elen_exp": 6,
       "reserved_behavior": {
-        "illegal_vtype": "IllegalVtype_SetVill",
-        "vstart_out_of_bounds": "Vstart_Illegal"
+        "illegal_vtype": "IllegalVtype_SetVill"
       },
       "vl_use_ceil": false,
-      "max_index_eew_exp": 6,
-      // closest config form to the vstart deletion (R-15-039a); the term itself is M0.6c.
-      "vstart": { "zero_required": { "arith": true, "scalar_move": true } }
+      "max_index_eew_exp": 6
     },
     // B = Zba+Zbb+Zbs exactly, single-bit only at Zbs (R-15-067).
     "B": { "supported": true },
@@ -184,12 +174,6 @@
     "Zabha": { "supported": true },
     "Zacas": { "supported": false },
     "Zama16b": { "supported": false },
-    "Zfa": { "supported": false },
-    "Zfbfmin": { "supported": false },
-    "Zfh": { "supported": false },
-    "Zfhmin": { "supported": false },
-    "Zfinx": { "supported": false },
-    "Zdinx": { "supported": false },
     "Zba": { "supported": false },
     "Zbb": { "supported": false },
     "Zbs": { "supported": false },
@@ -198,8 +182,6 @@
     "Zbkc": { "supported": true },
     "Zbkx": { "supported": true },
     "Zkt": { "supported": true },
-    "Zhinx": { "supported": false },
-    "Zhinxmin": { "supported": false },
     "Zvfbfmin": { "supported": false },
     "Zvfbfwma": { "supported": false },
     "Zvfh": { "supported": false },

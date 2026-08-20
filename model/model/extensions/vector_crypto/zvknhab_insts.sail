@@ -38,9 +38,8 @@ function clause execute VSHA2MS_VV(vs2, vs1, vd) = {
   var w : vector(20, bits('SEW)) = vector_init(zeros());
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     w = [w with
@@ -68,7 +67,6 @@ function clause execute VSHA2MS_VV(vs2, vs1, vd) = {
     write_velem_quad(vd, SEW, w[19] @ w[18] @ w[17] @ w[16], i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -109,9 +107,8 @@ function clause execute ZVKSHA2TYPE(funct6, vs2, vs1, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     var f = vs2_val[i*4+0];
@@ -160,6 +157,5 @@ function clause execute ZVKSHA2TYPE(funct6, vs2, vs1, vd) = {
     write_velem_quad(vd, SEW, a @ b @ e @ f, i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
