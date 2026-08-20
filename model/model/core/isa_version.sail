@@ -51,19 +51,7 @@ let priv_isa_version : Privileged_ISA_Version = config base.privileged_isa_versi
 
 // Behavioural changes based on the version. These are named constants for readability.
 
-// In this version, a new requirement was added that reserved bits
-// in PTEs must be zero otherwise the PTE is invalid.
-let pte_reserved_bits_must_be_zero = priv_isa_version >= Privileged_ISA_1_12
-
-
 // CSRs added in version 1.12. These CSRs are not
 // available in earlier versions.
-let xenvcfg_csrs_are_defined = priv_isa_version >= Privileged_ISA_1_12
 let mconfigptr_is_defined = priv_isa_version >= Privileged_ISA_1_12
-let mseccfg_csrs_are_defined = priv_isa_version >= Privileged_ISA_1_12
 let mstatush_is_defined = priv_isa_version >= Privileged_ISA_1_12
-// PMP register count is checked in validate_config() by check_version_constraints().
-
-// CSRs added in version 1.13. These CSRs are not
-// available in earlier versions.
-let delegh_csrs_are_defined = priv_isa_version >= Privileged_ISA_1_13

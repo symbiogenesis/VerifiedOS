@@ -383,12 +383,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
-* Current serial path: c3 alongside M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M0.6c/c3, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
+* Current serial path: M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
 * Available parallel work: c4, M0.6e staging, M0.7, M0.12 drafting, M2.1, and M4.1.
-* Total estimate: 812.3 h midpoint, range 548.8–1,075.8 h.
-* Progress by estimate: 13.8 of 812.3 h complete (1.7%); 798.5 h remaining (98.3%).
-* M8 gate: 729.3 h of the 812.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Total estimate: 810.3 h midpoint, range 548.8–1,071.8 h.
+* Progress by estimate: 17.8 of 810.3 h complete (2.2%); 792.5 h remaining (97.8%).
+* M8 gate: 727.3 h of the 810.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -439,7 +439,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
     * Net change: 3,079 lines removed and 77 added across 50 files.
     * Exit evidence: build green; 352/352 tests pass; generated and profile config keys match exactly.
     * Expected profile refusals: 26 of 199 physical-variant tests.
-    * Reservation plumbing remains for c3.
+    * Reservation plumbing remained for c3, which took it.
 
   * [x] **c2 · Entangled extensions** · 1.9 h actual · 0.2%
     * Removed `C` (`Zca`, `Zcb`, `Zcf`, `Zcd`), `Zicbom`, `Zicbop`, pointer masking, `Stateen`, CFI/`Zicfilp`, `Smcntrpmf`, and `Zicntr` with their core and system hooks: the `cacheop` union narrowed to `CB_zero` alone and its arms dropped from the PMA, PMP, page-table, and fault-type matches; `mseccfg` deleted outright; `MPELP`/`SPELP`/`LPE`/`PMM`/`CBIE`/`CBCFE` gone from `mstatus`, `sstatus`, and the `envcfg` pair; `misa[C]` hardwired to zero with the `ext_veto_disable_C` hook and its file; the landing-pad checks out of the step function; and `transform_effective_address` reduced to the identity.
@@ -448,27 +448,31 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
     * Expected profile refusals: 27 of 199 physical-variant tests, every one explained: the three c1 cuts, the standing M0.6b pair, nine supervisor and PMP tests c3 takes, ten `Zfh` tests the profile excludes, plus `zicntr` with `instret_overflow` and `uc-p-rvc` from this batch. The sweep now caps each run at ten seconds, which books `rv64si-p-dirty`, whose handler never terminates with S off, as a refusal rather than a hang.
     * Three findings. Fixed-width fetch is a *deletion of gating*, not of the 16-bit path: the parcel check stays, because ILEN=32 makes a 16-bit parcel an illegal instruction rather than a misaligned fetch, so `C_ILLEGAL` and the compressed decode mapping are load-bearing with zero real clauses behind them. The alignment relaxation lives in four places, not one, `fetch`, `rvfi_fetch`, `jump_to`, and the `xepc` legalization pair, and only the first two are obvious from the extension registry. And the Lean emulator's handwritten register initializer was already stale from c1 (it wrote `stimecmp`, deleted with `Sstc`), which the typechecker cannot see because that target is dormant; it and the two `SAIL_MODULES` lists naming deleted modules are corrected here.
 
-  * [ ] **c3 · Privilege and translation batch** · 6 h, range 4–8 · 0.7%
-    * Remove S/U modes, delegation, `satp`, `Sv*` walkers, PMP, reservation plumbing, counters, and remaining virtual-memory tests.
+  * [x] **c3 · Privilege and translation batch** · 4 h actual · 0.5%
+    * Removed S and U modes with delegation and the whole S-mode CSR bank, `satp` with the `Sv*` walkers, TLB and `sfence.vma`, PMP, the reservation plumbing, and the performance counters. The privilege *type* goes with the modes: `Privilege`, `cur_privilege`, and the privilege parameter threaded through `is_CSR_accessible`, `mem_read`, `mem_write_*` and `pmaCheck` all had exactly one reachable value. `mstatus` narrows to the extension-context gate, `mret` restores the interrupt-enable stack and nothing else, `sret` is gone, `mip`/`mie` keep only their machine bits, `translateAddr` collapses into the identity `physical_address`, and `menvcfg`/`senvcfg` go with the mode their every bit gated.
+    * Net change: 5,006 lines removed and 742 added across 68 files, seven deleted outright and three renamed as their surviving content moved (`vmem_types.sail` → `mem_access_types.sail`, `vmem_utils.sail` → `mem_access.sail` with `vmem_read`/`vmem_write` → `data_read`/`data_write`, and the `mstatus` SXL/UXL unit test replaced by one over the properties this batch establishes).
+    * Exit evidence: build green; 329/329 tests pass; `verifiedos.json` validates against the regenerated schema with key sets consistent.
+    * Expected profile refusals: 28 of 199 physical-variant tests, every one explained: ten `Zfh` tests the profile excludes, the three c1 cuts, the three c2 cuts, the standing M0.6b pair, and this batch's ten, being the seven supervisor tests, `pmpaddr`, `ssvnapot-p-napot`, and the RV64 machine-CSR test. Under the max configuration the same cut excludes 17 tests, the RV32 and RV64 halves of the supervisor family and `pmpaddr` plus the two RV64-only rows; the RV32 machine-CSR test still passes and is not excluded.
+    * Four findings. `minstret` had a consumer that is not architectural, RVFI's `order` field, so deleting the counter would have deleted the differential rig's instruction ordering with it; a model-internal `retire_count` register with no CSR address replaces it. The reservation flag on the memory API was never only a reservation flag: `res`/`con` selected the reserved-read and conditional-write kinds of the concurrency interface, and after `Zalrsc` its one caller is the AMO, whose two halves are exactly those, so the parameter is *derived* from `is_amo_access(access)` rather than deleted, and stops being passable independently of the access it describes. Two tests hang rather than fail and so cannot be left to a ctest timeout: `rv32si-p-dirty` and `rv64si-p-dirty`, whose handlers wait on a page-table A/D update that never comes with S off, which is the same behaviour c2 booked as a profile refusal now appearing where it blocks. And `pagesize_bits` survives the walker: PMA regions are still required to be 4 KiB-aligned so a PMA property cannot change inside one access, so the constant is renamed `pma_granule_bits` rather than deleted, under a name that no longer implies pages.
 
   * [ ] **c4 · Vector fork** · 3 h, range 2–4 · 0.4% · Parallel
     * Remove `vstart` from vector definitions and decouple vector FP from scalar F/D validation.
 
 * [ ] **M0.6d · Close the CSR bank** · 3 h, range 2–4 · 0.4%
   * Narrow `mie`/`mip`, hardwire IDs to zero, make `misa` read-only, delete absent CSRs, and trap on unallocated CSR addresses.
-  * Implement in the same source pass as c3 where practical, but retain separate completion and estimate tracking.
+  * c3 landed the half that fell out of deleting the modes: the S-mode bank, `medeleg`/`mideleg`, the counters and the `envcfg` pair are gone, and `mie`/`mip` already carry only their three machine bits. What remains here is the narrowing the profile imposes on what survives, hardwiring `MEIE`/`MEIP` and `MSIE`/`MSIP` to zero so only the machine-timer bits are writable, making `misa` read-only, deleting `Sdtrig`'s `tselect`, and making an unallocated address trap rather than read zero.
 
 * [ ] **M0.6e · Transplant CHERI capability semantics** · 18 h, range 12–24 · 2.2%
   * Port capability types and compression, merged registers, tag memory, PCC/sentries, machine trap capabilities, load/store checks, and ISAv9 trap causes.
   * Differentially compare RVFI-style traces with the M0.4 oracle.
-  * Parallel staging now: map old flat files into the extension tree and stand up the differential harness; land after c3.
+  * Parallel staging now: map old flat files into the extension tree and stand up the differential harness. c3 has landed, so the extension hooks the transplant hangs off (`ext_data_get_addr`, `ext_control_check_pc`, `ext_fetch_check_pc`, `ext_check_CSR`) are in their final, privilege-free shape.
 
 * [ ] **M0.6f · Re-parameterize to 64+1 bits** · 12 h, range 8–16 · 1.5%
   * Implement the §4.1 field widths and total 32-codepoint permission decode; all-zeroes must decode to untagged NULL.
   * Remove hybrid mode, DDC, SDP, reconstruction operations, exact-bounds operations, subset tests, tag clearing, and colour fields.
   * Representation correctness remains a proof-track obligation.
 
-* [ ] **M0.6g · Add profile rows absent upstream** · 15 h, range 10–20 · 1.8%
+* [ ] **M0.6g · Add profile rows absent upstream** · 15 h, range 10–20 · 1.9%
   * Add `cmovz`/`cmovn`, `cloadtags`, revocation filtering and bitmap, `fence.t`, capability indexed load/store, `cclear`, and the machine-level AIA pending array.
   * Do not model measurement-conditioned provisional rows yet. The single-check multi-register save is struck from the freeze set (R-15-036n) and is not modeled at all.
 
@@ -481,7 +485,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 #### Remaining M0 deliverables
 
 * [ ] **M0.7 · Model Ztso and static-only prediction** · 3 h, range 2–4 · 0.4% · Parallel
-* [ ] **M0.8 · Parameterize by core class** · 28 h, range 20–36 · 3.4%
+* [ ] **M0.8 · Parameterize by core class** · 28 h, range 20–36 · 3.5%
   * Freeze C-class first; defer roughly 26 h of V/M/FEC work until needed before M2.3.
 * [ ] **M0.9 · Add documented timing annotations** · 4.5 h, range 3–6 · 0.6% · Parallel
 * [ ] **M0.10 · Generate and freeze the C-class golden emulator** · 2 h, range 1–3 · 0.2%
@@ -495,7 +499,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 114.4 h · 14% · 9.4 h complete · open range 71–139 h.
+**M0 subtotal:** 112.4 h · 14% · 13.4 h complete · open range 67–131 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -517,8 +521,8 @@ Every later milestone is purecap and managed-runtime-free from here.
 * [x] **M1.5 · Run the CertiCoq-to-Wasm oracle** · 3 h actual · 0.4%
   * The loop closes end to end in a container ([tools/wasm-oracle/](../tools/wasm-oracle/)): `demo.v`'s `Nat.eqb (fib 20) 6765` compiled by `CertiRocq Compile Wasm` and run on stock Node prints `true`, the §0 inner loop with no cross-toolchain, no image, and no machine model involved.
   * Pin and condition: CertiRocq main carries the merged CPP 2025 CertiCoq-Wasm backend (`theories/CodegenWasm`, proven against WasmCert-Coq) that the 0.9 opam release predates, but its tip tracks the *unreleased* MetaRocq 9.1 branch on both sides of released 1.5.1, so the oracle pins the last pre-drift commit `4f53ca97` plus a two-site compat patch (the erasure inlining toggle moved into `unsafe_passes`). Rocq is 9.1.1 by CertiRocq's own `< 9.2~` constraint, not staleness, and it is the same prover version SECOMP states, so M1.2 shares this environment.
-  * Environment findings, booked for later lanes: this workstation's WSL has no compiler toolchain and no passwordless sudo, so the oracle rides Docker (daemon and group membership already present); the WSL VM idled out between commands and took containers with it, which turned out to be the stock WSL2 `vmIdleTimeout` (60 s after every instance stops) and not a runtime problem at all; the switch that disables it, `[wsl2] vmIdleTimeout=-1`, exists only in `%USERPROFILE%\.wslconfig`, global to every distribution and permanent until a human deletes it, so on 2026-08-19 the fix was scoped into the repository instead — [tools/wsl-env.sh](../tools/wsl-env.sh) now starts a detached, idempotent, self-expiring keepalive (`vos_keepalive`, 8 h default, `VOS_KEEPALIVE_HOURS=0` opts out, `vos_keepalive_stop` ends one early) at prelude time, which holds one instance up so the timer never starts and leaves nothing behind when it lapses; the Docker lanes source the same prelude for it (`wsl -d Ubuntu -u root -e bash -c '. tools/wsl-env.sh'`), and the `certicoq-oracle` container keeps `--restart unless-stopped` for teardowns that happen anyway; and Cisco Umbrella re-signs `release-assets.githubusercontent.com`, so the Windows-exported proxy root CA must be installed into any Linux trust store that fetches GitHub release assets.
-  * WSL Containers (`wslc.exe`) evaluated and declined on 2026-08-19, revisit at GA: Microsoft's in-box container runtime is Docker-shaped, unlicensed, and runs in its own session VM whose memory returns to the host, but it needs WSL ≥ 2.9.3 from the pre-release channel (this box is 2.7.11), it is public preview with GA targeted for fall 2026, and it moves the wrong finding. It does nothing for the sudo/toolchain gap that Docker already closes, the idle-out was never a runtime problem, and on the proxy it regresses: [microsoft/WSL#40945](https://github.com/microsoft/WSL/issues/40945) (open, filed 2026-06-29 against 2.9.3) reports the `wslc` backend session VM receives *no* proxy environment — `wslc system session run env` returns only `PATH` where an ordinary distro at least gets `http_proxy` — and Windows root CAs still do not propagate into any Linux store, so the registry pull happens in a session VM this lane cannot reach with the Umbrella CA and the documented workaround is to pull in a distro and `wslc load` the tar. Preview also lacks Compose and `build --platform`, and does not support build contexts on the WSL filesystem (immaterial here: [tools/wasm-oracle/](../tools/wasm-oracle/) builds from the Windows side). The live reason to revisit is idle memory, not container lifecycle.
+  * Environment findings, booked for later lanes: this workstation's WSL has no compiler toolchain and no passwordless sudo, so the oracle rides Docker (daemon and group membership already present); the WSL VM idled out between commands and took containers with it, which turned out to be the stock WSL2 `vmIdleTimeout` (60 s after every instance stops) and not a runtime problem at all; the switch that disables it, `[wsl2] vmIdleTimeout=-1`, exists only in `%USERPROFILE%\.wslconfig`, global to every distribution and permanent until a human deletes it, so on 2026-08-19 the fix was scoped into the repository instead: [tools/wsl-env.sh](../tools/wsl-env.sh) now starts a detached, idempotent, self-expiring keepalive (`vos_keepalive`, 8 h default, `VOS_KEEPALIVE_HOURS=0` opts out, `vos_keepalive_stop` ends one early) at prelude time, which holds one instance up so the timer never starts and leaves nothing behind when it lapses; the Docker lanes source the same prelude for it (`wsl -d Ubuntu -u root -e bash -c '. tools/wsl-env.sh'`), and the `certicoq-oracle` container keeps `--restart unless-stopped` for teardowns that happen anyway; and Cisco Umbrella re-signs `release-assets.githubusercontent.com`, so the Windows-exported proxy root CA must be installed into any Linux trust store that fetches GitHub release assets.
+  * WSL Containers (`wslc.exe`) evaluated and declined on 2026-08-19, revisit at GA: Microsoft's in-box container runtime is Docker-shaped, unlicensed, and runs in its own session VM whose memory returns to the host, but it needs WSL ≥ 2.9.3 from the pre-release channel (this box is 2.7.11), it is public preview with GA targeted for fall 2026, and it moves the wrong finding. It does nothing for the sudo/toolchain gap that Docker already closes, the idle-out was never a runtime problem, and on the proxy it regresses: [microsoft/WSL#40945](https://github.com/microsoft/WSL/issues/40945) (open, filed 2026-06-29 against 2.9.3) reports the `wslc` backend session VM receives *no* proxy environment, `wslc system session run env` returns only `PATH` where an ordinary distro at least gets `http_proxy`, and Windows root CAs still do not propagate into any Linux store, so the registry pull happens in a session VM this lane cannot reach with the Umbrella CA and the documented workaround is to pull in a distro and `wslc load` the tar. Preview also lacks Compose and `build --platform`, and does not support build contexts on the WSL filesystem (immaterial here: [tools/wasm-oracle/](../tools/wasm-oracle/) builds from the Windows side). The live reason to revisit is idle memory, not container lifecycle.
 * [ ] **M1.6 · Stand up GC-free lowering routes** · 18.5 h, range 12–25 · 2.3% · Parallel with M1.4
 * [ ] **M1.7 · Boot purecap Gallina hello-world on the M0 emulator** · 9 h, range 6–12 · 1.1%
 * [ ] **M1.8 · Build and wire the profile-freeze analyzer** · 11.5 h, range 8–15 · 1.4% · Parallel
@@ -569,7 +573,7 @@ Gallina microkernel (§5), one instance per emulated core; capability/IPC tests 
 
 Journal/index/FS (§7) and the content-addressed object store + transactor (§6); system-integrity instance first, then user-data.
 
-* [ ] **M5.1 · Implement the L0 journal and L1 CoW B-tree in Gallina** · 21.5 h, range 15–28 · 2.6%
+* [ ] **M5.1 · Implement the L0 journal and L1 CoW B-tree in Gallina** · 21.5 h, range 15–28 · 2.7%
 * [ ] **M5.2 · Compose L2 semantics and L3 confidentiality host-side** · 14 h, range 10–18 · 1.7%
 * [ ] **M5.3 · Run system-integrity and user-data instances on the emulator** · 12 h, range 8–16 · 1.5%
 * [ ] **M5.4 · Implement the object store and update transactor** · 18 h, range 12–24 · 2.2% · Parallel where possible
@@ -581,9 +585,9 @@ Journal/index/FS (§7) and the content-addressed object store + transactor (§6)
 Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set; the package composer emits the finite typed handler/translator graph and pre-admitted media templates, and the contained object router exercises private namespaces, intents, live queries, deterministic translation caching, and protocol-bound credential handles over the existing IDL and rings.
 The ring data plane is brought up in its contract order: the common ring schema and lifecycle authored in the IDL profile with the reference client/server bindings and Coq interface skeleton generated from it, then one copy-based service carrying the SPSC, notification, and capacity proofs, then one DMA service adding the extent, cancellation, teardown, and quiescence proofs, so the contract's constants and generated-proof interfaces are validated on two real services before every other server rides them. No service is grandfathered: one that cannot state its finite capacities, lifecycle semantics, cleanup bounds, and per-operation WCET is not admitted through the ring profile.
 
-* [ ] **M6.1 · Build the init supervision tree in Lustre via Vélus** · 15 h, range 10–20 · 1.8%
+* [ ] **M6.1 · Build the init supervision tree in Lustre via Vélus** · 15 h, range 10–20 · 1.9%
 * [ ] **M6.2 · Refine admission checkers to CompCert-C** · 26.5 h, range 18–35 · 3.3%
-* [ ] **M6.3 · Build the package composer and contained object router** · 15 h, range 10–20 · 1.8%
+* [ ] **M6.3 · Build the package composer and contained object router** · 15 h, range 10–20 · 1.9%
 * [ ] **M6.4 · Author the ring-contract schema and generate the reference bindings** · 9 h, range 6–12 · 1.1%
   * The common ring schema and lifecycle in the IDL profile (R-12-091 through R-12-101), with the reference client/server bindings and the Coq interface skeleton generated from it.
 * [ ] **M6.5 · Port one copy-based and one DMA service through the ring contract** · 22.5 h, range 15–30 · 2.8%
@@ -608,11 +612,11 @@ The same roster carries the ring-parameter measurement: queue depths, batch size
 
 The RTL track, in parallel from the M0 freeze:
 
-* [ ] **R1 · Curate scalar CVA6-CHERI RTL and required platform devices** · 45 h, range 30–60 · 5.5%
+* [ ] **R1 · Curate scalar CVA6-CHERI RTL and required platform devices** · 45 h, range 30–60 · 5.6%
   * CVA6-CHERI re-parameterized to the 64+1-bit dialect and curated per the profile and absence contract (§11: MMU deleted, static-only prediction, TSO store buffer), plus the RoT core, tag-carrying interconnect, boot ROM, UART, and block device; absence-contract state enumeration and synthesis-configuration provenance recorded at first elaboration.
 * [ ] **R2 · Reach corpus-green Verilator co-simulation with trace diff and BMC smoke** · 22.5 h, range 15–30 · 2.8%
   * The shared corpus passes under Verilator with the commit-trace diff against the golden model, `rvfi` the hook; a riscv-formal-style BMC smoke on the curated scalar core runs here as cheap bring-up evidence (R-15-094), distinct from the deferred FEV and refinement work.
-* [ ] **R3 · Boot the image in co-simulation and publish the versioned RTL artifact** · 15 h, range 10–20 · 1.8%
+* [ ] **R3 · Boot the image in co-simulation and publish the versioned RTL artifact** · 15 h, range 10–20 · 1.9%
   * The composed purecap image (M7's) boots on the RTL in Verilator to the same console and event digests as both emulators; the **RTL artifact of record** (§11) is versioned and published.
 
 **RTL subtotal:** 82.5 h · 10% · open range 55–110 h.
@@ -624,7 +628,7 @@ The RTL track, in parallel from the M0 freeze:
   * This is the plan's most important milestone; everything after it is hardware realization and hardening.
 * [ ] **M9 · Synthesize and boot scalar purecap on FPGA** · 30 h, range 20–40 · 3.7%
   * Synthesize the R3 artifact for the board (§11); the purecap golden-model images (M1–M7) boot on it directly, differentially tested against M7; CHERI ISA tests from the Sail model green on the FPGA.
-* [ ] **M10 · Extend CHERI checks across V/M/FEC datapaths** · 45 h, range 30–60 · 5.5%
+* [ ] **M10 · Extend CHERI checks across V/M/FEC datapaths** · 45 h, range 30–60 · 5.6%
   * Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M9, so the FPGA then matches the golden model across all core classes.
 
 Everything past M10, the CHERI-CompCert **secure-compilation criterion** (robust preservation; the *functional* backend already landed in M1), the **R-05-023a validation instrument** (the decompilation-into-logic producer of the §5 post-CompCert records, whose first non-fast-path artifact also opens the checker-binary question booked in [architectural-alternatives.md](architectural-alternatives.md)), the binary-level constant-time verifier, the masking obligations (the *d*-probing and composition theorems on the crypto artifacts with the Coco-class netlist discharge, R-05-004a, R-15-053a, §4), the R-16-008f detection theorem, the certifying-Rust *certificate* mode, the full VST refinement proofs, WCET, and RTL ⊑ Sail refinement, is the hardening program of §5/§6/§18, each piece replacing a golden-model component *in place* and checked against the reference this plan produces.
@@ -662,6 +666,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 812.3 h midpoint over a 548.8–1,075.8 h range.
+* Grand total: the sum of the item cells, 810.3 h midpoint over a 548.8–1,071.8 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

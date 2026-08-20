@@ -33,8 +33,7 @@ union ExecutionResult = {
 
   // Did not retire for a standard reason.
   Illegal_Instruction            : unit,
-  Virtual_Instruction            : unit,
-  Trap                           : (Privilege, sync_exception, xlenbits),
+  Trap                           : (sync_exception, xlenbits),
 
   // Did not retire for custom reason.
   Ext_CSR_Check_Failure          : unit,
@@ -53,12 +52,12 @@ let RETIRE_SUCCESS : ExecutionResult = Retire_Success()
 // Trap helpers
 
 function trap(exc : sync_exception) -> ExecutionResult =
-  Trap(cur_privilege, exc, PC)
+  Trap(exc, PC)
 
 function memory_exception(vaddr : virtaddr, exc : ExceptionType) -> ExecutionResult =
   trap(make_sync_exception(exc, bits_of(vaddr)))
 
-// returns whether an instruction was retired, used for computing minstret
+// returns whether an instruction was retired
 val execute : instruction -> ExecutionResult
 scattered function execute
 

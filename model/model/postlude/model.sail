@@ -12,7 +12,6 @@ function reset() -> unit = {
   hart_state = HART_ACTIVE();
 
   reset_sys();
-  reset_vmem();
 
   // To allow model extensions (code outside this repo) to perform additional reset.
   ext_reset();

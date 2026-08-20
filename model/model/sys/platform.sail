@@ -198,19 +198,11 @@ function clint_store(paddr, width, data) = {
   }
 }
 
-// Counters and timers. With Smcntrpmf deleted there is no privilege-mode
-// filtering left, so `mcountinhibit` alone decides.
-
-function should_inc_mcycle(_priv : Privilege) -> bool =
-  mcountinhibit[CY] == 0b0
-
-function should_inc_minstret(_priv : Privilege) -> bool =
-  mcountinhibit[IR] == 0b0
+// The timer. The performance counters are deleted (R-15-077), so
+// `mtime` is the only thing a tick advances and there is nothing left
+// to inhibit it.
 
 function tick_clock() -> unit = {
-  if   should_inc_mcycle(cur_privilege)
-  then mcycle = mcycle + 1;
-
   mtime  = mtime  + 1;
   clint_dispatch(false)
 }

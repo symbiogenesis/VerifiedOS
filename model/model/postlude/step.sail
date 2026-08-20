@@ -11,7 +11,7 @@
 register hart_state : HartState = HART_ACTIVE()
 
 private union Step = {
-  Step_Pending_Interrupt  : (InterruptType, Privilege),
+  Step_Pending_Interrupt  : InterruptType,
   Step_Ext_Fetch_Failure  : ext_fetch_addr_error,
   Step_Fetch_Failure      : (virtaddr, ExceptionType),
   Step_Execute            : (ExecutionResult, instbits),
@@ -37,21 +37,10 @@ private function run_hart_waiting(_step_no : nat, wr: WaitReason, instbits : ins
       then print_log("forced exit from " ^ wait_name(WAIT_WFI) ^ " state at PC " ^ bits_str(PC));
 
       hart_state = HART_ACTIVE();
-      // "When TW=1, then if WFI is executed in any
-      // less-privileged mode, and it does not complete within an
-      // implementation-specific, bounded time limit, the WFI
-      // instruction causes an illegal-instruction exception."
-
-      // "When S-mode is implemented, then executing WFI in U-mode
-      // causes an illegal-instruction exception, regardless of the
-      // value of the TW bit, unless the instruction completes within
-      // an implementation-specific, bounded time limit."
-
-      let is_illegal = (cur_privilege != Machine & mstatus[TW] == 0b1) |
-          (cur_privilege == User & currentlyEnabled(Ext_S));
-      if is_illegal
-      then Step_Execute(Illegal_Instruction(), instbits)
-      else Step_Execute(Retire_Success(), instbits);
+      // The bounded-wait illegal-instruction case applied to WFI
+      // executed below machine mode, and there is no mode below
+      // machine mode.
+      Step_Execute(Retire_Success(), instbits);
     },
     // remain waiting
     (_, false) => {
@@ -63,8 +52,8 @@ private function run_hart_waiting(_step_no : nat, wr: WaitReason, instbits : ins
 }
 
 private function run_hart_active(step_no: nat) -> Step = {
-  match dispatchInterrupt(cur_privilege) {
-    Some(intr, priv) => return Step_Pending_Interrupt(intr, priv),
+  match dispatchInterrupt() {
+    Some(intr) => return Step_Pending_Interrupt(intr),
     None() => (),
   };
   match ext_fetch_hook(fetch()) {
@@ -79,7 +68,7 @@ private function run_hart_active(step_no: nat) -> Step = {
       let instbits : instbits = zero_extend(h);
       if   get_config_print_instr()
       then {
-        print_log_instr("[" ^ dec_str(step_no) ^ "] [" ^ to_str(cur_privilege) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(h) ^ ") " ^ to_str(ext_decode_compressed(h)), zero_extend(PC));
+        print_log_instr("[" ^ dec_str(step_no) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(h) ^ ") " ^ to_str(ext_decode_compressed(h)), zero_extend(PC));
       };
       // ILEN is fixed at 32 bits: no compressed instruction exists, so a
       // 16-bit parcel always decodes to C_ILLEGAL and traps.
@@ -92,7 +81,7 @@ private function run_hart_active(step_no: nat) -> Step = {
       let instruction = ext_decode(w);
       if   get_config_print_instr()
       then {
-        print_log_instr("[" ^ dec_str(step_no) ^ "] [" ^ to_str(cur_privilege) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(w) ^ ") " ^ to_str(instruction), zero_extend(PC));
+        print_log_instr("[" ^ dec_str(step_no) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(w) ^ ") " ^ to_str(instruction), zero_extend(PC));
       };
       nextPC = PC + 4;
       let result : ExecutionResult = match execute(instruction) {
@@ -137,24 +126,16 @@ function try_step(step_no : nat, exit_wait : bool) -> bool = {
   // for step extensions
   ext_pre_step_hook();
 
-  // This records whether or not minstret should be incremented when
-  // the instruction is retired. Since retirement occurs before CSR
-  // writes we initialise it based on mcountinhibit here, before it is
-  // potentially changed. This is also set to false if minstret is
-  // written.  See the note near the minstret declaration for more
-  // information.
-  minstret_increment = should_inc_minstret(cur_privilege);
-
   let step_val : Step = match hart_state {
       HART_WAITING(wr, instbits) => run_hart_waiting(step_no, wr, instbits, exit_wait),
       HART_ACTIVE()              => run_hart_active(step_no),
     };
 
   match step_val {
-    Step_Pending_Interrupt(intr, priv) => {
+    Step_Pending_Interrupt(intr) => {
       if   get_config_print_instr()
       then print_bits("Handling interrupt: ", interruptType_bits(intr));
-      handle_interrupt(intr, priv)
+      handle_interrupt(intr)
     },
     Step_Ext_Fetch_Failure(e) => ext_handle_fetch_check_error(e),
     Step_Fetch_Failure(vaddr, e) => handle_exception(bits_of(vaddr), e),
@@ -165,10 +146,8 @@ function try_step(step_no : nat, exit_wait : bool) -> bool = {
     // is more than one ExecuteAs indirection we'll get to here. This isn't supported.
     Step_Execute(ExecuteAs(_), _) => internal_error(__FILE__, __LINE__, "Multiple chained ExecuteAs (only one redirection is supported)."),
     // standard errors
-    Step_Execute(Trap(priv, exc, pc), _) => set_next_pc(exception_handler(priv, exc, pc)),
+    Step_Execute(Trap(exc, pc), _) => set_next_pc(exception_handler(exc, pc)),
     Step_Execute(Illegal_Instruction(), instbits) => handle_exception(zero_extend(instbits), E_Illegal_Instr()),
-    // NOTE: Virtual instructions exception cannot be triggered until Hypervisor integration is complete.
-    Step_Execute(Virtual_Instruction(), instbits) => handle_exception(zero_extend(instbits), E_Virtual_Instr()),
     Step_Execute(Enter_Wait(wr), instbits) => {
       if wait_is_nop(wr) then {
         // This is the same as the RETIRE_OK case.
@@ -202,10 +181,10 @@ function try_step(step_no : nat, exit_wait : bool) -> bool = {
         _ => false,
       };
 
-      // Increment minstret if we retired an instruction and the
-      // update wasn't suppressed by writing to it explicitly or
-      // mcountinhibit[IR] or minstretcfg.
-      if retired & minstret_increment then minstret = minstret + 1;
+      // The trace order field counts retires. This is not `minstret`,
+      // which is deleted with the performance counters (R-15-077), so
+      // nothing inhibits or writes it.
+      if retired then retire_count = retire_count + 1;
 
       // Record the next PC for RVFI.
       // TODO: Remove this and implement it in C.

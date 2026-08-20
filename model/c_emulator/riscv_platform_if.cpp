@@ -89,67 +89,6 @@ unit PlatformInterface::instret_callback(unit) {
   return UNIT;
 }
 
-unit PlatformInterface::ptw_start_callback(
-  [[maybe_unused]] uint64_t vpn,
-  [[maybe_unused]] hart::zMemoryAccessTypezIEmem_payloadz5zK access_type,
-  [[maybe_unused]] hart::ztuple_z8z5enumz0zzPrivilegezCz0z5unitz9 privilege
-) {
-  return UNIT;
-}
-
-unit PlatformInterface::ptw_step_callback(
-  [[maybe_unused]] int64_t level,
-  [[maybe_unused]] sbits pte_addr,
-  [[maybe_unused]] uint64_t pte
-) {
-  return UNIT;
-}
-unit PlatformInterface::ptw_success_callback([[maybe_unused]] uint64_t final_ppn, [[maybe_unused]] int64_t level) {
-  return UNIT;
-}
-unit PlatformInterface::ptw_fail_callback(
-  [[maybe_unused]] hart::zPTW_Error error_type,
-  [[maybe_unused]] int64_t level,
-  [[maybe_unused]] sbits pte_addr
-) {
-  return UNIT;
-}
-
-unit PlatformInterface::tlb_add_callback(
-  [[maybe_unused]] hart::zz5vecz8z5unionz0zzoptionzzIRTLB_EntryzzKz9 tlb,
-  [[maybe_unused]] uint64_t index
-) {
-  return UNIT;
-}
-
-unit PlatformInterface::tlb_flush_begin_callback(unit) {
-  return UNIT;
-}
-
-unit PlatformInterface::tlb_flush_callback([[maybe_unused]] uint64_t index) {
-  return UNIT;
-}
-
-unit PlatformInterface::tlb_flush_end_callback([[maybe_unused]] hart::zz5vecz8z5unionz0zzoptionzzIRTLB_EntryzzKz9 tlb) {
-  return UNIT;
-}
-
-unit PlatformInterface::load_reservation(sbits, uint64_t) {
-  return UNIT;
-}
-
-bool PlatformInterface::match_reservation(sbits) {
-  return false;
-}
-
-unit PlatformInterface::cancel_reservation(unit) {
-  return UNIT;
-}
-
-bool PlatformInterface::valid_reservation(unit) {
-  return false;
-}
-
 unit PlatformInterface::plat_term_write(mach_bits) {
   return UNIT;
 }
@@ -200,10 +139,6 @@ bool PlatformInterface::get_config_print_htif(unit) {
 }
 
 bool PlatformInterface::get_config_print_pma(unit) {
-  return false;
-}
-
-bool PlatformInterface::get_config_print_pmp(unit) {
   return false;
 }
 

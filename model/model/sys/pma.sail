@@ -63,15 +63,6 @@ function pma_allows_atomic_op forall 'n, 0 < 'n <= max_mem_access . (pma : Atomi
     AMOCASQ       => op != AMOCAS | width <= 16,
   }
 
-enum Reservability = { RsrvNone, RsrvNonEventual, RsrvEventual }
-
-mapping reservability_str : Reservability <-> string = {
-  RsrvNone        <-> "RsrvNone",
-  RsrvNonEventual <-> "RsrvNonEventual",
-  RsrvEventual    <-> "RsrvEventual",
-}
-overload to_str = {reservability_str}
-
 enum MemoryRegionType = { MainMemory, IOMemory }
 mapping memory_region_type_str : MemoryRegionType <-> string = {
   MainMemory <-> "main memory",
@@ -79,8 +70,7 @@ mapping memory_region_type_str : MemoryRegionType <-> string = {
 }
 overload to_str = {memory_region_type_str}
 
-// PMA misalignment handling.  Misalignment for LR/SC is handled
-// before address-translation.
+// PMA misalignment handling.
 struct PMAMisalignedExceptions = {
   load_store : option(misaligned_exception),
   vector     : option(misaligned_exception),
@@ -90,8 +80,7 @@ struct PMAMisalignedExceptions = {
 // Physical Memory Attributes for a region.
 struct PMA = {
   mem_type         : MemoryRegionType,
-  // These have no effect on the model currently but they are affected
-  // by PBMT so they need to be here if the resulting PMA is verified.
+  // These have no effect on the model currently.
   cacheable        : bool,
   coherent         : bool,
   // If false then attempting to access this PMA during instruction fetch
@@ -106,14 +95,9 @@ struct PMA = {
   // Misaligned handling for various accesses.
   misaligned_exceptions : PMAMisalignedExceptions,
   atomic_support   : AtomicSupport,
-  reservability    : Reservability,
   // Flags whether this memory supports CBO.zero. Note that main memory regions must
   // have this set.
   supports_cbo_zero : bool,
-  // Flags whether this memory supports hardware page table reads.
-  supports_pte_read : bool,
-  // Flags whether this memory supports hardware page table writes.
-  supports_pte_write : bool,
   // The size of the optional misaligned atomicity granule is 2^misaligned_atomicity_granule_exp.
   // The value of 0 is used to indicate the attribute is absent.
   misaligned_atomicity_granule_size_exp : mag_size_exp,
@@ -121,23 +105,6 @@ struct PMA = {
   vector_misaligned_atomicity_granule_size_exp : mag_size_exp,
   // TODO: Memory Ordering PMA
 }
-
-// A PMA can be overridden by page-based memory types.
-// TODO: specify alignment for IO regions.
-function override_PMA(pma : PMA, pbmt : page_based_mem_type) -> PMA =
-  match pbmt {
-    PBMT_PMA => pma,
-    // TODO: return a weakly-ordered PMA
-    PBMT_NC  => {pma with mem_type = MainMemory,
-                          cacheable = false,
-                          read_idempotent = true,
-                          write_idempotent = true},
-    // TODO: return a strongly ordered PMA
-    PBMT_IO  => {pma with mem_type = IOMemory,
-                          cacheable = false,
-                          read_idempotent = false,
-                          write_idempotent = false},
-  }
 
 // Provide the misaligned treatment for a misaligned access.
 function pma_misaligned_exception(pma : PMA, access : MemoryAccessType(mem_payload)) -> option(misaligned_exception) = {
@@ -151,12 +118,6 @@ function pma_misaligned_exception(pma : PMA, access : MemoryAccessType(mem_paylo
 
     // These access types should not be misaligned at the PMA level.
     InstructionFetch()        => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned instruction fetch."),
-    Load(PageTableEntry)      => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned load of page-table entry."),
-    Store(PageTableEntry)     => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned store of page-table entry."),
-    LoadReserved(_, _, p)     => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned load-reserved (" ^ mem_payload_name(p) ^ ")."),
-    StoreConditional(_, _, p) => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned store-conditional (" ^ mem_payload_name(p) ^ ")."),
-    Load(ShadowStack)         => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned shadow-stack load."),
-    Store(ShadowStack)        => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned shadow-stack store."),
     CacheAccess(_)            => internal_error(__FILE__, __LINE__, "PMA: Invalid misaligned cache-access."),
   }
 }
@@ -172,26 +133,12 @@ private function is_mag_applicable_access(access : MemoryAccessType(mem_payload)
     // condition the accesses on width like the scalar MAG does above.
     Load(Vector)                        => true,
     Store(Vector)                       => true,
-    // Not applicable to implicit accesses.
-    Load(PageTableEntry)                => false,
-    Store(PageTableEntry)               => false,
-    // Not in the base ISA.
-    Load(ShadowStack)                   => false,
-    Store(ShadowStack)                  => false,
     // AMOs
-    Atomic(_, _, _, Data, Data)         => true,
-    // Treat like an AMO.
-    Atomic(_, _, _, ShadowStack, ShadowStack) => true,
+    Atomic(_)                           => true,
 
     // Other not applicable.
     InstructionFetch()                  => false,
-    LoadReserved(_, _, Data)            => false,
-    StoreConditional(_, _, Data)        => false,
     CacheAccess(_)                      => false,
-
-    Atomic(_, _, _, rp, wp)             => internal_error(__FILE__, __LINE__, "Invalid payloads (" ^ mem_payload_name(rp) ^ ", " ^ mem_payload_name(wp) ^ ") for Atomic."),
-    LoadReserved(_, _, p)               => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for LoadReserved."),
-    StoreConditional(_, _, p)           => internal_error(__FILE__, __LINE__, "Invalid payload (" ^ mem_payload_name(p) ^ ") for StoreConditional."),
   }
 
 function mag_of_pma(pma : PMA, is_vector : bool) -> option(range(1, 12)) = {
@@ -296,10 +243,7 @@ function pma_attributes_to_str(attr : PMA) -> string =
   (if attr.write_idempotent then " write-idempotent" else "") ^
   " " ^ to_str(attr.misaligned_exceptions) ^
   " " ^ to_str(attr.atomic_support) ^
-  " " ^ to_str(attr.reservability) ^
   (if attr.supports_cbo_zero then " supports-cbo-zero" else "") ^
-  (if attr.supports_pte_read then " supports-pte-read" else "") ^
-  (if attr.supports_pte_write then " supports-pte-write" else "") ^
   " misaligned_atomicity_granule_size_exp=" ^ dec_str(attr.misaligned_atomicity_granule_size_exp) ^
   " vector_misaligned_atomicity_granule_size_exp=" ^ dec_str(attr.vector_misaligned_atomicity_granule_size_exp) ^
   " "

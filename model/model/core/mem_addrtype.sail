@@ -10,14 +10,23 @@
 type physaddrbits = bits(physaddrbits_len)
 let physaddrbits_len = sizeof(physaddrbits_len)
 
-// Note: `virtaddr` includes physical addresses when address translation is disabled.
-// It is used where the address would be virtual if address translation is active.
+// There is no address translation: `satp` is Bare and the sole
+// autonomous hardware walker is deleted with the MMU (R-15-002,
+// R-15-038). `virtaddr` is therefore the *effective* address an
+// instruction computes, which is XLEN wide, and `physaddr` is the
+// address presented to the physical memory map. The two types stay
+// distinct because the widths do: an effective address that does not
+// fit the implemented physical address faults at the PMA check rather
+// than wrapping.
 newtype physaddr = Physaddr : physaddrbits
 newtype virtaddr = Virtaddr : xlenbits
 
 function bits_of_physaddr(Physaddr(paddr) : physaddr) -> physaddrbits = paddr
 
 function bits_of_virtaddr(Virtaddr(vaddr) : virtaddr) -> xlenbits = vaddr
+
+// The effective address *is* the physical address.
+function physical_address(Virtaddr(vaddr) : virtaddr) -> physaddr = Physaddr(zero_extend(vaddr))
 
 function sub_virtaddr_xlenbits(Virtaddr(addr) : virtaddr, offset : xlenbits) -> virtaddr = Virtaddr(addr - offset)
 

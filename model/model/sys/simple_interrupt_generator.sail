@@ -42,14 +42,11 @@ function sig_store(addr, width, data) = {
       let data = Mk_Minterrupts(zero_extend(data));
 
       // Reserved bits must currently be written with zeros.
-      if [data with MEI = 0b0, SEI = 0b0, MSI = 0b0, SSI = 0b0].bits[30 .. 0] != zeros()
+      if [data with MEI = 0b0, MSI = 0b0].bits[30 .. 0] != zeros()
       then return Err(addr, E_SAMO_Access_Fault());
 
       if data[MEI] == 0b1 then sig_meip = value;
-      if data[SEI] == 0b1 then sig_seip = value;
       if data[MSI] == 0b1 then mip[MSI] = value;
-      // SSI is read-only zero if the hart does not support supervisor mode.
-      if data[SSI] == 0b1 & currentlyEnabled(Ext_S) then mip[SSI] = value;
 
       csr_write_callback("mip", read_mip(IncludePlatformInterrupts).bits);
 

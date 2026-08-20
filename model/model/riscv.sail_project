@@ -26,7 +26,7 @@ core {
     core/types_common.sail,
     core/types_ext.sail,
     core/types.sail,
-    core/vmem_types.sail,
+    core/mem_access_types.sail,
     core/mem_type_utils.sail,
     core/csr_begin.sail,
     core/callbacks.sail,
@@ -49,19 +49,10 @@ exceptions {
     exceptions/sync_exception.sail,
 }
 
-pmp {
-  requires prelude, core
-
-  files
-    pmp/pmp_regs.sail,
-    pmp/pmp_control.sail,
-}
-
 sys {
-  requires prelude, core, exceptions, pmp, V_core, A_types
+  requires prelude, core, exceptions, V_core, A_types
 
   files
-    sys/sys_reservation.sail,
     sys/simple_interrupt_generator_regs.sail,
     sys/sys_control.sail,
     sys/simple_interrupt_generator.sail,
@@ -70,13 +61,9 @@ sys {
     sys/split_access_utils.sail,
     sys/pma.sail,
     sys/mem.sail,
-    sys/vmem_pte.sail,
-    sys/vmem_ptw.sail,
     sys/callbacks.sail,
-    sys/vmem_tlb.sail,
-    sys/vmem.sail,
     sys/insts_begin.sail,
-    sys/vmem_utils.sail,
+    sys/mem_access.sail,
 }
 
 extensions {
@@ -262,7 +249,7 @@ extensions {
       files extensions/Zicsr/zicsr_types.sail
     }
     Zicsr_insts {
-      requires sys, exceptions, pmp, V_core, Zicsr_types
+      requires sys, exceptions, V_core, Zicsr_types
       files extensions/Zicsr/zicsr_insts.sail
     }
   }
@@ -311,7 +298,7 @@ extensions {
 postlude {
   after extensions, core
 
-  requires prelude, core, sys, exceptions, pmp
+  requires prelude, core, sys, exceptions
 
   files
     postlude/insts_end.sail,
@@ -332,7 +319,7 @@ unit_tests {
   requires prelude, core, sys, exceptions, postlude
 
   files
-    unit_tests/test_mstatus.sail,
+    unit_tests/test_privilege.sail,
 }
 
 main {

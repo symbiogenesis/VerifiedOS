@@ -33,18 +33,6 @@ void ModelImpl::set_enable_experimental_extensions(bool en) {
   m_enable_experimental_extensions = en;
 }
 
-void ModelImpl::set_reservation_set_size_exp(uint64_t exponent) {
-  m_reservation_set_addr_mask = ~((1 << exponent) - 1);
-}
-
-void ModelImpl::set_reservation_require_exact_addr_match(bool require_exact_addr) {
-  m_reservation_require_exact_addr = require_exact_addr;
-}
-
-void ModelImpl::set_reservation_invalidate_on_same_hart_store(bool invalidate_on_same_hart_store) {
-  m_reservation_invalidate_on_same_hart_store = invalidate_on_same_hart_store;
-}
-
 unit ModelImpl::fetch_callback(sbits opcode) {
   for (auto c : m_callbacks) {
     c->fetch_callback(*this, opcode);
@@ -56,9 +44,6 @@ unit ModelImpl::mem_write_callback(const char *type, sbits paddr, int64_t width,
   for (auto c : m_callbacks) {
     c->mem_write_callback(*this, type, paddr, width, value);
   }
-  if (m_reservation_invalidate_on_same_hart_store && match_reservation(paddr)) {
-    cancel_reservation(UNIT);
-  };
   return UNIT;
 }
 unit ModelImpl::mem_read_callback(const char *type, sbits paddr, int64_t width, lbits value) {
@@ -145,93 +130,6 @@ unit ModelImpl::instret_callback(unit) {
   return UNIT;
 }
 
-unit ModelImpl::ptw_start_callback(uint64_t vpn, MemoryAccessType access_type, Privilege privilege) {
-  for (auto c : m_callbacks) {
-    c->ptw_start_callback(*this, vpn, access_type, privilege);
-  }
-  return UNIT;
-}
-
-unit ModelImpl::ptw_step_callback(int64_t level, sbits pte_addr, uint64_t pte) {
-  for (auto c : m_callbacks) {
-    c->ptw_step_callback(*this, level, pte_addr, pte);
-  }
-  return UNIT;
-}
-
-unit ModelImpl::ptw_success_callback(uint64_t final_ppn, int64_t level) {
-  for (auto c : m_callbacks) {
-    c->ptw_success_callback(*this, final_ppn, level);
-  }
-  return UNIT;
-}
-
-unit ModelImpl::ptw_fail_callback(PTW_Error error_type, int64_t level, sbits pte_addr) {
-  for (auto c : m_callbacks) {
-    c->ptw_fail_callback(*this, error_type, level, pte_addr);
-  }
-  return UNIT;
-}
-
-unit ModelImpl::tlb_add_callback(TLB tlb, uint64_t index) {
-  for (auto c : m_callbacks) {
-    c->tlb_add_callback(*this, tlb, index);
-  }
-  return UNIT;
-}
-
-unit ModelImpl::tlb_flush_begin_callback(unit) {
-  for (auto c : m_callbacks) {
-    c->tlb_flush_begin_callback(*this);
-  }
-  return UNIT;
-}
-
-unit ModelImpl::tlb_flush_callback(uint64_t index) {
-  for (auto c : m_callbacks) {
-    c->tlb_flush_callback(*this, index);
-  }
-  return UNIT;
-}
-
-unit ModelImpl::tlb_flush_end_callback(TLB tlb) {
-  for (auto c : m_callbacks) {
-    c->tlb_flush_end_callback(*this, tlb);
-  }
-  return UNIT;
-}
-
-// Note: Store-Conditionals are allowed to spuriously fail. If you want
-// that to happen you can spuriously set `reservation_valid = false`
-// either directly in `load_reservation()` or by calling
-// `cancel_reservation()`.
-
-unit ModelImpl::load_reservation(sbits addr, uint64_t width) {
-  m_reservation_addr = addr.bits;
-  m_reservation = addr.bits & m_reservation_set_addr_mask;
-  m_reservation_valid = true;
-
-  // Ensure the reservation set subsumes the reserved bytes.
-  assert((width > 0) && (((addr.bits + width - 1) & m_reservation_set_addr_mask) == m_reservation));
-
-  return UNIT;
-}
-
-bool ModelImpl::match_reservation(sbits addr) {
-  return m_reservation_valid && (m_reservation_require_exact_addr ? (addr.bits == m_reservation_addr)
-                                                                  : (m_reservation & m_reservation_set_addr_mask) ==
-                                                                      (addr.bits & m_reservation_set_addr_mask));
-}
-
-unit ModelImpl::cancel_reservation(unit) {
-  m_reservation_valid = false;
-  return UNIT;
-}
-
-bool ModelImpl::valid_reservation(unit) {
-  return m_reservation_valid;
-}
-
 unit ModelImpl::plat_term_write(mach_bits s) {
   char c = static_cast<char>(s);
   if (write(m_term_fd, &c, sizeof(c)) < 0) {
@@ -295,10 +193,6 @@ bool ModelImpl::get_config_print_pma(unit) {
   return m_config_print_pma;
 }
 
-bool ModelImpl::get_config_print_pmp(unit) {
-  return m_config_print_pmp;
-}
-
 bool ModelImpl::get_config_rvfi(unit) {
   return m_config_rvfi;
 }
@@ -331,10 +225,6 @@ void ModelImpl::set_config_print_pma(bool on) {
   m_config_print_pma = on;
 }
 
-void ModelImpl::set_config_print_pmp(bool on) {
-  m_config_print_pmp = on;
-}
-
 void ModelImpl::set_config_rvfi(bool on) {
   m_config_rvfi = on;
 }
@@ -361,13 +251,8 @@ void ModelImpl::set_trace_log(FILE *log) {
 }
 
 void ModelImpl::init_platform_constants() {
-  set_reservation_set_size_exp(get_config_uint64({"platform", "reservation", "reservation_set_size_exp"}));
-  set_reservation_require_exact_addr_match(
-    get_config_bool({"platform", "reservation", "require_exact_reservation_addr"})
-  );
-  set_reservation_invalidate_on_same_hart_store(
-    get_config_bool({"platform", "reservation", "invalidate_on_same_hart_store"})
-  );
+  // Nothing to set: the reservation state this configured is gone with
+  // `Zalrsc` (R-15-025).
 }
 
 void ModelImpl::init_sail(
@@ -465,24 +350,6 @@ std::string ModelImpl::memory_access_type_to_string(MemoryAccessType access_type
   return str;
 }
 
-std::string ModelImpl::privilege_to_string(Privilege privilege) {
-  sail_string sstr = nullptr;
-  CREATE(sail_string)(&sstr);
-  zprivLevel_to_str(&sstr, privilege.ztup0);
-  std::string str(sstr);
-  KILL(sail_string)(&sstr);
-  return str;
-}
-
-std::string ModelImpl::ptw_error_to_string(PTW_Error error_type) {
-  sail_string sstr = nullptr;
-  CREATE(sail_string)(&sstr);
-  zptw_error_to_str(&sstr, error_type);
-  std::string str(sstr);
-  KILL(sail_string)(&sstr);
-  return str;
-}
-
 void ModelImpl::tick_clock() {
   ztick_clock(UNIT);
 }
@@ -514,10 +381,6 @@ uint64_t ModelImpl::pc() const {
 
 uint64_t ModelImpl::mepc() const {
   return zmepc.bits;
-}
-
-uint64_t ModelImpl::sepc() const {
-  return zsepc.bits;
 }
 
 uint64_t ModelImpl::fcsr() const {

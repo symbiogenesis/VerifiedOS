@@ -6,19 +6,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // =======================================================================================
 
-// Identifies the largest MMU address translation mode supported by this hart.
-private function mmu_type() -> string = {
-  if xlen == 32 then {
-    if hartSupports(Ext_Sv32) then "sv32" else "none"
-  } else {
-    assert(xlen == 64);
-    if hartSupports(Ext_Sv57) then "sv57"
-    else if hartSupports(Ext_Sv48) then "sv48"
-    else if hartSupports(Ext_Sv39) then "sv39"
-    else "none"
-  }
-}
-
 // Generators for Device-Tree source corresponding to the model
 // configuration.
 // NOTE: These assume a valid model configuration.
@@ -164,7 +151,8 @@ function generate_dts() -> string = {
          // probably still widely used.
 ^ "      riscv,isa = \"" ^ generate_isa_string(Canonical_Lowercase) ^ "\";\n"
 ^ "      riscv,isa-extensions = " ^ generate_isa_string(DeviceTree_ISA_Extensions) ^ ";\n"
-^ "      mmu-type = \"riscv," ^ mmu_type() ^ "\";\n"
+         // There is no MMU, so no `mmu-type` property is emitted: the
+         // device-tree binding treats its absence as "none".
 ^ generate_cbo_block_size("cboz", Ext_Zicboz)
 ^ "      clock-frequency = <" ^ dec_str(clock_freq) ^ ">;\n"
 ^ "      CPU0_intc: interrupt-controller {\n"

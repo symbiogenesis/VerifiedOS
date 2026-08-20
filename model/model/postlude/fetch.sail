@@ -33,12 +33,9 @@ private function fetch_bytes forall 'n, 'n in {2, 4} . (fetch_start : xlenbits, 
     None()  => (),
   };
 
-  let (paddr, pbmt) : (physaddr, page_based_mem_type) = match translateAddr(Virtaddr(granule_start), InstructionFetch()) {
-    Err(e, _)    => return FetchBytes_Exception(e),
-    Ok(paddr, pbmt, _) => (paddr, pbmt),
-  };
+  let paddr = physical_address(Virtaddr(granule_start));
 
-  match mem_read(InstructionFetch(), pbmt, paddr, width, false, false, false) {
+  match mem_read(InstructionFetch(), paddr, width, false, false) {
     Err(exc_addr, e) => {
       // Instruction fetches are not currently split at the physical memory layer.
       assert(exc_addr == paddr);
@@ -85,8 +82,7 @@ private function fetch() -> FetchResult = {
       // If an exception is raised for the upper two bytes but the
       // instruction is only 16 bits then the exception should be
       // ignored. In this implementation we avoid situations where
-      // this can happen - the minimum PMP granularity is 4 bytes, and
-      // for simplicity we restrict PMA granularity to 4096
+      // this can happen - PMA granularity is restricted to 4096
       // bytes. This situation may still occur if MMIO devices are
       // incorrectly configured, but this is not checked currently.
       FetchBytes_Exception(e)   => F_Error(e, PC),

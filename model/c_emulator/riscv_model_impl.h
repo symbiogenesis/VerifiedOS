@@ -21,10 +21,7 @@ class ModelImpl final : private hart::Model {
 public:
   // types
 
-  using Privilege = hart::ztuple_z8z5enumz0zzPrivilegezCz0z5unitz9;
   using MemoryAccessType = hart::zMemoryAccessTypezIEmem_payloadz5zK;
-  using PTW_Error = hart::zPTW_Error;
-  using TLB = hart::zz5vecz8z5unionz0zzoptionzzIRTLB_EntryzzKz9;
 
   // callbacks
 
@@ -37,9 +34,6 @@ public:
   // configuration
 
   void set_enable_experimental_extensions(bool en);
-  void set_reservation_set_size_exp(uint64_t exponent);
-  void set_reservation_require_exact_addr_match(bool require_exact_addr_match);
-  void set_reservation_invalidate_on_same_hart_store(bool invalidate_on_same_hart_store);
 
   void set_config_print_instr(bool on);
   void set_config_print_clint(bool on);
@@ -47,7 +41,6 @@ public:
   void set_config_print_interrupt(bool on);
   void set_config_print_htif(bool on);
   void set_config_print_pma(bool on);
-  void set_config_print_pmp(bool on);
   void set_config_print_step(bool on);
 
   void set_config_rvfi(bool on);
@@ -68,8 +61,6 @@ public:
   // string conversions
 
   std::string memory_access_type_to_string(MemoryAccessType access_type);
-  std::string privilege_to_string(Privilege privilege);
-  std::string ptw_error_to_string(PTW_Error error_type);
 
   // access to model configuration
 
@@ -88,7 +79,6 @@ public:
   int64_t flen() const;
   int64_t physaddrbits_len() const;
   uint64_t mepc() const;
-  uint64_t sepc() const;
   uint64_t htif_exit_code() const;
   bool htif_done() const;
   bool had_exception() const;
@@ -138,20 +128,6 @@ private:
   unit xret_callback(bool is_mret) override;
   unit instret_callback(unit) override;
 
-  // Page table walk callbacks
-  unit ptw_start_callback(uint64_t vpn, MemoryAccessType access_type, Privilege privilege) override;
-  unit ptw_step_callback(int64_t level, sbits pte_addr, uint64_t pte) override;
-  unit ptw_success_callback(uint64_t final_ppn, int64_t level) override;
-  unit ptw_fail_callback(PTW_Error error_type, int64_t level, sbits pte_addr) override;
-  unit tlb_add_callback(TLB tlb, uint64_t index) override;
-  unit tlb_flush_begin_callback(unit) override;
-  unit tlb_flush_callback(uint64_t index) override;
-  unit tlb_flush_end_callback(TLB tlb) override;
-  unit load_reservation(sbits, uint64_t) override;
-  bool match_reservation(sbits) override;
-  unit cancel_reservation(unit) override;
-  bool valid_reservation(unit) override;
-
   unit plat_term_write(mach_bits) override;
 
   bool sys_enable_experimental_extensions(unit) override;
@@ -168,7 +144,6 @@ private:
   bool get_config_print_interrupt(unit) override;
   bool get_config_print_htif(unit) override;
   bool get_config_print_pma(unit) override;
-  bool get_config_print_pmp(unit) override;
   bool get_config_rvfi(unit) override;
   bool get_config_use_abi_names(unit) override;
 
@@ -178,7 +153,6 @@ private:
   bool m_config_print_interrupt = false;
   bool m_config_print_htif = false;
   bool m_config_print_pma = false;
-  bool m_config_print_pmp = false;
   bool m_config_rvfi = false;
   bool m_config_use_abi_names = false;
 
@@ -194,13 +168,7 @@ private:
 
   std::vector<std::shared_ptr<callbacks_if>> m_callbacks;
 
-  uint64_t m_reservation = 0;
-  uint64_t m_reservation_addr = 0;
-  bool m_reservation_valid = false;
 
-  uint64_t m_reservation_set_addr_mask = 0;
-  bool m_reservation_require_exact_addr = false;
-  bool m_reservation_invalidate_on_same_hart_store = false;
 
   bool m_enable_experimental_extensions = false;
 

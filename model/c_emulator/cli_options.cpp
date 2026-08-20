@@ -70,8 +70,6 @@ CLIOptions parse_cli(int argc, char **argv) {
 #endif
 
   app.add_flag("--trace-instr", opts.config_print_instr, "Enable trace output for instruction execution");
-  app.add_flag("--trace-ptw", opts.config_print_ptw, "Enable trace output for Page Table walk");
-  app.add_flag("--trace-tlb", opts.config_print_tlb, "Enable trace output for TLB adds and flushes");
   app.add_flag(
     "--trace-gpr",
     opts.config_print_gpr,
@@ -111,7 +109,6 @@ CLIOptions parse_cli(int argc, char **argv) {
   app.add_flag("--trace-interrupt", opts.config_print_interrupt, "Enable trace output for interrupts");
   app.add_flag("--trace-htif", opts.config_print_htif, "Enable trace output for HTIF operations");
   app.add_flag("--trace-pma", opts.config_print_pma, "Enable trace output for PMA checks");
-  app.add_flag("--trace-pmp", opts.config_print_pmp, "Enable trace output for PMP checks");
   app.add_flag_callback(
     "--trace-platform",
     [&opts] {
@@ -120,7 +117,6 @@ CLIOptions parse_cli(int argc, char **argv) {
       opts.config_print_interrupt = true;
       opts.config_print_htif = true;
       opts.config_print_pma = true;
-      opts.config_print_pmp = true;
     },
     "Enable trace output for platform-level events (MMIO, interrupts, "
     "exceptions, CLINT, HTIF, PMA, PMP)"
@@ -143,10 +139,9 @@ CLIOptions parse_cli(int argc, char **argv) {
       opts.config_print_interrupt = true;
       opts.config_print_htif = true;
       opts.config_print_pma = true;
-      opts.config_print_pmp = true;
       opts.config_print_step = true;
     },
-    "Enable all trace output except TLB, PTW and gdbserver traces"
+    "Enable all trace output except gdbserver traces"
   );
 
   app.add_option("--gdb-server-port", opts.gdb_server_port, "GDB server port")
