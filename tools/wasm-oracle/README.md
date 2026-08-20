@@ -24,11 +24,11 @@ true
 WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:
 
 ```console
-$ wsl -d Ubuntu -u root -e bash -c '. tools/wsl-env.sh'
+$ wsl -d Ubuntu -u root -e python3 tools/model.py keepalive
 KEEPALIVE pid=... hours=8 pidfile=/tmp/vos-keepalive.pid
 ```
 
-It is idempotent, expires on its own, and stops early with `vos_keepalive_stop`; see the keepalive section of [tools/wsl-env.sh](../wsl-env.sh) for why it is a process and not a setting. The `certicoq-oracle` container carries `--restart unless-stopped` so it also comes back by itself after a teardown that happens anyway.
+It is idempotent, expires on its own, and stops early with `model.py keepalive --stop`; see the keepalive section of [tools/vos/env.py](../vos/env.py) for why it is a process and not a setting. Every model loop takes the same lease, so a build started with `model.py build` needs no separate call. The `certicoq-oracle` container carries `--restart unless-stopped` so it also comes back by itself after a teardown that happens anyway.
 
 ## Corporate-network note
 

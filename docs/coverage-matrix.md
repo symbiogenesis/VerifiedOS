@@ -10,7 +10,7 @@ R-17-001a claims coverage top down rather than by enumerated attack archetype: e
 
 The two enumerations below are nine boundaries and seven properties, and the matrix carries all sixty-three of their pairs.
 
-The point of the shape is what it makes mechanical. `tools/check.ps1` decides that both enumerations are stated once, that every pair appears exactly once, and that no cell rests on nothing. An uncovered boundary is therefore a failing check rather than a critique somebody had to write, which is the whole difference between a coverage argument and a long list.
+The point of the shape is what it makes mechanical. `tools/check.py` decides that both enumerations are stated once, that every pair appears exactly once, and that no cell rests on nothing. An uncovered boundary is therefore a failing check rather than a critique somebody had to write, which is the whole difference between a coverage argument and a long list.
 
 ## 1. The boundaries
 

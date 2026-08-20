@@ -242,7 +242,7 @@ Qed.
 
 (* -------------------------------------------------------------------------
    The R-05-163 gate, as in ApexTheorem.v: every constant closed under the
-   global context, checked by tools/proof-gate.sh against the declared set
+   global context, checked by tools/proof-gate.py against the declared set
    R-05-164 currently makes empty.
    ------------------------------------------------------------------------- *)
 

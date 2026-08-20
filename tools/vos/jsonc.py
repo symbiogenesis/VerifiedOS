@@ -1,23 +1,26 @@
-"""Read the model's configuration dialect: JSON with comments and trailing commas.
+"""The model's configuration dialect: JSON with comments and trailing commas.
 
 The Sail model's configuration files are read by jsoncons, which accepts `//` and
-`/* */` comments and a comma before a closing brace or bracket; Python's `json`
-accepts none of the three. Both tools/config-keys.py and tools/validate-config.py
-read the same files the model reads, so what they accept is what jsoncons accepts:
-a tool that refuses a file the model loads is a tool that gets switched off.
+`/* */` comments and a comma before a closing brace or bracket; Python's `json` accepts
+none of the three. The tools that read the configuration read the same files the model
+reads, so what they accept is what jsoncons accepts: a tool that refuses a file the
+model loads is a tool that gets switched off.
 
-The dialect is defined once here rather than approximated twice. The scanner is
-string-aware, because a `//` inside a quoted value is data rather than the start of
-a comment and a line-oriented regex cannot tell the difference. Comments and dropped
-commas are replaced by whitespace, so an offset in a parse error still points at the
-same place in the original text.
+The dialect is defined once here rather than approximated wherever it is needed. The
+scanner is string-aware, because a `//` inside a quoted value is data rather than the
+start of a comment and a line-oriented pattern cannot tell the difference. Comments and
+dropped commas are replaced by whitespace, so an offset in a parse error still points
+at the same place in the original text.
 """
 
+from __future__ import annotations
+
 import json
+from pathlib import Path
 
 
-def strip_comments(text):
-    out = []
+def strip_comments(text: str) -> str:
+    out: list[str] = []
     i, n = 0, len(text)
     in_string = False
     while i < n:
@@ -59,6 +62,5 @@ def strip_comments(text):
     return "".join(out)
 
 
-def load(path):
-    with open(path, encoding="utf-8") as f:
-        return json.loads(strip_comments(f.read()))
+def load(path: str | Path):
+    return json.loads(strip_comments(Path(path).read_text(encoding="utf-8")))

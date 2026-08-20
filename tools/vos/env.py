@@ -1,0 +1,283 @@
+"""The build environment every model loop needs, read rather than assumed.
+
+This module tunes the *build*, never the VM. Nothing here writes `%USERPROFILE%\\.wslconfig`,
+which is the only place WSL2's CPU and RAM allocation can be set and which applies to
+every distribution at once. The measurements below say that file would not help anyway.
+The single thing here that outlives a build is the keepalive, and it is a bounded
+background process rather than a line in that global file for exactly the same reason:
+it buys the effect this repository needs, scoped to the work, and expires on its own.
+
+Three invariants every loop needs, and used to carry its own copy of:
+
+  1. Sail's C++ emission overflows the default 8 MB stack on the full model (the M0.3
+     finding, twice reproduced). The limit is raised here, in the parent, and every
+     child inherits it.
+  2. The Sail toolchain lives in the opam `default` switch, which a bare
+     `wsl -e python3 tools/model.py` does not put on PATH.
+  3. Where the repository and the build trees are. Both are derived from this file's
+     own location, which is the one thing a module always knows, so a checkout
+     anywhere else, or by anyone else, builds the tree it is actually in.
+
+What the numbers say (measured 2026-08-18, 12-core Snapdragon X Elite, 31.6 GB host,
+WSL2 default allocation of 12 CPUs and 15.7 GB). Cores are already fully exposed; the
+guest sees all 12. Raising the CPU count is therefore not available, and would not help
+if it were, because the build's critical path is two strictly single-threaded stages
+back to back: the Sail C++ emission (107 s warm) followed by the one generated
+translation unit it produces (13.3 MB, 423,101 lines, 150 s wall and 136 s CPU at -O2
+-g when compiled alone). That is a ~4.3 min floor no amount of parallelism reduces.
+Memory is not binding either: the heaviest single compile peaks at 1.43 GB against
+15.7 GB available. The source tree's residence on /mnt/c was tested and rejected as a
+suspect: it is 1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm versus
+an ext4 copy. The build tree already lives on ext4 under /root/build.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# The OCaml native stack Sail's emission needs, in bytes (the shell loops spelled it
+# `ulimit -s 131072`, which is the same number in kilobytes).
+STACK_BYTES = 131072 * 1024
+
+KEEPALIVE_PIDFILE = Path(os.environ.get("VOS_KEEPALIVE_PIDFILE", "/tmp/vos-keepalive.pid"))
+KEEPALIVE_HOURS = int(os.environ.get("VOS_KEEPALIVE_HOURS", "8"))
+
+
+def _env_path(name: str, default: Path) -> Path:
+    return Path(os.environ[name]) if os.environ.get(name) else default
+
+
+@dataclass
+class Environment:
+    """Where everything is, how much of the machine there is, and how much to use."""
+
+    root: Path
+    model: Path
+    build_root: Path
+    log_dir: Path
+    cpus: int
+    mem_available_mb: int
+    jobs: int
+    test_jobs: int
+    ccache: list[str] = field(default_factory=list)
+
+    @property
+    def build_dir(self) -> Path:
+        """The canonical build tree. Three loops named it and each spelled the path out,
+        which is one fact in three places; it is spelled here."""
+        return _env_path("VOS_BUILD_DIR", self.build_root / "verifiedos-model")
+
+    @property
+    def fast_build_dir(self) -> Path:
+        return self.build_root / "verifiedos-model-fast"
+
+    @property
+    def typecheck_cache(self) -> Path:
+        return self.build_root / "verifiedos-typecheck-smt-cache"
+
+    @property
+    def simulator(self) -> Path:
+        return self.build_dir / "c_emulator" / "sail_riscv_sim"
+
+    @property
+    def oracle(self) -> Path:
+        """The M0.4 differential reference: upstream sail-cheri-riscv at the pinned
+        commit, which implements the same ISAv9 capability format the transplant
+        carries. It is evidence, never authority."""
+        return _env_path("VOS_ORACLE",
+                         self.build_root / "sail-cheri-riscv-bb07488d"
+                         / "c_emulator" / "cheri_riscv_sim_RV64")
+
+
+def _cpus() -> int:
+    return len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
+
+
+def _mem_available_mb() -> int:
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) // 1024
+    except OSError:
+        pass
+    return 0
+
+
+def _jobs(cpus: int, mem_mb: int) -> int:
+    """CPUs+2 is Ninja's own default and the right shape for this tree: 366 of the 367
+    translation units are small and oversubscribing by two keeps cores busy across
+    process startup.
+
+    The memory guard does not bind on a default-sized VM and exists so that it would
+    bind on a shrunken one. Sized from measurement rather than a rule of thumb: the
+    generated model unit peaks at 1.43 GB and is the only large one, so reserve 2 GB for
+    it outright and budget a slim 512 MB for each other concurrent job. At 15.7 GB
+    available this yields 24 and the guard is inert; under a 4 GB cap it yields 4 and
+    prevents the thrash.
+    """
+    if os.environ.get("VOS_JOBS"):
+        return int(os.environ["VOS_JOBS"])
+    jobs = cpus + 2
+    if mem_mb > 2048:
+        jobs = min(jobs, max(1, (mem_mb - 2048) // 512))
+    return jobs
+
+
+def _ccache_args() -> list[str]:
+    """Opt-in and absent by default: this stays empty unless ccache is installed, so
+    loading this module changes nothing until `apt install ccache` is run.
+
+    The win it buys is specific. 366 of the 367 units are third-party and do not change
+    across a deletion batch, yet the canonical and fast build trees each compile all of
+    them from scratch, and so does any fresh build directory. A shared cache makes the
+    second tree's 366 free.
+
+    Deliberately no CCACHE_SLOPPINESS. The loose settings trade a correctness margin for
+    hit rate, and a false hit in a build whose output is a verification oracle is not a
+    trade this project should take. ccache hashes the preprocessed source, so the
+    default configuration is sound.
+    """
+    if not shutil.which("ccache"):
+        return []
+    os.environ.setdefault("CCACHE_DIR", "/root/.ccache")
+    os.environ.setdefault("CCACHE_MAXSIZE", "25G")
+    return ["-DCMAKE_C_COMPILER_LAUNCHER=ccache", "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"]
+
+
+def _raise_stack_limit() -> None:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_STACK)
+    want = STACK_BYTES if hard == resource.RLIM_INFINITY else min(STACK_BYTES, hard)
+    if soft == resource.RLIM_INFINITY or soft >= want:
+        return
+    resource.setrlimit(resource.RLIMIT_STACK, (want, hard))
+
+
+def _apply_opam_env() -> None:
+    """Guarded, because the container lanes load this module too and have no opam.
+    Nothing is masked by the guard: a Sail loop without the switch fails loudly at
+    `sail --version`."""
+    if not shutil.which("opam"):
+        return
+    proc = subprocess.run(["opam", "env", "--switch=default", "--shell=sh"],
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        return
+    for name, value in re.findall(r"^(\w+)='(.*)';\s*export", proc.stdout, re.MULTILINE):
+        os.environ[name] = value.replace("'\\''", "'")
+
+
+def load() -> Environment:
+    """Prepare this process, and describe the machine it is preparing it on."""
+    if sys.platform == "win32":
+        raise SystemExit("the model loops run inside WSL: "
+                         "wsl -d Ubuntu -u root -e python3 tools/model.py <command>")
+
+    _raise_stack_limit()
+    _apply_opam_env()
+
+    tools = Path(__file__).resolve().parent.parent
+    root = _env_path("VOS_ROOT", tools.parent)
+    cpus = _cpus()
+    mem = _mem_available_mb()
+
+    # The build trees live on ext4 rather than under the source tree: /mnt/c is a 9p
+    # mount and a build directory on it is slow enough to matter.
+    return Environment(
+        root=root,
+        model=_env_path("VOS_MODEL", root / "model"),
+        build_root=_env_path("VOS_BUILD_ROOT", Path("/root/build")),
+        log_dir=_env_path("VOS_LOG_DIR", Path("/root/logs")),
+        cpus=cpus,
+        mem_available_mb=mem,
+        jobs=_jobs(cpus, mem),
+        # Each ctest case is one single-threaded process with a small footprint, so the
+        # core count is the whole story and the memory guard does not apply.
+        test_jobs=int(os.environ.get("VOS_TEST_JOBS", cpus)),
+        ccache=_ccache_args(),
+    )
+
+
+def stage(name: str, argv: list[str], report_to=None, **kwargs) -> int:
+    """Run a build stage and record what it cost.
+
+    The breakdown of a full build was known only for its two serial stages; every
+    future tuning decision wants the rest, and the cheapest way to get it is to have
+    each green build write it down. `os.wait4` reports the rusage of *this* child rather
+    than the running maximum over every child so far, so a light stage after a heavy one
+    reports its own peak and not the heavy one's.
+
+        STAGE emit wall=107.4s cpu=99% maxrss=2411360kB
+    """
+    import resource
+
+    started = time.perf_counter()
+    proc = subprocess.Popen(argv, **kwargs)
+    _, status, usage = os.wait4(proc.pid, 0)
+    proc.returncode = os.waitstatus_to_exitcode(status)
+
+    wall = time.perf_counter() - started
+    cpu = (usage.ru_utime + usage.ru_stime) / wall * 100 if wall > 0 else 0
+    print(f"STAGE {name} wall={wall:.1f}s cpu={cpu:.0f}% maxrss={usage.ru_maxrss}kB",
+          file=_report_stream(report_to, kwargs.get("stderr")), flush=True)
+    return proc.returncode
+
+
+def _report_stream(report_to, child_stderr):
+    """A stage reports beside its own output: where the child writes to a log, so does
+    the line saying what the child cost."""
+    for candidate in (report_to, child_stderr):
+        if hasattr(candidate, "write"):
+            return candidate
+    return sys.stderr
+
+
+def keepalive(hours: int | None = None) -> None:
+    """Hold the distribution up for a bounded time, so a loop does not lose the VM.
+
+    WSL2 starts its vmIdleTimeout only once every instance has stopped, and the default
+    60 s is short enough that work left running between two `wsl -e` invocations loses
+    the VM underneath it, taking the docker daemon and any container with it (the M1.5
+    finding). The switch that disables the timer lives in exactly one place,
+    `%USERPROFILE%\\.wslconfig`: global to every distribution, permanent until a human
+    deletes it, and outside anything this repository should own. A detached bounded
+    sleep buys the same effect from inside: while it lives the distribution has a
+    running process, so no instance ever stops, so the timer never starts; when it
+    expires the machine is back to stock with nothing left behind.
+
+    Idempotent via the pidfile, so loading this in every loop starts at most one.
+    """
+    hours = KEEPALIVE_HOURS if hours is None else hours
+    if hours <= 0:
+        return
+    if _keepalive_running():
+        return
+    proc = subprocess.Popen(["sleep", str(hours * 3600)], start_new_session=True,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    KEEPALIVE_PIDFILE.write_text(f"{proc.pid}\n")
+    print(f"KEEPALIVE pid={proc.pid} hours={hours} pidfile={KEEPALIVE_PIDFILE}",
+          file=sys.stderr)
+
+
+def _keepalive_running() -> bool:
+    try:
+        pid = int(KEEPALIVE_PIDFILE.read_text().strip())
+        os.kill(pid, 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def keepalive_stop() -> None:
+    try:
+        os.kill(int(KEEPALIVE_PIDFILE.read_text().strip()), 15)
+    except (OSError, ValueError):
+        pass
+    KEEPALIVE_PIDFILE.unlink(missing_ok=True)
