@@ -58,8 +58,16 @@ The closure is the register's own conferral shape applied to the tool: this regi
 | K-43 | bindings | every consumer cell restates what the statement does with its field | R-18-031, R-05-160, R-05-161 |
 | K-44 | bindings | every instantiation cell is 'none yet' or a link to the instantiating artifact | R-18-031 |
 | K-45 | confers | every disposition and ruling suppresses a finding that would otherwise stand | R-17-016, R-17-030t, R-10-013a |
-| K-46 | floors | every set the tool reads has members, and every quantity it computes is claimed | the checker's own reach; a rule over an empty set passes and decides nothing |
+| K-46 | floors | every set the tool reads has members, every citation it makes into the register resolves, and every quantity it computes is claimed | the checker's own reach; a rule over an empty set passes and decides nothing |
 
 ## What the registry is not
 
 It is not a specification of the checks' algorithms, which stay in the source where they can be read beside their data, and it is not a promise of semantic coverage: a rule can hold while the sentence it guards states the wrong thing, which is the residue the register's own gate discussion names. A rule whose claim has drifted from what its check decides is a defect of this table, repaired by editing the row, never by widening the claim to fit.
+
+## What a passing run does not decide
+
+The gate should price this table by what its rules reach, and the reach has a boundary worth stating rather than leaving to be discovered. A rule decides a property of a set the tool locates in a document, so the honest question about any row is not only whether the property holds but whether the set is the intended one, and there are three answers.
+
+Where the set is found by **name**, staleness is caught outright: an identifier, a bookmark, a link, or a section number either resolves against the artifact declaring it or is a finding, in both directions, which is what K-01 through K-17 and K-42 through K-44 are. Where the set is a **computed value**, it is recomputed rather than trusted, which is what K-24 through K-37 are. Where the set is found by **pattern**, a regex or a literal that locates content rather than naming it, the pattern does not fail when the document moves under it; it matches less. K-46 floors the case where it matches nothing at all, which is the common one, because deletions and renumberings are common and an empty set satisfies every property vacuously. K-45 is the same floor applied to the tool's own carve-outs.
+
+What no rule here reaches is a pattern whose yield falls **without reaching zero**. Drop one term from a vocabulary alternation and the agenda quietly narrows, the remaining candidates are still checked, and the run is still green. Nor does any rule reach a reference that still resolves while its referent has changed meaning, which is the semantic residue above seen from the other side. Both are a person's to catch, and a run reporting every rule green is evidence about the first two classes only.
