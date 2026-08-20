@@ -1788,7 +1788,7 @@ Report 'K-41' 'file(s) carrying mojibake or a replacement character' $mojibakeHi
 # cheap, because a rule in that state looks exactly like a rule that is working, and
 # the review gate prices it as one.
 #
-# Two floors close it, and the first is nearly free because the design already almost
+# Three floors close it, and the first is nearly free because the design already almost
 # has it. A quantity the counts group computes is compared against what the documents
 # say, so an anchor that breaks drives the count to zero and the prose disagrees with
 # it loudly: being *claimed* is what makes a quantity self-checking. So every quantity
@@ -1796,8 +1796,20 @@ Report 'K-41' 'file(s) carrying mojibake or a replacement character' $mojibakeHi
 #
 # The second covers what is read and never counted. There is no prose to disagree with
 # such a set, so the floor is stated here directly: it has members, or the reading that
-# produced it has moved and this says so. Neither floor decides that the members are
-# the right ones, which is the same residue every enumeration above declares.
+# produced it has moved and this says so.
+#
+# The third covers the references this file makes by hand. A view declares the register
+# subsections it draws its members from, the pattern that selects them where there is no
+# subsection to name, and the requirement that governs it. Those are citations of the
+# register living in a .ps1, so the names group never sees them: renumber a subsection
+# and the view's membership silently narrows to nothing while the check that reads it
+# goes on reporting that every bearing requirement is carried. A citation the register
+# no longer answers is the finding, in whichever of the three forms it takes.
+#
+# No floor decides that the members are the right ones, and none of them sees a reading
+# that narrows without emptying: a vocabulary that loses one term still catches the rest
+# and still reports green over them. That residue is named in tools/check-rules.md and
+# is the same one every enumeration above declares.
 
 "=== floors: every enumeration this tool reads has members ==="
 
@@ -1825,6 +1837,33 @@ Report 'K-46' 'enumeration(s) the tool reads and finds empty:' `
        @($floors.Keys | Where-Object { -not $floors[$_] } |
          ForEach-Object { "the tool finds no $_; whatever it reads them from has moved" }) `
        "all $($floors.Count) uncounted enumerations have members"
+
+# the register citations the view table carries, which live in this file and so reach
+# neither the names group nor the links group
+$subCount = @{}
+foreach ($k in $subsection.Keys) {
+    if ($subsection[$k]) { $subCount[$subsection[$k]] = 1 + $subCount[$subsection[$k]] }
+}
+
+$cited = 0
+$unanswered = @(foreach ($v in $views) {
+    $cited++
+    if (-not $idSet.Contains($v.Governing)) {
+        "$($v.File) is governed by $($v.Governing), which the register does not declare"
+    }
+    foreach ($s in @($v.Secs | Where-Object { $_ })) {
+        $cited++
+        if (-not $subCount[$s]) { "$($v.File) draws its members from §$s, where the register carries no entries" }
+    }
+    if ($v.BodyPattern) {
+        $cited++
+        if (-not @($body.Keys | Where-Object { $body[$_] -match $v.BodyPattern }).Count) {
+            "$($v.File) selects its members with a pattern no register entry matches"
+        }
+    }
+})
+Report 'K-46' 'view citation(s) the register no longer answers:' $unanswered `
+       "all $cited register citations in the view table resolve"
 ""
 
 # =================================================================================
