@@ -94,6 +94,37 @@ COUNTED_NOUN = re.compile(
 COVERAGE_ROW_RE = r"(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|(?=\r?$)"
 
 
+def _form_sites(form_re, forms: list[str], raw: str) -> list:
+    """Every site the form pattern decides, reached through the literals it is built of.
+
+    The pattern is an alternation of the forms the counted quantities take, spelled words
+    and digit strings alike, each under a boundary on both sides and the whole under a
+    case-insensitive flag. An alternation gives the engine no literal to pre-scan
+    for, so it tries every branch at every one of three million positions to return the
+    few dozen sites the corpus actually states, and it is the most expensive scan a run
+    performs. `str.find` proposes those sites instead, over the case-folded text so that
+    a capitalised form is proposed too, and the pattern decides each one: this is the
+    pattern's own answer and only the order of the search differs, which is the same
+    bargain `figures.find_all` strikes for the claims.
+
+    A fold that is not length-preserving would move every offset under the proposal, so
+    the document is read whole rather than searched through a text that no longer lines
+    up with it.
+    """
+    folded = raw.lower()
+    if len(folded) != len(raw):
+        return list(form_re.finditer(raw))
+
+    sites: set[int] = set()
+    for form in forms:
+        at = folded.find(form)
+        while at >= 0:
+            sites.add(at)
+            at = folded.find(form, at + 1)
+
+    return [m for at in sorted(sites) if (m := form_re.match(raw, at))]
+
+
 def _quantities(ctx) -> dict[str, int]:
     reg, art, sh = ctx.reg, ctx.art, ctx.shared
     classes = [cj_class(row) for row in art.cj_rows]
@@ -182,7 +213,7 @@ def run(ctx) -> None:
                 held = claim_spans.get(doc.name, [])
 
             by_form: dict[str, list] = {}
-            for m in form_re.finditer(raw):
+            for m in _form_sites(form_re, ordered, raw):
                 by_form.setdefault(m.group().lower(), []).append(m)
 
             for form in forms:

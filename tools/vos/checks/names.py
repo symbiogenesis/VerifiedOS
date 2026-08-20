@@ -15,6 +15,11 @@ import re
 
 HEADING = "=== names: every id used, against the artifact that declares it ==="
 
+# The character an id may not be preceded by, which is the left half of the boundary the
+# citation must stand on. It is the same class the pattern below states on its right,
+# spelled once here so the two halves cannot come to mean different things.
+WORDISH = re.compile(r"[\w-]")
+
 
 def run(ctx) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
@@ -45,23 +50,38 @@ def run(ctx) -> None:
         declared[kind] = set(ids)
         unknown[kind] = []
 
+    # The five token shapes share no prefix, so the engine has no literal to pre-scan
+    # for and must try each branch at every position. Stating the left boundary as a
+    # leading lookbehind makes that worse rather than cheaper, because it is re-decided
+    # at each of those positions: measured over this corpus it was four fifths of the
+    # scan. So the pattern carries only its right boundary and the left one is decided
+    # here, on the few thousand hits instead of on three million positions.
+    #
+    # The two agree, and not by coincidence: a hit this rejects is preceded by a word
+    # character, and every character inside a token is one, so no citation can begin
+    # inside a rejected hit and be skipped along with it.
     pattern = re.compile(
-        r"(?<![\w-])(?:" + "|".join(token for _, token, _, _ in vocab) + r")(?![\w-])"
+        r"(?:" + "|".join(token for _, token, _, _ in vocab) + r")(?![\w-])"
     )
 
     # a declared id is the overwhelming case and needs no line, so it is one set
     # lookup; only an unknown id pays for finding its line, and a fenced one names
     # nothing anyway
     for doc in ctx.corpus.docs:
-        for m in pattern.finditer(doc.raw):
-            kind = by_initial[m.group()[0]]
-            if m.group() in declared[kind]:
+        raw = doc.raw
+        for m in pattern.finditer(raw):
+            start = m.start()
+            if start and WORDISH.match(raw, start - 1, start):
+                continue                       # inside a longer word, so it cites nothing
+            ident = m[0]
+            kind = by_initial[ident[0]]
+            if ident in declared[kind]:
                 continue
-            if doc.is_fenced(m.start()):
+            if doc.is_fenced(start):
                 continue
             home = next(h for k, _, _, h in vocab if k == kind)
             unknown[kind].append(
-                f"{doc.name}:{doc.at(m.start())} uses {m.group()}, which {home} does not declare"
+                f"{doc.name}:{doc.at(start)} uses {ident}, which {home} does not declare"
             )
 
     for kind, _, _, home in vocab:

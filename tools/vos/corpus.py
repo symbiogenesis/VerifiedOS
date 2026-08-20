@@ -18,11 +18,17 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# [^\S\r\n] is \s minus the line breaks, which on a single line is the same class;
-# over the raw text it keeps ^ from drifting across a blank line onto the fence
-FENCE_RE = re.compile(r"(?m)^[^\S\r\n]*```")
+# The line-anchored patterns here are matched against one line rather than scanned
+# across the whole text with `(?m)^`. The two decide the same lines, but a multiline
+# scan costs the engine an attempt at every line start of a three-megabyte corpus,
+# where a line walk rejects on a substring test first and enters the engine only for
+# the few lines that survive it: measured over this corpus each such scan fell from
+# about twenty milliseconds to under three, and a run performs several of them.
+#
+# [^\S\r\n] is \s minus the line breaks, which on a single line is the same class.
+FENCE_RE = re.compile(r"[^\S\r\n]*```")
 ANCHOR_RE = re.compile(r'<a id="([^"]+)"')
-HEADING_RE = re.compile(r"(?m)^#{1,6}[ \t]+([^\r\n]+)")
+HEADING_RE = re.compile(r"#{1,6}[ \t]+([^\r\n]+)")
 NUMBERED_RE = re.compile(r"^§?(\d+(?:\.\d+)*)[.:) ]")
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -58,11 +64,22 @@ class Document:
     def is_fenced(self, offset: int) -> bool:
         return self.fenced[self.line_of(offset)]
 
-    def unfenced(self, pattern: re.Pattern[str]):
-        """Every match a fence does not display."""
-        for m in pattern.finditer(self.raw):
-            if not self.is_fenced(m.start()):
-                yield m
+    def unfenced(self, lead: str, pattern: re.Pattern[str]):
+        """Every line-anchored match a fence does not display, as its line and its match.
+
+        The line's index comes back with it because the walk already knows it: where a
+        caller wants the raw offset instead it is `starts[index]`, and the binary search
+        `line_of` would otherwise perform is never paid for at all.
+
+        `lead` is a substring the pattern cannot match without, tested before the
+        pattern is. It is redundant with the pattern rather than a further condition, so
+        it can only skip lines the pattern would reject anyway; what it buys is that
+        nearly every line is rejected by a C substring scan instead of by entering the
+        regex engine.
+        """
+        for i, line in enumerate(self.lines):
+            if lead in line and not self.fenced[i] and (m := pattern.match(line)):
+                yield i, m
 
 
 def _read(path: Path, name: str) -> Document:
@@ -83,21 +100,25 @@ def _read(path: Path, name: str) -> Document:
     lines = [p[:-1] if p.endswith("\r") else p for p in body]
 
     # every fence marker toggles, so the odd-even pairs span the displayed lines,
-    # markers included; an unclosed fence displays to the end of the file. The match
-    # is ^-anchored, so its offset is a line start and the search is an exact hit.
+    # markers included; an unclosed fence displays to the end of the file. The markers
+    # are the lines the fence pattern matches, so a walk names them by index and no
+    # offset has to be resolved back to a line.
+    last = len(lines) - 1
+    marks = [i for i, line in enumerate(lines)
+             if "```" in line and FENCE_RE.match(line)]
+
     fenced = [False] * len(lines)
-    marks = [bisect.bisect_right(starts, m.start()) - 1 for m in FENCE_RE.finditer(raw)]
     for k in range(0, len(marks), 2):
         a = marks[k]
-        b = marks[k + 1] if k + 1 < len(marks) else len(lines) - 1
-        for j in range(a, min(b, len(lines) - 1) + 1):
-            fenced[j] = True
+        b = min(marks[k + 1] if k + 1 < len(marks) else last, last)
+        # a fence is a span of lines, so marking one is a span write
+        fenced[a:b + 1] = [True] * (b - a + 1)
 
     return Document(name=name, raw=raw, lines=lines, starts=starts, fenced=fenced)
 
 
 PROSE = "docs/spec.md"
-PROSE_SECTION_RE = re.compile(r"(?m)^## (\d+)\.")
+PROSE_SECTION_RE = re.compile(r"## (\d+)\.")
 
 # the tree the corpus excludes by name, stated once so that the selftest's sandbox and
 # the exclusion itself cannot stop agreeing
@@ -122,7 +143,7 @@ class Corpus:
         # CSR section), so the numbered headings are one set for the repository.
         self.numbered: set[str] = set()
         for d in docs:
-            for m in d.unfenced(HEADING_RE):
+            for _, m in d.unfenced("#", HEADING_RE):
                 heading = m.group(1)
                 d.targets.add(slug(heading))
                 num = NUMBERED_RE.match(heading)
@@ -146,8 +167,8 @@ class Corpus:
         head_offsets: list[int] = []
         head_secs: list[str] = []
         if prose:
-            for m in d.unfenced(PROSE_SECTION_RE):
-                head_offsets.append(m.start())
+            for i, m in d.unfenced("## ", PROSE_SECTION_RE):
+                head_offsets.append(d.starts[i])
                 head_secs.append(m.group(1))
 
         here: dict[str, int] = {}

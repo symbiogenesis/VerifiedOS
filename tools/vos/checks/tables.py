@@ -21,11 +21,13 @@ from .links import sites
 
 HEADING = "=== tables: every row against the width its header declares ==="
 
-# only the rows are visited: the matcher hands back every pipe-led line with its
-# offset, an offset is its line by exact search (the match is ^-anchored), and a run is
-# rows on consecutive lines; a fenced row is display text, and the line it holds breaks
-# the adjacency exactly as any prose line does
-ROW_RE = re.compile(r"(?m)^[^\S\r\n]*\|[^\r\n]*")
+# only the rows are visited: a row is a pipe-led line, and a run is rows on consecutive
+# lines; a fenced row is display text, and the line it holds breaks the adjacency
+# exactly as any prose line does. The lines are walked rather than scanned for with
+# `(?m)^`, so a line carrying no pipe at all is rejected by a substring test before the
+# regex engine is entered, and each row's index comes from the walk instead of from a
+# binary search back through the offsets.
+ROW_RE = re.compile(r"[^\S\r\n]*\|")
 RULE_RE = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 ESCAPED_PIPE_RE = re.compile(r"\\\|")
 
@@ -43,15 +45,15 @@ def run(ctx) -> None:
         has_rule = False
         prev_line = -2
 
-        for m in ROW_RE.finditer(doc.raw):
-            line_index = doc.line_of(m.start())
+        for line_index, line in enumerate(doc.lines):
+            if "|" not in line or not ROW_RE.match(line):
+                continue
             if doc.fenced[line_index]:
                 continue
             if rows and line_index != prev_line + 1:
                 if not has_rule:
                     ruleless.append(f"{doc.name}:{start_line + 1}, {rows} row(s) with no header rule")
                 rows, has_rule = 0, False
-            line = m.group()
             # an escaped pipe is a character inside a cell, not a wall between two
             cells = len(ESCAPED_PIPE_RE.sub("", line.rstrip()).split("|")) - 2
             if rows == 0:
