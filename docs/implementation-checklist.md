@@ -383,12 +383,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e4), M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
-* Current serial path: M0.6e (e5) → M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
+* Current serial path: M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
 * Available parallel work: M0.7, M0.12 drafting, M2.1, and M4.1.
-* Total estimate: 802.2 h midpoint, range 546.7–1,057.7 h.
-* Progress by estimate: 26.7 of 802.2 h complete (3.3%); 775.5 h remaining (96.7%).
-* M8 gate: 719.2 h of the 802.2 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Total estimate: 798.5 h midpoint, range 545–1,052 h.
+* Progress by estimate: 30 of 798.5 h complete (3.8%); 768.5 h remaining (96.2%).
+* M8 gate: 715.5 h of the 798.5 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -396,7 +396,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 
 #### Baselines
 
-* [x] **M0.1 · Pin upstream models** · 0.4 h actual · 0.0%
+* [x] **M0.1 · Pin upstream models** · 0.7 h actual · 0.1%
   * `sail-riscv` pinned at `6266b40c`; `sail-cheri-riscv` pinned at `bb07488d`. The vendoring baseline is `8f91355e` (M0.6a); the pin tracks the edition the curation is reconciled against, so advancing it is the act of carrying an upstream change across rather than a record of where the tree came from.
   * Finding: the CHERI tree embeds older `sail-riscv` commit `b748a82`; reconciliation therefore requires a semantic transplant, not configuration of one shared base.
   * Upstream carriage is a **disposition per commit**, not a merge: the curated tree has deleted most of what upstream touches, so each change is either applied, or refused with the deletion that makes it inapplicable. Against `8f91355e..6266b40c`: the `Zvknh` predicate grouping (#1881) **applies**, a missing parenthesis that let `zvknhab_check_encdec` guard only the `Zvknhb` disjunct, and lands in `zvknhab_insts.sail`; the `config_file` build dependency (#1885) **applies** to the two prover-backend rules that survive, SMT and Rocq, the three `rmem` rules it also fixed having gone with the dormant targets in c1; and the WFI external-interrupt wake (#1868) is **inapplicable**, its bug being that `MEIP`/`SEIP` are not held in `mip` so a bare read hides them, where M0.6d deleted the fields, their sources, and `read_mip` itself, leaving `mip` carrying `MTI` alone and `shouldWakeForInterrupt`'s bare read total.
@@ -425,7 +425,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * `tools/build-model.sh` builds out of tree with the larger OCaml stack.
   * Exit evidence: build green; 664/664 tests pass.
 
-* [x] **M0.6b · Measure configuration-level curation** · 0.4 h actual · 0.0%
+* [x] **M0.6b · Measure configuration-level curation** · 0.4 h actual · 0.1%
   * `model/config/verifiedos.json` captures all profile rows supported by the config schema.
   * Profile run: 132/134 adopted-family physical tests pass; both failures are expected profile refusals.
   * Source-level residue: scalar F/D coupling, CSR narrowing and trap totality, `vstart`, and AIA.
@@ -472,13 +472,13 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * Expected profile refusals: 29 of 199 physical-variant tests, every one explained: ten `Zfh` tests the profile excludes, the three c1 cuts, the three c2 cuts, the standing M0.6b pair, c3's ten, and this batch's one, `mi-p-breakpoint`, which opens by writing `tselect` to count the triggers it may use. The sweep is now a repository instrument rather than a per-batch shell loop ([tools/profile-sweep.sh](../tools/profile-sweep.sh)), which is also what classifies a hang as a refusal that blocks rather than leaving it to a ctest timeout.
   * Four findings. The trap on an unallocated CSR address was already total and needed no work: `is_CSR_accessible` defaults to false in `csr_end.sail`, so `check_CSR` rejects every address no clause claims, and c3's exclusion of `mi-p-pmpaddr` for trapping rather than reading zero is the standing evidence; what this batch adds to it is four more addresses, `tselect` and `tdata1-3`, whose name-map rows went with the register. Deleting the two interrupt *fields* deletes their two sources with them: the Simple Interrupt Generator device existed only to drive `MEIP`/`MSIP` and is gone entirely, and the CLINT's `msip` door with it, which leaves the CLINT as the machine timer and nothing else. The external-interrupt bit was also the sole reason `mip` read one value into `rd` and a different one into its own read-modify-write, so its deletion collapses `doCSR`'s two-value split into one and takes the platform-interrupt OR, the `XipReadType` enum, and `read_mip` with it. And two enumerations follow the same one-reachable-value rule c3 applied to `Privilege`: `InterruptType` keeps `I_M_Timer` alone, and `breakpoint_cause` goes entirely, `ebreak` being the only breakpoint source once the trigger module is deleted, which also removes a non-injective mapping whose two arms both encoded cause 3.
 
-* [ ] **M0.6e · Transplant CHERI capability semantics**
+* [x] **M0.6e · Transplant CHERI capability semantics**
   * Port capability types and compression, merged registers, tag memory, PCC/sentries, machine trap capabilities, load/store checks, and ISAv9 trap causes.
   * Differentially compare RVFI-style traces with the M0.4 oracle.
   * The transplant carries ISAv9's **128-bit** parameterization rather than the frozen one, and that is the batch's shape rather than a delay: the M0.4 oracle is the differential reference, it is a reference only while the two models agree on the format, and what this batch owes M0.6f is an algebra whose field widths are the only thing that has to move (R-15-007a).
   * The extension hooks the transplant hangs off (`ext_data_get_addr`, `ext_control_check_pc`, `ext_fetch_check_pc`, `ext_check_CSR`) have been in their final, privilege-free shape since c3.
 
-  * [x] **e1 · Fix XLEN at 64** · 1.2 h actual · 0.1%
+  * [x] **e1 · Fix XLEN at 64** · 1.2 h actual · 0.2%
     * `xlen` stops being a configuration key and becomes the constant 64, and the RV32 configuration goes with it: the generated `rv32*` configurations, the `--rv32` default and its embedded JSON, the RV32 test lanes in all three corpora, and the RV32 prover-backend target. The base is RV64 (R-15-001), no plain-RV32 target exists anywhere on the platform (R-18-002), and there is one model of one machine (R-15-005).
     * Net change: 385 lines removed and 254 added across 40 files. Deleted with the base: `mstatush`, which is the RV32 high half of `mstatus` and whose address is now unallocated and therefore trapping (R-15-014); the `Architecture` enumeration with its two-bit encoding and the `architecture()` and `in32BitMode()` queries over it, `misa.MXL` becoming the constant `0b10`; `Zbkb`'s RV32-only `zip` and `unzip`; the RV32 encodings of `zext.h` and `rev8`; the RV32 arms of the `Zbs` mask computation; and `asidlen`, left over from address translation. Thirty-seven vacuous `xlen == 64` guards collapse with them.
     * Exit evidence: build green; 150/150 tests pass; `verifiedos.json` validates against the regenerated schema and its key set agrees with the generated max configuration at 128 keys ([tools/config-keys.py](../tools/config-keys.py)), one fewer than c4's 129, the key being `base.xlen`. The RV64 profile sweep is unchanged at 53 of 199, 52 refusals and the standing `rv64si-p-dirty` hang, which is the point of running it: the freeze removes no RV64 surface, and 261 ctest cases become 150 because the corpus carried an `rv32*` half for a machine this model can no longer be asked for.
@@ -501,8 +501,14 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
     * Net change: 402 lines added and 131 removed over 13 files, two of them new. The page-table-walk accumulator and its error types go with them: they described a walker deleted in c3.
     * Exit evidence: build green; 150/150 tests pass; the profile sweep is unchanged at 53 of 199; four more `$[test]` properties, that a trap saves PCC into MEPCC and installs MTCC, that `mret` unseals a sentry, that a fetch outside PCC's bounds and a fetch under an untagged PCC each raise their own violation, and that a store without store permission and a load through an untagged base register each fault where the access is rather than where the value was made.
     * Two findings. **The transplant cannot delete DDC on its own schedule, and the corpus is why.** Every test in `riscv-tests` addresses memory with an integer base register, so on a machine with no default data capability every load and store in the corpus faults at its base: the first build with DDC deleted hung five machine-mode tests on exactly that. Hybrid mode and DDC therefore stay until M0.6f, where the plan already puts their deletion, and the capability-mode arm beside them is the profile's own data path. What that schedules with it is M0.6f's exit criterion: after the cut, `riscv-tests` is not a corpus this machine can run, so the batch is gated on purecap test programs (M0.12) rather than on the suite that gates every batch before it. **The trap raise has to sit in the postlude.** A check is core surface because it reads PCC, but raising a trap calls the exception machinery in `sys`, which is compiled after `core`, so the three `ext_handle_*_error` hooks and the two privilege-failure hooks move to `postlude/cap_traps.sail`, the first point at which both halves are in scope.
-  * [ ] **e5 · Port the instruction surface and stand up the differential harness** · 7 h, range 5–9 · 0.9%
-    * The ISAv9 capability instructions, then RVFI-style trace comparison against the M0.4 oracle over the corpus M0.12 versions.
+  * [x] **e5 · Port the instruction surface and stand up the differential harness** · 3 h actual · 0.4%
+    * The ISAv9 capability instructions land in `extensions/CHERI/`, ungated as the format and algebra in `core` are: the capability-mode control transfers (`auipcc`, `cjal`, `cjalr`) behind a second decode mapping, the two mode-independent jumps and `cinvoke`, the eleven inspection instructions, the monotone derivations with the three `csetbounds` forms sharing one narrowing, `cclear`, `cspecialrw` over the bank the profile keeps, the explicit-authority data loads and stores, the capability loads and stores, and `cloadtags`. 999 lines of Sail across two new files, plus the plumbing the second decode needs.
+    * Three ISAv9 groups are **not** carried across, each because the machine no longer has what they act on rather than because the profile excludes them: `FPClear` clears a scalar floating-point file c4 deleted; `LoadRes*`, `StoreCond*`, and the sub-word `lr`/`sc` decodings ISAv9 adds to the base need a reservation c3 deleted with `Zalrsc`; and `AMOSwapCap` is a capability-width atomic swap where `A` is narrowed to `Zaamo` + `Zabha` at byte, halfword, word, and doubleword (R-15-024), so the width it names is not one the adopted atomic surface carries.
+    * The differential rig is three tools: [tools/trace-normalize.py](../tools/trace-normalize.py) turns either executor's trace dialect into one record stream, [tools/diff-trace.py](../tools/diff-trace.py) aligns the two and reports where they stop agreeing, and [tools/diff-trace.sh](../tools/diff-trace.sh) drives both over a corpus. The record set is the intersection of what the two print today, a retire, a register-write address, and a data read.
+    * Net change: 1,940 lines added and 35 removed across 13 files, six of them new.
+    * Exit evidence: build green; 150/150 tests pass; the profile sweep is unchanged at 53 of 199; the ten new properties in [test_cheri_insts.sail](../model/model/unit_tests/test_cheri_insts.sail) pass, bringing the model's own harness to 28; and the rig runs the 54-member `rv64ui-p-*` corpus with an agreeing prefix of 97 records on every member.
+    * Four findings. **The read path was discarding the tag.** e3 keyed the tag plane by granule and wired it into the write path, but `checked_mem_read` returned `default_meta` unconditionally, an upstream `TODO` about folding metadata across splits, so no capability could ever be loaded with its tag set; e5 is the first batch with an instruction that reads one, which is what surfaced it. The fold is now the conjunction over the splits, which for an unsplit access is that granule's tag exactly and for a split one is the conservative answer at the same polarity as the write path's clearing of every granule it covers. **`lc` collides with `cbo.zero`.** ISAv9 puts the capability load at MISC-MEM `funct3` 010 and the cache-block operations are there too, separated only by a zero destination and a small immediate; upstream never meets them because it does not implement `Zicboz`, which the profile adopts (R-15-060). The destination separates them here, a capability load into the null register discarding what it loaded, and the frozen dialect re-encodes this anyway (R-15-007), so what is owed at the freeze is a decision and not a repair. **The two executors neither start at the same instruction nor report a register write at the same width.** The oracle enters through a reset-vector ROM at 0x1000 this platform has no counterpart for, so the streams align on the first PC the curated model retires rather than on the step number; and the oracle prints the whole capability on a register write where this side prints the address alone, which [core/regs.sail](../model/model/core/regs.sail) already books as M0.12's to widen. The store side of the memory trace is not comparable at all, the oracle emitting no store line. And **`riscv-tests` cannot reach agreement past its own prologue, which is a fact about the corpus rather than about the transplant.** Each test points `mtvec` at the end of a group and then writes `medeleg`, which is an illegal instruction on a machine c3 stripped of delegation, so the trap skips the group the oracle retires and both machines reach the same result by different routes. The prefix is 97 on all 54 members, so the regression the rig carries today is that it must not *shorten*, which `--floor` enforces; a corpus both executors run in lockstep is M0.12's.
+    * One refactor the surface forced, and it removes a duplicate rather than adding one: the explicit-authority loads and stores name their own authority where an ordinary access lets the mode pick it, so [core/addr_checks.sail](../model/model/core/addr_checks.sail) splits into `cap_mode_auth`, which selects, and `cap_data_checks`, which decides, with `ext_data_get_addr` composing the two.
 
 * [ ] **M0.6f · Re-parameterize to 64+1 bits** · 12 h, range 8–16 · 1.5%
   * Implement the §4.1 field widths and total 32-codepoint permission decode; all-zeroes must decode to untagged NULL.
@@ -514,7 +520,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * Add `cmovz`/`cmovn`, `cloadtags`, revocation filtering and bitmap, `fence.t`, capability indexed load/store, `cclear`, and the machine-level AIA pending array.
   * Do not model measurement-conditioned provisional rows yet. The single-check multi-register save is struck from the freeze set (R-15-036n) and is not modeled at all.
 
-* [ ] **M0.6h · Add the three bespoke block instructions** · 6 h, range 4–8 · 0.7%
+* [ ] **M0.6h · Add the three bespoke block instructions** · 6 h, range 4–8 · 0.8%
   * Add `vmclear` (R-15-069d), `creclaim` (R-15-007s), and `cbo.scrub` (R-15-177a): one Sail clause each, fixed-latency, on the constant-time list.
   * `vmclear` clears vector RF, vector CSRs, matrix state, and scratchpad per class; `creclaim` composes the load's revoked case with the `cloadtags` group read; `cbo.scrub` is architecturally a fixed-latency block pass with telemetry and fail-stop hooks.
   * None of the three is inherited from `sail-riscv` or `sail-cheri-riscv`, so each is net-new model surface with no upstream oracle; the differential harness takes the software equivalent instead, which each admission was shaped to leave trivial: a `cbo.zero` plus `cclear` loop for `vmclear`, `cloadtags` plus a capability load per tagged granule for `creclaim`, and ordinary loads through the ECC check for `cbo.scrub`.
@@ -526,7 +532,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.8 · Parameterize by core class** · 28 h, range 20–36 · 3.5%
   * Freeze C-class first; defer roughly 26 h of V/M/FEC work until needed before M2.3.
 * [ ] **M0.9 · Add documented timing annotations** · 4.5 h, range 3–6 · 0.6% · Parallel
-* [ ] **M0.10 · Generate and freeze the C-class golden emulator** · 2 h, range 1–3 · 0.2%
+* [ ] **M0.10 · Generate and freeze the C-class golden emulator** · 2 h, range 1–3 · 0.3%
   * Exit: curated single-core emulator with ISA tests green.
 * [x] **M0.11 · Define the profile-freeze measurement contract** · 2.5 h actual · 0.3%
   * [docs/freeze-measurement-contract.md](freeze-measurement-contract.md): six corpus members (`FM-1` to `FM-6`), a seven-step composition recipe, five operand classes and five admitted region classes with four enumerated refusal reasons, nine decisions (`FD-1` to `FD-9`) each carrying question, corpus, unit, procedure, threshold, default, and report columns, one report in two renderings generated from one record, eight declared parameters, and twelve CI predicates (`G-1` to `G-12`). Registered as a view in `tools/check.ps1`, so the requirements it must carry are checked in both directions.
@@ -537,7 +543,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 104.3 h · 13% · 22.3 h complete · open range 56–108 h.
+**M0 subtotal:** 100.6 h · 13% · 25.6 h complete · open range 51–99 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -576,7 +582,7 @@ Gate M2.2–M2.3 on measured Sail-emulator performance. If Sail is sufficient th
 
 * [ ] **M2.1 · Fork CHERI-QEMU and narrow compressed capabilities** · 7.5 h, range 5–10 · 0.9% · Parallel
 * [ ] **M2.2 · Implement the frozen decode surface and bespoke machine** · 12 h, range 8–16 · 1.5%
-* [ ] **M2.3 · Add VLEN=4096 RVV, matrix, and FEC datapaths** · 30 h, range 20–40 · 3.7%
+* [ ] **M2.3 · Add VLEN=4096 RVV, matrix, and FEC datapaths** · 30 h, range 20–40 · 3.8%
 * [ ] **M2.4 · Reach corpus lockstep with M0 and boot M1 hello-world** · 9 h, range 6–12 · 1.1%
 
 **M2 subtotal:** 58.5 h · 7% · open range 39–78 h.
@@ -585,10 +591,10 @@ Gate M2.2–M2.3 on measured Sail-emulator performance. If Sail is sufficient th
 
 RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → both emulators reach the Machine-mode kernel.
 
-* [ ] **M3.1 · Add RoT configuration and peripherals to the curated Sail tree** · 18 h, range 12–24 · 2.2%
+* [ ] **M3.1 · Add RoT configuration and peripherals to the curated Sail tree** · 18 h, range 12–24 · 2.3%
   * Reuse the same model tree with a scalar `verifiedos-rot.json`; do not fork another model.
 * [ ] **M3.2 · Implement RoT firmware in Gallina** · 22.5 h, range 15–30 · 2.8%
-* [ ] **M3.3 · Implement M-mode firmware in Gallina** · 18 h, range 12–24 · 2.2%
+* [ ] **M3.3 · Implement M-mode firmware in Gallina** · 18 h, range 12–24 · 2.3%
 * [ ] **M3.4 · Integrate verified cryptographic artifacts** · 26.5 h, range 18–35 · 3.3%
   * Prefer pinned upstream verified implementations over fresh authoring.
 * [ ] **M3.5 · Reach the machine-mode kernel through measured boot on both emulators** · 11.5 h, range 8–15 · 1.4%
@@ -612,9 +618,9 @@ Gallina microkernel (§5), one instance per emulated core; capability/IPC tests 
 Journal/index/FS (§7) and the content-addressed object store + transactor (§6); system-integrity instance first, then user-data.
 
 * [ ] **M5.1 · Implement the L0 journal and L1 CoW B-tree in Gallina** · 21.5 h, range 15–28 · 2.7%
-* [ ] **M5.2 · Compose L2 semantics and L3 confidentiality host-side** · 14 h, range 10–18 · 1.7%
+* [ ] **M5.2 · Compose L2 semantics and L3 confidentiality host-side** · 14 h, range 10–18 · 1.8%
 * [ ] **M5.3 · Run system-integrity and user-data instances on the emulator** · 12 h, range 8–16 · 1.5%
-* [ ] **M5.4 · Implement the object store and update transactor** · 18 h, range 12–24 · 2.2% · Parallel where possible
+* [ ] **M5.4 · Implement the object store and update transactor** · 18 h, range 12–24 · 2.3% · Parallel where possible
 
 **M5 subtotal:** 65.5 h · 8% · open range 45–86 h.
 
@@ -664,7 +670,7 @@ The RTL track, in parallel from the M0 freeze:
 * [ ] **M8 · MVP gate: M7 and R3 complete** · 3 h, range 2–4 · 0.4%
   * M7 and R3 together: the whole base system running in emulation, and the RTL artifact of record in hand, corpus-green and booting the same images in co-simulation.
   * This is the plan's most important milestone; everything after it is hardware realization and hardening.
-* [ ] **M9 · Synthesize and boot scalar purecap on FPGA** · 30 h, range 20–40 · 3.7%
+* [ ] **M9 · Synthesize and boot scalar purecap on FPGA** · 30 h, range 20–40 · 3.8%
   * Synthesize the R3 artifact for the board (§11); the purecap golden-model images (M1–M7) boot on it directly, differentially tested against M7; CHERI ISA tests from the Sail model green on the FPGA.
 * [ ] **M10 · Extend CHERI checks across V/M/FEC datapaths** · 45 h, range 30–60 · 5.6%
   * Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M9, so the FPGA then matches the golden model across all core classes.
@@ -683,12 +689,12 @@ Two more are owed at the same opening: the combined-adversary route is already s
 These items sit outside the milestone subtotals but inside the grand total, and each carries its own estimate cell like any other item. Every change must be benchmarked before adoption; canonical `-O2` RelWithDebInfo remains the exit criterion.
 
 * [x] **Initial check/emit/FAST tooling** · 0.9 h actual · 0.1%
-* [ ] **I1 · Move sources to WSL ext4 and uncap local parallelism** · 2 h, range 1–3 · 0.2%
+* [ ] **I1 · Move sources to WSL ext4 and uncap local parallelism** · 2 h, range 1–3 · 0.3%
   * Move the checkout to `~/src/VerifiedOS`, use Remote-WSL, set `ctest -j$(nproc)`, and avoid cache-hostile WSL memory reclamation.
 * [ ] **I2 · Use one shared content-keyed SMT memo cache** · 2.5 h, range 1–4 · 0.3%
 * [ ] **I3 · Benchmark a current z3 binary on a cold emission** · 1.5 h, range 1–2 · 0.2%
-* [ ] **I4 · Add shared ccache, then emit only when generated output changes** · 2 h, range 1–3 · 0.2%
-* [ ] **I5 · Benchmark generated-TU flags, clang versus gcc, and mold** · 2 h, range 1–3 · 0.2%
+* [ ] **I4 · Add shared ccache, then emit only when generated output changes** · 2 h, range 1–3 · 0.3%
+* [ ] **I5 · Benchmark generated-TU flags, clang versus gcc, and mold** · 2 h, range 1–3 · 0.3%
 * [ ] **I6 · Benchmark the same Sail 0.20.2 binary built with flambda** · 1.5 h, range 1–2 · 0.2%
 * [ ] **I7 · Run canonical builds in the background and standardize worktree lanes** · 1.5 h, range 1–2 · 0.2%
 * [ ] **I8 · Optionally move quick checks to push CI and canonical tests to nightly CI** · 1.5 h, range 1–2 · 0.2%
@@ -704,6 +710,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 802.2 h midpoint over a 546.7–1,057.7 h range.
+* Grand total: the sum of the item cells, 798.5 h midpoint over a 545–1,052 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

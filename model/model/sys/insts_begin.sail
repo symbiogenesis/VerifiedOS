@@ -70,6 +70,15 @@ scattered mapping encdec
 val encdec_compressed : instruction <-> bits(16)
 scattered mapping encdec_compressed
 
+// The capability-mode decode. Three instructions decode differently under a PCC
+// in capability mode rather than through the address hook, `auipc`, `jal` and
+// `jalr` becoming their capability forms, so they need a second mapping over the
+// same encodings (extensions/CHERI/cheri_insts.sail, postlude/decode_ext.sail).
+// It goes with hybrid mode itself in M0.6f: on a purecap machine there is one
+// mode and therefore one decode.
+val encdec_capmode : instruction <-> bits(32)
+scattered mapping encdec_capmode
+
 // We declare the ILLEGAL/C_ILLEGAL instruction clauses here instead of in
 // insts_end, so that model extensions can make use of them.
 // However, the encdec mapping must come last to ensure that all
