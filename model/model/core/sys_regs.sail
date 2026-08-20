@@ -73,39 +73,17 @@ register misa : Misa =
     MXL = architecture_bits(if xlen == 32 then RV32 else RV64),
   ]
 
-// whether misa is R/W
-let sys_enable_writable_misa : bool = config base.writable_misa
-
-private function legalize_misa(m : Misa, v : xlenbits) -> Misa = {
-  let v = Mk_Misa(v);
-  // Suppress updates to MISA if MISA is not writable.
-  if   not(sys_enable_writable_misa)
-  then m
-  else [m with
-    A = if hartSupports(Ext_A) then v[A] else 0b0,
-    B = if hartSupports(Ext_B) then v[B] else 0b0,
-    // Compressed instructions are not implemented, so misa.C is read-only zero.
-    C = 0b0,
-    D = if hartSupports(Ext_D) & v[F] == 0b1 then v[D] else 0b0,
-    F = if hartSupports(Ext_F) then v[F] else 0b0,
-    H = 0b0,
-    // Writable I is not currently supported.
-    I = bool_to_bit(not(base_E_enabled)),
-    E = bool_to_bit(base_E_enabled),
-    M = if hartSupports(Ext_M) then v[M] else 0b0,
-    // Q = if hartSupports(Ext_Q) then v[Q] else 0b0, TODO: Not supported yet
-    // There is no supervisor or user mode to advertise.
-    S = 0b0,
-    U = 0b0,
-    V = if hartSupports(Ext_V) & v[F] == 0b1 & v[D] == 0b1 then v[V] else 0b0,
-    // X = ... TODO: If custom extensions are present this should be 1
-  ]
-}
+// `misa` is read-only (R-15-052): the writability configuration knob
+// and the legalization function it gated are both gone, and a write is
+// ignored rather than legalized. There is no runtime ISA morphing, and
+// therefore no runtime CHERI disable: the register's value is fixed at
+// reset by `reset_misa()` from the extensions the hart supports, which
+// on a frozen profile is a composition-time constant.
 
 mapping clause csr_name_map = 0x301  <-> "misa"
 function clause is_CSR_accessible(0x301, _) = true // misa
 function clause read_CSR(0x301) = misa.bits
-function clause write_CSR(0x301, value) = { misa = legalize_misa(misa, value); Ok(misa.bits) }
+function clause write_CSR(0x301, _) = Ok(misa.bits)
 
 // What is left of `mstatus` is the extension-context gate. Every other
 // field it carried named a less-privileged mode or the machinery for
@@ -303,13 +281,19 @@ function clause write_CSR(0x340, value) = { mscratch = value; Ok(mscratch) }
 
 register mtime : bits(64)
 
-// machine information registers
-register mvendorid : bits(32) = to_bits_checked(config platform.vendorid : int)
-register mimpid    : xlenbits = to_bits_checked(config platform.impid : int)
-register marchid   : xlenbits = to_bits_checked(config platform.archid : int)
+// Machine information registers. Four of the five are hardwired zero,
+// the reading RISC-V permits for all of them (R-15-052a): one Sail
+// model frozen with the proof leaves no discovery question to ask, and
+// no kernel path or admitted binary branches on an implementation
+// identifier, so they are constants in the read clause rather than
+// registers with configuration behind them.
+//
+// `mhartid` is the exception and the sole implementation identifier
+// with a consumer (R-15-052b): one kernel binary runs unmodified on
+// every core class and selects its per-hart state, the core's class,
+// and the island binding from it at boot, so it keeps its register and
+// its per-hart configured value.
 register mhartid   : xlenbits = to_bits_checked(config platform.hartid : int)
-
-register mconfigptr : xlenbits = zeros()
 
 mapping clause csr_name_map = 0xF11  <-> "mvendorid"
 mapping clause csr_name_map = 0xF12  <-> "marchid"
@@ -323,11 +307,11 @@ function clause is_CSR_accessible(0xf13, _) = true // mimpid
 function clause is_CSR_accessible(0xf14, _) = true // mhartid
 function clause is_CSR_accessible(0xf15, _) = mconfigptr_is_defined // mconfigptr
 
-function clause read_CSR(0xF11) = zero_extend(mvendorid)
-function clause read_CSR(0xF12) = marchid
-function clause read_CSR(0xF13) = mimpid
+function clause read_CSR(0xF11) = zeros()
+function clause read_CSR(0xF12) = zeros()
+function clause read_CSR(0xF13) = zeros()
 function clause read_CSR(0xF14) = mhartid
-function clause read_CSR(0xF15) = mconfigptr
+function clause read_CSR(0xF15) = zeros()
 
 // The S-mode bank has no rows: `sstatus`, `stvec`, `sepc`, `scause`,
 // `stval`, `sie`, `sip`, `sscratch`, `senvcfg` and `scounteren` are
@@ -335,15 +319,15 @@ function clause read_CSR(0xF15) = mconfigptr
 // MMU, whose translation state the model no longer carries (R-15-003,
 // R-15-002).
 
-// disabled trigger/debug module
-register tselect : xlenbits
-
-mapping clause csr_name_map = 0x7a0  <-> "tselect"
-mapping clause csr_name_map = 0x7a1  <-> "tdata1"
-mapping clause csr_name_map = 0x7a2  <-> "tdata2"
-mapping clause csr_name_map = 0x7a3  <-> "tdata3"
-
-function clause is_CSR_accessible(0x7a0, _) = true
-function clause read_CSR(0x7a0) = ~(tselect)  // this indicates we don't have any trigger support
-function clause write_CSR(0x7a0, value) = { tselect = value; Ok(tselect) }
+// The trigger module has no rows. `Sdtrig`'s `tselect` and `tdata1-3`
+// are deleted in **every** lifecycle state rather than fused off with
+// the Debug Module (R-15-079a): the CSRs are machine-mode-accessible
+// and machine mode is the only mode here, so a fused trigger module
+// would still leave a comparator any compartment holding
+// access-system-registers permission could arm, firing on an address
+// or data match and holding its arming across a partition switch,
+// which is the shape admission test (3) rejects (R-15-010, R-15-012).
+// Upstream's `tselect` read the ones-complement of what was written to
+// advertise no trigger support; the four addresses now name no CSR at
+// all, so they trap like any other unallocated address (R-15-014).
 

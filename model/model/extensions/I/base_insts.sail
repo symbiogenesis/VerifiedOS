@@ -580,7 +580,7 @@ mapping clause encdec = EBREAK()
   <-> 0b000000000001 @ 0b00000 @ 0b000 @ 0b00000 @ 0b1110011
 
 function clause execute EBREAK() =
-  trap(make_sync_exception(E_Breakpoint(Brk_Software), PC))
+  trap(make_sync_exception(E_Breakpoint(), PC))
 
 mapping clause assembly = EBREAK() <-> "ebreak"
 

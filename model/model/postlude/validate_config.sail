@@ -271,12 +271,7 @@ private function check_mem_layout() -> bool =
                    within_configured_pma_memory("CLINT (platform.clint)", Some(IOMemory),
                                                 to_bits_checked(config platform.clint.base : int),
                                                 to_bits_checked(config platform.clint.size : int));
-    let sig_supported : bool = config platform.simple_interrupt_generator.supported;
-    let sig_ok   = not(sig_supported) |
-                   within_configured_pma_memory("simple interrupt generator (platform.simple_interrupt_generator)", Some(IOMemory),
-                                                to_bits_checked(config platform.simple_interrupt_generator.base : int),
-                                                zero_extend(plat_sig_size));
-    pmas_ok & clint_ok & sig_ok
+    pmas_ok & clint_ok
   }
 
 private function check_misc_extension_dependencies() -> bool = {
@@ -344,14 +339,9 @@ private function check_extension_param_constraints() -> bool = {
   valid
 }
 
-private function check_mmio_devices() -> bool = {
-  var valid : bool = true;
-  if plat_sig_base[1 .. 0] != zeros() then {
-    valid = false;
-    print_endline("platform.simple_interrupt_generator.base is not 4-byte aligned.");
-  };
-  valid
-}
+// The MMIO-device check went with the device it checked: the simple
+// interrupt generator's base alignment was its only clause, and the
+// CLINT's placement is already checked in `check_mem_layout` above.
 
 private function check_mstatus_fields() -> bool = {
   var valid : bool = true;
@@ -405,7 +395,6 @@ function config_is_valid() -> bool = {
   & check_mstatus_fields()
   & check_physaddr_bits()
   & check_mem_layout()
-  & check_mmio_devices()
   & check_vlen_elen()
   & check_vext_config()
   & check_misc_extension_dependencies()

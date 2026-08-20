@@ -16,7 +16,6 @@
     // x16-31 is reserved and in this implementation will
     // raise an illegal instruction exception.
     "E": false,
-    "writable_misa": true,
     // `mtvec.{direct,vectored}.supported` indicates whether the
     // corresponding mode is supported for `mtvec`.  At least one mode
     // should be supported.  If both modes are supported, the mode on
@@ -42,8 +41,9 @@
     // `xtval` registers.
     "xtval_nonzero": {
       "illegal_instruction": true,
-      "software_breakpoint": true,
-      "hardware_breakpoint": true,
+      // `ebreak` is the only breakpoint source; the trigger module's
+      // hardware case is deleted with `Sdtrig` (R-15-079a).
+      "breakpoint": true,
       "load_address_misaligned": true,
       "load_access_fault": true,
       "samo_address_misaligned": true,
@@ -281,9 +281,9 @@
     ]
   },
   "platform": {
-    "vendorid": 0,
-    "archid": 0,
-    "impid": 0,
+    // `mvendorid`, `marchid`, `mimpid` and `mconfigptr` are hardwired
+    // zero (R-15-052a) and have no configuration; `mhartid` is the one
+    // implementation identifier with a consumer (R-15-052b).
     "hartid": 0,
     // Cache block size, specified as a power of 2.
     "cache_block_size_exp": 6,
@@ -294,16 +294,6 @@
       // Otherwise, these values can be left as 0.
       "base": 33554432,
       "size": 786432
-    },
-    // Very simple MMIO device to generate interrupts for testing
-    // purposes. See docs/SimpleInterruptGenerator.md for details.
-    "simple_interrupt_generator": {
-      // Whether the platform contains this device.
-      "supported": true,
-      // If supported, this must be in a suitable IO memory region (see `memory.regions`)
-      // and 4-byte aligned. The size is always 0x20.  If not supported, this can be left
-      // as 0.
-      "base": 201326592
     },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,

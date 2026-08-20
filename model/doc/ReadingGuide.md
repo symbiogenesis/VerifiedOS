@@ -166,12 +166,6 @@ platform-specific functionality for the model. It contains the CLINT
 local interrupt controller, and the MMIO interfaces to the clock,
 timer and terminal devices.
 
-A simple model of an MMIO-based external interrupt controller is
-implemented in [simple_interrupt_generator.sail](../model/sys/simple_interrupt_generator.sail)
-and [simple_interrupt_generator_regs.sail](../model/sys/simple_interrupt_generator_regs.sail).
-This enables testing the model with external interrupts, as described in
-its [documentation](SimpleInterruptGenerator.md).
-
 [split_access_utils.sail](../model/sys/split_access_utils.sail) has
 utilities for handling the splitting of misaligned accesses.
 

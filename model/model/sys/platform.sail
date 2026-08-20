@@ -33,16 +33,6 @@ private function within_clint forall 'n, 0 < 'n <= max_mem_access . (Physaddr(ad
   & (addr_int + sizeof('n)) <= (clint_base_int + clint_size_int)
 }
 
-private function within_sig forall 'n, 0 < 'n <= max_mem_access . (Physaddr(addr) : physaddr, width : int('n)) -> bool = {
-  if not(plat_have_sig) then return false;
-
-  let addr_int = unsigned(addr);
-  let sig_base_int = unsigned(plat_sig_base);
-  let sig_size_int = unsigned(plat_sig_size);
-    sig_base_int <= addr_int
-  & (addr_int + sizeof('n)) <= (sig_base_int + sig_size_int)
-}
-
 private function within_htif_writable forall 'n, 0 < 'n <= max_mem_access . (Physaddr(addr) : physaddr, width : int('n)) -> bool =
   match htif_tohost_base {
     None() => false,
@@ -60,11 +50,14 @@ private function within_htif_readable forall 'n, 0 < 'n <= max_mem_access . (add
 register mtimecmp : bits(64)
 
 // CLINT memory-mapped IO
+//
+// The `msip` door is gone with `mip.MSI` (R-15-066a): it was the
+// memory-mapped write that set the software-interrupt bit, and that
+// bit is hardwired zero. What is left of the CLINT is the machine
+// timer, which the kernel programs directly (R-15-063).
 
 // relative address map:
 //
-// 0000 msip hart 0         -- memory-mapped software interrupt
-// 0004 msip hart 1
 // 4000 mtimecmp hart 0 lo  -- memory-mapped timer thresholds
 // 4004 mtimecmp hart 0 hi
 // 4008 mtimecmp hart 1 lo
@@ -72,7 +65,6 @@ register mtimecmp : bits(64)
 // bff8 mtime lo            -- memory-mapped clocktimer value
 // bffc mtime hi
 
-let MSIP_BASE        : physaddrbits = zero_extend(0x00000)
 let MTIMECMP_BASE    : physaddrbits = zero_extend(0x04000)
 let MTIMECMP_BASE_HI : physaddrbits = zero_extend(0x04004)
 let MTIME_BASE       : physaddrbits = zero_extend(0x0bff8)
@@ -83,13 +75,7 @@ function clint_load(access, paddr, width) = {
   let Physaddr(addr) = paddr;
   let addr = addr - plat_clint_base;
   // FIXME: For now, only allow exact aligned access.
-  if addr == MSIP_BASE & ('n == 8 | 'n == 4)
-  then {
-    if   get_config_print_clint()
-    then print_log("clint[" ^ bits_str(addr) ^ "] -> " ^ bits_str(mip[MSI]));
-    Ok(zero_extend(sizeof(8 * 'n), mip[MSI]))
-  }
-  else if addr == MTIMECMP_BASE & ('n == 4)
+  if addr == MTIMECMP_BASE & ('n == 4)
   then {
     if   get_config_print_clint()
     then print_log("clint<4>[" ^ bits_str(addr) ^ "] -> " ^ bits_str(mtimecmp[31..0]));
@@ -135,13 +121,16 @@ function clint_load(access, paddr, width) = {
   }
 }
 
-function clint_dispatch(mip_was_written : bool) -> unit = {
+// The `mip_was_written` parameter went with the `msip` door, its only
+// `true` caller: the timer comparator is now the register's only
+// writer, so a callback is owed exactly when the bit changes.
+function clint_dispatch() -> unit = {
   let old_mip = mip.bits;
   mip[MTI] = bool_to_bit(mtimecmp <=_u mtime);
   if get_config_print_clint()
   then print_log("clint mtime " ^ bits_str(mtime));
-  if old_mip != mip.bits | mip_was_written then {
-    csr_write_callback("mip", read_mip(IncludePlatformInterrupts).bits);
+  if old_mip != mip.bits then {
+    csr_write_callback("mip", mip.bits);
   };
 }
 
@@ -149,47 +138,41 @@ private val clint_store: forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) ->
 function clint_store(paddr, width, data) = {
   let Physaddr(addr) = paddr;
   let addr = addr - plat_clint_base;
-  if addr == MSIP_BASE & ('n == 8 | 'n == 4) then {
-    if   get_config_print_clint()
-    then print_log("clint[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mip.MSI <- " ^ bits_str(data[0..0]) ^ ")");
-    mip[MSI] = [data[0]];
-    clint_dispatch(true);
-    Ok(true)
-  } else if addr == MTIMECMP_BASE & 'n == 8 then {
+  if addr == MTIMECMP_BASE & 'n == 8 then {
     if   get_config_print_clint()
     then print_log("clint<8>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtimecmp)");
     mtimecmp = zero_extend(64, data); // FIXME: Redundant zero_extend currently required by Lem backend
-    clint_dispatch(false);
+    clint_dispatch();
     Ok(true)
   } else if addr == MTIMECMP_BASE & 'n == 4 then {
     if   get_config_print_clint()
     then print_log("clint<4>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtimecmp)");
     mtimecmp = vector_update_subrange(mtimecmp, 31, 0, zero_extend(32, data));  // FIXME: Redundant zero_extend currently required by Lem backend
-    clint_dispatch(false);
+    clint_dispatch();
     Ok(true)
   } else if addr == MTIMECMP_BASE_HI & 'n == 4 then {
     if   get_config_print_clint()
     then print_log("clint<4>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtimecmp)");
     mtimecmp = vector_update_subrange(mtimecmp, 63, 32, zero_extend(32, data)); // FIXME: Redundant zero_extend currently required by Lem backend
-    clint_dispatch(false);
+    clint_dispatch();
     Ok(true)
   } else if addr == MTIME_BASE & 'n == 8 then {
     if   get_config_print_clint()
     then print_log("clint<8>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtime)");
     mtime = data;
-    clint_dispatch(false);
+    clint_dispatch();
     Ok(true)
   } else if addr == MTIME_BASE & 'n == 4 then {
     if   get_config_print_clint()
     then print_log("clint<4>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtime)");
     mtime[31 .. 0] = data;
-    clint_dispatch(false);
+    clint_dispatch();
     Ok(true)
   } else if addr == MTIME_BASE_HI & 'n == 4 then {
     if   get_config_print_clint()
     then print_log("clint<4>[" ^ bits_str(addr) ^ "] <- " ^ bits_str(data) ^ " (mtime)");
     mtime[63 .. 32] = data;
-    clint_dispatch(false);
+    clint_dispatch();
     Ok(true)
   } else {
     if   get_config_print_clint()
@@ -204,7 +187,7 @@ function clint_store(paddr, width, data) = {
 
 function tick_clock() -> unit = {
   mtime  = mtime  + 1;
-  clint_dispatch(false)
+  clint_dispatch()
 }
 
 // Basic terminal character I/O.
@@ -336,18 +319,16 @@ function htif_store(addr, width, data) = {
 function within_mmio_readable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   if get_config_rvfi()
   then false
-  else within_clint(addr, width) | within_sig(addr, width) | (within_htif_readable(addr, width) & 1 <= 'n)
+  else within_clint(addr, width) | (within_htif_readable(addr, width) & 1 <= 'n)
 
 function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   if get_config_rvfi()
   then false
-  else within_clint(addr, width) | within_sig(addr, width) | (within_htif_writable(addr, width) & 'n <= 8)
+  else within_clint(addr, width) | (within_htif_writable(addr, width) & 'n <= 8)
 
 function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessType(mem_payload), paddr : physaddr, width : int('n)) -> MemoryOpResult(bits(8 * 'n)) =
   if   within_clint(paddr, width)
   then clint_load(access, paddr, width)
-  else if within_sig(paddr, width)
-  then sig_load(access, paddr, width)
   else if within_htif_readable(paddr, width)
   then htif_load(access, paddr, width)
   else Err(paddr, accessFaultFromAccessType(access))
@@ -355,8 +336,6 @@ function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessT
 function mmio_write forall 'n, 0 < 'n <= max_mem_access . (paddr : physaddr, width : int('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) =
   if   within_clint(paddr, width)
   then clint_store(paddr, width, data)
-  else if within_sig(paddr, width)
-  then sig_store(paddr, width, data)
   else if within_htif_writable(paddr, width)
   then htif_store(paddr, width, data)
   else Err(paddr, E_SAMO_Access_Fault())

@@ -53,9 +53,7 @@ sys {
   requires prelude, core, exceptions, V_core, A_types
 
   files
-    sys/simple_interrupt_generator_regs.sail,
     sys/sys_control.sail,
-    sys/simple_interrupt_generator.sail,
     sys/platform.sail,
     sys/mem_utils.sail,
     sys/split_access_utils.sail,
