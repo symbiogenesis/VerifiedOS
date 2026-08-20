@@ -242,7 +242,7 @@ foreach (xlen IN ITEMS 64)
     # generate a file to indicate that we have run this command.
     set(smt_stamp_file "${CMAKE_CURRENT_BINARY_DIR}/smt_${arch}.stamp")
     add_custom_command(
-        DEPENDS ${sail_srcs} ${project_file}
+        DEPENDS ${sail_srcs} ${project_file} ${config_file}
         VERBATIM
         OUTPUT ${smt_stamp_file}
         COMMENT "Building smtlib2 from Sail model (${arch})"
@@ -295,7 +295,7 @@ foreach (xlen IN ITEMS 64)
 
     # Build Rocq (formerly Coq) definitions.
     add_custom_command(
-        DEPENDS ${sail_srcs} ${project_file}
+        DEPENDS ${sail_srcs} ${project_file} ${config_file}
         VERBATIM
         OUTPUT "${CMAKE_BINARY_DIR}/rocq/${arch}.v" "${CMAKE_BINARY_DIR}/rocq/${arch}_types.v"
         COMMENT "Building Rocq definitions from Sail model (${arch})"

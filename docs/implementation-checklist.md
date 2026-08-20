@@ -397,8 +397,9 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 #### Baselines
 
 * [x] **M0.1 · Pin upstream models** · 0.4 h actual · 0.0%
-  * `sail-riscv` pinned at `8f91355e`; `sail-cheri-riscv` pinned at `bb07488d`.
+  * `sail-riscv` pinned at `6266b40c`; `sail-cheri-riscv` pinned at `bb07488d`. The vendoring baseline is `8f91355e` (M0.6a); the pin tracks the edition the curation is reconciled against, so advancing it is the act of carrying an upstream change across rather than a record of where the tree came from.
   * Finding: the CHERI tree embeds older `sail-riscv` commit `b748a82`; reconciliation therefore requires a semantic transplant, not configuration of one shared base.
+  * Upstream carriage is a **disposition per commit**, not a merge: the curated tree has deleted most of what upstream touches, so each change is either applied, or refused with the deletion that makes it inapplicable. Against `8f91355e..6266b40c`: the `Zvknh` predicate grouping (#1881) **applies**, a missing parenthesis that let `zvknhab_check_encdec` guard only the `Zvknhb` disjunct, and lands in `zvknhab_insts.sail`; the `config_file` build dependency (#1885) **applies** to the two prover-backend rules that survive, SMT and Rocq, the three `rmem` rules it also fixed having gone with the dormant targets in c1; and the WFI external-interrupt wake (#1868) is **inapplicable**, its bug being that `MEIP`/`SEIP` are not held in `mip` so a bare read hides them, where M0.6d deleted the fields, their sources, and `read_mip` itself, leaving `mip` carrying `MTI` alone and `shouldWakeForInterrupt`'s bare read total.
 
 * [x] **M0.2 · Stand up the Sail toolchain** · 0.5 h actual · 0.1%
   * WSL Ubuntu 24.04, opam 2.1.5, OCaml 4.14.1, Sail 0.20.2, and z3 4.8.12.
