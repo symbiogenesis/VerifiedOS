@@ -38,6 +38,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 | `CJ-SAIL` | The CHERI-RISC-V Sail model: ISA semantics, incl. its timing and leakage annotations (§15) |
 | `CJ-RTL-SAIL` | RTL ⊑ Sail, functional and hyperproperty halves (§15, §18) |
 | `CJ-TAL-SOUND` | CHERI-TAL soundness metatheorem: well-typed ⇒ safe and data-race-free over the Sail model (§5) |
+| `CJ-ADMIT-IMPL` | Admission-checker implementation refinement: each shipped checker decides its judgment and no other, within its declared resource contract (§6) |
 | `CJ-CT-SOUND` | Constant-time type-soundness metatheorem over the §15 leakage model (§5) |
 | `CJ-LEAK` | The leakage statements: the `Zkt`/`Zvkt` architectural model and the crypto core's probing model (§15) |
 | `CJ-WCET` | The timing-annotated Sail model and the derived per-(class, operating-point) bounds (§5, §11, §15) |
@@ -1131,7 +1132,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-06-012** MUST: Both checkers are built like the rest of the TCB: the CIC kernel's MetaCoq-style Gallina checker and the TAL type-checker alike are refined to CompCert-C (VST/Iris) and compiled through CHERI-CompCert.
 · Accept: neither is extracted via the unverified MetaCoq→Rust backend onto the untrusted userspace toolchain; that toolchain is admissible only for contained code whose binary a checker re-validates, and the checkers' own binaries are re-validated by nothing.
-· Trace: CJ-COMPCERT
+· Trace: CJ-COMPCERT, CJ-ADMIT-IMPL
 
 **R-06-013** IS: The checkers' compilation is not a fresh axiom: it rides the same CompCert already in the trust base.
 · Accept: the axiom count is unchanged by their compilation.
@@ -1144,6 +1145,23 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-06-015** IS: The toolchain is untrusted evidence-producing machinery: a compromised compiler cannot mint a valid proof of a property its output lacks, so at worst it emits a binary genuinely satisfying the spec, confining trojans to spec slack.
 · Accept: this is why Tier-0 specs are full refinements (R-13-011).
 · Trace: CJ-COMPCERT
+
+**R-06-015a** MUST: Every proof the CIC kernel checks on the install path runs under a step and working-set budget the generation declares, and a budget exhausted ends the install with the artifact unadmitted. The TAL checker carries no budget of its own, its termination and its linear work bound being properties of the pinned language rather than of this platform (R-05-129, R-05-135a).
+· Accept: the budget is a numeral in the generation's admission artifact, and exhaustion yields the same outcome as a proof that fails to check, no configuration admitting on exhaustion. It is a delivery parameter and not a soundness one: setting it lower narrows what installs and can never widen what is admitted, which is why conversion, the one on-device computation a well-formed term can make arbitrarily expensive, needs no second bound.
+· Fail-closed: the install stops with the artifact unadmitted, and the cost lands on delivery, which supplies a cheaper proof or a generation declaring a larger budget; nothing on the running device stops, admission being a generation rather than an edit to one (R-13-001a, R-17-030e).
+· Trace: CJ-ADMIT-IMPL
+
+**R-06-015b** MUST: A checker's authority is exactly: read over the candidate artifact, its certificate, and the profile; write over the one verdict record it emits; and nothing else. It holds no access-system-registers permission on PCC, no sealing authority, no store-and-execute authority over anything it reads, and no capability into the content-addressed store, the transactor's roots, or another compartment's state.
+· Accept: the composed capability distribution gives each checker compartment exactly that set, so it decides admission and performs none of it: the composer that emits bytes is untrusted and off-device (R-13-001c), the transactor consumes the verdict and commits (R-11-005), and the boot firmware establishes the composed distribution (R-07-019). A checker is a predicate over bytes and never a transformer of them, so the most a hostile artifact reaches inside one is a wrong verdict rather than a wrongly authorized act.
+· Trace: CJ-CERISE, CJ-NI
+
+**R-06-015c** IS: TCB membership means no admission certificate covers the component's binary (R-06-014), never that the machine exempts it. The checkers execute under the universal contract every admitted compartment does: CHERI bounds, the store-and-execute exclusion, the sentry discipline on entry and return, and crash-only restart under the sentinel.
+· Accept: the checker compartments appear in the §8 capability topology and the §16 supervision policy on the same terms as any other partition, with no exemption recorded for either; a checker that faults or overruns costs an install and moves no other partition's slot boundary, the frame being non-work-conserving (R-07-036, R-13-014).
+· Trace: CJ-CERISE
+
+**R-06-015d** MUST: Each shipped checker carries a machine-checked refinement against the judgment it claims to decide, `CJ-ADMIT-IMPL`: the TAL evaluator accepts an artifact and certificate exactly where the pinned language's rule table does, and the CIC kernel exactly where MetaCoq's Gallina checker does, each within the resource contract R-06-015a states.
+· Accept: the target is a theorem and not an artifact this platform authors, both judgments being fixed elsewhere: the soundness metatheorem covers the rules and R-06-012 covers the compilation, so without this one the admission argument rests on an unexamined program and the review gate has nothing to read.
+· Trace: CJ-ADMIT-IMPL, CJ-TAL-SOUND
 
 ### 6.3 The consent TCB
 
@@ -5027,7 +5045,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: an adversary who can force the degraded subset on demand holds durable partial denial under cover of containment having worked, which R-16-009's per-incident budget cannot express; the obligation that makes it expressible is R-17-030m.
 · Trace: CJ-CERISE
 
-**R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022); the same pass rejects a composition whose per-mode power vector would switch off an SRAM array some admitted capability can still reach (R-15-189g).
+**R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022); the same pass rejects a composition whose per-mode power vector would switch off an SRAM array some admitted capability can still reach (R-15-189g), and an install-path proof that exhausts the on-device kernel's declared budget ends the same way, the artifact unadmitted and the cost on delivery rather than on a running device (R-06-015a).
 · Accept: the one member whose denial cannot reach a running unit, named so that the register is not read as uniformly a field risk.
 · Trace: CJ-TAL-SOUND
 
@@ -5089,7 +5107,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.ps1` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
-· Accept: twenty-four requirements confer a refusal and sixteen seams collect them, both figures recomputed rather than maintained here.
+· Accept: twenty-five requirements confer a refusal and sixteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.ps1` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -5544,7 +5562,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1280 requirements. §19 is non-normative and yields none. Counts include the 329 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1284 requirements. §19 is non-normative and yields none. Counts include the 333 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5553,7 +5571,7 @@ All eighteen normative sections are extracted, at 1280 requirements. §19 is non
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **12** |
 | **§5 Languages & Verification** | **extracted** | **202** |
-| **§6 Trusted Computing Base** | **extracted** | **27** |
+| **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **60** |
 | **§8 Authority Model** | **extracted** | **73** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
