@@ -186,7 +186,7 @@ def replace_span(text: str, m: re.Match, new: str) -> str:
     return text[:m.start()] + new + text[m.end():]
 
 
-def build_template(repo: Path, into: Path) -> int:
+def build_template(repo: Path, into: Path, jobs: int) -> int:
     """The working tree, not HEAD and not the index: the checker under test is the one
     being edited, and so is every document it reads. Untracked files are copied for the
     same reason. A document or a tool written but not yet staged is exactly the thing
@@ -221,29 +221,36 @@ def build_template(repo: Path, into: Path) -> int:
             raise SystemExit("git ls-files failed in the repository")
         listed += proc.stdout.splitlines()
 
-    copied = 0
-    for rel in listed:
+    # the directories first and once each, so that the writes below share nothing and go
+    # in together: a thousand small files is the case `_across` is for
+    for parent in {(into / rel).parent for rel in listed}:
+        parent.mkdir(parents=True, exist_ok=True)
+
+    def place(rel: str) -> int:
         src, dst = repo / rel, into / rel
         if src.is_file():
-            dst.parent.mkdir(parents=True, exist_ok=True)
             if rel.startswith(UNREAD_PREFIX):
                 dst.touch()
             else:
                 shutil.copy2(src, dst)
-            copied += 1
-        elif src.is_dir():
+            return 1
+        if src.is_dir():
             dst.mkdir(parents=True, exist_ok=True)
             (dst / ".selftest-submodule").write_text(
                 f"a stand-in for the {rel} submodule, so links at it resolve\n",
                 encoding="utf-8")
+        return 0
 
-    for args in (["-c", "init.defaultBranch=main", "init", "-q"],
-                 ["add", "-A"],
-                 ["-c", "user.email=selftest@localhost", "-c", "user.name=selftest",
-                  "commit", "-q", "-m", "sandbox"]):
+    copied = sum(_across(place, listed, jobs))
+
+    # The index, and no commit on top of it. `ls-files --stage` is the whole of what the
+    # checker asks git and `add` is what answers it, so a commit would be a third of a
+    # second per run spent writing a HEAD that nothing here ever reads: a case is undone
+    # from the pristine tree beside it rather than out of git.
+    for args in (["-c", "init.defaultBranch=main", "init", "-q"], ["add", "-A"]):
         proc = subprocess.run(["git", *args], cwd=into, capture_output=True)
         if proc.returncode != 0:
-            raise SystemExit(f"could not build the sandbox baseline: git {args[0]}")
+            raise SystemExit(f"could not build the sandbox index: git {args[0]}")
     return copied
 
 
@@ -582,8 +589,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rule", help="run one rule's case only")
     # Eight, measured rather than assumed: a worker is a sandbox, and past eight the tree
     # copy and the delete that stand one up cost more than the cases it then runs save.
-    # Over three passes each on a twelve-core machine, eight workers averaged 10.3 s and
-    # twelve averaged 11.2 s.
+    # Over three passes each on a twelve-core machine, eight workers averaged 8.6 s and
+    # twelve averaged 9.3 s.
     parser.add_argument("--jobs", type=int, default=min(8, os.process_cpu_count() or 2),
                         help="how many sandboxes run cases at once")
     parser.add_argument("--sandbox", type=Path, default=None,
@@ -614,8 +621,8 @@ def main(argv: list[str] | None = None) -> int:
     made: list[Sandbox] = []
     print(f"building {jobs + 1} sandbox(es) at {sandbox}")
     template = sandbox / "template"
-    copied = build_template(repo, template)
-    print(f"copied {copied} file(s), committed as the baseline")
+    copied = build_template(repo, template, jobs)
+    print(f"copied {copied} file(s), indexed as the baseline")
     print()
 
     def stand_up(i: int) -> Sandbox:
