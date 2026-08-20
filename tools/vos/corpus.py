@@ -12,8 +12,6 @@ to its line by binary search, rather than walking every line once per check; the
 reports are the same, arrived at in one pass instead of many.
 """
 
-from __future__ import annotations
-
 import bisect
 import re
 import subprocess
@@ -100,6 +98,13 @@ def _read(path: Path, name: str) -> Document:
 
 PROSE = "docs/spec.md"
 PROSE_SECTION_RE = re.compile(r"(?m)^## (\d+)\.")
+
+# the tree the corpus excludes by name, stated once so that the selftest's sandbox and
+# the exclusion itself cannot stop agreeing
+UNREAD_PREFIX = "model/"
+
+# an index entry's mode, which is what tells a submodule from a file
+GITLINK_MODE = "160000"
 
 
 class Corpus:
@@ -222,21 +227,22 @@ def load(root: Path) -> Corpus:
     the pointers at it dead, which is a finding a person can act on; reading it
     instead would abort the run on an IO error before any rule decided anything.
     """
-    names = sorted(
-        n for n in _git(root, "ls-files", "--full-name", "--", "*.md")
-        if n and not n.startswith("model/") and (root / n).is_file()
-    )
-    docs = [_read(root / n, n) for n in names]
+    # One listing answers both questions the corpus asks of the index, because both are
+    # answered by an entry's mode. A link at a submodule points at something the
+    # repository carries as a gitlink rather than as a directory, and whether that
+    # gitlink is checked out is the reader's business and not the pointer's. So a
+    # submodule path resolves whether or not its contents are on disk: a shallow clone,
+    # or a checkout that skipped submodules, is not a repository whose cross-references
+    # have gone stale.
+    names: list[str] = []
+    gitlinks: set[str] = set()
+    for entry in _git(root, "ls-files", "--stage", "--full-name"):
+        staged, _, path = entry.partition("\t")     # `<mode> <object> <stage>\t<path>`
+        if staged.startswith(GITLINK_MODE):
+            gitlinks.add(path)
+        elif (path.endswith(".md") and not path.startswith(UNREAD_PREFIX)
+                and (root / path).is_file()):
+            names.append(path)
 
-    # A link at a submodule points at something the repository carries as a gitlink
-    # rather than as a directory, and whether that gitlink is checked out is the
-    # reader's business and not the pointer's. So a submodule path resolves whether or
-    # not its contents are on disk: a shallow clone, or a checkout that skipped
-    # submodules, is not a repository whose cross-references have gone stale.
-    gitlinks = set()
-    for entry in _git(root, "ls-files", "--stage"):
-        m = re.match(r"^160000 \S+ \d+\s+(.+)$", entry)
-        if m:
-            gitlinks.add(m.group(1))
-
+    docs = [_read(root / n, n) for n in sorted(names)]
     return Corpus(root, docs, gitlinks)

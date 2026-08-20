@@ -35,8 +35,6 @@ Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root
 found from this file, never from the working directory.
 """
 
-from __future__ import annotations
-
 import argparse
 import sys
 from pathlib import Path

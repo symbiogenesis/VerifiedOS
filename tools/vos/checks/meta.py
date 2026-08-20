@@ -15,8 +15,6 @@ decides is whether a registered claim is the right claim, which is the same resi
 every conferral declares.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 

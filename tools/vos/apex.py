@@ -9,8 +9,6 @@ Parsed twice they would be one fact restated by hand, which is the defect both t
 exist to catch, so the parse is here and neither carries a copy of it.
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass, field
 from pathlib import Path

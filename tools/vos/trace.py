@@ -40,8 +40,6 @@ lockstep is what M0.12 versions; until it exists the prefix is the regression, a
 must not shorten.
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass
 

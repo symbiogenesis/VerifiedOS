@@ -33,8 +33,6 @@ Exit 0 when every case kills its mutant and every registered rule is accounted f
 1 otherwise.
 """
 
-from __future__ import annotations
-
 import argparse
 import os
 import re
@@ -50,14 +48,11 @@ from queue import Queue
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod          # noqa: E402
+from vos.corpus import UNREAD_PREFIX          # noqa: E402
 from vos.figures import words                 # noqa: E402
 
 CHECKER = "tools/check.py"
 RULES = "tools/check-rules.md"
-
-# the tree the checker excludes from its corpus by name, and so reads nothing of; a
-# sandbox stands its paths up empty rather than copying them
-UNREAD_PREFIX = "model/"
 
 # the two characters the documents' own shapes are written in, named so that a case
 # composing a pattern around one never has to spell it inside a regex
@@ -149,6 +144,20 @@ def remove_tree(path: Path) -> None:
 
     if path.exists():
         shutil.rmtree(path, onexc=force)
+
+
+def _across(work, items, jobs: int) -> list:
+    """One call per item, run at once, answered in the order the items were given.
+
+    Everything handed to this is a subprocess or a tree of a thousand small files, so a
+    worker spends nearly all of its time inside a syscall with the interpreter lock
+    released: the run is I/O the machine can overlap rather than Python it cannot.
+    """
+    items = list(items)
+    if len(items) < 2:
+        return [work(item) for item in items]
+    with ThreadPoolExecutor(max_workers=min(jobs, len(items))) as pool:
+        return list(pool.map(work, items))
 
 
 def edit_entry(text: str, ident: str, edit) -> str | None:
@@ -571,7 +580,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Seed each checker rule a defect it must report.")
     parser.add_argument("--rule", help="run one rule's case only")
-    parser.add_argument("--jobs", type=int, default=min(8, (os.cpu_count() or 2)),
+    # Eight, measured rather than assumed: a worker is a sandbox, and past eight the tree
+    # copy and the delete that stand one up cost more than the cases it then runs save.
+    # Over three passes each on a twelve-core machine, eight workers averaged 10.3 s and
+    # twelve averaged 11.2 s.
+    parser.add_argument("--jobs", type=int, default=min(8, os.process_cpu_count() or 2),
                         help="how many sandboxes run cases at once")
     parser.add_argument("--sandbox", type=Path,
                         default=Path(tempfile.gettempdir()) / "verifiedos-selftest",
@@ -586,29 +599,36 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"no case for rule '{args.rule}'")
     jobs = max(1, min(args.jobs, len(selected)))
 
-    print(f"building {jobs} sandbox(es) at {args.sandbox}")
+    # One sandbox per worker, and one more the repair path keeps to itself so that its
+    # three runs go beside the cases rather than after them.
+    made: list[Sandbox] = []
+    print(f"building {jobs + 1} sandbox(es) at {args.sandbox}")
     template = args.sandbox / "template"
     copied = build_template(repo, template)
     print(f"copied {copied} file(s), committed as the baseline")
     print()
 
-    boxes: Queue[Sandbox] = Queue()
-    made: list[Sandbox] = []
-    for i in range(jobs):
+    def stand_up(i: int) -> Sandbox:
         path = args.sandbox / f"w{i}"
         remove_tree(path)
         shutil.copytree(template, path)
-        box = Sandbox(path, template)
-        boxes.put(box)
-        made.append(box)
+        return Sandbox(path, template)
 
     try:
+        # A tree copy is nearly all syscall and no two of these share anything, so they
+        # are stood up at once; done one after another it is most of a run's setup.
+        made = _across(stand_up, range(jobs + 1), jobs + 1)
+        boxes: Queue[Sandbox] = Queue()
+        for box in made[:jobs]:
+            boxes.put(box)
         return _run(selected, made, boxes, jobs)
     finally:
-        if not args.keep:
-            remove_tree(args.sandbox)
-        else:
+        if args.keep:
             print(f"sandboxes kept at {args.sandbox}")
+        else:
+            # deleted the way they were built, and the parent last
+            _across(remove_tree, [box.path for box in made], jobs + 1)
+            remove_tree(args.sandbox)
 
 
 def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> int:
@@ -645,8 +665,13 @@ def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> i
             box.reset()
             boxes.put(box)
 
-    with ThreadPoolExecutor(max_workers=jobs) as pool:
+    # the repair path is three more whole runs of the checker and depends on nothing a
+    # case does, so it goes in beside them on the sandbox held back for it, and reports
+    # where it has always reported: after the cases
+    with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
+        repairing = pool.submit(_repair_path, made[-1])
         results = list(pool.map(one, selected))
+        repair, repair_out = repairing.result()
 
     survived, unseeded, ran = [], [], 0
     for rule, what, verdict, how in results:
@@ -666,7 +691,7 @@ def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> i
             print(f"{rule:<6} SURVIVED  {what}")
     print()
 
-    repair = _repair_path(made[0])
+    print("\n".join(repair_out))
     print()
     gaps = _registry_coverage(made[0])
     print()
@@ -682,13 +707,16 @@ def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> i
     return 0
 
 
-def _repair_path(box: Sandbox) -> list[str]:
+def _repair_path(box: Sandbox) -> tuple[list[str], list[str]]:
     """--fix rewrites the asserted counts, the compounded product, and the checklist's
     totals from their artifacts, and on a repository that already agrees it rewrites
     nothing, so the branch ships untested unless something breaks it on purpose. Three
     defects at once, one per repairable group, and the test is that the repair leaves a
-    tree the checker then passes."""
-    print("--- the repair path ---")
+    tree the checker then passes.
+
+    Its problems and its report are handed back rather than printed, because this runs
+    beside the cases and the report reads after them.
+    """
     box.reset()
     for rule, _, apply in CASES:
         if rule in REPAIRABLE:
@@ -710,13 +738,13 @@ def _repair_path(box: Sandbox) -> list[str]:
     if not rewrites:
         problems.append("--fix reported no repair, so it did not recognize the seeded figures")
 
+    out = ["--- the repair path ---"]
     if problems:
-        for line in problems:
-            print(f"  {line}")
+        out += [f"  {line}" for line in problems]
     else:
-        print(f"  ok: three seeded figures failed the checker, --fix rewrote "
-              f"{len(rewrites)}, and the tree then passes")
-    return problems
+        out.append(f"  ok: three seeded figures failed the checker, --fix rewrote "
+                   f"{len(rewrites)}, and the tree then passes")
+    return problems, out
 
 
 def _registry_coverage(box: Sandbox) -> list[str]:

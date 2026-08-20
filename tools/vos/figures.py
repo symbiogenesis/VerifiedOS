@@ -11,9 +11,16 @@ Comparison is on the figure, not on its spelling: commas and capitals are format
 and the register writes 1275 where the checklist writes 1,070.3. A site that states
 the right figure in the other document's format is therefore not a finding, and a
 repair still normalizes it, because the rewrite is driven by the literal text.
-"""
 
-from __future__ import annotations
+A claim is *found* by its phrase rather than by its pattern. Nearly all of a claim is
+literal prose, the figure beside it being one short token, and a pattern that opens on
+that token has no literal prefix for the regex engine to seek: it is tried at every
+offset of a document that runs to hundreds of kilobytes, and backtracks at most of
+them. The phrase is read back out of the pattern by `anchor` and found by substring
+search, which is a word-at-a-time scan in C, and the pattern is then run only in a
+window around each occurrence. The answer is the pattern's own; only the order of the
+search is different.
+"""
 
 import re
 from dataclasses import dataclass, field
@@ -77,6 +84,112 @@ def percent(v: float, total: float, digits: int) -> str:
     return f"{share(v, total, digits):,.{digits}f}"
 
 
+# How much room a claim's pattern is given on either side of its phrase. A claim
+# captures one figure standing beside that phrase, so the whole construct is a fragment
+# of a single sentence and this is two orders of magnitude more than one needs. A match
+# reaching an edge is one the window may have cut, and the document is then read whole
+# rather than a partial reading reported.
+WINDOW = 4096
+
+# What the phrase reading refuses rather than guesses at: a choice, where neither side
+# is required; a negative lookaround, whose text must be absent rather than present; any
+# other group, which a quantifier outside it may delete entire; and a counted
+# repetition, whose bounds are not text at all.
+_UNREAD_RE = re.compile(r"(?<!\\)\|" r"|(?<!\\)\((?!\?=|\?<=)" r"|\)[?*{]" r"|(?<!\\)\{")
+_FLAGS_RE = re.compile(r"\(\?[aiLmsux]+\)")
+_METACHARACTERS = set(r".^$*+?()[]{}|\\")
+# sets rather than strings, so that the empty string the end of a pattern hands back is
+# a member of neither
+_DELETES_WHAT_PRECEDES = frozenset("?*{")
+
+
+def _class_end(pattern: str, i: int) -> int:
+    """One past the `]` closing the character class that opens at `i`. A `^` may lead
+    the class and a `]` written first inside it is a literal, so neither closes it."""
+    j = i + 1 + (pattern[i + 1:i + 2] == "^")
+    j += pattern[j:j + 1] == "]"
+    while j < len(pattern) and pattern[j] != "]":
+        j += 2 if pattern[j] == "\\" else 1
+    return j + 1
+
+
+def anchor(pattern: str) -> str:
+    """The longest phrase the pattern must match verbatim, or "" where it must match
+    none.
+
+    Only what is certainly required is read. A run of literal characters ends at every
+    metacharacter, at an escape naming a class rather than a character, and around any
+    character a quantifier could delete or repeat; a positive lookaround's text counts,
+    because it stands in the document beside the match whether the match consumes it or
+    not. A pattern built from anything `_UNREAD_RE` names is answered "", which the
+    caller reads as a pattern with no phrase to find it by.
+    """
+    body = _FLAGS_RE.sub("", pattern)       # a flag group carries no text of its own
+    if _UNREAD_RE.search(body):
+        return ""
+
+    best = run = ""
+    i = 0
+    while i < len(body):
+        char, width, literal = body[i], 1, False
+        if char == "\\":
+            # an escape stands for the character it names, unless that character is a
+            # letter or a digit, which is how a class or an assertion is spelled
+            char, width = body[i + 1:i + 2], 2
+            literal = not char.isalnum()
+        elif char == "[":
+            width = _class_end(body, i) - i
+        elif char == "(":
+            width = 4 if body.startswith("(?<=", i) else 3
+        else:
+            literal = char not in _METACHARACTERS
+
+        follows = body[i + width:i + width + 1]
+        if literal and follows not in _DELETES_WHAT_PRECEDES:
+            run += char
+            # a `+` keeps the character it repeats and separates it from the next, which
+            # the document need not carry immediately after
+            literal = follows != "+"
+        if not literal:
+            best, run = max(best, run, key=len), ""
+        i += width
+
+    return max(best, run, key=len)
+
+
+def find_all(pattern: str, raw: str) -> list:
+    """Every match, reached through the pattern's phrase wherever it has one.
+
+    The phrase proposes the sites and the pattern decides them, so this is the pattern's
+    own answer and only the order of the search differs. Windows that overlap are merged,
+    so a site lying in two of them is decided once and the matches stay in the order the
+    document reads; a match reaching the edge of its window is one the window may have
+    cut, and the document is read whole instead of trusting the fragment.
+    """
+    compiled = re.compile(pattern)
+    phrase = anchor(pattern)
+    if not phrase:
+        return list(compiled.finditer(raw))
+
+    windows: list[list[int]] = []
+    site = raw.find(phrase)
+    while site >= 0:
+        lo, hi = max(0, site - WINDOW), min(len(raw), site + len(phrase) + WINDOW)
+        if windows and lo <= windows[-1][1]:
+            windows[-1][1] = hi
+        else:
+            windows.append([lo, hi])
+        site = raw.find(phrase, site + 1)
+
+    hits = []
+    for lo, hi in windows:
+        for m in compiled.finditer(raw, lo, hi):
+            if (m.start() == lo and lo > 0) or (m.end() == hi and hi < len(raw)):
+                return list(compiled.finditer(raw))
+            hits.append(m)
+    return hits
+
+
 @dataclass
 class ClaimResult:
     spans: list = field(default_factory=list)
@@ -92,7 +205,7 @@ def resolve_claim(ctx, file: str, pattern: str, expected: str, what: str) -> Cla
         return result
 
     raw = ctx.text(file)
-    hits = list(re.finditer(pattern, raw))
+    hits = find_all(pattern, raw)
     result.spans = hits
 
     if not hits:

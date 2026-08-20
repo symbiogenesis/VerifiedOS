@@ -1,6 +1,6 @@
 # The Tools
 
-*Everything in this directory is Python 3.12. This document says why that is the rule, what each tool does, and the conventions every one of them keeps.*
+*Everything in this directory is Python 3.14. This document says why that is the rule, what each tool does, and the conventions every one of them keeps.*
 
 ## One language, and what forced it
 
@@ -8,7 +8,7 @@ The tools run in two places. The documents, the proofs metadata, and the checker
 
 | Interpreter | Windows host | WSL guest |
 | --- | --- | --- |
-| `python3` | 3.12.10 | 3.12.3 |
+| Python | 3.14.7 | 3.14.4 |
 | `pwsh` | present | absent |
 | `bash` | absent | present |
 
@@ -16,7 +16,14 @@ Python is the only one that spans both, so it is the only choice that makes the 
 
 Nothing was lost in the move. The one thing a shell could do that looked out of reach, raising the OCaml stack the Sail emission needs, is `resource.setrlimit` in the parent and inheritance in every child; and the one thing the shell did badly, `/usr/bin/time` reporting the running maximum resident set over every child so far, is `os.wait4` reporting the child that was actually asked about.
 
-The floor is **3.12**, because that is Ubuntu 24.04's system interpreter and the model lane is not going to carry a second one. Nothing here uses syntax or a standard-library call newer than that, and everything runs unchanged on later versions.
+The floor is **3.14**, because that is Ubuntu 26.04's system interpreter and the model lane is not going to carry a second one. The host is held at the same version deliberately rather than by coincidence: one interpreter across both lanes is what stops a tool passing on the side it was written on and failing on the side it runs on.
+
+Two things at that floor the tools depend on rather than merely tolerate:
+
+- **Annotations are lazy by default** ([PEP 649](https://peps.python.org/pep-0649/)), so no module here carries `from __future__ import annotations`. Under 3.14 that import is the *opt-out*: it selects the older stringized semantics, which is the reverse of what a file wanting current behaviour should say. Nothing in these tools reads `__annotations__` or calls `get_type_hints`, so the change is invisible at every use site and the line is simply gone.
+- **`os.process_cpu_count()`** reports the cores this process may actually run on, honouring an affinity mask wherever one exists. Job sizing in [vos/env.py](vos/env.py) is one call rather than a `sched_getaffinity`-or-`cpu_count` branch that had to name the platform to pick between them.
+
+Two more were considered and refused, because a version floor is a licence to use what pays and not an obligation to use what is new. `pathlib.Path.copy` would replace `shutil.copy2` one call for one call and buy nothing at sites the selftest runs fifty times over. Unparenthesized `except A, B:` ([PEP 758](https://peps.python.org/pep-0758/)) is spelling, and a handler reads the same either way.
 
 ## What each tool is
 
@@ -42,11 +49,16 @@ $ python tools/check.py --fix                 # and rewrite what is arithmetic
 $ python tools/check-selftest.py              # every rule against its own mutant
 $ python tools/blast-radius.py --field spatial_safety
 
-$ wsl -d Ubuntu -u root -e python3 tools/model.py typecheck
-$ wsl -d Ubuntu -u root -e python3 tools/model.py build
-$ wsl -d Ubuntu -u root -e python3 tools/model.py trace-diff --corpus --floor 97
-$ wsl -d Ubuntu -u root -e python3 tools/proof-gate.py
+$ wsl -u root -e python3 tools/model.py typecheck
+$ wsl -u root -e python3 tools/model.py build
+$ wsl -u root -e python3 tools/model.py oracle
+$ wsl -u root -e python3 tools/model.py trace-diff --corpus --floor 97
+$ wsl -u root -e python3 tools/proof-gate.py
 ```
+
+There is no `-d`, because there is one Ubuntu and it is WSL's default. The name is plain `Ubuntu` and the release is 26.04; nothing in the tools reads the distribution's name, so the only thing holding this together is that default. `wsl --install` sets the newly installed distribution as the default, so installing another one is the single action that quietly redirects every command above. `wsl -s Ubuntu` puts it back.
+
+The two lanes spell the interpreter differently, and that is not an oversight. On the host there is no `python3` to type: the python.org installer ships `python.exe` and `pythonw.exe` and no third spelling, so `python` is the name, with `py -3.14` available when several versions are installed. Inside the guest the reverse holds. Ubuntu ships `python3` and no bare `python` at all; this distribution answers to both only because `python-is-python3` is installed on it, and [PEP 394](https://peps.python.org/pep-0394/) still names `python3` as the one spelling a script may assume. So the shebangs stay `#!/usr/bin/env python3` and so does every WSL command written down here, because both have to work on a stock 26.04 that has never had that metapackage. Treating `python` as portable is the one shortcut this rule exists to refuse.
 
 `model.py build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
 

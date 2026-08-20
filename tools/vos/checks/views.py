@@ -12,8 +12,6 @@ is not a special case of the vocabulary, it is the only place membership is also
 in the other direction.
 """
 
-from __future__ import annotations
-
 import re
 
 from ..register import REQ_TOKEN_RE

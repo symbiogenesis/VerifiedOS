@@ -16,8 +16,6 @@ business. What the check holds is the weaker property that closes the drift: a n
 no document carries at all is a reference to a section that has been renumbered away.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import PurePosixPath
 

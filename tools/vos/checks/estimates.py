@@ -24,8 +24,6 @@ of every bullet: the parent is a heading with a checkbox, and its children are a
 counted. Anything else missing a cell is counted by nothing and is the finding.
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass
 

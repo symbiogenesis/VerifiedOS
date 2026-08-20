@@ -13,8 +13,6 @@ dropped commas are replaced by whitespace, so an offset in a parse error still p
 at the same place in the original text.
 """
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 
