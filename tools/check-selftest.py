@@ -1,0 +1,742 @@
+#!/usr/bin/env python3
+"""Hold the checker against the one property its own meta group cannot decide: that
+each rule it carries actually fires.
+
+The checker closes a great deal on itself. The meta group holds the rule registry and
+the code in agreement in both directions, and the floors group (K-46 through K-48)
+catches the reading that has emptied. What none of them reaches is the rule that still
+reads a populated set and has stopped deciding anything about it: a pattern that
+narrowed without emptying, an anchor that now matches a neighbouring construct, a
+branch made unreachable by an edit elsewhere. tools/check-rules.md names that residue
+in "What a passing run does not decide" and leaves it to a person. This closes the
+part of it a machine can have: for each rule, one document mutated so that the rule
+must report, and a run that says whether it did.
+
+The method is mutation testing and its guarantee is exactly the usual one. A rule that
+survives its mutant is dead surface, reported here. A rule that kills its mutant is
+live, which is not the same as correct: whether it decides the *right* property is
+still the registry's claim and a person's to audit. Nothing here re-states what a rule
+means. It states only that the rule bites.
+
+Every case runs against a sandbox built from the working tree, so the checker under
+test is the one on disk rather than the one at HEAD, and no case can touch the real
+repository. The sandbox is a git repository because the checker reads its corpus from
+the index. Cases run in parallel across one sandbox per worker, which is what makes a
+whole pass a few seconds rather than a coffee break; a case only ever sees its own
+sandbox, so the parallelism changes no verdict.
+
+    tools/check-selftest.py                 # every case
+    tools/check-selftest.py --rule K-23     # one rule, while iterating on it
+    tools/check-selftest.py --keep          # leave the sandboxes for inspection
+
+Exit 0 when every case kills its mutant and every registered rule is accounted for,
+1 otherwise.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from queue import Queue
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from vos import corpus as corpus_mod          # noqa: E402
+from vos.figures import words                 # noqa: E402
+
+CHECKER = "tools/check.py"
+RULES = "tools/check-rules.md"
+
+# the tree the checker excludes from its corpus by name, and so reads nothing of; a
+# sandbox stands its paths up empty rather than copying them
+UNREAD_PREFIX = "model/"
+
+# the two characters the documents' own shapes are written in, named so that a case
+# composing a pattern around one never has to spell it inside a regex
+MID = "·"      # the bullet the register opens each property line with
+SEC = "§"      # the section sign a trace and a cross-reference display
+
+
+# =====================================================================================
+# the sandbox, and the helpers a case edits it through
+# =====================================================================================
+
+
+class Sandbox:
+    """One disposable copy of the working tree, and the checker that runs against it."""
+
+    def __init__(self, path: Path, pristine: Path) -> None:
+        self.path = path
+        self.pristine = pristine
+        self.touched: set[str] = set()
+
+    def read(self, rel: str) -> str:
+        with open(self.path / rel, encoding="utf-8", newline="") as f:
+            return f.read()
+
+    def write(self, rel: str, text: str | None) -> bool:
+        """Write, and say whether anything was written.
+
+        A mutation that produced no change is a case that has stopped testing its rule,
+        and it must be told apart from a rule that read a defect and said nothing: a
+        null edit is refused rather than written, so a pattern that stopped matching
+        cannot blank the document it was aimed at.
+        """
+        if text is None:
+            return False
+        if text == self.read(rel):
+            return False
+        self.touched.add(rel)
+        (self.path / rel).write_text(text, encoding="utf-8", newline="")
+        return True
+
+    def delete(self, rel: str) -> bool:
+        self.touched.add(rel)
+        (self.path / rel).unlink()
+        return True
+
+    def reset(self) -> None:
+        """A case is undone rather than compensated for, and only where it wrote.
+
+        Every edit is recorded as it is made, so undoing one is a copy back from the
+        pristine tree beside it. `git checkout -- .` would do the same thing and did,
+        but it stats the whole tree on every case, which over fifty cases is most of a
+        run spent restoring 851 files to undo an edit to one.
+        """
+        for rel in self.touched:
+            source, target = self.pristine / rel, self.path / rel
+            if source.exists():
+                shutil.copy2(source, target)
+            elif target.exists():
+                target.unlink()
+        self.touched.clear()
+
+    def check(self, fix: bool = False) -> tuple[int, list[str], list[str]]:
+        """The checker's own verdict, as the rule ids it reported, so a case asserts
+        against what the run decided rather than against its prose.
+
+        A subprocess and not an in-process call: two cases mutate the checker's own
+        source, and only a fresh interpreter reads the mutant rather than the module
+        this process already imported.
+        """
+        argv = [sys.executable, str(self.path / CHECKER)] + (["--fix"] if fix else [])
+        proc = subprocess.run(argv, cwd=self.path, capture_output=True,
+                              text=True, encoding="utf-8")
+        out = (proc.stdout or "").splitlines() + (proc.stderr or "").splitlines()
+        failed = sorted({m.group(1) for line in out
+                         if (m := re.match(r"\s*FAIL (K-\d\d)", line))})
+        return proc.returncode, out, failed
+
+
+def remove_tree(path: Path) -> None:
+    """Delete a sandbox, read-only files included.
+
+    git marks its pack files read-only, and on Windows that is enough to make an
+    ordinary recursive delete fail halfway through, leaving a sandbox nobody asked to
+    keep and a run that cannot start next time.
+    """
+    def force(func, target, _exc):
+        os.chmod(target, stat.S_IWRITE)
+        func(target)
+
+    if path.exists():
+        shutil.rmtree(path, onexc=force)
+
+
+def edit_entry(text: str, ident: str, edit) -> str | None:
+    """A register entry is its normative line plus the property lines under it, ending
+    where the next entry begins. Several cases need surgery inside exactly one entry
+    and must not reach the next, so the span is computed once here."""
+    start = text.find(f"**{ident}** ")
+    if start < 0:
+        return None
+    end = text.find("\n**R-", start + 1)
+    if end < 0:
+        end = len(text)
+    new = edit(text[start:end])
+    return None if new is None else text[:start] + new + text[end:]
+
+
+def replace_once(text: str, find: str, repl: str, start: int = 0) -> str | None:
+    """Replace one literal, at or after an offset. The offset is how a case skips the
+    register's entry template, which is fenced prose carrying every property line's
+    shape and is not an entry at all."""
+    i = text.find(find, start)
+    return None if i < 0 else text[:i] + repl + text[i + len(find):]
+
+
+def replace_span(text: str, m: re.Match, new: str) -> str:
+    return text[:m.start()] + new + text[m.end():]
+
+
+def build_template(repo: Path, into: Path) -> int:
+    """The working tree, not HEAD and not the index: the checker under test is the one
+    being edited, and so is every document it reads. Untracked files are copied for the
+    same reason. A document or a tool written but not yet staged is exactly the thing
+    most likely to be wrong, and a sandbox that omitted it would fail on the links
+    pointing at it rather than test it. Ignored files stay out, `.gitignore` deciding
+    that the same way it does everywhere else.
+
+    One directory is stood up rather than copied. `model/` is 804 of the repository's
+    851 tracked files and the checker reads none of them: it excludes the whole
+    directory from its corpus by name, as vendored upstream prose answering to another
+    repository's house style. What it does read is whether those paths *exist*, because
+    a link into the curated tree must resolve. So each is created empty. The saving is
+    the whole cost of standing a sandbox up, which is otherwise 95% files no rule opens,
+    and the property under test is untouched: a case that could see the difference would
+    have to read model/ content, which no rule does.
+
+    A submodule's contents are not copied, because the checker excludes upstream prose
+    from its corpus, but the directory itself is stood up: a link at a submodule is
+    resolved against the filesystem here, where the sandbox's own index carries no
+    gitlink to resolve it against instead. The placeholder is what makes the directory
+    survive the clean between cases, git having no way to track an empty one.
+    """
+    remove_tree(into)
+    into.mkdir(parents=True)
+
+    listed: list[str] = []
+    for extra in ([], ["--others", "--exclude-standard"]):
+        proc = subprocess.run(
+            ["git", "-c", "core.quotepath=false", "ls-files", "--full-name", *extra],
+            cwd=repo, capture_output=True, text=True, encoding="utf-8")
+        if proc.returncode != 0:
+            raise SystemExit("git ls-files failed in the repository")
+        listed += proc.stdout.splitlines()
+
+    copied = 0
+    for rel in listed:
+        src, dst = repo / rel, into / rel
+        if src.is_file():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if rel.startswith(UNREAD_PREFIX):
+                dst.touch()
+            else:
+                shutil.copy2(src, dst)
+            copied += 1
+        elif src.is_dir():
+            dst.mkdir(parents=True, exist_ok=True)
+            (dst / ".selftest-submodule").write_text(
+                f"a stand-in for the {rel} submodule, so links at it resolve\n",
+                encoding="utf-8")
+
+    for args in (["-c", "init.defaultBranch=main", "init", "-q"],
+                 ["add", "-A"],
+                 ["-c", "user.email=selftest@localhost", "-c", "user.name=selftest",
+                  "commit", "-q", "-m", "sandbox"]):
+        proc = subprocess.run(["git", *args], cwd=into, capture_output=True)
+        if proc.returncode != 0:
+            raise SystemExit(f"could not build the sandbox baseline: git {args[0]}")
+    return copied
+
+
+# =====================================================================================
+# the cases: one mutant per rule, each stating the defect it seeds
+# =====================================================================================
+#
+# A case is either a literal substitution or, where the defect is structural, a
+# function over the sandbox. Several mutants trip more than one rule, which is expected
+# and not a weakness: an id renamed in one artifact is genuinely wrong in every
+# artifact that cites it. A case passes when its own rule is among those that reported,
+# so collateral findings neither hide a miss nor manufacture a hit.
+
+REGISTER = "docs/requirements-register.md"
+SPEC = "docs/spec.md"
+CRITIQUE = "docs/critique.md"
+CROWN = "docs/crown-jewels.md"
+MATRIX = "docs/coverage-matrix.md"
+PROFILE = "docs/isa-profile.md"
+PERF = "docs/performance-estimates.md"
+PLAN = "docs/implementation-checklist.md"
+BINDINGS = "docs/field-bindings.md"
+ABSENCE = "docs/absence-contract.md"
+
+
+def _literal(rel: str, find: str, repl: str):
+    def apply(box: Sandbox) -> bool:
+        return box.write(rel, replace_once(box.read(rel), find, repl))
+    return apply
+
+
+def _entry(ident: str, edit):
+    def apply(box: Sandbox) -> bool:
+        return box.write(REGISTER, edit_entry(box.read(REGISTER), ident, edit))
+    return apply
+
+
+def _first_match(rel: str, pattern: str, rewrite, flags: int = re.MULTILINE):
+    """Rewrite the first match of a pattern, or refuse if it no longer matches."""
+    def apply(box: Sandbox) -> bool:
+        text = box.read(rel)
+        m = re.search(pattern, text, flags)
+        if not m:
+            return False
+        return box.write(rel, replace_span(text, m, rewrite(m)))
+    return apply
+
+
+def _renumber(rel: str, pattern: str, group: int, value: str):
+    """Overwrite one numbered group of the first match, leaving the rest of the line."""
+    def apply(box: Sandbox) -> bool:
+        text = box.read(rel)
+        m = re.search(pattern, text, re.MULTILINE)
+        if not m:
+            return False
+        return box.write(rel, text[:m.start(group)] + value + text[m.end(group):])
+    return apply
+
+
+def _seed_paragraph(sentence: str):
+    """Drop a sentence into the gap before a heading, where the checker reads it as
+    ordinary prose."""
+    return _literal(CRITIQUE, "\n## ", f"\n{sentence}\n\n## ")
+
+
+def _strip_requirements(rel: str, pattern: str, replacement: str = "the register"):
+    return _first_match(rel, pattern,
+                        lambda m: re.sub(r"R-\d\d-\d+[a-z]?", replacement, m.group()))
+
+
+def _k14(box: Sandbox) -> bool:
+    # the id is read out of the register rather than named here, so the case keeps
+    # working when the subsection is re-populated
+    register = box.read(REGISTER)
+    sub = re.search(r"(?ms)^### 15\.14 .*?(?=^### )", register)
+    if not sub:
+        return False
+    view = box.read(ABSENCE)
+    for ident in re.findall(r"(?m)^\*\*(R-\d\d-\d+[a-z]?)\*\* ", sub.group()):
+        if ident in view:
+            # swapped for another live id, so only the membership is wrong
+            return box.write(ABSENCE, view.replace(ident, "R-01-001"))
+    return False
+
+
+def _k26(box: Sandbox) -> bool:
+    # the form has to be one the tool actually counts, so it is read out of the
+    # inventory rather than invented
+    n = len(re.findall(r"(?m)^\| \d+ \|", box.read(CROWN)))
+    return box.write(CRITIQUE, replace_once(
+        box.read(CRITIQUE), "\n## ",
+        f"\nThere are {words(n)} crown-jewel specifications in view.\n\n## "))
+
+
+def _k29(box: Sandbox) -> bool:
+    text = box.read(PROFILE)
+    start = text.find("### 5.1 ")
+    if start < 0:
+        return False
+    m = re.search(r"(?m)^\| `[^\r\n]*R-\d\d-\d+[^\r\n]*", text[start:])
+    if not m:
+        return False
+    row = re.sub(r"R-\d\d-\d+[a-z]?", "the profile", m.group())
+    at = start + m.start()
+    return box.write(PROFILE, text[:at] + row + text[at + len(m.group()):])
+
+
+def _k30(box: Sandbox) -> bool:
+    text = box.read(PERF)
+    m = re.search(r"(?m)^\|[^\r\n]*In-order issue[^\r\n]*", text)
+    if not m:
+        return False
+    cells = m.group().split("|")
+    return box.write(PERF, replace_span(
+        text, m, m.group().replace(cells[4], " roughly a third off ")))
+
+
+def _k43(box: Sandbox) -> bool:
+    text = box.read(BINDINGS)
+    m = re.search(r"(?m)^\| `\w+` \| `(?P<c>[^`]+)`", text)
+    if not m:
+        return False
+    return box.write(BINDINGS,
+                     text[:m.start("c")] + "nothing_at_all" + text[m.end("c"):])
+
+
+def _k46(box: Sandbox) -> bool:
+    """Comment out one registered claim, so a computed quantity is held by nothing."""
+    rel = "tools/vos/checks/counts.py"
+    text = box.read(rel)
+    m = re.search(r'(?m)^(\s*)\("README\.md", "absences",', text)
+    if not m:
+        return False
+    return box.write(rel, text[:m.start()] + m.group(1) + "# (" + text[m.end():])
+
+
+def _k49(box: Sandbox) -> bool:
+    return box.delete(ABSENCE)
+
+
+def _keep_own_id(entry_line: str) -> str:
+    head = re.match(r"^\*\*R-\d\d-\d+[a-z]?\*\* ", entry_line).group()
+    return head + re.sub(r"R-\d\d-\d+[a-z]?", "R-01-001", entry_line[len(head):])
+
+
+CASES = [
+    ("K-00", "a registered rule with its registry row retitled out of the table",
+     _literal(RULES, "| K-40 | glyphs", "| K-xx | glyphs")),
+
+    ("K-01", "a trace's derived bookmark renamed in the prose",
+     _literal(SPEC, '<a id="r-01-001">', '<a id="moved-away">')),
+
+    ("K-02", "a trace writing out the citation its own id derives",
+     _entry("R-01-001", lambda b: b.replace(
+         f"{MID} Trace: CJ-T", f"{MID} Trace: [{SEC}1](spec.md#r-01-001)"))),
+
+    ("K-03", "one bookmark declared twice in the same document",
+     _literal(SPEC, '<a id="r-01-002"></a>', '<a id="r-01-002"></a><a id="r-01-002"></a>')),
+
+    ("K-04", "a bookmark buried in a fenced block, where it is text",
+     lambda box: box.write(CRITIQUE, box.read(CRITIQUE)
+                           + '\n```\n<a id="seeded-in-a-fence"></a>\n```\n')),
+
+    ("K-05", "a requirement whose trace line stops being one",
+     _entry("R-01-001", lambda b: b.replace(f"{MID} Trace:", f"{MID} Traced:"))),
+
+    ("K-06", "a requirement left with nothing to decide it",
+     _entry("R-01-001", lambda b: b.replace(f"{MID} Accept:", f"{MID} Accepts:"))),
+
+    ("K-07", "a criterion stated below the trace that must follow it",
+     _entry("R-01-001", lambda b: re.sub(
+         f"({MID} Trace: [^\r\n]*)",
+         f"\\1\n{MID} Accept: a criterion stated after the trace", b))),
+
+    ("K-08", "a prose bookmark naming a requirement the register never declared",
+     _literal(SPEC, '<a id="r-01-001">', '<a id="r-01-901">')),
+
+    ("K-09", "a written-out trace displaying a section its bookmark does not sit in",
+     _entry("R-01-001", lambda b: b.replace(
+         f"{MID} Trace: CJ-T",
+         f"{MID} Trace: [{SEC}9](spec.md#r-01-001); and the crown jewel"))),
+
+    ("K-10", "one requirement id declared by two entries",
+     _literal(REGISTER, "**R-01-002** ", "**R-01-001** ")),
+
+    ("K-11", "a requirement id that names nothing",
+     _seed_paragraph("The R-99-999 obligation applies here.")),
+
+    ("K-12", "a link pointing at a file the repository does not carry",
+     _literal("README.md", "](docs/", "](docs/not-a-")),
+
+    ("K-13", "a section number no heading carries",
+     _seed_paragraph(f"This is settled at {SEC}99.7.")),
+
+    ("K-14", "a bearing requirement its view stops carrying", _k14),
+
+    ("K-15", "a matrix cell moved off its own pair, leaving a gap and a duplicate",
+     _literal(MATRIX, "| `B-01` | `P-1` |", "| `B-02` | `P-1` |")),
+
+    ("K-16", "a matrix cell resting on no requirement",
+     _strip_requirements(MATRIX, r"(?m)^\| `B-\d\d` \| `P-\d` \|[^\r\n]*")),
+
+    ("K-17", "a CJ- target the inventory does not account for",
+     _literal(REGISTER, "| `CJ-SAIL` |", "| `CJ-SAILX` |")),
+
+    ("K-18", "an inventory row no requirement confers the status on",
+     _strip_requirements(CROWN, r"(?m)^\| \d+ \|[^\r\n]*", "R-01-001")),
+
+    ("K-19", "the crown-jewel status asserted in a criterion and on no entry line",
+     _entry("R-01-001", lambda b: b.replace(
+         f"{MID} Accept:",
+         f"{MID} Accept: the crown-jewel spec it names is authored, and"))),
+
+    ("K-20", "a conferred refusal no seam collects",
+     _entry("R-01-001", lambda b: b.replace(
+         f"{MID} Trace:",
+         f"{MID} Fail-closed: the seeded refusal stops the unit, and the stop costs a "
+         f"restart\n{MID} Trace:"))),
+
+    # the entry's own id is left alone and every id it cites is swapped, so the seam
+    # composes refusals no requirement confers while still being the entry it was
+    ("K-21", "a seam composing a refusal no requirement confers",
+     _first_match(REGISTER,
+                  r"(?m)^\*\*R-\d\d-\d+[a-z]?\*\* [^\r\n]*Fail-closed seam \*\*[^\r\n]*",
+                  lambda m: _keep_own_id(m.group()))),
+
+    ("K-22", "a freshness conferral that stops naming the enumeration collecting it",
+     _first_match(REGISTER, f"(?m)^{MID} RoT-fresh:[^\r\n]*R-10-013[^\r\n]*",
+                  lambda m: re.sub(r"R-10-013[a-z]?", "the enumeration", m.group()))),
+
+    ("K-23", "an entry speaking the vocabulary of refusal and standing in no column",
+     _entry("R-01-001", lambda b: re.sub(
+         r"(?m)^(\*\*R-01-001\*\*[^\r\n]*)",
+         r"\1 The unit refuses rather than degrades.", b))),
+
+    ("K-24", "an asserted count the artifact no longer gives",
+     _renumber(CROWN, r"\d+(?= coarse targets)", 0, "99")),
+
+    ("K-25", "an inventory status spelled outside the three declared classes",
+     _first_match(
+         CROWN,
+         r"(?m)^\| \d+ \|[^\r\n]*\| (not authored|partial[^|]*|[^|]*authored[^|]*) \|[^\r\n]*",
+         lambda m: re.sub(r"\| [^|]+ \|(\s*)$", r"| in progress |\1", m.group()))),
+
+    ("K-26", "a counted figure restated where no claim holds it", _k26),
+
+    ("K-27", "a Coverage row naming a section the register does not carry",
+     _literal(REGISTER, f"| **{SEC}5 ", f"| **{SEC}55 ")),
+
+    ("K-28", "a Coverage row whose count the register does not give",
+     _renumber(REGISTER,
+               rf"(?m)^\| \*\*{SEC}\d+ [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|",
+               1, "999")),
+
+    ("K-29", "a CSR row resting on no requirement", _k29),
+
+    ("K-30", "an estimate figure stated outside the column shape", _k30),
+
+    ("K-31", "a dominant term whose big-table row is retitled out from under it",
+     _literal(PERF, "In-order issue, no speculation/OoO",
+              "In-order issue, no speculation or OoO")),
+
+    ("K-32", "a compounded product the rows beneath it do not give",
+     _literal(PERF, "| Better | " + chr(0x2212) + "42% |",
+              "| Better | " + chr(0x2212) + "11% |")),
+
+    ("K-33", "a credit the band and the product do not support",
+     _literal(PERF, "| 3 points conservative |", "| 9 points conservative |")),
+
+    ("K-34", "a checklist item whose estimate cell the document cannot read",
+     _first_match(PLAN,
+                  rf"(?m)^\* \[x\] \*\*[^*]+\*\* {MID} [\d.,]+ h actual {MID} [\d.]+%",
+                  lambda m: re.sub(rf" {MID} [\d.,]+ h actual {MID} [\d.]+%",
+                                   " (about half a day)", m.group()))),
+
+    ("K-35", "an open midpoint that is not the mean of its own range",
+     _renumber(PLAN, rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} ([\d.,]+)(?= h, range )",
+               1, "999")),
+
+    ("K-36", "a subtotal that no longer sums the items beneath it",
+     _renumber(PLAN, r"(?m)^\*\*[^*]+ subtotal:\*\* ([\d.,]+)(?= h )", 1, "999")),
+
+    ("K-37", "a restated grand total the items do not give",
+     _renumber(PLAN, r"(?m)^\* Total estimate: ([\d.,]+)(?= h midpoint)", 1, "999")),
+
+    ("K-38", "a table row of the wrong width",
+     _literal(MATRIX, "| `B-01` | `P-1` |", "| seeded | `B-01` | `P-1` |")),
+
+    ("K-39", "a run of table rows carrying no header rule",
+     _seed_paragraph("| a stray row | pasted on its own |")),
+
+    ("K-40", "an em-dash, which the house style forbids",
+     _seed_paragraph("A clause " + chr(0x2014) + " and its aside.")),
+
+    ("K-41", "UTF-8 read as a single-byte encoding",
+     _seed_paragraph("The caf" + chr(0x00C3) + chr(0x00A9) + " problem.")),
+
+    ("K-42", "a bindings row disagreeing with the apex record",
+     _literal(BINDINGS, "| `spatial_safety` |", "| `spatial_safetyx` |")),
+
+    ("K-43", "a consumer cell that no longer restates the statement", _k43),
+
+    ("K-44", "an instantiation cell in no readable form",
+     _literal(BINDINGS, "| none yet |", "| soon |")),
+
+    ("K-45", "a disposition left standing over a requirement that was retired",
+     _literal(REGISTER, "**R-03-003** ", "**R-03-903** ")),
+
+    ("K-46", "a computed quantity with no claim to notice it going to zero", _k46),
+
+    ("K-47", "an enumeration whose reading has moved off the heading it read",
+     _literal(PROFILE, "### 5.1 ", "### 5.9 ")),
+
+    ("K-48", "a view drawing its members from a subsection the register no longer carries",
+     _literal("tools/vos/checks/views.py", '"15.14"', '"15.94"')),
+
+    ("K-49", "a view the register obliges and the repository does not carry", _k49),
+]
+
+# A rule with no case is not a defect, but it must be a decision.
+UNSEEDABLE: dict[str, str] = {}
+
+# the three groups a repair touches, one case each: the repair path is never exercised
+# by a green tree, so it ships untested unless something breaks it on purpose
+REPAIRABLE = ("K-24", "K-28", "K-37")
+
+
+# =====================================================================================
+# run
+# =====================================================================================
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Seed each checker rule a defect it must report.")
+    parser.add_argument("--rule", help="run one rule's case only")
+    parser.add_argument("--jobs", type=int, default=min(8, (os.cpu_count() or 2)),
+                        help="how many sandboxes run cases at once")
+    parser.add_argument("--sandbox", type=Path,
+                        default=Path(tempfile.gettempdir()) / "verifiedos-selftest",
+                        help="where the sandboxes are built")
+    parser.add_argument("--keep", action="store_true",
+                        help="leave the sandboxes on disk for inspection")
+    args = parser.parse_args(argv)
+
+    repo = corpus_mod.find_root()
+    selected = [c for c in CASES if not args.rule or c[0] == args.rule]
+    if args.rule and not selected:
+        raise SystemExit(f"no case for rule '{args.rule}'")
+    jobs = max(1, min(args.jobs, len(selected)))
+
+    print(f"building {jobs} sandbox(es) at {args.sandbox}")
+    template = args.sandbox / "template"
+    copied = build_template(repo, template)
+    print(f"copied {copied} file(s), committed as the baseline")
+    print()
+
+    boxes: Queue[Sandbox] = Queue()
+    made: list[Sandbox] = []
+    for i in range(jobs):
+        path = args.sandbox / f"w{i}"
+        remove_tree(path)
+        shutil.copytree(template, path)
+        box = Sandbox(path, template)
+        boxes.put(box)
+        made.append(box)
+
+    try:
+        return _run(selected, made, boxes, jobs)
+    finally:
+        if not args.keep:
+            remove_tree(args.sandbox)
+        else:
+            print(f"sandboxes kept at {args.sandbox}")
+
+
+def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> int:
+    # Nothing below means anything against a sandbox that was already failing: a mutant
+    # would be reported killed by whatever was broken before it was introduced.
+    code, out, _ = made[0].check()
+    if code != 0:
+        print("FAIL: the unmutated sandbox does not pass, so no case can decide anything:")
+        for line in out:
+            if line.lstrip().startswith("FAIL"):
+                print(f"  {line}")
+        return 1
+    print("ok: the unmutated sandbox passes, so every finding below is the mutant")
+    print()
+
+    def one(case):
+        rule, what, apply = case
+        box = boxes.get()
+        try:
+            if not apply(box):
+                return rule, what, "unseeded", None
+            code, _, failed = box.check()
+            if rule in failed:
+                return rule, what, "killed", None
+            # a run that reported nothing and a run that died before reporting look the
+            # same from the rule's side and are repaired differently, so the exit code
+            # is stated
+            how = (f"other rules fired: {', '.join(failed)}" if failed
+                   else "the run was green" if code == 0
+                   else f"the run exited {code} with no finding, so the checker did not "
+                        "survive the mutant either")
+            return rule, what, "survived", how
+        finally:
+            box.reset()
+            boxes.put(box)
+
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        results = list(pool.map(one, selected))
+
+    survived, unseeded, ran = [], [], 0
+    for rule, what, verdict, how in results:
+        if verdict == "unseeded":
+            # a mutation that would not apply is the sharper finding of the two: the
+            # document it was written against has moved, so the case has stopped testing
+            # anything and would report the rule live for as long as nobody looked
+            unseeded.append(f"{rule}: the mutant will not apply; the document it seeds has moved")
+            print(f"{rule:<6} UNSEEDED  {what}")
+            continue
+        ran += 1
+        if verdict == "killed":
+            print(f"{rule:<6} killed    {what}")
+        else:
+            survived.append(f"{rule}: the mutant survived; the rule read the defect and "
+                            f"reported nothing ({how})")
+            print(f"{rule:<6} SURVIVED  {what}")
+    print()
+
+    repair = _repair_path(made[0])
+    print()
+    gaps = _registry_coverage(made[0])
+    print()
+
+    findings = len(survived) + len(unseeded) + len(repair) + len(gaps)
+    if findings:
+        for line in survived + unseeded:
+            print(line)
+        print(f"{findings} finding(s); {ran} of {len(selected)} case(s) ran.")
+        return 1
+    print(f"every one of {ran} rule(s) killed its mutant, the repair path holds, "
+          "and the registry is covered.")
+    return 0
+
+
+def _repair_path(box: Sandbox) -> list[str]:
+    """--fix rewrites the asserted counts, the compounded product, and the checklist's
+    totals from their artifacts, and on a repository that already agrees it rewrites
+    nothing, so the branch ships untested unless something breaks it on purpose. Three
+    defects at once, one per repairable group, and the test is that the repair leaves a
+    tree the checker then passes."""
+    print("--- the repair path ---")
+    box.reset()
+    for rule, _, apply in CASES:
+        if rule in REPAIRABLE:
+            apply(box)
+
+    before, _, _ = box.check()
+    _, fix_out, _ = box.check(fix=True)
+    after, after_out, _ = box.check()
+    box.reset()
+
+    problems: list[str] = []
+    if before == 0:
+        problems.append("the three seeded figures did not fail the checker, so the repair "
+                        "proves nothing")
+    if after != 0:
+        problems.append("--fix left findings standing:")
+        problems += [f"    {line}" for line in after_out if line.lstrip().startswith("FAIL")]
+    rewrites = [line for line in fix_out if line.startswith("fixed:")]
+    if not rewrites:
+        problems.append("--fix reported no repair, so it did not recognize the seeded figures")
+
+    if problems:
+        for line in problems:
+            print(f"  {line}")
+    else:
+        print(f"  ok: three seeded figures failed the checker, --fix rewrote "
+              f"{len(rewrites)}, and the tree then passes")
+    return problems
+
+
+def _registry_coverage(box: Sandbox) -> list[str]:
+    """The registry is the enumeration of the tool's reach; this is the enumeration of
+    what is held about that reach, and the two are checked against each other for the
+    same reason the meta group checks the registry against the code."""
+    print("--- coverage of the registry ---")
+    registered = re.findall(r"(?m)^\| (K-\d\d) \|", box.read(RULES))
+    covered = {rule for rule, _, _ in CASES}
+    gaps = [f"{r} is registered, has no case here, and is not declared unseedable"
+            for r in registered if r not in covered and r not in UNSEEDABLE]
+    gaps += [f"{r} has a case here and no registry row"
+             for r in sorted(covered) if r not in registered]
+    if gaps:
+        for line in gaps:
+            print(f"  {line}")
+    else:
+        print(f"  ok: all {len(registered)} registered rules carry a case")
+    return gaps
+
+
+if __name__ == "__main__":
+    sys.exit(main())
