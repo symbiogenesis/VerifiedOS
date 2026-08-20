@@ -512,6 +512,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no protocol in §12 negotiates a classical-only key establishment as its primary path.
 · Trace: CJ-CRYPTO-SPEC
 
+**R-05-058a** MUST: The suite is frozen by parameter set rather than by family name, so R-12-043a's composition-fixed ciphersuite is read at category strength: the platform's own choices are Category 5 throughout, ML-KEM-1024, ML-DSA-87, and SLH-DSA-SHAKE-256s. Where an external wire profile the platform must speak fixes its own parameters the platform takes them rather than minting a dialect no peer implements, which is how the hybrid TLS group's ML-KEM-768 enters, and that exception reaches the wire and never the device's own long-lived keys.
+· Accept: every §12 protocol configuration and every §9 and §10 signing role names its parameter set rather than its family, and no unqualified family name appears in an admissible configuration; the external-profile exception is taken per protocol against the standard that fixes it rather than granted generally.
+· Trace: CJ-CRYPTO-SPEC, CJ-VELUS
+
+**R-05-058b** MUST: Hybrid key establishment pins one named combiner construction and inherits that construction's proof, a KEM combiner's security being specific to the KEMs and to the transform inside them rather than generic. ML-KEM alone does not achieve the malicious-key binding properties, so a protocol requiring the session key to determine the ciphertext and the public key that produced it takes that binding from the combiner or from explicit transcript binding, never from the bare KEM, and its §12 formal model states which.
+· Accept: the frozen configuration names the construction and its specification rather than describing a concatenation of shared secrets; each analyzed protocol model records whether it depends on key-to-ciphertext or key-to-public-key binding and where that binding comes from, and no model assumes one of the bare KEM.
+· Trace: CJ-CRYPTO-SPEC, CJ-VELUS
+
+**R-05-058c** MUST: Signature schemes split by verifier rather than by stage: everything a metal-mask ROM verifies is SLH-DSA, and ML-DSA carries the high-volume replaceable paths above it. The grounds are the hash-only assumption, which measured boot already puts in the trust base, and the verifier's size, a hash and a Merkle path against an NTT, a matrix expansion, a rejection sampler, and a hint decoder, in the one verifier that cannot be re-issued.
+· Accept: R-09-005's boot payload and every other ROM-verified object name SLH-DSA, and no ROM-resident lattice verifier exists; the schemes above the ROM boundary stay uniform, so the split costs the platform one further verifier implementation rather than one per stage.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
+
 **R-05-059** MUST: Every crypto primitive carries all three assurance layers: functional correctness, constant-time, and reduction-level security.
 · Accept: the crypto inventory has three evidence entries per primitive; a primitive missing any layer is not shipped.
 · Trace: CJ-CRYPTO-SPEC, CJ-REDUCTION, CJ-CT-SOUND
@@ -1799,8 +1811,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: it is the platform's only management processor (R-15-194).
 · Trace: CJ-DEVTREE
 
-**R-09-002** MUST: The chain is RoT → verified M-mode firmware → per-core kernels of all classes → static image, with every stage measured and all signatures post-quantum (ML-DSA).
-· Accept: no stage executes before its measurement is recorded.
+**R-09-002** MUST: The chain is RoT → verified M-mode firmware → per-core kernels of all classes → static image, with every stage measured and all signatures post-quantum, split by verifier under R-05-058c: SLH-DSA wherever immutable ROM is the verifier, ML-DSA above it.
+· Accept: no stage executes before its measurement is recorded, and no stage's scheme is chosen by what signs it rather than by what verifies it.
 · Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC
 
 **R-09-003** MUST: The first instruction executes from the RoT's on-die metal-mask boot ROM (immutable silicon in the attested mask set) with keys, lifecycle state, and anti-rollback counters in on-die OTP.
@@ -1811,9 +1823,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no FTL, no wear levelling, and no filesystem stands under boot; the ROM reads it through the same firmware-free ONFI PHY and fixed-function LDPC ECC engine the storage path uses.
 · Trace: CJ-DEVTREE
 
-**R-09-005** MUST: The pre-kernel reader is not a parser: the boot payload is a flat measured image behind a fixed-layout, length-bounded header (offset, length, hash), verified by ML-DSA signature, checked against the monotonic anti-rollback floor, and measured before any byte of it executes.
+**R-09-005** MUST: The pre-kernel reader is not a parser: the boot payload is a flat measured image behind a fixed-layout, length-bounded header (offset, length, hash), verified by SLH-DSA signature under R-05-058c, checked against the monotonic anti-rollback floor, and measured before any byte of it executes.
 · Accept: no interpreted container grammar and no followed offsets; a corrupt field fails the hash or signature check rather than steering a reader. The content-addressed store, the pack format, and the §13 verified reader come up only after the kernel and the FTL server, and stage zero never touches them.
 · Trace: CJ-FORMAT, CJ-DEVTREE
+
+**R-09-005a** IS: The hash-only root's cost is a signature of tens of kilobytes, carried as one more declared field of the fixed-layout header and absorbed by a reserved NAND block, and a verification of thousands of Keccak permutations run as plain 64-bit integer code, the RoT being the vectorless S-class with no vector permutation instruction to reach (R-15-059).
+· Accept: the cost is tens of milliseconds once on the cold path, spent in the R-01-001 free currency to buy the one verifier that cannot be re-issued a smaller attack surface and a weaker assumption; signing stays off-device at build time, so the scheme's asymmetric cost is the build's rather than the boot's.
+· Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC
 
 **R-09-006** MUST: The ROM's sequence is fixed and singular: verify and enter the RoT runtime firmware, walk the reset table, bring up the memory controller, pull both A/B headers, select per the boot-target latch and boot counting, place the verified M-mode image in main SRAM, and release the boot core into the measured chain.
 · Accept: cold boot, deep-sleep wake, and the recovery generation all take this one path, so no second loader exists.
@@ -5211,6 +5227,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: hybrid PQ+classical key exchange is the standing hedge; protocol-level security is a further layer this guarantee does not reach, machine-checked upstream over the analyzed models for the four radio protocols (R-12-043e) with the R-12-043f remainder booked, and unnarrowed for TLS 1.3 and WireGuard.
 · Trace: CJ-REDUCTION
 
+**R-17-049b** IS: The hedge's response to a broken assumption is a generation and not a negotiation, R-12-043a leaving no fallback path to select, so migration is a signed update through §10 rather than a choice an attacker can steer; and the hedge covers key establishment only, a signature carrying no second scheme concatenated beside it, so signature-side diversity is taken across roles under R-05-058c rather than within one.
+· Accept: the cost is booked as time-to-migrate rather than as agility the platform declines to have, which is why R-12-043a's absence of negotiation is a property and not a gap; no requirement claims a hybrid signature, and the two roles the diversity is stated over are the ROM-verified and the re-signable.
+· Trace: CJ-REDUCTION, CJ-CRYPTO-SPEC
+
+**R-17-049c** IS: A *d*-probing theorem is a statement about probes rather than faults, and R-17-058d's ineffective-fault countermeasure is specified over permutation building blocks, which the arithmetic-to-Boolean conversions masking a lattice scheme requires, for compression, for the re-encryption comparison, and for decomposition and the rejection checks, are not; those conversions are where the published fault-propagation results on masked lattice implementations land, so the premise making a single in-model fault either effective or share-confined is unavailable on them by structure.
+· Accept: closing it on those gadgets is a per-gadget obligation of the R-05-004a masking fork rather than a consequence of the countermeasure class, entering that fork's design-space exploration beside its area and randomness terms; no combined coverage is quoted over them until it checks on the artifact, R-17-058c's rule applying here unchanged.
+· Trace: CJ-LEAK, CJ-CRYPTO-SPEC
+
 **R-17-049a** IS: The entropy residual is subversion, not failure: a dead, stuck, biased, or dying source is a stated fault (R-15-241b, R-15-241e, R-09-006a), while a source trimmed at fabrication to a distribution that passes exactly the tests it will be given is the fab residual (R-17-060) read on the noise source rather than on the logic, and inherits its ceiling without narrowing it.
 · Accept: the split is stated as detected failure against undetected subversion, the entropy root being a consumer of the silicon supply-chain residual rather than a mechanism outside it; open RTL does not describe an analog trim and IRIS images structure rather than distribution (R-17-061, R-17-063), so neither mitigation is claimed against this case.
 · Trace: CJ-T, CJ-CRYPTO-SPEC
@@ -5562,7 +5586,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1284 requirements. §19 is non-normative and yields none. Counts include the 333 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1290 requirements. §19 is non-normative and yields none. Counts include the 339 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5570,11 +5594,11 @@ All eighteen normative sections are extracted, at 1284 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **202** |
+| **§5 Languages & Verification** | **extracted** | **205** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **60** |
 | **§8 Authority Model** | **extracted** | **73** |
-| **§9 Boot & Root of Trust** | **extracted** | **38** |
+| **§9 Boot & Root of Trust** | **extracted** | **39** |
 | **§10 Storage & State** | **extracted** | **50** |
 | **§11 Updates** | **extracted** | **36** |
 | **§12 System Servers** | **extracted** | **124** |
@@ -5582,7 +5606,7 @@ All eighteen normative sections are extracted, at 1284 requirements. §19 is non
 | **§14 Userland** | **extracted** | **28** |
 | **§15 Hardware Platform** | **extracted** | **367** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **114** |
+| **§17 Residual Risks** | **extracted** | **116** |
 | **§18 Realization** | **extracted** | **53** |
 
 §19 is non-normative and yields no requirements.

@@ -852,6 +852,38 @@ The one primitive that crossed the hardware threshold and the software path reta
 
 ---
 
+## The post-quantum suite itself: four algorithm proposals declined, and the one choice that moved
+
+The instruction-set question above is separate from the scheme question, and the scheme question has its own evaluated set.
+Recorded here so that the suite reads as a set of decisions rather than as whatever the first draft happened to name.
+
+**FN-DSA (Falcon, the fourth NIST signature standard) as a signature scheme: declined.**
+Its attraction is signature size, roughly 1280 bytes at its high parameter set against ML-DSA-87's 4627, which would matter on a wire-size-bound path.
+It is declined on the machine rather than on the scheme: FN-DSA signing rests on floating-point Gaussian sampling, floating point here is a fixed-latency vector unit with no scalar FPU, no dynamic rounding mode, and no readable exception flags (§15), and that sampler is precisely the scheme's known constant-time hazard, so the platform would be verifying its hardest leakage property on the datapath it has least ordinary tooling for. The size it buys is also worth least here, every long-lived signature on this device being verified rather than produced by it, and the one place size does bind, the ROM-verified boot header, is the place the suite deliberately spends size to buy a weaker assumption (below).
+**Disposition:** decline; the case reopens only if a wire-size-bound protocol appears, and it reopens as a *verification* choice, signing staying off-device.
+
+**LMS or XMSS, the stateful hash-based signatures, for the ROM-verified root: declined in favour of SLH-DSA.**
+They are the standing firmware-signing recommendation, their verifiers are smaller still than SLH-DSA's, and their signatures are far smaller, so on the axes this choice cares about they look strictly better.
+Their security depends on the *signer* never reusing a one-time key, which makes correct state management across every build machine, every retry, and every restored backup a catastrophic-failure property owned by build infrastructure and checkable by nothing on the device.
+That is the shape this project refuses everywhere else: a property no admission check can decide is a property the platform does not have, whatever the operator's discipline.
+**Disposition:** decline stateful; take the stateless scheme and pay for statelessness in signature size, which is the free axis (§1).
+
+**Dual ML-DSA and SLH-DSA signatures over the boot payload, both required to verify: declined.**
+It buys assumption diversity inside one role, and it pays for it in exactly the quantity that role is optimizing.
+The ROM would carry a lattice verifier, its NTT, matrix expansion, rejection sampler, and hint decoder, *in addition to* the hash path, and a defect in the added verifier is unfixable whether or not the scheme it implements is sound; its failure mode is also availability, a bug in either verifier refusing a good image and bricking the boot rather than admitting a bad one.
+Diversity is taken **across roles** instead, hash-only where ROM verifies and lattice where re-signable code does (§5), which gets the same assumption spread without a second unpatchable verifier.
+**Disposition:** decline the composite; keep the split.
+
+**A second KEM shipped beside ML-KEM, the standardized backup being the obvious candidate: declined on the same shape.**
+Two KEMs is two constant-time obligations, two masked datapaths, two reduction proofs, and two functional specifications at the crown-jewel seam, spent against a break that has not happened, and the hybrid construction already holds classically if MLWE falls without a quantum computer to exploit the other half.
+The migration answer is structural rather than stocked: one composition-fixed configuration per protocol means there is no negotiation to widen, so moving to another KEM is a signed generation through the §10 machinery, which is slower than agility and is not steerable by an attacker.
+**Disposition:** decline the second KEM; the migration path is the generation, and §17 books what that costs in time-to-migrate.
+
+**One scheme for every stage, ML-DSA throughout, including the ROM: declined, and it is the proposal the other three are measured against.**
+It is the simplest suite, one verifier implementation, one functional specification, one masked datapath, and one reduction, and simplicity of that kind is normally this project's own argument.
+It is declined because the ROM boundary is not like the stages above it in either respect the choice turns on: the code there cannot be re-issued, so verifier size is an irreversible commitment rather than a maintainable one, and a lattice verifier is several structured algorithms where a hash-based one is a hash and a Merkle path.
+**Disposition:** decline the uniform suite at the ROM boundary only; above it, uniformity is the right answer and is what §5 states.
+
 ## Mon CHÉRI conditional capabilities and an initialization tag plane: rejected
 
 Mon CHÉRI adds operation-specific bounds and conditional permissions to capabilities, with Write-before-Read as the flagship policy.
