@@ -800,7 +800,7 @@ The band is therefore reachable on a prototype and automotive-grade basis and no
 
 **Disposition:** decline panel-resident adaptive aging compensation, whatever the emitter, and do not make present-day micro-LED procurement a base requirement.
 The technology-neutral rule and current/future instantiation are documented in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change is made here.
+The rule this reaches is the one R-15-236a already states, so the spec body carries the mechanism reading and the emitter enumeration that follows from it rather than a new requirement.
 
 ---
 
