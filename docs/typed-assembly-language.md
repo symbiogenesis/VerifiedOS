@@ -154,7 +154,7 @@ VerifiedOS requires all eleven, canonically enumerated at R-05-029 of its regist
 
 The eleven rows are the user-facing grouping, not the unit of routing, because a profile may discharge the halves of one row differently: on capability hardware the machine enforces spatial safety but not temporal, and where an indirect transfer may land but not which callee is legal there.
 
-**TAL-012** IS: The unit of routing is the **facet**. The fifteen facets below partition the eleven menu rows; no facet belongs to two rows, and every row has at least one facet.
+**TAL-012** IS: The unit of routing is the **facet**. The sixteen facets below partition the eleven menu rows; no facet belongs to two rows, and every row has at least one facet.
 
 | Facet | Row | Statement |
 | --- | --- | --- |
@@ -173,8 +173,9 @@ The eleven rows are the user-facing grouping, not the unit of routing, because a
 | `prov.integrity` | 9 | No pointer or capability arises except by monotone derivation from one already held. |
 | `ct.taint` | 10 | No secret-labeled value reaches a branch condition, a memory address, or a variable-latency operand, under the profile's leakage model. |
 | `cost.wcet` | 11 | Every entry point's execution cost is at most the derivation's declared bound under the profile's cost model. |
+| `cost.space` | 11 | Every entry point's peak stack depth is at most the derivation's declared bound under the profile's cost model. |
 
-· Accept: fifteen facets, each naming one of the eleven rows; the profile matrix (§6) has one line per facet per profile and no line for a row.
+· Accept: sixteen facets, each naming one of the eleven rows; the profile matrix (§6) has one line per facet per profile and no line for a row.
 · Trace: §6.2, §6.3
 
 **TAL-013** MUST: A profile declares exactly one route for every facet of every row its consumer selects. A row is never routed; its facets are.
@@ -194,6 +195,8 @@ The literature usually treats these two as proof obligations rather than as type
   The guarantee is relative to the profile's declared leakage model rather than absolute, and it does not survive a lowering the type system never sees, which is why the obligation is stated over final code rather than over a source or intermediate form (§14).
 - **Worst-case cost** is a quantitative property, but for structured code it is a max-path sum over the certificate's declared loop nest (Shaw's timing schema), carried as a cost attribute rather than produced by a separate analyzer.
   The sum is sound only given the declared trip and depth bounds of §8.7 and a machine cost model in which per-instruction costs compose: caches, pipelines, speculation, interrupts, and shared resources each falsify that composition, so a profile that neither deletes nor bounds them owes an interference premise in its ledger (§5.5) rather than silence.
+  **Peak space rides the same derivation as a second weight vector, and the reason it can is worth stating rather than assuming.** In general, peak space is not the algebra time is: time sums along a path and maxes across alternatives, while peak space maxes across sequential phases where storage is reused and sums only over simultaneously-live regions. Here the two coincide because the frame lifetimes are strictly nested, a frame being live exactly for its call's duration, so the family is laminar and the schema's shape carries over unchanged: sum down the nesting, max across alternatives.
+  **The one rule that differs is the loop rule, and it differs in the direction that matters.** Where TAL-052 has a loop contribute its body cost multiplied by its declared trip bound, space takes the body's peak **once**: iterations reuse the frame rather than accumulating it, and multiplying there would be unsound in the safe direction but so loose as to be useless. Recursion goes the other way and both vectors agree: each activation's frame coexists with its caller's, so a component with a TAL-053 recursion-depth premise multiplies by that premise for space exactly as for time. The space vector inherits every side condition the cost vector already owes, the declared trip and depth bounds of §8.7, the declared call order of TAL-053, and the acyclicity of TAL-052's residual graph, and adds none.
 
 ### 4.4 What the language does not admit as evidence
 
@@ -350,7 +353,7 @@ The refusal stands even though a bounded form exists. Wasm-precheck [GFB24] plac
 
 ### 6.1 How to read it
 
-Each profile has two tables over the same fifteen facets: what the checker consumes, and what the soundness argument owes. Together they are the profile's whole routing content; the paragraphs after them are qualifications, not additional routes.
+Each profile has two tables over the same sixteen facets: what the checker consumes, and what the soundness argument owes. Together they are the profile's whole routing content; the paragraphs after them are qualifications, not additional routes.
 
 **TAL-032** IS: This document specifies two profiles, `cheri-rv64` and `bare-rv64`. They differ only in routing: every facet cited by `cheri-rv64` moves to a lower route under `bare-rv64`, and no other line changes.
 · Accept: the two matrices differ exactly on the lines whose `cheri-rv64` route is Cited.
@@ -377,6 +380,7 @@ The profile VerifiedOS pins. Bounds, tags, monotone derivation, and sealed entry
 | `prov.integrity` | Attributed | III | Every capability-producing site is a monotone derivation | image-local |
 | `ct.taint` | Attributed | II | Taint labels in types; leakage-model class per instruction | address-space-closed |
 | `cost.wcet` | Attributed | II | Loop nest, trip bounds, call order, per-block cost | address-space-closed, on P and O2 |
+| `cost.space` | Attributed | II | The same loop nest, trip bounds, and call order, with per-block and per-call-site frame size | address-space-closed, on P |
 
 | Facet | Machine theorem or check pattern | Soundness lemma | Failure behavior |
 | --- | --- | --- | --- |
@@ -395,8 +399,9 @@ The profile VerifiedOS pins. Bounds, tags, monotone derivation, and sealed entry
 | `prov.integrity` | M2: no capability arises except by monotone derivation from one held, outside the named privileged and transition cases | SL-prov | Admission rejection |
 | `ct.taint` | None; relative to the declared leakage model | SL-ct | Admission rejection |
 | `cost.wcet` | Cost model plus interference premise O2 | SL-cost | Admission rejection |
+| `cost.space` | Cost model's frame sizes; no interference premise, storage being unshared | SL-space | Admission rejection |
 
-**Composed scope.** Three facets are open-world (`mem.spatial`, `cfi.runtime`, `codegen.none`, the last on loader premise L1); four are image-local (`verdict.relevance`, `ambient.static-authority`, `repr.conform`, `prov.integrity`); the remaining eight are address-space-closed. The composed guarantee is that partition and not a single word.
+**Composed scope.** Three facets are open-world (`mem.spatial`, `cfi.runtime`, `codegen.none`, the last on loader premise L1); four are image-local (`verdict.relevance`, `ambient.static-authority`, `repr.conform`, `prov.integrity`); the remaining nine are address-space-closed. The composed guarantee is that partition and not a single word.
 
 **Ledger.**
 
@@ -444,6 +449,7 @@ The profile with no capability hardware. It cites no invariant, so move I is emp
 | `prov.integrity` | Attributed | III | Every pointer-producing site is a derivation from a held pointer | image-local |
 | `ct.taint` | Attributed | II | Taint labels; the profile's own leakage model | address-space-closed |
 | `cost.wcet` | Attributed | II | Loop nest, trip bounds, call order, per-block cost | address-space-closed, on P and O2 |
+| `cost.space` | Attributed | II | The same loop nest, trip bounds, and call order, with per-block and per-call-site frame size | address-space-closed, on P |
 
 | Facet | Machine theorem or check pattern | Soundness lemma | Failure behavior |
 | --- | --- | --- | --- |
@@ -462,8 +468,9 @@ The profile with no capability hardware. It cites no invariant, so move I is emp
 | `prov.integrity` | Absence of integer-to-pointer construction | SL-prov | Admission rejection |
 | `ct.taint` | None | SL-ct | Admission rejection |
 | `cost.wcet` | Cost model plus interference premise O2 | SL-cost | Admission rejection |
+| `cost.space` | Cost model's frame sizes; no interference premise, storage being unshared | SL-space | Admission rejection |
 
-**Ledger difference.** `bare-rv64` carries no M entries. It adds L3: the loader maps code regions read-execute and data regions non-executable, and no mapping is changed after admission. Its C1 premise is load-bearing for eleven facets rather than eight, because nothing here is enforced by the machine.
+**Ledger difference.** `bare-rv64` carries no M entries. It adds L3: the loader maps code regions read-execute and data regions non-executable, and no mapping is changed after admission. Its C1 premise is load-bearing for twelve facets rather than nine, because nothing here is enforced by the machine.
 
 **The fat-pointer representation is not a route.** A bounds pair carried as an ordinary aggregate is how the inserted check obtains the bounds it compares against; the discharge is still the check that executes, and `repr.conform` fixes the layout the check reads.
 
@@ -692,6 +699,14 @@ The clauses of a rule are exactly the attributes of §8.5, one clause each; a ru
 **TAL-053** MUST: Interprocedural cost and stack depth rest on a declared call order: every call site's callees have strictly lower rank than the caller, so the call graph induced by the declared callee sets is acyclic, or the certificate declares a recursion-depth premise for the component that is not.
 · Accept: rank comparison is one integer test per call site; a cyclic component with no declared depth premise is rejected.
 · Trace: §8.7
+
+**TAL-053a** MUST: Peak stack depth is evaluated as a second weight vector over the same certificate structure as cost, under the same declared call order and loop nest. The two vectors differ in exactly one rule: a loop contributes its body cost multiplied by its declared trip bound and its body's **peak depth taken once**, iterations reusing the frame rather than accumulating it; a component with a declared recursion-depth premise multiplies by that premise in both vectors.
+· Accept: one additional closed numeral per block and per call site, summed and compared along the same max-path TAL-039 already decides in constant time per node; no new side condition, no new declared structure, no second traversal.
+· Trace: §4.3, §8.7
+
+**TAL-053b** MUST NOT: The `cost.space` facet ranges over frame storage on the derivation's own call structure and over nothing else. Static data placement, pool capacity, and the physical layout of the admitted image are not typed by this language and are not discharged by this facet.
+· Accept: a profile that routes `cost.space` and thereby claims a whole-image footprint bound is inadmissible; the image-level claim is the composition's capacity equation over declared per-component bounds, a separate artifact taking this facet's output as an input.
+· Trace: §6.2
 
 **TAL-054** MUST: The taint rule rejects any secret-labeled value that reaches a branch condition, a memory address operand, or an operand the profile's leakage model classes as variable-latency.
 · Accept: the three sink classes are declared per instruction form in the rule table; a secret-labeled operand at any of them rejects, with the site named.
@@ -974,7 +989,7 @@ This is §5.2's route table seen from the other end: when the environment does n
 · Trace: §5.8
 
 **TAL-095** MUST: A profile ships its own conformance suite: one artifact per matrix line exercising the routed discharge, and one negative artifact per cited invariant exercising its stated exceptions.
-· Accept: the per-profile suite covers all fifteen facets and every cited invariant.
+· Accept: the per-profile suite covers all sixteen facets and every cited invariant.
 · Trace: §6
 
 ---
