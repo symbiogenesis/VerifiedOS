@@ -586,12 +586,22 @@ def main(argv: list[str] | None = None) -> int:
     # twelve averaged 11.2 s.
     parser.add_argument("--jobs", type=int, default=min(8, os.process_cpu_count() or 2),
                         help="how many sandboxes run cases at once")
-    parser.add_argument("--sandbox", type=Path,
-                        default=Path(tempfile.gettempdir()) / "verifiedos-selftest",
-                        help="where the sandboxes are built")
+    parser.add_argument("--sandbox", type=Path, default=None,
+                        help="where the sandboxes are built "
+                             "(default: a private directory for this run)")
     parser.add_argument("--keep", action="store_true",
                         help="leave the sandboxes on disk for inspection")
     args = parser.parse_args(argv)
+
+    # A private directory per run rather than one path every run reuses. The template is
+    # rebuilt from the working tree on each run, so a shared location bought nothing and
+    # cost correctness: two runs at once rebuild each other's tree underneath the cases
+    # reading it, and neither verdict is about its mutant afterwards. The failure is also
+    # not self-clearing on Windows, where the losing run's checker subprocesses outlive
+    # their parent holding `template/.git` open, so every later run fails standing up
+    # rather than in a case. Passing --sandbox names a directory instead, which is how a
+    # kept run gets a path chosen in advance.
+    sandbox = args.sandbox or Path(tempfile.mkdtemp(prefix="verifiedos-selftest-"))
 
     repo = corpus_mod.find_root()
     selected = [c for c in CASES if not args.rule or c[0] == args.rule]
@@ -602,14 +612,14 @@ def main(argv: list[str] | None = None) -> int:
     # One sandbox per worker, and one more the repair path keeps to itself so that its
     # three runs go beside the cases rather than after them.
     made: list[Sandbox] = []
-    print(f"building {jobs + 1} sandbox(es) at {args.sandbox}")
-    template = args.sandbox / "template"
+    print(f"building {jobs + 1} sandbox(es) at {sandbox}")
+    template = sandbox / "template"
     copied = build_template(repo, template)
     print(f"copied {copied} file(s), committed as the baseline")
     print()
 
     def stand_up(i: int) -> Sandbox:
-        path = args.sandbox / f"w{i}"
+        path = sandbox / f"w{i}"
         remove_tree(path)
         shutil.copytree(template, path)
         return Sandbox(path, template)
@@ -624,11 +634,11 @@ def main(argv: list[str] | None = None) -> int:
         return _run(selected, made, boxes, jobs)
     finally:
         if args.keep:
-            print(f"sandboxes kept at {args.sandbox}")
+            print(f"sandboxes kept at {sandbox}")
         else:
             # deleted the way they were built, and the parent last
             _across(remove_tree, [box.path for box in made], jobs + 1)
-            remove_tree(args.sandbox)
+            remove_tree(sandbox)
 
 
 def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> int:
