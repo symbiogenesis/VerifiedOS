@@ -11,7 +11,6 @@ public:
   void reset();
 
   uint64_t mepc() const;
-  uint64_t sepc() const;
 
   // callbacks_if
   void trap_callback(ModelImpl &model, bool is_interrupt, fbits cause) override;
@@ -20,7 +19,6 @@ public:
 
 private:
   uint64_t mepc_at_first_trap = 0;
-  uint64_t sepc_at_first_trap = 0;
   uint32_t instrets_since_last_trap = 0;
   uint32_t nested_trap_count = 0;
 

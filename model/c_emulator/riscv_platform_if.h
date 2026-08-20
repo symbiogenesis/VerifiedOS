@@ -9,9 +9,6 @@ namespace hart {
 class Model;
 
 struct zMemoryAccessTypezIEmem_payloadz5zK;
-struct ztuple_z8z5enumz0zzPrivilegezCz0z5unitz9;
-struct zPTW_Error;
-struct zz5vecz8z5unionz0zzoptionzzIRTLB_EntryzzKz9;
 
 } // namespace hart
 
@@ -52,27 +49,6 @@ public:
   virtual unit xret_callback(bool is_mret);
   virtual unit instret_callback(unit);
 
-  // Page table walk callbacks
-  virtual unit ptw_start_callback(
-    uint64_t vpn,
-    hart::zMemoryAccessTypezIEmem_payloadz5zK access_type,
-    hart::ztuple_z8z5enumz0zzPrivilegezCz0z5unitz9 privilege
-  );
-  virtual unit ptw_step_callback(int64_t level, sbits pte_addr, uint64_t pte);
-  virtual unit ptw_success_callback(uint64_t final_ppn, int64_t level);
-  virtual unit ptw_fail_callback(hart::zPTW_Error error_type, int64_t level, sbits pte_addr);
-
-  virtual unit tlb_add_callback(hart::zz5vecz8z5unionz0zzoptionzzIRTLB_EntryzzKz9 tlb, uint64_t index);
-  virtual unit tlb_flush_begin_callback(unit);
-  virtual unit tlb_flush_callback(uint64_t index);
-  virtual unit tlb_flush_end_callback(hart::zz5vecz8z5unionz0zzoptionzzIRTLB_EntryzzKz9 tlb);
-
-  virtual unit load_reservation(sbits, uint64_t);
-  virtual bool match_reservation(sbits);
-  virtual unit cancel_reservation(unit);
-
-  virtual bool valid_reservation(unit);
-
   virtual unit plat_term_write(mach_bits);
 
   virtual bool sys_enable_experimental_extensions(unit);
@@ -88,7 +64,6 @@ public:
   virtual bool get_config_print_interrupt(unit);
   virtual bool get_config_print_htif(unit);
   virtual bool get_config_print_pma(unit);
-  virtual bool get_config_print_pmp(unit);
   virtual bool get_config_rvfi(unit);
   virtual bool get_config_use_abi_names(unit);
 };

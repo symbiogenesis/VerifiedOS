@@ -8,7 +8,6 @@ traploop_detector::traploop_detector() {
 
 void traploop_detector::reset() {
   mepc_at_first_trap = 0;
-  sepc_at_first_trap = 0;
   instrets_since_last_trap = 0;
   nested_trap_count = 0;
 }
@@ -16,7 +15,6 @@ void traploop_detector::reset() {
 void traploop_detector::trap_callback(ModelImpl &model, bool, fbits) {
   if (nested_trap_count == 0) {
     mepc_at_first_trap = model.mepc();
-    sepc_at_first_trap = model.sepc();
   }
   nested_trap_count++;
   instrets_since_last_trap = 0;
@@ -41,8 +39,4 @@ bool traploop_detector::loop_detected() const {
 
 uint64_t traploop_detector::mepc() const {
   return mepc_at_first_trap;
-}
-
-uint64_t traploop_detector::sepc() const {
-  return sepc_at_first_trap;
 }

@@ -285,7 +285,7 @@ function clause execute LOAD(imm, rs1, rd, is_unsigned, width) = {
   // This is checked during decoding.
   assert(width <= xlen_bytes);
 
-  match vmem_read(rs1, offset, width, Load(Data), false, false, false) {
+  match data_read(rs1, offset, width, Load(Data), false, false) {
     Ok(data) => {
       X(rd) = extend_value(is_unsigned, data);
       RETIRE_SUCCESS
@@ -321,7 +321,7 @@ function clause execute STORE(imm, rs2, rs1, width) = {
   // See https://github.com/riscv/sail-riscv/issues/1761.
 
   let data = X(rs2)[width * 8 - 1 .. 0];
-  match vmem_write(rs1, offset, width, data, Store(Data), false, false, false) {
+  match data_write(rs1, offset, width, data, Store(Data), false, false) {
     Ok(_) => RETIRE_SUCCESS,
     Err(e) => e,
   }
@@ -536,15 +536,8 @@ mapping clause encdec = ECALL()
   <-> 0b000000000000 @ 0b00000 @ 0b000 @ 0b00000 @ 0b1110011
 
 function clause execute ECALL() = {
-  let exc_type : ExceptionType = match cur_privilege {
-    User              => E_U_EnvCall(),
-    Supervisor        => E_S_EnvCall(),
-    Machine           => E_M_EnvCall(),
-    VirtualUser       => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-    VirtualSupervisor => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-  };
   let t : sync_exception = struct {
-    trap    = exc_type,
+    trap    = E_M_EnvCall(),
     excinfo = None(),
     ext     = None(),
   };
@@ -559,26 +552,19 @@ union clause instruction = MRET : unit
 mapping clause encdec = MRET()
   <-> 0b0011000 @ 0b00010 @ 0b00000 @ 0b000 @ 0b00000 @ 0b1110011
 
+// `mret` no longer transfers privilege: with one mode it restores the
+// interrupt-enable stack and returns to `mepc`. `sret` is deleted with
+// the mode there is no returning to (R-15-003).
 function clause execute MRET() = {
-  if   cur_privilege != Machine
-  then Illegal_Instruction()
-  else if not(ext_check_xret_priv(Machine))
+  if   not(ext_check_xret_priv())
   then Ext_XRET_Priv_Failure()
   else {
-    let prev_priv = cur_privilege;
     mstatus[MIE]  = mstatus[MPIE];
     mstatus[MPIE] = 0b1;
-    cur_privilege = privLevel_bits(mstatus[MPP], 0b0); // TODO: use mstatus[MPV] if hypervisor enabled
-    mstatus[MPP]  = privLevel_to_bits(if currentlyEnabled(Ext_U) then User else Machine);
-    if   cur_privilege != Machine
-    then mstatus[MPRV] = 0b0;
 
     long_csr_write_callback("mstatus", "mstatush", mstatus.bits);
 
-    if   get_config_print_exception()
-    then print_log("ret-ing from " ^ to_str(prev_priv) ^ " to " ^ to_str(cur_privilege));
-
-    set_next_pc(prepare_xret_target(Machine));
+    set_next_pc(prepare_xret_target());
 
     xret_callback(true);
     RETIRE_SUCCESS
@@ -586,48 +572,6 @@ function clause execute MRET() = {
 }
 
 mapping clause assembly = MRET() <-> "mret"
-
-// *****************************************************************
-union clause instruction = SRET : unit
-
-mapping clause encdec = SRET()
-  <-> 0b0001000 @ 0b00010 @ 0b00000 @ 0b000 @ 0b00000 @ 0b1110011
-
-function clause execute SRET() = {
-  let sret_illegal : bool = match cur_privilege {
-    User              => true,
-    Supervisor        => not(currentlyEnabled(Ext_S)) | mstatus[TSR] == 0b1,
-    Machine           => not(currentlyEnabled(Ext_S)),
-    VirtualUser       => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-    VirtualSupervisor => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-  };
-  if   sret_illegal
-  then Illegal_Instruction()
-  else if not(ext_check_xret_priv (Supervisor))
-  then Ext_XRET_Priv_Failure()
-  else {
-    let prev_priv = cur_privilege;
-    mstatus[SIE]  = mstatus[SPIE];
-    mstatus[SPIE] = 0b1;
-    cur_privilege = if mstatus[SPP] == 0b1 then Supervisor else User;
-    mstatus[SPP]  = 0b0;
-    if   cur_privilege != Machine
-    then mstatus[MPRV] = 0b0;
-
-    long_csr_write_callback("mstatus", "mstatush", mstatus.bits);
-
-    if   get_config_print_exception()
-    then print_log("ret-ing from " ^ to_str(prev_priv)
-                        ^ " to " ^ to_str(cur_privilege));
-
-    set_next_pc(prepare_xret_target(Supervisor));
-
-    xret_callback(false);
-    RETIRE_SUCCESS
-  }
-}
-
-mapping clause assembly = SRET() <-> "sret"
 
 // *****************************************************************
 union clause instruction = EBREAK : unit
@@ -646,43 +590,11 @@ union clause instruction = WFI : unit
 mapping clause encdec = WFI()
   <-> 0b000100000101 @ 0b00000 @ 0b000 @ 0b00000 @ 0b1110011
 
-function clause execute WFI() =
-  match cur_privilege {
-    Machine           => Enter_Wait(WAIT_WFI),
-    // mstatus[TW] is checked when the wait times out in
-    // `run_hart_waiting()`.
-    Supervisor        => Enter_Wait(WAIT_WFI),
-    User              => if plat_wfi_available_to_usermode then Enter_Wait(WAIT_WFI) else Illegal_Instruction(),
-    VirtualUser       => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-    VirtualSupervisor => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-  }
+// `mstatus.TW`, which made WFI illegal in a less-privileged mode after
+// a bounded wait, is gone with that mode.
+function clause execute WFI() = Enter_Wait(WAIT_WFI)
 
 mapping clause assembly = WFI() <-> "wfi"
 
-// *****************************************************************
-union clause instruction = SFENCE_VMA : (regidx, regidx)
-
-mapping clause encdec = SFENCE_VMA(rs1, rs2)
-  <-> 0b0001001 @ encdec_reg(rs2) @ encdec_reg(rs1) @ 0b000 @ 0b00000 @ 0b1110011
-  when virtual_memory_supported() | not(config extensions.Svbare.sfence_vma_illegal_if_svbare_only : bool)
-
-function clause execute SFENCE_VMA(rs1, rs2) = {
-  let addr = if rs1 != zreg then Some(X(rs1)) else None();
-  // Note, the Sail model does not currently support Sv32 & SXLEN=32 on RV64.
-  // In that case this asidlen would be incorrect because the maximum asidlen
-  // is 9 but we always set it to 16 for RV64.
-  let asid = if rs2 != zreg then Some(X(rs2)[asidlen - 1 .. 0]) else None();
-  match cur_privilege {
-    User              => Illegal_Instruction(),
-    Supervisor        => match mstatus[TVM] {
-                           0b1 => Illegal_Instruction(),
-                           0b0 => { flush_TLB(asid, addr); RETIRE_SUCCESS },
-                         },
-    Machine           => { flush_TLB(asid, addr); RETIRE_SUCCESS },
-    VirtualUser       => Virtual_Instruction(),
-    VirtualSupervisor => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-  }
-}
-
-mapping clause assembly = SFENCE_VMA(rs1, rs2)
-  <-> "sfence.vma" ^ spc() ^ reg_name(rs1) ^ sep() ^ reg_name(rs2)
+// `sfence.vma` is deleted: there is no address translation to fence
+// and no TLB to flush (R-15-002, R-15-038).

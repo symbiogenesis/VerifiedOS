@@ -6,132 +6,12 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // =======================================================================================
 
-private function check_privs() -> bool = {
-  if (config extensions.S.supported : bool) & not(config extensions.U.supported : bool)
-  then {
-    print_endline("User mode (U) should be enabled if supervisor mode (S) is enabled.");
-    return false;
-  };
-  true
-}
-
-private function check_tvecs() -> bool = {
-  var valid : bool = true;
-
+private function check_tvec() -> bool = {
   if not(config base.mtvec.direct.supported : bool) & not(config base.mtvec.vectored.supported : bool) then {
-    valid = false;
     print_endline("`mtvec` specifies neither `direct` or `vectored` is supported; one of the modes must be supported.");
-  };
-
-  if (config extensions.S.supported : bool) & not(config base.stvec.direct.supported : bool) & not(config base.stvec.vectored.supported : bool) then {
-    valid = false;
-    print_endline("`stvec` specifies neither `direct` or `vectored` is supported; one of the modes must be supported.");
-  };
-
-  valid
-}
-
-private function require_Sv32(ext_name : string) -> bool = {
-  if not(config extensions.Sv32.supported : bool) then {
-    print_endline("The " ^ ext_name ^ " extension is enabled but Sv32 is disabled: " ^ ext_name ^ " depends on Sv32 on RV32.");
     return false;
   };
   true
-}
-
-private function require_Sv39(ext_name : string) -> bool = {
-  if not(config extensions.Sv39.supported : bool) then {
-    print_endline("The " ^ ext_name ^ " extension is enabled but Sv39 is disabled: " ^ ext_name ^ " depends on Sv39 on RV64.");
-    return false;
-  };
-  true
-}
-
-private function require_virtual_memory(ext_name : string) -> bool = {
-  if xlen == 32 then return require_Sv32(ext_name);
-
-  assert(xlen == 64);
-  require_Sv39(ext_name)
-}
-
-// This logic will need to change once MXL/SXL/UXL can differ.
-private function check_mmu_config() -> bool = {
-  var valid : bool = true;
-  if xlen == 64 then {
-    if not(config extensions.S.supported : bool) & ((config extensions.Sv57.supported : bool) | (config extensions.Sv48.supported : bool) | (config extensions.Sv39.supported : bool))
-    then {
-      valid = false;
-      print_endline("Supervisor mode (S) disabled but one of (Sv57, Sv48, Sv39) is enabled: cannot support address translation without supervisor mode.");
-    };
-    if (config extensions.Sv57.supported : bool) & not(config extensions.Sv48.supported : bool)
-    then {
-      valid = false;
-      print_endline("Sv57 is enabled but Sv48 is disabled: supporting Sv57 requires supporting Sv48.");
-    };
-    if (config extensions.Sv48.supported : bool) & not(config extensions.Sv39.supported : bool)
-    then {
-      valid = false;
-      print_endline("Sv48 is enabled but Sv39 is disabled: supporting Sv48 requires supporting Sv39.");
-    };
-    if (config extensions.Sv32.supported : bool)
-    then {
-      valid = false;
-      print_endline("Sv32 is enabled: Sv32 is not supported on RV64.");
-    };
-  } else {
-    assert(xlen == 32);
-    if not(config extensions.S.supported : bool) & (config extensions.Sv32.supported : bool)
-    then {
-      valid = false;
-      print_endline("Supervisor mode (S) is disabled but Sv32 is enabled: cannot support address translation without supervisor mode.");
-    };
-    if (config extensions.Sv39.supported : bool) | (config extensions.Sv48.supported : bool) |  (config extensions.Sv57.supported : bool)
-    then {
-      valid = false;
-      print_endline("One or more of Sv39/Sv48/Sv57 is enabled: these are not supported on RV32.");
-    };
-  };
-
-  if (config extensions.Svrsw60t59b.supported : bool) then {
-    if xlen == 32 then {
-      valid = false;
-      print_endline("The Svrsw60t59b extension is enabled: Svrsw60t59b is not supported on RV32");
-    } else {
-      valid = valid & require_Sv39("Svrsw60t59b");
-    }
-  };
-
-  if (config extensions.Ssccptr.supported : bool)
-  then valid = valid & require_virtual_memory("Ssccptr");
-
-  if (config extensions.Svade.supported : bool)
-  then valid = valid & require_virtual_memory("Svade");
-
-  if (config extensions.Svadu.supported : bool)
-  then valid = valid & require_virtual_memory("Svadu");
-
-  if (config extensions.Svpbmt.supported : bool) then {
-    if xlen == 32 then {
-      valid = false;
-      print_endline("The Svpbmt extension is enabled: Svpbmt is not supported on RV32");
-    } else {
-      valid = valid & require_Sv39("Svpbmt");
-    }
-  };
-
-  if (config extensions.Svnapot.supported : bool) then {
-    if xlen == 32 then {
-      valid = false;
-      print_endline("The Svnapot extension is enabled: Svnapot is not supported on RV32");
-    } else {
-      valid = valid & require_Sv39("Svnapot");
-    }
-  };
-
-  if (config extensions.Svvptc.supported : bool)
-  then valid = valid & require_virtual_memory("Svvptc");
-
-  valid
 }
 
 private function check_vlen_elen() -> bool = {
@@ -260,12 +140,12 @@ private function check_pma_region(region : PMA_Region) -> bool = {
   // will not change within intra-page accesses.  Although this constraint
   // is not imposed by the specification, most implementations are
   // expected to conform with it.
-  if region.base[pagesize_bits - 1 .. 0] != zeros() then {
-    print_endline("Memory region starting at " ^ bits_str(region.base) ^ " does not start on a 4K (page) boundary.");
+  if region.base[pma_granule_bits - 1 .. 0] != zeros() then {
+    print_endline("Memory region starting at " ^ bits_str(region.base) ^ " does not start on a 4K boundary.");
     return false;
   };
-  if region.size[pagesize_bits - 1 .. 0] != zeros() then {
-    print_endline("Memory region starting at " ^ bits_str(region.base) ^ " with size " ^ bits_str(region.size) ^ " does not end on a 4K (page) boundary.");
+  if region.size[pma_granule_bits - 1 .. 0] != zeros() then {
+    print_endline("Memory region starting at " ^ bits_str(region.base) ^ " with size " ^ bits_str(region.size) ^ " does not end on a 4K boundary.");
     return false;
   };
 
@@ -289,17 +169,12 @@ private struct pma_check_opts = {
   ziccamoc : bool,
   ziccif   : bool,
   zicclsm  : bool,
-  ssccptr  : bool,
-  svadu    : bool,
 }
 
 // Return true if a list of PMA regions are sorted and don't overlap, and the specified extension checks are satisfied.
-private function check_pma_regions(regions : list(PMA_Region), prev_base : bits(64), prev_size : bits(64), check_opts : pma_check_opts, found_valid_svadu_pma : bool) -> bool =
+private function check_pma_regions(regions : list(PMA_Region), prev_base : bits(64), prev_size : bits(64), check_opts : pma_check_opts) -> bool =
   match regions {
-    [||] => if check_opts.svadu & not(found_valid_svadu_pma) then {
-        print_endline("The Svadu extension is enabled but no memory region supports hardware page-table writes: Svadu requires at least one region provide this support.");
-        false
-      } else true,
+    [||] => true,
     region :: rest => {
       if region.base <_u prev_base + prev_size then {
         print_endline("Memory region starting at " ^ bits_str(region.base) ^
@@ -348,15 +223,9 @@ private function check_pma_regions(regions : list(PMA_Region), prev_base : bits(
             return false;
           };
         };
-        if check_opts.ssccptr & not(attributes.supports_pte_read) then {
-          print_endline("Main memory region starting at " ^ bits_str(region.base) ^ " is coherent and cacheable without hardware page-table read support, but Ssccptr is enabled which requires this support.");
-          return false;
-        };
       };
 
-      let found_valid_svadu_pma = found_valid_svadu_pma | (attributes.supports_pte_write & attributes.reservability == RsrvEventual);
-
-      check_pma_regions(rest, region.base, region.size, check_opts, found_valid_svadu_pma)
+      check_pma_regions(rest, region.base, region.size, check_opts)
     },
   }
 
@@ -395,10 +264,8 @@ private function check_mem_layout() -> bool =
       ziccamoc = config extensions.Ziccamoc.supported,
       ziccif   = config extensions.Ziccif.supported,
       zicclsm  = config extensions.Zicclsm.supported,
-      ssccptr  = config extensions.Ssccptr.supported,
-      svadu    = config extensions.Svadu.supported,
     };
-    let pmas_ok  = check_pma_regions(pma_regions, zeros(), zeros(), check_opts, false);
+    let pmas_ok  = check_pma_regions(pma_regions, zeros(), zeros(), check_opts);
     let clint_supported : bool = config platform.clint.supported;
     let clint_ok = not(clint_supported) |
                    within_configured_pma_memory("CLINT (platform.clint)", Some(IOMemory),
@@ -411,30 +278,6 @@ private function check_mem_layout() -> bool =
                                                 zero_extend(plat_sig_size));
     pmas_ok & clint_ok & sig_ok
   }
-
-private function check_pmp() -> bool = {
-  var valid : bool = true;
-  if (config memory.pmp.na4_supported : bool) & sys_pmp_grain != 0
-  then {
-    valid = false;
-    print_endline("NA4 is not supported if the PMP grain G is non-zero.");
-  };
-  if sys_pmp_usable_count > sys_pmp_count
-  then {
-    valid = false;
-    print_endline("The number of usable PMP entries cannot exceed the total number of PMP entries.");
-  };
-  valid
-}
-
-private function check_required_sstvala_option(name : string, value : bool) -> bool = {
-  if not(value) then {
-    print_endline("The Sstvala extension is enabled but " ^ name ^ " have not been configured (under `base.xtval_nonzero`) to write xtval.");
-    false
-  } else {
-    true
-  }
-}
 
 private function check_misc_extension_dependencies() -> bool = {
   var valid : bool = true;
@@ -479,28 +322,6 @@ private function check_misc_extension_dependencies() -> bool = {
     valid = false;
     print_endline("The Zvfbfwma extension is enabled but either Zfbfmin or Zvfbfmin is disabled: supporting Zvfbfwma requires Zfbfmin and Zvfbfmin.")
   };
-  if (config extensions.Sstvala.supported : bool) then {
-    if not(config extensions.S.supported : bool) then {
-      valid = false;
-      print_endline("The Sstvala extension writes `stval` which requires supervisor mode (S) but supervisor mode is not enabled.");
-    };
-    // `stval` must be written with the faulting virtual address for load, store, and instruction page-fault,
-    // access-fault, and misaligned exceptions, and for breakpoint exceptions other than those caused by execution of
-    // the EBREAK or C.EBREAK instructions. For virtual-instruction and illegal-instruction exceptions, `stval` must be
-    // written with the faulting instruction.
-    // TODO: add validation for virtual-instruction exceptions.
-    valid = valid & check_required_sstvala_option("load page-faults", load_page_fault_writes_xtval);
-    valid = valid & check_required_sstvala_option("load access-faults", load_access_fault_writes_xtval);
-    valid = valid & check_required_sstvala_option("misaligned load exceptions", misaligned_load_writes_xtval);
-    valid = valid & check_required_sstvala_option("store/AMO page-faults", samo_page_fault_writes_xtval);
-    valid = valid & check_required_sstvala_option("store/AMO access-faults", samo_access_fault_writes_xtval);
-    valid = valid & check_required_sstvala_option("misaligned store/AMO exceptions", misaligned_samo_writes_xtval);
-    valid = valid & check_required_sstvala_option("fetch page-faults", fetch_page_fault_writes_xtval);
-    valid = valid & check_required_sstvala_option("fetch access-faults", fetch_access_fault_writes_xtval);
-    valid = valid & check_required_sstvala_option("misaligned fetch exceptions", misaligned_fetch_writes_xtval);
-    valid = valid & check_required_sstvala_option("hardware breakpoint exceptions", hardware_breakpoint_writes_xtval);
-    valid = valid & check_required_sstvala_option("illegal instruction exceptions", illegal_instruction_writes_xtval);
-  };
   valid
 }
 
@@ -509,13 +330,6 @@ private function check_extension_param_constraints() -> bool = {
   if (config extensions.Zic64b.supported : bool) & (plat_cache_block_size_exp != 6) then {
     valid = false;
     print_endline("The Zic64b extension is enabled but the cache block size is not 64 bytes.");
-  };
-  let min_rss_exp = log2_xlen - 3;
-  if (config extensions.A.supported : bool) & (plat_reservation_set_size_exp < min_rss_exp) then {
-    valid = false;
-    print_endline("The A extension is enabled, but the reservation set size of 2^" ^ dec_str(plat_reservation_set_size_exp) ^
-                  " is too small; it should be at least 2^" ^ dec_str(min_rss_exp) ^
-                  " for the LR/SC operands on this platform.");
   };
   if (config extensions.Zicclsm.supported : bool) then {
     if misaligned_exception_is_access_fault((config memory.misaligned.exceptions : GlobalMisalignedExceptions).load_store) then {
@@ -526,30 +340,6 @@ private function check_extension_param_constraints() -> bool = {
       valid = false;
       print_endline("The Zicclsm extension is enabled, but misaligned vector loads/stores raise access faults before address translation (as per `memory.misaligned.exceptions.vector`); Zicclsm requires no exceptions or only misaligned exceptions for such accesses.");
     };
-  };
-  if (config extensions.S.supported : bool) then {
-    let medelegation = Mk_Medeleg(config base.medeleg.delegatable_bits);
-    if medelegation[Double_Trap] != 0b0 then {
-      valid = false;
-      print_endline("Bit 16 (Double Trap) in `base.medeleg.delegatable_bits` is set; Double Trap cannot be delegated.");
-    };
-    if medelegation[MEnvCall] != 0b0 then {
-      valid = false;
-      print_endline("Bit 11 (Environment call from M-mode) in `base.medeleg.delegatable_bits` is set; this environment call cannot be delegated.");
-    };
-    let reserved_exception_mask : bits(64) = zero_extend(0x0_FFFF_00F2_4400);
-    if (medelegation.bits & reserved_exception_mask) != zeros() then {
-      valid = false;
-      print_endline("Bits for reserved exceptions are set in `base.medeleg.delegatable_bits`.");
-    };
-
-    let midelegation = Mk_Minterrupts(config base.mideleg.delegatable_bits);
-    // Ignore bits set for interrupts designated for platform use.
-    let reserved_interrupt_mask : xlenbits = zero_extend(0xD555);
-    if (midelegation.bits & reserved_interrupt_mask) != zeros() then {
-      valid = false;
-      print_endline("Bits for reserved interrupts are set in `base.mideleg.delegatable_bits`.");
-    }
   };
   valid
 }
@@ -577,11 +367,9 @@ private function check_mstatus_fields() -> bool = {
       valid = false;
       print_endline("The F extension is enabled but `base.mstatus.fs_legal_states` is set to `ExtContext_Off`, which makes `mstatus.FS` read-only zero: it cannot be read-only zero.")
     }
-  } else if not(config extensions.S.supported : bool) then {
-    if legal_fs != ExtContext_Off then {
-      valid = false;
-      print_endline("Both supervisor mode (S) and the F extension are not enabled, but `base.mstatus.fs_legal_states` is not set to `ExtContext_Off`; i.e. `mstatus.FS` is not read-only zero: it should be read-only zero.");
-    }
+  } else if legal_fs != ExtContext_Off then {
+    valid = false;
+    print_endline("The F extension is not enabled, but `base.mstatus.fs_legal_states` is not set to `ExtContext_Off`; i.e. `mstatus.FS` is not read-only zero: it should be read-only zero.");
   };
 
   let legal_vs : ExtContextPolicy = config base.mstatus.vs_legal_states;
@@ -590,11 +378,9 @@ private function check_mstatus_fields() -> bool = {
       valid = false;
       print_endline("The vector registers are enabled but `base.mstatus.vs_legal_states` is set to `ExtContext_Off`, which makes `mstatus.VS` read-only zero: it cannot be read-only zero.");
     }
-  } else if not(config extensions.S.supported : bool) then {
-    if legal_vs != ExtContext_Off then {
-      valid = false;
-      print_endline("Both supervisor mode (S) and the vector registers are not enabled, but `base.mstatus.vs_legal_states` is not set to `ExtContext_Off`; i.e. `mstatus.VS` is not read-only zero: it should be read-only zero.");
-    }
+  } else if legal_vs != ExtContext_Off then {
+    valid = false;
+    print_endline("The vector registers are not enabled, but `base.mstatus.vs_legal_states` is not set to `ExtContext_Off`; i.e. `mstatus.VS` is not read-only zero: it should be read-only zero.");
   };
 
   valid
@@ -608,40 +394,20 @@ private function check_physaddr_bits() -> bool = {
   } else if physaddr_bits_nat > 34 & xlen == 32 then {
     print_endline("`memory.physaddr_bits` is " ^ dec_str(physaddr_bits) ^ " but cannot be greater than 34 for RV32.");
     false
-  } else if physaddr_bits_nat > 32 & xlen == 32 & not(config extensions.Sv32.supported : bool) then {
-    print_endline("`memory.physaddr_bits` is " ^ dec_str(physaddr_bits) ^ " but Sv32 is disabled: values greater than 32 requires Sv32 to be enabled.");
-    false
   } else if physaddr_bits_nat < 13 then {
     print_endline("`memory.physaddr_bits` is " ^ dec_str(physaddr_bits) ^ " but values smaller than 13 are not supported.");
     false
   } else { true }
 }
 
-private function check_version_constraints() -> bool = {
-  var valid : bool = true;
-
-  // The internal variables are used here rather than the `config` constructs due to their non-trivial types.
-  if (sys_pmp_count > 16 & priv_isa_version < Privileged_ISA_1_12) then {
-    valid = false;
-    print_endline("More than 16 PMP registers are specified, but the privileged ISA version is set to " ^
-                  privileged_isa_version_name(priv_isa_version) ^ " which only allows 16 PMP registers.");
-  };
-
-  valid
-}
-
 function config_is_valid() -> bool = {
-    check_privs()
-  & check_tvecs()
+    check_tvec()
   & check_mstatus_fields()
   & check_physaddr_bits()
-  & check_mmu_config()
   & check_mem_layout()
   & check_mmio_devices()
   & check_vlen_elen()
   & check_vext_config()
-  & check_pmp()
   & check_misc_extension_dependencies()
   & check_extension_param_constraints()
-  & check_version_constraints()
 }

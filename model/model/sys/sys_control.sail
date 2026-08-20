@@ -6,120 +6,47 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // =======================================================================================
 
-// Machine-mode and supervisor-mode functionality.
-
-function effectivePrivilege(access : MemoryAccessType(mem_payload), m : Mstatus, priv : Privilege) -> Privilege =
-  if   access != InstructionFetch() & m[MPRV] == 0b1
-  then privLevel_bits(m[MPP], 0b0) // TODO: use m[MPV] if hypervisor enabled
-  else priv
+// Machine-mode functionality. There is no second mode: traps are
+// taken by the Machine-mode kernel and delegation has no delegate
+// (R-15-003).
 
 // CSR access control
 
 function csrAccess(csr : csreg) -> csrRW = csr[11..10]
-function csrPriv(csr : csreg) -> nom_priv_bits = csr[9..8]
-
-// When hypervisor is enabled, `Supervisor` (HS-mode) and
-// `VirtualSupervisor` (VS-mode) privileges are encoded as `0b01` in
-// `privLevel_bits()`, but the CSR addresses for hypervisor and VS
-// CSRs encode the required privilege as `0b10`.  This overrides
-// the encoding in `privLevel_bits()` for the purposes of CSR privilege
-// checks.
-private function privLevel_to_CSR_privbits(p : Privilege) -> nom_priv_bits =
-  match p {
-    User              => 0b00,
-    VirtualUser       => 0b00,
-    Supervisor        => 0b01,
-    VirtualSupervisor => 0b01,
-    Machine           => 0b11,
-  }
-
-// Check that the CSR access is made with sufficient privilege.
-function check_CSR_priv(csr : csreg, p : Privilege) -> bool =
-  privLevel_to_CSR_privbits(p) >=_u csrPriv(csr)
 
 // Check that the CSR access isn't a write to a read-only CSR.
 function check_CSR_access(csr : csreg, access_type : CSRAccessType) -> bool =
   not((access_type == CSRWrite | access_type == CSRReadWrite) & (csrAccess(csr) == 0b11))
 
-// CSR check results
-union CSRCheckResult = {
-  CSR_Check_OK : unit,
-  CSR_Illegal  : unit,
-  CSR_Virtual  : unit,
-}
-
-function check_CSR(csr : csreg, p : Privilege, access_type : CSRAccessType) -> bool =
-    check_CSR_priv(csr, p)
-  & check_CSR_access(csr, access_type)
-  & is_CSR_accessible(csr, p, access_type)
-
-function check_CSR_result(csr : csreg, p : Privilege, access_type : CSRAccessType) -> CSRCheckResult = {
-  if check_CSR(csr, p, access_type) then
-    CSR_Check_OK()
-  else if (p == VirtualSupervisor | p == VirtualUser) & is_CSR_exception_virtual(csr, p, access_type) then
-    CSR_Virtual()
-  else
-    CSR_Illegal()
-}
-
-// Exception delegation: given an exception and the privilege at which
-// it occurred, returns the privilege at which it should be handled.
-function exception_delegatee(e : ExceptionType, p : Privilege) -> Privilege = {
-  let idx = unsigned(exceptionType_bits(e));
-  // Note that `medeleg` can have bits set for custom exceptions (see
-  // `core/interrupt_regs.sail:legalize_medeleg()`).
-  let super = bit_to_bool(medeleg.bits[idx]);
-  // TODO: check VS/VU-mode if hypervisor extension enabled
-  let deleg = if currentlyEnabled(Ext_S) & super then Supervisor else Machine;
-  // We cannot transition to a less-privileged mode.
-  if   privLevel_to_bits(deleg) <_u privLevel_to_bits(p)
-  then p else deleg
-}
+// The privilege half of this check is gone with the modes that could
+// fail it: every CSR the profile keeps is machine-level, and machine
+// mode is the only mode, so what is left to reject is a write to a
+// read-only CSR and an address that names no CSR at all.
+function check_CSR(csr : csreg, access_type : CSRAccessType) -> bool =
+    check_CSR_access(csr, access_type)
+  & is_CSR_accessible(csr, access_type)
 
 // "Multiple simultaneous interrupts destined for M-mode are handled
-// in the following decreasing priority order: MEI, MSI, MTI, SEI,
-// SSI, STI, LCOFI."
+// in the following decreasing priority order: MEI, MSI, MTI."
 function findPendingInterrupt(ip : xlenbits) -> option(InterruptType) = {
   let ip = Mk_Minterrupts(ip);
   if      ip[MEI] == 0b1 then Some(I_M_External)
   else if ip[MSI] == 0b1 then Some(I_M_Software)
   else if ip[MTI] == 0b1 then Some(I_M_Timer)
-  else if ip[SEI] == 0b1 then Some(I_S_External)
-  else if ip[SSI] == 0b1 then Some(I_S_Software)
-  else if ip[STI] == 0b1 then Some(I_S_Timer)
-  else if ip[LCOFI] == 0b1 then Some(I_COF)
   else                        None()
 }
 
-// Given the current privilege level, return the pending set
-// of interrupts for the highest privilege that has any pending.
-//
-// We don't use the lowered views of {xie,xip} here, since the spec
-// allows for example the M_Timer to be delegated to the S-mode.
+// Return the pending, enabled set of interrupts.
 //
 // This is used when the hart is in the Active state.
-//
-// TODO: check hip/hie if hypervisor enabled.
-function getPendingSet(priv : Privilege) -> option((xlenbits, Privilege)) = {
-  // If supervisor mode is not currently enabled then ignore mideleg
-  // (it does not exist).
-  let mideleg_bits = if currentlyEnabled(Ext_S) then mideleg.bits else zeros();
-
+function getPendingSet() -> option(xlenbits) = {
   // Read mip with the external platform interrupts ORed in.
   let mip_bits = read_mip(IncludePlatformInterrupts).bits;
 
-  // Note that `mideleg` can have bits set for interrupts designated
-  // for platform use (see
-  // `core/interrupt_regs.sail:legalize_mideleg()`), but those
-  // interrupts are not known in `findPendingInterrupt()` above.
-  let pending_m = mip_bits & mie.bits & ~(mideleg_bits);
-  let pending_s = mip_bits & mie.bits & mideleg_bits;
+  let pending = mip_bits & mie.bits;
 
-  let mIE = (priv == Machine    & mstatus[MIE] == 0b1) | priv == Supervisor | priv == User;
-  let sIE = (priv == Supervisor & mstatus[SIE] == 0b1) | priv == User;
-
-  if      mIE & (pending_m != zeros()) then Some((pending_m, Machine))
-  else if sIE & (pending_s != zeros()) then Some((pending_s, Supervisor))
+  if   mstatus[MIE] == 0b1 & pending != zeros()
+  then Some(pending)
   else None()
 }
 
@@ -146,15 +73,12 @@ function shouldWakeForInterrupt() -> bool = {
   (mip.bits & mie.bits) != zeros()
 }
 
-// Examine the current interrupt state and return an interrupt to be *
-// handled (if any), and the privilege it should be handled at.
-function dispatchInterrupt(priv : Privilege) -> option((InterruptType, Privilege)) = {
-  match getPendingSet(priv) {
-    None()       => None(),
-    Some(ip, p)  => match findPendingInterrupt(ip) {
-                      None()  => None(),
-                      Some(i) => Some((i, p)),
-                    }
+// Examine the current interrupt state and return an interrupt to be
+// handled, if any.
+function dispatchInterrupt() -> option(InterruptType) = {
+  match getPendingSet() {
+    None()   => None(),
+    Some(ip) => findPendingInterrupt(ip),
   }
 }
 
@@ -167,126 +91,58 @@ function tval(excinfo : option(xlenbits)) -> xlenbits = {
   }
 }
 
-function track_trap(p : Privilege, is_interrupt : bool, cause : exc_code) -> unit = {
+function track_trap(is_interrupt : bool, cause : exc_code) -> unit = {
   long_csr_write_callback("mstatus", "mstatush", mstatus.bits);
-  match (p) {
-    Machine => {
-      csr_write_callback("mcause", mcause.bits);
-      csr_write_callback("mtval", mtval);
-      csr_write_callback("mepc", mepc);
-    },
-    Supervisor => {
-      csr_write_callback("scause", scause.bits);
-      csr_write_callback("stval", stval);
-      csr_write_callback("sepc", sepc);
-    },
-    User              => internal_error(__FILE__, __LINE__, "Invalid privilege level"),
-    VirtualUser       => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-    VirtualSupervisor => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-  };
+  csr_write_callback("mcause", mcause.bits);
+  csr_write_callback("mtval", mtval);
+  csr_write_callback("mepc", mepc);
 
   trap_callback(is_interrupt, cause);
 }
 
-// handle exceptional ctl flow by updating nextPC and operating privilege
-function trap_handler(del_priv : Privilege, c : TrapCause, pc : xlenbits, info : option(xlenbits), ext : option(ext_exception))
+// handle exceptional ctl flow by updating nextPC
+function trap_handler(c : TrapCause, pc : xlenbits, info : option(xlenbits), ext : option(ext_exception))
                      -> xlenbits = {
   let is_interrupt = trapCause_is_interrupt(c);
   let cause        = trapCause_bits(c);
 
   if   get_config_print_exception() | get_config_print_interrupt()
-  then print_log("handling " ^ to_str(c)
-                      ^ " at priv " ^ to_str(del_priv)
-                      ^ " with tval " ^ bits_str(tval(info)));
+  then print_log("handling " ^ to_str(c) ^ " with tval " ^ bits_str(tval(info)));
 
-  match (del_priv) {
-    Machine => {
-      mcause[IsInterrupt] = bool_to_bit(is_interrupt);
-      mcause[Cause]       = zero_extend(cause);
+  mcause[IsInterrupt] = bool_to_bit(is_interrupt);
+  mcause[Cause]       = zero_extend(cause);
 
-      mstatus[MPIE] = mstatus[MIE];
-      mstatus[MIE]  = 0b0;
-      mstatus[MPP]  = privLevel_to_bits(cur_privilege);
-      mtval         = tval(info);
-      mepc          = pc;
+  mstatus[MPIE] = mstatus[MIE];
+  mstatus[MIE]  = 0b0;
+  mtval         = tval(info);
+  mepc          = pc;
 
-      cur_privilege = del_priv;
+  handle_trap_extension(pc, ext);
 
-      handle_trap_extension(del_priv, pc, ext);
+  track_trap(is_interrupt, cause);
 
-      track_trap(del_priv, is_interrupt, cause);
-
-      prepare_trap_vector(del_priv, mcause)
-    },
-    Supervisor => {
-      assert (currentlyEnabled(Ext_S), "no supervisor mode present for delegation");
-
-      scause[IsInterrupt] = bool_to_bit(is_interrupt);
-      scause[Cause]       = zero_extend(cause);
-
-      mstatus[SPIE] = mstatus[SIE];
-      mstatus[SIE]  = 0b0;
-      mstatus[SPP]  = match cur_privilege {
-        User              => 0b0,
-        Supervisor        => 0b1,
-        Machine           => internal_error(__FILE__, __LINE__, "invalid privilege for s-mode trap"),
-        VirtualUser       => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-        VirtualSupervisor => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-      };
-      stval           = tval(info);
-      sepc            = pc;
-
-      cur_privilege   = del_priv;
-
-      handle_trap_extension(del_priv, pc, ext);
-
-      track_trap(del_priv, is_interrupt, cause);
-
-      prepare_trap_vector(del_priv, scause)
-    },
-    User              => internal_error(__FILE__, __LINE__, "Invalid privilege level"),
-    VirtualUser       => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-    VirtualSupervisor => internal_error(__FILE__, __LINE__, "Hypervisor extension not supported"),
-  };
+  prepare_trap_vector(mcause)
 }
 
-function exception_handler(cur_priv : Privilege, exc : sync_exception, pc : xlenbits) -> xlenbits = {
-  let del_priv = exception_delegatee(exc.trap, cur_priv);
+function exception_handler(exc : sync_exception, pc : xlenbits) -> xlenbits = {
   if   get_config_print_exception()
-  then print_log("trapping from " ^ to_str(cur_priv) ^ " to " ^ to_str(del_priv)
-                      ^ " to handle " ^ to_str(exc.trap));
-  trap_handler(del_priv, Exception(exc.trap), pc, exc.excinfo, exc.ext)
+  then print_log("trapping to handle " ^ to_str(exc.trap));
+  trap_handler(Exception(exc.trap), pc, exc.excinfo, exc.ext)
 }
 // Compute the value to write to mtval on a trap.
 function xtval_exception_value(e : ExceptionType, excinfo : xlenbits) -> option(xlenbits) = {
   if match e {
     E_Illegal_Instr() => illegal_instruction_writes_xtval,
-    E_Virtual_Instr() => virtual_instruction_writes_xtval,
     E_Breakpoint(Brk_Software) => software_breakpoint_writes_xtval,
     E_Breakpoint(Brk_Hardware) => hardware_breakpoint_writes_xtval,
     E_Load_Addr_Align() => misaligned_load_writes_xtval,
     E_Load_Access_Fault() => load_access_fault_writes_xtval,
-    E_Load_Page_Fault() => load_page_fault_writes_xtval,
-    E_Load_GPage_Fault() => load_guest_page_fault_writes_xtval,
     E_SAMO_Addr_Align() => misaligned_samo_writes_xtval,
     E_SAMO_Access_Fault() => samo_access_fault_writes_xtval,
-    E_SAMO_Page_Fault() => samo_page_fault_writes_xtval,
-    E_SAMO_GPage_Fault() => samo_guest_page_fault_writes_xtval,
     E_Fetch_Addr_Align() => misaligned_fetch_writes_xtval,
     E_Fetch_Access_Fault() => fetch_access_fault_writes_xtval,
-    E_Fetch_Page_Fault() => fetch_page_fault_writes_xtval,
-    E_Fetch_GPage_Fault() => fetch_guest_page_fault_writes_xtval,
-    E_Software_Check() => software_check_fault_writes_xtval,
-    E_U_EnvCall()  => false,
-    E_S_EnvCall()  => false,
-    E_VS_EnvCall() => false,
     E_M_EnvCall()  => false,
     E_Extension(_) => true,
-    // the rest are all reserved exceptions
-    E_Reserved_14() => reserved_exceptions_write_xtval,
-    E_Reserved_16() => reserved_exceptions_write_xtval,
-    E_Reserved_17() => reserved_exceptions_write_xtval,
-    E_Reserved_19() => reserved_exceptions_write_xtval,
   } then Some(excinfo) else None()
 }
 
@@ -296,10 +152,10 @@ function make_sync_exception(e : ExceptionType, xtval : xlenbits) -> sync_except
            ext     = None() }
 
 function handle_exception(xtval : xlenbits, e : ExceptionType) -> unit =
-  set_next_pc(exception_handler(cur_privilege, make_sync_exception(e, xtval), PC))
+  set_next_pc(exception_handler(make_sync_exception(e, xtval), PC))
 
-function handle_interrupt(i : InterruptType, del_priv : Privilege) -> unit =
-  set_next_pc(trap_handler(del_priv, Interrupt(i), PC, None(), None()))
+function handle_interrupt(i : InterruptType) -> unit =
+  set_next_pc(trap_handler(Interrupt(i), PC, None(), None()))
 
 // Reset misa to enable the maximal set of supported extensions.
 function reset_misa() -> unit = {
@@ -307,8 +163,8 @@ function reset_misa() -> unit = {
   misa[C]   = 0b0;                                // no compressed instructions
   misa[B]   = bool_to_bit(hartSupports(Ext_B));   // Bit-manipulation
   misa[M]   = bool_to_bit(hartSupports(Ext_M));   // integer multiply/divide
-  misa[U]   = bool_to_bit(hartSupports(Ext_U));   // user-mode
-  misa[S]   = bool_to_bit(hartSupports(Ext_S));   // supervisor-mode
+  misa[U]   = 0b0;                                // no user mode
+  misa[S]   = 0b0;                                // no supervisor mode
   misa[V]   = bool_to_bit(hartSupports(Ext_V));   // vector extension
 
   // Base integer ISA (disabled if we only support the 16-register E base).
@@ -336,16 +192,13 @@ function set_pc_reset_address(addr : bits(64)) -> unit = pc_reset_address = trun
 // described in the "Reset" section of the privileged architecture specification.
 function reset_sys() -> unit = {
 
-  // "Upon reset, a hart's privilege mode is set to M."
-  cur_privilege = Machine;
-
-  // "The mstatus fields MIE and MPRV are reset to 0."
+  // "The mstatus field MIE is reset to 0." (MPRV is gone with the
+  // less-privileged mode whose accesses it retargeted.)
   mstatus[MIE] = 0b0;
-  mstatus[MPRV] = 0b0;
 
-  // Though {ms}tvec are unspecified on reset, their mode should hold
+  // Though `mtvec` is unspecified on reset, its mode should hold
   // a supported value when read.
-  reset_tvecs();
+  reset_tvec();
 
   // "If little-endian memory accesses are supported, the mstatus/mstatush field
   // MBE is reset to 0."
@@ -359,9 +212,6 @@ function reset_sys() -> unit = {
   // "The misa register is reset to enable the maximal set of supported extensions"
   reset_misa();
 
-  // "For implementations with the "A" standard extension, there is no valid load reservation."
-  cancel_reservation();
-
   // "The pc is set to an implementation-defined reset vector."
   PC = pc_reset_address;
   nextPC = pc_reset_address;
@@ -372,10 +222,6 @@ function reset_sys() -> unit = {
   // distinguish different reset conditions."
   mcause.bits = zeros();
   csr_write_callback("mcause", mcause.bits);
-
-  // "Writable PMP registers’ A and L fields are set to 0, unless the platform
-  // mandates a different reset value for some PMP registers’ A and L fields."
-  reset_pmp();
 
   // TODO: Probably need to remove these vector resets too but it needs
   // refactoring anyway. See https://github.com/riscv/sail-riscv/issues/566 etc.

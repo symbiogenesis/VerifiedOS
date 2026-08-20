@@ -128,6 +128,24 @@ function(filter_riscv_tests test_elfs elfs_to_use_varname)
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-zicntr$")
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-instret_overflow$")
 
+    # S mode: the whole `si` family runs in supervisor mode, which does not
+    # exist (R-15-003).  `dirty` is the one that hangs rather than failing:
+    # its handler waits on a page-table A/D update that never comes, so it
+    # must be excluded rather than left to a timeout.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)si-[pv]-.*")
+
+    # PMP: CHERI is the sole memory-protection mechanism (R-15-075), so the
+    # `pmpaddr` registers this probes are unallocated CSR addresses.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-pmpaddr$")
+
+    # Svnapot, and address translation with it (R-15-002, R-15-038).
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ssvnapot-[pv]-napot$")
+
+    # The RV64 machine-CSR test reads `mstatus.SXL`/`UXL`, the effective XLEN
+    # of the two modes this profile deletes; the RV32 variant does not and
+    # still passes, so only the RV64 one is excluded.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-csr$")
+
     set(${elfs_to_use_varname} "${test_elfs}" PARENT_SCOPE)
 endfunction()
 

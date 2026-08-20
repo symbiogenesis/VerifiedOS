@@ -63,8 +63,6 @@ mapping clause encdec = AMO(op, aq, rl, rs2, rs1, size, rd)
   <-> encdec_amoop(op) @ bool_bit(aq) @ bool_bit(rl) @ encdec_reg(rs2) @ encdec_reg(rs1) @ width_enc_wide(size) @ encdec_reg(rd) @ 0b0101111
   when amo_encoding_valid(size, op, rs2, rd)
 
-// NOTE: Currently, we only EA if address translation is successful.
-// This may need revisiting.
 $[split op]
 function clause execute AMO(op, aq, rl, rs2, rs1, width, rd) = {
   let 'width = width;
@@ -83,28 +81,24 @@ function clause execute AMO(op, aq, rl, rs2, rs1, width, rd) = {
 
   if not(is_aligned_addr(vaddr, width)) then {
     // Check if the model is configured to raise an exception based on
-    // the misaligned virtual address.
-    match plat_misaligned_exception(access, false) {
+    // the misaligned effective address.
+    match plat_misaligned_exception(access) {
       Some(AccessFault)        => return memory_exception(vaddr, E_SAMO_Access_Fault()),
       Some(AlignmentException) => return memory_exception(vaddr, E_SAMO_Addr_Align()),
-      // No exception yet, but we may still get one based on the
-      // physical address after address translation and checking PMAs.
+      // No exception yet, but we may still get one from the PMA check.
       None()                   => (),
     };
   };
 
-  let (addr, pbmt) : (physaddr, page_based_mem_type) = match translateAddr(vaddr, access) {
-    Err(e, _) => return memory_exception(vaddr, e),
-    Ok(addr, pbmt, _) => (addr, pbmt),
-  };
+  let addr = physical_address(vaddr);
 
-  let loaded : bits('width * 8) = match mem_write_ea(addr, width, access, pbmt, aq & rl, rl, true) {
+  let loaded : bits('width * 8) = match mem_write_ea(addr, width, access, aq & rl, rl) {
     Err(exc_addr, e) => {
       // AMOs should not get split.
       assert(exc_addr == addr);
       return memory_exception(vaddr, e)
     },
-    Ok(_)  => match mem_read(access, pbmt, addr, width, aq, aq & rl, true) {
+    Ok(_)  => match mem_read(access, addr, width, aq, aq & rl) {
       Err(exc_addr, e) => {
         // AMOs should not get split.
         assert(exc_addr == addr);
@@ -143,7 +137,7 @@ function clause execute AMO(op, aq, rl, rs2, rs1, width, rd) = {
     then X(rd) = sign_extend(loaded)
     else X_pair(rd) = sign_extend(loaded);
     RETIRE_SUCCESS
-  } else match mem_write_value(addr, width, sign_extend(result), access, pbmt, aq & rl, rl, true) {
+  } else match mem_write_value(addr, width, sign_extend(result), access, aq & rl, rl) {
     Ok(true)  => {
       if width <= xlen_bytes
       then X(rd) = sign_extend(loaded)

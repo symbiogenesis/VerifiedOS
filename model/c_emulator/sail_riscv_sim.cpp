@@ -76,8 +76,6 @@ int inner_main(int argc, char **argv) {
     opts.config_print_vreg,
     opts.config_print_csr,
     opts.config_print_mem_access,
-    opts.config_print_ptw,
-    opts.config_print_tlb,
     opts.config_use_abi_names,
     run_info.trace_log
   );

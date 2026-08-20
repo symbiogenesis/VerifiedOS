@@ -14,8 +14,13 @@ type word = bits(32)
 // Bit-vector of an uncompressed instruction.
 type instbits = bits(32)
 
-type pagesize_bits : Int = 12
-let  pagesize_bits = sizeof(pagesize_bits)
+// PMA regions are required to be aligned to, and a multiple of, 2^12
+// bytes, so a PMA property cannot change within an access that stays
+// inside one such block. This is the only role the page size retained
+// once the MMU was deleted (R-15-002): it names a PMA granule, not a
+// translation unit.
+type pma_granule_bits : Int = 12
+let  pma_granule_bits = sizeof(pma_granule_bits)
 
 // RV32E and RV64E Base Integer Instruction Sets. If this enabled then
 // the model will only support E (16 integer registers). It is allowed
@@ -62,39 +67,12 @@ mapping architecture_bits : Architecture <-> arch_xlen = {
   backwards 0b00 => internal_error(__FILE__, __LINE__, "architecture(0b00) is invalid")
 }
 
-// nominal privilege levels
-type nom_priv_bits = bits(2)
-
-// virtualization modes
-type virt_mode_bit = bits(1)
-
-enum Privilege  = {User, VirtualUser, Supervisor, VirtualSupervisor, Machine}
-
-mapping privLevel_bits : (nom_priv_bits, virt_mode_bit) <-> Privilege = {
-  (0b00, 0b0) <-> User,
-  (0b00, 0b1) <-> VirtualUser,
-  (0b01, 0b0) <-> Supervisor,
-  (0b01, 0b1) <-> VirtualSupervisor,
-  (0b11, 0b0) <-> Machine,
-  forwards _       => internal_error(__FILE__, __LINE__, "Invalid privilege level or virtual mode"),
-}
-
-function privLevel_to_bits(p : Privilege) -> nom_priv_bits = { let (p, _) = privLevel_bits(p); p }
-
-function privLevel_to_virt_bit(p : Privilege) -> virt_mode_bit = { let (_, v) = privLevel_bits(p); v }
-
-function privLevel_is_virtual(p : Privilege) -> bool = p == VirtualSupervisor | p == VirtualUser
-
-function privLevel_to_str (p : Privilege) -> string =
-  match (p) {
-    User              => "U",
-    VirtualUser       => "VU",
-    Supervisor        => "S",
-    VirtualSupervisor => "VS",
-    Machine           => "M"
-  }
-
-overload to_str = {privLevel_to_str}
+// There is one privilege mode. Supervisor and User are deleted with
+// the ring they would delegate to, and the virtual modes with the
+// hypervisor (R-15-003, R-15-006), so no privilege type, no
+// `cur_privilege` register, and no privilege-encoding field remains:
+// the machine is always in Machine mode and nothing observes that as
+// a value.
 
 // memory access types
 
@@ -102,13 +80,14 @@ union cacheop = {
   CB_zero     : unit,
 }
 
-// The two bool parameters are the `aq` and `rl` instruction
-// annotations respectively.
+// The two bool parameters of `Atomic` are the `aq` and `rl`
+// instruction annotations respectively. The load-reserved and
+// store-conditional classes are gone with `Zalrsc` (R-15-025), which
+// takes the reservation register with them: the only atomic access
+// left on the machine is the indivisible read-modify-write of an AMO.
 union MemoryAccessType ('a : Type) = {
   Load             : 'a,
   Store            : 'a,
-  LoadReserved     : (bool, bool, 'a),
-  StoreConditional : (bool, bool, 'a),
   Atomic           : (amoop, bool, bool, 'a, 'a),
   InstructionFetch : unit,
   CacheAccess      : cacheop
@@ -119,17 +98,9 @@ function is_load_store forall ('a : Type) . (access : MemoryAccessType('a)) -> b
   match access {
     Load(_)             => true,
     Store(_)            => true,
-    LoadReserved(_)     => true,
-    StoreConditional(_) => true,
     Atomic(_)           => true,
     InstructionFetch(_) => false,
     CacheAccess(_)      => true,
-  }
-
-function is_store_conditional forall ('a : Type) . (access : MemoryAccessType('a)) -> bool =
-  match access {
-    StoreConditional(_) => true,
-    _ => false,
   }
 
 // CSR access types
@@ -142,56 +113,27 @@ type max_mem_width_bytes : Nat = 2 ^ max_mem_width_bytes_exp
 
 // architectural interrupt definitions
 
+// Only the machine-level interrupts remain: the supervisor and
+// virtual-supervisor classes go with their modes (R-15-003, R-15-006)
+// and the local counter-overflow interrupt with the performance
+// counters (R-15-077).
 enum InterruptType = {
-  I_Reserved_0,
-  I_S_Software,
-  I_VS_Software,
   I_M_Software,
-  I_Reserved_4,
-  I_S_Timer,
-  I_VS_Timer,
   I_M_Timer,
-  I_Reserved_8,
-  I_S_External,
-  I_VS_External,
   I_M_External,
-  I_SG_External,
-  I_COF,
 }
 
 mapping interruptType_bits : InterruptType <-> exc_code = {
-  I_Reserved_0   <-> 0b000000, // 0
-  I_S_Software   <-> 0b000001, // 1
-  I_VS_Software  <-> 0b000010, // 2
   I_M_Software   <-> 0b000011, // 3
-  I_Reserved_4   <-> 0b000100, // 4
-  I_S_Timer      <-> 0b000101, // 5
-  I_VS_Timer     <-> 0b000110, // 6
   I_M_Timer      <-> 0b000111, // 7
-  I_Reserved_8   <-> 0b001000, // 8
-  I_S_External   <-> 0b001001, // 9
-  I_VS_External  <-> 0b001010, // 10
   I_M_External   <-> 0b001011, // 11
-  I_SG_External  <-> 0b001100, // 12
-  I_COF          <-> 0b001101, // 13
 }
 
 function interruptType_to_str(i : InterruptType) -> string =
   match (i) {
-    I_Reserved_0  => "reserved-interrupt-0",
-    I_S_Software  => "supervisor-software-interrupt",
-    I_VS_Software => "virtual-supervisor-software-interrupt",
     I_M_Software  => "machine-software-interrupt",
-    I_Reserved_4  => "reserved-interrupt-4",
-    I_S_Timer     => "supervisor-timer-interrupt",
-    I_VS_Timer    => "virtual-supervisor-timer-interrupt",
     I_M_Timer     => "machine-timer-interrupt",
-    I_Reserved_8  => "reserved-interrupt-8",
-    I_S_External  => "supervisor-external-interrupt",
-    I_VS_External => "virtual-supervisor-external-interrupt",
     I_M_External  => "machine-external-interrupt",
-    I_SG_External => "supervisor guest-external-interrupt",
-    I_COF         => "counter-overflow interrupt",
   }
 
 overload to_str = {interruptType_to_str}
@@ -200,6 +142,12 @@ overload to_str = {interruptType_to_str}
 
 enum breakpoint_cause = {Brk_Software, Brk_Hardware}
 
+// The page-fault classes go with the MMU (R-15-002), the guest-page
+// and virtual-instruction classes with the hypervisor (R-15-006), the
+// U/S/VS environment calls with their modes (R-15-003), and the
+// software-check fault with `Zicfilp`'s landing pads (R-15-044). The
+// reserved codepoints held places for exceptions `medeleg` could name
+// and nothing else, so they leave with the delegation register.
 union ExceptionType = {
   E_Fetch_Addr_Align   : unit,
   E_Fetch_Access_Fault : unit,
@@ -209,22 +157,7 @@ union ExceptionType = {
   E_Load_Access_Fault  : unit,
   E_SAMO_Addr_Align    : unit,
   E_SAMO_Access_Fault  : unit,
-  E_U_EnvCall          : unit,
-  E_S_EnvCall          : unit,
-  E_VS_EnvCall         : unit,
   E_M_EnvCall          : unit,
-  E_Fetch_Page_Fault   : unit,
-  E_Load_Page_Fault    : unit,
-  E_Reserved_14        : unit,
-  E_SAMO_Page_Fault    : unit,
-  E_Reserved_16        : unit,
-  E_Reserved_17        : unit,
-  E_Software_Check     : unit,
-  E_Reserved_19        : unit,
-  E_Fetch_GPage_Fault  : unit,
-  E_Load_GPage_Fault   : unit,
-  E_Virtual_Instr      : unit,
-  E_SAMO_GPage_Fault   : unit,
 
   // extensions
   E_Extension          : ext_exc_type
@@ -238,22 +171,7 @@ mapping exceptionType_bits : ExceptionType <-> exc_code = {
   E_Load_Access_Fault()  <-> 0b000101, // 5
   E_SAMO_Addr_Align()    <-> 0b000110, // 6
   E_SAMO_Access_Fault()  <-> 0b000111, // 7
-  E_U_EnvCall()          <-> 0b001000, // 8
-  E_S_EnvCall()          <-> 0b001001, // 9
-  E_VS_EnvCall()         <-> 0b001010, // 10
   E_M_EnvCall()          <-> 0b001011, // 11
-  E_Fetch_Page_Fault()   <-> 0b001100, // 12
-  E_Load_Page_Fault()    <-> 0b001101, // 13
-  E_Reserved_14()        <-> 0b001110, // 14
-  E_SAMO_Page_Fault()    <-> 0b001111, // 15
-  E_Reserved_16()        <-> 0b010000, // 16
-  E_Reserved_17()        <-> 0b010001, // 17
-  E_Software_Check()     <-> 0b010010, // 18
-  E_Reserved_19()        <-> 0b010011, // 19
-  E_Fetch_GPage_Fault()  <-> 0b010100, // 20
-  E_Load_GPage_Fault()   <-> 0b010101, // 21
-  E_Virtual_Instr()      <-> 0b010110, // 22
-  E_SAMO_GPage_Fault()   <-> 0b010111, // 23
 
   // breakpoints
   E_Breakpoint(Brk_Software) <-> 0b000011, // 3
@@ -272,22 +190,7 @@ function exceptionType_to_str(e : ExceptionType) -> string =
     E_Load_Access_Fault()  => "load-access-fault",
     E_SAMO_Addr_Align()    => "misaligned-store/amo",
     E_SAMO_Access_Fault()  => "store/amo-access-fault",
-    E_U_EnvCall()          => "u-call",
-    E_S_EnvCall()          => "s-call",
-    E_VS_EnvCall()         => "vs-call",
     E_M_EnvCall()          => "m-call",
-    E_Fetch_Page_Fault()   => "fetch-page-fault",
-    E_Load_Page_Fault()    => "load-page-fault",
-    E_Reserved_14()        => "reserved-1",
-    E_SAMO_Page_Fault()    => "store/amo-page-fault",
-    E_Reserved_16()        => "reserved-2",
-    E_Reserved_17()        => "reserved-3",
-    E_Software_Check()     => "software-check-fault",
-    E_Reserved_19()        => "reserved-19",
-    E_Fetch_GPage_Fault()  => "fetch-guest-page-fault",
-    E_Load_GPage_Fault()   => "load-guest-page-fault",
-    E_Virtual_Instr()      => "virtual-instruction",
-    E_SAMO_GPage_Fault()   => "store/amo-guest-page-fault",
 
     // breakpoints
     E_Breakpoint(Brk_Software) => "software-breakpoint",
@@ -298,14 +201,6 @@ function exceptionType_to_str(e : ExceptionType) -> string =
   }
 
 overload to_str = {exceptionType_to_str}
-
-// SW check exception codes
-enum SWCheckCodes = {LANDING_PAD_FAULT}
-
-function sw_check_code_to_bits (c : SWCheckCodes) -> xlenbits =
-  match (c) {
-    LANDING_PAD_FAULT  => zero_extend(0b010),
-  }
 
 // An architectural trap can be caused by either an interrupt or an exception
 
@@ -343,10 +238,6 @@ mapping trapVectorMode : tv_mode <-> TrapVectorMode = {
   0b11 <-> TV_Reserved,
 }
 
-// xRET types
-// (capitalized versions conflict with the instructions themselves)
-enum xRET_type = {mRET, sRET}
-
 // extension context status
 
 type ext_status = bits(2)
@@ -376,21 +267,6 @@ function legalize_extStatus(policy : ExtContextPolicy, status : ext_status) -> e
     ExtContext_FourState => status,
   }
 }
-
-// supervisor-level address translation modes
-
-type satp_mode = bits(4)
-enum SATPMode = {Bare, Sv32, Sv39, Sv48, Sv57}
-
-function satpMode_of_bits(a : Architecture, m : satp_mode) -> option(SATPMode) =
-  match (a, m) {
-    (_,    0x0) => Some(Bare),
-    (RV32, 0x1) => Some(Sv32),
-    (RV64, 0x8) => Some(Sv39),
-    (RV64, 0x9) => Some(Sv48),
-    (RV64, 0xA) => Some(Sv57),
-    (_, _)      => None()
-  }
 
 // CSR access control bits (from CSR addresses)
 

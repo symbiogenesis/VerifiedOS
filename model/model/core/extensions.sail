@@ -57,14 +57,8 @@ function clause hartSupports(Ext_B) = config extensions.B.supported
 enum clause extension = Ext_V
 mapping clause extensionName = Ext_V <-> "v"
 function clause hartSupports(Ext_V) = sizeof(vlen_exp) >= 7 & vector_support_level >= Full
-// Supervisor
-enum clause extension = Ext_S
-mapping clause extensionName = Ext_S <-> "s"
-function clause hartSupports(Ext_S) = config extensions.S.supported
-// User
-enum clause extension = Ext_U
-mapping clause extensionName = Ext_U <-> "u"
-function clause hartSupports(Ext_U) = config extensions.U.supported
+// Supervisor and User are not extensions this model can name: there
+// is one privilege mode (R-15-003).
 
 // Cache block size is 64 bytes
 enum clause extension = Ext_Zic64b
@@ -304,70 +298,12 @@ mapping clause extensionName = Ext_Zvkng <-> "zvkng"
 function clause hartSupports(Ext_Zvkng) = hartSupports(Ext_Zvkn) & hartSupports(Ext_Zvkg)
 function clause currentlyEnabled(Ext_Zvkng) = hartSupports(Ext_Zvkng)
 
-// Main memory supports page table reads
-enum clause extension = Ext_Ssccptr
-mapping clause extensionName = Ext_Ssccptr <-> "ssccptr"
-function clause hartSupports(Ext_Ssccptr) = config extensions.Ssccptr.supported
-// Support writeable enables for any supported counter
-enum clause extension = Ext_Sscounterenw
-mapping clause extensionName = Ext_Sscounterenw <-> "sscounterenw"
-function clause hartSupports(Ext_Sscounterenw) = config extensions.Sscounterenw.supported
-// `stval` provides all needed values
-enum clause extension = Ext_Sstvala
-mapping clause extensionName = Ext_Sstvala <-> "sstvala"
-function clause hartSupports(Ext_Sstvala) = config extensions.Sstvala.supported
-function clause currentlyEnabled(Ext_Sstvala) = hartSupports(Ext_Sstvala) & currentlyEnabled(Ext_S)
-// stvec.MODE supports Direct, and in that mode stvec.BASE must be
-// capable of holding any valid four-byte-aligned address.
-enum clause extension = Ext_Sstvecd
-mapping clause extensionName = Ext_Sstvecd <-> "sstvecd"
-function clause hartSupports(Ext_Sstvecd) = hartSupports(Ext_S)
-// sstatus.UXL must be capable of holding the value 2 (i.e., UXLEN=64 must be supported)
-enum clause extension = Ext_Ssu64xl
-mapping clause extensionName = Ext_Ssu64xl <-> "ssu64xl"
-function clause hartSupports(Ext_Ssu64xl) = hartSupports(Ext_S) & (xlen == 64)
-
-// Supervisor-Level Address Translation Modes
-enum clause extension = Ext_Svbare
-mapping clause extensionName = Ext_Svbare <-> "svbare"
-function clause hartSupports(Ext_Svbare) = config extensions.Svbare.supported
-enum clause extension = Ext_Sv32
-mapping clause extensionName = Ext_Sv32 <-> "sv32"
-function clause hartSupports(Ext_Sv32) = config extensions.Sv32.supported : bool & (xlen == 32)
-enum clause extension = Ext_Sv39
-mapping clause extensionName = Ext_Sv39 <-> "sv39"
-function clause hartSupports(Ext_Sv39) = config extensions.Sv39.supported : bool & (xlen == 64)
-enum clause extension = Ext_Sv48
-mapping clause extensionName = Ext_Sv48 <-> "sv48"
-function clause hartSupports(Ext_Sv48) = config extensions.Sv48.supported : bool & (xlen == 64)
-enum clause extension = Ext_Sv57
-mapping clause extensionName = Ext_Sv57 <-> "sv57"
-function clause hartSupports(Ext_Sv57) = config extensions.Sv57.supported : bool & (xlen == 64)
-
-// Raise exceptions on improper A/D bits
-enum clause extension = Ext_Svade
-mapping clause extensionName = Ext_Svade <-> "svade"
-function clause hartSupports(Ext_Svade) = config extensions.Svade.supported
-// Hardware Updating of A/D Bits
-enum clause extension = Ext_Svadu
-mapping clause extensionName = Ext_Svadu <-> "svadu"
-function clause hartSupports(Ext_Svadu) = config extensions.Svadu.supported
-// NAPOT Translation Contiguity
-enum clause extension = Ext_Svnapot
-mapping clause extensionName = Ext_Svnapot <-> "svnapot"
-function clause hartSupports(Ext_Svnapot) = config extensions.Svnapot.supported : bool & (xlen == 64)
-// Page-Based Memory Types
-enum clause extension = Ext_Svpbmt
-mapping clause extensionName = Ext_Svpbmt <-> "svpbmt"
-function clause hartSupports(Ext_Svpbmt) = config extensions.Svpbmt.supported : bool & (xlen == 64)
-// PTE Reserved-for-Software Bits 60-59
-enum clause extension = Ext_Svrsw60t59b
-mapping clause extensionName = Ext_Svrsw60t59b <-> "svrsw60t59b"
-function clause hartSupports(Ext_Svrsw60t59b) = config extensions.Svrsw60t59b.supported
-// Obviating Memory-management Instructions after Marking PTEs valid
-enum clause extension = Ext_Svvptc
-mapping clause extensionName = Ext_Svvptc <-> "svvptc"
-function clause hartSupports(Ext_Svvptc) = config extensions.Svvptc.supported
+// The supervisor-level extensions are gone with supervisor mode
+// (R-15-003) and the address-translation modes with the MMU
+// (R-15-002, R-15-038): Ssccptr, Sscounterenw, Sstvala, Sstvecd,
+// Ssu64xl, Svbare, Sv32/39/48/57, Svade, Svadu, Svnapot, Svpbmt,
+// Svrsw60t59b and Svvptc all named a mode or a walker that no longer
+// exists.
 
 // When adding a new extension X, we need to make sure that if X being supported
 // depends on Y being supported, then the value associated to X is _greater_ than
@@ -376,8 +312,6 @@ function clause hartSupports(Ext_Svvptc) = config extensions.Svvptc.supported
 function hartSupports_measure(ext : extension) -> int =
   match ext {
     Ext_D => 1, // > F
-    Ext_Sstvecd => 1, // > S
-    Ext_Ssu64xl => 1, // > S
     Ext_Zvkn => 1, // > Zvkned
 
     Ext_Zvknc => 2, // > Zvkn
@@ -406,24 +340,16 @@ function currentlyEnabled_measure(ext : extension) -> int =
 
     Ext_D => 1, // > Zicsr
     Ext_F => 1, // > Zicsr
-    Ext_S => 1, // > Zicsr
     Ext_Zaamo => 1, // > A
     Ext_Zve32x => 1, // > Zvl32b
 
     // Note: even though these match the default case, making them explicit to
     // annotate the chain of dependencies
-    Ext_Sscounterenw => 2, // > S
-    Ext_Sv39 => 2, // > S
     Ext_Zfh => 2, // > F
     Ext_Zvbb => 2, // > Zve32x
     Ext_Zve32f => 2, // > Zve32x
     Ext_Zve64x => 2, // > Zve32x
 
-    Ext_Ssccptr => 3, // > Sv39
-    Ext_Svnapot => 3, // > Sv39
-    Ext_Svpbmt => 3, // > Sv39
-    Ext_Svvptc => 3, // > Sv39
-    Ext_Svrsw60t59b => 3, // > Sv39
     Ext_Zfhmin => 3, // > Zfh
     Ext_Zvbc => 3, // > Zve64x
     Ext_Zve64f => 3, // > Zve64x
@@ -461,7 +387,6 @@ let extensions_ordered_for_isa_string = [
   Ext_B,
   // Ext_P,
   Ext_V,
-  // S and U are not valid extensions in the device-tree.
 
   // Z extensions, ordered by category and then alphabetically.
   // Zi
@@ -542,21 +467,6 @@ let extensions_ordered_for_isa_string = [
   Ext_Zvl256b,
   Ext_Zvl512b,
   Ext_Zvl1024b,
-
-  // Supervisor extensions, ordered alphabetically.
-  Ext_Ssccptr,
-  Ext_Sscounterenw,
-  Ext_Sstvala,
-  Ext_Sstvecd,
-  Ext_Ssu64xl,
-  Ext_Svade,
-  Ext_Svadu,
-  Ext_Svnapot,
-  Ext_Svpbmt,
-  Ext_Svrsw60t59b,
-  Ext_Svvptc,
-
-  // Hypervisor extensions, ordered alphabetically.
 
   // Machine mode extensions, ordered alphabetically.
 ]

@@ -13,45 +13,26 @@
     "E": false,
     // R-15-052: no runtime ISA morphing, no runtime CHERI disable.
     "writable_misa": false,
-    // no less-privileged mode for FIOM to order against (R-15-003).
-    "writable_fiom": false,
-    // R-15-077: counters deleted; all read-only zero is the closest config form.
-    "scounteren_writable_bits": { "len": 32, "value": "0x0000_0000" },
-    "mcounteren_writable_bits": { "len": 32, "value": "0x0000_0000" },
     // direct-only trap entry; MTCC replaces mtvec at the M0.6e transplant (R-15-073).
     "mtvec": {
       "direct": { "supported": true, "base_alignment": 2 },
       "vectored": { "supported": false, "base_alignment": 2 }
     },
-    // S is off; these values are required by the schema but ignored.
-    "stvec": {
-      "direct": { "supported": true },
-      "vectored": { "supported": false, "base_alignment": 2 }
-    },
-    // no delegate exists (R-15-003); ignored with the CSRs absent.
-    "medeleg": { "delegatable_bits": { "len": 64, "value": "0x0000_0000_0000_0000" } },
-    "mideleg": { "delegatable_bits": { "len": "xlen", "value": "0x0000_0000_0000_0000" } },
-    // mtval reports detail (R-15-073a); page-fault rows are dead with no MMU.
+    // mtval reports detail (R-15-073a).
     "xtval_nonzero": {
       "illegal_instruction": true,
       "software_breakpoint": true,
       "hardware_breakpoint": true,
       "load_address_misaligned": true,
       "load_access_fault": true,
-      "load_page_fault": true,
       "samo_address_misaligned": true,
       "samo_access_fault": true,
-      "samo_page_fault": true,
       "fetch_address_misaligned": true,
-      "fetch_access_fault": true,
-      "fetch_page_fault": true,
-      "software_check": true,
-      "reserved_exceptions": false
+      "fetch_access_fault": true
     },
     "reserved_behavior": {
       "amocas_odd_register": "AMOCAS_Illegal",
       "fcsr_rm": "Fcsr_RM_Illegal",
-      "pmpcfg_write_only": "PMP_ClearPermissions",
       "xtvec_mode": "Xtvec_Ignore",
       "rv32zdinx_odd_register": "Zdinx_Illegal"
     },
@@ -65,22 +46,12 @@
   "memory": {
     // R-15-002a: single physical space, 36 bits wide.
     "physaddr_bits": 36,
-    // R-15-075: CHERI is the sole memory-protection mechanism; no PMP entries.
-    "pmp": {
-      "grain": 0,
-      "count": 0,
-      "usable_count": 0,
-      "tor_supported": true,
-      "na4_supported": true,
-      "napot_supported": true
-    },
     // R-15-084: misaligned accesses trap and are never split.
     "misaligned": {
       "exceptions": {
         "load_store": { "Some": "AlignmentException" },
         "vector": { "Some": "AlignmentException" },
-        "amo": { "Some": "AlignmentException" },
-        "lrsc": "AlignmentException"
+        "amo": { "Some": "AlignmentException" }
       },
       "order_decreasing": false,
       "default_allowed_within_exp": 0,
@@ -109,10 +80,7 @@
           "atomic_support": "AMONone",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "reservability": "RsrvNone",
-          "supports_cbo_zero": false,
-          "supports_pte_read": false,
-          "supports_pte_write": false
+          "supports_cbo_zero": false
         },
         "include_in_device_tree": false
       },
@@ -137,10 +105,7 @@
           "atomic_support": "AMONone",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "reservability": "RsrvNone",
-          "supports_cbo_zero": false,
-          "supports_pte_read": false,
-          "supports_pte_write": false
+          "supports_cbo_zero": false
         },
         "include_in_device_tree": false
       },
@@ -166,10 +131,7 @@
           "atomic_support": "AMOArithmetic",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "reservability": "RsrvNone",
-          "supports_cbo_zero": true,
-          "supports_pte_read": false,
-          "supports_pte_write": false
+          "supports_cbo_zero": true
         },
         "include_in_device_tree": true
       }
@@ -183,19 +145,12 @@
     "hartid": 0,
     // the CBO block Zicboz allocates and cloadtags groups by (R-15-060, R-15-007q).
     "cache_block_size_exp": 6,
-    // no reservations exist (R-15-024); schema requires legal values.
-    "reservation": {
-      "reservation_set_size_exp": 3,
-      "require_exact_reservation_addr": false,
-      "invalidate_on_same_hart_store": false
-    },
     // mtime/mtimecmp are memory-mapped, programmed directly by the kernel (R-15-063).
     "clint": { "supported": true, "base": 33554432, "size": 786432 },
     "simple_interrupt_generator": { "supported": false, "base": 0 },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,
-    "wfi_available_to_user_mode": false,
     "max_time_to_wait": 10
   },
   "extensions": {
@@ -222,8 +177,6 @@
     },
     // B = Zba+Zbb+Zbs exactly, single-bit only at Zbs (R-15-067).
     "B": { "supported": true },
-    "S": { "supported": false },
-    "U": { "supported": false },
     "Zic64b": { "supported": false },
     "Zicboz": { "supported": true },
     "Ziccamoa": { "supported": false },
@@ -264,20 +217,6 @@
     "Zvkned": { "supported": true },
     "Zvknha": { "supported": false },
     "Zvknhb": { "supported": true },
-    "Zvkt": { "supported": true },
-    "Ssccptr": { "supported": false },
-    "Sscounterenw": { "supported": false },
-    "Sstvala": { "supported": false },
-    "Svade": { "supported": false },
-    "Svadu": { "supported": false },
-    "Svrsw60t59b": { "supported": false },
-    "Svnapot": { "supported": false },
-    "Svbare": { "supported": true, "sfence_vma_illegal_if_svbare_only": true },
-    "Sv32": { "supported": false },
-    "Sv39": { "supported": false },
-    "Sv48": { "supported": false },
-    "Sv57": { "supported": false },
-    "Svpbmt": { "supported": false },
-    "Svvptc": { "supported": false }
+    "Zvkt": { "supported": true }
   }
 }

@@ -20,8 +20,9 @@ function is_aligned_vaddr(Virtaddr(addr) : virtaddr, width : nat1) -> bool =
 
 overload is_aligned_addr = {is_aligned_paddr, is_aligned_vaddr}
 
-// The misaligned atomicity granule size is restricted by the page size.
-type mag_size_exp = range(0, pagesize_bits)
+// The misaligned atomicity granule size is restricted by the PMA
+// region granule.
+type mag_size_exp = range(0, pma_granule_bits)
 
 // This is an external option used for misaligned scalar or vector
 // load/store accesses to physical memory regions that do not specify
@@ -47,7 +48,7 @@ private val split_access : forall 'n 'width, 13 <= 'n <= 64 & 0 < 'width <= max_
 function split_access(addr, width) = {
   // Use the minimum alignment of the address and the specified width.
   let addr_align  = count_trailing_zeros(addr);
-  let width_align = count_trailing_zeros(to_bits(sizeof(pagesize_bits) + 1, width));
+  let width_align = count_trailing_zeros(to_bits(sizeof(pma_granule_bits) + 1, width));
   let bytes_per_access = 2 ^ min(addr_align, width_align);
   let num_accesses = width / bytes_per_access;
   assert(width == num_accesses * bytes_per_access);
@@ -99,34 +100,6 @@ function misaligned_order(n) = {
   }
 }
 
-val split_on_page_boundary : forall 'n 'width, 13 <= 'n <= 64 & is_mem_width('width).
-  (bits('n), int('width)) -> {'p 'q, 0 < 'p <= 'width & 'width == 'p + 'q. (int('p), int('q))}
-
-function split_on_page_boundary(addr, width) = {
-  let page_mask = [(ones() : bits('n)) with (pagesize_bits - 1) .. 0 = zeros()];
-  let intra_page_access = (addr & page_mask) == ((addr + width - 1) & page_mask);
-  if intra_page_access then (width, 0)
-  else {
-    let nbytes_to_boundary = sizeof(max_mem_width_bytes) - unsigned(addr[sizeof(max_mem_width_bytes_exp) - 1 .. 0]);
-    assert(nbytes_to_boundary < width);
-    (nbytes_to_boundary, width - nbytes_to_boundary)
-  }
-}
-
-$[property]
-private val prop_access_in_same_page : forall 'width, is_mem_width('width). (bits(16), int('width)) -> bool
-function prop_access_in_same_page(addr, width) = {
-  let (p, q) = split_on_page_boundary(addr, width);
-  let page_mask : bits(16) = 0xF000;
-  (q == 0 ==> (addr & page_mask) == ((addr + width - 1) & page_mask))
-  & ((addr & page_mask) == ((addr + width - 1) & page_mask) ==> q == 0)
-}
-
-$[property]
-private val prop_access_across_page_boundary : forall 'width, is_mem_width('width). (bits(16), int('width)) -> bool
-function prop_access_across_page_boundary(addr, width) = {
-  let (p, q) = split_on_page_boundary(addr, width);
-  let page_mask : bits(16) = 0xF000;
-  (q != 0 ==> (addr & page_mask) != ((addr + width - 1) & page_mask))
-  & ((addr & page_mask) != ((addr + width - 1) & page_mask) ==> q != 0)
-}
+// The page-boundary split is deleted with address translation: an
+// access was split before translation because its two halves could
+// land in different pages, and there are no pages (R-15-002).

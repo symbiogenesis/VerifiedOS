@@ -12,45 +12,16 @@
 let plat_mtvec_direct_mode_supported : bool = config base.mtvec.direct.supported
 let plat_mtvec_vectored_mode_supported : bool = config base.mtvec.vectored.supported
 
-let plat_stvec_direct_mode_supported : bool = config base.stvec.direct.supported
-let plat_stvec_vectored_mode_supported : bool = config base.stvec.vectored.supported
-
 // Trap vector alignment.
 type tvec_alignment = range(2, 24)
 let plat_mtvec_direct_base_alignment_exp   : tvec_alignment = config base.mtvec.direct.base_alignment
 let plat_mtvec_vectored_base_alignment_exp : tvec_alignment = config base.mtvec.vectored.base_alignment
-let plat_stvec_vectored_base_alignment_exp : tvec_alignment = config base.stvec.vectored.base_alignment
-
-// Delegatable bits of `medeleg` and `mideleg`.
-let plat_medeleg_delegatable_bits : bits(64) = config base.medeleg.delegatable_bits
-let plat_mideleg_delegatable_bits : xlenbits = config base.mideleg.delegatable_bits
 
 // Cache block size is 2^cache_block_size_exp. Max is `max_mem_access` (4096)
-// because this model performs `cbo.zero` with a single write, and the behaviour
-// with cache blocks larger than a page is not clearly defined.
+// because this model performs `cbo.zero` with a single write.
 let plat_cache_block_size_exp : range(0, 12) = config platform.cache_block_size_exp
 
-// Reservation set size is 2^reservation_set_size_exp.
-//
-// The reservation set must lie completely within a 4KiB page on systems with
-// page-based virtual memory and the "A" extension.  Although reservation sets could
-// theoretically be larger on non-MMU systems, the probability of a successful LR/SC
-// increases if contended synchronization variables are placed in different
-// reservation sets, and practical systems will hence constrain the reservation set
-// size for performance reasons.  This motivates constraining the maximum to
-// `max_mem_access` (4096) because larger sizes are unrealistic.
-// Reservation sets are also naturally aligned. Reservation sets need to subsume
-// their LR operands (4 bytes for LR.W, 8 bytes for LR.D).
-let plat_reservation_set_size_exp : range(2, 12) = config platform.reservation.reservation_set_size_exp
-
-// The following reservation options are used for reservation state
-// management by the external harness; they are not used within the Sail code.
-// They appear here so that their names and types are reflected in the config schema.
-let plat_reservation_require_exact_addr_match : bool = config platform.reservation.require_exact_reservation_addr
-let plat_reservation_invalidate_on_same_hart_store : bool = config platform.reservation.invalidate_on_same_hart_store
-
-// The exceptions that a misaligned access could generate.  For
-// example, a misaligned LR/SC always raises an exception.
+// The exceptions that a misaligned access could generate.
 enum misaligned_exception = { AccessFault, AlignmentException }
 mapping misaligned_exception_str : misaligned_exception <-> string = {
   AccessFault        <-> "AccessFault",
@@ -72,21 +43,16 @@ function misaligned_exception_is_access_fault(e : option(misaligned_exception)) 
   }
 
 // Some misaligned accesses could proceed or generate exceptions.
-// When used in the global (pre-address translation) configuration,
-// `None` indicates that the handling is deferred to the underlying
-// PMA (if any).
+// When used in the global configuration, `None` indicates that the
+// handling is deferred to the underlying PMA (if any). The LR/SC row
+// is gone with `Zalrsc` (R-15-025).
 struct GlobalMisalignedExceptions = {
   load_store : option(misaligned_exception),
   vector     : option(misaligned_exception),
   amo        : option(misaligned_exception),
-  // LR/SC must always be aligned. Returning a misaligned exception indicates
-  // that the access can be emulated (the OS/firmware can transparently break
-  // it down into multiple aligned accesses) which isn't the case for LR/SC
-  // in normal implementations.
-  lrsc       : misaligned_exception,
 }
 
-// The handling of misaligned accesses before address translation.
+// The global handling of misaligned accesses.
 let plat_misaligned_access : GlobalMisalignedExceptions = config memory.misaligned.exceptions
 
 // Legal values for FS and VS.  This is an enumeration to avoid lists.
@@ -111,32 +77,20 @@ let plat_sig_size : physaddrbits = zero_extend(0x20)
 
 let plat_insns_per_tick : nat1 = config platform.instructions_per_tick
 
-// Whether WFI is available to User mode.
-let plat_wfi_available_to_usermode : bool = config platform.wfi_available_to_user_mode
-
 // Maximum increment in the time CSR to wait for wait instructions.  This is not
 // used within the model but instead configures the external C++ harness.
 let max_wait_time : nat = config platform.max_time_to_wait
 
 // which exceptions write information into `xtval`
 let illegal_instruction_writes_xtval : bool = config base.xtval_nonzero.illegal_instruction
-let virtual_instruction_writes_xtval : bool = false
 let software_breakpoint_writes_xtval : bool = config base.xtval_nonzero.software_breakpoint
 let hardware_breakpoint_writes_xtval : bool = config base.xtval_nonzero.hardware_breakpoint
 let misaligned_load_writes_xtval : bool = config base.xtval_nonzero.load_address_misaligned
 let load_access_fault_writes_xtval : bool = config base.xtval_nonzero.load_access_fault
-let load_page_fault_writes_xtval : bool = config base.xtval_nonzero.load_page_fault
-let load_guest_page_fault_writes_xtval : bool = false
 let misaligned_samo_writes_xtval : bool = config base.xtval_nonzero.samo_address_misaligned
 let samo_access_fault_writes_xtval : bool = config base.xtval_nonzero.samo_access_fault
-let samo_page_fault_writes_xtval : bool = config base.xtval_nonzero.samo_page_fault
-let samo_guest_page_fault_writes_xtval : bool = false
 let misaligned_fetch_writes_xtval : bool = config base.xtval_nonzero.fetch_address_misaligned
 let fetch_access_fault_writes_xtval : bool = config base.xtval_nonzero.fetch_access_fault
-let fetch_page_fault_writes_xtval : bool = config base.xtval_nonzero.fetch_page_fault
-let fetch_guest_page_fault_writes_xtval : bool = false
-let software_check_fault_writes_xtval : bool = config base.xtval_nonzero.software_check
-let reserved_exceptions_write_xtval : bool = config base.xtval_nonzero.reserved_exceptions
 
 // Define the policy for handling reserved behaviors.
 
@@ -148,11 +102,6 @@ enum AmocasOddRegisterReservedBehavior = {
 enum FcsrRmReservedBehavior = {
   Fcsr_RM_Fatal,
   Fcsr_RM_Illegal,
-}
-
-enum PmpWriteOnlyReservedBehavior = {
-  PMP_Fatal,
-  PMP_ClearPermissions,
 }
 
 enum XtvecModeReservedBehavior = {
@@ -178,7 +127,6 @@ enum OOBVstartReservedBehavior = {
 
 let amocas_odd_register_reserved_behavior : AmocasOddRegisterReservedBehavior = config base.reserved_behavior.amocas_odd_register
 let fcsr_rm_reserved_behavior : FcsrRmReservedBehavior = config base.reserved_behavior.fcsr_rm
-let pmp_write_only_reserved_behavior : PmpWriteOnlyReservedBehavior = config base.reserved_behavior.pmpcfg_write_only
 let xtvec_mode_reserved_behavior : XtvecModeReservedBehavior = config base.reserved_behavior.xtvec_mode
 let rv32zdinx_odd_register_reserved_behavior : RV32ZdinxOddRegisterReservedBehavior = config base.reserved_behavior.rv32zdinx_odd_register
 let illegal_vtype_reserved_behavior : IllegalVtypeReservedBehavior = config extensions.V.reserved_behavior.illegal_vtype
