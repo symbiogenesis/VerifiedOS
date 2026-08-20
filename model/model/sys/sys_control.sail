@@ -26,24 +26,20 @@ function check_CSR(csr : csreg, access_type : CSRAccessType) -> bool =
     check_CSR_access(csr, access_type)
   & is_CSR_accessible(csr, access_type)
 
-// "Multiple simultaneous interrupts destined for M-mode are handled
-// in the following decreasing priority order: MEI, MSI, MTI."
+// The priority order over simultaneous machine-mode interrupts is
+// gone with the interrupts it ordered: `MTI` is the only one left
+// (R-15-066a), so there is nothing to arbitrate.
 function findPendingInterrupt(ip : xlenbits) -> option(InterruptType) = {
   let ip = Mk_Minterrupts(ip);
-  if      ip[MEI] == 0b1 then Some(I_M_External)
-  else if ip[MSI] == 0b1 then Some(I_M_Software)
-  else if ip[MTI] == 0b1 then Some(I_M_Timer)
-  else                        None()
+  if   ip[MTI] == 0b1 then Some(I_M_Timer)
+  else                     None()
 }
 
 // Return the pending, enabled set of interrupts.
 //
 // This is used when the hart is in the Active state.
 function getPendingSet() -> option(xlenbits) = {
-  // Read mip with the external platform interrupts ORed in.
-  let mip_bits = read_mip(IncludePlatformInterrupts).bits;
-
-  let pending = mip_bits & mie.bits;
+  let pending = mip.bits & mie.bits;
 
   if   mstatus[MIE] == 0b1 & pending != zeros()
   then Some(pending)
@@ -52,23 +48,17 @@ function getPendingSet() -> option(xlenbits) = {
 
 // Check if a locally enabled interrupt is pending.
 //
-// This does not examine the global enable bits (MIE and SIE in
-// mstatus) and their delegation in mideleg. It does honor the
-// local interrupt enables in mie.
+// This does not examine the global enable bit `mstatus.MIE`; it does
+// honor the local interrupt enable in `mie`, which after the narrowing
+// is `MTIE` alone (R-15-066a). The privileged spec states the rule
+// over the global bits and `mideleg` together, and both halves of that
+// exemption survive as one: what a wait instruction ignores is
+// `mstatus.MIE`, there being no delegation register left to ignore.
 //
 // This is used when the hart is in the Waiting state, caused by
 // instructions such as WFI and WRS.{NTO,STO}.
 //
-// The relevant detail in the privileged spec is:
 // https://riscv.github.io/riscv-isa-manual/snapshot/privileged/#wfi
-//
-// "The operation of WFI must be unaffected by the global interrupt
-// bits in mstatus (MIE and SIE) and the delegation register mideleg
-// (i.e., the hart must resume if a locally enabled interrupt becomes
-// pending, even if it has been delegated to a less-privileged mode),
-// but should honor the individual interrupt enables (e.g, MTIE)
-// (i.e., implementations should avoid resuming the hart if the
-// interrupt is pending but not individually enabled)."
 function shouldWakeForInterrupt() -> bool = {
   (mip.bits & mie.bits) != zeros()
 }
@@ -133,8 +123,7 @@ function exception_handler(exc : sync_exception, pc : xlenbits) -> xlenbits = {
 function xtval_exception_value(e : ExceptionType, excinfo : xlenbits) -> option(xlenbits) = {
   if match e {
     E_Illegal_Instr() => illegal_instruction_writes_xtval,
-    E_Breakpoint(Brk_Software) => software_breakpoint_writes_xtval,
-    E_Breakpoint(Brk_Hardware) => hardware_breakpoint_writes_xtval,
+    E_Breakpoint() => breakpoint_writes_xtval,
     E_Load_Addr_Align() => misaligned_load_writes_xtval,
     E_Load_Access_Fault() => load_access_fault_writes_xtval,
     E_SAMO_Addr_Align() => misaligned_samo_writes_xtval,

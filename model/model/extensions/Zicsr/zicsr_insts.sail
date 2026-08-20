@@ -47,27 +47,15 @@ function doCSR(csr : csreg, rs1_val : xlenbits, rd : regidx, op : csrop, access_
   then Ext_CSR_Check_Failure()
   else {
     // A pure write (i.e. CSRRW with rd == 0) should not generate read side-effects.
+    // The value used in the read-modify-write is also the value written to
+    // `rd`. `mip` was upstream's one exception, its external-interrupt bit
+    // reading differently in the two roles; that bit is hardwired zero
+    // (R-15-066a), so every CSR now reads the same value in both.
     let read_val : xlenbits = if access_type != CSRWrite then read_CSR(csr) else zeros();
 
-    // `read_val` is the value used in the read-modify-write. `dest_val` is the
-    // value written to `rd`. These are almost always the same.
-    //
-    // The exception is mip, which has delightfully unique behaviour for
-    // its external-interrupt bit. The value written into `X(rd)` has
-    // the external platform interrupt bit ORed into MEIP. But that
-    // *isn't* the case for the "read" value of the CSR used in the
-    // read-modify write cycle.
-    //
-    // read_CSR() returns read_mip(ExcludePlatformInterrupts) so we
-    // override that here for `dest_val`.
-    let dest_val : xlenbits = match csr {
-      0x344 => read_mip(IncludePlatformInterrupts).bits,
-      _ => read_val,
-    };
-
     if access_type == CSRRead then {
-      csr_read_callback(csr, dest_val);
-      X(rd) = dest_val;
+      csr_read_callback(csr, read_val);
+      X(rd) = read_val;
       RETIRE_SUCCESS
     } else {
       let write_val : xlenbits = match op {
@@ -77,7 +65,7 @@ function doCSR(csr : csreg, rs1_val : xlenbits, rd : regidx, op : csrop, access_
       };
       match write_CSR(csr, write_val) {
         Ok(final_val) => {
-          X(rd) = dest_val;
+          X(rd) = read_val;
           csr_write_callback(csr, final_val);
           RETIRE_SUCCESS
         },

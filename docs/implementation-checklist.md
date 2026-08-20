@@ -383,12 +383,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M0.6c/c3, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
-* Current serial path: M0.6d → M0.6e → M0.6f → M0.6g → M0.10 C-class freeze.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c/c1, M0.6c/c2, M0.6c/c3, M0.6d, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
+* Current serial path: M0.6e → M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
 * Available parallel work: c4, M0.6e staging, M0.7, M0.12 drafting, M2.1, and M4.1.
-* Total estimate: 810.3 h midpoint, range 548.8–1,071.8 h.
-* Progress by estimate: 17.8 of 810.3 h complete (2.2%); 792.5 h remaining (97.8%).
-* M8 gate: 727.3 h of the 810.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Total estimate: 809.8 h midpoint, range 549.3–1,070.3 h.
+* Progress by estimate: 20.3 of 809.8 h complete (2.5%); 789.5 h remaining (97.5%).
+* M8 gate: 726.8 h of the 809.8 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -458,9 +458,12 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * [ ] **c4 · Vector fork** · 3 h, range 2–4 · 0.4% · Parallel
     * Remove `vstart` from vector definitions and decouple vector FP from scalar F/D validation.
 
-* [ ] **M0.6d · Close the CSR bank** · 3 h, range 2–4 · 0.4%
-  * Narrow `mie`/`mip`, hardwire IDs to zero, make `misa` read-only, delete absent CSRs, and trap on unallocated CSR addresses.
-  * c3 landed the half that fell out of deleting the modes: the S-mode bank, `medeleg`/`mideleg`, the counters and the `envcfg` pair are gone, and `mie`/`mip` already carry only their three machine bits. What remains here is the narrowing the profile imposes on what survives, hardwiring `MEIE`/`MEIP` and `MSIE`/`MSIP` to zero so only the machine-timer bits are writable, making `misa` read-only, deleting `Sdtrig`'s `tselect`, and making an unallocated address trap rather than read zero.
+* [x] **M0.6d · Close the CSR bank** · 2.5 h actual · 0.3%
+  * Narrowed `mie`/`mip` to the machine-timer bits, hardwired the implementation identifiers to zero, made `misa` read-only, and deleted `Sdtrig`'s `tselect`. `MEIE`/`MEIP` and `MSIE`/`MSIP` are gone as *fields*: the `Minterrupts` bitfield carries `MTI` alone, so the unnamed bits of the underlying `xlenbits` are the hardwiring and no legalization can set them. `mip` becomes read-only outright, its one writer the timer comparator.
+  * Net change: 455 lines removed and 135 added across 19 files, three deleted outright. Two stragglers of c3's delegation cut go with them, both dead rather than wrong: a CMake variable holding the delegatable-bits mask nothing has read since `mideleg` left, and the `WFI` comment stating an exemption over a register that no longer exists.
+  * Exit evidence: build green; 327/327 tests pass; `verifiedos.json` validates against the regenerated schema and its key set agrees with the generated max configuration at 158 keys ([tools/config-keys.py](../tools/config-keys.py)).
+  * Expected profile refusals: 29 of 199 physical-variant tests, every one explained: ten `Zfh` tests the profile excludes, the three c1 cuts, the three c2 cuts, the standing M0.6b pair, c3's ten, and this batch's one, `mi-p-breakpoint`, which opens by writing `tselect` to count the triggers it may use. The sweep is now a repository instrument rather than a per-batch shell loop ([tools/profile-sweep.sh](../tools/profile-sweep.sh)), which is also what classifies a hang as a refusal that blocks rather than leaving it to a ctest timeout.
+  * Four findings. The trap on an unallocated CSR address was already total and needed no work: `is_CSR_accessible` defaults to false in `csr_end.sail`, so `check_CSR` rejects every address no clause claims, and c3's exclusion of `mi-p-pmpaddr` for trapping rather than reading zero is the standing evidence; what this batch adds to it is four more addresses, `tselect` and `tdata1-3`, whose name-map rows went with the register. Deleting the two interrupt *fields* deletes their two sources with them: the Simple Interrupt Generator device existed only to drive `MEIP`/`MSIP` and is gone entirely, and the CLINT's `msip` door with it, which leaves the CLINT as the machine timer and nothing else. The external-interrupt bit was also the sole reason `mip` read one value into `rd` and a different one into its own read-modify-write, so its deletion collapses `doCSR`'s two-value split into one and takes the platform-interrupt OR, the `XipReadType` enum, and `read_mip` with it. And two enumerations follow the same one-reachable-value rule c3 applied to `Privilege`: `InterruptType` keeps `I_M_Timer` alone, and `breakpoint_cause` goes entirely, `ebreak` being the only breakpoint source once the trigger module is deleted, which also removes a non-injective mapping whose two arms both encoded cause 3.
 
 * [ ] **M0.6e · Transplant CHERI capability semantics** · 18 h, range 12–24 · 2.2%
   * Port capability types and compression, merged registers, tag memory, PCC/sentries, machine trap capabilities, load/store checks, and ISAv9 trap causes.
@@ -499,7 +502,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 112.4 h · 14% · 13.4 h complete · open range 67–131 h.
+**M0 subtotal:** 111.9 h · 14% · 15.9 h complete · open range 65–127 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -666,6 +669,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 810.3 h midpoint over a 548.8–1,071.8 h range.
+* Grand total: the sum of the item cells, 809.8 h midpoint over a 549.3–1,070.3 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

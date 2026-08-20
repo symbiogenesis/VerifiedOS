@@ -113,35 +113,35 @@ type max_mem_width_bytes : Nat = 2 ^ max_mem_width_bytes_exp
 
 // architectural interrupt definitions
 
-// Only the machine-level interrupts remain: the supervisor and
-// virtual-supervisor classes go with their modes (R-15-003, R-15-006)
-// and the local counter-overflow interrupt with the performance
-// counters (R-15-077).
+// The machine timer is the only interrupt: the supervisor and
+// virtual-supervisor classes go with their modes (R-15-003, R-15-006),
+// the local counter-overflow interrupt with the performance counters
+// (R-15-077), and the machine external and software classes with the
+// `mie`/`mip` fields that armed and reported them (R-15-066a). The
+// type keeps its one member rather than collapsing into `TrapCause`,
+// so the cause code stays in the mapping that owns every other one.
 enum InterruptType = {
-  I_M_Software,
   I_M_Timer,
-  I_M_External,
 }
 
 mapping interruptType_bits : InterruptType <-> exc_code = {
-  I_M_Software   <-> 0b000011, // 3
   I_M_Timer      <-> 0b000111, // 7
-  I_M_External   <-> 0b001011, // 11
 }
 
 function interruptType_to_str(i : InterruptType) -> string =
   match (i) {
-    I_M_Software  => "machine-software-interrupt",
     I_M_Timer     => "machine-timer-interrupt",
-    I_M_External  => "machine-external-interrupt",
   }
 
 overload to_str = {interruptType_to_str}
 
 // architectural exception definitions
 
-enum breakpoint_cause = {Brk_Software, Brk_Hardware}
-
+// `ebreak` is the only breakpoint source. The hardware case was the
+// trigger module's, and `Sdtrig` is deleted in every lifecycle state
+// (R-15-079a), so the cause argument had one reachable value and the
+// two-clause encoding it needed, both arms mapping to cause 3, was a
+// non-injective mapping the deletion also removes.
 // The page-fault classes go with the MMU (R-15-002), the guest-page
 // and virtual-instruction classes with the hypervisor (R-15-006), the
 // U/S/VS environment calls with their modes (R-15-003), and the
@@ -152,7 +152,7 @@ union ExceptionType = {
   E_Fetch_Addr_Align   : unit,
   E_Fetch_Access_Fault : unit,
   E_Illegal_Instr      : unit,
-  E_Breakpoint         : breakpoint_cause,
+  E_Breakpoint         : unit,
   E_Load_Addr_Align    : unit,
   E_Load_Access_Fault  : unit,
   E_SAMO_Addr_Align    : unit,
@@ -167,15 +167,12 @@ mapping exceptionType_bits : ExceptionType <-> exc_code = {
   E_Fetch_Addr_Align()   <-> 0b000000, // 0
   E_Fetch_Access_Fault() <-> 0b000001, // 1
   E_Illegal_Instr()      <-> 0b000010, // 2
+  E_Breakpoint()         <-> 0b000011, // 3
   E_Load_Addr_Align()    <-> 0b000100, // 4
   E_Load_Access_Fault()  <-> 0b000101, // 5
   E_SAMO_Addr_Align()    <-> 0b000110, // 6
   E_SAMO_Access_Fault()  <-> 0b000111, // 7
   E_M_EnvCall()          <-> 0b001011, // 11
-
-  // breakpoints
-  E_Breakpoint(Brk_Software) <-> 0b000011, // 3
-  E_Breakpoint(Brk_Hardware) <-> 0b000011, // 3
 
   // extensions
   E_Extension(e)         <-> ext_exc_type_bits(e)
@@ -186,15 +183,12 @@ function exceptionType_to_str(e : ExceptionType) -> string =
     E_Fetch_Addr_Align()   => "misaligned-fetch",
     E_Fetch_Access_Fault() => "fetch-access-fault",
     E_Illegal_Instr()      => "illegal-instruction",
+    E_Breakpoint()         => "breakpoint",
     E_Load_Addr_Align()    => "misaligned-load",
     E_Load_Access_Fault()  => "load-access-fault",
     E_SAMO_Addr_Align()    => "misaligned-store/amo",
     E_SAMO_Access_Fault()  => "store/amo-access-fault",
     E_M_EnvCall()          => "m-call",
-
-    // breakpoints
-    E_Breakpoint(Brk_Software) => "software-breakpoint",
-    E_Breakpoint(Brk_Hardware) => "hardware-breakpoint",
 
     // extensions
     E_Extension(e)         => ext_exc_type_to_str(e)

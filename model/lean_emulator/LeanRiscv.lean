@@ -149,7 +149,6 @@ def initializeRegisters (elf: ELF64File): SailM PUnit :=
     writeReg mtval (← (undefined_bitvector ((2 ^i 2) *i 8)))
     writeReg mscratch (← (undefined_bitvector ((2 ^i 2) *i 8)))
     writeReg mtime (← (undefined_bitvector 64))
-    writeReg tselect (← (undefined_bitvector ((2 ^i 2) *i 8)))
     writeReg vstart (← (undefined_bitvector 16))
     writeReg vl (← (undefined_bitvector ((2 ^i 2) *i 8)))
     writeReg vtype (← (undefined_Vtype ()))

@@ -11,8 +11,6 @@
   "base": {
     "xlen": 64,
     "E": false,
-    // R-15-052: no runtime ISA morphing, no runtime CHERI disable.
-    "writable_misa": false,
     // direct-only trap entry; MTCC replaces mtvec at the M0.6e transplant (R-15-073).
     "mtvec": {
       "direct": { "supported": true, "base_alignment": 2 },
@@ -21,8 +19,7 @@
     // mtval reports detail (R-15-073a).
     "xtval_nonzero": {
       "illegal_instruction": true,
-      "software_breakpoint": true,
-      "hardware_breakpoint": true,
+      "breakpoint": true,
       "load_address_misaligned": true,
       "load_access_fault": true,
       "samo_address_misaligned": true,
@@ -138,16 +135,13 @@
     ]
   },
   "platform": {
-    // R-15-052a: hardwired zero.
-    "vendorid": 0,
-    "archid": 0,
-    "impid": 0,
+    // R-15-052b: the sole implementation identifier with a consumer.
+    // The other four are hardwired zero in the model and have no key.
     "hartid": 0,
     // the CBO block Zicboz allocates and cloadtags groups by (R-15-060, R-15-007q).
     "cache_block_size_exp": 6,
     // mtime/mtimecmp are memory-mapped, programmed directly by the kernel (R-15-063).
     "clint": { "supported": true, "base": 33554432, "size": 786432 },
-    "simple_interrupt_generator": { "supported": false, "base": 0 },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,

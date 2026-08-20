@@ -70,10 +70,9 @@ let plat_have_clint : bool = config platform.clint.supported
 let plat_clint_base : physaddrbits = to_bits_checked(config platform.clint.base : int)
 let plat_clint_size : physaddrbits = to_bits_checked(config platform.clint.size : int)
 
-// Simple Interrupt Generator. See docs/SimpleInterruptGenerator.md for details.
-let plat_have_sig : bool = config platform.simple_interrupt_generator.supported
-let plat_sig_base : physaddrbits = to_bits_checked(config platform.simple_interrupt_generator.base : int)
-let plat_sig_size : physaddrbits = zero_extend(0x20)
+// The Simple Interrupt Generator is gone with the two interrupt inputs
+// it drove: with `mip`'s external- and software-interrupt fields
+// hardwired zero (R-15-066a) the device had nothing left to signal.
 
 let plat_insns_per_tick : nat1 = config platform.instructions_per_tick
 
@@ -83,8 +82,7 @@ let max_wait_time : nat = config platform.max_time_to_wait
 
 // which exceptions write information into `xtval`
 let illegal_instruction_writes_xtval : bool = config base.xtval_nonzero.illegal_instruction
-let software_breakpoint_writes_xtval : bool = config base.xtval_nonzero.software_breakpoint
-let hardware_breakpoint_writes_xtval : bool = config base.xtval_nonzero.hardware_breakpoint
+let breakpoint_writes_xtval : bool = config base.xtval_nonzero.breakpoint
 let misaligned_load_writes_xtval : bool = config base.xtval_nonzero.load_address_misaligned
 let load_access_fault_writes_xtval : bool = config base.xtval_nonzero.load_access_fault
 let misaligned_samo_writes_xtval : bool = config base.xtval_nonzero.samo_address_misaligned

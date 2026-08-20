@@ -138,6 +138,13 @@ function(filter_riscv_tests test_elfs elfs_to_use_varname)
     # `pmpaddr` registers this probes are unallocated CSR addresses.
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-pmpaddr$")
 
+    # Sdtrig: the trigger module is deleted in every lifecycle state
+    # (R-15-079a), so `tselect` is an unallocated CSR address and the
+    # `csrw tselect, x0` this test opens with traps.  The test is a probe
+    # for trigger support, not a test of anything the profile keeps: it
+    # reads back what it wrote to decide how many triggers exist.
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-breakpoint$")
+
     # Svnapot, and address translation with it (R-15-002, R-15-038).
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ssvnapot-[pv]-napot$")
 
