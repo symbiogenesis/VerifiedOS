@@ -81,16 +81,10 @@ endfunction()
 
 # Download and add RVV tests.
 # NOTE: Setting XLEN independently of ELEN is not
-# supported by the RISC-V Vector Test suite.
+# supported by the RISC-V Vector Test suite, so ELEN=32 would mean an RV32
+# hart, which is not a configuration of this model (model/core/xlen.sail).
 foreach(vlen IN ITEMS 64 128 256 512)
-    foreach(elen IN ITEMS 32 64)
-        if((${vlen} EQUAL 512) AND (${elen} EQUAL 32))
-            # The test suite for this combination is not built due to
-            # its long execution time.
-            continue()
-        endif()
-        setup_vector_test("${vlen}" "${elen}")
-    endforeach()
+    setup_vector_test("${vlen}" 64)
 endforeach()
 
 # Download and add RISC-V tests.
@@ -102,7 +96,7 @@ function(filter_riscv_tests test_elfs elfs_to_use_varname)
     # to fail: the instructions they execute no longer decode.
 
     # Zalrsc: no load-reserved/store-conditional (R-15-024).
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)ua-[pv]-lrsc$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ua-[pv]-lrsc$")
 
     # Zifencei: no instruction-fetch fence.  This takes three groups with it,
     # not just the instruction's own test:
@@ -114,51 +108,50 @@ function(filter_riscv_tests test_elfs elfs_to_use_varname)
     #     what it was written to test.
     # The `-v-` half was booked for removal with the S/U and translation cut;
     # FENCE.I's absence brings it forward to this batch.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)ui-[pv]-fence_i$")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uziccid-[pv]-ziccid$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ui-[pv]-fence_i$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uziccid-[pv]-ziccid$")
     list(FILTER test_elfs EXCLUDE REGEX ".*-v-.*")
 
     # C: no compressed instructions (R-15-007a); ILEN is fixed at 32 bits, so
     # every 16-bit parcel is an illegal instruction.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uc-[pv]-rvc$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uc-[pv]-rvc$")
 
     # Zicntr: no unprivileged or machine cycle/time/instret CSRs (R-15-077).
     # `instret_overflow` goes with it: it writes `minstret` to set up the
     # overflow it tests, and that CSR no longer exists.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-zicntr$")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-instret_overflow$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-zicntr$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-instret_overflow$")
 
     # S mode: the whole `si` family runs in supervisor mode, which does not
     # exist (R-15-003).  `dirty` is the one that hangs rather than failing:
     # its handler waits on a page-table A/D update that never comes, so it
     # must be excluded rather than left to a timeout.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)si-[pv]-.*")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64si-[pv]-.*")
 
     # PMP: CHERI is the sole memory-protection mechanism (R-15-075), so the
     # `pmpaddr` registers this probes are unallocated CSR addresses.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-pmpaddr$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-pmpaddr$")
 
     # Sdtrig: the trigger module is deleted in every lifecycle state
     # (R-15-079a), so `tselect` is an unallocated CSR address and the
     # `csrw tselect, x0` this test opens with traps.  The test is a probe
     # for trigger support, not a test of anything the profile keeps: it
     # reads back what it wrote to decide how many triggers exist.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)mi-[pv]-breakpoint$")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-breakpoint$")
 
     # Scalar floating point: `F`, `D`, and `Zfh` are excluded entirely
     # (R-15-039), so the `f0`-`f31` register file, `fcsr`, and every scalar
     # FP instruction these families execute are gone.  All floating point on
     # this machine is vector (R-15-040), which the vector test suites cover.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uf-[pv]-.*")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)ud-[pv]-.*")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv(32|64)uzfh-[pv]-.*")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uf-[pv]-.*")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ud-[pv]-.*")
+    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uzfh-[pv]-.*")
 
     # Svnapot, and address translation with it (R-15-002, R-15-038).
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ssvnapot-[pv]-napot$")
 
-    # The RV64 machine-CSR test reads `mstatus.SXL`/`UXL`, the effective XLEN
-    # of the two modes this profile deletes; the RV32 variant does not and
-    # still passes, so only the RV64 one is excluded.
+    # The machine-CSR test reads `mstatus.SXL`/`UXL`, the effective XLEN of
+    # the two modes this profile deletes.
     list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-csr$")
 
     set(${elfs_to_use_varname} "${test_elfs}" PARENT_SCOPE)
@@ -175,26 +168,27 @@ if(ENABLE_RISCV_TESTS)
         "${DOWNLOAD_URL}"
     )
 
-    foreach(xlen IN ITEMS 32 64)
-        file(GLOB elf_list CONFIGURE_DEPENDS LIST_DIRECTORIES false
-           "${DOWNLOAD_PATH}/${TARBALL_NAME}/rv${xlen}*"
+    # RV64 only: RV32 is not a configuration of this model
+    # (model/core/xlen.sail), so the `rv32*` half of the corpus has no
+    # machine to run on and is not registered.
+    file(GLOB elf_list CONFIGURE_DEPENDS LIST_DIRECTORIES false
+       "${DOWNLOAD_PATH}/${TARBALL_NAME}/rv64*"
+    )
+
+    # Drop the tests for deleted profile surface.
+    filter_riscv_tests("${elf_list}" elf_list)
+
+    foreach(elf IN LISTS elf_list)
+        file(RELATIVE_PATH elf_name "${CMAKE_CURRENT_BINARY_DIR}" ${elf})
+        add_test(
+            # `elf_name` includes xlen so we don't need to add any details.
+            NAME "${elf_name}"
+            COMMAND
+                $<TARGET_FILE:sail_riscv_sim>
+                # These tests don't use vector so ELEN doesn't actually matter.
+                --config "${CMAKE_BINARY_DIR}/config/rv64d_v256_e64.json"
+                ${elf}
         )
-
-        # Drop the tests for deleted profile surface.
-        filter_riscv_tests("${elf_list}" elf_list)
-
-        foreach(elf IN LISTS elf_list)
-            file(RELATIVE_PATH elf_name "${CMAKE_CURRENT_BINARY_DIR}" ${elf})
-            add_test(
-                # `elf_name` includes xlen so we don't need to add any details.
-                NAME "${elf_name}"
-                COMMAND
-                    $<TARGET_FILE:sail_riscv_sim>
-                    # Use ELEN=XLEN. These tests don't use vector so it doesn't actually matter.
-                    --config "${CMAKE_BINARY_DIR}/config/rv${xlen}d_v256_e${xlen}.json"
-                    ${elf}
-            )
-        endforeach()
     endforeach()
 endif()
 
@@ -256,26 +250,25 @@ if(ENABLE_RISCV_ARCH_TESTS)
         "${DOWNLOAD_URL}"
     )
 
-    foreach(xlen IN ITEMS 32 64)
-        file(GLOB_RECURSE elf_list CONFIGURE_DEPENDS LIST_DIRECTORIES false
-           "${DOWNLOAD_PATH}/${TARBALL_NAME}/sail-rv${xlen}-max/*.elf"
+    # RV64 only, as above.
+    file(GLOB_RECURSE elf_list CONFIGURE_DEPENDS LIST_DIRECTORIES false
+       "${DOWNLOAD_PATH}/${TARBALL_NAME}/sail-rv64-max/*.elf"
+    )
+
+    # Filter out tests that fail for a good reason.
+    filter_arch_tests("${elf_list}" elfs_to_use)
+
+    foreach(elf IN LISTS elfs_to_use)
+        file(RELATIVE_PATH elf_name "${CMAKE_CURRENT_BINARY_DIR}" ${elf})
+        add_test(
+            # `elf_name` includes xlen so we don't need to add any details.
+            NAME "${elf_name}"
+            COMMAND
+                $<TARGET_FILE:sail_riscv_sim>
+                # These tests don't yet use vector so ELEN doesn't matter.
+                --config "${CMAKE_BINARY_DIR}/config/rv64d_v256_e64.json"
+                ${elf}
         )
-
-        # Filter out tests that fail for a good reason.
-        filter_arch_tests("${elf_list}" elfs_to_use)
-
-        foreach(elf IN LISTS elfs_to_use)
-            file(RELATIVE_PATH elf_name "${CMAKE_CURRENT_BINARY_DIR}" ${elf})
-            add_test(
-                # `elf_name` includes xlen so we don't need to add any details.
-                NAME "${elf_name}"
-                COMMAND
-                    $<TARGET_FILE:sail_riscv_sim>
-                    # Use ELEN=XLEN. These tests don't yet use vector so it doesn't matter.
-                    --config "${CMAKE_BINARY_DIR}/config/rv${xlen}d_v256_e${xlen}.json"
-                    ${elf}
-            )
-        endforeach()
     endforeach()
 endif()
 

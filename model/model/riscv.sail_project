@@ -10,6 +10,8 @@ core {
   files
     core/isa_version.sail,
     core/xlen.sail,
+    core/cap_format.sail,
+    core/cap_common.sail,
     core/vlen.sail,
     core/mem_addrtype.sail,
     core/mem_metadata.sail,
@@ -291,6 +293,7 @@ unit_tests {
 
   files
     unit_tests/test_privilege.sail,
+    unit_tests/test_capability.sail,
 }
 
 main {

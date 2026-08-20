@@ -10,7 +10,6 @@
 // deliberate non-profile value.
 {
   "base": {
-    "xlen": 64,
     "E": false,
     // direct-only trap entry; MTCC replaces mtvec at the M0.6e transplant (R-15-073).
     "mtvec": {

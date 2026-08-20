@@ -14,22 +14,22 @@ union clause instruction = ZBS_IOP : (bits(6), regidx, regidx, biop_zbs)
 $[wavedrom "BEXTI/BCLRI _ _ BCLRI _ OP-IMM"]
 mapping clause encdec = ZBS_IOP(shamt, rs1, rd, BCLRI)
   <-> 0b010010 @ shamt @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0010011
-  when currentlyEnabled(Ext_Zbs) & (xlen == 64 | shamt[5] == 0b0)
+  when currentlyEnabled(Ext_Zbs)
 
 $[wavedrom "BEXTI/BCLRI _ _ BEXTI _ OP-IMM"]
 mapping clause encdec = ZBS_IOP(shamt, rs1, rd, BEXTI)
   <-> 0b010010 @ shamt @ encdec_reg(rs1) @ 0b101 @ encdec_reg(rd) @ 0b0010011
-  when currentlyEnabled(Ext_Zbs) & (xlen == 64 | shamt[5] == 0b0)
+  when currentlyEnabled(Ext_Zbs)
 
 $[wavedrom "BINVI _ _ BINVI _ OP-IMM"]
 mapping clause encdec = ZBS_IOP(shamt, rs1, rd, BINVI)
   <-> 0b011010 @ shamt @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0010011
-  when currentlyEnabled(Ext_Zbs) & (xlen == 64 | shamt[5] == 0b0)
+  when currentlyEnabled(Ext_Zbs)
 
 $[wavedrom "BSETI _ _ BSETI _ OP-IMM"]
 mapping clause encdec = ZBS_IOP(shamt, rs1, rd, BSETI)
   <-> 0b001010 @ shamt @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0010011
-  when currentlyEnabled(Ext_Zbs) & (xlen == 64 | shamt[5] == 0b0)
+  when currentlyEnabled(Ext_Zbs)
 
 mapping zbs_iop_mnemonic : biop_zbs <-> string = {
   BCLRI <-> "bclri",
@@ -44,9 +44,7 @@ mapping clause assembly = ZBS_IOP(shamt, rs1, rd, op)
 $[split op]
 function clause execute ZBS_IOP(shamt, rs1, rd, op) = {
   let rs1_val = X(rs1);
-  let mask : xlenbits = if xlen == 32
-                        then zero_extend(0b1) << shamt[4..0]
-                        else zero_extend(0b1) << shamt;
+  let mask : xlenbits = zero_extend(0b1) << shamt;
   let result : xlenbits = match op {
     BCLRI => rs1_val & ~(mask),
     BEXTI => zero_extend(bool_to_bit((rs1_val & mask) != zeros())),
@@ -94,9 +92,7 @@ $[split op]
 function clause execute ZBS_RTYPE(rs2, rs1, rd, op) = {
   let rs1_val = X(rs1);
   let rs2_val = X(rs2);
-  let mask : xlenbits = if xlen == 32
-                        then zero_extend(0b1) << rs2_val[4..0]
-                        else zero_extend(0b1) << rs2_val[5..0];
+  let mask : xlenbits = zero_extend(0b1) << rs2_val[5..0];
   let result : xlenbits = match op {
     BCLR => rs1_val & ~(mask),
     BEXT => zero_extend(bool_to_bit((rs1_val & mask) != zeros())),

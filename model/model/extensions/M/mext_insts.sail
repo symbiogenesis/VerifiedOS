@@ -93,7 +93,7 @@ union clause instruction = MULW : (regidx, regidx, regidx)
 
 mapping clause encdec = MULW(rs2, rs1, rd)
   <-> 0b0000001 @ encdec_reg(rs2) @ encdec_reg(rs1) @ 0b000 @ encdec_reg(rd) @ 0b0111011
-  when xlen == 64 & (currentlyEnabled(Ext_M) | currentlyEnabled(Ext_Zmmul))
+  when (currentlyEnabled(Ext_M) | currentlyEnabled(Ext_Zmmul))
 
 function clause execute MULW(rs2, rs1, rd) = {
   let rs1_bits = X(rs1)[31..0];
@@ -108,14 +108,13 @@ function clause execute MULW(rs2, rs1, rd) = {
 
 mapping clause assembly = MULW(rs2, rs1, rd)
   <-> "mulw" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1) ^ sep() ^ reg_name(rs2)
-  when xlen == 64
 
 // *****************************************************************
 union clause instruction = DIVW : (regidx, regidx, regidx, bool)
 
 mapping clause encdec = DIVW(rs2, rs1, rd, is_unsigned)
   <-> 0b0000001 @ encdec_reg(rs2) @ encdec_reg(rs1) @ 0b10 @ bool_bit(is_unsigned) @ encdec_reg(rd) @ 0b0111011
-  when xlen == 64 & currentlyEnabled(Ext_M)
+  when currentlyEnabled(Ext_M)
 
 function clause execute DIVW(rs2, rs1, rd, is_unsigned) = {
   let rs1_bits = X(rs1)[31..0];
@@ -132,14 +131,13 @@ function clause execute DIVW(rs2, rs1, rd, is_unsigned) = {
 
 mapping clause assembly = DIVW(rs2, rs1, rd, is_unsigned)
   <-> "div" ^ maybe_u(is_unsigned) ^ "w" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1) ^ sep() ^ reg_name(rs2)
-  when xlen == 64
 
 // *****************************************************************
 union clause instruction = REMW : (regidx, regidx, regidx, bool)
 
 mapping clause encdec = REMW(rs2, rs1, rd, is_unsigned)
   <-> 0b0000001 @ encdec_reg(rs2) @ encdec_reg(rs1) @ 0b11 @ bool_bit(is_unsigned) @ encdec_reg(rd) @ 0b0111011
-  when xlen == 64 & currentlyEnabled(Ext_M)
+  when currentlyEnabled(Ext_M)
 
 function clause execute REMW(rs2, rs1, rd, is_unsigned) = {
   let rs1_bits = X(rs1)[31..0];
@@ -155,4 +153,3 @@ function clause execute REMW(rs2, rs1, rd, is_unsigned) = {
 
 mapping clause assembly = REMW(rs2, rs1, rd, is_unsigned)
   <-> "rem" ^ maybe_u(is_unsigned) ^ "w" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1) ^ sep() ^ reg_name(rs2)
-  when xlen == 64

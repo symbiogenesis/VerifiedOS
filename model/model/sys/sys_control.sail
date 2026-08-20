@@ -82,7 +82,7 @@ function tval(excinfo : option(xlenbits)) -> xlenbits = {
 }
 
 function track_trap(is_interrupt : bool, cause : exc_code) -> unit = {
-  long_csr_write_callback("mstatus", "mstatush", mstatus.bits);
+  long_csr_write_callback("mstatus", mstatus.bits);
   csr_write_callback("mcause", mcause.bits);
   csr_write_callback("mtval", mtval);
   csr_write_callback("mepc", mepc);
@@ -191,7 +191,7 @@ function reset_sys() -> unit = {
   // See https://github.com/riscv/sail-riscv/issues/639
   // mstatus[MBE] = 0b0;
 
-  long_csr_write_callback("mstatus", "mstatush", mstatus.bits);
+  long_csr_write_callback("mstatus", mstatus.bits);
 
   // "The misa register is reset to enable the maximal set of supported extensions"
   reset_misa();

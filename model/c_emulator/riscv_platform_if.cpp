@@ -14,7 +14,7 @@ unit PlatformInterface::fetch_callback([[maybe_unused]] sbits opcode) {
 
 unit PlatformInterface::mem_write_callback(
   [[maybe_unused]] const char *type,
-  [[maybe_unused]] sbits paddr,
+  [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] int64_t width,
   [[maybe_unused]] lbits value
 ) {
@@ -23,7 +23,7 @@ unit PlatformInterface::mem_write_callback(
 
 unit PlatformInterface::mem_read_callback(
   [[maybe_unused]] const char *type,
-  [[maybe_unused]] sbits paddr,
+  [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] int64_t width,
   [[maybe_unused]] lbits value
 ) {
@@ -31,7 +31,7 @@ unit PlatformInterface::mem_read_callback(
 }
 
 unit PlatformInterface::mem_exception_callback(
-  [[maybe_unused]] sbits paddr,
+  [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] uint64_t num_of_exception
 ) {
   return UNIT;
@@ -40,7 +40,7 @@ unit PlatformInterface::mem_exception_callback(
 unit PlatformInterface::xreg_full_write_callback(
   [[maybe_unused]] const_sail_string abi_name,
   [[maybe_unused]] sbits reg,
-  [[maybe_unused]] sbits value
+  [[maybe_unused]] uint64_t value
 ) {
   return UNIT;
 }
@@ -49,7 +49,7 @@ unit PlatformInterface::xreg_full_write_callback(
 unit PlatformInterface::csr_full_write_callback(
   [[maybe_unused]] const_sail_string csr_name,
   [[maybe_unused]] unsigned reg,
-  [[maybe_unused]] sbits value
+  [[maybe_unused]] uint64_t value
 ) {
   return UNIT;
 }
@@ -57,7 +57,7 @@ unit PlatformInterface::csr_full_write_callback(
 unit PlatformInterface::csr_full_read_callback(
   [[maybe_unused]] const_sail_string csr_name,
   [[maybe_unused]] unsigned reg,
-  [[maybe_unused]] sbits value
+  [[maybe_unused]] uint64_t value
 ) {
   return UNIT;
 }
@@ -66,11 +66,11 @@ unit PlatformInterface::vreg_write_callback([[maybe_unused]] unsigned reg, [[may
   return UNIT;
 }
 
-unit PlatformInterface::pc_write_callback([[maybe_unused]] sbits new_pc) {
+unit PlatformInterface::pc_write_callback([[maybe_unused]] uint64_t new_pc) {
   return UNIT;
 }
 
-unit PlatformInterface::redirect_callback([[maybe_unused]] sbits new_pc) {
+unit PlatformInterface::redirect_callback([[maybe_unused]] uint64_t new_pc) {
   return UNIT;
 }
 

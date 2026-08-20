@@ -16,7 +16,7 @@ void callbacks_if::fetch_callback([[maybe_unused]] ModelImpl &model, [[maybe_unu
 void callbacks_if::mem_write_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const char *type,
-  [[maybe_unused]] sbits paddr,
+  [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] int64_t width,
   [[maybe_unused]] lbits value
 ) {
@@ -25,7 +25,7 @@ void callbacks_if::mem_write_callback(
 void callbacks_if::mem_read_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const char *type,
-  [[maybe_unused]] sbits paddr,
+  [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] int64_t width,
   [[maybe_unused]] lbits value
 ) {
@@ -33,7 +33,7 @@ void callbacks_if::mem_read_callback(
 
 void callbacks_if::mem_exception_callback(
   [[maybe_unused]] ModelImpl &model,
-  [[maybe_unused]] sbits paddr,
+  [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] uint64_t num_of_exception
 ) {
 }
@@ -42,7 +42,7 @@ void callbacks_if::xreg_full_write_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const_sail_string abi_name,
   [[maybe_unused]] sbits reg,
-  [[maybe_unused]] sbits value
+  [[maybe_unused]] uint64_t value
 ) {
 }
 
@@ -51,7 +51,7 @@ void callbacks_if::csr_full_write_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const_sail_string csr_name,
   [[maybe_unused]] unsigned reg,
-  [[maybe_unused]] sbits value
+  [[maybe_unused]] uint64_t value
 ) {
 }
 
@@ -59,7 +59,7 @@ void callbacks_if::csr_full_read_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const_sail_string csr_name,
   [[maybe_unused]] unsigned reg,
-  [[maybe_unused]] sbits value
+  [[maybe_unused]] uint64_t value
 ) {
 }
 
@@ -70,10 +70,10 @@ void callbacks_if::vreg_write_callback(
 ) {
 }
 
-void callbacks_if::pc_write_callback([[maybe_unused]] ModelImpl &model, [[maybe_unused]] sbits new_pc) {
+void callbacks_if::pc_write_callback([[maybe_unused]] ModelImpl &model, [[maybe_unused]] uint64_t new_pc) {
 }
 
-void callbacks_if::redirect_callback([[maybe_unused]] ModelImpl &model, [[maybe_unused]] sbits new_pc) {
+void callbacks_if::redirect_callback([[maybe_unused]] ModelImpl &model, [[maybe_unused]] uint64_t new_pc) {
 }
 
 void callbacks_if::trap_callback(

@@ -14,8 +14,8 @@ public:
     return m_stop_requested;
   }
 
-  void pc_write_callback(ModelImpl &, sbits new_pc) override {
-    if (new_pc.bits == m_pc) {
+  void pc_write_callback(ModelImpl &, uint64_t new_pc) override {
+    if (new_pc == m_pc) {
       m_stop_requested = true;
     }
   }

@@ -18,8 +18,6 @@ struct CLIOptions {
   bool do_print_isa = false;
   std::string dump_memory_prefix = {};
   bool do_print_gdb_target_xml = false;
-
-  bool use_rv32_default = false;
   bool disable_trap_loop_detection = false;
   std::string config_file = {};
   std::vector<std::string> config_overrides = {};

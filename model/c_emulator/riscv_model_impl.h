@@ -106,18 +106,17 @@ private:
   // These functions are called by the Sail code.
 
   unit fetch_callback(sbits opcode) override;
-  unit mem_write_callback(const char *type, sbits paddr, int64_t width, lbits value) override;
-  unit mem_read_callback(const char *type, sbits paddr, int64_t width, lbits value) override;
-  unit mem_exception_callback(sbits paddr, uint64_t num_of_exception) override;
-  unit xreg_full_write_callback(const_sail_string abi_name, sbits reg, sbits value) override;
+  unit mem_write_callback(const char *type, uint64_t paddr, int64_t width, lbits value) override;
+  unit mem_read_callback(const char *type, uint64_t paddr, int64_t width, lbits value) override;
+  unit mem_exception_callback(uint64_t paddr, uint64_t num_of_exception) override;
+  unit xreg_full_write_callback(const_sail_string abi_name, sbits reg, uint64_t value) override;
   // `full` indicates that the name and index of the CSR are provided.
   // 64 bit CSRs use a long_csr_write_callback Sail function that automatically
-  // makes two csr_full_write_callback calls on RV32.
-  unit csr_full_write_callback(const_sail_string csr_name, unsigned reg, sbits value) override;
-  unit csr_full_read_callback(const_sail_string csr_name, unsigned reg, sbits value) override;
+  unit csr_full_write_callback(const_sail_string csr_name, unsigned reg, uint64_t value) override;
+  unit csr_full_read_callback(const_sail_string csr_name, unsigned reg, uint64_t value) override;
   unit vreg_write_callback(unsigned reg, lbits value) override;
-  unit pc_write_callback(sbits new_pc) override;
-  unit redirect_callback(sbits new_pc) override;
+  unit pc_write_callback(uint64_t new_pc) override;
+  unit redirect_callback(uint64_t new_pc) override;
   unit trap_callback(bool is_interrupt, fbits cause) override;
   unit xret_callback(bool is_mret) override;
   unit instret_callback(unit) override;

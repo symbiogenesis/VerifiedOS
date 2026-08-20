@@ -383,12 +383,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
-* Current serial path: M0.6e → M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
-* Available parallel work: M0.6e staging, M0.7, M0.12 drafting, M2.1, and M4.1.
-* Total estimate: 810.3 h midpoint, range 550.8–1,069.8 h.
-* Progress by estimate: 23.8 of 810.3 h complete (2.9%); 786.5 h remaining (97.1%).
-* M8 gate: 727.3 h of the 810.3 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e2), M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
+* Current serial path: M0.6e (e3–e5) → M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
+* Available parallel work: M0.7, M0.12 drafting, M2.1, and M4.1.
+* Total estimate: 810 h midpoint, range 551.5–1,068.5 h.
+* Progress by estimate: 25.5 of 810 h complete (3.1%); 784.5 h remaining (96.9%).
+* M8 gate: 727 h of the 810 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -471,10 +471,30 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * Expected profile refusals: 29 of 199 physical-variant tests, every one explained: ten `Zfh` tests the profile excludes, the three c1 cuts, the three c2 cuts, the standing M0.6b pair, c3's ten, and this batch's one, `mi-p-breakpoint`, which opens by writing `tselect` to count the triggers it may use. The sweep is now a repository instrument rather than a per-batch shell loop ([tools/profile-sweep.sh](../tools/profile-sweep.sh)), which is also what classifies a hang as a refusal that blocks rather than leaving it to a ctest timeout.
   * Four findings. The trap on an unallocated CSR address was already total and needed no work: `is_CSR_accessible` defaults to false in `csr_end.sail`, so `check_CSR` rejects every address no clause claims, and c3's exclusion of `mi-p-pmpaddr` for trapping rather than reading zero is the standing evidence; what this batch adds to it is four more addresses, `tselect` and `tdata1-3`, whose name-map rows went with the register. Deleting the two interrupt *fields* deletes their two sources with them: the Simple Interrupt Generator device existed only to drive `MEIP`/`MSIP` and is gone entirely, and the CLINT's `msip` door with it, which leaves the CLINT as the machine timer and nothing else. The external-interrupt bit was also the sole reason `mip` read one value into `rd` and a different one into its own read-modify-write, so its deletion collapses `doCSR`'s two-value split into one and takes the platform-interrupt OR, the `XipReadType` enum, and `read_mip` with it. And two enumerations follow the same one-reachable-value rule c3 applied to `Privilege`: `InterruptType` keeps `I_M_Timer` alone, and `breakpoint_cause` goes entirely, `ebreak` being the only breakpoint source once the trigger module is deleted, which also removes a non-injective mapping whose two arms both encoded cause 3.
 
-* [ ] **M0.6e · Transplant CHERI capability semantics** · 18 h, range 12–24 · 2.2%
+* [ ] **M0.6e · Transplant CHERI capability semantics**
   * Port capability types and compression, merged registers, tag memory, PCC/sentries, machine trap capabilities, load/store checks, and ISAv9 trap causes.
   * Differentially compare RVFI-style traces with the M0.4 oracle.
-  * Parallel staging now: map old flat files into the extension tree and stand up the differential harness. c3 has landed, so the extension hooks the transplant hangs off (`ext_data_get_addr`, `ext_control_check_pc`, `ext_fetch_check_pc`, `ext_check_CSR`) are in their final, privilege-free shape.
+  * The transplant carries ISAv9's **128-bit** parameterization rather than the frozen one, and that is the batch's shape rather than a delay: the M0.4 oracle is the differential reference, it is a reference only while the two models agree on the format, and what this batch owes M0.6f is an algebra whose field widths are the only thing that has to move (R-15-007a).
+  * The extension hooks the transplant hangs off (`ext_data_get_addr`, `ext_control_check_pc`, `ext_fetch_check_pc`, `ext_check_CSR`) have been in their final, privilege-free shape since c3.
+
+  * [x] **e1 · Fix XLEN at 64** · 1.2 h actual · 0.1%
+    * `xlen` stops being a configuration key and becomes the constant 64, and the RV32 configuration goes with it: the generated `rv32*` configurations, the `--rv32` default and its embedded JSON, the RV32 test lanes in all three corpora, and the RV32 prover-backend target. The base is RV64 (R-15-001), no plain-RV32 target exists anywhere on the platform (R-18-002), and there is one model of one machine (R-15-005).
+    * Net change: 385 lines removed and 254 added across 40 files. Deleted with the base: `mstatush`, which is the RV32 high half of `mstatus` and whose address is now unallocated and therefore trapping (R-15-014); the `Architecture` enumeration with its two-bit encoding and the `architecture()` and `in32BitMode()` queries over it, `misa.MXL` becoming the constant `0b10`; `Zbkb`'s RV32-only `zip` and `unzip`; the RV32 encodings of `zext.h` and `rev8`; the RV32 arms of the `Zbs` mask computation; and `asidlen`, left over from address translation. Thirty-seven vacuous `xlen == 64` guards collapse with them.
+    * Exit evidence: build green; 150/150 tests pass; `verifiedos.json` validates against the regenerated schema and its key set agrees with the generated max configuration at 128 keys ([tools/config-keys.py](../tools/config-keys.py)), one fewer than c4's 129, the key being `base.xlen`. The RV64 profile sweep is unchanged at 53 of 199, 52 refusals and the standing `rv64si-p-dirty` hang, which is the point of running it: the freeze removes no RV64 surface, and 261 ctest cases become 150 because the corpus carried an `rv32*` half for a machine this model can no longer be asked for.
+    * Four findings. **The transplant forces this cut rather than merely profiting from it.** A register is a capability whose address field is the register width (R-15-007i), and the 128-bit encoding e2 ports has no 32-bit instantiation in this tree, so an RV32 configuration would be a machine with no capability format to run under; the first act of the transplant is therefore a deletion M0.6c did not reach. **Fixing XLEN changes the generated C++ interface, not only the model.** A configuration-dependent `bits(xlen)` is emitted as the length-carrying `sbits`, and a static one as a native `uint64_t`, so sixteen callback signatures in the emulator harness follow it, and the physical-address ones follow too because `physaddrbits_len` was conditional on XLEN as well; register, CSR, and PC values reach the harness as machine integers rather than as length-carrying structures. **`in32BitMode` was already unreachable and the enumeration under it nearly so**, which is the one-reachable-value rule c3 applied to `Privilege` and M0.6d to `InterruptType`, arriving here from the configuration rather than from a deleted mode. And **the RV32 half of the corpus was never evidence for this profile**: it exercised a base the profile does not have, so its removal costs no coverage, and every excluded RV64 row is still excluded for the reason it was.
+
+  * [x] **e2 · Port the capability format and algebra** · 0.5 h actual · 0.1%
+    * [cap_format.sail](../model/model/core/cap_format.sail) carries the field widths and the packed encoding; [cap_common.sail](../model/model/core/cap_common.sail) carries CHERI Concentrate over them: decode and encode, the null-capability memory transform, bounds, permissions, sealing, and the monotone derivations with their representability checks. 638 lines of Sail across three new files, the third being the unit test below, with the upstream licence vendored as `model/LICENCE.cheri` because the port derives from a BSD-2-Clause artifact this repository otherwise holds only as a submodule.
+    * The capability layer lands in `core/` rather than under `extensions/`: the machine is purecap-only (R-15-001, R-18-002), so the capability *is* the register type, there is no hybrid mode to gate, and an extension gate would be a configuration key with one admitted value. The extension directory takes the instruction surface in e5.
+    * Exit evidence: build green; 150/150 tests pass, and the eight properties in [test_capability.sail](../model/model/unit_tests/test_capability.sail) pass in the model's own `$[test]` harness: the all-zeroes granule decodes as untagged NULL and NULL stores back as all zeroes (R-15-182, R-15-060), encode and decode round-trip, the reset capability spans the address space, an aligned narrowing is exact and reads back, a five-byte narrowing is byte-exact (R-15-007c), an unrepresentable address move yields an untagged result rather than a trap (R-15-007h), sealing changes only the object type, and permissions round-trip.
+    * Two findings. **The relocation guards are dead at the source and are not carried across.** `have_cheri_relocation` is a constant `false` upstream and both the PCC and DDC relocation paths hang off it, so the port folds them out rather than transplanting unreachable branches into a model that has no DDC to relocate. And **the tag plane needs no new machinery.** Sail 0.20's concurrency interface already carries a capability tag on its read and write requests, and the runtime the emulator links implements `emulator_read_tag` and `emulator_write_tag` behind it, so e3's tag memory is a parameter of the memory interface the curated tree already instantiates rather than the hand-wired side channel the upstream model carries.
+
+  * [ ] **e3 · Merge the register file and stand up the tag plane** · 4 h, range 3–5 · 0.5%
+    * `regtype` becomes `Capability`, so the file is merged by construction (R-15-007i): an integer read is the address field and an integer write yields an untagged result. Add the capability accessors and the tag metadata over the existing memory interface.
+  * [ ] **e4 · Port the checks, PCC and sentries, and the trap capabilities** · 5 h, range 3–7 · 0.6%
+    * Fetch, control, and data address checks against PCC and the authorising capability; `MTCC`/`MEPCC`/`MTDC` in place of the integer trap registers (R-15-073); the ISAv9 capability cause codes and their `mtval` encoding.
+  * [ ] **e5 · Port the instruction surface and stand up the differential harness** · 7 h, range 5–9 · 0.9%
+    * The ISAv9 capability instructions, then RVFI-style trace comparison against the M0.4 oracle over the corpus M0.12 versions.
 
 * [ ] **M0.6f · Re-parameterize to 64+1 bits** · 12 h, range 8–16 · 1.5%
   * Implement the §4.1 field widths and total 32-codepoint permission decode; all-zeroes must decode to untagged NULL.
@@ -508,7 +528,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 112.4 h · 14% · 19.4 h complete · open range 63–123 h.
+**M0 subtotal:** 112.1 h · 14% · 21.1 h complete · open range 62–120 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -675,6 +695,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 810.3 h midpoint over a 550.8–1,069.8 h range.
+* Grand total: the sum of the item cells, 810 h midpoint over a 551.5–1,068.5 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

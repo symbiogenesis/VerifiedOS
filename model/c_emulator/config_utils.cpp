@@ -88,10 +88,6 @@ const char *get_default_config() {
   return DEFAULT_JSON;
 }
 
-const char *get_default_rv32_config() {
-  return DEFAULT_JSON_RV32;
-}
-
 const char *get_config_schema() {
   return CONFIG_SCHEMA;
 }

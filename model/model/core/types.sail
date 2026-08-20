@@ -56,16 +56,11 @@ let sp   : regidx = Regidx(zero_extend(0b10)) // x2, stack pointer
 let t0   : regidx = Regidx(zero_extend(0b101)) // x5, alternate link register
 
 // base architecture definitions
-
-enum Architecture = {RV32, RV64, RV128}
-type arch_xlen = bits(2)
-
-mapping architecture_bits : Architecture <-> arch_xlen = {
-  RV32  <-> 0b01,
-  RV64  <-> 0b10,
-  RV128 <-> 0b11,
-  backwards 0b00 => internal_error(__FILE__, __LINE__, "architecture(0b00) is invalid")
-}
+//
+// There is one base and it is RV64 (R-15-001, xlen.sail), so the model
+// names no architecture as a value: `misa.MXL` is the constant 0b10 and
+// the RV32/RV64/RV128 enumeration, its two-bit encoding, and the
+// effective-XLEN queries over it had exactly one reachable value each.
 
 // There is one privilege mode. Supervisor and User are deleted with
 // the ring they would delegate to, and the virtual modes with the
