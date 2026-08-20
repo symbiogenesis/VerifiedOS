@@ -85,7 +85,7 @@ function track_trap(is_interrupt : bool, cause : exc_code) -> unit = {
   long_csr_write_callback("mstatus", mstatus.bits);
   csr_write_callback("mcause", mcause.bits);
   csr_write_callback("mtval", mtval);
-  csr_write_callback("mepc", mepc);
+  csr_write_callback("mepc", get_mepc());
 
   trap_callback(is_interrupt, cause);
 }
@@ -105,8 +105,9 @@ function trap_handler(c : TrapCause, pc : xlenbits, info : option(xlenbits), ext
   mstatus[MPIE] = mstatus[MIE];
   mstatus[MIE]  = 0b0;
   mtval         = tval(info);
-  mepc          = pc;
 
+  // The saved program counter is written by saving the interrupted PCC, whose
+  // address is that counter (R-15-073, exceptions/sys_exceptions.sail).
   handle_trap_extension(pc, ext);
 
   track_trap(is_interrupt, cause);

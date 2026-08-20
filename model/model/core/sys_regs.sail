@@ -166,11 +166,14 @@ function is_fiom_active() -> bool = false
 
 // registers for trap handling
 
+// The trap vector is `MTCC`'s address rather than a register of its own
+// (core/cap_regs.sail, R-15-073); the bitfield below stays as the shape that
+// address is legalized in, which is what the integer `mtvec` view reads and
+// writes.
 bitfield Mtvec : xlenbits = {
   Base : xlen - 1 .. 2,
   Mode : 1 .. 0
 }
-register mtvec : Mtvec  // Trap Vector
 
 // PUBLIC: invoked from set_{ms}tvec() [exceptions/sys_exceptions.sail]
 function legalize_tvec(
@@ -227,8 +230,10 @@ function tvec_addr(m : Mtvec, c : Mcause) -> option(xlenbits) = {
 }
 
 // Exception PC
-
-register mepc : xlenbits
+//
+// The saved program counter is `MEPCC`'s address (core/cap_regs.sail): what a
+// trap saves is the interrupted authority, and the integer `mepc` view reads
+// the address out of it.
 
 // With no compressed instructions the minimum PC alignment is four bytes,
 // so the xepc legalization zeroes xepc[1:0].

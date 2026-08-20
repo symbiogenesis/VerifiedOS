@@ -11,15 +11,14 @@
 // overridden by extensions.
 
 /*!
-THIS(csrno, access_type) allows an extension to block an access to csrno.
-It should return true if the access is allowed. The privilege argument
-this carried is gone with the modes (R-15-003): every access is a
-machine-mode access.
+THIS(csrno, access_type) decides whether an access to csrno is allowed. The
+privilege argument this carried is gone with the modes (R-15-003), and what
+replaced it is the capability: the access-system-registers permission on the
+executing PCC *is* the privilege mechanism, so a compartment without it cannot
+reach a CSR at all (R-15-003, R-15-073).
 */
-function ext_check_CSR(_csrno : csreg, _access_type : CSRAccessType) -> bool = true
+function ext_check_CSR(_csrno : csreg, _access_type : CSRAccessType) -> bool =
+  PCC.access_system_regs
 
-/*!
-THIS is called if ext_check_CSR returns false. It should
-cause an appropriate RISCV exception.
- */
-function ext_check_CSR_fail() -> unit = ()
+// The trap this refusal raises is `ext_check_CSR_fail`, defined with the other
+// capability traps in the postlude (cap_traps.sail).

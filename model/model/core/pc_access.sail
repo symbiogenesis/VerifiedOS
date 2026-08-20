@@ -26,6 +26,10 @@ function set_next_pc(pc : xlenbits) -> unit = {
 }
 
 function tick_pc() -> unit = {
+  // The authority advances with the address: a control transfer that installs
+  // a new PCC does so through `nextPCC`, and sequential execution leaves it
+  // alone, so this is where a domain entry actually takes effect.
+  PCC = nextPCC;
   PC = nextPC;
   pc_write_callback(PC);
 }

@@ -226,6 +226,101 @@ function wX (Regno(r) : regno, in_v : xlenbits) -> unit = {
   if r != 0 then xreg_write_callback(Regidx(to_bits(r)), in_v)
 }
 
+// Capability accessors over the same file. `X(r)` reads the address field of
+// register `r` and `C(r)` reads the whole capability; they are two readings of
+// one register rather than two register files (R-15-007i).
+
+function rC (Regno(r) : regno) -> regtype =
+  match r {
+    0 => zero_reg,
+    1 => x1,
+    2 => x2,
+    3 => x3,
+    4 => x4,
+    5 => x5,
+    6 => x6,
+    7 => x7,
+    8 => x8,
+    9 => x9,
+    10 => x10,
+    11 => x11,
+    12 => x12,
+    13 => x13,
+    14 => x14,
+    15 => x15,
+    16 => x16,
+    17 => x17,
+    18 => x18,
+    19 => x19,
+    20 => x20,
+    21 => x21,
+    22 => x22,
+    23 => x23,
+    24 => x24,
+    25 => x25,
+    26 => x26,
+    27 => x27,
+    28 => x28,
+    29 => x29,
+    30 => x30,
+    31 => x31,
+  }
+
+function wC (Regno(r) : regno, v : regtype) -> unit = {
+  match r {
+    0  => (),
+    1  => x1 = v,
+    2  => x2 = v,
+    3  => x3 = v,
+    4  => x4 = v,
+    5  => x5 = v,
+    6  => x6 = v,
+    7  => x7 = v,
+    8  => x8 = v,
+    9  => x9 = v,
+    10 => x10 = v,
+    11 => x11 = v,
+    12 => x12 = v,
+    13 => x13 = v,
+    14 => x14 = v,
+    15 => x15 = v,
+    16 => x16 = v,
+    17 => x17 = v,
+    18 => x18 = v,
+    19 => x19 = v,
+    20 => x20 = v,
+    21 => x21 = v,
+    22 => x22 = v,
+    23 => x23 = v,
+    24 => x24 = v,
+    25 => x25 = v,
+    26 => x26 = v,
+    27 => x27 = v,
+    28 => x28 = v,
+    29 => x29 = v,
+    30 => x30 = v,
+    31 => x31 = v,
+  };
+  // The trace carries the address field here, which is what an integer write
+  // reports too; the tag, bounds, permission and seal state a capability write
+  // also changes are the capability-widened commit trace's (M0.12), not this
+  // callback's.
+  if r != 0 then xreg_write_callback(Regidx(to_bits(r)), v.address)
+}
+
+function rC_bits(Regidx(i) : regidx) -> regtype = rC(Regno(unsigned(i)))
+
+function wC_bits(Regidx(i) : regidx, v : regtype) -> unit = wC(Regno(unsigned(i)), v)
+
+overload C = {rC_bits, wC_bits, rC, wC}
+
+// Assembly names for the capability reading of a register. The zero register
+// is `cnull` rather than `czero`, since what it holds is the null capability.
+mapping cap_reg_name : regidx <-> string = {
+  encdec_reg(0b00000) <-> "cnull",
+  encdec_reg(i) <-> "c" ^ reg_name(encdec_reg(i)),
+}
+
 function rX_bits(Regidx(i) : regidx) -> xlenbits = rX(Regno(unsigned(i)))
 
 function wX_bits(Regidx(i) : regidx, data : xlenbits) -> unit = {
