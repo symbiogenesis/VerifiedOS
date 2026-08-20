@@ -535,6 +535,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: §18 carries no such workstream and the checker inventory contains no equivalence checker; the consequence list is stated once, so R-06-026 and R-18-022 cannot come to disagree with it.
 · Trace: CJ-CRYPTO-SPEC · [§5](spec.md#r-05-064), [§5](spec.md#r-05-064-2)
 
+**R-05-064a** MUST: The recovery R-05-064's deletion leaves reachable is representational and stays inside the verified compiler: where a modulus admits an unsaturated (reduced-radix) representation that is the emitted form, its lazy carries being ordinary C and its straight-line shape keeping R-05-067's constant-time structural, and where a protocol supplies independent field operations (batch verification, multi-scalar multiplication, independent ladder operations) they are batched across vector lanes as ordinary RVV code. A modulus admitting no such representation, RSA and the general Montgomery case, keeps the carry chain and keeps R-05-064's accepted cost.
+· Accept: the crypto module records per primitive which representation it emits and on what ground; no admitted assembly leaf appears and no equivalence checker is minted, Fiat-Crypto emitting both pipelines already; the batched forms are compiled by the same backend and decided by the same artifact-level constant-time check as every other secret-touching binary, so the recovery adds no verified artifact and no TCB category.
+· Trace: CJ-CRYPTO-SPEC, CJ-CT-SOUND
+
 **R-05-065** MUST NOT: Standing rule: any net-new verified artifact whose only yield is performance on a path already correct and already leak-free is inadmissible; the slower sound artifact is taken.
 · Accept: every admitted net-new verified artifact has a stated yield other than performance.
 · Trace: CJ-T
@@ -3109,6 +3113,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the browser image binds the platform engine rather than a second interpreter for Wasm content, and the JavaScript declination is recorded here rather than implied.
 · Trace: CJ-WASM-SOUND
 
+**R-14-013d** MUST: The R-14-013b admitted subset takes fixed-width SIMD beside core Wasm, its handler bodies ahead-of-time image code charged against R-14-008b's interpreter footprint budget and R-18-014d's capacity constraint. The curation rule is not relaxed to reach the gain: the SIMD semantics enters the pinned specification from the tracked mechanized upstream rather than by authorship, so where that upstream does not reach it the subset stays core-only. R-14-013a's two theorems quantify over the whole admitted subset or over neither.
+· Accept: the pinned-semantics artifact names its instruction set with the version frozen; no configuration ships a vector path outside the proved subset, a soundness proof for the core subset beside an unproved vector one being refused; the handler bodies are inventoried against the budget and displace no admitted component; guest vector state raises no kernel obligation, being the embedding compartment's own under R-07-014b and R-07-014a.
+· Trace: CJ-WASM, CJ-WASM-SOUND
+
 **R-14-015** MUST: Every interpreter whose guest can create a runtime-dependent number of objects uses a composition-sized fixed object arena conforming to the R-08-046 bounded-pool contract and distinct from the online allocator R-08-010 deletes: fixed object-size classes or a statically proved bounded representation, a maximum live object count per class, a declared selection and release algorithm, declared handling of cyclic guest graphs where admitted, the R-08-047 exhausted arm when no slot is available, and, where guest-level collection exists, its complete WCET and non-interference model with host behavior after guest exhaustion declared beside it.
 · Accept: no browser or Wasm/JS interpreter relies on an unspecified malloc, tracing collector, compactor, or variable-time emergency collection path; guest exhaustion consumes neither host-reserved state nor another origin's arena.
 · Trace: CJ-WASM-SOUND, CJ-MEMPLAN
@@ -5420,6 +5428,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the applied form is a per-loop measured trade on the RVV kernels, admitted under R-18-014e's encoded-form size constraint, breaking a fusion pair only where the block's static Sail cost strictly improves (R-18-014a), hoisting loads statically with no prefetch hint, and consuming the loop bounds §11 already mandates as WCET inputs (R-11-015) rather than funding its own analysis; proof surface is zero either way, the output re-certified regardless of how it was scheduled.
 · Trace: CJ-COMPCERT, CJ-WCET, CJ-FORMAT
 
+**R-18-014g** MUST: The profitability test of the R-18-014a autovectorization duty is the R-18-024 cost annotation and never a mean-latency model: an off-list indexed or runtime-strided vector access (R-15-085a) enters that annotation at its fully-conflicted bound (R-15-085b), so the backend reaches the on-list unit-stride, segment, and whole-register forms by layout and loop shape wherever a legal restructuring exists, and vectorizes through an off-list access only where the fully-conflicted price still yields a smaller bound than the scalar form. The shape preference and R-08-012a's field-partitioning term are one decision, as R-11-015b makes frame packing and bound-directed lowering one.
+· Accept: backend tests contain a case where the mean-directed and bound-directed vectorization choices differ and the emitted code is the bound-directed one, a case where a legal restructuring converts an off-list access into a segment access and is taken, and a case where none exists and the fully-conflicted price refuses vectorization; an emitted off-list access carries R-15-085a's discharged secret-freedom proof wherever its element addresses are secret-reachable, the price being the second gate on that form and never the first; no admitted §11 bound is worse than the scalar form's, and the work plan names no separate optimizer, analyzer, profile pipeline, search tool, or workstream for the duty.
+· Trace: CJ-WCET, CJ-COMPCERT, CJ-MEMPLAN
+
+**R-18-014h** MUST: R-18-014c's rule takes a vector arm: where a condition varies element to element inside a vectorizable region the emitted form is mask predication rather than scalarization, R-15-085's mask-independent timing making the predicated form's bound its expected cost where the scalarized form's is a per-element worst arm plus a mispredict R-15-023 prices at full pipeline latency; where the condition is uniform over the region the scalar branch around the vector block stands.
+· Accept: backend tests contain an element-varying case lowered to masks, a uniform case left as a scalar branch, and a non-regression case in which no admitted §11 bound is worse; the duty adds no facility, being the rule R-18-014a's `Zicond` if-conversion already instances at the scalar arm.
+· Trace: CJ-WCET, CJ-COMPCERT
+
+**R-18-014i** MUST: Scalar floating point is a VL=1 vector operation whose operand the R-15-040 soft-float-register convention leaves in an integer register, so a dependent scalar-float chain is lowered with its intermediates resident in vector registers and its integer-register moves taken at the chain's boundaries rather than per operation, and independent scalar-float work is batched to VL greater than one under the R-18-014a SLP duty.
+· Accept: backend tests contain a dependent-chain case whose intermediates never round-trip through an integer register between operations and an independent-quad case lowered to one VL=4 operation; no case reassociates a floating-point computation the source does not permit reassociated, R-15-083's static round-to-nearest-ties-to-even being the only rounding either form has.
+· Trace: CJ-COMPCERT, CJ-WCET
+
 **R-18-015** IS: The certifying Rust compiler's shape is a front end over safe-Rust MIR carrying the source type system's memory-safety fact through lowering and emitting a CHERI-TAL derivation; CHERI discharges spatial safety, so the preserved obligation is the temporal-safety and typed-control-flow residual.
 · Accept: no per-app manual proof is required for pure-safe-Rust code.
 · Trace: CJ-TAL-SOUND
@@ -5524,7 +5544,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1275 requirements. §19 is non-normative and yields none. Counts include the 324 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1280 requirements. §19 is non-normative and yields none. Counts include the 329 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5532,7 +5552,7 @@ All eighteen normative sections are extracted, at 1275 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **12** |
-| **§5 Languages & Verification** | **extracted** | **201** |
+| **§5 Languages & Verification** | **extracted** | **202** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **60** |
 | **§8 Authority Model** | **extracted** | **73** |
@@ -5541,11 +5561,11 @@ All eighteen normative sections are extracted, at 1275 requirements. §19 is non
 | **§11 Updates** | **extracted** | **36** |
 | **§12 System Servers** | **extracted** | **124** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
-| **§14 Userland** | **extracted** | **27** |
+| **§14 Userland** | **extracted** | **28** |
 | **§15 Hardware Platform** | **extracted** | **367** |
 | **§16 Reliability** | **extracted** | **35** |
 | **§17 Residual Risks** | **extracted** | **114** |
-| **§18 Realization** | **extracted** | **50** |
+| **§18 Realization** | **extracted** | **53** |
 
 §19 is non-normative and yields no requirements.
 
