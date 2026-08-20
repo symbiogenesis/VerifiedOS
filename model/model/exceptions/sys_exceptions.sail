@@ -20,7 +20,7 @@ type ext_exception = unit
 
 // `mret` is permitted by the access-system-registers permission on the
 // executing PCC, which is what privilege is here (R-15-003).
-function ext_check_xret_priv () : unit -> bool = PCC.access_system_regs
+function ext_check_xret_priv () : unit -> bool = cap_access_system_regs(PCC)
 
 // On a trap, MEPCC comes to hold PCC with the faulting address. PCC is not
 // sealed on the way in: what a trap installs is the handler's authority, and
@@ -35,7 +35,7 @@ function handle_trap_extension(pc : xlenbits, _u : option(unit)) -> unit = {
 function prepare_trap_vector(cause : Mcause) -> xlenbits = {
   // The address is used rather than an offset: the low bits carrying the mode
   // are part of the value `mtvec` would have held.
-  match tvec_addr(Mk_Mtvec(MTCC.address), cause) {
+  match tvec_addr(Mk_Mtvec(capAddrBits(MTCC)), cause) {
     Some(epc) => { nextPCC = MTCC; epc },
     None()    => internal_error(__FILE__, __LINE__, "Invalid tvec mode")
   }
@@ -47,7 +47,7 @@ function prepare_trap_vector(cause : Mcause) -> xlenbits = {
 // set_mepc:            used to write a value of the mret target   (no control flow transfer)
 // prepare_xret_target: used to get the value for control transfer to the mret target
 
-function get_mepc() -> xlenbits = align_pc(MEPCC.address)
+function get_mepc() -> xlenbits = align_pc(capAddrBits(MEPCC))
 
 function set_mepc(value : xlenbits) -> xlenbits = {
   let target = legalize_xepc(value);
@@ -64,17 +64,17 @@ function prepare_xret_target() -> xlenbits = {
   // (R-15-008, R-15-071). Any other sealed type stays sealed and faults at the
   // next fetch rather than here.
   let epcc = MEPCC;
-  let epcc = if epcc.otype == otype_sentry_bits then unsealCap(epcc) else epcc;
+  let epcc = if isSentry(epcc) then unsealCap(epcc) else epcc;
   nextPCC = epcc;
-  align_pc(epcc.address)
+  align_pc(capAddrBits(epcc))
 }
 
 // other trap-related CSRs
 
-function get_mtvec() -> xlenbits = MTCC.address
+function get_mtvec() -> xlenbits = capAddrBits(MTCC)
 
 function set_mtvec(value : xlenbits) -> xlenbits = {
-  let mtv = legalize_tvec(Mk_Mtvec(MTCC.address),
+  let mtv = legalize_tvec(Mk_Mtvec(capAddrBits(MTCC)),
                           value,
                           plat_mtvec_direct_mode_supported,
                           plat_mtvec_direct_base_alignment_exp,
@@ -87,7 +87,7 @@ function set_mtvec(value : xlenbits) -> xlenbits = {
 // Ensure that the trap vector's mode field contains a supported value on
 // reset. This would matter if these fields are read-only for the DUT.
 function reset_tvec() -> unit = {
-  var mtv = Mk_Mtvec(MTCC.address);
+  var mtv = Mk_Mtvec(capAddrBits(MTCC));
   if plat_mtvec_direct_mode_supported then {
     mtv[Mode] = trapVectorMode(TV_Direct)
   } else if plat_mtvec_vectored_mode_supported then {

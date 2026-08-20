@@ -26,12 +26,22 @@ function RegStr(r : regtype) -> string = capToString(r)
 
 // conversions
 //
-// An integer read is the address field. An integer write yields an *untagged*
-// capability at that address: writing an integer over a register destroys the
-// authority it held rather than reinterpreting it, which is the merged file's
-// whole discipline and the reason no capability is ever reconstructed from a
-// bit pattern (R-05-136, R-15-002).
+// An integer *is* the register's 64 data bits, and the low 36 of them are the
+// address field a capability reading takes: the address space is narrower than
+// a register, so an address is an integer but not every integer is an address
+// (R-15-002a, core/cap_format.sail). Reading a register as an integer and
+// writing that integer back is therefore the identity on every value, which is
+// what keeps XLEN-wide integer arithmetic intact on a machine whose registers
+// hold authority.
+//
+// An integer write yields an *untagged* capability: writing an integer over a
+// register destroys the authority it held rather than reinterpreting it, which
+// is the merged file's whole discipline and the reason no capability is ever
+// reconstructed from a bit pattern (R-05-136, R-15-002). The null-capability
+// transform the memory interface applies is applied here too, so the zero
+// register reads as integer zero and a register stored with `sd` and reloaded
+// with `lc` is the capability it was (core/cap_common.sail).
 
-function regval_from_reg(r : regtype) -> xlenbits = r.address
+function regval_from_reg(r : regtype) -> xlenbits = capToMemBits(r)
 
 function regval_into_reg(v : xlenbits) -> regtype = int_to_cap(v)

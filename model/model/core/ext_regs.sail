@@ -18,7 +18,7 @@ executing PCC *is* the privilege mechanism, so a compartment without it cannot
 reach a CSR at all (R-15-003, R-15-073).
 */
 function ext_check_CSR(_csrno : csreg, _access_type : CSRAccessType) -> bool =
-  PCC.access_system_regs
+  cap_access_system_regs(PCC)
 
 // The trap this refusal raises is `ext_check_CSR_fail`, defined with the other
 // capability traps in the postlude (cap_traps.sail).

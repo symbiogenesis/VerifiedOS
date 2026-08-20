@@ -81,8 +81,7 @@ extensions {
       requires exceptions, sys, I_types
 
       files
-        extensions/I/base_insts.sail,
-        extensions/I/jalr_seq.sail
+        extensions/I/base_insts.sail
     }
   }
 

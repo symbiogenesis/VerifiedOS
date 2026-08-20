@@ -19,20 +19,27 @@
 // in it.
 type capreg_idx = bits(6)
 let PCC_IDX : capreg_idx = 0b100000
-let DDC_IDX : capreg_idx = 0b100001
 
 // The index a fault reports for a general-purpose register.
 function capreg_idx_of_regidx(Regidx(r) : regidx) -> capreg_idx = zero_extend(r)
 
+// The codes are ISAv9's and keep ISAv9's numbering; the enumeration carries the
+// causes this machine can raise and no others, on the one-reachable-value rule
+// the mode and counter batches applied before it. What goes with a deleted
+// mechanism rather than with a decision of its own: the type violation and the
+// cinvoke violation with the call gate `cjalr` replaces (R-15-068), the
+// user-defined violation with the software-defined permission bits
+// (R-15-007n), the set-CID violation with the compartment-identifier register
+// the profile has no allocation for, the global violation with a check no
+// instruction here performs (the local/global discipline is enforced on the
+// store path as a store-local violation, R-15-074), and the unaligned-bounds
+// violation with a capability access whose misalignment is an ordinary address
+// alignment exception (extensions/CHERI/cheri_mem.sail).
 enum CapEx = {
   CapEx_None,
   CapEx_LengthViolation,
   CapEx_TagViolation,
   CapEx_SealViolation,
-  CapEx_TypeViolation,
-  CapEx_UserDefViolation,
-  CapEx_UnalignedBase,
-  CapEx_GlobalViolation,
   CapEx_PermitExecuteViolation,
   CapEx_PermitLoadViolation,
   CapEx_PermitStoreViolation,
@@ -40,8 +47,6 @@ enum CapEx = {
   CapEx_PermitStoreCapViolation,
   CapEx_PermitStoreLocalCapViolation,
   CapEx_AccessSystemRegsViolation,
-  CapEx_PermitCInvokeViolation,
-  CapEx_PermitSetCIDViolation,
 }
 
 function CapExCode(ex : CapEx) -> bits(5) =
@@ -50,10 +55,6 @@ function CapExCode(ex : CapEx) -> bits(5) =
     CapEx_LengthViolation               => 0b00001,
     CapEx_TagViolation                  => 0b00010,
     CapEx_SealViolation                 => 0b00011,
-    CapEx_TypeViolation                 => 0b00100,
-    CapEx_UserDefViolation              => 0b01000,
-    CapEx_UnalignedBase                 => 0b01011,
-    CapEx_GlobalViolation               => 0b10000,
     CapEx_PermitExecuteViolation        => 0b10001,
     CapEx_PermitLoadViolation           => 0b10010,
     CapEx_PermitStoreViolation          => 0b10011,
@@ -61,8 +62,6 @@ function CapExCode(ex : CapEx) -> bits(5) =
     CapEx_PermitStoreCapViolation       => 0b10101,
     CapEx_PermitStoreLocalCapViolation  => 0b10110,
     CapEx_AccessSystemRegsViolation     => 0b11000,
-    CapEx_PermitCInvokeViolation        => 0b11001,
-    CapEx_PermitSetCIDViolation         => 0b11100,
   }
 
 function string_of_capex(ex : CapEx) -> string =
@@ -71,10 +70,6 @@ function string_of_capex(ex : CapEx) -> string =
     CapEx_LengthViolation               => "LengthViolation",
     CapEx_TagViolation                  => "TagViolation",
     CapEx_SealViolation                 => "SealViolation",
-    CapEx_TypeViolation                 => "TypeViolation",
-    CapEx_UserDefViolation              => "UserDefViolation",
-    CapEx_UnalignedBase                 => "UnalignedBounds",
-    CapEx_GlobalViolation               => "GlobalViolation",
     CapEx_PermitExecuteViolation        => "PermitExecuteViolation",
     CapEx_PermitLoadViolation           => "PermitLoadViolation",
     CapEx_PermitStoreViolation          => "PermitStoreViolation",
@@ -82,8 +77,6 @@ function string_of_capex(ex : CapEx) -> string =
     CapEx_PermitStoreCapViolation       => "PermitStoreCapViolation",
     CapEx_PermitStoreLocalCapViolation  => "PermitStoreLocalCapViolation",
     CapEx_AccessSystemRegsViolation     => "AccessSystemRegsViolation",
-    CapEx_PermitCInvokeViolation        => "PermitCInvokeViolation",
-    CapEx_PermitSetCIDViolation         => "PermitSetCIDViolation",
   }
 
 // The `mtval` payload of a capability violation.

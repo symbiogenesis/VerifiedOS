@@ -6,7 +6,11 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // =======================================================================================
 
-enum uop = {LUI, AUIPC}                          // upper immediate ops
+// Upper immediate ops. `auipc` is not among them: it forms a PC-relative
+// address, and on a purecap machine that address is a capability derived from
+// PCC, so the encoding is `auipcc` and its clause is the capability surface's
+// (extensions/CHERI/cheri_insts.sail, R-15-001).
+enum uop = {LUI}
 enum bop = {BEQ, BNE, BLT, BGE, BLTU, BGEU}      // branch ops
 enum iop = {ADDI, SLTI, SLTIU, XORI, ORI, ANDI}  // immediate ops
 enum sop = {SLLI, SRLI, SRAI}                    // shift ops

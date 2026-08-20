@@ -33,7 +33,7 @@ function ext_fetch_check_pc(start_pc : xlenbits, pc : xlenbits) -> option(ext_fe
     // granule; the bounds check is owed on every granule.
     if not(PCC.tag) then Some(CapEx_TagViolation)
     else if isCapSealed(PCC) then Some(CapEx_SealViolation)
-    else if not(PCC.permit_execute) then Some(CapEx_PermitExecuteViolation)
+    else if not(cap_permit_execute(PCC)) then Some(CapEx_PermitExecuteViolation)
     else if not(inCapBounds(PCC, pc, min_instruction_bytes)) then Some(CapEx_LengthViolation)
     else None()
   } else {
@@ -89,9 +89,9 @@ function cap_data_checks(
     Some((CapEx_TagViolation, auth_idx))
   else if isCapSealed(auth) then
     Some((CapEx_SealViolation, auth_idx))
-  else if need_load_perm & not(auth.permit_load) then
+  else if need_load_perm & not(cap_permit_load(auth)) then
     Some((CapEx_PermitLoadViolation, auth_idx))
-  else if need_store_perm & not(auth.permit_store) then
+  else if need_store_perm & not(cap_permit_store(auth)) then
     Some((CapEx_PermitStoreViolation, auth_idx))
   else if not(inCapBounds(auth, addr, width)) then
     Some((CapEx_LengthViolation, auth_idx))
@@ -99,21 +99,15 @@ function cap_data_checks(
     None()
 }
 
-// The authorising capability of a data access, and the address it authorises.
-// In capability mode it is the capability in the base register the instruction
-// names, and the address is that capability's address plus the offset; in
-// integer mode the base register is an integer and the authority is DDC. The
-// second arm is hybrid mode, which the profile deletes along with DDC itself
-// (R-15-001c): on a purecap machine every access takes the first arm, and an
-// integer in a base register is an untagged capability that faults here rather
-// than reaching memory (R-15-001, R-15-007h).
-function cap_mode_auth(base : regidx, offset : xlenbits) -> (Capability, xlenbits, capreg_idx) =
-  if PCC.flag_cap_mode then {
-    let auth = C(base);
-    (auth, auth.address + offset, capreg_idx_of_regidx(base))
-  } else {
-    (DDC, X(base) + offset, DDC_IDX)
-  }
+// The authorising capability of a data access, and the address it authorises:
+// the capability in the base register the instruction names, and that
+// capability's address plus the offset. There is one mode and therefore one
+// arm. An integer in a base register is an untagged capability, which faults
+// here rather than reaching memory (R-15-001, R-15-001c, R-15-007h).
+function cap_mode_auth(base : regidx, offset : xlenbits) -> (Capability, xlenbits, capreg_idx) = {
+  let auth = C(base);
+  (auth, capAddrBits(auth) + offset, capreg_idx_of_regidx(base))
+}
 
 function ext_data_get_addr(base : regidx, offset : xlenbits, access : MemoryAccessType(mem_payload), width : mem_access_width)
          -> Ext_DataAddr_Check(ext_data_addr_error) = {

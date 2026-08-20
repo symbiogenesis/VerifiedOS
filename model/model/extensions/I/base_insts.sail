@@ -13,8 +13,7 @@
 union clause instruction = UTYPE : (bits(20), regidx, uop)
 
 mapping encdec_uop : uop <-> bits(7) = {
-  LUI   <-> 0b0110111,
-  AUIPC <-> 0b0010111
+  LUI   <-> 0b0110111
 }
 
 mapping clause encdec = UTYPE(imm, rd, op)
@@ -24,15 +23,13 @@ $[split op]
 function clause execute UTYPE(imm, rd, op) = {
   let off : xlenbits = sign_extend(imm @ 0x000);
   X(rd) = match op {
-    LUI   => off,
-    AUIPC => get_arch_pc() + off
+    LUI   => off
   };
   RETIRE_SUCCESS
 }
 
 mapping utype_mnemonic : uop <-> string = {
-  LUI   <-> "lui",
-  AUIPC <-> "auipc"
+  LUI   <-> "lui"
 }
 
 mapping clause assembly = UTYPE(imm, rd, op)
@@ -64,35 +61,17 @@ function jump_to(target : xlenbits) -> ExecutionResult = {
 }
 
 // *****************************************************************
-union clause instruction = JAL : (bits(21), regidx)
-$[wavedrom "_ offset[20:1] _ _ dest JAL"]
-mapping clause encdec = JAL(imm @ 0b0, rd)
-  <-> imm[19] @ imm[9..0] @ imm[10] @ imm[18..11] @ encdec_reg(rd) @ 0b1101111
-
-function clause execute JAL(imm, rd) = {
-  let link_address = get_next_pc();
-  match jump_to(PC + sign_extend(imm)) {
-    Retire_Success() => { X(rd) = link_address; Retire_Success() },
-    failure => failure,
-  }
-}
-
-// TODO: handle 2-byte-alignment in mappings
-
-mapping clause assembly = JAL(imm, rd)
-  <-> "jal" ^ spc() ^ reg_name(rd) ^ sep() ^ hex_bits_signed_21(imm)
-
-// *****************************************************************
-union clause instruction = JALR : (bits(12), regidx, regidx)
-
-$[wavedrom "offset[11:0] base 0 dest JALR"]
-mapping clause encdec = JALR(imm, rs1, rd)
-  <-> imm @ encdec_reg(rs1) @ 0b000 @ encdec_reg(rd) @ 0b1100111
-
-mapping clause assembly = JALR(imm, rs1, rd)
-  <-> "jalr" ^ spc() ^ reg_name(rd) ^ sep() ^ hex_bits_signed_12(imm) ^ "(" ^ reg_name(rs1) ^ ")"
-
-// see jalr_seq.sail or jalr_rmem.sail for the execute clause.
+// The two jumps are absent here for the reason `auipc` is: on a purecap machine
+// a jump-and-link writes a *capability* return address, sealed as a
+// backward-edge sentry, and an indirect jump reads its target from a capability
+// whose sentry it unseals, so both are capability instructions and their
+// clauses are the capability surface's `cjal` and `cjalr`
+// (extensions/CHERI/cheri_insts.sail, R-15-008, R-15-068, R-15-071). The
+// encodings are unchanged; what is absent is a second, integer reading of them.
+//
+// Branches stay here: a branch writes no link and reads no register as an
+// address, so its only capability obligation is the PCC bounds check
+// `jump_to` already performs through `ext_control_check_pc`.
 
 // *****************************************************************
 union clause instruction = BTYPE : (bits(13), regidx, regidx, bop)

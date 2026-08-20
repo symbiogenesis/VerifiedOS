@@ -19,20 +19,26 @@ function ext_post_step_hook() -> unit = ()
 // resets to the null capability, which is also the all-zeroes granule
 // (R-15-007i, cap_common.sail).
 function ext_reset() -> unit = {
-  // The machine comes out of reset holding the root authority: PCC spans the
-  // address space so that the first fetch is inside its bounds, and the trap
-  // capabilities start from the same root. The composition-fixed initial
-  // distribution that replaces this is M-mode firmware's to install (§3,
-  // R-15-076a), and it can only narrow what it is given.
+  // The machine comes out of reset holding the root authority, and the root is
+  // a **pair** rather than one capability: no admitted permission set holds
+  // both store and execute, so a single almighty root is inexpressible and the
+  // execute side and the store side are separate authorities (R-15-007l,
+  // R-15-007p). The execute side spans the address space so that the first
+  // fetch is inside its bounds, and the trap capabilities start from it. The
+  // composition-fixed initial distribution that replaces this is M-mode
+  // firmware's to install (§3, R-15-076a), and it can only narrow what it is
+  // given.
   PCC     = default_cap;
   nextPCC = default_cap;
-  DDC     = default_cap;
   MTCC    = default_cap;
   MEPCC   = default_cap;
   // The handler's data capability is granted rather than assumed.
   MTDC    = null_cap;
 
-  x1  = null_cap;
+  // The store side lands in `c1`, which is where firmware finds it. It carries
+  // `store-local` because `candperm` can only remove: a stack capability is
+  // derivable only from a root that already holds the permission.
+  x1  = root_data_cap;
   x2  = null_cap;
   x3  = null_cap;
   x4  = null_cap;

@@ -301,11 +301,11 @@ function wC (Regno(r) : regno, v : regtype) -> unit = {
     30 => x30 = v,
     31 => x31 = v,
   };
-  // The trace carries the address field here, which is what an integer write
-  // reports too; the tag, bounds, permission and seal state a capability write
-  // also changes are the capability-widened commit trace's (M0.12), not this
-  // callback's.
-  if r != 0 then xreg_write_callback(Regidx(to_bits(r)), v.address)
+  // The trace carries the register's integer reading here, which is its 64 data
+  // bits and so is what an integer write reports too (core/reg_type.sail); the
+  // tag a capability write also changes is the capability-widened commit
+  // trace's (M0.12), not this callback's.
+  if r != 0 then xreg_write_callback(Regidx(to_bits(r)), regval_from_reg(v))
 }
 
 function rC_bits(Regidx(i) : regidx) -> regtype = rC(Regno(unsigned(i)))

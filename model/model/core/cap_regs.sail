@@ -25,28 +25,23 @@ register MTCC  : Capability
 register MEPCC : Capability
 register MTDC  : Capability
 
-// The default data capability, which authorises an integer-addressed access
-// when PCC is not in capability mode. The profile deletes it with hybrid mode
-// itself (R-15-001c, R-15-242): a purecap machine has no integer-addressed
-// access to authorise, so no instruction reads it and no trap installs it. It
-// is carried here for the same reason the 128-bit field widths are, and goes
-// in the same batch as they do (M0.6f): the M0.4 oracle boots in integer mode,
-// and a model that refuses integer-addressed accesses could not be compared
-// against it over any program either machine can run today.
-register DDC : Capability
+// There is no default data capability. It exists to relocate and bound an
+// integer-addressed access, which is the hybrid mode this platform does not
+// have, so no instruction reads it, no trap installs it, and no partition can
+// name it (R-15-001c, R-15-242). Every data access is authorised by the
+// capability in the base register it names (core/addr_checks.sail).
 
 // How `cspecialrw` names the bank (extensions/CHERI/cheri_insts.sail). Upstream's
 // numbering spans four privilege modes; here there is one, so two ranges of it
 // are absent rather than reserved: the user and supervisor banks went with their
 // modes (R-15-003), and number 30, upstream's machine scratch capability, went
-// with the trap-scratch role that `MTDC` carries here (R-15-073). An absent
-// number is an illegal instruction, as an unallocated CSR address is a trap
-// (R-15-014).
+// with the trap-scratch role that `MTDC` carries here (R-15-073). Number 1,
+// upstream's `ddc`, is absent with the register. An absent number is an illegal
+// instruction, as an unallocated CSR address is a trap (R-15-014).
 type screg = bits(5)
 
 mapping scr_name_map : screg <-> string = {
   0b00000 <-> "pcc",
-  0b00001 <-> "ddc",
   0b11100 <-> "mtcc",
   0b11101 <-> "mtdc",
   0b11111 <-> "mepcc",
