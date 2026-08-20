@@ -383,12 +383,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e2), M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
-* Current serial path: M0.6e (e3–e5) → M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e4), M0.11, M1.1, M1.5, and the initial check/emit/FAST tooling.
+* Current serial path: M0.6e (e5) → M0.6f → M0.6g → M0.6h → M0.10 C-class freeze.
 * Available parallel work: M0.7, M0.12 drafting, M2.1, and M4.1.
-* Total estimate: 810 h midpoint, range 551.5–1,068.5 h.
-* Progress by estimate: 25.5 of 810 h complete (3.1%); 784.5 h remaining (96.9%).
-* M8 gate: 727 h of the 810 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
+* Total estimate: 802.2 h midpoint, range 546.7–1,057.7 h.
+* Progress by estimate: 26.7 of 802.2 h complete (3.3%); 775.5 h remaining (96.7%).
+* M8 gate: 719.2 h of the 802.2 h midpoint falls at or before it, everything but M9, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 361–422 h, a serial-path figure no sum gives.
 
 ### M0 · Hardware reference
 
@@ -489,10 +489,17 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
     * Exit evidence: build green; 150/150 tests pass, and the eight properties in [test_capability.sail](../model/model/unit_tests/test_capability.sail) pass in the model's own `$[test]` harness: the all-zeroes granule decodes as untagged NULL and NULL stores back as all zeroes (R-15-182, R-15-060), encode and decode round-trip, the reset capability spans the address space, an aligned narrowing is exact and reads back, a five-byte narrowing is byte-exact (R-15-007c), an unrepresentable address move yields an untagged result rather than a trap (R-15-007h), sealing changes only the object type, and permissions round-trip.
     * Two findings. **The relocation guards are dead at the source and are not carried across.** `have_cheri_relocation` is a constant `false` upstream and both the PCC and DDC relocation paths hang off it, so the port folds them out rather than transplanting unreachable branches into a model that has no DDC to relocate. And **the tag plane needs no new machinery.** Sail 0.20's concurrency interface already carries a capability tag on its read and write requests, and the runtime the emulator links implements `emulator_read_tag` and `emulator_write_tag` behind it, so e3's tag memory is a parameter of the memory interface the curated tree already instantiates rather than the hand-wired side channel the upstream model carries.
 
-  * [ ] **e3 · Merge the register file and stand up the tag plane** · 4 h, range 3–5 · 0.5%
-    * `regtype` becomes `Capability`, so the file is merged by construction (R-15-007i): an integer read is the address field and an integer write yields an untagged result. Add the capability accessors and the tag metadata over the existing memory interface.
-  * [ ] **e4 · Port the checks, PCC and sentries, and the trap capabilities** · 5 h, range 3–7 · 0.6%
-    * Fetch, control, and data address checks against PCC and the authorising capability; `MTCC`/`MEPCC`/`MTDC` in place of the integer trap registers (R-15-073); the ISAv9 capability cause codes and their `mtval` encoding.
+  * [x] **e3 · Merge the register file and stand up the tag plane** · 0.5 h actual · 0.1%
+    * `regtype` becomes `Capability`, so the file is merged by construction (R-15-007i): `X(r)` reads the address field, `C(r)` reads the whole register, and an integer write yields an untagged capability at that address, which is the merged file's discipline and the reason no capability is reconstructed from a bit pattern (R-05-136). Reset writes the null capability into all 31, because a machine whose registers hold authority cannot leave them undefined the way the base ISA leaves the integer file.
+    * The validity tag becomes the metadata every physical access carries, keyed per granule, and the memory path needed no new plumbing for it: the modern tree already splits `mem_read_meta` from `mem_read` and `mem_write_value_meta` from `mem_write_value`, with the plain forms passing `default_meta`, so a data write clears the tag of every granule it covers for free, which is tag clearing as a property of the write path rather than an instruction (R-15-007r, R-15-115a).
+    * Net change: 118 lines added over five files. Exit evidence: build green; 150/150 tests pass; four more properties in the model's `$[test]` harness, that an integer write clears the authority, that the two readings are one register, that `x0` reads null whatever is written to it, and that the tag plane is granule-keyed and cleared across a wide write.
+    * Finding: **the granule keying is the model's to do.** The Sail runtime stores one tag per address it is handed, and the concurrency interface's own tag field is keyed by the access address, so nothing below the model rounds an address to a granule. `__WriteRAM_Meta` shifts the address down by the capability size and writes every granule the access spans, which is what makes a tag belong to a granule rather than to a byte, and what makes a wide vector store clear all of them rather than one.
+
+  * [x] **e4 · Port the checks, PCC and sentries, and the trap capabilities** · 0.7 h actual · 0.1%
+    * PCC authorises every fetch and control transfer and the base register authorises every data access, so no unchecked path remains. `MTCC`, `MEPCC` and `MTDC` are the architectural trap state (R-15-073): a trap installs MTCC as the executing PCC and saves the interrupted PCC in MEPCC, `mret` unseals a sentry out of MEPCC into the executing PCC (R-15-008, R-15-071), and the integer `mtvec` and `mepc` CSRs become views of those two addresses. A capability violation raises ISAv9's cause 28 and reports the violation type and the register that raised it in `mtval` (R-15-073a). Privilege becomes the capability: `ext_check_CSR` and the `mret` check both read the access-system-registers permission off PCC (R-15-003).
+    * Net change: 402 lines added and 131 removed over 13 files, two of them new. The page-table-walk accumulator and its error types go with them: they described a walker deleted in c3.
+    * Exit evidence: build green; 150/150 tests pass; the profile sweep is unchanged at 53 of 199; four more `$[test]` properties, that a trap saves PCC into MEPCC and installs MTCC, that `mret` unseals a sentry, that a fetch outside PCC's bounds and a fetch under an untagged PCC each raise their own violation, and that a store without store permission and a load through an untagged base register each fault where the access is rather than where the value was made.
+    * Two findings. **The transplant cannot delete DDC on its own schedule, and the corpus is why.** Every test in `riscv-tests` addresses memory with an integer base register, so on a machine with no default data capability every load and store in the corpus faults at its base: the first build with DDC deleted hung five machine-mode tests on exactly that. Hybrid mode and DDC therefore stay until M0.6f, where the plan already puts their deletion, and the capability-mode arm beside them is the profile's own data path. What that schedules with it is M0.6f's exit criterion: after the cut, `riscv-tests` is not a corpus this machine can run, so the batch is gated on purecap test programs (M0.12) rather than on the suite that gates every batch before it. **The trap raise has to sit in the postlude.** A check is core surface because it reads PCC, but raising a trap calls the exception machinery in `sys`, which is compiled after `core`, so the three `ext_handle_*_error` hooks and the two privilege-failure hooks move to `postlude/cap_traps.sail`, the first point at which both halves are in scope.
   * [ ] **e5 · Port the instruction surface and stand up the differential harness** · 7 h, range 5–9 · 0.9%
     * The ISAv9 capability instructions, then RVFI-style trace comparison against the M0.4 oracle over the corpus M0.12 versions.
 
@@ -500,6 +507,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * Implement the §4.1 field widths and total 32-codepoint permission decode; all-zeroes must decode to untagged NULL.
   * Remove hybrid mode, DDC, SDP, reconstruction operations, exact-bounds operations, subset tests, tag clearing, and colour fields.
   * Representation correctness remains a proof-track obligation.
+  * **This batch changes its own exit criterion, and the change is booked here rather than discovered at the gate.** Deleting DDC deletes the authority every integer-addressed access runs under, and `riscv-tests` is integer-addressed throughout (M0.6e, e4), so the suite that gates every batch before this one stops being a corpus this machine can run. The exit is purecap test programs from the M0.12 corpus instead, and the properties in `test_capability.sail` must still pass, which is what makes the field-width change a change of parameters rather than of algebra.
 
 * [ ] **M0.6g · Add profile rows absent upstream** · 15 h, range 10–20 · 1.9%
   * Add `cmovz`/`cmovn`, `cloadtags`, revocation filtering and bitmap, `fence.t`, capability indexed load/store, `cclear`, and the machine-level AIA pending array.
@@ -528,7 +536,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.12 · Version the differential corpus and capability trace schema** · 4.5 h, range 3–6 · 0.6% · Parallel draft
   * Reuse preserved RVFI plumbing and finalize after M0.6e–g.
 
-**M0 subtotal:** 112.1 h · 14% · 21.1 h complete · open range 62–120 h.
+**M0 subtotal:** 104.3 h · 13% · 22.3 h complete · open range 56–108 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -542,7 +550,7 @@ Every later milestone is purecap and managed-runtime-free from here.
   * Condition: alive, not abandoned (pushed June 2026; blame merged March 2026). Compartment-aware CompCert holds through every pass with the correctness proof adapted (admits confined to `Stackingproof.v` pending recent changes); recomposition and blame proofs complete; back-translation complete on `ccs-backtranslation`; the top-level RSCC theorem is formalized in `security/RSC.v` but not yet integrated with those three. Builds with Rocq 9.1 / OCaml 5.2.1 / Menhir.
   * Carried features, the CHERI half: the capability backend lives in-tree under `cheririscV/` (33 files: `CapAsm.v`, `CapAsmgen.v`, `CapAsmgenproof*.v`, capability memory model `CapMemory.v`, Georges-et-al calling convention with uninitialized/directed capabilities), emitted via `-dcapasm` with an admittedly incomplete pretty-printer; per the abstract it is "for the most part also implemented in Coq, but not yet fully integrated with CompCert and not verified". Branch `fix-cap-backend` (`1881ed0f`, June 2024) is 15 commits of unmerged backend work ahead; the 2022 `cheri-backend` branch is superseded.
   * Implication for M1.2: the artifact is usable, so the +20–40 h contingency is not triggered; the re-homing's real gap is the unverified, unintegrated capability backend and its ISAv8-lineage capability model versus the §4.1 64+1-bit purecap dialect, exactly the residual [inspirations.md](inspirations.md) states.
-* [ ] **M1.2 · Re-home the backend to the purecap profile** · 37.5 h, range 25–50 · 4.6%
+* [ ] **M1.2 · Re-home the backend to the purecap profile** · 37.5 h, range 25–50 · 4.7%
   * Functional and differential testing required; add 20–40 h if the artifact is unusable.
 * [ ] **M1.3 · Add baseline target support and bound-directed lowering** · 12 h, range 8–16 · 1.5%
 * [ ] **M1.4 · Re-home LLVM MC/`lld` and compose static images** · 22.5 h, range 15–30 · 2.8%
@@ -695,6 +703,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 810 h midpoint over a 551.5–1,068.5 h range.
+* Grand total: the sum of the item cells, 802.2 h midpoint over a 546.7–1,057.7 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

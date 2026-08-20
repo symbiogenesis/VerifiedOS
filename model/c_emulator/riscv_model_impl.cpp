@@ -373,8 +373,10 @@ uint64_t ModelImpl::pc() const {
   return zPC;
 }
 
+// The saved program counter is the address field of `MEPCC`: a trap saves the
+// interrupted authority, not just its address (model/core/cap_regs.sail).
 uint64_t ModelImpl::mepc() const {
-  return zmepc;
+  return zMEPCC.zaddress;
 }
 
 

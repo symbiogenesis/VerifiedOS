@@ -92,6 +92,134 @@ function test_sealing_changes_only_the_object_type() -> unit = {
   assert(unsealCap(sealed) == default_cap);
 }
 
+// The register file is one file read two ways: `C(r)` is the capability and
+// `X(r)` is its address field (R-15-007i). Writing an integer over a register
+// destroys the authority it held rather than reinterpreting it.
+$[test]
+function test_integer_write_clears_the_authority() -> unit = {
+  C(Regno(1)) = default_cap;
+  assert(C(Regno(1)).tag);
+  X(Regno(1)) = 0x0000000012345678;
+  assert(not(C(Regno(1)).tag));
+  assert(C(Regno(1)).address == 0x0000000012345678);
+  assert(X(Regno(1)) == 0x0000000012345678);
+}
+
+// The two readings are of one register, so a capability write is visible to an
+// integer read at its address field.
+$[test]
+function test_the_two_readings_are_one_register() -> unit = {
+  let (_, c) = setCapBounds(default_cap, 0x0000000080000000, 0b0 @ 0x0000000080001000);
+  C(Regno(5)) = c;
+  assert(X(Regno(5)) == c.address);
+  assert(C(Regno(5)) == c);
+}
+
+// The zero register reads as the null capability whatever is written to it.
+$[test]
+function test_zero_register_reads_null() -> unit = {
+  C(Regno(0)) = default_cap;
+  assert(C(Regno(0)) == null_cap);
+  assert(X(Regno(0)) == zeros());
+}
+
+// The tag plane is keyed by granule, not by byte, and a data write clears the
+// tag of every granule it covers, which is what makes tag clearing a property
+// of the write path (R-15-007r, R-15-115a). The granule is the capability size
+// while the format is ISAv9's; M0.6f narrows both together (R-15-203).
+$[test]
+function test_tag_plane_is_granule_keyed() -> unit = {
+  let a : physaddrbits = 0x0000000080000000;
+  __WriteRAM_Meta(a, cap_size, true);
+  assert(__ReadRAM_Meta(a, cap_size));
+  // An address inside the same granule reads the same bit.
+  assert(__ReadRAM_Meta(a + 8, 8));
+  // The neighbouring granule is untouched.
+  assert(not(__ReadRAM_Meta(a + cap_size, cap_size)));
+  // A data write clears every granule it covers, one or many.
+  __WriteRAM_Meta(a + cap_size, cap_size, true);
+  assert(__ReadRAM_Meta(a + cap_size, cap_size));
+  __WriteRAM_Meta(a, 4 * cap_size, false);
+  assert(not(__ReadRAM_Meta(a, cap_size)));
+  assert(not(__ReadRAM_Meta(a + cap_size, cap_size)));
+}
+
+// A trap saves the interrupted authority and installs the handler's: MEPCC
+// comes to hold PCC with the faulting address, and the handler executes under
+// MTCC (R-15-073, R-07-022).
+$[test]
+function test_a_trap_saves_and_installs_capabilities() -> unit = {
+  let (_, handler) = setCapBounds(default_cap, 0x0000000080000000, 0b0 @ 0x0000000080001000);
+  MTCC = setCapAddrChecked(handler, 0x0000000080000000);
+  PCC = default_cap;
+  let pc : xlenbits = 0x0000000000001000;
+  let target = trap_handler(Exception(E_M_EnvCall()), pc, None(), None());
+  assert(target == 0x0000000080000000);
+  assert(nextPCC == MTCC);
+  assert(MEPCC.tag);
+  assert(MEPCC.address == pc);
+  assert(capBoundsEqual(MEPCC, default_cap));
+  assert(get_mepc() == pc);
+}
+
+// `mret` unseals a sentry into the executing PCC, which is what makes a return
+// capability a control-flow target and nothing else (R-15-008, R-15-071).
+$[test]
+function test_mret_unseals_a_sentry() -> unit = {
+  MEPCC = sealCap(setCapAddrChecked(default_cap, 0x0000000080000100), otype_sentry_bits);
+  assert(isCapSealed(MEPCC));
+  let target = prepare_xret_target();
+  assert(target == 0x0000000080000100);
+  assert(not(isCapSealed(nextPCC)));
+  assert(nextPCC.tag);
+}
+
+// Every fetch is checked against PCC: its bounds on every granule, its tag,
+// seal state and execute permission on the first.
+$[test]
+function test_fetch_is_checked_against_pcc() -> unit = {
+  let (_, c) = setCapBounds(default_cap, 0x0000000080000000, 0b0 @ 0x0000000080001000);
+  PCC = setCapAddrChecked(c, 0x0000000080000000);
+  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000000) == None());
+  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000ffc) == None());
+  assert(ext_fetch_check_pc(0x0000000080001000, 0x0000000080001000) == Some(CapEx_LengthViolation));
+  PCC = clearTag(PCC);
+  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000000) == Some(CapEx_TagViolation));
+  PCC = default_cap;
+}
+
+// A data access is authorised by the capability in the base register it names,
+// and by nothing else: there is no default data capability to fall back on
+// (R-15-001c).
+$[test]
+function test_a_store_needs_store_permission() -> unit = {
+  // The capability-mode arm is the one the profile keeps; the integer-mode arm
+  // beside it goes with DDC in M0.6f (core/addr_checks.sail).
+  PCC = setCapFlags(default_cap, 0b1);
+  let (_, c) = setCapBounds(default_cap, 0x0000000080000000, 0b0 @ 0x0000000080001000);
+  let c = setCapAddrChecked(c, 0x0000000080000000);
+  C(encdec_reg(0b00010)) = { c with permit_store = false };
+  match ext_data_get_addr(encdec_reg(0b00010), zeros(), Store(Data), 8) {
+    Ext_DataAddr_Error((capEx, idx)) => {
+      assert(capEx == CapEx_PermitStoreViolation);
+      assert(idx == 0b000010);
+    },
+    Ext_DataAddr_OK(_) => assert(false, "a store without permit-store must fault"),
+  };
+  match ext_data_get_addr(encdec_reg(0b00010), zeros(), Load(Data), 8) {
+    Ext_DataAddr_OK(va) => assert(bits_of(va) == 0x0000000080000000),
+    Ext_DataAddr_Error(_) => assert(false, "an in-bounds load must be permitted"),
+  };
+  // An untagged base register is a fault at the access rather than at the
+  // write that produced it (R-15-007h).
+  C(encdec_reg(0b00010)) = int_to_cap(0x0000000080000000);
+  match ext_data_get_addr(encdec_reg(0b00010), zeros(), Load(Data), 8) {
+    Ext_DataAddr_Error((capEx, _)) => assert(capEx == CapEx_TagViolation),
+    Ext_DataAddr_OK(_) => assert(false, "an untagged base register must fault"),
+  };
+  PCC = default_cap;
+}
+
 // A derivation that would widen bounds or add permissions is not expressible
 // through the setters: `setCapPerms` takes the permission bits it is given, so
 // monotonicity is the caller's obligation, but clearing is total and its
