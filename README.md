@@ -12,6 +12,7 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
 - [Design highlights](#design-highlights)
   - [Bespoke seL4-inspired multikernel](#bespoke-sel4-inspired-multikernel)
   - [SRAM-only memory with end-to-end ECC](#sram-only-memory-with-end-to-end-ecc)
+  - [No wasted memory](#no-wasted-memory)
   - [CHERI in place of the usual protection hardware](#cheri-in-place-of-the-usual-protection-hardware)
   - [Temporal safety and no uninitialized reads](#temporal-safety-and-no-uninitialized-reads)
   - [No speculative or out-of-order execution](#no-speculative-or-out-of-order-execution)
@@ -70,6 +71,10 @@ No firmware coprocessors. Graphics, machine learning, signal processing, and eve
 ### On-die OpenTitan-class root of trust
 
 A scalar CHERI-enabled RV64 core under the same ISA, capability model, and proofs, the platform's only management processor, handles measured boot, key custody, and attestation.
+
+### No wasted memory
+
+Nothing is allocated while the system runs: every buffer, table, and stack is placed before boot, and the deepest the stack can ever get is proved by the same check that proves worst-case timing. Code that overruns its declared bound is rejected at build time, and a set of bounds too large for the chip is rejected before anything runs, so neither is a failure a user can hit. Placing memory ahead of time is also the cheaper choice: an allocator deciding as it goes can waste a factor that grows with the spread of object sizes, while a plan made offline comes within a constant factor of the best possible, and is exactly optimal for the nested lifetimes this design produces. What replaces the page tables, swap, and allocator bookkeeping is small and itemized: error correction and capability tags at about 8% of stored data, and a revocation bitmap no structure doing that job could beat. Optimality in general is not claimed: pools sized for their peak sit mostly empty, the one case a run-time heap wins on average, and every floor here is measured against this project's own specification rather than a universal one.
 
 ## Bug classes removed by construction
 
@@ -311,7 +316,7 @@ The [typed assembly language](docs/typed-assembly-language.md), the typed machin
 
 ### The atomic-requirements register
 
-The [atomic-requirements register](docs/requirements-register.md) is the artifact that the specification's [independent-review release gate](docs/spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1264 numbered requirements.
+The [atomic-requirements register](docs/requirements-register.md) is the artifact that the specification's [independent-review release gate](docs/spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1275 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 

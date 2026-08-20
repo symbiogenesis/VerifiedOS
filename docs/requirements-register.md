@@ -1589,15 +1589,48 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-08-017** IS: Memory-admissible ⟺ time-admissible: the peak-memory bound and the WCET bound are read off the same static facts, so the memory admission test is the space projection of the §11 schedulability certificate, not a second test.
 · Accept: one static-boundedness certificate, two resources.
+· Accept: the equivalence is realized rather than merely asserted: the two bounds are two weight vectors over one CHERI-TAL derivation (TAL-053a), differing in the loop rule alone, so the space projection is a second numeral on the structure the timing certificate already carries and not a second analysis over a second structure.
 · Trace: CJ-WCET, CJ-MEMPLAN
 
 **R-08-018** IS: The runtime-count-dependent case folds in as the degenerate plan: a bounded fan-out is N pre-coloured equal-size slots whose occupancy is 0..N, so the dynamism is *which* slots are live, never *where* an object lands.
 · Accept: a zero-fragmentation pool, the degenerate interference graph of N mutually-live cells.
 · Trace: CJ-MEMPLAN
 
+**R-08-018a** MUST: The pools of one compartment are colored against each other in the one interference structure, so the compartment's charge is the peak of its aggregate live set and not the sum of its several pool maxima; non-co-occurrence is admitted only where the admitted frame (R-11-001) or the region structure proves it, never from measured or assumed correlation.
+· Accept: colocation within one owner crosses no confidentiality boundary and so adds no zeroize or revocation term to the partition switch, unlike the cross-compartment case; it owes only the R-08-015 temporal-safety discipline any slot reuse owes. A live range the frame does not separate is recorded as such in the manifest.
+· Trace: CJ-MEMPLAN
+
+**R-08-018b** MUST: A fixed-size-class pool's class set is chosen at composition against the workload's size histogram and recorded in the pool's manifest entry, the internal waste between an element's class and its actual size being a declared quantity the R-08-045 capacity equation carries.
+· Accept: narrowing classes trades internal waste against a larger count of independently peaked pools, so the set is an optimum and not a default; an unrecorded class set is a review-gate finding under R-08-046.
+· Trace: CJ-MEMPLAN
+
+**R-08-018c** MUST: Two manifest entries agreeing in derivation source and element type across distinct owning compartments are a composition-time finding, resolved by delegation to one owner behind a ring, by promotion to a shared read-only region, or by a recorded statement of why the duplication is required; and the plan hashes initialized static regions during placement and reports resident duplicates.
+· Accept: R-08-045 rejects a byte no line item claims and cannot reject two valid line items describing one content, which is what this entry adds rather than duplicates. The static half needs no new infrastructure: the base image is already a content-addressed Merkle DAG (R-10-001), so image-level coincidence is structural and only *resident* duplication survives. Detection is the whole obligation, because coalescing two owners' regions silently would merge authorities the capability topology separates.
+· Trace: CJ-MEMPLAN
+
 **R-08-019** IS: The honest ceiling is a footprint statically bounded yet far above its average, met by the standing capacity-versus-determinism posture: bend capacity, restructure to a streamed bound, or refuse.
 · Accept: it is the same ceiling every other subsystem meets, not a new one.
 · Trace: CJ-MEMPLAN
+
+**R-08-019a** IS: Contents is the second residue statics cannot see, named beside occupancy: two pools whose entries converge on equal values at run time are indistinguishable at composition from two pools holding unrelated data.
+· Accept: capacity-only, not isolation: each copy is bounded, tagged, labeled, swept, and revoked as its owner's other bytes are, so no §8 authority or §13 flow claim moves. Booked here rather than §17 on R-08-019's own ground, and R-08-018c catches only the duplication a static relation exposes.
+· Trace: CJ-MEMPLAN
+
+**R-08-019b** IS: For any structure whose obligation is to distinguish *k* reachable configurations, log₂ *k* bits is a floor no implementation is below, provable by fooling-set argument over the observation relation R-13-001 fixes; the revocation sidecar (R-08-005a) and bounded-pool occupancy (R-08-046) each meet their floor exactly, a bitmap over a fixed universe being information-theoretically optimal where a free list is not.
+· Accept: the floor needs no enumeration of the reachable state space and no unconditional lower bound on computation, neither of which is available; it is stated only for set-holding structures and is not extended to computing ones.
+· Trace: CJ-MEMPLAN
+
+**R-08-019c** IS: The tag plane's unconstrained floor is H(*p*) bits per granule for tag density *p*, against the one bit spent, a ratio of 1/H(*p*) that is a counted property of the placed image and not an estimate; the floor under the conjunction of random access, non-interference, and tag integrity is exactly one bit, so the whole ratio is attributed and none of it is slack.
+· Accept: each of the three constraints independently forbids entropy coding, so the conditional floor is tight rather than merely stated. The manifest records *p* and the ratio for each admitted generation.
+· Trace: CJ-CERISE, CJ-MEMPLAN
+
+**R-08-019d** MUST: The composition admits a functional reference image, the same functional specification built without the tag plane, the revocation sidecar, per-core replication, and the ECC widening, measured so that every line item in the capacity equation is either present in the baseline or attributed to a named property with a stated multiplier against it.
+· Accept: the reference image is never fabricated, never signed, and enters neither the TCB nor any proof; it exists to be measured. A footprint comparison against another system compares two specifications and belongs in design rationale, never in the R-08-045 capacity argument.
+· Trace: CJ-MEMPLAN
+
+**R-08-019e** IS: Where a peak is too large, three levers act on the artifact and none on the analysis: keep the interference family laminar, so R-08-013's offline placement is exactly optimal rather than constant-factor approximable; recompute rather than store, the trade priced by the one certificate R-08-017 makes of space and time; and size to the committed peak with eviction beyond it, the overflow becoming a declared restart latency rather than a reservation the die carries.
+· Accept: R-05-105's no-tightening rule has already excluded every tool that would shrink a bound over an unchanged plan, so the levers change what is built. The third is a specification decision recorded as one under R-08-046's exhaustion action.
+· Trace: CJ-MEMPLAN, CJ-WCET
 
 **R-08-020** MUST NOT: Compaction and relocation never arise: there is nothing to move at runtime because the packing already happened at compile time.
 · Accept: no relocation mechanism exists.
@@ -1607,7 +1640,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the checker derives a closed capacity equation covering application payloads and all platform metadata for every admitted generation; no emergency allocator, hidden application-reachable reserve, OOM daemon, badness score, or global victim scan exists for the absence to regress into.
 · Trace: CJ-MEMPLAN, CJ-WCET
 
-**R-08-046** MUST: Every resource whose backing storage is static but whose occupancy varies at runtime is a declared bounded pool, its manifest entry stating the owning compartment, element type and fixed capacity, bind and release authority, the binding and release state machine over the monotone member lifecycle (Free → Bound → Quiescing → Revoked → Sweeping → Reusable), low and exhausted thresholds, the maximum time from release request to Reusable, the exhaustion action, any recovery reserve, the confidentiality label of occupancy and telemetry, and restart and generation-migration semantics.
+**R-08-046** MUST: Every resource whose backing storage is static but whose occupancy varies at runtime is a declared bounded pool, its manifest entry stating the owning compartment, element type and fixed capacity, the derivation source of its contents (the typed key, image object, or interface whose value determines them), bind and release authority, the binding and release state machine over the monotone member lifecycle (Free → Bound → Quiescing → Revoked → Sweeping → Reusable), low and exhausted thresholds, the maximum time from release request to Reusable, the exhaustion action, any recovery reserve, the confidentiality label of occupancy and telemetry, and restart and generation-migration semantics.
 · Accept: this register carries the inventory of every runtime-varying pool: origin compartments, connection and session slots, grant slots, quarantine entries, protocol control blocks, interpreter object arenas, device descriptors, ring entries, checkpoint transaction slots, storage epochs, and sentinel event records; an unclassified counter, bitmap, free list, arena, queue, or table that can influence admission or forward progress is a review-gate finding.
 · Trace: CJ-MEMPLAN
 
@@ -4192,6 +4225,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the tag plane's code is DECTED throughout.
 · Trace: CJ-CERISE
 
+**R-15-178a** MUST: The DECTED code protecting the validity tags covers the tag bits of exactly one ECC codeword, independently of that codeword's data code, so the tag's double-error correction holds whatever the data's error pattern is.
+· Accept: R-15-178 fixes the code's strength and leaves its grouping open, and the grouping decides both the cost and the independence. Independence is the security property: a combined or unequal-protection code would make the categorically-worse failure's guarantee conditional on the ordinary failure's distribution, which is refused in [Evaluated Architectural Alternatives](architectural-alternatives.md); the area it would recover is taken instead from R-15-181a's codeword width.
+· Trace: CJ-CERISE
+
 **R-15-179** MUST: ECC correction is deterministic: a fixed data-independent latency folded into WCET, the corrected and uncorrected paths taking the same cycles.
 · Accept: no variable slow path exists; every corrected error is reported to the sentinel as telemetry and every detected-but-uncorrectable error is a fail-stop sentinel event, never silently consumed.
 · Trace: CJ-WCET, CJ-LEAK
@@ -4203,6 +4240,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-15-181** MUST: No sub-granule write exists at the array: the atomic write unit is the ECC codeword with its validity tag bits, and every path that reaches the array writes whole units.
 · Accept: a sub-granule store merges with the granule's existing codeword in a fixed read-modify-write stage at the memory controller, a constant pipeline term priced once, with the existing codeword's check **verified before the merge** and tag and check bits regenerated combinationally in the same pass. Cores may therefore issue sub-granule stores; what the whole-unit rule scopes is the controller-to-array path, not every path on the fabric, and the verify-before-merge obligation is what keeps this the one re-encoding point consistent with R-15-176.
 · Trace: CJ-WCET
+
+**R-15-181a** IS: The ECC codeword's data payload is 256 bits with 10 SECDED check bits, carrying the 4 validity tag bits of its four 64-bit capability granules under a DECTED code of about 7 bits, for total metadata of some 21 bits per 256 data bits (8.2%); 128 bits (17 per 128, 13.3%) is the fallback where a realized macro will not sense the wider unit in one access.
+· Accept: the width is decided against total metadata and not against the data code alone, the tag's DECTED cost being nearly flat in payload width (about 5, 6, 7, 8 check bits at 1, 2, 4, 8 tag bits) so that the full ladder is 21.9 / 13.3 / 8.2 / 5.3% where the data code alone reads 12.5 / 7.0 / 3.9 / 2.1%. Bounded above by the array: R-15-181's merge read and every capability load pull one whole codeword, so a codeword exceeding the single-access sense width converts both into two accesses and a WCET term on the pointer-chasing path; 512 is declined as the smallest ladder step against the largest write amplification. The Chipkill resemblance is arithmetic only (R-15-180), and the width is a bounded design-space-exploration parameter whose gate is a measurement no current document states.
+· Trace: CJ-MEMPLAN, CJ-WCET
 
 **R-15-182** MUST: `cbo.zero` allocates whole lines: zero data, cleared validity tags, and matching SECDED/DECTED codewords for data and tag plane alike, in one pass at one fixed per-line latency.
 · Accept: one entry in the timing-annotated model.
@@ -4354,7 +4395,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CERISE
 
 **R-15-203** MUST: CHERI tags are native SRAM bits, one validity tag per **64-bit** granule, one plane and not two, read and written in parallel with the data, with no separate table and no tag cache.
-· Accept: the reserved-memory tag table and the partitioned tag cache are deleted, and with them a shared microarchitectural state element, its miss-and-walk latency term, its way-partitioning and `fence.t` membership, and its DSE parameter. The granule follows the capability width (R-15-007), and it moves the tag plane alone: the ECC codeword stays at 128 data bits and carries two tag bits instead of one (R-15-181), so no data-side check-bit area moves, tag-plane density doubles to 1.56% of the array, and the plane's DECTED area (R-15-178) doubles with it. Against that, capability-dense structures halve, so the net is computed against the roster (R-15-170) at composition rather than argued.
+· Accept: the reserved-memory tag table and the partitioned tag cache are deleted, and with them a shared microarchitectural state element, its miss-and-walk latency term, its way-partitioning and `fence.t` membership, and its DSE parameter. The granule follows the capability width (R-15-007), and it moves the tag plane alone: the ECC codeword's data payload does not move (R-15-181a) and carries twice the tag bits a 128-bit granule would have given it, so no data-side check-bit area moves, tag-plane density doubles to 1.56% of the array, and the DECTED code over the plane (R-15-178) grows by about one check bit per codeword rather than doubling with it, double-error correction over so short a word being dominated by its check bits at either count. Against that, capability-dense structures halve, so the net is computed against the roster (R-15-170) at composition rather than argued.
 · Trace: CJ-CERISE, CJ-ISOL
 
 **R-15-204** IS: Tag integrity is an ECC property, not a cryptographic one, because the tag bits never leave the die; a tag-integrity failure is an ECC event and a fail-stop sentinel event.
@@ -5259,6 +5300,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the theorem's honesty is that its own statement names them rather than absorbing them silently (R-05-162).
 · Trace: CJ-T
 
+### 17.10 The boundary of an optimality claim
+
+**R-17-066** IS: Every floor this design proves is relative to a specification it wrote: R-08-019b holds for *its* revocation specification and R-08-019c under *its* three constraints, and neither says a differently factored specification could not need less.
+· Accept: it is not a proof gap in §17's usual sense, since nothing is deferred and nothing is assumed; it is stated rather than absorbed because the reading it refuses, that a proved floor establishes the design choice above it, is exactly the inference the honest-ceiling posture exists to deny.
+· Trace: CJ-MEMPLAN
+
 ---
 
 ## §18. Realization
@@ -5477,7 +5524,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1264 requirements. §19 is non-normative and yields none. Counts include the 314 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1275 requirements. §19 is non-normative and yields none. Counts include the 324 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.ps1` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5488,16 +5535,16 @@ All eighteen normative sections are extracted, at 1264 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **201** |
 | **§6 Trusted Computing Base** | **extracted** | **27** |
 | **§7 Kernel** | **extracted** | **60** |
-| **§8 Authority Model** | **extracted** | **65** |
+| **§8 Authority Model** | **extracted** | **73** |
 | **§9 Boot & Root of Trust** | **extracted** | **38** |
 | **§10 Storage & State** | **extracted** | **50** |
 | **§11 Updates** | **extracted** | **36** |
 | **§12 System Servers** | **extracted** | **124** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
 | **§14 Userland** | **extracted** | **27** |
-| **§15 Hardware Platform** | **extracted** | **365** |
+| **§15 Hardware Platform** | **extracted** | **367** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **113** |
+| **§17 Residual Risks** | **extracted** | **114** |
 | **§18 Realization** | **extracted** | **50** |
 
 §19 is non-normative and yields no requirements.
