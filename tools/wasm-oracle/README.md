@@ -24,7 +24,7 @@ true
 WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:
 
 ```console
-$ wsl -d Ubuntu -u root -e python3 tools/model.py keepalive
+$ wsl -u root -e python3 tools/model.py keepalive
 KEEPALIVE pid=... hours=8 pidfile=/tmp/vos-keepalive.pid
 ```
 

@@ -15,8 +15,6 @@ model's semantic `config_is_valid`, so the full build stays the exit criterion f
 batch.
 """
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 

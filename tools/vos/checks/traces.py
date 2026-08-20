@@ -25,8 +25,6 @@ no link and so reaches no link check, and the written-out citation that lands on
 time the heading is retitled, exactly the drift bookmarks were adopted to end.
 """
 
-from __future__ import annotations
-
 import re
 
 from ..corpus import PROSE

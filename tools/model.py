@@ -10,25 +10,24 @@ Four loops, and each is the exit criterion for the one above it:
 
 `typecheck` is the inner loop of a deletion batch; `build` stays the exit criterion for
 every batch, and `sweep` is the number each batch reports. `trace-diff` is the M0.6e
-differential rig, adjudicating the curated model against the M0.4 oracle. Two more
-commands answer questions about the configuration alone and need no build:
-`config-keys` and `validate-config`.
+differential rig, adjudicating the curated model against the M0.4 oracle, and `oracle`
+builds that reference. Two more commands answer questions about the configuration alone
+and need no build: `config-keys` and `validate-config`.
 
 These run inside WSL, where the Sail toolchain lives:
 
-    wsl -d Ubuntu -u root -e python3 tools/model.py build
-    wsl -d Ubuntu -u root -e python3 tools/model.py sweep --xlen 64
+    wsl -u root -e python3 tools/model.py build
+    wsl -u root -e python3 tools/model.py sweep --xlen 64
 
 Everything about the machine and the build trees comes from vos/env.py, which also
 raises the OCaml stack the emission needs and puts the opam switch on PATH.
 """
 
-from __future__ import annotations
-
 import argparse
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -38,6 +37,26 @@ from vos import config, env, trace            # noqa: E402
 PROFILE_CONFIG = "config/verifiedos.json"
 SCHEMA = "sail_riscv_config_schema.json"
 EMIT_TARGET = "generated_sail_riscv_model"
+
+ORACLE_SRC = "upstream/sail-cheri-riscv"
+ORACLE_TARGET = "c_emulator/cheri_riscv_sim_RV64"
+
+# The C standard the oracle's tree is built to. gcc 15 defaults to C23, in which an
+# empty parameter list declares *no* parameters rather than an unspecified one; Sail's
+# `rts.h` predates that reading (`unit platform_barrier();`, `plat_get_16_random_bits()`)
+# and the emitted C calls both with arguments, so the build stops on a type error that
+# is neither tree's fault. It rides in on `C_WARNINGS` rather than `CC` because the
+# tree's recipe hardcodes `gcc`, which makes a `CC` override silently do nothing, and
+# because `C_WARNINGS` is declared `?=` and sits ahead of `$(C_FLAGS)` on the compile
+# line: a command-line assignment wins there without replacing the flags the tree sets
+# for itself. The curated model needs none of this, emitting C++ where the prototypes
+# were never ambiguous.
+ORACLE_CSTD = "-std=gnu17"
+
+# What a Windows checkout can leave CRLF in and both `make` and `sail` then read as LF.
+ORACLE_TEXT_SUFFIXES = (".sail", ".ml", ".mli", ".lem", ".sh", ".mk", ".c", ".h",
+                        ".cpp", ".hpp", ".json")
+ORACLE_TEXT_NAMES = ("Makefile", "opam")
 
 
 def _configure(e: env.Environment, build_dir: Path,
@@ -157,6 +176,107 @@ def _seed_from_canonical(canonical: Path, fast: Path) -> None:
                 shutil.copytree(downloaded, target)
 
 
+def cmd_oracle(e: env.Environment, args) -> int:
+    """Build the M0.4 capability oracle, then run the RV64 suite bundled with it.
+
+    The oracle is stock `sail-cheri-riscv` at the pinned `bb07488d`, built against the
+    older `sail-riscv` embedded in it. `trace-diff` refuses to run without it, so the
+    recipe belongs here rather than in a shell script on one machine: the tree is
+    disposable and the machine is replaceable, and what has to survive both is how to
+    build it again.
+
+    It builds from a copy on ext4 rather than in place. The build writes generated C
+    into its own source tree, and a pinned submodule working tree is not somewhere a
+    build may write; the copy is also where CRLF is normalized out.
+
+    The suite it then runs is the oracle's own acceptance and not the transplant's: it
+    says the reference is a working machine before `trace-diff` is allowed to treat it
+    as evidence.
+    """
+    src = e.root / ORACLE_SRC
+    if not (src / "Makefile").is_file():
+        print(f"no oracle source at {src}; the submodule is not checked out",
+              file=sys.stderr)
+        return 1
+
+    tree = e.oracle_root
+    e.log_dir.mkdir(parents=True, exist_ok=True)
+    log = e.log_dir / "oracle-build.log"
+    version = subprocess.run(["sail", "--version"], capture_output=True, text=True)
+
+    print(f"== log: {log}", flush=True)
+    with open(log, "w", encoding="utf-8") as handle:
+        handle.write(f"== sail: {version.stdout.strip()}\n")
+        handle.write(f"== tree: {tree}\n")
+        if args.resync or not (tree / "Makefile").is_file():
+            handle.write(f"SYNC from {src}\n")
+            handle.flush()
+            _sync_oracle_tree(src, tree)
+        else:
+            handle.write("SYNC skipped: the tree is already present\n")
+        handle.flush()
+
+        code = env.stage("oracle", ["make", "-j", str(e.jobs),
+                                    f"C_WARNINGS={ORACLE_CSTD}", ORACLE_TARGET],
+                         cwd=tree, stdout=handle, stderr=handle)
+        handle.write(f"BUILD_EXIT={code}\n")
+        handle.flush()
+        if code == 0:
+            code = _oracle_suite(e, tree, handle, args.timeout)
+        handle.write("ALL_DONE\n")
+
+    print(f"== {'green' if code == 0 else 'failed'}: {log}")
+    return code
+
+
+def _sync_oracle_tree(src: Path, tree: Path) -> None:
+    """Copy the pinned tree onto ext4, then normalize the line endings in it.
+
+    `.git` is dropped rather than copied: inside a submodule it is a file pointing back
+    into the superproject, and a copy of it describes a repository that is not where it
+    says it is. The nested `sail-riscv` checkout is copied like any other directory,
+    because the build reads it and `git archive` would not carry it.
+    """
+    if tree.exists():
+        shutil.rmtree(tree)
+    shutil.copytree(src, tree, ignore=shutil.ignore_patterns(".git"), symlinks=True)
+    for path in tree.rglob("*"):
+        if not path.is_file() or path.is_symlink():
+            continue
+        if path.suffix not in ORACLE_TEXT_SUFFIXES and path.name not in ORACLE_TEXT_NAMES:
+            continue
+        data = path.read_bytes()
+        if b"\r\n" in data:
+            path.write_bytes(data.replace(b"\r\n", b"\n"))
+
+
+def _oracle_suite(e: env.Environment, tree: Path, handle, timeout: int) -> int:
+    """The RV64 programs bundled with the oracle's own embedded sail-riscv, run against
+    the simulator just built. Each is one short single-threaded process sharing nothing,
+    so the width is the core count for the same reason `sweep`'s is."""
+    elves = sorted((tree / "sail-riscv" / "test" / "riscv-tests").glob("rv64*.elf"))
+    if not elves:
+        handle.write("no bundled rv64 ELFs found under sail-riscv/test/riscv-tests\n")
+        return 1
+
+    def passed(elf: Path) -> bool:
+        try:
+            done = subprocess.run([str(e.oracle), "-p", str(elf)], capture_output=True,
+                                  text=True, errors="replace", timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return False
+        return done.returncode == 0 and "SUCCESS" in (done.stdout + done.stderr)
+
+    failed = 0
+    with ThreadPoolExecutor(max_workers=e.test_jobs) as pool:
+        for elf, ok in zip(elves, pool.map(passed, elves)):
+            if not ok:
+                failed += 1
+                handle.write(f"FAILED: {elf.name}\n")
+    handle.write(f"TESTS pass={len(elves) - failed} fail={failed}\n")
+    return 1 if failed else 0
+
+
 def cmd_sweep(e: env.Environment, args) -> int:
     """Run the downloaded riscv-tests physical-variant ELFs against the *profile*
     configuration rather than the max configuration the bundled ctest suite uses, and
@@ -184,19 +304,30 @@ def cmd_sweep(e: env.Environment, args) -> int:
         return 1
 
     profile = e.model / PROFILE_CONFIG
-    tally = {"PASS": 0, "REFUSE": 0, "HANG": 0}
-    for elf in sorted(suites[0].glob(f"rv{args.xlen}*-p-*")):
-        if elf.suffix == ".dump":
-            continue
+    elves = [p for p in sorted(suites[0].glob(f"rv{args.xlen}*-p-*"))
+             if p.suffix != ".dump"]
+
+    def classify(elf: Path) -> tuple[str, str]:
         try:
             done = subprocess.run([str(sim), "--config", str(profile), str(elf)],
                                   capture_output=True, timeout=args.timeout)
-            verdict = "PASS" if done.returncode == 0 else "REFUSE"
-            detail = "" if verdict == "PASS" else f" rc={done.returncode}"
         except subprocess.TimeoutExpired:
-            verdict, detail = "HANG", ""
-        tally[verdict] += 1
-        print(f"{verdict} {elf.name}{detail}")
+            return "HANG", ""
+        return ("PASS", "") if done.returncode == 0 else ("REFUSE", f" rc={done.returncode}")
+
+    # Each program is one single-threaded process reading its own ELF and sharing
+    # nothing, which is what the bundled ctest suite already parallelises across; the
+    # sweep is as wide as ctest is, and for the same reason. The width is the core count
+    # rather than more, because a hang is classified by wall clock: sized to the cores
+    # the runs do not slow each other down, and a program classified HANG is one that
+    # would hang alone.
+    tally = {"PASS": 0, "REFUSE": 0, "HANG": 0}
+    with ThreadPoolExecutor(max_workers=e.test_jobs) as pool:
+        # `map` answers in the order the programs were listed, so the report reads as it
+        # always has while the runs behind it overlap
+        for elf, (verdict, detail) in zip(elves, pool.map(classify, elves)):
+            tally[verdict] += 1
+            print(f"{verdict} {elf.name}{detail}")
 
     print(f"TOTAL pass={tally['PASS']} refuse={tally['REFUSE']} hang={tally['HANG']} "
           f"of {sum(tally.values())}")
@@ -230,7 +361,8 @@ def cmd_trace_diff(e: env.Environment, args) -> int:
               file=sys.stderr)
         return 1
     if not e.oracle.exists():
-        print(f"no M0.4 oracle at {e.oracle}; see checklist M0.4", file=sys.stderr)
+        print(f"no M0.4 oracle at {e.oracle}; run `model.py oracle` first",
+              file=sys.stderr)
         return 1
 
     elves = [Path(p) for p in args.elf]
@@ -248,6 +380,13 @@ def cmd_trace_diff(e: env.Environment, args) -> int:
     tally = {"AGREE": 0, "PREFIX": 0, "SHORT": 0, "SKIP": 0}
     shortest = None
 
+    # Deliberately one program at a time, where `sweep` runs the machine wide. The two
+    # executors here run one after the other and each is milliseconds, so a corpus pass
+    # is seconds already and nearly all of it is this process reading traces rather than
+    # either executor producing them: that work holds the interpreter lock, so threads
+    # would divide the waiting and not the work. If the M0.12 purecap corpus makes a
+    # program's run long enough to dominate its adjudication, this becomes the same
+    # `ThreadPoolExecutor` the sweep uses, measured first.
     for elf in elves:
         curated = trace.normalize(_run_trace(
             [str(e.simulator), "--config", str(profile), "--trace-instr", "--trace-gpr",
@@ -334,6 +473,14 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--fast", action="store_true",
                        help="the iterate profile: the canonical build without -g")
     build.set_defaults(run=cmd_build)
+
+    oracle = sub.add_parser("oracle",
+                            help="build the M0.4 capability oracle and run its suite")
+    oracle.add_argument("--resync", action="store_true",
+                        help="re-copy the pinned tree before building")
+    oracle.add_argument("--timeout", type=int, default=5,
+                        help="seconds before a bundled test counts as failed")
+    oracle.set_defaults(run=cmd_oracle)
 
     sweep = sub.add_parser("sweep", help="classify riscv-tests against the frozen profile")
     sweep.add_argument("--xlen", default="64")

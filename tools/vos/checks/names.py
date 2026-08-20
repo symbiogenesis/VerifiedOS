@@ -11,8 +11,6 @@ advisory: a name either resolves to something live or is an error, with no third
 case to adjudicate.
 """
 
-from __future__ import annotations
-
 import re
 
 HEADING = "=== names: every id used, against the artifact that declares it ==="

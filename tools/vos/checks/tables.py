@@ -15,8 +15,6 @@ one-row table and is read by nothing either. Both are invisible in the source an
 obvious the moment anything looks for the rule.
 """
 
-from __future__ import annotations
-
 import re
 
 from .links import sites

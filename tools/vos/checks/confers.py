@@ -30,8 +30,6 @@ an author who has to spend a word to avoid a finding rewords the sentence rather
 making the decision, which is the check defeating its own purpose quietly.
 """
 
-from __future__ import annotations
-
 import re
 
 from ..register import REQ_TOKEN_RE

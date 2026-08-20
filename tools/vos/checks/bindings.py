@@ -15,8 +15,6 @@ The semantic half is deliberately not derivable and is only shape-checked here;
 whether a row cites the right authoring artifact is the review gate's question.
 """
 
-from __future__ import annotations
-
 import re
 
 from .. import apex

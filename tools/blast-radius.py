@@ -18,8 +18,6 @@ composition_meta_lemma, the R-18-031(b) linking theorem, which is always the las
 thing re-opened and is listed once rather than per line.
 """
 
-from __future__ import annotations
-
 import argparse
 import re
 import sys

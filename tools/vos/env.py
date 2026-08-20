@@ -31,8 +31,6 @@ suspect: it is 1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm
 an ext4 copy. The build tree already lives on ext4 under /root/build.
 """
 
-from __future__ import annotations
-
 import os
 import re
 import shutil
@@ -48,6 +46,10 @@ STACK_BYTES = 131072 * 1024
 
 KEEPALIVE_PIDFILE = Path(os.environ.get("VOS_KEEPALIVE_PIDFILE", "/tmp/vos-keepalive.pid"))
 KEEPALIVE_HOURS = int(os.environ.get("VOS_KEEPALIVE_HOURS", "8"))
+
+# The M0.4 oracle's build tree, carrying the upstream pin in its name. Both the tree and
+# the simulator inside it derive from this, so the pin is written once.
+ORACLE_TREE = "sail-cheri-riscv-bb07488d"
 
 
 def _env_path(name: str, default: Path) -> Path:
@@ -87,17 +89,26 @@ class Environment:
         return self.build_dir / "c_emulator" / "sail_riscv_sim"
 
     @property
+    def oracle_root(self) -> Path:
+        """The tree the M0.4 oracle is built in. Named separately from the binary
+        because `VOS_ORACLE` may point at a simulator built anywhere, and the tree it
+        came from is then no longer derivable from it."""
+        return _env_path("VOS_ORACLE_ROOT", self.build_root / ORACLE_TREE)
+
+    @property
     def oracle(self) -> Path:
         """The M0.4 differential reference: upstream sail-cheri-riscv at the pinned
         commit, which implements the same ISAv9 capability format the transplant
         carries. It is evidence, never authority."""
         return _env_path("VOS_ORACLE",
-                         self.build_root / "sail-cheri-riscv-bb07488d"
-                         / "c_emulator" / "cheri_riscv_sim_RV64")
+                         self.oracle_root / "c_emulator" / "cheri_riscv_sim_RV64")
 
 
 def _cpus() -> int:
-    return len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
+    """The cores this process may actually run on, which is what a job count wants.
+    `os.process_cpu_count` honours the affinity mask on every platform that has one, so
+    the guest's twelve stay twelve and a pinned run sees only what it was given."""
+    return os.process_cpu_count() or 1
 
 
 def _mem_available_mb() -> int:
@@ -178,7 +189,7 @@ def load() -> Environment:
     """Prepare this process, and describe the machine it is preparing it on."""
     if sys.platform == "win32":
         raise SystemExit("the model loops run inside WSL: "
-                         "wsl -d Ubuntu -u root -e python3 tools/model.py <command>")
+                         "wsl -u root -e python3 tools/model.py <command>")
 
     _raise_stack_limit()
     _apply_opam_env()

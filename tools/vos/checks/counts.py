@@ -6,8 +6,6 @@ computed here; each claim says where it is asserted and in which style, and capt
 the number alone, so a repair is the substitution of a single token.
 """
 
-from __future__ import annotations
-
 import re
 
 from .. import figures

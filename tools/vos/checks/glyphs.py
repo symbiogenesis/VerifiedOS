@@ -27,8 +27,6 @@ of them are C1 control characters no editor renders, and typing the other half w
 put the very glyph this module forbids into the file that forbids it.
 """
 
-from __future__ import annotations
-
 import re
 
 from .links import sites

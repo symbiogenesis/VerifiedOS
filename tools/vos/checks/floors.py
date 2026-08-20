@@ -35,8 +35,6 @@ and still reports green over them. That residue is named in tools/check-rules.md
 is the same one every enumeration above declares.
 """
 
-from __future__ import annotations
-
 import re
 
 HEADING = "=== floors: every enumeration this tool reads has members ==="

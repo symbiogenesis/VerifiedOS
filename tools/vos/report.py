@@ -11,8 +11,6 @@ in-process and read its verdict back as data instead of re-parsing a subprocess'
 stdout.
 """
 
-from __future__ import annotations
-
 
 class Reporter:
     """Collects a run's output and counts its findings."""

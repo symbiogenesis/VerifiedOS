@@ -5,8 +5,6 @@ reports; nothing in this module reports anything, so what a rule decides is alwa
 visible beside the rule rather than buried in a reader.
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass, field
 

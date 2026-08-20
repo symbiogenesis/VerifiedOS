@@ -13,10 +13,8 @@ this gate grows an allowlist read from it, never from the development.
 An admitted lemma, an unresolved obligation, a locally declared parameter, or any axiom
 fails this gate rather than shipping green.
 
-Needs `coqc` on PATH. From Windows: wsl -d Ubuntu -e python3 tools/proof-gate.py
+Needs `coqc` on PATH. From Windows: wsl -e python3 tools/proof-gate.py
 """
-
-from __future__ import annotations
 
 import subprocess
 import sys

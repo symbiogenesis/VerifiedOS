@@ -32,8 +32,6 @@ is exactly the decision this group exists to force. Running a repair therefore l
 the finding standing rather than absorbing it, which is the point.
 """
 
-from __future__ import annotations
-
 import re
 
 HEADING = "=== compounds: the archetype band against the product of the rows it rests on ==="
