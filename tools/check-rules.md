@@ -13,7 +13,7 @@ The closure is the register's own conferral shape applied to the tool: this regi
 | Rule | Group | Passing means | Ground |
 | --- | --- | --- | --- |
 | K-00 | meta | the registry and the code agree on the rule set, in both directions | the conferral discipline, applied to the tool itself |
-| K-01 | traces | every bookmark a trace cites resolves in the prose | R-05-151, R-05-152 |
+| K-01 | traces | every trace target is a prose bookmark, and not a heading a link happens to reach | R-05-151, R-05-152 |
 | K-02 | traces | no trace writes out the citation its own id derives | R-05-151 |
 | K-03 | traces | every bookmark id is unique in the document declaring it | R-05-151 |
 | K-04 | traces | no bookmark sits in a fenced block, where it is text and not a target | R-05-151 |
@@ -41,7 +41,7 @@ The closure is the register's own conferral shape applied to the tool: this regi
 | K-26 | counts | no counted figure is restated where no claim holds it | R-18-034 |
 | K-27 | counts | the register's Coverage table carries one row per section | R-05-152 |
 | K-28 | counts | every Coverage row's count matches the register | R-05-152 |
-| K-29 | counts | the register and the profile agree on the open CSR rows | R-15-001a |
+| K-29 | views | every row of the profile's CSR bank cites the requirement admitting or excluding it | R-15-001a, R-15-001b |
 | K-30 | compounds | every estimate figure is a range over its scope, or n/a | the estimate document's own declared column shape |
 | K-31 | compounds | every dominant term reads its own big-table row | the same declared shape |
 | K-32 | compounds | the compounded product agrees with the rows beneath it | arithmetic is nobody's opinion; only the credit is a judgment |
@@ -57,6 +57,8 @@ The closure is the register's own conferral shape applied to the tool: this regi
 | K-42 | bindings | the field-bindings view carries exactly the apex record's Prop fields, in declaration order | R-18-031 |
 | K-43 | bindings | every consumer cell restates what the statement does with its field | R-18-031, R-05-160, R-05-161 |
 | K-44 | bindings | every instantiation cell is 'none yet' or a link to the instantiating artifact | R-18-031 |
+| K-45 | confers | every disposition and ruling suppresses a finding that would otherwise stand | R-17-016, R-17-030t, R-10-013a |
+| K-46 | floors | every set the tool reads has members, and every quantity it computes is claimed | the checker's own reach; a rule over an empty set passes and decides nothing |
 
 ## What the registry is not
 

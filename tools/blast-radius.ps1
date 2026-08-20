@@ -4,10 +4,11 @@
 #   tools/blast-radius.ps1 -Artifact proofs/SomeWorkstream.v
 #   tools/blast-radius.ps1                # lists every field with its consumers
 #
-# The mechanical facts come from proofs/ApexTheorem.v alone, parsed the same way
-# tools/check.ps1's bindings group parses it, so the answer here and the checked
-# view in docs/field-bindings.md cannot disagree for long. The artifact form reads
-# that view's Instantiated-by column to find which fields an artifact discharges.
+# The mechanical facts come from proofs/ApexTheorem.v alone, through the one parse
+# tools/apex-record.ps1 holds, which tools/check.ps1's bindings group also reads, so
+# the answer here and the checked view in docs/field-bindings.md cannot disagree. The
+# artifact form reads that view's Instantiated-by column to find which fields an
+# artifact discharges.
 #
 # The honest scope of the answer: a change to what a field *states* re-opens the
 # definitions that consume it, and nothing else. The downstream trail printed
@@ -25,43 +26,15 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 
-# --- the statement, parsed as the checker parses it --------------------------------
+# --- the statement, through the parse the checker also reads -----------------------
 
-$apexRaw = [System.IO.File]::ReadAllText((Join-Path $root 'proofs/ApexTheorem.v'))
-while ($true) {
-    $stripped = [regex]::Replace($apexRaw, '(?s)\(\*(?:(?!\(\*|\*\)).)*\*\)', '')
-    if ($stripped -eq $apexRaw) { break }
-    $apexRaw = $stripped
-}
+. (Join-Path $PSScriptRoot 'apex-record.ps1')
 
-$recM = [regex]::Match($apexRaw, '(?s)Record Vocabulary : Type := \{(.*?)\}\.')
-$propFields = @([regex]::Matches($recM.Groups[1].Value, '(?m)^\s*(\w+) : Prop\s*;?\s*$') |
-                ForEach-Object { $_.Groups[1].Value })
-$propSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$propFields)
-
-$consumers = [ordered]@{}   # field -> definitions and coercions touching it
-foreach ($f in $propFields) { $consumers[$f] = [System.Collections.Generic.List[string]]::new() }
-
-foreach ($m in [regex]::Matches($recM.Groups[1].Value, '(?m)^\s*(\w+) : ([\w>< -]+?);?\s*$')) {
-    $name = $m.Groups[1].Value
-    foreach ($w in [regex]::Matches($m.Groups[2].Value, '\w+')) {
-        if ($propSet.Contains($w.Value) -and $w.Value -ne $name) { $consumers[$w.Value].Add($name) }
-    }
-}
-
-$defFields = [ordered]@{}   # definition -> the Prop fields it reads, in body order
-foreach ($dm in [regex]::Matches($apexRaw, '(?sm)^Definition (\w+)(.*?)(?=^(?:Definition|Lemma|Print|Record)\b|\z)')) {
-    $dn = $dm.Groups[1].Value
-    $reads = [System.Collections.Generic.List[string]]::new()
-    foreach ($fm in [regex]::Matches($dm.Groups[2].Value, 'v\.\((\w+)\)')) {
-        $f = $fm.Groups[1].Value
-        if ($propSet.Contains($f) -and -not $reads.Contains($f)) { $reads.Add($f) }
-    }
-    if ($reads.Count) {
-        $defFields[$dn] = $reads
-        foreach ($f in $reads) { $consumers[$f].Add($dn) }
-    }
-}
+$apex       = Get-ApexRecord (Join-Path $root 'proofs/ApexTheorem.v')
+$propFields = $apex.Fields
+$propSet    = $apex.FieldSet
+$consumers  = $apex.Consumers
+$defFields  = $apex.DefFields
 
 # a seam's conclusion is the field after its implication arrow, which body order
 # makes the last one read; everything else a seam reads is a premise

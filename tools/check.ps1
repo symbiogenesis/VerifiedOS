@@ -37,6 +37,8 @@ param([switch]$Fix)
 
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'apex-record.ps1')
+
 $findings = 0
 # Every check carries a K-nn rule id, declared in tools/check-rules.md, which states
 # what passing means and on what ground; the meta group at the end holds the two in
@@ -149,12 +151,11 @@ $confers    = @{}          # "Fail-closed"/"RoT-fresh" -> (id -> its conferral l
 $accepts    = @{}          # id -> how many conjunctive · Accept: lines it carries
 $acceptText = @{}          # id -> its · Accept: lines, concatenated
 $lateAccept = @()          # ids stating a criterion after a conferral or the trace
-$dcsrRows   = 0
 
 # every line kind this parse reads announces itself in its first character, so the
 # dispatch below spends a regex only on the few lines whose kind it could be
 $sec = $null; $sub = $null; $current = $null; $entry = $null
-$sawTail = $false; $inDefects = $false
+$sawTail = $false
 foreach ($line in $regLines) {
     if ($line.Length -eq 0) { continue }
     switch ($line[0]) {
@@ -163,8 +164,7 @@ foreach ($line in $regLines) {
                 $sec = $Matches[1]; $sub = $null
                 if (-not $perSection.Contains($sec)) { $perSection[$sec] = 0 }
             }
-            elseif ($line -match '^### (\d+\.\d+) ')       { $sub = $Matches[1] }
-            elseif ($line -match '^## Extraction defects') { $inDefects = $true }
+            elseif ($line -match '^### (\d+\.\d+) ') { $sub = $Matches[1] }
         }
         '*' {
             if ($line -match '^\*\*(R-\d\d-\d+[a-z]?)\*\* (IS|MUST NOT|MUST)') {
@@ -200,8 +200,7 @@ foreach ($line in $regLines) {
             }
         }
         '|' {
-            if ($line -match '^\| `(CJ-[A-Z-]+)`')        { $cjTargets.Add($Matches[1]) }
-            elseif ($inDefects -and $line -match '^\| `') { $dcsrRows++ }
+            if ($line -match '^\| `(CJ-[A-Z-]+)`') { $cjTargets.Add($Matches[1]) }
         }
     }
 }
@@ -261,6 +260,28 @@ foreach ($d in $docs) {
     $anchorsOf[$d.Name] = $here
 }
 
+# --- every target a link may name, and every section number a heading carries ------
+# A fragment resolves to a bookmark or to a heading's slug, and Markdown makes no
+# distinction between them, so this is one set per file. Two groups read it: links
+# resolves fragments against it, and traces uses it to separate the target that names
+# nothing from the target that names a heading where a bookmark was meant.
+
+$headRe   = [regex]'(?m)^#{1,6}[ \t]+([^\r\n]+)'
+
+$targets  = @{}   # file -> every id a link may name: its bookmarks and its heading slugs
+$numbered = @{}   # "15.12" -> the number is carried by a heading somewhere
+foreach ($d in $docs) {
+    $set = [System.Collections.Generic.HashSet[string]]::new([string[]]@($anchorsOf[$d.Name].Keys))
+    foreach ($m in $headRe.Matches($d.Raw)) {
+        if ($d.Fenced[[System.Array]::BinarySearch($d.Starts, $m.Index)]) { continue }
+        $heading = $m.Groups[1].Value
+        # the slug rule: tags and backticks vanish, punctuation vanishes, spaces hyphenate
+        [void]$set.Add((($heading -replace '<[^>]+>', '' -replace '`', '').Trim().ToLower() -replace '[^\w\s-]', '' -replace '\s+', '-'))
+        if ($heading -match '^§?(\d+(?:\.\d+)*)[.:) ]') { $numbered[$Matches[1]] = $true }
+    }
+    $targets[$d.Name] = $set
+}
+
 # --- the counted artifacts: the inventory, the profile, the absence contract ------
 
 $cj = $docByName['docs/crown-jewels.md'].Lines
@@ -282,11 +303,15 @@ function Get-CjClass($row) {
 $absenceIds = @($docByName['docs/absence-contract.md'].Lines |
                 ForEach-Object { if ($_ -match '^\| \*\*(A-\d+)\*\*') { $Matches[1] } })
 
-$openCsr = 0; $inOpen = $false
+# the profile's CSR bank, one bucket per §5.n table. The document declares the shape
+# the check reads: "Each row below cites the requirement that admits or excludes it; a
+# row citing none would be a defect in this view, not an implementer's discretion".
+$csrRows = [ordered]@{}
+$csrSec  = $null
 foreach ($line in $docByName['docs/isa-profile.md'].Lines) {
-    if ($line -match '^### 5\.3 ') { $inOpen = $true; continue }
-    if ($inOpen -and $line -match '^(##|---)') { $inOpen = $false }
-    if ($inOpen -and $line -match '^\| `') { $openCsr++ }
+    if     ($line -match '^### (5\.\d) ')  { $csrSec = $Matches[1]; $csrRows[$csrSec] = @() }
+    elseif ($line.StartsWith('#'))         { $csrSec = $null }
+    elseif ($csrSec -and $line -match '^\| `') { $csrRows[$csrSec] += $line }
 }
 
 # --- the coverage matrix: two enumerations, and the cells over their product ------
@@ -325,10 +350,19 @@ foreach ($line in $docByName['docs/coverage-matrix.md'].Lines) {
 # rule applied to a reference instead of a figure, so the third property below is the
 # one that keeps it closed: a trace written out where the derived form would do is a
 # restatement, and is reported exactly as an unheld figure is.
+#
+# A written-out target that resolves to nothing at all is a dead link, which the links
+# group holds over the whole corpus and reports there; reporting it here as well would
+# book one edit as two findings. What is this group's alone is the target the links
+# group cannot see as wrong: the derived citation with no bookmark behind it, which is
+# no link and so reaches no link check, and the written-out citation that lands on a
+# *heading* rather than a bookmark, which resolves and renders and then moves the next
+# time the heading is retitled, exactly the drift bookmarks were adopted to end.
 
 "=== traces: the register's references against the prose ==="
 
 $traceLinkRe = [regex]'\[§([\d.]+)\]\(spec\.md#([^)]+)\)'
+$specTargets = $targets['docs/spec.md']
 
 $badTarget = @(); $wrongSec = @(); $restated = @()
 foreach ($id in $ids) {
@@ -356,7 +390,9 @@ foreach ($id in $ids) {
     # written out, so it departs from the derived form and must say how
     foreach ($m in $links) {
         $anchor = $m.Groups[2].Value
-        if (-not $anchorCount.ContainsKey($anchor)) { $badTarget += "$id cites #$anchor, which is no bookmark in the prose" }
+        if (-not $anchorCount.ContainsKey($anchor) -and $specTargets.Contains($anchor)) {
+            $badTarget += "$id cites #$anchor, which is a heading in the prose and not a bookmark"
+        }
 
         $shown  = ($m.Groups[1].Value -split '\.')[0]
         $actual = $anchorSec[$anchor]
@@ -372,7 +408,7 @@ foreach ($id in $ids) {
         $restated += "$id writes out #$derived, which its id already derives"
     }
 }
-Report 'K-01' 'unresolvable trace target(s)' $badTarget 'every cited bookmark resolves'
+Report 'K-01' 'trace target(s) that are no bookmark:' $badTarget 'every trace target is a prose bookmark'
 
 Report 'K-02' 'trace(s) restating the derived citation:' $restated 'every trace is derived, or departs from the derived form'
 
@@ -488,23 +524,8 @@ foreach ($v in $vocab) {
 
 "=== links: every cross-reference against what it points at ==="
 
-$headRe   = [regex]'(?m)^#{1,6}[ \t]+([^\r\n]+)'
 $linkRe   = [regex]'\]\(([^)\s#]*)(?:#([^)\s]+))?\)'
 $secRefRe = [regex]'§(\d+(?:\.\d+)*)'
-
-$targets  = @{}   # file -> every id a link may name: its bookmarks and its heading slugs
-$numbered = @{}   # "15.12" -> the number is carried by a heading somewhere
-foreach ($d in $docs) {
-    $set = [System.Collections.Generic.HashSet[string]]::new([string[]]@($anchorsOf[$d.Name].Keys))
-    foreach ($m in $headRe.Matches($d.Raw)) {
-        if ($d.Fenced[[System.Array]::BinarySearch($d.Starts, $m.Index)]) { continue }
-        $heading = $m.Groups[1].Value
-        # the slug rule: tags and backticks vanish, punctuation vanishes, spaces hyphenate
-        [void]$set.Add((($heading -replace '<[^>]+>', '' -replace '`', '').Trim().ToLower() -replace '[^\w\s-]', '' -replace '\s+', '-'))
-        if ($heading -match '^§?(\d+(?:\.\d+)*)[.:) ]') { $numbered[$Matches[1]] = $true }
-    }
-    $targets[$d.Name] = $set
-}
 
 # a link that resolves and a §n.m a heading carries are the overwhelming cases and
 # report nothing, so each is judged before its line is looked up; only a would-be
@@ -577,7 +598,8 @@ Report 'K-13' 'section reference(s) naming no numbered heading:' `
 $views = @(
     @{ File = 'docs/isa-profile.md'
        Governing = 'R-15-001a'
-       Secs = '15.1','15.3','15.4','15.5','15.6','15.7','15.8','15.9','15.10','15.11','15.12' }
+       Secs = '15.1','15.3','15.4','15.5','15.6','15.7','15.8','15.9','15.10','15.11','15.12'
+       MustCiteCsrRows = $true }
     @{ File = 'docs/absence-contract.md'
        Governing = 'R-15-100a'
        Secs = '15.14' }
@@ -601,7 +623,10 @@ $reqTokenRe = [regex]'R-\d\d-\d+[a-z]?'
 "=== views: what each derived view carries, both directions ==="
 foreach ($v in $views) {
     "$($v.File) (per $($v.Governing))"
-    if (-not (Test-Path $v.File)) { "  FAIL K-14: missing"; $findings++; continue }
+    if (-not $docByName.ContainsKey($v.File)) {
+        Report 'K-14' 'missing view:' @("$($v.File) is not in the repository") '' '  '
+        continue
+    }
 
     $cited = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($m in $reqTokenRe.Matches($docByName[$v.File].Raw)) { [void]$cited.Add($m.Value) }
@@ -631,6 +656,20 @@ foreach ($v in $views) {
         Report 'K-16' 'cell(s) resting on no requirement:' `
                @($cmCells.Keys | Where-Object { $cmCells[$_] -notmatch 'R-\d\d-\d' }) `
                'every cell cites a requirement' '  '
+    }
+
+    # the profile's CSR bank is the one table in a derived view whose rows are decided
+    # one at a time rather than carried wholesale from a subsection, so each row owes
+    # the requirement that admits or excludes it, exactly as a matrix cell does
+    if ($v.MustCiteCsrRows) {
+        $uncited = @(foreach ($sec in $csrRows.Keys) {
+            foreach ($row in $csrRows[$sec]) {
+                if ($row -notmatch 'R-\d\d-\d+[a-z]?') { "§${sec}: $((($row -split '\|')[1]).Trim()) cites no requirement" }
+            }
+        })
+        $nCsr = @($csrRows.Values | ForEach-Object { $_ }).Count
+        Report 'K-29' 'CSR row(s) resting on no requirement:' $uncited `
+               "all $nCsr rows of the CSR bank cite a governing requirement" '  '
     }
 
     # a view standing in for the CJ- vocabulary must account for every target
@@ -766,7 +805,7 @@ $agendas = @(
        Vocab = 'fail-stop|fail-closed|fail closed|refuse|refuses|refused|refusal|denial of service|permanent DoS'
        Held  = @($fcConfer) + @($fcCited.Keys) + @($fcSeams)
        # the entries that state the set rather than belonging to it
-       Ruling = 'R-03-008','R-03-009','R-17-030a','R-17-030l','R-17-030m','R-17-030r','R-17-030t'
+       Ruling = 'R-03-008','R-03-009','R-17-030a','R-17-030l','R-17-030r','R-17-030t'
        Disposition = [ordered]@{
            'R-03-003'  = 'threat scope, not a refusal: the refusals an EM adversary provokes are composed at R-17-030n'
            'R-05-051c' = 'a specification-time exclusion: the role is denied to a format when its descriptor is written, and no running unit stops'
@@ -774,8 +813,7 @@ $agendas = @(
            'R-05-125'  = 'the same admission refusal, stated as the contrast with a runtime trap'
            'R-08-008'  = 'a denial priced out structurally, not a refusal the platform performs'
            'R-08-019'  = 'an instance of the budget refusal composed at R-17-030q'
-           'R-10-013g' = 'states that the R-10-013e refusal survives the lever; specifies no refusal of its own'
-           'R-12-084b' = 'an instance of the budget admission refusal composed at R-17-030q, taken at the session boundary against the R-15-238c ceiling'
+           'R-12-084b' ='an instance of the budget admission refusal composed at R-17-030q, taken at the session boundary against the R-15-238c ceiling'
            'R-12-093'  = 'a status vocabulary: its refused arm names the completion a server publishes, the capacity refusal itself conferred at R-12-095'
            'R-12-099'  = 'the teardown half of the ring contract: stale-generation refusal is the R-12-095-conferred discipline seen from restart, and its fail-stop is an instance of the §16 supervision policy'
            'R-13-014'  = 'the policy name for the admission refusal composed at R-17-030e'
@@ -798,7 +836,6 @@ $agendas = @(
        Ruling = 'R-10-013','R-10-013a'
        Disposition = [ordered]@{
            'R-06-005' = 'enforces the floor R-09-028 confers; places no further state under the counter'
-           'R-06-022' = 'enforces the same floor from the untrusted side'
            'R-09-001' = 'provides the counter; places no state under it'
            'R-09-005' = 'checks the floor before executing a byte; places no state under it'
            'R-09-008' = 'provides the counter operations as a functional surface'
@@ -824,6 +861,42 @@ foreach ($a in $agendas) {
            @($open | ForEach-Object { "$_ uses the vocabulary of $($a.Set) and is in no column" }) `
            "every $($a.Set) candidate is conferred, collected, or dispositioned"
 }
+
+# --- the suppressions themselves, against the entries they name ---------------------
+#
+# A ruling and a disposition are both decisions not to report an entry, recorded in the
+# tool because the alternative is a marker in the prose that taxes the vocabulary rather
+# than the judgment. They are consulted only when the entry they name is caught, so an
+# entry that is retired, or reworded until the vocabulary no longer reaches it, leaves
+# its suppression standing over nothing: silent, permanent, and counted. The counting is
+# what makes this more than untidiness. The disposition total is a figure the critique
+# states and the counts group holds, so a suppression that suppresses nothing inflates a
+# published claim about how much was actually decided.
+#
+# This is the register's own conferral shape turned on the tool a second time. The meta
+# group holds the rule set against the registry; this holds each rule's carve-outs
+# against the register, so the tables above answer to the documents exactly as the
+# documents answer to each other, and neither drifts unwatched.
+
+$deadSuppression = @()
+foreach ($a in $agendas) {
+    foreach ($id in (@($a.Ruling) + @($a.Disposition.Keys))) {
+        if (-not $idSet.Contains($id)) {
+            $deadSuppression += "$id is held out of the $($a.Set) agenda and is no live requirement"
+        } elseif ($body[$id] -notmatch $a.Vocab) {
+            $deadSuppression += "$id is held out of the $($a.Set) agenda, whose vocabulary its entry no longer carries"
+        }
+    }
+}
+foreach ($id in $cjAcceptDisposition.Keys) {
+    if (-not $idSet.Contains($id)) {
+        $deadSuppression += "$id is dispositioned for a crown-jewel criterion and is no live requirement"
+    } elseif ($acceptText[$id] -notmatch 'crown.jewel spec' -or $id -in $cjConfer) {
+        $deadSuppression += "$id is dispositioned for a crown-jewel criterion it no longer states"
+    }
+}
+Report 'K-45' 'suppression(s) standing over a finding no check would make:' $deadSuppression `
+       "all $($dispositions + $cjAcceptDisposition.Count) dispositions and every ruling suppress a live finding"
 ""
 
 # =================================================================================
@@ -850,44 +923,18 @@ foreach ($a in $agendas) {
 $apexPath = 'proofs/ApexTheorem.v'
 $bindName = 'docs/field-bindings.md'
 if (-not (Test-Path $apexPath) -or -not $docByName.ContainsKey($bindName)) {
-    $findings++
-    "FAIL K-42: $apexPath or $bindName is missing"
+    Report 'K-42' 'missing artifact(s):' `
+           @(if (-not (Test-Path $apexPath)) { "$apexPath is not in the repository" }
+             if (-not $docByName.ContainsKey($bindName)) { "$bindName is not in the repository" })
 } else {
-    $apexRaw = [System.IO.File]::ReadAllText((Join-Path $PWD.Path $apexPath))
-    # comments strip innermost-first, so nesting unwinds; each pass removes at least
-    # one balanced comment until none is left to match
-    while ($true) {
-        $stripped = [regex]::Replace($apexRaw, '(?s)\(\*(?:(?!\(\*|\*\)).)*\*\)', '')
-        if ($stripped -eq $apexRaw) { break }
-        $apexRaw = $stripped
-    }
-
-    # the record's Prop fields, in declaration order, then the record-internal
-    # consumers: a coercion field whose type cites Prop fields consumes them
-    $recM = [regex]::Match($apexRaw, '(?s)Record Vocabulary : Type := \{(.*?)\}\.')
-    $propFields = @([regex]::Matches($recM.Groups[1].Value, '(?m)^\s*(\w+) : Prop\s*;?\s*$') |
-                    ForEach-Object { $_.Groups[1].Value })
-    $propSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$propFields)
-
-    $consumers = [ordered]@{}
-    foreach ($f in $propFields) { $consumers[$f] = [System.Collections.Generic.List[string]]::new() }
-
-    foreach ($m in [regex]::Matches($recM.Groups[1].Value, '(?m)^\s*(\w+) : ([\w>< -]+?);?\s*$')) {
-        $name = $m.Groups[1].Value
-        foreach ($w in [regex]::Matches($m.Groups[2].Value, '\w+')) {
-            if ($propSet.Contains($w.Value) -and $w.Value -ne $name) { $consumers[$w.Value].Add($name) }
-        }
-    }
-
-    # every Definition consuming a field through the record value: v.(field)
-    foreach ($dm in [regex]::Matches($apexRaw, '(?sm)^Definition (\w+)(.*?)(?=^(?:Definition|Lemma|Print|Record)\b|\z)')) {
-        $dn = $dm.Groups[1].Value
-        $seen = [System.Collections.Generic.HashSet[string]]::new()
-        foreach ($fm in [regex]::Matches($dm.Groups[2].Value, 'v\.\((\w+)\)')) {
-            $f = $fm.Groups[1].Value
-            if ($propSet.Contains($f) -and $seen.Add($f)) { $consumers[$f].Add($dn) }
-        }
-    }
+    # the record's Prop fields, in declaration order, and what consumes each: one parse,
+    # held in tools/apex-record.ps1, which tools/blast-radius.ps1 reads too, so the
+    # answer this group checks the view against and the answer that tool prints are
+    # the same fact rather than two readings of one file
+    $apex       = Get-ApexRecord (Join-Path $PWD.Path $apexPath)
+    $propFields = $apex.Fields
+    $propSet    = $apex.FieldSet
+    $consumers  = $apex.Consumers
 
     $rowField = @{}; $rowOrder = @()
     foreach ($line in $docByName[$bindName].Lines) {
@@ -938,22 +985,18 @@ if (-not (Test-Path $apexPath) -or -not $docByName.ContainsKey($bindName)) {
 # the number alone, so -Fix is the substitution of a single token.
 
 $lettered = 0; foreach ($id in $ids) { if ($id -match '[a-z]$') { $lettered++ } }
-$seams = 0; foreach ($k in $body.Keys) { if ($body[$k] -match ' Seam: \*\*') { $seams++ } }
 
 $q = [ordered]@{
     'requirements'  = $ids.Count
     'lettered'      = $lettered
     'sections'      = $perSection.Count
     'cj-targets'    = $cjTargets.Count
-    'dcsr-rows'     = $dcsrRows
-    'open-csr-rows' = $openCsr
     'cj-specs'      = $cjRows.Count
     'cj-authored'   = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'authored' }).Count
     'cj-partial'    = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'partial' }).Count
     'cj-unauthored' = @($cjRows | Where-Object { (Get-CjClass $_) -eq 'unauthored' }).Count
     'cj-theorems'   = @($cj | Where-Object { $_ -match '^\| `CJ-[A-Z-]+` \|' }).Count
     'cj-conferring' = $cjConfer.Count
-    'seams'         = $seams
     'fc-seams'      = $fcSeams.Count
     'fc-conferrals' = $fcConfer.Count
     'rot-fresh'     = $rfConfer.Count
@@ -1057,70 +1100,78 @@ function Restore-Case([string]$found, [string]$expected) {
     $expected
 }
 
-# A claim pattern opens with a character class or a lookbehind, which the regex engine
-# retries at every offset of the file. Every claim also carries a long literal fragment
-# it cannot match without, and match plus lookarounds sit on one line, so the fragment
-# is found by ordinal IndexOf and the pattern runs only over the lines that carry it.
-# A fragment the pattern outgrew falls back to the full scan, so the shortcut can only
-# ever be faster, never blinder; hits come back as (Index, Length, Value) spans.
-function Get-ClaimHits([string]$Raw, [string]$Pattern) {
-    $lit = ''
-    foreach ($frag in ($Pattern -split '[\\\[\](){}|?*+.^$<=!]')) {
-        if ($frag.Length -gt $lit.Length) { $lit = $frag }
-    }
-    if ($lit.Length -lt 8) { return [regex]::Matches($Raw, $Pattern) }
+$fixedFiles = @{}
 
-    $hits = [System.Collections.Generic.List[object]]::new()
-    $seen = [System.Collections.Generic.HashSet[int]]::new()
-    $at   = $Raw.IndexOf($lit, [System.StringComparison]::Ordinal)
-    while ($at -ge 0) {
-        $from = $Raw.LastIndexOf([char]10, $at) + 1
-        $to   = $Raw.IndexOf([char]10, $at + $lit.Length)
-        if ($to -lt 0) { $to = $Raw.Length }
-        foreach ($m in [regex]::Matches($Raw.Substring($from, $to - $from), $Pattern)) {
-            if ($seen.Add($from + $m.Index)) {
-                $hits.Add([pscustomobject]@{ Index = $from + $m.Index; Length = $m.Length; Value = $m.Value })
-            }
-        }
-        $at = $Raw.IndexOf($lit, $at + 1, [System.StringComparison]::Ordinal)
+# --- one claim, found and then either repaired or reported -------------------------
+#
+# A claim is a file, a pattern capturing a stated figure alone, and the value that
+# figure must read. Two groups state claims. The counts group takes the value from the
+# quantity table and lets one figure be asserted in as many sentences as want it; the
+# estimates group computes the value from the item hours and requires exactly one site,
+# so a sentence that moves is a finding rather than a silent no-op. Between those two
+# ends the work is identical, so it is one function rather than two loops that drift.
+#
+# Comparison is on the figure, not on its spelling: commas and capitals are formatting,
+# and the register writes 1275 where the checklist writes 1,070.3. A site that states
+# the right figure in the other document's format is therefore not a finding, and -Fix
+# still normalizes it, because the rewrite is driven by the literal text.
+function Resolve-Claim {
+    param([string]$File, [string]$Pattern, [string]$Expected, [string]$What, [switch]$Unique)
+
+    $result = [pscustomobject]@{ Spans = @(); Finding = $null; Fixed = $null }
+    if (-not $docByName.ContainsKey($File)) {
+        $result.Finding = "$File is not in the repository"
+        return $result
     }
-    if ($hits.Count -eq 0) { return [regex]::Matches($Raw, $Pattern) }
-    $hits
+    $raw  = if ($fixedFiles.ContainsKey($File)) { $fixedFiles[$File] } else { $docByName[$File].Raw }
+    $hits = @([regex]::Matches($raw, $Pattern))
+    $result.Spans = $hits
+
+    if ($hits.Count -eq 0) {
+        $result.Finding = "${File}: $What is stated nowhere /$Pattern/ holds it; the wording moved, so re-anchor the claim or drop it"
+        return $result
+    }
+    if ($Unique -and $hits.Count -gt 1) {
+        $result.Finding = "${File}: $What is stated in $($hits.Count) places; re-anchor the sentence or the pattern"
+        return $result
+    }
+
+    # the repair is the test: a site is rewritten where it does not already read what
+    # the repair would write, which catches the wrong figure and the figure written in
+    # the other document's format, and leaves a sentence's own capital alone
+    $stale = @($hits | Where-Object { $_.Value -cne (Restore-Case $_.Value $Expected) })
+    if ($Fix) {
+        if ($stale.Count) {
+            $fixedFiles[$File] = [regex]::Replace($raw, $Pattern, { param($m) Restore-Case $m.Value $Expected })
+            $result.Fixed = "fixed: ${File}: $What $($stale[0].Value) -> $(Restore-Case $stale[0].Value $Expected)"
+            $result.Spans = @()          # the offsets moved; the caller finds them again
+        }
+        return $result
+    }
+    # without -Fix only the figure is reported: a comma the other document's convention
+    # would not use is a formatting difference, and no claim about the artifact is wrong
+    $figure = { param($s) $s.ToLower().Replace(',', '') }
+    $want   = & $figure $Expected
+    $wrong  = @($hits | Where-Object { (& $figure $_.Value) -ne $want })
+    if ($wrong.Count) {
+        $result.Finding = "${File}: $What asserted as '$($wrong[0].Value)', the artifact gives '$Expected'"
+    }
+    $result
 }
 
 "=== counts: every asserted figure against its artifact ==="
 
-$fixedFiles = @{}
 $claimSpans = @{}   # file -> every span a claim matched, kept for the loose-figure sweep
-$countFindings = $findings
+$countMiss  = @()
 foreach ($c in $claims) {
-    if (-not (Test-Path $c.File)) { "FAIL K-24: $($c.File) missing"; $findings++; continue }
-    $doc = $docByName[$c.File]
-    $raw = if ($fixedFiles.ContainsKey($c.File)) { $fixedFiles[$c.File] }
-           elseif ($doc) { $doc.Raw }
-           else { Get-Content $c.File -Raw }
-    $expected = Get-Expected $c.Q $c.Style
-    $hits = @(Get-ClaimHits $raw $c.Pattern)
+    $r = Resolve-Claim -File $c.File -Pattern $c.Pattern -What $c.Q -Expected (Get-Expected $c.Q $c.Style)
+    if ($r.Fixed) { $r.Fixed }
+    if ($r.Finding) { $countMiss += $r.Finding }
     if (-not $claimSpans.ContainsKey($c.File)) { $claimSpans[$c.File] = [System.Collections.Generic.List[object]]::new() }
-    foreach ($h in $hits) { $claimSpans[$c.File].Add($h) }
-
-    if ($hits.Count -eq 0) {
-        $findings++
-        "FAIL K-24: $($c.File): no claim matches /$($c.Pattern)/, the wording moved; re-anchor the claim or drop it"
-        continue
-    }
-    $wrong = @($hits | Where-Object { $_.Value.ToLower().Replace(',','') -ne $expected })
-    if ($wrong.Count -eq 0) { continue }
-
-    if ($Fix) {
-        $fixedFiles[$c.File] = [regex]::Replace($raw, $c.Pattern, { param($m) Restore-Case $m.Value $expected })
-        "fixed: $($c.File): $($c.Q) $($wrong[0].Value) -> $expected"
-    } else {
-        $findings += $wrong.Count
-        "FAIL K-24: $($c.File): $($c.Q) asserted as '$($wrong[0].Value)', artifact says '$expected'"
-    }
+    foreach ($h in $r.Spans) { $claimSpans[$c.File].Add($h) }
 }
-if ($findings -eq $countFindings -and -not $Fix) { "ok K-24: all $($claims.Count) asserted counts agree" }
+Report 'K-24' 'asserted count(s) disagreeing with their artifact:' $countMiss `
+       "all $($claims.Count) asserted counts agree"
 
 # --- the status column is three classes, and every row is in one -------------------
 
@@ -1225,14 +1276,6 @@ if ($bad.Count -and $Fix) {
            'every Coverage row matches the register'
 }
 
-# --- the register and the profile view must agree on the open CSR rows ------------
-
-if ($q['dcsr-rows'] -ne $q['open-csr-rows']) {
-    $findings++
-    "FAIL K-29: the register books $($q['dcsr-rows']) D-CSR row(s); isa-profile.md §5.3 carries $($q['open-csr-rows'])"
-} else {
-    "ok K-29: $($q['dcsr-rows']) open CSR rows in both the register and the profile"
-}
 ""
 
 # =================================================================================
@@ -1344,8 +1387,8 @@ $credits = @($creditRe.Matches($perfRaw))
 
 if ($unread.Count) { }                       # reported above; without every term there is no product
 elseif (-not $bandM.Success -or $credits.Count -ne 2) {
-    $findings++
-    "FAIL K-32: the general-scalar band or its credit table is not in the form this check reads"
+    Report 'K-32' 'unreadable compound(s):' `
+           @("the general-scalar band or its credit table is not in the form this check reads")
 } else {
     # the better end takes every term's smaller figure and the worse end every term's
     # larger, gains included: the pairing rule, not a choice of which end to be kind at
@@ -1431,8 +1474,7 @@ function Get-Share([double]$v, [double]$total, [int]$digits) {
 $planName = 'docs/implementation-checklist.md'
 $planDoc  = $docByName[$planName]
 if (-not $planDoc) {
-    $findings++
-    "FAIL K-34: $planName missing"
+    Report 'K-34' 'missing artifact:' @("$planName is not in the repository")
 } else {
 
 $planRaw = if ($fixedFiles.ContainsKey($planName)) { $fixedFiles[$planName] } else { $planDoc.Raw }
@@ -1525,10 +1567,9 @@ $openHi = [math]::Round([double](@($openItems | ForEach-Object { $_.Hi }) | Meas
 # that do are named here rather than inferred, everything else falling at or before it
 $afterGate = 'M9', 'M10', 'Post-M10'
 $after = @($items | Where-Object { ($_.Label -split ' · ')[0] -in $afterGate })
-if ($after.Count -ne $afterGate.Count) {
-    $findings++
-    "FAIL K-37: $($afterGate.Count) items land after the M8 gate; the document carries $($after.Count) of those labels"
-}
+$stated = @(if ($after.Count -ne $afterGate.Count) {
+    "$($afterGate.Count) items land after the M8 gate; the document carries $($after.Count) of those labels"
+})
 $gateH = [math]::Round($grand - [double](@($after | ForEach-Object { $_.Hours }) | Measure-Object -Sum).Sum, 1)
 
 # every derived token, old against new; nothing here is a judgment, so -Fix takes all
@@ -1558,18 +1599,20 @@ foreach ($s in $sections) {
 }
 
 if ($edits.Count -and $Fix) {
+    $unrewritable = @()
     foreach ($e in $edits) {
         $pat = '(?m)^' + [regex]::Escape($e.Old) + '(?=\r?$)'
         $n   = [regex]::Matches($planRaw, $pat).Count
         if ($n -ne 1) {
-            $findings++
-            "FAIL K-36: ${planName}: '$($e.What)' matches $n lines; the line is not unique enough to rewrite"
+            $unrewritable += "'$($e.What)' matches $n lines; the line is not unique enough to rewrite"
             continue
         }
         $planRaw = [regex]::Replace($planRaw, $pat, { param($mm) $e.New })
         "fixed: $($e.What): $($e.Old.Trim()) -> $($e.New.Trim())"
     }
     $fixedFiles[$planName] = $planRaw
+    Report 'K-36' 'figure(s) the repair could not place:' $unrewritable `
+           "all $($edits.Count) rewritten item cells and subtotals were placed"
 } else {
     Report 'K-36' 'item or subtotal figure(s) disagreeing with the hours beneath them:' `
            @($edits | ForEach-Object { "$($_.What): $($_.New.Trim())" }) `
@@ -1577,7 +1620,10 @@ if ($edits.Count -and $Fix) {
 }
 
 # the figures the summary and the basis restate, each captured alone so the prose that
-# carries them stays the document's; the same claim-and-token shape the counts use
+# carries them stays the document's. These are claims in exactly the counts group's
+# sense and go through its machinery, differing only in that the value is computed from
+# the items above rather than read from the quantity table, and that each is owed
+# exactly one site: a second sentence restating a total is the drift, not a synonym.
 $grandT = Format-Hours $grand
 $loT    = Format-Hours ($doneH + $openLo)
 $hiT    = Format-Hours ($doneH + $openHi)
@@ -1600,23 +1646,10 @@ $figures = @(
     @{ What = 'basis range high'; T = $hiT;    P = '(?<=^\* Grand total: the sum of the item cells, [\d.,]+ h midpoint over a [\d.,]+–)[\d.,]+' }
 )
 
-$stated = @()
 foreach ($f in $figures) {
-    $pat  = '(?m)' + $f.P
-    $hits = @([regex]::Matches($planRaw, $pat))
-    if ($hits.Count -ne 1) {
-        $findings++
-        "FAIL K-37: ${planName}: the $($f.What) figure matches $($hits.Count) place(s); re-anchor the sentence or the pattern"
-        continue
-    }
-    if ($hits[0].Value -eq $f.T) { continue }
-    if ($Fix) {
-        $planRaw = [regex]::Replace($planRaw, $pat, $f.T)
-        $fixedFiles[$planName] = $planRaw
-        "fixed: $($f.What): $($hits[0].Value) -> $($f.T)"
-    } else {
-        $stated += "$($f.What): the document says $($hits[0].Value), the items give $($f.T)"
-    }
+    $r = Resolve-Claim -File $planName -Pattern ('(?m)' + $f.P) -What $f.What -Expected $f.T -Unique
+    if ($r.Fixed)   { $r.Fixed }
+    if ($r.Finding) { $stated += $r.Finding }
 }
 Report 'K-37' 'restated total(s) disagreeing with the items beneath them:' $stated `
        "all $($figures.Count) restated totals agree with the items"
@@ -1745,6 +1778,56 @@ Report 'K-41' 'file(s) carrying mojibake or a replacement character' $mojibakeHi
 ""
 
 # =================================================================================
+# floors: the tool's own reach, against the possibility that it is reading nothing
+# =================================================================================
+#
+# Every group above decides a property of a set the tool reads out of a document. The
+# failure none of them can see is the empty set: an anchor that stops matching yields
+# no members, the property holds over no members, and the run reports the rule green
+# with a sentence that is true and vacuous. That is not hypothetical and it is not
+# cheap, because a rule in that state looks exactly like a rule that is working, and
+# the review gate prices it as one.
+#
+# Two floors close it, and the first is nearly free because the design already almost
+# has it. A quantity the counts group computes is compared against what the documents
+# say, so an anchor that breaks drives the count to zero and the prose disagrees with
+# it loudly: being *claimed* is what makes a quantity self-checking. So every quantity
+# is required to be claimed, and the counts group becomes total rather than a habit.
+#
+# The second covers what is read and never counted. There is no prose to disagree with
+# such a set, so the floor is stated here directly: it has members, or the reading that
+# produced it has moved and this says so. Neither floor decides that the members are
+# the right ones, which is the same residue every enumeration above declares.
+
+"=== floors: every enumeration this tool reads has members ==="
+
+function Get-Size($enumeration) { @(@($enumeration) | Where-Object { $null -ne $_ }).Count }
+
+$claimedQ = [System.Collections.Generic.HashSet[string]]::new([string[]]@($claims | ForEach-Object { $_.Q }))
+Report 'K-46' 'computed quantity(ies) no claim holds:' `
+       @($q.Keys | Where-Object { -not $claimedQ.Contains($_) } |
+         ForEach-Object { "$_ is computed and no document is required to state it, so nothing notices when it goes to zero" }) `
+       "all $($q.Count) computed quantities are held by a claim"
+
+# the sets no figure counts, each named by what it is rather than where it is read, so
+# a floor that fails says which reading has moved
+$floors = [ordered]@{
+    'prose bookmarks'                     = Get-Size $anchorCount.Keys
+    'CSR rows the profile presents'       = Get-Size $csrRows['5.1']
+    'CSR rows the profile excludes'       = Get-Size $csrRows['5.2']
+    'Prop fields of the apex record'      = Get-Size $propFields
+    'rows of the field-bindings view'     = Get-Size $rowOrder
+    'checklist items'                     = Get-Size $items
+    'checklist subtotals'                 = Get-Size $sections
+    'dominant terms read from the big table' = Get-Size $ends
+}
+Report 'K-46' 'enumeration(s) the tool reads and finds empty:' `
+       @($floors.Keys | Where-Object { -not $floors[$_] } |
+         ForEach-Object { "the tool finds no $_; whatever it reads them from has moved" }) `
+       "all $($floors.Count) uncounted enumerations have members"
+""
+
+# =================================================================================
 # meta: the rule registry against the checks this file carries, both directions
 # =================================================================================
 #
@@ -1762,8 +1845,7 @@ Report 'K-41' 'file(s) carrying mojibake or a replacement character' $mojibakeHi
 
 $ruleDoc = $docByName['tools/check-rules.md']
 if (-not $ruleDoc) {
-    $findings++
-    "FAIL K-00: tools/check-rules.md is missing"
+    Report 'K-00' 'missing artifact:' @('tools/check-rules.md is not in the repository')
 } else {
     $selfRaw = [System.IO.File]::ReadAllText($PSCommandPath)
     $codeIds = [System.Collections.Generic.HashSet[string]]::new()
