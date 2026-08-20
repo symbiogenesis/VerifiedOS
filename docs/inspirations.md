@@ -1423,11 +1423,12 @@ The NTT, modular reduction, and samplers remain ordinary constant-time RVV softw
 The display requirement is deliberately technology-neutral but not mechanism-neutral.
 The timing controller is fixed-function and firmware-free; scaling, colour management, and temporal processing run on the V-class (§15).
 An **AMLCD** is the current instantiation because it is procurable and carries no per-pixel aging history.
-**Micro-LED** is the preferred future emitter when a five-to-seventeen-inch panel exists at the required density with its factory demura delivered as a static table and with a gradable backplane, driver, and link.
+**Micro-LED** is the preferred future emitter when a five-to-seventeen-inch panel exists at the required density *in procurable volume*, with its factory demura delivered as a static table and with a gradable backplane, driver, and link; prototype and automotive-grade panels in that band exist already, and the outstanding condition is mass-transfer yield rather than the panel itself.
 That swap changes no requirement and re-verifies nothing: static calibration is an attested device constant applied by the host colour pipeline.
 
 The rule excludes OLED implementations whose panel-side compensator integrates each pixel's drive and thermal history into persistent mutable state.
 That state is both a foreign computer and a low-resolution record of prior display content outside the capability system.
+Being a rule about mechanism, it excludes the same loop in a micro-LED panel, and admits an OLED panel whose correction is in-pixel and per-frame over a factory table.
 Radiation qualification remains a backplane, driver, and packaging obligation rather than a reason to prefer one emitter by name.
 
 Refresh timing follows the same static discipline.
