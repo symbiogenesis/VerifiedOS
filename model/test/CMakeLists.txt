@@ -91,68 +91,25 @@ endforeach()
 option(ENABLE_RISCV_TESTS "Enable riscv-tests" OFF)
 
 function(filter_riscv_tests test_elfs elfs_to_use_varname)
-    # These tests exercise surface the frozen profile deletes
-    # (docs/isa-profile.md, M0.6c). They are excluded rather than expected
-    # to fail: the instructions they execute no longer decode.
-
-    # Zalrsc: no load-reserved/store-conditional (R-15-024).
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ua-[pv]-lrsc$")
-
-    # Zifencei: no instruction-fetch fence.  This takes three groups with it,
-    # not just the instruction's own test:
-    #   - the `fence_i` tests themselves,
-    #   - `uziccid`, which executes FENCE.I directly to test fetch coherence,
-    #   - the whole `-v-` (virtual-memory) half, whose shared riscv-tests
-    #     environment runs FENCE.I in its page-fault handler, so every `-v-`
-    #     binary traps into an unhandled illegal instruction regardless of
-    #     what it was written to test.
-    # The `-v-` half was booked for removal with the S/U and translation cut;
-    # FENCE.I's absence brings it forward to this batch.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ui-[pv]-fence_i$")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uziccid-[pv]-ziccid$")
-    list(FILTER test_elfs EXCLUDE REGEX ".*-v-.*")
-
-    # C: no compressed instructions (R-15-007a); ILEN is fixed at 32 bits, so
-    # every 16-bit parcel is an illegal instruction.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uc-[pv]-rvc$")
-
-    # Zicntr: no unprivileged or machine cycle/time/instret CSRs (R-15-077).
-    # `instret_overflow` goes with it: it writes `minstret` to set up the
-    # overflow it tests, and that CSR no longer exists.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-zicntr$")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-instret_overflow$")
-
-    # S mode: the whole `si` family runs in supervisor mode, which does not
-    # exist (R-15-003).  `dirty` is the one that hangs rather than failing:
-    # its handler waits on a page-table A/D update that never comes, so it
-    # must be excluded rather than left to a timeout.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64si-[pv]-.*")
-
-    # PMP: CHERI is the sole memory-protection mechanism (R-15-075), so the
-    # `pmpaddr` registers this probes are unallocated CSR addresses.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-pmpaddr$")
-
-    # Sdtrig: the trigger module is deleted in every lifecycle state
-    # (R-15-079a), so `tselect` is an unallocated CSR address and the
-    # `csrw tselect, x0` this test opens with traps.  The test is a probe
-    # for trigger support, not a test of anything the profile keeps: it
-    # reads back what it wrote to decide how many triggers exist.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-breakpoint$")
-
-    # Scalar floating point: `F`, `D`, and `Zfh` are excluded entirely
-    # (R-15-039), so the `f0`-`f31` register file, `fcsr`, and every scalar
-    # FP instruction these families execute are gone.  All floating point on
-    # this machine is vector (R-15-040), which the vector test suites cover.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uf-[pv]-.*")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ud-[pv]-.*")
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64uzfh-[pv]-.*")
-
-    # Svnapot, and address translation with it (R-15-002, R-15-038).
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64ssvnapot-[pv]-napot$")
-
-    # The machine-CSR test reads `mstatus.SXL`/`UXL`, the effective XLEN of
-    # the two modes this profile deletes.
-    list(FILTER test_elfs EXCLUDE REGEX ".*/rv64mi-[pv]-csr$")
+    # `riscv-tests` is not a corpus this machine can run, and the ground is one
+    # sentence rather than a list of extensions: every program in it addresses
+    # memory with an *integer* base register, and on a purecap machine a base
+    # register holds a capability, so an integer written into one is an untagged
+    # capability that faults at the first load or store the program performs
+    # (R-15-001, R-15-001c, R-15-007h).  There is no default data capability to
+    # authorise the access instead, and there is no mode in which the base
+    # register is read as an integer.
+    #
+    # So the whole suite is excluded from registration rather than filtered
+    # family by family.  The ELFs are still downloaded and still useful: the
+    # profile sweep (`tools/model.py sweep`) runs them against the profile
+    # configuration and classifies what it refuses, which is a different
+    # question from whether the model is a correct implementation of what it
+    # implements.
+    #
+    # What answers *that* question now is the model's own `$[test]` harness
+    # (`model/unit_tests/`), until the purecap programs of M0.12 exist.
+    list(FILTER test_elfs EXCLUDE REGEX ".*")
 
     set(${elfs_to_use_varname} "${test_elfs}" PARENT_SCOPE)
 endfunction()

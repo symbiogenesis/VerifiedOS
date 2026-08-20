@@ -55,24 +55,49 @@ function cap_access_checks(
 ) -> option(ext_data_addr_error) = {
   let (is_store, stored_tag, stored_global) : (bool, bool, bool) = match stored {
     None()  => (false, false, true),
-    Some(c) => (true, c.tag, c.global),
+    Some(c) => (true, c.tag, cap_global(c)),
   };
   if not(auth.tag) then
     Some((CapEx_TagViolation, auth_idx))
   else if isCapSealed(auth) then
     Some((CapEx_SealViolation, auth_idx))
-  else if not(is_store) & not(auth.permit_load) then
+  else if not(is_store) & not(cap_permit_load(auth)) then
     Some((CapEx_PermitLoadViolation, auth_idx))
-  else if is_store & not(auth.permit_store) then
+  else if is_store & not(cap_permit_store(auth)) then
     Some((CapEx_PermitStoreViolation, auth_idx))
-  else if is_store & stored_tag & not(auth.permit_store_cap) then
+  else if is_store & stored_tag & not(cap_store_cap(auth)) then
     Some((CapEx_PermitStoreCapViolation, auth_idx))
-  else if is_store & stored_tag & not(stored_global) & not(auth.permit_store_local_cap) then
+  else if is_store & stored_tag & not(stored_global) & not(cap_store_local_cap(auth)) then
     Some((CapEx_PermitStoreLocalCapViolation, auth_idx))
   else if not(inCapBounds(auth, addr, cap_size)) then
     Some((CapEx_LengthViolation, auth_idx))
   else
     None()
+}
+
+// The load side's transitivity: a loaded capability keeps only what the
+// authority is willing to pass on (R-15-074). Without `load-global` the result
+// is local, so authority read through a local view cannot be stored anywhere
+// long-lived; without `load-mutable` the result loses its store permissions,
+// so a read-only view of a structure yields read-only views of what it points
+// at. Both are exact rather than rounded: the read half of every admitted
+// permission set is itself an admitted set (core/cap_common.sail), so the strip
+// lands on a codepoint rather than below one.
+//
+// It runs over tagged results only. An untagged value is data, and a load must
+// deliver data unchanged or an integer would not survive a round trip through
+// memory.
+function load_transitivity(auth : Capability, loaded : Capability) -> Capability = {
+  if not(loaded.tag) | (cap_load_global(auth) & cap_load_mutable(auth)) then loaded
+  else {
+    // Bit 0 is global; bits 2, 4 and 5 are the three store permissions
+    // (core/cap_common.sail).
+    let keep_global : CapPermsBits =
+      if cap_load_global(auth) then ones() else ~(0b0000_0000_0001);
+    let keep_mutable : CapPermsBits =
+      if cap_load_mutable(auth) then ones() else ~(0b0000_0011_0100);
+    setCapPerms(loaded, getCapPerms(loaded) & keep_global & keep_mutable)
+  }
 }
 
 // A capability access is *always* naturally aligned, whatever the platform's
@@ -91,7 +116,7 @@ function cap_load(cd : regidx, auth : Capability, auth_idx : capreg_idx, addr : 
   match mem_read_cap(physical_address(vaddr), false, false) {
     Err(_, e) => memory_exception(vaddr, e),
     Ok(v)     => {
-      C(cd) = clearTagIf(v, not(auth.permit_load_cap));
+      C(cd) = load_transitivity(auth, clearTagIf(v, not(cap_load_cap(auth))));
       RETIRE_SUCCESS
     },
   }

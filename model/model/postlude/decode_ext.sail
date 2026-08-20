@@ -14,14 +14,8 @@
 // illegal instruction whatever mode PCC is in (R-15-036).
 function ext_decode_compressed(bv : bits(16)) -> instruction = encdec_compressed(bv)
 
-// A PCC in capability mode reads `auipc`, `jal` and `jalr` as their capability
-// forms; every other encoding takes the ordinary decode, which is what
-// `NOT_CAPMODE` says (postlude/insts_end.sail). The branch goes with hybrid mode
-// in M0.6f, leaving one decode.
-function ext_decode(bv : bits(32)) -> instruction =
-  if PCC.flag_cap_mode then {
-    match encdec_capmode(bv) {
-      NOT_CAPMODE(_) => encdec(bv),
-      capmode_instruction => capmode_instruction,
-    }
-  } else encdec(bv)
+// One mode, one decode. Upstream reads `auipc`, `jal` and `jalr` through a
+// second mapping when PCC is in capability mode; here those encodings have only
+// their capability reading, so the mapping and the flag that selected it are
+// both absent (R-15-001, extensions/CHERI/cheri_insts.sail).
+function ext_decode(bv : bits(32)) -> instruction = encdec(bv)

@@ -1,10 +1,19 @@
 """The differential rig: two executors' traces, normalized and adjudicated.
 
-M0.6e (e5). The transplant's differential reference is the M0.4 oracle
-(`cheri_riscv_sim_RV64`, upstream sail-cheri-riscv at the pinned commit), and the two
-executors print traces in different dialects: the oracle is the old Sail C backend and
-the curated model is the new C++ one. Normalizing turns either dialect into one record
-stream, so that a divergence is a difference in *behaviour* rather than in formatting.
+The rig's second executor is the M0.4 oracle (`cheri_riscv_sim_RV64`, upstream
+sail-cheri-riscv at the pinned commit) for as long as the two models share a capability
+format, which is until the 64+1-bit re-parameterization: an oracle is a reference only
+where it implements the same machine, and upstream implements ISAv9's 128-bit encoding
+with a hybrid mode and a default data capability. The rig outlives it. Its standing
+second executor is the CHERI-QEMU fork of M2, a second implementation of the *frozen*
+profile from an independent code lineage, and its corpus is M0.12's purecap programs;
+what is between the two is a period in which the rig runs and its prefix is read as a
+fact about how far two different machines happen to agree.
+
+The two executors print traces in different dialects: the oracle is the old Sail C
+backend and the curated model is the new C++ one. Normalizing turns either dialect into
+one record stream, so that a divergence is a difference in *behaviour* rather than in
+formatting.
 
 The record set is the intersection of what the two print today, which is narrower than
 the capability-widened commit trace M0.12 versions:
@@ -31,13 +40,11 @@ Instruction fetches (`mem[X,..]`) are dropped rather than compared: both print t
 16-bit granules, so they carry nothing the retire record does not.
 
 The **agreeing prefix** is the figure to read, not the verdict. Over `riscv-tests` the
-two machines part company inside the test prologue for a reason that is a fact about
-the corpus rather than about the transplant: the curated model deletes delegation, so
-`csrwi medeleg` is an illegal instruction here and retires on the oracle, and the tests
-guard exactly that by pointing `mtvec` at the instruction after the group. Both machines
-then run the test to the same result by different routes. A corpus both can execute in
-lockstep is what M0.12 versions; until it exists the prefix is the regression, and it
-must not shorten.
+two machines part company inside the test prologue, and the ground is the corpus rather
+than either model: every program there addresses memory with an integer base register,
+which a purecap machine reads as an untagged capability and faults on, so the prefix
+ends at the prologue's first load. A corpus both can execute in lockstep is what M0.12
+versions, over the two executors the profile actually has.
 """
 
 import re
