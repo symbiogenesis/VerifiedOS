@@ -35,6 +35,23 @@ register MTDC  : Capability
 // against it over any program either machine can run today.
 register DDC : Capability
 
+// How `cspecialrw` names the bank (extensions/CHERI/cheri_insts.sail). Upstream's
+// numbering spans four privilege modes; here there is one, so two ranges of it
+// are absent rather than reserved: the user and supervisor banks went with their
+// modes (R-15-003), and number 30, upstream's machine scratch capability, went
+// with the trap-scratch role that `MTDC` carries here (R-15-073). An absent
+// number is an illegal instruction, as an unallocated CSR address is a trap
+// (R-15-014).
+type screg = bits(5)
+
+mapping scr_name_map : screg <-> string = {
+  0b00000 <-> "pcc",
+  0b00001 <-> "ddc",
+  0b11100 <-> "mtcc",
+  0b11101 <-> "mtdc",
+  0b11111 <-> "mepcc",
+}
+
 // The smallest instruction a control transfer must have room for inside the
 // bounds of the capability it targets. ILEN is fixed at 32 bits and `C` is
 // excluded, so this is four bytes rather than the two an implementation that

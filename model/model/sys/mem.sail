@@ -169,7 +169,16 @@ private function checked_mem_read forall 'n, 0 < 'n <= max_mem_access . (
   let paddr_bits = bits_of(paddr);
 
   var data = zeros(8 * N * split_width);
-  // TODO: handle folding of read metadata across all the splits.
+
+  // The metadata a read returns is the conjunction of what its splits carry,
+  // and MMIO carries none. An unsplit access is the case that matters, and
+  // there the conjunction is that granule's validity tag exactly, which is what
+  // a capability load reads (extensions/CHERI/cheri_mem.sail). A split access
+  // spans more than one granule, so no single tag belongs to it and the
+  // conjunction is the conservative answer: one cleared granule clears the
+  // result, which is the same polarity as the write path's clearing of every
+  // granule it covers (R-15-007r, R-15-203).
+  var read_meta : mem_meta = meta;
 
   let (first, last, step) = misaligned_order(N);
   var i : range(0, 'N - 1) = first;
@@ -187,11 +196,15 @@ private function checked_mem_read forall 'n, 0 < 'n <= max_mem_access . (
 
     let split_data =
       if   within_mmio_readable(paddr, split_width)
-      then match mmio_read(access, paddr, split_width) {
-        Err(e) => return Err(e),
-        Ok(mmio_data) => mmio_data,
+      then {
+        read_meta = false;
+        match mmio_read(access, paddr, split_width) {
+          Err(e) => return Err(e),
+          Ok(mmio_data) => mmio_data,
+        }
       } else {
-        let (ram_data, _meta) = read_ram(rk, paddr, split_width, meta);
+        let (ram_data, ram_meta) = read_ram(rk, paddr, split_width, meta);
+        read_meta = read_meta & ram_meta;
         ram_data
       };
     data[(8 * (offset + 1) * split_width - 1) .. 8 * offset * split_width] = split_data;
@@ -203,8 +216,7 @@ private function checked_mem_read forall 'n, 0 < 'n <= max_mem_access . (
     }
   } until finished;
 
-  // See above: metadata is not handled.
-  Ok((data, default_meta))
+  Ok((data, read_meta))
 }
 
 // This lets the Rocq extraction know why the repeat loop above terminates

@@ -26,6 +26,23 @@ mapping clause assembly = C_ILLEGAL(s) <-> "c.illegal" ^ spc() ^ hex_bits_16(s)
 
 // *****************************************************************
 
+// The wildcard the capability-mode decode falls through to, which is how a
+// capability-mode fetch says "this encoding is not one of mine" and defers to
+// the ordinary decode (postlude/decode_ext.sail). It is never executed.
+
+union clause instruction = NOT_CAPMODE : word
+
+mapping clause encdec_capmode = NOT_CAPMODE(s) <-> s
+
+function clause execute NOT_CAPMODE(s) = {
+  internal_error(__FILE__, __LINE__, "NOT_CAPMODE should never be executed: " ^ bits_str(s));
+  RETIRE_SUCCESS
+}
+
+mapping clause assembly = NOT_CAPMODE(s) <-> "not_capmode" ^ spc() ^ hex_bits_32(s)
+
+// *****************************************************************
+
 // End definitions
 end extension
 end extensionName
@@ -36,6 +53,7 @@ end execute
 end assembly
 end encdec
 end encdec_compressed
+end encdec_capmode
 
 // Some legal instructions do not have any corresponding assembly, e.g. reserved fences.
 function instruction_to_str(insn : instruction) -> string =

@@ -96,6 +96,19 @@ extensions {
     }
   }
 
+  // The CHERI instruction surface. The capability format, algebra, registers,
+  // and checks are `core` rather than an extension (core/cap_format.sail): the
+  // machine is purecap-only, so there is nothing to gate. This group carries
+  // only the instructions, and it requires `I` because the explicit-authority
+  // load and store forms reuse the base widths and extension.
+  CHERI {
+    requires core, exceptions, sys, I
+
+    files
+      extensions/CHERI/cheri_mem.sail,
+      extensions/CHERI/cheri_insts.sail
+  }
+
   M {
     requires core
 
@@ -292,11 +305,12 @@ postlude {
 
 unit_tests {
   after postlude
-  requires prelude, core, sys, exceptions, postlude
+  requires prelude, core, sys, exceptions, postlude, I, CHERI
 
   files
     unit_tests/test_privilege.sail,
     unit_tests/test_capability.sail,
+    unit_tests/test_cheri_insts.sail,
 }
 
 main {

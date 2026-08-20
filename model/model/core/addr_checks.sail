@@ -62,6 +62,43 @@ function ext_control_check_pc(pc : xlenbits) -> option(ext_control_addr_error) =
 
 type ext_data_addr_error = (CapEx, capreg_idx)
 
+// The checks a data access owes its authorising capability, given the authority
+// and the address it authorises. This is separate from the selection below
+// because the two halves have different callers: an ordinary load or store
+// names a base register and lets the mode pick the authority, while the
+// explicit-authority forms of the capability load and store surface name the
+// authority themselves (extensions/CHERI/cheri_insts.sail).
+function cap_data_checks(
+  auth     : Capability,
+  auth_idx : capreg_idx,
+  addr     : xlenbits,
+  access   : MemoryAccessType(mem_payload),
+  width    : mem_access_width,
+) -> option(ext_data_addr_error) = {
+  let (need_load_perm, need_store_perm) : (bool, bool) = match access {
+    Load(_)             => (true, false),
+    Store(_)            => (false, true),
+    Atomic(_)           => (true, true),
+    // `cbo.zero` writes the block it names, so it is a store for permission
+    // (R-15-060).
+    CacheAccess(_)      => (false, true),
+    InstructionFetch()  => internal_error(__FILE__, __LINE__, "cap_data_checks for InstructionFetch"),
+  };
+
+  if not(auth.tag) then
+    Some((CapEx_TagViolation, auth_idx))
+  else if isCapSealed(auth) then
+    Some((CapEx_SealViolation, auth_idx))
+  else if need_load_perm & not(auth.permit_load) then
+    Some((CapEx_PermitLoadViolation, auth_idx))
+  else if need_store_perm & not(auth.permit_store) then
+    Some((CapEx_PermitStoreViolation, auth_idx))
+  else if not(inCapBounds(auth, addr, width)) then
+    Some((CapEx_LengthViolation, auth_idx))
+  else
+    None()
+}
+
 // The authorising capability of a data access, and the address it authorises.
 // In capability mode it is the capability in the base register the instruction
 // names, and the address is that capability's address plus the offset; in
@@ -70,36 +107,20 @@ type ext_data_addr_error = (CapEx, capreg_idx)
 // (R-15-001c): on a purecap machine every access takes the first arm, and an
 // integer in a base register is an untagged capability that faults here rather
 // than reaching memory (R-15-001, R-15-007h).
+function cap_mode_auth(base : regidx, offset : xlenbits) -> (Capability, xlenbits, capreg_idx) =
+  if PCC.flag_cap_mode then {
+    let auth = C(base);
+    (auth, auth.address + offset, capreg_idx_of_regidx(base))
+  } else {
+    (DDC, X(base) + offset, DDC_IDX)
+  }
+
 function ext_data_get_addr(base : regidx, offset : xlenbits, access : MemoryAccessType(mem_payload), width : mem_access_width)
          -> Ext_DataAddr_Check(ext_data_addr_error) = {
-  let (auth, newAddr, auth_idx) : (Capability, xlenbits, capreg_idx) =
-    if PCC.flag_cap_mode then {
-      let auth = C(base);
-      (auth, auth.address + offset, capreg_idx_of_regidx(base))
-    } else {
-      (DDC, X(base) + offset, DDC_IDX)
-    };
+  let (auth, newAddr, auth_idx) = cap_mode_auth(base, offset);
 
-  let (need_load_perm, need_store_perm) : (bool, bool) = match access {
-    Load(_)             => (true, false),
-    Store(_)            => (false, true),
-    Atomic(_)           => (true, true),
-    // `cbo.zero` writes the block it names, so it is a store for permission
-    // (R-15-060).
-    CacheAccess(_)      => (false, true),
-    InstructionFetch()  => internal_error(__FILE__, __LINE__, "ext_data_get_addr for InstructionFetch"),
-  };
-
-  if not(auth.tag) then
-    Ext_DataAddr_Error((CapEx_TagViolation, auth_idx))
-  else if isCapSealed(auth) then
-    Ext_DataAddr_Error((CapEx_SealViolation, auth_idx))
-  else if need_load_perm & not(auth.permit_load) then
-    Ext_DataAddr_Error((CapEx_PermitLoadViolation, auth_idx))
-  else if need_store_perm & not(auth.permit_store) then
-    Ext_DataAddr_Error((CapEx_PermitStoreViolation, auth_idx))
-  else if not(inCapBounds(auth, newAddr, width)) then
-    Ext_DataAddr_Error((CapEx_LengthViolation, auth_idx))
-  else
-    Ext_DataAddr_OK(Virtaddr(newAddr))
+  match cap_data_checks(auth, auth_idx, newAddr, access, width) {
+    Some(e) => Ext_DataAddr_Error(e),
+    None()  => Ext_DataAddr_OK(Virtaddr(newAddr)),
+  }
 }
