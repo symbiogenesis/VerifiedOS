@@ -777,15 +777,28 @@ The honest cost is a declared decode ceiling (R-15-238c), a persistent energy-pe
 
 ---
 
-## OLED aging compensation and an unavailable micro-LED base: declined
+## Panel-resident aging compensation and a micro-LED base requirement: both declined
 
 Emitter physics alone does not make a panel space-grade: radiation and environmental qualification are dominated by the backplane, driver silicon, alignment layers, polarizers, packaging, and link.
-The decisive security distinction is correction state.
-Shipping OLED mitigations derive per-pixel correction from accumulated drive and thermal history, keeping persistent mutable state in panel electronics outside the capability system; that state is both a foreign computer and a coarse integral of previously displayed content.
+The decisive security distinction is correction state, and it cuts across three mechanisms the display industry files under one word.
 
-Micro-LED avoids the organic-aging loop, but it was not selected as the current mandatory panel because the required five-to-seventeen-inch, high-density supply does not exist at viable mass-transfer yield and repair economics.
+**In-pixel compensation** is analog and per-frame: voltage-programmed circuits, the 7T1C and 8T1C LTPS pixels of the mobile and medium-panel literature ([*Journal of Information Display* 2025](https://doi.org/10.1080/15980316.2025.2497373)), cancel the driving transistor's threshold and mobility spread by charge redistribution and hold nothing between frames.
+**Demura** is measured on the production line and burned to one-time-programmable memory, then loaded into the driver's correction RAM at power-on; it is precisely the static factory table R-15-236a mandates, and it is what the AMOLED driver ICs on the market already carry.
+**External compensation** is the loop: sensing subcircuits read each pixel's anode voltage or current across the panel's service life, and the derived correction accumulates in panel-resident writable memory as, in the patent literature's own terms, long-term aging information prepared pixel by pixel from accumulated luminance.
+Only the third is refused. The first two are admitted whatever the emitter, because what is refused is a foreign computer holding a coarse integral of previously displayed content, not an organic emissive layer.
 
-**Disposition:** decline panel-side adaptive aging compensation and do not make present-day micro-LED procurement a base requirement.
+Stating the rule as a mechanism is what makes it cut in both directions.
+The large-panel OLED television is its canonical instance and stays out, sensing at power-off on a cumulative-hours cadence and retaining per-pixel usage in the panel.
+A mobile-class OLED panel combining in-pixel compensation with a factory demura table holds no such history and passes on its own terms.
+Micro-LED earns no exemption from the emitter alone: it has its own differential aging and wavelength shift under drive, and per-pixel aging history for micro-LED panels is already patented, so a micro-LED panel carrying that loop fails the same test an OLED television fails.
+Correction that is neither static nor accumulating, such as the on-chip temperature compensation of OLED microdisplays, is memoryless and falls outside the objection entirely.
+
+Micro-LED was still not selected as the current mandatory panel, and by 2026 the reason has narrowed from absence to economics.
+Panels in the five-to-seventeen-inch band now exist: a seven-inch automotive standard product, a 9.4-inch 228 PPI flexible automotive-grade panel, and a 17.3-inch transparent demonstrator, alongside the first shipping consumer micro-LED product, a wrist-sized panel of roughly 400,000 emitters at a two-thousand-dollar retail price.
+What does not exist is volume supply at viable cost: mass-transfer yields run at 99.5 to 99.8 percent against the better than 99.99 percent consumer economics require, sub-forty-inch panels are an industry-consensus 2026-to-2027 item, and the vendor with the deepest pockets cancelled its in-house wearable micro-LED program in 2024 on exactly this transfer-yield and cost ground.
+The band is therefore reachable on a prototype and automotive-grade basis and not on a procurement one, which is a weaker claim than the earlier one and reaches the same disposition.
+
+**Disposition:** decline panel-resident adaptive aging compensation, whatever the emitter, and do not make present-day micro-LED procurement a base requirement.
 The technology-neutral rule and current/future instantiation are documented in [Inspirations & Prior Art](inspirations.md).
 Non-normative; no spec-body change is made here.
 
