@@ -4598,7 +4598,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a fixed-function panel-self-refresh block is admissible on the sensor and radio fixed-function terms (no writable program).
 · Trace: CJ-CERISE
 
-**R-15-236a** MUST: The panel's per-pixel uniformity correction is a static table fixed at manufacture, attested with the devicetree, and applied by fixed-function timing-controller logic or by the host colour pipeline. Per-pixel aging compensation, which integrates cumulative drive history into panel-resident writable memory, is excluded, so the emissive technology is free except of this constraint.
+**R-15-236a** MUST: The panel's per-pixel uniformity correction is a static table fixed at manufacture, attested with the devicetree, and applied by fixed-function timing-controller logic or by the host colour pipeline; correction recomputed afresh each frame and carrying nothing between frames is admissible on the same terms. Per-pixel aging compensation, which integrates cumulative drive history into panel-resident writable memory, is excluded whatever the emitter, so the emissive technology is free except of this constraint.
 · Accept: no panel-resident writable store accumulates displayed-content statistics, and the correction table is a devicetree-attested constant.
 · Trace: CJ-CERISE
 
