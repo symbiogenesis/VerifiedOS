@@ -56,8 +56,7 @@ mapping vtype_assembly : (bits(3), bits(1), bits(1), bits(3), bits(3)) <-> strin
 }
 
 private function handle_illegal_vtype(rd : regidx) -> ExecutionResult = {
-  // Note: vstart should NOT be zeroed out and rd
-  //       should NOT be written if trapping.
+  // Note: rd should NOT be written if trapping.
   match illegal_vtype_reserved_behavior {
     IllegalVtype_Illegal => return Illegal_Instruction(),
     IllegalVtype_Fatal   => reserved_behavior("unsupported or reserved vtype"),
@@ -68,7 +67,6 @@ private function handle_illegal_vtype(rd : regidx) -> ExecutionResult = {
   vl = zeros();
   csr_write_callback("vtype", vtype.bits);
   csr_write_callback("vl", vl);
-  set_vstart(zeros());
 
   // "The vset{i}vl{i} instructions set the vtype and vl CSRs based on their arguments,
   //  and write the new value of vl into rd."
@@ -136,12 +134,8 @@ private function execute_vsetvl_type(
     vlmul = lmul,
   ];
 
-  // reset vstart to 0
-  set_vstart(zeros());
-
   csr_write_callback("vtype", vtype.bits);
   csr_write_callback("vl", vl);
-  csr_write_callback("vstart", vstart);
 
   RETIRE_SUCCESS
 }

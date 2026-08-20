@@ -75,28 +75,20 @@ CLIOptions parse_cli(int argc, char **argv) {
     opts.config_print_gpr,
     "Enable trace output for general purpose register reads and writes"
   );
-  app.add_flag(
-    "--trace-fpr",
-    opts.config_print_fpr,
-    "Enable trace output for floating-point registers reads and writes"
-  );
   app.add_flag("--trace-vreg", opts.config_print_vreg, "Enable trace output for vector register reads and writes");
   app.add_flag("--trace-csr", opts.config_print_csr, "Enable trace output for CSR reads and writes");
   app.add_flag_callback(
     "--trace-arch-regs",
     [&opts] {
       opts.config_print_gpr = true;
-      opts.config_print_fpr = true;
       opts.config_print_vreg = true;
     },
-    "Enable trace output for architectural register reads and writes (i.e. general purpose, floating-point, and "
-    "vector registers)"
+    "Enable trace output for architectural register reads and writes (i.e. general purpose and vector registers)"
   );
   app.add_flag_callback(
     "--trace-reg",
     [&opts] {
       opts.config_print_gpr = true;
-      opts.config_print_fpr = true;
       opts.config_print_vreg = true;
       opts.config_print_csr = true;
     },
@@ -129,7 +121,6 @@ CLIOptions parse_cli(int argc, char **argv) {
     [&opts] {
       opts.config_print_instr = true;
       opts.config_print_gpr = true;
-      opts.config_print_fpr = true;
       opts.config_print_vreg = true;
       opts.config_print_csr = true;
       opts.config_print_mem_access = true;

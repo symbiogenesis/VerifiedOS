@@ -31,11 +31,10 @@ function clause execute RFVVTYPE(funct6, vm, vs2, vs1, vd) = {
   let SEW         = get_sew();
   let LMUL_pow    = get_lmul_pow();
   let num_elem_vs = get_num_elem(LMUL_pow, SEW);
-  let rm_3b       = fcsr[FRM];
+  let rm_3b       = fp_static_rm;
   let num_elem_vd = get_num_elem(0, SEW); // vd regardless of LMUL setting
 
-  if illegal_vstart(VSTART_MANDATORY, num_elem_vs, LMUL_pow) |
-     illegal_fp_reduction(SEW, rm_3b) |
+  if illegal_fp_reduction(SEW) |
      not(valid_reg_group(vs2, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs1, SEW)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -71,7 +70,6 @@ function clause execute RFVVTYPE(funct6, vm, vs2, vs1, vd) = {
   write_single_element(SEW, 0, vd, sum);
   // other elements in vd are treated as tail elements, currently remain unchanged
   // TODO: configuration support for agnostic behavior
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -107,11 +105,10 @@ function clause execute RFWVVTYPE(_funct6, vm, vs2, vs1, vd) = {
   let SEW         = get_sew();
   let LMUL_pow    = get_lmul_pow();
   let num_elem_vs = get_num_elem(LMUL_pow, SEW);
-  let rm_3b       = fcsr[FRM];
+  let rm_3b       = fp_static_rm;
   let SEW_widen   = SEW * 2;
 
-  if illegal_vstart(VSTART_MANDATORY, num_elem_vs, LMUL_pow) |
-     illegal_fp_widening_reduction(SEW, rm_3b, SEW_widen) |
+  if illegal_fp_widening_reduction(SEW, SEW_widen) |
      not(valid_src_overlap(vs2, SEW, LMUL_pow, vs1, SEW_widen, 0)) |
      not(valid_vm_src_overlap(vm, vs1, SEW_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
@@ -145,7 +142,6 @@ function clause execute RFWVVTYPE(_funct6, vm, vs2, vs1, vd) = {
   write_single_element(SEW_widen, 0, vd, sum);
   // other elements in vd are treated as tail elements, currently remain unchanged
   // TODO: configuration support for agnostic behavior
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 

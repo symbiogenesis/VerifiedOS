@@ -10,7 +10,6 @@ core {
   files
     core/isa_version.sail,
     core/xlen.sail,
-    core/flen.sail,
     core/vlen.sail,
     core/mem_addrtype.sail,
     core/mem_metadata.sail,
@@ -133,27 +132,6 @@ extensions {
     }
   }
 
-  // Floating point (F and D extensions)
-  FD {
-    requires core
-
-    FD_core {
-      before sys
-      files
-        extensions/FD/freg_type.sail,
-        extensions/FD/fdext_regs.sail,
-        extensions/FD/fdext_control.sail,
-    }
-
-    FD_instructions {
-      requires sys, I, FD_core
-      files
-        extensions/FD/fext_insts.sail,
-        extensions/FD/dext_insts.sail,
-        extensions/FD/zfh_insts.sail,
-        extensions/FD/zfa_insts.sail,
-    }
-  }
 
   // RISC-V vector extension
   V {
@@ -166,7 +144,6 @@ extensions {
     }
 
     V_core {
-      requires FD_core
       files
         extensions/V/vreg_type.sail,
         extensions/V/vext_regs.sail,
@@ -174,7 +151,7 @@ extensions {
     }
 
     V_instructions {
-      requires sys, I, FD, V_types, V_core
+      requires sys, I, V_types, V_core
       files
         extensions/V/vext_utils_insts.sail,
         extensions/V/vext_fp_utils_insts.sail,
@@ -274,19 +251,15 @@ extensions {
     requires core
 
     bfloat16_core {
-      requires sys, FD
+      requires sys, V
       files extensions/bfloat16/zfbfmin_utils.sail
     }
-    Zfbfmin {
-      requires sys, FD, bfloat16_core
-      files extensions/bfloat16/zfbfmin_insts.sail
-    }
     Zvfbfmin {
-      requires sys, FD, V, bfloat16_core
+      requires sys, V, bfloat16_core
       files extensions/bfloat16/zvfbfmin_insts.sail
     }
     Zvfbfwma {
-      requires sys, FD, V, bfloat16_core
+      requires sys, V, bfloat16_core
       files extensions/bfloat16/zvfbfwma_insts.sail
     }
   }

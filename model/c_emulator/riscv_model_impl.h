@@ -76,28 +76,23 @@ public:
   bool try_step(int64_t step_no, bool exit_wait);
 
   int64_t xlen() const;
-  int64_t flen() const;
   int64_t physaddrbits_len() const;
   uint64_t mepc() const;
   uint64_t htif_exit_code() const;
   bool htif_done() const;
   bool had_exception() const;
   uint64_t pc() const;
-  uint64_t fcsr() const;
 
   // These state accessors are not const due to the generated read
   // accessors not being marked const in hart::Model.
   uint64_t xreg(int64_t reg);
-  uint64_t freg(int64_t reg);
   // returns std::nullopt if the model has not thrown an exception.
   std::optional<std::string> string_of_current_exception();
 
   // write access to model state
 
   void set_xreg(int64_t reg, uint64_t val);
-  void set_freg(int64_t reg, uint64_t val);
   void set_pc(uint64_t val);
-  void set_fcsr(uint64_t val);
 
   // RVFI support
 
@@ -115,7 +110,6 @@ private:
   unit mem_read_callback(const char *type, sbits paddr, int64_t width, lbits value) override;
   unit mem_exception_callback(sbits paddr, uint64_t num_of_exception) override;
   unit xreg_full_write_callback(const_sail_string abi_name, sbits reg, sbits value) override;
-  unit freg_write_callback(unsigned reg, sbits value) override;
   // `full` indicates that the name and index of the CSR are provided.
   // 64 bit CSRs use a long_csr_write_callback Sail function that automatically
   // makes two csr_full_write_callback calls on RV32.

@@ -72,7 +72,6 @@ int inner_main(int argc, char **argv) {
 
   auto log_cbs = std::make_shared<log_callbacks>(
     opts.config_print_gpr,
-    opts.config_print_fpr,
     opts.config_print_vreg,
     opts.config_print_csr,
     opts.config_print_mem_access,

@@ -16,7 +16,7 @@ mapping clause encdec = VFNCVTBF16_F_F_W(vm, vs2, vd)
   when currentlyEnabled(Ext_Zvfbfmin) & get_sew() == 16
 
 function clause execute (VFNCVTBF16_F_F_W(vm, vs2, vd)) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -24,8 +24,7 @@ function clause execute (VFNCVTBF16_F_F_W(vm, vs2, vd)) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow_widen, LMUL_pow)) |
      not(valid_vm_src_overlap(vm, vs2, SEW_widen))
   then return Illegal_Instruction();
@@ -46,14 +45,12 @@ function clause execute (VFNCVTBF16_F_F_W(vm, vs2, vd)) = {
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then {
-      let (fflags, elem) = riscv_f32ToBF16(rm_3b, vs2_val[i]);
-      accrue_fflags(fflags);
+      let (_, elem) = riscv_f32ToBF16(rm_3b, vs2_val[i]);
       result[i] = elem;
     }
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -68,7 +65,7 @@ mapping clause encdec = VFWCVTBF16_F_F_V(vm, vs2, vd)
   when currentlyEnabled(Ext_Zvfbfmin) & get_sew() == 16
 
 function clause execute (VFWCVTBF16_F_F_V(vm, vs2, vd)) = {
-  let rm_3b    = fcsr[FRM];
+  let rm_3b    = fp_static_rm;
   let SEW      = get_sew();
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
@@ -76,8 +73,7 @@ function clause execute (VFWCVTBF16_F_F_V(vm, vs2, vd)) = {
   let SEW_widen      = SEW * 2;
   let LMUL_pow_widen = LMUL_pow + 1;
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) |
-     illegal_fp_variable_width(vd, vm, SEW, rm_3b, SEW_widen, LMUL_pow_widen) |
+  if illegal_fp_variable_width(vd, vm, SEW, SEW_widen, LMUL_pow_widen) |
      not(valid_reg_overlap(vs2, vd, LMUL_pow, LMUL_pow_widen)) |
      not(valid_vm_src_overlap(vm, vs2, SEW))
   then return Illegal_Instruction();
@@ -103,7 +99,6 @@ function clause execute (VFWCVTBF16_F_F_V(vm, vs2, vd)) = {
   };
 
   write_vreg(num_elem, SEW_widen, LMUL_pow_widen, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 

@@ -9,11 +9,8 @@ class ModelImpl;
 struct register_map {
   // Registers before the PC are integer (X) registers, 0-31.
   int64_t pc_offset; // = 32 for the (non-E) base ISA.
-  // Registers after the PC but before CSRs are floating-point
-  // registers.
-  int64_t fpr_offset; // = pc_offset + 1
-  // Register after the floating-point registers.
-  int64_t fcsr_offset;
+  // The floating-point register offsets are gone with `f0`-`f31` and
+  // `fcsr` (R-15-039), so the PC is the last register in the map.
   // TODO: add a CSR map.
 };
 

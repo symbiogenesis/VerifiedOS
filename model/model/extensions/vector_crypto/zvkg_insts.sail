@@ -32,9 +32,8 @@ function clause execute VGHSH_VV(vs2, vs1, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let Y : bits(128) = get_velem_quad(vd_val, i);
@@ -55,7 +54,6 @@ function clause execute VGHSH_VV(vs2, vs1, vd) = {
     write_velem_quad(vd, SEW, brev8(Z), i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -84,9 +82,8 @@ function clause execute VGMUL_VV(vs2, vd) = {
   let vd_val  = read_vreg(num_elem, SEW, LMUL_pow, vd);
 
   let eg_len   = (unsigned(vl) / 4);
-  let eg_start = (unsigned(vstart) / 4);
 
-  foreach (i from eg_start to (eg_len - 1)) {
+  foreach (i from 0 to (eg_len - 1)) {
     assert(i * 4 + 3 < num_elem);
 
     let Y : bits(128) = brev8(get_velem_quad(vd_val, i));
@@ -104,7 +101,6 @@ function clause execute VGMUL_VV(vs2, vd) = {
     write_velem_quad(vd, SEW, brev8(Z), i);
   };
 
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 

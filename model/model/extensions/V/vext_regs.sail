@@ -228,7 +228,9 @@ function init_vregs() -> unit = {
 
 // vector csrs
 
-register vstart : xlenbits
+// `vstart` is excluded (R-15-039a): no trap on this machine resumes a vector
+// instruction from an element index, so the element loop of every vector
+// instruction below runs from zero and the CSR address 0x008 is unallocated.
 register vl     : xlenbits
 
 let VLENB : xlenbits = to_bits(vlen / 8)
@@ -299,7 +301,6 @@ bitfield Vcsr : bits(3) = {
 }
 register vcsr : Vcsr
 
-mapping clause csr_name_map = 0x008  <-> "vstart"
 mapping clause csr_name_map = 0x009  <-> "vxsat"
 mapping clause csr_name_map = 0x00A  <-> "vxrm"
 mapping clause csr_name_map = 0x00F  <-> "vcsr"
@@ -307,7 +308,6 @@ mapping clause csr_name_map = 0xC20  <-> "vl"
 mapping clause csr_name_map = 0xC21  <-> "vtype"
 mapping clause csr_name_map = 0xC22  <-> "vlenb"
 
-function clause is_CSR_accessible(0x008, _) = currentlyEnabled(Ext_Zve32x) // vstart
 function clause is_CSR_accessible(0x009, _) = currentlyEnabled(Ext_Zve32x) // vxsat
 function clause is_CSR_accessible(0x00A, _) = currentlyEnabled(Ext_Zve32x) // vxrm
 function clause is_CSR_accessible(0x00F, _) = currentlyEnabled(Ext_Zve32x) // vcsr
@@ -316,7 +316,6 @@ function clause is_CSR_accessible(0xC21, _) = currentlyEnabled(Ext_Zve32x) // vt
 function clause is_CSR_accessible(0xC22, _) = currentlyEnabled(Ext_Zve32x) // vlenb
 
 
-function clause read_CSR(0x008) = vstart
 function clause read_CSR(0x009) = zero_extend(vcsr[vxsat])
 function clause read_CSR(0x00A) = zero_extend(vcsr[vxrm])
 function clause read_CSR(0x00F) = zero_extend(vcsr.bits)
@@ -324,14 +323,6 @@ function clause read_CSR(0xC20) = vl
 function clause read_CSR(0xC21) = vtype.bits
 function clause read_CSR(0xC22) = VLENB
 
-// Note: The spec recommends trapping if vstart is out of bounds but the
-// current implementation does not yet do that.
-
-function set_vstart(value : bits(16)) -> unit = {
-  dirty_v_context();
-  vstart = zero_extend(value[(vlen_exp - 1) .. 0]);
-  csr_write_callback("vstart", vstart);
-}
 
 private function write_vcsr(vxrm_val : bits(2), vxsat_val : bits(1)) -> unit = {
   vcsr[vxrm]  = vxrm_val; // Note: frm can be an illegal value, 101, 110, 111
@@ -348,7 +339,6 @@ function write_vxsat(vxsat_val: bits(1)) -> unit = {
   csr_write_callback("vcsr", zero_extend(vcsr.bits));
 }
 
-function clause write_CSR(0x008, value) = { set_vstart(value[15 .. 0]); Ok(vstart) }
 function clause write_CSR(0x009, value) = { write_vcsr (vcsr[vxrm], value[0 .. 0]); Ok(zero_extend(vcsr[vxsat])) }
 function clause write_CSR(0x00A, value) = { write_vcsr (value[1 .. 0], vcsr[vxsat]); Ok(zero_extend(vcsr[vxrm])) }
 function clause write_CSR(0x00F, value) = { write_vcsr (value [2 .. 1], value [0 .. 0]); Ok(zero_extend(vcsr.bits)) }

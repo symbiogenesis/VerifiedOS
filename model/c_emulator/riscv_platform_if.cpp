@@ -45,9 +45,6 @@ unit PlatformInterface::xreg_full_write_callback(
   return UNIT;
 }
 
-unit PlatformInterface::freg_write_callback([[maybe_unused]] unsigned reg, [[maybe_unused]] sbits value) {
-  return UNIT;
-}
 
 unit PlatformInterface::csr_full_write_callback(
   [[maybe_unused]] const_sail_string csr_name,

@@ -34,7 +34,7 @@ function clause execute MMTYPE(funct6, vs2, vs1, vd) = {
   let SEW      = get_sew();
   let num_elem = vlen;
 
-  if illegal_vd_unmasked() | illegal_vstart(VSTART_ARITH, num_elem, 0) then return Illegal_Instruction();
+  if illegal_vd_unmasked() then return Illegal_Instruction();
 
   let 'n = num_elem;
   let 'm = SEW;
@@ -62,7 +62,6 @@ function clause execute MMTYPE(funct6, vs2, vs1, vd) = {
   };
 
   write_vmask(num_elem, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -91,7 +90,7 @@ mapping clause encdec = VCPOP_M(vm, vs2, rd)
 function clause execute VCPOP_M(vm, vs2, rd) = {
   let num_elem = vlen;
 
-  if illegal_vd_unmasked() | illegal_vstart(VSTART_MANDATORY, num_elem, 0) then return Illegal_Instruction();
+  if illegal_vd_unmasked() then return Illegal_Instruction();
 
   let 'n = num_elem;
 
@@ -101,7 +100,6 @@ function clause execute VCPOP_M(vm, vs2, rd) = {
   let mask : bits('n) = init_masked_source(num_elem, 0, vm_val);
 
   X(rd) = to_bits(xlen, count_ones(mask & vs2_val));
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -119,7 +117,7 @@ mapping clause encdec = VFIRST_M(vm, vs2, rd)
 function clause execute VFIRST_M(vm, vs2, rd) = {
   let num_elem = vlen;
 
-  if illegal_vd_unmasked() | illegal_vstart(VSTART_MANDATORY, num_elem, 0) then return Illegal_Instruction();
+  if illegal_vd_unmasked() then return Illegal_Instruction();
 
   let 'n = num_elem;
 
@@ -131,7 +129,6 @@ function clause execute VFIRST_M(vm, vs2, rd) = {
   let active = mask & vs2_val;
 
   X(rd) = if active == zeros() then ones() else to_bits(count_trailing_zeros(active));
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -150,7 +147,7 @@ function clause execute VMSBF_M(vm, vs2, vd) = {
   let SEW      = get_sew();
   let num_elem = vlen;
 
-  if illegal_vstart(VSTART_MANDATORY, num_elem, 0) | illegal_normal(vd, vm) | vd == vs2
+  if illegal_normal(vd, vm) | vd == vs2
   then return Illegal_Instruction();
 
   let 'n = num_elem;
@@ -172,7 +169,6 @@ function clause execute VMSBF_M(vm, vs2, vd) = {
   };
 
   write_vmask(num_elem, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -191,7 +187,7 @@ function clause execute VMSIF_M(vm, vs2, vd) = {
   let SEW      = get_sew();
   let num_elem = vlen;
 
-  if illegal_vstart(VSTART_MANDATORY, num_elem, 0) | illegal_normal(vd, vm) | vd == vs2
+  if illegal_normal(vd, vm) | vd == vs2
   then return Illegal_Instruction();
 
   let 'n = num_elem;
@@ -213,7 +209,6 @@ function clause execute VMSIF_M(vm, vs2, vd) = {
   };
 
   write_vmask(num_elem, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -232,7 +227,7 @@ function clause execute VMSOF_M(vm, vs2, vd) = {
   let SEW      = get_sew();
   let num_elem = vlen;
 
-  if illegal_vstart(VSTART_MANDATORY, num_elem, 0) | illegal_normal(vd, vm) | vd == vs2
+  if illegal_normal(vd, vm) | vd == vs2
   then return Illegal_Instruction();
 
   let 'n = num_elem;
@@ -258,7 +253,6 @@ function clause execute VMSOF_M(vm, vs2, vd) = {
   };
 
   write_vmask(num_elem, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -278,8 +272,7 @@ function clause execute VIOTA_M(vm, vs2, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_MANDATORY, num_elem, LMUL_pow) |
-     illegal_normal(vd, vm) |
+  if illegal_normal(vd, vm) |
      not(valid_reg_group(vd, LMUL_pow)) |
      vd == vs2
   then return Illegal_Instruction();
@@ -303,7 +296,6 @@ function clause execute VIOTA_M(vm, vs2, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 
@@ -323,7 +315,7 @@ function clause execute VID_V(vm, vd) = {
   let LMUL_pow = get_lmul_pow();
   let num_elem = get_num_elem(LMUL_pow, SEW);
 
-  if illegal_vstart(VSTART_ARITH, num_elem, LMUL_pow) | illegal_normal(vd, vm) | not(valid_reg_group(vd, LMUL_pow))
+  if illegal_normal(vd, vm) | not(valid_reg_group(vd, LMUL_pow))
   then return Illegal_Instruction();
 
   let 'n = num_elem;
@@ -340,7 +332,6 @@ function clause execute VID_V(vm, vd) = {
   };
 
   write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  set_vstart(zeros());
   RETIRE_SUCCESS
 }
 

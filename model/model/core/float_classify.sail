@@ -6,6 +6,31 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // =======================================================================================
 
+// The canonical quiet NaN of each element width. It sat with the scalar F/D
+// register file until that file was deleted (R-15-039); the vector datapath is
+// the only producer of a canonical NaN now, and the constant is a property of
+// the format rather than of any register bank.
+val canonical_NaN : forall 'n, 'n in {16, 32, 64, 128} . (implicit('n)) -> bits('n)
+function canonical_NaN(n) =
+  match 'n {
+    //     sign  exponent    significand
+    16  => 0b0 @ ones(5)  @ 0b1 @ zeros(9),
+    32  => 0b0 @ ones(8)  @ 0b1 @ zeros(22),
+    64  => 0b0 @ ones(11) @ 0b1 @ zeros(51),
+    128 => 0b0 @ ones(15) @ 0b1 @ zeros(111),
+  }
+
+// The softfloat exception flags the model raises itself, kept here now that
+// the scalar F/D files that defined them are gone (R-15-039). The accrued-
+// exception CSR `fflags` is deleted with them, so a raised flag reaches no
+// architectural state: it is computed because the softfloat interface returns
+// it in the same tuple as the result, and read only where a result depends on
+// it (the quiet comparisons in the vector unit).
+function nxFlag() -> bits(5) = 0b_00001
+function ofFlag() -> bits(5) = 0b_00100
+function dzFlag() -> bits(5) = 0b_01000
+function nvFlag() -> bits(5) = 0b_10000
+
 // Convert the floating point class to the RISC-V one-hot encoding.
 mapping float_class_onehot_bits : float_class <-> bits(10) = {
   float_class_negative_inf       <-> 0b0000000001,
