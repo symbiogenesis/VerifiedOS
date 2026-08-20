@@ -8,6 +8,8 @@ The checker is untrusted machinery: a defect in it costs reviewer attention, nev
 
 The closure is the register's own conferral shape applied to the tool: this registry and the code are two artifacts, and `check.ps1`'s meta group holds them in agreement in both directions on every run, failing on a registered rule no check carries and on a check carrying no registered rule. What no closure can decide is whether a registered claim is the *right* claim; that residue is a person's, exactly as it is for every enumeration the tool checks.
 
+A second instrument stands behind the rows themselves. [check-selftest.ps1](check-selftest.ps1) carries one seeded defect per rule, mutates a sandbox built from the working tree so that the rule must report, and fails on the rule that reads the defect and says nothing. It is held against this table in both directions too, so a row added here without a case is a finding, and it is what keeps a row from being a claim about a check that has stopped deciding anything. Passing it means each rule *bites*, which is a weaker thing than each rule being right and a stronger thing than the run being green.
+
 ## The rules
 
 | Rule | Group | Passing means | Ground |
@@ -26,7 +28,7 @@ The closure is the register's own conferral shape applied to the tool: this regi
 | K-11 | names | every R-, CJ-, A-, B- and P- id used names one its declarer holds | R-05-152 |
 | K-12 | links | every link resolves to a file, and every fragment to a bookmark or heading | cross-document hygiene; a dead link renders as working prose |
 | K-13 | links | every section number a sentence names is carried by some heading | the same hygiene, for the reference Markdown cannot break visibly |
-| K-14 | views | every requirement a view must carry is carried, and every view exists | R-15-001a, R-15-100a, R-17-016a, R-18-034 |
+| K-14 | views | every requirement a view must carry is carried | R-15-001a, R-15-100a, R-17-016a, R-18-034 |
 | K-15 | views | the coverage matrix carries every boundary-by-property pair exactly once | R-17-001b |
 | K-16 | views | every coverage-matrix cell cites a requirement | R-17-001b |
 | K-17 | views | the crown-jewel inventory accounts for every CJ- target | R-17-016 |
@@ -58,7 +60,10 @@ The closure is the register's own conferral shape applied to the tool: this regi
 | K-43 | bindings | every consumer cell restates what the statement does with its field | R-18-031, R-05-160, R-05-161 |
 | K-44 | bindings | every instantiation cell is 'none yet' or a link to the instantiating artifact | R-18-031 |
 | K-45 | confers | every disposition and ruling suppresses a finding that would otherwise stand | R-17-016, R-17-030t, R-10-013a |
-| K-46 | floors | every set the tool reads has members, every citation it makes into the register resolves, and every quantity it computes is claimed | the checker's own reach; a rule over an empty set passes and decides nothing |
+| K-46 | floors | every quantity the tool computes is held by a claim, so nothing notices when one goes to zero | the checker's own reach; a rule over an empty set passes and decides nothing |
+| K-47 | floors | every enumeration the tool reads and never counts has members | the same reach, where no prose exists to disagree with the set |
+| K-48 | floors | every citation this file makes into the register resolves | the same reach, for the citations that live in a `.ps1` and so reach no other rule |
+| K-49 | views | every view the register obliges is in the repository | R-15-001a, R-15-100a, R-17-016a, R-18-034 |
 
 ## What the registry is not
 
@@ -68,6 +73,6 @@ It is not a specification of the checks' algorithms, which stay in the source wh
 
 The gate should price this table by what its rules reach, and the reach has a boundary worth stating rather than leaving to be discovered. A rule decides a property of a set the tool locates in a document, so the honest question about any row is not only whether the property holds but whether the set is the intended one, and there are three answers.
 
-Where the set is found by **name**, staleness is caught outright: an identifier, a bookmark, a link, or a section number either resolves against the artifact declaring it or is a finding, in both directions, which is what K-01 through K-17 and K-42 through K-44 are. Where the set is a **computed value**, it is recomputed rather than trusted, which is what K-24 through K-37 are. Where the set is found by **pattern**, a regex or a literal that locates content rather than naming it, the pattern does not fail when the document moves under it; it matches less. K-46 floors the case where it matches nothing at all, which is the common one, because deletions and renumberings are common and an empty set satisfies every property vacuously. K-45 is the same floor applied to the tool's own carve-outs.
+Where the set is found by **name**, staleness is caught outright: an identifier, a bookmark, a link, a section number, or a required artifact either resolves against the thing declaring it or is a finding, in both directions, which is what K-01 through K-17, K-42 through K-44, and K-48 and K-49 are. Where the set is a **computed value**, it is recomputed rather than trusted, which is what K-24 through K-37 are. Where the set is found by **pattern**, a regex or a literal that locates content rather than naming it, the pattern does not fail when the document moves under it; it matches less. K-46 and K-47 floor the case where it matches nothing at all, which is the common one, because deletions and renumberings are common and an empty set satisfies every property vacuously; K-46 does it by requiring that every computed quantity be claimed somewhere, so the prose disagrees loudly, and K-47 states the floor directly for the sets no figure counts. K-45 is the same floor applied to the tool's own carve-outs.
 
-What no rule here reaches is a pattern whose yield falls **without reaching zero**. Drop one term from a vocabulary alternation and the agenda quietly narrows, the remaining candidates are still checked, and the run is still green. Nor does any rule reach a reference that still resolves while its referent has changed meaning, which is the semantic residue above seen from the other side. Both are a person's to catch, and a run reporting every rule green is evidence about the first two classes only.
+What no rule here reaches is a pattern whose yield falls **without reaching zero**. Drop one term from a vocabulary alternation and the agenda quietly narrows, the remaining candidates are still checked, and the run is still green. [check-selftest.ps1](check-selftest.ps1) takes the part of that a machine can have, by seeding each rule a defect it must report, which catches the rule that has stopped deciding anything even while its set stays populated; what it cannot catch is the rule that still decides its seeded case and has narrowed around every other one. Nor does any rule reach a reference that still resolves while its referent has changed meaning, which is the semantic residue above seen from the other side. Both are a person's to catch, and a run reporting every rule green is evidence about the classes above and not about these.

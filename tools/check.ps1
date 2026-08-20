@@ -74,7 +74,9 @@ function Report([string]$Rule, [string]$Label, $Items, [string]$Ok = '', [string
 # the reports are the same, arrived at in one pass instead of many.
 
 function Get-LineIndex([int[]]$Starts, [int]$Offset) {
-    # the 0-based line containing a raw-text offset
+    # the 0-based line containing a raw-text offset. The same search answers the same
+    # question of any ascending offset table, which is the last entry at or before an
+    # offset, so the prose's heading offsets are read through it too.
     $i = [System.Array]::BinarySearch($Starts, $Offset)
     if ($i -lt 0) { $i = -$i - 2 }
     $i
@@ -84,27 +86,38 @@ function Get-LineIndex([int[]]$Starts, [int]$Offset) {
 # over the raw text it keeps ^ from drifting across a blank line onto the fence
 $fenceRe = [regex]'(?m)^[^\S\r\n]*```'
 
-$mdOpts = [System.IO.EnumerationOptions]::new()   # skips hidden and system, as the provider does
-$mdOpts.RecurseSubdirectories = $true
-$mdFiles = [System.IO.Directory]::GetFiles($PWD.Path, '*.md', $mdOpts)
-[System.Array]::Sort($mdFiles)
-
-# a submodule's markdown is upstream prose, not this corpus: every path .gitmodules books
-# is a pinned start-from whose documents answer to their own repository, so the sweep
-# excludes them wholesale rather than holding them to a house style they never saw;
-# model/ is the same prose vendored rather than pinned, the curated tree M0.6a stands
-# up from the sail-riscv blobs, so it is excluded on the same rationale
-$subPaths = @(if (Test-Path (Join-Path $PWD.Path '.gitmodules')) {
-    foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText((Join-Path $PWD.Path '.gitmodules')), '(?m)^\s*path\s*=\s*(\S+)')) {
-        [System.IO.Path]::GetFullPath((Join-Path $PWD.Path $m.Groups[1].Value)) + [System.IO.Path]::DirectorySeparatorChar
-    }
-})
-$subPaths += [System.IO.Path]::GetFullPath((Join-Path $PWD.Path 'model')) + [System.IO.Path]::DirectorySeparatorChar
-if ($subPaths.Count) {
-    $mdFiles = @($mdFiles | Where-Object { $f = $_; -not @($subPaths | Where-Object { $f.StartsWith($_) }).Count })
+# Every path this file names is repository-relative, and the corpus below is read out
+# of the index, so a run from anywhere else reads a different tree and reports on it
+# confidently. The register is the artifact every group ultimately answers to, so its
+# absence is the cheapest statement of the same fact.
+if (-not (Test-Path 'docs/requirements-register.md') -or -not (Test-Path '.git')) {
+    throw "run this from the repository root: '$($PWD.Path)' carries no .git and docs/requirements-register.md"
 }
 
-$docs = @(foreach ($f in $mdFiles) {
+# The corpus is what the repository tracks, which git already knows: `ls-files` skips
+# ignored files and build output without this tool maintaining a list of them, and a
+# submodule is one gitlink entry rather than its contents, so upstream prose stays out
+# by construction rather than by a .gitmodules parse. What git cannot see is that
+# model/ is that same upstream prose vendored rather than pinned, the curated tree
+# M0.6a stands up from the sail-riscv blobs: tracked here, answering to its own
+# repository's house style, and so the one exclusion left to state.
+#
+# The index lists what is tracked, which is not quite what is readable: a document
+# deleted from the working tree is still an index entry until the deletion is staged.
+# Such a file is dropped from the corpus rather than read, because that is what makes
+# its absence *reportable*. Every rule that names it then fails on its own terms, the
+# view group finding the artifact gone and the links group finding the pointers at it
+# dead, which is a finding a person can act on; reading it instead would abort the run
+# on an IO exception before any rule decided anything.
+$mdFiles = @(& git -c core.quotepath=false ls-files --full-name -- '*.md')
+if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed; the corpus is what the repository tracks' }
+$mdFiles = @($mdFiles |
+    Where-Object { $_ -and -not $_.StartsWith('model/') } |
+    Where-Object { [System.IO.File]::Exists([System.IO.Path]::Combine($PWD.Path, $_)) } |
+    Sort-Object)
+
+$docs = @(foreach ($name in $mdFiles) {
+    $f     = [System.IO.Path]::Combine($PWD.Path, $name)
     $raw   = [System.IO.File]::ReadAllText($f)
     $lines = [System.IO.File]::ReadAllLines($f)
 
@@ -127,7 +140,7 @@ $docs = @(foreach ($f in $mdFiles) {
     }
 
     [pscustomobject]@{
-        Name   = [System.IO.Path]::GetRelativePath($PWD.Path, $f) -replace '^\.[\\/]', '' -replace '\\', '/'
+        Name   = $name
         Raw    = $raw
         Lines  = $lines
         Starts = $starts
@@ -239,8 +252,7 @@ foreach ($d in $docs) {
     }
 
     foreach ($m in $anchorRe.Matches($d.Raw)) {
-        $i = [System.Array]::BinarySearch($starts, $m.Index)
-        if ($i -lt 0) { $i = -$i - 2 }
+        $i  = Get-LineIndex $starts $m.Index
         $id = $m.Groups[1].Value
         if ($d.Fenced[$i]) {
             $buried += "$($d.Name):$($i + 1) buries #$id in a fenced block, where it is text and not a bookmark"
@@ -251,8 +263,7 @@ foreach ($d in $docs) {
         if ($prose) {
             $anchorCount[$id] = 1 + $anchorCount[$id]
             if (-not $anchorSec.ContainsKey($id)) {
-                $j = [System.Array]::BinarySearch($headOffs, $m.Index)
-                if ($j -lt 0) { $j = -$j - 2 }
+                $j = Get-LineIndex $headOffs $m.Index
                 $anchorSec[$id] = if ($j -ge 0) { $headSecs[$j] } else { $null }
             }
         }
@@ -490,8 +501,7 @@ foreach ($d in $docs) {
     foreach ($m in $namesRe.Matches($d.Raw)) {
         $v = $byInitial[[string]$m.Value[0]]
         if ($v.DeclaredSet.Contains($m.Value)) { continue }
-        $i = [System.Array]::BinarySearch($starts, $m.Index)
-        if ($i -lt 0) { $i = -$i - 2 }
+        $i = Get-LineIndex $starts $m.Index
         if ($fenced[$i]) { continue }
         $v.Unknown.Add("$($d.Name):$($i + 1) uses $($m.Value), which $($v.Home) does not declare")
     }
@@ -527,6 +537,14 @@ foreach ($v in $vocab) {
 $linkRe   = [regex]'\]\(([^)\s#]*)(?:#([^)\s]+))?\)'
 $secRefRe = [regex]'§(\d+(?:\.\d+)*)'
 
+# A link at a submodule points at something the repository carries as a gitlink rather
+# than as a directory, and whether that gitlink is checked out is the reader's business
+# and not the pointer's. So a submodule path resolves whether or not its contents are
+# on disk: a shallow clone, or a checkout that skipped submodules, is not a repository
+# whose cross-references have gone stale.
+$gitlinks = [System.Collections.Generic.HashSet[string]]::new([string[]]@(
+    & git ls-files --stage | ForEach-Object { if ($_ -match '^160000 \S+ \d+\s+(.+)$') { $Matches[1] } }))
+
 # a link that resolves and a §n.m a heading carries are the overwhelming cases and
 # report nothing, so each is judged before its line is looked up; only a would-be
 # finding pays for the line, and one a fence displays is dropped there as text
@@ -545,7 +563,8 @@ foreach ($d in $docs) {
         }
         if (-not $exists.ContainsKey($file)) {
             $abs = [System.IO.Path]::Combine($PWD.Path, $file)
-            $exists[$file] = [System.IO.File]::Exists($abs) -or [System.IO.Directory]::Exists($abs)
+            $exists[$file] = [System.IO.File]::Exists($abs) -or [System.IO.Directory]::Exists($abs) -or
+                             $gitlinks.Contains($file)
         }
         $bad = if (-not $exists[$file]) {
                    "points at $file, which is not in the repository"
@@ -553,8 +572,7 @@ foreach ($d in $docs) {
                    "points at $file#$frag, which is no bookmark or heading there"
                }
         if (-not $bad) { continue }
-        $i = [System.Array]::BinarySearch($starts, $m.Index)
-        if ($i -lt 0) { $i = -$i - 2 }
+        $i = Get-LineIndex $starts $m.Index
         if ($d.Fenced[$i]) { continue }
         $dead += "$($d.Name):$($i + 1) $bad"
     }
@@ -562,8 +580,7 @@ foreach ($d in $docs) {
     foreach ($m in $secRefRe.Matches($d.Raw)) {
         $n = $m.Groups[1].Value
         if ($numbered.Contains($n)) { continue }
-        $i = [System.Array]::BinarySearch($starts, $m.Index)
-        if ($i -lt 0) { $i = -$i - 2 }
+        $i = Get-LineIndex $starts $m.Index
         if ($d.Fenced[$i]) { continue }
         if (-not $unnumbered.Contains($n)) { $unnumbered[$n] = @() }
         $unnumbered[$n] += "$($d.Name):$($i + 1)"
@@ -621,26 +638,35 @@ $views = @(
 $reqTokenRe = [regex]'R-\d\d-\d+[a-z]?'
 
 "=== views: what each derived view carries, both directions ==="
+
+# A view that is not there and a view that is there and short of a member fail
+# differently and are repaired differently, so they are two rules: the first is
+# whether the artifact a requirement obliges exists at all, and it is decided once
+# over the whole table rather than once per view.
+Report 'K-49' 'declared view(s) not in the repository:' `
+       @($views | Where-Object { -not $docByName.ContainsKey($_.File) } |
+         ForEach-Object { "$($_.File), which $($_.Governing) requires, is not in the repository" }) `
+       "all $($views.Count) views the register obliges exist"
+
 foreach ($v in $views) {
     "$($v.File) (per $($v.Governing))"
-    if (-not $docByName.ContainsKey($v.File)) {
-        Report 'K-14' 'missing view:' @("$($v.File) is not in the repository") '' '  '
-        continue
-    }
+    if (-not $docByName.ContainsKey($v.File)) { continue }
 
     $cited = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($m in $reqTokenRe.Matches($docByName[$v.File].Raw)) { [void]$cited.Add($m.Value) }
 
-    if ($v.Secs) {
-        $uncovered = @(foreach ($k in $subsection.Keys) {
-            if ($subsection[$k] -in $v.Secs -and -not $cited.Contains($k)) { $k }
-        }) | Sort-Object
-        Report 'K-14' 'bearing requirement(s) not carried:' $uncovered 'all bearing requirements are carried' '  '
-    } elseif ($v.BodyPattern) {
-        $uncovered = @(foreach ($k in $body.Keys) {
-            if ($body[$k] -match $v.BodyPattern -and -not $cited.Contains($k)) { $k }
-        }) | Sort-Object
-        Report 'K-14' 'bearing requirement(s) not carried:' $uncovered 'all bearing requirements are carried' '  '
+    # a view declares what it must carry either by owning subsections or by a pattern
+    # over the entry bodies; which of the two it is changes only where the members
+    # come from, so the membership test itself is stated once
+    if ($v.Secs -or $v.BodyPattern) {
+        $bearing = @(if ($v.Secs) {
+            foreach ($k in $subsection.Keys) { if ($subsection[$k] -in $v.Secs) { $k } }
+        } else {
+            foreach ($k in $body.Keys) { if ($body[$k] -match $v.BodyPattern) { $k } }
+        })
+        Report 'K-14' 'bearing requirement(s) not carried:' `
+               @($bearing | Where-Object { -not $cited.Contains($_) } | Sort-Object) `
+               "all $($bearing.Count) bearing requirements are carried" '  '
     }
 
     # a matrix view is bearing over a product rather than a subsection: what it must
@@ -1105,18 +1131,17 @@ $fixedFiles = @{}
 # --- one claim, found and then either repaired or reported -------------------------
 #
 # A claim is a file, a pattern capturing a stated figure alone, and the value that
-# figure must read. Two groups state claims. The counts group takes the value from the
-# quantity table and lets one figure be asserted in as many sentences as want it; the
-# estimates group computes the value from the item hours and requires exactly one site,
-# so a sentence that moves is a finding rather than a silent no-op. Between those two
-# ends the work is identical, so it is one function rather than two loops that drift.
+# figure must read. This is the counts group's unit: one figure, asserted in as many
+# sentences as want it, each site independently required to agree. Where instead a
+# sentence carries several derived figures at once, the unit is the sentence and the
+# work is Resolve-Line's, below.
 #
 # Comparison is on the figure, not on its spelling: commas and capitals are formatting,
 # and the register writes 1275 where the checklist writes 1,070.3. A site that states
 # the right figure in the other document's format is therefore not a finding, and -Fix
 # still normalizes it, because the rewrite is driven by the literal text.
 function Resolve-Claim {
-    param([string]$File, [string]$Pattern, [string]$Expected, [string]$What, [switch]$Unique)
+    param([string]$File, [string]$Pattern, [string]$Expected, [string]$What)
 
     $result = [pscustomobject]@{ Spans = @(); Finding = $null; Fixed = $null }
     if (-not $docByName.ContainsKey($File)) {
@@ -1129,10 +1154,6 @@ function Resolve-Claim {
 
     if ($hits.Count -eq 0) {
         $result.Finding = "${File}: $What is stated nowhere /$Pattern/ holds it; the wording moved, so re-anchor the claim or drop it"
-        return $result
-    }
-    if ($Unique -and $hits.Count -gt 1) {
-        $result.Finding = "${File}: $What is stated in $($hits.Count) places; re-anchor the sentence or the pattern"
         return $result
     }
 
@@ -1155,6 +1176,68 @@ function Resolve-Claim {
     $wrong  = @($hits | Where-Object { (& $figure $_.Value) -ne $want })
     if ($wrong.Count) {
         $result.Finding = "${File}: $What asserted as '$($wrong[0].Value)', the artifact gives '$Expected'"
+    }
+    $result
+}
+
+# --- one sentence, and every derived figure it carries at once ---------------------
+#
+# Resolve-Claim above is one pattern for one figure, which is the right unit where a
+# figure is asserted in a sentence of its own and may be asserted in several. Where a
+# sentence carries four of them the unit is the sentence: the pattern is anchored to
+# the line, each figure is a named group, and the sentence is owed exactly one site
+# for the same reason a total is. The comparison rule is Resolve-Claim's exactly, the
+# figure rather than its spelling, and so is the repair: a group is rewritten where it
+# does not already read what the repair would write.
+function Resolve-Line {
+    param([string]$File, [string]$Pattern, $Expected, [string]$What)
+
+    $result = [pscustomobject]@{
+        Findings = [System.Collections.Generic.List[string]]::new()
+        Fixed    = [System.Collections.Generic.List[string]]::new()
+    }
+    if (-not $docByName.ContainsKey($File)) {
+        $result.Findings.Add("$File is not in the repository")
+        return $result
+    }
+    $raw  = if ($fixedFiles.ContainsKey($File)) { $fixedFiles[$File] } else { $docByName[$File].Raw }
+    $hits = @([regex]::Matches($raw, $Pattern))
+    if ($hits.Count -ne 1) {
+        $result.Findings.Add("${File}: $What is stated in $($hits.Count) places /$Pattern/ holds it; the wording moved, so re-anchor the sentence or the pattern")
+        return $result
+    }
+    $m = $hits[0]
+
+    $figure = { param($s) $s.ToLower().Replace(',', '') }
+    $work = @(foreach ($name in $Expected.Keys) {
+        $g = $m.Groups[$name]
+        if (-not $g.Success) {
+            $result.Findings.Add("${File}: $What carries no '$name' figure where the pattern names one")
+            continue
+        }
+        [pscustomobject]@{ Name = $name; Index = $g.Index; Length = $g.Length; Found = $g.Value; Want = [string]$Expected[$name] }
+    })
+
+    if (-not $Fix) {
+        foreach ($w in $work) {
+            if ((& $figure $w.Found) -ne (& $figure $w.Want)) {
+                $result.Findings.Add("${File}: $What states $($w.Name) as '$($w.Found)', the items give '$($w.Want)'")
+            }
+        }
+        return $result
+    }
+
+    # the groups are rewritten last-first, so replacing one never moves the offsets of
+    # the ones still to be written
+    $text = $raw
+    foreach ($w in @($work | Sort-Object Index -Descending)) {
+        if ($w.Found -ceq $w.Want) { continue }
+        $text = $text.Remove($w.Index, $w.Length).Insert($w.Index, $w.Want)
+        $result.Fixed.Add("fixed: ${File}: $What $($w.Name) $($w.Found) -> $($w.Want)")
+    }
+    if ($text -cne $raw) {
+        $fixedFiles[$File] = $text
+        $result.Fixed.Reverse()      # reported in the order the sentence reads
     }
     $result
 }
@@ -1619,40 +1702,53 @@ if ($edits.Count -and $Fix) {
            "all $($items.Count) item cells and $($sections.Count) subtotals agree with their hours"
 }
 
-# the figures the summary and the basis restate, each captured alone so the prose that
-# carries them stays the document's. These are claims in exactly the counts group's
-# sense and go through its machinery, differing only in that the value is computed from
-# the items above rather than read from the quantity table, and that each is owed
-# exactly one site: a second sentence restating a total is the drift, not a synonym.
+# the figures the summary and the basis restate, the prose that carries them staying
+# the document's. These are claims in exactly the counts group's sense, differing only
+# in that the value is computed from the items above rather than read from the quantity
+# table, and that each is owed exactly one site: a second sentence restating a total is
+# the drift, not a synonym.
+#
+# The unit is the line rather than the figure, because these figures sit four to a
+# sentence. Anchored one at a time, each pattern has to re-encode every figure before
+# it on its line as a lookbehind, so one reworded sentence is four patterns to
+# re-derive and the last of them states the sentence nearly twice over. One pattern
+# per line states the shape once and names each figure it carries, which is also what
+# the document means: the sentence is the thing that must agree, not four independent
+# tokens that happen to share it.
 $grandT = Format-Hours $grand
 $loT    = Format-Hours ($doneH + $openLo)
 $hiT    = Format-Hours ($doneH + $openHi)
-$figures = @(
-    @{ What = 'total midpoint';   T = $grandT; P = '(?<=^\* Total estimate: )[\d.,]+' }
-    @{ What = 'total range low';  T = $loT;    P = '(?<=^\* Total estimate: [\d.,]+ h midpoint, range )[\d.,]+' }
-    @{ What = 'total range high'; T = $hiT;    P = '(?<=^\* Total estimate: [\d.,]+ h midpoint, range [\d.,]+–)[\d.,]+' }
+$derivedLines = @(
+    @{ What = 'the total estimate'
+       P    = '(?m)^\* Total estimate: (?<mid>[\d.,]+) h midpoint, range (?<lo>[\d.,]+)–(?<hi>[\d.,]+) h'
+       T    = [ordered]@{ mid = $grandT; lo = $loT; hi = $hiT } }
 
-    @{ What = 'hours complete';   T = (Format-Hours $doneH);                          P = '(?<=^\* Progress by estimate: )[\d.,]+' }
-    @{ What = 'progress total';   T = $grandT;                                        P = '(?<=^\* Progress by estimate: [\d.,]+ of )[\d.,]+' }
-    @{ What = 'complete share';   T = ('{0:N1}' -f (Get-Share $doneH $grand 1));      P = '(?<=^\* Progress by estimate: [\d.,]+ of [\d.,]+ h complete \()[\d.]+' }
-    @{ What = 'hours remaining';  T = (Format-Hours ($grand - $doneH));               P = '(?<=^\* Progress by estimate: [\d.,]+ of [\d.,]+ h complete \([\d.]+%\); )[\d.,]+' }
-    @{ What = 'remaining share';  T = ('{0:N1}' -f (Get-Share ($grand - $doneH) $grand 1)); P = '(?<=^\* Progress by estimate: [\d.,]+ of [\d.,]+ h complete \([\d.]+%\); [\d.,]+ h remaining \()[\d.]+' }
+    @{ What = 'the progress pair'
+       P    = '(?m)^\* Progress by estimate: (?<done>[\d.,]+) of (?<total>[\d.,]+) h complete \((?<donePct>[\d.]+)%\); (?<left>[\d.,]+) h remaining \((?<leftPct>[\d.]+)%\)'
+       T    = [ordered]@{ done    = (Format-Hours $doneH)
+                          total   = $grandT
+                          donePct = ('{0:N1}' -f (Get-Share $doneH $grand 1))
+                          left    = (Format-Hours ($grand - $doneH))
+                          leftPct = ('{0:N1}' -f (Get-Share ($grand - $doneH) $grand 1)) } }
 
-    @{ What = 'M8 gate hours';    T = (Format-Hours $gateH); P = '(?<=^\* M8 gate: )[\d.,]+' }
-    @{ What = 'M8 gate total';    T = $grandT;               P = '(?<=^\* M8 gate: [\d.,]+ h of the )[\d.,]+' }
+    @{ What = 'the M8 gate figure'
+       P    = '(?m)^\* M8 gate: (?<gate>[\d.,]+) h of the (?<total>[\d.,]+) h midpoint'
+       T    = [ordered]@{ gate = (Format-Hours $gateH); total = $grandT } }
 
-    @{ What = 'basis midpoint';   T = $grandT; P = '(?<=^\* Grand total: the sum of the item cells, )[\d.,]+' }
-    @{ What = 'basis range low';  T = $loT;    P = '(?<=^\* Grand total: the sum of the item cells, [\d.,]+ h midpoint over a )[\d.,]+' }
-    @{ What = 'basis range high'; T = $hiT;    P = '(?<=^\* Grand total: the sum of the item cells, [\d.,]+ h midpoint over a [\d.,]+–)[\d.,]+' }
+    @{ What = 'the grand-total basis'
+       P    = '(?m)^\* Grand total: the sum of the item cells, (?<mid>[\d.,]+) h midpoint over a (?<lo>[\d.,]+)–(?<hi>[\d.,]+) h range'
+       T    = [ordered]@{ mid = $grandT; lo = $loT; hi = $hiT } }
 )
 
-foreach ($f in $figures) {
-    $r = Resolve-Claim -File $planName -Pattern ('(?m)' + $f.P) -What $f.What -Expected $f.T -Unique
-    if ($r.Fixed)   { $r.Fixed }
-    if ($r.Finding) { $stated += $r.Finding }
+$restatedCount = 0
+foreach ($f in $derivedLines) {
+    $restatedCount += $f.T.Count
+    $r = Resolve-Line -File $planName -Pattern $f.P -What $f.What -Expected $f.T
+    if ($r.Fixed.Count)    { $r.Fixed }
+    if ($r.Findings.Count) { $stated += $r.Findings }
 }
 Report 'K-37' 'restated total(s) disagreeing with the items beneath them:' $stated `
-       "all $($figures.Count) restated totals agree with the items"
+       "all $restatedCount restated totals agree with the items, over $($derivedLines.Count) sentences"
 
 }
 ""
@@ -1788,11 +1884,15 @@ Report 'K-41' 'file(s) carrying mojibake or a replacement character' $mojibakeHi
 # cheap, because a rule in that state looks exactly like a rule that is working, and
 # the review gate prices it as one.
 #
-# Three floors close it, and the first is nearly free because the design already almost
-# has it. A quantity the counts group computes is compared against what the documents
-# say, so an anchor that breaks drives the count to zero and the prose disagrees with
-# it loudly: being *claimed* is what makes a quantity self-checking. So every quantity
-# is required to be claimed, and the counts group becomes total rather than a habit.
+# Three floors close it, they answer to three different readings, and so they are three
+# rules rather than one: a registry row is what the review gate prices the tool by, and
+# a row whose claim is a conjunction of three prices none of them.
+#
+# The first is nearly free because the design already almost has it. A quantity the
+# counts group computes is compared against what the documents say, so an anchor that
+# breaks drives the count to zero and the prose disagrees with it loudly: being
+# *claimed* is what makes a quantity self-checking. So every quantity is required to be
+# claimed, and the counts group becomes total rather than a habit.
 #
 # The second covers what is read and never counted. There is no prose to disagree with
 # such a set, so the floor is stated here directly: it has members, or the reading that
@@ -1833,7 +1933,7 @@ $floors = [ordered]@{
     'checklist subtotals'                 = Get-Size $sections
     'dominant terms read from the big table' = Get-Size $ends
 }
-Report 'K-46' 'enumeration(s) the tool reads and finds empty:' `
+Report 'K-47' 'enumeration(s) the tool reads and finds empty:' `
        @($floors.Keys | Where-Object { -not $floors[$_] } |
          ForEach-Object { "the tool finds no $_; whatever it reads them from has moved" }) `
        "all $($floors.Count) uncounted enumerations have members"
@@ -1862,7 +1962,7 @@ $unanswered = @(foreach ($v in $views) {
         }
     }
 })
-Report 'K-46' 'view citation(s) the register no longer answers:' $unanswered `
+Report 'K-48' 'view citation(s) the register no longer answers:' $unanswered `
        "all $cited register citations in the view table resolve"
 ""
 
