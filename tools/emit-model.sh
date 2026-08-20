@@ -5,11 +5,9 @@
 # the fresh schema and the frozen profile to tools/validate-config.py, which states
 # what the check decides and why. No C++ is compiled, so the full build stays the
 # exit criterion for each batch.
-VOS_TOOLS=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)
-[ -f "$VOS_TOOLS/wsl-env.sh" ] || VOS_TOOLS=/mnt/c/Users/symbi/source/repos/VerifiedOS/tools
-. "$VOS_TOOLS/wsl-env.sh"
-SRC=/mnt/c/Users/symbi/source/repos/VerifiedOS/model
-BLD=/root/build/verifiedos-model
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/wsl-env.sh"
+SRC=$VOS_MODEL
+BLD=$VOS_BUILD_ROOT/verifiedos-model
 # Reuse build-model.sh's configured canonical build tree; configure if absent.
 if [ ! -f "$BLD/build.ninja" ]; then
   cmake -S "$SRC" -B "$BLD" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_GMP=FALSE -DENABLE_RISCV_TESTS=TRUE "${VOS_CMAKE_CCACHE[@]}" || exit 1

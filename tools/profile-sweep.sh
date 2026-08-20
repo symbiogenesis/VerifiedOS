@@ -15,12 +15,10 @@
 #          it is classified rather than left to a ctest timeout
 #
 # Usage: tools/profile-sweep.sh [xlen] [output]      (defaults: 64, stdout)
-VOS_TOOLS=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)
-[ -f "$VOS_TOOLS/wsl-env.sh" ] || VOS_TOOLS=/mnt/c/Users/symbi/source/repos/VerifiedOS/tools
-. "$VOS_TOOLS/wsl-env.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/wsl-env.sh"
 
-SRC=/mnt/c/Users/symbi/source/repos/VerifiedOS/model
-BLD=${VOS_BUILD_DIR:-/root/build/verifiedos-model}
+SRC=$VOS_MODEL
+BLD=${VOS_BUILD_DIR:-$VOS_BUILD_ROOT/verifiedos-model}
 SIM=$BLD/c_emulator/sail_riscv_sim
 CONFIG=$SRC/config/verifiedos.json
 XLEN=${1:-64}

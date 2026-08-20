@@ -12,33 +12,32 @@
 # in-build and so under N-way contention; alone the -O2 -g compile is 150s wall, 136s CPU,
 # 1.43 GB peak) and is never used; optimization level, assertions, and the test suite are
 # identical. The canonical build (FAST unset) remains the exit criterion for every batch.
-VOS_TOOLS=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)
-[ -f "$VOS_TOOLS/wsl-env.sh" ] || VOS_TOOLS=/mnt/c/Users/symbi/source/repos/VerifiedOS/tools
-. "$VOS_TOOLS/wsl-env.sh"
-SRC=/mnt/c/Users/symbi/source/repos/VerifiedOS/model
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/wsl-env.sh"
+SRC=$VOS_MODEL
+CANON=$VOS_BUILD_ROOT/verifiedos-model
 if [ "${FAST:-0}" = "1" ]; then
-  BLD=/root/build/verifiedos-model-fast
-  LOG=/root/logs/model-build-fast.log
+  BLD=$VOS_BUILD_ROOT/verifiedos-model-fast
+  LOG=$VOS_LOG_DIR/model-build-fast.log
   FLAGS=("-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG" "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG")
   # Seed the pre-downloaded test ELFs from the canonical build dir so the fast
   # dir's first configure doesn't re-download the tarball.
-  if [ ! -d "$BLD/test/2026-06-10" ] && [ -d /root/build/verifiedos-model/test/2026-06-10 ]; then
+  if [ ! -d "$BLD/test/2026-06-10" ] && [ -d "$CANON/test/2026-06-10" ]; then
     mkdir -p "$BLD/test"
-    cp -r /root/build/verifiedos-model/test/2026-06-10 "$BLD/test/2026-06-10"
+    cp -r "$CANON/test/2026-06-10" "$BLD/test/2026-06-10"
   fi
   # Seed the Sail SMT memo cache likewise: a cold cache re-discharges every Z3
   # obligation and turns the ~2min emission into ~25min (measured once). The
   # cache is content-keyed, so a stale copy only costs misses.
-  if [ ! -f "$BLD/model/sail_smt_cache" ] && [ -f /root/build/verifiedos-model/model/sail_smt_cache ]; then
+  if [ ! -f "$BLD/model/sail_smt_cache" ] && [ -f "$CANON/model/sail_smt_cache" ]; then
     mkdir -p "$BLD/model"
-    cp /root/build/verifiedos-model/model/sail_smt_cache "$BLD/model/sail_smt_cache"
+    cp "$CANON/model/sail_smt_cache" "$BLD/model/sail_smt_cache"
   fi
 else
-  BLD=/root/build/verifiedos-model
-  LOG=/root/logs/model-build.log
+  BLD=$CANON
+  LOG=$VOS_LOG_DIR/model-build.log
   FLAGS=()
 fi
-mkdir -p /root/logs
+mkdir -p "$VOS_LOG_DIR"
 rm -f "$LOG"
 {
   echo "== sail: $(sail --version)"

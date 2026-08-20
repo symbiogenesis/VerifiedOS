@@ -18,7 +18,29 @@
 #      on the full model (M0.3 finding, twice reproduced).
 #   2. The Sail toolchain lives in the opam `default` switch, which a bare
 #      `wsl -e bash script.sh` does not put on PATH.
+#   3. Where the repository and the build trees are. Every loop needs both and
+#      each used to carry its own copy of the absolute path, twice over: once
+#      as a fallback for `$VOS_TOOLS` and once as its own `SRC=`. A checkout
+#      anywhere else, or by anyone else, silently built the wrong tree. The
+#      path is derived here from this file's own location, which is the one
+#      thing a sourced prelude always knows, and every loop reads it.
 ulimit -s 131072
+
+# BASH_SOURCE is this file even when sourced; the caller's own path is not
+# consulted, so a loop invoked through a symlink or from any directory lands on
+# the same tree. VOS_ROOT can still be set by the caller, which is what the
+# Docker lanes and a second checkout use.
+VOS_TOOLS=${VOS_TOOLS:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
+VOS_ROOT=${VOS_ROOT:-$(cd "$VOS_TOOLS/.." && pwd)}
+VOS_MODEL=${VOS_MODEL:-$VOS_ROOT/model}
+
+# The build trees live on ext4 rather than under the source tree: /mnt/c is a 9p
+# mount and a build directory on it is slow enough to matter. Overridable for the
+# same reason as the root above, and every loop below names its tree under this
+# rather than spelling out /root/build.
+VOS_BUILD_ROOT=${VOS_BUILD_ROOT:-/root/build}
+VOS_LOG_DIR=${VOS_LOG_DIR:-/root/logs}
+
 # Guarded because the Docker lanes source this prelude too, only for the
 # keepalive at the bottom, and they have no opam. Nothing is masked by the
 # guard: a Sail loop without the switch fails loudly at `sail --version`.
