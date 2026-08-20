@@ -10,16 +10,10 @@ the cut missed or a profile row the generated file no longer offers.
 
 Usage: tools/config-keys.py <generated.json> <verifiedos.json>
 """
-import json
 import re
 import sys
 
-
-def load(path):
-    text = open(path, encoding="utf-8").read()
-    # The model's configuration dialect allows // comments.
-    text = re.sub(r"^\s*//.*$", "", text, flags=re.M)
-    return json.loads(text)
+import jsonc
 
 
 def keys(node, prefix=""):
@@ -34,7 +28,7 @@ def keys(node, prefix=""):
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
-    left, right = (keys(load(p)) for p in sys.argv[1:3])
+    left, right = (keys(jsonc.load(p)) for p in sys.argv[1:3])
     # `memory.regions` is a list whose entries differ by design, and the option
     # payloads (`Some`/`None`) are values rather than configuration keys.
     ignore = re.compile(r"(^|\.)(Some|None|len|value)$")
