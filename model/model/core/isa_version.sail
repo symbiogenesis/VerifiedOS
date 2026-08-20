@@ -54,4 +54,3 @@ let priv_isa_version : Privileged_ISA_Version = config base.privileged_isa_versi
 // CSRs added in version 1.12. These CSRs are not
 // available in earlier versions.
 let mconfigptr_is_defined = priv_isa_version >= Privileged_ISA_1_12
-let mstatush_is_defined = priv_isa_version >= Privileged_ISA_1_12

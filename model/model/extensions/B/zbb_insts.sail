@@ -15,7 +15,7 @@ union clause instruction = RORIW : (bits(5), regidx, regidx)
 $[wavedrom "RORIW _ _ RORIW _ OP-IMM-32"]
 mapping clause encdec = RORIW(shamt, rs1, rd)
   <-> 0b0110000 @ shamt @ encdec_reg(rs1) @ 0b101 @ encdec_reg(rd) @ 0b0011011
-  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb)) & xlen == 64
+  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb))
 
 mapping clause assembly = RORIW(shamt, rs1, rd)
   <-> "roriw" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1) ^ sep() ^ hex_bits_5(shamt)
@@ -31,7 +31,7 @@ union clause instruction = RORI : (bits(6), regidx, regidx)
 $[wavedrom "RORI _ _ RORI _ OP-IMM"]
 mapping clause encdec = RORI(shamt, rs1, rd)
   <-> 0b011000 @ shamt @ encdec_reg(rs1) @ 0b101 @ encdec_reg(rd) @ 0b0010011
-  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb)) & (xlen == 64 | shamt[5] == 0b0)
+  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb))
 
 mapping clause assembly = RORI(shamt, rs1, rd)
   <-> "rori" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1) ^ sep() ^ hex_bits_6(shamt)
@@ -48,12 +48,12 @@ union clause instruction = ZBB_RTYPEW : (regidx, regidx, regidx, bropw_zbb)
 $[wavedrom "ROLW _ _ ROLW _ OP-32"]
 mapping clause encdec = ZBB_RTYPEW(rs2, rs1, rd, ROLW)
   <-> 0b0110000 @ encdec_reg(rs2) @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0111011
-  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb)) & xlen == 64
+  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb))
 
 $[wavedrom "RORW _ _ RORW _ OP-32"]
 mapping clause encdec = ZBB_RTYPEW(rs2, rs1, rd, RORW)
   <-> 0b0110000 @ encdec_reg(rs2) @ encdec_reg(rs1) @ 0b101 @ encdec_reg(rd) @ 0b0111011
-  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb)) & xlen == 64
+  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb))
 
 mapping zbb_rtypew_mnemonic : bropw_zbb <-> string = {
   ROLW <-> "rolw",
@@ -170,15 +170,12 @@ mapping clause encdec = ZBB_EXTOP(rs1, rd, SEXTH)
   <-> 0b0110000 @ 0b00101 @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0010011
   when currentlyEnabled(Ext_Zbb)
 
-$[wavedrom "_ _ _ ZEXT.H _ OP"]
-mapping clause encdec = ZBB_EXTOP(rs1, rd, ZEXTH)
-  <-> 0b0000100 @ 0b00000 @ encdec_reg(rs1) @ 0b100 @ encdec_reg(rd) @ 0b0110011
-  when currentlyEnabled(Ext_Zbb) & xlen == 32
-
+// `zext.h` has one encoding here: the OP-form is RV32's and RV32 is not a
+// configuration of this model (xlen.sail).
 $[wavedrom "_ _ _ ZEXT.H _ OP-32"]
 mapping clause encdec = ZBB_EXTOP(rs1, rd, ZEXTH)
   <-> 0b0000100 @ 0b00000 @ encdec_reg(rs1) @ 0b100 @ encdec_reg(rd) @ 0b0111011
-  when currentlyEnabled(Ext_Zbb) & xlen == 64
+  when currentlyEnabled(Ext_Zbb)
 
 mapping zbb_extop_mnemonic : extop_zbb <-> string = {
   SEXTB <-> "sext.b",
@@ -204,14 +201,12 @@ function clause execute ZBB_EXTOP(rs1, rd, op) = {
 // *****************************************************************
 union clause instruction = REV8 : (regidx, regidx)
 
+// `rev8` likewise: the shift-amount field differs between the bases, and
+// only the RV64 one is reachable (xlen.sail).
 $[wavedrom "_ _ _ _ OP-IMM"]
 mapping clause encdec = REV8(rs1, rd)
-  <-> 0b011010011000 @ encdec_reg(rs1) @ 0b101 @ encdec_reg(rd) @ 0b0010011
-  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb)) & xlen == 32
-
-mapping clause encdec = REV8(rs1, rd)
   <-> 0b011010111000 @ encdec_reg(rs1) @ 0b101 @ encdec_reg(rd) @ 0b0010011
-  when (currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb)) & xlen == 64
+  when currentlyEnabled(Ext_Zbb) | currentlyEnabled(Ext_Zbkb)
 
 mapping clause assembly = REV8(rs1, rd)
   <-> "rev8" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1)
@@ -265,7 +260,7 @@ union clause instruction = CPOPW : (regidx, regidx)
 $[wavedrom "CPOPW CPOPW _ CPOPW _ OP-IMM-32"]
 mapping clause encdec = CPOPW(rs1, rd)
   <-> 0b0110000 @ 0b00010 @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0011011
-  when currentlyEnabled(Ext_Zbb) & xlen == 64
+  when currentlyEnabled(Ext_Zbb)
 
 mapping clause assembly = CPOPW(rs1, rd)
   <-> "cpopw" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1)
@@ -297,7 +292,7 @@ union clause instruction = CLZW : (regidx, regidx)
 $[wavedrom "CLZW CLZW _ CLZW _ OP-IMM-32"]
 mapping clause encdec = CLZW(rs1, rd)
   <-> 0b0110000 @ 0b00000 @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0011011
-  when currentlyEnabled(Ext_Zbb) & xlen == 64
+  when currentlyEnabled(Ext_Zbb)
 
 mapping clause assembly = CLZW(rs1, rd)
   <-> "clzw" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1)
@@ -329,7 +324,7 @@ union clause instruction = CTZW : (regidx, regidx)
 $[wavedrom "CTZ/CTZW CTZ/CTZW _ CTZ/CTZW _ OP-IMM-32"]
 mapping clause encdec = CTZW(rs1, rd)
   <-> 0b0110000 @ 0b00001 @ encdec_reg(rs1) @ 0b001 @ encdec_reg(rd) @ 0b0011011
-  when currentlyEnabled(Ext_Zbb) & xlen == 64
+  when currentlyEnabled(Ext_Zbb)
 
 mapping clause assembly = CTZW(rs1, rd)
   <-> "ctzw" ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs1)

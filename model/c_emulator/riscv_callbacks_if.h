@@ -15,24 +15,24 @@ public:
 
   virtual void fetch_callback(ModelImpl &model, sbits opcode);
 
-  virtual void mem_write_callback(ModelImpl &model, const char *type, sbits paddr, int64_t width, lbits value);
+  virtual void mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value);
 
-  virtual void mem_read_callback(ModelImpl &model, const char *type, sbits paddr, int64_t width, lbits value);
+  virtual void mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value);
 
-  virtual void mem_exception_callback(ModelImpl &model, sbits paddr, uint64_t num_of_exception);
+  virtual void mem_exception_callback(ModelImpl &model, uint64_t paddr, uint64_t num_of_exception);
 
-  virtual void xreg_full_write_callback(ModelImpl &model, const_sail_string abi_name, sbits reg, sbits value);
+  virtual void xreg_full_write_callback(ModelImpl &model, const_sail_string abi_name, sbits reg, uint64_t value);
 
 
-  virtual void csr_full_write_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, sbits value);
+  virtual void csr_full_write_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, uint64_t value);
 
-  virtual void csr_full_read_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, sbits value);
+  virtual void csr_full_read_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, uint64_t value);
 
   virtual void vreg_write_callback(ModelImpl &model, unsigned reg, lbits value);
 
-  virtual void pc_write_callback(ModelImpl &model, sbits new_pc);
+  virtual void pc_write_callback(ModelImpl &model, uint64_t new_pc);
 
-  virtual void redirect_callback(ModelImpl &model, sbits new_pc);
+  virtual void redirect_callback(ModelImpl &model, uint64_t new_pc);
 
   virtual void trap_callback(ModelImpl &model, bool is_interrupt, fbits cause);
 

@@ -29,7 +29,6 @@ CLIOptions parse_cli(int argc, char **argv) {
     "Enable experimental extensions"
   );
   app.add_flag("--use-abi-names", opts.config_use_abi_names, "Use ABI register names in trace log");
-  app.add_flag("--rv32", opts.use_rv32_default, "Use the default RV32 configuration");
   app.add_flag(
     "--disable-trap-loop-detection",
     opts.disable_trap_loop_detection,
@@ -43,8 +42,7 @@ CLIOptions parse_cli(int argc, char **argv) {
   app.add_option("--test-signature", opts.sig_file, "Test signature file")->option_text("<file>");
   app.add_option("--config", opts.config_file, "Configuration file")
     ->check(CLI::ExistingFile)
-    ->option_text("<file>")
-    ->excludes("--rv32");
+    ->option_text("<file>");
   app
     .add_option(
       "--config-override",

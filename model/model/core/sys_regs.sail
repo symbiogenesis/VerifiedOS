@@ -69,8 +69,9 @@ bitfield Misa : xlenbits = {
 }
 register misa : Misa =
   [ Mk_Misa(zeros()) with
-    // MXL is a read-only field that specifies the native XLEN.
-    MXL = architecture_bits(if xlen == 32 then RV32 else RV64),
+    // MXL is a read-only field that specifies the native XLEN, which is
+    // RV64 and only RV64 (R-15-001, xlen.sail).
+    MXL = 0b10,
   ]
 
 // `misa` is read-only (R-15-052): the writability configuration knob
@@ -136,29 +137,16 @@ private function legalize_mstatus(o : Mstatus, v : bits(64)) -> Mstatus = {
 
 register mstatus : Mstatus = Mk_Mstatus(zeros())
 
+// `mstatush` is the RV32 high half of `mstatus` and goes with the RV32
+// configuration itself (xlen.sail): at XLEN=64 the register is one CSR
+// and 0x310 is an unallocated address, which traps under R-15-014.
 mapping clause csr_name_map = 0x300  <-> "mstatus"
-mapping clause csr_name_map = 0x310  <-> "mstatush"
 
 function clause is_CSR_accessible(0x300, _) = true // mstatus
-function clause is_CSR_accessible(0x310, _) = mstatush_is_defined & xlen == 32 // mstatush
 
-function clause read_CSR(0x300) = mstatus.bits[xlen - 1 .. 0]
-function clause read_CSR(0x310 if xlen == 32) = mstatus.bits[63 .. 32]
+function clause read_CSR(0x300) = mstatus.bits
 
-function clause write_CSR((0x300, value) if xlen == 64) = { mstatus = legalize_mstatus(mstatus, value); Ok(mstatus.bits) }
-function clause write_CSR((0x300, value) if xlen == 32) = { mstatus = legalize_mstatus(mstatus, mstatus.bits[63 .. 32] @ value); Ok(mstatus.bits[31 .. 0]) }
-function clause write_CSR((0x310, value) if xlen == 32) = { mstatus = legalize_mstatus(mstatus, value @ mstatus.bits[31 .. 0]); Ok(mstatus.bits[63 .. 32]) }
-
-// architecture and extension checks
-//
-// With one privilege mode there is one effective XLEN, `misa.MXL`.
-
-function architecture() -> Architecture =
-  if xlen == 32 then RV32 else architecture_bits(misa[MXL])
-
-function in32BitMode() -> bool = {
-  architecture() == RV32
-}
+function clause write_CSR(0x300, value) = { mstatus = legalize_mstatus(mstatus, value); Ok(mstatus.bits) }
 
 // `mseccfg` is not defined: it exists only for Zkr or for a feature that
 // requires it, and Zkr, Smepmp, Zicfilp and pointer masking are all absent.

@@ -38,5 +38,5 @@ overload bits_of = { bits_of_physaddr, bits_of_virtaddr }
 // may be smaller than the architectural physical address.
 type physaddr_bits : Int = config memory.physaddr_bits
 // The lower bound of 13 is required to prevent empty bitvectors during address translation.
-constraint 13 <= physaddr_bits & physaddr_bits <= (if xlen == 32 then 34 else 64)
+constraint 13 <= physaddr_bits & physaddr_bits <= 64
 let physaddr_bits = sizeof(physaddr_bits)

@@ -225,9 +225,10 @@ add_dependencies(generated_sail_riscv_docs generated_html_tgz)
 
 ############# Formal #############
 
-# Theorem prover backends require compile time configuration.
-foreach (xlen IN ITEMS 32 64)
-    # Use ELEN=XLEN.
+# Theorem prover backends require compile time configuration. There is one
+# configuration to generate for: RV32 is not a configuration of this model
+# (core/xlen.sail), so what was a loop over both bases is one arm.
+foreach (xlen IN ITEMS 64)
     set(config_file "${CMAKE_BINARY_DIR}/config/rv${xlen}d_v256_e${xlen}.json")
     # This name is used in a lot of places so it excludes the `_v256_e{xlen}`
     # for backwards compatibility.

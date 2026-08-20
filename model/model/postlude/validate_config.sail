@@ -344,9 +344,6 @@ private function check_physaddr_bits() -> bool = {
   if physaddr_bits_nat > 64 then {
     print_endline("`memory.physaddr_bits` is " ^ dec_str(physaddr_bits) ^ " but cannot be greater than 64.");
     false
-  } else if physaddr_bits_nat > 34 & xlen == 32 then {
-    print_endline("`memory.physaddr_bits` is " ^ dec_str(physaddr_bits) ^ " but cannot be greater than 34 for RV32.");
-    false
   } else if physaddr_bits_nat < 13 then {
     print_endline("`memory.physaddr_bits` is " ^ dec_str(physaddr_bits) ^ " but values smaller than 13 are not supported.");
     false

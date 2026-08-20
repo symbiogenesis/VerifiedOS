@@ -511,7 +511,7 @@ InitResult preinit_args(const CLIOptions &opts, std::string &config_json_string)
     return InitResult::ExitSuccess;
   }
   if (opts.do_print_default_config) {
-    printf("%s", opts.use_rv32_default ? get_default_rv32_config() : get_default_config());
+    printf("%s", get_default_config());
     return InitResult::ExitSuccess;
   }
   if (opts.do_print_config_schema) {
@@ -541,7 +541,7 @@ InitResult preinit_args(const CLIOptions &opts, std::string &config_json_string)
   if (!opts.config_file.empty()) {
     config_json_string = read_file_to_string(opts.config_file);
   } else {
-    config_json_string = opts.use_rv32_default ? get_default_rv32_config() : get_default_config();
+    config_json_string = get_default_config();
   }
 
   // Check json config and merge overrides

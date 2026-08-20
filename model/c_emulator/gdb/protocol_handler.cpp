@@ -292,28 +292,19 @@ void protocol_handler::trap_callback(ModelImpl &, bool, fbits) {
   m_has_trapped = true;
 }
 
-namespace {
-
-// Zero upper bits of `s.bits` according to `s.len`.
-inline uint64_t zero_hi(sbits s) {
-  return s.bits & UINT64_MAX >> (64 - s.len);
-}
-
-} // namespace
-
 // Trigger checks.
 //
 // When checking triggers below, make sure to not reset `m_triggered`
 // if it was already set.
 
-void protocol_handler::mem_write_callback(ModelImpl &, const char *, sbits paddr, int64_t width, lbits) {
-  if (m_triggers.at_watchpoint(AccessType::Write, zero_hi(paddr), width)) {
+void protocol_handler::mem_write_callback(ModelImpl &, const char *, uint64_t paddr, int64_t width, lbits) {
+  if (m_triggers.at_watchpoint(AccessType::Write, paddr, width)) {
     m_triggered = true;
   }
 }
 
-void protocol_handler::mem_read_callback(ModelImpl &, const char *, sbits paddr, int64_t width, lbits) {
-  if (m_triggers.at_watchpoint(AccessType::Read, zero_hi(paddr), width)) {
+void protocol_handler::mem_read_callback(ModelImpl &, const char *, uint64_t paddr, int64_t width, lbits) {
+  if (m_triggers.at_watchpoint(AccessType::Read, paddr, width)) {
     m_triggered = true;
   }
 }

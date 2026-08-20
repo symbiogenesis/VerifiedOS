@@ -40,27 +40,27 @@ unit ModelImpl::fetch_callback(sbits opcode) {
   return UNIT;
 }
 
-unit ModelImpl::mem_write_callback(const char *type, sbits paddr, int64_t width, lbits value) {
+unit ModelImpl::mem_write_callback(const char *type, uint64_t paddr, int64_t width, lbits value) {
   for (auto c : m_callbacks) {
     c->mem_write_callback(*this, type, paddr, width, value);
   }
   return UNIT;
 }
-unit ModelImpl::mem_read_callback(const char *type, sbits paddr, int64_t width, lbits value) {
+unit ModelImpl::mem_read_callback(const char *type, uint64_t paddr, int64_t width, lbits value) {
   for (auto c : m_callbacks) {
     c->mem_read_callback(*this, type, paddr, width, value);
   }
   return UNIT;
 }
 
-unit ModelImpl::mem_exception_callback(sbits paddr, uint64_t num_of_exception) {
+unit ModelImpl::mem_exception_callback(uint64_t paddr, uint64_t num_of_exception) {
   for (auto c : m_callbacks) {
     c->mem_exception_callback(*this, paddr, num_of_exception);
   }
   return UNIT;
 }
 
-unit ModelImpl::xreg_full_write_callback(const_sail_string abi_name, sbits reg, sbits value) {
+unit ModelImpl::xreg_full_write_callback(const_sail_string abi_name, sbits reg, uint64_t value) {
   for (auto c : m_callbacks) {
     c->xreg_full_write_callback(*this, abi_name, reg, value);
   }
@@ -68,14 +68,14 @@ unit ModelImpl::xreg_full_write_callback(const_sail_string abi_name, sbits reg, 
 }
 
 
-unit ModelImpl::csr_full_write_callback(const_sail_string csr_name, unsigned reg, sbits value) {
+unit ModelImpl::csr_full_write_callback(const_sail_string csr_name, unsigned reg, uint64_t value) {
   for (auto c : m_callbacks) {
     c->csr_full_write_callback(*this, csr_name, reg, value);
   }
   return UNIT;
 }
 
-unit ModelImpl::csr_full_read_callback(const_sail_string csr_name, unsigned reg, sbits value) {
+unit ModelImpl::csr_full_read_callback(const_sail_string csr_name, unsigned reg, uint64_t value) {
   for (auto c : m_callbacks) {
     c->csr_full_read_callback(*this, csr_name, reg, value);
   }
@@ -89,14 +89,14 @@ unit ModelImpl::vreg_write_callback(unsigned reg, lbits value) {
   return UNIT;
 }
 
-unit ModelImpl::pc_write_callback(sbits new_pc) {
+unit ModelImpl::pc_write_callback(uint64_t new_pc) {
   for (auto c : m_callbacks) {
     c->pc_write_callback(*this, new_pc);
   }
   return UNIT;
 }
 
-unit ModelImpl::redirect_callback(sbits new_pc) {
+unit ModelImpl::redirect_callback(uint64_t new_pc) {
   for (auto c : m_callbacks) {
     c->redirect_callback(*this, new_pc);
   }
@@ -366,12 +366,15 @@ int64_t ModelImpl::physaddrbits_len() const {
   return zphysaddrbits_len;
 }
 
+// XLEN is fixed at 64 (model/core/xlen.sail), so the model's `bits(xlen)`
+// values are generated as native `uint64_t` rather than as length-carrying
+// `sbits`, and these accessors hand them back unchanged.
 uint64_t ModelImpl::pc() const {
-  return zPC.bits;
+  return zPC;
 }
 
 uint64_t ModelImpl::mepc() const {
-  return zmepc.bits;
+  return zmepc;
 }
 
 
@@ -390,25 +393,18 @@ bool ModelImpl::had_exception() const {
 uint64_t ModelImpl::xreg(int64_t reg) {
   // For the E base ISA, this assert should use 16.
   assert(reg < 32);
-  const sbits val = zrX(reg);
-  return val.bits;
+  return zrX(reg);
 }
 
 
 void ModelImpl::set_xreg(int64_t reg, uint64_t val) {
   // For the E base ISA, this assert should use 16.
   assert(reg < 32);
-  sbits sail_val;
-  sail_val.len = zxlen;
-  sail_val.bits = val;
-  (void)zwX(reg, sail_val);
+  (void)zwX(reg, val);
 }
 
 
 void ModelImpl::set_pc(uint64_t val) {
-  sbits sail_val;
-  sail_val.len = zPC.len;
-  sail_val.bits = val;
-  (void)zset_next_pc(sail_val);
+  (void)zset_next_pc(val);
 }
 

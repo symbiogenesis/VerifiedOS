@@ -1,4 +1,3 @@
 #pragma once
 
 constexpr const char* DEFAULT_JSON = R"##(@DEFAULT_JSON@)##";
-constexpr const char* DEFAULT_JSON_RV32 = R"##(@DEFAULT_JSON_RV32@)##";

@@ -81,8 +81,8 @@ function csr_id_read_callback(csr : csreg, value : xlenbits) -> unit = {
 overload csr_write_callback = {csr_name_write_callback, csr_id_write_callback, csr_full_write_callback}
 overload csr_read_callback = {csr_name_read_callback, csr_id_read_callback, csr_full_read_callback}
 
-function long_csr_write_callback(name : string, name_high : string, value : bits(64)) -> unit = {
-  csr_write_callback(name, value[xlen - 1 .. 0]);
-  if xlen == 32
-  then csr_write_callback(name_high, value[63 .. 32]);
-}
+// A 64-bit CSR is one register at XLEN=64: the high-half companion
+// (`mstatush` and its kind) is an RV32 construct and goes with the RV32
+// configuration itself, so there is no second callback to make.
+function long_csr_write_callback(name : string, value : bits(64)) -> unit =
+  csr_write_callback(name, value)
