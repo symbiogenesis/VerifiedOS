@@ -382,6 +382,226 @@ function test_cloadtags_reports_the_tags_as_stored() -> unit = {
 }
 
 // *****************************************************************
+// The rows M0.6g adds: the conditional capability move, the masked register
+// clear, the indexed access, and the revocation filter.
+
+// The conditional capability move writes the destination **whole**, tag
+// included, on the taken arm and leaves it untouched on the other (R-15-054a).
+// That is what separates it from `Zicond`: an integer select can zero one arm
+// and OR the two together, and the recombining `or` would be reconstruction
+// from a bit pattern, which the profile forbids at the root (R-15-054,
+// R-05-136).
+$[test]
+function test_the_conditional_capability_move_carries_the_whole_register() -> unit = {
+  let (_, region) = setCapBounds(root_data_cap, 0x080000000, 0b0 @ 0x080001000);
+  let value = setCapAddrChecked(region, 0x0000000080000040);
+  assert(value.tag);
+
+  // Taken: the destination becomes the source, tag and all.
+  C(encdec_reg(0b00010)) = value;
+  C(encdec_reg(0b00100)) = null_cap;
+  X(encdec_reg(0b00011)) = zeros();
+  match execute(CMOVZ(encdec_reg(0b00100), encdec_reg(0b00010), encdec_reg(0b00011))) {
+    Retire_Success() => (),
+    _                => assert(false, "cmovz must not trap"),
+  };
+  assert(C(encdec_reg(0b00100)) == value);
+
+  // Not taken: the destination is untouched, which is a stronger statement than
+  // *unchanged in value* — nothing is written, so a tagged destination keeps its
+  // own authority rather than being rewritten with it.
+  C(encdec_reg(0b00100)) = null_cap;
+  X(encdec_reg(0b00011)) = 0x0000000000000001;
+  match execute(CMOVZ(encdec_reg(0b00100), encdec_reg(0b00010), encdec_reg(0b00011))) {
+    Retire_Success() => (),
+    _                => assert(false, "an untaken cmovz must not trap"),
+  };
+  assert(C(encdec_reg(0b00100)) == null_cap);
+
+  // `cmovn` is the complementary condition on the same operands.
+  match execute(CMOVN(encdec_reg(0b00100), encdec_reg(0b00010), encdec_reg(0b00011))) {
+    Retire_Success() => (),
+    _                => assert(false, "cmovn must not trap"),
+  };
+  assert(C(encdec_reg(0b00100)) == value);
+
+  C(encdec_reg(0b00100)) = null_cap;
+  X(encdec_reg(0b00011)) = zeros();
+  match execute(CMOVN(encdec_reg(0b00100), encdec_reg(0b00010), encdec_reg(0b00011))) {
+    Retire_Success() => (),
+    _                => assert(false, "an untaken cmovn must not trap"),
+  };
+  assert(C(encdec_reg(0b00100)) == null_cap);
+}
+
+// `cclear h, mask` clears the sixteen registers the mask selects within the half
+// `h` selects, each to the all-zeroes granule that decodes as untagged NULL, so
+// two of them clear the merged file (R-15-069a, R-15-182). It is the one
+// instruction on the machine that can only ever destroy authority.
+$[test]
+function test_cclear_clears_exactly_the_registers_the_mask_names() -> unit = {
+  let (_, region) = setCapBounds(root_data_cap, 0x080000000, 0b0 @ 0x080001000);
+  let value = setCapAddrChecked(region, 0x0000000080000080);
+
+  foreach (i from 1 to 31) {
+    C(zreg + i) = value
+  };
+
+  // Registers 4 through 7 of the low half.
+  match execute(CClear(0b0, 0x00F0)) {
+    Retire_Success() => (),
+    _                => assert(false, "cclear must not trap"),
+  };
+  foreach (i from 1 to 31) {
+    if 4 <= i & i <= 7 then {
+      assert(C(zreg + i) == null_cap);
+      assert(not(C(zreg + i).tag));
+    } else {
+      assert(C(zreg + i) == value)
+    }
+  };
+
+  // The half selector moves the same sixteen positions up the file: bit 0 of the
+  // mask names x16 rather than x0.
+  match execute(CClear(0b1, 0x0003)) {
+    Retire_Success() => (),
+    _                => assert(false, "cclear over the high half must not trap"),
+  };
+  assert(C(zreg + 16) == null_cap);
+  assert(C(zreg + 17) == null_cap);
+  assert(C(zreg + 18) == value);
+
+  // An empty mask clears nothing, and its latency is the same as a full mask's:
+  // the instruction is unconditional and its worst case is its every case
+  // (R-15-069b).
+  match execute(CClear(0b0, zeros())) {
+    Retire_Success() => (),
+    _                => assert(false, "an empty cclear must not trap"),
+  };
+  assert(C(zreg + 8) == value);
+}
+
+// The indexed access checks the authorising capability at **base plus scaled
+// index** and performs the access there, with no intermediate capability
+// materialized at any point (R-15-007e, R-15-007f). The two consequences are
+// checked together, because the second is the reason for the first: an index
+// far outside the representable region is a *length violation on the authority*
+// rather than an untagged intermediate that faults one instruction later.
+$[test]
+function test_the_indexed_access_checks_at_base_plus_scaled_index() -> unit = {
+  let (_, region) = setCapBounds(root_data_cap, 0x080000000, 0b0 @ 0x080001000);
+  let auth = setCapAddrChecked(region, 0x0000000080000000);
+  C(encdec_reg(0b01000)) = auth;
+
+  // Element three of an array of doublewords: index 3, scale 3.
+  X(encdec_reg(0b00011)) = 0x0000000000000003;
+  X(encdec_reg(0b00100)) = 0x0123456789abcdef;
+  match execute(CIndexedStore(0b11, encdec_reg(0b00011), encdec_reg(0b01000), encdec_reg(0b00100))) {
+    Retire_Success() => (),
+    _                => assert(false, "an in-bounds indexed store must succeed"),
+  };
+  match execute(CIndexedLoad(0b11, encdec_reg(0b00011), encdec_reg(0b01000), encdec_reg(0b00101))) {
+    Retire_Success() => (),
+    _                => assert(false, "an in-bounds indexed load must succeed"),
+  };
+  assert(X(encdec_reg(0b00101)) == 0x0123456789abcdef);
+
+  // The scale is part of the address and not decoration: index twenty-four
+  // unscaled names the same doubleword as index three at the doubleword scale.
+  // Which scales the backend emits is the composition-time selection; the width
+  // of the field is what the freeze fixes (R-15-007g).
+  X(encdec_reg(0b00011)) = 0x0000000000000018;
+  match execute(CIndexedLoad(0b00, encdec_reg(0b00011), encdec_reg(0b01000), encdec_reg(0b00110))) {
+    Retire_Success() => (),
+    _                => assert(false, "an unscaled indexed load must succeed"),
+  };
+  assert(X(encdec_reg(0b00110)) == 0x0123456789abcdef);
+
+  // Past the top of the authority: a length violation naming the authorising
+  // register, checked at base plus scaled index.
+  X(encdec_reg(0b00011)) = 0x0000000000001000;
+  match execute(CIndexedLoad(0b11, encdec_reg(0b00011), encdec_reg(0b01000), encdec_reg(0b00101))) {
+    Ext_DataAddr_Check_Failure((capEx, idx)) => {
+      assert(capEx == CapEx_LengthViolation);
+      assert(idx == 0b001000);
+    },
+    _ => assert(false, "an out-of-bounds indexed load must fault"),
+  };
+
+  // An index far outside the representable region is the same fault. This is
+  // the case the instruction exists to take off the dereference path: the
+  // equivalent `cincoffset` would have yielded an untagged capability, and the
+  // fault would have been a tag violation one instruction later.
+  X(encdec_reg(0b00011)) = 0x0000000008000000;
+  match execute(CIndexedStore(0b11, encdec_reg(0b00011), encdec_reg(0b01000), encdec_reg(0b00100))) {
+    Ext_DataAddr_Check_Failure((capEx, _)) => assert(capEx == CapEx_LengthViolation),
+    _ => assert(false, "an unrepresentable indexed store must fault on the authority"),
+  };
+}
+
+// The revocation filter is part of the capability load's own definition and not
+// an effect layered onto it (R-08-005, R-08-005b): a load whose result is
+// revoked writes the value back with its validity tag cleared, and the value
+// itself is delivered unchanged. The bit is selected by the **loaded
+// capability's base**, so a stale capability pointing into the middle of a
+// freed object is caught exactly as one pointing at its start is.
+$[test]
+function test_a_revoked_capability_loads_with_its_tag_cleared() -> unit = {
+  // Inside the composition's revocable interval (model/config).
+  let object_base : xlenbits = 0x0000000080008000;
+  let (_, region) = setCapBounds(root_data_cap, 0x080008000, 0b0 @ 0x080008100);
+  let auth = setCapAddrChecked(region, object_base);
+  let value = setCapAddrChecked(region, object_base + 64);
+  assert(revocation_covered(zero_extend(object_base)));
+
+  revocation_bits = zeros();
+  C(encdec_reg(0b00011)) = value;
+  match cap_store(encdec_reg(0b00011), auth, 0b000010, object_base) {
+    Retire_Success() => (),
+    _                => assert(false, "the store must succeed"),
+  };
+
+  // Live: the capability comes back whole.
+  match cap_load(encdec_reg(0b00100), auth, 0b000010, object_base) {
+    Retire_Success() => (),
+    _                => assert(false, "a live load must succeed"),
+  };
+  assert(C(encdec_reg(0b00100)).tag);
+
+  // Revoked: the same load succeeds, delivers the same bits, and clears the
+  // tag. It does not trap, and it names no cause code, because a revoked result
+  // is one of the load's defined results rather than a failure of it.
+  revocation_bits = [revocation_bits with revocation_index(zero_extend(object_base)) = bitone];
+  match cap_load(encdec_reg(0b00100), auth, 0b000010, object_base) {
+    Retire_Success() => (),
+    _                => assert(false, "a revoked load must still succeed"),
+  };
+  assert(not(C(encdec_reg(0b00100)).tag));
+  assert(C(encdec_reg(0b00100)).address == value.address);
+
+  // The bit belongs to the granule of the *base*, not of the access: a
+  // capability read from a different address whose base is the revoked granule
+  // is revoked too.
+  match cap_store(encdec_reg(0b00011), auth, 0b000010, object_base + 8) {
+    Retire_Success() => (),
+    _                => assert(false, "the second store must succeed"),
+  };
+  match cap_load(encdec_reg(0b00100), auth, 0b000010, object_base + 8) {
+    Retire_Success() => (),
+    _                => assert(false, "the second load must succeed"),
+  };
+  assert(not(C(encdec_reg(0b00100)).tag));
+
+  // A base outside the covered union takes the same path with a constant live
+  // result, which is what keeps one fixed latency on every capability load
+  // (R-08-005a, R-17-023).
+  assert(not(revocation_covered(0x0000000080000000)));
+  assert(not(revocation_revoked(0x0000000080000000)));
+
+  revocation_bits = zeros();
+}
+
+// *****************************************************************
 // The special capability registers.
 
 // Privilege is the capability: the trap capabilities are reachable only with

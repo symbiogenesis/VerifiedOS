@@ -74,6 +74,24 @@ let plat_clint_size : physaddrbits = to_bits_checked(config platform.clint.size 
 // it drove: with `mip`'s external- and software-interrupt fields
 // hardwired zero (R-15-066a) the device had nothing left to signal.
 
+// The machine-level interrupt file. An MSI is a *store* to it, so send
+// authority is a write capability in the static topology rather than a
+// side table (R-15-064); only the machine level exists and of that only
+// the pending array (R-15-065, sys/platform.sail).
+let plat_have_imsic : bool = config platform.imsic.supported
+let plat_imsic_base : physaddrbits = to_bits_checked(config platform.imsic.base : int)
+let plat_imsic_size : physaddrbits = to_bits_checked(config platform.imsic.size : int)
+
+// The revocation sidecar (R-08-005a). The interval map and the window
+// the kernel revocation path updates the bitmap through are
+// attested-devicetree constants; the plane itself is core/revocation.sail,
+// and the clear it decides is inside the capability load's own definition
+// (extensions/CHERI/cheri_mem.sail, R-08-005b).
+let plat_have_revocation : bool = config platform.revocation.supported
+let plat_revocation_base : physaddrbits = to_bits_checked(config platform.revocation.base : int)
+let plat_revocation_interval_base : physaddrbits = to_bits_checked(config platform.revocation.interval_base : int)
+let plat_revocation_interval_size : physaddrbits = to_bits_checked(config platform.revocation.interval_size : int)
+
 let plat_insns_per_tick : nat1 = config platform.instructions_per_tick
 
 // Maximum increment in the time CSR to wait for wait instructions.  This is not

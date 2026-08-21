@@ -138,6 +138,19 @@
     "cache_block_size_exp": 6,
     // mtime/mtimecmp are memory-mapped, programmed directly by the kernel (R-15-063).
     "clint": { "supported": true, "base": 33554432, "size": 786432 },
+    // The machine-level interrupt file: pending array only, no indirect
+    // interface, an MSI being a store to it (R-15-064, R-15-065). 0x2100000.
+    "imsic": { "supported": true, "base": 34603008, "size": 4096 },
+    // The revocation sidecar (R-08-005a). `base` is the register-slave window
+    // the kernel revocation path updates the bitmap through, 0x2200000; the
+    // interval is the composition's revocable region, 32 KiB at 0x80008000,
+    // which is where the composed image puts writable data.
+    "revocation": {
+      "supported": true,
+      "base": 35651584,
+      "interval_base": 2147516416,
+      "interval_size": 32768
+    },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,

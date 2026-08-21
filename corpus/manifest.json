@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "trace_schema": 1,
   "members": [
     {
@@ -78,6 +78,34 @@
       "checks": 10,
       "records": 216,
       "digest": "37280848ec090829"
+    },
+    {
+      "name": "cap-select",
+      "source": "cap-select.s",
+      "checks": 10,
+      "records": 207,
+      "digest": "8fd88509a73de271"
+    },
+    {
+      "name": "cap-indexed",
+      "source": "cap-indexed.s",
+      "checks": 10,
+      "records": 287,
+      "digest": "9c1dd986816207e0"
+    },
+    {
+      "name": "cap-revoke",
+      "source": "cap-revoke.s",
+      "checks": 9,
+      "records": 237,
+      "digest": "dfbed9a613d921cc"
+    },
+    {
+      "name": "platform-aia",
+      "source": "platform-aia.s",
+      "checks": 8,
+      "records": 166,
+      "digest": "3be6939333fce334"
     }
   ]
 }

@@ -100,6 +100,23 @@ function load_transitivity(auth : Capability, loaded : Capability) -> Capability
   }
 }
 
+// The revocation filter, stated beside the load because it is part of the
+// load's own definition and not an effect layered onto it (R-08-005b): a
+// capability-width load whose result is revoked writes the value back with its
+// validity tag cleared, at the one fixed latency a capability load has whether
+// its base is outside the covered union or its bit is clear or set (R-08-005,
+// R-17-023). A load definition admitting only an unmodified tag or a trap could
+// not express the check at all, which is why this is a clause of the load and
+// not a rule about the bank.
+//
+// It is keyed by the **loaded capability's base**, the one field that names the
+// object rather than the access, and it runs over tagged results alone: an
+// untagged value is data, and the plane has no opinion about data. With no
+// colour in the format, this one clause is what both address-keyed cases rest
+// on, the object case and the grant-slot case alike (R-08-004a, R-08-004b).
+function revocation_filter(loaded : Capability) -> Capability =
+  clearTagIf(loaded, loaded.tag & revocation_revoked(zero_extend(getCapBaseBits(loaded))))
+
 // A capability access is *always* naturally aligned, whatever the platform's
 // misaligned policy admits for data: a capability that straddled a granule
 // boundary would have no tag of its own (core/mem_metadata.sail, R-15-203).
@@ -116,7 +133,8 @@ function cap_load(cd : regidx, auth : Capability, auth_idx : capreg_idx, addr : 
   match mem_read_cap(physical_address(vaddr), false, false) {
     Err(_, e) => memory_exception(vaddr, e),
     Ok(v)     => {
-      C(cd) = load_transitivity(auth, clearTagIf(v, not(cap_load_cap(auth))));
+      let loaded = clearTagIf(v, not(cap_load_cap(auth)));
+      C(cd) = load_transitivity(auth, revocation_filter(loaded));
       RETIRE_SUCCESS
     },
   }

@@ -12,7 +12,7 @@ It exists **now**, ahead of both of those executors, because the corpus is the m
 
 ## 1. What the corpus is
 
-Eleven purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, and the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model.
+Fifteen purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model, and the profile rows M0.6g adds that no upstream model carries.
 
 | Member | What it exercises |
 | --- | --- |
@@ -27,6 +27,10 @@ Eleven purecap programs, hand-written in the frozen dialect, each running to a d
 | [`cap-memory`](../corpus/cap-memory.s) | the tag plane under capability and data stores, granule keying, `cloadtags` and `cbo.zero` over one block, and load transitivity |
 | [`cap-control`](../corpus/cap-control.s) | sentry roles at `cjal` and `cjalr`, the backward edge a call mints, the forward edge `csealentry` mints, and the bounds a sentry carries into PCC |
 | [`cap-trap`](../corpus/cap-trap.s) | eight traps through MTCC and back through MEPCC: five capability violations with their `mtval` detail, an alignment exception, and an unallocated CSR address |
+| [`cap-select`](../corpus/cap-select.s) | `cmovz`/`cmovn` in both polarities and over data, the untouched destination an untaken arm leaves, and `cclear` over each half of the merged file |
+| [`cap-indexed`](../corpus/cap-indexed.s) | `cld`/`csd` at each scale against the displaced access they replace, and the five faults they raise on the authority rather than on an intermediate |
+| [`cap-revoke`](../corpus/cap-revoke.s) | the revocation bitmap through its window, the tag a revoked load clears, the base the bit is keyed by, and the tags `cloadtags` reports as stored |
+| [`platform-aia`](../corpus/platform-aia.s) | `fence.t` disturbing nothing, and the machine-level pending array under sends, reads, clears, and the reserved identity |
 
 **The version is a commitment and the digest is a measurement.** `version` in the manifest names the edition; a member added, removed, or changed in what it asserts advances it. `trace_schema` names the record grammar of §4; a record type added or a field widened advances that. Each member's `digest` is the fingerprint of its commit trace, so a model change that alters what a program *does* is a finding at the next run rather than a surprise at the next milestone; `model.py corpus --refresh` is how a deliberate change is recorded, and the edit shows up in review as a moved digest beside the model change that moved it.
 
@@ -107,8 +111,8 @@ Each of these is an absence in the machine or in the model, not a gap in the cor
 | --- | --- | --- |
 | `cseal`'s success case | The reset root pair holds neither `Permit_Seal` nor `Permit_Unseal`, and `candperm` can only remove, so no sealing authority is derivable from reset. The refusal *is* exercised. | the composed initial distribution, §3 |
 | An access-system-registers violation | Reaching it means executing without ASR on PCC, which on this machine is a one-way door: nothing in reach gives it back. | a composed distribution with a non-privileged compartment, §5 |
-| `cmovz`/`cmovn`, revocation, `fence.t`, the indexed load/store, `cclear`, the AIA pending array | Not in the model yet. | M0.6g |
 | `vmclear`, `creclaim`, `cbo.scrub` | Not in the model yet; each is net-new surface with no upstream oracle, which is why M0.6h owes a program and not only a property. | M0.6h |
+| A revocation sweep with more than one covered interval | The covered union is a predicate over one composition-fixed interval, because one composed image has one revocable region; a second interval is a clause in that predicate rather than a mechanism. | the composed initial distribution, §3 |
 | The vector, matrix and FEC datapaths | One core class until the model is parameterized. | M0.8 |
 | The dictionary bundle format | A fetch container the model does not implement. | the freeze, §1.1 |
 

@@ -190,6 +190,126 @@ function tick_clock() -> unit = {
   clint_dispatch()
 }
 
+// The machine-level interrupt file (R-15-064, R-15-065).
+//
+// AIA is adopted capability-read with static routing: an MSI *is* a store to an
+// interrupt file, so interrupt-send authority is a write capability in the
+// composed topology rather than an entry in a side table. Only the machine
+// level exists, and of that only the **pending array**: the supervisor and
+// guest/VS files, the delivery-enable, threshold, and top-pending-selection
+// machinery, and the whole `miselect`/`mireg`/`mtopei` indirect interface are
+// dead Sail surface here and are excluded (isa-profile.md §5.2).
+//
+// **Deleting the indirect interface is what puts the array in the address map.**
+// Upstream an interrupt file exposes `seteipnum` to senders and leaves the
+// pending bits to be read through indirect CSRs; with those CSRs gone the array
+// has to be somewhere software can reach, and *software reads pending bits with
+// ordinary loads* is R-15-065's own sentence. So the file has two doors: the
+// sender's write-only doorbell, and the array itself, read and written by the
+// receiver through the capability the composed distribution gives it.
+//
+// Nothing here raises a trap. `mip`'s external-interrupt field is hardwired
+// zero and the only asynchronous trap on the core is the slot-boundary timer
+// (R-15-066a), so an MSI is *latched pending state* that software polls at a
+// point of its own choosing, never a control transfer.
+//
+// The identity count is 64 here, one doubleword. It is a composition parameter
+// rather than an architectural constant, and identity 0 is reserved by AIA and
+// so sets nothing.
+register imsic_eip : bits(64) = zeros()
+
+let IMSIC_SETEIPNUM : physaddrbits = zero_extend(0x000)
+let IMSIC_EIP       : physaddrbits = zero_extend(0x008)
+
+private function within_imsic forall 'n, 0 < 'n <= max_mem_access . (Physaddr(addr) : physaddr, width : int('n)) -> bool = {
+  if not(plat_have_imsic) then return false;
+  let addr_int = unsigned(addr);
+  let base_int = unsigned(plat_imsic_base);
+  let size_int = unsigned(plat_imsic_size);
+    base_int <= addr_int
+  & (addr_int + sizeof('n)) <= (base_int + size_int)
+}
+
+private val imsic_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function imsic_load(access, paddr, width) = {
+  let Physaddr(addr) = paddr;
+  let addr = addr - plat_imsic_base;
+  // `seteipnum` is write-only, as it is upstream: a sender has no reason to
+  // read the doorbell it rang, and answering with the array through it would
+  // give the pending state a second name.
+  if addr == IMSIC_SETEIPNUM & ('n == 8) then Ok(zeros())
+  else if addr == IMSIC_EIP & ('n == 8) then Ok(zero_extend(64, imsic_eip))
+  else Err(paddr, accessFaultFromAccessType(access))
+}
+
+private val imsic_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function imsic_store(paddr, width, data) = {
+  let Physaddr(addr) = paddr;
+  let addr = addr - plat_imsic_base;
+  if addr == IMSIC_SETEIPNUM & ('n == 8) then {
+    // Sending an MSI: the value written is the interrupt identity, and an
+    // identity outside the file's range sets nothing rather than faulting,
+    // which is the standard's own disposition and keeps a sender's authority a
+    // property of the capability it stored through rather than of the number it
+    // chose.
+    let eiid = unsigned(zero_extend(64, data)[5 .. 0]);
+    let in_range = unsigned(zero_extend(64, data)) < 64;
+    if in_range & eiid != 0 then imsic_eip = [imsic_eip with eiid = bitone];
+    Ok(true)
+  } else if addr == IMSIC_EIP & ('n == 8) then {
+    // The receiver's door: pending bits are cleared by writing them back, since
+    // the indirect interface that would otherwise carry the write is deleted.
+    // Identity 0 is reserved and stays clear whatever is written.
+    imsic_eip = zero_extend(64, data) & ~(zero_extend(64, 0b1));
+    Ok(true)
+  } else Err(paddr, E_SAMO_Access_Fault())
+}
+
+// The revocation sidecar's register slave (R-08-005a).
+//
+// The bitmap is not addressable as data and is not part of any compartment's
+// memory: it is a window of its own, so *ordinary compartments cannot address
+// the bitmap, and only the kernel revocation path may update it* is a fact
+// about the composed capability distribution rather than about a mode
+// (R-15-003). The filter that reads the plane on every capability load does not
+// come through here: it reads the plane directly (core/revocation.sail), which
+// is the model's statement of the bank-side lookup that *adds no fabric request
+// or main-memory access* (R-08-005, isa-profile.md §7).
+//
+// Doublewords only. The sweep and the kernel's retire path both work a word at
+// a time, and a narrower access would name a sub-word of a structure whose
+// index is a granule.
+private function within_revocation forall 'n, 0 < 'n <= max_mem_access . (Physaddr(addr) : physaddr, width : int('n)) -> bool = {
+  if not(plat_have_revocation) then return false;
+  let addr_int = unsigned(addr);
+  let base_int = unsigned(plat_revocation_base);
+    base_int <= addr_int
+  & (addr_int + sizeof('n)) <= (base_int + revocation_bitmap_bytes)
+}
+
+private function revocation_word_index(Physaddr(addr) : physaddr) -> option(range(0, revocation_words - 1)) = {
+  let offset = unsigned(addr - plat_revocation_base);
+  if offset % 8 != 0 then None()
+  else {
+    let word = offset / 8;
+    if 0 <= word & word < revocation_words then Some(word) else None()
+  }
+}
+
+private val revocation_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function revocation_load(access, paddr, width) =
+  if 'n == 8 then match revocation_word_index(paddr) {
+    None()     => Err(paddr, accessFaultFromAccessType(access)),
+    Some(word) => Ok(zero_extend(64, revocation_read_word(word))),
+  } else Err(paddr, accessFaultFromAccessType(access))
+
+private val revocation_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function revocation_store(paddr, width, data) =
+  if 'n == 8 then match revocation_word_index(paddr) {
+    None()     => Err(paddr, E_SAMO_Access_Fault()),
+    Some(word) => { revocation_write_word(word, zero_extend(64, data)); Ok(true) },
+  } else Err(paddr, E_SAMO_Access_Fault())
+
 // Basic terminal character I/O.
 
 val plat_term_write = impure {cpp: "plat_term_write", lem: "plat_term_write"} : bits(8) -> unit
@@ -319,16 +439,22 @@ function htif_store(addr, width, data) = {
 function within_mmio_readable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   if get_config_rvfi()
   then false
-  else within_clint(addr, width) | (within_htif_readable(addr, width) & 1 <= 'n)
+  else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
+       | (within_htif_readable(addr, width) & 1 <= 'n)
 
 function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   if get_config_rvfi()
   then false
-  else within_clint(addr, width) | (within_htif_writable(addr, width) & 'n <= 8)
+  else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
+       | (within_htif_writable(addr, width) & 'n <= 8)
 
 function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessType(mem_payload), paddr : physaddr, width : int('n)) -> MemoryOpResult(bits(8 * 'n)) =
   if   within_clint(paddr, width)
   then clint_load(access, paddr, width)
+  else if within_imsic(paddr, width)
+  then imsic_load(access, paddr, width)
+  else if within_revocation(paddr, width)
+  then revocation_load(access, paddr, width)
   else if within_htif_readable(paddr, width)
   then htif_load(access, paddr, width)
   else Err(paddr, accessFaultFromAccessType(access))
@@ -336,6 +462,10 @@ function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessT
 function mmio_write forall 'n, 0 < 'n <= max_mem_access . (paddr : physaddr, width : int('n), data: bits(8 * 'n)) -> MemoryOpResult(bool) =
   if   within_clint(paddr, width)
   then clint_store(paddr, width, data)
+  else if within_imsic(paddr, width)
+  then imsic_store(paddr, width, data)
+  else if within_revocation(paddr, width)
+  then revocation_store(paddr, width, data)
   else if within_htif_writable(paddr, width)
   then htif_store(paddr, width, data)
   else Err(paddr, E_SAMO_Access_Fault())
