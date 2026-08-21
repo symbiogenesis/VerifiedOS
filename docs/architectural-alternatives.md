@@ -998,17 +998,6 @@ SAFE's Coq metatheory remains methodological evidence only; fixed CHERI tags and
 
 ---
 
-## Physical bifurcation of the radio onto a second die: declined
-
-A second attested copy of the die linked by ring-over-SerDes would separate radio power and thermal mass from the rest of the machine.
-It would not separate the mask-set threat, because the proposal deliberately reuses the same die design, and it would add a package, link protocol, parser, CDC/metastability obligation, two-die attestation relation, power, latency, and another object for supply-chain inspection.
-The remaining substrate and analog-emission separation is outside the remote threat model and is not cleanly closed by a nearby second die in any case.
-
-**Disposition:** decline the second radio die and inter-die link.
-The adopted top-rung on-die isolation is documented in [Inspirations & Prior Art](inspirations.md).
-
----
-
 ## Memory encryption and the memory integrity tree: declined outright, because memory cryptography protects an interface and this machine has none
 
 Total memory encryption and a memory-wide Merkle counter-tree for integrity and anti-replay are the two mechanisms a conventional design puts on the memory path, and both are declined here, in every configuration, along with the on-die node cache that would amortize the tree's walk.
@@ -1053,19 +1042,6 @@ Integrity against the threat main memory on this die actually faces, the random 
 **Honest residual (§17):** the design has **no defence-in-depth layer beneath the package boundary on the memory path**, so the invasive-attack scope line is load-bearing rather than conservative.
 If that line is ever judged wrong, nothing sits behind it: there is no encryption to slow an attacker down and no freshness check to catch a replay.
 This is the document's own posture (*verify rather than hedge*) applied to its own threat model, and it is booked as a residual rather than presented as a guarantee.
-
----
-
-## SRAM chiplets and bonded die-stacking: declined
-
-Separately manufactured SRAM chiplets and bonded memory dies would improve density, process specialization, yield, and economics.
-They are declined because each additional die is an additional mask set, fab lot, supply-chain entity, and object whose correspondence to the verified design must be evidenced; the die-to-die interface also recreates the exposed hop that makes memory cryptography and link protocol machinery arguable.
-Bonding does not change that trust structure merely because the second die is vertical.
-
-The capacity advantage is real and the cost is explicit: without a separately optimized SRAM die, capacity depends on the less mature one-die process route and can collapse to the planar-tier budget if that route fails.
-
-**Disposition:** no SRAM chiplet, bonded memory die, die-to-die memory link, or multi-die fallback.
-The adopted one-die realization and its discrete manufacturability residual are documented in [Inspirations & Prior Art](inspirations.md).
 
 ---
 
@@ -1375,13 +1351,38 @@ The SOI realization actually selected is documented in [Inspirations & Prior Art
 
 ---
 
-## Logic-over-logic die stacking and an alternative inspection suite as an IRIS replacement: declined
+## A second die: radio bifurcation, SRAM chiplets, and bonded stacking, declined once at the trust structure they share
 
-Nano-CT, lock-in thermography, TDI, dark-field inspection, acoustic microscopy, virtual in-line metrology, and BIST were evaluated as a way to recover assurance after logic is buried in a 3D stack.
+Three proposals reach for a second piece of silicon for three unrelated reasons, and all three are declined on one ledger, so the ledger is stated here once and the proposals are then taken individually.
+
+**The shared cost is the die count rather than the mechanism any one proposal wants.**
+Each additional die is an additional mask set, fab lot, supply-chain entity, and object whose correspondence to the verified design must be separately evidenced, and the die-to-die interface it forces recreates the exposed hop that makes memory cryptography and link-protocol machinery arguable, which is the hop the memory-encryption entry above turns on this machine not having.
+Bonding does not change that trust structure merely because the second die is vertical, and attesting the second die does not either, an attestation relation between two dies being one more thing to state and prove rather than one less.
+
+**Physical bifurcation of the radio.**
+A second attested copy of the die linked by ring-over-SerDes would separate radio power and thermal mass from the rest of the machine.
+It would not separate the mask-set threat, because the proposal deliberately reuses the same die design, and it would add a package, link protocol, parser, CDC/metastability obligation, two-die attestation relation, power, latency, and another object for supply-chain inspection.
+The remaining substrate and analog-emission separation is outside the remote threat model and is not cleanly closed by a nearby second die in any case.
+
+**SRAM chiplets and bonded memory dies.**
+Separately manufactured SRAM chiplets and bonded memory dies would improve density, process specialization, yield, and economics.
+The capacity advantage is real and the cost is explicit: without a separately optimized SRAM die, capacity depends on the less mature one-die process route and can collapse to the planar-tier budget if that route fails.
+
+**Logic over logic.**
+Stacking separately fabricated logic multiplies dies, mask sets, fab sources, and hidden interfaces, and it additionally deletes the backside optical path IRIS images through, a ground the shared ledger does not reach and the inspection entry below owns.
+
+**Disposition:** decline the second radio die and the inter-die link; no SRAM chiplet, bonded memory die, die-to-die memory link, or multi-die fallback; and do not stack acting logic over logic.
+The adopted top-rung on-die isolation, and the adopted one-die realization with its discrete manufacturability residual, are documented in [Inspirations & Prior Art](inspirations.md).
+
+---
+
+## An alternative inspection suite as an IRIS replacement: declined
+
+Stacking acting logic over logic is declined at the packaging entry above, and this entry answers the question that decision raises: whether assurance can be recovered by other means once logic is buried in a 3D stack.
+Nano-CT, lock-in thermography, TDI, dark-field inspection, acoustic microscopy, virtual in-line metrology, and BIST were evaluated for that role.
 Only Nano-CT supplies structural evidence through the stack, and it trades resolution, field of view, and throughput; the others are interface, surface, behavioral, statistical, or readout techniques that a dormant malicious addition can evade.
-Stacking separately fabricated logic also multiplies dies, mask sets, fab sources, and hidden interfaces while deleting the backside optical path.
 
-**Disposition:** do not stack acting logic over logic and do not treat this defect/reliability suite as a substitute for IRIS on the logic tier.
+**Disposition:** do not treat this defect/reliability suite as a substitute for IRIS on the logic tier.
 Its bounded role on passive monolithic memory tiers is documented in [Inspirations & Prior Art](inspirations.md).
 
 ---
