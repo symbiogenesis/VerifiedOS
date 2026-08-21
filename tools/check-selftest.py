@@ -42,15 +42,18 @@ import stat
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
 
+# The tools import `vos` without being installed, so each puts its own directory on
+# the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from vos import corpus as corpus_mod          # noqa: E402
-from vos.corpus import UNREAD_PREFIX          # noqa: E402
-from vos.figures import words                 # noqa: E402
+from vos import corpus as corpus_mod
+from vos.corpus import UNREAD_PREFIX
+from vos.figures import words
 
 CHECKER = "tools/check.py"
 RULES = "tools/check-rules.md"
@@ -75,7 +78,7 @@ class Sandbox:
         self.touched: set[str] = set()
 
     def read(self, rel: str) -> str:
-        with open(self.path / rel, encoding="utf-8", newline="") as f:
+        with (self.path / rel).open(encoding="utf-8", newline="") as f:
             return f.read()
 
     def write(self, rel: str, text: str | None) -> bool:
@@ -125,10 +128,11 @@ class Sandbox:
         """
         argv = [sys.executable, str(self.path / CHECKER)] + (["--fix"] if fix else [])
         proc = subprocess.run(argv, cwd=self.path, capture_output=True,
-                              text=True, encoding="utf-8")
-        out = (proc.stdout or "").splitlines() + (proc.stderr or "").splitlines()
-        failed = sorted({m.group(1) for line in out
-                         if (m := re.match(r"\s*FAIL (K-\d\d)", line))})
+                              text=True, encoding="utf-8", check=False)
+        out: list[str] = [*(proc.stdout or "").splitlines(),
+                          *(proc.stderr or "").splitlines()]
+        failed: list[str] = sorted({m.group(1) for line in out
+                                    if (m := re.match(r"\s*FAIL (K-\d\d)", line))})
         return proc.returncode, out, failed
 
 
@@ -139,29 +143,29 @@ def remove_tree(path: Path) -> None:
     ordinary recursive delete fail halfway through, leaving a sandbox nobody asked to
     keep and a run that cannot start next time.
     """
-    def force(func, target, _exc):
-        os.chmod(target, stat.S_IWRITE)
+    def force(func: Callable[[str], object], target: str, _exc: BaseException) -> None:
+        Path(target).chmod(stat.S_IWRITE)
         func(target)
 
     if path.exists():
         shutil.rmtree(path, onexc=force)
 
 
-def _across(work, items, jobs: int) -> list:
+def _across[T, R](work: Callable[[T], R], items: Iterable[T], jobs: int) -> list[R]:
     """One call per item, run at once, answered in the order the items were given.
 
     Everything handed to this is a subprocess or a tree of a thousand small files, so a
     worker spends nearly all of its time inside a syscall with the interpreter lock
     released: the run is I/O the machine can overlap rather than Python it cannot.
     """
-    items = list(items)
-    if len(items) < 2:
-        return [work(item) for item in items]
-    with ThreadPoolExecutor(max_workers=min(jobs, len(items))) as pool:
-        return list(pool.map(work, items))
+    work_list = list(items)
+    if len(work_list) < 2:
+        return [work(item) for item in work_list]
+    with ThreadPoolExecutor(max_workers=min(jobs, len(work_list))) as pool:
+        return list(pool.map(work, work_list))
 
 
-def edit_entry(text: str, ident: str, edit) -> str | None:
+def edit_entry(text: str, ident: str, edit: Callable[[str], str | None]) -> str | None:
     """A register entry is its normative line plus the property lines under it, ending
     where the next entry begins. Several cases need surgery inside exactly one entry
     and must not reach the next, so the span is computed once here."""
@@ -183,7 +187,7 @@ def replace_once(text: str, find: str, repl: str, start: int = 0) -> str | None:
     return None if i < 0 else text[:i] + repl + text[i + len(find):]
 
 
-def replace_span(text: str, m: re.Match, new: str) -> str:
+def replace_span(text: str, m: re.Match[str], new: str) -> str:
     return text[:m.start()] + new + text[m.end():]
 
 
@@ -217,7 +221,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     for extra in ([], ["--others", "--exclude-standard"]):
         proc = subprocess.run(
             ["git", "-c", "core.quotepath=false", "ls-files", "--full-name", *extra],
-            cwd=repo, capture_output=True, text=True, encoding="utf-8")
+            cwd=repo, capture_output=True, text=True, encoding="utf-8", check=False)
         if proc.returncode != 0:
             raise SystemExit("git ls-files failed in the repository")
         listed += proc.stdout.splitlines()
@@ -249,7 +253,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     # second per run spent writing a HEAD that nothing here ever reads: a case is undone
     # from the pristine tree beside it rather than out of git.
     for args in (["-c", "init.defaultBranch=main", "init", "-q"], ["add", "-A"]):
-        proc = subprocess.run(["git", *args], cwd=into, capture_output=True)
+        proc = subprocess.run(["git", *args], cwd=into, capture_output=True, check=False)
         if proc.returncode != 0:
             raise SystemExit(f"could not build the sandbox index: git {args[0]}")
     return copied
@@ -278,19 +282,30 @@ ABSENCE = "docs/absence-contract.md"
 CORPUS_DOC = "docs/differential-corpus.md"
 
 
-def _literal(rel: str, find: str, repl: str):
+# One seeded defect, applied to a sandbox, answering whether it changed anything. A
+# mutation that writes nothing is a case that has stopped testing its rule, which is
+# why the answer is a bool rather than nothing at all.
+type Mutation = Callable[[Sandbox], bool]
+
+# One row of `CASES`: the rule the mutant must provoke, what the mutation is in words,
+# and the mutation itself.
+type Case = tuple[str, str, Mutation]
+
+
+def _literal(rel: str, find: str, repl: str) -> Mutation:
     def apply(box: Sandbox) -> bool:
         return box.write(rel, replace_once(box.read(rel), find, repl))
     return apply
 
 
-def _entry(ident: str, edit):
+def _entry(ident: str, edit: Callable[[str], str | None]) -> Mutation:
     def apply(box: Sandbox) -> bool:
         return box.write(REGISTER, edit_entry(box.read(REGISTER), ident, edit))
     return apply
 
 
-def _first_match(rel: str, pattern: str, rewrite, flags: int = re.MULTILINE):
+def _first_match(rel: str, pattern: str, rewrite: Callable[[re.Match[str]], str],
+                 flags: int = re.MULTILINE) -> Mutation:
     """Rewrite the first match of a pattern, or refuse if it no longer matches."""
     def apply(box: Sandbox) -> bool:
         text = box.read(rel)
@@ -301,7 +316,7 @@ def _first_match(rel: str, pattern: str, rewrite, flags: int = re.MULTILINE):
     return apply
 
 
-def _renumber(rel: str, pattern: str, group: int, value: str):
+def _renumber(rel: str, pattern: str, group: int, value: str) -> Mutation:
     """Overwrite one numbered group of the first match, leaving the rest of the line."""
     def apply(box: Sandbox) -> bool:
         text = box.read(rel)
@@ -312,13 +327,14 @@ def _renumber(rel: str, pattern: str, group: int, value: str):
     return apply
 
 
-def _seed_paragraph(sentence: str):
+def _seed_paragraph(sentence: str) -> Mutation:
     """Drop a sentence into the gap before a heading, where the checker reads it as
     ordinary prose."""
     return _literal(CRITIQUE, "\n## ", f"\n{sentence}\n\n## ")
 
 
-def _strip_requirements(rel: str, pattern: str, replacement: str = "the register"):
+def _strip_requirements(rel: str, pattern: str,
+                        replacement: str = "the register") -> Mutation:
     return _first_match(rel, pattern,
                         lambda m: re.sub(r"R-\d\d-\d+[a-z]?", replacement, m.group()))
 
@@ -394,8 +410,16 @@ def _k49(box: Sandbox) -> bool:
 
 
 def _keep_own_id(entry_line: str) -> str:
-    head = re.match(r"^\*\*R-\d\d-\d+[a-z]?\*\* ", entry_line).group()
-    return head + re.sub(r"R-\d\d-\d+[a-z]?", "R-01-001", entry_line[len(head):])
+    head = re.match(r"^\*\*R-\d\d-\d+[a-z]?\*\* ", entry_line)
+    if head is None:
+        # The caller picked this line out of the register as an entry, so a line that
+        # does not open with an id means the mutation no longer applies. Said here
+        # rather than as an AttributeError on `None`, which reads as a defect in this
+        # tool rather than as the drift it actually is.
+        raise SystemExit(f"the entry to mutate does not open with a requirement id: "
+                         f"{entry_line[:60]!r}")
+    return head.group() + re.sub(r"R-\d\d-\d+[a-z]?", "R-01-001",
+                                 entry_line[len(head.group()):])
 
 
 CASES = [
@@ -656,7 +680,8 @@ def main(argv: list[str] | None = None) -> int:
             remove_tree(sandbox)
 
 
-def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> int:
+def _run(selected: list[Case], made: list[Sandbox], boxes: Queue[Sandbox],
+         jobs: int) -> int:
     # Nothing below means anything against a sandbox that was already failing: a mutant
     # would be reported killed by whatever was broken before it was introduced.
     code, out, _ = made[0].check()
@@ -669,7 +694,7 @@ def _run(selected, made: list[Sandbox], boxes: "Queue[Sandbox]", jobs: int) -> i
     print("ok: the unmutated sandbox passes, so every finding below is the mutant")
     print()
 
-    def one(case):
+    def one(case: Case) -> tuple[str, str, str, str | None]:
         rule, what, apply = case
         box = boxes.get()
         try:

@@ -15,11 +15,16 @@ quietly.
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..corpus import Corpus
 from ..register import Artifacts, Register
 from ..report import Reporter
+
+# The view table belongs to the views group, which this module imports below. Same
+# guard as every group uses for `Context`, in the other direction.
+if TYPE_CHECKING:
+    from .views import View
 
 
 @dataclass
@@ -45,10 +50,16 @@ class Context:
 
     # what later groups need from earlier ones
     q: dict[str, int] = field(default_factory=dict)          # quantity -> value
-    claims: list[Any] = field(default_factory=list)          # the registered figure claims
+    # one registered figure claim: the document asserting it, the quantity it is a
+    # count of, whether it is spelled in words or digits, and the pattern that finds
+    # it. The floors group reads only the quantity, and reads it positionally.
+    claims: list[tuple[str, str, str, str]] = field(default_factory=list)
     floors: dict[str, int] = field(default_factory=dict)     # enumeration -> its size
-    views: list[dict] = field(default_factory=list)
-    shared: dict[str, Any] = field(default_factory=dict)     # everything else, by name
+    views: list[View] = field(default_factory=list)
+    # Everything a group leaves for a later one that has no shape worth naming.
+    # `Any` is the honest type here and not a shortcut: the values are lists of four
+    # different record types, and narrowing happens at each reader.
+    shared: dict[str, Any] = field(default_factory=dict)
 
     def text(self, name: str) -> str:
         """A document's text as the run currently holds it, repaired or not."""
@@ -58,7 +69,10 @@ class Context:
         return doc.raw if doc else ""
 
 
-from . import (  # noqa: E402  (the modules import Context from here)
+# Below `Context` and not above it: every module named here reads `Context` from this
+# one, so importing them any earlier would be a cycle through a name that does not
+# exist yet.
+from . import (  # noqa: E402
     bindings,
     compounds,
     confers,

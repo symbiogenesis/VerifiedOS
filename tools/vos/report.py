@@ -12,6 +12,8 @@ in-process and read its verdict back as data instead of re-parsing a subprocess'
 stdout.
 """
 
+from collections.abc import Iterable
+
 
 class Reporter:
     """Collects a run's output and counts its findings."""
@@ -23,7 +25,8 @@ class Reporter:
     def line(self, text: str = "") -> None:
         self.out.append(text)
 
-    def report(self, rule: str, label: str, items, ok: str = "", pad: str = "") -> None:
+    def report(self, rule: str, label: str, items: Iterable[object],
+               ok: str = "", pad: str = "") -> None:
         """Decide one rule.
 
         `items` is whatever the check produced; falsy members are dropped, because a

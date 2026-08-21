@@ -26,9 +26,14 @@ search is different.
 import re
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
+from typing import TYPE_CHECKING
 
-_ONES = ("zero one two three four five six seven eight nine ten eleven twelve thirteen "
-         "fourteen fifteen sixteen seventeen eighteen nineteen").split()
+# `Context` lives in `vos.checks`, which imports this module. Guarded, so the
+# annotations below cost no import at run time and no cycle at any time.
+if TYPE_CHECKING:
+    from .checks import Context
+
+_ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
 _TENS = {2: "twenty", 3: "thirty", 4: "forty", 5: "fifty",
          6: "sixty", 7: "seventy", 8: "eighty", 9: "ninety"}
 
@@ -158,7 +163,7 @@ def anchor(pattern: str) -> str:
     return max(best, run, key=len)
 
 
-def find_all(pattern: str, raw: str) -> list:
+def find_all(pattern: str, raw: str) -> list[re.Match[str]]:
     """Every match, reached through the pattern's phrase wherever it has one.
 
     The phrase proposes the sites and the pattern decides them, so this is the pattern's
@@ -193,12 +198,13 @@ def find_all(pattern: str, raw: str) -> list:
 
 @dataclass
 class ClaimResult:
-    spans: list = field(default_factory=list)
+    spans: list[re.Match[str]] = field(default_factory=list)
     finding: str | None = None
     fixed: str | None = None
 
 
-def resolve_claim(ctx, file: str, pattern: str, expected: str, what: str) -> ClaimResult:
+def resolve_claim(ctx: Context, file: str, pattern: str, expected: str,
+                  what: str) -> ClaimResult:
     """One figure, found and then either repaired or reported."""
     result = ClaimResult()
     if file not in ctx.corpus:
@@ -241,7 +247,8 @@ class LineResult:
     fixed: list[str] = field(default_factory=list)
 
 
-def resolve_line(ctx, file: str, pattern: str, expected: dict[str, str], what: str) -> LineResult:
+def resolve_line(ctx: Context, file: str, pattern: str, expected: dict[str, str],
+                 what: str) -> LineResult:
     """One sentence, and every derived figure it carries at once.
 
     Anchored one figure at a time, each pattern would have to re-encode every figure

@@ -20,9 +20,10 @@ import json
 from pathlib import Path
 
 from . import jsonc
+from .jsonc import Json
 
 
-def _is_value(node) -> bool:
+def _is_value(node: Json) -> bool:
     """True where a dict is one configuration *value* rather than more surface.
 
     Two shapes reach here. An option is spelled `{"Some": ...}` or `{"None": ...}`, and
@@ -41,7 +42,7 @@ def _is_value(node) -> bool:
     return set(node) == {"len", "value"} or set(node) <= {"Some", "None"}
 
 
-def keys(node, prefix: str = "") -> set[str]:
+def keys(node: Json, prefix: str = "") -> set[str]:
     # `memory.regions` needs no exclusion: it is a list, whose entries differ between
     # the two files by design and are never keys, and the walk does not enter lists.
     found: set[str] = set()
@@ -65,19 +66,24 @@ def compare_keys(left_path: Path, right_path: Path) -> tuple[int, list[str]]:
     return 0, [f"key sets agree ({len(left)} keys)"]
 
 
-def _undeclared(config, schema, path: str = "") -> list[str]:
+def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
     # Recurse only where the subschema plainly declares "properties"; anyOf/oneOf nodes
     # are left alone.
     found: list[str] = []
-    if (isinstance(config, dict) and isinstance(schema, dict)
-            and isinstance(schema.get("properties"), dict)):
-        props = schema["properties"]
-        for key, value in config.items():
-            here = f"{path}/{key}" if path else key
-            if key not in props:
-                found.append(here)
-            else:
-                found.extend(_undeclared(value, props[key], here))
+    if not (isinstance(config, dict) and isinstance(schema, dict)):
+        return found
+    # bound before the test rather than re-read after it, so that what was checked to
+    # be a mapping is what gets indexed below
+    props = schema.get("properties")
+    if not isinstance(props, dict):
+        return found
+
+    for key, value in config.items():
+        here = f"{path}/{key}" if path else key
+        if key not in props:
+            found.append(here)
+        else:
+            found.extend(_undeclared(value, props[key], here))
     return found
 
 
@@ -87,7 +93,12 @@ def validate(schema_path: Path, config_path: Path) -> tuple[int, list[str]]:
     therefore misses a config key whose schema entry a cut deleted. c1's verified state
     is required-key set == config-key set, so an undeclared key is always drift."""
     try:
-        import jsonschema
+        # The one dependency in this directory that is not the standard library, and
+        # optional: the host lane never validates a config, so the import is here
+        # rather than at the top and its absence is a finding rather than a crash.
+        # Suppressed by rule and not blanketly, so that every *other* unresolved
+        # import in this file stays an error.
+        import jsonschema  # ty: ignore[unresolved-import]
     except ModuleNotFoundError:
         return 1, ["jsonschema is not installed: apt install python3-jsonschema"]
 

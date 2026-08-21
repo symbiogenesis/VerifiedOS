@@ -8,9 +8,16 @@ the number alone, so a repair is the substitution of a single token.
 """
 
 import re
+from typing import TYPE_CHECKING
 
 from .. import figures
 from ..register import REGISTER, cj_class, cj_status
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== counts: every asserted figure against its artifact ==="
 
@@ -95,7 +102,7 @@ COUNTED_NOUN = re.compile(
 COVERAGE_ROW_RE = r"(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|(?=\r?$)"
 
 
-def _form_sites(form_re, forms: list[str], raw: str) -> list:
+def _form_sites(form_re: re.Pattern[str], forms: list[str], raw: str) -> list[re.Match[str]]:
     """Every site the form pattern decides, reached through the literals it is built of.
 
     The pattern is an alternation of the forms the counted quantities take, spelled words
@@ -126,7 +133,7 @@ def _form_sites(form_re, forms: list[str], raw: str) -> list:
     return [m for at in sorted(sites) if (m := form_re.match(raw, at))]
 
 
-def _quantities(ctx) -> dict[str, int]:
+def _quantities(ctx: Context) -> dict[str, int]:
     reg, art, sh = ctx.reg, ctx.art, ctx.shared
     classes = [cj_class(row) for row in art.cj_rows]
     return {
@@ -154,7 +161,7 @@ def _quantities(ctx) -> dict[str, int]:
     }
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
     ctx.q = _quantities(ctx)
     ctx.claims = CLAIMS
@@ -164,7 +171,7 @@ def run(ctx) -> None:
         n = ctx.q[quantity]
         return figures.words(n) if style == "words" else str(n)
 
-    claim_spans: dict[str, list] = {}
+    claim_spans: dict[str, list[re.Match[str]]] = {}
     missed: list[str] = []
     for file, quantity, style, pattern in CLAIMS:
         r = figures.resolve_claim(ctx, file, pattern, expected(quantity, style), quantity)
@@ -213,11 +220,11 @@ def run(ctx) -> None:
             else:
                 held = claim_spans.get(doc.name, [])
 
-            by_form: dict[str, list] = {}
+            by_form: dict[str, list[re.Match[str]]] = {}
             for m in _form_sites(form_re, ordered, raw):
                 by_form.setdefault(m.group().lower(), []).append(m)
 
-            for form in forms:
+            for form, quantities in forms.items():
                 for m in by_form.get(form, []):
                     rest = raw[m.start():m.start() + 80].split("\n", 1)[0]
                     if not COUNTED_NOUN.search(rest):
@@ -227,7 +234,7 @@ def run(ctx) -> None:
                     line = (raw.count("\n", 0, m.start()) + 1 if was_fixed
                             else doc.at(m.start()))
                     loose.append(f"{doc.name}:{line} states '{m.group()}' where no claim "
-                                 f"holds it, for {' or '.join(forms[form])}")
+                                 f"holds it, for {' or '.join(quantities)}")
     rep.report("K-26", "unheld restatement(s) of a counted figure:", loose,
                "every stated figure is held by a claim")
 
@@ -246,7 +253,7 @@ def run(ctx) -> None:
     # this rule's only unrepairable one: there is no count to write into it. It is
     # reported here too rather than skipped, because a row whose count agrees with
     # nothing is exactly as wrong as one whose count disagrees.
-    def held(m: re.Match) -> int | None:
+    def held(m: re.Match[str]) -> int | None:
         return reg.per_section.get(m.group(1))
 
     wrong = [m for m in rows if int(m.group(2)) != held(m)]
@@ -254,7 +261,7 @@ def run(ctx) -> None:
 
     repairing = ctx.fix and bool(repairable)
     if repairing:
-        def repair(m: re.Match) -> str:
+        def repair(m: re.Match[str]) -> str:
             count = held(m)
             return (m.group() if count is None
                     else re.sub(r"\*\*\d+\*\* \|$", f"**{count}** |", m.group()))

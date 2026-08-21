@@ -40,12 +40,14 @@ import argparse
 import sys
 from pathlib import Path
 
+# The tools import `vos` without being installed, so each puts its own directory on
+# the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from vos import corpus as corpus_mod          # noqa: E402
-from vos.checks import GROUPS, Context        # noqa: E402
-from vos.register import read_artifacts, read_register  # noqa: E402
-from vos.report import Reporter               # noqa: E402
+from vos import corpus as corpus_mod
+from vos.checks import GROUPS, Context
+from vos.register import read_artifacts, read_register
+from vos.report import Reporter
 
 
 def run(root: Path, fix: bool = False) -> Reporter:

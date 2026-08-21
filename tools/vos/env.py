@@ -35,6 +35,7 @@ suspect: it is 1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm
 an ext4 copy. The build tree already lives on ext4 under /root/build.
 """
 
+import contextlib
 import os
 import re
 import shutil
@@ -43,12 +44,17 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Protocol, runtime_checkable
 
 # The OCaml native stack Sail's emission needs, in bytes (the shell loops spelled it
 # `ulimit -s 131072`, which is the same number in kilobytes).
 STACK_BYTES = 131072 * 1024
 
-KEEPALIVE_PIDFILE = Path(os.environ.get("VOS_KEEPALIVE_PIDFILE", "/tmp/vos-keepalive.pid"))
+# `/tmp` and not a private directory, deliberately: the lease is one per distribution
+# rather than one per user, and a second tool has to find the first one's pidfile to
+# know a lease is already held. Overridable for a test that must not touch the real one.
+KEEPALIVE_PIDFILE = Path(
+    os.environ.get("VOS_KEEPALIVE_PIDFILE", "/tmp/vos-keepalive.pid"))  # noqa: S108
 KEEPALIVE_HOURS = int(os.environ.get("VOS_KEEPALIVE_HOURS", "8"))
 
 # The M0.4 oracle's build tree, carrying the upstream pin in its name. Both the tree and
@@ -240,7 +246,7 @@ def _apply_opam_env() -> None:
     if not shutil.which("opam"):
         return
     proc = subprocess.run(["opam", "env", "--switch=default", "--shell=sh"],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         return
     for name, value in re.findall(r"^(\w+)='(.*)';\s*export", proc.stdout, re.MULTILINE):
@@ -279,7 +285,25 @@ def load() -> Environment:
     )
 
 
-def stage(name: str, argv: list[str], report_to=None, **kwargs) -> int:
+@runtime_checkable
+class Writable(Protocol):
+    """Anything a stage can report onto. `hasattr(x, "write")` was the test before,
+    and this is that test with a name: `isinstance` against a runtime-checkable
+    protocol checks for the method exactly as the attribute lookup did, and the
+    result is a value the caller can then actually write to."""
+
+    # `-> object` rather than `-> int`, because the only thing done with a stream
+    # here is hand it to `print(file=...)`, which asks for exactly this and never
+    # looks at what `write` returned.
+    def write(self, s: str, /) -> object: ...
+
+    # required because the report is printed with `flush=True`: a stage line that sat
+    # in a buffer would reach a killed build's log after the build, or not at all
+    def flush(self) -> object: ...
+
+
+def stage(name: str, argv: list[str], report_to: Writable | None = None,
+          **kwargs: Any) -> int:
     """Run a build stage and record what it cost.
 
     The breakdown of a full build was known only for its two serial stages; every
@@ -290,8 +314,6 @@ def stage(name: str, argv: list[str], report_to=None, **kwargs) -> int:
 
         STAGE emit wall=107.4s cpu=99% maxrss=2411360kB
     """
-    import resource
-
     started = time.perf_counter()
     proc = subprocess.Popen(argv, **kwargs)
     _, status, usage = os.wait4(proc.pid, 0)
@@ -304,13 +326,20 @@ def stage(name: str, argv: list[str], report_to=None, **kwargs) -> int:
     return proc.returncode
 
 
-def _report_stream(report_to, child_stderr):
+def _report_stream(report_to: Writable | None, child_stderr: object) -> Writable:
     """A stage reports beside its own output: where the child writes to a log, so does
-    the line saying what the child cost."""
+    the line saying what the child cost.
+
+    `child_stderr` is whatever was passed through to `Popen`, which may be a file, a
+    pipe constant, or nothing at all, so it is `object` until the protocol test says
+    otherwise."""
     for candidate in (report_to, child_stderr):
-        if hasattr(candidate, "write"):
+        if isinstance(candidate, Writable):
             return candidate
-    return sys.stderr
+    # named rather than returned directly: `sys.stderr` is rebindable, so its inferred
+    # type carries an `Any` arm, and the one place that is pinned down is here
+    fallback: Writable = sys.stderr
+    return fallback
 
 
 def keepalive(hours: int | None = None) -> None:
@@ -344,14 +373,17 @@ def _keepalive_running() -> bool:
     try:
         pid = int(KEEPALIVE_PIDFILE.read_text().strip())
         os.kill(pid, 0)
-        return True
     except (OSError, ValueError):
+        # no pidfile, an unreadable one, or a process that has exited: all three mean
+        # there is no lease, which is what the caller asked
         return False
+    return True
 
 
 def keepalive_stop() -> None:
-    try:
+    # Both errors mean the lease is already gone: no pidfile, an unreadable one, or a
+    # process that has exited. The pidfile is removed either way, so suppressing is
+    # the whole handling rather than a swallowed failure.
+    with contextlib.suppress(OSError, ValueError):
         os.kill(int(KEEPALIVE_PIDFILE.read_text().strip()), 15)
-    except (OSError, ValueError):
-        pass
     KEEPALIVE_PIDFILE.unlink(missing_ok=True)

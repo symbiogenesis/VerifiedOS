@@ -19,6 +19,13 @@ no document carries at all is a reference to a section that has been renumbered 
 
 import re
 from pathlib import PurePosixPath
+from typing import TYPE_CHECKING
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== links: every cross-reference against what it points at ==="
 
@@ -35,7 +42,7 @@ def sites(name: str, lines: list[int], cap: int = 12) -> str:
     return f"{name}: {len(lines)} line(s): {shown}"
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep, corpus = ctx.rep, ctx.corpus
     rep.line(HEADING)
 
@@ -51,8 +58,7 @@ def run(ctx) -> None:
             target, frag = m.group(1) or "", m.group(2) or ""
             if _SCHEME_RE.match(target):
                 continue                       # off the repository, not ours to hold
-            if target.startswith("./"):
-                target = target[2:]
+            target = target.removeprefix("./")
             # a relative target resolves against the document that carries it, not the root
             if not target:
                 path = doc.name

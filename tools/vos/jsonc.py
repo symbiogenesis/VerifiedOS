@@ -16,6 +16,12 @@ at the same place in the original text.
 
 import json
 from pathlib import Path
+from typing import cast
+
+# Anything a parse of this dialect can yield. Recursive, because the configuration is,
+# and stated here rather than in each reader so that a walk over a config and a walk
+# over a schema are the same walk over the same type.
+type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 
 
 def strip_comments(text: str) -> str:
@@ -61,5 +67,7 @@ def strip_comments(text: str) -> str:
     return "".join(out)
 
 
-def load(path: str | Path):
-    return json.loads(strip_comments(Path(path).read_text(encoding="utf-8")))
+def load(path: str | Path) -> Json:
+    # `json.loads` is typed `Any`, and `Json` is by construction everything it can
+    # return, so this narrows an untyped boundary rather than asserting past one.
+    return cast("Json", json.loads(strip_comments(Path(path).read_text(encoding="utf-8"))))

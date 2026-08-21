@@ -27,9 +27,16 @@ counted. Anything else missing a cell is counted by nothing and is the finding.
 
 import re
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from .. import figures
 from ..figures import format_hours, percent
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== estimates: every total and share against the item hours beneath it ==="
 
@@ -79,7 +86,7 @@ class Section:
     items: list[Item]
 
 
-def _parse(raw: str):
+def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
     items: list[Item] = []
     sections: list[Section] = []
     bucket: list[Item] = []
@@ -111,14 +118,18 @@ def _parse(raw: str):
 
         done = DONE_RE.match(rest)
         opened = OPEN_RE.match(rest)
-        if not done and not opened:
+        # `cell` is whichever of the two matched, and the guard is written as one
+        # test on it rather than as `not done and not opened` so that what follows
+        # reads a match rather than a value that is a match on the strength of a
+        # condition two statements away.
+        cell = done or opened
+        if cell is None:
             if rest.strip():
                 malformed.append(f"{label}: '{rest.strip()}' is not an estimate cell")
             else:
                 pending = (label, indent)
             continue
 
-        cell = done or opened
         lo = _hours(opened.group("lo")) if opened else 0.0
         hi = _hours(opened.group("hi")) if opened else 0.0
         # every sum below reads `hours`, and for an open item that is the range's mean
@@ -142,7 +153,7 @@ def _parse(raw: str):
     return items, sections, malformed
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
 

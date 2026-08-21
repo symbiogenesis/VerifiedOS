@@ -16,6 +16,7 @@ reports are the same, arrived at in one pass instead of many.
 import bisect
 import re
 import subprocess
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -65,7 +66,8 @@ class Document:
     def is_fenced(self, offset: int) -> bool:
         return self.fenced[self.line_of(offset)]
 
-    def unfenced(self, lead: str, pattern: re.Pattern[str]):
+    def unfenced(self, lead: str,
+                 pattern: re.Pattern[str]) -> Iterator[tuple[int, re.Match[str]]]:
         """Every line-anchored match a fence does not display, as its line and its match.
 
         The line's index comes back with it because the walk already knows it: where a
@@ -98,7 +100,7 @@ def _read(path: Path, name: str) -> Document:
     # a file ending in a newline has no final empty line, which is what every
     # line-oriented reader means by its line count
     body = parts[:-1] if parts and parts[-1] == "" else parts
-    lines = [p[:-1] if p.endswith("\r") else p for p in body]
+    lines = [p.removesuffix("\r") for p in body]
 
     # every fence marker toggles, so the odd-even pairs span the displayed lines,
     # markers included; an unclosed fence displays to the end of the file. The markers
@@ -205,7 +207,7 @@ class Corpus:
 def _git(root: Path, *args: str) -> list[str]:
     proc = subprocess.run(
         ["git", "-c", "core.quotepath=false", *args],
-        cwd=root, capture_output=True, text=True, encoding="utf-8",
+        cwd=root, capture_output=True, text=True, encoding="utf-8", check=False,
     )
     if proc.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")

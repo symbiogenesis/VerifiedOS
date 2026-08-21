@@ -27,8 +27,15 @@ time the heading is retitled, exactly the drift bookmarks were adopted to end.
 """
 
 import re
+from typing import TYPE_CHECKING
 
 from ..corpus import PROSE
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== traces: the register's references against the prose ==="
 
@@ -37,7 +44,7 @@ _PROSE_ID_RE = re.compile(r"^r-\d\d-\d", re.IGNORECASE)
 _CITATION_SUFFIX_RE = re.compile(r"^(r-\d\d-\d\d\d[a-z]?)-\d+$", re.IGNORECASE)
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep, reg, corpus = ctx.rep, ctx.reg, ctx.corpus
     rep.line(HEADING)
 
