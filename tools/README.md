@@ -34,10 +34,11 @@ Two more the floor makes available go unused, because a version floor is a licen
 | [typecheck.py](typecheck.py) | host | Holds this directory's own Python to the discipline it holds the documents to. |
 | [blast-radius.py](blast-radius.py) | host | Answers what an edit to the apex statement re-opens, before the work starts. |
 | [bank-dse.py](bank-dse.py) | host | Scores every candidate second-class bank count against the arithmetic the composition fixes, and admits none: the hard constraint's coefficients are pending. |
+| [co-read.py](co-read.py) | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
 | [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof and holds its assumption set against the declared one. |
 | [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `config-keys`, `validate-config`, `keepalive`. |
 
-The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, and [env.py](vos/env.py) the build environment. Two more read a *model* fact a document restates rather than a document: [geometry.py](vos/geometry.py) the welded block size and [banks.py](vos/banks.py) the second class's bank grant. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
+The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, and [env.py](vos/env.py) the build environment. Two more read a *model* fact a document restates rather than a document: [geometry.py](vos/geometry.py) the welded block size and [banks.py](vos/banks.py) the second class's bank grant. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
 
 Those two are the one place the checker reaches past its own corpus, and the reach is a named list rather than a habit. `model/` is excluded from the document corpus by name, and [check-selftest.py](check-selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be on `corpus.MODEL_FACTS` or it passes on the host and fails every sandbox's baseline. Adding a path to that list is what makes the sandbox copy the file instead of touching it.
 
@@ -56,6 +57,8 @@ $ python tools/check-selftest.py              # every rule against its own mutan
 $ python tools/typecheck.py                   # the tools against their own discipline
 $ python tools/blast-radius.py --field spatial_safety
 $ python tools/bank-dse.py                    # the second class's bank grant, scored
+$ python tools/co-read.py                     # the pairs owed a reading
+$ python tools/co-read.py --show R-15-073c    # one pair, side against side
 
 $ wsl -u root -e python3 tools/model.py typecheck
 $ wsl -u root -e python3 tools/model.py build

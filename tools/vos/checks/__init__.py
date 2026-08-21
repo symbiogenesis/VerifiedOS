@@ -77,6 +77,7 @@ from . import (  # noqa: E402
     bindings,
     compounds,
     confers,
+    coread,
     counts,
     differential,
     estimates,
@@ -93,6 +94,7 @@ from . import (  # noqa: E402
 
 GROUPS = [
     traces,
+    coread,
     names,
     links,
     views,

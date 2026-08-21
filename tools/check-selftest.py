@@ -52,6 +52,7 @@ from queue import Queue
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
+from vos.coread import LEDGER
 from vos.corpus import MODEL_FACTS, UNREAD_PREFIX
 from vos.figures import words
 
@@ -417,6 +418,22 @@ def _k49(box: Sandbox) -> bool:
     return box.delete(ABSENCE)
 
 
+def _k61(box: Sandbox) -> bool:
+    """Move one recorded prose digest, so a pair the ledger calls read no longer is.
+
+    The ledger's own bytes are moved rather than a document's. A digest is a function
+    of the prose, so a case naming one as a literal would rot the next time that
+    paragraph was edited; anchoring on the row's shape instead keeps the case true
+    whatever the documents hold, and exercises the comparison rather than only the
+    membership half a renamed row would reach.
+    """
+    text = box.read(LEDGER)
+    m = re.search(r'^(  "R-01-001": \[")([0-9a-f]{12})', text, re.MULTILINE)
+    if not m:
+        return False
+    return box.write(LEDGER, text[:m.start(2)] + "0" * 12 + text[m.end(2):])
+
+
 def _keep_own_id(entry_line: str) -> str:
     head = re.match(r"^\*\*R-\d\d-\d+[a-z]?\*\* ", entry_line)
     if head is None:
@@ -667,6 +684,8 @@ CASES = [
     ("K-59", "an entry named in another document under a title it no longer carries",
      _literal(SPEC, "the second-die entry in [Evaluated",
               "the bonded-die-stacking entry in [Evaluated")),
+
+    ("K-61", "a pair the ledger records as read at contents it no longer holds", _k61),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
