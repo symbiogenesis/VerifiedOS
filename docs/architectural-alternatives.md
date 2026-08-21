@@ -1650,6 +1650,21 @@ The saving is also the smaller half of the seam. R-13-027 already keeps compilat
 
 ---
 
+## Astrée, Frama-C, and Polyspace: sound static analysis, declined as a trust-base member because a verdict is not a checkable artifact
+
+The proposal follows from an import already made: **aiT** is in the trust story for WCET, so why not its sibling.
+
+**Astrée** is the same vendor's sound abstract-interpretation analyzer, out of Cousot's group and industrialized by AbsInt, proving the absence of run-time errors in C: division by zero, out-of-bounds access, pointer errors, integer and floating-point overflow, uninitialized reads, data races. It was specialized from January 2004 to Airbus electric flight-control code and analyzed the A340 and A380 fly-by-wire software **with zero false alarms**, floating-point computations included, and it carries qualification kits for DO-178C, ISO 26262, IEC 61508 and EN 50128. It is the strongest existing evidence that sound static analysis scales to real flight-control code, and taking one AbsInt tool while ignoring the other should be a decision on the record rather than a silence.
+
+**The ground for declining it is the trust base and not the quality.**
+Astrée is a closed commercial analyzer whose soundness rests on a published body of abstract-interpretation theory plus a qualification kit, and whose output is a **verdict accepted on the vendor's authority** rather than an artifact a second checker can replay. That is what §5's rule refuses. aiT survives the same test only because of how WCET enters: as an external timing schema whose results this design re-derives and cross-checks against its own machine model (§11, §18), which is a carve-out for a timing estimate and does not extend to a functional-safety property the proof itself must own.
+**Frama-C** is the near miss and deserves the more careful sentence: ACSL contracts discharged by the WP plugin, with a documented Coq output path for the goals automation leaves, is architecturally the closest external tool to this project's own discipline, and it is open (LGPL). Its default lane nonetheless runs through Why3 to SMT solvers, so importing it means adopting SMT-borne results and re-homing them, with the Coq path the exception rather than the road; it is declined as a base and noted as the tool a future cross-check would most plausibly use. **Polyspace** is declined on the same ground as Astrée with less to recommend it, being proprietary and offering a four-colour classification rather than an artifact.
+
+**Disposition:** none of the three enters the trusted base. Two things import instead, and both are lists rather than tools: **Astrée's enumeration of run-time-error classes** and **Polyspace's green/red/orange/grey verdict partition** are the clearest published statements of what "absence of run-time errors" has to cover, and they are a checklist to run [absence-contract.md](absence-contract.md) against. The pattern is worth naming once because it recurs across this document: a tool that delivers a verdict rather than a checkable artifact fails the same test whether the reason is closed source, evaluation under confidentiality, or testing in place of proof, and Astrée, Polyspace, a commercial deterministic-simulation platform, and a certification-scheme security model all fail it for that one shared reason rather than for four different ones.
+Non-normative; no spec-body change.
+
+---
+
 ## CompCert-CT: constant-time by compiler preservation, declined for on-artifact verification
 
 **CompCert-CT** (Barthe, Blazy, et al., POPL 2020) modifies CompCert to preserve a source-level constant-time property through compilation.
