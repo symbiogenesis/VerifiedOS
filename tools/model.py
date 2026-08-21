@@ -12,8 +12,10 @@ Four loops, and each is the exit criterion for the one above it:
 `typecheck` is the inner loop of a deletion batch; `build` stays the exit criterion for
 every batch, and `sweep` is the number each batch reports. `trace-diff` is the M0.6e
 differential rig, adjudicating the curated model against the M0.4 oracle, and `oracle`
-builds that reference. Two more commands answer questions about the configuration alone
-and need no build: `config-keys` and `validate-config`.
+builds that reference. `devicetree` generates the attested tree, compiles it, and holds
+the blob against the region it is written into, which is three things the Sail emitter
+cannot decide about its own output. Two more commands answer questions about the
+configuration alone and need no build: `config-keys` and `validate-config`.
 
 These run inside WSL, where the Sail toolchain lives:
 
@@ -29,6 +31,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -568,6 +571,81 @@ def cmd_asm(e: env.Environment, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
+    """Generate the attested devicetree, compile it, and hold the blob against the
+    region it is written into.
+
+    Three things can go wrong here and only the third is visible from inside the model.
+    A devicetree *source* is a grammar rather than a rendering, so a property written
+    after a subnode and juxtaposed cell arrays are both errors `dtc` reports and the
+    Sail emitter, which is string concatenation, cannot: it typechecks either way.
+    And the blob has a size, which the region declared for `memory.dtb_address` bounds.
+
+    The emulator does carry that bound, but only on the `--device-tree-blob` path, so a
+    *generated* tree that outgrew its region was silent on every ordinary run. This is
+    that check moved to where it is taken: the tree is generated, compiled, measured,
+    and then handed back through the emulator's own bound rather than through a second
+    implementation of it here.
+    """
+    sim = e.build_dir / "c_emulator" / "sail_riscv_sim"
+    if not sim.exists():
+        print(f"no simulator at {sim}; run `model.py build` first", file=sys.stderr)
+        return 1
+    profile = e.model / PROFILE_CONFIG
+
+    dts = subprocess.run([str(sim), "--config", str(profile), "--print-device-tree"],
+                         capture_output=True, text=True, check=False)
+    if dts.returncode:
+        print(f"the model would not generate a devicetree:\n{dts.stderr}", file=sys.stderr)
+        return 1
+
+    with tempfile.TemporaryDirectory() as tmp:
+        source, blob = Path(tmp) / "vos.dts", Path(tmp) / "vos.dtb"
+        source.write_text(dts.stdout, encoding="utf-8")
+        built = subprocess.run(["dtc", "-I", "dts", "-O", "dtb",
+                                "-o", str(blob), str(source)],
+                               capture_output=True, text=True, check=False)
+        if built.returncode:
+            print(f"dtc refused the generated tree:\n{built.stderr}", file=sys.stderr)
+            return 1
+        # A warning is a finding here rather than a note, because the class of defect
+        # this catches is a tree that renders, compiles, and describes the machine
+        # wrongly. `dtc` has no global warnings-as-errors flag, its `-W` naming one
+        # check at a time, so the test is that it said nothing at all.
+        if built.stderr.strip():
+            print(f"dtc compiled the generated tree with warnings:\n{built.stderr}",
+                  file=sys.stderr)
+            return 1
+        size = blob.stat().st_size
+
+        # The emulator's own bound rather than a copy of it. That bound lives on the
+        # `--device-tree-blob` path and `--validate-config` exits before reaching it,
+        # which is exactly why a generated tree could outgrow its region in silence:
+        # the check existed and no ordinary run took the path to it. Getting there
+        # costs one program, because the tree is written into memory just ahead of the
+        # ELF load, so a member of the corpus stands in as the thing that makes the
+        # emulator get that far.
+        corpus = differential.load(e.root)
+        elf = differential.assemble(corpus, corpus.members[0], Path(tmp))
+        fits = subprocess.run([str(sim), "--config", str(profile),
+                               "--device-tree-blob", str(blob), str(elf)],
+                              capture_output=True, text=True, timeout=120, check=False)
+        said = fits.stdout + fits.stderr
+        if "does not fit" in said:
+            print(f"the generated devicetree does not fit the region it is written "
+                  f"into at {size} bytes:\n{said}", file=sys.stderr)
+            return 1
+        if fits.returncode:
+            print(f"the devicetree fits at {size} bytes, but the emulator would not "
+                  f"run {corpus.members[0].name} with it loaded:\n{said}",
+                  file=sys.stderr)
+            return 1
+
+    print(f"ok the generated devicetree compiles with no warning at {size} bytes, "
+          "inside the region it is written to")
+    return 0
+
+
 def cmd_config_keys(e: env.Environment, args: argparse.Namespace) -> int:
     code, lines = config.compare_keys(args.generated, args.profile)
     print("\n".join(lines))
@@ -645,6 +723,9 @@ def main(argv: list[str] | None = None) -> int:
     asm_cmd.add_argument("elf")
     asm_cmd.set_defaults(run=cmd_asm)
 
+    sub.add_parser("devicetree",
+                   help="generate, compile, and size-check the attested devicetree"
+                   ).set_defaults(run=cmd_devicetree)
     ck = sub.add_parser("config-keys", help="compare two configurations' key sets")
     ck.add_argument("generated", type=Path)
     ck.add_argument("profile", type=Path)

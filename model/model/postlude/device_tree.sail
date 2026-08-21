@@ -160,6 +160,98 @@ private function generate_dts_memory_classes() -> string =
   ^ generate_dts_memory_class_node(SecondClass)
   ^ "  };\n"
 
+// The core-class table, in the attested devicetree R-09-007 puts it in: a static
+// devicetree declares core classes and islands, there being no UEFI, no ACPI,
+// and nothing to discover them from.
+//
+// `verifiedos,frozen` is the load-bearing property here for the reason
+// `verifiedos,qualified` is in the memory-class node above. R-15-113's figures
+// are a reference instantiation and R-15-108's exploration is what selects them;
+// a tree carrying them with nothing separating them from selected values is how
+// a placeholder becomes an architectural input. Every tree this repository
+// generates today says `<0>`.
+//
+// `verifiedos,class-index` is what decodes the roster property below, so the
+// mapping travels with the thing it decodes rather than living in a comment
+// somebody has to find (core/core_class.sail).
+private function generate_dts_core_class_node(c : CoreClass) -> string = {
+  let d = core_class_datapath(c);
+    "    class-" ^ core_class_str(c) ^ " {\n"
+  ^ "      verifiedos,class-index = <" ^ dec_str(core_class_to_index(c)) ^ ">;\n"
+  ^ "      verifiedos,frozen = <" ^ (if d.frozen then "1" else "0") ^ ">;\n"
+  ^ "      verifiedos,vlen-exp = <" ^ dec_str(d.vlen_exp) ^ ">;\n"
+  ^ "      verifiedos,elen-exp = <" ^ dec_str(d.elen_exp) ^ ">;\n"
+  ^ "      verifiedos,lanes = <" ^ dec_str(d.lanes) ^ ">;\n"
+  ^ "      verifiedos,matrix-int8-dim = <" ^ dec_str(d.matrix_int8_dim) ^ ">;\n"
+  ^ "      verifiedos,matrix-bf16-dim = <" ^ dec_str(d.matrix_bf16_dim) ^ ">;\n"
+  ^ "      verifiedos,scratchpad-bytes = <" ^ generate_dts_u64(d.scratchpad_bytes) ^ ">;\n"
+  ^ "      verifiedos,issue-width = <" ^ dec_str(d.issue_width) ^ ">;\n"
+  ^ "      verifiedos,pipeline-depth = <" ^ dec_str(d.pipeline_depth) ^ ">;\n"
+  ^ "      verifiedos,keccak-unit = <" ^ (if d.keccak_unit then "1" else "0") ^ ">;\n"
+  ^ "      verifiedos,replicated = <" ^ (if d.replicated then "1" else "0") ^ ">;\n"
+  ^ "    };\n"
+}
+// No count is emitted here. The roster is in the same tree, three properties up,
+// and a class's count is the number of its entries (R-15-113), so a count beside
+// it would be the same fact written twice in one document, which is the defect
+// this repository is built to catch rather than one to commit in its own
+// attested artifact. A reader wanting the count counts the roster, exactly as
+// `core_class_count` does.
+
+private function generate_dts_core_classes() -> string =
+    "  core-classes {\n"
+  ^ generate_dts_core_class_node(CoreClass_C)
+  ^ generate_dts_core_class_node(CoreClass_V)
+  ^ generate_dts_core_class_node(CoreClass_M)
+  ^ generate_dts_core_class_node(CoreClass_S)
+  ^ generate_dts_core_class_node(CoreClass_RoT)
+  ^ "  };\n"
+
+// The roster, as one flat cell array of `<hartid class-index island flags>`
+// quads rather than as sixteen `cpu` nodes.
+//
+// The shape is forced twice over. A devicetree property carries cells or a
+// string and not both, so the class column is the index the node above emits;
+// and this tree is written into a 4 KiB ROM region, where a `cpu` node per hart
+// carrying an ISA string would not fit. A `cpu` node also asserts a hart this
+// emulator runs, and it runs one (R-15-005: one model, one build, one hart), so
+// sixteen of them would describe cores that are not here. What the roster is
+// instead is the table `mhartid` indexes: the kernel selects its per-hart state,
+// the core's class, and the island binding out of it at boot (R-15-052b), and
+// one binary does that unmodified on every class (R-07-012).
+//
+// `flags` is bit 0 pinned (R-15-114) and bit 1 FEC units (R-15-119).
+// The chunks are comma-separated because a devicetree source says so: juxtaposed
+// cell arrays are not a concatenation in that grammar, they are a syntax error,
+// which `dtc` is what says so about.
+private function generate_dts_roster_entries(roster : list(CoreRosterEntry), first : bool) -> string =
+  match roster {
+    [||]          => "",
+    entry :: rest =>
+        (if first then " " else ", ")
+      ^ "<" ^ dec_str(entry.hartid)
+      ^ " " ^ dec_str(core_class_to_index(entry.class))
+      ^ " " ^ dec_str(entry.island)
+      ^ " " ^ dec_str((if entry.pinned then 1 else 0) + (if entry.fec_units then 2 else 0))
+      ^ ">"
+      ^ generate_dts_roster_entries(rest, false)
+  }
+
+private function generate_dts_core_roster() -> string =
+  "    verifiedos,core-roster =" ^ generate_dts_roster_entries(core_roster, true) ^ ";\n"
+
+// The class and island of the hart this tree is for, on its own node. The
+// roster above carries the whole die's binding; these two say which row is this
+// core's, so a kernel that has not walked the roster yet still knows what it is
+// running on.
+private function generate_dts_this_core() -> string =
+  match this_core_entry() {
+    None()      => "",
+    Some(entry) =>
+        "      verifiedos,core-class = \"" ^ core_class_str(entry.class) ^ "\";\n"
+      ^ "      verifiedos,island = <" ^ dec_str(entry.island) ^ ">;\n"
+  }
+
 // Generates a `riscv,<prefix>-block-size` property line if the corresponding
 // cache-block extension is supported. The size is 2^plat_cache_block_size_exp
 // bytes, the same value used by the Zicboz instruction semantics.
@@ -226,9 +318,18 @@ function generate_dts() -> string = {
 ^ "    #address-cells = <1>;\n"
 ^ "    #size-cells = <0>;\n"
 ^ "    timebase-frequency = <" ^ dec_str(clock_freq / plat_insns_per_tick) ^ ">;\n"
-^ "    CPU0: cpu@0 {\n"
+         // Before the `cpu` node rather than after it, because a devicetree
+         // source puts every property of a node ahead of its subnodes and `dtc`
+         // refuses the other order outright.
+^ generate_dts_core_roster()
+         // The node name and `reg` follow `mhartid` rather than being written
+         // as zero. The identity is a composition constant fixed by the roster
+         // (R-15-052b), so a tree hardwiring it would describe hart zero to a
+         // machine that is some other hart. The label stays `CPU0` because it is
+         // a DTS label rather than an identity and `&CPU0_intc` below names it.
+^ "    CPU0: cpu@" ^ string_drop(hex_str(plat_hartid), 2) ^ " {\n"
 ^ "      device_type = \"cpu\";\n"
-^ "      reg = <0>;\n"
+^ "      reg = <" ^ dec_str(plat_hartid) ^ ">;\n"
 ^ "      status = \"okay\";\n"
 ^ "      compatible = \"riscv\";\n"
 ^ "      riscv,isa-base = \"" ^ generate_isa_base() ^ "\";\n"
@@ -239,6 +340,7 @@ function generate_dts() -> string = {
          // There is no MMU, so no `mmu-type` property is emitted: the
          // device-tree binding treats its absence as "none".
 ^ generate_cbo_block_size("cboz", Ext_Zicboz)
+^ generate_dts_this_core()
 ^ "      clock-frequency = <" ^ dec_str(clock_freq) ^ ">;\n"
 ^ "      CPU0_intc: interrupt-controller {\n"
 ^ "        #address-cells = <2>;\n"
@@ -248,6 +350,7 @@ function generate_dts() -> string = {
 ^ "      };\n"
 ^ "    };\n"
 ^ "  };\n"
+^ generate_dts_core_classes()
 ^ generate_dts_memories(pma_regions)
 ^ generate_dts_memory_classes()
 

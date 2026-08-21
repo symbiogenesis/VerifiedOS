@@ -192,6 +192,19 @@ function clause hartSupports(Ext_Zvl512b) = sizeof(vlen_exp) >= 9
 enum clause extension = Ext_Zvl1024b
 mapping clause extensionName = Ext_Zvl1024b <-> "zvl1024b"
 function clause hartSupports(Ext_Zvl1024b) = sizeof(vlen_exp) >= 10
+// The ladder upstream stops at 1024 because upstream stops there. This
+// profile's V class is VLEN=4096 and its M class VLEN=1024 (R-15-113), so
+// a truncated ladder would leave a V-class build reporting `zvl1024b` as
+// its widest guarantee in the generated `riscv,isa` string and in the
+// attested devicetree, which is a machine describing itself as narrower
+// than it is. Both rungs read false at every geometry this model is built
+// at today, so nothing observable moves until M0.8's V-class half lands.
+enum clause extension = Ext_Zvl2048b
+mapping clause extensionName = Ext_Zvl2048b <-> "zvl2048b"
+function clause hartSupports(Ext_Zvl2048b) = sizeof(vlen_exp) >= 11
+enum clause extension = Ext_Zvl4096b
+mapping clause extensionName = Ext_Zvl4096b <-> "zvl4096b"
+function clause hartSupports(Ext_Zvl4096b) = sizeof(vlen_exp) >= 12
 // Vector Extensions for Embedded Processors
 enum clause extension = Ext_Zve32f
 mapping clause extensionName = Ext_Zve32f <-> "zve32f"
@@ -431,6 +444,8 @@ let extensions_ordered_for_isa_string = [
   Ext_Zvl256b,
   Ext_Zvl512b,
   Ext_Zvl1024b,
+  Ext_Zvl2048b,
+  Ext_Zvl4096b,
 
   // Machine mode extensions, ordered alphabetically.
 ]
