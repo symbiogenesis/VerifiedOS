@@ -165,10 +165,16 @@ Honest residual (§17): Vélus enters the build path as a new front end, Coq-ver
 
 ---
 
-## The verified-crypto stack: Fiat-Crypto, HACL\*/libcrux, formosa-crypto, and the Coq-native reduction layer
+## The verified-crypto stack: Fiat-Crypto, HACL\*/libcrux, formosa-crypto, and the Coq-native reduction layer, from implementation to reduction
 
 A verified cryptosystem needs three properties, and the field supplies mature artifacts for each: **functional correctness** (the code computes ML-KEM), **constant-time** (it leaks nothing through timing), and **reduction-level security** (the *scheme* is IND-CCA or EUF-CMA under a named hardness assumption).
-The third is the one most stacks leave unstated, and proving the implementation while assuming the cryptography inverts this design's own priority, so §5 composes all three, importing a different artifact at each layer and re-homing each toward the one prover.
+Functional correctness plus constant-time (Fiat-Crypto + libcrux/HACL\*, §5) cover the first two and leave the third unstated, and **neither says the scheme is secure**: IND-CCA (KEM) and EUF-CMA (signatures) are *game-based* properties established by **reduction** to a hardness assumption, proofs about the *scheme*, not the *code*.
+The third is the one most stacks leave unstated, and proving the implementation while assuming the cryptography inverts this design's own priority: the most consequential property, that the scheme is actually hard to break, is the one left unproven, which is the reverse of the spec's "deepest proof over the smallest trusted set" criterion.
+So §5 composes all three, importing a different artifact at each layer and re-homing each toward the one prover.
+
+**Trust-base minimization is why each layer's artifact is chosen rather than merely accepted.**
+§5 elsewhere *minimizes* F\*/Z3 by construction, picking **Narcissus over EverParse** for parsers purely on trust-base uniformity; merely accepting the crypto widening ("ports don't exist yet") would leave the largest attacker-facing trust widening un-attacked.
+Every tool below is run through the §5 trust-base test, and one of them, CryptOpt, is **rejected by that same test**, which is what the test is for.
 
 - **Fiat-Crypto** supplies correct-by-construction field arithmetic from a Coq specification, and is the *native* member of the set: it is a Coq-native domain-specific generator in exactly the sense Narcissus and Vélus are (above), so it enters at zero new trust base and its output is compiled as ordinary verified C through CHERI-CompCert.
 - **HACL\* and libcrux** supply the functionally-verified primitives themselves, and are the standing **interim**: they discharge via **F\*/Z3**, a trust base distinct from Coq, and §5 minimizes that widening deliberately rather than accepting it (the same reasoning that picks Narcissus over EverParse for parsers, on trust-base uniformity alone).
@@ -176,12 +182,28 @@ The third is the one most stacks leave unstated, and proving the implementation 
   Choosing them is the identical decision made for Narcissus: the reduction rides the one Coq kernel (§6) at **zero new trust base**, which is why they are the destination rather than the complement.
 - **EasyCrypt and formosa-crypto** supply the *finished* ML-KEM and ML-DSA reductions, and so are the fastest path to a real proof, but EasyCrypt discharges via **Why3/SMT**, so by this design's own logic it is a widening of the same character as the F\*/Z3 one: **adopted as pragmatic interim assurance, with SSProve/FCF the destination.**
 
-The composition is the contribution: three layers joined at each primitive's functional specification, which is itself promoted to the crown-jewel spec list (§5).
-Constant-time is *not* taken from any of these by preservation; it is verified **on the binary** against the §15 leakage model for every secret-touching artifact, the field-arithmetic kernels included, so a single CHERI-CompCert carries the whole toolchain and no artifact is admitted on the strength of which compiler produced it.
-The toolchain choice is the seL4 move once more, *methodology is portable, maturity is not*: carry the Coq-native property to the mature artifacts, spending engineering to shrink the trusted set, and decline even a mature, verified-checker-admitted artifact where its only remaining yield would be *speed* on a path already correct and already leak-free (the CryptOpt comparison is retained below, in the Fiat-Crypto/SSProve/EasyCrypt entry).
+**Constant-time is verified on the artifact, which closes layers 1 and 2 and decides what may join them.**
+CT is *not* taken from any of these by preservation; it is verified **directly on the binary** against the §15 leakage model for every secret-touching artifact, the verified-C crypto core and its field-arithmetic kernels included, exactly as for every other secret-touching binary.
+There is **no verified-compiler CT route**, so a single CHERI-CompCert carries the whole toolchain, "trust a C compiler to preserve constant-time" is replaced by the binary-level lineage, **CompCert-CT remains a declined alternative**, and no artifact is admitted on the strength of which compiler produced it.
+The **field-arithmetic kernels** are verified C through that same compiler, which is what closes layers 1 and 2 for them: functional correctness from CompCert's theorem, and constant-time *structurally*, since straight-line code has no secret-dependent branch or address for the stock lowering to introduce.
 
-Honest residual (§17): a reduction *isolates and names* the hardness assumptions (MLWE/MSIS, ECDLP/CDH) but cannot prove them, which is the irreducible cryptographic axiom; the implementation-to-reduction join is a new seam at the functional spec; EasyCrypt-borne reductions carry an SMT base until restated Coq-native; and scheme-level IND-CCA and EUF-CMA still sit below protocol-level security (TLS, AKA), a further layer again.
-What the stack buys is the move from *"correct, constant-time code for a scheme we assume is secure"* to *"the scheme is secure under a named, minimal assumption, implemented by constant-time code verified on the artifact"*, with the residual pushed down to conjectures no proof system can discharge.
+**What does not transfer: CryptOpt.**
+The mechanism is genuinely attractive, which is why the comparison is recorded in full: an *untrusted* randomized-search superoptimizer emits assembly faster than GCC/Clang at top optimization (at times beating hand-written asm), admitted by a **Coq-verified program-equivalence checker** back to its **Fiat-Crypto** functional spec, so the trusted artifact is a *small verified checker* rather than a second optimizing backend, the crypto instantiation of the asymmetric-trust pattern the platform runs everywhere.
+**What decides against it is the paragraph above.**
+Once the field arithmetic is verified C through CHERI-CompCert it is *already functionally correct* and, being straight-line, *already constant-time* on that compiler's stock output as verified on the artifact.
+So the equivalence checker's entire remaining yield is **throughput on a path that is already correct and already leak-free**, and §5's standing rule, illustrated again by the WCET lineage below, reads on artifacts as well as bounds: a net-new verified artifact bought for speed alone spends the scarce currency to buy the free one.
+CryptOpt is therefore excluded rather than retained as a deferred workstream: deferral would keep its checker and code-generation dependencies on the §6/§18 plan for a throughput-only gain.
+**What the deletion removes** is a net-new Coq equivalence-checker development over the CHERI-RISC-V Sail model (CryptOpt targets x86-64, so the retarget would be net-new), the *checker-admitted artifacts* TCB category (§6, a category only these kernels would populate), the §18 crypto-codegen workstream, and the *checker-admitted assembly leaf* escape hatch the CT story would otherwise lean on.
+Two further asterisks point the same way: CryptOpt's headline results come from randomized search **benchmarked on real silicon** that does not exist here yet (the fitness function would have to ride the timing-annotated Sail model or the FPGA, §11), and its scope is *straight-line field arithmetic* only, so the control-flow-heavy primitives it never covered (Keccak, AES, ChaCha, the ML-KEM/ML-DSA NTT and samplers) were always verified C, branchless-hardened and constant-time-verified on the artifact.
+**Cost, stated plainly:** hand-assembly-grade ECC and big-integer throughput is surrendered; the classical-crypto hot path runs at verified-C codegen speed, with performance subordinate (§1) and the engineering-free axiom offering no relief here because the cost is *trust*, not labor.
+
+**What the platform takes.**
+The composition is the contribution: crypto assurance becomes **three composed layers** (functional correctness (Fiat-Crypto; libcrux/HACL\* interim) ⋈ constant-time (verified on the artifact, the field-arithmetic kernels included and compiled as verified C like everything else) ⋈ reduction-level security (SSProve/FCF Coq-native, EasyCrypt/formosa-crypto the mature complement)), joined at each primitive's functional specification, which is itself promoted to the crown-jewel spec list (§5).
+**CryptOpt translation validation is rejected**: the whole core is compiler-borne, so **no crypto artifact is checker-admitted and no crypto-codegen workstream survives.**
+The toolchain choice is the seL4 move once more, *methodology is portable, maturity is not*: carry the Coq-native property (on-artifact constant-time verification, SSProve/FCF reductions) to the mature artifacts (formosa-crypto, Fiat-Crypto), spending engineering to shrink the trusted set, and decline even a mature, verified-checker-admitted artifact where its only remaining yield would be *speed* on a path already correct and already leak-free.
+
+Honest residual (§17): a reduction *isolates and names* the hardness assumptions (MLWE/MSIS, ECDLP/CDH) but cannot prove them, which is the irreducible cryptographic axiom; the implementation ⋈ reduction join is a new seam at the functional spec; EasyCrypt-borne reductions carry an SMT base until restated Coq-native; and scheme-level IND-CCA and EUF-CMA still sit below protocol-level security (TLS, AKA), a further layer again.
+What the stack buys is the deepest-available crypto proof, the move from *"correct, constant-time code for a scheme we assume is secure"* to *"the scheme is IND-CCA or EUF-CMA under a named, minimal hardness assumption, implemented by constant-time code verified on the artifact"*, with the residual pushed down to conjectures no proof system can discharge.
 
 ---
 
@@ -1511,43 +1533,6 @@ Kernel objects are placed by §8's composition-time memory plan and installed by
 Endpoints, notifications, and the non-interference theorem are retained from seL4 unchanged.
 The kernel ABI loses its retype, capability-space, and derivation-tree invocations.
 **Honest residual (§17):** the object model is now CHERIoT-shaped rather than seL4-shaped, so the independent-scrutiny argument is weaker and a larger fraction of the Gallina specification is authored rather than mechanically transcribed; offset against three deleted object classes, a deleted ABI surface, the deleted CDT refinement, and retirement of the former kill-switch subproof, this is a net shrink of both specification surface and proof programme.
-
----
-
-## Fiat-Crypto, SSProve/FCF, and EasyCrypt: assurance from implementation to reduction
-
-Functional correctness plus constant-time (Fiat-Crypto + libcrux/HACL\*, §5) cover two of the three properties a verified cryptosystem needs and leave the third unstated: the reverse of this spec's "deepest proof over the smallest trusted set" criterion.
-
-- **Three-layer composition.**
-  Functional correctness says the code computes ML-KEM; constant-time says it leaks nothing through timing.
-  **Neither says the scheme is secure.**
-  IND-CCA (KEM) and EUF-CMA (signatures) are *game-based* properties established by **reduction** to a hardness assumption: proofs about the *scheme*, not the *code*.
-  Proving the implementation while assuming the cryptography inverts the priority: the most consequential property, that the scheme is actually hard to break, is the one left unproven.
-- **Trust-base minimization.**
-  §5 elsewhere *minimizes* F\*/Z3 by construction, picking **Narcissus over EverParse** for parsers purely on trust-base uniformity.
-  Merely accepting the crypto widening ("ports don't exist yet") would leave the largest attacker-facing trust widening un-attacked.
-
-The tools, each run through the §5 trust-base test, close both gaps: and one of them, CryptOpt, is **rejected by that same test**, which is what the test is for:
-
-- **Constant-time on the artifact (layers 1–2).**
-  Constant-time is verified **directly on the binary** against the §15 leakage model, for the verified-C crypto core exactly as for every other secret-touching artifact: there is **no verified-compiler CT route**, so a single CHERI-CompCert carries the whole toolchain and "trust a C compiler to preserve constant-time" is replaced by the binary-level lineage below; CompCert-CT remains a declined alternative.
-  The **field-arithmetic kernels** are verified C through that same compiler, which is what closes layers 1–2 for them: functional correctness from CompCert's theorem, and constant-time *structurally*, since straight-line code has no secret-dependent branch or address for the stock lowering to introduce.
-- **What does not transfer: CryptOpt.**
-  The mechanism is genuinely attractive, which is why the comparison is recorded in full: an *untrusted* randomized-search superoptimizer emits assembly faster than GCC/Clang at top optimization (at times beating hand-written asm), admitted by a **Coq-verified program-equivalence checker** back to its **Fiat-Crypto** functional spec, so the trusted artifact is a *small verified checker* rather than a second optimizing backend: the crypto instantiation of the asymmetric-trust pattern the platform runs everywhere.
-  **What decides against it is the previous bullet.** Once the field arithmetic is verified C through CHERI-CompCert it is *already functionally correct* and, being straight-line, *already constant-time* on that compiler's stock output as verified on the artifact.
-  So the equivalence checker's entire remaining yield is **throughput on a path that is already correct and already leak-free**, and §5's standing rule, illustrated again by the WCET lineage below, reads on artifacts as well as bounds: a net-new verified artifact bought for speed alone spends the scarce currency to buy the free one.
-  CryptOpt is therefore excluded rather than retained as a deferred workstream: deferral would keep its checker and code-generation dependencies on the §6/§18 plan for a throughput-only gain.
-  **What the deletion removes** is a net-new Coq equivalence-checker development over the CHERI-RISC-V Sail model (CryptOpt targets x86-64, so the retarget would be net-new), the *checker-admitted artifacts* TCB category (§6, a category only these kernels would populate), the §18 crypto-codegen workstream, and the *checker-admitted assembly leaf* escape hatch the CT story would otherwise lean on.
-  Two further asterisks, already pointing the same way: CryptOpt's headline results come from randomized search **benchmarked on real silicon** that does not exist here yet (the fitness function would have to ride the timing-annotated Sail model or the FPGA, §11), and its scope is *straight-line field arithmetic* only, so the control-flow-heavy primitives it never covered (Keccak, AES, ChaCha, the ML-KEM/ML-DSA NTT and samplers) were always verified C, branchless-hardened and constant-time-verified on the artifact.
-  **Cost, stated plainly:** hand-assembly-grade ECC and big-integer throughput is surrendered; the classical-crypto hot path runs at verified-C codegen speed, with performance subordinate (§1) and the engineering-free axiom offering no relief here because the cost is *trust*, not labor.
-- **The layer-3 artifacts** are SSProve/FCF as the Coq-native destination and EasyCrypt/formosa-crypto as the mature interim; the split is the same trust-base-uniformity choice §5 makes for Narcissus over EverParse.
-
-**What the platform takes.**
-Crypto assurance becomes **three composed layers** (functional correctness (Fiat-Crypto; libcrux/HACL\* interim) ⋈ constant-time (verified on the artifact, the field-arithmetic kernels included and compiled as verified C like everything else) ⋈ reduction-level security (SSProve/FCF Coq-native, EasyCrypt mature complement)): joined at each primitive's functional specification, which joins the crown-jewel spec list.
-**CryptOpt translation validation is rejected** (above): the whole core is compiler-borne, so no crypto artifact is checker-admitted and no crypto-codegen workstream survives.
-The platform axiom decides the toolchain exactly as it did for seL4: **methodology is portable, maturity is not**: carry the Coq-native property (on-artifact constant-time verification, SSProve/FCF reductions) to the mature artifacts (formosa-crypto, Fiat-Crypto), spending engineering to shrink the trusted set: and, where a mature artifact would only *speed* an already-sound path, decline it rather than spend trust on it.
-**Honest residual (§17):** a reduction *isolates and names* the hardness assumptions (MLWE/MSIS; ECDLP/CDH) but cannot prove them: the irreducible cryptographic axiom; the implementation ⋈ reduction join is a new seam at the functional spec; EasyCrypt-borne reductions carry an SMT base until restated Coq-native; and scheme-level IND-CCA/EUF-CMA is still below protocol-level security (TLS/AKA), a further layer.
-What this buys is the deepest-available crypto proof: from "correct, constant-time code for a scheme we *assume* is secure" to "the scheme is IND-CCA/EUF-CMA under a named, minimal hardness assumption, implemented by constant-time code verified on the artifact"; with the residual pushed down to conjectures no proof system can discharge.
 
 ---
 
