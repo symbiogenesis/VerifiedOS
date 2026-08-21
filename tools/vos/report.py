@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The reporting convention every check shares.
 
 One rule, one verdict, one line. A rule that finds nothing prints what it decided;

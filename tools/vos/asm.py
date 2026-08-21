@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The corpus assembler: dialect source in, position-fixed ELF out.
 
 Sized to hand-written test programs and to nothing else. The frozen dialect has

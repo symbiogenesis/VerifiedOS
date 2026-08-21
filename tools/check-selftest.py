@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Hold the checker against the one property its own meta group cannot decide: that
 each rule it carries actually fires.
 

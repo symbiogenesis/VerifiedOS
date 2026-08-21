@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """names: every id a document uses, against the artifact that declares it.
 
 Five vocabularies run across these documents: the register's R- requirements and its

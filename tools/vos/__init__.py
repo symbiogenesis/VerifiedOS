@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Shared machinery for this repository's tools.
 
 Every tool in `tools/` is Python and imports what it needs from here, so a fact is

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Every document in the repository, read once.
 
 A fenced block is shown as text, so an anchor inside one is not a bookmark, a link

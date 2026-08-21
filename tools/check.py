@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Check every derived fact in this repository against the artifact that owns it.
 
 A derived fact is anything one document holds only because another document already

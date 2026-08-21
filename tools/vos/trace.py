@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The differential rig: executors' traces, normalized and adjudicated.
 
 Two dialects, and they answer different questions.

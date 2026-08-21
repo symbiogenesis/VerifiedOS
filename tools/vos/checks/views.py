@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """views: what each derived view carries, in both directions.
 
 A derived view restates requirements that live in the register. That is the shape

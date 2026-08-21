@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The apex statement's Vocabulary record, read once and shared.
 
 proofs/ApexTheorem.v is the coverage checklist R-18-031(a) requires: every

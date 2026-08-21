@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """confers: every enumeration closed by conferral, and the agenda for what it misses.
 
 Three sets here are enumerations of a judgment: the crown-jewel specifications, the

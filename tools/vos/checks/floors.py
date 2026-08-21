@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """floors: the tool's own reach, against the possibility that it is reading nothing.
 
 Every other group decides a property of a set the tool reads out of a document. The

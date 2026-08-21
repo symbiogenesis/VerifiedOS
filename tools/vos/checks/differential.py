@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """differential: the corpus manifest, the document over it, and the programs.
 
 The differential corpus is two artifacts with one membership. [the

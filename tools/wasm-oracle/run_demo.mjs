@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Minimal host for the M1.5 oracle smoke program: instantiate the module
 // CertiRocq emits (import-free), call main_function, and decode the boolean
 // result. Constructor encoding per CertiCoq-Wasm: nullary constructors are

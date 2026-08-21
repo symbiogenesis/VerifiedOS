@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """The R-05-163 assumption gate, wired ahead of the first closing theorem as R-05-168
 requires.
 

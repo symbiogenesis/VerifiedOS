@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """The curated Sail model's build loops, from the fastest to the slowest.
 
 Four loops, and each is the exit criterion for the one above it:

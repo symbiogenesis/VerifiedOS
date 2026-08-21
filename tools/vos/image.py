@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The image the emulator loads: a position-fixed ELF64 with nothing in it.
 
 The curated emulator loads `PT_LOAD` segments at their **physical** addresses
