@@ -235,6 +235,47 @@ The result keeps BeOS's unusually coherent object and media programming model wh
 
 ---
 
+## TRON: the document part as the user-visible primitive and therefore the unit of grant, and µITRON's static configuration as the deployment record
+
+The TRON project (Ken Sakamura, University of Tokyo, 1984) is five sub-architectures under one architecture: **ITRON** for embedded real-time kernels, **BTRON** for the workstation, **CTRON** for switching and mainframes, **MTRON** for coordination among them, and **STRON** for the kernel realized in silicon, that last one judged on its own merits in [architectural-alternatives.md](architectural-alternatives.md) where the hardware-kernel question already lives.
+Two of the five contribute here, and they contribute from opposite ends: BTRON supplies a **granularity** the object fabric does not currently name, and µITRON supplies the largest deployment record any statically-configured kernel has.
+
+**BTRON: the primitive the user manipulates is a typed part rather than a file, and the design's own grant rule then reaches further than it currently does.**
+BTRON's organizing construct is the **real object / virtual object model** (実身/仮身, *jisshin*/*kashin*): user data is an arbitrary directed graph of typed real objects rather than a directory tree, a virtual object is a reference to one embedded inside another, and the interchange format (**TAD**, the TRON Application Databus) is a typed segment stream rather than an application's private file layout, so a document *contains* a drawing instead of naming a file some application knows how to open.
+The BeOS entry above already takes typed metadata, indexed and live queries, and the translator graph; what it does not take, because BeOS does not offer it, is the further claim that the **application is not a unit of user-visible structure at all** and therefore should not be a unit of authority either.
+That claim lands on machinery already built rather than asking for new machinery. A powerbox grant is *"CHERI-bounded to that object alone"* (§8), the object fabric's handoff passes a selected handler *"only that object capability plus the local buffer capabilities the caller supplied"* (§12), and object identity is a content address or a filesystem object identity with a typed metadata record beside it (§10): none of the three says how large an object is.
+Taking BTRON's primitive makes a part an object in exactly that sense, and the consequence is the **least-authority open dialog**: consenting to edit an embedded spreadsheet hands the spreadsheet compartment a capability to *the part*, not to the document enclosing it, and the closed intent variants the fabric already routes (*view*, *edit*, *convert-to(type)*, §12) acquire a subject small enough that the grant is worth the consent act it costs.
+No mechanism is added; a granularity is chosen, and it is chosen at the one point §8 says the user's own authority enters the system.
+
+**What is not taken is the edge, because in BTRON authoring a link is granting authority.**
+A *kashin* is dereferenced by the system on the user's behalf, so a real object reachable through the graph is reachable, and the document graph and the authority graph are one graph.
+Here they are two. An embedded reference is a **name**, under the rule §14 already states for paths (*"a path is only an app-local alias for an object or service capability already present in the graph, never authority in its own right"*), and the fabric's resolution/handoff split (§12) is what holds it to that: a reference resolves only under the namespace capability the caller delegated for the session, so following one to a part outside that namespace is a fresh consent act at the powerbox rather than a dereference.
+Without the inversion a hypermedia store is a confused deputy with a document editor for a front end, since attacker-authored content that embeds a reference would be authoring an edge in the authority graph: precisely what static composition (§7) and a single runtime minter (§8) exist to deny.
+This is the Plan 9 transformation above applied to a second naming layer, and it is the reason the part-as-object idea is safe to take at all.
+
+**µITRON: the deployment record for composition-time object graphs, reached from the unit-cost pole.**
+The µITRON 4.0 specification defines a **Static API**: tasks, semaphores, event flags, mailboxes and their attributes are declared in a system configuration file, a configurator emits the tables, and identifiers are fixed at build time, so a Standard Profile kernel creates no object after boot and carries no runtime creation-failure path to handle.
+That is §7's static composition and §13's compose-time graph, reached not from a proof obligation but from ROM cost and interrupt-latency determinism on small parts, carried into an enormous deployed embedded population and then into a standard (**IEEE 2050-2018**, derived from µITRON 4.0).
+It is the Akaros move, **evidence rather than code**, and the evidence is of a different kind than Akaros's: not a research system demonstrating that the static shape performs, but an industry that chose it on cost and stayed with it for three decades.
+The inversion runs opposite to every other entry here, and is the more instructive half.
+Sakamura's stated method is **loose standardization**: the specification deliberately admits implementation variance and leaves adaptation to the hardware to the implementer, on the argument that a real-time kernel's portability is worth less than its fit.
+That bought ubiquity with the one thing this design will not sell, a single frozen semantics mechanized once (§18) against which conformance is a theorem instead of a checklist.
+µITRON therefore contributes its **conclusion** (declare the objects at build time) and none of its **method** (let each vendor mean something slightly different by them), and the residual it exhibits is the one the profile freeze exists to avoid: a family of kernels sharing an API and not a semantics is a family no single proof reaches.
+
+**TRON Code is declined, and is a useful foil for why.**
+BTRON's character encoding refused Han unification and reached on the order of 1.5 million codepoints across multiple 16-bit planes, selected by an escape sequence carried in the data stream.
+The coverage argument was real and, for about a decade, correct. The mechanism is what §5's parser discipline rejects: escape-switched planes are **stateful decoding**, the meaning of a byte depends on history, and a copy-once verified parser over such a grammar carries state that a truncated or spliced stream can desynchronize, which is the property the wire-format inventory (§5) is organized to keep out of attacker-facing grammars.
+The transferable observation is the smaller one, that a unification is a lossy transformation applied at the encoding layer and therefore un-appealable above it, and it is already discharged: content types are frozen IDL types (§12) and typed metadata is schema-bounded (§10), so a lossy normalization is a translator edge with a declared output type rather than a property of the character set.
+
+**The deployment lesson, recorded because this design has BTRON's shape and not ITRON's.**
+Of the five sub-architectures the one that reached ubiquity is the one a single vendor could adopt inside a single product with nobody's cooperation, and the one that failed is the one that needed the state, the manufacturers, and the application authors to move together.
+BTRON's proximate shock is usually told as the 1989 U.S. Trade Representative process, and the record is narrower than the telling: BTRON was raised as a market-access concern, that year's priority designations under the provision were supercomputers, satellites, and forest products, no sanction ever attached, and the listing did not survive the year.
+What followed was manufacturers withdrawing from a coordinated adoption that had lost its coordination, against an installed base already moving elsewhere.
+The lesson is about the shape of the dependency rather than about the trade action: a stack whose value requires simultaneous adoption at several layers has a failure mode no technical argument addresses, and a stack with one layer adoptable alone does not.
+This platform is whole-stack down to its own ISA profile, which is BTRON's exposure precisely, and §18's realization is where the ITRON-shaped counterpart belongs: some layer usable inside one product without the rest of the stack coming with it.
+
+---
+
 ## oo7 and the freedesktop Secret Service: the desktop keyring, and the escape hatch from it that argues the capability case
 
 oo7 is a Rust implementation of the freedesktop **Secret Service**, the interface behind the Linux desktop keyring: a client library, a daemon replacing `gnome-keyring-daemon`, a portal backend for sandboxed applications, a `secret-tool`-equivalent CLI, a `git` credential helper, PAM integration, and a KWallet parser kept only to migrate secrets *out* of one.
