@@ -13,7 +13,8 @@ this gate grows an allowlist read from it, never from the development.
 An admitted lemma, an unresolved obligation, a locally declared parameter, or any axiom
 fails this gate rather than shipping green.
 
-Needs `coqc` on PATH. From Windows: wsl -e python3 tools/proof-gate.py
+Needs the pinned Rocq switch, which `vos.env` locates and which is deliberately not the
+switch the Sail toolchain lives in. From Windows: wsl -e python3 tools/proof-gate.py
 """
 
 import subprocess
@@ -22,6 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from vos import env                          # noqa: E402
 from vos.corpus import find_root              # noqa: E402
 
 PROOFS = "proofs"
@@ -40,7 +42,8 @@ def _compile(root: Path, source: Path) -> str:
     # -Q roots the logical path so a companion's Require Import resolves to the .vo
     # built here, never to an installed one
     proc = subprocess.run(
-        ["coqc", "-q", "-Q", PROOFS, "", str(source.relative_to(root).as_posix())],
+        [*env.rocq_command(), "-q", "-Q", PROOFS, "",
+         str(source.relative_to(root).as_posix())],
         cwd=root, capture_output=True, text=True, encoding="utf-8")
     if proc.returncode != 0:
         raise SystemExit(f"FAIL: {source.name} did not compile:\n{proc.stderr.strip()}")

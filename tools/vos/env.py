@@ -7,14 +7,17 @@ The single thing here that outlives a build is the keepalive, and it is a bounde
 background process rather than a line in that global file for exactly the same reason:
 it buys the effect this repository needs, scoped to the work, and expires on its own.
 
-Three invariants every loop needs, and used to carry its own copy of:
+Four invariants every loop needs, and used to carry its own copy of:
 
   1. Sail's C++ emission overflows the default 8 MB stack on the full model (the M0.3
      finding, twice reproduced). The limit is raised here, in the parent, and every
      child inherits it.
   2. The Sail toolchain lives in the opam `default` switch, which a bare
      `wsl -e python3 tools/model.py` does not put on PATH.
-  3. Where the repository and the build trees are. Both are derived from this file's
+  3. The Z3 that discharges Sail's typechecking obligations is the pinned one, not the
+     distribution's. This is the one invariant whose absence is silent rather than
+     loud, which is why it is announced: see `_prepend_z3_path`.
+  4. Where the repository and the build trees are. Both are derived from this file's
      own location, which is the one thing a module always knows, so a checkout
      anywhere else, or by anyone else, builds the tree it is actually in.
 
@@ -50,6 +53,22 @@ KEEPALIVE_HOURS = int(os.environ.get("VOS_KEEPALIVE_HOURS", "8"))
 # The M0.4 oracle's build tree, carrying the upstream pin in its name. Both the tree and
 # the simulator inside it derive from this, so the pin is written once.
 ORACLE_TREE = "sail-cheri-riscv-bb07488d"
+
+# The prover, in a switch of its own and carrying its pin in the name for the same reason
+# ORACLE_TREE does. It cannot share the Sail switch: `rocq-core` caps dune below the
+# version the Sail packages are built against, so installing it into `default` wants dune
+# downgraded from 3.24.2 to 3.23.1 and all twenty-seven of them rebuilt.
+#
+# 9.1.1 rather than the newer 9.2.0 because every consumer of a Rocq artifact here
+# converges on 9.1: CertiRocq constrains `rocq >= 9.1 & < 9.2~`, SECOMP states 9.1, and
+# sail-riscv's own Rocq lane pins `rocq_core_version` 9.1.1. One prover version serves the
+# host gate and the M1.5 container both.
+ROCQ_SWITCH = "rocq-9.1.1"
+
+# The Z3 the Sail typechecker calls, unpacked beside the build trees and named for its
+# version. Ubuntu 26.04 packages 4.13.3 and Sail invokes `z3` by name from PATH, so this
+# directory has to precede /usr/bin or the distribution's answers are the ones cached.
+Z3_BIN = Path(os.environ.get("VOS_Z3_BIN", "/root/z3-5.1.0/bin"))
 
 
 def _env_path(name: str, default: Path) -> Path:
@@ -171,6 +190,48 @@ def _raise_stack_limit() -> None:
     resource.setrlimit(resource.RLIMIT_STACK, (want, hard))
 
 
+def _prepend_z3_path() -> None:
+    """Put the pinned solver ahead of the distribution's.
+
+    Absence is announced rather than passed over, which is what separates this from the
+    opam guard below. A missing opam switch makes a Sail loop fail at `sail --version`;
+    a missing Z3 prefix makes nothing fail at all. It makes the loop typecheck against
+    Ubuntu's 4.13.3 and write that solver's answers into a content-keyed cache the
+    pinned solver then reads back as its own, which is a difference no later run can see.
+    """
+    if Z3_BIN.is_dir():
+        os.environ["PATH"] = f"{Z3_BIN}{os.pathsep}{os.environ.get('PATH', '')}"
+    else:
+        print(f"WARNING {Z3_BIN} is absent: typechecking will use the z3 on PATH and "
+              f"cache its answers", file=sys.stderr)
+
+
+def _opam_root() -> Path:
+    return _env_path("OPAMROOT", Path.home() / ".opam")
+
+
+def rocq_command() -> list[str]:
+    """The prover as an argument list, for the proof gate rather than for a model loop.
+
+    Both halves are resolved here rather than assumed by the caller. Rocq 9 ships no
+    `coqc` at any version, its switch holding `rocq`, `rocq.byte`, and `rocqchk` and
+    nothing else, so compilation is spelled `rocq c`; and ROCQ_SWITCH is not the switch
+    `_apply_opam_env` puts on PATH, so a bare `rocq` finds nothing.
+    """
+    override = os.environ.get("VOS_ROCQ")
+    if override:
+        return [override, "c"]
+    pinned = _opam_root() / ROCQ_SWITCH / "bin" / "rocq"
+    if pinned.is_file():
+        return [str(pinned), "c"]
+    found = shutil.which("rocq")
+    if found:
+        return [found, "c"]
+    raise SystemExit(f"no prover: neither $VOS_ROCQ, nor {pinned}, nor rocq on PATH. "
+                     f"opam switch create {ROCQ_SWITCH} ocaml-base-compiler.5.4.0 "
+                     f"--no-switch && opam install --switch={ROCQ_SWITCH} rocq-core.9.1.1")
+
+
 def _apply_opam_env() -> None:
     """Guarded, because the container lanes load this module too and have no opam.
     Nothing is masked by the guard: a Sail loop without the switch fails loudly at
@@ -193,6 +254,7 @@ def load() -> Environment:
 
     _raise_stack_limit()
     _apply_opam_env()
+    _prepend_z3_path()
 
     tools = Path(__file__).resolve().parent.parent
     root = _env_path("VOS_ROOT", tools.parent)
