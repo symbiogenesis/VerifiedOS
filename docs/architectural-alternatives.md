@@ -335,6 +335,19 @@ Non-normative; the normative change is §14's.
 
 ---
 
+## Frozen substrates and their escape hatches: Urbit's jets, Inferno's Dis, and the standard the curated interpreter is held to
+
+Two systems froze an execution substrate on purpose, as this design freezes its profile (§15), and both are worth evaluating for the same reason: the freeze is not where either of them got into trouble.
+
+**Urbit** freezes **Nock**, a combinator calculus of exactly twelve opcodes, versioned and declared final, with Arvo above it as a deterministic event-sourced machine whose state is a replayable log. The freeze holds and the determinism is real. What does not hold is the performance story: essentially all useful speed comes from **jets**, native implementations that the runtime substitutes for Nock formulae and that are *asserted* rather than proved equal to the code they replace. So the trusted base is not the twelve opcodes; it is the twelve opcodes plus every jet, and the jet boundary is exactly where a semantics-preserving claim would have to be made and is not. That is the cautionary tale for §5's curated interpreter, and the standard it fixes is the one [inspirations.md](inspirations.md) records under Unison: an acceleration is inside the verified artifact, or it carries a machine-checked equivalence, or it does not exist. A second Urbit mechanism is declined on ground already stated: whole-machine event-sourced persistence is in direct tension with an unforgeable tag plane, because replaying a capability into existence is capability forgery, which is the persistence argument the historical capability-machine entry above makes from the authority side reached here from the replay side.
+
+**Inferno's Dis** is the better-argued objection to the Wasm choice and is recorded as an objection rather than an import. Dis is a **memory-to-memory, three-operand** virtual machine, and it is that way deliberately: a stack machine discards the operand relationships a just-in-time compiler must then reconstruct, where a three-address encoding hands them over directly, which is why Dis could be JIT-compiled simply and safely on 1990s hardware. Read against §5, the objection lands on a premise this design does not hold: there is no JIT here at all, admission is a proof check over an immutable binary (§11, §13), and the interpreter's theorems are bought by curating WasmCert, Iris-Wasm and SpecTec rather than by choosing an encoding that is easy to compile. Dis's argument is correct and its conclusion is addressed to a design that generates code at run time.
+
+**Disposition:** no import from either. The freeze is affirmed as a method by both examples and neither supplies a mechanism the profile lacks; Nock's jets are recorded as the named failure mode a curated interpreter must not reproduce, and Dis's encoding argument is recorded as answered by the absence of run-time code generation rather than by a counter-argument about encodings.
+Non-normative; no spec-body change.
+
+---
+
 ## ELF as the on-device executable and package format: declined
 
 ELF was evaluated as the artifact the device would parse and load.
