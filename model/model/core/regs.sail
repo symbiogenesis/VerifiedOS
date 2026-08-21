@@ -226,9 +226,10 @@ function wX (Regno(r) : regno, in_v : xlenbits) -> unit = {
   if r != 0 then xreg_write_callback(Regidx(to_bits(r)), in_v)
 }
 
-// Capability accessors over the same file. `X(r)` reads the address field of
-// register `r` and `C(r)` reads the whole capability; they are two readings of
-// one register rather than two register files (R-15-007i).
+// Capability accessors over the same file. `X(r)` reads register `r`'s 64 data
+// bits, whose low 36 are the address field, and `C(r)` reads the capability
+// those bits encode; they are two readings of one register rather than two
+// register files (R-15-007i, core/reg_type.sail).
 
 function rC (Regno(r) : regno) -> regtype =
   match r {
