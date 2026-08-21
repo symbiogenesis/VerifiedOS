@@ -59,7 +59,7 @@ That is a real cost, but a *labor-and-freshness* cost, the class the engineering
 The claim is thus conditional and honest: **superior iff (a) engineering is free and (b) seL4's 2024 completion is in-scope**, both stipulated.
 
 **The stripped capability core.**
-The platform commits to a specific set of deletions: the MMU with its VSpace and paging objects, MCS, SMP, the S/U privilege ring, and PMP with the IOMMU (the MMU-deletion, single-privilege-mode, drop-PMP, and capability-checked-DMA entries below; §7, §15).
+The platform commits to a specific set of deletions: the MMU with its VSpace and paging objects, MCS, SMP, the S/U privilege ring, and PMP with the IOMMU (the CheriOS, CHERIoT, and capability-checked-DMA entries below; §7, §15).
 These preferentially remove the *proof-heaviest* layer of `l4v` (the arch-specific VM refinement) and its *least-maintained* ones (MCS, and the SMP concurrency the multikernel never incurs).
 The starting seL4 architecture-independent core contains untyped memory, retype, the capability space, the CDT and its revocation, endpoints, and notifications; the CHERIoT-shaped object-model import below removes the first four, leaving endpoints, notifications, and the non-interference statement, and those survivors join the single-address-space CHERI isolation CheriOS demonstrates (below), the CHERIoT-lineage switcher and sealing, and the table-driven cyclic executive (§7, §11, §15).
 The artifact is therefore a **synthesis, not a transcription**: seL4's object model ⋈ the CheriOS/CHERIoT CHERI-SAS realization ⋈ Barrelfish's multikernel composition ⋈ a static cyclic executive.
@@ -552,31 +552,75 @@ CheriOS is the standing evidence that the road can be taken; the net deletion of
 
 ---
 
-## CHERIoT: privilege as a capability, the switcher and sentries, and the object model that needs no CNodes
+## CHERIoT: privilege as a capability on the PCC, memory protection by CHERI alone, the switcher and sentries, and the object model that needs no CNodes
 
-If CheriOS is the app-class evidence for the deleted MMU, **CHERIoT** (Microsoft and lowRISC, contributed to the RISC-V standardization effort) is the import that reaches furthest into the running system: it is the source of the platform's privilege architecture, its domain-crossing mechanism, its loading structure, and, after the object-model deletion, its kernel object model.
+If CheriOS is the app-class evidence for the deleted MMU, **CHERIoT** (Microsoft and lowRISC, contributed to the RISC-V standardization effort) is the import that reaches furthest into the running system: it is the source of the platform's privilege architecture, its domain-crossing mechanism, its loading structure, its memory-protection disposition, and, after the object-model deletion, its kernel object model.
 It is also the most *fabricated* of the CHERI ancestors, with first silicon taped out in early 2026 and formal verification on two fronts (Oxford against the Sail model, completed for CHERIoT-Ibex; Google on the switcher's isolation properties, underway), which is why the platform is willing to rest so much on it.
+
+**The existence proof has silicon.**
+CHERIoT supplies the Machine-mode-only design, the PCC permission, the small switcher, sentries, and export/import tables in a fabricated system under active formal verification.
+It is the privilege-architecture sibling of CheriOS's single-address-space result: the imported mechanism exists rather than being inferred from CHERI in the abstract.
 
 - **Privilege as a permission, not a ring.**
   CHERIoT is Machine-mode only by design (*"hierarchical privilege modes are unnecessary, so CHERIoT CPUs support only Machine Mode"*), carrying privilege as *"a permission that allows access to certain control and status registers … when a capability with that permission is installed as the program counter capability."*
-  This is the whole of §15's single privilege mode: a compartment cannot execute a privileged CSR access for the same reason it cannot forge a pointer, the authorizing capability being *absent*, an unforgeable condition rather than a mode bit an exploit might flip (§7, §8, §15; the full adopted rationale is retained below).
+  This is the whole of §15's single privilege mode: a compartment cannot execute a privileged CSR access for the same reason it cannot forge a pointer, the authorizing **access-system-registers permission** being one no compartment's PCC carries, an unforgeable *absence* rather than a mode bit an exploit might flip (§7, §8, §15).
+  The platform carries that model to application-class multicore, where a compartment is already confined by the capabilities it holds, so the S/U ring would be a second in-band privilege mechanism beside CHERI; gating CSR access, context switching, and sealing by an unforgeable PCC permission removes the S-mode CSR bank, trap delegation, `sret`, and `Sstc` together with their mode-transition reasoning from the kernel proof.
 - **The switcher and sentries.**
   Its trusted **switcher** (~300 instructions, seL4-scale) mediates cross-compartment and cross-thread transitions holding one reserved register and is itself CHERI-constrained; its **sentries** are sealed entry points making domain entry an unforgeable jump rather than a mode transition.
   Both are imported directly (§7, §8, §15), and the in-order non-speculative core is exactly the target the permission-and-sentry model was designed for, the source noting it *"would be difficult on very large out-of-order cores"*, which this platform is not.
 - **Compartment export and import tables in place of a container format.**
   CHERIoT replaces container-style loading with export and import tables and entry points sealed by a loader, and the platform adopts that **structure** for its content-addressed capability image (§13) while re-grounding it on this platform's own RV64 capability format and a verified Narcissus reader, **rejecting** CHERIoT's encoding and its unverified loader: the same adopt-the-structure, reject-the-encoding move the ISA profile makes for the rest of CHERIoT. The platform's format is itself narrowed (64+1 bits over a 36-bit address space, R-15-007), which makes the point sharper rather than softer: what is rejected is a *second* encoding forking the model (R-15-005), not the idea of narrowing one.
 - **PMP dropped, on CHERIoT's own argument.**
-  It drops PMP outright (*"the RISC-V PMP provides a subset of the protections of a CHERI system and so it, too, can be removed"*), which is the precedent §15 follows, with the CHERIoT-Ibex conformance result and Codasip's shipping app-class core as the assurance that makes dropping the coarse hedge defensible rather than reckless (the full adopted rationale is retained below).
+  It drops PMP outright (*"the RISC-V PMP provides a subset of the protections of a CHERI system and so it, too, can be removed"*), its coarse region checks being a strict subset of CHERI's byte-granular protection, and that is the precedent §15 follows: once virtual-memory translation and privilege rings are gone, PMP would be a third in-band spatial mechanism and redundant Sail surface.
+  More tellingly for a platform of this class, **Codasip's A730**: a dual-issue *application* core, not a microcontroller; removes the PMP unit on exactly this ground: *"Most RISC-V cores included a physical memory protection (PMP) unit… both costly in area and power hungry.
+  With the fine-grained protection and compartmentalization of CHERI this unit can be removed and replaced by more power- and area-efficient circuits."*
+  The CHERI research program (Cambridge/SRI, with Microsoft Research and INRIA) is the assurance base that makes dropping the coarse hedge defensible rather than reckless: CHERI's fundamental architectural security property, **reachable-capability monotonicity**, is *already machine-checked over a full-scale CHERI ISA* (Bauereiss et al., *Verified Security for the Morello Capability-enhanced Prototype Arm Architecture*, ESOP 2022, in Isabelle, via an abstraction that holds for arbitrary CHERI ISAs), so what remains for this profile is the **RTL ⊑ Sail** arrow (the least-built layer, §18) and a Coq-native restatement over the CHERI-RISC-V model, with the Oxford/Google CHERIoT-Ibex conformance proof the microcontroller-scale bring-up evidence and Codasip's shipping app-class core the evidence at this platform's own scale.
 - **An object model with no CNodes, which is what let seL4's runtime layer go.**
   Capabilities live in registers and tagged memory, objects are named by **sealed capabilities**, and revocation is by **epoch and address-keyed load filter** rather than by a derivation tree.
   That answer is what makes untyped memory, retype, the capability space, and the CDT deletable once the object graph is fixed at composition (§7, §8), and §5 had already conceded the direction, describing what is proved as *"more precisely a CHERIoT-class static separation kernel that borrows seL4's object vocabulary"*; the deletion finishes that sentence by dropping the vocabulary too.
   Its heap **claims** (a hold keeping a shared allocation alive against the holder's quota) and its deterministic load filter are the same temporal-safety-in-a-shared-address-space discipline noted under CheriOS above.
 
+**What transfers.**
+A ringed per-core inventory would have M-mode *"quiescent after boot"* and the kernel as the sole S-mode occupant with U-mode *"everything else"* (§7): three rings for what is really *one trusted kernel beside many CHERI-confined compartments*.
+The powerbox, the capability manifests, the ring data plane, and W^X are already **capability** statements, not ring statements.
+Collapsing to one mode makes the enforcement substrate match the design the rest of the document already describes: authority is a capability, top to bottom.
+
+**Contrast with PMP-only systems.**
+MultiZone-style systems share the silhouette of a Machine-mode kernel but shed CHERI and fall back on coarse PMP plus trap-and-emulate authority.
+The CHERIoT line does the opposite: it removes the rings while retaining CHERI as the byte-granular primary and governs privilege through unforgeable capabilities.
+
+**Where PMP's three roles go.**
+A MultiZone-style locked-PMP backstop would serve three coarse crown-jewel roles, each of which instead collapses onto a mechanism already present: (a) **immutable-text / W^X** on kernel and firmware text and the read-only content-addressed image is the CHERI capability-monotonicity invariant of §14: no writable capability to those regions is ever derived, so there is nothing for a second mechanism to re-enforce; (b) the **per-core physical-partition bound** is CHERI, each core's kernel instance is delegated a root capability bounded to its partition, and monotonicity (§7) lets it derive nothing outside it; (c) **crown-jewel secret fencing** is the crypto core's own hardware boundary plus **sealed capabilities** (§8), keys never leave the core, and what is resident outside it is reached only through a seal (blanket TME would discharge the role by taxing all of memory to protect key schedules; the capability-scoped form is the same move the design makes everywhere else, and is also exactly the scope of the stacked realization's link encryption, §15).
+
+**Residual: one privilege mechanism.**
+The S/U ring gave (a) a hardware-privilege boundary preventing an app from executing privileged instructions regardless of CHERI, and (b) the privilege-layering that let the **PMP backstop** sit *below* the kernel.
+Both are answered.
+(1) In the CHERIoT model, privileged instructions are gated by the **PCC system-register permission** no compartment's PCC carries: the unforgeable absence above, not a mode bit an exploit might flip.
+(2) The crown-jewel backstop role needs **no privilege ring** and, as the three re-homed roles above record, no PMP either: its roles rest on mechanisms already present, while the hedge against a CHERI logic fault is CHERI's verification rather than a coarse disjoint layer.
+The boot/M-mode firmware still runs first, establishes the initial capability distribution, and goes quiescent; the microkernel is the resident Machine-mode holder of the system-register permission; nothing else holds it.
+
+**Residual: loss of a disjoint failure domain.**
+PMP's unique value is that it is **disjoint from CHERI**: an independent failure domain that would still bound each core if the CHERI machinery itself had a *logic* fault.
+Dropping it means in-core spatial isolation, W^X, and the partition bound rest on **one** mechanism with no in-band redundancy.
+This is answered the way the whole platform answers single-mechanism concentration: not with a second mechanism but with **proof**: CHERI is the mechanism the design verifies most deeply (the RTL ⊑ Sail workstream §18, the Oxford/Google CHERIoT-Ibex conformance result, Codasip's shipping app-class core), so the hedge against a CHERI implementation fault is the *verification* of CHERI, not a coarse subset of it running alongside.
+And the residual that actually persists: fabricated silicon vs. verified RTL; is unchanged by keeping or dropping PMP (both share the one mask set, §17), so PMP bought no protection against it.
+
+**Scope and re-admission boundary.**
+Resting all in-core spatial protection on CHERI is the same wager as single-address-space and single-privilege-mode, with no coarse fallback at all.
+It is bounded, not blind: CHERI is byte-granular, formally modeled, and the most-scrutinized mechanism on the die; capability-checked DMA still confines device access and the islands still bound cross-domain timing (neither was ever PMP's job); and the disjoint hedge is replaced by the strongest assurance the project has.
+If a future analysis judged the CHERI-logic-fault residual intolerable, the composition-static locked-PMP backstop is the cheapest thing to re-admit (subtractive, static, Sail-modeled): but it is not carried by default.
+
 Two further corroborations arrive from the same source without being imports: **CHERIoT-Ibex is cacheless**, running from tightly-coupled SRAM, which is standing evidence that a cacheless core is a conformant RISC-V profile choice rather than a fork (§15); and **capability-holding DMA is demonstrated at CHERIoT scale**, which is the microcontroller-scale existence proof beneath the capability-checked DMA fabric that replaces the IOMMU (§15).
 What is declined is its **autonomous sweep engines** (the TBRE and STKZ background walkers), which are exactly the autonomous memory-touching engines admission test 5 excludes (§8), so revocation here is budgeted and scheduled rather than engine-driven.
 
-Honest residual (§17): CHERIoT is **single-core and microcontroller-scale** (2–7-stage pipelines, tens of KiB to MiB) and its own multicore is future work, while this platform is an application-class multikernel on multicore, so every one of the imports above is a genuine extrapolation of scale, the privilege-architecture sibling of the single-address-space bet.
-It is bounded rather than blind: privilege-as-capability is *more* fine-grained and *more* uniform than the ring it replaces, which is CHERIoT's whole thesis, and the model it ships is the one being extrapolated, not a paper design.
+**What the platform takes.**
+Supervisor and User modes are **deleted**: the platform runs Machine mode only, privilege is the CHERIoT-lineage access-system-registers permission on the PCC, the S-mode CSR bank / trap delegation / `sret` / `Sstc` are removed (§15), and the microkernel is the resident Machine-mode holder of the system-register and switch/seal authority (§7); the S/U ring's one non-redundant service, a sub-kernel backstop, is itself dropped as redundant against verified CHERI.
+PMP and `Smepmp` are **removed** with them: CHERI is the sole memory-protection mechanism, W^X and the per-core partition bound rest on CHERI monotonicity (§7, §14), crown-jewel secrets on the crypto core's boundary and the seal/switch primitives (§7, §12), and device DMA on capability-checked DMA (§15), so CHERI is the sole in-band spatial mechanism and no disjoint backstop remains.
+The platform axiom decides it as ever, with the twist the whole design turns on: what lets a **single** mechanism replace a defense-in-depth stack is that this one is **formally verified**, so *delete rather than defend* becomes *verify rather than hedge*.
+
+**Honest residual (§17):** privilege, in-core spatial isolation, W^X, and the per-core partition bound all rest on CHERI alone, with no privilege ring, no PMP, and no in-band disjoint backstop, so the sole hedge against a CHERI logic fault is CHERI's own verification (the machine-checked monotonicity result above), leaving the **RTL ⊑ Sail** arrow (§18) the residual and the fab residual unchanged; that concentration is offset against the deletion of the mode-transition machinery, the S-mode CSR bank, and trap delegation from both the microarchitecture and the kernel proof.
+The second residual is scale: CHERIoT is **single-core and microcontroller-scale** (2–7-stage pipelines, tens of KiB to MiB) and its own multicore is future work, while this platform is an **application-class multikernel** on multicore, so single-privilege-mode purecap is unproven at application-class multicore scale and every one of the imports above is a genuine extrapolation of scale, the privilege-architecture sibling of the single-address-space bet.
+It is bounded rather than blind: privilege-as-capability is *more* fine-grained and *more* uniform than the ring it replaces, which is CHERIoT's whole thesis; the extrapolation is carried by a verified kernel and verified CHERI and lands on an in-order non-speculative core of the kind CHERIoT's permission and sentry model was designed for rather than a large out-of-order machine; and the model it ships is the one being extrapolated, not a paper design.
 
 ---
 
@@ -1131,76 +1175,6 @@ Hardening lowers the upset rate the ECC and containment logic must absorb, so it
 Radiation-hardened, wide-envelope silicon is a **realization axis graded to the deployment**, changing no computation and lowering no guarantee; its normative footprint is the §15 instruction to harden the process and RTL of the specified design where the environment requires it.
 It books **no new §17 residual** (it lowers a physical fault rate and adds no trusted surface) and does not touch the fab residual either: a radiation-hardened die is still a fabricated die whose correspondence to the verified RTL rests on the same evidence (§17).
 This is the *engineering-is-free, trust-is-scarce* axiom reading a physical-reliability measure the way it reads ECC and the enclosure: **admit the mechanism that costs only engineering and reduces a physical fault rate the verification cannot reach.**
-
----
-
-## CHERIoT privilege model: Machine mode only, with privilege carried by the PCC
-
-CHERIoT demonstrates a **Machine-mode-only** capability machine in which privileged operations are authorized by an access-system-registers permission on the program-counter capability rather than by Supervisor and User rings.
-This platform carries that model to application-class multicore: a compartment is already confined by the capabilities it holds, so the S/U ring would be a second in-band privilege mechanism beside CHERI.
-Gating CSR access, context switching, and sealing by an unforgeable PCC permission removes the S-mode CSR bank, trap delegation, `sret`, and `Sstc` together with their mode-transition reasoning from the kernel proof.
-
-**The existence proof has silicon.**
-CHERIoT supplies the Machine-mode-only design, the PCC permission, the small switcher, sentries, and export/import tables in a fabricated system under active formal verification.
-It is the privilege-architecture sibling of CheriOS's single-address-space result: the imported mechanism exists rather than being inferred from CHERI in the abstract.
-
-**What transfers.**
-A ringed per-core inventory would have M-mode *"quiescent after boot"* and the kernel as the sole S-mode occupant with U-mode *"everything else"* (§7): three rings for what is really *one trusted kernel beside many CHERI-confined compartments*.
-The powerbox, the capability manifests, the ring data plane, and W^X are already **capability** statements, not ring statements.
-Collapsing to one mode makes the enforcement substrate match the design the rest of the document already describes: authority is a capability, top to bottom.
-
-**Residual: one privilege mechanism.**
-The S/U ring gave (a) a hardware-privilege boundary preventing an app from executing privileged instructions regardless of CHERI, and (b) the privilege-layering that let the **PMP backstop** sit *below* the kernel.
-Both are answered.
-(1) In the CHERIoT model, privileged instructions are gated by the **PCC system-register permission**, which no compartment's PCC carries: so a compartment cannot execute a privileged CSR access for the same reason it cannot forge a pointer: the authorizing capability is *absent*, an unforgeable condition, not a mode bit an exploit might flip.
-(2) The crown-jewel backstop role needs **no privilege ring** and, as the CHERI-only memory-protection lineage below records, no PMP either: its roles rest on mechanisms already present, while the hedge against a CHERI logic fault is CHERI's verification rather than a coarse disjoint layer.
-The boot/M-mode firmware still runs first, establishes the initial capability distribution, and goes quiescent; the microkernel is the resident Machine-mode holder of the system-register permission; nothing else holds it.
-
-**Scale extrapolation.**
-CHERIoT is **single-core, microcontroller-scale** (2–7-stage pipelines, tens of KiB–MiB), and its own multicore is future work; this platform is an **application-class multikernel** on multicore.
-Single-privilege-mode purecap at that scale is a genuine extrapolation: the privilege-architecture sibling of the single-address-space bet (§17).
-The extrapolation is bounded by a verified kernel and verified CHERI, and by an in-order non-speculative core of the kind CHERIoT's permission and sentry model was designed for rather than a large out-of-order machine.
-
-**Contrast with PMP-only systems.**
-MultiZone-style systems share the silhouette of a Machine-mode kernel but shed CHERI and fall back on coarse PMP plus trap-and-emulate authority.
-The CHERIoT line does the opposite: it removes the rings while retaining CHERI as the byte-granular primary and governs privilege through unforgeable capabilities.
-
-**What the platform takes.**
-Supervisor and User modes are **deleted**: the platform runs Machine mode only, privilege is the CHERIoT-lineage access-system-registers permission on the PCC, the S-mode CSR bank / trap delegation / `sret` / `Sstc` are removed (§15), and the microkernel is the resident Machine-mode holder of the system-register and switch/seal authority (§7); PMP is absent under the CHERI-only memory-protection lineage below, so CHERI is the sole in-band spatial mechanism and no disjoint backstop remains.
-The S/U ring's one non-redundant service, a sub-kernel backstop, is itself dropped as redundant against verified CHERI.
-**Honest residual (§17):** privilege rests on CHERI alone (PMP dropped too, below) with no privilege-ring or disjoint-backstop redundancy, and single-privilege-mode purecap is unproven at application-class multicore scale (CHERIoT is single-core microcontroller): offset against the deletion of the mode-transition machinery, the S-mode CSR bank, and trap delegation from the microarchitecture and the kernel proof.
-
----
-
-## CHERIoT and Codasip A730: memory protection by CHERI alone
-
-CHERIoT and, at application scale, Codasip's A730 remove RISC-V physical memory protection because its coarse region checks are a strict subset of CHERI's byte-granular protection.
-The platform follows that precedent: once virtual-memory translation and privilege rings are gone, PMP would be a third in-band spatial mechanism and redundant Sail surface.
-
-**Precedent.**
-CHERIoT drops PMP outright (*"the RISC-V PMP provides a subset of the protections of a CHERI system and so it, too, can be removed"*).
-More tellingly for a platform of this class, **Codasip's A730**: a dual-issue *application* core, not a microcontroller; removes the PMP unit on exactly this ground: *"Most RISC-V cores included a physical memory protection (PMP) unit… both costly in area and power hungry.
-With the fine-grained protection and compartmentalization of CHERI this unit can be removed and replaced by more power- and area-efficient circuits."*
-The CHERI research program (Cambridge/SRI, with Microsoft Research and INRIA) is the assurance base that makes dropping the coarse hedge defensible: CHERI's fundamental architectural security property, **reachable-capability monotonicity**, is *already machine-checked over a full-scale CHERI ISA* (Bauereiss et al., *Verified Security for the Morello Capability-enhanced Prototype Arm Architecture*, ESOP 2022, in Isabelle, via an abstraction that holds for arbitrary CHERI ISAs), so what remains for this profile is the **RTL ⊑ Sail** arrow (the least-built layer, §18) and a Coq-native restatement over the CHERI-RISC-V model, with the Oxford/Google CHERIoT-Ibex conformance proof the microcontroller-scale bring-up evidence.
-
-**Where PMP's three roles go.**
-A MultiZone-style locked-PMP backstop would serve three coarse crown-jewel roles, each of which instead collapses onto a mechanism already present: (a) **immutable-text / W^X** on kernel and firmware text and the read-only content-addressed image is the CHERI capability-monotonicity invariant of §14: no writable capability to those regions is ever derived, so there is nothing for a second mechanism to re-enforce; (b) the **per-core physical-partition bound** is CHERI, each core's kernel instance is delegated a root capability bounded to its partition, and monotonicity (§7) lets it derive nothing outside it; (c) **crown-jewel secret fencing** is the crypto core's own hardware boundary plus **sealed capabilities** (§8), keys never leave the core, and what is resident outside it is reached only through a seal (blanket TME would discharge the role by taxing all of memory to protect key schedules; the capability-scoped form is the same move the design makes everywhere else, and is also exactly the scope of the stacked realization's link encryption, §15).
-
-**Residual: loss of a disjoint failure domain.**
-PMP's unique value is that it is **disjoint from CHERI**: an independent failure domain that would still bound each core if the CHERI machinery itself had a *logic* fault.
-Dropping it means in-core spatial isolation, W^X, and the partition bound rest on **one** mechanism with no in-band redundancy.
-This is answered the way the whole platform answers single-mechanism concentration: not with a second mechanism but with **proof**: CHERI is the mechanism the design verifies most deeply (the RTL ⊑ Sail workstream §18, the Oxford/Google CHERIoT-Ibex conformance result, Codasip's shipping app-class core), so the hedge against a CHERI implementation fault is the *verification* of CHERI, not a coarse subset of it running alongside.
-And the residual that actually persists: fabricated silicon vs. verified RTL; is unchanged by keeping or dropping PMP (both share the one mask set, §17), so PMP bought no protection against it.
-
-**Scope and re-admission boundary.**
-Resting all in-core spatial protection on CHERI is the same wager as single-address-space and single-privilege-mode, with no coarse fallback at all.
-It is bounded, not blind: CHERI is byte-granular, formally modeled, and the most-scrutinized mechanism on the die; capability-checked DMA still confines device access and the islands still bound cross-domain timing (neither was ever PMP's job); and the disjoint hedge is replaced by the strongest assurance the project has.
-If a future analysis judged the CHERI-logic-fault residual intolerable, the composition-static locked-PMP backstop is the cheapest thing to re-admit (subtractive, static, Sail-modeled): but it is not carried by default.
-
-**What the platform takes.**
-PMP and `Smepmp` are **removed**: CHERI is the sole memory-protection mechanism, W^X and the per-core partition bound rest on CHERI monotonicity (§7, §14), crown-jewel secrets on the crypto core's boundary and the seal/switch primitives (§7, §12), and device DMA on capability-checked DMA (§15).
-The platform axiom decides it as ever, with the twist the whole design turns on: what lets a **single** mechanism replace a defense-in-depth stack is that this one is **formally verified**, so *delete rather than defend* becomes *verify rather than hedge*.
-**Honest residual (§17):** in-core spatial isolation, W^X, and the partition bound rest on CHERI alone with no in-band disjoint backstop; the sole hedge against a CHERI logic fault is CHERI's own verification (the machine-checked monotonicity result above), leaving the **RTL ⊑ Sail** arrow (§18) the residual, the fab residual unchanged.
 
 ---
 
