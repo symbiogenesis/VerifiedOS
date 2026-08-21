@@ -536,6 +536,32 @@ So the full disposition is unqualified: nothing of MultiZone's *architecture* im
 
 ---
 
+## The certified separation-kernel branch: INTEGRITY-178B and GWV, the protection profile its own community withdrew, and what DO-333 says a proof is worth
+
+The proposal is to aim the assurance argument at the gate this industry already has, a Common Criteria evaluation against the Separation Kernel Protection Profile or a DO-178C Level A approval taking formal-methods credit under DO-333, rather than at a theorem of this design's own statement.
+
+**The branch's landmark is real and its formal content is narrower than the certificate implies.**
+Green Hills' **INTEGRITY-178B** was certified EAL6+ against the SKPP on 1 September 2008, the first product to reach it.
+What was proved is the **GWV** policy (Greve, Wilding and Vanfleet, ACL2 Workshop 2003), a data-separation constraint on which segments a partition's step may read and write, discharged in **ACL2** over a hand-built model asserted to stand in one-to-one correspondence with the C, through two lemmas per modelled function: *Workhorse*, that the declared dependency graph over-approximates the function's real data-flow dependencies, and *ClearP*, that it captures every state change the function performs.
+The correspondence between that model and the C is argued rather than mechanized, and the C-to-binary gap is not addressed at all, which is the seam §5's CompCert vehicle and §13's artifact-level obligations exist to close.
+The same policy carries the branch's other landmark, Greve and Wilding's ACL2 proof that the AAMP7's trusted microcode implements GWV, which is what let that part be certified for MILS use; the policy was later carried modularly toward noninterference on PikeOS in Isabelle/HOL, at source level and in part.
+
+**The gate itself was withdrawn by the community that built it.**
+NIAP sunset the SKPP in 2011 on the stated ground that conformance to it "does not offer sufficient confidence that national security information is appropriately protected in the context of a larger system", and the structural reading in the literature is sharper still: above EAL5 the deployment environment dominates the security actually achieved and cannot be fixed at evaluation time, so an environment-independent profile is the wrong instrument at that assurance level, and a certificate is a point-in-time artifact where security is a continuing activity.
+A design that aimed at an EAL number would be aiming at a target this field retired, which is the ground the disposition rests on and not a complaint about the rigour, which was considerable.
+
+**DO-333 is the one place the question "what is a proof worth to a regulator" has a written answer, and the answer imports as a discipline.**
+The formal-methods supplement adds no objectives; it permits formal analysis to discharge verification objectives otherwise met by review, analysis, or test, source against low-level requirements most consequentially, under two conditions this design should read as its own: the analysis must be **sound**, since one that can report "no error" where an error exists earns no credit at all, and any tool whose output is trusted without independent review must itself be qualified under DO-330, which here is the composition compiler and the on-device checkers rather than a convenience.
+Its third lesson is the one a proof-first project is likeliest to resent: requirements-based test on the target hardware is never removed, because only execution on the target speaks to the real machine, which is the differential corpus's standing argument (§18) rather than a concession to be argued away.
+
+**LynxSecure** is recorded for completeness and imports nothing: proprietary, no published mechanism detail, no proof, and an EAL7 attribution that survives only in a survey table and cannot be checked against a current certificate.
+
+**Disposition:** GWV is imported as a *specification idiom*, its read-and-write-footprint shape transferring directly to a machine where a step's footprint is decided by the capabilities reachable from it, and the Workhorse/ClearP decomposition transferring as the pattern for showing that a declared composition graph over-approximates real dependence; DO-333's soundness gate, its tool-qualification duty, and its on-target-test residue are imported as disciplines and named in [inspirations.md](inspirations.md)'s Muen entry where the generator theorem lands.
+The certificates, the ACL2 and Isabelle results themselves, and certification-driven assurance as an objective are declined: the first because its own profile was withdrawn, the second under the single-prover rule of §5, and the third because the claim this design makes is a theorem about a machine model rather than a set of discharged objectives, and the two do not substitute for one another in either direction.
+Non-normative; no spec-body change.
+
+---
+
 ## Historical capability-machine runtime machinery: banks, meters, keepers, and whole-machine persistence declined
 
 The historical capability machines supply important lineage, but their distinct runtime mechanisms were evaluated separately from that ancestry.
