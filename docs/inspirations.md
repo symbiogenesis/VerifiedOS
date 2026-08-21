@@ -370,6 +370,39 @@ What transfers is therefore **evidence, not code**: the demonstration at extreme
 
 ---
 
+## Mungi, Opal, Angel, and Nemesis: the classic single-address-space line, its own published critique, and the one thing none of them did
+
+The single-address-space ancestry recorded below CheriOS is entirely modern, and the older line is worth having for three reasons: one of its members is the direct ancestor of the kernel §7 imports, its proponents wrote the best critique of it themselves, and the thing every one of them failed to do is precisely what §15 does.
+
+**Mungi** (UNSW; Heiser, Elphinstone, Vochteloo, Russell and Liedtke) is the purest of them and the closest to home, being Gernot Heiser's own single-address-space capability system built over a from-scratch 64-bit L4 before the group's centre of gravity moved to the kernel this design descends from.
+Its capabilities are **sparse password capabilities**, a 64-bit object base paired with a 64-bit password, presented implicitly through a user-level *active protection domain* and validated lazily at page-fault time against a system-wide object table.
+Two things import and neither is the mechanism.
+The **active protection domain** is the right shape for a component's endowment, an explicitly held set of authorities that a call carries rather than an ambient identity the system looks up, and Mungi's **protected procedure call** is the same object §7's sealed-capability domain entry is.
+Everything underneath is declined at once, and the list is worth stating because it shows how much of the classic design was load-bearing on machinery this platform deletes: enforcement is by MMU, validation happens on a **page fault**, the object table is **global mutable kernel state** that a share-nothing multikernel forbids, and the bank-and-rent accounting is run-time allocation.
+The sharpest decline is the capability itself: a password capability is unforgeable *in a statistical sense*, which is a probabilistic claim, and §5's theorem cannot rest on one any more than R-08-031a's jitter can (the encrypted-name prohibition Nickel states above is the same refusal reached from the interface side).
+
+**Opal** (Washington; Chase, Levy, Feeley and Lazowska) contributes the sentence the whole line rests on, that **addressability and access are independent**, and one mechanism worth naming: **portals**, unforgeable global names for protected entry points at fixed addresses, which is a statically composed call edge described two decades early.
+It also contributes the **canonical critique of single-address-space systems, written by its own proponents**: virtual contiguity, conservation of address space, the impossibility of `fork` (their own conclusion that Unix could not be built above a native Opal kernel), and the loss of copy-on-write where pointers would need relocating.
+That critique is the one a reviewer will bring, and the honest answer separates two mechanisms this document otherwise risks conflating.
+**CHERI neutralizes exactly one of those complaints**, the page granularity of protection; and, worth recording as live evidence, µFork (SOSP 2025) makes even `fork` newly tractable by using CHERI tags to relocate references.
+Everything else on the list, address-space exhaustion, dangling references, revocation cost, no copy-on-write, is neutralized here by **static composition rather than by CHERI**, because every one of them is a consequence of allocating at run time (§7, §8).
+**Angel** (City University London) is kept as the negative example: it was first, in 1992, and it had **no explicit protection system at all**, resting on names an attacker was assumed unable to guess, which is the shape [absence-contract.md](absence-contract.md) exists to make impossible to ship by accident.
+**Grasshopper** is recorded to correct a common misfiling: it is routinely listed as a SASOS and its own designers explicitly **rejected** the single flat address space for a partitioned container store, on checkpointing, protection-immaturity and store-management grounds. That is free independent prior art for a decision [architectural-alternatives.md](architectural-alternatives.md) already took: it is the controlled experiment where orthogonal persistence and a single address space were pursued together and **persistence won**, and this design makes the opposite trade knowingly rather than by not having noticed.
+
+**Nemesis** (Cambridge) is the strongest contact of the five and it lands on §11 rather than §8.
+Its structure is **vertical**: neither the kernel nor a server performs work on an application's behalf, so every resource an application consumes is charged to the application that caused it, and the pathology that structure exists to delete has a name better than the one used here, **QoS crosstalk**, which arrives with a literature attached.
+Its protection is a software-emulated protection lookaside buffer, a global translation shared by every domain plus a per-domain rights array indexed by **stretch**, a contiguous range with uniform permissions whose rights are ORed in at TLB fill: a page-granular ancestor of a capability, and the closest the classic line came to separating protection from translation.
+Its mechanisms are declined wholesale because they are all run-time memory management (self-paging, stretch drivers, the frames allocator, guaranteed and optimistic frames), and its **Atropos** scheduler is a direct foil rather than an ancestor, buying its guarantees from a run-time admission test over slice-and-period reservations where §7 buys them from a build-time table, which is the family [architectural-alternatives.md](architectural-alternatives.md) declines.
+One caution against a tempting sentence: the path from Nemesis to CHERI is **institutional and not technical**, its people carrying into Xen while CHERI came out of a different group and programme, so no descent should be claimed in the specification.
+
+**The finding that matters most is a negative one, and it sharpens §15's own claim.**
+**No classic single-address-space system ever protected without an MMU.** Opal used Mach's page tables, Mungi mapped and validated at fault time, Nemesis ORed rights in at TLB fill, Grasshopper based all access control on page-oriented virtual memory, Angel had nothing, and even the protection-lookaside-buffer proposal that separated protection from translation was still a hardware protection table.
+The modern members do not close it either: **CheriOS retains an MMU for performance while not using it for protection**, and Theseus retains virtual memory for convenience.
+So the deletion here is not the last step of a well-trodden path but the step nobody took, which is an argument to make as a **subtraction from the trusted base and from the Coq model** (§6, §7) rather than as a performance claim, and a reason to expect no prior art to lean on at exactly that point.
+Honest residual: Heiser's own published retrospective on why the line stopped could not be located, the 1998 conclusions remain positive about the concept, and the surviving artifact of the Mungi decade is the 64-bit L4 rather than the address-space model; so the reason the line ended is recorded here as **unestablished** rather than assigned.
+
+---
+
 ## CheriOS: the single-address-space CHERI microkernel, the existence proof for the deleted MMU
 
 CheriOS (Lawrence Esswood's Cambridge microkernel, CTSRD-CHERI, a clean-slate design outlined by Robert Watson) is the working demonstration that **CHERI capabilities alone can carry a microkernel's entire spatial isolation in a single address space**: compartments share one address space and are separated by capability bounds, not page tables, and it runs a real workload there: multicore, a filesystem, an LWIP network stack, an NGINX webserver.
