@@ -1,5 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""compounds: the archetype band against the product of the rows it rests on.
+"""compounds: a statement synthesized over rows, against the rows it rests on.
+
+Two statements have that shape here, and the failure is the same in both: the parts
+are each an artifact somebody maintains, the whole is a synthesis over them restated
+by hand, and nothing renders wrong when they part. The first is the archetype band
+over the estimate rows. The second is the two-class placement, which is a list of
+region classes divided between the two latency classes and restated in three places,
+where the same drift puts one region class on both sides of a boundary that has to be
+a partition.
 
 The estimates carry two layers of figure and only one of them is anybody's artifact.
 A big-table row is scored against the baseline and moves when a lever lands in it;
@@ -31,6 +39,18 @@ the author's, and it has no repair: a row that moves changes the product under a
 credit that no longer matches it, and whether that spends the credit or moves the band
 is exactly the decision this group exists to force. Running a repair therefore leaves
 the finding standing rather than absorbing it, which is the point.
+
+The placement half has no repair at all, and for a stronger reason. Which class a
+region belongs on is a design decision, so a term found on the wrong side is not a
+transcription this tool may quietly correct; and a term found on *both* sides or on
+neither is the set-stated-twice failure, where the answer is to decide which list owns
+it rather than to pick one. What is machine-held is the partition, the class each
+declared region carries, that the two by-name placements hold at the entries that
+state them rather than only in the summary that collects them, and that the prose
+restating the pair does not move a region across. The class boundary carries no trust
+gradient (R-15-247s), which is exactly what makes this a bookkeeping property and not
+a security one: nothing is weakened by a region sitting on the second class, so the
+only thing wrong with a misplaced one is that it is wrong.
 """
 
 import re
@@ -74,16 +94,123 @@ RANGE_RE = re.compile(r"([−+])(\d+)% to \1(\d+)%")
 BAND_RE = re.compile(r"(?m)^\| General scalar[^|]*\| \*\*−(\d+)% to −(\d+)%\*\*")
 CREDIT_RE = re.compile(r"(?m)^\| (Better|Worse) \| −(\d+)% \| (\d+) points (optimistic|conservative) \|")
 
+SPEC = "docs/spec.md"
 
-def run(ctx: Context) -> None:
+# The one sentence shape both the register's criterion and the spec's restatement take.
+# Reading it is what makes the two lists two objects rather than one paragraph, and a
+# sentence that has moved out of the shape is this rule's unrepairable finding. Neither
+# list carries a full stop, so one bounds them at both ends; the case is free because
+# the spec opens a sentence where the criterion opens a clause.
+LISTS_RE = re.compile(
+    r"(?i)the first class carries ([^.\r\n]*?); the second carries ([^.\r\n]*)")
+
+# Each region class the memory plan places, the pattern that finds it in a list, the
+# latency class it must land in, and the entry that governs the placement. The governing
+# entry is the point: a term whose class is stated only in the summary that collects
+# every term is a term one edit away from being stated nowhere.
+PLACEMENT: list[tuple[str, str, str, str]] = [
+    ("the scalar working set", r"scalar working set", "first", "R-15-247"),
+    ("cycle-critical arrays", r"cycle-critical array", "first", "R-15-247"),
+    ("kernel objects", r"kernel objects", "first", "R-15-247s"),
+    ("stacks", r"\bstacks\b", "first", "R-15-247s"),
+    ("register-save areas", r"register-save areas", "first", "R-15-247s"),
+    ("DMA windows", r"DMA windows", "first", "R-15-247s"),
+    ("rings", r"\brings\b", "first", "R-15-247s"),
+    ("grant slots", r"grant slots", "first", "R-15-247s"),
+    ("quarantine entries", r"quarantine entries", "first", "R-15-247s"),
+    ("recovery workspaces", r"recovery workspaces", "first", "R-15-247s"),
+    ("hard-task and hot code", r"hard-task", "first", "R-15-247j"),
+    ("bulk by volume", r"bulk by volume", "second", "R-15-247"),
+    ("framebuffers", r"framebuffers", "second", "R-15-247s"),
+    ("images", r"\bimages\b", "second", "R-15-247s"),
+    ("vector and matrix extents", r"vector and matrix extents", "second", "R-15-247s"),
+    ("interpreter origin arenas", r"origin arenas", "second", "R-14-015"),
+    ("media buffers", r"media buffers", "second", "R-15-247s"),
+    ("cold statically-placed code", r"cold statically-placed code", "second", "R-15-247s"),
+    ("model weights", r"model weights", "second", "R-15-247s"),
+]
+
+# What each governing entry must still say in its own words, so that a placement holds
+# where it is decided and not only where it is summarized. R-15-247s is the summary
+# itself and so is not in this table: it is the thing being held.
+GOVERNS: list[tuple[str, str]] = [
+    ("R-15-247", "the scalar working set and every cycle-critical array"),
+    ("R-15-247j", "all §11 hard-task code and all hot code on the first class"),
+    ("R-14-015", "The arenas are **second-class regions** and the interpreter body is "
+                 "**first-class**"),
+]
+
+
+def _lists(text: str) -> tuple[str, str] | None:
+    """The two class lists of one sentence, or None where the sentence has moved."""
+    m = LISTS_RE.search(text)
+    if not m:
+        return None
+    # Both groups are required by the pattern, so neither can be absent; a group reads
+    # as optional to the typechecker because in general one may be.
+    return str(m.group(1)), str(m.group(2))
+
+
+def _placement(ctx: Context) -> None:
+    """K-56: every region class carries exactly one latency class, in three readings."""
+    rep, reg = ctx.rep, ctx.reg
+    ctx.shared["placement_terms"] = 0
+
+    register = _lists(reg.accept_text.get("R-15-247s", ""))
+    spec = _lists(ctx.text(SPEC))
+    if register is None or spec is None:
+        rep.report("K-56", "two-class placement reading(s) that have moved:", [
+            None if register else
+            "R-15-247s's criterion no longer states two class lists this rule can split",
+            None if spec else
+            f"{SPEC} no longer restates the two class lists in the register's own shape",
+        ])
+        return
+
+    findings: list[str] = []
+    for what, pattern, want, governing in PLACEMENT:
+        rx = re.compile(pattern)
+        where = [name for name, lst in (("first", register[0]), ("second", register[1]))
+                 if rx.search(lst)]
+        if len(where) != 1:
+            findings.append(
+                f"R-15-247s places {what} on {len(where)} of the two classes; a region "
+                "on both or on neither is a boundary that has stopped being a partition")
+            continue
+        if where[0] != want:
+            findings.append(f"R-15-247s places {what} on the {where[0]} class, "
+                            f"{governing} puts it on the {want}")
+            continue
+
+        # the spec restates the pair, and need not carry every term: what it may not do
+        # is carry one on the other side
+        said = [name for name, lst in (("first", spec[0]), ("second", spec[1]))
+                if rx.search(lst)]
+        if said and said != [want]:
+            findings.append(f"{SPEC} places {what} on {' and '.join(said)}, the register "
+                            f"places it on the {want}")
+
+    for ident, literal in GOVERNS:
+        entry = reg.body.get(ident, "") + reg.accept_text.get(ident, "")
+        if literal not in entry:
+            findings.append(f"{ident} no longer states the placement R-15-247s "
+                            f"attributes to it, which this rule reads as '{literal}'")
+
+    ctx.shared["placement_terms"] = len(PLACEMENT)
+    rep.report("K-56", "region class(es) the two-class placement does not partition:",
+               findings,
+               f"all {len(PLACEMENT)} region classes carry exactly one latency class, "
+               f"{len(GOVERNS)} of them held at the entries that decide them")
+
+
+def _band(ctx: Context) -> None:
+    """K-30 through K-33: the archetype band against the product of its rows."""
     rep = ctx.rep
-    rep.line(HEADING)
 
     doc = ctx.corpus.get(PERF)
     if doc is None:
         rep.report("K-30", "missing artifact:", [f"{PERF} is not in the repository"])
         ctx.shared["ends"] = []
-        rep.line()
         return
     raw = ctx.text(PERF)
 
@@ -130,13 +257,11 @@ def run(ctx: Context) -> None:
 
     if unread:
         # reported above; without every term there is no product to compare against
-        rep.line()
         return
     if not band_m or len(credit_rows) != 2:
         rep.report("K-32", "unreadable compound(s):",
                    ["the general-scalar band or its credit table is not in the form "
                     "this check reads"])
-        rep.line()
         return
 
     # the better end takes every term's smaller figure and the worse end every term's
@@ -178,4 +303,10 @@ def run(ctx: Context) -> None:
                 f"the band stands {gap} points {want} of the product")
     rep.report("K-33", "credit(s) the band and the product do not support:", miscredited,
                "every credit is the gap between the band and its product")
-    rep.line()
+
+
+def run(ctx: Context) -> None:
+    ctx.rep.line(HEADING)
+    _band(ctx)
+    _placement(ctx)
+    ctx.rep.line()
