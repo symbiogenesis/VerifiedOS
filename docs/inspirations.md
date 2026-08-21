@@ -1480,6 +1480,65 @@ The lineage also motivates a still-non-normative candidate, fixed-slot fine-grai
 
 ---
 
+## Lingua Franca, Ptolemy II, and PTIDES: the coordination half of the same program, and the theorem that stops at the code generator
+
+The PRET import above takes one half of a single research program and the corpus has never named the other.
+Edward Lee is an author of PRET, of **Ptolemy II**, of **PTIDES**, and of **Lingua Franca**, and the halves have converged repeatedly without once being proved together.
+Ptolemy II supplies the frame: a model's semantics is not the framework's but a **director**'s, each director implementing a model of computation, and different levels of one hierarchy carrying different directors, so heterogeneity is expressed by composing semantics rather than by weakening one.
+**Lingua Franca** is the live descendant, and it is a coordination language rather than a runtime: **reactors** with declared ports and reactions, communicating on connections fixed at composition time and spanning at most one level of hierarchy, over a **superdense** logical time whose tag is a pair of a time value and a microstep.
+Its determinism has a mechanized proof, and the shape of that proof is the reason this entry is here rather than in the alternatives: Rossel, Lin, Lohstroh, Castrillon and Goens (VSTTE 2023) give the reactor model its first formal operational semantics and prove **progress and determinism** in **Lean**.
+
+**Four things import, and the first gives the schedule a denotation.**
+The **tag as a pair** is the right semantic account of what a frame boundary means: a §7 frame is a logical instant and the order of components dispatched inside it is the microstep axis, which turns "the schedule is the semantics" from a slogan into a statement with a model behind it.
+**Connections declared rather than created**, at most one hierarchy level wide, is the same discipline as static channels reached independently and for the same reason, that a topology known at build time is a topology schedulable at build time.
+LF's **`after` rule**, which legalizes a feedback loop only when some edge carries a logical delay, is the precedent for making a cycle-breaking delay a declaration the checker enforces rather than a property an implementation happens to have, and a TDM slot boundary is exactly that delay here.
+And **`reactor-uc`**, LF's no-heap statically allocated runtime for microcontrollers, has been ported to **Patmos**: the coordination half already runs on the PRET half this design imports, which is the most concrete evidence available that the two compose.
+One citation travels with them for the sceptical reader, since the standing objection to everything in this family is that determinism costs throughput: on the Savina benchmarks LF outruns Akka by 1.86x and CAF by 1.42x, its authors' point being that determinacy costs neither expressivity nor speed.
+
+**What is declined is the guarantee, and the ground is the object the theorem is about.**
+The Lean proof concerns the **model of computation**; the artifact a user runs is emitted by `lfc`, an unverified Java code generator, linked against an unverified C, C++, Rust or embedded runtime, compiled by an unverified target compiler, onto a machine with no timing contract, and nothing connects the theorem to the binary.
+That is the characteristic failure of this whole category, and it is not weak theorems but theorems about the wrong object: of everything surveyed beside it, only **Vélus** (above) carries a determinism result all the way to machine code, and it does so by riding CompCert, which is precisely why Vélus and not LF holds the §12 control-plane slot.
+Three mechanisms are declined with it.
+The **event-queue runtime**, which advances time by popping a priority queue of tagged events, cannot be what a WCET-by-composition argument sums over, where a dispatch table can (§11).
+**Physical actions and physical connections** are LF's own admitted nondeterminism and are load-bearing in real programs, because they are how external input arrives; here input enters at a scheduled sampling point, so the arrival instant is quantized by the schedule rather than by a clock read.
+And **deadlines**, which LF detects at run time where §11 proves they cannot be missed: different products that should not share a word.
+Federated coordination is declined as solving a removed problem, since both LF modes assume a network, the centralized one an RTI's grant-and-advance handshake and the decentralized one PTIDES-style clock synchronization under a bounded-delay assumption, where an on-chip TDM interconnect has the bound by construction from its slot table.
+
+**The time-triggered relatives are the same idea at the interconnect.**
+Giotto and TDL fix a task's logical execution time so that outputs appear at instants independent of how long the computation took; Kopetz's time-triggered architecture and TTEthernet, and IEEE 802.1Qbv's scheduled traffic, do the same for the wire.
+They are recorded here rather than imported because §15's TDM fabric already *is* that answer inside one die, and the standards exist to obtain it across a bus this design does not have.
+
+---
+
+## occam and the transputer, and XMOS xCORE: static channels in silicon, and the boundary every rendezvous machine stops at
+
+The share-nothing multikernel over a static channel graph had a commercial machine forty years ago, and both its achievement and its limit are precisely documented.
+**occam** on the **INMOS transputer** put Hoare's CSP into an ISA: processes, `PAR`, `ALT`, and channels as first-class objects with hardware links between chips, with the scheduler itself in microcode.
+Its compile-time discipline is the part worth reading closely, because it is the ancestor of three later answers to one question.
+occam enforced a **single-name rule** (one name per datum per scope), **abbreviation validity**, **procedure parameter distinctness checked at every call site** (which is what made per-procedure checking modular and sound), **parallel disjointness** (a variable written in one `PAR` branch is untouchable by the others, channels single-reader single-writer), and no pointers and no dynamic allocation at all.
+It was also **incomplete by design**, and the honest version of the lineage claim depends on saying so: for abbreviations at variable subscripts the alias checker inserted `overlapcheck` nodes and the test happened at run time under a per-program error mode.
+So occam solved the decidable fragment and fell back to a dynamic check for the rest; Rust makes the aliasing structure part of the type; a capability machine makes the bound part of the pointer and checks it in hardware; and this design takes a fourth road, forbidding at composition time the construct that makes the question undecidable.
+The transputer's other legacy is the FPU: the T800's floating-point unit was specified in Z, its algorithms proved in occam and refined to microcode, work that took the Queen's Award in 1990, was reported as *cheaper* than the informal route, and found both an ambiguity in IEEE 754 and a bug in a competitor's part.
+That is the strongest historical precedent for this project's whole premise and it deserves citing wherever the proof-cost argument is made (§17).
+
+**The scheduler is where the transputer is usually misremembered, and the distinction is the entry's point.**
+Two priority levels in microcode gave a *bounded* dispatch latency, typically 19 cycles and a published maximum of 53 at high priority, with low priority round-robin at roughly a millisecond and a worst case of `2n - 2` slices for `n` processes.
+Bounded, fast, and published is more than a modern operating system offers, and it is still not what §7 needs: what runs next is decided by a queue whose contents depend on when communications completed, so the gap is bounded while the order and the instants are not predetermined.
+The transputer bounded the gap; the table determines the sequence.
+
+**XMOS xCORE is the living commercial foil, founded by the transputer's own architect.**
+Its instruction timing is deterministic by construction in the way §15 is: no forwarding, no speculation, no branch prediction, unified SRAM in place of caches, almost every instruction single-cycle, and a hardware limit of one issue per core per five cycles that guarantees the previous instruction has retired, with the published contract stated as an issue rate against the number of awake cores.
+It ships a real WCET tool, the XMOS Timing Analyzer, which enumerates paths through object code and times them.
+And its limit is the finding that generalizes to everything in this category: **XTA reports "unknown" at any instruction that can pause**, a channel input, a timer read, a port wait, because the pause is a function of a peer's progress, and it assumes zero pause on top of instruction execution, on the strength of hand-written pragmas that have demonstrably been wrong in the vendor's own libraries.
+Every system here bounds **computation** and none bounds **communication**, because in all of them communication is a rendezvous.
+A composition-time TDM slot table is a different answer rather than a better estimate: the transfer instant is not analyzed, it is scheduled, and a peer's progress becomes a scheduling constraint discharged at build time instead of a term in a WCET expression (§11, §15).
+
+**Two cautionary trajectories close the entry, and they are the same trajectory twice.**
+occam's second act, occam-pi, re-added mobile channels, run-time process creation and mobile processes, which is exactly the dynamism the first act existed to exclude; XMOS is currently moving `par`, `chan` and timed ports out of a language its compiler understands and into a C library it does not, with XC maintained but no longer preferred.
+Static structure decays into dynamic API wherever nothing forces it to stay static, which is the argument for keeping the composition rules in [requirements-register.md](requirements-register.md) and [absence-contract.md](absence-contract.md), where a proof obligation and an auditor's search hold them, rather than in a runtime that can be extended by anyone in a hurry.
+
+---
+
 ## Ara, Gemmini, and tensor-core lineage: V-class graphics and M-class inference under one ISA
 
 The graphics and AI topology takes the useful datapaths of a GPU and an NPU while declining their separate computers.
