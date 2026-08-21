@@ -481,6 +481,29 @@ What imports is the method, the quiescent point, and the module key.
 
 ---
 
+## Muen: the policy compiled into the system, the cyclic executive already shipping, and the generator theorem that is the right shape
+
+**Muen** (codelabs GmbH, originally HSR Rapperswil; Buerki and Rueegsegger) is an x86-64 separation kernel of some three to four thousand lines of SPARK 2014, and it is the closest living relative of this platform's composition story and of its scheduler.
+Its system is an XML **policy** stating the hardware, the subjects, their memory, their channels and events, their device assignments, and their schedule; the toolchain compiles that policy into SPARK sources, the physical memory layout, the page tables, and a per-CPU kernel running the specified schedule, and the compiled policy then sits in read-only memory that no subject can reach.
+Nothing is allocated after boot and no subject is created at run time.
+Its schedule is a **fixed cyclic executive**: minor frames grouped into major frames that synchronize the CPUs, driven by the VMX preemption timer, needing no preemption to hold.
+And it ships: secunet's BSI-certified Communicator H and Nitrokey's NetHSM both stand on it, which makes it the existence proof that a table-driven executive survives contact with a product.
+
+**The import is the generator theorem, because that is the shape this platform's own composition claim has to take.**
+Haque, D'Souza, Habeeb, Kundu and Babu (ATVA 2020) observed that Muen is not a system but a *generator*, so the object worth verifying is neither the built image nor the toolchain's forty-one thousand lines: they prove by **conditional parametric refinement** that for every input policy meeting stated side conditions the generated system refines an abstract specification carrying the separation property.
+That is the difference between an image whose correctness is a fresh informal argument each time and a composition compiler carrying a theorem quantified over admissible compositions, which is what §7's static composition needs if the graph the proofs are about is to be the graph the machine runs.
+It is the strongest precedent in existence for that move and it is still weaker than the obligation here in four ways it states about itself: post-facto rather than co-developed, discharged by Z3, CVC4 and Alt-Ergo rather than by a proof object a second checker can replay, demonstrated on twelve configurations, and resting on the assumption that page-table translation and the VMX instructions behave as modelled.
+
+**What the project ships as proved is narrower than its reputation, and the distinction is worth stating once.**
+GNATprove discharges **absence of run-time errors at source level** and nothing beyond it; the project itself calls verification of kernel properties ongoing.
+Absence of run-time errors is memory safety plus totality over the SPARK subset, which CHERI and a verified compiler give this platform at the binary rather than the source and more cheaply (§5, §13); it is not separation, not noninterference, and not functional correctness.
+So the sentence "Muen is a formally verified separation kernel", read as a separation claim, overstates the shipped artifact by a wide margin, and the honest reading of the whole branch is the one §7 already implies: the certified and near-certified systems have the static composition and the cyclic executive without a security theorem, while seL4 has the security theorem only by assuming the static partition schedule those systems ship (the seL4 entry above), with timing channels outside it either way.
+
+**What is declined beyond the prover.**
+Separation by VT-x and VT-d is coarse-grained and rests on an enormous undocumented microarchitecture, which the ATVA assumption list makes literal: the hardware model is assumed rather than verified, where §15's in-order, non-speculative, cacheless profile exists precisely so that the model can be the artifact and §18 can close RTL against Sail.
+
+---
+
 ## Verisoft and VAMP: pervasive verification's first attempt, and the communication chapter the TDM interconnect deletes
 
 Where Oberon held the whole stack in one head, **Verisoft** (2003 to 2007, Paul's group at Saarbrücken, with VerisoftXT after) is the earliest ancestor to hold the whole stack under *proof*: **pervasive verification**, the insistence that applications, kernel, compiler, and processor be verified as one stack with no informally-trusted seam between layers, stated as a program two decades before end-to-end composition became the field's ambition.
