@@ -169,8 +169,13 @@ def _seed_from_canonical(canonical: Path, fast: Path) -> None:
 
     The pre-downloaded test ELFs would otherwise re-download the tarball. The Sail SMT
     memo cache matters more: a cold cache re-discharges every Z3 obligation and turns
-    the ~2 min emission into ~25 min (measured once). The cache is content-keyed, so a
-    stale copy only costs misses.
+    the ~2 min emission into ~25 min (measured once). Content-keying makes a stale copy
+    cost misses and nothing worse, but only within one distribution and one solver: the
+    key is the obligation, not the prover that discharged it, so a cache carried across
+    either boundary hands the pinned solver another solver's answers to read back as its
+    own. That is the silent difference `env._prepend_z3_path` exists to announce, and
+    across either boundary the ~25 min of a cold rebuild is the price of a baseline that
+    is wholly this toolchain's.
     """
     for source, target in ((canonical / "model" / "sail_smt_cache",
                             fast / "model" / "sail_smt_cache"),):

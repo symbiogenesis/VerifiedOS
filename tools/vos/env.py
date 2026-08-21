@@ -274,6 +274,11 @@ def load() -> Environment:
         root=root,
         model=_env_path("VOS_MODEL", root / "model"),
         build_root=_env_path("VOS_BUILD_ROOT", Path("/root/build")),
+        # Logs under /root and never /tmp, which is the reverse of the keepalive pidfile
+        # above and for the reason that decides both: WSL idle-terminates once the last
+        # process exits, and Ubuntu clears /tmp on the restart. A lease that dies with
+        # the distribution holding it is correct; the log of a fifteen-minute build,
+        # started and left, has to be there when its caller comes back to read it.
         log_dir=_env_path("VOS_LOG_DIR", Path("/root/logs")),
         cpus=cpus,
         mem_available_mb=mem,

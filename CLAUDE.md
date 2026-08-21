@@ -24,10 +24,17 @@
 - **Every checklist item carries one estimate cell**, and every subtotal, the grand total, and the progress figures are sums over those cells that `tools/check.py --fix` recomputes. See [checklist conventions](docs/implementation-checklist.md#checklist-conventions).
 - **No em-dash (U+2014) in any tracked document**, with no carve-out: rule K-40. A not-applicable cell is `n/a`, never a blank and never a bare dash.
 - **The documents carry present-tense current state.** They do not narrate their own past readings or the revisions that got them here; completion evidence on a checked item is the exception, being a measurement recorded at its gate.
+- **A `§n` is resolved by hand.** Rule K-13 holds only that some document in the repository numbers that section, because the numbering is shared, so a reference aimed at the wrong document passes green. Bare `§n` names [the register](docs/requirements-register.md)'s section, or [the profile](docs/isa-profile.md)'s where the sentence says the profile states it; [the version matrix](docs/cheri-version-matrix.md) is where both conventions meet and states its own reading.
+- **Nothing is argued against an invented opposition.** A scare-quoted slogan no source in the corpus says has no referent, so the comparison cannot be made precise. A framing sentence that resists two rewrites is deleted rather than rewritten a third time.
+- **The README addresses a newcomer.** No bare `§n` in it: cite by a hyperlink whose text names the thing. Mechanism lives in its inventory tables and in the spec, so an inaccurate highlight is repaired with a more precise short word and never by appending a clause.
 
 ## Before incorporating an upstream
 
 **A licence is read at the milestone that would incorporate it, never at release**, and it is the one property whose discovery cannot be repaired downstream. **A vendored tree binds this repository and a pinned submodule does not**, so pinning to read is free and vendoring is a commitment. Terms come from the upstream's own licence file, never inferred from its lineage. See [the plan's §12](docs/implementation-checklist.md#12-build-order-milestones-and-execution-state) and [THIRD-PARTY.md](THIRD-PARTY.md).
+
+## Before editing the model tree
+
+**[model/](model/) is `-text` in [.gitattributes](.gitattributes)**, so git stores its line endings verbatim instead of normalizing them, and any tool that writes CRLF rewrites every line of the file it touched. Two do it silently: PowerShell's `Set-Content -Value <array>`, where the fix is `[System.IO.File]::WriteAllText` or `-NoNewline` on a `-Raw` string, and a plain `git archive` when vendoring, which honours `core.autocrlf` and so wants `git -c core.autocrlf=false archive`. The tree is vendored byte-identically from its upstream pin, so a swept file hides the real diff of a curation batch and breaks the line counts that batch reports as its evidence. After any scripted edit, check `git diff --stat` against the number of lines the edit meant to touch.
 
 ## Running the tools
 
