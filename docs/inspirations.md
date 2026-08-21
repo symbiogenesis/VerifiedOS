@@ -215,24 +215,67 @@ The fault half imports the same way. The protected-sequence idioms descend from 
 
 ---
 
-## Proof-carrying code and typed assembly: the Necula → Morrisett arc, and the checker it lets the device actually run
+## Proof-carrying code and typed assembly: the Necula → Morrisett arc, RustBelt and StkTokens, and CHERI-TAL admission stratified by proof strength
 
 The admission discipline descends from one of the field's cleanest arcs: **Necula's proof-carrying code** (a proof travels with the artifact and the consumer re-checks it locally), narrowed by **Morrisett's TALx86** into a *type discipline* (the certificate is a typing derivation and checking it is decidable type-checking), then given foundations by **Appel's foundational PCC** and **Crary's foundational TAL** (the type system's soundness proved down to the machine semantics rather than assumed).
 On the memory-safety-type side the mechanized descendants are **RustBelt** (Iris) and **WasmCert-Coq**, and on the capability side **StkTokens** (Skorstengaard, Devriese, Birkedal, POPL 2019) supplies the linear and affine discipline in the same capability-machine-logic lineage as Cerise.
 So the whole *type-soundness* half of the platform's CHERI-TAL (§5, §6, §13) is inherited rather than gambled on.
+What the PCC-to-TAL lineage supplies concretely is a **typed assembly language for RV64+CHERI**: Tier-2 admission type-checks annotated binaries, compilers emit typing derivations rather than general proof terms, and the on-device checker is a small decidable type-checker while deeper theorems remain CIC proofs.
+That is the structure that makes two admission commitments honest at once: the ~10³-line on-device checker (a *CIC term* checker at that size does not exist, MetaCoq's being tens of kLoC and axiomatizing guard and termination) and verification as a property of the artifact rather than of a mandated build path (§5).
 
 **What CHERI changes about the inheritance is the size of the type system.**
-TALx86 had to encode array-bounds and initialization proofs into its types because x86 had no hardware notion of a bound; on a purecap machine the bound, the tag, and monotonicity are *architectural*, so the imported types shrink to exactly the residual CHERI does not enforce at runtime: **temporal** safety (linear and affine capability types over a revocation-coloured heap, the StkTokens discipline in the CHERIoT lineage above) and **typed control flow**, where a well-typed jump target simply *is* control-flow integrity.
-That residual is what safe Rust's ownership discipline already establishes at source (§5), which makes the TAL the vehicle that carries source types down to the binary as a checkable derivation, turning *"the compiler preserves and certifies rather than re-discovers"* from a promise into a concrete artifact format.
+CHERI already discharges spatial safety in hardware, so the type system need not encode bounds proofs: the capability *is* the bound.
+TALx86 had to encode array-bounds and initialization proofs into its types because x86 had no hardware notion of a bound; on a purecap machine the bound, the tag, and monotonicity are *architectural*, so the imported types shrink to exactly the residual CHERI does not enforce at runtime: **temporal** safety (linear and affine capability types over a revocation-coloured heap, the StkTokens discipline in the CHERIoT lineage below) and **typed control flow**, where a well-typed jump target simply *is* control-flow integrity.
+That residual is precisely what safe Rust's ownership discipline already establishes at source (§5), which makes the TAL the vehicle that carries source types down to the binary as a checkable derivation, turning *"the compiler preserves and certifies rather than re-discovers"* from a promise into a concrete artifact format: the memory-safety analog of carrying constant-time to the binary as a checkable certificate (§5).
 
 **Two further type-level imports ride the same checker**, each replacing a mechanism the design would otherwise have built: **CT-Wasm** (Watt et al.) shows constant-time decidable as a **taint-type discipline** for structured code, so CT becomes a type-check rather than a proof term wherever the code is structured (§5); and definite initialization arrives as a move-(II) type attribute (§5) descending from TAL's own founding per-field initialization flags, which is why the Write-before-Read property is taken as a type attribute over §7's static slot plan instead of as the tag plane the hardware proposal wanted.
 The **typed callee set** (§5, §13) is the same move once more, refining the code type already in the vocabulary rather than adding a grade beside it.
 
-The payoff is structural, and it is what makes the on-device story honest: a TAL type-checker is decidable, syntactic, obviously terminating, and genuinely of order 10³ lines, so the checker that runs at every install and sits in the boot TCB can be *that*, while the full CIC proof kernel (tens of kLoC, MetaCoq-lineage) retreats to release time over the fixed base image, where the deep refinement and hyperproperty proofs actually live (§6, §9).
-Admission then gates on the **derivation, not the producer**: any producer of a well-typed CHERI-TAL binary is admissible by definition, and the reference certifying compiler becomes a reference rather than a gate. This is the point at which *"verification is a property of the artifact, not its pedigree"* (§5) stops being aspirational.
-The full stratification argument is retained below under CHERI-TAL admission.
+**Why two checkers, not one.**
+The assurance obligations split along a line this document already draws three times (RTL ⊑ Sail, WCET, CT: each a *functional ⋈ hyperproperty* split):
+- The **type-level obligations** (memory safety (temporal + spatial), control-flow integrity, no-runtime-codegen (W^X, §14), ABI/type conformance, the **constant-time** of structured secret code (a taint-type discipline), and the **WCET** of structured code (a syntax-directed cost annotation)) are exactly what a TAL type system *decides*.
+  These are the whole of Tier-2, the structural half of Tier-1, and (for the structured population) the constant-time and worst-case-timing obligations that would otherwise be release-time proof terms.
+- The **deep** obligations (Tier-0 functional refinement, the binary refines the seL4 abstract spec, whole-graph non-interference (§8), crypto **reduction** security (IND-CCA/EUF-CMA, §5), filesystem linearizability + liveness (§10)) are **not typing judgments**: no decidable type system states "this binary refines the abstract kernel", so those need a full higher-order logic and a proof term.
+  **Constant-time and WCET are the boundary cases, and for structured code they *do* type-check.**
+  CT is a 2-safety hyperproperty, but the CT-Wasm lineage makes it a taint-typing obligation for structured code (a Coq restatement here); structured-code WCET is likewise a syntax-directed max-path sum over the typed control-flow graph (Shaw's timing schema).
+  So both **join the type-level tier for the structured population** the obligations actually cover (the straight-line field-arithmetic kernels, the structured Tier-1 secret paths), leaving only the genuinely unstructured CT/WCET residual as proof terms: the relational-Sail 2-safety logic shrinks from *the* CT vehicle to a corner case (§5).
 
-Honest residual (§17): the net-new work is the **CHERI-RISC-V instantiation**, namely the temporal-safety type discipline over capabilities and the compiler emitting derivations. The **soundness metatheorem** (*well-typed CHERI-TAL implies the safety properties hold over the Sail model*) must be authored once in Coq against the §15 model, joining the crown-jewel specs, since a mis-stated typing rule admits an unsafe binary that type-checks perfectly.
+So the TAL does not *replace* the certificate scheme, it **stratifies** it, taking the tier where a type system is complete and leaving the tier where only a proof will do.
+The crypto, WCET, and CT lineages show that hyperproperties need more than a functional logic; the TAL lineage shows that type-level properties need less than a general proof kernel.
+
+- **It makes the checker-size commitment honest by splitting the checker, not by shrinking a CIC checker.**
+  A TAL type-checker is decidable, syntactic, obviously terminating (no guard or termination side-condition to axiomatize), and genuinely on the order of 10³ lines: so the **on-device admission checker** that runs on every install and sits in the boot TCB *is* that type-checker, and the ~10³-line claim, false for a CIC term checker, is **true for this one**.
+  The full **CIC proof kernel** (MetaCoq-lineage, honestly tens of kLoC) does not vanish: it validates the deep Tier-0 and hyperproperty proofs, but it moves to where those proofs actually live, **release-time, over the fixed base-image TCB**, its result bound into the signed measured-boot root (§9), not a per-install on-device cost (§6).
+  "Checking is cheap and local" is *literally true* of the TAL admission path and deliberately **not claimed** for Tier-0 (an seL4-scale refinement is machine-hours to check).
+  The two options a single checker would force a choice between ("a genuinely tiny logic" and "a larger checker named openly as the axiom") are both taken, each in its proper tier.
+- **It makes admission pedigree-independent: gating on the derivation, not the producer.**
+  Once the certificate *is* a typing derivation the checker re-checks, **any** producer of a well-typed CHERI-TAL binary is admissible by definition; the certifying Rust→CHERI compiler (§18) becomes the *reference producer*, not a gate.
+  "We ship one reference toolchain" and "only its output is admitted" are different claims: the TAL keeps the first and drops the second, making admission genuinely language- and pedigree-agnostic (§5), while the hardware universal contract (Cerise, §13) stays beneath as defense-in-depth against a checker or TAL-soundness error.
+  This is the point at which *"verification is a property of the artifact, not its pedigree"* (§5) stops being aspirational.
+- **The one new axiom is the TAL's soundness metatheorem: a crown jewel, paid once.**
+  Type-checking is only as sound as the theorem *"well-typed CHERI-TAL ⇒ the safety properties hold over the Sail model"*, a foundational-TAL syntactic-soundness proof (WasmCert-Coq / RustBelt lineage), authored once in Coq against the §15 model.
+  It joins the crown-jewel specs (§5): a mis-stated typing rule admits an unsafe binary that type-checks perfectly.
+  But it is a *smaller and more scrutable* axiom than "a hand-built ~10³-line CIC checker is correct" would have been.
+
+**Lineage.**
+Necula's PCC, Morrisett's TALx86, Appel's and Crary's foundational work, RustBelt, WasmCert-Coq, and StkTokens make the type-soundness half inherited rather than speculative; the net-new work is the CHERI-RISC-V instantiation and the compiler's emitted derivations.
+Unlike the belt/EPIC/Wasm targets this abandons no substrate choice (RV64 + CHERI + FPCC all stay); it changes only the *shape of the evidence* on the type-level tier, so it is off that ranking: a structural refinement of the admission discipline, not an alternative to it.
+
+**Where the language lives, and why that is a separate decision from adopting it.**
+Everything above settles the *shape of the evidence* and nothing about who owns the type system.
+Its dependency set is a machine semantics and a type theory and nothing else, which makes it the one part of this platform whose correctness argument mentions no operating system, so it is specified separately, in [typed-assembly-language.md](typed-assembly-language.md), with this platform depending on its `cheri-rv64` instantiation and pinning a version (§5).
+Two things follow, and only two.
+The **target's guarantees become a parameter**: a profile declares, per obligation, whether the machine *cites* it, the type system *attributes* it, or a producer *inserts* a run-time check, so a bare non-capability target becomes expressible without weakening the profile this platform pins, and the reason it is weaker is stated rather than left implicit: a cited invariant binds arbitrary co-resident code because the machine checks every access, an attributed one binds only code that was type-checked, so a citing profile is open-world and a bare one closed-world.
+The **freeze becomes a pin**: the vocabulary grows by amendment to that specification and reaches this platform when the pin moves, a stronger review surface for the language and a new seam for the consumer (§17).
+What does not follow is a smaller §18, the factoring relocating the work and making its cost shareable rather than reducing it.
+
+**What the platform takes.**
+Admission is **stratified into two checkers along this document's own functional ⋈ hyperproperty line**.
+A small, decidable **CHERI-TAL type-checker** is the on-device admission checker for the **type-level** obligations: Tier-2 in full (temporal + spatial memory safety, CFI, no-codegen, ABI/type conformance) and the memory and ABI-conformance half of Tier-1; with the certifying compiler *targeting the TAL* and certificates carried as **typing derivations**, so admission is genuinely pedigree-independent and the ~10³-line, "cheap and local" claim is true of it.
+The **CIC proof kernel** is retained for the **deep** obligations no type system states (Tier-0 functional refinement + non-interference (§8), crypto reduction security, the *residual unstructured* constant-time and WCET, filesystem linearizability/liveness): validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
+The platform axiom decides this exactly as it did for seL4 and crypto (**methodology is portable, the smallest trusted set wins**): spend the engineering to make the per-install admission checker a type-checker whose soundness is one Coq theorem, rather than a general proof checker no one can hold to 10³ lines.
+
+**Honest residual (§17):** the net-new work is the **CHERI-RISC-V instantiation**, namely the temporal-safety type discipline over CHERI capabilities and the compiler emitting derivations, which the certifying-compiler workstream (§18) carries in place of a bespoke certificate format; the **CHERI-TAL soundness metatheorem** (*well-typed CHERI-TAL implies the safety properties hold over the Sail model*), authored once in Coq against the §15 model, is a new crown-jewel spec, since a mis-stated typing rule admits an unsafe binary that type-checks perfectly; the deep-proof CIC kernel is *named* as the larger admission axiom rather than hidden inside a 10³-line claim, so "checking is cheap" holds only for the TAL tier; and the language being pinned rather than contained, an amendment to its theory reaches this platform only when the pin moves.
 It is nonetheless a smaller and more scrutable axiom than a hand-built proof checker would have been, and the Cerise universal contract (§13) stays beneath it as defense-in-depth against exactly that failure.
 
 ---
@@ -1595,62 +1638,6 @@ Verify CT **on the artifact** against the one `Zkt`/`Zvkt` leakage model for eve
 The platform axiom decides the toolchain as ever: carry the Coq-native property to Binsec/Rel's demonstrated binary-level capability, spending engineering to keep CT on the single prover and make it *artifact*-borne.
 **Honest residual (§17):** Binsec/Rel is path-bounded evidence (the certificate is the unbounded close); CT verification inherits the RTL ⊑ Sail residual (the leakage model is sound only once that arrow closes) and leans on the `Zkt`/`Zvkt` leakage-model statement as a shared crown-jewel spec; and correctness of *scope* rests on the flow labels (§8, §12, §13), so a mislabeled secret is a spec error no CT proof catches.
 Like WCET it **degrades gracefully**, bounded Binsec/Rel evidence carries bring-up, the certificate closes it, so it gates *strong* CT assurance, not boot.
-
----
-
-## Necula, Morrisett, RustBelt, and StkTokens: admission stratified by proof strength
-
-The PCC-to-TAL lineage supplies a **typed assembly language for RV64+CHERI**: Tier-2 admission type-checks annotated binaries, compilers emit typing derivations rather than general proof terms, and the on-device checker is a small decidable type-checker while deeper theorems remain CIC proofs.
-This is the **Necula → Morrisett arc** (proof-carrying code narrowed to a type discipline: TALx86, then foundational TAL) and it is the structure that makes two admission commitments honest at once: the ~10³-line on-device checker (a *CIC term* checker at that size does not exist: MetaCoq's is tens of kLoC and axiomatizes guard/termination) and verification as a property of the artifact rather than of a mandated build path (§5).
-It lands unusually cleanly here because **CHERI already discharges spatial safety in hardware**, so the type system need not encode bounds proofs, the capability *is* the bound.
-
-**Why two checkers, not one.**
-The assurance obligations split along a line this document already draws three times (RTL ⊑ Sail, WCET, CT: each a *functional ⋈ hyperproperty* split):
-- The **type-level obligations** (memory safety (temporal + spatial), control-flow integrity, no-runtime-codegen (W^X, §14), ABI/type conformance, the **constant-time** of structured secret code (a taint-type discipline, below), and the **WCET** of structured code (a syntax-directed cost annotation, below)) are exactly what a TAL type system *decides*.
-  These are the whole of Tier-2, the structural half of Tier-1, and (for the structured population) the constant-time and worst-case-timing obligations that would otherwise be release-time proof terms.
-- The **deep** obligations (Tier-0 functional refinement, the binary refines the seL4 abstract spec, whole-graph non-interference (§8), crypto **reduction** security (IND-CCA/EUF-CMA, §5), filesystem linearizability + liveness (§10)) are **not typing judgments**: no decidable type system states "this binary refines the abstract kernel", so those need a full higher-order logic and a proof term.
-  **Constant-time and WCET are the boundary cases, and for structured code they *do* type-check.**
-  CT is a 2-safety hyperproperty, but the CT-Wasm lineage above makes it a taint-typing obligation for structured code (a Coq restatement here); structured-code WCET is likewise a syntax-directed max-path sum over the typed control-flow graph (Shaw's timing schema).
-  So both **join the type-level tier for the structured population** the obligations actually cover (the straight-line field-arithmetic kernels, the structured Tier-1 secret paths), leaving only the genuinely unstructured CT/WCET residual as proof terms: the relational-Sail 2-safety logic shrinks from *the* CT vehicle to a corner case (§5).
-
-So the TAL does not *replace* the certificate scheme, it **stratifies** it, taking the tier where a type system is complete and leaving the tier where only a proof will do.
-The crypto, WCET, and CT lineages show that hyperproperties need more than a functional logic; the TAL lineage shows that type-level properties need less than a general proof kernel.
-
-**What CHERI buys the type system.**
-TALx86 had to encode array-bounds and initialization proofs into its types because x86 had no hardware notion of a bound; on a purecap machine the bound, the tag, and monotonicity are architectural, so the CHERI-TAL types shrink to the *residual* CHERI does not enforce at runtime: **temporal** safety (linear/affine capability types, the discipline **StkTokens** (Skorstengaard/Devriese/Birkedal, POPL 2019) formalizes in the same capability-machine-logic lineage as Cerise; a revocation-coloured heap in the CHERIoT lineage) and **typed control flow** (well-typed jump targets *are* CFI).
-And that residual is precisely what safe Rust's ownership discipline already establishes at source (§5): the TAL is the vehicle that *carries those source types down to the binary as a checkable derivation*, turning §5's "the compiler preserves and certifies rather than re-discovers" from a promise into a concrete artifact format: the memory-safety analog of carrying constant-time to the binary as a checkable certificate (§5).
-
-- **It makes the checker-size commitment honest by splitting the checker, not by shrinking a CIC checker.**
-  A TAL type-checker is decidable, syntactic, obviously terminating (no guard/termination side-condition to axiomatize), and genuinely on the order of 10³ lines: so the **on-device admission checker** that runs on every install and sits in the boot TCB *is* that type-checker, and the ~10³-line claim, false for a CIC term checker, is **true for this one**.
-  The full **CIC proof kernel** (MetaCoq-lineage, honestly tens of kLoC) does not vanish: it validates the deep Tier-0/hyperproperty proofs; but it moves to where those proofs actually live: **release-time, over the fixed base-image TCB**, its result bound into the signed measured-boot root (§9), not a per-install on-device cost.
-  "Checking is cheap and local" is *literally true* of the TAL admission path and deliberately **not claimed** for Tier-0 (an seL4-scale refinement is machine-hours to check).
-  The two options a single checker would force a choice between ("a genuinely tiny logic" and "a larger checker named openly as the axiom") are both taken, each in its proper tier.
-- **It makes admission pedigree-independent: gating on the derivation, not the producer.**
-  Once the certificate *is* a typing derivation the checker re-checks, **any** producer of a well-typed CHERI-TAL binary is admissible by definition; the certifying Rust→CHERI compiler (§18) becomes the *reference producer*, not a gate.
-  "We ship one reference toolchain" and "only its output is admitted" are different claims: the TAL keeps the first and drops the second, making admission genuinely language- and pedigree-agnostic (§5), while the hardware universal contract (Cerise, §13) stays beneath as defense-in-depth against a checker or TAL-soundness error.
-- **The one new axiom is the TAL's soundness metatheorem: a crown jewel, paid once.**
-  Type-checking is only as sound as the theorem *"well-typed CHERI-TAL ⇒ the safety properties hold over the Sail model"*, a foundational-TAL syntactic-soundness proof (WasmCert-Coq / RustBelt lineage), authored once in Coq against the §15 model.
-  It joins the crown-jewel specs (§5): a mis-stated typing rule admits an unsafe binary that type-checks perfectly.
-  But it is a *smaller and more scrutable* axiom than "a hand-built ~10³-line CIC checker is correct" would have been.
-
-**Lineage.**
-Necula's PCC, Morrisett's TALx86, Appel's and Crary's foundational work, RustBelt, WasmCert-Coq, and StkTokens make the type-soundness half inherited rather than speculative; the net-new work is the CHERI-RISC-V instantiation and the compiler's emitted derivations.
-Unlike the belt/EPIC/Wasm targets this abandons no substrate choice (RV64 + CHERI + FPCC all stay); it changes only the *shape of the evidence* on the type-level tier, so it is off that ranking: a structural refinement of the admission discipline, not an alternative to it.
-
-**Where the language lives, and why that is a separate decision from adopting it.**
-Everything above settles the *shape of the evidence* and nothing about who owns the type system.
-Its dependency set is a machine semantics and a type theory and nothing else, which makes it the one part of this platform whose correctness argument mentions no operating system, so it is specified separately, in [typed-assembly-language.md](typed-assembly-language.md), with this platform depending on its `cheri-rv64` instantiation and pinning a version (§5).
-Two things follow, and only two.
-The **target's guarantees become a parameter**: a profile declares, per obligation, whether the machine *cites* it, the type system *attributes* it, or a producer *inserts* a run-time check, so a bare non-capability target becomes expressible without weakening the profile this platform pins, and the reason it is weaker is stated rather than left implicit: a cited invariant binds arbitrary co-resident code because the machine checks every access, an attributed one binds only code that was type-checked, so a citing profile is open-world and a bare one closed-world.
-The **freeze becomes a pin**: the vocabulary grows by amendment to that specification and reaches this platform when the pin moves, a stronger review surface for the language and a new seam for the consumer (§17).
-What does not follow is a smaller §18, the factoring relocating the work and making its cost shareable rather than reducing it.
-
-**What the platform takes.**
-Admission is **stratified into two checkers along this document's own functional ⋈ hyperproperty line**.
-A small, decidable **CHERI-TAL type-checker** is the on-device admission checker for the **type-level** obligations: Tier-2 in full (temporal + spatial memory safety, CFI, no-codegen, ABI/type conformance) and the memory/ABI-conformance half of Tier-1; with the certifying compiler *targeting the TAL* and certificates carried as **typing derivations**, so admission is genuinely pedigree-independent and the ~10³-line / "cheap and local" claim is true of it.
-The **CIC proof kernel** is retained for the **deep** obligations no type system states (Tier-0 functional refinement + non-interference (§8), crypto reduction security, the *residual unstructured* constant-time and WCET, filesystem linearizability/liveness): validated predominantly **at release time over the base-image TCB** and bound into the measured root (§9).
-The platform axiom decides this exactly as it did for seL4 and crypto (**methodology is portable, the smallest trusted set wins**): spend the engineering to make the per-install admission checker a type-checker whose soundness is one Coq theorem, rather than a general proof checker no one can hold to 10³ lines.
-**Honest residual (§17):** the CHERI-TAL soundness metatheorem is a new crown-jewel spec; the deep-proof CIC kernel is *named* as the larger admission axiom rather than hidden inside a 10³-line claim (so "checking is cheap" holds only for the TAL tier); the temporal-safety type discipline over CHERI capabilities is the net-new instantiation the certifying-compiler workstream (§18) carries in place of a bespoke certificate format; and the language being pinned rather than contained, an amendment to its theory reaches this platform only when the pin moves.
 
 ---
 
