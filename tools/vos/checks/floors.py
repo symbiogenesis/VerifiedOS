@@ -131,6 +131,7 @@ def run(ctx: Context) -> None:
     # so a floor that fails says which reading has moved
     floors = {
         "prose bookmarks": len(ctx.corpus.anchor_count),
+        "entries one document names in another": sh.get("entry_refs", 0),
         "tag-plane figures the granule fixes": sh.get("tag_plane", 0),
         "welded block sizes the constraints admit": sh.get("block_candidates", 0),
         "bank counts the DSE contract declares": sh.get("bank_candidates", 0),

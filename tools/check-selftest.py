@@ -659,6 +659,14 @@ CASES = [
     # where somebody changes one, and the contract is the copy that goes stale.
     ("K-58", "a bank grant the contract and the composition no longer agree on",
      _literal("model/config/verifiedos.json", '"banks": 4096', '"banks": 2048')),
+
+    # The citing document is edited rather than the cited one, because that is the
+    # cheaper half of the same defect and the harder one to see: the name here is the
+    # entry's own former title, so the sentence reads exactly as it did before the
+    # other document merged that entry into a larger one.
+    ("K-59", "an entry named in another document under a title it no longer carries",
+     _literal(SPEC, "the second-die entry in [Evaluated",
+              "the bonded-die-stacking entry in [Evaluated")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
