@@ -283,7 +283,15 @@ register mtime : bits(64)
 // every core class and selects its per-hart state, the core's class,
 // and the island binding from it at boot, so it keeps its register and
 // its per-hart configured value.
-register mhartid   : xlenbits = to_bits_checked(config platform.hartid : int)
+//
+// The value is read through `plat_hartid` rather than from the key a
+// second time (core/core_class.sail), because the identity and the
+// roster it indexes are one fact: the reachable value space is a
+// composition-time constant fixed by the core roster, so a hart
+// identity outside the composed roster is not a value this machine can
+// present, and the validator is what makes that true rather than
+// merely intended (postlude/validate_config.sail).
+register mhartid   : xlenbits = to_bits_checked(plat_hartid)
 
 mapping clause csr_name_map = 0xF11  <-> "mvendorid"
 mapping clause csr_name_map = 0xF12  <-> "marchid"

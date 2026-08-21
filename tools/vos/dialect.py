@@ -20,11 +20,12 @@ a store-conditional, `Zalrsc` having gone with the reservation (R-15-025).
 of §1.1 is a fetch container the model does not yet implement, so the image this
 encoder lays down is a stream of canonical 32-bit instructions, which is what
 the curated model fetches today. The vector, matrix, and FEC surface is absent
-because the model carries one core class until M0.8 parameterizes it; the
-corpus version that follows that milestone adds those rows rather than this one
-anticipating them. `vmclear` is here despite that and is not an exception to it:
-it clears the unit's *state* and names no vector operand, so it decodes and
-executes on a class whose datapath this table cannot yet reach.
+because M0.8a lands the class table and the roster while the datapaths those
+classes name arrive with M0.8b to M0.8d; the corpus version that follows each
+of those adds its rows rather than this one anticipating them. `vmclear` is
+here despite that and is not an exception to it: it clears the unit's *state*
+and names no vector operand, so it decodes and executes on a class whose
+datapath this table cannot yet reach.
 """
 
 from dataclasses import dataclass

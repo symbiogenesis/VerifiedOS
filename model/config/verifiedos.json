@@ -96,10 +96,20 @@
       }
     },
     "regions": [
-      // ROM
+      // ROM, 16 KiB at 0x1000, holding the boot ROM and the attested
+      // devicetree written at `memory.dtb_address`.
+      //
+      // **The 4 KiB this was is upstream's default and not this platform's
+      // budget.** R-09-007 has the static devicetree declare core classes,
+      // islands, the NoC schedule, OPP tables, and radio calibration and limit
+      // values, and the first of those five is what M0.8a landed: the tree went
+      // from 2,741 bytes to 4,466 and stopped fitting. Sizing for the
+      // declaration that has arrived is what forces a bump per milestone, so
+      // this is sized for the four that have not. `model.py devicetree` is what
+      // holds the blob against this number on every run.
       {
         "base": { "len": 64, "value": "0x1000" },
-        "size": { "len": 64, "value": "0x1000" },
+        "size": { "len": 64, "value": "0x4000" },
         "attributes": {
           "mem_type": "IOMemory",
           "cacheable": true,
@@ -216,7 +226,121 @@
   "platform": {
     // R-15-052b: the sole implementation identifier with a consumer.
     // The other four are hardwired zero in the model and have no key.
+    // It is an index into `core_roster` below rather than a value beside
+    // it, and the validator refuses a roster that does not name it.
     "hartid": 0,
+    // The core-class table (R-15-113, core/core_class.sail): one model
+    // parameterized by class (R-15-005), the classes differing only in
+    // datapath. **Every number is R-15-113's reference instantiation and
+    // not a freeze**; VLEN per class, core count, issue width, pipeline
+    // depth, and scratchpad size are R-15-108's frozen parameters, chosen
+    // by an exploration that has not run, which is what `frozen: false`
+    // records. In an unfrozen row a zero reads as *not selected*; in a
+    // frozen one it reads as *absent*.
+    //
+    // The C row carries the geometry this model is built at, because one
+    // build realizes one VLEN (core/vlen.sail) and the composed hart is
+    // C-class. The S and RoT rows are vectorless, so no vector permutation
+    // instruction is reachable there and they hash SHA-3/SHAKE in plain
+    // 64-bit integer with `Zbb` rotations (R-15-041, R-15-042, R-15-059).
+    "core_classes": {
+      "c": {
+        "frozen": false,
+        "vlen_exp": 8,
+        "elen_exp": 6,
+        "lanes": 0,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": true,
+        "replicated": false
+      },
+      "v": {
+        "frozen": false,
+        "vlen_exp": 12,
+        "elen_exp": 6,
+        "lanes": 8,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": true,
+        "replicated": false
+      },
+      "m": {
+        "frozen": false,
+        "vlen_exp": 10,
+        "elen_exp": 6,
+        "lanes": 0,
+        "matrix_int8_dim": 32,
+        "matrix_bf16_dim": 16,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": true,
+        "replicated": false
+      },
+      "s": {
+        "frozen": false,
+        "vlen_exp": 0,
+        "elen_exp": 0,
+        "lanes": 0,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": false,
+        "replicated": true
+      },
+      "rot": {
+        "frozen": false,
+        "vlen_exp": 0,
+        "elen_exp": 0,
+        "lanes": 0,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 1,
+        "pipeline_depth": 0,
+        "keccak_unit": false,
+        "replicated": false
+      }
+    },
+    // The composed core roster (R-15-052b, R-09-007): one entry per hart,
+    // carrying the core's class and its island binding, the two things the
+    // kernel selects from `mhartid` at boot beside its per-hart state.
+    // Counts are composition parameters and not architecture (R-15-113),
+    // so none is declared: a class's count is the number of its entries.
+    // `pinned` records the R-11-011 switch-duty outcome (R-15-114) and
+    // `fec_units` follows the pinned radio pair (R-15-119, R-12-038). The
+    // sentinel is one entry, its lockstep partner being a field of its
+    // class rather than a second hart (R-16-008d, R-16-008e).
+    "core_roster": [
+      { "hartid": 0,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 1,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 2,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 3,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 4,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 5,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 6,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 7,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 8,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 9,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 10, "class": "CoreClass_V",   "island": 2, "pinned": true,  "fec_units": true  },
+      { "hartid": 11, "class": "CoreClass_V",   "island": 2, "pinned": true,  "fec_units": true  },
+      { "hartid": 12, "class": "CoreClass_M",   "island": 3, "pinned": false, "fec_units": false },
+      { "hartid": 13, "class": "CoreClass_M",   "island": 3, "pinned": false, "fec_units": false },
+      { "hartid": 14, "class": "CoreClass_S",   "island": 4, "pinned": true,  "fec_units": false },
+      // The RoT is not pinned because it is not slotted: it is the platform's
+      // only management processor, in its own clock and power island and
+      // outside the die's cyclic executive, so R-11-011's switch-duty rule
+      // does not reach it and there is no slot for pinning to delete.
+      { "hartid": 15, "class": "CoreClass_RoT", "island": 5, "pinned": false, "fec_units": false }
+    ],
     // the CBO block Zicboz allocates and cloadtags groups by (R-15-060, R-15-007q).
     "cache_block_size_exp": 6,
     // mtime/mtimecmp are memory-mapped, programmed directly by the kernel (R-15-063).

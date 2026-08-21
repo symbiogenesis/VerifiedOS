@@ -419,6 +419,171 @@ private function check_revocation() -> bool = {
                                        plat_revocation_interval_base, plat_revocation_interval_size)
 }
 
+// The core classes and the roster (R-15-113, R-15-052b, core/core_class.sail).
+//
+// What is checked here is the shape a composition may declare, never the
+// values, for the reason the memory classes are checked that way below: VLEN per
+// class, core count, issue width, pipeline depth, and scratchpad size are
+// R-15-108's frozen parameters, selected by an exploration that has not run, and
+// a validator asserting a range for one would be the architectural input that
+// requirement leaves to the search. What it can hold instead is that a class
+// says what kind of core it is, that the roster names the hart this model was
+// built as, and that the geometry the roster attributes to that hart is the
+// geometry the model was actually built at.
+//
+// That last one is the load-bearing check. `vlen_exp` in core/vlen.sail is a
+// **type**-level configuration: it sizes the vector register file, so one build
+// realizes one VLEN and the class table cannot derive it. Binding the two is
+// therefore a refusal rather than a derivation, and without it a composition
+// could describe its C class as VLEN=256 while running a model built at
+// something else, with nothing in the machine or the attested devicetree
+// disagreeing.
+private function roster_hartid_count(roster : list(CoreRosterEntry), h : core_hartid) -> nat =
+  match roster {
+    [||]          => 0,
+    entry :: rest => (if entry.hartid == h then 1 else 0) + roster_hartid_count(rest, h),
+  }
+
+private function check_roster_entries(roster : list(CoreRosterEntry)) -> bool =
+  match roster {
+    [||]          => true,
+    entry :: rest => {
+      var valid : bool = true;
+
+      // One identity is one core. Two entries claiming one `mhartid` would make
+      // the roster ambiguous exactly where R-15-052b requires it to be the thing
+      // the kernel selects per-hart state out of.
+      if roster_hartid_count(core_roster, entry.hartid) != 1 then {
+        valid = false;
+        print_endline("Hart " ^ dec_str(entry.hartid) ^ " appears in the core roster more than once; one hart identity names one core, which is what the kernel selects its per-hart state, its class, and its island binding out of.");
+      };
+
+      // The FEC units are attached to the pinned radio cores of a vector-bearing
+      // class under the coprocessor line (R-15-119, R-12-038): fixed-geometry
+      // arithmetic the PHY server issues, not an engine and not a scalar
+      // attachment. A composition attaching them elsewhere is describing a
+      // machine whose decoders have no long-vector datapath to feed.
+      if entry.fec_units & not(entry.pinned) then {
+        valid = false;
+        print_endline("Hart " ^ dec_str(entry.hartid) ^ " carries FEC units without being pinned; the decoders follow the statically pinned radio cores, whose switch cost is deleted rather than budgeted.");
+      };
+      if entry.fec_units & not(core_class_is_vector_bearing(entry.class)) then {
+        valid = false;
+        print_endline("Hart " ^ dec_str(entry.hartid) ^ " carries FEC units on the vectorless " ^ to_str(entry.class) ^ " class; the LDPC and polar decoders are core-issued attachments to a long-vector datapath, and the scaling axis is core count rather than a firmware processor.");
+      };
+
+      valid & check_roster_entries(rest)
+    },
+  }
+
+private function check_core_roster() -> bool = {
+  var valid : bool = true;
+
+  // Every class row, in the shape the register fixes. The record is symmetric
+  // and the machine is not: a vectorless class declares zero for every vector
+  // and matrix field rather than a small one, under the model's zero-is-absent
+  // idiom, and anything else is a plan describing a machine this is not.
+  foreach (i from 0 to 4) {
+    let c = core_class_of_index(i);
+    let d = core_class_datapath(c);
+
+    // Element width is a property of a vector unit, so the two geometry fields
+    // are present together or absent together, and a declared element width
+    // wider than the register it sits in is not a geometry at all.
+    if (d.vlen_exp == 0) != (d.elen_exp == 0) then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares one of its vector length and element width and not the other; a vector geometry is both or neither.");
+    };
+    if d.elen_exp > d.vlen_exp then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares an element width above its vector length; an element does not exceed the register holding it.");
+    };
+
+    // The array's two geometries are one array (R-15-113). It consumes int8 and
+    // bf16 only, de-quantization and microscaling being software on the same
+    // class's vector unit (R-15-117), so a row declaring one width and not the
+    // other is declaring half an array.
+    if (d.matrix_int8_dim == 0) != (d.matrix_bf16_dim == 0) then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares one of its two matrix geometries and not the other; the systolic array consumes int8 and bf16 and is one array.");
+    };
+
+    // Everything below the vector waterline goes with the vector unit. A
+    // vectorless class has no lanes to organize, no array to stream through a
+    // scratchpad, and no vector permutation instruction for a Keccak unit to be,
+    // which is why the sentinel and the RoT hash in plain 64-bit integer with
+    // `Zbb` rotations instead (R-15-041, R-15-042, R-15-059, R-09-005a), and
+    // scalar cores carry no local memory tier at all (R-15-168).
+    if not(core_class_is_vector_bearing(c)) then {
+      if d.lanes != 0 | core_class_has_matrix(c) then {
+        valid = false;
+        print_endline("The vectorless " ^ to_str(c) ^ " core class declares lanes or a matrix geometry; both are organizations of a vector datapath it does not have.");
+      };
+      if d.scratchpad_bytes != 0 then {
+        valid = false;
+        print_endline("The vectorless " ^ to_str(c) ^ " core class declares a software-managed scratchpad; a scalar core carries no local memory tier.");
+      };
+      if d.keccak_unit then {
+        valid = false;
+        print_endline("The vectorless " ^ to_str(c) ^ " core class declares a Keccak unit; the frozen permutation is a single vector instruction, so it is placed on the vector-bearing cores and the vectorless ones hash in plain 64-bit integer with `Zbb` rotations.");
+      };
+    };
+
+    // The core-class table carries replication for the sentinel row alone
+    // (R-16-008e). The lockstep pair presents one architectural core and its
+    // comparator holds no architectural state, so replication is a field of the
+    // class rather than a second hart, and no other class may claim it.
+    if d.replicated & c != CoreClass_S then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares replication; the detection-lockstepped pair is the sentinel's alone and no other core on the die is replicated.");
+    };
+  };
+
+  // A machine has cores, and the roster is where it says which. Everything below
+  // reads it, so an empty one is refused before it is walked.
+  if core_roster_size(core_roster) == 0 then {
+    valid = false;
+    print_endline("The core roster is empty; the roster is what fixes the reachable `mhartid` value space, so a machine with no entry in it has no hart identity to present.");
+    return valid;
+  };
+
+  valid = valid & check_roster_entries(core_roster);
+
+  // R-15-052b's criterion, made a refusal: the reachable value space is a
+  // composition-time constant fixed by the roster, so a hart identity outside it
+  // is not a value this machine can present.
+  match this_core_entry() {
+    None() => {
+      valid = false;
+      print_endline("The composed hart " ^ dec_str(plat_hartid) ^ " is not in the core roster; `mhartid` indexes the roster rather than standing beside it, so an identity the roster does not name is not one this machine may present.");
+    },
+    Some(entry) => {
+      let d = core_class_datapath(entry.class);
+
+      // The build and the table, held against each other. `vlen_exp` sizes the
+      // vector register file at compile time, so this is the one place the class
+      // table and the model it describes can be made to agree.
+      if d.vlen_exp != sizeof(vlen_exp) | d.elen_exp != sizeof(elen_exp) then {
+        if core_class_is_vector_bearing(entry.class) then {
+          valid = false;
+          print_endline("The composed hart is on the " ^ to_str(entry.class) ^ " core class, which declares a vector geometry of 2^" ^ dec_str(d.vlen_exp) ^ " bits at 2^" ^ dec_str(d.elen_exp) ^ "-bit elements, but this model was built at 2^" ^ dec_str(sizeof(vlen_exp)) ^ " and 2^" ^ dec_str(sizeof(elen_exp) ) ^ "; one build realizes one vector length.");
+        }
+      };
+
+      // And the vectorless case from the other side: a class with no vector
+      // geometry composed onto a model whose vector extension is enabled is a
+      // sentinel or an RoT with a vector unit, which is the one thing
+      // `vmclear`'s trap on a vectorless class is stated against (R-15-069d).
+      if core_class_is_vector_bearing(entry.class) != (vector_support_level != Disabled) then {
+        valid = false;
+        print_endline("The composed hart is on the " ^ to_str(entry.class) ^ " core class, whose declared vector geometry and this model's `extensions.V.support_level` disagree about whether this core has a vector unit at all.");
+      };
+    },
+  };
+
+  valid
+}
+
 // The two static latency classes (R-15-247, core/memory_class.sail). What is
 // checked here is the shape a composition may declare, never the values: the
 // numbers themselves are R-15-247m's to measure on a repaired megabit-class
@@ -589,6 +754,7 @@ private function check_memory_sequencer() -> bool = {
 
 function config_is_valid() -> bool = {
     check_tvec()
+  & check_core_roster()
   & check_memory_classes()
   & check_memory_sequencer()
   & check_revocation()

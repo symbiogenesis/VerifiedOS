@@ -23,6 +23,7 @@ core {
     core/rvfi_dii_v1.sail,
     core/rvfi_dii_v2.sail,
     core/platform_config.sail,
+    core/core_class.sail,
     core/memory_class.sail,
     core/revocation.sail,
     core/extensions.sail,

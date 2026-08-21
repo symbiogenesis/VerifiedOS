@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "trace_schema": 1,
   "members": [
     {
@@ -141,6 +141,13 @@
       "checks": 8,
       "records": 154,
       "digest": "42f5b4e12458c216"
+    },
+    {
+      "name": "platform-coreclass",
+      "source": "platform-coreclass.s",
+      "checks": 7,
+      "records": 139,
+      "digest": "08dc5de2138fc13f"
     }
   ]
 }

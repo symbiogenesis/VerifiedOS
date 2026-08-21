@@ -615,3 +615,135 @@ function test_a_capability_is_not_weakened_by_residing_on_the_second_class() -> 
     _                => assert(false, "a scrub of a second-class block must retire"),
   };
 }
+
+// The core classes and the roster.
+
+// `mhartid` is the sole implementation identifier with a consumer, and what it
+// is a consumer *of* is the roster (R-15-052b): one kernel binary runs
+// unmodified on every core class and selects its per-hart state, the core's
+// class, and the island binding out of it at boot. What is asserted here is that
+// the identity and the table are one fact rather than two; what is asserted by
+// **absence** is that no access path, no fault path, and no decode clause
+// consults the class at all, a machine branching on its own class being the
+// per-class ISA R-15-005 refuses (absence-contract A-17).
+$[test]
+function test_the_roster_fixes_the_hart_identity_space() -> unit = {
+  // The composed hart is a row of the roster and not a value beside it. The
+  // validator refuses a composition where it is not, so this reads the result
+  // back off the plan.
+  match this_core_entry() {
+    None()      => assert(false, "the composed hart must be named by the roster"),
+    Some(entry) => {
+      assert(entry.hartid == plat_hartid);
+      assert(unsigned(mhartid) == plat_hartid);
+    },
+  };
+
+  // And an identity the roster does not name is not one this machine can
+  // present, which is the other half of the same criterion: the lookup answers
+  // `None` rather than a default class.
+  match core_roster_lookup(core_roster, 999) {
+    None()  => (),
+    Some(_) => assert(false, "a hart identity outside the roster names no core"),
+  };
+
+  // Counts are composition parameters and not architecture (R-15-113), so no
+  // count is declared and every class's count is the number of its entries. The
+  // five counts therefore partition the roster exactly: a class gained or lost
+  // here is a roster entry, and there is no second place for the two to disagree.
+  let total = core_class_count(core_roster, CoreClass_C)
+            + core_class_count(core_roster, CoreClass_V)
+            + core_class_count(core_roster, CoreClass_M)
+            + core_class_count(core_roster, CoreClass_S)
+            + core_class_count(core_roster, CoreClass_RoT);
+  assert(total == core_roster_size(core_roster));
+  assert(core_roster_size(core_roster) > 0);
+
+  // The index the generated devicetree writes the roster's class column as, and
+  // its inverse, are a round trip over the whole enumeration (core_class.sail).
+  // The tree emits the mapping beside the class nodes, so what decodes the
+  // roster travels with it; this is what keeps the two ends of that agreeing.
+  foreach (i from 0 to 4) {
+    assert(core_class_to_index(core_class_of_index(i)) == i);
+  };
+}
+
+// The class table says what kind of core each class is (R-15-113), and the
+// asymmetry in it is the machine's rather than a composition's to choose. What
+// the table may declare is held by the validator; what is held here is the
+// reading a consumer gets back.
+$[test]
+function test_the_class_table_separates_the_vector_bearing_classes() -> unit = {
+  // Three classes carry a vector datapath and two do not. The vectorless pair is
+  // load-bearing rather than incidental: no vector permutation instruction is
+  // reachable there, which is why the sentinel and the RoT hash SHA-3/SHAKE in
+  // plain 64-bit integer with `Zbb` rotations rather than wanting a hardware
+  // round unit (R-15-041, R-15-042, R-15-059, R-09-005a), and why `vmclear`
+  // traps on a vectorless class like any unallocated encoding (R-15-069d).
+  assert(core_class_is_vector_bearing(CoreClass_C));
+  assert(core_class_is_vector_bearing(CoreClass_V));
+  assert(core_class_is_vector_bearing(CoreClass_M));
+  assert(not(core_class_is_vector_bearing(CoreClass_S)));
+  assert(not(core_class_is_vector_bearing(CoreClass_RoT)));
+
+  // The systolic array is one class's, and it is one array with two geometries
+  // rather than two arrays: the unit consumes int8 and bf16 only, de-quantization
+  // and microscaling block-scale application being software on the same class's
+  // vector unit (R-15-116, R-15-117).
+  assert(core_class_has_matrix(CoreClass_M));
+  assert(not(core_class_has_matrix(CoreClass_C)));
+  assert(not(core_class_has_matrix(CoreClass_V)));
+  let m = core_class_datapath(CoreClass_M);
+  assert(m.matrix_int8_dim > 0 & m.matrix_bf16_dim > 0);
+
+  // Whatever a class may attach below the vector waterline, a vectorless one
+  // attaches none of it, and a scalar core carries no local memory tier at all
+  // (R-15-168).
+  foreach (i from 0 to 4) {
+    let c = core_class_of_index(i);
+    let d = core_class_datapath(c);
+    if not(core_class_is_vector_bearing(c)) then {
+      assert(d.lanes == 0 & d.scratchpad_bytes == 0);
+      assert(not(d.keccak_unit));
+      assert(not(core_class_has_matrix(c)));
+    };
+  };
+
+  // The core-class table carries replication for the sentinel row alone
+  // (R-16-008e): the detection-lockstepped pair presents one architectural core
+  // whose comparator holds no architectural state, so it is a field of the class
+  // and not a second hart in the roster (R-16-008d).
+  assert(core_class_datapath(CoreClass_S).replicated);
+  assert(not(core_class_datapath(CoreClass_C).replicated));
+  assert(not(core_class_datapath(CoreClass_V).replicated));
+  assert(not(core_class_datapath(CoreClass_M).replicated));
+  assert(not(core_class_datapath(CoreClass_RoT).replicated));
+
+  // Nothing is asserted about `frozen`, deliberately, for the reason nothing is
+  // asserted about the memory classes' `qualified`: its value is a fact about
+  // whether R-15-108's exploration has run, so a property fixing it would be a
+  // property about the calendar. What the model owes is that the devicetree
+  // carries it (postlude/device_tree.sail), not that it is false.
+}
+
+// One build realizes one vector length, `vlen_exp` being a Sail type-level
+// configuration that sizes the vector register file (core/vlen.sail), so the
+// class table cannot derive the geometry and the two are bound by a refusal
+// instead (postlude/validate_config.sail). This is that refusal read back: the
+// class the roster puts this hart on is the class this model was built as.
+$[test]
+function test_the_composed_hart_runs_the_geometry_its_class_declares() -> unit = {
+  match this_core_entry() {
+    None()      => assert(false, "the composed hart must be named by the roster"),
+    Some(entry) => {
+      let d = core_class_datapath(entry.class);
+      assert(d.vlen_exp == sizeof(vlen_exp));
+      assert(d.elen_exp == sizeof(elen_exp));
+      // And from the other side: a class declaring a vector geometry is composed
+      // onto a model whose vector extension is enabled, and a vectorless one is
+      // not. A sentinel with a vector unit is the machine `vmclear`'s trap is
+      // stated against (R-15-069d, R-07-014c).
+      assert(core_class_is_vector_bearing(entry.class) == (vector_support_level != Disabled));
+    },
+  };
+}

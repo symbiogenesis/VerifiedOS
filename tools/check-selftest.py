@@ -685,6 +685,16 @@ CASES = [
      _literal(SPEC, "the second-die entry in [Evaluated",
               "the bonded-die-stacking entry in [Evaluated")),
 
+    # The composition is moved and the three prose tables are left, which is the
+    # direction a real edit takes for the reason K-58's does: a vector length is
+    # something somebody changes where the model reads it, and the documents saying
+    # what a class is are the copies that go stale. The V row is the one mutated
+    # because its exponent is the only one written once in the file, the C class's
+    # being the geometry `extensions.V` is built at and so written twice on purpose.
+    ("K-60", "a class whose vector geometry the composition and the documents no "
+             "longer agree on",
+     _literal("model/config/verifiedos.json", '"vlen_exp": 12', '"vlen_exp": 13')),
+
     ("K-61", "a pair the ledger records as read at contents it no longer holds", _k61),
 ]
 
