@@ -1394,6 +1394,29 @@ After the object-model transformation below, what remains of seL4 is endpoints, 
 
 ---
 
+## Nickel: noninterference by construction, and six interface rules that hold whatever the prover
+
+**Nickel** (Sigurbjarnarson, Nelson, Castro-Karney, Bornholt, Torlak and Wang, OSDI 2018) is the strongest published statement of a thesis §8 should adopt in full while declining the tooling that carries it: a covert channel in an **interface** is a design defect no implementation can repair, so noninterference is cheap when the interface is designed so that it holds and expensive in every other case.
+The evidence is not rhetorical.
+Nickel formalized the ARINC 653 inter-partition communication interface from the standard's own pseudocode and **reproduced all three known covert channels** in it, a missing permission check, identifier allocation in a shared namespace, and leaking error codes, in one week by one author; and swapping its own kernel's scheduler for a round-robin one produced both a counterexample and a *measurable* channel that vanished when the design was restored.
+
+**The six rules are the import, they are prover-independent, and each is separately auditable.**
+- **Check the flow before validating the parameters.** Once the flow check has passed, an operation may return as many distinct error codes as it likes without leaking, which buys back the debuggability that collapsing every failure into one code destroys.
+- **Partition names among domains.** Any shared namespace, thread identifiers, page numbers, port numbers, is a channel; every name is a pair of domain and local name. On a single-address-space CHERI machine this is cheaper and stronger than it was for Nickel, since a capability already *is* a per-domain name with no ambient authority, and the rule reduces to a searchable one: no interface operation accepts or returns a bare integer index into a global table (§8).
+- **Do not encrypt names as a substitute.** HiStar, Asbestos and Flume hand back encrypted sequential identifiers from a 64-bit space, which Nickel notes technically violates noninterference and would require probabilistic reasoning; partitioning keeps the theorem in the logic, and that is the whole reason to prefer it.
+- **Account quotas exactly, and never with an infinity.** The root quota is the physical page count fixed at composition time rather than unbounded, and each object is owned by exactly one accounting node so that a node's quota equals the sum of its objects'. Static composition makes this strictly easier here than the dynamic container hierarchy Nickel needed: the whole quota tree is fixed at build time and the sum invariant is proved once (§8, §15).
+- **Admit no nondeterminism in the observer's view**, with the three sanctioned repairs: make the choice an explicit parameter, specify the algorithm exactly in the interface, or push the nondeterminism below the interface where it is unobservable. This is the most expensive rule to retrofit and therefore the most valuable to adopt at design time, and the price is measured: of the 51 person-months seL4 spent on its information-flow proof, roughly **23 went to making the abstract specification more deterministic**, nearly half the security budget paid for a property Nickel makes a precondition.
+- **Let nothing flow *to* the scheduler.** A scheduler that reads domains' state and whose decisions they observe is a transitive channel between any two of them. A static predetermined schedule satisfies the rule outright, which is what §7's cyclic executive is and what seL4's partition scheduler was built to be; where dynamism is wanted, Nickel's **quantum** design is the pattern, a time slice as a first-class labelled object such that the donor must be able to write it and the recipient to read it, whose composition implies the donor may flow to the recipient, closing the channel by construction rather than by analysis.
+Two more follow from reading the unwinding conditions as guidance: an action's output depends only on state its domain may read, and a newly created object never exceeds its creator's authority.
+
+**The proof architecture imports too, and it is already Coq.**
+Nickel discharges noninterference by an **unwinding** argument over a developer-supplied state invariant and observational equivalence, both of which are **untrusted**, since any pair satisfying the conditions establishes the theorem and a wrong guess fails loudly; that is the shape §8's apex proof should have, and it is exactly how seL4 proceeds.
+Two of Nickel's refinements of the definition are worth restating Coq-native as sanity properties of this design's own: the **state-dependent** domain function, which degenerates to classical noninterference when the dependence is dropped, and the monotonicity check that noninterference for a policy implies it for any more permissive one.
+Its refinement theorem is the caution: noninterference is not preserved by refinement in general, and Nickel buys preservation with a restriction (same actions, same domains, policy refining pointwise), so the seam from this design's abstract specification down to the CHERI machine either meets that restriction or states why the stronger noninfluence formulation survives where plain noninterference would not (§5, §8).
+Nickel's own metatheory being 1,215 lines of Coq is what makes all of this importable rather than merely admirable: the theorems are on the right side of the line and only the automation is on the wrong one, which [architectural-alternatives.md](architectural-alternatives.md) records.
+
+---
+
 ## CHERIoT-shaped object model: sealed capabilities and static composition replace CNodes and the CDT
 
 After VSpace, page tables, MCS, SMP, and the S/U rings are removed, mainline seL4 still supplies untyped memory and retype, the capability space, the CDT and its revocation, endpoints, and notifications.
