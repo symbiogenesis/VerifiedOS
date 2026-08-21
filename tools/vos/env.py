@@ -44,7 +44,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import IO, Protocol, runtime_checkable
 
 # The OCaml native stack Sail's emission needs, in bytes (the shell loops spelled it
 # `ulimit -s 131072`, which is the same number in kilobytes).
@@ -189,7 +189,9 @@ def _ccache_args() -> list[str]:
 
 
 def _raise_stack_limit() -> None:
-    import resource
+    # POSIX-only, and this module is read on the host as well as run in the guest.
+    # Deferring the import is what keeps `import vos.env` from failing on Windows.
+    import resource  # noqa: PLC0415
     soft, hard = resource.getrlimit(resource.RLIMIT_STACK)
     want = STACK_BYTES if hard == resource.RLIM_INFINITY else min(STACK_BYTES, hard)
     if soft == resource.RLIM_INFINITY or soft >= want:
@@ -307,8 +309,9 @@ class Writable(Protocol):
     def flush(self) -> object: ...
 
 
-def stage(name: str, argv: list[str], report_to: Writable | None = None,
-          **kwargs: Any) -> int:
+def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
+          cwd: Path | None = None, stdout: IO[str] | None = None,
+          stderr: IO[str] | None = None) -> int:
     """Run a build stage and record what it cost.
 
     The breakdown of a full build was known only for its two serial stages; every
@@ -320,14 +323,14 @@ def stage(name: str, argv: list[str], report_to: Writable | None = None,
         STAGE emit wall=107.4s cpu=99% maxrss=2411360kB
     """
     started = time.perf_counter()
-    proc = subprocess.Popen(argv, **kwargs)
+    proc = subprocess.Popen(argv, cwd=cwd, stdout=stdout, stderr=stderr)
     _, status, usage = os.wait4(proc.pid, 0)
     proc.returncode = os.waitstatus_to_exitcode(status)
 
     wall = time.perf_counter() - started
     cpu = (usage.ru_utime + usage.ru_stime) / wall * 100 if wall > 0 else 0
     print(f"STAGE {name} wall={wall:.1f}s cpu={cpu:.0f}% maxrss={usage.ru_maxrss}kB",
-          file=_report_stream(report_to, kwargs.get("stderr")), flush=True)
+          file=_report_stream(report_to, stderr), flush=True)
     return proc.returncode
 
 

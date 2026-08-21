@@ -16,7 +16,7 @@ in the other direction.
 import re
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
-from ..register import REQ_TOKEN_RE
+from vos.register import REQ_TOKEN_RE
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an

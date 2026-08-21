@@ -10,8 +10,8 @@ the number alone, so a repair is the substitution of a single token.
 import re
 from typing import TYPE_CHECKING
 
-from .. import figures
-from ..register import REGISTER, cj_class, cj_status
+from vos import figures
+from vos.register import REGISTER, cj_class, cj_status
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an

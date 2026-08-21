@@ -17,9 +17,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from ..corpus import Corpus
-from ..register import Artifacts, Register
-from ..report import Reporter
+from vos.corpus import Corpus
+from vos.register import Artifacts, Register
+from vos.report import Reporter
 
 # The view table belongs to the views group, which this module imports below. Same
 # guard as every group uses for `Context`, in the other direction.

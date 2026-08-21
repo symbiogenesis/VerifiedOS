@@ -96,13 +96,13 @@ def validate(schema_path: Path, config_path: Path) -> tuple[int, list[str]]:
         # The one dependency in this directory that is not the standard library. The
         # import is here rather than at the top because only this function needs it,
         # and its absence is a finding rather than a crash for whoever runs the tools
-        # without it. It carries no suppression: a directive is only correct where the
+        # without it. It carries no `ty: ignore`: a directive is only correct where the
         # import does not resolve, so one written for a lane that lacks the package is
         # itself a finding on the lane that has it, and the gate then depends on what
         # happens to be installed rather than on what the code says. The package is a
         # prerequisite of both lanes instead, recorded in tools/README.md beside the
         # two checkers, which leaves every unresolved import in this file an error.
-        import jsonschema
+        import jsonschema  # noqa: PLC0415
     except ModuleNotFoundError:
         return 1, ["jsonschema is not installed: apt install python3-jsonschema"]
 
