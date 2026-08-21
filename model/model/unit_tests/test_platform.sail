@@ -1,7 +1,8 @@
 // Properties of the platform surface the profile adds and no upstream model
 // carries: `fence.t` (extensions/platform/fence_t.sail), `vmclear` and
-// `cbo.scrub` beside it, the machine-level interrupt file, and the revocation
-// sidecar's register slave (sys/platform.sail, core/revocation.sail).
+// `cbo.scrub` beside it, the machine-level interrupt file, the revocation
+// sidecar's register slave (sys/platform.sail, core/revocation.sail), and the
+// two static latency classes of main memory (core/memory_class.sail).
 //
 // Each of these is net-new here, so there is no oracle to differentially test
 // it against and a property asserted about it and a program that runs it are
@@ -284,4 +285,129 @@ function test_the_revocation_window_and_the_plane_are_one_structure() -> unit = 
   };
 
   revocation_bits = zeros();
+}
+
+// *****************************************************************
+// The two static latency classes.
+
+// Main memory is two static latency classes under one placement discipline
+// (R-15-247), so the class is a property of the region the static memory plan
+// declared and never of an access. What is asserted here is the plan's shape
+// and the query over it; what is asserted by *absence* is that no access path
+// calls that query at all, a machine consulting the class at run time being the
+// hierarchy the requirement refuses.
+$[test]
+function test_the_memory_plan_places_every_array_on_one_class() -> unit = {
+  // Placement, in both directions and with a third answer beside them. An array
+  // is on exactly one class, a device endpoint is on neither, and an address in
+  // no region at all is not on a default class: the validator refuses a
+  // configuration that gets either of the first two wrong, and this reads the
+  // result back off the plan.
+  match memory_class_at(Physaddr(0x0000000080000000)) {
+    Some(FirstClass) => (),
+    _                => assert(false, "the scalar working set is on the first class"),
+  };
+  match memory_class_at(Physaddr(0x0000000100000000)) {
+    Some(SecondClass) => (),
+    _                 => assert(false, "the bulk array is on the second class"),
+  };
+  match memory_class_at(Physaddr(zero_extend(plat_imsic_base))) {
+    None() => (),
+    _      => assert(false, "a device endpoint is on neither class"),
+  };
+  match memory_class_at(Physaddr(zeros())) {
+    None() => (),
+    _      => assert(false, "an address in no region is on no class"),
+  };
+
+  let first  = memory_class_constants(FirstClass);
+  let second = memory_class_constants(SecondClass);
+
+  // Two constants and not a hierarchy: the second class is the slower one on
+  // both access constants, which is the difference R-15-247j makes visible to
+  // admission when it prices second-class placement.
+  assert(first.read_cycles > 0 & first.write_cycles > 0);
+  assert(second.read_cycles >= first.read_cycles);
+  assert(second.write_cycles >= first.write_cycles);
+
+  // The record is symmetric and the machine is not, and the asymmetry is
+  // R-15-247n's: the first class is latched, so its retention corner, its
+  // refresh, and its discharge dwell are absent rather than small.
+  assert(first.retention_floor_us == 0 & first.retention_ceiling_us == 0);
+  assert(first.refresh_cycles == 0 & first.discharge_cycles == 0);
+  assert(second.retention_floor_us > 0 & second.refresh_cycles > 0);
+  assert(second.discharge_cycles > 0);
+
+  // The corner is a measured interval rather than a point, and only its floor
+  // is ever consumed: no guarantee may rest on a decay rate or on an upper
+  // bound on retention, so the ceiling is carried for the qualification record
+  // and read by nothing (R-15-247c, R-15-247m).
+  assert(second.retention_floor_us <= second.retention_ceiling_us);
+  assert(memory_class_refresh_deadline_us(SecondClass) == second.retention_floor_us);
+  assert(memory_class_refresh_deadline_us(FirstClass) == 0);
+
+  // And there is no separate fetch constant to state. R-15-164 deletes every
+  // cache, so a fetch is a read of whichever class the code resides on and the
+  // fetch constant R-15-247j prices against *is* the read constant.
+  assert(memory_class_fetch_cycles(FirstClass) == first.read_cycles);
+  assert(memory_class_fetch_cycles(SecondClass) == second.read_cycles);
+
+  // Nothing is asserted about `qualified`, deliberately: its value is a fact
+  // about whether R-15-247m's measurement has landed, so a property fixing it
+  // would be a property about the calendar. What the model owes is that the
+  // devicetree carries it (postlude/device_tree.sail), not that it is false.
+}
+
+// The class boundary is **latency-criticality and carries no trust gradient**
+// (R-15-247s): tags, ECC, and the R-08-005 revocation load filter are identical
+// across it, so no capability, compartment, or confidentiality label is
+// weakened by residing on the second class and no TCB boundary tracks the
+// memory boundary. The tag plane is the one structure that could have made it a
+// trust boundary and does not, being native to each class's own array rather
+// than a sidecar held in the faster one (R-15-247a, R-15-203).
+$[test]
+function test_a_capability_is_not_weakened_by_residing_on_the_second_class() -> unit = {
+  let bulk : xlenbits = 0x0000000100000000;
+  let (_, region) = setCapBounds(root_data_cap, 0x100000000, 0b0 @ 0x100001000);
+  let auth = setCapAddrChecked(region, bulk);
+
+  match memory_class_at(Physaddr(bulk)) {
+    Some(SecondClass) => (),
+    _                 => assert(false, "the address under test must be on the second class"),
+  };
+
+  // The capability stored here is one derived on the *first* class, so what the
+  // round trip decides is whether the medium reaches the value. It does not:
+  // the granule's own plane carries the tag, and the authority comes back whole.
+  C(encdec_reg(0b00011)) = setCapAddrChecked(root_data_cap, 0x0000000080000400);
+  match cap_store(encdec_reg(0b00011), auth, 0b000010, bulk) {
+    Retire_Success() => (),
+    _                => assert(false, "a capability store to the second class must succeed"),
+  };
+  match cap_load(encdec_reg(0b00100), auth, 0b000010, bulk) {
+    Retire_Success() => (),
+    _                => assert(false, "a capability load from the second class must succeed"),
+  };
+  assert(C(encdec_reg(0b00100)).tag);
+  assert(C(encdec_reg(0b00100)) == C(encdec_reg(0b00011)));
+
+  // And the write path clears a tag here exactly as it clears one there. Tag
+  // clearing is a property of the write and not of the medium (R-15-007r), so
+  // the second class neither preserves an authority a data store overwrote nor
+  // loses one a capability store put down.
+  let _ = mem_write_value(Physaddr(bulk), 8, zeros(), Store(Data), false, false);
+  match cap_load(encdec_reg(0b00100), auth, 0b000010, bulk) {
+    Retire_Success() => (),
+    _                => assert(false, "the overwritten granule must still load"),
+  };
+  assert(not(C(encdec_reg(0b00100)).tag));
+
+  // The block operations reach it on the same terms, which is what keeps
+  // `cloadtags` at one cost model wherever the group it names resides
+  // (R-15-007q): issue rather than traffic, on either class.
+  C(encdec_reg(0b00010)) = auth;
+  match execute(CBO_SCRUB(encdec_reg(0b00010))) {
+    Retire_Success() => (),
+    _                => assert(false, "a scrub of a second-class block must retire"),
+  };
 }

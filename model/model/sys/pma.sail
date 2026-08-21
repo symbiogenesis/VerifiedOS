@@ -103,6 +103,14 @@ struct PMA = {
   misaligned_atomicity_granule_size_exp : mag_size_exp,
   // The same as above but for vector accesses.
   vector_misaligned_atomicity_granule_size_exp : mag_size_exp,
+  // Which of the two static latency classes this region is placed on
+  // (core/memory_class.sail, R-15-247). It is `None` for IO memory and
+  // `Some` for main memory, and the validator holds both directions: the
+  // classes are two media, so a device endpoint is on neither and an array
+  // is on exactly one. Placement is the static memory plan's composition-time
+  // act, so this is a declaration and never a runtime property; nothing
+  // reads it on any access path.
+  memory_class : option(MemoryClass),
   // TODO: Memory Ordering PMA
 }
 
@@ -246,6 +254,10 @@ function pma_attributes_to_str(attr : PMA) -> string =
   (if attr.supports_cbo_zero then " supports-cbo-zero" else "") ^
   " misaligned_atomicity_granule_size_exp=" ^ dec_str(attr.misaligned_atomicity_granule_size_exp) ^
   " vector_misaligned_atomicity_granule_size_exp=" ^ dec_str(attr.vector_misaligned_atomicity_granule_size_exp) ^
+  (match attr.memory_class {
+     None()  => "",
+     Some(c) => " memory-class=" ^ memory_class_str(c),
+   }) ^
   " "
 
 function pma_region_to_str(region : PMA_Region) -> string =
@@ -256,3 +268,19 @@ overload to_str = {pma_attributes_to_str, pma_region_to_str}
 
 // The list of PMA regions. These must be sorted and cannot overlap.
 register pma_regions : list(PMA_Region) = config memory.regions
+
+// The class an address is placed on, or `None` where it is not main memory
+// (core/memory_class.sail, R-15-247).
+//
+// **This is a query about the composition and not a step of any access.** No
+// load, store, fetch, atomic, or cache-block operation calls it, and none may:
+// the class is two latency constants under one placement discipline, so an
+// access consulting it would be a machine deciding at run time what the memory
+// plan decided at composition, which is the hierarchy R-15-247 exists to refuse.
+// Its callers are the generated devicetree, the validator, and the model's own
+// properties, all of which ask about the plan rather than about an access.
+function memory_class_at(addr : physaddr) -> option(MemoryClass) =
+  match matching_pma_region(pma_regions, addr, 1) {
+    None()       => None(),
+    Some(region) => region.attributes.memory_class,
+  }

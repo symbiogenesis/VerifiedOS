@@ -51,6 +51,50 @@
       "byte_by_byte": false
     },
     "dtb_address": { "len": 64, "value": "0x1000" },
+    // R-15-247: main memory is two static latency classes under one placement
+    // discipline, bespoke 6T SRAM for the scalar working set and every
+    // cycle-critical array, oxide-semiconductor 2T0C decks for bulk. Each
+    // region below names the one it is placed on, and these are the constants
+    // that placement selects between.
+    //
+    // **Every number here is a placeholder and `qualified` is what says so.**
+    // R-15-247m measures them on a repaired megabit-class macro carrying
+    // complete tag, ECC, refresh, discharge, and routing overhead, at part
+    // qualification (R5), and admits no density figure as an architectural
+    // input before that. Latency is in cycles and retention in microseconds.
+    "classes": {
+      "first": {
+        "qualified": false,
+        "usable_density_mbit_per_mm2": 40,
+        "banks": 64,
+        // Latched, so no retention corner, no refresh, and no discharge dwell
+        // (R-15-247n): its power-off is its own sanitization.
+        "retention_floor_us": 0,
+        "retention_ceiling_us": 0,
+        "read_cycles": 3,
+        "write_cycles": 3,
+        "refresh_cycles": 0,
+        "discharge_cycles": 0
+      },
+      "second": {
+        "qualified": false,
+        "usable_density_mbit_per_mm2": 320,
+        // R-15-247p: whole-bound to islands, two orders above commodity
+        // practice, and the count M0.17 scores against the droop envelope.
+        "banks": 4096,
+        // The corner is a measured interval rather than a point (R-15-247m);
+        // only the floor is consumed, and only by the refresh deadline
+        // (R-15-247c).
+        "retention_floor_us": 60000000,
+        "retention_ceiling_us": 3600000000,
+        "read_cycles": 30,
+        "write_cycles": 45,
+        "refresh_cycles": 20,
+        // R-15-247f's fixed worst-corner dwell, after which the fail-stop
+        // completion indication is read once.
+        "discharge_cycles": 4096
+      }
+    },
     "regions": [
       // ROM
       {
@@ -73,7 +117,9 @@
           "atomic_support": "AMONone",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "supports_cbo_zero": false
+          "supports_cbo_zero": false,
+          // A device endpoint is on neither class (R-15-247).
+          "memory_class": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -98,11 +144,15 @@
           "atomic_support": "AMONone",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "supports_cbo_zero": false
+          "supports_cbo_zero": false,
+          "memory_class": { "None": null }
         },
         "include_in_device_tree": false
       },
-      // RAM: 2 GiB at 0x8000_0000, inside the 36-bit space.
+      // RAM, first class: 2 GiB at 0x8000_0000, inside the 36-bit space. The
+      // image, the stacks, and the revocable interval are all here, which is
+      // where R-15-247s puts the scalar working set and every cycle-critical
+      // array.
       {
         "base": { "len": 64, "value": "0x80000000" },
         "size": { "len": 64, "value": "0x80000000" },
@@ -124,7 +174,40 @@
           "atomic_support": "AMOArithmetic",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "supports_cbo_zero": true
+          "supports_cbo_zero": true,
+          "memory_class": { "Some": "FirstClass" }
+        },
+        "include_in_device_tree": true
+      },
+      // RAM, second class: 8 GiB at 0x1_0000_0000, bulk by volume. Every
+      // attribute is the first class's, which is the point: the boundary is
+      // latency-criticality and carries no trust gradient, so the tag plane,
+      // the ECC planes, and the revocation load filter are identical across it
+      // and no capability is weakened by residing here (R-15-247s). It is
+      // executable because second-class code placement is priced rather than
+      // forbidden (R-15-247j).
+      {
+        "base": { "len": 64, "value": "0x100000000" },
+        "size": { "len": 64, "value": "0x200000000" },
+        "attributes": {
+          "mem_type": "MainMemory",
+          "cacheable": true,
+          "coherent": true,
+          "executable": true,
+          "readable": true,
+          "writable": true,
+          "read_idempotent": true,
+          "write_idempotent": true,
+          "misaligned_exceptions": {
+            "load_store": { "None": null },
+            "vector": { "None": null },
+            "amo": "AccessFault"
+          },
+          "atomic_support": "AMOArithmetic",
+          "misaligned_atomicity_granule_size_exp": 0,
+          "vector_misaligned_atomicity_granule_size_exp": 0,
+          "supports_cbo_zero": true,
+          "memory_class": { "Some": "SecondClass" }
         },
         "include_in_device_tree": true
       }

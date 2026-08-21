@@ -158,6 +158,24 @@ private function check_pma_region(region : PMA_Region) -> bool = {
     IOMemory =>
       (),
   };
+
+  // Every array is on exactly one of the two static latency classes and no
+  // device endpoint is on either (R-15-247, core/memory_class.sail). Both
+  // directions are refusals rather than defaults: an unplaced array would take
+  // whichever constant a later reader assumed, and a device given a class would
+  // put an endpoint's accept time, which the issuing compartment is charged for
+  // separately (R-15-015c), into a term that is about arrays.
+  match (pma.mem_type, pma.memory_class) {
+    (MainMemory, None()) => {
+      print_endline("Main memory region starting at " ^ bits_str(region.base) ^ " declares no `memory_class`; the static memory plan places every array on one of the two latency classes.");
+      return false;
+    },
+    (IOMemory, Some(c)) => {
+      print_endline("IO memory region starting at " ^ bits_str(region.base) ^ " declares `memory_class` " ^ to_str(c) ^ "; the latency classes are main-memory media and a device endpoint is on neither.");
+      return false;
+    },
+    (_, _) => (),
+  };
   true
 }
 
@@ -395,8 +413,80 @@ private function check_revocation() -> bool = {
                                        plat_revocation_interval_base, plat_revocation_interval_size)
 }
 
+// The two static latency classes (R-15-247, core/memory_class.sail). What is
+// checked here is the shape a composition may declare, never the values: the
+// numbers themselves are R-15-247m's to measure on a repaired megabit-class
+// macro at part qualification, and a validator asserting a range for them would
+// be the architectural input that requirement forbids. What it can hold instead
+// is that the record says what the two media are.
+private function check_memory_classes() -> bool = {
+  var valid : bool = true;
+
+  let first  = memory_class_constants(FirstClass);
+  let second = memory_class_constants(SecondClass);
+
+  // A class with no array behind it is not a class. Density and bank count are
+  // both composition-visible capacity terms (R-15-170, R-15-247p), and a read or
+  // write that takes no cycles is not a latency constant at all.
+  foreach (i from 0 to 1) {
+    let c = if i == 0 then FirstClass else SecondClass;
+    let k = memory_class_constants(c);
+    if k.usable_density_mbit_per_mm2 == 0 | k.banks == 0 then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " memory class declares a zero usable density or bank count; each class is an array with a capacity the composition can see.");
+    };
+    if k.read_cycles == 0 | k.write_cycles == 0 then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " memory class declares a zero read or write latency; each class enters the schedule as one fixed non-zero constant.");
+    };
+    if k.retention_floor_us > k.retention_ceiling_us then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " memory class declares a retention floor above its ceiling; the corner is a measured interval and the floor is its lower end.");
+    };
+  };
+
+  // The first class is latched, so its retention corner, its refresh, and its
+  // discharge dwell are all absent rather than small (R-15-247n). Declaring any
+  // of them over a latched array is a plan describing a machine this is not.
+  if first.retention_floor_us != 0 | first.retention_ceiling_us != 0 | first.refresh_cycles != 0 then {
+    valid = false;
+    print_endline("The first memory class declares a retention corner or a refresh latency; it is latched, so it has no refresh deadline to state.");
+  };
+  if first.discharge_cycles != 0 then {
+    valid = false;
+    print_endline("The first memory class declares a discharge dwell; its power-off is its own sanitization and there is no drain to wait out.");
+  };
+
+  // And the second class is dynamic by mechanism, so all three are present
+  // rather than optional: a refresh deadline it does not state is one no
+  // sequencer can be fixed against (R-15-247c, R-15-247g), and a discharge it
+  // does not state is R-15-247f's dwell missing from the mode-transition budget
+  // that R-15-247d's ordering is built on.
+  if second.retention_floor_us == 0 | second.refresh_cycles == 0 then {
+    valid = false;
+    print_endline("The second memory class declares no retention floor or no refresh latency; it stores charge with no restoring feedback, so both are measured constants it must carry.");
+  };
+  if second.discharge_cycles == 0 then {
+    valid = false;
+    print_endline("The second memory class declares no discharge dwell; discharge completion is a fixed worst-corner dwell followed by one fail-stop read, so the dwell is the constant.");
+  };
+
+  // The boundary between the classes is latency-criticality (R-15-247s), so the
+  // second class is the slower one on both access constants. A second class that
+  // is not slower is a plan declaring one class twice, and it would make
+  // R-15-247j's admission-visible placement delta zero or negative, which is the
+  // one number the placement rule exists to charge.
+  if second.read_cycles < first.read_cycles | second.write_cycles < first.write_cycles then {
+    valid = false;
+    print_endline("The second memory class is not slower than the first on read or write; the class boundary is latency-criticality and the placement delta is computed against it.");
+  };
+
+  valid
+}
+
 function config_is_valid() -> bool = {
     check_tvec()
+  & check_memory_classes()
   & check_revocation()
   & check_mstatus_fields()
   & check_physaddr_bits()

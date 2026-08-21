@@ -151,6 +151,46 @@
       "len": 64,
       "value": "0x1000"
     },
+    // The two static latency classes of main memory (R-15-247). Each region
+    // below is placed on exactly one of them by `memory_class`, and these are
+    // the constants that placement selects between: one fixed latency per
+    // class, no cache, no migration, and no promotion between them.
+    //
+    // **Every number here is a placeholder.** R-15-247m measures them on a
+    // repaired megabit-class macro carrying complete tag, ECC, refresh,
+    // discharge, and routing overhead, and admits no density figure as an
+    // architectural input ahead of that measurement; nothing in the model
+    // computes with them and no document quotes them. `qualified` is what says
+    // so on the face of the generated devicetree, and it stays `false` until
+    // that measurement lands.
+    //
+    // Latency is in cycles and retention in microseconds. The first class is
+    // latched, so its retention corner, refresh, and discharge dwell are
+    // absent rather than small, and the validator refuses anything else.
+    "classes": {
+      "first": {
+        "qualified": false,
+        "usable_density_mbit_per_mm2": 40,
+        "banks": 64,
+        "retention_floor_us": 0,
+        "retention_ceiling_us": 0,
+        "read_cycles": 3,
+        "write_cycles": 3,
+        "refresh_cycles": 0,
+        "discharge_cycles": 0
+      },
+      "second": {
+        "qualified": false,
+        "usable_density_mbit_per_mm2": 320,
+        "banks": 4096,
+        "retention_floor_us": 60000000,
+        "retention_ceiling_us": 3600000000,
+        "read_cycles": 30,
+        "write_cycles": 45,
+        "refresh_cycles": 20,
+        "discharge_cycles": 4096
+      }
+    },
     // The locations and sizes of memory regions and their PMAs.  These regions
     // are required to be aligned to 4K (page) boundaries.  To specify
     // the `misaligned` PMA attribute for a region, see the comments for
@@ -191,7 +231,9 @@
           "atomic_support": "AMONone",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "supports_cbo_zero": false
+          "supports_cbo_zero": false,
+          // A device endpoint is on neither latency class (R-15-247).
+          "memory_class": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -226,11 +268,13 @@
           "atomic_support": "AMONone",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
-          "supports_cbo_zero": false
+          "supports_cbo_zero": false,
+          "memory_class": { "None": null }
         },
         "include_in_device_tree": false
       },
-      // RAM
+      // RAM, first class: the scalar working set and every cycle-critical
+      // array (R-15-247s).
       {
         "base": {
           "len": 64,
@@ -261,7 +305,48 @@
           "atomic_support": "AMOCASQ",
           "misaligned_atomicity_granule_size_exp": 4,
           "vector_misaligned_atomicity_granule_size_exp": 4,
-          "supports_cbo_zero": true
+          "supports_cbo_zero": true,
+          "memory_class": { "Some": "FirstClass" }
+        },
+        "include_in_device_tree": true
+      },
+      // RAM, second class: bulk by volume. It is executable because
+      // second-class code placement is admitted and priced rather than
+      // forbidden (R-15-247j), and it carries every other attribute the first
+      // class carries because the boundary is latency-criticality and nothing
+      // else (R-15-247s).
+      {
+        "base": {
+          "len": 64,
+          "value": "0x100000000"
+        },
+        "size": {
+          "len": 64,
+          "value": "0x200000000"
+        },
+        "attributes": {
+          "mem_type": "MainMemory",
+          "cacheable": true,
+          "coherent": true,
+          "executable": true,
+          "readable": true,
+          "writable": true,
+          "read_idempotent": true,
+          "write_idempotent": true,
+          "misaligned_exceptions": {
+            "load_store": {
+              "None" : null
+            },
+            "vector": {
+              "None" : null
+            },
+            "amo": "AccessFault"
+          },
+          "atomic_support": "AMOCASQ",
+          "misaligned_atomicity_granule_size_exp": 4,
+          "vector_misaligned_atomicity_granule_size_exp": 4,
+          "supports_cbo_zero": true,
+          "memory_class": { "Some": "SecondClass" }
         },
         "include_in_device_tree": true
       }
