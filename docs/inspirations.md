@@ -1135,25 +1135,52 @@ The generalization does book one: the radio case has an off-the-shelf firmware-f
 
 ---
 
-## PIC64-HPSC: space-grade application-class RISC-V, radiation hardening as a manufacturing choice, not an architecture
+## PIC64-HPSC, Starfire, and DICE cells: space-grade realization, radiation hardening as a manufacturing choice and not an architecture
 
 The **PIC64-HPSC** (Microchip, for NASA's **High-Performance Spaceflight Computing** program) is the space-grade instance of the design's own substrate class: a 64-bit **application-class RISC-V** multiprocessor built around **eight SiFive X280 cores** carrying the **vector extension**, made **radiation-hardened and fault-tolerant** (pervasive ECC, lockstep options, a wide operating-temperature range), the RISC-V successor to the PowerPC **RAD750** that has flown NASA's spacecraft for two decades.
 It is the existence proof that **application-class RISC-V with vectors, hardened against the space radiation environment, is a real and funded product class** rather than a research aspiration, and it validates three of the design's own choices on hardened silicon: the **RV64 plus vector** compute shape (§15), the **reliability posture** the memory subsystem and enclosure already mandate (pervasive ECC, fault containment, wide-temperature tolerance, §15, §16), and lockstep as a hardware **fault-detection** complement to §7's per-core kernel duplication for fault containment (the same G5 note the COSMIC entry logs, above).
 
-The design **re-grounds** the import on its own axioms exactly as it does the Codasip X730 and CVA6-CHERI silicon (above), and the split is unusually clean because **space-grade is a property of the process and the RTL, not of the instruction set**.
-What transfers is the **realization**: the radiation-hardened-by-design process (single-event-hardened cells, latch-up immunity, the wide temperature range), the fault-tolerance features, and the demonstration that a modern RISC-V vector machine survives the environment at all.
-What does **not** transfer is the architecture: the PIC64-HPSC is **RV64GC** (the C compressed extension the profile drops and the scalar floating-point it folds onto the vector unit, §15), it carries an **MMU** and boots a conventional operating system (the profile deletes the MMU for a single address space, `satp` Bare, §15), it is **not CHERI** (the spine of the whole design), and its SiFive cores are third-party RTL whose vendor verification is bring-up evidence, never the closing **RTL ⊑ Sail** axiom (§6, §15).
-So the platform imports the **radiation-hardened realization onto its own RV64+CHERI profile** rather than taking the PIC64-HPSC as a base: harden the manufacturing and the RTL of the design that already exists, changing no computation and lowering no guarantee, the source-side upset-rate reduction the Faraday enclosure cannot itself provide (§15).
+**The faults this axis answers sit outside every model's reach.**
+Single-event upsets from cosmic-ray secondaries and other radiation, total-ionizing-dose drift, latch-up, and the environmental extremes of temperature, pressure, vacuum, and vibration are met by a **space-grade realization** of the design, never by a change to the computation.
+This is the outermost layer of a reliability story the spec already tells in two: the Faraday enclosure attenuates the electromagnetic-interference rate at the boundary (§15), the pervasive ECC and the multikernel's blast-radius containment catch the residual in the logic (§15, §16), and radiation-hardened silicon closes the gap between them by reducing the single-event-upset rate **at the source, the transistor**, the one lever the enclosure explicitly cannot pull (mass shielding being counterproductive through secondary showers, §15).
+The space-grade part class in general also extends the operating envelope (temperature, pressure, vacuum, and vibration) well beyond commercial ranges.
 
-**Intel's Starfire brackets the same axis from the opposite end**, and is worth recording beside it for the contrast rather than as a second import.
+**Intel's Starfire brackets the same axis from the opposite end**, and is worth recording beside the PIC64-HPSC for the contrast rather than as a second import.
 An 18A space-grade SoC for the US government with samples due Q3 2026, it pushes a **leading-edge commercial-class part** (RibbonFET and backside power, an eight-core CPU with an on-die NPU) into orbit by **design-level hardening** rather than by a mature radiation-tolerant node, across a minus-55 to 125 Celsius junction range.
-Where the PIC64-HPSC hardens a conservative design, Starfire hardens an aggressive one, and both make the move this design makes: harden a commercial-class design rather than invent a space architecture.
+Where the PIC64-HPSC hardens a conservative design, Starfire hardens an aggressive one, and both make the move this design makes: **harden a commercial-class design rather than invent a space architecture**, the two of them bracketing the realization axis from its conservative and leading-edge ends and establishing between them that a modern vector machine can be carried into the space environment at all.
+
+**Why the lineage transfers.**
+Space-grade is a property of the **process and the RTL cells, orthogonal to the instruction set**, so it costs nothing on the scarce trust axis and everything it costs on the free engineering axis, the same reference-not-base split used for Codasip X730 and the CVA6-CHERI silicon (above).
+A single-event-hardened flip-flop (a DICE or triple-modular-redundant latch), an error-hardened SRAM cell, and a latch-up-immune process hold and compute the **same architectural state** as their commercial equivalents, so the Sail model is unchanged and **RTL ⊑ Sail still holds**, the hardened cell refining the very model its commercial sibling does: no new mechanism, no new Sail surface, no proof obligation, and no guarantee lowered.
+It is therefore admitted on **exactly the ground ECC and the Faraday enclosure are** (§15): a physical reliability measure the verification cannot itself provide because the fault is physical, categorically distinct from a declined security hedge like PMP or the IOMMU (those duplicate a spatial mechanism CHERI already verifies, so *verify rather than hedge* declines them; radiation hardening duplicates nothing, it hardens the substrate every verified mechanism runs on, so the same axiom **admits** it).
+
+**Radiation qualification is a physical-layer evidence obligation, not a datasheet number.**
 The lesson Starfire teaches *by contrast* is what a space-grade part must actually publish: not cores, TOPS, temperature, or lifetime, but its **total-ionizing-dose limit, single-event-latch-up threshold, and single-event-effect cross-section**, established by a radiation test campaign.
 The PIC64-HPSC1000-RH publishes 200 krad(Si) and latch-up immunity to 78 MeV·cm²/mg; Starfire's are still under evaluation, which is the honest tell that it is not yet radiation-qualified.
-Those numbers are **evidence about the physical realization that no formal proof can reach**, the radiation-environment analog of the bounded bring-up evidence this design already leans on (commercial FEV and riscv-formal for RTL conformance, IRIS backside inspection for the fab residual), so they discharge a qualification obligation by testing and enter no trust base, exactly as those complements do not.
-This design is also better placed than a bet on the process alone, since it detects, corrects, or contains upsets pervasively (SECDED and DECTED ECC on every array, multikernel blast-radius containment, fail-stop, §15, §16): it does not need a hardened node to force the raw upset rate down to a commercial fault model's tolerance the way an unhardened commercial part flown to orbit must, so the leading-edge susceptibility that makes Starfire's bet hard is a load the correction layer already carries and hardening only lightens.
+Those numbers come from physical test campaigns rather than from a formal model, so they are **evidence about the physical realization that no formal proof can reach**, the radiation-environment analog of the bounded bring-up evidence this design already leans on (commercial FEV and riscv-formal for RTL conformance, IRIS backside inspection for the fab residual): they discharge a qualification obligation by testing and enter no proof-checker trust base, exactly as those complements do not.
 
-The fuller treatment of the space-grade realization axis (radiation, temperature, pressure, and vacuum) is retained below.
+**The correction layer already carries the load hardening only lightens.**
+This design is better placed than a bet on the process alone, since it detects, corrects, or contains upsets pervasively (SECDED and DECTED ECC on every array, multikernel blast-radius containment, fail-stop, §15, §16): it does not need a hardened node to force the raw upset rate down to a commercial fault model's tolerance the way an unhardened commercial part flown to orbit must, so the leading-edge susceptibility that makes Starfire's bet hard is a load the correction layer already carries and hardening only lightens.
+
+**Deployment grading.**
+Radiation-hardened processes lag commercial nodes in density, frequency, and unit cost and run at low volume, so a hard *universal* mandate would tax the consumer form factors the design also targets (§2, no fixed form factor).
+The realization is therefore **graded to the deployment**: full radiation-hardening by design for the spaceflight, avionics, and critical-infrastructure cases whose environment demands it; radiation-tolerant commercial-grade, or none, where it does not.
+Because the choice changes no computation, a deployment moves along this axis **without re-verifying anything**: the proof obligations are identical for the hardened and commercial realizations of the same RTL.
+
+**What is imported, and what is not.**
+Only the **hardening realization** transfers, onto the design's own RV64+CHERI profile: the radiation-hardened-by-design process (single-event-hardened cells, latch-up immunity, the wide temperature range), the fault-tolerance features, and the demonstration that a modern RISC-V vector machine survives the environment at all.
+The space-grade parts themselves are **reference, not base**, and the architecture is what does not transfer: the PIC64-HPSC is **RV64GC** (the C compressed extension the profile drops and the scalar floating-point it folds onto the vector unit, §15), it carries an **MMU** and boots a conventional operating system (the profile deletes the MMU for a single address space, `satp` Bare, §15), it is **not CHERI** (the spine of the whole design), and its SiFive cores are third-party RTL whose vendor verification is bring-up evidence, never the closing **RTL ⊑ Sail** axiom (§6, §15).
+Starfire's packaging points the other way as well: it is a **Foveros multi-die stack** (18A CPU and NPU tiles over an Intel 3 GPU tile), whereas this design integrates on a single die; the multi-die mechanism is not part of the import.
+So the design hardens the manufacturing and the RTL of the machine it already specifies, rather than adopting a space processor's architecture: changing no computation and lowering no guarantee.
+
+**Relationship to execution redundancy.**
+This is the physical-hardening sibling of the redundant-execution entry: where lockstep, TMR, and DIVA spend **area on replication** to detect or mask faults (declined by default here in favor of the multikernel's asymmetric-trust containment, lockstep logged for G5), radiation hardening spends **process and cell margin** to reduce the fault rate at the source, and the two compose cleanly.
+Hardening lowers the upset rate the ECC and containment logic must absorb, so it **strengthens that entry's bet** (that ECC ⋈ fault containment ⋈ a verified core with no design faults covers the random-fault case without N-modular redundancy) rather than competing with it: fewer upsets to catch, and a G5 lockstep option still available on top where a safety case wants masking too.
+
+**What the platform takes.**
+Radiation-hardened, wide-envelope silicon is a **realization axis graded to the deployment**, changing no computation and lowering no guarantee; its normative footprint is the §15 instruction to harden the process and RTL of the specified design where the environment requires it.
+This is the *engineering-is-free, trust-is-scarce* axiom reading a physical-reliability measure the way it reads ECC and the enclosure: **admit the mechanism that costs only engineering and reduces a physical fault rate the verification cannot reach.**
+It books **no new §17 residual** (it lowers a physical fault rate and adds no trusted surface) and does not touch the fab residual either: a radiation-hardened die is still a fabricated die whose correspondence to the verified RTL rests on the same evidence (§17).
 
 ---
 
@@ -1166,45 +1193,6 @@ FIDL also carries the two disciplines the §12 IDL profile has to *add* to its W
 So the interface stack is a deliberate **hybrid**: the *type/interface* layer is WIT-derived (worlds → manifests, resources → capabilities; §12, §13), while the *wire/data-plane* layer is FIDL/Zircon-channel.
 Where the design parts company is the usual mechanism swap: FIDL and Zircon are **unverified C++**, so marshalling becomes the **Narcissus copy-once verified parser** (§5), Zircon **handles and their rights become seL4/CHERI capabilities** (the taxonomy re-mapped, not inherited; §8, §15), FIDL's missing **world** concept is why the *type* layer is WIT rather than FIDL, and FIDL's missing **information-flow labels** are added as a first-class §12 concern.
 Fuchsia supplies the shipping proof that capability IPC scales to a real OS; FIDL supplies the wire discipline (bounded, handle-passing, distrust-hardened) that the §12 data plane adopts and the copy-once parsers then make a theorem.
-
----
-
-## DICE cells and radiation qualification: hardening the imported core without changing computation
-
-The physical fault sources that sit outside every model's reach, single-event upsets from cosmic-ray secondaries and other radiation, total-ionizing-dose drift, latch-up, and the environmental extremes of temperature, pressure, vacuum, and vibration, are met by a **space-grade realization** of the design, never by a change to the computation.
-This is the outermost layer of a reliability story the spec already tells in two: the Faraday enclosure attenuates the electromagnetic-interference rate at the boundary (§15), the pervasive ECC and the multikernel's blast-radius containment catch the residual in the logic (§15, §16), and radiation-hardened silicon closes the gap between them by reducing the single-event-upset rate **at the source, the transistor**, the one lever the enclosure explicitly cannot pull (mass shielding being counterproductive through secondary showers, §15).
-
-**The existence proof is shipping.**
-NASA and Microchip's **PIC64-HPSC** and Intel's **Starfire** bracket the realization axis from its conservative and leading-edge ends respectively: they establish that a modern vector machine can be carried into the space environment by **hardening a commercial-class design rather than inventing a space architecture**.
-The space-grade part class in general also extends the operating envelope (temperature, pressure, vacuum, and vibration) well beyond commercial ranges.
-
-**Radiation qualification is a physical-layer evidence obligation, not a datasheet number.**
-Total-ionizing-dose limits, latch-up thresholds, and single-event-effect cross-sections come from physical test campaigns rather than a formal model; they are evidence about the fabricated realization and enter no proof-checker trust base.
-
-**Why the lineage transfers.**
-Space-grade is a property of the **process and the RTL cells, orthogonal to the instruction set**, so it costs nothing on the scarce trust axis and everything it costs on the free engineering axis, the same reference-not-base split used for Codasip X730.
-A single-event-hardened flip-flop (a DICE or triple-modular-redundant latch), an error-hardened SRAM cell, and a latch-up-immune process hold and compute the **same architectural state** as their commercial equivalents, so the Sail model is unchanged and **RTL ⊑ Sail still holds**, the hardened cell refining the very model its commercial sibling does: no new mechanism, no new Sail surface, no proof obligation, and no guarantee lowered.
-It is therefore admitted on **exactly the ground ECC and the Faraday enclosure are** (§15): a physical reliability measure the verification cannot itself provide because the fault is physical, categorically distinct from a declined security hedge like PMP or the IOMMU (those duplicate a spatial mechanism CHERI already verifies, so *verify rather than hedge* declines them; radiation hardening duplicates nothing, it hardens the substrate every verified mechanism runs on, so the same axiom **admits** it).
-
-**Deployment grading.**
-Radiation-hardened processes lag commercial nodes in density, frequency, and unit cost and run at low volume, so a hard *universal* mandate would tax the consumer form factors the design also targets (§2, no fixed form factor).
-The realization is therefore **graded to the deployment**: full radiation-hardening by design for the spaceflight, avionics, and critical-infrastructure cases whose environment demands it; radiation-tolerant commercial-grade, or none, where it does not.
-Because the choice changes no computation, a deployment moves along this axis **without re-verifying anything**: the proof obligations are identical for the hardened and commercial realizations of the same RTL.
-
-**What is imported, and what is not.**
-Only the **hardening realization** transfers, onto the design's own RV64+CHERI profile.
-The space-grade parts themselves are **reference, not base**: RV64GC with an MMU, not CHERI, on third-party RTL whose vendor verification is bring-up evidence and never the closing RTL ⊑ Sail axiom (§6).
-Starfire's packaging points the other way as well: it is a **Foveros multi-die stack** (18A CPU and NPU tiles over an Intel 3 GPU tile), whereas this design integrates on a single die; the multi-die mechanism is not part of the import.
-So the design hardens the manufacturing and the RTL of the machine it already specifies, rather than adopting a space processor's architecture.
-
-**Relationship to execution redundancy.**
-This is the physical-hardening sibling of the redundant-execution entry: where lockstep, TMR, and DIVA spend **area on replication** to detect or mask faults (declined by default here in favor of the multikernel's asymmetric-trust containment, lockstep logged for G5), radiation hardening spends **process and cell margin** to reduce the fault rate at the source, and the two compose cleanly.
-Hardening lowers the upset rate the ECC and containment logic must absorb, so it **strengthens that entry's bet** (that ECC ⋈ fault containment ⋈ a verified core with no design faults covers the random-fault case without N-modular redundancy) rather than competing with it: fewer upsets to catch, and a G5 lockstep option still available on top where a safety case wants masking too.
-
-**What the platform takes.**
-Radiation-hardened, wide-envelope silicon is a **realization axis graded to the deployment**, changing no computation and lowering no guarantee; its normative footprint is the §15 instruction to harden the process and RTL of the specified design where the environment requires it.
-It books **no new §17 residual** (it lowers a physical fault rate and adds no trusted surface) and does not touch the fab residual either: a radiation-hardened die is still a fabricated die whose correspondence to the verified RTL rests on the same evidence (§17).
-This is the *engineering-is-free, trust-is-scarce* axiom reading a physical-reliability measure the way it reads ECC and the enclosure: **admit the mechanism that costs only engineering and reduces a physical fault rate the verification cannot reach.**
 
 ---
 
