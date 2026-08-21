@@ -54,6 +54,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from vos import corpus as corpus_mod
 from vos.corpus import UNREAD_PREFIX
 from vos.figures import words
+from vos.geometry import MODEL_FACTS
 
 CHECKER = "tools/check.py"
 RULES = "tools/check-rules.md"
@@ -199,14 +200,22 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     pointing at it rather than test it. Ignored files stay out, `.gitignore` deciding
     that the same way it does everywhere else.
 
-    One directory is stood up rather than copied. `model/` is 804 of the repository's
-    851 tracked files and the checker reads none of them: it excludes the whole
-    directory from its corpus by name, as vendored upstream prose answering to another
-    repository's house style. What it does read is whether those paths *exist*, because
-    a link into the curated tree must resolve. So each is created empty. The saving is
-    the whole cost of standing a sandbox up, which is otherwise 95% files no rule opens,
-    and the property under test is untouched: a case that could see the difference would
-    have to read model/ content, which no rule does.
+    One directory is stood up rather than copied. `model/` is most of the repository's
+    tracked files and the checker reads almost none of them: it excludes the whole
+    directory from its *document* corpus by name, as vendored upstream prose answering
+    to another repository's house style. What it does read of the rest is whether those
+    paths *exist*, because a link into the curated tree must resolve. So each is created
+    empty, and the saving is the whole cost of standing a sandbox up, which is otherwise
+    95% files no rule opens.
+
+    The exception is named rather than guessed at. A handful of model files carry a
+    fact a document restates, the welded block size being the one that forced this, and
+    a rule holding the two together has to read both. `vos.geometry.MODEL_FACTS` is the
+    list, it is the same list the rule reads through, and a path on it is copied here
+    instead of touched. A rule reading a model path that is not on that list would pass
+    on the host and fail every sandbox's baseline, which reports as a red tree rather
+    than as a bad mutant, so the list is the one place that can go wrong and it goes
+    wrong loudly.
 
     A submodule's contents are not copied, because the checker excludes upstream prose
     from its corpus, but the directory itself is stood up: a link at a submodule is
@@ -234,7 +243,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     def place(rel: str) -> int:
         src, dst = repo / rel, into / rel
         if src.is_file():
-            if rel.startswith(UNREAD_PREFIX):
+            if rel.startswith(UNREAD_PREFIX) and rel not in MODEL_FACTS:
                 dst.touch()
             else:
                 shutil.copy2(src, dst)
@@ -638,6 +647,13 @@ CASES = [
     ("K-56", "a region class the two latency-class lists no longer place",
      _first_match(REGISTER, r"(?m)^· Accept: the first class carries[^\r\n]*",
                   lambda m: m.group().replace("recovery workspaces, ", ""))),
+
+    # One of the four transcriptions is moved and the other three are left, which is
+    # the shape a real drift takes: an exponent edited in the composition that the
+    # model's own assertion would catch only once something executed.
+    ("K-57", "a composition that writes a welded block size the model does not",
+     _literal("model/config/verifiedos.json",
+              '"cache_block_size_exp": 6', '"cache_block_size_exp": 5')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

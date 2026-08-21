@@ -64,6 +64,13 @@ VIEWS: list[View] = [
     # gating artifacts
     View(file="docs/freeze-measurement-contract.md", governing="R-15-014a",
          body=r"R-15-014a|the freeze from measurement|re-derived at the freeze"),
+    # the welded block size is one parameter four instructions share, so what the
+    # constraint document must carry is the entries that decide any of them: the
+    # instructions themselves, the granule and codeword they are quantized against,
+    # and the two classes the geometry has to satisfy at once
+    View(file="docs/block-geometry-constraint.md", governing="R-15-014a",
+         body=r"welded CBO block|CBO block of R-15-007q|allocates whole lines|"
+              r"one validity tag per|atomic write unit is the ECC codeword"),
 ]
 
 

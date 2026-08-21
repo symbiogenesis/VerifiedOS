@@ -1,0 +1,121 @@
+# SPDX-License-Identifier: Apache-2.0
+"""The welded block size, read out of every artifact that writes it.
+
+This is the one parse in this package that reads the curated model rather than a
+document, and the exception is the point rather than an oversight. The block size is
+declared twice in Sail and twice in JSON, transcribed once more in the model's own
+harness, and stated a sixth time in the document that constrains it. Five of those
+six are outside the checker's ordinary corpus, so without this the document's number
+is a copy nothing holds and the defect the tool exists to catch would be sitting in
+the tool's own view of the parameter.
+
+Everything here is a parse and never a decision, as everywhere else in this package.
+What the sites mean and which of them may disagree is `vos/checks/counts.py`'s.
+"""
+
+import json
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from .jsonc import strip_comments
+
+# The model paths this package reads. `vos/corpus.py` excludes `model/` from the
+# document corpus by name and the selftest's sandbox stands the same tree up empty to
+# save copying 804 files no rule opens, so a file read here has to be named in one
+# place both of them can see. That is this tuple: adding a path to it is what makes
+# the sandbox copy the file instead of touching it.
+MODEL_FACTS = (
+    "model/model/core/cap_format.sail",
+    "model/config/verifiedos.json",
+    "model/config/config.json.in",
+    "model/model/unit_tests/test_cheri_insts.sail",
+)
+
+DOCUMENT = "docs/block-geometry-constraint.md"
+
+# `type <name> : Int = <n>`, the form both of cap_format.sail's declarations take
+_SAIL_INT_RE = r"(?m)^type {} : Int = (\d+)\s*$"
+
+GRANULE_RE = re.compile(_SAIL_INT_RE.format("log2_cap_size"))
+BLOCK_RE = re.compile(_SAIL_INT_RE.format("log2_cap_block_size"))
+HARNESS_RE = re.compile(r"assert\(caps_per_block == (\d+)\)")
+
+# the document's candidate row: "the block is 32, 64, 128, 256, or 512 bytes"
+CANDIDATE_RE = re.compile(r"the block is ([\d, ]+ or \d+) bytes")
+CEILING_RE = re.compile(r"a ceiling of \*\*(\d+) bytes\*\*")
+
+CONFIG_KEY = ("platform", "cache_block_size_exp")
+
+# `config.json.in` is a CMake template carrying `@VARIABLE@` placeholders where the
+# generated configurations carry numbers, so it is not JSON in any dialect and is read
+# as the template it is. The key is unique in it, which is what makes that safe.
+TEMPLATE_RE = re.compile(rf'"{CONFIG_KEY[-1]}"\s*:\s*(\d+)')
+
+
+@dataclass
+class Geometry:
+    """Every site's answer, keyed by what the site is rather than where it is."""
+
+    # site -> the exponent or count it writes, or None where the site has moved
+    sites: dict[str, int | None] = field(default_factory=dict)
+    granule_exp: int | None = None
+    # the candidate set the document declares, in bytes
+    declared: list[int] = field(default_factory=list)
+    ceiling: int | None = None
+
+
+def _int(pattern: re.Pattern[str], text: str) -> int | None:
+    m = pattern.search(text)
+    return int(m.group(1)) if m else None
+
+
+def _config_exp(text: str) -> int | None:
+    """The configuration's exponent, through the model's own JSON-with-comments
+    dialect, so a key read here is the key the emulator reads."""
+    try:
+        node: object = json.loads(strip_comments(text))
+    except ValueError:
+        return None
+    for key in CONFIG_KEY:
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    # `True` is an `int` in Python and a boolean in the configuration, so the
+    # narrowing that admits an exponent has to exclude it by name
+    return node if isinstance(node, int) and not isinstance(node, bool) else None
+
+
+def read(root: Path) -> Geometry:
+    """One pass over the six sites. A file that is not there yields `None` for its
+    site rather than raising, because a missing artifact is a finding the caller
+    words and not an exception it has to catch."""
+    geo = Geometry()
+
+    def text(rel: str) -> str:
+        path = root / rel
+        return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+    declaration = text("model/model/core/cap_format.sail")
+    geo.granule_exp = _int(GRANULE_RE, declaration)
+    geo.sites["the model's declaration"] = _int(BLOCK_RE, declaration)
+    geo.sites["the frozen profile's configuration"] = _config_exp(
+        text("model/config/verifiedos.json"))
+    template = TEMPLATE_RE.findall(text("model/config/config.json.in"))
+    geo.sites["the generated configurations"] = (
+        int(template[0]) if len(template) == 1 else None)
+
+    # the harness writes the group in granules where every other site writes the
+    # block's exponent in bytes, so it is converted here rather than compared as if
+    # the two were the same quantity
+    granules = _int(HARNESS_RE, text("model/model/unit_tests/test_cheri_insts.sail"))
+    geo.sites["the model's own harness"] = (
+        None if granules is None or granules < 1 or granules & (granules - 1)
+        else granules.bit_length() - 1 + (geo.granule_exp or 0))
+
+    doc = text(DOCUMENT)
+    candidates = CANDIDATE_RE.search(doc)
+    if candidates:
+        geo.declared = [int(tok) for tok in re.findall(r"\d+", candidates.group(1))]
+    geo.ceiling = _int(CEILING_RE, doc)
+    return geo
