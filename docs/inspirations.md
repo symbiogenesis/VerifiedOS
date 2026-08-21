@@ -1099,29 +1099,39 @@ So the X730 is a licensed **reference, bring-up, and possible silicon vehicle**:
 
 ---
 
-## openwifi and the SoftMAC split: the firmware-free low-MAC, and the partition that keeps the radio out of the foreign-computer category
+## openwifi, mac80211, and Nordic's nRF: the firmware-free low-MAC, and the partition that keeps the radio out of the foreign-computer category
 
 The dissolved-modem thesis (§4, §12) puts the whole radio stack in contained software on the pinned V-cores, and runs into one deadline software cannot hold: the sub-slot **turnaround**, where the radio must flip the RX/TX path and be transmitting within a fixed inter-frame gap (BLE `T_IFS` at 150 µs ± 2 µs, 802.11 SIFS at 10 or 16 µs, 802.15.4 at ~192 µs).
-A general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window, which is why every shipping radio puts that turnaround below the software line. The question is only *what* sits below it.
+BLE link-layer timing is arguably harder than LTE HARQ's, and the hardness is real: a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window, which is why every shipping radio puts that turnaround below the software line. The question is only *what* sits below it.
 
-The industry answer this design **rejects** is the **FullMAC controller**: the entire link layer and MAC as firmware on a hidden core, which is exactly the "Wi-Fi/BT controller firmware" §4 bans, the largest foreign computer the radio architecture exists to delete.
-The answer it **takes** is the mainstream alternative: the **SoftMAC / split-MAC** partition, in which time-critical turnaround is fixed hardware and the link layer and everything above it are software.
+Three answers exist and the design takes the third.
+A **FullMAC controller** runs the entire link layer and MAC as firmware on a hidden core, meeting the timing trivially and being exactly the "Wi-Fi/BT controller firmware" §4 bans, an opaque processor with its own DMA and the largest foreign computer the radio architecture exists to delete: **rejected**.
+**Pure software on dedicated cores** meets the turnaround by pinning a core and precomputing the response, which is Microsoft's **Sora** (NSDI '09), core-dedication and lookahead hitting Wi-Fi SIFS in software: it keeps everything inside the trust structure and spends the tightest real-time budget on the most jitter-sensitive path, which at 150 µs and 16 µs is fragile, so it too is **rejected**.
+A **fixed-function timing sequencer inside the register-slave transceiver datapath** (§15) meets it with a hardware packet-end event starting a fixed timer that drives the RX/TX switch and gates a software-prepared buffer out at the exact deadline, with no instruction fetch, no writable program, no firmware, and no protocol decision.
+That third answer is the **SoftMAC / split-MAC** partition, time-critical turnaround in fixed hardware and the link layer and everything above it in software, and it is the mainstream Wi-Fi architecture rather than an invention here.
 Three artifacts supply it:
 
 - **Linux's `mac80211`** is the reference decomposition, running the timing-critical MAC (ACK, SIFS, backoff) in hardware and the management MAC in host software, which is precisely the line §12 draws.
 - **Nordic's nRF radios with Zephyr's open Link Layer** demonstrate it on the exact hardest protocol, meeting BLE `T_IFS` with a hardware *tIFS timer* (dedicated capture/compare registers) while the link-layer state machine, L2CAP, and GATT run in software.
 - **openwifi** is the closest match to the form actually needed, and is already the §18 radio start-from: its *"DCF low-MAC layer in FPGA"* meets the 10 µs SIFS ACK **in Verilog rather than on a core**, which is the firmware-free, open-RTL existence proof for the fixed-function turnaround block, harvestable under the open-RTL mandate.
 
-Also weighed and set aside is Microsoft's **Sora** (NSDI '09), which hit Wi-Fi SIFS in *pure software* by core-dedication and lookahead: it keeps everything inside the trust structure, but spends the tightest real-time budget on the most jitter-sensitive path, which at 150 µs and 16 µs is fragile (the full adopted timing rationale is retained below).
+**The hardware/software boundary is the whole distinction, and it is a mechanism test rather than a size one.**
+A controller is a processor running firmware; the sequencer is a timer plus a small finite state machine, fully described in RTL, Sail-modeled, and capability-gated: the FEC-unit and digital-front-end category, *matter, not software*, the same tolerance §4's line already extends to the DFE, the FEC blocks, and the I/Q-streaming DMA.
+It passes the five-part §15 admission test the way those do: deterministic; a fixed 150 µs constant independent of packet contents, so no data-timing channel; bounded FSM and timer state reset per event, architectural rather than hidden; a register slave with no authority beyond its capability-bounded DMA window; and its autonomy is the scheduled-DMA kind, a timer firing a pre-designated buffer, not the address-dependent memory walker admission test 5 bans.
 
 The transformation is the usual one: **the split is off-the-shelf and the verified realization is the contribution.**
-None of these artifacts is formally verified or Sail-modeled, so what the platform builds is a fixed-function timing sequencer inside the register-slave transceiver datapath: a hardware timer and small finite state machine with no instruction fetch, no writable program, no firmware, and no protocol decision. It is Sail-modeled and capability-gated, one more fixed-latency entry riding the existing transceiver RTL ⊑ Sail and WCET obligations (§11, §15).
-That is what keeps it on the *matter, not software* side of §4's line, alongside the digital front end, the FEC blocks, and the I/Q-streaming DMA.
+None of the three artifacts is formally verified or Sail-modeled, so what the platform builds is that sequencer as one more fixed-latency entry in the timing-annotated Sail model, riding the existing transceiver RTL ⊑ Sail and WCET obligations (§11, §15).
+Everything carrying protocol semantics stays in software (§12): connection-event and slot scheduling as a §11 software hard task, channel selection, framing, whitening and CRC, link-layer encryption through the crypto core, and the link-layer state machine as a Lustre control plane.
+This is the same "hardness at the boundary, patchable software above it" rule the regulatory layering (§12) applies to the emission envelope, applied to timing.
 
 The doctrine's one tolerated exception, the carrier-mandated eUICC (§4, §12), has field evidence for its zero-authority framing: a GSMA consumer certificate was extracted from a certified production eUICC in 2025 (the Kigen disclosure, root-caused to publicized test-profile keysets and patched over the air), so a certified secure element failing is an observed event rather than a hypothetical, and the containment that makes it non-lethal here (a register-slave crypto oracle with no DMA and nothing to grant) is doing real work.
 
-The partition generalizes past the radio into the standing **sensor-front-end doctrine** (§12, §15): the analog front end plus a fixed-cadence scan or sample sequencer stays matter, streaming raw samples over a capability-bounded DMA window, while all signal processing, including capacitive touch, the audio front end, the image sensor's raw Bayer path, IMU and motion, and the fingerprint AFE, dissolves onto the host V-cores.
-Honest residual (§17): the radio case has an off-the-shelf firmware-free part to point at and the sensor cases do not, since commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware, so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design.
+**The partition generalizes past the radio into the standing sensor-front-end doctrine (§12, §15), which is the platform's rule for every transducer.**
+The analog front end plus a fixed-cadence scan or sample sequencer stays matter: a register-slave AFE streaming raw samples over a capability-bounded DMA window, no per-sensor DSP core and no firmware, while all signal processing dissolves onto the host V-cores.
+Capacitive touch (raw capacitance to a host touch DSP), the audio front end (microphone and speaker converters to host filtering, echo cancellation, and beamforming), the image sensor (raw Bayer to the software ISP), IMU and motion (raw reads to host fusion), and the fingerprint AFE (raw frames to the host matcher) are all instances.
+
+Honest residual (§17): the sequencer itself books no new bullet, being a small fixed-function block folded into the transceiver datapath already in the Sail model (§17's *grows the Sail model*), with no firmware and no new trust axiom, its correctness and its 150 µs latency riding the transceiver RTL ⊑ Sail and WCET obligations the register-slave-datapath category already carries.
+The generalization does book one: the radio case has an off-the-shelf firmware-free part to point at and the sensor cases do not, since commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware, so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design.
 
 ---
 
@@ -1241,7 +1251,7 @@ Here there is no priority to preempt into.
 An interrupt can set a bit sooner, but **nothing can run sooner**, because *what runs now* is a composition-time constant (§7), and time never crosses a partition boundary even when donated (§7, non-work-conserving by construction).
 
 **Sub-slot deadlines remain fixed-function.**
-The sub-slot radio turnaround (BLE `T_IFS` 150 µs ± 2 µs, 802.11 SIFS 10/16 µs, 802.15.4 ~192 µs) is met by the fixed-function SoftMAC turnaround sequencer described below, whose own justification is that a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window.
+The sub-slot radio turnaround (BLE `T_IFS` 150 µs ± 2 µs, 802.11 SIFS 10/16 µs, 802.15.4 ~192 µs) is met by the fixed-function SoftMAC turnaround sequencer described above, whose own justification is that a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window.
 HARQ feedback and DRX paging occasions get sporadic slots sized to their deadlines (§7).
 The design has therefore already concluded, on its tightest path, that the interrupt path is *not* the low-latency mechanism: anything tighter than a slot is RTL, and anything a slot can hold is a schedule parameter.
 Deleting asynchronous delivery removes nothing from either category.
@@ -1306,42 +1316,6 @@ Scalar `F`/`D`, the `f`-register file, and the dynamic rounding-mode CSR are **r
 The FP timing contract is stated once, for the vector FPU (§15).
 The platform axiom decides it as ever: a redundant FP datapath and one of the two FP timing crown jewels are deleted for an ABI change and a per-op vector-setup cost the subordinated-performance goal absorbs.
 **Honest residual (§17):** floating point rests on the single vector FPU under a non-standard vector-FP-without-scalar-FP profile (a small new Sail surface for the operand-move path, an uncommon configuration at application scale): offset against the deleted scalar datapath, `f`-register file, scalar FP timing contract, and dynamic rounding-mode state; a net shrink, booked in §17's proof-trust-base accounting.
-
----
-
-## mac80211, Nordic nRF, and openwifi: fixed-function turnaround beneath a software link layer
-
-The SoftMAC lineage puts protocol semantics in host software while retaining only sub-slot *turnaround* beneath the software line: BLE `T_IFS` = 150 µs ± 2 µs, 802.11 SIFS = 10/16 µs, and 802.15.4 turnaround at roughly 192 µs.
-This is the gap worth flagging: BLE link-layer timing is arguably harder than LTE HARQ's, and the hardness is real: a general-purpose core's interrupt-and-schedule path cannot reliably hit a ±2 µs window, which is exactly why every shipping radio implements this turnaround below the software line.
-
-**The imported split.**
-(a) A **Bluetooth/Wi-Fi controller** runs the entire link layer/MAC as firmware on a hidden core (the industry's *FullMAC*), meeting the timing trivially but as precisely the "Wi-Fi/BT controller firmware" §4 bans: an opaque processor with its own DMA, the largest foreign computer the radio architecture exists to delete.
-Rejected.
-(b) **Pure software on dedicated cores** meets the turnaround by pinning a core and precomputing the response: the Microsoft *Sora* approach (NSDI '09), which used core-dedication and lookahead to hit Wi-Fi SIFS in software.
-It keeps everything in the trust structure but spends the tightest real-time budget on the most jitter-sensitive path; it is the "harder than HARQ" horn, and at 150 µs / 16 µs it is fragile.
-(c) A **fixed-function timing sequencer in the register-slave transceiver datapath** (§15): a hardware packet-end event starting a fixed timer that drives the RX/TX switch and gates a software-prepared buffer out at the exact deadline, with no instruction fetch, no writable program, no firmware, and no protocol decision.
-This is the *SoftMAC / split-MAC* partition: time-critical turnaround in fixed hardware, the link layer and everything above it in software; and it is what the platform adopts.
-
-**The hardware/software boundary.**
-A controller is a processor running firmware; the sequencer is a timer plus a small finite state machine, fully described in RTL, Sail-modeled, capability-gated: the FEC-unit / digital-front-end category, "matter, not software," the same tolerance the design already extends to the DFE, the FEC blocks, and the I/Q-streaming DMA.
-It passes the five-part §15 admission test the way those do: deterministic; a fixed 150 µs constant independent of packet contents, so no data-timing channel; bounded FSM/timer state reset per event, architectural not hidden; a register slave with no authority beyond its capability-bounded DMA window; and its autonomy is the scheduled-DMA kind (a timer firing a pre-designated buffer), not the address-dependent memory walker admission-test 5 bans.
-
-**Lineage.**
-The SoftMAC/FullMAC split is the mainstream Wi-Fi architecture, and three artifacts supply the relevant forms: Linux's `mac80211`, Nordic's nRF radios with Zephyr's open Link Layer, and **openwifi**, whose FPGA low-MAC meets the 10 µs SIFS ACK in Verilog rather than on a core and is already the §18 radio start-from.
-None of them is formally verified or Sail-modeled; consistent with the platform's thesis, the split is off-the-shelf and the *verified, capability-gated, firmware-free* realization is the contribution.
-
-**What the platform takes.**
-The sub-slot turnaround (BLE `T_IFS`, 802.11 SIFS, 802.15.4) is met by a fixed-function timing sequencer inside the register-slave transceiver datapath: a hardware timer + FSM, no instruction fetch, no firmware, one more fixed-latency entry in the timing-annotated Sail model (§11) riding the RTL ⊑ Sail refinement.
-Everything with protocol semantics (connection-event/slot scheduling, a §11 software hard task; channel selection; framing/whitening/CRC; link-layer encryption via the crypto core; and the link-layer state machine as a Lustre control plane) stays in software (§12).
-A Bluetooth/Wi-Fi *controller* (FullMAC firmware) is rejected as a §4 foreign computer; pure-software turnaround (Sora-style) is rejected as spending the tightest real-time budget on the most jitter-sensitive path.
-This is the same "hardness at the boundary, patchable software above it" rule the regulatory layering (§12) applies to the emission envelope, applied to timing.
-**Honest residual (§17):** the sequencer is a small fixed-function block folded into the transceiver datapath already in the Sail model (§17 "grows the Sail model"): no firmware, no new trust axiom, its correctness and its 150 µs latency riding the existing transceiver RTL ⊑ Sail and WCET obligations; no new residual bullet, since the block is within the register-slave-datapath category the radio subsystem already books.
-
-**Generalization: the same partition is the standing sensor-front-end doctrine (§12, §15).**
-The split-MAC line drawn here is not radio-specific; it is the platform's rule for every transducer.
-The analog front-end plus a fixed-cadence scan/sample sequencer stays *matter*: a register-slave AFE streaming raw samples over a capability-bounded DMA window, no per-sensor DSP core and no firmware; while all signal processing dissolves onto the host V-cores.
-Capacitive touch (raw capacitance → host touch DSP), the audio front-end (microphone/speaker converters → host filtering, echo-cancellation, and beamforming), the image sensor (raw Bayer → the software ISP), IMU/motion (raw reads → host fusion), and the fingerprint/biometric AFE (raw frames → the host matcher) are all instances.
-The one honesty the radio case does not carry: sensor front-ends have no off-the-shelf firmware-free part; commodity touch, audio, and image controllers co-design the AFE with tuned DSP firmware; so the raw-AFE silicon and its host-side DSP are a genuine net-new co-design, booked in §17.
 
 ---
 
