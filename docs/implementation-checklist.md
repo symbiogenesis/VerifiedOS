@@ -389,8 +389,8 @@ Four more rows take their upstreams off this clock while their authoring rides t
 ### Current summary
 
 * Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.11, M1.1, M1.5, and the build-loop instruments I0 and the initial check/emit/FAST tooling.
-* Current serial path: M0.12 → M0.6g → M0.6h → M0.10 C-class freeze. M0.12 moves onto it from the parallel list, and its own dependency inverts with it: the corpus no longer waits on M0.6g, M0.6g's exit evidence rides on the corpus.
-* Available parallel work: M0.7, M2.1, and M4.1.
+* Current serial path: M0.12 → M0.6g → M0.6h → M0.14 → M0.16 → M0.10 C-class freeze. M0.12 moves onto it from the parallel list, and its own dependency inverts with it: the corpus no longer waits on M0.6g, M0.6g's exit evidence rides on the corpus.
+* Available parallel work: M0.7, M0.13, M0.15, M0.17, M2.1, and M4.1.
 * Total estimate: 969.5 h midpoint, range 656–1,283 h.
 * Progress by estimate: 41 of 969.5 h complete (4.2%); 928.5 h remaining (95.8%).
 * M8 gate: 874 h of the 969.5 h midpoint falls at or before it, everything but M9, M9a, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 385–446 h, a serial-path figure no sum gives, M0.14 and M0.16 landing on the serial Sail path ahead of the C-class freeze and adding roughly 24 h to it while M0.13, M0.15, M0.17, M6.7, and M6.8 are parallel and add none.
