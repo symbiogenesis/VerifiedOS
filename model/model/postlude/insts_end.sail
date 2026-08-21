@@ -37,7 +37,11 @@ end assembly
 end encdec
 end encdec_compressed
 
-// Some legal instructions do not have any corresponding assembly, e.g. reserved fences.
+// Some legal instructions do not have any corresponding assembly, e.g. a `fence`
+// carrying a non-zero `rs1` or `rd`. A reserved `fence` is no longer an example:
+// reserved `fm` values trap rather than executing as `fm`=0000 (R-15-014,
+// R-15-017), so the class that survives is the one the base ISA reserves for a
+// *future* extension rather than the one it reserves for none.
 function instruction_to_str(insn : instruction) -> string =
   if assembly_forwards_matches(insn) then assembly(insn) else (".insn " ^ bits_str(encdec(insn)))
 

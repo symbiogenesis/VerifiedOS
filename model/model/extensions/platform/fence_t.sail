@@ -29,7 +29,15 @@
 //     deleted and rounding static (R-15-083).
 //   - The **predictor structures** are deleted rather than flushed, which is
 //     strictly stronger: nothing joins the set and no residual completeness
-//     obligation exists for them (R-15-019, R-15-020).
+//     obligation exists for them (R-15-019, R-15-020). That deletion is
+//     discharged structurally, by rows A-04 through A-06 of the
+//     microarchitectural absence contract, and not by RTL refinement against
+//     this model (R-15-021): Sail carries architectural state, so no model can
+//     state *there is no branch predictor*, and searching this tree for one is
+//     the wrong search. What the model can carry is the consequence, and it
+//     does: prediction being a fixed function of the encoding and the
+//     displacement sign, there is no predictor state to declare here and none
+//     is declared (R-15-019, R-15-022, R-15-086, R-15-098).
 //   - The **caches** do not exist to be flushed or partitioned, and the tag
 //     table and tag cache went with them (R-15-061).
 //   - The **SRAM banks, macros and tiers, the TDM NoC slots, and the per-
@@ -41,7 +49,12 @@
 // So the whole of what this instruction does in an architectural model is drain
 // the buffer, and this model has no buffer to drain: it is in-order and
 // single-copy, so every store is already visible where the fence would make it
-// so. The barrier below is that statement rather than a stand-in for one, and
+// so. The barrier below is the *same* barrier a draining `fence` emits, and it
+// is one member of `barrier_kind` rather than two spellings, which is what makes
+// the flush set and the drain visibly one structure (R-15-017, R-15-213). The
+// difference is the condition, not the effect: a `fence` drains on its
+// predecessor and successor sets and this instruction drains unconditionally.
+// The barrier is that statement rather than a stand-in for one, and
 // the *completeness* of the classification above is discharged by the
 // microarchitectural absence contract rather than by the refinement, since
 // completeness is the claim that no unenumerated state exists, which the model
@@ -71,7 +84,7 @@ mapping clause encdec = FENCE_T()
   <-> 0b000000000000 @ 0b00000 @ 0b100 @ 0b00000 @ 0b0001111
 
 function clause execute FENCE_T() = {
-  sail_barrier(Barrier_RISCV_rw_rw);
+  sail_barrier(Barrier_RISCV_drain);
   RETIRE_SUCCESS
 }
 

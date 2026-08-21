@@ -157,12 +157,11 @@ function clause write_CSR(0x300, value) = { mstatus = legalize_mstatus(mstatus, 
 // feature, and `senvcfg` is part of the S-mode bank, so both leave
 // with the mode (R-15-049a, R-15-003). `Zicboz`'s `CBZE` was the one
 // bit with a live feature behind it, and `cbo.zero` is unconditionally
-// permitted rather than gated.
-
-// I/O fences do not imply memory fences: the `FIOM` bit that made them
-// do so lived in `menvcfg`/`senvcfg` and applied only below machine
-// mode.
-function is_fiom_active() -> bool = false
+// permitted rather than gated. `FIOM` was the last of them with a
+// caller: it made an I/O fence imply a memory fence, and `fence`'s
+// drain condition now reads the I and O bits directly and
+// unconditionally, which is strictly stronger than the bit ever made it
+// (extensions/I/base_insts.sail, R-15-017).
 
 // registers for trap handling
 

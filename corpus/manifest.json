@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "trace_schema": 1,
   "members": [
     {
@@ -134,6 +134,13 @@
       "checks": 8,
       "records": 470,
       "digest": "50ebdc2f2405ca34"
+    },
+    {
+      "name": "memory-model",
+      "source": "memory-model.s",
+      "checks": 8,
+      "records": 154,
+      "digest": "42f5b4e12458c216"
     }
   ]
 }
