@@ -1985,6 +1985,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no read of the base image bypasses the verification.
 · Trace: CJ-DEVTREE
 
+**R-10-001a** MUST: The signed root carries its own checksum beside its signature and is written as several copies at fixed locations, at least two per slot on separately erasable regions and the count a composition constant; boot enumerates those locations, verifies each candidate on its own bytes, and takes the highest security version that verifies.
+· Accept: which generation is current is decided by verifying the candidates and never by reading a stored pointer naming the winning slot, so a torn or misdirected write of one copy costs a copy and not the generation; every other object is reached through a hash its parent holds (R-10-001), the root being the one node no parent covers, and the signature check, the boot counting, and the floor check of R-09-028 and R-09-030 run on the selected root unchanged.
+· Trace: CJ-DEVTREE
+
 **R-10-002** IS: The storage path is four verified layers on one prover: L0, the Perennial/GoJournal-lineage crash-safe write-ahead log in Iris/Coq; L1, the VeriBetrFS B^ε-tree *design* re-proved in Coq/Iris; L2, filesystem semantics following RefFS with (S)FSCQ; L3, the SFSCQ/DiskSec data-noninterference method.
 · Accept: each layer's proof is a Coq artifact; no layer carries a foreign-prover proof into the trust base.
 · Trace: CJ-T
@@ -2124,6 +2128,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-10-022** MUST: Confidentiality and integrity of data at rest are one pass: per-extent AEAD with a per-extent nonce, the Poly1305/GHASH tag serving as the stored checksum, keyed per confidentiality domain, with keys resident only in the crypto core.
 · Accept: the filesystem compartment handles ciphertext extents and tags and invokes seal/open, never raw key material, so the constant-time obligation lands on the crypto core rather than the filesystem.
 · Trace: CJ-CRYPTO-SPEC, CJ-CT-SOUND
+
+**R-10-022a** MUST: The nonce and tag authenticating an extent are held in the index node that references it and are never stored beside the ciphertext they authenticate.
+· Accept: the reader holds what an extent must authenticate to before it reads it, so a device returning intact bytes from the wrong location yields an extent that is internally consistent and wrong and opens no better than a corrupted one, where a tag stored with its ciphertext would verify exactly that read; the below-the-line services of R-10-021 are thereby held to availability by a check on the read path rather than by their own bookkeeping, being free to move a block and unable to make a mis-placed one open.
+· Trace: CJ-CRYPTO-SPEC, CJ-NI
 
 **R-10-023** MUST: The AEAD tag is the integrity checksum only and never the dedup address, so the nonce stays per-extent-random (semantic security intact) while the dedup address stays deterministic within a domain.
 · Accept: the two properties are never conflated in the interface to the crypto core.
@@ -5668,7 +5676,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1310 requirements. §19 is non-normative and yields none. Counts include the 358 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1312 requirements. §19 is non-normative and yields none. Counts include the 360 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5681,7 +5689,7 @@ All eighteen normative sections are extracted, at 1310 requirements. §19 is non
 | **§7 Kernel** | **extracted** | **60** |
 | **§8 Authority Model** | **extracted** | **73** |
 | **§9 Boot & Root of Trust** | **extracted** | **39** |
-| **§10 Storage & State** | **extracted** | **50** |
+| **§10 Storage & State** | **extracted** | **52** |
 | **§11 Updates** | **extracted** | **36** |
 | **§12 System Servers** | **extracted** | **124** |
 | **§13 Packaging & Supply Chain** | **extracted** | **37** |
