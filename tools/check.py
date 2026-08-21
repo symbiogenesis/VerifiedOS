@@ -15,7 +15,7 @@ they are one tool:
     confers    the enumeration   every set closed by conferral, and the agenda it misses
     bindings   the instantiation the apex statement's fields against the view binding them
     counts     the cardinality   every figure any document asserts, against its artifact
-    compounds  the arithmetic    the archetype band against the product of its rows
+    compounds  the synthesis     a statement over rows, against the rows it rests on
     estimates  the arithmetic    every checklist total and share against the item hours
 
 Two further groups check what a document is made of rather than what it says, where a

@@ -8,9 +8,9 @@ sentence that is true and vacuous. That is not hypothetical and it is not cheap,
 because a rule in that state looks exactly like a rule that is working, and the review
 gate prices it as one.
 
-Three floors close it, they answer to three different readings, and so they are three
+Four floors close it, they answer to four different readings, and so they are four
 rules rather than one: a registry row is what the review gate prices the tool by, and
-a row whose claim is a conjunction of three prices none of them.
+a row whose claim is a conjunction of four prices none of them.
 
 The first is nearly free because the design already almost has it. A quantity the
 counts group computes is compared against what the documents say, so an anchor that
@@ -30,6 +30,18 @@ and the view's membership silently narrows to nothing while the check that reads
 goes on reporting that every bearing requirement is carried. A citation the register
 no longer answers is the finding, in whichever of the three forms it takes.
 
+The fourth is a floor under a figure rather than under a set, and it exists because
+the two-class memory plan is the one place where a quantity the tool would like to
+compare does not exist yet. The per-class capacity budgets are stated, each owned by
+one entry, so the floor under them is the ordinary one: the owner still says it. The
+per-class bank count is not stated anywhere, and must not be: it is an open item of
+the frozen parameter set, three artifacts book it as open, and a figure quoted ahead
+of the act that decides it is a decision taken by nobody. So the floor under *that*
+one is the booking rather than the figure, and it is the reading whose moving is the
+signal. The day M0.17 lands a bank count and M6.8 a bandwidth ceiling is the day this
+rule's second half becomes the comparison the plan describes; until then the
+comparison has no operands and inventing them would be worse than not making it.
+
 No floor decides that the members are the right ones, and none of them sees a reading
 that narrows without emptying: a vocabulary that loses one term still catches the rest
 and still reports green over them. That residue is named in tools/check-rules.md and
@@ -47,6 +59,61 @@ if TYPE_CHECKING:
 
 HEADING = "=== floors: every enumeration this tool reads has members ==="
 
+# The per-class capacity figures, each with the entry that owns it and the literal that
+# entry states. None of them is a sum over anything: they are readings of the roster and
+# of R-15-163's materials grading, so the tool never recomputes one. What it holds is
+# that the owner still carries it, because a budget quoted in three documents and owned
+# by none is the figure nothing owns.
+CAPACITY: list[tuple[str, str, str]] = [
+    ("R-15-247", "the two classes the plan places against", "two static latency classes"),
+    ("R-15-173a", "the first class's single planar tier", "order 1–2 GB"),
+    ("R-15-170", "the phone-class first-class budget", "4–8 GB"),
+    ("R-15-170", "the laptop and desktop first-class budget", "16–32 GB"),
+    ("R-15-247a", "the bulk tier the sidecar is priced against", "40 GB bulk tier"),
+]
+
+# The three artifacts that book the per-class bank count as open, and the reading in
+# each. While all three hold, no figure exists to compare an island's ceiling against,
+# and this rule's second half is the booking rather than the comparison.
+BOOKED_OPEN: list[tuple[str, str, str]] = [
+    ("register", "R-15-014a",
+     "(viii) the per-class bank count (R-15-247p)"),
+    ("register", "R-15-247p",
+     "the per-class bank count is in R-15-014a's frozen parameter set"),
+    ("docs/freeze-measurement-contract.md", "",
+     "the per-class bank count (R-15-247p) are re-derived at the final freeze"),
+]
+
+
+def _two_class(ctx: Context) -> tuple[int, list[str]]:
+    """The per-class capacity figures still owned, and everything that has moved.
+
+    Read before the floors table is built, so the count of owned figures joins the
+    enumerations K-47 requires to be non-empty: this rule catches the table narrowing
+    and that one catches it emptying, which are different failures with the same cause.
+    """
+    reg = ctx.reg
+    moved: list[str] = []
+    owned = 0
+    for ident, what, literal in CAPACITY:
+        entry = reg.body.get(ident, "") + reg.accept_text.get(ident, "")
+        if not entry:
+            moved.append(f"{ident} owns {what} and the register no longer declares it")
+        elif literal not in entry:
+            moved.append(f"{ident} no longer states {what}, which this floor reads as "
+                         f"'{literal}'")
+        else:
+            owned += 1
+
+    for where, ident, literal in BOOKED_OPEN:
+        text = reg.body.get(ident, "") if where == "register" else ctx.text(where)
+        if literal not in text:
+            names = ident or where
+            moved.append(f"{names} no longer books the per-class bank count as open, so "
+                         "the figure it withholds may now be stated and this floor is "
+                         "the wrong instrument for it")
+    return owned, moved
+
 
 def run(ctx: Context) -> None:
     rep, reg, art, sh = ctx.rep, ctx.reg, ctx.art, ctx.shared
@@ -58,10 +125,15 @@ def run(ctx: Context) -> None:
                 "notices when it goes to zero" for q in ctx.q if q not in claimed],
                f"all {len(ctx.q)} computed quantities are held by a claim")
 
+    owned, moved = _two_class(ctx)
+
     # the sets no figure counts, each named by what it is rather than where it is read,
     # so a floor that fails says which reading has moved
     floors = {
         "prose bookmarks": len(ctx.corpus.anchor_count),
+        "tag-plane figures the granule fixes": sh.get("tag_plane", 0),
+        "per-class capacity figures the register owns": owned,
+        "region classes the placement compound reads": sh.get("placement_terms", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),
         "CSR rows the profile excludes": len(art.csr_rows.get("5.2", [])),
         "Prop fields of the apex record": len(sh["apex"].fields) if sh.get("apex") else 0,
@@ -101,4 +173,9 @@ def run(ctx: Context) -> None:
                                   "no register entry matches")
     rep.report("K-48", "view citation(s) the register no longer answers:", unanswered,
                f"all {cited} register citations in the view table resolve")
+
+    rep.report("K-55", "two-class figure(s) whose owner or booking has moved:", moved,
+               f"all {len(CAPACITY)} per-class capacity figures are owned by the entry "
+               f"that fixes them, and {len(BOOKED_OPEN)} artifacts still book the "
+               "per-class bank count as open")
     rep.line()

@@ -616,6 +616,28 @@ CASES = [
      _literal("tools/vos/checks/marks.py",
               '    ".json": "JSON admits no comment, so a mark would make the file '
               'unparseable",\n', "")),
+
+    # The owner is moved rather than one of the eleven figures, because a figure edited
+    # alone is the easy half: what the rule is for is the granule changing under all of
+    # them at once, which is the edit nobody would think to propagate by hand. K-54 is
+    # not in REPAIRABLE, its repair being `figures.resolve_claim`'s, which K-24 already
+    # takes the repair path through.
+    ("K-54", "the tag granule moved out from under every figure derived from it",
+     _renumber(REGISTER, r"one validity tag per \*\*(\d+)-bit\*\* granule", 1, "128")),
+
+    # The booking half rather than the capacity half: an owner that stops stating its
+    # figure is the ordinary floor, where an artifact that stops booking the bank count
+    # as open is the reading whose moving changes what the rule should be doing.
+    ("K-55", "an artifact that no longer books the per-class bank count as open",
+     _literal(REGISTER, "the per-class bank count is in R-15-014a's frozen parameter set",
+              "the per-class bank count is frozen")),
+
+    # Dropped from one list and not added to the other, which is what a region class
+    # being reworded actually looks like: it is on neither side and every remaining
+    # term still checks out.
+    ("K-56", "a region class the two latency-class lists no longer place",
+     _first_match(REGISTER, r"(?m)^· Accept: the first class carries[^\r\n]*",
+                  lambda m: m.group().replace("recovery workspaces, ", ""))),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

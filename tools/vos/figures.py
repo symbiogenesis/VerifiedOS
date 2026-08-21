@@ -90,6 +90,17 @@ def percent(v: float, total: float, digits: int) -> str:
     return f"{share(v, total, digits):,.{digits}f}"
 
 
+def quantize(v: float, digits: int) -> str:
+    """A derived ratio at a fixed number of decimals, rounded the way `share` rounds.
+
+    `share` is that rule over a percentage. A ratio that is not a percentage, megabytes
+    of tag plane per gigabyte of data being the one this exists for, wants the same rule
+    and not a second one: away from zero, so a tie never reads smaller than it is.
+    """
+    quantum = Decimal(1).scaleb(-digits)
+    return f"{Decimal(v).quantize(quantum, rounding=ROUND_HALF_UP):,.{digits}f}"
+
+
 # How much room a claim's pattern is given on either side of its phrase. A claim
 # captures one figure standing beside that phrase, so the whole construct is a fragment
 # of a single sentence and this is two orders of magnitude more than one needs. A match
