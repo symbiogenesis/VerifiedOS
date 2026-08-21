@@ -696,6 +696,15 @@ CASES = [
      _literal("model/config/verifiedos.json", '"vlen_exp": 12', '"vlen_exp": 13')),
 
     ("K-61", "a pair the ledger records as read at contents it no longer holds", _k61),
+
+    # The register's own heading is renumbered rather than a section added to the prose.
+    # A new prose heading would also cut short the span above it and so report K-61,
+    # where a case is for one rule biting; and the rename is the defect in its purest
+    # form, because renumbering moves no count at all: `len(reg.per_section)` is
+    # eighteen before and after, so the figure the counts group holds stays right while
+    # the extraction it is supposed to stand for has gone.
+    ("K-62", "a normative section of the prose that the register no longer extracts",
+     _literal(REGISTER, "## §18", "## §20")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

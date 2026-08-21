@@ -81,6 +81,7 @@ from . import (  # noqa: E402
     counts,
     differential,
     estimates,
+    extraction,
     floors,
     glyphs,
     links,
@@ -95,6 +96,7 @@ from . import (  # noqa: E402
 GROUPS = [
     traces,
     coread,
+    extraction,
     names,
     links,
     views,
