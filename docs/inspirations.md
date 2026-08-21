@@ -578,6 +578,86 @@ Content-addressed transactional storage: proof-checked and capability-scoped.
 
 ---
 
+## Transparency logs: Certificate Transparency, the Go checksum database, and Pixel binary transparency; the one property a proof cannot have
+
+A proof and a log answer different questions, and the design has only ever answered the first.
+A proof establishes a property of **the artifact in front of you**, quantified over all its executions: it satisfies its specification.
+A transparency log establishes a property of **the population**: this artifact was committed to publicly, so if it is special it is publicly special.
+The sharpest published statement of the second is the Go checksum database's, which does not merely use the word correctness but *defines* it, guaranteeing that a particular download is correct where correctness means **"the same code everyone else downloads"**; the most quotable is Mozilla's binary-transparency page, whose whole purpose is that a user's copy of the browser "is the same one that we gave to everyone else, and not a special copy just for them".
+Neither property implies the other, and the direction that matters here is the one the design is exposed on.
+
+**Why proof-carrying admission does not subsume the log, stated as an attack.**
+The specification an image is proved against is itself an artifact.
+An adversary with build-path access who cannot forge a proof can still build *this device* a distinct image satisfying a weaker but still admissible specification, or select per device among several genuinely admissible images with different behaviour, or work in whatever gap stands between what the specification constrains and what the code does outside that scope.
+Each of those produces an image whose proof checks on arrival, so §11's admission gate passes and §9's measured root attests exactly what was installed, which is the point: attestation binds the machine to the image it runs, and says nothing about whether that image is the one anybody else got.
+None of them survives a requirement that the image root appear in a public append-only log with an inclusion proof, because the adversary must then publish the targeted image, and publication is the one cost a targeting attack cannot pay.
+Conversely a log subsumes no proof at all: Rekor, `sum.golang.org` and Pixel binary transparency each log malicious artifacts faithfully, and each says so in its own documentation.
+
+**The mechanism is small, self-contained, and exactly the kind of thing this project should own outright.**
+Certificate Transparency (RFC 6962, RFC 9162) is a Merkle tree over an append-only entry list whose state is published as a signed tree head, with three checkable objects over it: an **inclusion proof** that a leaf is in the tree, a **consistency proof** that an older head's tree is a prefix of a newer one, and a **checkpoint** a client can pin.
+Two deployment lessons come with it.
+First, the split-view problem, a log serving two histories to two populations, was to be solved by client gossip and in practice never was; the modern answer is a **witness network** (the C2SP `tlog-witness` shape), where independent parties co-sign a checkpoint only after checking it against every checkpoint they have signed before, so a client demanding K-of-N witness signatures gets split-view resistance without talking to any peer.
+Second, the **tile** format (C2SP `tlog-tiles`, as used by Trillian Tessera, Rekor v2 and Pixel) serves the tree as fixed-size chunks over plain static storage, so there is no live log server in the trust path and a device can be served proofs by a mirror it does not trust.
+That is what makes the property reachable offline: the inclusion proof and the witnessed checkpoint travel *inside* the image manifest and are checked at admission, and a verified Merkle-inclusion checker is a few hundred lines of the sort §5's vehicle handles comfortably.
+
+**The two deployed systems closest to this design each hold one half of it.**
+**Pixel binary transparency** logs the device's own VBMeta digest, which is the root of the hash tree over the images, so the object in the log is the same object the device can measure and read out, which is precisely the relation §9's measured root has to §10's image; what it proves underneath is verified boot against a vendor key rather than a property of the code, and Google extended the same machinery to the Android application layer in May 2026.
+**Apple's Private Cloud Compute** holds the other half, and holds it in the posture worth copying: every node presents a signed measurement of the image it is running, the images are published for inspection within a bounded window, and the client **refuses to proceed** unless the measurement appears in the log, which is enforcement before the fact where almost every other transparency deployment is detection after it.
+What PCC puts underneath the log is human review of published binaries, which is exactly the labour proof-carrying admission replaces.
+So the combination this design is one publish step away from, proof-carrying admission checked on the device over a content-addressed image whose root sits in a witnessed log, appears to be unoccupied: PCC has the posture without the proof, Pixel has the object without the proof, BT2X (Fraunhofer, 2024) has the constrained-device plumbing and tiered audit levels without either, and proof-carrying code has never been deployed with a log at all.
+
+**Honest residual.** Non-targeting is not a property any requirement in the register currently holds, and no amount of proof will produce it, so the entry records a gap rather than a lineage: the mechanism is mature, the citations exist, and the obligation is unwritten.
+What is declined is narrower: the signed-certificate-timestamp *promise* of future inclusion, since a device that verifies offline should demand a real inclusion proof against a witnessed checkpoint rather than a merge-delay promise, and the blockchain substrate (Contour, 2018) that buys split-view resistance at the price of a consensus protocol and a liveness dependency at install time, where a witness quorum buys it with neither.
+
+---
+
+## TUF and Uptane: the staleness a proof cannot detect, and the two-repository intersection
+
+**The Update Framework** (NYU; Samuel, Mathewson, Cappos and Cappos, CCS 2010) is the best key-management design in the field, and it is here for one primitive rather than for its role model.
+TUF separates four roles with their own keys and thresholds: root (offline trust anchor), targets (what the files are), snapshot (one consistent repository state), and a short-lived timestamp; against that structure it names and defeats rollback, mix-and-match, fast-forward, and, the one that matters here, **freeze**.
+A freeze attack serves a stale but perfectly valid view indefinitely, and it is defeated by **metadata expiry** rather than by any signature check, which is why timestamp metadata is re-signed constantly.
+**This is the supply-chain attack a proof-carrying image is completely blind to**: an old image whose proof checks against a specification since strengthened is a valid image, an admissible image, and a live vulnerability, and neither §11's checker nor §9's measured root has any way to notice, because nothing about it is wrong except its age.
+Uptane adds the second half a shipped device needs: **secure time**, since expiry is the primitive and a device that has been offline for a year is the freeze attacker's ideal victim.
+TUF's snapshot role, by contrast, this design already has for free and should say so: one Merkle root pins the whole image, so mix-and-match is structurally impossible rather than defended.
+
+**Uptane** (IEEE-ISTO 6100, standard 2.1.0 of June 2023) is TUF specialized for vehicles, and it is the only widely standardized answer to attested updates on a shipped device with heterogeneous constrained processors, which makes it the closest existing relative of §11's problem.
+Its structural idea is the **two-repository intersection**: an *image* repository, offline-keyed, vendor-curated, slow, holding every image the fleet may ever run, and a *director* repository, online and per-device, instructing this device which of the catalogued images to install; a fully verifying unit installs only what **both** attest.
+Compromise the online director alone and an attacker can deny service or steer a device to an older catalogued image, but cannot mint a new one.
+Read against this design the mapping is exact and the conclusion is that the gates are three rather than one: an image is admissible because **its proof checks** (the catalogue side, where a theorem replaces the vendor's curation and is strictly stronger), it is not targeted because **its root is in the witnessed log** (the entry above), and the directive naming it is **fresh** (this entry).
+Those are three independent properties and no one of them implies another, which is what Uptane's two repositories and the reproducible-builds `reproduced+https://` transport both demonstrate in deployed code: an install path that refuses what it cannot corroborate is ordinary engineering, and the corroborations must be conjunctive.
+
+What is declined is the trust-in-keys-about-semantics that the rest of TUF's model rests on.
+Targets metadata is a claim about *which* file, never about whether it is admissible, so it demotes here to naming and freshness; delegation trees solve a multi-namespace problem a single-vendor image does not have; and Uptane's **partial verification** tier, where a constrained secondary checks only a signature and the current time, is exactly the posture §5 refuses.
+The tiering *question* it answers is real, since an on-die root of trust and a peripheral core cannot run the same checker, but the answer here is that a core which cannot run the checker receives its image through one that can, rather than verifying less.
+
+---
+
+## Bootstrappable builds and Diverse Double-Compiling: shrinking the unproven root until a theorem about it is feasible
+
+The trusting-trust attack is the De Bruijn root seen from the compiler, and it stopped being a thought experiment in 2025: Russ Cox recovered Thompson's original backdoor, ran it under a V6 Unix simulator, and reproduced the same attack shape against a modern Go compiler, reporting the whole of it at **99 lines of code plus a 20-line shell script**.
+Two lines of countermeasure exist and they leave different residuals, which is what makes them worth recording together.
+
+**Diverse Double-Compiling** (Wheeler's 2009 dissertation) is the one with a proof.
+Compile the compiler's putative source with a second, independently produced compiler, compile the source *again* with the result, and compare that second-stage output bit-for-bit with the binary under test; the second compilation is the load-bearing one, since it cancels the trusted compiler's own code-generation idiosyncrasies and leaves both artifacts as outputs of the same semantics.
+What it concludes is exactly one theorem, `source_corresponds_to_executable`, and Wheeler is explicit about the rest: a trusted diverse compiler binary must exist, along with trusted environments, a trusted comparer, trusted acquisition of the inputs, and determinism of the compiler the source defines, and DDC says nothing about whether the source itself is malicious.
+So its residual is *another unverified binary plus a human reading source*, and its argument is diversity, a wager that two independently produced compilers do not carry the same backdoor.
+The binary-level proof of the admission checkers over Sail that [architectural-alternatives.md](architectural-alternatives.md) defers concludes something different in kind, that *this machine code on this modelled machine has this behaviour*, and its residual is a **checkable computation**: a proof checker whose failure mode is refusal rather than silent compromise, and which a second independently written checker can replay.
+Neither eliminates a bottom binary; the difference is what the bottom binary must be trusted to do, and non-malice is unfalsifiable where proof-checking is not.
+DDC is therefore recorded as complementary rather than superseded: it is the countermeasure available to everyone who cannot write the theorem, and a cheap independent cross-check for anyone who can.
+
+**The bootstrappable-builds line** attacks the same root from the other end, by shrinking the unauditable seed rather than diversifying it.
+`stage0-posix` roots a chain in **hex0**, a hex-to-binary translator of a few hundred bytes (256 or 357 depending on architecture and revision, so the number is never quoted without the qualifier), and climbs through hex1, hex2, the M0 macro assembler, a minimal C compiler, M1, M2-Planet, GNU Mes, TinyCC and musl into modern GCC; `live-bootstrap` documents that climb in 182 stages and trusts exactly two binaries, `hex0-seed` and `kaem-optional-seed`.
+Two facts land directly on this project.
+The seed set already covers **RISC-V 32 and 64**, so a hand-auditable root exists for the exact ISA this design builds on.
+And the NixOS entry above needs reading with a date attached: `minimal-bootstrap` merged to nixpkgs staging on 28 January 2026, replacing the 130 MB prebuilt `bootstrap-tools` bundle with a hex0 chain for x86-64 and i686, which moves NixOS onto the trajectory Guix reached in April 2023.
+Guix's own residual is the instructive one and it generalizes past Guix: the *package graph* is rooted in 357 bytes while the shipped bootstrap binaries still include a 25 MiB static Guile driver, which is the seed you advertise differing from the seed you depend on, and the discipline it demands here is to state per artifact what is actually in the trusted set (§6) rather than any figure that is true of the graph and false of the set.
+
+What is declined is the line's terminal argument rather than any of its machinery.
+"Small enough to read" is a human-review claim, and human review of binaries is precisely what this design exists to replace; the right posture, and the contribution this project can make back to that line, is that bootstrappable builds shrink the unproven root to a size at which **a theorem about it becomes feasible**, and then the theorem is written.
+The chain's endpoint is declined for the same reason: it climbs toward a modern C compiler, where the endpoint wanted here is a verified checker, and every C compiler on the way is scaffolding rather than a destination.
+
+---
+
 ## bcachefs: the CoW filesystem featureset, made verifiable
 
 bcachefs is the direct model for the mutable filesystem: an *elegant* copy-on-write filesystem whose whole architecture is **"everything is a b-tree,"** with per-extent checksumming, encryption, replication (RAID), erasure coding, tiering/caching, O(1) snapshots and reflinks, and a write-ahead journal. §10 adopts the featureset almost entire and makes it **verifiable**: the **L1 unified CoW B-tree with buffered updates** (bcachefs's log-structured nodes *are* a B^ε-tree), **snapshots as a version field in the key** (bcachefs-subvolume style), reflink/dedup as refcounted CoW extent sharing, replication/EC/tiering/copygc pushed **below the integrity line** as availability-only block services (§10, §12), and the journal as the **L0** crash-safety trunk. bcachefs's sharpest idea, **the checksum *is* the MAC**, becomes §10's **per-extent AEAD** (the Poly1305/GHASH tag serving as the stored checksum), joined to a machine-checked proof: *bcachefs has the mechanism; this has the mechanism **and** the theorem*: the crypto reduction (scheme is IND-CCA/INT-CTXT) ⋈ the storage data-noninterference, at the extent's functional spec (§5, §10).
