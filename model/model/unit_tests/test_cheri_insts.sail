@@ -602,6 +602,107 @@ function test_a_revoked_capability_loads_with_its_tag_cleared() -> unit = {
 }
 
 // *****************************************************************
+// The rows M0.6h adds: the block revocation reclaim. (`vmclear` and
+// `cbo.scrub` are platform surface and are in test_platform.sail.)
+
+// `creclaim` applies over one granule group the same per-granule conditional
+// clear the load already applies to one value, and returns the group's tags as
+// they stand afterwards (R-15-007s, R-08-007b). Three properties travel
+// together because each is the reason the next is safe: the predicate is the
+// **loaded capability's base** and not the granule it sits in, a surviving
+// granule is untouched bit for bit, and a cleared one differs in its tag alone,
+// which is what keeps R-15-007r's exclusion of a bulk tag clear undisturbed.
+$[test]
+function test_creclaim_clears_the_revoked_granules_of_a_group() -> unit = {
+  // The block is inside the composition's revocable interval and is the group
+  // `cbo.zero` allocates, so it is aligned to it (model/config, R-15-007q).
+  let block : xlenbits = 0x0000000080008080;
+  let (_, arena) = setCapBounds(root_data_cap, 0x080008000, 0b0 @ 0x080008100);
+  let auth = setCapAddrChecked(arena, block);
+
+  // Two objects with *different* bases, so the bit that decides one does not
+  // decide the other. Both are stored inside a third granule group, which is
+  // the case that matters: what the sweep walks and what the bit names are
+  // different addresses.
+  let (_, obj_a) = setCapBounds(arena, 0x080008000, 0b0 @ 0x080008040);
+  let (_, obj_b) = setCapBounds(arena, 0x080008040, 0b0 @ 0x080008080);
+
+  revocation_bits = zeros();
+  C(encdec_reg(0b00011)) = obj_a;
+  match cap_store(encdec_reg(0b00011), auth, 0b000010, block) {
+    Retire_Success() => (),
+    _                => assert(false, "storing the first object must succeed"),
+  };
+  C(encdec_reg(0b00011)) = obj_b;
+  match cap_store(encdec_reg(0b00011), auth, 0b000010, block + cap_size) {
+    Retire_Success() => (),
+    _                => assert(false, "storing the second object must succeed"),
+  };
+  // A third granule holds data, so the pass has a granule with no tag to
+  // consider and no base to index by.
+  let _ = mem_write_value(physical_address(Virtaddr(block + (2 * cap_size))), 8,
+                          0x0123456789abcdef, Store(Data), false, false);
+
+  let stored_a : bits(64) =
+    match mem_read(Load(Data), physical_address(Virtaddr(block)), 8, false, false) {
+      Ok(v)     => v,
+      Err(_, _) => { assert(false, "the stored capability must be readable as data"); zeros() },
+    };
+
+  // Only the first object's base is revoked.
+  revocation_bits = [revocation_bits with revocation_index(0x0000000080008000) = bitone];
+
+  C(encdec_reg(0b00010)) = auth;
+  match execute(CReclaim(encdec_reg(0b00100), encdec_reg(0b00010))) {
+    Retire_Success() => (),
+    _                => assert(false, "creclaim over an authorised group must succeed"),
+  };
+
+  // The answer is the tags *after* the pass: the first granule's authority is
+  // gone, the second's survives, and the data granule never had one.
+  let tags = X(encdec_reg(0b00100))[caps_per_block - 1 .. 0];
+  assert(tags == (zero_extend(0b1) << 1));
+
+  // The cleared granule differs in its tag and in nothing else. No data is
+  // written by either case, which is the whole of *without materializing the
+  // value*.
+  match mem_read(Load(Data), physical_address(Virtaddr(block)), 8, false, false) {
+    Ok(v)     => assert(v == stored_a),
+    Err(_, _) => assert(false, "the cleared granule must still be readable"),
+  };
+  match cap_load(encdec_reg(0b00101), auth, 0b000010, block) {
+    Retire_Success() => (),
+    _                => assert(false, "loading the cleared granule must succeed"),
+  };
+  assert(not(C(encdec_reg(0b00101)).tag));
+  match cap_load(encdec_reg(0b00101), auth, 0b000010, block + cap_size) {
+    Retire_Success() => (),
+    _                => assert(false, "loading the surviving granule must succeed"),
+  };
+  assert(C(encdec_reg(0b00101)).tag);
+
+  // A second pass over the same group answers the same thing and changes
+  // nothing: the clear is in place and the sweep may revisit a group without
+  // its result depending on how many times it has.
+  match execute(CReclaim(encdec_reg(0b00110), encdec_reg(0b00010))) {
+    Retire_Success() => (),
+    _                => assert(false, "a repeated creclaim must succeed"),
+  };
+  assert(X(encdec_reg(0b00110))[caps_per_block - 1 .. 0] == tags);
+
+  // It requires what a tag-preserving capability load over the group requires
+  // and faults rather than answering zeroes, for `cloadtags`' reason: an answer
+  // of no tags is indistinguishable from a group with none.
+  C(encdec_reg(0b00010)) = { auth with perms = perms_rw | perms_global_bit };
+  match execute(CReclaim(encdec_reg(0b00100), encdec_reg(0b00010))) {
+    Ext_DataAddr_Check_Failure((capEx, _)) => assert(capEx == CapEx_PermitLoadCapViolation),
+    _ => assert(false, "creclaim without load-capability must fault"),
+  };
+
+  revocation_bits = zeros();
+}
+
+// *****************************************************************
 // The special capability registers.
 
 // Privilege is the capability: the trap capabilities are reachable only with

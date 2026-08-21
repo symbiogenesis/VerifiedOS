@@ -670,53 +670,71 @@ union clause instruction = CLoadTags : (regidx, regidx)
 // the group is the CBO block `cbo.zero` allocates rather than a cache line, and
 // the tags are reported **as stored** rather than as the revocation filter would
 // return them, that filter having no base to index by (R-15-007q, R-08-007).
-type log2_cap_block_size : Int = 6
-type caps_per_block : Int = 2 ^ (log2_cap_block_size - log2_cap_size)
-let  caps_per_block = sizeof(caps_per_block)
+// The group itself is `caps_per_block` in core/cap_format.sail, beside the
+// granule it is a multiple of: four instructions read that one parameter, so it
+// belongs to the machine rather than to the first of them to need it.
 
-// Unlike a capability load, this one *faults* where the authority lacks
-// load-capability permission rather than answering with cleared tags: an
-// answer of all-zeroes would be indistinguishable from an empty group, and the
-// sweep that reads it would silently miss every capability in it.
+// The authority a tag-plane block operation owes, shared by the two of them.
+// Both read the tag of every granule in the group, so both require exactly what
+// a **tag-preserving capability load** over the group requires and neither
+// requires more: `creclaim` writes no data and can only destroy authority, so
+// its clear is not a store (R-15-007q, R-15-007s).
+//
+// Unlike a capability load, both *fault* where the authority lacks
+// load-capability permission rather than answering with cleared tags: an answer
+// of all-zeroes would be indistinguishable from an empty group, and the sweep
+// that read it would silently miss every capability in it.
+function cap_block_checks(auth : Capability, idx : capreg_idx, addr : xlenbits)
+         -> option(ExecutionResult) = {
+  let vaddr = Virtaddr(addr);
+  let block = caps_per_block * cap_size;
+  assert(plat_cache_block_size_exp == sizeof(log2_cap_block_size),
+         "the tag group is the CBO block, so the two must be configured alike");
+
+  if not(auth.tag) then
+    Some(Ext_DataAddr_Check_Failure((CapEx_TagViolation, idx)))
+  else if isCapSealed(auth) then
+    Some(Ext_DataAddr_Check_Failure((CapEx_SealViolation, idx)))
+  else if not(cap_permit_load(auth)) then
+    Some(Ext_DataAddr_Check_Failure((CapEx_PermitLoadViolation, idx)))
+  else if not(cap_load_cap(auth)) then
+    Some(Ext_DataAddr_Check_Failure((CapEx_PermitLoadCapViolation, idx)))
+  else if not(inCapBounds(auth, addr, block)) then
+    Some(Ext_DataAddr_Check_Failure((CapEx_LengthViolation, idx)))
+  else if not(is_aligned_addr(vaddr, block)) then
+    Some(memory_exception(vaddr, E_Load_Addr_Align()))
+  else
+    None()
+}
+
 function clause execute CLoadTags(rd, cs1) = {
   let cs1_val = C(cs1);
   let idx = capreg_idx_of_regidx(cs1);
   let addr = capAddrBits(cs1_val);
   let vaddr = Virtaddr(addr);
-  assert(plat_cache_block_size_exp == sizeof(log2_cap_block_size),
-         "cloadtags group is the CBO block, so the two must be configured alike");
 
-  if not(cs1_val.tag) then
-    Ext_DataAddr_Check_Failure((CapEx_TagViolation, idx))
-  else if isCapSealed(cs1_val) then
-    Ext_DataAddr_Check_Failure((CapEx_SealViolation, idx))
-  else if not(cap_permit_load(cs1_val)) then
-    Ext_DataAddr_Check_Failure((CapEx_PermitLoadViolation, idx))
-  else if not(cap_load_cap(cs1_val)) then
-    Ext_DataAddr_Check_Failure((CapEx_PermitLoadCapViolation, idx))
-  else if not(inCapBounds(cs1_val, addr, caps_per_block * cap_size)) then
-    Ext_DataAddr_Check_Failure((CapEx_LengthViolation, idx))
-  else if not(is_aligned_addr(vaddr, caps_per_block * cap_size)) then
-    memory_exception(vaddr, E_Load_Addr_Align())
-  else {
-    let base = physical_address(vaddr);
-    var tags : bits(caps_per_block) = zeros();
-    var failure : option(ExceptionType) = None();
+  match cap_block_checks(cs1_val, idx, addr) {
+    Some(failure) => failure,
+    None()        => {
+      let base = physical_address(vaddr);
+      var tags : bits(caps_per_block) = zeros();
+      var failure : option(ExceptionType) = None();
 
-    foreach (i from 0 to (caps_per_block - 1)) {
+      foreach (i from 0 to (caps_per_block - 1)) {
+        match failure {
+          Some(_) => (),
+          None()  => match mem_read_cap(Physaddr(bits_of(base) + (i * cap_size)), false, false) {
+            Err(_, e) => failure = Some(e),
+            Ok(v)     => tags = [tags with i = bool_to_bit(v.tag)],
+          },
+        }
+      };
+
       match failure {
-        Some(_) => (),
-        None()  => match mem_read_cap(Physaddr(bits_of(base) + (i * cap_size)), false, false) {
-          Err(_, e) => failure = Some(e),
-          Ok(v)     => tags = [tags with i = bool_to_bit(v.tag)],
-        },
+        Some(e) => memory_exception(vaddr, e),
+        None()  => { X(rd) = zero_extend(tags); RETIRE_SUCCESS },
       }
-    };
-
-    match failure {
-      Some(e) => memory_exception(vaddr, e),
-      None()  => { X(rd) = zero_extend(tags); RETIRE_SUCCESS },
-    }
+    },
   }
 }
 
@@ -725,3 +743,106 @@ mapping clause encdec = CLoadTags(rd, cs1)
 
 mapping clause assembly = CLoadTags(rd, cs1)
   <-> "cloadtags" ^ spc() ^ reg_name(rd) ^ sep() ^ "(" ^ opt_spc() ^ cap_reg_name(cs1) ^ opt_spc() ^ ")"
+
+// *****************************************************************
+union clause instruction = CReclaim : (regidx, regidx)
+
+// The block revocation reclaim: the §8 sweep's inner loop as one instruction
+// (R-15-007s, R-08-007b).
+//
+// Over one granule group it applies the per-granule conditional clear the sweep
+// exists to apply — each stored capability whose **base** falls under a set
+// revocation bit has its validity tag cleared in place — and returns the
+// group's tags as they stand after the pass. A granule whose bit is clear is
+// untouched bit for bit, and no data is written by either case.
+//
+// **It is the conditional form, which is why R-15-007r is undisturbed.** That
+// entry excludes a *bulk* tag clear: an instruction clearing a group's tags
+// while leaving its data standing is a way to destroy authority wholesale with
+// no predicate deciding it. This one has the predicate, and the predicate is
+// the same one the load already applies (R-08-005b, core/revocation.sail), so
+// what it can do to a granule is exactly what the next capability load of that
+// granule would have done to the value it delivered.
+//
+// **What it buys is the pass time and not a security bound.** Containment is
+// the epoch flip (R-08-006); the sweep's pass time is the quarantine interval
+// (R-08-007a), so one instruction per group in place of a capability load per
+// tagged granule shortens the pass by roughly the group width and the
+// quarantine pool and the §11 background slot budget shrink with it. Its
+// latency is independent of the tags found, the bits set, and the clears
+// performed, every granule taking its cycle, so no implementation ends early on
+// a group it finds empty and the sweep is one entry per group in the
+// timing-annotated model (M0.9, R-15-053).
+//
+// The walk stays software: the instruction ends at its group boundary and the
+// next group is the sweep task's next instruction, so nothing autonomous is
+// added and R-08-009's refusal of a hardware sweep engine is undisturbed.
+//
+// The clear reaches memory through the ordinary store path, so a granule in a
+// region the PMA refuses writes cannot be cleared. That is not the capability
+// check arriving twice under two names: the authority this instruction requires
+// is a *load's*, because it mints nothing and can only destroy, while the PMA is
+// a fact about the medium, and an array that cannot be written cannot have a tag
+// cleared in it whoever asks.
+//
+// The encoding is the dialect's own beside `cloadtags`, at the first sub-opcode
+// of this two-operand group that ISAv9 never allocated, so it contends for no
+// custom opcode space and a reader checking it against ISAv9 finds free space
+// rather than a re-used opcode (R-15-007j, R-15-014a).
+function clause execute CReclaim(rd, cs1) = {
+  let cs1_val = C(cs1);
+  let idx = capreg_idx_of_regidx(cs1);
+  let addr = capAddrBits(cs1_val);
+  let vaddr = Virtaddr(addr);
+
+  match cap_block_checks(cs1_val, idx, addr) {
+    Some(failure) => failure,
+    None()        => {
+      let base = physical_address(vaddr);
+      var tags : bits(caps_per_block) = zeros();
+      var failure : option(ExceptionType) = None();
+
+      foreach (i from 0 to (caps_per_block - 1)) {
+        match failure {
+          Some(_) => (),
+          None()  => {
+            let granule = Physaddr(bits_of(base) + (i * cap_size));
+            // The granule is read as **bits and a tag** rather than as a
+            // decoded capability, and written back as the bits it was. The
+            // decode below is used for the one field the predicate needs and
+            // its result reaches no register and no memory, which is the whole
+            // of *without materializing the value*: the surviving granules are
+            // bit-for-bit untouched, and a cleared one differs from what was
+            // there in its tag alone.
+            match mem_read_meta(Load(Data), granule, cap_size, false, false, true) {
+              Err(_, e) => failure = Some(e),
+              Ok(v, tag) => {
+                let revoked = tag & revocation_revoked(
+                  zero_extend(getCapBaseBits(memBitsToCapability(tag, v))));
+                if revoked then {
+                  match mem_write_value_meta(granule, cap_size, v, Store(Data), false, false, false) {
+                    Err(_, e) => failure = Some(e),
+                    Ok(true)  => (),
+                    Ok(false) => internal_error(__FILE__, __LINE__, "creclaim got false from mem_write_value_meta"),
+                  }
+                };
+                tags = [tags with i = bool_to_bit(tag & not(revoked))]
+              },
+            }
+          },
+        }
+      };
+
+      match failure {
+        Some(e) => memory_exception(vaddr, e),
+        None()  => { X(rd) = zero_extend(tags); RETIRE_SUCCESS },
+      }
+    },
+  }
+}
+
+mapping clause encdec = CReclaim(rd, cs1)
+  <-> 0b1111111 @ 0b10011 @ encdec_reg(cs1) @ 0b000 @ encdec_reg(rd) @ 0b1011011
+
+mapping clause assembly = CReclaim(rd, cs1)
+  <-> "creclaim" ^ spc() ^ reg_name(rd) ^ sep() ^ "(" ^ opt_spc() ^ cap_reg_name(cs1) ^ opt_spc() ^ ")"

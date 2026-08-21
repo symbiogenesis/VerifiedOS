@@ -17,6 +17,9 @@
 // measured act makes the candidates compete for (R-15-014a, R-15-067e), so
 // every row here takes custom-0 (`0b0001011`) and is separated by `funct3`,
 // leaving custom-1 and custom-3 whole for the rows the measurement admits.
+// `vmclear` takes `funct3` 001 in the same opcode from
+// extensions/platform/vmclear.sail, being platform surface rather than
+// capability surface; four rows, one opcode.
 //
 // The `funct3` assignment is not arbitrary either: the indexed load and store
 // carry `ld`'s and `sd`'s own width code in the low bits, so a reader reads the

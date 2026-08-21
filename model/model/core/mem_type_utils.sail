@@ -13,8 +13,12 @@ function accessFaultFromAccessType(access : MemoryAccessType(mem_payload)) -> Ex
     Store(_)                            => E_SAMO_Access_Fault(),
     Atomic(_)                           => E_SAMO_Access_Fault(),
 
-    // Cache-block zero (CB_zero) instructions raise store faults.
+    // Cache-block zero (CB_zero) instructions raise store faults. The scrub
+    // raises the same one: it reads before it writes, but a refusal denies it
+    // the rewrite it exists for, so reporting the read half would name the
+    // lesser of the two authorities it was refused (R-15-177a).
     CacheAccess(CB_zero())              => E_SAMO_Access_Fault(),
+    CacheAccess(CB_scrub())             => E_SAMO_Access_Fault(),
   }
 
 function alignmentFaultFromAccessType(access : MemoryAccessType(mem_payload)) -> ExceptionType =
@@ -26,4 +30,5 @@ function alignmentFaultFromAccessType(access : MemoryAccessType(mem_payload)) ->
 
     // Cache-block zero (CB_zero) instructions raise store faults.
     CacheAccess(CB_zero())              => E_SAMO_Addr_Align(),
+    CacheAccess(CB_scrub())             => E_SAMO_Addr_Align(),
   }
