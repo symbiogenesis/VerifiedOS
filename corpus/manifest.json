@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "trace_schema": 1,
   "members": [
     {
@@ -127,6 +127,13 @@
       "checks": 8,
       "records": 380,
       "digest": "713b7fbdd0b4326c"
+    },
+    {
+      "name": "platform-memseq",
+      "source": "platform-memseq.s",
+      "checks": 8,
+      "records": 470,
+      "digest": "50ebdc2f2405ca34"
     }
   ]
 }

@@ -234,6 +234,31 @@
       "interval_base": 2147516416,
       "interval_size": 32768
     },
+    // The refresh and discharge sequencer (R-15-247h). `base` is the register
+    // slave's window, 0x2300000; nothing on this die reaches it, the RoT being
+    // its only sequencer, and the model refuses every access to it.
+    //
+    // The four cadence figures are the composition-fixed schedule over the
+    // second class's 4096 banks. **Which simultaneous-activation set is
+    // admissible is M0.17's to decide against the droop, thermal-coupling, and
+    // power-signature envelope (R-15-247g, R-15-247p), so the two `banks_per_`
+    // figures are placeholders exactly as that class's own constants are.**
+    // What is not a placeholder is the shape the validator holds: the discharge
+    // set is no larger than the refresh set, because discharge asserts every
+    // write wordline in a bank where a refresh asserts a row; each phase
+    // interval covers the operation it issues; and the full refresh sweep,
+    // 512 phases at 58 ms, is inside the second class's 60-second retention
+    // floor, which is the one deadline a retention figure is consumed by
+    // (R-15-247c).
+    "memory_sequencer": {
+      "supported": true,
+      "base": 36700160,
+      "size": 4096,
+      "banks_per_refresh_phase": 8,
+      "refresh_phase_cycles": 58000000,
+      "banks_per_discharge_phase": 4,
+      "discharge_phase_cycles": 8192
+    },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,

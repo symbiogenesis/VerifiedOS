@@ -298,7 +298,13 @@ private function check_mem_layout() -> bool =
                    within_configured_pma_memory("revocation bitmap window (platform.revocation)", Some(IOMemory),
                                                 plat_revocation_base,
                                                 to_bits(physaddrbits_len, revocation_bitmap_bytes));
-    pmas_ok & clint_ok & imsic_ok & revocation_window_ok
+    // The sequencer's window is a register slave like the other three, so it
+    // belongs in IO memory; that it refuses every requester is a property of the
+    // slave and not of where it sits (sys/platform.sail, R-15-247h).
+    let sequencer_window_ok = not(plat_have_memory_sequencer) |
+                   within_configured_pma_memory("memory sequencer window (platform.memory_sequencer)", Some(IOMemory),
+                                                plat_memory_sequencer_base, plat_memory_sequencer_size);
+    pmas_ok & clint_ok & imsic_ok & revocation_window_ok & sequencer_window_ok
   }
 
 private function check_misc_extension_dependencies() -> bool = {
@@ -484,9 +490,107 @@ private function check_memory_classes() -> bool = {
   valid
 }
 
+// The refresh and discharge sequencer (R-15-247h, sys/memory_sequencer.sail).
+//
+// The values in the cadence table are the composition's and this is not where
+// they are judged: which simultaneous-activation set a droop, thermal-coupling,
+// and power-signature envelope admits is M0.17's to decide (R-15-247g,
+// R-15-247p), and a validator asserting one here would be the architectural
+// input that measurement is owed. What is checked is the **shape**, and one
+// arithmetic fact that is not a matter of taste at all: a refresh sweep slower
+// than the class's retention floor is data lost on a schedule.
+private function check_memory_sequencer() -> bool = {
+  var valid : bool = true;
+  let has_domain : bool = match memory_sequencer_domain() { Some(_) => true, None() => false };
+
+  // The pairing, in both directions. A bulk domain with no sequencer decays on a
+  // schedule nobody wrote (R-15-247k: RETAINED there *is* the sequencer reaching
+  // it), and a sequencer with no bulk domain is a maintenance mechanism for an
+  // array the memory plan did not place.
+  if has_domain & not(plat_have_memory_sequencer) then {
+    valid = false;
+    print_endline("A memory region is placed on the second latency class but `platform.memory_sequencer` is not supported; a class that stores charge with no restoring feedback is retained by its sequencer and by nothing else.");
+  };
+  if plat_have_memory_sequencer & not(has_domain) then {
+    valid = false;
+    print_endline("`platform.memory_sequencer` is supported but no memory region is placed on the second latency class; the sequencer maintains that class and there is nothing else for it to reach.");
+  };
+  if not(plat_have_memory_sequencer) then return valid;
+
+  let second = memory_class_constants(SecondClass);
+  let banks = memory_sequencer_banks();
+  let refresh_set = plat_memory_sequencer_refresh_banks_per_phase;
+  let discharge_set = plat_memory_sequencer_discharge_banks_per_phase;
+
+  // A class with no banks is already refused where the class record is checked,
+  // and `config_is_valid` runs that first, so this is the arithmetic's
+  // precondition rather than a second message saying the same thing: every
+  // quantity below divides by the bank count.
+  if banks <= 0 then return valid;
+
+  // A phase's set is a subset of the class's banks, and the discharge set is no
+  // larger than the refresh set: a discharge asserts every write wordline in the
+  // bank (R-15-247e) where a refresh asserts a row, so whatever instantaneous
+  // current the refresh set is admitted at, the discharge set is admitted at no
+  // more banks than that.
+  if refresh_set == 0 | refresh_set > banks then {
+    valid = false;
+    print_endline("`platform.memory_sequencer.banks_per_refresh_phase` is " ^ dec_str(refresh_set) ^ " but the second latency class has " ^ dec_str(banks) ^ " banks; a phase reaches at least one of them and no more than all of them.");
+  };
+  if discharge_set == 0 | discharge_set > refresh_set then {
+    valid = false;
+    print_endline("`platform.memory_sequencer.banks_per_discharge_phase` is " ^ dec_str(discharge_set) ^ " against a refresh set of " ^ dec_str(refresh_set) ^ "; a discharge asserts every write wordline in a bank where a refresh asserts a row, so its simultaneous-activation set is no larger.");
+  };
+
+  // A phase interval that does not cover the operation it issues is a schedule
+  // whose phases overlap, which is the one thing the stagger exists to prevent.
+  if plat_memory_sequencer_refresh_phase_cycles < second.refresh_cycles then {
+    valid = false;
+    print_endline("`platform.memory_sequencer.refresh_phase_cycles` is " ^ dec_str(plat_memory_sequencer_refresh_phase_cycles) ^ " but the second latency class refreshes in " ^ dec_str(second.refresh_cycles) ^ " cycles; a phase interval covers the operation it issues.");
+  };
+  if plat_memory_sequencer_discharge_phase_cycles < second.discharge_cycles then {
+    valid = false;
+    print_endline("`platform.memory_sequencer.discharge_phase_cycles` is " ^ dec_str(plat_memory_sequencer_discharge_phase_cycles) ^ " but the second latency class's discharge dwell is " ^ dec_str(second.discharge_cycles) ^ " cycles; a phase interval covers the fixed worst-corner dwell it waits out.");
+  };
+
+  // The deadline crosses from the microseconds retention is stated in to the
+  // cycles the cadence is stated in, at the spine frequency (R-15-195). A spine
+  // below one megahertz has no whole cycles per microsecond to cross with, which
+  // is a configuration this arithmetic cannot be run against rather than a
+  // schedule that is too slow.
+  if plat_clock_frequency < 1000000 then {
+    valid = false;
+    print_endline("`platform.clock_frequency` is " ^ dec_str(plat_clock_frequency) ^ ", below one cycle per microsecond; the refresh deadline is a retention figure in microseconds read against a cadence in cycles, and there is no spine ratio to read it at.");
+  } else if memory_sequencer_refresh_period_cycles() >= memory_sequencer_refresh_deadline_cycles() then {
+    valid = false;
+    print_endline("The refresh sweep is " ^ dec_str(memory_sequencer_refresh_phases()) ^ " phases of " ^ dec_str(plat_memory_sequencer_refresh_phase_cycles) ^ " cycles, which is " ^ dec_str(memory_sequencer_refresh_period_cycles()) ^ " cycles against a retention floor of " ^ dec_str(memory_sequencer_refresh_deadline_cycles()) ^ "; a sweep that does not finish inside the floor loses the data it was maintaining.");
+  };
+
+  // And the domain divides into its class's banks exactly, each bank into whole
+  // chunks of the widest access the memory interface takes. A remainder is a
+  // sliver of the array no phase reaches, which is the failure mode a schedule
+  // stated in banks rather than in addresses is otherwise silent about.
+  match memory_sequencer_domain() {
+    None() => (),
+    Some(region) => {
+      let size = unsigned(region.size);
+      if size % banks != 0 then {
+        valid = false;
+        print_endline("The second-class region starting at " ^ bits_str(region.base) ^ " is " ^ dec_str(size) ^ " bytes over " ^ dec_str(banks) ^ " banks, which does not divide; a bank is a whole share of the domain and no part of it is left unreached.");
+      } else if memory_sequencer_bank_bytes() % memory_sequencer_chunk_bytes != 0 then {
+        valid = false;
+        print_endline("A bank of the second-class region is " ^ dec_str(memory_sequencer_bank_bytes()) ^ " bytes, which is not a whole number of " ^ dec_str(memory_sequencer_chunk_bytes) ^ "-byte accesses; the discharge drains a bank through the memory interface's own widest write and leaves no remainder.");
+      };
+    },
+  };
+
+  valid
+}
+
 function config_is_valid() -> bool = {
     check_tvec()
   & check_memory_classes()
+  & check_memory_sequencer()
   & check_revocation()
   & check_mstatus_fields()
   & check_physaddr_bits()

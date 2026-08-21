@@ -310,6 +310,41 @@ function revocation_store(paddr, width, data) =
     Some(word) => { revocation_write_word(word, zero_extend(64, data)); Ok(true) },
   } else Err(paddr, E_SAMO_Access_Fault())
 
+// The refresh and discharge sequencer's register slave (R-15-247h).
+//
+// **It answers no requester, at any width, in either direction, and that is the
+// whole of its behaviour on this side of the fabric.** The mechanism is §12
+// matter, sequenced by the RoT while every application core, DMA engine, and
+// capability-bearing fabric initiator is held in reset, and every access this
+// model can issue is a hart's. A hart executing an instruction is by
+// construction not in reset, so an access that reaches this window is the same
+// fail-stop sentinel event a non-ON decode already is (R-15-189h, R-15-247k)
+// rather than a door software may knock on. The schedule the slave runs is
+// sys/memory_sequencer.sail.
+//
+// The window is *in* the address map rather than absent from it because the
+// composition declares the slave and an auditor checks it is unreachable, which
+// is a different fact from its not existing: A-17 is the search of the decode
+// surface for a maintenance instruction, and this is the search of the address
+// map for a door (docs/absence-contract.md). Refusing here rather than leaving
+// the window unclaimed is also what makes the refusal real: an IO address no
+// device claims falls through to the RAM path and reads as zero (sys/mem.sail),
+// which is silence and not a refusal.
+private function within_memory_sequencer forall 'n, 0 < 'n <= max_mem_access . (Physaddr(addr) : physaddr, width : int('n)) -> bool = {
+  if not(plat_have_memory_sequencer) then return false;
+  let addr_int = unsigned(addr);
+  let base_int = unsigned(plat_memory_sequencer_base);
+  let size_int = unsigned(plat_memory_sequencer_size);
+    base_int <= addr_int
+  & (addr_int + sizeof('n)) <= (base_int + size_int)
+}
+
+private val memory_sequencer_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function memory_sequencer_load(access, paddr, _width) = Err(paddr, accessFaultFromAccessType(access))
+
+private val memory_sequencer_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function memory_sequencer_store(paddr, _width, _data) = Err(paddr, E_SAMO_Access_Fault())
+
 // Basic terminal character I/O.
 
 val plat_term_write = impure {cpp: "plat_term_write", lem: "plat_term_write"} : bits(8) -> unit
@@ -440,12 +475,14 @@ function within_mmio_readable forall 'n, 0 < 'n <= max_mem_access . (addr : phys
   if get_config_rvfi()
   then false
   else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
+       | within_memory_sequencer(addr, width)
        | (within_htif_readable(addr, width) & 1 <= 'n)
 
 function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   if get_config_rvfi()
   then false
   else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
+       | within_memory_sequencer(addr, width)
        | (within_htif_writable(addr, width) & 'n <= 8)
 
 function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessType(mem_payload), paddr : physaddr, width : int('n)) -> MemoryOpResult(bits(8 * 'n)) =
@@ -455,6 +492,8 @@ function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessT
   then imsic_load(access, paddr, width)
   else if within_revocation(paddr, width)
   then revocation_load(access, paddr, width)
+  else if within_memory_sequencer(paddr, width)
+  then memory_sequencer_load(access, paddr, width)
   else if within_htif_readable(paddr, width)
   then htif_load(access, paddr, width)
   else Err(paddr, accessFaultFromAccessType(access))
@@ -466,6 +505,8 @@ function mmio_write forall 'n, 0 < 'n <= max_mem_access . (paddr : physaddr, wid
   then imsic_store(paddr, width, data)
   else if within_revocation(paddr, width)
   then revocation_store(paddr, width, data)
+  else if within_memory_sequencer(paddr, width)
+  then memory_sequencer_store(paddr, width, data)
   else if within_htif_writable(paddr, width)
   then htif_store(paddr, width, data)
   else Err(paddr, E_SAMO_Access_Fault())
