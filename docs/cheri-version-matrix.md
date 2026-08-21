@@ -20,6 +20,8 @@ Three lineages have incremented since CHERI began, and the profile stands in a d
 | ➖ | **No consumer**: structurally inapplicable on this machine; the profile is silent and silence is right |
 | ⚠️ | **Agenda**: on the review gate's docket (R-18-034), whether a live design question, a divergence kept visible, or external evidence a register argument has to engage |
 
+**Section references.** Two numberings meet in these cells. A `§n` in the Governing column, or in a sentence that names the profile or the register, is that document's section: the profile's §5.2 is its CSR bank, the register's §11 is temporal admission. A `see §n` or a `§n below` is this document's own, where §1 to §8 are the Cambridge versions in order, §9 is RVY and §10 CHERIoT. One cell carries both readings at once, the RVY enable-bit row citing this document's §7 and the profile's §5.2, which is why the convention is stated here rather than left to each sentence. The checker holds only the weaker property that some document in the repository numbers that section, so a `§n` aimed at the wrong document passes green and is caught by reading.
+
 ---
 
 ## 1. ISAv1–ISAv3 (2010–2014): the protection model
