@@ -399,56 +399,52 @@ union clause instruction = FENCE_TSO : unit
 mapping clause encdec = FENCE_TSO()
   <-> 0b1000 @ 0b0011 @ 0b0011 @ 0b00000 @ 0b000 @ 0b00000 @ 0b0001111
 
-function clause execute FENCE_TSO() = {
-  sail_barrier(Barrier_RISCV_tso);
-  RETIRE_SUCCESS
-}
+// `fence.tso` is a semantic no-op (R-15-017). Under RVWMO it orders everything
+// but store to later-load, which is the one relaxation Ztso leaves, so on a
+// machine whose memory model is already TSO it asks for nothing the machine does
+// not already do. It keeps its own encoding rather than folding into `FENCE`
+// because `fm` 1000 is its allocation and every other `fm` traps below.
+function clause execute FENCE_TSO() = RETIRE_SUCCESS
 
 mapping clause assembly = FENCE_TSO()
   <-> "fence.tso"
 
 // *****************************************************************
-union clause instruction = FENCE : (bits(4), bits(4), bits(4), regidx, regidx)
+union clause instruction = FENCE : (bits(4), bits(4), regidx, regidx)
 
-// Note: FENCE_TSO and PAUSE are encoded as FENCE so they must come first.
-mapping clause encdec = FENCE(fm, pred, succ, rs, rd)
-  <-> fm : bits(4) @ pred : bits(4) @ succ : bits(4) @ encdec_reg(rs) @ 0b000 @ encdec_reg(rd) @ 0b0001111
+// Note: FENCE_TSO is encoded as FENCE so it must come first.
+//
+// `fm` is not an operand, it is the literal 0b0000. Upstream decodes every `fm`
+// into this clause and then ignores it, which is the base ISA's forward
+// compatibility rule: an implementation is to treat a reserved configuration as
+// `fm`=0000 rather than trap. This profile refuses that rule outright, all
+// reserved, custom, and unused encodings trapping rather than silently executing
+// (R-15-014), and R-15-017 says so for this instruction by name. So the field is
+// matched rather than bound, and the reserved values reach no clause and become
+// ILLEGAL. `rs1` and `rd` are the residual class that stays legal-and-ignored:
+// they are reserved for finer-grained fences of a *future* extension, so a
+// program that sets them is asking for a fence this machine is entitled to give
+// it in full.
+mapping clause encdec = FENCE(pred, succ, rs, rd)
+  <-> 0b0000 @ pred : bits(4) @ succ : bits(4) @ encdec_reg(rs) @ 0b000 @ encdec_reg(rd) @ 0b0001111
 
-function effective_fence_set(set : bits(4), fiom : bool) -> bits(4) = {
-  // The bits are IORW. If FIOM is set then I implies R and O implies W.
-  if fiom then {
-    set[3 .. 2] @ (set[1 .. 0] | set[3 .. 2])
-  } else set
-}
+// The two semantics R-15-017 leaves. A `fence` drains the store buffer iff its
+// predecessor set contains a write (`PW` or `PO`) and its successor set contains
+// a read (`PR` or `PI`); every other combination is a no-op. The sets are IORW,
+// so the write half of a predecessor is bits O and W and the read half of a
+// successor is bits I and R, and each is one mask rather than a position in the
+// 256-case lattice.
+//
+// Reading I and O directly is what retires `is_fiom_active`. Upstream made the
+// I-implies-R and O-implies-W direction conditional on the FIOM bit of
+// `menvcfg`/`senvcfg`, both of which left with the mode they gated (core/
+// sys_regs.sail, R-15-049a); the condition here is unconditional and strictly
+// stronger than the bit ever made it, so nothing is lost by the register going.
+function fence_drains(pred : bits(4), succ : bits(4)) -> bool =
+  (pred & 0b0101) != zeros() & (succ & 0b1010) != zeros()
 
-function clause execute FENCE(_fm, pred, succ, _rs, _rd) = {
-  // "The unused fields in the FENCE instructions - rs1 and rd - are reserved for
-  // finer-grain fences in future extensions. For forward compatibility, base
-  // implementations shall ignore these fields. Likewise, many fm and
-  // predecessor/successor set settings are also reserved for future use.
-  // Base implementations shall treat all such reserved configurations as FENCE
-  // instructions (with fm=0000)."
-
-  // If the FIOM bit in menvcfg/senvcfg is set then the I/O bits can imply R/W.
-  let fiom = is_fiom_active();
-  let pred = effective_fence_set(pred, fiom);
-  let succ = effective_fence_set(succ, fiom);
-
-  // Ignore I/O bits.
-  match (pred[1 .. 0], succ[1 .. 0]) {
-    (0b11, 0b11) => sail_barrier(Barrier_RISCV_rw_rw),
-    (0b10, 0b11) => sail_barrier(Barrier_RISCV_r_rw),
-    (0b10, 0b10) => sail_barrier(Barrier_RISCV_r_r),
-    (0b11, 0b01) => sail_barrier(Barrier_RISCV_rw_w),
-    (0b01, 0b01) => sail_barrier(Barrier_RISCV_w_w),
-    (0b01, 0b11) => sail_barrier(Barrier_RISCV_w_rw),
-    (0b11, 0b10) => sail_barrier(Barrier_RISCV_rw_r),
-    (0b10, 0b01) => sail_barrier(Barrier_RISCV_r_w),
-    (0b01, 0b10) => sail_barrier(Barrier_RISCV_w_r),
-
-    (_   , 0b00) => (),
-    (0b00, _   ) => (),
-  };
+function clause execute FENCE(pred, succ, _rs, _rd) = {
+  if fence_drains(pred, succ) then sail_barrier(Barrier_RISCV_drain);
   RETIRE_SUCCESS
 }
 
@@ -480,18 +476,20 @@ mapping fence_bits : bits(4) <-> string = {
   i : bits(1) @ o : bits(1) @ r : bits(1) @ w : bits(1) <-> bit_maybe_i(i) ^ bit_maybe_o(o) ^ bit_maybe_r(r) ^ bit_maybe_w(w),
 }
 
-// There's no assembly that encodes reserved fences as far as I know.
+// Every legal encoding disassembles: a reserved `fm` is no longer one of them,
+// so the class that had no assembly is now the `fence` carrying a non-zero `rs1`
+// or `rd`, which stays legal and ignored.
 // Unfortunately we need to split forwards and backwards because there's
 // no way to write a zero regidx as a literal.
 mapping clause assembly =
-  forwards FENCE(0b0000, pred, succ, rs, rd) => "fence" ^ spc() ^ fence_bits(pred) ^ sep() ^ fence_bits(succ)
+  forwards FENCE(pred, succ, rs, rd) => "fence" ^ spc() ^ fence_bits(pred) ^ sep() ^ fence_bits(succ)
     when rs == zreg & rd == zreg
 
 // TODO: This hits a Sail compiler bug, https://github.com/rems-project/sail/issues/1577
 // however we don't currently use the assembler direction of this mapping so
 // it doesn't really matter.
 // mapping clause assembly =
-//   backwards "fence" ^ spc() ^ fence_bits(pred) ^ sep() ^ fence_bits(succ) => FENCE(0b0000, pred, succ, zreg, zreg)
+//   backwards "fence" ^ spc() ^ fence_bits(pred) ^ sep() ^ fence_bits(succ) => FENCE(pred, succ, zreg, zreg)
 
 // *****************************************************************
 union clause instruction = ECALL : unit

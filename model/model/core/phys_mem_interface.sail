@@ -40,18 +40,16 @@ enum read_kind = {
   Read_RISCV_reserved_strong_acquire,
 }
 
+// One barrier, because the memory model admits one. Ztso is adopted normatively
+// in place of RVWMO (R-15-004), and under it the only reordering the machine
+// exhibits is store to later-load bypass through the store buffer (R-15-015), so
+// the single thing a fence can do is drain that buffer. The nine predecessor and
+// successor members upstream carries are the RVWMO lattice R-15-017 collapses to
+// `drain | nop`; `Barrier_RISCV_tso` was `fence.tso`'s, which is a no-op here by
+// the same requirement; and `Barrier_RISCV_i` has been unreachable since
+// `Zifencei` left with the c1 batch (R-15-047).
 enum barrier_kind = {
-  Barrier_RISCV_rw_rw,
-  Barrier_RISCV_r_rw,
-  Barrier_RISCV_r_r,
-  Barrier_RISCV_rw_w,
-  Barrier_RISCV_w_w,
-  Barrier_RISCV_w_rw,
-  Barrier_RISCV_rw_r,
-  Barrier_RISCV_r_w,
-  Barrier_RISCV_w_r,
-  Barrier_RISCV_tso,
-  Barrier_RISCV_i,
+  Barrier_RISCV_drain,
 }
 
 // Most of the above read/write_kinds are understood natively by the

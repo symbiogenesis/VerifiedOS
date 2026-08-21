@@ -147,6 +147,30 @@ mapping clause extensionName = Ext_Zkt <-> "zkt"
 function clause hartSupports(Ext_Zkt) = config extensions.Zkt.supported
 function clause currentlyEnabled(Ext_Zkt) = hartSupports(Ext_Zkt)
 
+// Total Store Ordering
+//
+// The one row in this registry that is not read from a configuration key, and
+// the absence of the key is the requirement rather than an oversight. The
+// architectural memory model *is* Ztso, adopted normatively in place of RVWMO
+// (R-15-004, R-15-243), and every ring proof is restated under it; a
+// `extensions.Ztso.supported` key would make the memory model a composition
+// parameter and admit a composition of this machine that is not this machine.
+// It is a bring-up property and not a later addition (R-18-006), so it is
+// declared here, from the first emission, hardwired.
+//
+// What it buys the model today is naming: `hartSupports` is what the generated
+// `riscv,isa` string and `riscv,isa-extensions` array are built from
+// (postlude/device_tree.sail), so an attested devicetree now says which memory
+// model the hart implements where it said nothing. The ordering itself is a
+// microarchitectural property of the store buffer and the fabric beneath it, and
+// stating it is an RTL-against-Sail obligation rather than something this model
+// can exhibit (R-15-016): a single-hart, single-copy model has no execution that
+// separates TSO from sequential consistency.
+enum clause extension = Ext_Ztso
+mapping clause extensionName = Ext_Ztso <-> "ztso"
+function clause hartSupports(Ext_Ztso) = true
+function clause currentlyEnabled(Ext_Ztso) = hartSupports(Ext_Ztso)
+
 
 // Standard Vector Extensions
 // Minimum Vector Length Standard Extensions
@@ -366,6 +390,9 @@ let extensions_ordered_for_isa_string = [
 
   // Zk
   Ext_Zkt,
+
+  // Zt
+  Ext_Ztso,
 
   // Zvb
   Ext_Zvbb,
