@@ -96,8 +96,20 @@ with the house style is a linter that gets switched off.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml) rather than on a
 command line, so that an editor's language server decides exactly what this gate decides.
-`jsonschema` is the one optional dependency and the one suppression, taken by rule
-(`# ty: ignore[unresolved-import]`) so that every other unresolved import stays an error.
+
+`jsonschema` is the third prerequisite and the one dependency here that is not the
+standard library, `pip install jsonschema` on the host and `apt install
+python3-jsonschema` in the guest. It is required on **both** lanes although only the
+guest validates a configuration, and that is what keeps the gate lane-independent rather
+than merely convenient. ty resolves a third-party import against the environment it
+finds, so an absent package is an `unresolved-import` and a suppression for it is an
+`unused-ignore-comment` the moment the package is present: written for the lane that
+lacks it, the directive is a finding on the lane that has it, and the gate's verdict
+turns on what happens to be installed instead of on what the code says. ty.toml pins
+`python-platform` for the same reason on the other axis, so that the tools are typed
+against one declared target and not against whichever machine ran the checker. There is
+no suppression in this directory now, which leaves every unresolved import an error
+without a carve-out to audit.
 
 ## The conventions
 
