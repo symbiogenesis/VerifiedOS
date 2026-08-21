@@ -133,6 +133,7 @@ def run(ctx: Context) -> None:
         "prose bookmarks": len(ctx.corpus.anchor_count),
         "tag-plane figures the granule fixes": sh.get("tag_plane", 0),
         "welded block sizes the constraints admit": sh.get("block_candidates", 0),
+        "bank counts the DSE contract declares": sh.get("bank_candidates", 0),
         "per-class capacity figures the register owns": owned,
         "region classes the placement compound reads": sh.get("placement_terms", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),

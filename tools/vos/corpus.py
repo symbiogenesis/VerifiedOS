@@ -127,6 +127,19 @@ PROSE_SECTION_RE = re.compile(r"## (\d+)\.")
 # the exclusion itself cannot stop agreeing
 UNREAD_PREFIX = "model/"
 
+# The carve-out inside that exclusion, and the reason it has to live beside it. A few
+# model files carry a fact a document restates, and a rule holding the two together has
+# to read both; the selftest's sandbox stands the rest of the tree up as empty files to
+# save copying what no rule opens, so a path a rule reads and this list omits passes on
+# the host and fails every sandbox's baseline, which reports as a red tree rather than
+# as a bad mutant. One list, read by the sandbox and by the parses alike.
+MODEL_FACTS = (
+    "model/model/core/cap_format.sail",
+    "model/model/unit_tests/test_cheri_insts.sail",
+    "model/config/verifiedos.json",
+    "model/config/config.json.in",
+)
+
 # an index entry's mode, which is what tells a submodule from a file
 GITLINK_MODE = "160000"
 

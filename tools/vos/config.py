@@ -18,9 +18,46 @@ batch.
 
 import json
 from pathlib import Path
+from typing import cast
 
 from . import jsonc
 from .jsonc import Json
+
+
+def value(path: Path, *keys: str) -> Json:
+    """One value out of the model's configuration, by the key path that names it.
+
+    The dialect is decoded here and nowhere else. A tool wanting a figure out of a
+    configuration asks this rather than growing a second decoder of the same file,
+    which is the two-copies-of-one-fact defect the checker exists to catch running
+    loose inside it.
+
+    A file that is not there, a file that does not parse, and a key path that runs out
+    all answer `None`. An absent figure is a finding the caller words in its own terms,
+    never an exception it has to catch to say so.
+    """
+    if not path.is_file():
+        return None
+    try:
+        node: Json = jsonc.load(path)
+    except ValueError:
+        return None
+    for key in keys:
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    # `Json` is recursive, and a walk that re-binds through it leaves the checker
+    # holding the alias expanded one level rather than the alias, which is the same
+    # type spelled longer. Narrowed back to what it is, as `jsonc.load` narrows the
+    # untyped boundary it stands on.
+    return cast("Json", node)
+
+
+def integer(path: Path, *keys: str) -> int | None:
+    """The same, narrowed to a whole number. `True` is an `int` in Python and a
+    boolean in the configuration, so the narrowing has to exclude it by name."""
+    found = value(path, *keys)
+    return found if isinstance(found, int) and not isinstance(found, bool) else None
 
 
 def _is_value(node: Json) -> bool:
