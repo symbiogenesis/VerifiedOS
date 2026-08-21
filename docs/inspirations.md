@@ -588,6 +588,43 @@ FSCQ is the existence proof *that a filesystem can be verified at all*: the grou
 
 ---
 
+## TigerBeetle: static allocation and paced background work at the throughput pole, and the rule about where a checksum lives
+
+**TigerBeetle** is a production single-writer OLTP database whose engineering doctrine, **TigerStyle**, is NASA's Power of Ten carried into a commercial system: *"All memory must be statically allocated at startup. No memory may be dynamically allocated (or freed and reallocated) after initialization"*, no recursion, a fixed upper bound on every loop, hard limits on every queue, explicitly-sized integer types, and zeroed padding *"to prevent buffer bleeds"*.
+It enters for two distinct reasons that should not be run together: one **mechanism** §10 takes, and a body of **convergent evidence** for disciplines this design reaches from a proof budget rather than from a latency target.
+Its own trust argument is assertion density and deterministic simulation rather than proof, and none of its code is imported (Apache-2.0 Zig, a language with neither a verified compiler nor a mechanized semantics, so it is outside §5's single-prover, CompCert-C vehicle by construction).
+
+**The mechanism is where a checksum lives, and it is the one thing an internal checksum cannot do.**
+A TigerBeetle grid block is addressed by a pair of block index and `u128` checksum, and a reader always knows the checksum *before* the read, from the parent block or from the superblock, because *"one failure mode for disks is to store correct data at a wrong offset, a failure which cannot be detected using only internal checksums"*.
+The Merkle DAG of the immutable base already has this property by construction (a parent holds its child's hash), but the mutable side did not state it, and the per-extent AEAD makes the omission consequential rather than cosmetic: an extent sealed and stored with its own tag verifies perfectly when a device returns it from the wrong place, because it is internally consistent and merely wrong.
+So R-10-022a states the placement: the nonce and tag live in the index node that references the extent, never beside the ciphertext, which is what holds the below-the-line block services (replication, tiering, copygc, the FTL) to their availability-only role by a check the *reader* performs rather than by their own bookkeeping (R-10-021).
+The root gets the same treatment for the opposite reason.
+TigerBeetle writes **four copies of the superblock and starts from the newest present in at least two**, and it is the one structure storing its own checksum internally *because nothing references it*; R-10-001a is that argument re-grounded, and the re-grounding is real rather than cosmetic, since every root here is ML-DSA-signed and security-versioned, so authenticity is decided by the signature and never by a vote among copies: redundancy buys only that a torn or misdirected write of one copy costs a copy instead of the generation, and the selection rule (verify every candidate, take the highest version that verifies) replaces a stored pointer naming the current slot with a decision derived from the candidates themselves.
+
+**The pacing is convergent, and it is the answer to the question an LSM or a CoW tree would otherwise ask of a cyclic executive.**
+Compaction runs one tick immediately after each commit at `beat = op % lsm_compaction_ops`, split into half-bars by level parity, with at most ⌈levels/2⌉ compactions live, free-set reservations taken only at half-bar boundaries, and the invariant that *"at the end of every beat, there is space in mutable table for the next beat"*: background maintenance amortized into a fixed per-operation quantum instead of a thread that runs when it likes.
+That is structurally the discipline §8 already imposes on the revocation sweep (an incremental pass in its own composition-sized background slot class, R-08-007) and §15 on the scrubber (*a scheduled task issuing one instruction, never an engine walking on its own*, R-15-177a), reached independently by a system with no WCET obligation at all.
+What transfers is only the pacing: the **index** stays the B^ε / CoW B-tree of §10, so the forest, the level geometry, the manifest log, and the move-table optimization stay behind with the LSM they belong to.
+
+**The static-allocation evidence is the entry's other half, and it lands where the design is usually conceded a niche.**
+The heap deletion (§8) is argued here from proof budget and from Robson's bound (above), which is a safety-critical argument, and the standing objection is that it belongs to safety-critical systems and does not survive contact with general throughput work.
+TigerBeetle is the counterexample: the same rule, adopted for tail latency and for deleting use-after-free, in a database whose whole product claim is throughput, which is the datapoint [architectural-alternatives.md](architectural-alternatives.md) and [critique.md](critique.md) want at that objection, in the shape the Akaros and Cerebras entries already use.
+Two smaller doctrinal echoes come with it: the zeroed-padding rule is §10's representation-padding obligation and §5's definite initialization seen from a systems-hygiene angle, and *"assertions downgrade catastrophic correctness bugs into liveness bugs"* is §16's *detect, correct, or contain, never shield* stated by a database.
+The assertion discipline itself does **not** transfer wholesale, because proofs discharge what assertions sample; what it reaches here is the axiom boundary, where there is no theorem to have (the probing model, the single-fault model, the fabricated-silicon residual, §17).
+
+**Determinism is the last import, and it is method rather than mechanism.**
+Because replaying operations reproduces bit-identical in-memory and on-disk state, recovery is a restart from the last superblock and a re-derivation rather than a resume, which is R-10-036's *restore is never a resume* arrived at from durability instead of from authority.
+The **VOPR** simulator then spends that determinism: real cluster code under injected network, storage, and process faults at accelerated time.
+This platform makes the whole *machine* deterministic (no speculation, flat memory latency, a static schedule, no runtime allocation), so a simulator of that kind is unusually faithful here and is the natural validation lane for the layers that will not carry a theorem soon: the unauthored NoC model, the drivers, the radio control planes (§12, §17).
+It enters at the tier aiT, Binsec/Rel, and the bounded-property tools enter at, **complementary evidence and never a closing axiom** (§5, §17).
+
+What stays behind is everything that follows from having peers: Viewstamped Replication, view changes, quorum durability, protocol-aware recovery, and gray-failure detection answer a fault model a single device does not have.
+So do `io_uring` and `O_DIRECT`, which presuppose a host kernel to bypass, where here there is nothing beneath the verified stack to be bypassed.
+The **multiversion binary** is declined outright rather than merely unused: bundling past releases in `.tb_mvh` / `.tb_mvb` sections and `exec`ing into one is exactly the on-device executable-format parser and loader §10 deletes, and A/B signed roots with health-gated revert (§11) already own the job it does.
+One sharpening is admired and not adopted: fixed-width 128-byte records with reserved fields that must be zero make the internal formats canonical by construction and delete the parser rather than verifying it, which is the trivial case of the canonicity theorem R-05-051a demands; the platform's descriptors are IDL- and Narcissus-generated and carry that theorem the harder way, so the observation is recorded as a design pressure on new internal formats rather than as an obligation on the existing ones.
+
+---
+
 ## ChromeOS: the verified-boot root of trust, realized as on-die OpenTitan
 
 ChromeOS is the mass-deployment proof that a consumer OS can stand on a **hardware root of trust with verified boot, a read-only rootfs, and A/B updates with automatic rollback**: its trust anchored in a discrete security chip (the Google Titan / H1 lineage) whose open-silicon descendant is **OpenTitan**.
