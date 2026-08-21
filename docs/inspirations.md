@@ -629,6 +629,20 @@ Content-addressed transactional storage: proof-checked and capability-scoped.
 
 ---
 
+## Unison: identity as the hash of the normalized definition, and acceleration that preserves it by construction
+
+**Unison** (Chiusano and Bjarnason; 1.0 shipped November 2025, MIT) takes content addressing one level below where OSTree and Nix stop.
+A definition's identity is the hash of its **normalized syntax tree**, with names stripped to metadata, so a rename is a metadata edit that recompiles nothing, two definitions that differ only in variable spelling are the same definition, and the dependency diamond dissolves because there is no version to disagree about, only a hash.
+There is no build step, since a definition is either already in the store under its hash or is not.
+The import is not the runtime and not the language: it is the **normalization pass before the hash**, which is what makes hash-identity a statement about meaning rather than about bytes, and it is the discipline §13's import tables and §10's content-addressed image want stated explicitly, since a whitespace-sensitive digest names a text where a normalized digest names a program.
+
+The deeper point is one the ocap survey turns up as a rule and Unison is the only member to satisfy: **everyone who froze a substrate had to unfreeze it for performance.**
+Urbit froze Nock and recovered its speed with jets; Dis froze a portable VM and recovered its speed with a JIT; Unison froze definitions by hash and recovered its speed with a compilation cache that is sound *because* the cache key is derived from the identity rather than asserted alongside it.
+Only the last keeps its correctness story intact under the optimization, and the reason is that its acceleration is identity-preserving by construction.
+That is the standard §5's curated interpreter is held to: any acceleration lives inside the verified artifact, or carries a machine-checked equivalence, or is absent.
+
+---
+
 ## Transparency logs: Certificate Transparency, the Go checksum database, and Pixel binary transparency; the one property a proof cannot have
 
 A proof and a log answer different questions, and the design has only ever answered the first.
