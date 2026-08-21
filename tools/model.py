@@ -24,6 +24,7 @@ raises the OCaml stack the emission needs and puts the opam switch on PATH.
 """
 
 import argparse
+import re
 import shutil
 import subprocess
 import sys
@@ -32,7 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from vos import config, env, trace            # noqa: E402
+from vos import config, differential, env, trace            # noqa: E402
 
 PROFILE_CONFIG = "config/verifiedos.json"
 SCHEMA = "sail_riscv_config_schema.json"
@@ -435,6 +436,112 @@ def _run_trace(argv: list[str]) -> list[str]:
     return (done.stdout + done.stderr).splitlines()
 
 
+def cmd_corpus(e: env.Environment, args) -> int:
+    """Assemble the differential corpus and run it on the curated emulator.
+
+    Each member is asked two questions in one run. The first is its own: a
+    program reports through HTIF, so the verdict is the exit code it wrote, and
+    a failure names the check that failed because `gp` carries it. The second is
+    the rig's: the run emits the capability-widened commit trace, and its digest
+    is held against the manifest's, so a model change that alters what a program
+    does is a finding here rather than a surprise later
+    (docs/differential-corpus.md).
+
+    The programs are purecap and hand-written, and the assembler that reads them
+    is [vos/asm.py](vos/asm.py) rather than a toolchain: none exists until M1.4,
+    which is downstream of everything this corpus gates.
+    """
+    corpus = differential.load(e.root)
+    out_dir = Path(args.out) if args.out else e.build_root / "corpus"
+    wanted = set(args.member)
+    members = [m for m in corpus.members if not wanted or m.name in wanted]
+    if wanted - {m.name for m in members}:
+        print(f"no such member: {', '.join(sorted(wanted - {m.name for m in members}))}",
+              file=sys.stderr)
+        return 1
+
+    profile = e.model / PROFILE_CONFIG
+    tally = {"PASS": 0, "FAIL": 0}
+    measured: dict[str, tuple[int, str]] = {}
+    for member in members:
+        try:
+            elf = differential.assemble(corpus, member, out_dir)
+        except Exception as exc:                       # an assembler diagnostic
+            print(f"FAIL    {member.name} ({exc})")
+            tally["FAIL"] += 1
+            continue
+        if args.assemble_only:
+            print(f"BUILT   {member.name} ({elf.stat().st_size} bytes)")
+            continue
+        verdict, detail, records = _run_member(e, profile, elf, args.timeout)
+        if records is not None:
+            checks = differential.count_checks(
+                corpus.source(member).read_text(encoding="utf-8"))
+            measured[member.name] = (checks, len(records), trace.digest(records))
+            if not args.refresh and verdict == "PASS":
+                verdict, detail = _check_trace(member, measured[member.name])
+        print(f"{verdict:<7} {member.name}{detail}")
+        tally[verdict] = tally.get(verdict, 0) + 1
+
+    if args.assemble_only:
+        print(f"TOTAL built={len(members)}")
+        return 0
+    if args.refresh and measured:
+        differential.rewrite(corpus, measured)
+        print(f"REFRESH {len(measured)} manifest rows rewritten")
+    print(f"TOTAL pass={tally['PASS']} fail={tally['FAIL']} of {len(members)} "
+          f"(corpus v{corpus.version}, trace schema v{corpus.trace_schema})")
+    return 1 if tally["FAIL"] else 0
+
+
+def _check_trace(member, measured: tuple[int, int, str]) -> tuple[str, str]:
+    """Hold a member's commit trace against the manifest's record of it."""
+    checks, records, digest = measured
+    if not member.digest:
+        return "FAIL", f" (no trace digest in the manifest; {records} records, {digest})"
+    if member.digest != digest:
+        return "FAIL", (f" (trace digest {digest} over {records} records against the "
+                        f"manifest's {member.digest} over {member.records})")
+    if member.checks != checks:
+        return "FAIL", f" ({checks} checks against the manifest's {member.checks})"
+    return "PASS", f" ({checks} checks, {records} records)"
+
+
+def _run_member(e: env.Environment, profile: Path, elf: Path,
+                timeout: int) -> tuple[str, str, list[str] | None]:
+    if not e.simulator.exists():
+        return "FAIL", f" (no simulator at {e.simulator}; run `model.py build` first)", None
+    try:
+        done = subprocess.run([str(e.simulator), "--config", str(profile),
+                               "--trace-commit", "--inst-limit", "1000000", str(elf)],
+                              capture_output=True, text=True, errors="replace",
+                              timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return "FAIL", " (no HTIF write within the timeout)", None
+    output = done.stdout + done.stderr
+    records = trace.normalize_commit(output.splitlines())
+    if "SUCCESS" in output:
+        return "PASS", "", records
+    failure = re.search(r"FAILURE: (\d+)", output)
+    if failure:
+        # The corpus's own convention: the exit code is the number the program
+        # left in `gp`, which names the check that failed.
+        return "FAIL", f" (check {failure.group(1)} failed)", records
+    return "FAIL", f" (rc={done.returncode}, no HTIF verdict)", records
+
+
+def cmd_asm(e: env.Environment, args) -> int:
+    """Assemble one dialect program into an image the emulator loads."""
+    from vos import asm
+    try:
+        size = asm.assemble_file(Path(args.source), Path(args.elf))
+    except Exception as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    print(f"ok {args.elf}: {size} bytes")
+    return 0
+
+
 def cmd_config_keys(e: env.Environment, args) -> int:
     code, lines = config.compare_keys(args.generated, args.profile)
     print("\n".join(lines))
@@ -495,6 +602,22 @@ def main(argv: list[str] | None = None) -> int:
     td.add_argument("--context", type=int, default=4,
                     help="records of agreement to print before a divergence")
     td.set_defaults(run=cmd_trace_diff)
+
+    cp = sub.add_parser("corpus", help="assemble and run the differential corpus")
+    cp.add_argument("member", nargs="*", help="the members to run (default: all)")
+    cp.add_argument("--assemble-only", action="store_true",
+                    help="write the images and do not run them")
+    cp.add_argument("--out", help="where to write the images")
+    cp.add_argument("--refresh", action="store_true",
+                    help="rewrite the manifest's record counts and trace digests")
+    cp.add_argument("--timeout", type=int, default=30,
+                    help="seconds before a member counts as never having reported")
+    cp.set_defaults(run=cmd_corpus)
+
+    asm_cmd = sub.add_parser("asm", help="assemble one dialect program")
+    asm_cmd.add_argument("source")
+    asm_cmd.add_argument("elf")
+    asm_cmd.set_defaults(run=cmd_asm)
 
     ck = sub.add_parser("config-keys", help="compare two configurations' key sets")
     ck.add_argument("generated", type=Path)

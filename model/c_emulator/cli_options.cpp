@@ -94,6 +94,12 @@ CLIOptions parse_cli(int argc, char **argv) {
   );
   app.add_flag("--trace-mem", opts.config_print_mem_access, "Enable trace output for memory accesses");
   app.add_flag("--trace-rvfi", opts.config_print_rvfi, "Enable trace output for RVFI");
+  app.add_flag(
+    "--trace-commit",
+    opts.config_print_commit,
+    "Emit the capability-widened commit trace: one record per retired instruction and one per "
+    "register, capability-register, CSR, memory, and trap effect under it"
+  );
   app.add_flag("--trace-clint", opts.config_print_clint, "Enable trace output for CLINT memory accesses and status");
   app.add_flag("--trace-exception", opts.config_print_exception, "Enable trace output for exceptions");
   app.add_flag("--trace-interrupt", opts.config_print_interrupt, "Enable trace output for interrupts");

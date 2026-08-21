@@ -1,71 +1,119 @@
-"""The differential rig: two executors' traces, normalized and adjudicated.
+"""The differential rig: executors' traces, normalized and adjudicated.
 
-The rig's second executor is the M0.4 oracle (`cheri_riscv_sim_RV64`, upstream
-sail-cheri-riscv at the pinned commit) for as long as the two models share a capability
-format, which is until the 64+1-bit re-parameterization: an oracle is a reference only
-where it implements the same machine, and upstream implements ISAv9's 128-bit encoding
-with a hybrid mode and a default data capability. The rig outlives it. Its standing
-second executor is the CHERI-QEMU fork of M2, a second implementation of the *frozen*
-profile from an independent code lineage, and its corpus is M0.12's purecap programs;
-what is between the two is a period in which the rig runs and its prefix is read as a
-fact about how far two different machines happen to agree.
+Two dialects, and they answer different questions.
 
-The two executors print traces in different dialects: the oracle is the old Sail C
-backend and the curated model is the new C++ one. Normalizing turns either dialect into
-one record stream, so that a divergence is a difference in *behaviour* rather than in
-formatting.
+The **commit trace** is the schema of M0.12, versioned in
+[docs/differential-corpus.md](../../docs/differential-corpus.md) and emitted by
+the curated model under `--trace-commit`. It is capability-widened: a register
+write carries the tag beside the 64 data bits, a memory access carries the tag
+of the access, and the four capability registers outside the merged file get
+records of their own. It is what every executor of the frozen profile emits and
+what the rig compares, so it is the dialect the corpus is versioned against.
 
-The record set is the intersection of what the two print today, which is narrower than
-the capability-widened commit trace M0.12 versions:
+The **oracle dialect** is the M0.4 oracle's `-v` output, and it is not a
+reference for the frozen profile: upstream implements ISAv9's 128-bit encoding
+with a hybrid mode and a default data capability, where the curated model
+carries the 64+1-bit purecap dialect (M0.6f), so the two are different machines
+and the agreeing prefix is read as a fact about how far they happen to agree.
+The rig outlives it. Its standing second executor is the CHERI-QEMU fork of M2,
+a second implementation of the *frozen* profile from an independent code
+lineage.
 
-    I <pc> <insn>            an instruction retired
-    X <reg> <value>          a general-purpose register write
-    R <addr> <value>         a data read
-
-Three things are deliberately outside it, each because one executor cannot supply it
-rather than because it does not matter:
-
-  * The **capability half of a register write.** The oracle prints the whole capability
-    (tag, seal, permissions, object type, base, length); the curated model's
-    `xreg_full_write_callback` carries the address alone, which `core/regs.sail` books
-    as M0.12's to widen. The address is what both agree on today, so the address is what
-    is compared.
-  * The **write side of the memory trace.** The curated model prints `mem[W,..]` and the
-    oracle prints no store line at all under `-v`, so there is nothing to compare a
-    store against.
-  * **CSR accesses**, which the two print in unrelated shapes, and whose banks differ
-    anyway: the curated bank is the frozen profile's (isa-profile.md §5).
-
-Instruction fetches (`mem[X,..]`) are dropped rather than compared: both print them in
-16-bit granules, so they carry nothing the retire record does not.
-
-The **agreeing prefix** is the figure to read, not the verdict. Over `riscv-tests` the
-two machines part company inside the test prologue, and the ground is the corpus rather
-than either model: every program there addresses memory with an integer base register,
-which a purecap machine reads as an untagged capability and faults on, so the prefix
-ends at the prologue's first load. A corpus both can execute in lockstep is what M0.12
-versions, over the two executors the profile actually has.
+Against one executor the rig still has a question to ask, and the corpus is what
+lets it: a member's normalized record stream has a **digest**, the manifest
+carries it, and a model change that alters what a program does changes it. That
+is the same instrument §10 names for the composed images, where instruction
+lockstep is too slow and a boot is compared by digest.
 """
 
+import hashlib
 import re
 from dataclasses import dataclass
+
+# --- the commit trace ------------------------------------------------------
+#
+# One record per retired instruction and one per effect under it, the effects
+# following the instruction that caused them. Every field is fixed-radix so a
+# record is comparable as a string:
+#
+#   I <order> <pc> <insn>                  an instruction retired
+#   X <reg> <tag> <value>                  a register write, tag included
+#   S <scr> <tag> <value>                  a capability register outside the file
+#   C <csr> <value>                        a CSR write
+#   R <addr> <width> <tag> <value>         a data read
+#   W <addr> <width> <tag> <value>         a data write
+#   T <interrupt> <cause>                  a trap
+#
+# The emitter is c_emulator/riscv_callbacks_commit.cpp; the schema and what each
+# field means is docs/differential-corpus.md.
+COMMIT_RE = re.compile(r"^(?:I \d+ [0-9A-F]{16} [0-9A-F]{8}"
+                       r"|X \d+ [01] [0-9A-F]{16}"
+                       r"|S \d+ [01] [0-9A-F]{16}"
+                       r"|C [0-9A-F]{3} [0-9A-F]{16}"
+                       r"|[RW] [0-9A-F]+ \d+ [01] [0-9A-F]+"
+                       r"|T [01] \d+)$")
+
+# The order field is the one part of a record that is not a property of the
+# machine's state: it counts retires from the start of the run, so two executors
+# that enter through different reset vectors disagree on it while agreeing on
+# everything else. It is kept in the emitted record, where it is what makes the
+# stream readable, and dropped from the compared one.
+ORDER_RE = re.compile(r"^I \d+ ")
+
+
+def normalize_commit(lines) -> list[str]:
+    """The records in `lines`, with anything else dropped.
+
+    Anything else is real: the emulator prints its HTIF address, its entry
+    point, and whatever other trace flags were passed on the same stream. A
+    record is recognized by its shape rather than by its position.
+    """
+    records = []
+    for line in lines:
+        line = line.rstrip("\n").rstrip()
+        if COMMIT_RE.match(line):
+            records.append(ORDER_RE.sub("I ", line))
+    return records
+
+
+def digest(records: list[str]) -> str:
+    """A stream's fingerprint, short enough to sit in a manifest row.
+
+    Sixteen hex characters of SHA-256 over the records, newline-separated. The
+    truncation is a readability choice and not a security one: nothing here
+    defends against a chosen collision, and what the digest catches is a model
+    change nobody meant to make.
+    """
+    blob = "\n".join(records).encode()
+    return hashlib.sha256(blob).hexdigest()[:16]
+
+
+# --- the M0.4 oracle's dialect ---------------------------------------------
+#
+# The two executors print in different dialects: the oracle is the old Sail C
+# backend and the curated model is the new C++ one. Normalizing turns either
+# into one record stream, so that a divergence is a difference in *behaviour*
+# rather than in formatting. The record set is the intersection of what the two
+# print, which is narrower than the commit trace above.
 
 # `[7]: 0x0000000080000054 (0x00000113) addi x2, x0, 0x0`         (curated)
 # `[7] [M]: 0x0000000080000054 (0x00000113) addi sp, zero, 0x0`   (oracle)
 #
-# The disassembly is not part of the record: the two print different register naming
-# conventions for the same instruction, and the raw encoding beside it is the invariant.
+# The disassembly is not part of the record: the two print different register
+# naming conventions for the same instruction, and the raw encoding beside it is
+# the invariant.
 RETIRE_RE = re.compile(r"^\[\d+\](?: \[\w+\])?: 0x([0-9A-Fa-f]+) \(0x([0-9A-Fa-f]+)\)")
 
-# `x1 <- 0x0000000000000000`                                      (curated)
+# `x1 <- t:0 0x0000000000000000`                                  (curated)
 # `x1 <-  t:0 s:0 perms:... type:... address:0x... base:... ...`  (oracle)
 XWRITE_RE = {
-    "curated": re.compile(r"^x(\d+) <- 0x([0-9A-Fa-f]+)\s*$"),
+    "curated": re.compile(r"^x(\d+) <- t:\d+ 0x([0-9A-Fa-f]+)\s*$"),
     "oracle": re.compile(r"^x(\d+) <-\s+t:\d+ .*\baddress:0x([0-9A-Fa-f]+)\b"),
 }
 
-# `mem[R,0x0000000080002000] -> 0x00AA00AA`   (both)
-MEMREAD_RE = re.compile(r"^mem\[R,0x([0-9A-Fa-f]+)\] -> 0x([0-9A-Fa-f]+)\s*$")
+# `mem[R,0x0000000080002000] -> 0x00AA00AA`         (oracle)
+# `mem[R,0x080002000] -> t:0 0x00AA00AA`            (curated)
+MEMREAD_RE = re.compile(r"^mem\[R,0x([0-9A-Fa-f]+)\] -> (?:t:\d+ )?0x([0-9A-Fa-f]+)\s*$")
 
 DIALECTS = tuple(XWRITE_RE)
 
@@ -99,10 +147,11 @@ def _first_retire_pc(records: list[str]) -> int | None:
 def _align(records: list[str], first_pc: int) -> list[str]:
     """Drop the records before the executor reaches `first_pc`.
 
-    The two executors do not start at the same instruction: the oracle enters through a
-    reset-vector ROM at 0x1000 that this platform does not have, so the streams are
-    aligned on the first program counter the curated model retires rather than on the
-    step number, which counts different things on each side.
+    The two executors do not start at the same instruction: the oracle enters
+    through a reset-vector ROM at 0x1000 that this platform does not have, so
+    the streams are aligned on the first program counter the curated model
+    retires rather than on the step number, which counts different things on
+    each side.
     """
     for i, record in enumerate(records):
         if record.startswith("I ") and int(record.split()[1], 16) == first_pc:
@@ -133,8 +182,8 @@ class Verdict:
 def adjudicate(curated: list[str], oracle: list[str], context: int = 4) -> Verdict:
     """Align the two streams and walk them until they disagree.
 
-    The Sail model is the reference on every divergence, so the report names what each
-    side produced rather than declaring one right.
+    The Sail model is the reference on every divergence, so the report names
+    what each side produced rather than declaring one right.
     """
     start = _first_retire_pc(curated)
     if start is None:
@@ -150,7 +199,7 @@ def adjudicate(curated: list[str], oracle: list[str], context: int = 4) -> Verdi
             return Verdict(prefix=i, compared=compared,
                            divergence=(curated[i], aligned[i]),
                            agreed=curated[max(0, i - context):i])
-    # One stream running out is not a divergence: the two machines halt on different
-    # conditions, and a shorter range that agrees to its end is what the corpus is
-    # asking about until M0.12 fixes the stopping point too.
+    # One stream running out is not a divergence: the two machines halt on
+    # different conditions, and a shorter range that agrees to its end is what
+    # the corpus is asking about.
     return Verdict(prefix=compared, compared=compared)

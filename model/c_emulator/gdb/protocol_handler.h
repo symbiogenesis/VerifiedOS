@@ -88,8 +88,10 @@ public:
 
   // Callbacks
   void trap_callback(ModelImpl &, bool is_interrupt, fbits cause) override;
-  void mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value) override;
-  void mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value) override;
+  void mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value, bool tag)
+      override;
+  void mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value, bool tag)
+      override;
 
   // Triggers
   class triggers &triggers() {

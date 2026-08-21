@@ -366,15 +366,22 @@ function test_mret_unseals_a_sentry() -> unit = {
 
 // Every fetch is checked against PCC: its bounds on every granule, its tag,
 // seal state and execute permission on the first.
+//
+// The last two assertions are the granule-width property: the second granule of
+// the last instruction inside PCC's bounds is checked against the two bytes it
+// reads, so an instruction wholly inside the bounds fetches, while a check that
+// asked for a whole instruction there would refuse it (core/addr_checks.sail).
 $[test]
 function test_fetch_is_checked_against_pcc() -> unit = {
   let (_, c) = setCapBounds(default_cap, 0x080000000, 0b0 @ 0x080001000);
   PCC = setCapAddrChecked(c, 0x0000000080000000);
-  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000000) == None());
-  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000ffc) == None());
-  assert(ext_fetch_check_pc(0x0000000080001000, 0x0000000080001000) == Some(CapEx_LengthViolation));
+  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000000, min_instruction_bytes) == None());
+  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000ffc, min_instruction_bytes) == None());
+  assert(ext_fetch_check_pc(0x0000000080001000, 0x0000000080001000, min_instruction_bytes) == Some(CapEx_LengthViolation));
+  assert(ext_fetch_check_pc(0x0000000080000ffc, 0x0000000080000ffe, 2) == None());
+  assert(ext_fetch_check_pc(0x0000000080000ffc, 0x0000000080000ffe, min_instruction_bytes) == Some(CapEx_LengthViolation));
   PCC = clearTag(PCC);
-  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000000) == Some(CapEx_TagViolation));
+  assert(ext_fetch_check_pc(0x0000000080000000, 0x0000000080000000, min_instruction_bytes) == Some(CapEx_TagViolation));
   PCC = default_cap;
 }
 

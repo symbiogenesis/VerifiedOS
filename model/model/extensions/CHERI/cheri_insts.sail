@@ -548,10 +548,18 @@ function clause execute CSpecialRW(cd, scr, cs1) = {
         0b11101 => MTDC = cs1_val,
         0b11111 => MEPCC = cs1_val,
         _       => assert(false, "unreachable"),
-      }
+      };
       // A write to a special capability register is reported by the
-      // capability-widened commit trace rather than by a print of its own
-      // (M0.12), which is where `wC` leaves the register file's own writes too.
+      // capability-widened commit trace, which is where `wC` leaves the
+      // register file's own writes too (M0.12, core/cap_regs.sail). The value
+      // reported is the register's, not the operand's: MTCC's address is
+      // legalized on the way in.
+      match scr {
+        0b11100 => scr_write_callback(scr, MTCC),
+        0b11101 => scr_write_callback(scr, MTDC),
+        0b11111 => scr_write_callback(scr, MEPCC),
+        _       => (),
+      }
     };
     RETIRE_SUCCESS
   }

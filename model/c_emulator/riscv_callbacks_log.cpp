@@ -23,43 +23,96 @@ log_callbacks::log_callbacks(
 // Implementations of default callbacks for trace printing.
 // The model assumes that these functions do not change the state of the model.
 
-void log_callbacks::mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value) {
+// The tag rides beside the value in every one of these, because on this machine
+// a value and its authority are one register and one granule: `t:0` is a
+// statement about the access rather than a placeholder (R-15-007i, R-15-007r).
+
+void log_callbacks::mem_write_callback(
+  ModelImpl &model,
+  const char *type,
+  uint64_t paddr,
+  int64_t width,
+  lbits value,
+  bool tag
+) {
   // This is just passed due to Sail type system requirements.
   (void)width;
   if (trace_log != nullptr && config_print_mem_access) {
     fprintf(
       trace_log,
-      "mem[%s,0x%0*" PRIX64 "] <- ",
+      "mem[%s,0x%0*" PRIX64 "] <- t:%d ",
       type,
       static_cast<int>((model.physaddrbits_len() + 3) / 4),
-      paddr
+      paddr,
+      tag ? 1 : 0
     );
     gmp_fprintf(trace_log, "0x%0*ZX\n", value.len / 4, *value.bits);
   }
 }
 
-void log_callbacks::mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value) {
+void log_callbacks::mem_read_callback(
+  ModelImpl &model,
+  const char *type,
+  uint64_t paddr,
+  int64_t width,
+  lbits value,
+  bool tag
+) {
   // This is just passed due to Sail type system requirements.
   (void)width;
   if (trace_log != nullptr && config_print_mem_access) {
     fprintf(
       trace_log,
-      "mem[%s,0x%0*" PRIX64 "] -> ",
+      "mem[%s,0x%0*" PRIX64 "] -> t:%d ",
       type,
       static_cast<int>((model.physaddrbits_len() + 3) / 4),
-      paddr
+      paddr,
+      tag ? 1 : 0
     );
     gmp_fprintf(trace_log, "0x%0*ZX\n", value.len / 4, *value.bits);
   }
 }
 
-void log_callbacks::xreg_full_write_callback(ModelImpl &, const_sail_string abi_name, sbits reg, uint64_t value) {
+void log_callbacks::xreg_full_write_callback(
+  ModelImpl &,
+  const_sail_string abi_name,
+  sbits reg,
+  uint64_t value,
+  bool tag
+) {
   if (trace_log != nullptr && config_print_gpr) {
     if (config_use_abi_names) {
-      fprintf(trace_log, "%s <- 0x%0*" PRIX64 "\n", abi_name, 16 /* XLEN=64 */, value);
+      fprintf(trace_log, "%s <- t:%d 0x%0*" PRIX64 "\n", abi_name, tag ? 1 : 0, 16 /* XLEN=64 */, value);
     } else {
-      fprintf(trace_log, "x%" PRIu64 " <- 0x%0*" PRIX64 "\n", reg.bits, 16 /* XLEN=64 */, value);
+      fprintf(
+        trace_log,
+        "x%" PRIu64 " <- t:%d 0x%0*" PRIX64 "\n",
+        reg.bits,
+        tag ? 1 : 0,
+        16 /* XLEN=64 */,
+        value
+      );
     }
+  }
+}
+
+void log_callbacks::scr_full_write_callback(
+  ModelImpl &,
+  const_sail_string name,
+  fbits scr,
+  uint64_t value,
+  bool tag
+) {
+  if (trace_log != nullptr && config_print_csr) {
+    fprintf(
+      trace_log,
+      "SCR %s (%" PRIu64 ") <- t:%d 0x%0*" PRIX64 "\n",
+      name,
+      scr,
+      tag ? 1 : 0,
+      16 /* XLEN=64 */,
+      value
+    );
   }
 }
 

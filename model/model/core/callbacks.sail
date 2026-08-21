@@ -13,10 +13,15 @@
 val fetch_callback = pure {cpp: "fetch_callback"} : forall 'n, 'n in {16, 32}. (bits('n)) -> unit
 function fetch_callback(_) = ()
 
-val mem_write_callback = pure {cpp: "mem_write_callback"} : forall 'n, 0 < 'n <= max_mem_access . (/* access type */ string, /* addr */ physaddrbits, /* width */ int('n), /* value */ bits(8 * 'n)) -> unit
+// The data effects carry the validity tag of the access beside its value, which
+// is what makes the commit trace capability-widened rather than an integer
+// trace with capability instructions in it (M0.12): a store of a capability and
+// a store of the same 64 bits as data differ in the tag plane and nowhere else
+// (R-15-007r, core/mem_metadata.sail).
+val mem_write_callback = pure {cpp: "mem_write_callback"} : forall 'n, 0 < 'n <= max_mem_access . (/* access type */ string, /* addr */ physaddrbits, /* width */ int('n), /* value */ bits(8 * 'n), /* tag */ bool) -> unit
 function mem_write_callback(_) = ()
 
-val mem_read_callback = pure {cpp: "mem_read_callback"} : forall 'n, 0 < 'n <= max_mem_access . (/* access type */ string, /* addr */ physaddrbits, /* width */ int('n), /* value */ bits(8 * 'n)) -> unit
+val mem_read_callback = pure {cpp: "mem_read_callback"} : forall 'n, 0 < 'n <= max_mem_access . (/* access type */ string, /* addr */ physaddrbits, /* width */ int('n), /* value */ bits(8 * 'n), /* tag */ bool) -> unit
 function mem_read_callback(_) = ()
 
 val mem_exception_callback = pure {cpp: "mem_exception_callback"} : (/* addr */ physaddrbits, /* exception code */ exc_code) -> unit
@@ -28,8 +33,19 @@ function mem_exception_callback(_) = ()
 val pc_write_callback = pure {cpp: "pc_write_callback"} : (/* new_pc */ xlenbits) -> unit
 function pc_write_callback(_) = ()
 
-val xreg_full_write_callback = pure {cpp: "xreg_full_write_callback"} : (string, regidx, xlenbits) -> unit
+// A register write reports the whole capability: the register's 64 data bits,
+// which are its integer reading, and the validity tag outside them, which is
+// the only part of a capability a register's integer reading cannot show
+// (R-15-007i, core/reg_type.sail). An integer write reports a cleared tag, and
+// that is a fact about the write rather than a placeholder.
+val xreg_full_write_callback = pure {cpp: "xreg_full_write_callback"} : (string, regidx, xlenbits, /* tag */ bool) -> unit
 function xreg_full_write_callback(_) = ()
+
+// The four capability registers that are not in the merged file
+// (core/cap_regs.sail). They are written by exactly two mechanisms, a trap and
+// `cspecialrw`, and neither is visible in the register-file trace above.
+val scr_full_write_callback = pure {cpp: "scr_full_write_callback"} : (string, /* scr */ bits(5), xlenbits, /* tag */ bool) -> unit
+function scr_full_write_callback(_) = ()
 
 val csr_full_write_callback = pure {cpp: "csr_full_write_callback"} : (string, csreg, xlenbits) -> unit
 function csr_full_write_callback(_) = ()

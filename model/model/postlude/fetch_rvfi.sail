@@ -14,7 +14,7 @@ private function rvfi_fetch() -> FetchResult = {
   rvfi_inst_data[rvfi_ixl] = zero_extend(misa[MXL]);
 
   // First allow extensions to check pc
-  match ext_fetch_check_pc(PC, PC) {
+  match ext_fetch_check_pc(PC, PC, min_instruction_bytes) {
     Some(e) => return F_Ext_Error(e),
     None()  => (),
   };
@@ -30,7 +30,7 @@ private function rvfi_fetch() -> FetchResult = {
 
   // fetch PC check for the next instruction granule
   let PC_hi = PC + 2;
-  match ext_fetch_check_pc(PC, PC_hi) {
+  match ext_fetch_check_pc(PC, PC_hi, 2) {
     Some(e) => F_Ext_Error(e),
     None()  => F_Base(i),
   }

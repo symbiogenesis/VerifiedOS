@@ -109,9 +109,9 @@ mapping sp_reg_name : unit <-> string = {
 
 mapping creg_name : cregidx <-> string = { Cregidx(i) <-> reg_name(encdec_reg(0b01 @ i)) }
 
-function xreg_write_callback(reg : regidx, value : xlenbits) -> unit = {
+function xreg_write_callback(reg : regidx, value : xlenbits, tag : bool) -> unit = {
   let name = reg_name(reg);
-  xreg_full_write_callback(name, reg, value);
+  xreg_full_write_callback(name, reg, value, tag);
 }
 
 // register file and accessors
@@ -223,7 +223,9 @@ function wX (Regno(r) : regno, in_v : xlenbits) -> unit = {
     30 => x30 = v,
     31 => x31 = v,
   };
-  if r != 0 then xreg_write_callback(Regidx(to_bits(r)), in_v)
+  // An integer write is an untagged capability at that address, so the tag it
+  // reports is false rather than absent (core/reg_type.sail).
+  if r != 0 then xreg_write_callback(Regidx(to_bits(r)), in_v, false)
 }
 
 // Capability accessors over the same file. `X(r)` reads register `r`'s 64 data
@@ -302,11 +304,9 @@ function wC (Regno(r) : regno, v : regtype) -> unit = {
     30 => x30 = v,
     31 => x31 = v,
   };
-  // The trace carries the register's integer reading here, which is its 64 data
-  // bits and so is what an integer write reports too (core/reg_type.sail); the
-  // tag a capability write also changes is the capability-widened commit
-  // trace's (M0.12), not this callback's.
-  if r != 0 then xreg_write_callback(Regidx(to_bits(r)), regval_from_reg(v))
+  // The trace carries the register whole: its 64 data bits, which are its
+  // integer reading, and the validity tag outside them (R-15-007i, M0.12).
+  if r != 0 then xreg_write_callback(Regidx(to_bits(r)), regval_from_reg(v), v.tag)
 }
 
 function rC_bits(Regidx(i) : regidx) -> regtype = rC(Regno(unsigned(i)))

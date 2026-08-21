@@ -28,7 +28,7 @@ private union FetchBytes_Result('width : Int), 'width >= 0 = {
 }
 
 private function fetch_bytes forall 'n, 'n in {2, 4} . (fetch_start : xlenbits, granule_start : xlenbits, width : int('n)) -> FetchBytes_Result('n) = {
-  match ext_fetch_check_pc(fetch_start, granule_start) {
+  match ext_fetch_check_pc(fetch_start, granule_start, width) {
     Some(e) => return FetchBytes_Ext_Error(e),
     None()  => (),
   };
@@ -52,8 +52,9 @@ private function fetch() -> FetchResult = {
   then return rvfi_fetch();
 
   // Doing this check here assumes the external fetch checks are higher priority
-  // than the following alignment check.
-  match ext_fetch_check_pc(PC, PC) {
+  // than the following alignment check. It covers a whole instruction, which is
+  // what the fetch sequence about to run reads.
+  match ext_fetch_check_pc(PC, PC, min_instruction_bytes) {
     Some(e) => return F_Ext_Error(e),
     None()  => (),
   };

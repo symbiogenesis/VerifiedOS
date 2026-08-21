@@ -297,13 +297,13 @@ void protocol_handler::trap_callback(ModelImpl &, bool, fbits) {
 // When checking triggers below, make sure to not reset `m_triggered`
 // if it was already set.
 
-void protocol_handler::mem_write_callback(ModelImpl &, const char *, uint64_t paddr, int64_t width, lbits) {
+void protocol_handler::mem_write_callback(ModelImpl &, const char *, uint64_t paddr, int64_t width, lbits, bool) {
   if (m_triggers.at_watchpoint(AccessType::Write, paddr, width)) {
     m_triggered = true;
   }
 }
 
-void protocol_handler::mem_read_callback(ModelImpl &, const char *, uint64_t paddr, int64_t width, lbits) {
+void protocol_handler::mem_read_callback(ModelImpl &, const char *, uint64_t paddr, int64_t width, lbits, bool) {
   if (m_triggers.at_watchpoint(AccessType::Read, paddr, width)) {
     m_triggered = true;
   }

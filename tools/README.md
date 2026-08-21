@@ -33,9 +33,11 @@ Two more were considered and refused, because a version floor is a licence to us
 | [check-selftest.py](check-selftest.py) | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | [blast-radius.py](blast-radius.py) | host | Answers what an edit to the apex statement re-opens, before the work starts. |
 | [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof and holds its assumption set against the declared one. |
-| [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `oracle`, `sweep`, `trace-diff`, `config-keys`, `validate-config`, `keepalive`. |
+| [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `config-keys`, `validate-config`, `keepalive`. |
 
-The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the two executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect, and [env.py](vos/env.py) the build environment. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
+The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect, and [env.py](vos/env.py) the build environment. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
+
+Four more modules are the differential corpus's, and they are named for what they are rather than for where they sit: [dialect.py](vos/dialect.py) is one row per mnemonic the curated model decodes, [asm.py](vos/asm.py) the parser and layout over it, [image.py](vos/image.py) the ELF the emulator loads, and [differential.py](vos/differential.py) the corpus manifest. The one name that has to be read carefully is `corpus`: [vos/corpus.py](vos/corpus.py) reads the *documents* this repository checks, and [vos/differential.py](vos/differential.py) reads the *programs* the model runs. They share a word and nothing else.
 
 [check-rules.md](check-rules.md) is the checker's registry: one row per rule, what passing means, and on what ground. It is the reviewable account of the tool's reach, and the checker holds it against the code in both directions on every run.
 
@@ -52,6 +54,8 @@ $ python tools/blast-radius.py --field spatial_safety
 $ wsl -u root -e python3 tools/model.py typecheck
 $ wsl -u root -e python3 tools/model.py build
 $ wsl -u root -e python3 tools/model.py oracle
+$ wsl -u root -e python3 tools/model.py corpus
+$ wsl -u root -e python3 tools/model.py corpus --refresh
 $ wsl -u root -e python3 tools/model.py trace-diff --corpus --floor 67
 $ wsl -u root -e python3 tools/proof-gate.py
 ```

@@ -47,6 +47,14 @@ mapping scr_name_map : screg <-> string = {
   0b11111 <-> "mepcc",
 }
 
+// Every write to one of these three registers is reported, because none of
+// them is in the merged file and so none appears in the register-file trace
+// (M0.12, core/callbacks.sail). PCC is not among them: its address is the
+// program counter the commit record already carries, and its authority changes
+// only where a control transfer or a trap installs one.
+function scr_write_callback(scr : screg, v : Capability) -> unit =
+  scr_full_write_callback(scr_name_map(scr), scr, regval_from_reg(v), v.tag)
+
 // The smallest instruction a control transfer must have room for inside the
 // bounds of the capability it targets. ILEN is fixed at 32 bits and `C` is
 // excluded, so this is four bytes rather than the two an implementation that

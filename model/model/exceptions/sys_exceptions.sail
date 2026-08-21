@@ -28,7 +28,8 @@ function ext_check_xret_priv () : unit -> bool = cap_access_system_regs(PCC)
 function handle_trap_extension(pc : xlenbits, _u : option(unit)) -> unit = {
   let (representable, mepcc) = setCapAddr(PCC, pc);
   assert(representable, "MEPCC should always be representable");
-  MEPCC = mepcc
+  MEPCC = mepcc;
+  scr_write_callback(0b11111, MEPCC)
 }
 
 // used for traps and ECALL
@@ -55,6 +56,7 @@ function set_mepc(value : xlenbits) -> xlenbits = {
   // the result is unrepresentable or if MEPCC held a sealed capability: an
   // integer write cannot forge authority (R-15-007h).
   MEPCC = setCapAddrChecked(MEPCC, target);
+  scr_write_callback(0b11111, MEPCC);
   target
 }
 
@@ -81,6 +83,7 @@ function set_mtvec(value : xlenbits) -> xlenbits = {
                           plat_mtvec_vectored_mode_supported,
                           plat_mtvec_vectored_base_alignment_exp);
   MTCC = setCapAddrChecked(MTCC, mtv.bits);
+  scr_write_callback(0b11100, MTCC);
   mtv.bits
 }
 

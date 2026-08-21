@@ -18,7 +18,8 @@ void callbacks_if::mem_write_callback(
   [[maybe_unused]] const char *type,
   [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] int64_t width,
-  [[maybe_unused]] lbits value
+  [[maybe_unused]] lbits value,
+  [[maybe_unused]] bool tag
 ) {
 }
 
@@ -27,7 +28,8 @@ void callbacks_if::mem_read_callback(
   [[maybe_unused]] const char *type,
   [[maybe_unused]] uint64_t paddr,
   [[maybe_unused]] int64_t width,
-  [[maybe_unused]] lbits value
+  [[maybe_unused]] lbits value,
+  [[maybe_unused]] bool tag
 ) {
 }
 
@@ -42,7 +44,17 @@ void callbacks_if::xreg_full_write_callback(
   [[maybe_unused]] ModelImpl &model,
   [[maybe_unused]] const_sail_string abi_name,
   [[maybe_unused]] sbits reg,
-  [[maybe_unused]] uint64_t value
+  [[maybe_unused]] uint64_t value,
+  [[maybe_unused]] bool tag
+) {
+}
+
+void callbacks_if::scr_full_write_callback(
+  [[maybe_unused]] ModelImpl &model,
+  [[maybe_unused]] const_sail_string name,
+  [[maybe_unused]] fbits scr,
+  [[maybe_unused]] uint64_t value,
+  [[maybe_unused]] bool tag
 ) {
 }
 

@@ -1,2 +1,3 @@
 *.py text eol=lf
 model/** -text
+corpus/** text eol=lf
