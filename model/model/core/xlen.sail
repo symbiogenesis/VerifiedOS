@@ -10,9 +10,10 @@
 // (R-15-001), there is exactly one model of one machine (R-15-005), and
 // no plain-RV32 target exists anywhere in the platform (R-18-002). The
 // capability format forces the same conclusion from below: a register is
-// a capability whose address field is the register width (R-15-007i), and
-// the 128-bit encoding in cap_format.sail cannot hold a 32-bit one, so an
-// RV32 configuration of this model has no capability format to run under.
+// a capability, and a register's integer reading is that capability's 64
+// data bits (R-15-007i, core/reg_type.sail), so a 32-bit register could
+// not hold one and an RV32 configuration of this model has no capability
+// format to run under.
 
 type xlen : Int = 64
 type log2_xlen  : Int = 6

@@ -12,7 +12,7 @@
 
 // The register file is **merged**: one file of 32 registers, each holding a
 // capability with its validity tag, an integer operand being that register's
-// address field read as an integer (R-15-007i). There is no separate
+// 64 data bits read as an integer (R-15-007i). There is no separate
 // capability bank and therefore no instruction that moves a value between
 // banks, and the partition switch's restore quantifies over one file
 // (R-07-015, R-15-214).

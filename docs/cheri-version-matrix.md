@@ -64,7 +64,7 @@ Three lineages have incremented since CHERI began, and the profile stands in a d
 | Feature | Ver | Disposition | Governing | Note |
 | --- | --- | --- | --- | --- |
 | `CSetBounds`: both bounds exposed atomically to the hardware | 1.12 | ⚙️ | R-15-007 | The instruction compression was introduced *for*; named indirectly in the `csetbounds` fusion pair. |
-| "Representable" defined; non-representable values must be handled | 1.13 | ✅ | R-15-007e, R-15-007f | Load-bearing rather than inherited: R-15-007e turns the representability case into the *reason* the indexed load/store is admissible at a 256-byte exactness threshold. |
+| "Representable" defined; non-representable values must be handled | 1.13 | ✅ | R-15-007e, R-15-007f | Load-bearing rather than inherited: R-15-007e turns the representability case into the *reason* the indexed load/store is admissible at a 128-byte exactness threshold. |
 | Precision loss preserves base, not offset | 1.13 | ⚙️ | R-15-007 | |
 | Saturating length behavior | 1.13 | ⚙️ | R-15-007 | |
 | `CIncBase`/`CSetLen` deprecated then removed | 1.13/1.15 | ➖ | n/a | |
@@ -152,7 +152,7 @@ Three lineages have incremented since CHERI began, and the profile stands in a d
 | Both 32- and 64-bit address sizes; XLEN/CLEN abstraction | 8.0 | ✅ | R-15-002a, R-15-007 | The profile picks a third point (36-bit address inside a 64+1-bit capability) on an axis v8 opened. |
 | **64-bit capability format within CHERI Concentrate** | 8.0 | ✅✅ | R-15-007 | The literal base of the frozen format. Its existence upstream is why R-15-007a can call the change a re-parameterization. |
 | `CInvoke` replaces `CCall`; exception-free transition only | 8.0 | ⛔ | R-15-068 | See §4: the profile removes the call gate entirely. |
-| **Minimum architectural bounds precision** policy | 8.0 | ✅ | R-15-007c | The profile does the strong form: precision is fixed exactly and its cost booked (byte-exact to 256 bytes, rounding outward at length/2^8 above). |
+| **Minimum architectural bounds precision** policy | 8.0 | ✅ | R-15-007c | The profile does the strong form: precision is fixed exactly and its cost booked (byte-exact to 128 bytes at any base, rounding outward at worst at length/2^6 above). |
 | MMU-originated exceptions distinguished from CHERI exceptions | 8.0 | ➖ | R-15-038 | |
 | **Per-page capability load barriers for revocation** | 8.0 | ✅ | R-08-004, R-08-005, R-08-005a, R-08-009 | Carried by the non-MMU realization in [isa-profile.md](isa-profile.md): §4 makes tag clearing on a revoked capability load architectural, §7 places an ECC-protected sidecar slice at each owning SRAM bank, and §9 fixes load and epoch-advance latency. R-08-005a sizes the shadow at one bit per 8-byte granule over composition-fixed revocable intervals and charges payload, ECC, and periphery to the SRAM budget. |
 | **Revocation colour as capability metadata** | (8.0 lineage) | ⛔ | R-08-004a, R-08-004b | Declined, and the property it carried is kept. §4.1's field table has no colour field and no spare bits (36+4+5+5+8+6 = 64), so a colour could come only from the object type or a mantissa. It is not needed: subtree revocation is a **grant-layer** property here, since independently revocable cross-domain authority is a sealed capability bounded to a kernel-owned grant slot, and retiring it sets the sidecar bit for the *slot's* granule. Address keying decides the subtree case because the delegation has an address of its own. |
