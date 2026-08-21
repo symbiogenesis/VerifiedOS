@@ -1,4 +1,5 @@
 *.py text eol=lf
 *.toml text eol=lf
+tools/co-read.json text eol=lf
 model/** -text
 corpus/** text eol=lf
