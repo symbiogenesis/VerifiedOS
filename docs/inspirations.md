@@ -56,6 +56,21 @@ Honest residual (§17): sDDF's performance results are measured on commodity MMU
 
 ---
 
+## HACMS and SMACCM: a verified kernel flown, red-teamed, and not broken, and the component layer above it
+
+DARPA's **High-Assurance Cyber Military Systems** programme (2012 to 2017) is the strongest whole-system delivery evidence outside Trustworthy Systems' own line, and its value here is evidentiary rather than technical.
+The air team, **SMACCM** (Rockwell Collins, Galois, NICTA, Boeing, Minnesota), put seL4 on the mission computer of a quadcopter and then of Boeing's optionally-piloted Unmanned Little Bird, enforcing the partition between untrusted mission software and the flight-critical path.
+The red-team result is the citation, and it is worth stating in the narrow form that survives scrutiny rather than the wide one that circulates: the red team was given full access to the non-critical camera compartment and **handed the keys to crash it**, and could not cross into the flight mission; the exercise was repeated in flight with two test pilots aboard and failed again.
+The claim is that an attacker *starting inside a granted compartment* could not cross a machine-checked boundary. It is not that the aircraft is unhackable, and the discipline of naming the compartment the attacker starts in and the boundary that held is itself the import: it is how §3 and §17 should state every security claim they make.
+
+**Galois's Tower is the other import, and it is a static composition that shipped.**
+Tower is an embedded language layered over Ivory that describes concurrent tasks and the channels between them ahead of time and generates the connecting code, which is the same move §7 makes when it fixes the component graph at build time and derives the IPC surface from it; SMACCMPilot, some fifty thousand lines of Ivory, is the artifact that flew.
+What is declined is Ivory's assurance argument.
+Ivory generates memory-safe C by construction of its embedding, with the guarantee carried by Haskell's type system and by the generator, neither of which is machine-checked and neither of which leaves a proof object, so there is nothing to re-home and the guarantee is a strong engineering discipline that §5's rule does not count as verification.
+The two-board split is declined as an architecture for the reason it existed: separating a real-time microcontroller from a mission board is the answer available when the mission software is untrusted legacy, and a static composition under a cyclic executive puts both on one die under one proof (§7, §15).
+
+---
+
 ## SECOMP: the secure-compilation method, and the CHERI-CompCert backend the TCB compiles through
 
 seL4 supplies the kernel *design*; **SECOMP** (the MPI-SP secure-compilation project) supplies the *compilation method* that carries it, and the rest of the verified C, to metal.
