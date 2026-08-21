@@ -86,6 +86,16 @@ private function generate_isa_string(fmt : ISA_Format) -> string = {
 
 // Generates the full Device-Tree configuration for the model.
 
+// The latency class a region is placed on, as a property of the region's own
+// node (core/memory_class.sail, R-15-247). It is emitted for every main-memory
+// node and for none other, which the validator has already established, so a
+// node without it in a generated tree is an IO region and not an unplaced array.
+private function generate_dts_memory_class(pma : PMA_Region) -> string =
+  match pma.attributes.memory_class {
+    None()  => "",
+    Some(c) => "    verifiedos,memory-class = \"" ^ memory_class_str(c) ^ "\";\n",
+  }
+
 private function generate_dts_memories(pmas : list(PMA_Region)) -> string =
   match pmas {
     [||] => "",
@@ -100,11 +110,54 @@ private function generate_dts_memories(pmas : list(PMA_Region)) -> string =
         ^ "    device_type = \"memory\";\n"
         ^ "    reg = <" ^ hex_str(base_hi) ^ " " ^ hex_str(base_lo)
         ^ " " ^ hex_str(size_hi) ^ " " ^ hex_str(size_lo) ^ ">;\n"
+        ^ generate_dts_memory_class(pma)
         ^ "  };\n"
         ^ generate_dts_memories(rest)
       } else generate_dts_memories(rest)
     }
   }
+
+// A 64-bit constant as the two devicetree cells it takes. The retention corner
+// is stated in microseconds and a minutes-to-hours spread does not fit in one
+// cell (R-15-247m), so the pair is written out here rather than truncated at the
+// point of use, the same way every `reg` above is written.
+private function generate_dts_u64(value : memory_class_retention) -> string = {
+  let bits64 : bits(64) = to_bits(64, value);
+  hex_str(unsigned(bits64 >> 32)) ^ " " ^ hex_str(unsigned(bits64[31 .. 0]))
+}
+
+// The per-class constants R-15-247m measures, in the attested devicetree that
+// requirement puts them in.
+//
+// `verifiedos,qualified` is the load-bearing property of this node and not a
+// footnote on it. R-15-247m admits no density figure as an architectural input
+// ahead of the measurement, and a tree carrying provisional numbers with nothing
+// separating them from measured ones is exactly how a placeholder becomes one.
+// So the qualification state is attested beside the constants, and every tree
+// this repository generates today says `<0>`.
+private function generate_dts_memory_class_node(c : MemoryClass) -> string = {
+  let k = memory_class_constants(c);
+    "    class-" ^ memory_class_str(c) ^ " {\n"
+  ^ "      verifiedos,qualified = <" ^ (if k.qualified then "1" else "0") ^ ">;\n"
+  ^ "      verifiedos,usable-density-mbit-per-mm2 = <" ^ dec_str(k.usable_density_mbit_per_mm2) ^ ">;\n"
+  ^ "      verifiedos,banks = <" ^ dec_str(k.banks) ^ ">;\n"
+  ^ "      verifiedos,retention-floor-us = <" ^ generate_dts_u64(k.retention_floor_us) ^ ">;\n"
+  ^ "      verifiedos,retention-ceiling-us = <" ^ generate_dts_u64(k.retention_ceiling_us) ^ ">;\n"
+  ^ "      verifiedos,read-cycles = <" ^ dec_str(k.read_cycles) ^ ">;\n"
+  ^ "      verifiedos,write-cycles = <" ^ dec_str(k.write_cycles) ^ ">;\n"
+  ^ "      verifiedos,refresh-cycles = <" ^ dec_str(k.refresh_cycles) ^ ">;\n"
+  ^ "      verifiedos,discharge-cycles = <" ^ dec_str(k.discharge_cycles) ^ ">;\n"
+  ^ "    };\n"
+}
+
+// The node carries no `#address-cells`/`#size-cells` pair, which `dtc` would
+// call unnecessary and is: its children are constants and not address ranges,
+// so neither child has a `reg` for those cells to describe.
+private function generate_dts_memory_classes() -> string =
+    "  memory-classes {\n"
+  ^ generate_dts_memory_class_node(FirstClass)
+  ^ generate_dts_memory_class_node(SecondClass)
+  ^ "  };\n"
 
 // Generates a `riscv,<prefix>-block-size` property line if the corresponding
 // cache-block extension is supported. The size is 2^plat_cache_block_size_exp
@@ -164,6 +217,7 @@ function generate_dts() -> string = {
 ^ "    };\n"
 ^ "  };\n"
 ^ generate_dts_memories(pma_regions)
+^ generate_dts_memory_classes()
 
 ^ "  soc {\n"
 ^ "    #address-cells = <2>;\n"

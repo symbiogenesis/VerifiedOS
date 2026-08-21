@@ -12,7 +12,7 @@ It exists **now**, ahead of both of those executors, because the corpus is the m
 
 ## 1. What the corpus is
 
-Seventeen purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model, and the profile rows M0.6g and M0.6h add that no upstream model carries.
+Eighteen purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model, the profile rows M0.6g and M0.6h add that no upstream model carries, and the memory plan M0.14 puts beneath all of it.
 
 | Member | What it exercises |
 | --- | --- |
@@ -33,6 +33,7 @@ Seventeen purecap programs, hand-written in the frozen dialect, each running to 
 | [`cap-reclaim`](../corpus/cap-reclaim.s) | `creclaim` over a group holding two objects with different bases, the surviving tags it returns, the bits it leaves untouched, its idempotence, its group boundary, and the clear it lands in memory where the load filter's lands in a delivered value |
 | [`platform-aia`](../corpus/platform-aia.s) | `fence.t` disturbing nothing, and the machine-level pending array under sends, reads, clears, and the reserved identity |
 | [`platform-scrub`](../corpus/platform-scrub.s) | `cbo.scrub` preserving data and tags where a store of the same bits clears them, its two permissions and its refusal over IO memory, and `vmclear` clearing the vector CSRs with the extension-context gate off |
+| [`platform-memclass`](../corpus/platform-memclass.s) | the boundary between the two static latency classes: a capability's round trip, the tag a data store clears, `cloadtags`, `cbo.zero`, `cbo.scrub`, an atomic, and a bounds violation all answering the same on the second class as on the first, and the revocation filter keyed by the loaded capability's base rather than by the class of the slot holding it |
 
 **The version is a commitment and the digest is a measurement.** `version` in the manifest names the edition; a member added, removed, or changed in what it asserts advances it. `trace_schema` names the record grammar of §4; a record type added or a field widened advances that. Each member's `digest` is the fingerprint of its commit trace, so a model change that alters what a program *does* is a finding at the next run rather than a surprise at the next milestone; `model.py corpus --refresh` is how a deliberate change is recorded, and the edit shows up in review as a moved digest beside the model change that moved it.
 

@@ -120,6 +120,13 @@
       "checks": 11,
       "records": 361,
       "digest": "68c0dad7fb375693"
+    },
+    {
+      "name": "platform-memclass",
+      "source": "platform-memclass.s",
+      "checks": 8,
+      "records": 380,
+      "digest": "713b7fbdd0b4326c"
     }
   ]
 }
