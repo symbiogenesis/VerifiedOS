@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The host-side CertiCoq -> Wasm oracle (implementation-checklist §0, M1.5):
 # Gallina components exercised on a stock Wasm engine, no cross-toolchain, no
 # image, no machine model. This container is that engine's pinned environment.

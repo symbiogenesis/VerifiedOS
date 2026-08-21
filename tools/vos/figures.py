@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Derived figures: how one is spelled, found, compared, and repaired.
 
 A *claim* is a file, a pattern capturing a stated figure alone, and the value that

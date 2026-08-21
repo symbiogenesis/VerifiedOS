@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """tables: every row against the width its header declares.
 
 Nearly every counted artifact here is a table, and the counts group reads one by

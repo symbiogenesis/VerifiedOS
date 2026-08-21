@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The differential corpus: its manifest, and assembling the programs it names.
 
 The corpus is versioned (M0.12) because it is evidence rather than scaffolding:

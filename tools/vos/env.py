@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The build environment every model loop needs, read rather than assumed.
 
 This module tunes the *build*, never the VM. Nothing here writes `%USERPROFILE%\\.wslconfig`,

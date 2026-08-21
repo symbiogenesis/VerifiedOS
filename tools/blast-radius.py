@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Answer, before work starts, what an edit re-opens in the apex statement.
 
     tools/blast-radius.py --field composed_schedulability

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The frozen dialect's canonical 32-bit encodings, as one table.
 
 This is the encoder half of the corpus assembler (M0.12). It holds one row per

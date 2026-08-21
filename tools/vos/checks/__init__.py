@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The checks, one module per rule group.
 
 Each module owns one `=== group ===` heading of a run and the K- rules under it, and

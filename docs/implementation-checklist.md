@@ -375,6 +375,8 @@ The order records a sequencing decision rather than an accident: realization is 
 
 The milestones are also the review gate's clock: a crown-jewel row a milestone flips to `authored` enters R-05-150's independent specification review at the flip, not in a release-time batch, so each specification is read at the edition the proofs will be stated against rather than re-read from a corpus that has moved on.
 
+**An upstream's license is read at the milestone that would incorporate it, never at release.** A license is a property of the *arrival*, not of the shipped image, and it is the one property whose discovery cannot be repaired downstream: work built on an upstream whose terms forbid the composition is not re-licensed by finding out later, it is discarded. Two rules follow, and both bite before a line is written. **A vendored tree binds this repository and a pinned submodule does not**, so pinning an upstream to read it is free and vendoring it is a commitment; [THIRD-PARTY.md](../THIRD-PARTY.md) is the standing account of which each upstream currently is. And **an upstream's terms are read from its own license file rather than inferred from its lineage**, because a design lineage and a code provenance are different facts about the same project: taking an idea from a system carries nothing, and translating that system's artifacts carries whatever those artifacts carry. Every milestone below that would move an upstream from pinned to incorporated names its terms in its own entry. Three upstreams on this plan are not permissive, and they do not resolve alike: two of them reach the shipped image and carry a decision item ahead of the work, M1.1a for the compiler and M4.1a for the kernel specification, while the third does not reach it and carries a containment rule at M2.1. [COPYRIGHT.md](../COPYRIGHT.md) holds the licenses this repository's own content is offered under, which is the thing the gates exist to keep available.
+
 One crown-jewel row retires off this clock: the pinned Wasm guest semantics (inventory row 25, R-14-013b) gates no M-milestone, because the platform interpreter it serves ships with the §18-deferred application program rather than the base system, and its curation is scheduled there: it is the inventory's cheapest retirement, a version-pin of the mechanized WasmCert lineage whose soundness and confinement theorems arrive with the artifact, so the authoring cost is the pin, the subset cut, and the review, not a formalization. The M1 CertiCoq → Wasm host-side oracle is unrelated to it: that is build-farm machinery on the host, and R-05-085's device claim is untouched by it.
 
 Four more rows take their upstreams off this clock while their authoring rides the release program: the radio reference state machines (inventory rows 19–22) arrive with the roster the first release carries whole (R-18-004), and under R-12-043e each begins as a version-pin of the machine-checked symbolic analysis of its protocol, a transcription into the one prover, and a formal-to-formal review, not an original reading of the prose standard. The pinning sweep, deciding which edition of each Tamarin or ProVerif artifact serves as the row's upstream, is the first task of each row's authoring and the cheapest part of it, the analyses' security statements arriving with the artifacts as producer-side evidence; the RRC row additionally names which procedures fall outside the published analyses and take the R-05-050 hand-transcription posture instead, so the thin lane is scoped before it is walked.
@@ -392,9 +394,9 @@ Four more rows take their upstreams off this clock while their authoring rides t
 * Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.11, M0.12, M1.1, M1.5, and the build-loop instruments I0 and the initial check/emit/FAST tooling.
 * Current serial path: M0.6g → M0.6h → M0.14 → M0.16 → M0.10 C-class freeze. M0.12 is behind it, so the two instruction batches now have a corpus to add programs to rather than only properties to assert, which is what their exit criteria ask for.
 * Available parallel work: M0.7, M0.13, M0.15, M0.17, M2.1, and M4.1.
-* Total estimate: 966.5 h midpoint, range 656.5–1,276.5 h.
-* Progress by estimate: 48.5 of 966.5 h complete (5.0%); 918 h remaining (95.0%).
-* M8 gate: 871 h of the 966.5 h midpoint falls at or before it, everything but M9, M9a, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 385–446 h, a serial-path figure no sum gives, M0.14 and M0.16 landing on the serial Sail path ahead of the C-class freeze and adding roughly 24 h to it while M0.13, M0.15, M0.17, M6.7, and M6.8 are parallel and add none.
+* Total estimate: 970.5 h midpoint, range 658.5–1,282.5 h.
+* Progress by estimate: 48.5 of 970.5 h complete (5.0%); 922 h remaining (95.0%).
+* M8 gate: 875 h of the 970.5 h midpoint falls at or before it, everything but M9, M9a, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 385–446 h, a serial-path figure no sum gives, M0.14 and M0.16 landing on the serial Sail path ahead of the C-class freeze and adding roughly 24 h to it while M0.13, M0.15, M0.17, M6.7, and M6.8 are parallel and add none.
 
 ### M0 · Hardware reference
 
@@ -529,7 +531,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
     **The corpus goes with DDC, and it goes entirely rather than family by family.** Every program in `riscv-tests` addresses memory with an integer base register, which a purecap machine reads as an untagged capability and faults on, so eleven extension-by-extension filters collapse into one ground and the suite is excluded from registration. The profile sweep, which asks a different question, still runs it and now returns 199 refusals of 199 against 53. The differential rig loses its second executor at the same edge and for the same reason M0.6e booked: an oracle is a reference only where it implements the same machine, and the prefix falls from 97 to 67 on all 54 members, which is the prologue's first load. The rig outlives the oracle; its standing second executor is M2's CHERI-QEMU fork and its corpus is M0.12's.
     **Membership is by enumeration, which reaches four instructions and one otype decision this item's own list does not name.** Nothing enters the profile by inheritance (R-15-007j), so `cinvoke` goes with the call gate `cjalr` replaces (R-15-068), ISAv9's `cclear` with the split file its two quadrants address (R-15-069b), and the two mode-independent jumps with the second mode that gave them a reason. The same rule decides the object-type space, which is frozen here: three of the sixteen codepoints are reserved, the unsealed one and **two** sentry edges, because R-15-071's forward/backward split is a reservation in that space and not a later amendment to it. `cjalr` enforces the split by role, a jump that writes a link entering only a forward edge and a return address reachable only by one that writes none, and `csealentry` mints the forward edge alone, so a return capability is never software's to forge.
 
-* [ ] **M0.6g · Add profile rows absent upstream** · 15 h, range 10–20 · 1.6%
+* [ ] **M0.6g · Add profile rows absent upstream** · 15 h, range 10–20 · 1.5%
   * Add `cmovz`/`cmovn`, revocation filtering and bitmap, `fence.t`, capability indexed load/store, `cclear`, and the machine-level AIA pending array. `cloadtags` is already in hand: it is ISAv9's and came across with the instruction surface (M0.6e, e5), so what the profile adds to it is the two parameters it fixes rather than the instruction.
   * Do not model measurement-conditioned provisional rows yet. The single-check multi-register save is struck from the freeze set (R-15-036n) and is not modeled at all.
   * Exit is the M0.12 corpus rather than the model's own `$[test]` harness alone: every row here is net-new surface with no upstream oracle, so a property asserted about it and a program that runs it are different evidence and the batch owes both.
@@ -589,8 +591,15 @@ Every later milestone is purecap and managed-runtime-free from here.
   * Condition: alive, not abandoned (pushed June 2026; blame merged March 2026). Compartment-aware CompCert holds through every pass with the correctness proof adapted (admits confined to `Stackingproof.v` pending recent changes); recomposition and blame proofs complete; back-translation complete on `ccs-backtranslation`; the top-level RSCC theorem is formalized in `security/RSC.v` but not yet integrated with those three. Builds with Rocq 9.1 / OCaml 5.2.1 / Menhir.
   * Carried features, the CHERI half: the capability backend lives in-tree under `cheririscV/` (33 files: `CapAsm.v`, `CapAsmgen.v`, `CapAsmgenproof*.v`, capability memory model `CapMemory.v`, Georges-et-al calling convention with uninitialized/directed capabilities), emitted via `-dcapasm` with an admittedly incomplete pretty-printer; per the abstract it is "for the most part also implemented in Coq, but not yet fully integrated with CompCert and not verified". Branch `fix-cap-backend` (`1881ed0f`, June 2024) is 15 commits of unmerged backend work ahead; the 2022 `cheri-backend` branch is superseded.
   * Implication for M1.2: the artifact is usable, so the +20–40 h contingency is not triggered; the re-homing's real gap is the unverified, unintegrated capability backend and its ISAv8-lineage capability model versus the §4.1 64+1-bit purecap dialect, exactly the residual [inspirations.md](inspirations.md) states.
+* [ ] **M1.1a · Decide the compiler-provenance fork** · 2 h, range 1–3 · 0.2% · Parallel
+  * **This is one of two open questions on the plan that can invalidate work rather than delay it, and it is a decision rather than an edit** (M4.1a is the other). M1.1 records the term and the pin's own `LICENSE` decomposes it: the CompCert verified compiler is under the INRIA Non-Commercial License Agreement, a **revocable** grant running "solely for educational, research, or evaluation purposes", which is not an open-source license and is incompatible with every license this repository's own content is offered under ([COPYRIGHT.md](../COPYRIGHT.md)). M1.2 is the act that spends it, so the call is made here, while the submodule is still a pin and nothing downstream rests on it.
+  * **The dual-licensed subset does not rescue this, and the decomposition is the finding.** `lib/`, `common/`, twelve `cfrontend/` files, `backend/Cminor.v` with its printer, `cparser/`, `export/`, four per-architecture files, and the build files are dual-licensed LGPL-2.1-or-later; `flocq/` and `MenhirLib/` are LGPL-3.0-or-later; `runtime/` is BSD-3-Clause. **The verified backend passes, the RISC-V backend, and SECOMP's own `cheririscV/` are on none of those lists**, and they are precisely what M1.2 takes. The permissive and copyleft arms cover the parts this milestone does not need.
+  * The fork has three arms and they are not equivalent. **Obtain terms**: the commercial CompCert license exists and is the only arm that keeps both the verified backend and an unencumbered platform, at a cost nobody here has yet asked for. **Contain it**: keep the backend a build-time producer that is never redistributed, which preserves the platform's license and leaves the *toolchain* undistributable, so a third party cannot rebuild the image and R-05-023a's validation instrument and the reproducible-bootstrap story both take the hit. **Route around it**: reach purecap lowering without the CompCert backend, which forfeits the secure-compilation criterion the post-M10 program is stated against and is a redesign of the compilation lane rather than a substitution inside it.
+  * Exit evidence: the arm is named, the arms not taken are recorded with what each forfeits, and `upstream/SECOMP`'s own license file is read and quoted rather than inferred from the lineage. The submodule is unpopulated, so that read is the first task here and the cheapest part of it.
+  * Two further non-permissive upstreams sit on this plan and they do not resolve alike. M4.1a is a fork of the same kind, because a translated kernel specification does reach the shipped image. M2.1 is not, because the emulator fork does not; it carries a containment rule instead.
 * [ ] **M1.2 · Re-home the backend to the purecap profile** · 37.5 h, range 25–50 · 3.9%
   * Functional and differential testing required; add 20–40 h if the artifact is unusable.
+  * **Gated on M1.1a.** This is the act that vendors the backend, so the arm chosen there decides what this item may produce and on what terms. Entering it before the call is what would make the call expensive: this 37.5 h is precisely what the non-commercial term would encumber, and the cell prices the re-homing alone, no arm's own cost inside it.
 * [ ] **M1.3 · Add baseline target support and bound-directed lowering** · 12 h, range 8–16 · 1.2%
 * [ ] **M1.4 · Re-home LLVM MC/`lld` and compose static images** · 22.5 h, range 15–30 · 2.3%
   * Exclude general dynamic linking.
@@ -605,7 +614,7 @@ Every later milestone is purecap and managed-runtime-free from here.
 * [ ] **M1.9 · Two-class static memory plan and placement WCET delta** · 12.5 h, range 8–17 · 1.3%
   * Per-region class assignment in the whole-program plan, the R-15-247j placement rule, and the admission-visible WCET delta for second-class regions computed against that class's fetch constant, as an **input to §11 admission rather than a report about it**. Includes the R-14-015 interpreter-arena placement: the arenas are second-class regions and the interpreter body is first-class, which raises the origin-pool ceiling *P* for the same first-class budget.
 
-**M1 subtotal:** 127 h · 13% · 3.5 h complete · open range 82–165 h.
+**M1 subtotal:** 129 h · 13% · 3.5 h complete · open range 83–168 h.
 
 ### M2 · Fast emulator
 
@@ -615,6 +624,7 @@ It gates on M0, not M1, so it proceeds in parallel with the toolchain spine; fro
 Gate M2.2–M2.3 on measured Sail-emulator performance. If Sail is sufficient through M6, defer approximately 35 h beyond M8.
 
 * [ ] **M2.1 · Fork CHERI-QEMU and narrow compressed capabilities** · 7.5 h, range 5–10 · 0.8% · Parallel
+  * QEMU is GPL-2.0-only, so the fork is a GPL-2.0 work and stays one. That is a containment rule rather than a gate: the fast emulator is a development instrument that no shipped image links against or embeds, so it lives in its own repository under those terms and nothing it touches propagates to the platform. What the rule forbids is the shortcut, vendoring any part of it into this tree, which would put a copyleft term on a repository that currently carries none. The differential rig reaches it as a separate executor over the trace schema, which is the interface that keeps the two apart.
 * [ ] **M2.2 · Implement the frozen decode surface and bespoke machine** · 12 h, range 8–16 · 1.2%
 * [ ] **M2.3 · Add VLEN=4096 RVV, matrix, and FEC datapaths** · 30 h, range 20–40 · 3.1%
 * [ ] **M2.4 · Reach corpus lockstep with M0 and boot M1 hello-world** · 9 h, range 6–12 · 0.9%
@@ -644,12 +654,18 @@ RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → both emu
 Gallina microkernel (§5), one instance per emulated core; capability/IPC tests green host-side (Wasm) and on-emulator (RV64, both machines).
 
 * [ ] **M4.1 · Decide revocation sweep quanta** · 1.5 h, range 1–2 · 0.2% · Parallel
+* [ ] **M4.1a · Decide the kernel-specification provenance fork** · 2 h, range 1–3 · 0.2% · Parallel
+  * **The second decision that can invalidate work rather than delay it, and it was found by reading tags rather than by reasoning from lineage.** The seL4 proof repository tags every file, and the tags split on directory: `spec/` and `proof/` are **GPL-2.0-only**, while `lib/` and `tools/` are BSD-2-Clause. The executable-spec objects M4.2 would take are on the GPL-2.0-only side, sampled across the Haskell executable spec, the generated design spec, the abstract spec, and the refinement proofs, all four tagging the same way.
+  * **This item takes code, not lineage, and the two carry different terms.** What the design takes from seL4 is stated as two ideas and no code, which carries nothing. What M4.2 takes is artifacts, and a translation is a derivative work of its source whatever the target language, so the kernel built on it inherits the term. Apache states its own license incompatible with GPL version 2, which makes this a fork rather than an attribution chore: the kernel is either GPL-2.0-only or it is not derived from those objects. The syscall note in seL4's license does not reach the question, exempting user-level code that calls the kernel and not code derived from the kernel's specification.
+  * The arms. **Take the term**: translate, and carry the kernel as GPL-2.0-only, which splits this repository's licensing and forecloses combining the kernel with anything Apache-2.0, M1.1a's contained-toolchain arm included. **Author instead**: derive the Gallina objects from the design that is already specified here rather than from seL4's artifacts, which costs this cell's translation saving and keeps one license across the platform. **Narrow the roster**: take only what the BSD-2-Clause halves supply and hand-author the rest, which is the middle arm and needs the per-object read to size.
+  * Exit evidence: the arm is named, the arms not taken are recorded with what each forfeits, and every source object M4.2 would touch is listed with its repository and its tag, read from the file rather than from the project's reputation.
 * [ ] **M4.2 · Translate surviving seL4 executable-spec objects to Gallina** · 22.5 h, range 15–30 · 2.3%
   * Time-box `hs-to-coq` recovery to eight hours, then hand-translate if necessary.
+  * **Gated on M4.1a**, which decides what this item may take and what the kernel is licensed as afterwards. Entering it first is what makes the call expensive: discovering the term after the translation costs the translation, where deciding before it costs a hand-authored replacement that is inside this cell's own range.
 * [ ] **M4.3 · Exercise capability lifecycle, IPC, and slot faults through Wasm** · 9 h, range 6–12 · 0.9%
 * [ ] **M4.4 · Bring up one isolated C instance per emulated core** · 26.5 h, range 18–35 · 2.7%
 
-**M4 subtotal:** 59.5 h · 6% · open range 40–79 h.
+**M4 subtotal:** 61.5 h · 6% · open range 41–82 h.
 
 ### M5 · Storage and objects
 
@@ -667,14 +683,14 @@ Journal/index/FS (§7) and the content-addressed object store + transactor (§6)
 Init/supervision tree (§8) brings up the reference components; admission checker (§9) validates the package set; the package composer emits the finite typed handler/translator graph and pre-admitted media templates, and the contained object router exercises private namespaces, intents, live queries, deterministic translation caching, and protocol-bound credential handles over the existing IDL and rings.
 The ring data plane is brought up in its contract order: the common ring schema and lifecycle authored in the IDL profile with the reference client/server bindings and Coq interface skeleton generated from it, then one copy-based service carrying the SPSC, notification, and capacity proofs, then one DMA service adding the extent, cancellation, teardown, and quiescence proofs, so the contract's constants and generated-proof interfaces are validated on two real services before every other server rides them. No service is grandfathered: one that cannot state its finite capacities, lifecycle semantics, cleanup bounds, and per-operation WCET is not admitted through the ring profile.
 
-* [ ] **M6.1 · Build the init supervision tree in Lustre via Vélus** · 15 h, range 10–20 · 1.6%
+* [ ] **M6.1 · Build the init supervision tree in Lustre via Vélus** · 15 h, range 10–20 · 1.5%
 * [ ] **M6.2 · Refine admission checkers to CompCert-C** · 26.5 h, range 18–35 · 2.7%
-* [ ] **M6.3 · Build the package composer and contained object router** · 15 h, range 10–20 · 1.6%
+* [ ] **M6.3 · Build the package composer and contained object router** · 15 h, range 10–20 · 1.5%
 * [ ] **M6.4 · Author the ring-contract schema and generate the reference bindings** · 9 h, range 6–12 · 0.9%
   * The common ring schema and lifecycle in the IDL profile (R-12-091 through R-12-101), with the reference client/server bindings and the Coq interface skeleton generated from it.
 * [ ] **M6.5 · Port one copy-based and one DMA service through the ring contract** · 22.5 h, range 15–30 · 2.3%
   * The copy-based service carries the SPSC, notification, and capacity proofs; the DMA service adds extent, cancellation, teardown, and quiescence; together they validate descriptor sizes, completion capacity, and the generated-proof interfaces (R-18-037) before other servers ride the contract.
-* [ ] **M6.6 · Inference-server session-open ceiling** · 15 h, range 10–20 · 1.6%
+* [ ] **M6.6 · Inference-server session-open ceiling** · 15 h, range 10–20 · 1.5%
   * R-12-084b's shape applied to R-12-085: the server's slot, worker set, and pools fixed at composition against a declared ceiling, a model inside it running in the admitted slot and one above it answered when the session opens.
   * Includes the canonical model shape descriptor: a schema-bounded non-recursive Narcissus format carrying an R-05-051a canonicity theorem, so **the descriptor's parser is verified while the model stays untrusted data**. No proof is asked of the weights, which do not execute; the executing code is the server's GEMM and attention kernels, and they carry their obligations whichever weights they read.
 * [ ] **M6.7 · Expert-residency declaration and admission arithmetic** · 7 h, range 4–10 · 0.7% · Parallel with M6.6
@@ -701,16 +717,16 @@ The same roster carries the ring-parameter measurement: queue depths, batch size
 
 The RTL track, in parallel from the M0 freeze:
 
-* [ ] **R1 · Curate scalar CVA6-CHERI RTL and required platform devices** · 45 h, range 30–60 · 4.7%
+* [ ] **R1 · Curate scalar CVA6-CHERI RTL and required platform devices** · 45 h, range 30–60 · 4.6%
   * CVA6-CHERI re-parameterized to the 64+1-bit dialect and curated per the profile and absence contract (§11: MMU deleted, static-only prediction, TSO store buffer), plus the RoT core, tag-carrying interconnect, boot ROM, UART, and block device; absence-contract state enumeration and synthesis-configuration provenance recorded at first elaboration.
 * [ ] **R2 · Reach corpus-green Verilator co-simulation with trace diff and BMC smoke** · 22.5 h, range 15–30 · 2.3%
   * The shared corpus passes under Verilator with the commit-trace diff against the golden model, `rvfi` the hook; a riscv-formal-style BMC smoke on the curated scalar core runs here as cheap bring-up evidence (R-15-094), distinct from the deferred FEV and refinement work.
-* [ ] **R3 · Boot the image in co-simulation and publish the versioned RTL artifact** · 15 h, range 10–20 · 1.6%
+* [ ] **R3 · Boot the image in co-simulation and publish the versioned RTL artifact** · 15 h, range 10–20 · 1.5%
   * The composed purecap image (M7's) boots on the RTL in Verilator to the same console and event digests as both emulators; the **RTL artifact of record** (§11) is versioned and published.
 * [ ] **R4 · Second-class macro architecture specification** · 20 h, range 12–28 · 2.1%
   * **No commodity part supplies what R-15-247 requires**: monolithic integration above a leading-node logic die, a native 64+1-bit granule tag plane, DECTED on both planes at 256-bit codewords, wordline drivers sized for whole-bank assertion, fixed-latency random access with no activate/precharge, and bank counts two orders above commodity practice. This item authors the macro architecture those six imply, as the input to R5.
   * The commodity oxide-channel roadmap de-risks the deposition chemistry, the thermal budget, the stack-and-replace flow, and multi-deck stacking. It does not de-risk the gain cell, and it does not de-risk the macro at all.
-* [ ] **R5 · Second-class macro qualification evidence** · 31.5 h, range 18–45 · 3.3%
+* [ ] **R5 · Second-class macro qualification evidence** · 31.5 h, range 18–45 · 3.2%
   * R-15-247m's obligations as one package: measured usable density from a **repaired megabit-class macro** carrying complete tag, ECC, refresh, discharge, and routing overhead; the four per-class latency constants; the retention corner as a measured interval; bank-granularity tag discharge with a characterized worst-corner dwell and a dwell-invariant fail-stop indication; and the simultaneous-activation envelope against droop, thermal coupling, and endurance at the M0.17 bank granularity.
   * These are **qualification gates, not re-open conditions**: a macro that misses one is a part that does not qualify, not an architecture that reverts.
 
@@ -723,7 +739,7 @@ The RTL track, in parallel from the M0 freeze:
   * This is the plan's most important milestone; everything after it is hardware realization and hardening.
 * [ ] **M9 · Synthesize and boot scalar purecap on FPGA** · 30 h, range 20–40 · 3.1%
   * Synthesize the R3 artifact for the board (§11); the purecap golden-model images (M1–M7) boot on it directly, differentially tested against M7; CHERI ISA tests from the Sail model green on the FPGA.
-* [ ] **M10 · Extend CHERI checks across V/M/FEC datapaths** · 45 h, range 30–60 · 4.7%
+* [ ] **M10 · Extend CHERI checks across V/M/FEC datapaths** · 45 h, range 30–60 · 4.6%
   * Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M9, so the FPGA then matches the golden model across all core classes.
 * [ ] **M9a · Discharge and refresh droop model** · 12.5 h, range 8–17 · 1.3%
   * Close the simultaneous-activation set against measured IR-drop, thermal-coupling, and power-signature limits at composition capacity and at the frozen bank granularity, then feed the admitted set back into the §11 mode-transition budget and R-15-247g.
@@ -770,6 +786,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 966.5 h midpoint over a 656.5–1,276.5 h range.
+* Grand total: the sum of the item cells, 970.5 h midpoint over a 658.5–1,282.5 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.

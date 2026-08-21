@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """estimates: every total and share against the item hours beneath it.
 
 The implementation checklist prices itself twice. Once per item, where an estimate is

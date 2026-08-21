@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """compounds: the archetype band against the product of the rows it rests on.
 
 The estimates carry two layers of figure and only one of them is anybody's artifact.

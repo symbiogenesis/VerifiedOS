@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """meta: the rule registry against the checks this package carries, both directions.
 
 tools/check-rules.md enumerates what the checker checks, one row per rule, each

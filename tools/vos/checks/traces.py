@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """traces: the register's references against the prose bookmarks they cite.
 
 Bookmarks cannot go stale the way line numbers do, but they can be absent,

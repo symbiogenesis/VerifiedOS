@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """links: every cross-reference a document makes, against what it points at.
 
 The traces group holds the register's citations of the prose. This holds every other

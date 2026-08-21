@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """counts: every figure any document asserts, against the artifact it derives from.
 
 "1290 requirements", "twenty-two crown-jewel specifications", "sixteen enumerated

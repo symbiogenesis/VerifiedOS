@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The model's configuration dialect: JSON with comments and trailing commas.
 
 The Sail model's configuration files are read by jsoncons, which accepts `//` and

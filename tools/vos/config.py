@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The model's configuration, held against the schema and against the max build.
 
 Two questions are asked of `model/config/verifiedos.json`, and they catch different

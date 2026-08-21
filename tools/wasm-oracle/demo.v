@@ -1,3 +1,4 @@
+(* SPDX-License-Identifier: Apache-2.0 *)
 (* M1.5 smoke program for the CertiCoq -> Wasm oracle.
 
    The shape mirrors the oracle's intended use (§0, §4 of the

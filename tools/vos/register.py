@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The register, and the artifacts whose rows other documents count.
 
 Everything here is a parse, never a decision. A check reads these structures and

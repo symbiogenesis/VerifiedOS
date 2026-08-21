@@ -35,6 +35,7 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
   - [The typed assembly language](#the-typed-assembly-language)
   - [The atomic-requirements register](#the-atomic-requirements-register)
   - [Derived views](#derived-views)
+- [License](#license)
 
 </details>
 
@@ -333,3 +334,9 @@ Five **derived views** collect what the register states across many entries but 
 - **The [profile-freeze measurement contract](docs/freeze-measurement-contract.md)**: the corpus, recipe, provenance schema, region classes, thresholds, report columns, and CI predicates for the freeze's second act, the one place the profile defers its own decisions to a measurement against generated output. It is written before the backend that produces that output exists, which is the point: a threshold chosen after the measurement is not a threshold.
 
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.
+
+## License
+
+The writing is under [Creative Commons Attribution 4.0](LICENSE-docs.md), the same license the RISC-V specifications carry: quote it, build on it, publish what you make of it, and say where it came from. Everything else this project wrote, the tooling and the proof artifacts, is under the [Apache License 2.0](LICENSE.md), which adds an explicit patent grant for anyone who wants to implement the machine described here.
+
+The [Sail model](model/) is a modified copy of an existing one and keeps that project's [BSD two-clause license](model/LICENCE), as do the libraries it builds against. [Copyright and licensing](COPYRIGHT.md) says which license covers which path and why, and [third-party components](THIRD-PARTY.md) lists everything here that somebody else wrote.

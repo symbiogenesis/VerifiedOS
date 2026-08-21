@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """bindings: the apex statement's interface fields against the view that binds them.
 
 proofs/ApexTheorem.v is R-18-031(a)'s coverage checklist: every side-property some

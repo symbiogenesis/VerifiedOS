@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """glyphs: punctuation the house style forbids, and the encoding damage that mimics it.
 
 The other groups check what a document says. This one checks what it is made of, where
