@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The RV64I integer surface: arithmetic, logic, shifts, the W forms, and every
 # branch condition. Nothing here is capability-specific; it is the base the
 # curation did not disturb, and it is first in the corpus because a divergence

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The inspection surface, read against the state the machine actually resets
 # with: a **split** root pair, the execute side in PCC and the store side in
 # `c1`, because no admitted permission set holds both store and execute

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # `A` narrowed to `Zaamo` + `Zabha`: unconditional atomic read-modify-write at
 # four widths, with no reservation and no compare-and-swap (R-15-024). `Zabha`
 # is width cases on the same operation rather than a new class, so the byte and

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The tag plane: what a capability store and load do to it, what an ordinary
 # data store does to it, and what the two block instructions read and clear.
 #

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Two surfaces that have nothing to do with each other except that both are
 # small: `Zicond`, the branchless select that is doubly load-bearing under
 # static-only prediction (R-15-054), and the CSR bank, which is closed by

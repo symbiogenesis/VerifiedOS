@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Loads and stores at every width, through a capability derived from the root
 # data capability the machine resets with in `c8` (postlude/step_ext.sail).
 #

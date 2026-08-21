@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The bit-manipulation surface the profile adopts: `Zba`, `Zbb` and `Zbs` for
 # fixed-latency address and bit arithmetic, and `Zbkb`, `Zbkc` and `Zbkx` for
 # software crypto on vectorless cores (isa-profile.md §2, R-15-067, R-15-042).

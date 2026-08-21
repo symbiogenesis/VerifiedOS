@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Hold this directory's own Python to the discipline it holds the documents to.
 
 `check.py` checks the documents against each other. Nothing checked the tool that

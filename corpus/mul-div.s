@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The M extension, including the three cases a divider has to define rather
 # than compute: division by zero, the signed overflow at the most negative
 # dividend, and the remainder that goes with each.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The lint half of the gate, and the half that enforces annotation coverage.
 #
 # ty is the type checker, but it has no rule requiring a function to *be*

@@ -600,6 +600,22 @@ CASES = [
 
     ("K-51", "a corpus member whose program no longer assembles",
      _literal("corpus/cap-trap.s", "cmove   c8, c1", "cmove   c8, c1, c2")),
+
+    # The mark is stripped rather than mangled, because an absent mark is the failure
+    # this rule exists for: a new file lands unmarked and reads exactly like a marked
+    # one. The target is the checker's own module, so the case cannot be satisfied by
+    # a file the repository might stop carrying.
+    ("K-52", "a markable file whose license mark has gone",
+     _literal("tools/vos/checks/marks.py", "# SPDX-License-Identifier: Apache-2.0\n", "")),
+
+    # A new file of an unknown kind cannot be seeded, because the corpus is the git
+    # index and an untracked file is not in it. Withdrawing a kind's ruling puts an
+    # existing file into exactly the state a new kind would arrive in, which is the
+    # state the rule exists to report.
+    ("K-53", "a tracked file whose kind the tool no longer rules on",
+     _literal("tools/vos/checks/marks.py",
+              '    ".json": "JSON admits no comment, so a mark would make the file '
+              'unparseable",\n', "")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
