@@ -19,7 +19,7 @@ inequality against the bare figure and never rewritten.
 import re
 from typing import TYPE_CHECKING
 
-from vos import figures
+from vos import figures, geometry
 from vos.register import REGISTER, cj_class, cj_status
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -290,6 +290,82 @@ def _tag_plane(ctx: Context) -> None:
                f"R-15-203 fixes and the {p}-bit payload R-15-181a fixes")
 
 
+def _block_geometry(ctx: Context) -> None:
+    """K-57: the welded block size, in every artifact that writes it.
+
+    Four instructions share one parameter, and it is written six times: twice in Sail,
+    twice in the model's configuration dialect, once as a literal in the model's own
+    harness, and once as the candidate set of the document that constrains it. The
+    assertions inside the model hold the first pair together at run time; nothing held
+    the harness's literal or the document's set against them, and a document stating a
+    figure nothing checks is worse than one that states none, because it reads as
+    checked.
+
+    The candidate set is recomputed rather than trusted, from the granule the model
+    declares and the ceiling an integer destination imposes, so a candidate row edited
+    in the document without its arithmetic is a finding. It is reported and never
+    repaired: four of the six sites are under a `-text` tree, where a rewrite risks the
+    line-ending sweep the tools' `newline=""` convention exists to prevent, and the
+    seventh thing this rule could touch, which value inside the set is taken, is
+    R-15-014a's second act rather than arithmetic.
+    """
+    rep, reg = ctx.rep, ctx.reg
+    geo = geometry.read(ctx.root)
+    payload = PAYLOAD_RE.search(reg.body.get("R-15-181a", ""))
+
+    if geo.granule_exp is None or payload is None:
+        rep.report("K-57", "block-geometry reading(s) that have moved:", [
+            None if geo.granule_exp is not None else
+            "the model no longer declares log2_cap_size in a form this rule reads, so "
+            "there is no granule to derive the block against",
+            None if payload is not None else
+            "R-15-181a no longer states the codeword's data payload, so there is no "
+            "floor to derive the block against",
+        ])
+        ctx.shared["block_candidates"] = 0
+        return
+
+    findings: list[str] = []
+    written = {site: exp for site, exp in geo.sites.items() if exp is not None}
+    findings += [f"{site} no longer writes the block size in a form this rule reads"
+                 for site, exp in geo.sites.items() if exp is None]
+
+    if len(set(written.values())) > 1:
+        findings += [f"{site} writes a block of {1 << exp} bytes"
+                     for site, exp in sorted(written.items())]
+
+    # The two derivable constraints that bind, C5 and C3 of the document. The floor is
+    # one ECC codeword, no sub-codeword write existing at the array; the ceiling is the
+    # widest tag group an integer destination can carry back. The rest of the derivable
+    # rows are implied by these two over a power-of-two space, which is what the
+    # document says and what this arithmetic is the other statement of.
+    granule = 1 << geo.granule_exp
+    codeword = int(payload.group(1)) // 8
+    ceiling = granule * 64                       # caps_per_block at most XLEN
+    candidates = [b for e in range(13) if codeword <= (b := 1 << e) <= ceiling]
+
+    if geo.ceiling != ceiling:
+        findings.append(f"{geometry.DOCUMENT} states a ceiling of {geo.ceiling} bytes, "
+                        f"the {granule}-byte granule and an integer destination give "
+                        f"{ceiling}")
+    if geo.declared and geo.declared != candidates:
+        findings.append(f"{geometry.DOCUMENT} declares candidates {geo.declared}, the "
+                        f"constraints it states compound to {candidates}")
+    elif not geo.declared:
+        findings.append(f"{geometry.DOCUMENT} states no candidate set this rule reads")
+
+    for site, exp in written.items():
+        if (1 << exp) not in candidates:
+            findings.append(f"{site} writes a block of {1 << exp} bytes, which is "
+                            "outside the candidate set the constraints admit")
+
+    ctx.shared["block_candidates"] = len(candidates)
+    rep.report("K-57", "welded block-size site(s) that disagree:", findings,
+               f"the welded block size is {1 << next(iter(written.values()), 0)} bytes "
+               f"in all {len(geo.sites)} sites that write it, inside a candidate set of "
+               f"{len(candidates)}")
+
+
 def run(ctx: Context) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
     ctx.q = _quantities(ctx)
@@ -408,4 +484,5 @@ def run(ctx: Context) -> None:
                    "every Coverage row matches the register")
 
     _tag_plane(ctx)
+    _block_geometry(ctx)
     rep.line()
