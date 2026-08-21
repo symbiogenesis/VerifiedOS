@@ -597,6 +597,20 @@ Non-normative; no spec-body change is made here.
 
 ---
 
+## Multics: the single-level store as precedent, the rings as the thing declined, and the 1974 warning the install path answers
+
+Multics belongs beside the Burroughs machines, the iAPX 432 and System/38 in the lineage above, and is the closest of the four to this design, so its absence would read as an oversight rather than a judgment.
+Memory was a **segmented single-level store**: every object is a segment addressed directly by the processor with its own access permissions, so there is no distinction between being in memory and being in the filesystem and no separate path to reach persistent data. That is the historical precedent for a single address space, and it is worth citing for exactly that: abolishing the memory-versus-file distinction is a coherent whole-system design with a large deployed history, not a novelty, and capabilities over on-die SRAM are the same idea with unforgeable bounds and no translation structure underneath.
+
+**Two things are declined and one is imported, and the imported one is a way of writing.**
+The **rings** are declined because a hierarchy is a total order on privilege, which cannot express two mutually distrusting components at the same level, and that is the only arrangement a share-nothing multikernel of capability-bounded components has (§7, §8); an unordered capability graph replaces the order. The **segment descriptor** is declined as the protection unit for the reason the entry below gives about tables generally: a descriptor is consulted through a structure the hardware must walk, where a capability is carried in the pointer, which is why there is no per-access table and no MMU (§15).
+What imports is **Karger and Schell's** retrospective. Their 1974 tiger-team evaluation is where the compiler trap door was first described in print, a decade before it became famous, and it is prior art for why the install path validates the delivered artifact rather than trusting the toolchain that produced it (§11, §13). Their 2002 re-reading is the better model still, this time of *how to write an absence claim*: stack-smashing was structurally difficult on Multics for three converging reasons they name and a reader can check one at a time, the stack grew toward higher addresses so an overflow wrote away from the return address, the system was written in PL/I rather than C, and execute permission was a per-segment attribute so a data segment simply was not executable. Name the class, name the structural reasons it cannot occur, let each be checked separately: that is the shape [absence-contract.md](absence-contract.md) is already trying to have, stated by a system evaluation from 1974 and re-stated by its own authors thirty years on.
+
+**Disposition:** no mechanism imported. The single-level store is credited as the historical precedent for the single address space, the ring hierarchy and the segment descriptor are declined on the ordering and table grounds above, and the Karger and Schell papers are imported as citations, the first for the install-path checker's ground and the second as the template for how an absence claim is written.
+Non-normative; no spec-body change.
+
+---
+
 ## Object Memory Architecture: object-granular naming against byte-granular capabilities; the elegant synthesis is already the design, the deeper one is the MMU it deleted
 
 Where the Historical capability machines entry (above) took the object *machines* as ancestry, this entry takes their shared *memory model*, idealized to its most elegant form, as an axis in its own right: an **Object Memory Architecture** (OMA) in which memory is not a flat array of bytes but a graph of **objects**, each with an unforgeable **object identifier (OID)**, an implicit boundary, an optional type, and object-granular access rights, so that a reference is an **(OID, offset)** pair naming an *identity* rather than a *location*.
