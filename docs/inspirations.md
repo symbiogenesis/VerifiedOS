@@ -1642,6 +1642,24 @@ This is the adopted form of the indexed-target insight: resolve once at composit
 
 ---
 
+## RLBox and wasm2c: ahead-of-time WebAssembly with no JIT anywhere, and the obligation on a returned value that bounds do not discharge
+
+**RLBox** (UCSD, Texas, Stanford and Mozilla; USENIX Security 2020) retrofits fine-grained isolation onto third-party C libraries inside Firefox, and it enters for two things, one of which closes an objection and one of which opens a gap.
+
+**The objection it closes is that WebAssembly implies a just-in-time compiler.**
+Firefox shipped RLBox with the Graphite font shaper in Firefox 74, and Mozilla's production configuration moved to **wasm2c**: the library is compiled to WebAssembly, the WebAssembly is compiled to C, and the C is compiled ahead of time to native, with no run-time code generation anywhere in the path.
+That is precisely the configuration §5's pinned guest semantics needs, running in a browser at scale, and it is the answer whenever the pinned-Wasm choice is read as smuggling in a JIT.
+The follow-on performance work (Segue, ASPLOS 2025) is instructive in the other direction, since what it recovers is bounds-masking cost by borrowing an x86-64 segment base, and it documents a ceiling of sixteen concurrent sandboxes for the memory-protection-key alternative: both are workarounds for the absence of hardware-enforced spatial bounds on every pointer, which CHERI supplies architecturally, so the isolation mechanism itself imports in no part, and Native Client's load-time validator over an instruction subset is declined outright as an alternative to capabilities that its own vendor withdrew.
+
+**The gap it opens is real and hardware bounds do not touch it.**
+RLBox's central finding is that *isolating the library was not sufficient*, because the application still consumes whatever the sandbox returns; so every value crossing out is wrapped in `tainted<T>`, a type that will not implicitly convert, forcing the developer to copy it into application memory and validate it before use, and turning every omission into a compile error rather than a latent bug.
+CHERI says nothing about this.
+A capability handed back across a compartment boundary is a perfectly valid capability with perfectly valid bounds, and it can still carry a length field that lies, an index out of range for the *caller's* array, an enumeration outside its domain, or a pointer legitimately inside the callee's bounds and semantically meaningless to the caller: confused-deputy and semantic-corruption bugs, which spatial integrity does not reach.
+The obligation that follows is a **taint-or-validate duty on every value crossing a compartment boundary**, discharged at composition time by the interface language or on the install path by the checker (§11, §12, §13), and it belongs in [coverage-matrix.md](coverage-matrix.md) as a cell distinct from the CHERI bounds argument rather than folded into it.
+Reading "CHERI covers it" onto this class would leave it uncovered, and the entry exists to say so.
+
+---
+
 ## WasmCert, Iris-Wasm, and SpecTec: the platform interpreter's theorems bought by curation, with every agreement instrument kept untrusted
 
 The §14 platform interpreter (R-14-013a) is the one place the platform executes a guest language it did not define, and its assurance is bought the way the kernel's and the parsers' were: adopt the mechanized lineage whose theorems already exist, curate it into the one prover, and let nothing ecosystem-facing enter the trust base.
