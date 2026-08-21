@@ -2225,6 +2225,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: proofs are generation-scoped, so revving either forces re-admission, and static composition is preserved.
 · Trace: CJ-TAL-SOUND, CJ-SAIL
 
+**R-11-005a** MUST: A proof decides whether a generation is *admissible* and never whether it is *current*: the update directive carries an expiry, admission refuses to act on directive metadata whose expiry precedes the monotonic time floor, and the age of the newest directive the device has verified is surfaced rather than left to be inferred.
+· Accept: the obligation is decidable against state the platform already keeps and adds none, riding the authenticated time source and persisted monotonic floor (R-09-012, R-09-014, R-09-016), so it confers no freshness membership and R-10-013's enumeration is unchanged by it.
+· Accept: what it covers is what neither neighbour can see: R-11-005 decides a property of the artifact, and R-09-030's floor bounds *backward* motion only, so a device never told that a newer generation exists stands still while both hold and an old generation whose proofs check against a since-strengthened spec-set is admissible, installable, and vulnerable. Surfacing the newest verified directive's age is what makes *withheld* and *absent* distinguishable to the holder, and an implementation that refuses the stale directive while reporting nothing meets the refusal and fails this line.
+· Fail-closed: an expired directive stops an **install** and never a boot; the running generation is untouched, and what is spent is the ability to update until fresh metadata arrives (R-17-030u).
+· Trace: CJ-DEVTREE
+
 ### 11.2 Temporal admission
 
 **R-11-006** MUST: The task set admits only with a machine-checked schedulability proof: for the static cyclic executive an interval-arithmetic check in the same checker (the slot WCETs fit the major frame and each task's period is harmonic with it), not Prosa-style response-time analysis.
@@ -2459,6 +2465,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-12-012** MUST: The IDL profile is restricted: closed variants only, no recursion, and explicit bounds on every list and string.
 · Accept: no IDL type admits an unbounded value (R-05-143).
 · Trace: CJ-IDL
+
+**R-12-012a** MUST: A declared type bounds what a value *is* and never what it *means to the receiver*, and capability bounds do not close the difference: every value a compartment uses as an index, length, offset, or selector into **its own** state is validated where it is used, the IDL declares which received values carry that obligation, and the Tier-1 proof discharges it at the receiver.
+· Accept: the class is exhibited rather than asserted: a capability arriving from another compartment is a valid capability with valid bounds and may still carry a length field that lies, an index in range for its type and out of range for the callee's array, or a pointer inside the sender's bounds and meaningless in the receiver's terms, none of which R-15-068's spatial enforcement reaches and only some of which R-12-012's closed variants and explicit bounds exclude.
+· Accept: the obligation is discharged at the receiver and never inherited from a sender's compliance, which is R-12-008a's Byzantine-peer posture applied to a payload's *meaning* rather than to its ownership; an interface whose declaration marks no received value as carrying the obligation is admitted only where no received value is used as an index, length, offset, or selector, so the empty case is a claim the checker reads rather than a default it assumes.
+· Trace: CJ-IDL, CJ-TAL-SOUND
 
 **R-12-013** IS: Two standing rules govern the IDL: its types are documentation of the contract and never the contract, enforcement remaining kernel capabilities plus CHERI plus the Coq specs; and the profile's wire-format mapping is itself a crown-jewel specification.
 · Accept: the kernel is not an IDL endpoint.
@@ -3027,6 +3038,17 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the Tier-2 certificate handles the corruption dimension of a bad dependency; intra-app compartmentalization handles the authority dimension.
 · Trace: CJ-CERISE
 
+**R-13-023a** IS: A third supply-chain property stands beside R-13-023's two and neither carries it: source correspondence and compose-time confinement are both properties of *the artifact in hand*, so neither decides whether it is the artifact every other device received. The property is **non-targeting**, and the attack that exploits its absence forges nothing: an adversary with build-path access builds one device a distinct image satisfying a weaker but still admissible specification, or selects per device among several genuinely admissible images with different behaviour, or works in the gap between what a specification constrains and what the code does outside it.
+· Accept: each of those installs cleanly against every other check in this section, which is the entry's content and the test of it: R-11-005 admits it, R-09-026's measured root attests exactly what was installed, and R-13-001's content addressing names it precisely, a name computed from bytes being silent about who else holds those bytes. An argument that any existing requirement already excludes targeting must exhibit which one refuses one of the three, and none does.
+· Trace: CJ-T
+
+**R-13-023b** MUST: Every admitted generation's reference-integrity-manifest root is published to an append-only log, and admission requires an inclusion proof of that root against a checkpoint carrying K-of-N independent witness co-signatures, with the device pinning the last checkpoint it verified and refusing one inconsistent with it.
+· Accept: the proof and the co-signed checkpoint are carried **in the pack** (R-13-007) and checked offline, so no live log service is in the trust path at install time and a mirror the device does not trust may serve them; the checker is a Merkle inclusion-and-consistency check over a fixed-layout input, admitted on the same terms as any other reader in R-13-009's shape rather than as a network client.
+· Accept: a promise of future inclusion is not inclusion, and none is accepted in place of a proof; the witness quorum is what closes the split-view residual (a log serving two histories to two populations), each witness co-signing a checkpoint only after checking it against every checkpoint it has previously signed, so the property does not rest on the device reaching any peer.
+· Accept: the log carries roots and never content, so publication discloses no image bytes and the entry adds no confidentiality obligation; and non-targeting is bought against the *population*, so it neither strengthens nor substitutes for the correspondence and confinement mechanisms R-13-023 states.
+· Fail-closed: a root with no inclusion proof, or a checkpoint inconsistent with the pinned one, stops the **install**; the running generation is untouched (R-17-030u).
+· Trace: CJ-T, CJ-DEVTREE
+
 **R-13-025** IS: Proof-carrying code gates admission; it never relaxes runtime enforcement.
 · Accept: no runtime check is elided on the strength of a certificate.
 · Trace: CJ-CERISE
@@ -3066,6 +3088,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-14-004** MUST NOT: The invariant admits no runtime-codegen exception: the sole way an executable region appears is install-time capability wiring deriving execute-only authority over read-only regions of the content-addressed image.
 · Accept: newly compiled code (apps, servers, and V/M-class shaders alike) travels that same admitted-image path, so execute authority is never derived over written memory; nothing on the device JITs, interpreters run pure, and there is no kernel-mediated re-derivation primitive.
 · Trace: CJ-CERISE
+
+**R-14-004a** IS: The ground of R-14-004 is **authority**, never verifiability, and the weaker argument is foreclosed here because it is false: Jitk (OSDI 2014) is a machine-checked just-in-time compiler for BPF, proved in Coq against a mechanized guest semantics and riding CompCert, which is this platform's own prover over its own compiler.
+· Accept: the prohibition's statement quantifies over authority alone, so a verified code generator satisfies its antecedent and is refused identically, and a proof of one is therefore not a falsifier that reopens R-14-004; an argument for admitting run-time codegen must instead exhibit where static composition puts a run-time authority to write memory that is then executed, and where the executable capability over it is minted (R-07-025, R-13-004).
+· Accept: what transfers from that work is the shape already taken, a mechanized guest semantics with the **ahead-of-time** translation proved against it (R-14-013, R-13-018), so the entry records an import as well as a foreclosure.
+· Trace: CJ-CERISE, CJ-TAL-SOUND
 
 **R-14-005** IS: Apps are unverified *for functional correctness*, contained, and each a least-authority domain wired at compose time; app logic is memory-safe by construction, though not by default functionally proven.
 · Accept: safe Rust by default, or any language whose binary carries the §13 memory-safety certificate.
@@ -5203,9 +5230,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the runtime sibling of R-17-030q's delivery-side member: the shortage is met by a declared per-pool ladder rather than by a machine-wide event, its rate is counted under R-17-030m through R-16-027, and the worst case is availability of the exhausted pool's service, never another label's schedule, memory, or authority.
 · Trace: CJ-MEMPLAN, CJ-VELUS
 
+**R-17-030v** IS: Fail-closed seam **the log and the directive ⋈ installing at all**: a generation whose root carries no inclusion proof against a witnessed checkpoint is refused (R-13-023b), as is one offered under directive metadata whose expiry precedes the monotonic time floor (R-11-005a), so a party able to withhold log material or to stop refreshing directives holds a denial of *updating* for as long as the withholding lasts.
+· Accept: what the pair spends is the availability of the **install path** alone and never of the running generation, which continues on the composition it has; the denial is visible rather than silent, R-11-005a obliging the age of the newest verified directive to be surfaced, so a withheld update and an absent update are distinguishable to the holder.
+· Accept: refusal is the correct direction on this seam because both alternatives are worse in the property each requirement exists to establish, installing an artifact whose population is unknown and installing one whose currency is unknown; the member is therefore retained as a refusal rather than repaired into a degraded mode, and it costs availability alone as R-03-009 requires of every member.
+· Trace: CJ-T, CJ-DEVTREE
+
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.py` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
-· Accept: twenty-seven requirements confer a refusal and sixteen seams collect them, both figures recomputed rather than maintained here.
+· Accept: twenty-nine requirements confer a refusal and seventeen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.py` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -5676,7 +5708,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1312 requirements. §19 is non-normative and yields none. Counts include the 360 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1318 requirements. §19 is non-normative and yields none. Counts include the 366 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5690,13 +5722,13 @@ All eighteen normative sections are extracted, at 1312 requirements. §19 is non
 | **§8 Authority Model** | **extracted** | **73** |
 | **§9 Boot & Root of Trust** | **extracted** | **39** |
 | **§10 Storage & State** | **extracted** | **52** |
-| **§11 Updates** | **extracted** | **36** |
-| **§12 System Servers** | **extracted** | **124** |
-| **§13 Packaging & Supply Chain** | **extracted** | **37** |
-| **§14 Userland** | **extracted** | **28** |
+| **§11 Updates** | **extracted** | **37** |
+| **§12 System Servers** | **extracted** | **125** |
+| **§13 Packaging & Supply Chain** | **extracted** | **39** |
+| **§14 Userland** | **extracted** | **29** |
 | **§15 Hardware Platform** | **extracted** | **384** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **119** |
+| **§17 Residual Risks** | **extracted** | **120** |
 | **§18 Realization** | **extracted** | **53** |
 
 §19 is non-normative and yields no requirements.
