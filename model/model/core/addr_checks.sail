@@ -22,22 +22,36 @@
 
 type ext_fetch_addr_error = CapEx
 
-// Since fetch is done in granules, the check function gets two arguments:
+// Since fetch is done in granules, the check function gets three arguments:
 // start_pc: the PC at the start of the current fetch sequence
 // pc:       the PC for the current granule
+// width:    the bytes this check covers, in bytes
 //
 // returns:  an optional fetch error.
-function ext_fetch_check_pc(start_pc : xlenbits, pc : xlenbits) -> option(ext_fetch_addr_error) = {
+//
+// **The width is the caller's rather than a constant**, and that is a
+// correction the profile forces rather than a generalization. `C` is excluded
+// and ILEN is fixed at 32, so `min_instruction_bytes` is four (core/cap_regs);
+// but `Ziccif` is not adopted, so a fetch still splits into two 16-bit granules
+// (postlude/fetch.sail), and a check that asked for four bytes from the second
+// granule would ask for two bytes *past* the instruction. A PCC bounded exactly
+// to the end of its last instruction would then raise a length violation on an
+// instruction wholly inside its bounds, which is what a bounded sentry entry
+// looks like (R-15-071). The first granule is still checked against a whole
+// instruction, because the fetch sequence is what it authorises, and a control
+// transfer is checked against `min_instruction_bytes` below.
+function ext_fetch_check_pc(start_pc : xlenbits, pc : xlenbits, width : CapLen)
+         -> option(ext_fetch_addr_error) = {
   if start_pc == pc then {
     // The permission checks are owed once per fetch sequence, on its first
     // granule; the bounds check is owed on every granule.
     if not(PCC.tag) then Some(CapEx_TagViolation)
     else if isCapSealed(PCC) then Some(CapEx_SealViolation)
     else if not(cap_permit_execute(PCC)) then Some(CapEx_PermitExecuteViolation)
-    else if not(inCapBounds(PCC, pc, min_instruction_bytes)) then Some(CapEx_LengthViolation)
+    else if not(inCapBounds(PCC, pc, width)) then Some(CapEx_LengthViolation)
     else None()
   } else {
-    if not(inCapBounds(PCC, pc, min_instruction_bytes)) then Some(CapEx_LengthViolation)
+    if not(inCapBounds(PCC, pc, width)) then Some(CapEx_LengthViolation)
     else None()
   }
 }

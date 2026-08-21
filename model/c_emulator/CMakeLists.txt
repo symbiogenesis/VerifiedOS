@@ -85,6 +85,8 @@ add_executable(sail_riscv_sim
     cli_options.h
     rvfi_dii.cpp
     rvfi_dii.h
+    riscv_callbacks_commit.cpp
+    riscv_callbacks_commit.h
     riscv_callbacks_log.cpp
     riscv_callbacks_log.h
     riscv_callbacks_rvfi.cpp

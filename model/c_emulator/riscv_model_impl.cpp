@@ -40,15 +40,15 @@ unit ModelImpl::fetch_callback(sbits opcode) {
   return UNIT;
 }
 
-unit ModelImpl::mem_write_callback(const char *type, uint64_t paddr, int64_t width, lbits value) {
+unit ModelImpl::mem_write_callback(const char *type, uint64_t paddr, int64_t width, lbits value, bool tag) {
   for (auto c : m_callbacks) {
-    c->mem_write_callback(*this, type, paddr, width, value);
+    c->mem_write_callback(*this, type, paddr, width, value, tag);
   }
   return UNIT;
 }
-unit ModelImpl::mem_read_callback(const char *type, uint64_t paddr, int64_t width, lbits value) {
+unit ModelImpl::mem_read_callback(const char *type, uint64_t paddr, int64_t width, lbits value, bool tag) {
   for (auto c : m_callbacks) {
-    c->mem_read_callback(*this, type, paddr, width, value);
+    c->mem_read_callback(*this, type, paddr, width, value, tag);
   }
   return UNIT;
 }
@@ -60,9 +60,16 @@ unit ModelImpl::mem_exception_callback(uint64_t paddr, uint64_t num_of_exception
   return UNIT;
 }
 
-unit ModelImpl::xreg_full_write_callback(const_sail_string abi_name, sbits reg, uint64_t value) {
+unit ModelImpl::xreg_full_write_callback(const_sail_string abi_name, sbits reg, uint64_t value, bool tag) {
   for (auto c : m_callbacks) {
-    c->xreg_full_write_callback(*this, abi_name, reg, value);
+    c->xreg_full_write_callback(*this, abi_name, reg, value, tag);
+  }
+  return UNIT;
+}
+
+unit ModelImpl::scr_full_write_callback(const_sail_string name, fbits scr, uint64_t value, bool tag) {
+  for (auto c : m_callbacks) {
+    c->scr_full_write_callback(*this, name, scr, value, tag);
   }
   return UNIT;
 }

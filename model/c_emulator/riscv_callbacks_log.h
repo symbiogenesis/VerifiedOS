@@ -16,9 +16,13 @@ public:
   );
 
   // callbacks_if
-  void mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value) override;
-  void mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value) override;
-  void xreg_full_write_callback(ModelImpl &model, const_sail_string abi_name, sbits reg, uint64_t value) override;
+  void mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value, bool tag)
+    override;
+  void mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value, bool tag)
+    override;
+  void xreg_full_write_callback(ModelImpl &model, const_sail_string abi_name, sbits reg, uint64_t value, bool tag)
+    override;
+  void scr_full_write_callback(ModelImpl &model, const_sail_string name, fbits scr, uint64_t value, bool tag) override;
   void csr_full_write_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, uint64_t value) override;
   void csr_full_read_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, uint64_t value) override;
   void vreg_write_callback(ModelImpl &model, unsigned reg, lbits value) override;

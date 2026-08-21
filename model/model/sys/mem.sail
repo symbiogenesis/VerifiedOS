@@ -234,7 +234,7 @@ function mem_read_meta (access, paddr, width, aq, rl, meta) = {
     (_, _)        => checked_mem_read(access, paddr, width, aq, rl, meta)
   };
   match result {
-    Ok(value, _) => mem_read_callback(to_str(access), bits_of(paddr), width, value),
+    Ok(value, tag) => mem_read_callback(to_str(access), bits_of(paddr), width, value, tag),
     Err(addr, e) => mem_exception_callback(bits_of(addr), exceptionType_bits(e)),
   };
   result
@@ -367,7 +367,7 @@ val mem_write_value_meta : forall 'n, 0 < 'n <= max_mem_access . (physaddr, int(
 function mem_write_value_meta (paddr, width, value, access, meta, aq, rl) = {
   let result = checked_mem_write(paddr, width, value, access, meta, aq, rl);
   match result {
-    Ok(_) => mem_write_callback(to_str(access), bits_of(paddr), width, value),
+    Ok(_) => mem_write_callback(to_str(access), bits_of(paddr), width, value, meta),
     Err(addr, e) => mem_exception_callback(bits_of(addr), exceptionType_bits(e)),
   };
   result

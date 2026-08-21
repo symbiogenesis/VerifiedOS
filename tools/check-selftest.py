@@ -274,6 +274,7 @@ PERF = "docs/performance-estimates.md"
 PLAN = "docs/implementation-checklist.md"
 BINDINGS = "docs/field-bindings.md"
 ABSENCE = "docs/absence-contract.md"
+CORPUS_DOC = "docs/differential-corpus.md"
 
 
 def _literal(rel: str, find: str, repl: str):
@@ -568,6 +569,12 @@ CASES = [
      _literal("tools/vos/checks/views.py", '"15.14"', '"15.94"')),
 
     ("K-49", "a view the register obliges and the repository does not carry", _k49),
+
+    ("K-50", "a corpus member the manifest lists and the document does not describe",
+     _literal(CORPUS_DOC, "(../corpus/cap-trap.s)", "(../corpus/cap-trap-moved.s)")),
+
+    ("K-51", "a corpus member whose program no longer assembles",
+     _literal("corpus/cap-trap.s", "cmove   c8, c1", "cmove   c8, c1, c2")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

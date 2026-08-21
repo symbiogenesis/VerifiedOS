@@ -61,6 +61,7 @@ def run(ctx) -> None:
         "checklist items": len(sh.get("items", [])),
         "checklist subtotals": len(sh.get("sections", [])),
         "dominant terms read from the big table": len(sh.get("ends", [])),
+        "differential corpus members": len(sh.get("corpus_members", [])),
     }
     ctx.floors = floors
     rep.report("K-47", "enumeration(s) the tool reads and finds empty:",

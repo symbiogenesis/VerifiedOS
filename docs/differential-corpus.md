@@ -1,0 +1,125 @@
+# The Differential Corpus and the Commit-Trace Schema
+
+*The artifact **M0.12** delivers, and the one every later executor of the frozen profile is checked against. It is versioned because it is evidence rather than scaffolding: a milestone that reports a figure against this corpus reports it against a stated edition of it.*
+
+> **Two halves, and each is owned once.** This document says what the corpus is, what each member exercises, how a member is written, and what a trace record means. [corpus/manifest.json](../corpus/manifest.json) says what has been *measured*: each member's check count, its commit trace's length, and that trace's digest. Nothing appears in both. `tools/check.py` holds the membership equal in both directions, so a program added to one and not the other is a finding.
+
+## Why this document exists
+
+The [implementation checklist](implementation-checklist.md) §10 names one instrument three times: *"one corpus, one trace format, three executors."* The Sail emulator, the CHERI-QEMU fork of M2, and the RTL through its `rvfi` port all emit the same capability-widened commit trace, and one CI runner diffs them. Without a versioned corpus and a written schema, "the same trace" is a wish: the second executor arrives with its own idea of what a record is, and the first divergence is an argument about formatting rather than about behaviour.
+
+It exists **now**, ahead of both of those executors, because the corpus is the model's only whole-program evidence. `riscv-tests` went with the default data capability at M0.6f: every program there addresses memory with an integer base register, which a purecap machine reads as an untagged capability and faults on, so the suite is not a corpus this machine can run. What replaced it had to be authored, and the profile's own net-new instructions (M0.6g) and bespoke instructions (M0.6h) each want a program to run rather than only a property to assert.
+
+## 1. What the corpus is
+
+Eleven purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, and the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model.
+
+| Member | What it exercises |
+| --- | --- |
+| [`base-integer`](../corpus/base-integer.s) | RV64I arithmetic, logic, shifts, the W forms, every branch condition, and the zero register |
+| [`base-memory`](../corpus/base-memory.s) | loads and stores at every width through a capability derived from the reset root, byte order, sign and zero extension, and a narrowed authority |
+| [`mul-div`](../corpus/mul-div.s) | the M extension, including division by zero, the signed overflow, and the W forms |
+| [`bitmanip`](../corpus/bitmanip.s) | `Zba` shift-and-add, `Zbb` logic, counting, rotation and extension, `Zbs` single-bit, and the `Zbkb`/`Zbkc`/`Zbkx` crypto forms |
+| [`atomics`](../corpus/atomics.s) | `Zaamo` at word and doubleword, `Zabha` at byte and halfword, the comparing forms, and the tag an atomic's store half clears |
+| [`zicond-csr`](../corpus/zicond-csr.s) | `Zicond` in both polarities and as an if-conversion, the writable and read-only halves of the CSR bank, and `cspecialrw` over MTDC |
+| [`cap-inspect`](../corpus/cap-inspect.s) | the inspection surface over the split root pair, the trap capabilities, and the null capability |
+| [`cap-derive`](../corpus/cap-derive.s) | the monotone derivations, the untagged result a non-monotone one yields, the permission lattice under `candperm`, and `csealentry` |
+| [`cap-memory`](../corpus/cap-memory.s) | the tag plane under capability and data stores, granule keying, `cloadtags` and `cbo.zero` over one block, and load transitivity |
+| [`cap-control`](../corpus/cap-control.s) | sentry roles at `cjal` and `cjalr`, the backward edge a call mints, the forward edge `csealentry` mints, and the bounds a sentry carries into PCC |
+| [`cap-trap`](../corpus/cap-trap.s) | eight traps through MTCC and back through MEPCC: five capability violations with their `mtval` detail, an alignment exception, and an unallocated CSR address |
+
+**The version is a commitment and the digest is a measurement.** `version` in the manifest names the edition; a member added, removed, or changed in what it asserts advances it. `trace_schema` names the record grammar of §4; a record type added or a field widened advances that. Each member's `digest` is the fingerprint of its commit trace, so a model change that alters what a program *does* is a finding at the next run rather than a surprise at the next milestone; `model.py corpus --refresh` is how a deliberate change is recorded, and the edit shows up in review as a moved digest beside the model change that moved it.
+
+## 2. Writing a member
+
+Five conventions, and each of them is a property of this machine rather than a style.
+
+- **`gp` names the check in flight.** A program sets `li gp, N` before check *N* and branches to `fail` on a mismatch; `fail` writes `(gp << 1) | 1` to `tohost` and `pass` writes `1`, so the HTIF exit code is the number of the check that failed. This is `riscv-tests`' convention, kept deliberately: it is the one thing about that suite this platform can still use.
+- **The store-side root comes out of `c1` first.** Reset hands each core a **pair** of root capabilities, not one: no admitted permission set holds both store and execute, so the execute side is PCC and the store side lands in `c1` (R-15-007l, R-15-007p, [step_ext.sail](../model/model/postlude/step_ext.sail)). `c1` is also the link register, so a program that calls overwrites its own authority. Every member opens with `cmove c8, c1` and names `c8` thereafter.
+- **A memory access derives its authority.** There is no default data capability and no integer-addressed access (R-15-001c), so `li` names an address and `csetaddr` turns the root into an authority at it. For code and read-only data `la` materializes a capability off PCC instead, which is the profile's own PC-relative pair (`auipcc` + `cincoffsetimm`); what it yields carries PCC's authority, so a store through it faults, and that is the intended answer.
+- **Capabilities live in `c8` upward.** A register has two readings and one identity, so `c5` and `t0` are the same register. Keeping capabilities out of the `t` range is what stops a check from quietly clobbering the authority the check before it derived.
+- **A program ends in the same six lines.** `fail` folds `gp` into the exit code, `pass` writes one, `exit` derives the `tohost` authority and stores, and `halt` spins. The emulator stops at the HTIF write, so the spin is never entered twice.
+
+## 3. The assembler
+
+The corpus is purecap and no toolchain assembles it: LLVM's MC layer and `lld` are re-homed to the dialect at **M1.4**, which is downstream of every milestone this corpus gates. What stands in is small enough to read, in the one language the tools lane carries:
+
+- [tools/vos/dialect.py](../tools/vos/dialect.py) is one row per mnemonic the curated model decodes, transcribed from the model's own `mapping clause encdec` rather than from the RISC-V manuals. Where the two differ the model is what the corpus must run on, and they do differ: `auipcc`, `cjal` and `cjalr` hold the base encodings of `auipc`, `jal` and `jalr`, `lc` sits at MISC-MEM `funct3` 010 beside `cbo.zero`, and `sc` is the capability store rather than a store-conditional.
+- [tools/vos/asm.py](../tools/vos/asm.py) is the parser, the layout, and the pseudo-instructions: labels, expressions, the data directives, `li` at any 64-bit constant, and `la` as the PC-relative pair. Layout is iterated to a fixed point rather than done in two passes, because `li` is as long as its value needs and a value can be a symbol.
+- [tools/vos/image.py](../tools/vos/image.py) writes the ELF the emulator already loads: `PT_LOAD` segments at their physical addresses and a `.symtab` carrying `tohost`. Nothing else, because nothing else is read.
+
+**It is the acceptance corpus M1.4 is later checked against rather than work M1.4 repeats.** Three things it deliberately does not do, each because the program that needs it is not a hand-written test: no relocations and no object files, since layout is absolute and the image is position-fixed anyway (R-15-002b, R-15-036l); no linker script; and no macro processor.
+
+**Two absences in the encoder are scope and not oversight.** The dictionary bundle format of [isa-profile.md](isa-profile.md) §1.1 is a fetch container the model does not implement yet, so an image here is a stream of canonical 32-bit instructions, which is what the curated model fetches. And the vector, matrix and FEC surface is absent because the model carries one core class until **M0.8** parameterizes it; the corpus version that follows that milestone adds those rows.
+
+## 4. The commit-trace schema, version 1
+
+One record per retired instruction and one per effect under it, the effects following the instruction that caused them. Every field is fixed-radix, so a record is comparable as a string and a diff names a behaviour rather than a rendering. Hexadecimal is uppercase and unprefixed; counts are decimal.
+
+| Record | Fields | What it says |
+| --- | --- | --- |
+| `I` | order, pc, insn | an instruction retired at `pc`, with the 32-bit word it decoded |
+| `X` | reg, tag, value | a write to one of the 32 registers of the merged file |
+| `S` | scr, tag, value | a write to one of the capability registers outside that file |
+| `C` | csr, value | a CSR write |
+| `R` | addr, width, tag, value | a data read of `width` bytes |
+| `W` | addr, width, tag, value | a data write of `width` bytes |
+| `T` | interrupt, cause | a trap taken |
+
+**The schema is capability-widened in exactly the places a capability is wider than an integer**, and §10's list of what it carries, *"PC, instruction, register and memory effects, plus tag, bounds, permissions, and seal state"*, is read off these records this way:
+
+- A register's **value** is its 64 data bits, which are its integer reading, and the **tag** is the one bit of a capability that reading cannot show (R-15-007i). Together they are the whole register. Permissions, object type, exponent and the two bounds mantissas are the fields of those 64 bits, at the offsets [isa-profile.md](isa-profile.md) §4.1 fixes, so the record carries them by carrying the encoding; **base and top are the *decode* of the bounds triple**, and the rig does not re-derive them, because a second implementation of the bounds algorithm inside the trace reader is a second place for it to be wrong.
+- The value is the register's **memory** encoding, the same bits a store writes and a load reads, so a register record and a memory record of the same capability are the same string. That is the null-capability transform's doing and it is why an all-zeroes granule reads back as untagged NULL (R-15-182).
+- A memory access carries **the tag of the access** rather than the tag in memory. A capability load asks for the metadata and reports what it got; a data load does not ask, and reports `0`, which is a true statement about the value it delivered.
+- The four capability registers outside the merged file get records of their own, because none of them appears in the register-file trace: `cspecialrw` writes them, and so does every trap.
+
+**Four things the schema does not carry**, each named rather than left to be discovered:
+
+1. **Instruction fetches.** They carry nothing the `I` record does not, they arrive in two 16-bit granules under this profile, and no `rvfi` port reports them, so an executor that fetched differently could not be compared on them anyway.
+2. **PCC.** Its address is the `I` record's `pc`; its bounds and permissions change only where a control transfer or a trap installs them, and a program that wants to see that reads PCC with `cspecialrw`, which produces an `X` record.
+3. **CSR reads.** A read is not an effect.
+4. **The `order` field, when comparing.** It counts retires from the start of a run, so two executors entering through different reset vectors disagree on it while agreeing on everything else. It is emitted, because it is what makes the stream readable, and dropped from the compared record.
+
+## 5. The transport
+
+The trace **reuses the RVFI plumbing**, which is what the curation preserved it for. The generic callbacks already report every effect; RVFI's own callbacks class assembles them into a per-instruction packet; the commit trace is a second class in the same slot, assembling them into a per-instruction record group ([riscv_callbacks_commit.cpp](../model/c_emulator/riscv_callbacks_commit.cpp)), emitted under `--trace-commit`.
+
+Two halves of that reuse are worth stating, because they went in opposite directions.
+
+**The packet is widened where it can be.** `rvfi_wX` now carries the tag of the value written to `rd`, in a bit taken from the Integer packet's padding, and `rvfi_read`/`rvfi_write` carry the tag of a memory access as **one bit above the byte mask**: an access of *w* bytes sets mask bits 0 through *w* − 1 for its bytes and bit *w* where it carried a tag. That is the extension the CHERI-widened 32-bit masks were sized for, and it closes the two `TODO`s the tree carried. The RTL's `rvfi` port is what this half is for (§11).
+
+**The packet is not the transport.** It is fixed-size and holds one memory access per instruction, so it cannot express `cbo.zero`'s 64-byte block write or `cloadtags`' eight granule reads, and it has no field for the capability registers outside the merged file. The record stream carries the whole schema; the packet carries the subset it can, for the executor whose port emits packets. Where they overlap they say the same thing.
+
+## 6. How a run is adjudicated
+
+`wsl -u root -e python3 tools/model.py corpus` assembles every member, runs it once, and asks two questions of that run.
+
+* **The program's own.** It reports through HTIF, so the verdict is the exit code it wrote, and a failure names the check that failed because `gp` carries it.
+* **The rig's.** The same run emits the commit trace; the runner normalizes it, digests it, and holds the digest against the manifest's.
+
+Against a second executor the same records are compared instruction by instruction, and [tools/vos/trace.py](../tools/vos/trace.py) is where the alignment and the adjudication live. That executor does not exist yet: the M0.4 oracle is not one, because it implements ISAv9's 128-bit encoding with a hybrid mode and a default data capability where this model carries the 64+1-bit purecap dialect, so the two are different machines and the agreeing prefix over `riscv-tests` is read as a fact about how far they happen to agree. The standing second executor is **M2's CHERI-QEMU fork**, a second implementation of the frozen profile from an independent code lineage; the third is the RTL under Verilator co-simulation (**R2**).
+
+## 7. What the corpus cannot exercise yet, and why
+
+Each of these is an absence in the machine or in the model, not a gap in the corpus, and each closes with the milestone that supplies it.
+
+| Absent | Why | Closes at |
+| --- | --- | --- |
+| `cseal`'s success case | The reset root pair holds neither `Permit_Seal` nor `Permit_Unseal`, and `candperm` can only remove, so no sealing authority is derivable from reset. The refusal *is* exercised. | the composed initial distribution, §3 |
+| An access-system-registers violation | Reaching it means executing without ASR on PCC, which on this machine is a one-way door: nothing in reach gives it back. | a composed distribution with a non-privileged compartment, §5 |
+| `cmovz`/`cmovn`, revocation, `fence.t`, the indexed load/store, `cclear`, the AIA pending array | Not in the model yet. | M0.6g |
+| `vmclear`, `creclaim`, `cbo.scrub` | Not in the model yet; each is net-new surface with no upstream oracle, which is why M0.6h owes a program and not only a property. | M0.6h |
+| The vector, matrix and FEC datapaths | One core class until the model is parameterized. | M0.8 |
+| The dictionary bundle format | A fetch container the model does not implement. | the freeze, §1.1 |
+
+## 8. What CI holds
+
+Two instruments, and they run in different places for a reason: one needs a built emulator and one needs nothing but Python, so a corpus that has stopped assembling is a finding on the host rather than a surprise in WSL.
+
+| Predicate | Where |
+| --- | --- |
+| every member assembles | `tools/check.py` (host) |
+| the manifest and this document name the same members, in both directions | `tools/check.py` (host) |
+| each member's recorded check count is the count its source carries | `tools/check.py` (host) |
+| every member runs to a HTIF verdict of success | `tools/model.py corpus` (WSL) |
+| every member's commit trace matches the digest the manifest records | `tools/model.py corpus` (WSL) |

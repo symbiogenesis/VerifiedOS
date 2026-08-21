@@ -7,15 +7,29 @@
 // Implementations of default callbacks for RVFI.
 // The model assumes that these functions do not change the state of the model.
 
-void rvfi_callbacks::mem_write_callback(ModelImpl &model, const char *, uint64_t paddr, int64_t width, lbits value) {
-  model.zrvfi_write(paddr, width, value);
+void rvfi_callbacks::mem_write_callback(
+  ModelImpl &model,
+  const char *,
+  uint64_t paddr,
+  int64_t width,
+  lbits value,
+  bool tag
+) {
+  model.zrvfi_write(paddr, width, value, tag);
 }
 
-void rvfi_callbacks::mem_read_callback(ModelImpl &model, const char *, uint64_t paddr, int64_t width, lbits value) {
+void rvfi_callbacks::mem_read_callback(
+  ModelImpl &model,
+  const char *,
+  uint64_t paddr,
+  int64_t width,
+  lbits value,
+  bool tag
+) {
   sail_int len;
   CREATE(sail_int)(&len);
   CONVERT_OF(sail_int, mach_int)(&len, width);
-  model.zrvfi_read(paddr, len, value);
+  model.zrvfi_read(paddr, len, value, tag);
   KILL(sail_int)(&len);
 }
 
@@ -23,8 +37,14 @@ void rvfi_callbacks::mem_exception_callback(ModelImpl &model, uint64_t paddr, ui
   model.zrvfi_mem_exception(paddr);
 }
 
-void rvfi_callbacks::xreg_full_write_callback(ModelImpl &model, const_sail_string, sbits reg, uint64_t value) {
-  model.zrvfi_wX(static_cast<int64_t>(reg.bits), value);
+void rvfi_callbacks::xreg_full_write_callback(
+  ModelImpl &model,
+  const_sail_string,
+  sbits reg,
+  uint64_t value,
+  bool tag
+) {
+  model.zrvfi_wX(static_cast<int64_t>(reg.bits), value, tag);
 }
 
 void rvfi_callbacks::trap_callback(ModelImpl &model, bool is_interrupt, fbits cause) {

@@ -15,13 +15,42 @@ public:
 
   virtual void fetch_callback(ModelImpl &model, sbits opcode);
 
-  virtual void mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value);
+  virtual void mem_write_callback(
+    ModelImpl &model,
+    const char *type,
+    uint64_t paddr,
+    int64_t width,
+    lbits value,
+    bool tag
+  );
 
-  virtual void mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value);
+  virtual void mem_read_callback(
+    ModelImpl &model,
+    const char *type,
+    uint64_t paddr,
+    int64_t width,
+    lbits value,
+    bool tag
+  );
 
   virtual void mem_exception_callback(ModelImpl &model, uint64_t paddr, uint64_t num_of_exception);
 
-  virtual void xreg_full_write_callback(ModelImpl &model, const_sail_string abi_name, sbits reg, uint64_t value);
+  virtual void xreg_full_write_callback(
+    ModelImpl &model,
+    const_sail_string abi_name,
+    sbits reg,
+    uint64_t value,
+    bool tag
+  );
+
+  // The four capability registers outside the merged file (core/cap_regs.sail).
+  virtual void scr_full_write_callback(
+    ModelImpl &model,
+    const_sail_string name,
+    fbits scr,
+    uint64_t value,
+    bool tag
+  );
 
 
   virtual void csr_full_write_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, uint64_t value);

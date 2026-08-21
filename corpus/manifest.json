@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "trace_schema": 1,
+  "members": [
+    {
+      "name": "base-integer",
+      "source": "base-integer.s",
+      "checks": 13,
+      "records": 231,
+      "digest": "94672623dccb9456"
+    },
+    {
+      "name": "base-memory",
+      "source": "base-memory.s",
+      "checks": 8,
+      "records": 198,
+      "digest": "52538c16ae0eec55"
+    },
+    {
+      "name": "mul-div",
+      "source": "mul-div.s",
+      "checks": 10,
+      "records": 188,
+      "digest": "62769f442c4b776b"
+    },
+    {
+      "name": "cap-inspect",
+      "source": "cap-inspect.s",
+      "checks": 10,
+      "records": 159,
+      "digest": "a2aedd0aa563c054"
+    },
+    {
+      "name": "cap-derive",
+      "source": "cap-derive.s",
+      "checks": 12,
+      "records": 210,
+      "digest": "db5050c2dadce942"
+    },
+    {
+      "name": "cap-memory",
+      "source": "cap-memory.s",
+      "checks": 9,
+      "records": 190,
+      "digest": "0529af2cef409946"
+    },
+    {
+      "name": "cap-trap",
+      "source": "cap-trap.s",
+      "checks": 8,
+      "records": 291,
+      "digest": "e27390aa9d390240"
+    },
+    {
+      "name": "cap-control",
+      "source": "cap-control.s",
+      "checks": 4,
+      "records": 120,
+      "digest": "f0aeab5b666bceab"
+    },
+    {
+      "name": "bitmanip",
+      "source": "bitmanip.s",
+      "checks": 13,
+      "records": 462,
+      "digest": "9b339e6dc391d786"
+    },
+    {
+      "name": "atomics",
+      "source": "atomics.s",
+      "checks": 9,
+      "records": 278,
+      "digest": "10c9fc07cf054f8b"
+    },
+    {
+      "name": "zicond-csr",
+      "source": "zicond-csr.s",
+      "checks": 10,
+      "records": 216,
+      "digest": "37280848ec090829"
+    }
+  ]
+}

@@ -113,7 +113,12 @@ bitfield RVFI_DII_Execution_Packet_Ext_Integer : bits(320) = {
   // in that register in the pre-state.
   rvfi_rs1_addr  : 271 .. 264,
   rvfi_rs2_addr  : 279 .. 272,
-  padding  : 319 .. 280,
+  // The validity tag of the value written to rd. A register here holds a
+  // capability, so the integer half of a register write is not the whole of it
+  // (R-15-007i); this is the bit that closes the difference, taken from the
+  // packet's padding rather than from a field with a meaning (M0.12).
+  rvfi_rd_tag  : 280,
+  padding  : 319 .. 281,
 }
 
 bitfield RVFI_DII_Execution_Packet_Ext_MemAccess : bits(704) = {
@@ -202,27 +207,40 @@ function print_rvfi_exec() -> unit = {
 }
 
 // RVFI records
-val rvfi_write : forall 'n, 0 < 'n <= max_mem_access . (xlenbits, int('n), bits(8 * 'n)) -> unit
-function rvfi_write (paddr, width, value) = {
+//
+// The masks carry one bit per byte and, above them, **one bit for the validity
+// tag**: an access of `width` bytes sets bits 0 through `width - 1` for its
+// bytes and bit `width` where the access carried a tag. That is the extension
+// the CHERI-widened masks were sized for, and it is what makes the mask say
+// whether a store put authority in memory or the same 64 bits as data
+// (R-15-007r, M0.12).
+val rvfi_mask_with_tag : forall 'n, 0 < 'n <= 16. (int('n), bool) -> bits(32)
+function rvfi_mask_with_tag(width, tag) = {
+  let mask = rvfi_encode_width_mask(width);
+  if tag then mask | (0x00000001 << width) else mask
+}
+
+val rvfi_write : forall 'n, 0 < 'n <= max_mem_access . (xlenbits, int('n), bits(8 * 'n), bool) -> unit
+function rvfi_write (paddr, width, value, tag) = {
   rvfi_mem_data[rvfi_mem_addr] = zero_extend(paddr);
   rvfi_mem_data_present = true;
   if width <= 16 then {
-    // TODO: report tag bit for capability writes and extend mask by one bit.
     rvfi_mem_data[rvfi_mem_wdata] = sail_zero_extend(value, 256);
-    rvfi_mem_data[rvfi_mem_wmask] = rvfi_encode_width_mask(width);
+    rvfi_mem_data[rvfi_mem_wmask] = rvfi_mask_with_tag(width, tag);
   } else {
+    // A block access is wider than this packet's data field, so it has no RVFI
+    // form: the commit trace carries it and the packet does not (M0.12).
     internal_error(__FILE__, __LINE__, "Expected at most 16 bytes here!");
   };
 }
 
-val rvfi_read : forall 'n, 'n > 0. (xlenbits, int('n), bits(8 * 'n)) -> unit
-function rvfi_read (paddr, width, value) = {
+val rvfi_read : forall 'n, 'n > 0. (xlenbits, int('n), bits(8 * 'n), bool) -> unit
+function rvfi_read (paddr, width, value, tag) = {
   rvfi_mem_data[rvfi_mem_addr] = zero_extend(paddr);
   rvfi_mem_data_present = true;
   if width <= 16 then {
-    // TODO: report tag bit for capability writes and extend mask by one bit.
     rvfi_mem_data[rvfi_mem_rdata] = sail_zero_extend(value, 256);
-    rvfi_mem_data[rvfi_mem_rmask] = rvfi_encode_width_mask(width)
+    rvfi_mem_data[rvfi_mem_rmask] = rvfi_mask_with_tag(width, tag)
   } else {
     internal_error(__FILE__, __LINE__, "Expected at most 16 bytes here!")
   };
@@ -234,10 +252,11 @@ function rvfi_mem_exception(paddr : xlenbits) -> unit = {
   rvfi_mem_data_present = true;
 }
 
-val rvfi_wX : forall 'n, 0 <= 'n < 32. (int('n), xlenbits) -> unit
-function rvfi_wX (r,v) = {
+val rvfi_wX : forall 'n, 0 <= 'n < 32. (int('n), xlenbits, bool) -> unit
+function rvfi_wX (r, v, tag) = {
   rvfi_int_data[rvfi_rd_wdata] = zero_extend(v);
   rvfi_int_data[rvfi_rd_addr] = to_bits(8, r);
+  rvfi_int_data[rvfi_rd_tag] = bool_to_bit(tag);
   rvfi_int_data_present = true;
 }
 

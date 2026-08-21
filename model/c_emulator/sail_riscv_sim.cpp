@@ -1,6 +1,7 @@
 #include "cli_options.h"
 #include "gdb/gdb_run_info.h"
 #include "gdb/gdbserver.h"
+#include "riscv_callbacks_commit.h"
 #include "riscv_callbacks_log.h"
 #include "riscv_callbacks_stop_at_pc.h"
 #include "riscv_model_impl.h"
@@ -79,6 +80,12 @@ int inner_main(int argc, char **argv) {
     run_info.trace_log
   );
   model.register_callback(log_cbs);
+
+  // The commit trace is registered after the log so that, where both are on,
+  // a step's records follow the human-readable lines for the same step.
+  if (opts.config_print_commit) {
+    model.register_callback(std::make_shared<commit_callbacks>(run_info.trace_log));
+  }
 
   if (opts.gdb_server_port != 0) {
     gdb_run_info info = {
