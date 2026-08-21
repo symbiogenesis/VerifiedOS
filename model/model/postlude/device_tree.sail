@@ -119,10 +119,11 @@ private function generate_dts_memories(pmas : list(PMA_Region)) -> string =
 
 // A 64-bit constant as the two devicetree cells it takes. The retention corner
 // is stated in microseconds and a minutes-to-hours spread does not fit in one
-// cell (R-15-247m), so the pair is written out here rather than truncated at the
+// cell (R-15-247m), and neither does a refresh sweep stated in cycles at a
+// gigahertz spine, so the pair is written out here rather than truncated at the
 // point of use, the same way every `reg` above is written.
-private function generate_dts_u64(value : memory_class_retention) -> string = {
-  let bits64 : bits(64) = to_bits(64, value);
+private function generate_dts_u64(value : int) -> string = {
+  let bits64 : bits(64) = to_bits_truncate(64, value);
   hex_str(unsigned(bits64 >> 32)) ^ " " ^ hex_str(unsigned(bits64[31 .. 0]))
 }
 
@@ -168,8 +169,39 @@ private function generate_cbo_block_size(prefix : string, ext : extension) -> st
   else ""
 }
 
+// The refresh and discharge sequencer's node (R-15-247h). Two things belong in
+// an attested tree and both are here: the register slave's window, so a reader
+// knows where the door is that no requester may open (sys/platform.sail), and
+// the cadence table it runs, which is the schedule R-15-198's sequence table
+// steps through and R-15-247g fixes at composition.
+//
+// The derived figures are emitted beside the declared ones deliberately. The
+// sweep and the mode-transition dwell are what the attestation is *about*, a
+// tree carrying only the per-phase interval would leave every reader to
+// recompute them, and computing them here at emission is what stops the two
+// from ever disagreeing (sys/memory_sequencer.sail).
+private function generate_dts_memory_sequencer() -> string =
+  if not(plat_have_memory_sequencer) then ""
+  else
+    "    memory-sequencer@" ^ string_drop(hex_str(unsigned(plat_memory_sequencer_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,memory-sequencer\";\n"
+  ^ "      reg = <" ^ hex_str(unsigned(plat_memory_sequencer_base >> 32))
+  ^ " " ^ hex_str(unsigned(plat_memory_sequencer_base[31 .. 0]))
+  ^ " " ^ hex_str(unsigned(plat_memory_sequencer_size >> 32))
+  ^ " " ^ hex_str(unsigned(plat_memory_sequencer_size[31 .. 0])) ^ ">;\n"
+  ^ "      verifiedos,banks = <" ^ dec_str(memory_sequencer_banks()) ^ ">;\n"
+  ^ "      verifiedos,banks-per-refresh-phase = <" ^ dec_str(plat_memory_sequencer_refresh_banks_per_phase) ^ ">;\n"
+  ^ "      verifiedos,refresh-phase-cycles = <" ^ dec_str(plat_memory_sequencer_refresh_phase_cycles) ^ ">;\n"
+  ^ "      verifiedos,refresh-phases = <" ^ dec_str(memory_sequencer_refresh_phases()) ^ ">;\n"
+  ^ "      verifiedos,refresh-period-cycles = <" ^ generate_dts_u64(memory_sequencer_refresh_period_cycles()) ^ ">;\n"
+  ^ "      verifiedos,banks-per-discharge-phase = <" ^ dec_str(plat_memory_sequencer_discharge_banks_per_phase) ^ ">;\n"
+  ^ "      verifiedos,discharge-phase-cycles = <" ^ dec_str(plat_memory_sequencer_discharge_phase_cycles) ^ ">;\n"
+  ^ "      verifiedos,discharge-phases = <" ^ dec_str(memory_sequencer_discharge_phases()) ^ ">;\n"
+  ^ "      verifiedos,mode-exit-cycles = <" ^ generate_dts_u64(memory_sequencer_mode_exit_cycles()) ^ ">;\n"
+  ^ "    };\n"
+
 function generate_dts() -> string = {
-  let clock_freq : nat = config platform.clock_frequency;
+  let clock_freq : nat = plat_clock_frequency;
 
   let clint_base_hi = unsigned(plat_clint_base >> 32);
   let clint_base_lo = unsigned(plat_clint_base[31 .. 0]);
@@ -230,6 +262,7 @@ function generate_dts() -> string = {
 ^ "      reg = <" ^ hex_str(clint_base_hi) ^ " " ^ hex_str(clint_base_lo)
 ^ " " ^ hex_str(clint_size_hi) ^ " " ^ hex_str(clint_size_lo) ^ ">;\n"
 ^ "    };\n"
+^ generate_dts_memory_sequencer()
 ^ "  };\n"
 ^ "  htif {\n"
 ^ "    compatible = \"ucb,htif0\";\n"

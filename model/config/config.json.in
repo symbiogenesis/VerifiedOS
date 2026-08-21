@@ -388,6 +388,29 @@
       "interval_base": 2147516416,
       "interval_size": 32768
     },
+    "memory_sequencer": {
+      // The refresh and discharge sequencer (R-15-247h). `base` is the
+      // register-slave window, in IO memory; nothing on this die reaches it,
+      // the RoT being its only sequencer, and the model refuses every access
+      // to it (sys/platform.sail).
+      //
+      // The four cadence figures are the composition-fixed schedule the slave
+      // runs over the second latency class's banks
+      // (sys/memory_sequencer.sail). The two `banks_per_` figures are the
+      // simultaneous-activation sets, which are placeholders until M0.17
+      // prices them against the droop, thermal-coupling, and power-signature
+      // envelope (R-15-247g); what the validator holds is the shape, that the
+      // discharge set is no larger than the refresh set, that each phase
+      // interval covers the operation it issues, and that the full refresh
+      // sweep is inside the second class's retention floor.
+      "supported": true,
+      "base": 36700160,
+      "size": 4096,
+      "banks_per_refresh_phase": 8,
+      "refresh_phase_cycles": 58000000,
+      "banks_per_discharge_phase": 4,
+      "discharge_phase_cycles": 8192
+    },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,

@@ -1,8 +1,10 @@
 // Properties of the platform surface the profile adds and no upstream model
 // carries: `fence.t` (extensions/platform/fence_t.sail), `vmclear` and
 // `cbo.scrub` beside it, the machine-level interrupt file, the revocation
-// sidecar's register slave (sys/platform.sail, core/revocation.sail), and the
-// two static latency classes of main memory (core/memory_class.sail).
+// sidecar's register slave (sys/platform.sail, core/revocation.sail), the two
+// static latency classes of main memory (core/memory_class.sail), and the
+// refresh and discharge sequencer over the second of them
+// (sys/memory_sequencer.sail).
 //
 // Each of these is net-new here, so there is no oracle to differentially test
 // it against and a property asserted about it and a program that runs it are
@@ -285,6 +287,208 @@ function test_the_revocation_window_and_the_plane_are_one_structure() -> unit = 
   };
 
   revocation_bits = zeros();
+}
+
+// *****************************************************************
+// The refresh and discharge sequencer.
+
+// **The slave answers no requester at all** (R-15-247h). The mechanism is §12
+// matter, sequenced by the RoT while every application core, DMA engine, and
+// capability-bearing fabric initiator is held in reset, and a hart executing an
+// instruction is by construction not in reset; so an access that reaches the
+// window is the same fail-stop sentinel event a non-ON decode already is
+// (R-15-189h, R-15-247k) rather than a door software may knock on.
+//
+// The contrast at the end is the point of claiming the window rather than
+// leaving it unmapped: an IO address no device claims falls through to the RAM
+// path and reads as zero (sys/mem.sail), which is silence and not a refusal, so
+// a slave that means to refuse has to be in the map to do it.
+$[test]
+function test_the_sequencer_answers_no_requester() -> unit = {
+  assert(plat_have_memory_sequencer);
+  let door   = Physaddr(plat_memory_sequencer_base);
+  let inside = Physaddr(plat_memory_sequencer_base + 0x0000000000000800);
+
+  // Both directions, at every width a requester can name, at the window's first
+  // address and inside it.
+  match mem_read(Load(Data), door, 8, false, false) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a doubleword read of the sequencer window must fault"),
+  };
+  match mem_read(Load(Data), door, 4, false, false) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a word read of the sequencer window must fault"),
+  };
+  match mem_read(Load(Data), door, 1, false, false) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a byte read of the sequencer window must fault"),
+  };
+  match mem_read(Load(Data), inside, 8, false, false) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a read inside the sequencer window must fault"),
+  };
+  match mem_write_value(door, 8, zeros(), Store(Data), false, false) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a doubleword write of the sequencer window must fault"),
+  };
+  match mem_write_value(inside, 8, ones(), Store(Data), false, false) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a write inside the sequencer window must fault"),
+  };
+
+  // A capability-width access is refused on the same terms, so nothing is
+  // reachable there under any authority whatever.
+  match mem_read(Load(Data), door, cap_size, false, false) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a capability-width read of the sequencer window must fault"),
+  };
+
+  // And the refusal is the slave's rather than the address map's: one page above
+  // the window is IO memory no device claims, and it answers.
+  let unclaimed = Physaddr(plat_memory_sequencer_base + 0x0000000000010000);
+  match mem_read(Load(Data), unclaimed, 8, false, false) {
+    Ok(v)     => assert(v == zeros()),
+    Err(_, _) => assert(false, "an unclaimed IO address reads rather than faults, which is what the window is claimed to prevent"),
+  };
+}
+
+// **The refresh sweep finishes inside the retention floor**, which is the one
+// arithmetic fact about the cadence that is not a matter of taste: a sweep
+// slower than the floor is data lost on a schedule (R-15-247c, R-15-247g). What
+// is asserted beside it is that the phase schedule is a partition of the class's
+// banks, so that no bank is reached twice and none is left out, and that no
+// phase exceeds the simultaneous-activation set the composition declared.
+$[test]
+function test_the_refresh_sweep_partitions_the_banks_and_meets_the_deadline() -> unit = {
+  let banks  = memory_sequencer_banks();
+  let per    = plat_memory_sequencer_refresh_banks_per_phase;
+  let phases = memory_sequencer_refresh_phases();
+  assert(banks > 0 & per > 0 & phases > 0);
+
+  var covered : int = 0;
+  foreach (p from 0 to (phases - 1)) {
+    let count = memory_sequencer_phase_bank_count(per, p);
+    assert(count > 0 & count <= per);
+    assert(memory_sequencer_phase_first_bank(per, p) == covered);
+    assert(memory_sequencer_phase_of_bank(per, covered) == p);
+    covered = covered + count;
+  };
+  assert(covered == banks);
+
+  // One phase past the end reaches nothing, which is what makes the sweep a
+  // sweep rather than a walk off the end of the array.
+  assert(memory_sequencer_phase_bank_count(per, phases) == 0);
+
+  // The deadline, crossed into cycles at the spine ratio rather than the sweep
+  // crossed down into whole microseconds, which could round a cadence into a
+  // compliance it does not have.
+  let second = memory_class_constants(SecondClass);
+  assert(memory_sequencer_refresh_deadline_cycles() ==
+         second.retention_floor_us * (plat_clock_frequency / 1000000));
+  assert(memory_sequencer_refresh_period_cycles() < memory_sequencer_refresh_deadline_cycles());
+
+  // And the deadline is the floor's and never the ceiling's, the corner being a
+  // measured interval whose upper end no guarantee may rest on (R-15-247c).
+  assert(memory_class_refresh_deadline_us(SecondClass) == second.retention_floor_us);
+}
+
+// **The discharge dwell is one data-independent constant** (R-15-247f): a fixed
+// worst-corner dwell followed by a single read, with no poll-until-done loop, no
+// retry, and no discharge-speed-dependent timing on either path. A poll would
+// make transition time a function of temperature, charge state, and what the
+// bank held, so what is asserted here is that filling the domain moves the
+// budget by nothing at all.
+$[test]
+function test_the_mode_exit_dwell_is_one_data_independent_constant() -> unit = {
+  let per = plat_memory_sequencer_discharge_banks_per_phase;
+  let second = memory_class_constants(SecondClass);
+
+  // A discharge asserts every write wordline in the bank where a refresh asserts
+  // a row (R-15-247e), so its simultaneous-activation set is no larger, and each
+  // phase interval covers the dwell it waits out.
+  assert(per > 0 & per <= plat_memory_sequencer_refresh_banks_per_phase);
+  assert(plat_memory_sequencer_discharge_phase_cycles >= second.discharge_cycles);
+
+  let empty = memory_sequencer_mode_exit_cycles();
+  assert(empty == memory_sequencer_discharge_phases() * plat_memory_sequencer_discharge_phase_cycles);
+  assert(empty > 0);
+
+  let bulk : xlenbits = 0x0000000100000000;
+  let (_, region) = setCapBounds(root_data_cap, 0x100000000, 0b0 @ 0x100001000);
+  let auth = setCapAddrChecked(region, bulk);
+  C(encdec_reg(0b00011)) = setCapAddrChecked(root_data_cap, 0x0000000080000400);
+  match cap_store(encdec_reg(0b00011), auth, 0b000010, bulk) {
+    Retire_Success() => (),
+    _                => assert(false, "a capability store to the second class must succeed"),
+  };
+  let _ = mem_write_value(Physaddr(bulk + 64), 8, ones(), Store(Data), false, false);
+
+  assert(memory_sequencer_mode_exit_cycles() == empty);
+}
+
+// **What the discharge removes is authority**, which is the whole reason it is
+// on the exit path rather than the entry one (R-15-247d, R-15-247q): the tag
+// plane is discharged and the discharge confirmed before any requester may name
+// the domain, and a domain drained on the way out needs no clear on the way back
+// in. The pass needs no mechanism of its own: it rides the write path, which is
+// the model's reading of the cells' own write devices, so the tag of every
+// granule it covers goes with the data (R-15-007r, R-15-247e).
+$[test]
+function test_a_discharged_bank_holds_no_authority_and_a_stop_is_not_retried() -> unit = {
+  memory_sequencer_fail_stop = false;
+
+  let bulk : xlenbits = 0x0000000100000000;
+  let (_, region) = setCapBounds(root_data_cap, 0x100000000, 0b0 @ 0x100001000);
+  let auth = setCapAddrChecked(region, bulk);
+  C(encdec_reg(0b00011)) = setCapAddrChecked(root_data_cap, 0x0000000080000400);
+  match cap_store(encdec_reg(0b00011), auth, 0b000010, bulk) {
+    Retire_Success() => (),
+    _                => assert(false, "a capability store to the second class must succeed"),
+  };
+  match cap_load(encdec_reg(0b00100), auth, 0b000010, bulk) {
+    Retire_Success() => (),
+    _                => assert(false, "the capability must load before the discharge"),
+  };
+  assert(C(encdec_reg(0b00100)).tag);
+
+  let per   = plat_memory_sequencer_discharge_banks_per_phase;
+  let bank : nat = match memory_sequencer_bank_of(bulk) {
+    Some(b) => b,
+    None()  => { assert(false, "the address under test is in the sequencer's domain"); 0 },
+  };
+  let phase = memory_sequencer_phase_of_bank(per, bank);
+  assert(bank >= memory_sequencer_phase_first_bank(per, phase));
+  assert(bank < memory_sequencer_phase_first_bank(per, phase) + memory_sequencer_phase_bank_count(per, phase));
+
+  match memory_sequencer_discharge_phase(phase) {
+    Seq_Confirmed => (),
+    answer        => assert(false, "the exit-path discharge must confirm, and it answered " ^ to_str(answer)),
+  };
+  assert(not(memory_sequencer_fail_stop));
+
+  // The granule is the all-zeroes untagged NULL R-15-182 and R-15-060 already
+  // fix, so the state after a discharge is an architectural state with a defined
+  // reading rather than whatever the array was left holding.
+  match cap_load(encdec_reg(0b00100), auth, 0b000010, bulk) {
+    Retire_Success() => (),
+    _                => assert(false, "the discharged granule must still load"),
+  };
+  assert(not(C(encdec_reg(0b00100)).tag));
+  assert(C(encdec_reg(0b00100)) == null_cap);
+  match mem_read(Load(Data), Physaddr(bulk), 8, false, false) {
+    Ok(v)     => assert(v == zeros()),
+    Err(_, _) => assert(false, "the discharged granule must read"),
+  };
+
+  // A latched fail-stop stops the transition rather than repeating it: there is
+  // no retry on either path, so the domain that did not confirm does not enter
+  // the mode (R-15-189n, R-15-247f).
+  memory_sequencer_fail_stop = true;
+  match memory_sequencer_discharge_phase(phase) {
+    Seq_Stopped => (),
+    answer      => assert(false, "a latched fail-stop is not retried, and it answered " ^ to_str(answer)),
+  };
+  memory_sequencer_fail_stop = false;
 }
 
 // *****************************************************************

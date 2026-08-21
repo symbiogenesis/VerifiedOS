@@ -27,10 +27,11 @@
 // **No instruction reads any of this and none ever will** (R-15-247h). Discharge,
 // refresh, second-class tag maintenance, and class migration are §12 matter, a
 // fixed-function register slave sequenced by the RoT while every requester is
-// held in reset (M0.16), and refresh rides the existing `cbo.scrub`
-// (extensions/platform/cbo_scrub.sail, R-15-177a). The decode surface is
-// therefore unchanged by this file, which is what the absence contract's A-17 is
-// an auditor's search for.
+// held in reset (sys/memory_sequencer.sail), and refresh rides the existing
+// `cbo.scrub` (extensions/platform/cbo_scrub.sail, R-15-177a) where the schedule
+// prefers software. The decode surface is therefore unchanged by this file and
+// by that one, which is what the absence contract's A-17 is an auditor's search
+// for.
 //
 // **The class carries no trust gradient** (R-15-247s). Tags, ECC, and the
 // R-08-005 revocation load filter are identical across classes, so nothing in
@@ -136,7 +137,7 @@ function memory_class_fetch_cycles(c : MemoryClass) -> memory_class_latency =
 
 // The one consumer of a retention figure, stated once so that a second one is
 // visible as a new call site rather than as a new arithmetic (R-15-247c). The
-// M0.16 sequencer's composition-fixed cadence is fixed against this and against
-// nothing else.
+// sequencer's composition-fixed cadence is fixed against this and against
+// nothing else (sys/memory_sequencer.sail).
 function memory_class_refresh_deadline_us(c : MemoryClass) -> memory_class_retention =
   memory_class_constants(c).retention_floor_us

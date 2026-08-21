@@ -67,6 +67,7 @@ sys {
     sys/callbacks.sail,
     sys/insts_begin.sail,
     sys/mem_access.sail,
+    sys/memory_sequencer.sail,
 }
 
 extensions {

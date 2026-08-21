@@ -92,7 +92,38 @@ let plat_revocation_base : physaddrbits = to_bits_checked(config platform.revoca
 let plat_revocation_interval_base : physaddrbits = to_bits_checked(config platform.revocation.interval_base : int)
 let plat_revocation_interval_size : physaddrbits = to_bits_checked(config platform.revocation.interval_size : int)
 
+// The refresh and discharge sequencer (R-15-247h). `base` is the register
+// slave's window, which is in the address map and answers no requester at all,
+// the RoT being its only sequencer (sys/platform.sail); the cadence table
+// beside it is the composition-fixed schedule that slave runs over the second
+// latency class's banks (sys/memory_sequencer.sail, core/memory_class.sail).
+let plat_have_memory_sequencer : bool = config platform.memory_sequencer.supported
+let plat_memory_sequencer_base : physaddrbits = to_bits_checked(config platform.memory_sequencer.base : int)
+let plat_memory_sequencer_size : physaddrbits = to_bits_checked(config platform.memory_sequencer.size : int)
+
+// A phase's bank set and the interval between phases, in the widths the class
+// record states its bank count and its latency constants in. A phase's set is a
+// subset of that class's banks, so the width is the same one and the *real*
+// bound is the validator's: which simultaneous-activation set a droop envelope
+// admits is M0.17's to decide (R-15-247g, R-15-247p), and a set no envelope
+// admits is a composition that has not been priced rather than a value a type
+// can refuse.
+type memory_sequencer_banks  = range(0, 65535)
+type memory_sequencer_cycles = range(0, 4294967295)
+
+let plat_memory_sequencer_refresh_banks_per_phase   : memory_sequencer_banks  = config platform.memory_sequencer.banks_per_refresh_phase
+let plat_memory_sequencer_refresh_phase_cycles      : memory_sequencer_cycles = config platform.memory_sequencer.refresh_phase_cycles
+let plat_memory_sequencer_discharge_banks_per_phase : memory_sequencer_banks  = config platform.memory_sequencer.banks_per_discharge_phase
+let plat_memory_sequencer_discharge_phase_cycles    : memory_sequencer_cycles = config platform.memory_sequencer.discharge_phase_cycles
+
 let plat_insns_per_tick : nat1 = config platform.instructions_per_tick
+
+// The spine frequency (R-15-195). Two things read it: the generated devicetree
+// publishes it and the timebase derived from it (postlude/device_tree.sail), and
+// the sequencer's refresh deadline crosses a retention figure stated in
+// microseconds into the cycles its cadence is stated in
+// (sys/memory_sequencer.sail).
+let plat_clock_frequency : nat = config platform.clock_frequency
 
 // Maximum increment in the time CSR to wait for wait instructions.  This is not
 // used within the model but instead configures the external C++ harness.
