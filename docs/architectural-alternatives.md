@@ -350,6 +350,25 @@ Non-normative; no spec-body change is made here.
 
 ---
 
+## Sigstore, in-toto, and SLSA: signing an identity, attesting a process, and a level ladder, all declined as inputs to admission
+
+The proposal is to adopt the industry's supply-chain stack as the admission evidence: `cosign`-style keyless signatures over the image, in-toto link metadata attesting the build steps, and a SLSA level as the claim the whole thing makes. All three are declined at the same seam, and the seam is worth stating once because these are the names an auditor will arrive holding.
+
+**Each of the three proves something real, and each says so itself.**
+**Sigstore**'s own threat model states that a verified keyless signature proves only that "the signature was created by a signer who successfully authenticated to Sigstore using that identity at that time", and disclaims by name any claim that the signer was authorized, that the account was uncompromised, or that the artifact is good; the OIDC provider is fully trusted, and detection of a bad issuance requires somebody to be running a monitor.
+**in-toto** proves an executive property, that the steps declared in a signed layout are the steps performed, by the functionaries authorized to perform them, in order; a functionary key compromise forges its step completely, and the framework's own framing, farm-to-table traceability, is exactly right, traceability not being safety.
+**SLSA** supplies its own sharpest critique: at Build L3, the top of the only stable track, provenance is trustworthy "assuming you trust the build platform", and L3 explicitly "does not cover compromise of the build platform itself"; its v1.2 verification page does not mention reproducibility or hermeticity at all. The ladder replaces trust in the publisher with trust in the build platform, which is a real gain in accountability and no gain in evidence.
+
+**The seam is that all three are claims about the *builder* and admission here is a claim about the *artifact*.**
+The device does not care who built an image or by what process, because the checker on the install path runs the proof (§11, §13); an identity is at most metadata and a link is at most forensics. Importing Fulcio would put an OIDC provider in the trusted base for nothing, and any rule reading "it is in the log, therefore install it" is the category error Sigstore's own documentation warns against. The level ladder is declined more sharply still: levels are a compromise for populations that cannot produce evidence, and adopting one invites "we are L3" to stand where "the checker admitted it" belongs.
+The two 2025-2026 descendants of this line make the contrast crisp rather than blurring it. **Kettle** and **Attestable Builds** both run the build inside an SEV-SNP or TDX enclave and attest it, substituting a hardware root of trust *in the builder* for trust in the build operator; that is strictly more assumption (an enclave vendor enters the trusted base, and the entry above records what has happened to those enclaves) for strictly less conclusion (the build was isolated, not that the artifact is right).
+
+**Disposition:** no import as admission evidence. Three things are taken as *by-products* rather than inputs: the design should be able to **emit** SLSA-shaped provenance from the manifest so an auditor with those expectations can consume it, since a content-addressed build already names every input that varied and the emission is free; in-toto's **artifact-rule algebra** (a step's products must match the next step's materials, over digests) is worth restating in Coq over the manifest, where it is a typed pipeline over hashes rather than a signed assertion; and Sigstore's habit of documenting what its evidence does *not* prove is the posture [absence-contract.md](absence-contract.md) already takes.
+The transparency-log machinery underneath Rekor is a separate matter and is not declined here: it is taken up in [inspirations.md](inspirations.md), where the property it carries is one no proof produces.
+Non-normative; no spec-body change.
+
+---
+
 ## High-level-language computer architectures (HLLCA): the semantic gap belongs to the verified compiler; the one hardware atom is already CHERI
 
 A high-level-language computer architecture makes the machine's ISA *directly execute* a high-level language: closing the "semantic gap" (Wulf) in silicon rather than in a compiler.
