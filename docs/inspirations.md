@@ -830,6 +830,20 @@ The same move **retires the discrete or firmware TPM and declines OpenTitan's ow
 
 ---
 
+## coreboot, oreboot, LinuxBoot: the open-firmware line, and the trade oreboot made independently
+
+The blob prohibition is usually read as this design's most aggressive choice, and the open-firmware line is the evidence that it is instead the only choice that has ever worked.
+**coreboot** is the baseline and the cautionary half: its stage decomposition (bootblock, then a romstage running out of cache-as-RAM before DRAM is trained, then a ramstage once memory exists) is what a DRAM-bearing platform is *forced* into, and it is exactly the stage where the closed core lives.
+On modern Intel parts the Firmware Support Package supplies FSP-T, FSP-M and FSP-S as binaries performing the silicon and memory initialization romstage cannot otherwise do; coreboot documents FSP bugs it works around **because it cannot patch them**, Intel does not publish the bug list, the proprietary components sit in separate repositories, and the June 2026 release records a part shipping with dummy FSP headers until real ones exist.
+The management engine is not removable at all.
+So coreboot is open firmware around a closed core, and the closed core is where memory training lives.
+**oreboot** is the entry's point: coreboot with the C removed, and, far more importantly, a project rule that it will "only target truly open systems requiring no binary blobs, meaning no x86 for now".
+That is the same trade §15 makes, reached independently and paid for at the same price, and it is the citation [absence-contract.md](absence-contract.md) wants beside its own refusals, because a firmware project that gave up an entire architecture rather than accept a blob is stronger evidence than any argument that the refusal is coherent.
+The concrete reason this design can hold the line where coreboot cannot is worth stating in one clause: with on-die SRAM and no DRAM interface (§15) there is no memory training, therefore no cache-as-RAM romstage, therefore no place an FSP-M could live.
+**LinuxBoot** and **u-root** are declined outright: replacing the UEFI driver phase with a Linux kernel and a Go userland shrinks the closed part of the firmware by moving millions of lines of unverified code and a garbage-collected runtime into the boot path, which is the opposite of a proof-carrying install path rooted in an on-die root of trust (§9, §11), and it leaves the vendor's own pre-DRAM phase underneath it untouched.
+
+---
+
 ## COSMIC / CVA6-CHERI: the open application-class CHERI core, and its ISA-conformance proof
 
 **CVA6-CHERI** (Capabilities Limited, on the OpenHW Foundation's CVA6) is the open, 64-bit, application-class CHERI core the design already builds on as its **C-class scalar front end** (§15): the compute-substrate complement to the ChromeOS/OpenTitan root of trust (above).
