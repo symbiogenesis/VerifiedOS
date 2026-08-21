@@ -20,6 +20,7 @@
 - **Derived facts are computed, not copied.** Any count, table, list, or line number some other artifact determines is recomputed by `tools/check.py`, which rewrites the arithmetic under `--fix` and reports the rest. Do not hand-maintain one, and do not add a new one that nothing owns. See [the register's preamble](docs/requirements-register.md#how-to-read-this).
 - **Requirement IDs are permanent and order is the prose's.** A retired requirement is struck, never renumbered and never reused; a requirement inserted between two others takes a letter suffix and sits where its obligation belongs, not where its number would put it. Inserting numerically is the natural wrong move.
 - **Every register entry carries a criterion**, criterion lines come first, and `· Fail-closed:` and `· RoT-fresh:` confer membership in sets other entries collect. Traces are derived from the entry's own id; spelling one out that the id already derives is a finding.
+- **An entry and the prose it cites are read together.** Editing either side leaves that pair owed a re-reading, which rule K-61 reports; `tools/co-read.py --show <id>` prints the two sides against each other and `--bless <id>` records the reading. Blessing is a judgment and deliberately not `--fix`, so a stale pair cannot be cleared by repairing arithmetic. A prose edit dirties a median of four pairs.
 - **To change a coverage cell, change the register first.** Adding a boundary or a property adds a whole line or column, every cell of which must be filled before the checker passes. See [how to change a cell](docs/coverage-matrix.md#4-how-to-read-a-cell-and-how-to-change-one).
 - **Every checklist item carries one estimate cell**, and every subtotal, the grand total, and the progress figures are sums over those cells that `tools/check.py --fix` recomputes. See [checklist conventions](docs/implementation-checklist.md#checklist-conventions).
 - **No em-dash (U+2014) in any tracked document**, with no carve-out: rule K-40. A not-applicable cell is `n/a`, never a blank and never a bare dash.
@@ -43,6 +44,7 @@ There is no CI in this repository. Nothing runs these but you, by hand, before a
 ```console
 $ python tools/check.py                       # after any document edit
 $ python tools/check.py --fix                 # and rewrite what is arithmetic
+$ python tools/co-read.py --show R-15-073c    # a pair K-61 says is owed a reading
 $ python tools/check-selftest.py              # after touching the checker itself
 $ python tools/typecheck.py                   # after touching any Python
 
