@@ -1677,6 +1677,23 @@ The translation-validation role already adopted for source correspondence and co
 
 ---
 
+## Jitk, Vellvm, and CompCertTSO: the verified JIT exists, so the prohibition rests on authority rather than on impossibility
+
+**Jitk** (Wang, Lazar, Zeldovich, Chlipala and Tatlock, OSDI 2014) is the entry that changes an argument rather than adding a mechanism. It builds in-kernel interpreters correct by construction: the policy language, classic BPF, is given a Coq semantics, the compiler to native code is *written in Coq and proved correct against that semantics*, and the backend reuses CompCert. A machine-checked just-in-time compiler therefore exists, in this design's own prover, over its own compiler.
+
+**So the prohibition cannot be argued from impossibility, and where it is, the argument is wrong.**
+The ground is authority, not verifiability: a run-time code generator is a run-time authority to write memory that will then be executed, which a static composition with no dynamic loading (§7) and a proof-carrying install path (§11, §13) has nowhere to put, and which on this machine would require minting an executable capability at run time, an operation §8 does not offer to anything. Whether the generator is correct is beside the point; the objection is to the existence of the authority, and the entry exists so that the weaker argument is not reached for.
+Jitk's reusable idea is imported instead and is already the shape of the design: give the guest language a Coq semantics and prove the **ahead-of-time** translation against it, which is the pinned WebAssembly semantics joined to the on-device typed-assembly checker. Its own residual is instructive for where that checker runs, since Jitk's verified compiler is extracted to OCaml and therefore executes in user space, enlarging exactly the trusted set that §5's binary-level ambitions aim to shrink.
+
+**Two siblings are recorded with it and both are declined, on different grounds.**
+**Vellvm** is a near miss worth naming: Coq-native, actively maintained, and built against the same Rocq the tree pins, but its object is LLVM IR, an untyped intermediate representation designed for optimization, where the install-path checker needs a *checkable typed* target; its acknowledged gap is concurrency, which is the axis a share-nothing multikernel needs least and a driver model most.
+**CompCertTSO** is declined on the plainest ground available: its entire subject is relaxed-memory concurrency over x86-TSO, and a machine with no shared mutable memory between components has no TSO problem to have. It is worth citing exactly once, as evidence that the share-nothing choice is a **proof-cost** decision and not merely a performance one, since the relaxed-memory reasoning it exists to supply is reasoning this design never has to do.
+
+**Disposition:** no import of a run-time code generator in any form, on the authority ground above and never on a claim that such a thing cannot be verified; Jitk's ahead-of-time-translation-against-a-mechanized-guest-semantics pattern is already the design's own and is credited here; Vellvm and CompCertTSO are declined as trust-base members for target-language and subject-matter reasons respectively.
+Non-normative; no spec-body change.
+
+---
+
 ## The emit-in-logic compiler lineage: the CakeML bootstrap, Pancake, and the Bedrock2 crypto-server; declined for the compiler slot, and three atoms are banked
 
 The proposal is to fill or flank the CHERI-CompCert slot with a compiler in the CakeML shape: the backend theorem is about the byte image the compiler lays out in memory, emission happens inside the prover, and the bootstrap evaluates the compiler on its own AST in-logic, so the theorem's subject term is the released binary's hex and the assembler, linker, and image composer stop existing as trusted or validated steps. The lineage is live at both ends. **Pancake** (PLOS 2023) is the C-like, GC-free systems-language instance over CakeML's verified backend, with a performant Ethernet driver verified in 2025 at a reported cost near three person-months (its functional-property route currently trusting an unverified Pancake-to-Viper transpiler; a mechanized proof of that transpiler is staffed upstream but unlanded as of August 2026). The **Bedrock2 crypto-server theorem** (PLDI 2024, the garage-door system) is the strongest whole-system statement in the literature: one Coq theorem from application specification to RISC-V machine code whose trusted base is the proof kernel and the ISA model, with the earlier lightbulb result (PLDI 2021) extending the same stack beneath the ISA into a Kami-verified processor.
