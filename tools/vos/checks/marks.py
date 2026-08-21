@@ -32,6 +32,19 @@ What this cannot decide is whether the mark is *true*. A file marked Apache-2.0 
 was pasted from somewhere else is marked wrongly and reads green here, which is the
 same residue every other group in this tool declares: the mark is checked for presence
 and spelling, and its provenance is a person's to know.
+
+**Which is why `--fix` does not write the mark**, though it is the most mechanical
+repair in this tool and the finding already prints the line to paste. Everything
+`--fix` rewrites is recomputed from an artifact the repository already carries: a count
+from the thing counted, a total from its items, the value determined before the flag is
+passed and only transcribed by it. A mark is not that. Prepending one asserts that the
+file is this project's own work, which nothing in the tree determines, and an unmarked
+file is the single visible sign that something arrived from outside. `--fix` is run to
+repair arithmetic, so a marking side effect would stamp a provenance claim on a pasted
+file while somebody was fixing a checklist total, turning the one case this rule can
+detect into a false claim. Rewriting a mark that is present and wrong would be worse
+still, overwriting a license statement somebody made on purpose. The line is cheap to
+paste and the decision behind it is not, so the decision stays with a person.
 """
 
 import re
