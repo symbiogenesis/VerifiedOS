@@ -33,7 +33,7 @@ Two more were considered and refused, because a version floor is a licence to us
 | [check-selftest.py](check-selftest.py) | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | [blast-radius.py](blast-radius.py) | host | Answers what an edit to the apex statement re-opens, before the work starts. |
 | [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof and holds its assumption set against the declared one. |
-| [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `sweep`, `trace-diff`, `config-keys`, `validate-config`, `keepalive`. |
+| [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `oracle`, `sweep`, `trace-diff`, `config-keys`, `validate-config`, `keepalive`. |
 
 The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the two executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect, and [env.py](vos/env.py) the build environment. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
 
@@ -52,7 +52,7 @@ $ python tools/blast-radius.py --field spatial_safety
 $ wsl -u root -e python3 tools/model.py typecheck
 $ wsl -u root -e python3 tools/model.py build
 $ wsl -u root -e python3 tools/model.py oracle
-$ wsl -u root -e python3 tools/model.py trace-diff --corpus --floor 97
+$ wsl -u root -e python3 tools/model.py trace-diff --corpus --floor 67
 $ wsl -u root -e python3 tools/proof-gate.py
 ```
 

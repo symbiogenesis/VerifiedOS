@@ -338,23 +338,19 @@ def cmd_trace_diff(e: env.Environment, args) -> int:
     """Run the curated model and the M0.4 oracle over the same programs and adjudicate
     their traces against each other.
 
-    The two executors are the transplant's whole check until the purecap corpus of M0.12
-    exists: the oracle implements the same ISAv9 capability format and the same
-    capability instructions, so over a program both machines can run they must retire
-    the same instructions and write the same values. The Sail model this repository
-    curates is the reference on every divergence; the oracle is evidence, never
-    authority.
+    The oracle is not a reference for the frozen profile: it implements ISAv9's 128-bit
+    encoding with a hybrid mode and a default data capability, where the curated model
+    carries the 64+1-bit purecap dialect (M0.6f), so the two executors are different
+    machines and the prefix is read as a fact about how far they happen to agree. The
+    module docstring of vos/trace.py holds the rig's standing: its second executor for
+    the frozen profile is M2's CHERI-QEMU fork, and its corpus is M0.12's purecap
+    programs.
 
-    What the rig can and cannot say today is set by the corpus, not by the rig.
-    `riscv-tests` is integer-addressed, exercises no capability instruction, and runs on
-    two machines that differ in privilege modes, CSR bank, and boot path, so agreement
-    over it is evidence about the *base* the transplant did not disturb and nothing
-    more. The capability surface is exercised by the model's own `$[test]` properties
-    until M0.12 versions programs both executors can run that use it.
-
-    The figure each member reports is the agreeing prefix, and over `riscv-tests` it is
-    bounded by the corpus rather than by the transplant. The regression is therefore
-    that the prefix must not *shorten*, which --floor enforces.
+    Over `riscv-tests` the two part company inside the test prologue, at the first load
+    through an integer base register, which a purecap machine reads as an untagged
+    capability and faults on; the prefix is therefore bounded by the corpus rather than
+    by either model. The regression is that the prefix must not *shorten*, which
+    --floor enforces.
     """
     if not e.simulator.exists():
         print(f"no curated simulator at {e.simulator}; run `model.py build` first",
