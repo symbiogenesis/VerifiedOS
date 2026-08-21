@@ -60,13 +60,22 @@ PER_RULE = 8
 def _tool(name: str) -> str | None:
     """The checker's executable, preferring the interpreter's own environment.
 
-    Both ship as console scripts beside the running interpreter, so a virtual
-    environment that has them is found without being activated, which is what makes
-    this runnable from an editor and from a shell with the same result.
+    Both ship as console scripts in the interpreter's own script directory, so a
+    virtual environment that has them is found without being activated, which is what
+    makes this runnable from an editor and from a shell with the same result.
+
+    There are two such directories and the lane decides which: a POSIX interpreter
+    and a Windows virtual environment put `python` and its console scripts in one
+    directory, while a Windows *system* install puts `python.exe` at the root of the
+    installation and its scripts in `Scripts/` beside it. Looking only in the first
+    made a stock host install read as *not installed* however many times it was
+    installed, which is the one failure mode a pinned-version gate must not have.
     """
-    beside = Path(sys.executable).parent / (name + (".exe" if sys.platform == "win32" else ""))
-    if beside.is_file():
-        return str(beside)
+    suffix = ".exe" if sys.platform == "win32" else ""
+    root = Path(sys.executable).parent
+    for candidate in (root / (name + suffix), root / "Scripts" / (name + suffix)):
+        if candidate.is_file():
+            return str(candidate)
     return shutil.which(name)
 
 

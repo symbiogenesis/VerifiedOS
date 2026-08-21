@@ -23,6 +23,7 @@ core {
     core/rvfi_dii_v1.sail,
     core/rvfi_dii_v2.sail,
     core/platform_config.sail,
+    core/revocation.sail,
     core/extensions.sail,
     core/types_common.sail,
     core/types_ext.sail,
@@ -105,7 +106,18 @@ extensions {
 
     files
       extensions/CHERI/cheri_mem.sail,
-      extensions/CHERI/cheri_insts.sail
+      extensions/CHERI/cheri_insts.sail,
+      extensions/CHERI/cheri_custom.sail
+  }
+
+  // The platform-custom instructions: net-new surface belonging to no standard
+  // extension and inherited from neither upstream model, so each carries full
+  // Sail semantics of its own rather than a configuration of somebody else's
+  // (isa-profile.md §3).
+  platform_insts {
+    requires core, exceptions, sys
+
+    files extensions/platform/fence_t.sail
   }
 
   M {
@@ -304,12 +316,13 @@ postlude {
 
 unit_tests {
   after postlude
-  requires prelude, core, sys, exceptions, postlude, I, CHERI
+  requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts
 
   files
     unit_tests/test_privilege.sail,
     unit_tests/test_capability.sail,
     unit_tests/test_cheri_insts.sail,
+    unit_tests/test_platform.sail,
 }
 
 main {

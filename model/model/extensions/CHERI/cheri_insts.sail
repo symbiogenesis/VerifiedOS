@@ -283,6 +283,55 @@ mapping clause assembly = CMove(cd, cs1)      <-> "cmove"      ^ spc() ^ cap_reg
 mapping clause assembly = CSealEntry(cd, cs1) <-> "csealentry" ^ spc() ^ cap_reg_name(cd) ^ sep() ^ cap_reg_name(cs1)
 
 // *****************************************************************
+// The conditional capability move, in both polarities (R-15-054a).
+//
+// This is the capability half of the branchless select, and it is a *merge*
+// rather than a zero-then-OR because the recombining `or` has no capability
+// form: an integer select can zero one arm and OR the two together, and doing
+// that to a capability would be reconstruction from a bit pattern, which the
+// profile forbids at the root (R-05-136, R-15-054). So the destination is
+// written whole, tag included, on the taken arm and left untouched on the
+// other, which is what a select over authority has to mean.
+//
+// Its latency is independent of the operand values *and* of which arm is taken,
+// so it joins the `Zkt`/`Zvkt` list with one entry in the timing-annotated
+// model; that is a hardware contract the architectural write cannot show, and
+// it is carried as an annotation rather than by writing the destination twice
+// (M0.9, R-15-053).
+//
+// The encoding is the dialect's own rather than custom opcode space, so it
+// contends with nothing the freeze's measured act weighs (R-15-014a). The two
+// `funct7` values are the first pair above ISAv9's highest three-operand
+// allocation, which is where a bespoke row belongs: membership is by
+// enumeration and never by inheritance, so a reader checking this against
+// ISAv9 finds free space rather than a re-used opcode (R-15-007j).
+
+// The two polarities are two clauses rather than one clause over a polarity
+// enumeration, because the `instruction` union is scattered and declared before
+// this file: a type of its own would have to live in a types file ahead of that
+// declaration, which is a file and a group for one bit of information.
+function conditional_cap_move(cd : regidx, cs1 : regidx, taken : bool) -> ExecutionResult = {
+  if taken then C(cd) = C(cs1);
+  RETIRE_SUCCESS
+}
+
+union clause instruction = CMOVZ : (regidx, regidx, regidx)
+union clause instruction = CMOVN : (regidx, regidx, regidx)
+
+mapping clause encdec = CMOVZ(cd, cs1, rs2)
+  <-> 0b0100010 @ encdec_reg(rs2) @ encdec_reg(cs1) @ 0b000 @ encdec_reg(cd) @ 0b1011011
+mapping clause encdec = CMOVN(cd, cs1, rs2)
+  <-> 0b0100011 @ encdec_reg(rs2) @ encdec_reg(cs1) @ 0b000 @ encdec_reg(cd) @ 0b1011011
+
+function clause execute CMOVZ(cd, cs1, rs2) = conditional_cap_move(cd, cs1, X(rs2) == zeros())
+function clause execute CMOVN(cd, cs1, rs2) = conditional_cap_move(cd, cs1, X(rs2) != zeros())
+
+mapping clause assembly = CMOVZ(cd, cs1, rs2)
+  <-> "cmovz" ^ spc() ^ cap_reg_name(cd) ^ sep() ^ cap_reg_name(cs1) ^ sep() ^ reg_name(rs2)
+mapping clause assembly = CMOVN(cd, cs1, rs2)
+  <-> "cmovn" ^ spc() ^ cap_reg_name(cd) ^ sep() ^ cap_reg_name(cs1) ^ sep() ^ reg_name(rs2)
+
+// *****************************************************************
 // Three-operand derivations.
 
 union clause instruction = CAndPerm  : (regidx, regidx, regidx)

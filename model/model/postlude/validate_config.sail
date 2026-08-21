@@ -269,7 +269,18 @@ private function check_mem_layout() -> bool =
                    within_configured_pma_memory("CLINT (platform.clint)", Some(IOMemory),
                                                 to_bits_checked(config platform.clint.base : int),
                                                 to_bits_checked(config platform.clint.size : int));
-    pmas_ok & clint_ok
+    // The interrupt file and the revocation bitmap's window are register
+    // slaves, so both belong in IO memory rather than in main memory: an MSI is
+    // a store to a device (R-15-064), and the bitmap is not addressable as data
+    // at all (R-08-005a).
+    let imsic_ok = not(plat_have_imsic) |
+                   within_configured_pma_memory("interrupt file (platform.imsic)", Some(IOMemory),
+                                                plat_imsic_base, plat_imsic_size);
+    let revocation_window_ok = not(plat_have_revocation) |
+                   within_configured_pma_memory("revocation bitmap window (platform.revocation)", Some(IOMemory),
+                                                plat_revocation_base,
+                                                to_bits(physaddrbits_len, revocation_bitmap_bytes));
+    pmas_ok & clint_ok & imsic_ok & revocation_window_ok
   }
 
 private function check_misc_extension_dependencies() -> bool = {
@@ -350,8 +361,43 @@ private function check_physaddr_bits() -> bool = {
   } else { true }
 }
 
+// The revocable interval map. R-08-005a fixes the shape of what an attested
+// devicetree may declare, and this is where a composition that declares
+// something else is refused rather than silently under-covered: the intervals
+// are 64-byte aligned, they carry one bit per 8-byte granule, and the payload
+// is charged against the SRAM capacity budget.
+//
+// The width bound is the model's own (core/revocation.sail): a Sail register is
+// a fixed width, so a composition wanting a wider covered union widens the
+// plane and re-runs, rather than having its top granules quietly fall outside
+// the filter.
+private function check_revocation() -> bool = {
+  if not(plat_have_revocation) then return true;
+
+  var valid : bool = true;
+  let interval_base = unsigned(plat_revocation_interval_base);
+  let interval_size = unsigned(plat_revocation_interval_size);
+
+  if interval_base % 64 != 0 then {
+    valid = false;
+    print_endline("The revocable interval starts at " ^ bits_str(plat_revocation_interval_base) ^ " but a revocable interval must be 64-byte aligned.");
+  };
+  if interval_size == 0 | interval_size % 64 != 0 then {
+    valid = false;
+    print_endline("The revocable interval is " ^ dec_str(interval_size) ^ " bytes but must be a non-zero multiple of 64.");
+  };
+  if interval_size > revocation_max_interval then {
+    valid = false;
+    print_endline("The revocable interval is " ^ dec_str(interval_size) ^ " bytes but the revocation plane covers at most " ^ dec_str(revocation_max_interval) ^ " bytes.");
+  };
+
+  valid & within_configured_pma_memory("revocable interval (platform.revocation.interval_base)", Some(MainMemory),
+                                       plat_revocation_interval_base, plat_revocation_interval_size)
+}
+
 function config_is_valid() -> bool = {
     check_tvec()
+  & check_revocation()
   & check_mstatus_fields()
   & check_physaddr_bits()
   & check_mem_layout()

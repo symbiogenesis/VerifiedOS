@@ -283,6 +283,19 @@ class Assembler:
             if key not in dialect.SCRS:
                 raise self._error(item.line, f"no special capability register {text}")
             return [dialect.SCRS[key]]
+        if spec == "index":
+            # `cs1[rs2 << scale]`, the profile's own spelling of the indexed
+            # access. The scale is optional and defaults to zero, which is the
+            # unscaled case rather than a missing operand.
+            match = re.fullmatch(r"([A-Za-z_.$0-9]+)\s*\[\s*([A-Za-z_.$0-9]+)\s*"
+                                 r"(?:<<\s*(.+?)\s*)?\]", text)
+            if not match:
+                raise self._error(item.line,
+                                  f"{item.text} takes cs1[rs2 << scale], given {text!r}")
+            scale = match.group(3)
+            return [self._register(match.group(1), item),
+                    self._register(match.group(2), item),
+                    self._eval(scale, item, pc) if scale else 0]
         if spec in ("mem", "mem0"):
             match = re.fullmatch(r"(.*?)\(\s*([A-Za-z_.$0-9]+)\s*\)", text)
             if match:

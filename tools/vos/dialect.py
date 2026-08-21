@@ -22,10 +22,9 @@ encoder lays down is a stream of canonical 32-bit instructions, which is what
 the curated model fetches today. The vector, matrix, and FEC surface is absent
 because the model carries one core class until M0.8 parameterizes it; the
 corpus version that follows that milestone adds those rows rather than this one
-anticipating them. And the six rows M0.6g adds and the three M0.6h adds are
-absent because they are not in the model yet: each arrives with the batch that
-models it, which is what makes this table checkable against the model rather
-than against a plan.
+anticipating them. And the three rows M0.6h adds are absent because they are not
+in the model yet: each arrives with the batch that models it, which is what
+makes this table checkable against the model rather than against a plan.
 """
 
 from dataclasses import dataclass
@@ -101,6 +100,11 @@ SYSTEM = 0b1110011
 AMO = 0b0101111
 # The capability opcode ISAv9 allocates, carried across at the transplant.
 CHERI = 0b1011011
+# The one custom opcode the profile's own rows share. ISAv9 already spent
+# custom-2 on the whole capability surface above, so the rows M0.6g adds take
+# custom-0 between them and are separated by `funct3`, leaving custom-1 and
+# custom-3 whole for the rows the freeze's measured act admits (R-15-014a).
+CUSTOM_0 = 0b0001011
 
 
 class AsmError(Exception):
@@ -286,6 +290,29 @@ def _k_paren(f: Fields, o: list[int], pc: int) -> int:
     return _r(0b1111111, f["funct5"], o[1], 0b000, o[0], CHERI)
 
 
+def _k_indexed(f: Fields, o: list[int], pc: int) -> int:
+    """`rd, cs1[rs2 << scale]`: the capability indexed access.
+
+    An R-type whose `funct7` is five reserved zeroes over the two-bit scale. The
+    store form reads its source out of the `rd` slot, which is what a
+    three-register store has to do in this layout and is how RVV encodes `vs3`.
+    """
+    return _r(_imm(o[3], 2, signed=False, name="index scale"),
+              o[2], o[1], f["funct3"], o[0], CUSTOM_0)
+
+
+def _k_cclear(f: Fields, o: list[int], pc: int) -> int:
+    """`cclear h, mask`: S-type field layout, read as a constant.
+
+    The mask is the twelve immediate bits and the low four of the `rs2` field,
+    the half selector is that field's top bit, and `rs1` is reserved zero. No
+    destination register is named because the mask names the destinations.
+    """
+    h = _imm(o[0], 1, signed=False, name="register half")
+    mask = _imm(o[1], 16, signed=False, name="register mask")
+    return _s(mask & 0xFFF, (h << 4) | ((mask >> 12) & 0xF), 0, 0b000, CUSTOM_0)
+
+
 KINDS: dict[str, Kind] = {
     "r": Kind(("reg", "reg", "reg"), _k_r),
     "i": Kind(("reg", "reg", "imm"), _k_i),
@@ -308,6 +335,10 @@ KINDS: dict[str, Kind] = {
     "cheri_imm": Kind(("reg", "reg", "imm"), _k_cheri_imm),
     "cspecialrw": Kind(("reg", "scr", "reg"), _k_cspecialrw),
     "paren": Kind(("reg", "mem0"), _k_paren),
+    # `index` is `cs1[rs2 << scale]`, which the parser flattens into the base,
+    # the index register, and the scale.
+    "indexed": Kind(("reg", "index"), _k_indexed),
+    "cclear": Kind(("imm", "imm"), _k_cclear),
 }
 
 
@@ -374,6 +405,10 @@ def _rows() -> dict[str, tuple[str, Fields]]:
 
     add("fence", "fence")
     add("fence.tso", "none", word=_i(0b1000_0011_0011, 0, 0b000, 0, MISC_MEM))
+    # The temporal-isolation fence, at MISC-MEM funct3 100, which is vacant:
+    # `fence` is 000, `cbo.zero` and `lc` share 010, and `fence.i` went with
+    # `Zifencei`. Every other field is zero and reserved (R-15-062, R-15-014).
+    add("fence.t", "none", word=_i(0, 0, 0b100, 0, MISC_MEM))
     add("ecall", "none", word=_i(0, 0, 0b000, 0, SYSTEM))
     add("ebreak", "none", word=_i(1, 0, 0b000, 0, SYSTEM))
     add("mret", "none", word=_r(0b0011000, 0b00010, 0, 0b000, 0, SYSTEM))
@@ -494,6 +529,21 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     # separated from them by a non-zero destination (extensions/CHERI).
     add("lc", "load", funct3=0b010, op=MISC_MEM, nonzero_rd=True)
     add("sc", "store", funct3=0b100, op=STORE)
+
+    # --- CHERI: the conditional capability move ----------------------------
+    # The dialect's own encoding rather than custom opcode space, at the first
+    # free `funct7` pair above ISAv9's highest three-operand allocation
+    # (R-15-054a).
+    add("cmovz", "cheri3", funct7=0b0100010)
+    add("cmovn", "cheri3", funct7=0b0100011)
+
+    # --- The profile's custom opcode space ---------------------------------
+    # The indexed access carries `ld`'s and `sd`'s own width code in its
+    # `funct3`, so the width reads off the same three bits the base ISA puts it
+    # in; the masked clear takes 000 beside them (R-15-007e, R-15-069a).
+    add("cld", "indexed", funct3=0b011)
+    add("csd", "indexed", funct3=0b111)
+    add("cclear", "cclear")
 
     return table
 
