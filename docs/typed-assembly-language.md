@@ -1013,7 +1013,7 @@ Factoring the language out of the operating-system specification changes exactly
 
 1. **The review surface improves.** The language can be reviewed, and its soundness proof read, by someone who has no opinion about capability operating systems.
 2. **The cost becomes shareable.** A second consumer at a different profile pays for its own machine-dependent cases and shares the core.
-3. **A version seam appears where a freeze used to be.** A theory frozen inside one document is frozen by that document's amendment process; a theory frozen in a dependency is frozen by a pin, and a consumer that fails to re-review on a version bump has silently widened its own axiom set.
+3. **A version seam stands where an in-document freeze would otherwise sit.** A theory frozen inside one document is frozen by that document's amendment process; a theory frozen in a dependency is frozen by a pin, and a consumer that fails to re-review on a version bump has silently widened its own axiom set.
 
 None reduces the work, and the factoring does not change the first consumer's schedule.
 

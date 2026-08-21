@@ -4,7 +4,7 @@
 
 ## One language, and what forced it
 
-The tools run in two places. The documents, the proofs metadata, and the checker run on the **Windows host**, where the repository is edited. The Sail model's build loops run inside **WSL**, where the toolchain lives. Those two lanes used to be written in three languages, one of which could not run in either place the other could:
+The tools run in two places. The documents, the proofs metadata, and the checker run on the **Windows host**, where the repository is edited. The Sail model's build loops run inside **WSL**, where the toolchain lives. Three interpreters are in reach across those two lanes, and only one of them runs in both:
 
 | Interpreter | Windows host | WSL guest |
 | --- | --- | --- |
@@ -12,9 +12,9 @@ The tools run in two places. The documents, the proofs metadata, and the checker
 | `pwsh` | present | absent |
 | `bash` | absent | present |
 
-Python is the only one that spans both, so it is the only choice that makes the tools one thing rather than two. It also removes the seam that made them drift: a fact parsed on one side of it was re-parsed by hand on the other, which is the defect [check.py](check.py) exists to catch, running loose in the tools that catch it.
+Python is the only one that spans both, so it is the only choice that makes the tools one thing rather than two. It also closes the seam a split would open: a fact parsed on one side of it re-parsed by hand on the other, which is the defect [check.py](check.py) exists to catch, running loose in the tools that catch it.
 
-Nothing was lost in the move. The one thing a shell could do that looked out of reach, raising the OCaml stack the Sail emission needs, is `resource.setrlimit` in the parent and inheritance in every child; and the one thing the shell did badly, `/usr/bin/time` reporting the running maximum resident set over every child so far, is `os.wait4` reporting the child that was actually asked about.
+Nothing a shell offers is out of reach. Raising the OCaml stack the Sail emission needs is `resource.setrlimit` in the parent and inheritance in every child; and where a shell measures a stage badly, `/usr/bin/time` reporting the running maximum resident set over every child so far, `os.wait4` reports the child that was actually asked about.
 
 The floor is **3.14**, because that is Ubuntu 26.04's system interpreter and the model lane is not going to carry a second one. The host is held at the same version deliberately rather than by coincidence: one interpreter across both lanes is what stops a tool passing on the side it was written on and failing on the side it runs on.
 
@@ -23,7 +23,7 @@ Two things at that floor the tools depend on rather than merely tolerate:
 - **Annotations are lazy by default** ([PEP 649](https://peps.python.org/pep-0649/)), so no module here carries `from __future__ import annotations`. Under 3.14 that import is the *opt-out*: it selects the older stringized semantics, which is the reverse of what a file wanting current behaviour should say. This is load-bearing rather than incidental. Every check group annotates its `run` with the `Context` it is handed, and `Context` lives in the package `__init__` that imports the group, so naming it at run time would be a cycle. Deferred evaluation means the annotation is written plainly, imported only under `TYPE_CHECKING`, and never evaluated by anything: no quotes, no cycle, and no import paid for at startup. Nothing here reads `__annotations__` or calls `get_type_hints`, which is what makes that safe.
 - **`os.process_cpu_count()`** reports the cores this process may actually run on, honouring an affinity mask wherever one exists. Job sizing in [vos/env.py](vos/env.py) is one call rather than a `sched_getaffinity`-or-`cpu_count` branch that had to name the platform to pick between them.
 
-Two more were considered and refused, because a version floor is a licence to use what pays and not an obligation to use what is new. `pathlib.Path.copy` would replace `shutil.copy2` one call for one call and buy nothing at sites the selftest runs fifty times over. Unparenthesized `except A, B:` ([PEP 758](https://peps.python.org/pep-0758/)) is spelling, and a handler reads the same either way.
+Two more the floor makes available go unused, because a version floor is a licence to use what pays and not an obligation to use what is new. `pathlib.Path.copy` would replace `shutil.copy2` one call for one call and buy nothing at sites the selftest runs fifty times over. Unparenthesized `except A, B:` ([PEP 758](https://peps.python.org/pep-0758/)) is spelling, and a handler reads the same either way.
 
 ## What each tool is
 
@@ -72,9 +72,10 @@ The two lanes spell the interpreter differently, and that is not an oversight. O
 
 The documents are checked against each other by [check.py](check.py), and the checker is
 checked against its own mutants by [check-selftest.py](check-selftest.py). Neither of
-them reads a line of Python as Python, so the tools were the one artifact here with no
-proof, no model, and no reader but their author. [typecheck.py](typecheck.py) is that
-gate, and it runs two checkers because one cannot do the whole job.
+them reads a line of Python as Python, so without a gate of their own the tools are the
+one artifact here with no proof, no model, and no reader but their author.
+[typecheck.py](typecheck.py) is that gate, and it runs two checkers because one cannot do
+the whole job.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
@@ -108,7 +109,7 @@ lacks it, the directive is a finding on the lane that has it, and the gate's ver
 turns on what happens to be installed instead of on what the code says. ty.toml pins
 `python-platform` for the same reason on the other axis, so that the tools are typed
 against one declared target and not against whichever machine ran the checker. There is
-no suppression in this directory now, which leaves every unresolved import an error
+no suppression in this directory at all, which leaves every unresolved import an error
 without a carve-out to audit.
 
 ## The conventions
@@ -122,7 +123,7 @@ Each of these is a rule the next tool added is expected to keep.
 - **Repairs preserve bytes.** Every write goes through `newline=""` and explicit UTF-8, so a one-token edit to a CRLF document does not silently rewrite the whole file to LF.
 - **Arithmetic is repaired, judgment is reported.** A figure that is a sum over an artifact is rewritten under `--fix`. A figure that is somebody's decision is left standing as a finding, because absorbing it would delete the decision.
 - **A parse is written once.** If two tools ask the same question of one file, the parse lives in [vos/](vos/) and neither carries a copy. Two copies of one fact is the defect this repository is built to catch.
-- **Every function is annotated, and every table is typed.** Not for documentation: a table of callbacks nothing types is a table where a member with the wrong shape is found by running the corpus rather than by reading the module, which is where `dialect.KINDS` and `asm.PSEUDOS` both were. A dispatch family gets a `Protocol`, a configuration row gets a `TypedDict`, and a `list`, `dict` or `re.Match` written bare gets its parameter.
+- **Every function is annotated, and every table is typed.** Not for documentation: a table of callbacks nothing types is a table where a member with the wrong shape is found by running the corpus rather than by reading the module, `dialect.KINDS` and `asm.PSEUDOS` being the two largest here. A dispatch family gets a `Protocol`, a configuration row gets a `TypedDict`, and a `list`, `dict` or `re.Match` written bare gets its parameter.
 - **An invariant is stated where it is relied on.** A reader entitled to a value because two branches above ruled out the alternatives says so, rather than leaving a `None` to be subscripted at the point the tool is reporting the finding it exists to report.
 - **Assertions that guard an artifact are raised, not asserted.** `python -O` deletes an `assert`, and a check standing between a mis-transcribed row and an image the emulator runs anyway has to outlive a flag. `zip` over two sequences that must correspond takes `strict=True` for the same reason: a silent truncation in a tool whose output is evidence is worse than a stopped run.
 
