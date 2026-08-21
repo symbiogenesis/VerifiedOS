@@ -222,32 +222,23 @@ Non-normative; no spec-body change.
 
 ---
 
-## Three further ISA amendments: all declined under the frozen-profile gate
+## Four further ISA amendments: all declined under the frozen-profile gate
 
 The profile freeze is the root of the toolchain, Sail model, CHERI-CompCert backend, TAL, and Cerise schedule, so a further instruction must retire a booked proof or code-size obligation rather than merely add throughput.
 The standing gate requires a win on proof surface or resident code size, evidence from this profile's emitted mix, no new architectural or hidden state, custom opcode placement with a Sail clause, and a cost booked as a deletion.
 Fusion cannot justify an amendment because the profile makes it combinational, architecturally transparent, and free of new state or admission cases; asynchronous device-interrupt prologues cannot justify one because device delivery is absent.
 
-Three candidates fail:
+Four candidates fail:
 - **Test-bit-and-branch** saves four bytes on an uncommon pattern whose cycle fusion and static prediction already recover, so it fails the scarce-quantity gate.
 - **A bespoke base ISA** abandons the inherited Sail/CHERI/CompCert ecosystem and, critically, the independent Spike/QEMU/tests oracles that catch specification-versus-intent errors, for a small fixed-microarchitecture delta.
 - **Bespoke capability semantics** forfeits the Cambridge monotonicity, provenance, and non-forgeability results and turns representation proof into a fresh algebra proof.
+- **`Zcmt` table jumps** attack repeated call targets with `cm.jt`/`cm.jalt` and a jump-vector table, and they make the gate's own logic visible: this is the one candidate that wins the scarce quantity the gate names, resident code size, and is declined anyway, on the state clause.
+  The mechanism is declined independently of the purecap `C.LY`/`C.SY` encoding collision: a JVT puts a runtime, address-derived memory read in the branch path; its base CSR adds architectural state and a context-switch and flush rule; and a capability machine needs a new authority rule for the table access.
+  The design has no reason to retain that runtime machinery when the image is already position-fixed at composition.
 
-**Disposition:** decline all three amendments and keep the instruction class closed.
-The adopted fixed-rate fetch format that separately cleared the gate is documented in [Inspirations & Prior Art](inspirations.md); it is not part of this rejected set.
+**Disposition:** decline all four amendments and keep the instruction class closed, rejecting `cm.jt`, `cm.jalt`, and the JVT mechanism at R-15-036q.
+The adopted fixed-rate fetch format that separately cleared the gate is documented in [Inspirations & Prior Art](inspirations.md), as are the composition-time code-density decisions that supersede the JVT; neither is part of this rejected set.
 Non-normative; no spec-body change.
-
----
-
-## `Zcmt` table jumps: reject the JVT mechanism
-
-`Zcmt` attacks repeated call targets with `cm.jt`/`cm.jalt` and a jump-vector table.
-The mechanism is declined independently of the purecap `C.LY`/`C.SY` encoding collision: a JVT puts a runtime, address-derived memory read in the branch path; its base CSR adds architectural state and a context-switch and flush rule; and a capability machine needs a new authority rule for the table access.
-The design has no reason to retain that runtime machinery when the image is already position-fixed at composition.
-
-**Disposition:** reject `cm.jt`, `cm.jalt`, and the JVT mechanism at R-15-036q.
-The composition-time code-density decisions that supersede it are recorded in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change is made here.
 
 ---
 
