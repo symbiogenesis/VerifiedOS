@@ -1,0 +1,97 @@
+# The lint half of the gate, and the half that enforces annotation coverage.
+#
+# ty is the type checker, but it has no rule requiring a function to *be*
+# annotated: it infers what it can and stays quiet about what it cannot, so a
+# wholly unannotated function is invisible to it rather than a finding. That gap is
+# the one this file closes, and it is why the gate runs two tools instead of one.
+# The `ANN` group is the reason ruff is here; everything else selected below is a
+# correctness rule that happened to be in reach once it was.
+#
+# What is *not* selected matters as much. This directory has a house style, and a
+# linter that argues with it is a linter that gets switched off, so every rule that
+# would report a deliberate convention is refused by name and with its reason. The
+# test for admitting a rule is whether a finding under it would be a defect: not
+# whether the rule is popular, and not whether the code could be written the other
+# way.
+
+target-version = "py314"
+line-length = 100          # E501 is not selected; this only sizes the few rules that read it
+
+[lint]
+select = [
+    "F",      # pyflakes: undefined names, redefinitions, unused imports
+    "I",      # import order, so a guarded import cannot drift out of its group
+    "E4",     # imports: E402 keeps the deliberate post-sys.path imports annotated
+    "E7",     # statement-level errors: comparisons to None/True, bare `l` names
+    "E9",     # syntax and IO errors
+    "ANN",    # annotation coverage, the group ty cannot supply
+    "B",      # bugbear: zip without strict, mutable defaults, loop-variable capture
+    "A",      # a name shadowing a builtin
+    "C4",     # comprehension and collection-call shape
+    "N",      # pep8 naming
+    "UP",     # constructs the 3.14 floor makes obsolete
+    "RET",    # return-statement consistency
+    "PIE",    # redundant code
+    "PERF",   # loops that are a builtin
+    "FURB",   # refurbishment: modernizations pyupgrade does not carry
+    "PTH",    # os.path where pathlib is the house idiom
+    "RUF",    # ruff's own, less the typographic ones below
+    "PLE",    # pylint errors: these are always defects
+    "PLW",    # pylint warnings, less the two refused below
+    "PLC",    # pylint conventions, less the two refused below
+    "SIM",    # simplifications that are also clarifications
+    "S",      # bandit, less the rules that describe this tool's actual job
+    "TRY",    # exception handling, less the message-shape rules
+    "SLOT",   # __slots__ on the classes that want them
+    "INT",    # printf-string correctness
+    "TID",    # tidy imports
+]
+
+ignore = [
+    # --- rules that would report a house convention, not a defect ---------------
+
+    # The tools print their verdicts; that is the reporting convention, not debug
+    # output left behind. `T20` is not selected at all, and these are its relatives.
+    "S603",    # every subprocess call here is the point: sail, ninja, the emulators
+    "S607",    # and `ninja`/`git` are found on PATH deliberately, not pinned by path
+    "TRY003",  # a raise states its message in full; a message class per site is worse
+    "TRY400",  # these tools report, they do not carry a logger
+    "PLC0415", # imports inside a function are deliberate: the optional `jsonschema`
+               # dependency, and `asm` imported late to break a package cycle
+    "PLR2004", # a bit width or a field offset is a magic value only in the abstract
+    "TID252",  # `vos.checks` imports its siblings relatively, and should
+
+    # A dispatch family shares one signature so that the table can hold it. A member
+    # that does not read `pc` still has to accept it, and that is the design.
+    "ARG001",
+    "ARG002",
+    "ARG005",
+
+    # The house style writes typographic punctuation in prose and docstrings. These
+    # three read that as homoglyph confusion, which here it never is.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+
+    # `[reg] + asm._operand(...)` reads as what it is. Unpacking it into a literal
+    # is a rewrite of clear code to satisfy a preference.
+    "RUF005",
+
+    # --- rules deferred to ty, which decides them with types rather than syntax ---
+    "ANN401",  # `Any` is reported by ty at the point it actually loses information
+]
+
+[lint.per-file-ignores]
+# The selftest builds its mutants by rewriting source text, and it holds its
+# fixtures as module-level literals that are read once. Asserting inside it is the
+# tool doing its job.
+"check-selftest.py" = ["S101"]
+
+[lint.flake8-annotations]
+# A function that returns nothing still says so. The whole point of the group here
+# is that coverage has no exemptions, because the exempted case is exactly where an
+# unannotated signature hides.
+suppress-none-returning = false
+suppress-dummy-args = false
+allow-star-arg-any = false
+mypy-init-return = false

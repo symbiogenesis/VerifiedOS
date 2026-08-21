@@ -14,34 +14,60 @@ in the other direction.
 """
 
 import re
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from ..register import REQ_TOKEN_RE
 
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
+
 HEADING = "=== views: what each derived view carries, both directions ==="
+
+
+class View(TypedDict):
+    """One row of `VIEWS`, declared so that the table is read as what it is.
+
+    Written as a `dict` per row this was `dict[str, str | list[str] | bool]`, and
+    every read of it came back as that union: `re.compile(v["body"])` was compiling
+    a value that might be a list, and nothing objected. A typo in a key was not a
+    finding either, it was a view that quietly declared nothing and passed.
+    """
+
+    file: str
+    governing: str
+    secs: NotRequired[list[str]]
+    body: NotRequired[str]
+    csr_rows: NotRequired[bool]
+    targets: NotRequired[bool]
+    cells: NotRequired[bool]
+
 
 # The declared views. The floors group holds every register citation in this table
 # against the register, because these are citations living in a .py and so reaching
 # no other rule: renumber a subsection and a view's membership silently narrows to
 # nothing while the check over it goes on reporting that everything is carried.
-VIEWS = [
-    dict(file="docs/isa-profile.md", governing="R-15-001a",
+VIEWS: list[View] = [
+    View(file="docs/isa-profile.md", governing="R-15-001a",
          secs=["15.1", "15.3", "15.4", "15.5", "15.6", "15.7", "15.8",
                "15.9", "15.10", "15.11", "15.12"],
          csr_rows=True),
-    dict(file="docs/absence-contract.md", governing="R-15-100a", secs=["15.14"]),
-    dict(file="docs/crown-jewels.md", governing="R-17-016a",
+    View(file="docs/absence-contract.md", governing="R-15-100a", secs=["15.14"]),
+    View(file="docs/crown-jewels.md", governing="R-17-016a",
          body=r"crown.jewel spec", targets=True),
-    dict(file="docs/coverage-matrix.md", governing="R-17-001b", cells=True),
+    View(file="docs/coverage-matrix.md", governing="R-17-001b", cells=True),
     # the freeze's second act is the one place a requirement defers its own decision
     # to a measurement, so the entries naming that deferral are what the contract must
     # carry: each either puts a choice into the measured act or states the act's
     # gating artifacts
-    dict(file="docs/freeze-measurement-contract.md", governing="R-15-014a",
+    View(file="docs/freeze-measurement-contract.md", governing="R-15-014a",
          body=r"R-15-014a|the freeze from measurement|re-derived at the freeze"),
 ]
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep, reg, art, corpus = ctx.rep, ctx.reg, ctx.art, ctx.corpus
     ctx.views = VIEWS
     rep.line(HEADING)

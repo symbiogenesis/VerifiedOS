@@ -29,12 +29,21 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import IO
 
+# The tools import `vos` without being installed, so each puts its own directory on
+# the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from vos import config, differential, env, trace            # noqa: E402
+from vos import config, differential, env, trace
+
+# What every subcommand handler is. `main` attaches one to each subparser and
+# `argparse` hands it back as an untyped attribute, so the shape is stated once
+# here and asserted at the single point it is called.
+type Command = Callable[[env.Environment, argparse.Namespace], int]
 
 PROFILE_CONFIG = "config/verifiedos.json"
 SCHEMA = "sail_riscv_config_schema.json"
@@ -62,7 +71,7 @@ ORACLE_TEXT_NAMES = ("Makefile", "opam")
 
 
 def _configure(e: env.Environment, build_dir: Path,
-               extra: list[str] | None = None, out=None) -> int:
+               extra: list[str] | None = None, out: IO[str] | None = None) -> int:
     """The one cmake configure line. It was written out in two loops, which is one fact
     in two places and a pair that can silently stop agreeing."""
     return env.stage("configure", [
@@ -74,22 +83,21 @@ def _configure(e: env.Environment, build_dir: Path,
     ], stdout=out, stderr=out)
 
 
-def cmd_typecheck(e: env.Environment, args) -> int:
+def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
     """Typecheck the curated model without emitting code."""
     return subprocess.run(
         ["sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",
          "--memo-z3", "--memo-z3-path", str(e.typecheck_cache),
          "--just-check", "--all-modules", "riscv.sail_project"],
-        cwd=e.model / "model").returncode
+        cwd=e.model / "model", check=False).returncode
 
 
-def cmd_emit(e: env.Environment, args) -> int:
+def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
     """Run the full C++ emission, which regenerates the config schema, then hand the
     fresh schema and the frozen profile to the validator. No C++ is compiled."""
     build_dir = e.build_dir
-    if not (build_dir / "build.ninja").exists():
-        if _configure(e, build_dir):
-            return 1
+    if not (build_dir / "build.ninja").exists() and _configure(e, build_dir):
+        return 1
     # a single-threaded stage; -j is passed for uniformity, not for speed
     if env.stage("emit", ["cmake", "--build", str(build_dir), "-j", str(e.jobs),
                           "--target", EMIT_TARGET]):
@@ -99,7 +107,7 @@ def cmd_emit(e: env.Environment, args) -> int:
     return code
 
 
-def cmd_build(e: env.Environment, args) -> int:
+def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
     """Build the curated model out of tree and run its bundled suite.
 
     --fast selects the iterate profile: a separate build dir whose only divergence from
@@ -121,14 +129,14 @@ def cmd_build(e: env.Environment, args) -> int:
         build_dir, log, extra = canonical, e.log_dir / "model-build.log", []
 
     e.log_dir.mkdir(parents=True, exist_ok=True)
-    version = subprocess.run(["sail", "--version"], capture_output=True, text=True)
+    version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
 
     # The whole run goes to one log and the console says only where it is. A build is
     # long enough to be started and left, so the caller needs a file to come back to
     # and, at the end of it, one line saying the run is over: waiting on that marker is
     # how a caller learns the build finished, rather than by guessing at a sleep.
     print(f"== log: {log}", flush=True)
-    with open(log, "w", encoding="utf-8") as handle:
+    with log.open("w", encoding="utf-8") as handle:
         handle.write(f"== sail: {version.stdout.strip()}\n")
         handle.write(f"== host: {e.cpus} cpu, {e.mem_available_mb} MB available; "
                      f"build -j{e.jobs}, ctest -j{e.test_jobs}\n")
@@ -178,7 +186,7 @@ def _seed_from_canonical(canonical: Path, fast: Path) -> None:
                 shutil.copytree(downloaded, target)
 
 
-def cmd_oracle(e: env.Environment, args) -> int:
+def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     """Build the M0.4 capability oracle, then run the RV64 suite bundled with it.
 
     The oracle is stock `sail-cheri-riscv` at the pinned `bb07488d`, built against the
@@ -204,10 +212,10 @@ def cmd_oracle(e: env.Environment, args) -> int:
     tree = e.oracle_root
     e.log_dir.mkdir(parents=True, exist_ok=True)
     log = e.log_dir / "oracle-build.log"
-    version = subprocess.run(["sail", "--version"], capture_output=True, text=True)
+    version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
 
     print(f"== log: {log}", flush=True)
-    with open(log, "w", encoding="utf-8") as handle:
+    with log.open("w", encoding="utf-8") as handle:
         handle.write(f"== sail: {version.stdout.strip()}\n")
         handle.write(f"== tree: {tree}\n")
         if args.resync or not (tree / "Makefile").is_file():
@@ -252,7 +260,7 @@ def _sync_oracle_tree(src: Path, tree: Path) -> None:
             path.write_bytes(data.replace(b"\r\n", b"\n"))
 
 
-def _oracle_suite(e: env.Environment, tree: Path, handle, timeout: int) -> int:
+def _oracle_suite(e: env.Environment, tree: Path, handle: IO[str], timeout: int) -> int:
     """The RV64 programs bundled with the oracle's own embedded sail-riscv, run against
     the simulator just built. Each is one short single-threaded process sharing nothing,
     so the width is the core count for the same reason `sweep`'s is."""
@@ -264,14 +272,14 @@ def _oracle_suite(e: env.Environment, tree: Path, handle, timeout: int) -> int:
     def passed(elf: Path) -> bool:
         try:
             done = subprocess.run([str(e.oracle), "-p", str(elf)], capture_output=True,
-                                  text=True, errors="replace", timeout=timeout)
+                                  text=True, errors="replace", timeout=timeout, check=False)
         except subprocess.TimeoutExpired:
             return False
         return done.returncode == 0 and "SUCCESS" in (done.stdout + done.stderr)
 
     failed = 0
     with ThreadPoolExecutor(max_workers=e.test_jobs) as pool:
-        for elf, ok in zip(elves, pool.map(passed, elves)):
+        for elf, ok in zip(elves, pool.map(passed, elves), strict=True):
             if not ok:
                 failed += 1
                 handle.write(f"FAILED: {elf.name}\n")
@@ -279,7 +287,7 @@ def _oracle_suite(e: env.Environment, tree: Path, handle, timeout: int) -> int:
     return 1 if failed else 0
 
 
-def cmd_sweep(e: env.Environment, args) -> int:
+def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
     """Run the downloaded riscv-tests physical-variant ELFs against the *profile*
     configuration rather than the max configuration the bundled ctest suite uses, and
     classify each one.
@@ -312,7 +320,7 @@ def cmd_sweep(e: env.Environment, args) -> int:
     def classify(elf: Path) -> tuple[str, str]:
         try:
             done = subprocess.run([str(sim), "--config", str(profile), str(elf)],
-                                  capture_output=True, timeout=args.timeout)
+                                  capture_output=True, timeout=args.timeout, check=False)
         except subprocess.TimeoutExpired:
             return "HANG", ""
         return ("PASS", "") if done.returncode == 0 else ("REFUSE", f" rc={done.returncode}")
@@ -327,7 +335,7 @@ def cmd_sweep(e: env.Environment, args) -> int:
     with ThreadPoolExecutor(max_workers=e.test_jobs) as pool:
         # `map` answers in the order the programs were listed, so the report reads as it
         # always has while the runs behind it overlap
-        for elf, (verdict, detail) in zip(elves, pool.map(classify, elves)):
+        for elf, (verdict, detail) in zip(elves, pool.map(classify, elves), strict=True):
             tally[verdict] += 1
             print(f"{verdict} {elf.name}{detail}")
 
@@ -336,7 +344,7 @@ def cmd_sweep(e: env.Environment, args) -> int:
     return 0
 
 
-def cmd_trace_diff(e: env.Environment, args) -> int:
+def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     """Run the curated model and the M0.4 oracle over the same programs and adjudicate
     their traces against each other.
 
@@ -404,19 +412,28 @@ def cmd_trace_diff(e: env.Environment, args) -> int:
             print(f"AGREE   {elf.name} ({verdict.line()})")
             tally["AGREE"] += 1
             continue
-        if verdict.error:
+        if verdict.error is not None:
             print(f"SHORT   {elf.name} ({verdict.error})")
             tally["SHORT"] += 1
             continue
+
+        # Neither clean nor errored, so `Verdict.ok` leaves only a divergence. That
+        # is read off the two branches above rather than stated anywhere, so it is
+        # named here: the alternative is a `None` subscript at the point the tool
+        # is reporting the finding it exists to report.
+        divergence = verdict.divergence
+        if divergence is None:
+            raise AssertionError(f"{elf.name}: a verdict that is neither clean, "
+                                 f"errored, nor divergent")
 
         if shortest is None or verdict.prefix < shortest:
             shortest = verdict.prefix
         if verdict.prefix < args.floor:
             print(f"SHORT   {elf.name} ({verdict.line()}, below the floor of {args.floor})")
-            for record in verdict.agreed or []:
+            for record in verdict.agreed:
                 print(f"          agreed : {record}")
-            print(f"          curated: {verdict.divergence[0]}")
-            print(f"          oracle : {verdict.divergence[1]}")
+            print(f"          curated: {divergence[0]}")
+            print(f"          oracle : {divergence[1]}")
             print("          the Sail model is the reference: a divergence is a fault "
                   "in the transplant unless the oracle is shown to be the one at fault.")
             tally["SHORT"] += 1
@@ -433,11 +450,11 @@ def cmd_trace_diff(e: env.Environment, args) -> int:
 def _run_trace(argv: list[str]) -> list[str]:
     """Both executors print their trace to stdout and their diagnostics to stderr, and
     the normalizer reads either, so the two are merged as the shell rig merged them."""
-    done = subprocess.run(argv, capture_output=True, text=True, errors="replace")
+    done = subprocess.run(argv, capture_output=True, text=True, errors="replace", check=False)
     return (done.stdout + done.stderr).splitlines()
 
 
-def cmd_corpus(e: env.Environment, args) -> int:
+def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     """Assemble the differential corpus and run it on the curated emulator.
 
     Each member is asked two questions in one run. The first is its own: a
@@ -463,7 +480,11 @@ def cmd_corpus(e: env.Environment, args) -> int:
 
     profile = e.model / PROFILE_CONFIG
     tally = {"PASS": 0, "FAIL": 0}
-    measured: dict[str, tuple[int, str]] = {}
+    # checks, records, digest: the three fields the manifest holds per member, and
+    # the three `differential.rewrite` writes back. The annotation carried two of
+    # them until the commit trace widened, which nothing noticed because nothing
+    # read it.
+    measured: dict[str, tuple[int, int, str]] = {}
     for member in members:
         try:
             elf = differential.assemble(corpus, member, out_dir)
@@ -495,7 +516,7 @@ def cmd_corpus(e: env.Environment, args) -> int:
     return 1 if tally["FAIL"] else 0
 
 
-def _check_trace(member, measured: tuple[int, int, str]) -> tuple[str, str]:
+def _check_trace(member: differential.Member, measured: tuple[int, int, str]) -> tuple[str, str]:
     """Hold a member's commit trace against the manifest's record of it."""
     checks, records, digest = measured
     if not member.digest:
@@ -516,7 +537,7 @@ def _run_member(e: env.Environment, profile: Path, elf: Path,
         done = subprocess.run([str(e.simulator), "--config", str(profile),
                                "--trace-commit", "--inst-limit", "1000000", str(elf)],
                               capture_output=True, text=True, errors="replace",
-                              timeout=timeout)
+                              timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         return "FAIL", " (no HTIF write within the timeout)", None
     output = done.stdout + done.stderr
@@ -531,7 +552,7 @@ def _run_member(e: env.Environment, profile: Path, elf: Path,
     return "FAIL", f" (rc={done.returncode}, no HTIF verdict)", records
 
 
-def cmd_asm(e: env.Environment, args) -> int:
+def cmd_asm(e: env.Environment, args: argparse.Namespace) -> int:
     """Assemble one dialect program into an image the emulator loads."""
     from vos import asm
     try:
@@ -543,19 +564,19 @@ def cmd_asm(e: env.Environment, args) -> int:
     return 0
 
 
-def cmd_config_keys(e: env.Environment, args) -> int:
+def cmd_config_keys(e: env.Environment, args: argparse.Namespace) -> int:
     code, lines = config.compare_keys(args.generated, args.profile)
     print("\n".join(lines))
     return code
 
 
-def cmd_validate_config(e: env.Environment, args) -> int:
+def cmd_validate_config(e: env.Environment, args: argparse.Namespace) -> int:
     code, lines = config.validate(args.schema, args.config)
     print("\n".join(lines))
     return code
 
 
-def cmd_keepalive(e: env.Environment, args) -> int:
+def cmd_keepalive(e: env.Environment, args: argparse.Namespace) -> int:
     if args.stop:
         env.keepalive_stop()
     else:
@@ -641,7 +662,12 @@ def main(argv: list[str] | None = None) -> int:
         # every loop holds the distribution up while it runs, so a long build does not
         # lose the VM underneath it; the keepalive command manages that lease directly
         env.keepalive()
-    return args.run(e, args)
+    # `set_defaults(run=...)` puts the handler on the namespace, where its type is
+    # gone: named here so that the exit code this returns is checked to be one, and
+    # so that a handler with the wrong shape is a finding rather than a TypeError on
+    # whichever subcommand nobody ran lately.
+    run: Command = args.run
+    return run(e, args)
 
 
 if __name__ == "__main__":

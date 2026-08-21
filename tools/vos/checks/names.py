@@ -13,6 +13,13 @@ case to adjudicate.
 """
 
 import re
+from typing import TYPE_CHECKING
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== names: every id used, against the artifact that declares it ==="
 
@@ -22,7 +29,7 @@ HEADING = "=== names: every id used, against the artifact that declares it ==="
 WORDISH = re.compile(r"[\w-]")
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
     rep.line(HEADING)
 
@@ -43,10 +50,10 @@ def run(ctx) -> None:
 
     # the five tokens start with five different letters, so one alternation walks the
     # corpus once and the first letter of each hit picks its vocabulary back out
-    by_initial = {}
+    by_initial: dict[str, str] = {}
     unknown: dict[str, list[str]] = {}
     declared: dict[str, set[str]] = {}
-    for kind, token, ids, home in vocab:
+    for kind, token, ids, _home in vocab:
         by_initial[token[0]] = kind
         declared[kind] = set(ids)
         unknown[kind] = []

@@ -32,8 +32,15 @@ making the decision, which is the check defeating its own purpose quietly.
 """
 
 import re
+from typing import TYPE_CHECKING, TypedDict
 
 from ..register import REQ_TOKEN_RE
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== confers: every enumeration closed by conferral, both directions ==="
 
@@ -50,12 +57,31 @@ CJ_ACCEPT_DISPOSITION = {
     "R-13-009": "references the format-descriptor status R-05-046 confers on every member",
 }
 
-AGENDAS = [
-    dict(
+
+class Agenda(TypedDict):
+    """One vocabulary sweep and the two ways an entry is held out of it.
+
+    Typed for the reason `views.View` is: written as bare dicts the table read back
+    as a union of everything in it, so `re.compile(agenda["vocab"])` was compiling a
+    value the checker could only say was a string, a list, or a dict of strings, and
+    `held_by_agenda[agenda["name"]]` was a lookup by that same union.
+    """
+
+    name: str
+    vocab: str
+    # the entries that state the set rather than belonging to it
+    ruling: list[str]
+    # the entries caught by the vocabulary and decided not to belong, each with the
+    # reason that decision was taken; the confers group holds every one of them
+    # against the register, so a suppression that suppresses nothing is a finding
+    disposition: dict[str, str]
+
+
+AGENDAS: list[Agenda] = [
+    Agenda(
         name="fail-closed",
         vocab=(r"fail-stop|fail-closed|fail closed|refuse|refuses|refused|refusal|"
                r"denial of service|permanent DoS"),
-        # the entries that state the set rather than belonging to it
         ruling=["R-03-008", "R-03-009", "R-17-030a", "R-17-030l", "R-17-030r", "R-17-030t"],
         disposition={
             "R-03-003": "threat scope, not a refusal: the refusals an EM adversary provokes are composed at R-17-030n",
@@ -81,7 +107,7 @@ AGENDAS = [
             "R-17-058b": "the residual beyond the R-16-008f fault model behind R-17-030n detectors, not a refusal of its own",
         },
     ),
-    dict(
+    Agenda(
         name="RoT-fresh",
         vocab=(r"monotonic counter|monotonic anti-rollback|monotonic attempt counter|"
                r"anti-rollback floor|freshness-protected"),
@@ -105,7 +131,7 @@ AGENDAS = [
 ]
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
     rep.line(HEADING)
 

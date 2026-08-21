@@ -1,3 +1,4 @@
 *.py text eol=lf
+*.toml text eol=lf
 model/** -text
 corpus/** text eol=lf

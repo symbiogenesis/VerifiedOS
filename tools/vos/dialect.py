@@ -29,6 +29,7 @@ than against a plan.
 """
 
 from dataclasses import dataclass
+from typing import Final, Protocol
 
 # The 32 integer registers, spelled three ways. A register is one register with
 # two readings, so `x5`, `t0`, `c5` and `ct0` are the same register and the
@@ -40,18 +41,33 @@ ABI_NAMES = (
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
 )
 
-REGISTERS: dict[str, int] = {}
-for _i, _abi in enumerate(ABI_NAMES):
-    REGISTERS[f"x{_i}"] = _i
-    REGISTERS[f"c{_i}"] = _i
-    REGISTERS[f"cx{_i}"] = _i
-    REGISTERS[_abi] = _i
-    REGISTERS[f"c{_abi}"] = _i
-REGISTERS["fp"] = 8
-REGISTERS["cfp"] = 8
-# The zero register's capability reading holds the null capability, so it is
-# `cnull` rather than `czero` (core/regs.sail).
-REGISTERS["cnull"] = 0
+
+def _registers() -> dict[str, int]:
+    """Every spelling of every register, built inside a function deliberately.
+
+    A `for` loop at module scope leaves its variables bound in the module, and the
+    obvious name for the index here is `_i`, which is also the name of the I-type
+    encoder below. Nothing went wrong, because the encoder is defined after the loop
+    and rebinds the name; but the module was one reordering away from every I-type
+    instruction encoding through an integer, and the failure would have been
+    `'int' object is not callable` far from its cause.
+    """
+    table: dict[str, int] = {}
+    for number, abi in enumerate(ABI_NAMES):
+        table[f"x{number}"] = number
+        table[f"c{number}"] = number
+        table[f"cx{number}"] = number
+        table[abi] = number
+        table[f"c{abi}"] = number
+    table["fp"] = 8
+    table["cfp"] = 8
+    # The zero register's capability reading holds the null capability, so it is
+    # `cnull` rather than `czero` (core/regs.sail).
+    table["cnull"] = 0
+    return table
+
+
+REGISTERS: Final[dict[str, int]] = _registers()
 
 # The CSR bank of isa-profile.md §5.1. An address absent from this map is not
 # assembled by name; a program wanting one writes the number, and the model
@@ -146,21 +162,39 @@ def _j(imm: int, rd: int, op: int) -> int:
 # `emit(fields, ops, pc)` builds the word. `pc` is the address of the
 # instruction, which only the pc-relative kinds read.
 
+# The fields a row carries into its encoder: the constant bits of the encoding,
+# named as the `mapping clause encdec` names them. `bool` is an `int` here and is
+# meant to be, so a flag field like `signed` sits in the same table as `funct3`.
+Fields = dict[str, int]
+
+
+class Emit(Protocol):
+    """What every kind's encoder is, stated once so the table below is checked.
+
+    This is the reason the protocol exists rather than the encoders being stored as
+    plain objects: `KINDS` is a dispatch table, and a table of callbacks that
+    nothing types is a table where a member with the wrong arity or the wrong
+    argument order is found by running the corpus, not by reading the module.
+    """
+
+    def __call__(self, f: Fields, o: list[int], pc: int) -> int: ...
+
+
 @dataclass(frozen=True)
 class Kind:
     operands: tuple[str, ...]
-    emit: object
+    emit: Emit
 
 
-def _k_r(f, o, pc):
+def _k_r(f: Fields, o: list[int], pc: int) -> int:
     return _r(f["funct7"], o[2], o[1], f["funct3"], o[0], f["op"])
 
 
-def _k_i(f, o, pc):
+def _k_i(f: Fields, o: list[int], pc: int) -> int:
     return _i(_imm(o[2], 12, signed=True, name="immediate"), o[1], f["funct3"], o[0], f["op"])
 
 
-def _k_shift(f, o, pc):
+def _k_shift(f: Fields, o: list[int], pc: int) -> int:
     """Shift-immediate, where the shift amount's width says which base it is: six
     bits for the XLEN forms and five for the `W` forms, the top bits of the
     funct7 field carrying the operation."""
@@ -169,81 +203,84 @@ def _k_shift(f, o, pc):
     return ((f["funct7"] | shamt) << 20) | (o[1] << 15) | (f["funct3"] << 12) | (o[0] << 7) | f["op"]
 
 
-def _k_load(f, o, pc):
+def _k_load(f: Fields, o: list[int], pc: int) -> int:
     return _i(_imm(o[1], 12, signed=True, name="offset"), o[2], f["funct3"], o[0], f["op"])
 
 
-def _k_store(f, o, pc):
+def _k_store(f: Fields, o: list[int], pc: int) -> int:
     return _s(_imm(o[1], 12, signed=True, name="offset"), o[0], o[2], f["funct3"], f["op"])
 
 
-def _k_branch(f, o, pc):
+def _k_branch(f: Fields, o: list[int], pc: int) -> int:
     return _b(_imm(o[2] - pc, 13, signed=True, name="branch displacement", align=2),
               o[1], o[0], f["funct3"], f["op"])
 
 
-def _k_u(f, o, pc):
+def _k_u(f: Fields, o: list[int], pc: int) -> int:
     return _u(_imm(o[1], 20, signed=False, name="upper immediate"), o[0], f["op"])
 
 
-def _k_jal(f, o, pc):
+def _k_jal(f: Fields, o: list[int], pc: int) -> int:
     return _j(_imm(o[1] - pc, 21, signed=True, name="jump displacement", align=2),
               o[0], f["op"])
 
 
-def _k_jalr(f, o, pc):
+def _k_jalr(f: Fields, o: list[int], pc: int) -> int:
     return _i(_imm(o[2], 12, signed=True, name="offset"), o[1], f["funct3"], o[0], f["op"])
 
 
-def _k_unary(f, o, pc):
+def _k_unary(f: Fields, o: list[int], pc: int) -> int:
     """The one-source forms whose whole 12-bit immediate field is the operation."""
     return _i(f["funct12"], o[1], f["funct3"], o[0], f["op"])
 
 
-def _k_csr(f, o, pc):
+def _k_csr(f: Fields, o: list[int], pc: int) -> int:
     return _i(o[1], o[2], f["funct3"], o[0], f["op"])
 
 
-def _k_csri(f, o, pc):
+def _k_csri(f: Fields, o: list[int], pc: int) -> int:
     return _i(o[1], _imm(o[2], 5, signed=False, name="CSR immediate"), f["funct3"], o[0], f["op"])
 
 
-def _k_amo(f, o, pc):
+def _k_amo(f: Fields, o: list[int], pc: int) -> int:
     return _r((f["funct5"] << 2) | f["ordering"], o[1], o[2], f["funct3"], o[0], f["op"])
 
 
-def _k_fence(f, o, pc):
+def _k_fence(f: Fields, o: list[int], pc: int) -> int:
     return _i((_imm(o[0], 4, signed=False, name="predecessor set") << 4) |
               _imm(o[1], 4, signed=False, name="successor set"), 0, 0b000, 0, MISC_MEM)
 
 
-def _k_none(f, o, pc):
+def _k_none(f: Fields, o: list[int], pc: int) -> int:
     return f["word"]
 
 
-def _k_cbo(f, o, pc):
+def _k_cbo(f: Fields, o: list[int], pc: int) -> int:
     return _i(f["imm"], o[0], 0b010, 0, MISC_MEM)
 
 
-def _k_cheri2(f, o, pc):
+def _k_cheri2(f: Fields, o: list[int], pc: int) -> int:
     """The two-operand capability forms: `funct7` is all ones and the operation
     is the five bits the second source register field carries."""
     return _r(0b1111111, f["funct5"], o[1], 0b000, o[0], CHERI)
 
 
-def _k_cheri3(f, o, pc):
+def _k_cheri3(f: Fields, o: list[int], pc: int) -> int:
     return _r(f["funct7"], o[2], o[1], 0b000, o[0], CHERI)
 
 
-def _k_cheri_imm(f, o, pc):
-    return _i(_imm(o[2], 12, signed=f["signed"], name="immediate"), o[1], f["funct3"], o[0], CHERI)
+def _k_cheri_imm(f: Fields, o: list[int], pc: int) -> int:
+    # `signed` is the one field read as a flag rather than as bits, so it is the one
+    # that narrows on the way out of the table (`Fields` is `dict[str, int]`).
+    return _i(_imm(o[2], 12, signed=bool(f["signed"]), name="immediate"),
+              o[1], f["funct3"], o[0], CHERI)
 
 
-def _k_cspecialrw(f, o, pc):
+def _k_cspecialrw(f: Fields, o: list[int], pc: int) -> int:
     return _r(0b0000001, o[1], o[2], 0b000, o[0], CHERI)
 
 
-def _k_paren(f, o, pc):
+def _k_paren(f: Fields, o: list[int], pc: int) -> int:
     """`rd, (cs1)`: the tag-group load, whose group is the block rather than an
     operand, so it names no offset."""
     return _r(0b1111111, f["funct5"], o[1], 0b000, o[0], CHERI)
@@ -274,12 +311,19 @@ KINDS: dict[str, Kind] = {
 }
 
 
-def _rows() -> dict[str, tuple[str, dict]]:
-    table: dict[str, tuple[str, dict]] = {}
+def _rows() -> dict[str, tuple[str, Fields]]:
+    table: dict[str, tuple[str, Fields]] = {}
 
-    def add(name, kind, **fields):
-        assert name not in table, f"{name} is already in the table"
-        assert kind in KINDS, f"{name} names no kind {kind}"
+    def add(name: str, kind: str, **fields: int) -> None:
+        # Raised rather than asserted. These are assertions in the sense that they
+        # can only fail on a defect in the table below, but `python -O` deletes an
+        # `assert` and this table is built at import: a duplicated row would then
+        # silently take the later definition, and a bad kind would fail later and
+        # elsewhere. The check has to outlive the flag.
+        if name in table:
+            raise AssertionError(f"{name} is already in the table")
+        if kind not in KINDS:
+            raise AssertionError(f"{name} names no kind {kind}")
         table[name] = (kind, fields)
 
     # --- RV64I -------------------------------------------------------------
@@ -481,5 +525,11 @@ def encode(mnemonic: str, operands: list[int], pc: int) -> int:
         raise AsmError(f"{mnemonic} into the null register is the cache-block "
                        f"encoding, not a capability load")
     word = KINDS[kind].emit(fields, operands, pc)
-    assert 0 <= word < (1 << 32), f"{mnemonic} encoded outside 32 bits"
+    # Raised rather than asserted: this is the last thing standing between a
+    # mis-transcribed row and an image the emulator runs anyway. A field that
+    # overflows its slot corrupts the neighbouring one silently, and the corpus
+    # would report a divergence in the model rather than a defect in this table.
+    # `python -O` must not be able to switch that off.
+    if not 0 <= word < (1 << 32):
+        raise AssertionError(f"{mnemonic} encoded outside 32 bits: {word:#x}")
     return word

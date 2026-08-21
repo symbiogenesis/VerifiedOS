@@ -18,6 +18,13 @@ every conferral declares.
 
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== meta: the rule registry against the checks carried ==="
 
@@ -34,7 +41,7 @@ def carried_rules() -> set[str]:
     return found
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
 

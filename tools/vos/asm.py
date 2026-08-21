@@ -30,9 +30,19 @@ write by accident (R-15-001c).
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Final, Protocol
 
 from . import dialect, image
 from .dialect import AsmError
+
+# One instruction after expansion and before encoding: a mnemonic the dialect
+# table knows, and its operands already resolved to integers in source order. A
+# pseudo-instruction yields a list of these, which is the only reason it is a list
+# rather than a single instruction.
+Instr = tuple[str, list[int]]
+
+# A lexed token: the name of the group in `_TOKEN` that matched, and its text.
+Token = tuple[str, str]
 
 # Where the two sections are composed. Both are 16-aligned so that a section's
 # file offset and its address agree modulo the segment alignment, and both sit
@@ -70,7 +80,7 @@ class Item:
 
 
 class Assembler:
-    def __init__(self, source: str, name: str = "<source>"):
+    def __init__(self, source: str, name: str = "<source>") -> None:
         self.name = name
         self.items: list[Item] = []
         self.symbols: dict[str, int] = {}
@@ -172,7 +182,13 @@ class Assembler:
             if blob is None:
                 continue
             gap = item.address - (section.addr + len(section.data))
-            assert gap >= 0, "layout moved backwards"
+            # Raised rather than asserted, and this is the one in this module that
+            # most needs to survive `python -O`: a negative gap multiplies to an
+            # empty padding, so the item would be written at the wrong offset and
+            # the image would assemble, load, and run as a different program.
+            if gap < 0:
+                raise self._error(item.line, f"layout moved backwards by {-gap} bytes "
+                                             f"placing {item.text or item.kind}")
             section.data += b"\0" * gap + blob
 
         symbols = {name: (self.symbol_section[name], value)
@@ -245,7 +261,10 @@ class Assembler:
             raise self._error(item.line,
                               f"{name} takes {len(wanted)} operands, given {len(given)}")
         out: list[int] = []
-        for spec, text in zip(wanted, given):
+        # `strict` even though the lengths were just compared: the guard above
+        # reports the operand count a person got wrong, and this one refuses to
+        # encode a truncated instruction if the two ever stop agreeing.
+        for spec, text in zip(wanted, given, strict=True):
             out += self._operand(spec, text, item, pc)
         return out
 
@@ -313,20 +332,27 @@ _PRECEDENCE = {"|": 1, "^": 2, "&": 3, "<<": 4, ">>": 4,
                "+": 5, "-": 5, "*": 6, "/": 6, "%": 6}
 
 
-def _tokenize(text: str, asm: Assembler, line: int) -> list[tuple[str, str]]:
-    tokens, at = [], 0
+def _tokenize(text: str, asm: Assembler, line: int) -> list[Token]:
+    tokens: list[Token] = []
+    at = 0
     while at < len(text):
         match = _TOKEN.match(text, at)
         if not match:
             raise asm._error(line, f"cannot read {text[at:]!r}")
         at = match.end()
         kind = match.lastgroup
+        if kind is None:
+            # Every branch of `_TOKEN` is a named group, so this is unreachable
+            # unless one is added without a name; said here rather than left for a
+            # `None` to travel into the token list and fail as a bad token kind.
+            raise asm._error(line, f"the lexer matched {match.group()!r} in no named group")
         if kind != "space":
             tokens.append((kind, match.group()))
     return tokens
 
 
-def _atom(tokens, at, asm, item, here) -> tuple[int, int]:
+def _atom(tokens: list[Token], at: int, asm: Assembler, item: Item,
+          here: int) -> tuple[int, int]:
     if at >= len(tokens):
         raise asm._error(item.line, "expression ended early")
     kind, text = tokens[at]
@@ -356,7 +382,8 @@ def _atom(tokens, at, asm, item, here) -> tuple[int, int]:
     raise asm._error(item.line, f"cannot read {text!r} here")
 
 
-def _expr(tokens, at, asm, item, here, min_precedence: int = 1) -> tuple[int, int]:
+def _expr(tokens: list[Token], at: int, asm: Assembler, item: Item, here: int,
+          min_precedence: int = 1) -> tuple[int, int]:
     left, at = _atom(tokens, at, asm, item, here)
     while at < len(tokens):
         op = tokens[at][1]
@@ -394,7 +421,8 @@ def _apply(op: str, left: int, right: int) -> int:
 
 def _split_operands(text: str) -> list[str]:
     """Split on commas outside parentheses and outside quotes."""
-    out, depth, quote, current = [], 0, "", ""
+    out: list[str] = []
+    depth, quote, current = 0, "", ""
     for char in text:
         if quote:
             current += char
@@ -442,11 +470,25 @@ def _string(text: str, line: int, asm: Assembler) -> bytes:
 # integer, which is how a program names a *data* address before deriving the
 # capability for it off `c1`.
 
+
+class Pseudo(Protocol):
+    """What every pseudo-instruction expander is, stated once for `PSEUDOS`.
+
+    The table at the bottom of this module maps a name to one of these, and two of
+    its entries are closures built by a factory rather than functions written out.
+    Without a declared shape the table is `dict[str, object]` and nothing checks
+    that a member takes the arguments the expander is called with, which is exactly
+    the position `dialect.KINDS` was in.
+    """
+
+    def __call__(self, asm: Assembler, item: Item, pc: int) -> list[Instr]: ...
+
+
 def _sign12(value: int) -> int:
     return ((value & 0xFFF) ^ 0x800) - 0x800
 
 
-def _materialize(rd: int, value: int, out: list) -> None:
+def _materialize(rd: int, value: int, out: list[Instr]) -> None:
     """The shortest `lui`/`addiw`/`slli`/`addi` sequence for a 64-bit constant.
 
     This is the RISC-V materialization every backend implements; it is here
@@ -476,16 +518,16 @@ def _materialize(rd: int, value: int, out: list) -> None:
         out.append(("addi", [rd, rd, lo12]))
 
 
-def _p_li(asm: Assembler, item: Item, pc: int) -> list:
+def _p_li(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     if len(item.args) != 2:
         raise asm._error(item.line, "li takes a register and a value")
     rd = asm._register(item.args[0], item)
-    out: list = []
+    out: list[Instr] = []
     _materialize(rd, asm._eval(item.args[1], item, pc), out)
     return out
 
 
-def _p_la(asm: Assembler, item: Item, pc: int) -> list:
+def _p_la(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     """`la cd, symbol`: a capability for `symbol` derived from PCC.
 
     The pair is the profile's own PC-relative materialization (§1.1,
@@ -507,36 +549,36 @@ def _arity(asm: Assembler, item: Item, count: int) -> None:
                          f"{item.text} takes {count} operands, given {len(item.args)}")
 
 
-def _p_nop(asm, item, pc):
+def _p_nop(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 0)
     return [("addi", [0, 0, 0])]
 
 
-def _p_mv(asm, item, pc):
+def _p_mv(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
     return [("addi", [asm._register(item.args[0], item),
                       asm._register(item.args[1], item), 0])]
 
 
-def _p_not(asm, item, pc):
+def _p_not(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
     return [("xori", [asm._register(item.args[0], item),
                       asm._register(item.args[1], item), -1])]
 
 
-def _p_neg(asm, item, pc):
+def _p_neg(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
     return [("sub", [asm._register(item.args[0], item), 0,
                      asm._register(item.args[1], item)])]
 
 
-def _p_seqz(asm, item, pc):
+def _p_seqz(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
     return [("sltiu", [asm._register(item.args[0], item),
                        asm._register(item.args[1], item), 1])]
 
 
-def _p_snez(asm, item, pc):
+def _p_snez(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
     return [("sltu", [asm._register(item.args[0], item), 0,
                       asm._register(item.args[1], item)])]
@@ -557,15 +599,15 @@ def _fence_set(asm: Assembler, item: Item, text: str) -> int:
     return asm._eval(text, item, item.address)
 
 
-def _p_fence(asm, item, pc):
+def _p_fence(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     if len(item.args) not in (0, 2):
         raise asm._error(item.line, "fence takes two ordering sets, or none")
     pred, succ = (item.args + ["", ""])[:2]
     return [("fence", [_fence_set(asm, item, pred), _fence_set(asm, item, succ)])]
 
 
-def _branch_zero(mnemonic: str, swap: bool):
-    def build(asm: Assembler, item: Item, pc: int) -> list:
+def _branch_zero(mnemonic: str, *, swap: bool) -> Pseudo:
+    def build(asm: Assembler, item: Item, pc: int) -> list[Instr]:
         _arity(asm, item, 2)
         reg = asm._register(item.args[0], item)
         target = asm._eval(item.args[1], item, pc)
@@ -574,8 +616,8 @@ def _branch_zero(mnemonic: str, swap: bool):
     return build
 
 
-def _branch_swapped(mnemonic: str):
-    def build(asm: Assembler, item: Item, pc: int) -> list:
+def _branch_swapped(mnemonic: str) -> Pseudo:
+    def build(asm: Assembler, item: Item, pc: int) -> list[Instr]:
         _arity(asm, item, 3)
         return [(mnemonic, [asm._register(item.args[1], item),
                             asm._register(item.args[0], item),
@@ -583,51 +625,51 @@ def _branch_swapped(mnemonic: str):
     return build
 
 
-def _p_csrr(asm, item, pc):
+def _p_csrr(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
     return [("csrrs", [asm._register(item.args[0], item)]
              + asm._operand("csr", item.args[1], item, pc) + [0])]
 
 
-def _p_csrw(asm, item, pc):
+def _p_csrw(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
     return [("csrrw", [0] + asm._operand("csr", item.args[0], item, pc)
              + [asm._register(item.args[1], item)])]
 
 
-def _p_j(asm, item, pc):
+def _p_j(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 1)
     return [("cjal", [0, asm._eval(item.args[0], item, pc)])]
 
 
-def _p_call(asm, item, pc):
+def _p_call(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 1)
     return [("cjal", [1, asm._eval(item.args[0], item, pc)])]
 
 
-def _p_ret(asm, item, pc):
+def _p_ret(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     """`ret` is a jump that writes no link, which is the only role a
     backward-edge sentry is reachable in (R-15-071, extensions/CHERI)."""
     _arity(asm, item, 0)
     return [("cjalr", [0, 1, 0])]
 
 
-def _p_cjr(asm, item, pc):
+def _p_cjr(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     """`cjr` rather than `jr`, beside `cjal` and `cjalr`: the jump is the
     capability form, there being no integer one to distinguish it from."""
     _arity(asm, item, 1)
     return [("cjalr", [0, asm._register(item.args[0], item), 0])]
 
 
-PSEUDOS = {
+PSEUDOS: Final[dict[str, Pseudo]] = {
     "nop": _p_nop, "mv": _p_mv, "not": _p_not, "neg": _p_neg,
     "seqz": _p_seqz, "snez": _p_snez,
     "li": _p_li, "la": _p_la, "fence": _p_fence,
     "csrr": _p_csrr, "csrw": _p_csrw,
     "j": _p_j, "call": _p_call, "ret": _p_ret, "cjr": _p_cjr,
-    "beqz": _branch_zero("beq", False), "bnez": _branch_zero("bne", False),
-    "blez": _branch_zero("bge", True), "bgez": _branch_zero("bge", False),
-    "bltz": _branch_zero("blt", False), "bgtz": _branch_zero("blt", True),
+    "beqz": _branch_zero("beq", swap=False), "bnez": _branch_zero("bne", swap=False),
+    "blez": _branch_zero("bge", swap=True), "bgez": _branch_zero("bge", swap=False),
+    "bltz": _branch_zero("blt", swap=False), "bgtz": _branch_zero("blt", swap=True),
     "bgt": _branch_swapped("blt"), "ble": _branch_swapped("bge"),
     "bgtu": _branch_swapped("bltu"), "bleu": _branch_swapped("bgeu"),
 }

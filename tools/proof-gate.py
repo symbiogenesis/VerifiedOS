@@ -22,10 +22,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+# The tools import `vos` without being installed, so each puts its own directory on
+# the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from vos import env                          # noqa: E402
-from vos.corpus import find_root              # noqa: E402
+from vos import env
+from vos.corpus import find_root
 
 PROOFS = "proofs"
 CLOSED = "Closed under the global context"
@@ -45,7 +47,7 @@ def _compile(root: Path, source: Path) -> str:
     proc = subprocess.run(
         [*env.rocq_command(), "-q", "-Q", PROOFS, "",
          str(source.relative_to(root).as_posix())],
-        cwd=root, capture_output=True, text=True, encoding="utf-8")
+        cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
     if proc.returncode != 0:
         raise SystemExit(f"FAIL: {source.name} did not compile:\n{proc.stderr.strip()}")
     return proc.stdout

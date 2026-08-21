@@ -23,6 +23,7 @@ M1.4 is later checked against (M0.12).
 
 import struct
 from dataclasses import dataclass, field
+from pathlib import Path
 
 EM_RISCV = 243
 ET_EXEC = 2
@@ -60,7 +61,7 @@ class Section:
 
 
 class _Strtab:
-    def __init__(self):
+    def __init__(self) -> None:
         self.blob = bytearray(b"\0")
 
     def add(self, name: str) -> int:
@@ -71,7 +72,7 @@ class _Strtab:
         return offset
 
 
-def write_elf(path, sections: list[Section], symbols: dict[str, tuple[str, int]],
+def write_elf(path: Path, sections: list[Section], symbols: dict[str, tuple[str, int]],
               entry: int) -> None:
     """Write `sections` as one ELF64 executable.
 
@@ -132,7 +133,10 @@ def write_elf(path, sections: list[Section], symbols: dict[str, tuple[str, int]]
         EHDR_SIZE, PHDR_SIZE, len(sections),
         SHDR_SIZE, len(sections) + 4, len(sections) + 3,
     )
-    for section, file_offset in zip(sections, sh_offsets):
+    # `sh_offsets` gets one entry per section above, so `strict` is asserting that
+    # rather than testing it: a program header written against the wrong section's
+    # offset produces an image that loads and is silently wrong.
+    for section, file_offset in zip(sections, sh_offsets, strict=True):
         out += struct.pack("<IIQQQQQQ", PT_LOAD, section.p_flags, file_offset,
                            section.addr, section.addr,
                            len(section.data), len(section.data), 16)
@@ -143,7 +147,7 @@ def write_elf(path, sections: list[Section], symbols: dict[str, tuple[str, int]]
     out += b"\0" * (shoff - len(out))
 
     out += bytes(SHDR_SIZE)  # the null section header
-    for i, (section, file_offset) in enumerate(zip(sections, sh_offsets)):
+    for i, (section, file_offset) in enumerate(zip(sections, sh_offsets, strict=True)):
         out += struct.pack("<IIQQQQIIQQ", sh_names[i + 1], SHT_PROGBITS,
                            section.flags, section.addr, file_offset,
                            len(section.data), 0, 0, 16, 0)

@@ -1,0 +1,31 @@
+# The type checker's settings, held here rather than passed on a command line so
+# that an editor's language server (`ty server`) decides exactly what
+# `tools/typecheck.py` decides. A rule enforced in one and not the other is a rule
+# that gets switched off, so there is one file and both read it.
+#
+# The severities themselves are not here. `typecheck.py` passes `--error all`,
+# which escalates every rule ty carries, including the ones it ships as warnings
+# or off by default. That is deliberate and it is what a pinned version buys: the
+# alternative is a list of opt-ins that silently stops growing the day ty adds a
+# rule nobody transcribed. `tools/README.md` records the pin.
+
+[environment]
+python-version = "3.14"
+
+# The tools are one lane but not one platform: `check.py` and its groups run on the
+# Windows host, while `env.py`, `model.py` and `proof-gate.py` run in WSL and use
+# `resource.setrlimit` and `os.wait4`, which are POSIX-only and unresolvable when
+# the checker assumes the host it happens to be running on. Linux is the platform
+# that types every module here, because nothing in this directory is Windows-only.
+python-platform = "linux"
+
+# `tools/` is the import root: every tool puts its own directory on `sys.path`
+# before importing `vos`, so that a tool is runnable from anywhere without the
+# package being installed.
+extra-paths = ["."]
+
+[src]
+exclude = ["**/__pycache__/**"]
+
+[terminal]
+output-format = "concise"

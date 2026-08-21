@@ -29,8 +29,17 @@ put the very glyph this module forbids into the file that forbids it.
 """
 
 import re
+from collections.abc import Iterable, Iterator
+from typing import TYPE_CHECKING
 
+from ..corpus import Document
 from .links import sites
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== glyphs: forbidden punctuation and encoding damage ==="
 
@@ -53,7 +62,7 @@ CONTINUATION_RANGES = (
 )
 
 
-def _character_class(ranges) -> str:
+def _character_class(ranges: Iterable[tuple[int, int]]) -> str:
     return "".join(chr(lo) if lo == hi else f"{chr(lo)}-{chr(hi)}" for lo, hi in ranges)
 
 
@@ -70,14 +79,14 @@ MOJIBAKE_RE = re.compile(
 MOJIBAKE_MARKS = tuple(chr(b) for b in LEAD_BYTES) + (REPLACEMENT,)
 
 
-def _offsets(raw: str, needle: str):
+def _offsets(raw: str, needle: str) -> Iterator[int]:
     start = raw.find(needle)
     while start >= 0:
         yield start
         start = raw.find(needle, start + 1)
 
 
-def _lines_carrying(doc, offsets) -> list[int]:
+def _lines_carrying(doc: Document, offsets: Iterable[int]) -> list[int]:
     """One entry per line, however many hits it carries: the repair is one visit."""
     found: list[int] = []
     last = -1
@@ -89,7 +98,7 @@ def _lines_carrying(doc, offsets) -> list[int]:
     return found
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
 

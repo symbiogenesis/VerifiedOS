@@ -17,8 +17,15 @@ whether a row cites the right authoring artifact is the review gate's question.
 """
 
 import re
+from typing import TYPE_CHECKING
 
 from .. import apex
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== bindings: the apex statement's fields against the view that binds them ==="
 
@@ -30,7 +37,7 @@ _ROW_RE = re.compile(r"^\| ``?(\w+)``? \|")
 _LINK_RE = re.compile(r"\]\([^)]+\)")
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep, corpus = ctx.rep, ctx.corpus
     rep.line(HEADING)
 

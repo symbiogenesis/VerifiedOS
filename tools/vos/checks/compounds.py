@@ -34,6 +34,13 @@ the finding standing rather than absorbing it, which is the point.
 """
 
 import re
+from typing import TYPE_CHECKING
+
+# `Context` lives in this package's __init__, which imports this module in turn.
+# Guarded, so the annotation below costs no import at run time: under PEP 649 an
+# annotation is not evaluated unless something asks for it, and nothing here does.
+if TYPE_CHECKING:
+    from . import Context
 
 HEADING = "=== compounds: the archetype band against the product of the rows it rests on ==="
 
@@ -68,7 +75,7 @@ BAND_RE = re.compile(r"(?m)^\| General scalar[^|]*\| \*\*−(\d+)% to −(\d+)%\
 CREDIT_RE = re.compile(r"(?m)^\| (Better|Worse) \| −(\d+)% \| (\d+) points (optimistic|conservative) \|")
 
 
-def run(ctx) -> None:
+def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
 
@@ -119,13 +126,13 @@ def run(ctx) -> None:
     ctx.shared["ends"] = ends
 
     band_m = BAND_RE.search(raw)
-    credits = list(CREDIT_RE.finditer(raw))
+    credit_rows = list(CREDIT_RE.finditer(raw))
 
     if unread:
         # reported above; without every term there is no product to compare against
         rep.line()
         return
-    if not band_m or len(credits) != 2:
+    if not band_m or len(credit_rows) != 2:
         rep.report("K-32", "unreadable compound(s):",
                    ["the general-scalar band or its credit table is not in the form "
                     "this check reads"])
@@ -134,18 +141,18 @@ def run(ctx) -> None:
 
     # the better end takes every term's smaller figure and the worse end every term's
     # larger, gains included: the pairing rule, not a choice of which end to be kind at
-    product = {}
+    product: dict[str, int] = {}
     for end in ("Better", "Worse"):
         p = 1.0
         for gain, lo, hi in ends:
             v = lo if end == "Better" else hi
             p *= (1 + v / 100) if gain else (1 - v / 100)
-        product[end] = int(round((1 - p) * 100))
+        product[end] = round((1 - p) * 100)
     band = {"Better": int(band_m.group(1)), "Worse": int(band_m.group(2))}
 
-    stale = [c for c in credits if int(c.group(2)) != product[c.group(1)]]
+    stale = [c for c in credit_rows if int(c.group(2)) != product[c.group(1)]]
     if stale and ctx.fix:
-        def repair(m: re.Match) -> str:
+        def repair(m: re.Match[str]) -> str:
             end = m.group(1)
             return f"| {end} | −{product[end]}% | {m.group(3)} points {m.group(4)} |"
         ctx.fixed[PERF] = CREDIT_RE.sub(repair, raw)
@@ -160,8 +167,8 @@ def run(ctx) -> None:
 
     # the band is optimistic where it is nearer zero than the product and conservative
     # where it is further, so neither the gap nor its sense is free to state
-    miscredited = []
-    for c in credits:
+    miscredited: list[str] = []
+    for c in credit_rows:
         end = c.group(1)
         gap = abs(band[end] - product[end])
         want = "optimistic" if band[end] < product[end] else "conservative"
