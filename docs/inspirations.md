@@ -586,6 +586,25 @@ GrapheneOS hardens the phone Android *is*; this design builds the phone that nee
 
 ---
 
+## Qubes OS, Genode, and Xous: the compartmentalized-desktop family, the cost of its unit, and the sibling project that shares this one's premise
+
+**Qubes OS** is the missing member of the product-pattern family above, and it is the one that argues hardest for the mechanism substitution.
+Its principle is the same one §14 states, that a user's activities should be separated rather than merely permissioned, and its unit is a Xen virtual machine: dom0 holds no networking, the network and USB stacks are exiled into IOMMU-fenced driver VMs, a GUI daemon composites every window onto one desktop and paints each frame in its qube's **label colour**, and inter-qube calls run over `qrexec` against a policy naming *(source, target, service)* triples.
+Two of those are worth taking.
+The qrexec triple is the right shape for a static IPC authorization table, being exactly what a composition edge is; and the coloured frame is the cheapest known answer to "which compartment produced this pixel", which is an obligation §12's display path has whether or not there is a window manager.
+The Admin API's lesson is the third: the management domain and the only trusted domain must be separable.
+
+**What is declined is the unit, and the cost of the unit is now measured rather than argued.**
+De Gregorio's 2026 longitudinal study of 109 Qubes Security Bulletins finds **87 of them, 79.8 percent, attributable to Xen, CPU microarchitecture, or upstream integration** rather than to Qubes' own logic, with transient execution alone accounting for 31.5 percent of post-2018 bulletins; the project's own FAQ puts its trusted base "on the order of hundreds of thousands of lines of C code", against seL4's roughly 8,700 lines of C.
+So the composition of that base is worse than its size: most of the risk arrives from code the project does not write and cannot verify, and a third of the recent risk is a microarchitectural class §15 deletes by construction.
+What Qubes buys with it is the thing this design categorically does not have, **unmodified legacy software**, which is the single reason it is usable as a daily desktop and the honest half of the comparison (§2, §14).
+**Genode** is the same family's framework member and the closest existing relative of static composition: its recursive structure has every component created by a parent out of the parent's own quota, receiving only explicitly delegated capabilities, so a component's world is exactly the sessions routed to it.
+The difference is when the rule is evaluated, at run time there and at build time here, and its vocabulary (sessions, routes, quota) is worth reading as a checklist against what the composition language must be able to say; its recursion is declined, since a cyclic executive over a fixed component set has nowhere to put a child that did not exist at composition time, and its licence is a fact to note early rather than late, AGPLv3 making any vendored component a commitment this repository would have to read at the milestone proposing it (see [THIRD-PARTY.md](../THIRD-PARTY.md)).
+**Xous** is the nearest thing to a sibling project: a pure-Rust microkernel for an FPGA RISC-V SoC built on bunnie Huang's thesis that you can only trust hardware you can inspect, which is the same thesis §18 cites IRIS for, with a message discipline worth recording as precedent, since a Memory message carries Borrow, MutableBorrow or Move and thereby lifts Rust's ownership across a process boundary with the kernel as enforcer.
+Its FPGA substrate is declined, inspectability there being bought with area, power and clock rate that IRIS obtains on hard silicon instead, and its assurance argument is declined on the ground §5 applies to every Rust system here: unsafe-free Rust is a memory-safety claim and not a machine-checked one, and Xous carries no proof to re-home.
+
+---
+
 ## systemd: async init orchestration, minus the ambient authority
 
 systemd contributed the *shape* of modern service management: **declarative units** with dependency-ordered, parallelized ("async") bring-up, and **supervision**: crash detection, restart policy, backoff.
