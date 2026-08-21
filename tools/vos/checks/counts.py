@@ -69,7 +69,7 @@ CLAIMS = [
     ("docs/critique.md", "views", "words", r"(?<=register and the )[\w-]+(?= derived views)"),
     ("docs/critique.md", "fc-conferrals", "words", r"[\w-]+(?= conferrals against)"),
     ("docs/critique.md", "fc-seams", "words", r"(?<=conferrals against )[\w-]+(?= seams)"),
-    ("docs/critique.md", "dispositions", "words", r"[\w-]+(?= candidates were dispositioned)"),
+    ("docs/critique.md", "dispositions", "words", r"[\w-]+(?= candidates stand dispositioned)"),
     ("docs/critique.md", "rot-cases", "words", r"(?<=[Tt]he )[\w-]+(?= on the RoT-fresh side)"),
     ("docs/critique.md", "cj-specs", "words", r"[\w-]+(?= crown-jewel specifications are named)"),
     ("docs/critique.md", "cj-theorems", "words", r"[\w-]+(?= theorem targets are named)"),

@@ -3,7 +3,7 @@
 > Companion to [spec.md](spec.md).
 > This document records the **existing systems and research artifacts this design descends from**: what each contributed, where it lands in the spec, and how the design transforms it.
 > It is **not** part of the normative spec; cross-references of the form §N point to sections of that specification.
-> Architectural alternatives that were *evaluated and rejected* live in [architectural-alternatives.md](architectural-alternatives.md), not here; this page is the roads **taken**.
+> Architectural alternatives *evaluated and rejected* live in [architectural-alternatives.md](architectural-alternatives.md), not here; this page is the roads **taken**.
 
 The lineage splits along the platform's own axiom: *engineering is free; trust is the scarce resource* (§4, §17).
 Two kinds of ancestor recur, and most entries below are one or the other:
