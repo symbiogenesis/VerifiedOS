@@ -82,6 +82,7 @@ from . import (  # noqa: E402
     floors,
     glyphs,
     links,
+    marks,
     meta,
     names,
     tables,
@@ -102,6 +103,7 @@ GROUPS = [
     differential,
     tables,
     glyphs,
+    marks,
     floors,
     meta,
 ]

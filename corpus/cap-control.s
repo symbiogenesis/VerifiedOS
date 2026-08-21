@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # Domain entry, which on this machine is a property of the jump rather than of
 # a call gate: `cjalr` unseals a forward-edge sentry into PCC and writes the
 # return address already sealed as a backward-edge sentry, so the sentry pair is

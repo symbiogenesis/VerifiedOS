@@ -66,6 +66,8 @@ A second instrument stands behind the rows themselves. [check-selftest.py](check
 | K-49 | views | every view the register obliges is in the repository | R-15-001a, R-15-100a, R-17-016a, R-18-034 |
 | K-50 | differential | the differential corpus's manifest and its document name the same members, in both directions | M0.12; a member in one and not the other is coverage a figure quietly does not have |
 | K-51 | differential | every corpus member assembles, carries the check count the manifest records, and has a recorded trace digest | M0.12; the digest itself is decided by `model.py corpus`, which has the emulator |
+| K-52 | marks | every file whose kind can carry a comment opens with the SPDX identifier `COPYRIGHT.md` states, spelled in that kind's own comment syntax | [COPYRIGHT.md](../COPYRIGHT.md); the identifier is read from the map, so the files and the map cannot quietly disagree |
+| K-53 | marks | every tracked file kind is either given a comment syntax or refused by name, and every ruling covers a file that exists | the same, in both directions; a skip list is a proviso nobody audits, so the tool asks for a decision on a kind it does not know |
 
 ## What the registry is not
 

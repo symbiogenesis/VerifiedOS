@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The trap path, taken seven times: a capability violation raises one cause
 # code and reports its detail in `mtval`, the interrupted PCC is saved whole in
 # MEPCC, and `mret` returns to it (R-15-073, R-15-073a).

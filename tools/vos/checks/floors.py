@@ -70,6 +70,7 @@ def run(ctx: Context) -> None:
         "checklist subtotals": len(sh.get("sections", [])),
         "dominant terms read from the big table": len(sh.get("ends", [])),
         "differential corpus members": len(sh.get("corpus_members", [])),
+        "files that must carry a license mark": len(sh.get("markable", [])),
     }
     ctx.floors = floors
     rep.report("K-47", "enumeration(s) the tool reads and finds empty:",

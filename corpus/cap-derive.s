@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The monotone derivations, and the one rule that makes them monotone: a
 # derivation that would exceed its input yields an **untagged** result rather
 # than trapping, so a failed derivation is a data result that faults at its next

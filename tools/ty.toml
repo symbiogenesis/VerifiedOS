@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # The type checker's settings, held here rather than passed on a command line so
 # that an editor's language server (`ty server`) decides exactly what
 # `tools/typecheck.py` decides. A rule enforced in one and not the other is a rule

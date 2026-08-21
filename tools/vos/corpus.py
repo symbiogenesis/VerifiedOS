@@ -134,11 +134,17 @@ GITLINK_MODE = "160000"
 class Corpus:
     """The tracked Markdown of the repository, and what a link may name in it."""
 
-    def __init__(self, root: Path, docs: list[Document], gitlinks: set[str]) -> None:
+    def __init__(self, root: Path, docs: list[Document], gitlinks: set[str],
+                 tracked: list[str]) -> None:
         self.root = root
         self.docs = docs
         self.by_name = {d.name: d for d in docs}
         self.gitlinks = gitlinks
+        # Every tracked path that is a file rather than a gitlink, Markdown and not,
+        # model/ and not. Only the marks group reads it, and it reads the whole tree
+        # on purpose: its question is what kind each file is, so the exclusions the
+        # document groups apply by construction are that group's to state and refuse.
+        self.tracked = tracked
 
         # A fragment resolves to a bookmark or to a heading's slug, and Markdown makes
         # no distinction between them, so this is one set per file. The numbering is
@@ -260,13 +266,17 @@ def load(root: Path) -> Corpus:
     # have gone stale.
     names: list[str] = []
     gitlinks: set[str] = set()
+    tracked: list[str] = []
     for entry in _git(root, "ls-files", "--stage", "--full-name"):
         staged, _, path = entry.partition("\t")     # `<mode> <object> <stage>\t<path>`
         if staged.startswith(GITLINK_MODE):
             gitlinks.add(path)
-        elif (path.endswith(".md") and not path.startswith(UNREAD_PREFIX)
-                and (root / path).is_file()):
+            continue
+        if not (root / path).is_file():
+            continue
+        tracked.append(path)
+        if path.endswith(".md") and not path.startswith(UNREAD_PREFIX):
             names.append(path)
 
     docs = [_read(root / n, n) for n in sorted(names)]
-    return Corpus(root, docs, gitlinks)
+    return Corpus(root, docs, gitlinks, sorted(tracked))
