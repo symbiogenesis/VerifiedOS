@@ -13,24 +13,11 @@ Everything here is a parse and never a decision, as everywhere else in this pack
 What the sites mean and which of them may disagree is `vos/checks/counts.py`'s.
 """
 
-import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .jsonc import strip_comments
-
-# The model paths this package reads. `vos/corpus.py` excludes `model/` from the
-# document corpus by name and the selftest's sandbox stands the same tree up empty to
-# save copying 804 files no rule opens, so a file read here has to be named in one
-# place both of them can see. That is this tuple: adding a path to it is what makes
-# the sandbox copy the file instead of touching it.
-MODEL_FACTS = (
-    "model/model/core/cap_format.sail",
-    "model/config/verifiedos.json",
-    "model/config/config.json.in",
-    "model/model/unit_tests/test_cheri_insts.sail",
-)
+from . import config
 
 DOCUMENT = "docs/block-geometry-constraint.md"
 
@@ -70,22 +57,6 @@ def _int(pattern: re.Pattern[str], text: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
-def _config_exp(text: str) -> int | None:
-    """The configuration's exponent, through the model's own JSON-with-comments
-    dialect, so a key read here is the key the emulator reads."""
-    try:
-        node: object = json.loads(strip_comments(text))
-    except ValueError:
-        return None
-    for key in CONFIG_KEY:
-        if not isinstance(node, dict) or key not in node:
-            return None
-        node = node[key]
-    # `True` is an `int` in Python and a boolean in the configuration, so the
-    # narrowing that admits an exponent has to exclude it by name
-    return node if isinstance(node, int) and not isinstance(node, bool) else None
-
-
 def read(root: Path) -> Geometry:
     """One pass over the six sites. A file that is not there yields `None` for its
     site rather than raising, because a missing artifact is a finding the caller
@@ -99,8 +70,8 @@ def read(root: Path) -> Geometry:
     declaration = text("model/model/core/cap_format.sail")
     geo.granule_exp = _int(GRANULE_RE, declaration)
     geo.sites["the model's declaration"] = _int(BLOCK_RE, declaration)
-    geo.sites["the frozen profile's configuration"] = _config_exp(
-        text("model/config/verifiedos.json"))
+    geo.sites["the frozen profile's configuration"] = config.integer(
+        root / "model/config/verifiedos.json", *CONFIG_KEY)
     template = TEMPLATE_RE.findall(text("model/config/config.json.in"))
     geo.sites["the generated configurations"] = (
         int(template[0]) if len(template) == 1 else None)

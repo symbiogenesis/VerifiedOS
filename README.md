@@ -325,7 +325,7 @@ Its standing output is the extraction-defect list: normative claims that resist 
 
 ### Derived views
 
-Six **derived views** collect what the register states across many entries but no document held:
+Seven **derived views** collect what the register states across many entries but no document held:
 
 - **The [frozen instruction-set profile](docs/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. The schedule root and first day-one deliverable of the spec's [realization plan](docs/spec.md#18-realization-mid-2026) consume it.
 - **The [microarchitectural absence contract](docs/absence-contract.md)**: seventeen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
@@ -334,6 +334,8 @@ Six **derived views** collect what the register states across many entries but n
 - **The [profile-freeze measurement contract](docs/freeze-measurement-contract.md)**: the corpus, recipe, provenance schema, region classes, thresholds, report columns, and CI predicates for the freeze's second act, the one place the profile defers its own decisions to a measurement against generated output. It is written before the backend that produces that output exists, which is the point: a threshold chosen after the measurement is not a threshold.
 
 - **The [welded block-size constraint](docs/block-geometry-constraint.md)**: the one size four instructions share, the closed list of what constrains it, and which of those constraints can be worked out today against which are owed to a chip that does not exist yet. It names no size, on purpose: the point is that the block has to suit the fast memory and the dense memory at once, and picking a size that suits only the fast one would look exactly like picking a size that suits both.
+
+- **The [bank-count exploration contract](docs/bank-count-dse-contract.md)**: how the dense memory is divided into independently addressed banks, which is a trade between how much data a bank can deliver at once and how much current the chip draws when several wake together. It names the seven quantities the choice turns on and records that six of them cannot be known until a real chip is measured, so what it publishes today is the shape of the answer and an explicit refusal to pick one.
 
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.
 

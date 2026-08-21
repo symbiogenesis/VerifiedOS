@@ -52,9 +52,8 @@ from queue import Queue
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
-from vos.corpus import UNREAD_PREFIX
+from vos.corpus import MODEL_FACTS, UNREAD_PREFIX
 from vos.figures import words
-from vos.geometry import MODEL_FACTS
 
 CHECKER = "tools/check.py"
 RULES = "tools/check-rules.md"
@@ -210,12 +209,12 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
 
     The exception is named rather than guessed at. A handful of model files carry a
     fact a document restates, the welded block size being the one that forced this, and
-    a rule holding the two together has to read both. `vos.geometry.MODEL_FACTS` is the
-    list, it is the same list the rule reads through, and a path on it is copied here
-    instead of touched. A rule reading a model path that is not on that list would pass
-    on the host and fail every sandbox's baseline, which reports as a red tree rather
-    than as a bad mutant, so the list is the one place that can go wrong and it goes
-    wrong loudly.
+    a rule holding the two together has to read both. `vos.corpus.MODEL_FACTS` is the
+    list, beside the exclusion it carves out of and read by the parses as well as by
+    this, and a path on it is copied here instead of touched. A rule reading a model
+    path the list omits would pass on the host and fail every sandbox's baseline, which
+    reports as a red tree rather than as a bad mutant, so the list is the one place
+    that can go wrong and it goes wrong loudly.
 
     A submodule's contents are not copied, because the checker excludes upstream prose
     from its corpus, but the directory itself is stood up: a link at a submodule is
@@ -654,6 +653,12 @@ CASES = [
     ("K-57", "a composition that writes a welded block size the model does not",
      _literal("model/config/verifiedos.json",
               '"cache_block_size_exp": 6', '"cache_block_size_exp": 5')),
+
+    # The bank grant is moved in the composition and left in the contract, which is the
+    # direction a real edit takes: the emulator needs a number, so the configuration is
+    # where somebody changes one, and the contract is the copy that goes stale.
+    ("K-58", "a bank grant the contract and the composition no longer agree on",
+     _literal("model/config/verifiedos.json", '"banks": 4096', '"banks": 2048')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

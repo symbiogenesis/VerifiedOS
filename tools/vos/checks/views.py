@@ -71,6 +71,16 @@ VIEWS: list[View] = [
     View(file="docs/block-geometry-constraint.md", governing="R-15-014a",
          body=r"welded CBO block|CBO block of R-15-007q|allocates whole lines|"
               r"one validity tag per|atomic write unit is the ECC codeword"),
+    # the bank count is admitted against three quantities and constrained by the
+    # schedule wrapped around it, so what the contract must carry is the entry that
+    # names the three, the envelope one of them is, the cadence rules the schedule
+    # answers to, and the measurement every coefficient waits on
+    View(file="docs/bank-count-dse-contract.md", governing="R-15-247p",
+         body=r"Bank granularity on the second class|"
+              r"Bank discharge and refresh phases are fixed and staggered|"
+              r"Retention figures are lower bounds|"
+              r"repaired megabit-class macro|"
+              r"whole-bound to islands"),
 ]
 
 
