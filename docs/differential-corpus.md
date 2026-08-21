@@ -12,7 +12,7 @@ It exists **now**, ahead of both of those executors, because the corpus is the m
 
 ## 1. What the corpus is
 
-Fifteen purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model, and the profile rows M0.6g adds that no upstream model carries.
+Seventeen purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model, and the profile rows M0.6g and M0.6h add that no upstream model carries.
 
 | Member | What it exercises |
 | --- | --- |
@@ -30,7 +30,9 @@ Fifteen purecap programs, hand-written in the frozen dialect, each running to a 
 | [`cap-select`](../corpus/cap-select.s) | `cmovz`/`cmovn` in both polarities and over data, the untouched destination an untaken arm leaves, and `cclear` over each half of the merged file |
 | [`cap-indexed`](../corpus/cap-indexed.s) | `cld`/`csd` at each scale against the displaced access they replace, and the five faults they raise on the authority rather than on an intermediate |
 | [`cap-revoke`](../corpus/cap-revoke.s) | the revocation bitmap through its window, the tag a revoked load clears, the base the bit is keyed by, and the tags `cloadtags` reports as stored |
+| [`cap-reclaim`](../corpus/cap-reclaim.s) | `creclaim` over a group holding two objects with different bases, the surviving tags it returns, the bits it leaves untouched, its idempotence, its group boundary, and the clear it lands in memory where the load filter's lands in a delivered value |
 | [`platform-aia`](../corpus/platform-aia.s) | `fence.t` disturbing nothing, and the machine-level pending array under sends, reads, clears, and the reserved identity |
+| [`platform-scrub`](../corpus/platform-scrub.s) | `cbo.scrub` preserving data and tags where a store of the same bits clears them, its two permissions and its refusal over IO memory, and `vmclear` clearing the vector CSRs with the extension-context gate off |
 
 **The version is a commitment and the digest is a measurement.** `version` in the manifest names the edition; a member added, removed, or changed in what it asserts advances it. `trace_schema` names the record grammar of §4; a record type added or a field widened advances that. Each member's `digest` is the fingerprint of its commit trace, so a model change that alters what a program *does* is a finding at the next run rather than a surprise at the next milestone; `model.py corpus --refresh` is how a deliberate change is recorded, and the edit shows up in review as a moved digest beside the model change that moved it.
 
@@ -111,7 +113,8 @@ Each of these is an absence in the machine or in the model, not a gap in the cor
 | --- | --- | --- |
 | `cseal`'s success case | The reset root pair holds neither `Permit_Seal` nor `Permit_Unseal`, and `candperm` can only remove, so no sealing authority is derivable from reset. The refusal *is* exercised. | the composed initial distribution, §3 |
 | An access-system-registers violation | Reaching it means executing without ASR on PCC, which on this machine is a one-way door: nothing in reach gives it back. | a composed distribution with a non-privileged compartment, §5 |
-| `vmclear`, `creclaim`, `cbo.scrub` | Not in the model yet; each is net-new surface with no upstream oracle, which is why M0.6h owes a program and not only a property. | M0.6h |
+| `vmclear` over the vector register file, `vl`, and `vtype` under a configuration it selected | The clear reaches all three, but only `vcsr` can be dirtied from this corpus: the register file needs the vector datapath and `vl`/`vtype` are read-only CSRs that only `vsetvl` moves. So the clear's other three targets are asserted against their reset values rather than against state a program put there, which is a weaker check of the same clause. | M0.8 |
+| `cbo.scrub` correcting anything, and its fail-stop on an uncorrectable error | The model has no error model: no codeword carries a syndrome, so nothing is correctable and nothing is uncorrectable, and inventing a fault-injection register would model the harness rather than the machine. The refusals *are* exercised, and the detection joins the error path the block read already returns on. | the sentinel and a fault model, §10/M0.8 |
 | A revocation sweep with more than one covered interval | The covered union is a predicate over one composition-fixed interval, because one composed image has one revocable region; a second interval is a clause in that predicate rather than a mechanism. | the composed initial distribution, §3 |
 | The vector, matrix and FEC datapaths | One core class until the model is parameterized. | M0.8 |
 | The dictionary bundle format | A fetch container the model does not implement. | the freeze, §1.1 |

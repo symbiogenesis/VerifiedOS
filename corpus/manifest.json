@@ -106,6 +106,20 @@
       "checks": 8,
       "records": 166,
       "digest": "3be6939333fce334"
+    },
+    {
+      "name": "cap-reclaim",
+      "source": "cap-reclaim.s",
+      "checks": 8,
+      "records": 287,
+      "digest": "73ebda870a81430a"
+    },
+    {
+      "name": "platform-scrub",
+      "source": "platform-scrub.s",
+      "checks": 11,
+      "records": 361,
+      "digest": "68c0dad7fb375693"
     }
   ]
 }

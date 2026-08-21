@@ -71,8 +71,17 @@ let t0   : regidx = Regidx(zero_extend(0b101)) // x5, alternate link register
 
 // memory access types
 
+// The cache-block operations the profile carries. `Zicbom`'s clean, flush and
+// invalidate arms went with the caches that gave them a meaning (R-15-061), so
+// what is left is the two block operations that act on the array itself:
+// `cbo.zero`, which allocates and zeroes a block (R-15-060), and `cbo.scrub`,
+// which reads one through the error-detecting check and rewrites what it
+// corrects (R-15-177a, extensions/platform/cbo_scrub.sail). They differ in the
+// authority they need and in the fault they raise on a PMA refusal, which is
+// why the arm is carried in the access type rather than left to the caller.
 union cacheop = {
   CB_zero     : unit,
+  CB_scrub    : unit,
 }
 
 // The two bool parameters of `Atomic` are the `aq` and `rl`

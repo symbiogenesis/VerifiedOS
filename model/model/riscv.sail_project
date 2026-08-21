@@ -114,10 +114,16 @@ extensions {
   // extension and inherited from neither upstream model, so each carries full
   // Sail semantics of its own rather than a configuration of somebody else's
   // (isa-profile.md §3).
+  // `V_core` is required because `vmclear`'s inventory names the vector
+  // register file and the vector CSRs, which is unit state rather than an
+  // instruction surface, so the clear needs the registers and not the V module.
   platform_insts {
-    requires core, exceptions, sys
+    requires core, exceptions, sys, V_core
 
-    files extensions/platform/fence_t.sail
+    files
+      extensions/platform/fence_t.sail,
+      extensions/platform/vmclear.sail,
+      extensions/platform/cbo_scrub.sail
   }
 
   M {
@@ -316,7 +322,7 @@ postlude {
 
 unit_tests {
   after postlude
-  requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts
+  requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts, V_core
 
   files
     unit_tests/test_privilege.sail,

@@ -22,9 +22,9 @@ encoder lays down is a stream of canonical 32-bit instructions, which is what
 the curated model fetches today. The vector, matrix, and FEC surface is absent
 because the model carries one core class until M0.8 parameterizes it; the
 corpus version that follows that milestone adds those rows rather than this one
-anticipating them. And the three rows M0.6h adds are absent because they are not
-in the model yet: each arrives with the batch that models it, which is what
-makes this table checkable against the model rather than against a plan.
+anticipating them. `vmclear` is here despite that and is not an exception to it:
+it clears the unit's *state* and names no vector operand, so it decodes and
+executes on a class whose datapath this table cannot yet reach.
 """
 
 from dataclasses import dataclass
@@ -499,8 +499,14 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     add("czero.eqz", "r", funct7=0b0000111, funct3=0b101, op=OP)
     add("czero.nez", "r", funct7=0b0000111, funct3=0b111, op=OP)
 
-    # --- Zicboz ------------------------------------------------------------
+    # --- Zicboz, and the block scrub beside it -----------------------------
+    # Both are MISC-MEM funct3 010 at a zero destination, which is what `lc`'s
+    # non-zero one is separated from. The scrub takes 5 rather than one of the
+    # three points `Zicbom` vacated: reusing a named standard encoding would
+    # make a stock disassembler print the wrong instruction where an unallocated
+    # one makes it print none (R-15-060, R-15-177a).
     add("cbo.zero", "cbo", imm=0b000000000100)
+    add("cbo.scrub", "cbo", imm=0b000000000101)
 
     # --- CHERI: inspection and the two-operand derivations -----------------
     for name, funct5 in (
@@ -510,7 +516,11 @@ def _rows() -> dict[str, tuple[str, Fields]]:
         ("cmove", 0b01010), ("csealentry", 0b10001),
     ):
         add(name, "cheri2", funct5=funct5)
+    # The two block operations over the tag plane. `creclaim` takes the first
+    # sub-opcode of this group that ISAv9 never allocated, so it sits beside
+    # `cloadtags` and contends for no custom opcode space (R-15-007s).
     add("cloadtags", "paren", funct5=0b10010)
+    add("creclaim", "paren", funct5=0b10011)
 
     # --- CHERI: the three-operand derivations ------------------------------
     for name, funct7 in (
@@ -544,6 +554,10 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     add("cld", "indexed", funct3=0b011)
     add("csd", "indexed", funct3=0b111)
     add("cclear", "cclear")
+    # The vector/matrix all-state clear takes 001 beside the masked clear's 000.
+    # It names no operand and no destination, the class's unit-state inventory
+    # naming them all, so every other field is zero and reserved (R-15-069d).
+    add("vmclear", "none", word=_r(0, 0, 0, 0b001, 0, CUSTOM_0))
 
     return table
 

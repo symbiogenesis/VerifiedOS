@@ -94,8 +94,12 @@ function cap_data_checks(
     Store(_)            => (false, true),
     Atomic(_)           => (true, true),
     // `cbo.zero` writes the block it names, so it is a store for permission
-    // (R-15-060).
-    CacheAccess(_)      => (false, true),
+    // (R-15-060). `cbo.scrub` reads the block *and* writes back what it
+    // corrects, so it needs both: a holder of a read-only view may not cause a
+    // write to memory it cannot write, even one that puts back what it found
+    // (R-15-177a).
+    CacheAccess(CB_zero())  => (false, true),
+    CacheAccess(CB_scrub()) => (true, true),
     InstructionFetch()  => internal_error(__FILE__, __LINE__, "cap_data_checks for InstructionFetch"),
   };
 

@@ -32,6 +32,20 @@ type log2_cap_size : Int = 3
 let  log2_cap_size = sizeof(log2_cap_size)
 type CapBits = bits(8 * cap_size)
 
+// The **granule group**: the block four instructions share and one parameter
+// fixes. `cbo.zero` allocates it, `cloadtags` reports its tags, `creclaim`
+// sweeps it, and `cbo.scrub` verifies it, so the tag group and the CBO block
+// are welded rather than merely equal (R-15-007q). It is here beside the
+// granule and not beside any one of those four because a value satisfying one
+// consumer and not another is a defect rather than a choice, which is also why
+// the freeze scores it against a first-class SRAM macro geometry and a
+// second-class deck row geometry *together* (R-15-014a (vii), M0.13). The
+// configuration declares it too, as `cache_block_size_exp`, and each consumer
+// asserts the two agree.
+type log2_cap_block_size : Int = 6
+type caps_per_block : Int = 2 ^ (log2_cap_block_size - log2_cap_size)
+let  caps_per_block = sizeof(caps_per_block)
+
 // The permission *field*: five bits naming one of 32 enumerated permission
 // sets, not one bit per permission. The enumeration and its expansion are in
 // cap_common.sail; what is here is the width it occupies (R-15-007b).
