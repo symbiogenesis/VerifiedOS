@@ -49,7 +49,7 @@ OPEN_RE = re.compile(r"^ · (?P<h>[\d.,]+) h, range (?P<lo>[\d.,]+)–(?P<hi>[\d
 
 # the M8 gate figure is the total less the work that lands after the gate, and the items
 # that do are named here rather than inferred, everything else falling at or before it
-AFTER_GATE = ["M9", "M10", "Post-M10"]
+AFTER_GATE = ["M9", "M9a", "M10", "Post-M10"]
 
 
 def _hours(text: str) -> float:

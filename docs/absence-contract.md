@@ -47,7 +47,7 @@ Each row is a structure whose **absence** is claimed, with the discharge form th
 | **A-12** | DVFS / frequency control | power states are schedule artifacts, never control loops | no PLL or DVFS control path, no frequency-scaling state machine | R-15-100, R-15-103 |
 | **A-12a** | Activity-driven memory power gating (idle-timer / watermark bank shutdown, wake-on-access) | the saving is taken statically instead: the memory plan's per-mode occupancy map decides which macros and tiers are powered, so the detector has nothing left to detect | no per-domain idle counter, access counter, or watermark register; no access-history state in the power controller; no request path from an address decode to a rail enable; the rail-state inputs are the mode index and the attested power vector alone | R-15-189a, R-15-189d, R-15-189h |
 
-**Absences the audit confirms rather than assumes.** Each is discharged elsewhere, being already absent by an ISA-visible removal or covered by its own named mechanism. A-13 through A-15 are confirmed because the `fence.t` flush-set claim depends on them: they are the would-be members R-15-215 names beyond the §3 rows. A-16 is confirmed because its acceptance criterion is one the same netlist audit can check: one tag plane in the SRAM word, not two (R-15-035):
+**Absences the audit confirms rather than assumes.** Each is discharged elsewhere, being already absent by an ISA-visible removal or covered by its own named mechanism. A-13 through A-15 are confirmed because the `fence.t` flush-set claim depends on them: they are the would-be members R-15-215 names beyond the §3 rows. A-16 is confirmed because its acceptance criterion is one the same netlist audit can check: one tag plane in the SRAM word, not two (R-15-035). A-17 is confirmed because the mechanism it would name exists and is elsewhere: second-class memory maintenance is §12 matter under the RoT rather than an instruction, so what the audit looks for is a decoder that has grown a case rather than a structure that has grown an array (R-15-247h):
 
 | # | Structure | Discharged by | Governing |
 | --- | --- | --- | --- |
@@ -55,6 +55,7 @@ Each row is a structure whose **absence** is claimed, with the discharge form th
 | **A-14** | TLB / walk cache / page-table-walker FSM | MMU excluded; ISA-visible, so refinement failure | R-15-038, R-15-215 |
 | **A-15** | Scalar-FP register file (`f0`–`f31`) and dynamic rounding-mode state | scalar `F`/`D` excluded; rounding is static, encoded per-instruction | R-15-039, R-15-083, R-15-215 |
 | **A-16** | Second tag plane (initialization-tag plane) | declined hedge under the *verify rather than hedge* clause; one tag bit per granule, not two | R-15-013, R-15-035 |
+| **A-17** | Second-class memory maintenance opcodes (discharge, refresh, tag maintenance, class migration, tier promotion) and any decode path reaching them | no instruction exists to remove: maintenance is §12 matter sequenced by the RoT while every requester is held in reset, refresh rides `cbo.scrub`, and class assignment is the static memory plan's composition-time act | R-15-247h, R-15-247, R-15-177a |
 
 ## 4. The two discharge forms
 

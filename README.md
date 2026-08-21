@@ -11,7 +11,7 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
 
 - [Design highlights](#design-highlights)
   - [Bespoke seL4-inspired multikernel](#bespoke-sel4-inspired-multikernel)
-  - [SRAM-only memory with end-to-end ECC](#sram-only-memory-with-end-to-end-ecc)
+  - [Fixed-latency on-die memory with end-to-end ECC](#fixed-latency-on-die-memory-with-end-to-end-ecc)
   - [No wasted memory](#no-wasted-memory)
   - [CHERI in place of the usual protection hardware](#cheri-in-place-of-the-usual-protection-hardware)
   - [Temporal safety and no uninitialized reads](#temporal-safety-and-no-uninitialized-reads)
@@ -44,9 +44,9 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
 
 A minimal capability kernel, one instance per core; everything else runs as unprivileged, capability-confined compartments. From seL4 it takes two ideas, not code: message-passing endpoints, and the non-interference statement that one partition cannot influence what another observes. The rest of seL4's object model (untyped memory and retype, the capability space, the derivation tree) is deleted: with the object graph fixed at composition and capabilities held in CHERI's hardware tags, each piece either has no user or duplicates the hardware. Deleting the derivation tree retires its revocation proof, the plan's hardest scheduled subproof.
 
-### SRAM-only memory with end-to-end ECC
+### Fixed-latency on-die memory with end-to-end ECC
 
-All memory is bespoke on-die SRAM, error-corrected from the register file to main memory. Uniformly fast, it needs no L1/L2/L3 cache hierarchy, no coherence protocol to keep cached copies in sync, no DRAM channels, no refresh or Rowhammer-counting (PRAC) machinery, no `Zicbom` cache-management instructions; Rowhammer and RowPress themselves vanish with the DRAM capacitors they disturb. On-die, it leaves no external memory bus to probe, no memory module to interpose, and no data in powered-down chips for a cold-boot attack, so the memory encryption and anti-replay tree a DRAM design needs are deleted rather than added to the proof workload.
+All memory is on the same die as the cores, error-corrected from the register file outward, and comes in two fixed speeds: a fast [SRAM](https://en.wikipedia.org/wiki/Static_random-access_memory) class for the working set and code with deadlines, and a denser, slower [oxide-semiconductor](https://en.wikipedia.org/wiki/Indium_gallium_zinc_oxide) class for bulk (framebuffers, media, browser arenas, AI model weights), placement decided when the image is built. Nothing between a core and a cell keeps track of what was accessed recently, so every access costs the same as every other, whatever ran before it, and there is nothing for timing to leak and nothing for a worst-case analysis to guess at. That one property deletes the L1/L2/L3 hierarchy, the coherence protocol, the DRAM channels, and the per-row activation counters together, and Rowhammer itself goes with the capacitors it disturbs. Being on-die, there is no bus to probe and no module to lift, so memory encryption and an anti-replay tree are deleted rather than proved. Both classes carry the same tags, ECC, and revocation check, so neither is the less-trusted one; the bulk class's two costs, a slow fade after power-off and a refresh whose draw is measurable off-chip, are booked in the [residual-risk register](docs/critique.md).
 
 ### CHERI in place of the usual protection hardware
 
@@ -100,7 +100,7 @@ Three claim something weaker:
 | Transient-execution attacks, from Spectre and Meltdown to microarchitectural data sampling | No speculative execution, transient state, reorder buffer, or reservation stations exist | **🕳️&nbsp;Absent** |
 | Cross-thread SMT leakage and sibling-thread state corruption | One hardware thread per core; there is no second thread context | **🕳️&nbsp;Absent** |
 | Poisoning or aliasing of any dynamic predictor state | Prediction is static-only; BHT/PHT, BTB, and RAS state do not exist | **🕳️&nbsp;Absent** |
-| Cache timing and cache-eviction side channels | Flat SRAM replaces the cache hierarchy, leaving no hit/miss latency or eviction pattern to modulate | **🕳️&nbsp;Absent** |
+| Cache timing and cache-eviction side channels | Two fixed-speed memory classes replace the cache hierarchy, leaving no hit/miss latency or eviction pattern to modulate; which class an address sits in is fixed when the image is composed, not by what ran recently | **🕳️&nbsp;Absent** |
 | Cache-coherence protocol and stale-cache bugs | With no cached copies there is no coherence protocol to get wrong and no stale line to serve | **🕳️&nbsp;Absent** |
 | Address-translation and paging bugs | Virtual memory, the MMU, page tables, TLBs, walk caches, and the shootdown protocol are deleted | **🕳️&nbsp;Absent** |
 | Privilege-ring confusion and S/U transition bugs | Machine mode is the only mode; privileged operations require an unforgeable CHERI permission on PCC | **🕳️&nbsp;Absent**<br>**🛡️&nbsp;Enforced** |
@@ -108,9 +108,10 @@ Three claim something weaker:
 | LR/SC livelock and spurious-failure retry loops | `Zalrsc` is excluded, and admitted code has no such retry loop | **🕳️&nbsp;Absent**<br>**✋&nbsp;Rejected** |
 | CAS retry and capability-sized ABA machinery | `Zacas` is excluded, so no compare-and-swap exists to retry or to hand a recycled value | **🕳️&nbsp;Absent** |
 | Self-modifying-code and instruction-stream synchronization bugs | Runtime code generation, writable executable memory, `fence.i`, and writable-to-executable promotion are absent | **🕳️&nbsp;Absent** |
-| DRAM read-disturbance bit flips | An SRAM latch gives Rowhammer and RowPress no leaking capacitor or refresh cycle to disturb; SRAM's far weaker disturb modes are detected faults below | **🕳️&nbsp;Absent** |
-| Memory-bus probing and DIMM or module interposition | On-die SRAM has no external memory bus, module, or die-to-die link to probe | **🕳️&nbsp;Absent** |
-| Cold-boot remanence | Near-zero volatile remanence plus zeroization leaves no powered-down data to recover | **🕳️&nbsp;Absent** |
+| DRAM read-disturbance bit flips | An SRAM latch gives Rowhammer and RowPress no leaking capacitor or refresh cycle to disturb, and the bulk class has no capacitor either; SRAM's far weaker disturb modes are detected faults below, and the bulk cell's own disturb behaviour is measured before a part qualifies rather than counted on here | **🕳️&nbsp;Absent** |
+| Reactive refresh machinery: activation counters, alerts, and back-off | The bulk class is topped up on a schedule fixed when the image is composed, so nothing counts accesses and nothing reacts to them | **🕳️&nbsp;Absent** |
+| Memory-bus probing and DIMM or module interposition | On-die memory has no external memory bus, module, or die-to-die link to probe | **🕳️&nbsp;Absent** |
+| Cold-boot remanence | On the fast class, near-zero volatile remanence plus zeroization leaves no powered-down data to recover. The bulk class holds its contents for far longer, so its pointer authority is actively erased on the way out of a power state while the contents themselves stay recoverable for a window, which the [residual-risk register](docs/critique.md) books rather than closes | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
 | History-dependent prefetch channels | Prefetchers are absent | **🕳️&nbsp;Absent** |
 | DVFS and reactive power-control channels | Frequency control and activity-driven control loops are absent | **🕳️&nbsp;Absent** |
 | Refresh-timing channels | DRAM refresh and PRAC activity do not exist to observe | **🕳️&nbsp;Absent** |
@@ -316,7 +317,7 @@ The [typed assembly language](docs/typed-assembly-language.md), the typed machin
 
 ### The atomic-requirements register
 
-The [atomic-requirements register](docs/requirements-register.md) is the artifact that the specification's [independent-review release gate](docs/spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1290 numbered requirements.
+The [atomic-requirements register](docs/requirements-register.md) is the artifact that the specification's [independent-review release gate](docs/spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1310 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
@@ -326,8 +327,8 @@ Its standing output is the extraction-defect list: normative claims that resist 
 Five **derived views** collect what the register states across many entries but no document held:
 
 - **The [frozen instruction-set profile](docs/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. The schedule root and first day-one deliverable of the spec's [realization plan](docs/spec.md#18-realization-mid-2026) consume it.
-- **The [microarchitectural absence contract](docs/absence-contract.md)**: sixteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
-- **The [crown-jewel inventory](docs/crown-jewels.md)**: the twenty-five specifications the review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the ten theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
+- **The [microarchitectural absence contract](docs/absence-contract.md)**: seventeen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
+- **The [crown-jewel inventory](docs/crown-jewels.md)**: the twenty-six specifications the review gate audits, each with its `CJ-` trace target, the requirements constraining it, and whether it has been authored; plus the ten theorem targets and the specification each is proven against. It is the specification workstream's work list, and its status column is the countable form of the as-existing assurance gap.
 - **The [coverage matrix](docs/coverage-matrix.md)**: every boundary of the system against every property it must hold, one row per pair, recording the construction, the discharge mode, and the requirements it rests on. Where the inventory above names bug classes, this quantifies over the boundaries, so a pair discharged by nothing and booked by nothing is a failing check rather than a gap someone has to notice.
 - **The [profile-freeze measurement contract](docs/freeze-measurement-contract.md)**: the corpus, recipe, provenance schema, region classes, thresholds, report columns, and CI predicates for the freeze's second act, the one place the profile defers its own decisions to a measurement against generated output. It is written before the backend that produces that output exists, which is the point: a threshold chosen after the measurement is not a threshold.
 

@@ -271,7 +271,7 @@ What transfers is therefore **evidence, not code**: shipping demonstration that 
 ## Cerebras: the wafer-scale all-SRAM manycore, convergent evidence for share-nothing and a foil for its dataflow
 
 The Cerebras Wafer-Scale Engine (Cerebras Systems) is a single-wafer AI processor: on the order of a million small cores, each with its own private SRAM, communicating only by message passing over a statically-configured 2D mesh, with no DRAM and no cache hierarchy anywhere on the die.
-Set its two headline properties aside (the wafer-scale integration this platform does not pursue, and the all-SRAM main memory it independently adopts, §15), and the rest converges, from the AI-accelerator pole, on three further commitments this design also makes: cores that share **no memory and run no cache-coherence protocol**, communicating by explicit messages (the share-nothing multikernel and its coherence-free islands, §7, §15); **flat, uniform-latency on-die SRAM** as the whole of memory (the no-DRAM, no-cache subsystem, §15); and a **statically-configured interconnect** whose routes are fixed ahead of time rather than arbitrated dynamically (the TDM NoC, §15).
+Set its two headline properties aside (the wafer-scale integration this platform does not pursue, and the all-on-die main memory it independently adopts, §15), and the rest converges, from the AI-accelerator pole, on three further commitments this design also makes: cores that share **no memory and run no cache-coherence protocol**, communicating by explicit messages (the share-nothing multikernel and its coherence-free islands, §7, §15); **flat, uniform-latency on-die memory** as the whole of it, which this design takes in two fixed-latency classes rather than one where Cerebras takes one (the no-DRAM-channel, no-cache subsystem, §15); and a **statically-configured interconnect** whose routes are fixed ahead of time rather than arbitrated dynamically (the TDM NoC, §15).
 It is the largest-scale existence proof that a share-nothing, coherence-free, message-passing manycore is buildable, the role Barrelfish (above) plays for the model itself and SemperOS (above) for its distributed capabilities.
 
 It is a **convergent foil**, not an ancestor this design imports, and the divergence is the sharp part: precisely the mechanisms that make Cerebras fast are the data-dependent, reactive, hidden-state class this platform deletes by construction.
@@ -934,8 +934,9 @@ The one honesty the radio case does not carry: sensor front-ends have no off-the
 ## Cerebras and all-SRAM machines: main memory without refresh, RowHammer, or PRAC
 
 Cerebras supplies the large-scale existence proof for an all-SRAM, cacheless machine; embedded tightly-coupled-memory systems supply the smaller precedent.
-This platform applies that lineage to **on-die SRAM main memory on the same die as the cores**, accepting far lower capacity in exchange for flat latency, high bandwidth, and deletion of the DRAM control mechanisms.
-DRAM, an SRAM/DRAM hybrid, and non-volatile working memory do not transfer because each restores a second tier or runtime mechanism the all-SRAM model removes.
+This platform applies that lineage to **on-die main memory on the same die as the cores**, accepting far lower capacity in exchange for flat latency, high bandwidth, and deletion of the DRAM control mechanisms.
+Where it departs from the lineage is that it takes **two** static latency classes rather than one, bespoke 6T SRAM for the scalar working set and oxide-semiconductor gain-cell decks for bulk (§15), which is a second constant and not a second *tier*: placement is fixed at composition, and no cache, migration, or promotion moves anything between them.
+DRAM, an SRAM/DRAM hybrid, and non-volatile working memory do not transfer, because each restores a runtime mechanism or a remanence property the two-class model removes: a hybrid restores the reactive placement decision, and non-volatility restores at-rest plaintext as a designed property rather than as a bounded window.
 
 **Proof-surface and timing-channel reduction.**
 DRAM stores each bit as charge on a capacitor that leaks and must be refreshed, and that same charge-disturbance physics is the RowHammer primitive: repeated activation of an aggressor row flips bits in a victim row.
@@ -982,7 +983,7 @@ Cacheless RISC-V cores running from tightly coupled SRAM establish that caches a
 Once main memory is flat, low-latency, high-bandwidth on-die SRAM, there is no slow tier for L1/L2/L3 to hide; a cache hierarchy would add history-dependent timing, flush rules, and coherence without restoring a missing memory technology.
 
 **What the deletion buys, on the scarce axis.**
-A cache exists to bridge the latency and bandwidth gap between a fast core and slow DRAM, and the SRAM main memory above removes that gap: there is no slow tier left to cache.
+A cache exists to bridge the latency and bandwidth gap between a fast core and slow DRAM, and the on-die main memory above removes that gap: there is no slow tier left to cache, each class being one flat constant rather than a hit-or-miss distribution.
 What is deleted is not merely area but a *hidden, reactive, stateful* mechanism, a feedback loop from access history to placement and timing, the exact class the profile deletes everywhere else (the MMU, the dynamic branch predictor, the reactive refresh loop, dynamic DVFS): a cache is that pattern in the memory path, and deleting it is *strictly stronger than partitioning and flushing it*.
 The dividend is concentrated where this design spends most.
 The dominant WCET-pessimism term is gone: every access is the flat SRAM latency, not the hit-or-miss distribution an abstract-interpretation analyzer (aiT-class) must bound, so WCET's residual memory term is a constant (§11, §15).
@@ -1010,8 +1011,9 @@ The one place that looks like coupling dissolves: `Zicbom` (`cbo.clean`/`flush`/
 
 **Objection: general-purpose, irregular workloads are what caches serve.**
 Cerebras is an AI-dataflow engine with predictable, streaming access, where a cacheless all-SRAM design is a natural fit; a general OS and application core runs irregular, pointer-chasing code whose locality a cache exploits.
-The honest answer is that this costs performance, deliberately: a large multi-megabyte SRAM main memory is not single-cycle (a big array has real access latency), so latency-bound scalar code that would have hit a small L1 now pays main-memory latency on an in-order core that cannot hide it.
-But the cost is *bounded* by SRAM's low latency, a small multiple, not the order-of-magnitude a cacheless *DRAM* design would pay; the throughput-critical vector and matrix paths keep their explicit scratchpads; and the loss is on the free axis (recovered off-device by static layout, the design's standard trade) against a large gain on the scarce one.
+The honest answer is that this costs performance, deliberately: a large multi-megabyte SRAM main memory is not single-cycle (a big array has real access latency), so latency-bound scalar code that would have hit a small L1 pays main-memory latency on an in-order core that cannot hide it.
+But the cost is *bounded* by the first class's low latency, a small multiple, not the order-of-magnitude a cacheless *DRAM* design would pay; the throughput-critical vector and matrix paths keep their explicit scratchpads; and the loss is on the free axis (recovered off-device by static layout, the design's standard trade) against a large gain on the scarce one.
+The second class does not widen this objection, because it is where the scalar working set is not: hard-task code and hot code are placed on the first class by rule, and second-class placement carries an admission-visible WCET delta rather than a hope (§15).
 This is the same posture as every other deletion in the profile: spend performance, buy proof surface.
 
 **The interconnect comparison is the same shape: take the static routing, decline the backpressure.**
@@ -1022,7 +1024,7 @@ So the concrete 2D-mesh topology is at most an input to the proof-aware design-s
 **What the platform takes.**
 There are no hardware caches or cache-coherence protocol; fast local memory is an explicit, WCET-exact, software-managed scratchpad where a datapath needs it and absent on scalar cores by default; `Zicbom` is dropped and `Zicboz` retained; cross-island rings use shared SRAM windows with no cache-management traffic.
 
-**Honest residual (§17):** latency-bound, pointer-chasing scalar workloads that would have fit a conventional cache lose performance, bounded by SRAM main memory's low latency and partly recovered off-device; the accepted price of trading the cache's reactive complexity for a flat, statically-analyzable memory path.
+**Honest residual (§17):** latency-bound, pointer-chasing scalar workloads that would have fit a conventional cache lose performance, bounded by the first class's low latency and partly recovered off-device; the accepted price of trading the cache's reactive complexity for a flat, statically-analyzable memory path.
 
 ---
 
