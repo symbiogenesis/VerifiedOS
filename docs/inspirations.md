@@ -631,6 +631,30 @@ One sharpening is admired and not adopted: fixed-width 128-byte records with res
 
 ---
 
+## Hubris and Humility: the static task set shipped in a product, the lease as a revocable loan, and the generation number that makes restart safe
+
+**Hubris** (Oxide Computer Company, MPL-2.0, Cliff Biffle principal) is this architecture running in a commercial product rather than in a paper: it is the operating system of the service processor and of the separate root-of-trust microcontroller in Oxide's rack.
+An `app.toml` names every task that may ever run, its priority, its memory sizes, the peripherals it owns, and its interrupt-to-notification mapping; kernel and tasks link into a single image and no task is ever updated piecewise, so only tested combinations ship; the address space is physical and single, the kernel's task and region tables are static arrays sized from the manifest, and peak memory is therefore a compile-time quantity rather than a load-dependent one.
+It enters at the tier TigerBeetle enters at (above) and for the same reason: convergent evidence that the discipline ships, with none of its code imported and none of its assurance argument accepted.
+
+**Three mechanisms transfer, and the first answers a question the heap deletion leaves open.**
+The IPC is synchronous `send`/`recv`/`reply` with inline messages capped at 256 bytes, and everything larger moves as a **lease**: a bounded read, write, or read-write loan of the sender's own memory, reached by the recipient through borrow syscalls rather than through a mapping, capped at 255 per send, and revoked atomically at reply.
+That is Rust's borrow discipline carried across a protection boundary with no allocation on either side, which is what a static memory plan (§8) needs where a conventional system reaches for a shared buffer pool; here the loan is a CHERI capability whose bounds and permissions *are* the loan, so revocation-at-reply is a property of the ring rather than a kernel bookkeeping step, and the lease ceiling is a composition-time constant rather than a runtime limit.
+Second, **no interrupt handler code exists anywhere in the system**: one generic kernel ISR posts a notification bit and masks the source, and the owning task collects it at its next receive, so an interrupt is an event pulled at a known instruction and never an asynchronous entry into task code.
+§7 reaches the same shape from the WCET side, where an ISR at an arbitrary instant is the preemption term a derivation loses rather than bounds; Hubris reaches it from robustness, and the convergence is the point.
+Third, the **generation number**: a fault does not reach kernel policy, the kernel records it, bumps the dead task's generation, and notifies an unprivileged supervisor task that calls `reinit_task`, while peers blocked on the dead task receive a dead code carrying the new generation, so a protocol resynchronizes rather than wedges.
+That is crash-only restart (§16) with no allocation and no stale identifier surviving it, which is the part an ordinary supervision story leaves to convention.
+**Humility**, the out-of-band SWD debugger that reads DWARF and takes ELF core dumps, is §16's posture in a tool: a shipped device has no console and cannot be assumed able to phone home, so postmortem analysis happens off the machine and the shipped image carries no debug service.
+
+**What is declined is the whole assurance argument, and Oxide claims none.**
+Hubris carries no formal verification of any kind: the manifest compiler is unverified, the MPU region tables it emits are not proved to realize the isolation the manifest declares, and the kernel is not proved to respect them.
+The guarantee is Rust plus MPU plus review, which stops at every `unsafe` block, at the linker script, and at the build system, and it is the "app safety leans on the toolchain" posture §5 and §13 supersede.
+Its scheduler is fixed-priority preemptive with no schedulability and no timing-channel claim, which is the family [architectural-alternatives.md](architectural-alternatives.md) declines.
+And an MPU region bounds a *task* where a capability bounds a *pointer*, which is what lets this platform's composition edges be capabilities a component actually holds, so the graph's realization is checked by reachability instead of trusted from a table.
+One datapoint travels with it and lands in §9 rather than §7: Oxide has published several silicon and ROM vulnerabilities in the LPC55S69 its own root of trust runs on, which is the vendor-ROM-is-in-your-trusted-base argument (§6) made by the people who had to find them.
+
+---
+
 ## ChromeOS: the verified-boot root of trust, realized as on-die OpenTitan
 
 ChromeOS is the mass-deployment proof that a consumer OS can stand on a **hardware root of trust with verified boot, a read-only rootfs, and A/B updates with automatic rollback**: its trust anchored in a discrete security chip (the Google Titan / H1 lineage) whose open-silicon descendant is **OpenTitan**.
