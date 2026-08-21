@@ -130,10 +130,10 @@ Non-normative; no spec-body change.
 
 ---
 
-## Non-speculative out-of-order and the invisible-speculation family: NS-OoO dataflow cores, InvisiSpec, delay-on-miss, DAE; out-of-order is separable from speculation, but the latency wall it hides is deleted and the dynamic scheduler it adds is the data-dependent timing the profile forbids
+## Non-speculative out-of-order and the invisible-speculation family: NS-OoO dataflow cores, InvisiSpec, delay-on-miss, DAE, SEAM-V; out-of-order is separable from speculation, but the latency wall it hides is deleted and the dynamic scheduler it adds is the data-dependent timing the profile forbids
 
 The proposal is the third leg of the speculation/out-of-order design space the belt/EPIC and SecureBOOM entries (above) open: where the belt recovers instruction-level parallelism by *avoiding* speculation (NaR metadata speculation, no rollback) and SecureBOOM *keeps* full speculation and proves the transient leak fenced, this line **keeps the out-of-order execution engine and deletes only the speculation**: dynamic (Tomasulo/reservation-station) scheduling that issues an instruction the moment its data operands are ready, but fetch strictly down the architecturally-correct path with **no control speculation** (stall at an unresolved branch rather than predict it).
-It bundles the variants the popular framing raises: **non-speculative out-of-order / dataflow cores** (the pure form), the **invisible / undo / delay** speculation schemes (**InvisiSpec**, Yan et al., MICRO 2018; **delay-on-miss**, Sakalis et al., ISCA 2019; **CleanupSpec**, Saileshwar & Qureshi, MICRO 2019; and the **SafeBet** / speculative-data-oblivious line, Yu et al., ISCA 2020), and **decoupled access-execute** (DAE, J.E. Smith, ISCA 1982), plus the "deterministic time-based CPU" vendor pitch.
+It bundles the variants the popular framing raises: **non-speculative out-of-order / dataflow cores** (the pure form), the **invisible / undo / delay** speculation schemes (**InvisiSpec**, Yan et al., MICRO 2018; **delay-on-miss**, Sakalis et al., ISCA 2019; **CleanupSpec**, Saileshwar & Qureshi, MICRO 2019; and the **SafeBet** / speculative-data-oblivious line, Yu et al., ISCA 2020), and **decoupled access-execute** (DAE, J.E. Smith, ISCA 1982) with **SEAM-V**'s decoupled RVV backend as its vector descendant, plus the "deterministic time-based CPU" vendor pitch.
 They are resolved individually against the §15 admission test, the same decomposition that logged the belt's spiller and EPIC's NaR while rejecting the rest.
 
 **The steelman: one real and correct insight.**
@@ -167,6 +167,10 @@ That the security-relevant axis is speculation and not out-of-order-ness is corr
 - **Decoupled access-execute (DAE) imports nothing the vector unit is not already.**
   DAE is a real latency-hiding structure but *not* a speculation defense and *not* inherently deterministic (a decoupled machine can still speculate); its dividend, running an access stream ahead to prefetch, is again the memory-latency hiding flat SRAM deletes, and where a datapath does want it, the **decoupled RVV vector unit is already a decoupled access-execute engine** (vector address generation running ahead of the arithmetic, §15).
   Nothing to import.
+- **SEAM-V is the vector-backend instance of that same bullet, and every mechanism that buys its dividend lands on an excluded axis.**
+  SEAM-V decouples an RVV backend from its scalar core, feeds it from a backend-local execute-packet store, adds backend-visible context and request-bound prefetch, and resolves dependencies across packets dynamically; the measured short-vector supply gain is real, and each of the four mechanisms delivering it is one the profile forbids.
+  Task-level decoupling makes completion depend on queue occupancy and issue skew, breaking the tree-sum WCET; backend-local instruction supply is a second instruction-fetching computer and fails the no-foreign-computers rule; request-bound prefetch adds history-indexed hidden state, the store-set predictor's shape again; and cross-packet hazard management is a dynamic scoreboard with state-dependent latency, the dynamic scheduler's data-dependent issue timing at vector granularity.
+  The asynchronous backend also enlarges the least-built RTL ⊑ Sail refinement for throughput alone, and the decoupling the vector datapath actually wants it already has (the DAE bullet above).
 - **The "deterministic time-based CPU" is vendor marketing whose atom is banked.**
   The pitch is a scoreboard-with-a-time-counter doing *static* issue scheduling: unproven in application-class silicon, and the one funded attempt has failed on exactly that bar (Condor Computing's 8-wide time-scheduled Cuzco, presented at Hot Chips 2025, underperformed its spec, and the company was dissolved in early 2026 with the IP returned to Andes and no test silicon); its one real idea, moving the schedule to compile time where it is reproducible, is already the EPIC entry's distilled atom (**wider in-order superscalar + verified static scheduling on plain RV64**, above).
   "Edge-chasing / ghost-loop" dynamic loop optimization is a dynamic predictor with state (admission test 3); the static-loop case is already the profile's static prediction (§15).
@@ -181,22 +185,10 @@ Both are dominated here for the same reason, spending scarce proof (a broken WCE
 
 **Disposition:** rejected as a base direction; no import.
 The proposal's one correct insight, that out-of-order execution is separable from speculation so a non-speculative out-of-order core is genuinely Spectre- and Meltdown-immune, is granted and is moot here twice over: the security win is redundant against a profile that already deleted speculation, and the performance win is largely redundant against a memory subsystem that already deleted the latency wall out-of-order exists to hide (§15), while the dynamic scheduler's data-dependent issue timing (admission test 2), its new partition-switch-surviving state (test 3), its collapse of the tree-sum WCET (§11), and its inflation of the least-built RTL ⊑ Sail arrow (§17, §18) all land on the scarce axis.
-The invisible/undo/delay family is logged with SecureBOOM as bounded bring-up evidence that enters no trust base; DAE and the "deterministic time-based CPU" import nothing the decoupled vector unit and the already-banked static-scheduling atom do not.
+The invisible/undo/delay family is logged with SecureBOOM as bounded bring-up evidence that enters no trust base; DAE and the "deterministic time-based CPU" import nothing the decoupled vector unit and the already-banked static-scheduling atom do not; and SEAM-V's task-level decoupling, backend-local instruction supply, request-bound prefetch, and dynamic cross-packet dependency tracking are rejected with them.
+The static packet-packing lesson and Ara baseline are documented in [Inspirations & Prior Art](inspirations.md).
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend, performance is subordinated*): the admissible non-speculative levers recover the IPC without the engine.
 Non-normative; the only spec-body touch is the §15 microarchitecture cross-reference to this entry.
-
----
-
-## SEAM-V decoupled vector backend: rejected
-
-SEAM-V decouples an RVV backend from its scalar core, feeds it from a backend-local execute-packet store, adds backend-visible context and request-bound prefetch, and resolves dependencies across packets dynamically.
-The measured short-vector supply gain is real, but each mechanism lands on an excluded axis.
-Task-level decoupling makes completion depend on queue occupancy and issue skew, breaking the tree-sum WCET; backend-local instruction supply is a second instruction-fetching computer and fails the no-foreign-computers rule; request-bound prefetch adds history-indexed hidden state; and cross-packet hazard management is a dynamic scoreboard with state-dependent latency.
-The asynchronous backend also enlarges the least-built RTL-to-Sail refinement for throughput alone.
-
-**Disposition:** reject SEAM-V task-level decoupling, backend-local instruction supply, request-bound prefetch, and dynamic cross-packet dependency tracking.
-The static packet-packing lesson and Ara baseline are documented in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change.
 
 ---
 
