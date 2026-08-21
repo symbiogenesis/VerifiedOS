@@ -624,19 +624,39 @@ It is bounded rather than blind: privilege-as-capability is *more* fine-grained 
 
 ---
 
-## Capability-checked DMA: the Cambridge/SRI proposal and the CHERI-at-SoC-Level integration discipline
+## Capability-checked DMA: the Cambridge/SRI proposal and the CHERI-at-SoC-Level integration discipline at the device edge
 
-Deleting the IOMMU (§15) needs something to take its place at the device edge, and the replacement is not invented here: it is proposed and prototyped in the CHERI programme's own SoC-facing work.
+Deleting the IOMMU (§15) needs something to take its place at the device edge, and the replacement is not invented here: it is proposed and prototyped in the CHERI programme's own SoC-facing work, which extends capability protection from the cores out into the interconnect.
+The platform takes that extension instead of an IOMMU or an **IOPMP**: in a single physical address space translation is unused, while CHERI supplies the protection role unforgeably and at byte granularity without a second page-table walker or region table.
+
+**A unified spatial mechanism, not device-side PMP.**
+Every DMA-capable block becomes one of two capability-checked shapes: a **core-issued capability-operand mover** (the §15 coprocessor-line discipline the matrix and FEC units already follow: no independent mastership), or an **autonomous streaming engine holding a delegated, bounds-checked, revocable capability** for its window (scanout, transceiver-I/Q, NIC), with the fabric checking each access against a capability at the point of issue.
+This both **deletes translation** and is stronger than switching to an IOPMP: the IOPMP would confine DMA, but as a coarse, ambient, per-source-ID region table **disjoint from CHERI**, the device-side version of the in-core PMP the CHERIoT precedent already drops (above).
+Adopting IOPMP would trade the IOMMU's translation weight for a *second ambient spatial mechanism*; adopting capability-checked DMA *unifies* the device path onto the one mechanism the die already carries, so "who may DMA where" is a capability in the static topology (§7/§8), not a side table: *verify rather than hedge* taken to the device edge, and a device MSI (a store to an interrupt file, §8) confined by the same check rather than an interrupt-remapping table.
+
+**The prior art is proposed and prototyped, not hoped for.**
 **"Defending Direct Memory Access with CHERI Capabilities"** (Markettos, Baldwin, Bukin, Neumann, Moore, Watson; Cambridge and SRI, HASP 2020) proposes exactly a **capability-configured DMA controller** that bounds-checks accesses from malicious peripherals, pluggable and SoC-embedded alike, and contrasts it directly with the IOMMU's nested-page-table translation, which is the argument §15 makes when it declines translation and keeps only protection.
 The **CHERI Alliance's "CHERI at SoC Level"** guide (2025) then supplies the integration discipline the mechanism actually requires: passing **capabilities, tags, and revocation** between CHERI-enabled IP blocks of varying CHERI-awareness, and clearing tags on writes from non-capability IP.
 Capability-holding DMA is demonstrated at **CHERIoT** scale with first silicon in 2026 (above), so the small end is built even though the application-class bandwidths for NIC, scanout, and radio I/Q are net-new (§18).
 
-What makes the deletion sound is a precondition this design supplies and a general-purpose machine cannot: the device model is already curated register-slave, transducer, and on-die RTL (§4, §12), so there is **no foreign PCIe bus-master ecosystem issuing raw physical addresses** for an IOMMU to catch in the first place.
+**The deletion is sound only because of a precondition this design supplies and a general-purpose machine cannot.**
+The device model is already curated register-slave, transducer, and on-die RTL (§4, §12), so there is **no foreign PCIe bus-master ecosystem issuing raw physical addresses** for an IOMMU to catch in the first place.
 
-One result from the same group is *declined* and worth recording for why.
-**CapChecker** (*"Adaptive CHERI Compartmentalization for Heterogeneous Accelerators"*; Cheng, Markettos et al., ISCA 2025) interposes a capability-checking unit at the memory interface of a **CHERI-unaware** accelerator, so unmodified third-party or opaque IP gains fine-grained protection cheaply.
-That is precisely the road §4's no-foreign-computers mandate forecloses: the unaware, self-mastering, opaque accelerator is the category it excludes by name. The checking function is in any case what the capability-checked fabric already performs at the point of issue, so the shim would be the hedge *verify rather than hedge* declines.
-What survives is CapChecker as a **feasibility datapoint**: boundary capability-checking on real heterogeneous accelerators at low single-digit overhead, corroborating that the capability- and tag-carrying fabric is cheap, rather than as a reason to admit the accelerator it was built to rescue (the full adopted IOMMU-deletion rationale is retained below).
+**What does not transfer: retrofitting opaque accelerators.**
+A newer result from the same group, **CapChecker** (*"Adaptive CHERI Compartmentalization for Heterogeneous Accelerators"*; Cheng, Markettos et al., ISCA 2025), takes the converse tack to the native path above: it interposes a capability-checking unit at the memory interface of a **CHERI-*unaware*** accelerator, so unmodified (often third-party or opaque) accelerator IP gains fine-grained protection cheaply.
+That is exactly the road §4's no-foreign-computers mandate forecloses: the unaware, self-mastering, opaque accelerator is the category it excludes by name, and the coprocessor line (§15) makes the compute units (V/M-class, FEC) CHERI-native, core-issued capability-operand movement, no independent mastership, so no unaware self-mastering block remains to wrap.
+Its checking *function* is in any case what the capability-checked fabric above already performs at the point of issue: for the curated firmware-free streaming engines the platform does keep, the fabric *is* the checker, and a CapChecker shim would be the hedge *verify rather than hedge* declines.
+What survives the mandate is CapChecker as a **feasibility datapoint**, boundary capability-checking on real heterogeneous accelerators at low single-digit overhead (quantified in performance-estimates.md), corroborating that the capability- and tag-carrying-fabric obligation below is cheap, rather than as a reason to admit the CHERI-unaware accelerator it was built to rescue.
+
+**New obligations introduced.**
+Dropping the IOMMU removes the one DMA-side mechanism *disjoint* from CHERI, so device access now rests on CHERI too: the single-mechanism concentration the PMP drop books, extended to the device edge, hedged the same way (CHERI's own verification: RTL ⊑ Sail §18, the Oxford/Google CHERIoT-Ibex result).
+Two obligations are genuinely new relative to a translation-IOMMU and are booked in §17: (1) **in-flight-DMA revocation**: a capability held by a running transfer must honour the §8 revocation sweep so time-to-containment stays bounded (a load-barrier / revocation-epoch check, Cornucopia-Reloaded-lineage, or bounded re-authorized windows); (2) a **capability- and tag-carrying fabric**: the interconnect must propagate capabilities, tags, and revocation state to the DMA blocks (new Sail / RTL ⊑ Sail surface, §15/§18).
+Application-class capability-DMA at NIC / scanout / radio-I/Q bandwidth is net-new (§18); microcontroller-scale is the existence proof.
+
+**What the platform takes.**
+The IOMMU is **deleted** and the IOPMP **declined**: device DMA is capability-checked by the fabric, every DMA-capable block is a core-issued capability-operand mover or a delegated-capability-holding streamer, and CHERI becomes the sole spatial mechanism **system-wide**: cores and devices alike.
+The platform axiom decides it as ever: the IOMMU is a second, device-side spatial mechanism (carrying a walker and caches the profile bans in-core), redundant once the fabric carries capabilities, and the IOPMP is the coarse subset of CHERI it is in-core.
+**Honest residual (§17):** device access rests on CHERI alone with no IOMMU-disjoint backstop; in-flight-DMA revocation and a capability/tag-carrying fabric are new obligations (Markettos-2020 and the CHERI-at-SoC-Level guide anchor feasibility, Cornucopia-Reloaded the revocation), and application-class capability-DMA is net-new (§18), microcontroller-scale the existence proof.
 
 ---
 
@@ -1175,38 +1195,6 @@ Hardening lowers the upset rate the ECC and containment logic must absorb, so it
 Radiation-hardened, wide-envelope silicon is a **realization axis graded to the deployment**, changing no computation and lowering no guarantee; its normative footprint is the §15 instruction to harden the process and RTL of the specified design where the environment requires it.
 It books **no new §17 residual** (it lowers a physical fault rate and adds no trusted surface) and does not touch the fab residual either: a radiation-hardened die is still a fabricated die whose correspondence to the verified RTL rests on the same evidence (§17).
 This is the *engineering-is-free, trust-is-scarce* axiom reading a physical-reliability measure the way it reads ECC and the enclosure: **admit the mechanism that costs only engineering and reduces a physical fault rate the verification cannot reach.**
-
----
-
-## Markettos and CHERI-at-SoC-Level: capability-checked DMA at the device edge
-
-Markettos et al.'s capability-configured DMA controller and the CHERI Alliance's SoC integration discipline extend capability protection from cores into the interconnect.
-The platform takes that extension instead of an IOMMU or IOPMP: in a single physical address space translation is unused, while CHERI supplies the protection role unforgeably and at byte granularity without a second page-table walker or region table.
-
-**A unified spatial mechanism, not device-side PMP.**
-Every DMA-capable block becomes one of two capability-checked shapes: a **core-issued capability-operand mover** (the §15 coprocessor-line discipline the matrix and FEC units already follow: no independent mastership), or an **autonomous streaming engine holding a delegated, bounds-checked, revocable capability** for its window (scanout, transceiver-I/Q, NIC), with the fabric checking each access against a capability at the point of issue.
-This both **deletes translation** and is stronger than switching to an **IOPMP**: the IOPMP would confine DMA, but as a coarse, ambient, per-source-ID region table **disjoint from CHERI**, the device-side version of the in-core PMP mechanism above.
-Adopting IOPMP would trade the IOMMU's translation weight for a *second ambient spatial mechanism*; adopting capability-checked DMA *unifies* the device path onto the one mechanism the die already carries, so "who may DMA where" is a capability in the static topology (§7/§8), not a side table: *verify rather than hedge* taken to the device edge, and a device MSI (a store to an interrupt file, §8) confined by the same check rather than an interrupt-remapping table.
-
-**The prior art is proposed and prototyped, not hoped for.**
-The Cambridge/SRI capability-configured DMA controller (Markettos et al., HASP 2020), the CHERI Alliance's *"CHERI at SoC Level"* integration discipline (2025), and the CHERIoT-scale demonstration of capability-holding DMA establish the small-scale feasibility.
-The deletion is sound *only because* the device model is already curated register-slave / transducer / on-die RTL (§4, §12): there is no foreign PCIe bus-master ecosystem issuing raw physical addresses the IOMMU exists to catch.
-
-**What does not transfer: retrofitting opaque accelerators.**
-A newer result from the same group, **CapChecker** ("Adaptive CHERI Compartmentalization for Heterogeneous Accelerators"; Cheng, Markettos et al., ISCA 2025), takes the converse tack to the native path above: it interposes a capability-checking unit at the memory interface of a **CHERI-*unaware*** accelerator, so unmodified (often third-party or opaque) accelerator IP gains fine-grained protection at low overhead.
-That is exactly the road the no-foreign-computers mandate (§4) forecloses: the unaware, self-mastering, opaque accelerator is the category it excludes by name, and the coprocessor line (§15) makes the compute units (V/M-class, FEC) CHERI-native, core-issued capability-operand movement, no independent mastership, so no unaware self-mastering block remains to wrap.
-Its checking *function* is in any case what the capability-checked fabric above already performs at the point of issue: for the curated firmware-free streaming engines the platform does keep, the fabric *is* the checker, and a CapChecker shim would be the hedge *verify rather than hedge* declines.
-What survives the mandate is CapChecker as a **feasibility datapoint**, boundary capability-checking on real heterogeneous accelerators at low single-digit overhead (quantified in performance-estimates.md), corroborating that the capability- and tag-carrying-fabric obligation above is cheap, not a reason to admit the CHERI-unaware accelerator it was built to rescue.
-
-**New obligations introduced.**
-Dropping the IOMMU removes the one DMA-side mechanism *disjoint* from CHERI, so device access now rests on CHERI too: the single-mechanism concentration the PMP drop books, extended to the device edge, hedged the same way (CHERI's own verification: RTL ⊑ Sail §18, the Oxford/Google CHERIoT-Ibex result).
-Two obligations are genuinely new relative to a translation-IOMMU and are booked in §17: (1) **in-flight-DMA revocation**: a capability held by a running transfer must honour the §8 revocation sweep so time-to-containment stays bounded (a load-barrier / revocation-epoch check, Cornucopia-Reloaded-lineage, or bounded re-authorized windows); (2) a **capability- and tag-carrying fabric**: the interconnect must propagate capabilities, tags, and revocation state to the DMA blocks (new Sail / RTL ⊑ Sail surface, §15/§18).
-Application-class capability-DMA at NIC / scanout / radio-I/Q bandwidth is net-new (§18); microcontroller-scale is the existence proof.
-
-**What the platform takes.**
-The IOMMU is **deleted** and the IOPMP **declined**: device DMA is capability-checked by the fabric, every DMA-capable block is a core-issued capability-operand mover or a delegated-capability-holding streamer, and CHERI becomes the sole spatial mechanism **system-wide**: cores and devices alike.
-The platform axiom decides it as ever: the IOMMU is a second, device-side spatial mechanism (carrying a walker and caches the profile bans in-core), redundant once the fabric carries capabilities, and the IOPMP is the coarse subset of CHERI it is in-core.
-**Honest residual (§17):** device access rests on CHERI alone with no IOMMU-disjoint backstop; in-flight-DMA revocation and a capability/tag-carrying fabric are new obligations (Markettos-2020 and the CHERI-at-SoC-Level guide anchor feasibility, Cornucopia-Reloaded the revocation), and application-class capability-DMA is net-new (§18), microcontroller-scale the existence proof.
 
 ---
 
