@@ -615,7 +615,7 @@ def _fence_set(asm: Assembler, item: Item, text: str) -> int:
 def _p_fence(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     if len(item.args) not in (0, 2):
         raise asm._error(item.line, "fence takes two ordering sets, or none")
-    pred, succ = (item.args + ["", ""])[:2]
+    pred, succ = [*item.args, "", ""][:2]
     return [("fence", [_fence_set(asm, item, pred), _fence_set(asm, item, succ)])]
 
 
@@ -640,14 +640,14 @@ def _branch_swapped(mnemonic: str) -> Pseudo:
 
 def _p_csrr(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
-    return [("csrrs", [asm._register(item.args[0], item)]
-             + asm._operand("csr", item.args[1], item, pc) + [0])]
+    return [("csrrs", [asm._register(item.args[0], item),
+                       *asm._operand("csr", item.args[1], item, pc), 0])]
 
 
 def _p_csrw(asm: Assembler, item: Item, pc: int) -> list[Instr]:
     _arity(asm, item, 2)
-    return [("csrrw", [0] + asm._operand("csr", item.args[0], item, pc)
-             + [asm._register(item.args[1], item)])]
+    return [("csrrw", [0, *asm._operand("csr", item.args[0], item, pc),
+                       asm._register(item.args[1], item)])]
 
 
 def _p_j(asm: Assembler, item: Item, pc: int) -> list[Instr]:

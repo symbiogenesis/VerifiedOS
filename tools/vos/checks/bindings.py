@@ -19,7 +19,7 @@ whether a row cites the right authoring artifact is the review gate's question.
 import re
 from typing import TYPE_CHECKING
 
-from .. import apex
+from vos import apex
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an

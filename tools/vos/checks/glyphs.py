@@ -32,7 +32,8 @@ import re
 from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 
-from ..corpus import Document
+from vos.corpus import Document
+
 from .links import sites
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -76,7 +77,7 @@ MOJIBAKE_RE = re.compile(
 # off the pattern's own constants rather than restated, so the shortcut cannot come to
 # admit a character the pattern would have caught. Nearly every document takes it, and
 # the scan is a twentieth of what it was.
-MOJIBAKE_MARKS = tuple(chr(b) for b in LEAD_BYTES) + (REPLACEMENT,)
+MOJIBAKE_MARKS = (*(chr(b) for b in LEAD_BYTES), REPLACEMENT)
 
 
 def _offsets(raw: str, needle: str) -> Iterator[int]:

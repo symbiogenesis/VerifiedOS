@@ -38,7 +38,7 @@ from typing import IO
 # the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from vos import config, differential, env, trace
+from vos import asm, config, differential, env, trace
 
 # What every subcommand handler is. `main` attaches one to each subparser and
 # `argparse` hands it back as an untyped attribute, so the shape is stated once
@@ -559,7 +559,6 @@ def _run_member(e: env.Environment, profile: Path, elf: Path,
 
 def cmd_asm(e: env.Environment, args: argparse.Namespace) -> int:
     """Assemble one dialect program into an image the emulator loads."""
-    from vos import asm
     try:
         size = asm.assemble_file(Path(args.source), Path(args.elf))
     except Exception as exc:

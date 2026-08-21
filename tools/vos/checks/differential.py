@@ -26,7 +26,7 @@ figure should not pretend to check it.
 import json
 from typing import TYPE_CHECKING
 
-from .. import differential
+from vos import asm, differential
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -72,8 +72,6 @@ def run(ctx: Context) -> None:
                f"all {len(corpus.members)} members are listed and described")
 
     # Every member assembles, and the checks it declares are the checks it has.
-    from .. import asm
-
     faults = []
     for member in corpus.members:
         source = corpus.source(member)

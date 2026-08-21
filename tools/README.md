@@ -92,8 +92,9 @@ a finding rather than a warning.
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or
 switched off, and that is deliberate: the alternative is a list of opt-ins that silently
 stops growing the day ty adds a rule nobody transcribed. What ruff is *not* asked is in
-[ruff.toml](ruff.toml), each refusal named with its reason, because a linter that argues
-with the house style is a linter that gets switched off.
+[ruff.toml](ruff.toml): three rules, each named on its own line and each for a reason
+that would hold in any project, and no group switched off to spare this code a rewrite. A
+single site that has to differ carries a `# noqa` and the sentence saying why.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml) rather than on a
 command line, so that an editor's language server decides exactly what this gate decides.
@@ -109,7 +110,7 @@ lacks it, the directive is a finding on the lane that has it, and the gate's ver
 turns on what happens to be installed instead of on what the code says. ty.toml pins
 `python-platform` for the same reason on the other axis, so that the tools are typed
 against one declared target and not against whichever machine ran the checker. There is
-no suppression in this directory at all, which leaves every unresolved import an error
+no `ty: ignore` in this directory at all, which leaves every unresolved import an error
 without a carve-out to audit.
 
 ## The conventions

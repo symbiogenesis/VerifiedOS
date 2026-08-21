@@ -51,7 +51,7 @@ import re
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from ..corpus import UNREAD_PREFIX
+from vos.corpus import UNREAD_PREFIX
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an

@@ -61,7 +61,7 @@ def main() -> int:
         print(f"FAIL: {PROOFS}/{STATEMENT} is not in the repository")
         return 1
 
-    sources = [statement] + sorted(p for p in proofs.glob("*.v") if p != statement)
+    sources = [statement, *sorted(p for p in proofs.glob("*.v") if p != statement)]
     output = "".join(_compile(root, source) for source in sources)
 
     lines = [line.strip() for line in output.splitlines() if line.strip()]

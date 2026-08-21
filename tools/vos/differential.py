@@ -20,6 +20,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import asm
+
 CORPUS_DIR = "corpus"
 MANIFEST = "manifest.json"
 
@@ -84,7 +86,6 @@ def rewrite(corpus: Corpus, measured: dict[str, tuple[int, int, str]]) -> None:
 
 
 def assemble(corpus: Corpus, member: Member, out_dir: Path) -> Path:
-    from . import asm
     out_dir.mkdir(parents=True, exist_ok=True)
     elf = out_dir / f"{member.name}.elf"
     asm.assemble_file(corpus.source(member), elf)
