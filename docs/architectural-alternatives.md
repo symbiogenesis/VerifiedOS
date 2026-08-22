@@ -434,7 +434,7 @@ Six Oberon-family runtime and substrate mechanisms were evaluated and declined:
 - **RISC5 and Lola-2** lack the RV64, CHERI, vector, atomics, compiler, and mechanized-semantics substrate; a small informal RTL is more proof work here than a larger existing formal model.
 
 **Disposition:** import none of these six mechanisms.
-The Oberon method, module-key lesson, quiescent-point rule, and Active Cells/Oberon-V lineage retained by the design are documented in [Inspirations & Prior Art](inspirations.md).
+The Oberon method, module-key lesson, and Active Cells/Oberon-V lineage retained by the design are documented in [Inspirations & Prior Art](inspirations.md). The quiescent-point rule was retained as a proposal and is now declined on its own entry below, so it is no longer among them.
 Non-normative; no spec-body change.
 
 ---
@@ -2103,6 +2103,24 @@ R-07-037b answers the question of where the slot boundary is drawn: the tenant o
 The scoping fact that makes the admitted form consistent with the §7 impossibility argument: Gong and Kiyavash's result binds deterministic work-conserving scheduling across the boundary the observer sits on. A rotation whose every decision is a function of one label's state conserves work only inside that label, so it does not re-enter the class the result forecloses; the schedule's cross-label instants stay independent of every domain's behaviour, which is the property R-07-032 and R-07-036 exist to state.
 
 **Disposition:** the cooperative same-label rotation is normative (R-07-037b, R-11-006b); the preemptive and budgeted inner levels and any intra-label budget-reclamation mechanism are declined and are not to be re-proposed as refinements of it.
+
+---
+
+## The Oberon quiescent point for the revocation sweep: binding quanta to slot boundaries, declined because the obligation it would delete is one this design deleted another way
+
+Oberon's collector is an ordinary unsynchronized mark-and-sweep, cheap and precise for a structural reason rather than an algorithmic one: the central loop schedules it only when no command is executing, so no procedure activation exists, the stack holds nothing to trace, and the root set is exactly the module-level pointer variables. Wirth did not make the collector safe against a mutator; he made concurrency with the mutator impossible and paid in latency between commands. The proposal recorded in [Inspirations & Prior Art](inspirations.md) was to import that rule for §8's revocation sweep, binding its quanta to the slot boundaries of the domain being swept, where `fence.t` has already run. What it claimed to buy is not a mechanism but a **deleted proof obligation**, which is the currency §17 counts, and that is why it was worth evaluating rather than dismissing.
+
+It is declined, on four grounds, and the first two are the ones that decide it.
+
+- **There is no root set to make static.** Oberon's rule buys a composition-time root set for a *mark* phase. This design has no mark phase and no trace. R-08-005a's bitmap **is** the mark: one architectural revocation bit per 8-byte capability granule, `0` live and `1` revoked, written only by the kernel revocation path and set at kernel-mediated teardown. R-08-007b's `creclaim` is the sweep, one instruction per granule group applying the load filter's conditional clear across the block, and R-08-007a states the pass as covering *every revocable interval since the bit was set* rather than as reaching a reachable set. The runtime scan the quiescent point would replace with a composition-time artifact is not a scan this sweep performs, because R-08-004 deleted the capability derivation tree and the traversal went with it.
+- **The overlap obligation is already discharged, and by something strictly stronger than non-overlap.** R-08-005 puts *freed ⇒ unreachable* at **access** time rather than at sweep completion: a per-load revocation check invalidates a stale capability the moment it is loaded, and R-08-005b makes the revoked case a defined result of the load instruction rather than an effect layered onto it. That property holds whether or not a sweep quantum overlaps a compartment holding live capabilities in registers and frames, so non-overlap buys no obligation that is currently owed. Oberon needed the quiescent point because it had no load barrier to buy instead; this design bought the barrier, and the correctness argument the proposal offers to delete is one it never has to make.
+- **The quantum has nowhere to be charged.** R-15-220 fixes partition-switch cost at exactly three terms, the padded `fence.t` constant, the eager vector and matrix zeroize, and the operating-point relock; a sweep quantum executed at the swept domain's boundary is a fourth. Charging it to that domain's slot instead is what R-07-036's non-work-conserving rule and R-08-007's own *never in another partition's time* forbid, and R-08-008 already prices sweeps as paid from the requester's and the sweeper's fixed slots. R-11-008 and R-11-020 meanwhile make the sweep's background slot class a standing reservation in every admitted schedule and in every population rung, so keeping the reservation leaves the proposal buying nothing schedule-side and retiring it changes both entries.
+- **Its stated precondition is not a thing the register states.** The proposal leans on the live capability root set being *the statically enumerated one §11's stack-depth and callee-graph analysis computes anyway*. No entry specifies such an analysis: R-08-012b and R-10-034 use the typed callee graph for layout rather than for a root set. Authoring one is a larger act than the obligation it would delete, and it would be authored to serve an artifact the first ground says does not exist.
+
+**What would reopen this is stated rather than left implicit.** A revocation design whose sweep acquires a reachability phase would restore the artifact the rule acts on, and the only route to one is the return of the derivation tree R-08-004 deletes. Absent that, the rule addresses a machine this is not.
+
+**Disposition:** R-08-007's incremental, preemptible, per-core background-slot form is normative and stands; the quiescent-point binding is declined and is not to be re-proposed as a refinement of it. The Oberon method, the module-key lesson, and the Active Cells/Oberon-V lineage retained by the design remain documented in [Inspirations & Prior Art](inspirations.md); the quiescent-point rule is no longer among them. The platform axiom decides it the way it decides the rest: the proposal offers to spend normative surface to delete an obligation that R-08-005 already deleted at a better price, and a deletion bought twice is not a deletion.
+Non-normative; no spec-body change.
 
 ---
 
