@@ -22,9 +22,11 @@ means. It states only that the rule bites.
 Every case runs against a sandbox built from the working tree, so the checker under
 test is the one on disk rather than the one at HEAD, and no case can touch the real
 repository. The sandbox is a git repository because the checker reads its corpus from
-the index. Cases run in parallel across one sandbox per worker, which is what makes a
-whole pass a few seconds rather than a coffee break; a case only ever sees its own
-sandbox, so the parallelism changes no verdict.
+the index. Cases run in parallel across one sandbox per worker, and a sandbox is
+hardlinks into one pristine template rather than a copy of it, which together are
+what make a whole pass half a minute rather than a coffee break; a case only ever
+sees its own sandbox, and a write breaks its link before it lands, so neither the
+parallelism nor the sharing changes a verdict.
 
     tools/check-selftest.py                 # every case
     tools/check-selftest.py --rule K-23     # one rule, while iterating on it
@@ -43,7 +45,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable, Iterable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
 
@@ -71,11 +73,24 @@ SEC = "§"      # the section sign a trace and a cross-reference display
 
 
 class Sandbox:
-    """One disposable copy of the working tree, and the checker that runs against it."""
+    """One disposable view of the working tree, and the checker that runs against it.
 
-    def __init__(self, path: Path, pristine: Path) -> None:
+    Its files are hardlinks into the pristine template beside it rather than copies,
+    which buys two things at once: standing one up is a metadata pass over the tree,
+    and the on-access virus scan a fresh copy of the corpus pays on its first read,
+    several seconds of it per sandbox, is paid once for the template and shared,
+    because a link is the same file object and carries the same verdict. The price is
+    one invariant: nothing writes through a link in place. Every write here unlinks
+    first, so the edit lands in a new file and the template keeps the original bytes.
+    The checker's own --fix is the one writer these methods cannot reach, so `check`
+    refuses fix=True unless the sandbox was stood up fix-safe, holding real copies of
+    every file --fix could rewrite.
+    """
+
+    def __init__(self, path: Path, pristine: Path, fix_ok: bool = False) -> None:
         self.path = path
         self.pristine = pristine
+        self.fix_ok = fix_ok
         self.touched: set[str] = set()
 
     def read(self, rel: str) -> str:
@@ -95,7 +110,11 @@ class Sandbox:
         if text == self.read(rel):
             return False
         self.touched.add(rel)
-        (self.path / rel).write_text(text, encoding="utf-8", newline="")
+        target = self.path / rel
+        # unlinked before written: the file is a hardlink, and a write through it in
+        # place would edit the template under every other sandbox
+        target.unlink()
+        target.write_text(text, encoding="utf-8", newline="")
         return True
 
     def delete(self, rel: str) -> bool:
@@ -106,17 +125,17 @@ class Sandbox:
     def reset(self) -> None:
         """A case is undone rather than compensated for, and only where it wrote.
 
-        Every edit is recorded as it is made, so undoing one is a copy back from the
-        pristine tree beside it. `git checkout -- .` would do the same thing and did,
-        but it stats the whole tree on every case, which over fifty cases is most of a
-        run spent restoring 851 files to undo an edit to one.
+        Every edit is recorded as it is made, so undoing one is re-linking the
+        pristine file over it: an unlink and a hardlink, whatever the size of the
+        document the case rewrote. `git checkout -- .` would restore the same bytes,
+        but it stats the whole tree on every case, which over sixty cases is most of
+        a run spent re-checking a thousand files to undo an edit to one.
         """
         for rel in self.touched:
             source, target = self.pristine / rel, self.path / rel
+            target.unlink(missing_ok=True)
             if source.exists():
-                shutil.copy2(source, target)
-            elif target.exists():
-                target.unlink()
+                _link_or_copy(source, target)
         self.touched.clear()
 
     def check(self, fix: bool = False) -> tuple[int, list[str], list[str]]:
@@ -127,6 +146,10 @@ class Sandbox:
         source, and only a fresh interpreter reads the mutant rather than the module
         this process already imported.
         """
+        if fix and not self.fix_ok:
+            raise SystemExit("--fix rewrites documents in place, which writes through "
+                             "this sandbox's hardlinks into the template; it may only "
+                             "run on the repair sandbox, which holds real copies")
         argv = [sys.executable, str(self.path / CHECKER)] + (["--fix"] if fix else [])
         proc = subprocess.run(argv, cwd=self.path, capture_output=True,
                               text=True, encoding="utf-8", check=False)
@@ -150,6 +173,42 @@ def remove_tree(path: Path) -> None:
 
     if path.exists():
         shutil.rmtree(path, onexc=force)
+
+
+def _link_or_copy(src: str | Path, dst: str | Path) -> None:
+    """A hardlink where the filesystem grants one, a copy where it does not, and the
+    same contract either way: the destination is a fresh directory entry, so an
+    unlink-first write never reaches the source."""
+    try:
+        os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
+
+
+def stand_up(template: Path, path: Path, fix_ok: bool = False) -> Sandbox:
+    """One sandbox, as hardlinks into the template.
+
+    A fix-safe sandbox is the exception the repair path needs: the checker's --fix
+    rewrites documents in place through whatever name it opens, which a hardlink
+    would relay straight into the template under every running case. What --fix can
+    name is the document corpus, so everything outside model/ and .git/ is a real
+    copy there, a boundary that contains that corpus with room to spare while keeping
+    the copying, and the scan a fresh copy costs on first read, to the hundred-odd
+    files outside those two trees.
+    """
+    remove_tree(path)
+    for dirpath, _dirnames, filenames in template.walk():
+        rel = dirpath.relative_to(template)
+        target = path / rel
+        target.mkdir(parents=True, exist_ok=True)
+        top = rel.parts[0] if rel.parts else ""
+        linked = not fix_ok or top in (".git", "model")
+        for name in filenames:
+            if linked:
+                _link_or_copy(dirpath / name, target / name)
+            else:
+                shutil.copy2(dirpath / name, target / name)
+    return Sandbox(path, template, fix_ok=fix_ok)
 
 
 def _across[T, R](work: Callable[[T], R], items: Iterable[T], jobs: int) -> list[R]:
@@ -205,8 +264,8 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     directory from its *document* corpus by name, as vendored upstream prose answering
     to another repository's house style. What it does read of the rest is whether those
     paths *exist*, because a link into the curated tree must resolve. So each is created
-    empty, and the saving is the whole cost of standing a sandbox up, which is otherwise
-    95% files no rule opens.
+    empty, and the saving is most of the cost of the template every sandbox then links
+    against, which is otherwise 95% files no rule opens.
 
     There are two exceptions and they are named rather than guessed at, in
     `vos.corpus` beside the exclusion they carve out of. `MODEL_FACTS` is a handful of
@@ -763,10 +822,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Seed each checker rule a defect it must report.")
     parser.add_argument("--rule", help="run one rule's case only")
-    # Eight, measured rather than assumed: a worker is a sandbox, and past eight the tree
-    # copy and the delete that stand one up cost more than the cases it then runs save.
-    # Over three passes each on a twelve-core machine, eight workers averaged 8.6 s and
-    # twelve averaged 9.3 s.
+    # Eight, measured rather than assumed: a worker is a whole checker subprocess with
+    # a git child under it, so extra workers past eight pay more in contention than
+    # their extra sandboxes save even below the core count. Over full passes on a
+    # twelve-core machine, eight workers ran 24.9 s where twelve ran 26.7 s and
+    # sixteen 29.7 s.
     parser.add_argument("--jobs", type=int, default=min(8, os.process_cpu_count() or 2),
                         help="how many sandboxes run cases at once")
     parser.add_argument("--sandbox", type=Path, default=None,
@@ -801,20 +861,25 @@ def main(argv: list[str] | None = None) -> int:
     print(f"copied {copied} file(s), indexed as the baseline")
     print()
 
-    def stand_up(i: int) -> Sandbox:
-        path = sandbox / f"w{i}"
-        remove_tree(path)
-        shutil.copytree(template, path)
-        return Sandbox(path, template)
-
     try:
-        # A tree copy is nearly all syscall and no two of these share anything, so they
-        # are stood up at once; done one after another it is most of a run's setup.
-        made = _across(stand_up, range(jobs + 1), jobs + 1)
+        # The baseline needs one sandbox and nothing else, so only the first is stood
+        # up before it: the rest land while the baseline runs, each joining the queue
+        # as it does, and the case wave draws them out as they arrive.
+        made.append(stand_up(template, sandbox / "w0"))
         boxes: Queue[Sandbox] = Queue()
-        for box in made[:jobs]:
-            boxes.put(box)
-        return _run(selected, made, boxes, jobs)
+        with ThreadPoolExecutor(max_workers=jobs) as setup:
+            def later(i: int) -> Sandbox:
+                box = stand_up(template, sandbox / f"w{i}", fix_ok=i == jobs)
+                made.append(box)
+                if not box.fix_ok:
+                    boxes.put(box)
+                return box
+
+            standing = [setup.submit(later, i) for i in range(1, jobs + 1)]
+            code = _run(selected, made[0], boxes, standing[-1], jobs)
+            for future in standing:
+                future.result()   # a sandbox that failed to stand up is loud, not lost
+        return code
     finally:
         if args.keep:
             print(f"sandboxes kept at {sandbox}")
@@ -824,11 +889,11 @@ def main(argv: list[str] | None = None) -> int:
             remove_tree(sandbox)
 
 
-def _run(selected: list[Case], made: list[Sandbox], boxes: Queue[Sandbox],
-         jobs: int) -> int:
+def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
+         repair_ready: Future[Sandbox], jobs: int) -> int:
     # Nothing below means anything against a sandbox that was already failing: a mutant
     # would be reported killed by whatever was broken before it was introduced.
-    code, out, _ = made[0].check()
+    code, out, _ = first.check()
     if code != 0:
         print("FAIL: the unmutated sandbox does not pass, so no case can decide anything:")
         for line in out:
@@ -837,6 +902,7 @@ def _run(selected: list[Case], made: list[Sandbox], boxes: Queue[Sandbox],
         return 1
     print("ok: the unmutated sandbox passes, so every finding below is the mutant")
     print()
+    boxes.put(first)
 
     def one(case: Case) -> tuple[str, str, str, str | None]:
         rule, what, apply = case
@@ -863,7 +929,7 @@ def _run(selected: list[Case], made: list[Sandbox], boxes: Queue[Sandbox],
     # case does, so it goes in beside them on the sandbox held back for it, and reports
     # where it has always reported: after the cases
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
-        repairing = pool.submit(_repair_path, made[-1])
+        repairing = pool.submit(_repair_path, repair_ready)
         results = list(pool.map(one, selected))
         repair, repair_out = repairing.result()
 
@@ -887,7 +953,7 @@ def _run(selected: list[Case], made: list[Sandbox], boxes: Queue[Sandbox],
 
     print("\n".join(repair_out))
     print()
-    gaps = _registry_coverage(made[0])
+    gaps = _registry_coverage(first)
     print()
 
     findings = len(survived) + len(unseeded) + len(repair) + len(gaps)
@@ -901,7 +967,7 @@ def _run(selected: list[Case], made: list[Sandbox], boxes: Queue[Sandbox],
     return 0
 
 
-def _repair_path(box: Sandbox) -> tuple[list[str], list[str]]:
+def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
     """--fix rewrites the asserted counts, the compounded product, and the checklist's
     totals from their artifacts, and on a repository that already agrees it rewrites
     nothing, so the branch ships untested unless something breaks it on purpose. Three
@@ -909,8 +975,10 @@ def _repair_path(box: Sandbox) -> tuple[list[str], list[str]]:
     tree the checker then passes.
 
     Its problems and its report are handed back rather than printed, because this runs
-    beside the cases and the report reads after them.
+    beside the cases and the report reads after them; its sandbox is the fix-safe one,
+    waited for here because it is the last to stand up.
     """
+    box = ready.result()
     box.reset()
     for rule, _, apply in CASES:
         if rule in REPAIRABLE:
