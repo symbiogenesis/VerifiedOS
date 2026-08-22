@@ -34,8 +34,8 @@ from vos.corpus import find_root
 
 
 def _cycles(n: int) -> str:
-    """A cycle count beside the wall time it is, so a deadline comparison is legible
-    without the reader doing the division."""
+    """A cycle count comma-grouped, so the eleven-digit figures the table carries can
+    be told apart at a glance."""
     return f"{n:,}"
 
 
@@ -43,14 +43,19 @@ def report(root: Path) -> tuple[int, list[str]]:
     out: list[str] = []
     grant = banks.read(root)
 
-    missing = [name for name, found in (
-        ("the second class's bank count", grant.banks),
-        ("its retention floor", grant.retention_floor_us),
-        ("the sequencer's cadence", grant.banks_per_refresh_phase),
-        ("the clock frequency", grant.clock_hz),
-        ("the second-class region", grant.region_bytes),
-    ) if found is None]
-    if missing:
+    # Grant.complete() is the one statement of which figures the arithmetic needs;
+    # the table below only words each one for the report.
+    if not grant.complete():
+        missing = [name for name, found in (
+            ("the second class's bank count", grant.banks),
+            ("its retention floor", grant.retention_floor_us),
+            ("the sequencer's cadence", grant.banks_per_refresh_phase),
+            ("its refresh phase cycles", grant.refresh_phase_cycles),
+            ("its discharge cadence", grant.banks_per_discharge_phase),
+            ("its discharge phase cycles", grant.discharge_phase_cycles),
+            ("the clock frequency", grant.clock_hz),
+            ("the second-class region", grant.region_bytes),
+        ) if found is None]
         out.append(f"FAIL: {banks.CONFIG} no longer declares " + ", ".join(missing))
         return 1, out
     if not grant.candidates:
@@ -61,7 +66,7 @@ def report(root: Path) -> tuple[int, list[str]]:
     out.append("")
     out.append(f"{'banks':>7}  {'bank bytes':>12}  {'refresh phases':>15}  "
                f"{'sweep cycles':>16}  {'deadline':>16}  {'fits':>5}  "
-               f"{'discharge dwell':>16}  {'divides':>7}  admitted")
+               f"{'discharge dwell':>16}  {'divides':>7}  {'admitted':>8}")
 
     findings: list[str] = []
     cleared = 0
