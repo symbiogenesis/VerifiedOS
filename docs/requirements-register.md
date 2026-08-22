@@ -1559,8 +1559,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: at one advance per microsecond the epoch does not wrap in 5 × 10⁵ years, so wrap is not a reachable state and no reuse semantics are owed; reset is not a wrap, since the R-15-182 eager zeroize leaves no capability alive to be misread under a restarted counter. The reuse gate is the R-08-008 quarantine seen from the reuse side, and it is what makes the address key sound for R-08-004a's subtree case: a grant slot cannot be re-minted into while a stale handle bounded to it might still be loadable. The quarantine pool is composition-sized, so the set-to-reuse interval is a derived constant. The gate is a sweep and not a generation compare, on R-08-004b's ground: a generation discriminates only if the handle carries it and no field exists to carry it in, while a generation carried out of band as an integer presented at invocation is a bearer token a stale holder can guess, which is the forgery the capability substrate exists to remove. There is no colour space to exhaust and no retirement set to bound under R-08-004b; the grant-slot count that stands in its place exhausts as a capacity under R-08-004c, not as a namespace.
 · Trace: CJ-CERISE, CJ-WCET
 
-**R-08-008** MUST: Forced-sweep denial of service is priced out structurally: revocation is triggered only by kernel-mediated teardown, so a compartment that churns grants forces sweeps only of its own footprint, paid from its own and the sweeper's fixed slots.
-· Accept: the cost of queued sweeps is delayed reclamation of the *requester's* quarantined memory, bounded by the composition-sized quarantine pool, never schedule perturbation of any hard task.
+**R-08-008** MUST: Forced-sweep denial of service is priced out structurally: revocation is triggered only by kernel-mediated teardown (grant expiry, session close, restart, and the R-08-043a user retraction), so a compartment that churns grants forces sweeps only of its own footprint, paid from its own and the sweeper's fixed slots.
+· Accept: the cost of queued sweeps is delayed reclamation of the *requester's* quarantined memory, bounded by the composition-sized quarantine pool, never schedule perturbation of any hard task; retraction is the one trigger whose submitter need not hold the grant, so this entry does not price it and R-08-043f does.
 · Trace: CJ-WCET, CJ-ISOL
 
 **R-08-009** MUST NOT: The autonomous background engines a CHERI microcontroller ships for this purpose (CHERIoT-Ibex TBRE revocation-sweep and STKZ stack-zeroing) are declined as autonomous memory-touching walkers under admission test 5; only the deterministic load filter is imported and the sweep stays software.
@@ -1797,6 +1797,30 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-08-043** IS: What is given up is booked: while-active remains strictly weaker than one-shot, because the ceiling is a bound on exposure, not its absence.
 · Accept: the §17 residual entry exists.
 · Trace: CJ-NI
+
+**R-08-043a** MUST: User-initiated retraction is a fourth revocation trigger beside grant expiry, session close, and restart, retiring a grant on the one mechanism: the kernel sets the R-08-005a revocation bit for the grant slot's granule and the per-load filter kills every stored copy of the handle at its next load.
+· Accept: nothing is stood up beside the epoch, the sweep, and the filter, so R-08-004's requirement that exactly one revocation mechanism appear in the kernel spec and its proof holds.
+· Trace: CJ-CERISE, CJ-NI
+
+**R-08-043b** MUST: Submitting a retraction requires no trusted submitter and no consent-path guarantee, because retraction only subtracts: a compromised submitter reaches denial of service and never a silent retention.
+· Accept: the bound is R-08-039's revoke-only asymmetry applied at the authority edge, and no component joins the R-06-001 trusted set to buy the feature.
+· Trace: CJ-NI
+
+**R-08-043c** MUST: The standing-grant registry is a projection rather than a store: the kernel exposes a read-only enumeration of a profile's live grant slots, and the contained non-TCB grant-review service (R-12-081a) renders it, minting nothing and holding authority for no grant it displays.
+· Accept: no permission subsystem exists beside the capability model, R-08-037's criterion unchanged, the enumeration reading the R-08-004a grant table rather than standing a second record of grants beside it and conferring no authority over any grant it names.
+· Trace: CJ-CERISE, CJ-NI
+
+**R-08-043d** MUST: Because an untrusted renderer can omit a grant from the list it draws, the trusted-path agent renders a fixed-format count of the profile's live standing grants, read from the same enumeration, on every consent prompt it already draws, and offers on a secure-attention invocation one action, the retraction of every standing grant for the profile.
+· Accept: a list showing fewer than the trusted count is a visible discrepancy, so an untrusted renderer is selective but never silent; the trusted action subtracts alone and therefore carries R-08-043b's bound, and no list rendering joins the consent TCB to answer the omission, which is the repair R-08-038 declines in the focus case.
+· Trace: CJ-NI
+
+**R-08-043e** IS: What that costs is a fixed-size decimal render and one binary action inside the trusted-path agent, a component already trusted, and not a new member of the trusted set.
+· Accept: R-06-001's seven-item enumeration is unchanged and the increment is smaller than the R-12-079 reduction the same component already carries; it is booked at R-17-010a rather than absorbed.
+· Trace: CJ-NI
+
+**R-08-043f** IS: Retraction's denial-of-service bound is stated here rather than borrowed from R-08-008, because it is the one trigger whose submitter need not hold the grant: the retractable set decreases monotonically without fresh consent, so a compromised submitter empties it once and thereafter retracts nothing.
+· Accept: the aggressor's total is bounded by the composition-sized grant table and refilled only by user consent acts, and what it spends is delayed reclamation of the retiring principal's quarantined memory, bounded by the quarantine pool, never schedule perturbation of a hard task.
+· Trace: CJ-WCET, CJ-ISOL
 
 **R-08-044** IS: Sandboxing, portals, and container isolation are obviated by construction, not reimplemented.
 · Accept: no such subsystem exists.
@@ -2850,6 +2874,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-12-081** MUST: A consent response is accepted only from a front-end whose ownership the RoT can latch: the on-device register-slave front-ends qualify, and an external USB HID keyboard or pointer does not.
 · Accept: a BadUSB or HID-injection device is not merely confined with respect to consent but unable to express a response; a prompt additionally requiring a credential is gated by the credential service over the fingerprint AFE on the same ownership terms.
 · Trace: CJ-DEVTREE
+
+**R-12-081a** IS: The grant-review service is a contained non-TCB compartment that renders the R-08-043c standing-grant projection and submits user-initiated retractions; it mints nothing, holds no standing cross-caller authority, and holds authority for no grant it displays.
+· Accept: it is the consent path's sibling of the rollback-manager service (R-12-021), trusted for neither the integrity nor the completeness of what it shows, because a compromised renderer reaches omission and denial of service and never a retention (R-08-043b), and the omission is caught by the trusted count rather than by trusting it (R-08-043d).
+· Trace: CJ-CERISE, CJ-NI
 
 **R-12-082** IS: Rendering is software on V-class cores: graphics acceleration is the general-purpose RVV datapath, so the render and compositor servers are the whole of the graphics driver.
 · Accept: there is no GPU driver, no command-stream validator, and no shader-IR compiler in the display path.
@@ -5037,6 +5065,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: its input edge is bounded by RoT-latched front-end ownership, so the addition is a fixed threshold-and-centroid reducer plus a latched register rather than a programmable touch DSP, the smallest available closure, but an addition, and one shifting a share of consent-path integrity onto the RoT.
 · Trace: CJ-NI, CJ-DEVTREE
 
+**R-17-010a** IS: The consent TCB takes one further increment, booked rather than absorbed: the R-08-043d grant count and retract-all action are a fixed-size render and one binary action added inside the trusted-path agent, so what grows is a member's surface and not the membership.
+· Accept: it is the smallest answer available to an untrusted renderer's ability to omit, the alternative being a list widget in the trusted set, and it is against the delete-rather-than-defend grain in the same minimal way the agent already is; R-06-001's enumeration is unchanged.
+· Trace: CJ-NI
+
 **R-17-011** IS: The temporal scope of a grant is bounded, not evaluated: *while-active* stays strictly weaker than one-shot, a compromised compositor colluding with a compromised app retaining a sensitive grant up to the ceiling, bounded and physically legible rather than unbounded and silent, but retained.
 · Accept: consistent with R-08-043.
 · Trace: CJ-NI
@@ -5068,6 +5100,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-17-013d** IS: No theorem is stated over the model's behavior: it runs off-platform or as data on the inference server, and the claim is bounded authority and attributable action, never sound judgment.
 · Accept: no seam lemma or inventory entry quantifies over model output.
 · Trace: CJ-T
+
+**R-17-013f** IS: *Attributable* means each live grant names its grantee, object, rights, scope, and issuing epoch in the R-08-043c projection, and *auditable* means the standing set is enumerable in bounded time at any moment; neither word asserts a history, and the platform keeps none.
+· Accept: the platform answers *what do I currently hold out* and cannot answer *what did I grant and later retract*, and that absence is a decision rather than an oversight: an append-only consent log would be unbounded growth, a new confidentiality-labeled observation surface, and a second origin of the grant record beside the grant table R-08-043c reads.
+· Trace: CJ-NI
 
 ### 17.4 Proof-gap residuals
 
@@ -5709,7 +5745,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1318 requirements. §19 is non-normative and yields none. Counts include the 366 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1327 requirements. §19 is non-normative and yields none. Counts include the 375 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5720,16 +5756,16 @@ All eighteen normative sections are extracted, at 1318 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **205** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **60** |
-| **§8 Authority Model** | **extracted** | **73** |
+| **§8 Authority Model** | **extracted** | **79** |
 | **§9 Boot & Root of Trust** | **extracted** | **39** |
 | **§10 Storage & State** | **extracted** | **52** |
 | **§11 Updates** | **extracted** | **37** |
-| **§12 System Servers** | **extracted** | **125** |
+| **§12 System Servers** | **extracted** | **126** |
 | **§13 Packaging & Supply Chain** | **extracted** | **39** |
 | **§14 Userland** | **extracted** | **29** |
 | **§15 Hardware Platform** | **extracted** | **384** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **120** |
+| **§17 Residual Risks** | **extracted** | **122** |
 | **§18 Realization** | **extracted** | **53** |
 
 §19 is non-normative and yields no requirements.
