@@ -196,6 +196,7 @@ extensions {
         extensions/V/vext_vset_insts.sail,
         extensions/V/vext_arith_insts.sail,
         extensions/V/vext_fp_insts.sail,
+        extensions/V/vext_mem_checks.sail,
         extensions/V/vext_mem_insts.sail,
         extensions/V/vext_mask_insts.sail,
         extensions/V/vext_vm_insts.sail,
@@ -326,7 +327,8 @@ postlude {
 
 unit_tests {
   after postlude
-  requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts, V_core
+  requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts, V_core,
+           V_instructions
 
   files
     unit_tests/test_privilege.sail,
@@ -335,6 +337,7 @@ unit_tests {
     unit_tests/test_platform.sail,
     unit_tests/test_matrix_scratchpad.sail,
     unit_tests/test_memory_model.sail,
+    unit_tests/test_vector_mem.sail,
 }
 
 main {

@@ -134,11 +134,26 @@ function rV (Vregno(r) : vregno) -> vlenbits = {
   }
 }
 
+// The extension-context gate goes to Dirty on any write to the unit's state,
+// and it goes there **once**. Every caller here is idempotent after the first:
+// `wV` runs once per element written, so a vector memory operation dirties the
+// context VLEN/SEW times, and reporting each of those as a `mstatus` write puts
+// the *geometry* into the commit trace of a program whose behaviour does not
+// depend on it. The record count of a vector program would then be a fact about
+// which class it ran on rather than about what it did, which is the reverse of
+// what the trace is for (docs/differential-corpus.md §4), and no second
+// executor of this profile would agree with it.
+//
+// So the write is conditional on the value moving, which is the idiom
+// `write_vxsat` below already uses and which deletes no architectural effect:
+// the state after a redundant write is the state before it.
 function dirty_v_context() -> unit = {
   assert(hartSupports(Ext_Zve32x));
-  mstatus[VS] = extStatus_map(Dirty);
-  mstatus[SD] = 0b1;
-  long_csr_write_callback("mstatus", mstatus.bits);
+  if mstatus[VS] != extStatus_map(Dirty) | mstatus[SD] != 0b1 then {
+    mstatus[VS] = extStatus_map(Dirty);
+    mstatus[SD] = 0b1;
+    long_csr_write_callback("mstatus", mstatus.bits);
+  }
 }
 
 function wV (Vregno(r) : vregno, v : vlenbits) -> unit = {

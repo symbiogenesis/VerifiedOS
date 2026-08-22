@@ -73,6 +73,7 @@ function clause execute VLSEGTYPE(nf, vm, rs1, width, vd) = {
   let 'm = nf * load_width_bytes * 8;
   let 'n = num_elem;
   let (result, mask) : (vector('n, bits('m)), bits('n)) = init_masked_result(num_elem, 'm, EMUL_pow, vd_seg, vm_val);
+  let inactive : bits('n) = vector_body_inactive(num_elem, EMUL_pow, vm_val);
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
@@ -83,7 +84,16 @@ function clause execute VLSEGTYPE(nf, vm, rs1, width, vd) = {
           Err(e)   => return e,
         }
       }
-    } else { // masked or tail segments
+    } else { // masked-off or tail segments
+      // A masked-off element's capability check is performed with it and
+      // discarded; a tail element is not an element at all (vext_mem_checks.sail,
+      // R-15-115b, R-15-085).
+      if inactive[i] == 0b1 then {
+        foreach (j from 0 to (nf - 1)) {
+          let elem_offset = (i * nf + j) * load_width_bytes;
+          vector_masked_element_check(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Load(Vector))
+        }
+      };
       foreach (j from 0 to (nf - 1)) {
         let skipped_elem = (result[i] >> (j * load_width_bytes * 8))[(load_width_bytes * 8 - 1) .. 0];
         write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_reg)), skipped_elem)
@@ -129,6 +139,7 @@ function clause execute VLSEGFFTYPE(nf, vm, rs1, width, vd) = {
   let 'm = nf * load_width_bytes * 8;
   let 'n = num_elem;
   let (result, mask) : (vector('n, bits('m)), bits('n)) = init_masked_result(num_elem, nf * load_width_bytes * 8, EMUL_pow, vd_seg, vm_val);
+  let inactive : bits('n) = vector_body_inactive(num_elem, EMUL_pow, vm_val);
 
   var trimmed : bool = false;
   foreach (i from 0 to (num_elem - 1)) {
@@ -146,7 +157,17 @@ function clause execute VLSEGFFTYPE(nf, vm, rs1, width, vd) = {
                         },
           }
         }
-      } else { // masked or tail segments
+      } else { // masked-off or tail segments
+        // As in the ordinary unit-stride load: the masked-off element's check
+        // is performed and discarded (vext_mem_checks.sail, R-15-115b). Past a
+        // trim there is nothing to check, an element beyond the new `vl` having
+        // become a tail element rather than a masked-off one.
+        if inactive[i] == 0b1 then {
+          foreach (j from 0 to (nf - 1)) {
+            let elem_offset = (i * nf + j) * load_width_bytes;
+            vector_masked_element_check(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Load(Vector))
+          }
+        };
         foreach (j from 0 to (nf - 1)) {
           let skipped_elem = (result[i] >> (j * load_width_bytes * 8))[(load_width_bytes * 8 - 1) .. 0];
           write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_reg)), skipped_elem)
@@ -202,6 +223,7 @@ function clause execute VSSEGTYPE(nf, vm, rs1, width, vs3) = {
 
   let 'n = num_elem;
   let mask : bits('n) = init_masked_source(num_elem, EMUL_pow, vm_val);
+  let inactive : bits('n) = vector_body_inactive(num_elem, EMUL_pow, vm_val);
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
@@ -209,11 +231,22 @@ function clause execute VSSEGTYPE(nf, vm, rs1, width, vs3) = {
         let elem_offset = (i * nf + j) * load_width_bytes;
         let vs = vregidx_offset(vs3, to_bits_unsafe(5, j * EMUL_reg));
         let data = read_single_element(load_width_bytes * 8, i, vs);
+        // The tag clear R-15-115a states is this write, and not a step beside
+        // it: `data_write` carries `default_meta` down to `__WriteRAM_Meta`,
+        // which clears every granule the element covers, partial-granule writes
+        // included (core/mem_metadata.sail, R-15-007r).
         match data_write(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, data, Store(Vector), false, false) {
           Ok(true)  => (),
           Ok(false) => internal_error(__FILE__, __LINE__, "store got false from data_write"),
           Err(e)    => return e,
         }
+      }
+    } else if inactive[i] == 0b1 then { // masked-off segments
+      // Checked and discarded, and no address presented: a masked-off store
+      // that reached memory would write it (vext_mem_checks.sail, R-15-115b).
+      foreach (j from 0 to (nf - 1)) {
+        let elem_offset = (i * nf + j) * load_width_bytes;
+        vector_masked_element_check(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Store(Vector))
       }
     }
   };
@@ -256,6 +289,7 @@ function clause execute VLSSEGTYPE(nf, vm, rs2, rs1, width, vd) = {
   let 'm = nf * load_width_bytes * 8;
   let 'n = num_elem;
   let (result, mask) : (vector('n, bits('m)), bits('n)) = init_masked_result(num_elem, nf * load_width_bytes * 8, EMUL_pow, vd_seg, vm_val);
+  let inactive : bits('n) = vector_body_inactive(num_elem, EMUL_pow, vm_val);
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
@@ -266,7 +300,17 @@ function clause execute VLSSEGTYPE(nf, vm, rs2, rs1, width, vd) = {
           Err(e)   => return e,
         }
       }
-    } else { // masked or tail segments
+    } else { // masked-off or tail segments
+      // The runtime stride puts this access off the data-independent-timing
+      // list (R-15-085a), which is what makes the mask-independence of its
+      // element sequence a statement worth making rather than an implication of
+      // the stride (vext_mem_checks.sail, R-15-115b).
+      if inactive[i] == 0b1 then {
+        foreach (j from 0 to (nf - 1)) {
+          let elem_offset = i * rs2_val + j * load_width_bytes;
+          vector_masked_element_check(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Load(Vector))
+        }
+      };
       foreach (j from 0 to (nf - 1)) {
         let skipped_elem = (result[i] >> (j * load_width_bytes * 8))[(load_width_bytes * 8 - 1) .. 0];
         write_single_element(load_width_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_reg)), skipped_elem)
@@ -313,6 +357,7 @@ function clause execute VSSSEGTYPE(nf, vm, rs2, rs1, width, vs3) = {
 
   let 'n = num_elem;
   let mask : bits('n) = init_masked_source(num_elem, EMUL_pow, vm_val);
+  let inactive : bits('n) = vector_body_inactive(num_elem, EMUL_pow, vm_val);
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then { // active segments
@@ -325,6 +370,11 @@ function clause execute VSSSEGTYPE(nf, vm, rs2, rs1, width, vs3) = {
           Ok(false) => internal_error(__FILE__, __LINE__, "store got false from data_write"),
           Err(e)    => return e,
         }
+      }
+    } else if inactive[i] == 0b1 then { // masked-off segments
+      foreach (j from 0 to (nf - 1)) {
+        let elem_offset = i * rs2_val + j * load_width_bytes;
+        vector_masked_element_check(rs1, to_bits_unsafe(xlen, elem_offset), load_width_bytes, Store(Vector))
       }
     }
   };
@@ -375,6 +425,7 @@ function clause execute VLXSEGTYPE(nf, vm, vs2, rs1, width, vd, _mop) = {
   let 'n = num_elem;
   let (result, mask) : (vector('n, bits('m)), bits('n)) =
     init_masked_result(num_elem, nf * EEW_data_bytes * 8, EMUL_data_pow, vd_seg, vm_val);
+  let inactive : bits('n) = vector_body_inactive(num_elem, EMUL_data_pow, vm_val);
 
   // As mentioned above, currently mop = 1 (unordered) or 3 (ordered) do the same operations.
   foreach (i from 0 to (num_elem - 1)) {
@@ -386,7 +437,18 @@ function clause execute VLXSEGTYPE(nf, vm, vs2, rs1, width, vd, _mop) = {
           Err(e)   => return e,
         }
       }
-    } else { // masked or tail segments
+    } else { // masked-off or tail segments
+      // This is the form R-08-003 names by itself: the element address is a
+      // runtime index, so the check is owed per element and cannot be hoisted
+      // to the base. A masked-off element's index is whatever the register
+      // holds, so its check is the one most likely to fail, and failing is what
+      // it is allowed to do here (vext_mem_checks.sail, R-15-115b, R-15-085a).
+      if inactive[i] == 0b1 then {
+        foreach (j from 0 to (nf - 1)) {
+          let elem_offset : int = unsigned(vs2_val[i]) + j * EEW_data_bytes;
+          vector_masked_element_check(rs1, to_bits_unsafe(xlen, elem_offset), EEW_data_bytes, Load(Vector))
+        }
+      };
       foreach (j from 0 to (nf - 1)) {
         let skipped_elem = (result[i] >> (j * EEW_data_bytes * 8))[(EEW_data_bytes * 8 - 1) .. 0];
         write_single_element(EEW_data_bytes * 8, i, vregidx_offset(vd, to_bits_unsafe(5, j * EMUL_data_reg)), skipped_elem)
@@ -436,6 +498,7 @@ function clause execute VSXSEGTYPE(nf, vm, vs2, rs1, width, vs3, _mop) = {
 
   let 'n = num_elem;
   let mask : bits('n) = init_masked_source(num_elem, EMUL_data_pow, vm_val);
+  let inactive : bits('n) = vector_body_inactive(num_elem, EMUL_data_pow, vm_val);
 
   // As mentioned above, currently mop = 1 (unordered) or 3 (ordered) do the same operations.
   foreach (i from 0 to (num_elem - 1)) {
@@ -449,6 +512,11 @@ function clause execute VSXSEGTYPE(nf, vm, vs2, rs1, width, vs3, _mop) = {
           Ok(false) => internal_error(__FILE__, __LINE__, "store got false from data_write"),
           Err(e)    => return e,
         }
+      }
+    } else if inactive[i] == 0b1 then { // masked-off segments
+      foreach (j from 0 to (nf - 1)) {
+        let elem_offset : int = unsigned(vs2_val[i]) + j * EEW_data_bytes;
+        vector_masked_element_check(rs1, to_bits_unsafe(xlen, elem_offset), EEW_data_bytes, Store(Vector))
       }
     }
   };
@@ -479,6 +547,11 @@ function clause execute VLRETYPE(nf, rs1, width, vd) = {
   // The whole-register transfer starts at element zero: with `vstart` deleted
   // (R-15-039a) there is no partially-transferred register to align back to,
   // so the field loop below is the whole instruction.
+  //
+  // `vm` is the literal one in the encoding, so every element is active and
+  // this clause owes no discarded check: R-15-115b's obligation is over a mask
+  // this form does not have (vext_mem_checks.sail). The per-element capability
+  // check still lands, once per element, in `data_read` (R-08-003).
   var cur_elem : int = 0;
 
   foreach (j from 0 to (nf - 1)) {
@@ -547,6 +620,11 @@ mapping clause encdec = VMTYPE(rs1, vd_or_vs3, op)
   <-> 0b000 @ 0b0 @ 0b00 @ 0b1 @ 0b01011 @ encdec_reg(rs1) @ 0b000 @ encdec_vreg(vd_or_vs3) @ encdec_lsop(op)
   when currentlyEnabled(Ext_Zve32x)
 
+// The mask load and store carry `vm` as the literal one too, so their inactive
+// elements are the ones past `evl = ceil(vl/8)` and are tail rather than
+// masked-off: no discarded check is owed here either, `vl` being an
+// architectural register a partition reads back (vext_mem_checks.sail,
+// R-15-115b).
 function clause execute VMTYPE(rs1, vd_or_vs3, op) = {
   let EEW = 8;
   let EMUL_pow = 0;

@@ -1,0 +1,516 @@
+// The **V-class** composition of the profile configuration
+// (docs/isa-profile.md, verifiedos.json). It is the same machine as
+// verifiedos.json in every row but two, and those two say which core of the one
+// composed roster this emulator is: the composed hart is `6`, which the roster
+// puts on the V class, and the vector geometry is that class's, VLEN=4096 at
+// ELEN=64 (R-15-113).
+//
+// **This is a second configuration of the one model and not a second model**
+// (R-15-005). Nothing is forked, no file differs, and no instruction is added
+// or removed: heterogeneity lives in the datapath and never in the trust
+// structure, so a V-class emulator is this file handed to the same binary
+// verifiedos.json is handed to (R-04-009, R-15-111, core/core_class.sail). The
+// validator is what holds the two halves together: a composition whose roster
+// puts the composed hart on a class whose declared geometry is not the geometry
+// the run realizes is refused before it runs (postlude/validate_config.sail).
+//
+// Every other row and every other comment below is verifiedos.json's, unchanged
+// and true here: the key sets are identical, which is what `model.py
+// config-keys` holds them to.
+{
+  "base": {
+    "E": false,
+    // direct-only trap entry; MTCC replaces mtvec at the M0.6e transplant (R-15-073).
+    "mtvec": {
+      "direct": { "supported": true, "base_alignment": 2 },
+      "vectored": { "supported": false, "base_alignment": 2 }
+    },
+    // mtval reports detail (R-15-073a).
+    "xtval_nonzero": {
+      "illegal_instruction": true,
+      "breakpoint": true,
+      "load_address_misaligned": true,
+      "load_access_fault": true,
+      "samo_address_misaligned": true,
+      "samo_access_fault": true,
+      "fetch_address_misaligned": true,
+      "fetch_access_fault": true
+    },
+    "reserved_behavior": {
+      "amocas_odd_register": "AMOCAS_Illegal",
+      "xtvec_mode": "Xtvec_Ignore"
+    },
+    "mstatus": {
+      "vs_legal_states": "ExtContext_FourState"
+    },
+    "privileged_isa_version": "Privileged_ISA_1_13"
+  },
+  "memory": {
+    // R-15-002a: single physical space, 36 bits wide.
+    "physaddr_bits": 36,
+    // R-15-084: misaligned accesses trap and are never split.
+    "misaligned": {
+      "exceptions": {
+        "load_store": { "Some": "AlignmentException" },
+        "vector": { "Some": "AlignmentException" },
+        "amo": { "Some": "AlignmentException" }
+      },
+      "order_decreasing": false,
+      "default_allowed_within_exp": 0,
+      "byte_by_byte": false
+    },
+    "dtb_address": { "len": 64, "value": "0x1000" },
+    // R-15-247: main memory is two static latency classes under one placement
+    // discipline, bespoke 6T SRAM for the scalar working set and every
+    // cycle-critical array, oxide-semiconductor 2T0C decks for bulk. Each
+    // region below names the one it is placed on, and these are the constants
+    // that placement selects between.
+    //
+    // **Every number here is a placeholder and `qualified` is what says so.**
+    // R-15-247m measures them on a repaired megabit-class macro carrying
+    // complete tag, ECC, refresh, discharge, and routing overhead, at part
+    // qualification (R5), and admits no density figure as an architectural
+    // input before that. Latency is in cycles and retention in microseconds.
+    "classes": {
+      "first": {
+        "qualified": false,
+        "usable_density_mbit_per_mm2": 40,
+        "banks": 64,
+        // Latched, so no retention corner, no refresh, and no discharge dwell
+        // (R-15-247n): its power-off is its own sanitization.
+        "retention_floor_us": 0,
+        "retention_ceiling_us": 0,
+        "read_cycles": 3,
+        "write_cycles": 3,
+        "refresh_cycles": 0,
+        "discharge_cycles": 0
+      },
+      "second": {
+        "qualified": false,
+        "usable_density_mbit_per_mm2": 320,
+        // R-15-247p: whole-bound to islands, two orders above commodity
+        // practice, and the count M0.17 scores against the droop envelope.
+        "banks": 4096,
+        // The corner is a measured interval rather than a point (R-15-247m);
+        // only the floor is consumed, and only by the refresh deadline
+        // (R-15-247c).
+        "retention_floor_us": 60000000,
+        "retention_ceiling_us": 3600000000,
+        "read_cycles": 30,
+        "write_cycles": 45,
+        "refresh_cycles": 20,
+        // R-15-247f's fixed worst-corner dwell, after which the fail-stop
+        // completion indication is read once.
+        "discharge_cycles": 4096
+      }
+    },
+    "regions": [
+      // ROM, 16 KiB at 0x1000, holding the boot ROM and the attested
+      // devicetree written at `memory.dtb_address`.
+      //
+      // **The 4 KiB this was is upstream's default and not this platform's
+      // budget.** R-09-007 has the static devicetree declare core classes,
+      // islands, the NoC schedule, OPP tables, and radio calibration and limit
+      // values, and the first of those five is what M0.8a landed: the tree went
+      // from 2,741 bytes to 4,466 and stopped fitting. Sizing for the
+      // declaration that has arrived is what forces a bump per milestone, so
+      // this is sized for the four that have not. `model.py devicetree` is what
+      // holds the blob against this number on every run.
+      {
+        "base": { "len": 64, "value": "0x1000" },
+        "size": { "len": 64, "value": "0x4000" },
+        "attributes": {
+          "mem_type": "IOMemory",
+          "cacheable": true,
+          "coherent": false,
+          "executable": false,
+          "readable": true,
+          "writable": false,
+          "read_idempotent": true,
+          "write_idempotent": true,
+          "misaligned_exceptions": {
+            "load_store": { "None": null },
+            "vector": { "None": null },
+            "amo": "AccessFault"
+          },
+          "atomic_support": "AMONone",
+          "misaligned_atomicity_granule_size_exp": 0,
+          "vector_misaligned_atomicity_granule_size_exp": 0,
+          "supports_cbo_zero": false,
+          // A device endpoint is on neither class (R-15-247).
+          "memory_class": { "None": null }
+        },
+        "include_in_device_tree": false
+      },
+      // MMIO
+      {
+        "base": { "len": 64, "value": "0x2000000" },
+        "size": { "len": 64, "value": "0x10000000" },
+        "attributes": {
+          "mem_type": "IOMemory",
+          "cacheable": false,
+          "coherent": true,
+          "executable": false,
+          "readable": true,
+          "writable": true,
+          "read_idempotent": false,
+          "write_idempotent": false,
+          "misaligned_exceptions": {
+            "load_store": { "None": null },
+            "vector": { "None": null },
+            "amo": "AccessFault"
+          },
+          "atomic_support": "AMONone",
+          "misaligned_atomicity_granule_size_exp": 0,
+          "vector_misaligned_atomicity_granule_size_exp": 0,
+          "supports_cbo_zero": false,
+          "memory_class": { "None": null }
+        },
+        "include_in_device_tree": false
+      },
+      // RAM, first class: 2 GiB at 0x8000_0000, inside the 36-bit space. The
+      // image, the stacks, and the revocable interval are all here, which is
+      // where R-15-247s puts the scalar working set and every cycle-critical
+      // array.
+      {
+        "base": { "len": 64, "value": "0x80000000" },
+        "size": { "len": 64, "value": "0x80000000" },
+        "attributes": {
+          "mem_type": "MainMemory",
+          "cacheable": true,
+          "coherent": true,
+          "executable": true,
+          "readable": true,
+          "writable": true,
+          "read_idempotent": true,
+          "write_idempotent": true,
+          "misaligned_exceptions": {
+            "load_store": { "None": null },
+            "vector": { "None": null },
+            "amo": "AccessFault"
+          },
+          // R-15-024: Zaamo-level RMW, no CAS, no reservations.
+          "atomic_support": "AMOArithmetic",
+          "misaligned_atomicity_granule_size_exp": 0,
+          "vector_misaligned_atomicity_granule_size_exp": 0,
+          "supports_cbo_zero": true,
+          "memory_class": { "Some": "FirstClass" }
+        },
+        "include_in_device_tree": true
+      },
+      // RAM, second class: 8 GiB at 0x1_0000_0000, bulk by volume. Every
+      // attribute is the first class's, which is the point: the boundary is
+      // latency-criticality and carries no trust gradient, so the tag plane,
+      // the ECC planes, and the revocation load filter are identical across it
+      // and no capability is weakened by residing here (R-15-247s). It is
+      // executable because second-class code placement is priced rather than
+      // forbidden (R-15-247j).
+      {
+        "base": { "len": 64, "value": "0x100000000" },
+        "size": { "len": 64, "value": "0x200000000" },
+        "attributes": {
+          "mem_type": "MainMemory",
+          "cacheable": true,
+          "coherent": true,
+          "executable": true,
+          "readable": true,
+          "writable": true,
+          "read_idempotent": true,
+          "write_idempotent": true,
+          "misaligned_exceptions": {
+            "load_store": { "None": null },
+            "vector": { "None": null },
+            "amo": "AccessFault"
+          },
+          "atomic_support": "AMOArithmetic",
+          "misaligned_atomicity_granule_size_exp": 0,
+          "vector_misaligned_atomicity_granule_size_exp": 0,
+          "supports_cbo_zero": true,
+          "memory_class": { "Some": "SecondClass" }
+        },
+        "include_in_device_tree": true
+      }
+    ]
+  },
+  "platform": {
+    // R-15-052b: the sole implementation identifier with a consumer.
+    // The other four are hardwired zero in the model and have no key.
+    // It is an index into `core_roster` below rather than a value beside
+    // it, and the validator refuses a roster that does not name it.
+    "hartid": 6,
+    // The core-class table (R-15-113, core/core_class.sail): one model
+    // parameterized by class (R-15-005), the classes differing only in
+    // datapath. **Every number is R-15-113's reference instantiation and
+    // not a freeze**; VLEN per class, core count, issue width, pipeline
+    // depth, and scratchpad size are R-15-108's frozen parameters, chosen
+    // by an exploration that has not run, which is what `frozen: false`
+    // records. In an unfrozen row a zero reads as *not selected*; in a
+    // frozen one it reads as *absent*.
+    //
+    // The V row carries the geometry this run realizes, because one run
+    // realizes one VLEN (core/vlen.sail) and the composed hart is V-class.
+    // The rows themselves are the same rows verifiedos.json declares: the
+    // table is the composition's and does not move with which core of it is
+    // being emulated. The S and RoT rows are vectorless, so no vector permutation
+    // instruction is reachable there and they hash SHA-3/SHAKE in plain
+    // 64-bit integer with `Zbb` rotations (R-15-041, R-15-042, R-15-059).
+    "core_classes": {
+      "c": {
+        "frozen": false,
+        "vlen_exp": 8,
+        "elen_exp": 6,
+        "lanes": 0,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": true,
+        "replicated": false
+      },
+      "v": {
+        "frozen": false,
+        "vlen_exp": 12,
+        "elen_exp": 6,
+        "lanes": 8,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": true,
+        "replicated": false
+      },
+      "m": {
+        "frozen": false,
+        "vlen_exp": 10,
+        "elen_exp": 6,
+        "lanes": 0,
+        "matrix_int8_dim": 32,
+        "matrix_bf16_dim": 16,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": true,
+        "replicated": false
+      },
+      "s": {
+        "frozen": false,
+        "vlen_exp": 0,
+        "elen_exp": 0,
+        "lanes": 0,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 2,
+        "pipeline_depth": 0,
+        "keccak_unit": false,
+        "replicated": true
+      },
+      "rot": {
+        "frozen": false,
+        "vlen_exp": 0,
+        "elen_exp": 0,
+        "lanes": 0,
+        "matrix_int8_dim": 0,
+        "matrix_bf16_dim": 0,
+        "scratchpad_bytes": 0,
+        "issue_width": 1,
+        "pipeline_depth": 0,
+        "keccak_unit": false,
+        "replicated": false
+      }
+    },
+    // The composed core roster (R-15-052b, R-09-007): one entry per hart,
+    // carrying the core's class and its island binding, the two things the
+    // kernel selects from `mhartid` at boot beside its per-hart state.
+    // Counts are composition parameters and not architecture (R-15-113),
+    // so none is declared: a class's count is the number of its entries.
+    // `pinned` records the R-11-011 switch-duty outcome (R-15-114) and
+    // `fec_units` follows the pinned radio pair (R-15-119, R-12-038). The
+    // sentinel is one entry, its lockstep partner being a field of its
+    // class rather than a second hart (R-16-008d, R-16-008e).
+    "core_roster": [
+      { "hartid": 0,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 1,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 2,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 3,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 4,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 5,  "class": "CoreClass_C",   "island": 0, "pinned": false, "fec_units": false },
+      { "hartid": 6,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 7,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 8,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 9,  "class": "CoreClass_V",   "island": 1, "pinned": false, "fec_units": false },
+      { "hartid": 10, "class": "CoreClass_V",   "island": 2, "pinned": true,  "fec_units": true  },
+      { "hartid": 11, "class": "CoreClass_V",   "island": 2, "pinned": true,  "fec_units": true  },
+      { "hartid": 12, "class": "CoreClass_M",   "island": 3, "pinned": false, "fec_units": false },
+      { "hartid": 13, "class": "CoreClass_M",   "island": 3, "pinned": false, "fec_units": false },
+      { "hartid": 14, "class": "CoreClass_S",   "island": 4, "pinned": true,  "fec_units": false },
+      // The RoT is not pinned because it is not slotted: it is the platform's
+      // only management processor, in its own clock and power island and
+      // outside the die's cyclic executive, so R-11-011's switch-duty rule
+      // does not reach it and there is no slot for pinning to delete.
+      { "hartid": 15, "class": "CoreClass_RoT", "island": 5, "pinned": false, "fec_units": false }
+    ],
+    // the CBO block Zicboz allocates and cloadtags groups by (R-15-060, R-15-007q).
+    "cache_block_size_exp": 6,
+    // mtime/mtimecmp are memory-mapped, programmed directly by the kernel (R-15-063).
+    "clint": { "supported": true, "base": 33554432, "size": 786432 },
+    // The machine-level interrupt file: pending array only, no indirect
+    // interface, an MSI being a store to it (R-15-064, R-15-065). 0x2100000.
+    "imsic": { "supported": true, "base": 34603008, "size": 4096 },
+    // The revocation sidecar (R-08-005a). `base` is the register-slave window
+    // the kernel revocation path updates the bitmap through, 0x2200000; the
+    // interval is the composition's revocable region, 32 KiB at 0x80008000,
+    // which is where the composed image puts writable data.
+    "revocation": {
+      "supported": true,
+      "base": 35651584,
+      "interval_base": 2147516416,
+      "interval_size": 32768
+    },
+    // The refresh and discharge sequencer (R-15-247h). `base` is the register
+    // slave's window, 0x2300000; nothing on this die reaches it, the RoT being
+    // its only sequencer, and the model refuses every access to it.
+    //
+    // The four cadence figures are the composition-fixed schedule over the
+    // second class's 4096 banks. **Which simultaneous-activation set is
+    // admissible is M0.17's to decide against the droop, thermal-coupling, and
+    // power-signature envelope (R-15-247g, R-15-247p), so the two `banks_per_`
+    // figures are placeholders exactly as that class's own constants are.**
+    // What is not a placeholder is the shape the validator holds: the discharge
+    // set is no larger than the refresh set, because discharge asserts every
+    // write wordline in a bank where a refresh asserts a row; each phase
+    // interval covers the operation it issues; and the full refresh sweep,
+    // 512 phases at 58 ms, is inside the second class's 60-second retention
+    // floor, which is the one deadline a retention figure is consumed by
+    // (R-15-247c).
+    "memory_sequencer": {
+      "supported": true,
+      "base": 36700160,
+      "size": 4096,
+      "banks_per_refresh_phase": 8,
+      "refresh_phase_cycles": 58000000,
+      "banks_per_discharge_phase": 4,
+      "discharge_phase_cycles": 8192
+    },
+    "clock_frequency": 1000000000,
+    "instructions_per_tick": 2,
+    "wfi_is_nop": false,
+    "max_time_to_wait": 10
+  },
+  // The timing annotations (isa-profile.md §9, core/timing.sail). One entry per
+  // operation class the register states a latency contract over, plus the two
+  // partition-switch constants that are per core class because one kernel binary
+  // budgets a switch on every class it may run on (R-07-012, R-15-220).
+  //
+  // **Every number here is a placeholder.** R-17-041 makes the latency
+  // magnitudes a crown-jewel specification and nothing measures one yet: this
+  // profile implements `Zicntr` and `Zihpm` in no lifecycle state, so no counter
+  // exists to read a cycle from, and development measurement rides the
+  // lifecycle-gated Debug Module trace on real RTL (R-15-077). `qualified` is
+  // what says so on the face of the generated devicetree and it stays `false`
+  // until that measurement lands; nothing in the model computes with these, and
+  // the freeze report is barred from carrying a host-timed column beside them.
+  //
+  // The scalar rows are one table because the scalar front end is one shared
+  // microarchitecture across every class, which is what makes kernel-path WCET a
+  // single analysis (R-15-112); the vector rows are this build's, one build
+  // realizing one VLEN. `vector_mem_indexed` is the fully-conflicted bound, every
+  // element resolving to one bank, which is how an access whose observed latency
+  // varies still yields one sound entry (R-15-085a, R-15-085b).
+  "timing": {
+    "operations": {
+      "qualified": false,
+      "integer": 1,
+      "multiply": 3,
+      "divide": 34,
+      "branch": 1,
+      "csr": 1,
+      "load": 1,
+      "store": 1,
+      "atomic": 2,
+      "cap_inspect": 1,
+      "cap_derive": 1,
+      "cap_select": 1,
+      "cap_clear": 1,
+      "cap_load": 1,
+      "cap_store": 1,
+      "load_tags": 2,
+      "reclaim": 16,
+      "block_zero": 2,
+      "block_scrub": 8,
+      "vector_integer": 4,
+      "vector_float": 8,
+      "vector_divide": 40,
+      "vector_mem_unit": 8,
+      "vector_mem_indexed": 32
+    },
+    // `vmclear_cycles` is zero on the vectorless classes and the validator
+    // refuses anything else: the instruction traps there like any unallocated
+    // encoding, so a latency for it would be a cost for something that cannot be
+    // issued (R-15-069d). `fence_t_cycles` is present on every class, the fence
+    // being core surface everywhere and completing at its padded bound rather
+    // than early (R-15-218).
+    "switch": {
+      "c":   { "vmclear_cycles": 64,   "fence_t_cycles": 32 },
+      "v":   { "vmclear_cycles": 1024, "fence_t_cycles": 32 },
+      "m":   { "vmclear_cycles": 2048, "fence_t_cycles": 32 },
+      "s":   { "vmclear_cycles": 0,    "fence_t_cycles": 32 },
+      "rot": { "vmclear_cycles": 0,    "fence_t_cycles": 32 }
+    }
+  },  "extensions": {
+    "M": { "supported": true },
+    // A narrowed to Zaamo + Zabha (R-15-024): the umbrella is off, the parts are on.
+    "A": { "supported": false },
+    // The V class's geometry: VLEN=4096, ELEN=64 (R-15-113, M0.8b). This is
+    // the one key that makes this a V-class emulator rather than a C-class one
+    // running under a V-class hart identity, `vlen_exp` sizing the vector
+    // register file (core/vlen.sail).
+    "V": {
+      "support_level": "Full",
+      "vlen_exp": 12,
+      "elen_exp": 6,
+      "reserved_behavior": {
+        "illegal_vtype": "IllegalVtype_SetVill"
+      },
+      "vl_use_ceil": false,
+      "max_index_eew_exp": 6
+    },
+    // B = Zba+Zbb+Zbs exactly, single-bit only at Zbs (R-15-067).
+    "B": { "supported": true },
+    "Zic64b": { "supported": false },
+    "Zicboz": { "supported": true },
+    "Ziccamoa": { "supported": false },
+    "Ziccamoc": { "supported": false },
+    "Ziccif": { "supported": false },
+    "Zicclsm": { "supported": false },
+    "Zicond": { "supported": true },
+    "Zicsr": { "supported": true },
+    "Zmmul": { "supported": false },
+    "Zaamo": { "supported": true },
+    "Zabha": { "supported": true },
+    "Zacas": { "supported": false },
+    "Zama16b": { "supported": false },
+    "Zba": { "supported": false },
+    "Zbb": { "supported": false },
+    "Zbs": { "supported": false },
+    "Zbc": { "supported": false },
+    "Zbkb": { "supported": true },
+    "Zbkc": { "supported": true },
+    "Zbkx": { "supported": true },
+    "Zkt": { "supported": true },
+    "Zvfbfmin": { "supported": false },
+    "Zvfbfwma": { "supported": false },
+    "Zvfh": { "supported": false },
+    "Zvfhmin": { "supported": false },
+    "Zvbb": { "supported": true },
+    "Zvbc": { "supported": true },
+    "Zvkb": { "supported": false },
+    "Zvkg": { "supported": true },
+    "Zvkned": { "supported": true },
+    "Zvknha": { "supported": false },
+    "Zvknhb": { "supported": true },
+    "Zvkt": { "supported": true }
+  }
+}

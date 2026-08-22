@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "trace_schema": 1,
   "members": [
     {
@@ -148,6 +148,20 @@
       "checks": 7,
       "records": 139,
       "digest": "08dc5de2138fc13f"
+    },
+    {
+      "name": "vector-memory",
+      "source": "vector-memory.s",
+      "checks": 16,
+      "records": 515,
+      "digest": "9051d2f0912a079d"
+    },
+    {
+      "name": "vector-geometry",
+      "source": "vector-geometry.s",
+      "checks": 7,
+      "records": 296,
+      "digest": "5fbe902664052155"
     }
   ]
 }
