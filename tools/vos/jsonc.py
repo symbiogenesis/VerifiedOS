@@ -51,8 +51,16 @@ def strip_comments(text: str) -> str:
             while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
                 out.append("\n" if text[i] == "\n" else " ")
                 i += 1
-            out.append("  ")
-            i += 2
+            if i + 1 < n:
+                out.append("  ")
+                i += 2
+            else:
+                # an unterminated comment runs to the end of the text, so its last
+                # character is blanked like the rest rather than paired with a `*/`
+                # that is not there: `len(out) == len(text)` holds for every input,
+                # and the parse error json.loads still raises points where it should
+                out.append("\n" if text[i] == "\n" else " ")
+                i += 1
         else:
             # a comma left dangling by a deleted entry: the closing brace is the only
             # place it can be seen, and only whitespace and comments can sit between

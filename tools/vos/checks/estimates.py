@@ -222,6 +222,7 @@ def run(ctx: Context) -> None:
             edits.append((f"{section.name} subtotal", section.line, section.head + tail))
 
     if edits and ctx.fix:
+        pristine = raw
         unrewritable = []
         for what, old, new in edits:
             pattern = "(?m)^" + re.escape(old) + r"(?=\r?$)"
@@ -232,7 +233,11 @@ def run(ctx: Context) -> None:
                 continue
             raw = re.sub(pattern, lambda _m, n=new: n, raw)
             rep.line(f"fixed: {what}: {old.strip()} -> {new.strip()}")
-        ctx.fixed[PLAN] = raw
+        # recorded only where a rewrite landed: an edit refused as unrewritable leaves
+        # the text as it was, and recording it anyway would write the file back
+        # byte-identical and report a rewrite on every run without ever reaching one
+        if raw != pristine:
+            ctx.fixed[PLAN] = raw
         rep.report("K-36", "figure(s) the repair could not place:", unrewritable,
                    f"all {len(edits)} rewritten item cells and subtotals were placed")
     else:

@@ -23,6 +23,23 @@ from typing import cast
 from . import jsonc
 from .jsonc import Json
 
+# One parse per file per process, keyed on the file's identity and mtime so an edit
+# between two calls is still seen. In memory only, deliberately: a cache file on disk
+# would land inside the selftest's sandboxes and change what their baseline reads. The
+# memo is why eleven queries of one configuration in one run cost one strip-and-parse
+# rather than eleven; nothing here rewrites a configuration, so a parse cannot go
+# stale within a run.
+_PARSED: dict[tuple[str, int], Json] = {}
+
+
+def _load(path: Path) -> Json:
+    """`jsonc.load`, memoized. A parse error is not memoized, so a broken file is
+    re-read on every query and stays the caller's finding each time."""
+    key = (str(path), path.stat().st_mtime_ns)
+    if key not in _PARSED:
+        _PARSED[key] = jsonc.load(path)
+    return _PARSED[key]
+
 
 def value(path: Path, *keys: str) -> Json:
     """One value out of the model's configuration, by the key path that names it.
@@ -39,7 +56,7 @@ def value(path: Path, *keys: str) -> Json:
     if not path.is_file():
         return None
     try:
-        node: Json = jsonc.load(path)
+        node: Json = _load(path)
     except ValueError:
         return None
     for key in keys:
@@ -118,7 +135,7 @@ def flat_of(path: Path) -> dict[str, Json]:
     if not path.is_file():
         return {}
     try:
-        return flat(jsonc.load(path))
+        return flat(_load(path))
     except ValueError:
         return {}
 

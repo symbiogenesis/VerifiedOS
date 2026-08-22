@@ -35,7 +35,7 @@ entry is the bookmark its own id derives, and the register's rule is already tha
 trace is written out only where it departs from that. Following the trace rather than
 the derived form alone is what makes the reading uniform: four entries (R-05-151a and
 R-13-010c/d/e) cite a neighbour's bookmark instead of one of their own, and they pair
-through their trace exactly as the other 1314 pair through their id.
+through their trace exactly as every other entry pairs through its id.
 
 **What a bookmark owns.** The prose declares a bookmark at the end of the line whose
 claim it marks, and the lines below it that continue that claim carry no bookmark of
@@ -47,9 +47,12 @@ be an agenda rather than a nag: measured over the last twenty-two commits touchi
 prose, a commit dirties a median of four spans.
 """
 
+import contextlib
 import hashlib
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 
 from .corpus import ANCHOR_RE, PROSE, Corpus
@@ -71,7 +74,6 @@ _PROSE_ID_RE = re.compile(r"^r-\d\d-\d")
 # paragraph and a moved anchor are not edits to the claim. Nothing else is normalized:
 # a digest that forgave emphasis or punctuation would forgive the edits that use them.
 _TAG_RE = re.compile(r'<a id="[^"]*"></a>')
-_SPACE_RE = re.compile(r"\s+")
 
 # Long enough that a collision across some thousands of entries is not a thing to think
 # about, short enough that a ledger row stays readable in a diff.
@@ -84,8 +86,14 @@ _CONFERRAL_KINDS = ("Fail-closed", "RoT-fresh")
 
 
 def digest(text: str) -> str:
-    """One side of a pair, reduced to what a comparison needs."""
-    flat = _SPACE_RE.sub(" ", _TAG_RE.sub(" ", text)).strip()
+    """One side of a pair, reduced to what a comparison needs.
+
+    The collapse is `str.split` with no argument, which is the whitespace-run split
+    and strip in one pass; the 1338 recorded digests pin this flattening exactly, so
+    any change here must be proven byte-identical over every live side or it dirties
+    the whole ledger at once.
+    """
+    flat = " ".join(_TAG_RE.sub(" ", text).split())
     return hashlib.sha256(flat.encode("utf-8")).hexdigest()[:_DIGEST_CHARS]
 
 
@@ -193,8 +201,27 @@ def write_ledger(root: Path, rows: dict[str, tuple[str, str]]) -> None:
     Hand-formatted rather than `json.dumps(indent=...)`, which would break each pair
     across three lines and make a diff of the blessings unreadable. One line per
     requirement is what makes `git diff` on this file say exactly which pairs were read.
+
+    A write that would change nothing is skipped, so a re-bless of a current pair
+    leaves the ledger's bytes and mtime alone and the bless path has a fixpoint a
+    byte comparison can prove. The write that does land goes through a temporary
+    file beside the ledger and one `os.replace`, so a crash mid-write leaves the
+    recorded blessings standing rather than a truncated file `read_ledger` maps to
+    an empty ledger.
     """
     body = ",\n".join(f'  {json.dumps(k)}: [{json.dumps(p)}, {json.dumps(e)}]'
                       for k, (p, e) in rows.items())
     text = "{\n" + body + "\n}\n" if rows else "{}\n"
-    (root / LEDGER).write_text(text, encoding="utf-8", newline="\n")
+    path = root / LEDGER
+    with contextlib.suppress(OSError):
+        if path.read_bytes() == text.encode("utf-8"):
+            return
+    fd, staged = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+        Path(staged).replace(path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            Path(staged).unlink()
+        raise
