@@ -31,6 +31,7 @@ from pathlib import Path
 # the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from tests.harness import Case
 from vos.report import Reporter
 
 # The lane this process is, spelled the way Case.lane spells it.
@@ -46,13 +47,36 @@ def _module_names(only: str | None) -> list[str]:
     return names
 
 
-def _run_module(name: str, slow: bool) -> Reporter:
+def _load(name: str) -> list[Case] | str:
+    """One module's cases, or the sentence saying why there are none.
+
+    Called serially from the main thread, never from the pool: two threads
+    importing overlapping dependency graphs trip Python's import-deadlock
+    avoidance, which hands one of them a partially initialized module rather
+    than blocking, and the failure lands in whatever stdlib module lost the
+    race instead of in the test that raced.
+    """
+    try:
+        found = importlib.import_module(f"tests.{name}").cases()
+    except Exception as err:  # an unimportable module is this run's finding, not its crash
+        return f"failed to load: {err!r}"
+    # Narrowed rather than trusted: cases() crosses a dynamic import, so its shape is
+    # this runner's to check, and a module returning the wrong thing is a finding.
+    if not isinstance(found, list):
+        return f"cases() returned {type(found).__name__}, not a list"
+    narrowed: list[Case] = []
+    for item in found:
+        if not isinstance(item, Case):
+            return f"cases() returned a member that is not a Case: {item!r}"
+        narrowed.append(item)
+    return narrowed
+
+
+def _run_module(name: str, cases: list[Case] | str, slow: bool) -> Reporter:
     """One module's whole verdict, on its own slate."""
     rep = Reporter()
-    try:
-        cases = importlib.import_module(f"tests.{name}").cases()
-    except Exception as err:  # an unimportable module is this run's finding, not its crash
-        rep.report(name, "module error(s):", [f"failed to load: {err!r}"])
+    if isinstance(cases, str):
+        rep.report(name, "module error(s):", [cases])
         return rep
 
     failures: list[str] = []
@@ -81,8 +105,9 @@ def run(only: str | None = None, slow: bool = False) -> Reporter:
                    ["nothing under tools/tests/ matches test_*.py"
                     + (f" and --only '{only}'" if only else "")])
     else:
+        loaded = [(name, _load(name)) for name in names]
         with ThreadPoolExecutor(max_workers=min(8, len(names))) as pool:
-            parts = list(pool.map(lambda name: _run_module(name, slow), names))
+            parts = list(pool.map(lambda entry: _run_module(entry[0], entry[1], slow), loaded))
         for part in parts:
             rep.out.extend(part.out)
             rep.findings += part.findings
