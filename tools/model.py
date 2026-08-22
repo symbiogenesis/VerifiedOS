@@ -90,14 +90,22 @@ ORACLE_TEXT_NAMES = ("Makefile", "opam")
 def _configure(e: env.Environment, build_dir: Path,
                extra: list[str] | None = None, out: IO[str] | None = None) -> int:
     """The one cmake configure line. It was written out in two loops, which is one fact
-    in two places and a pair that can silently stop agreeing."""
+    in two places and a pair that can silently stop agreeing.
+
+    `GIT_DIR` rides along for a lane whose `.git` names its administrative directory in
+    the host's spelling, because the `git describe` cmake runs at configure is what
+    stamps the emulator with the model revision every downstream artifact records itself
+    against. It is scoped to this one child and no further: see `env.git_dir`.
+    """
+    admin = env.git_dir(e.root)
     return env.stage("configure", [
         "cmake", "-S", str(e.model), "-B", str(build_dir), "-GNinja",
         "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
         "-DDOWNLOAD_GMP=FALSE",
         "-DENABLE_RISCV_TESTS=TRUE",
         *e.ccache, *(extra or []),
-    ], stdout=out, stderr=out)
+    ], stdout=out, stderr=out,
+       add_env=None if admin is None else {"GIT_DIR": str(admin)})
 
 
 def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
