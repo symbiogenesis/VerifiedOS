@@ -21,14 +21,22 @@ build: `config-keys` and `validate-config`.
 
 These run inside WSL, where the Sail toolchain lives:
 
-    wsl -u root -e python3 tools/model.py build
+    wsl -u root -e python3 tools/model.py build --background
+    wsl -u root -e python3 tools/model.py wait
     wsl -u root -e python3 tools/model.py sweep --xlen 64
 
 Everything about the machine and the build trees comes from vos/env.py, which also
 raises the OCaml stack the emission needs and puts the opam switch on PATH.
+
+One toolchain serves as many checkouts as there are git worktrees, and each gets a
+**lane**: its own build tree, its own log, and its own SMT cache, derived from the
+checkout rather than declared. `lane` says which one this is. A build holds its lane
+for as long as it runs, so a second one over a live one is refused rather than merged
+into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
 """
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -53,6 +61,10 @@ type Command = Callable[[env.Environment, argparse.Namespace], int]
 PROFILE_CONFIG = "config/verifiedos.json"
 SCHEMA = "sail_riscv_config_schema.json"
 EMIT_TARGET = "generated_sail_riscv_model"
+
+# What `cmd_build` writes after each stage, and what `wait` reads a finished run's
+# verdict back out of. One spelling, at both ends.
+STAGE_EXIT = re.compile(r"^\w+_EXIT=(\d+)$")
 
 ORACLE_SRC = "upstream/sail-cheri-riscv"
 ORACLE_TARGET = "c_emulator/cheri_riscv_sim_RV64"
@@ -117,21 +129,32 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
 
     --fast selects the iterate profile: a separate build dir whose only divergence from
     the canonical build is dropping `-g` from RelWithDebInfo. Debug info on the
-    machine-generated translation unit is the single largest compile cost (314 s against
-    239 s, both measured in-build and so under N-way contention; alone the -O2 -g compile
-    is 150 s wall, 136 s CPU, 1.43 GB peak) and is never used; optimization level,
-    assertions, and the test suite are identical. The canonical build remains the exit
-    criterion for every batch.
+    machine-generated translation unit is the single largest compile cost, 314 s against
+    239 s measured in-build and so under N-way contention, and is never used;
+    optimization level, assertions, and the test suite are identical. What that unit
+    costs compiled alone is `vos/env.py`'s to state, because it is the same fact and it
+    moves with the curation. The canonical build remains the exit criterion for every
+    batch.
+
+    --background detaches the run and returns, because a fifteen-minute build is started
+    and left and the caller has other work. What it does not do is let go of the lane:
+    the lock is taken here, before anything is written, and the detached child inherits
+    it, so a second build over a live one is refused rather than merged into it.
     """
-    canonical = e.build_dir
     if args.fast:
         build_dir = e.fast_build_dir
-        log = e.log_dir / "model-build-fast.log"
+        log = e.log("model-build-fast")
         extra = ["-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG",
                  "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG"]
-        _seed_from_canonical(canonical, build_dir)
     else:
-        build_dir, log, extra = canonical, e.log_dir / "model-build.log", []
+        build_dir, log, extra = e.build_dir, e.log("model-build"), []
+
+    # Before the log is opened, so that a refused build cannot truncate the log of the
+    # run it was refused in favour of.
+    lock = env.build_lock(build_dir)
+    _seed_tree(e, build_dir)
+    if args.background:
+        return _detach(args, log, lock)
 
     e.log_dir.mkdir(parents=True, exist_ok=True)
     version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
@@ -143,6 +166,7 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
     print(f"== log: {log}", flush=True)
     with log.open("w", encoding="utf-8") as handle:
         handle.write(f"== sail: {version.stdout.strip()}\n")
+        handle.write(f"== lane: {e.lane or 'primary'} in {build_dir}\n")
         handle.write(f"== host: {e.cpus} cpu, {e.mem_available_mb} MB available; "
                      f"build -j{e.jobs}, ctest -j{e.test_jobs}\n")
         handle.flush()
@@ -168,32 +192,168 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
     return code
 
 
-def _seed_from_canonical(canonical: Path, fast: Path) -> None:
-    """Seed the fast tree from the canonical one so its first configure pays neither
-    cost twice.
+def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
+    """Re-run this build as a detached child and hand it the lane's lock.
+
+    The lock travels by inheritance rather than by being taken twice. `flock` belongs to
+    the open file description, and `pass_fds` keeps the parent's descriptor open across
+    the exec, so the child holds the same lock without knowing it does and the kernel
+    gives it back when the child exits. `BUILD_LOCK_HELD` is what tells the child not to
+    take a second one on a descriptor of its own, which would fail against the first.
+
+    The log is removed before the child starts, so that a `wait` racing the child's
+    first write cannot read the previous run's `ALL_DONE` and call this run finished.
+    Nothing else deletes it: the child recreates it, and `wait` blocks on the lock
+    before it looks at the log at all.
+    """
+    argv = [sys.executable, str(Path(__file__).resolve()), "build"]
+    if args.fast:
+        argv.append("--fast")
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.unlink(missing_ok=True)
+    child = subprocess.Popen(
+        argv, start_new_session=True,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        pass_fds=() if lock is None else (lock.fileno(),),
+        env={**os.environ, env.BUILD_LOCK_HELD: "1"})
+    if lock is not None:
+        env.record_lock_holder(lock, child.pid)
+    print(f"== background: pid {child.pid}")
+    print(f"== log: {log}")
+    print(f"== wait: model.py wait{' --fast' if args.fast else ''}")
+    return 0
+
+
+def _seed_tree(e: env.Environment, target: Path) -> None:
+    """Give a build tree that does not exist yet the warm state of one that does, so
+    that standing a lane up costs neither of the two things a cold tree pays for twice.
 
     The pre-downloaded test ELFs would otherwise re-download the tarball. The Sail SMT
     memo cache matters more: a cold cache re-discharges every Z3 obligation and turns
-    the ~2 min emission into ~25 min (measured once). Content-keying makes a stale copy
-    cost misses and nothing worse, but only within one distribution and one solver: the
-    key is the obligation, not the prover that discharged it, so a cache carried across
-    either boundary hands the pinned solver another solver's answers to read back as its
-    own. That is the silent difference `env._prepend_z3_path` exists to announce, and
-    across either boundary the ~25 min of a cold rebuild is the price of a baseline that
-    is wholly this toolchain's.
+    the ~2 min emission into ~25 min (measured once). Standing a lane up is 237.7 s
+    seeded, which is what makes a lane cheap enough to be worth having.
     """
-    for source, target in ((canonical / "model" / "sail_smt_cache",
-                            fast / "model" / "sail_smt_cache"),):
-        if source.exists() and not target.exists():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-    tests = canonical / "test"
-    if tests.is_dir():
-        for downloaded in tests.iterdir():
-            target = fast / "test" / downloaded.name
-            if downloaded.is_dir() and not target.exists():
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(downloaded, target)
+    # This lane's canonical tree first and the primary worktree's second: the fast tree
+    # wants the lane it belongs to, and a lane's own first build has only the primary to
+    # ask. On the primary worktree the two are the same path, which `!=` removes.
+    donors = [d for d in (e.build_dir, e.primary_build_dir) if d != target and d.is_dir()]
+    _seed_smt_cache(donors, target)
+    _seed_test_data(donors, target)
+
+
+def _seed_smt_cache(donors: list[Path], target: Path) -> None:
+    """Copy a warm memo cache into a tree that has none, and never share one. This is
+    the whole of the I2 finding, and it is a property of the pinned compiler rather
+    than a preference.
+
+    Sail's cache is one flat file of fixed records, a 16-byte digest of the SMT query
+    and one byte of verdict, read whole into a map at startup by `load_digests` and
+    rewritten whole from that map at exit by `save_digests` (libsail 0.20.2,
+    `constraint.ml`). There is no lock, no atomic rename, and `open_out_bin` truncates
+    in place. A tree's cache here measures 1,418,412 bytes, which is 83,436 records
+    with no remainder.
+
+    Three things follow, and each alone is enough to refuse a shared path. Concurrent
+    runs do not *merge*: each writes back what it loaded plus what it learned, so the
+    later writer's file is missing everything the earlier one learned during the
+    overlap, and that is worst exactly when the cache is cold and the learning is
+    largest. A reader arriving mid-rewrite sees a prefix, or sees one byte out of the
+    verdict range and takes the invalid path, which empties both maps and then replaces
+    the shared file with only this run's own entries: measured, one such byte destroyed
+    77,260 of 83,436 records and Sail still exited 0. And two writers interleave at
+    whatever offset each buffer flushed; records are 17 bytes and OCaml flushes at
+    65,536, which is 1 modulo 17, so the sixteenth boundary falls exactly on a verdict
+    byte and leaves one run's genuine digest carrying another run's answer to a
+    different obligation.
+
+    Content-keying then makes a stale *copy* cost misses and nothing worse, but only
+    within one distribution and one solver: the key is the obligation, not the prover
+    that discharged it, so a cache carried across either boundary hands the pinned
+    solver another solver's answers to read back as its own. That is the silent
+    difference `env._prepend_z3_path` exists to announce. Both donors are this
+    machine's, so neither boundary is crossed, and a copy has one writer.
+    """
+    cache = target / "model" / "sail_smt_cache"
+    if cache.exists():
+        return
+    for donor in donors:
+        source = donor / "model" / "sail_smt_cache"
+        if source.exists():
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, cache)
+            return
+
+
+def _seed_test_data(donors: list[Path], target: Path) -> None:
+    """Copy the downloaded riscv-tests and nothing else.
+
+    The suite is recognized by holding a `riscv-tests` directory, which is the same
+    thing `sweep` and `trace-diff` glob for, rather than by being any directory under
+    `test/`: the rest of what is there is cmake's and ninja's, and a fresh tree that
+    finds a previous tree's `CMakeFiles` under it is being configured against a state
+    it did not produce.
+    """
+    for donor in donors:
+        for suite in sorted(donor.glob("test/*/riscv-tests")):
+            into = target / "test" / suite.parent.name
+            if not into.exists():
+                into.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(suite.parent, into)
+
+
+def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
+    """Wait for this lane's build to finish, then report what it decided.
+
+    The wait is on the lane's lock rather than on the log, because the lock is released
+    by the kernel when the builder exits however it exits, where a marker is only
+    written by a build that got as far as writing one. The log is read afterwards, and
+    is what carries the verdict.
+    """
+    log = e.log("model-build-fast" if args.fast else "model-build")
+    env.wait_for_build(e.fast_build_dir if args.fast else e.build_dir)
+    return _report_build(log)
+
+
+def _report_build(log: Path) -> int:
+    """Read a finished build's log back as a verdict.
+
+    The exit code is the last stage's, because `cmd_build` stops at the first stage that
+    fails: a run with no `ALL_DONE` is one that was killed or is still starting, and it
+    is a finding rather than a silence, because the caller asked what the build decided
+    and there is no answer to give.
+    """
+    if not log.is_file():
+        print(f"no build log at {log}: nothing has built in this lane", file=sys.stderr)
+        return 1
+    lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+    exits = [int(found.group(1)) for line in lines if (found := STAGE_EXIT.match(line))]
+    for line in lines:
+        if line.startswith(("== ", "STAGE ")) or STAGE_EXIT.match(line):
+            print(line)
+    if not lines or lines[-1] != "ALL_DONE":
+        print(f"{log} carries no ALL_DONE: the build it records did not finish",
+              file=sys.stderr)
+        return 1
+    return exits[-1] if exits else 1
+
+
+def cmd_lane(e: env.Environment, args: argparse.Namespace) -> int:
+    """Say where this checkout builds, and whether anything is building there.
+
+    One command, because the failure this exists to end is a checkout reading a
+    simulator some other checkout generated, and the way that is caught is by being able
+    to ask which tree this one is talking about.
+    """
+    holder = env.build_holder(e.build_dir)
+    print(f"lane             {e.lane or 'primary (this checkout is not a linked worktree)'}")
+    print(f"checkout         {e.root}")
+    print(f"build tree       {e.build_dir}")
+    print(f"fast tree        {e.fast_build_dir}")
+    print(f"typecheck cache  {e.typecheck_cache}")
+    print(f"oracle tree      {e.oracle_root} (shared by every lane)")
+    print(f"build log        {e.log('model-build')}")
+    print(f"building now     {f'yes, pid {holder}' if holder else 'no'}")
+    return 0
 
 
 def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
@@ -221,7 +381,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
     tree = e.oracle_root
     e.log_dir.mkdir(parents=True, exist_ok=True)
-    log = e.log_dir / "oracle-build.log"
+    log = e.log("oracle-build")
     version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
 
     print(f"== log: {log}", flush=True)
@@ -742,7 +902,16 @@ def main(argv: list[str] | None = None) -> int:
     build = sub.add_parser("build", help="configure, build, and run the bundled suite")
     build.add_argument("--fast", action="store_true",
                        help="the iterate profile: the canonical build without -g")
+    build.add_argument("--background", action="store_true",
+                       help="detach the run and return; wait on it with `model.py wait`")
     build.set_defaults(run=cmd_build)
+
+    wait = sub.add_parser("wait", help="wait for this lane's build, then report it")
+    wait.add_argument("--fast", action="store_true", help="the iterate profile's build")
+    wait.set_defaults(run=cmd_wait)
+
+    sub.add_parser("lane", help="where this checkout builds, and what is building there"
+                   ).set_defaults(run=cmd_lane)
 
     oracle = sub.add_parser("oracle",
                             help="build the M0.4 capability oracle and run its suite")

@@ -8,7 +8,7 @@ The single thing here that outlives a build is the keepalive, and it is a bounde
 background process rather than a line in that global file for exactly the same reason:
 it buys the effect this repository needs, scoped to the work, and expires on its own.
 
-Four invariants every loop needs, and used to carry its own copy of:
+Five invariants every loop needs, and used to carry its own copy of:
 
   1. Sail's C++ emission overflows the default 8 MB stack on the full model (the M0.3
      finding, twice reproduced). The limit is raised here, in the parent, and every
@@ -21,18 +21,28 @@ Four invariants every loop needs, and used to carry its own copy of:
   4. Where the repository and the build trees are. Both are derived from this file's
      own location, which is the one thing a module always knows, so a checkout
      anywhere else, or by anyone else, builds the tree it is actually in.
+  5. Which *lane* those trees belong to. One toolchain serves as many checkouts as
+     there are worktrees, and everything downstream of a build reads the simulator
+     back out of the build tree, so a tree two checkouts share is a checkout reading
+     the other one's answers. `_lane` derives the lane from the checkout, and
+     `build_lock` holds it for one build at a time.
 
 What the numbers say (measured 2026-08-18, 12-core Snapdragon X Elite, 31.6 GB host,
 WSL2 default allocation of 12 CPUs and 15.7 GB). Cores are already fully exposed; the
 guest sees all 12. Raising the CPU count is therefore not available, and would not help
 if it were, because the build's critical path is two strictly single-threaded stages
-back to back: the Sail C++ emission (107 s warm) followed by the one generated
-translation unit it produces (13.3 MB, 423,101 lines, 150 s wall and 136 s CPU at -O2
--g when compiled alone). That is a ~4.3 min floor no amount of parallelism reduces.
-Memory is not binding either: the heaviest single compile peaks at 1.43 GB against
-15.7 GB available. The source tree's residence on /mnt/c was tested and rejected as a
-suspect: it is 1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm versus
-an ext4 copy. The build tree already lives on ext4 under /root/build.
+back to back: the Sail C++ emission followed by the one generated translation unit it
+produces. Both figures move as the curation deletes surface, so both are dated. At the
+C-class freeze the emission is 41.2 s against a warm memo cache and the unit is
+10,539,981 bytes over 336,909 lines, compiling alone at -O2 -g in 139.1 s wall and
+115 s CPU with a 1.02 GB peak; that wall figure was taken with a sibling lane building
+and the compile held only 83% of a core, so it is an upper bound rather than a clean
+one. Against the 13.3 MB, 423,101-line, 150 s unit recorded at M0.3 the direction is
+what matters: the floor is roughly 3 min and it is falling, and no amount of
+parallelism reduces it. Memory is not binding: the heaviest single compile is that
+unit. The source tree's residence on /mnt/c was tested and rejected as a suspect: it is
+1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm versus an ext4 copy.
+The build tree already lives on ext4 under /root/build.
 """
 
 import contextlib
@@ -43,12 +53,22 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import IO, Protocol, runtime_checkable
 
 # The OCaml native stack Sail's emission needs, in bytes (the shell loops spelled it
 # `ulimit -s 131072`, which is the same number in kilobytes).
 STACK_BYTES = 131072 * 1024
+
+# The canonical build tree's name, written here because two things need it: the lane's
+# own tree is named for it, and a new lane is seeded from the primary worktree's, which
+# is that name under the build root rather than under a lane.
+MODEL_TREE = "verifiedos-model"
+
+# Set by `model.py build --background` on the child it detaches, which inherits the
+# lock the parent already took rather than taking a second one. Internal, and named
+# rather than spelled at both ends.
+BUILD_LOCK_HELD = "VOS_BUILD_LOCK_HELD"
 
 # `/tmp` and not a private directory, deliberately: the lease is one per distribution
 # rather than one per user, and a second tool has to find the first one's pidfile to
@@ -82,6 +102,45 @@ def _env_path(name: str, default: Path) -> Path:
     return Path(os.environ[name]) if os.environ.get(name) else default
 
 
+def _lane(root: Path) -> str:
+    """Which build lane this checkout owns, empty for the primary worktree.
+
+    Four things collide when two checkouts drive one toolchain: the build tree, the
+    log, the SMT memo cache, and the simulator every later loop reads back out of the
+    build tree. The first is loud, cmake refusing outright to point an existing cache
+    at a second source directory; the fourth is silent, and is the one that matters,
+    because `sweep`, `corpus`, `trace-diff`, `devicetree` and `reference` all read
+    `build_dir/c_emulator/sail_riscv_sim` and none of them can tell whose model it was
+    generated from. A lane per checkout is what makes those answers this checkout's.
+
+    A linked worktree is recognized by `.git` being a *file* whose `gitdir:` names a
+    directory under the primary checkout's `.git/worktrees/`, and the lane is the last
+    component of it, which is git's own name for the worktree and unique within the
+    repository by construction. A submodule's `.git` is a file too and points into
+    `.git/modules/` instead, which is why the test names the parent component rather
+    than merely the file type. An absent `.git`, an exported tree, and the container
+    lanes all answer the primary, which is the state every path here already assumed.
+
+    The pointer is written with forward slashes by git on Windows and read here on
+    both lanes, so it is parsed as a pure posix path after the other separator is
+    normalized out rather than as this platform's `Path`.
+    """
+    override = os.environ.get("VOS_LANE")
+    if override is not None:
+        return override.strip().lower()
+    dot_git = root / ".git"
+    if not dot_git.is_file():
+        return ""
+    try:
+        pointer = dot_git.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+    if not pointer.startswith("gitdir:"):
+        return ""
+    admin = PurePosixPath(pointer.removeprefix("gitdir:").strip().replace("\\", "/"))
+    return admin.name.lower() if admin.parent.name == "worktrees" else ""
+
+
 @dataclass
 class Environment:
     """Where everything is, how much of the machine there is, and how much to use."""
@@ -89,7 +148,8 @@ class Environment:
     root: Path
     model: Path
     build_root: Path
-    log_dir: Path
+    log_root: Path
+    lane: str
     cpus: int
     mem_available_mb: int
     jobs: int
@@ -97,28 +157,73 @@ class Environment:
     ccache: list[str] = field(default_factory=list)
 
     @property
+    def lane_root(self) -> Path:
+        """Where this checkout's build trees live.
+
+        The primary worktree keeps the paths it has always had and a linked one gets a
+        directory of its own, so everything a lane knows sits under one path and a lane
+        is retired by deleting it. The primary is deliberately not moved into a lane
+        directory of its own: it is the tree that already exists, and renaming it would
+        spend a cold rebuild on the day this landed to buy nothing but symmetry.
+        """
+        return self.build_root if not self.lane else self.build_root / f"lane-{self.lane}"
+
+    @property
+    def primary_build_dir(self) -> Path:
+        """The primary worktree's canonical tree, which is where a lane standing up for
+        the first time copies its warm state from. Equal to `build_dir` on the primary
+        worktree, which is what makes a donor list that names both safe to write."""
+        return self.build_root / MODEL_TREE
+
+    @property
     def build_dir(self) -> Path:
         """The canonical build tree. Three loops named it and each spelled the path out,
         which is one fact in three places; it is spelled here."""
-        return _env_path("VOS_BUILD_DIR", self.build_root / "verifiedos-model")
+        return _env_path("VOS_BUILD_DIR", self.lane_root / MODEL_TREE)
 
     @property
     def fast_build_dir(self) -> Path:
-        return self.build_root / "verifiedos-model-fast"
+        return self.lane_root / f"{MODEL_TREE}-fast"
 
     @property
     def typecheck_cache(self) -> Path:
-        return self.build_root / "verifiedos-typecheck-smt-cache"
+        """Per lane, and not per machine, because Sail's memo cache is one file that
+        every run rewrites whole: see `model.py`'s `_seed_smt_cache` for what two
+        writers of it do to each other."""
+        return self.lane_root / "verifiedos-typecheck-smt-cache"
 
     @property
     def simulator(self) -> Path:
         return self.build_dir / "c_emulator" / "sail_riscv_sim"
 
     @property
+    def log_dir(self) -> Path:
+        """One directory for every lane's logs, because a human reading them wants them
+        in one place; it is the file name that carries the lane. See `log`."""
+        return self.log_root
+
+    def log(self, name: str) -> Path:
+        """Where a named loop's log goes in this lane.
+
+        A build opens its log with `w`, so two lanes sharing one path means the second
+        truncates the first's while the first is still writing into it, and a caller
+        waiting on `ALL_DONE` reads the other lane's marker. The lane is in the file
+        name rather than in a directory of its own so that the primary worktree's log
+        keeps the path every earlier run wrote to.
+        """
+        return self.log_root / (f"{name}.log" if not self.lane else f"{name}-{self.lane}.log")
+
+    @property
     def oracle_root(self) -> Path:
         """The tree the M0.4 oracle is built in. Named separately from the binary
         because `VOS_ORACLE` may point at a simulator built anywhere, and the tree it
-        came from is then no longer derivable from it."""
+        came from is then no longer derivable from it.
+
+        Shared by every lane rather than one per lane, and it is the only build tree
+        that is: the oracle is stock `sail-cheri-riscv` at a pinned commit, so every
+        checkout of this repository would build the same bytes from it, and none of
+        this repository's own curation reaches it.
+        """
         return _env_path("VOS_ORACLE_ROOT", self.build_root / ORACLE_TREE)
 
     @property
@@ -154,10 +259,11 @@ def _jobs(cpus: int, mem_mb: int) -> int:
 
     The memory guard does not bind on a default-sized VM and exists so that it would
     bind on a shrunken one. Sized from measurement rather than a rule of thumb: the
-    generated model unit peaks at 1.43 GB and is the only large one, so reserve 2 GB for
-    it outright and budget a slim 512 MB for each other concurrent job. At 15.7 GB
-    available this yields 24 and the guard is inert; under a 4 GB cap it yields 4 and
-    prevents the thrash.
+    generated model unit is the only large one and its peak is a bit over 1 GB, which
+    the module docstring measures and this reserve deliberately sits above, so reserve
+    2 GB for it outright and budget a slim 512 MB for each other concurrent job. At
+    15.7 GB available this yields 24 and the guard is inert; under a 4 GB cap it yields
+    4 and prevents the thrash.
     """
     if os.environ.get("VOS_JOBS"):
         return int(os.environ["VOS_JOBS"])
@@ -171,10 +277,30 @@ def _ccache_args() -> list[str]:
     """Opt-in and absent by default: this stays empty unless ccache is installed, so
     loading this module changes nothing until `apt install ccache` is run.
 
-    The win it buys is specific. 366 of the 367 units are third-party and do not change
-    across a deletion batch, yet the canonical and fast build trees each compile all of
-    them from scratch, and so does any fresh build directory. A shared cache makes the
-    second tree's 366 free.
+    **What the shared cache buys, measured rather than assumed (I4).** ccache hashes the
+    command line along with the source, so the six cases separate like this, each run
+    against a private cache directory:
+
+        the very same command again          HIT
+        -g dropped (the --fast profile)      miss
+        same flags, other -I directory       miss
+        byte-identical source, other path    miss
+        mtime touched, bytes unchanged       HIT
+
+    Two of those decide the shape of the win. The last one is the one this cache is
+    worth having for: an emission that reproduces the C++ it produced last time is a
+    direct hit, so a regeneration costs a cache lookup instead of the compile. The two
+    in the middle say what the cache does *not* reach: `CCACHE_DIR` is shared by every
+    build tree, but the fast tree differs from the canonical one by `-g` and a second
+    worktree differs by every `-I`, so neither shares a single entry with the other. At
+    scale, a lane's first 367-unit build against a cache holding another lane's 939
+    entries took 367 misses and no hits at all. The cache pays back within one tree and
+    one build type, which is a narrower claim than the one this docstring used to make.
+
+    `CCACHE_BASEDIR` is the lever that would make lanes share, and it is deliberately
+    not pulled: it rewrites absolute paths before hashing, so the object a second lane
+    gets back carries the first lane's directory in its debug info. That is not a wrong
+    program but it is a wrong artifact, and the standard below applies to it.
 
     Deliberately no CCACHE_SLOPPINESS. The loose settings trade a correctness margin for
     hit rate, and a false hit in a build whose output is a verification oracle is not a
@@ -281,7 +407,8 @@ def load() -> Environment:
         # process exits, and Ubuntu clears /tmp on the restart. A lease that dies with
         # the distribution holding it is correct; the log of a fifteen-minute build,
         # started and left, has to be there when its caller comes back to read it.
-        log_dir=_env_path("VOS_LOG_DIR", Path("/root/logs")),
+        log_root=_env_path("VOS_LOG_DIR", Path("/root/logs")),
+        lane=_lane(root),
         cpus=cpus,
         mem_available_mb=mem,
         jobs=_jobs(cpus, mem),
@@ -290,6 +417,114 @@ def load() -> Environment:
         test_jobs=int(os.environ.get("VOS_TEST_JOBS", cpus)),
         ccache=_ccache_args(),
     )
+
+
+def _lock_path(build_dir: Path) -> Path:
+    """Beside the tree rather than inside it, because the lock has to exist before the
+    first build creates the tree and has to survive the `rm -rf` that retires it."""
+    return build_dir.parent / f"{build_dir.name}.lock"
+
+
+def _flock(handle: IO[str], *, blocking: bool) -> bool:
+    """Take an exclusive lock on an open file, or say that it is held.
+
+    POSIX-only, and this module is read on the host as well as run in the guest, so
+    the import is deferred for the reason `_raise_stack_limit`'s is. `flock` belongs to
+    the open file description rather than to the process, which is what lets a detached
+    build hold a lock its launcher took: see `build_lock`.
+    """
+    import fcntl  # noqa: PLC0415
+    flags = fcntl.LOCK_EX if blocking else fcntl.LOCK_EX | fcntl.LOCK_NB
+    try:
+        fcntl.flock(handle.fileno(), flags)
+    except OSError:
+        return False
+    return True
+
+
+def _unlock(handle: IO[str]) -> None:
+    import fcntl  # noqa: PLC0415
+    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _open_lock(build_dir: Path) -> IO[str]:
+    path = _lock_path(build_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path.open("a+", encoding="utf-8")
+
+
+def build_lock(build_dir: Path) -> IO[str] | None:
+    """Hold one lane's build tree for the life of this process, or refuse.
+
+    Two builds in one tree is not slow, it is wrong: ninja writes one set of objects
+    and cmake one cache, so the loser's emission lands in the winner's tree and the
+    simulator that comes out belongs to neither run. The lock is what makes the plan's
+    `Parallel` mark mean a lane rather than merely a second terminal.
+
+    `flock` is used rather than a pidfile because it is released by the kernel when the
+    holder's last descriptor closes: a build killed mid-run leaves no lock to break,
+    and there is no liveness test to get wrong. The pid is written into the file all the
+    same, so that the refusal can name who holds it rather than only that somebody does.
+
+    The caller must keep the returned handle bound for as long as it means to hold the
+    tree; dropping it closes the descriptor and releases the lock. `None` means the lock
+    is already held on a descriptor this process inherited, which is the detached case.
+    """
+    if os.environ.get(BUILD_LOCK_HELD):
+        return None
+    handle = _open_lock(build_dir)
+    if not _flock(handle, blocking=False):
+        handle.seek(0)
+        holder = handle.read().strip() or "unknown"
+        handle.close()
+        raise SystemExit(f"a build already holds {build_dir} (pid {holder}); wait on it "
+                         f"with `model.py wait`, or build in a worktree of your own")
+    record_lock_holder(handle, os.getpid())
+    return handle
+
+
+def record_lock_holder(handle: IO[str], pid: int) -> None:
+    """Name the process the lock is being held for, which in the detached case is not
+    the process that took it."""
+    handle.seek(0)
+    handle.truncate()
+    handle.write(f"{pid}\n")
+    handle.flush()
+
+
+def build_holder(build_dir: Path) -> str | None:
+    """Who is building in this tree, or `None` if nobody is.
+
+    Asked without blocking and answered without disturbing anything: the probe takes
+    the lock only to learn that it could, and gives it back in the same breath.
+    """
+    if not _lock_path(build_dir).exists():
+        return None
+    with _open_lock(build_dir) as handle:
+        if _flock(handle, blocking=False):
+            _unlock(handle)
+            return None
+        handle.seek(0)
+        return handle.read().strip() or "unknown"
+
+
+def wait_for_build(build_dir: Path) -> None:
+    """Block until this lane's build tree is free again.
+
+    A build holds its lane's lock for exactly as long as it runs, so waiting for the
+    lock is waiting for the build: `flock` blocks in the kernel and returns the moment
+    the holder's last descriptor closes, which happens whether the build finished or
+    was killed. There is no interval to guess, no marker to poll, and a build that died
+    without writing `ALL_DONE` ends the wait rather than hanging it.
+
+    The lock is given back before this returns, so that a build queued behind the wait
+    is not held off by the log-reading the caller does next.
+    """
+    if not _lock_path(build_dir).exists():
+        return
+    with _open_lock(build_dir) as handle:
+        _flock(handle, blocking=True)
+        _unlock(handle)
 
 
 @runtime_checkable
