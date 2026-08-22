@@ -1559,8 +1559,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: at one advance per microsecond the epoch does not wrap in 5 × 10⁵ years, so wrap is not a reachable state and no reuse semantics are owed; reset is not a wrap, since the R-15-182 eager zeroize leaves no capability alive to be misread under a restarted counter. The reuse gate is the R-08-008 quarantine seen from the reuse side, and it is what makes the address key sound for R-08-004a's subtree case: a grant slot cannot be re-minted into while a stale handle bounded to it might still be loadable. The quarantine pool is composition-sized, so the set-to-reuse interval is a derived constant. The gate is a sweep and not a generation compare, on R-08-004b's ground: a generation discriminates only if the handle carries it and no field exists to carry it in, while a generation carried out of band as an integer presented at invocation is a bearer token a stale holder can guess, which is the forgery the capability substrate exists to remove. There is no colour space to exhaust and no retirement set to bound under R-08-004b; the grant-slot count that stands in its place exhausts as a capacity under R-08-004c, not as a namespace.
 · Trace: CJ-CERISE, CJ-WCET
 
-**R-08-008** MUST: Forced-sweep denial of service is priced out structurally: revocation is triggered only by kernel-mediated teardown, so a compartment that churns grants forces sweeps only of its own footprint, paid from its own and the sweeper's fixed slots.
-· Accept: the cost of queued sweeps is delayed reclamation of the *requester's* quarantined memory, bounded by the composition-sized quarantine pool, never schedule perturbation of any hard task.
+**R-08-008** MUST: Forced-sweep denial of service is priced out structurally: revocation is triggered only by kernel-mediated teardown (grant expiry, session close, restart, and the R-08-043a user retraction), so a compartment that churns grants forces sweeps only of its own footprint, paid from its own and the sweeper's fixed slots.
+· Accept: the cost of queued sweeps is delayed reclamation of the *requester's* quarantined memory, bounded by the composition-sized quarantine pool, never schedule perturbation of any hard task; retraction is the one trigger whose submitter need not hold the grant, so this entry does not price it and R-08-043f does.
 · Trace: CJ-WCET, CJ-ISOL
 
 **R-08-009** MUST NOT: The autonomous background engines a CHERI microcontroller ships for this purpose (CHERIoT-Ibex TBRE revocation-sweep and STKZ stack-zeroing) are declined as autonomous memory-touching walkers under admission test 5; only the deterministic load filter is imported and the sweep stays software.
@@ -1675,7 +1675,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-MEMPLAN, CJ-WCET
 
 **R-08-046** MUST: Every resource whose backing storage is static but whose occupancy varies at runtime is a declared bounded pool, its manifest entry stating the owning compartment, element type and fixed capacity, the derivation source of its contents (the typed key, image object, or interface whose value determines them), bind and release authority, the binding and release state machine over the monotone member lifecycle (Free → Bound → Quiescing → Revoked → Sweeping → Reusable), low and exhausted thresholds, the maximum time from release request to Reusable, the exhaustion action, any recovery reserve, the confidentiality label of occupancy and telemetry, and restart and generation-migration semantics.
-· Accept: this register carries the inventory of every runtime-varying pool: origin compartments, connection and session slots, grant slots, quarantine entries, protocol control blocks, interpreter object arenas, device descriptors, ring entries, checkpoint transaction slots, storage epochs, and sentinel event records; an unclassified counter, bitmap, free list, arena, queue, or table that can influence admission or forward progress is a review-gate finding.
+· Accept: this register carries the inventory of every runtime-varying pool: origin compartments, connection and session slots, grant slots, consent records, quarantine entries, protocol control blocks, interpreter object arenas, device descriptors, ring entries, checkpoint transaction slots, storage epochs, and sentinel event records; an unclassified counter, bitmap, free list, arena, queue, or table that can influence admission or forward progress is a review-gate finding.
 · Trace: CJ-MEMPLAN
 
 **R-08-047** MUST: A request to bind a member of a full pool returns a typed `CapacityExhausted(pool)` verdict, relevance-graded under R-05-097's discipline: it cannot be dropped, converted into an implicit wait, or answered by borrowing from another pool.
@@ -1702,7 +1702,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-NI
 
 **R-08-025** MUST: A user grant is modeled as a delimited release the theorem quantifies over, and the theorem's content is robust declassification: over *all* strategies of a compromised component, none can influence whether, what, or to whom the powerbox declassifies.
-· Accept: that decision depends only on the unforgeable consent act and the powerbox's verified logic.
+· Accept: that decision depends only on the unforgeable consent act and the powerbox's verified logic, and for the R-08-037 persistent scope additionally on the freshness of the R-08-037a record store, a premise R-10-013e discharges by refusing a record that cannot be proved fresh and R-17-009a books.
 · Trace: CJ-NI
 
 **R-08-026** MUST: The only permitted extension is a powerbox grant CHERI-bounded to the user-named object, so the granted channel carries that object alone and is no general H→L conduit.
@@ -1765,13 +1765,43 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: dynamic grants flow through the powerbox, not permission dialogs.
 · Trace: CJ-NI
 
-**R-08-036** MUST: A grant is an authenticated user act over the trusted consent path: a fresh selection of a specific object, on which the powerbox mints a capability CHERI-bounded to that object alone.
-· Accept: no grant is minted without a witnessed consent act (R-06-017).
+**R-08-036** MUST: A grant is an authenticated user act over the trusted consent path selecting a specific object, on which the powerbox mints a capability CHERI-bounded to that object alone; whether that act is contemporaneous with the use it authorizes is the R-08-037 temporal scope's property and not a property of every mint.
+· Accept: no grant is minted without a witnessed consent act (R-06-017), and R-06-017's two clauses are mint-on-witness and bound-to-the-named-object, neither of which requires the act to be contemporaneous, so the persistent scope is inside this entry rather than in contradiction with it.
 · Trace: CJ-NI, CJ-CERISE
 
-**R-08-037** IS: A grant carries a temporal scope (one-shot, while-active, or persistent) enforced by the same first-class revocation, so *only this time* and *while using the app* are the capability model expressing itself, not a separate permission subsystem.
+**R-08-037** IS: A grant carries a temporal scope (one-shot, valid for a single use; while-active, bounded by a trusted-expiring lease; or persistent, valid across the app's own sessions and across the power cycle on the R-08-037a consent record) enforced by the same first-class revocation, so *only this time* and *while using the app* are the capability model expressing itself, not a separate permission subsystem.
 · Accept: no permission subsystem exists beside the capability model.
+· Accept: the persistent scope outlives the boot only through a record carrying no authority, so R-10-037's prohibition stands and storage originates a decision at that one enumerated point and authority at none.
 · Trace: CJ-CERISE
+
+**R-08-037a** MUST: The durable representation of the persistent scope is a consent record: a typed, schema-bounded value naming the issuing confidentiality domain, the grantee's package identity, the object identity, the rights the grant attenuates to, the resource class, and the revocation epoch and image generation at issue; it carries no capability and no validity tag.
+· Accept: R-10-005b holds unchanged, no authority being written into storage, and the record is a name the powerbox reads rather than an authority a restore returns.
+· Trace: CJ-NI, CJ-CERISE
+
+**R-08-037b** MUST: A stored record never produces authority: after a profile unlock the powerbox mints the capability on the grantee's first request for the named object by attenuating authority it already holds, which is R-08-036's operation with a recorded rather than a live witness.
+· Accept: storage originates a decision at this one point and authority at none, so no read undoes a revocation and no restore returns an authority the powerbox does not independently hold.
+· Trace: CJ-NI, CJ-CERISE
+
+**R-08-037c** MUST: A consent record produces no live capability, binds no ring, opens no DMA window, and enables no peripheral until the grantee requests the object.
+· Accept: R-15-146 survives persistence, a device holding persistent grants being electrically cold at boot and a held-open grant staying physically legible; eager re-mint at unlock is declined as the one construction that would delete that property.
+· Trace: CJ-CERISE
+
+**R-08-037d** MUST: The consent-record store is a `Fresh` region the powerbox declares under R-10-013d together with its commit rate, carried by the durable-state freshness-epoch root R-10-013 already enumerates.
+· Accept: no further conferral is spent, the region riding the R-10-013b class and the R-10-013c epoch root, so R-10-013a's count is unchanged; a rolled-back store is an authenticated replay of superseded consent state, which R-10-013e denies on the read path rather than treating as a lost edit.
+· Trace: CJ-DEVTREE, CJ-NI
+
+**R-08-037e** MUST: A record binds to the grantee's package identity and records the manifest's declared interface set for its resource class at issue; an unchanged declared set carries the record forward across a generation change and a changed one invalidates it, demanding a fresh consent act.
+· Accept: this is R-10-036's schema-and-generation binding applied to consent rather than a second discipline beside it, so an ordinary update carries grants forward and an update widening what the app asks re-asks.
+· Trace: CJ-NI, CJ-DEVTREE
+
+**R-08-037f** MUST: The store is a fixed-capacity per-profile table sized at composition, charged by the R-08-010 static memory plan and declared as an R-08-046 bounded pool; when it is full the trusted-path agent renders the persistent option unavailable and names the store as full, one-shot and while-active remaining.
+· Accept: nothing is evicted, no victim is selected, and nothing is allocated at runtime, so R-08-045 holds and the exhaustion is stated at the prompt rather than taken as a silent downgrade.
+· Fail-closed: a full store declines the persistent scope at the prompt, the cost being a user retraction (R-08-043a) before a new standing grant can be taken; composed at R-17-030u.
+· Trace: CJ-NI, CJ-MEMPLAN
+
+**R-08-037g** MUST: The store is per-profile user data under the profile volume key, so it is unreadable Before First Unlock and no persistent grant is re-mintable in that state.
+· Accept: R-10-032 leaves the Before-First-Unlock state holding no user-data key, so a device not unlocked since boot holds records it cannot read and grants it cannot mint.
+· Trace: CJ-CERISE, CJ-CRYPTO-SPEC
 
 **R-08-038** MUST: While-active is a lease on a trusted clock, not a focus predicate with an untrusted evaluator, and is re-founded on three mechanisms so that the untrusted judgment can only ever *subtract*.
 · Accept: neither obvious repair is taken: focus policy does not migrate into the consent TCB, and the scope does not collapse to one-shot.
@@ -1796,6 +1826,30 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-08-043** IS: What is given up is booked: while-active remains strictly weaker than one-shot, because the ceiling is a bound on exposure, not its absence.
 · Accept: the §17 residual entry exists.
 · Trace: CJ-NI
+
+**R-08-043a** MUST: User-initiated retraction is a fourth revocation trigger beside grant expiry, session close, and restart, retiring a grant on the one mechanism: the kernel sets the R-08-005a revocation bit for the grant slot's granule and the per-load filter kills every stored copy of the handle at its next load.
+· Accept: nothing is stood up beside the epoch, the sweep, and the filter, so R-08-004's requirement that exactly one revocation mechanism appear in the kernel spec and its proof holds.
+· Trace: CJ-CERISE, CJ-NI
+
+**R-08-043b** MUST: Submitting a retraction requires no trusted submitter and no consent-path guarantee, because retraction only subtracts: a compromised submitter reaches denial of service and never a silent retention.
+· Accept: the bound is R-08-039's revoke-only asymmetry applied at the authority edge, and no component joins the R-06-001 trusted set to buy the feature.
+· Trace: CJ-NI
+
+**R-08-043c** MUST: The standing-grant registry is a projection rather than a store: the kernel exposes a read-only enumeration of a profile's live grant slots, and the contained non-TCB grant-review service (R-12-081a) renders it, minting nothing and holding authority for no grant it displays.
+· Accept: no permission subsystem exists beside the capability model, R-08-037's criterion unchanged, the enumeration reading the R-08-004a grant table rather than standing a second record of grants beside it and conferring no authority over any grant it names.
+· Trace: CJ-CERISE, CJ-NI
+
+**R-08-043d** MUST: Because an untrusted renderer can omit a grant from the list it draws, the trusted-path agent renders a fixed-format count of the profile's live standing grants, read from the same enumeration, on every consent prompt it already draws, and offers on a secure-attention invocation one action, the retraction of every standing grant for the profile.
+· Accept: a list showing fewer than the trusted count is a visible discrepancy, so an untrusted renderer is selective but never silent; the trusted action subtracts alone and therefore carries R-08-043b's bound, and no list rendering joins the consent TCB to answer the omission, which is the repair R-08-038 declines in the focus case.
+· Trace: CJ-NI
+
+**R-08-043e** IS: What that costs is a fixed-size decimal render and one binary action inside the trusted-path agent, a component already trusted, and not a new member of the trusted set.
+· Accept: R-06-001's seven-item enumeration is unchanged and the increment is smaller than the R-12-079 reduction the same component already carries; it is booked at R-17-010a rather than absorbed.
+· Trace: CJ-NI
+
+**R-08-043f** IS: Retraction's denial-of-service bound is stated here rather than borrowed from R-08-008, because it is the one trigger whose submitter need not hold the grant: the retractable set decreases monotonically without fresh consent, so a compromised submitter empties it once and thereafter retracts nothing.
+· Accept: the aggressor's total is bounded by the composition-sized grant table and refilled only by user consent acts, and what it spends is delayed reclamation of the retiring principal's quarantined memory, bounded by the quarantine pool, never schedule perturbation of a hard task.
+· Trace: CJ-WCET, CJ-ISOL
 
 **R-08-044** IS: Sandboxing, portals, and container isolation are obviated by construction, not reimplemented.
 · Accept: no such subsystem exists.
@@ -2060,8 +2114,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: R-10-011 is the exclusion and the mutable volume the state it holds out; R-10-013b is the class taken back. An exclusion carried by neither a requirement nor a stated decision is a review-gate finding against R-10-013a, an absence being indistinguishable from an oversight wherever nothing records it.
 · Trace: CJ-DEVTREE
 
-**R-10-013b** IS: The asset-class split under the RoT monotonic counter is three-way and not two: beside the low-rate platform state the counter keeps fresh and the bulk user data whose freshness is surrendered stands durable application state whose staleness is itself the security event, declared `Fresh` and carried by a freshness epoch rather than by the mutable volume's root.
-· Accept: a spent payment record, a revocation or consumed-token list, a one-time operation's completion mark, and an application's own attempt counter are `Fresh` by declaration in a manifest admission prices, never by a per-feature runtime judgment.
+**R-10-013b** IS: The asset-class split under the RoT monotonic counter is three-way and not two: beside the low-rate platform state the counter keeps fresh and the bulk user data whose freshness is surrendered stands durable component state, an application's or a platform compartment's, whose staleness is itself the security event, declared `Fresh` and carried by a freshness epoch rather than by the mutable volume's root.
+· Accept: a spent payment record, a revocation or consumed-token list, a one-time operation's completion mark, an application's own attempt counter, and the powerbox's R-08-037a consent-record store are `Fresh` by declaration in a manifest admission prices, never by a per-feature runtime judgment; the class is fixed by the staleness property and the declaration rather than by whether the owner is an application, R-10-013d's declaration being per compartment.
 · Trace: CJ-DEVTREE
 
 **R-10-013c** MUST: The crypto core computes one root over the version of every `Fresh` region and the RoT advances a reserved counter and seals that root once per sealed epoch, never once per data commit; a `Fresh` write is acknowledged when its epoch seals, and an epoch that does not seal loses its writes rather than presenting them as fresh.
@@ -2196,8 +2250,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET, CJ-DEVTREE
 
 **R-10-037** MUST NOT: A checkpoint never contains execution state, capabilities or tags, keys, DRBG state or nonces, leases, consent grants or powerbox decisions, or connection, session, or device state.
-· Accept: authority is re-derived at restart from the manifest and the current revocation epoch, so no restore resurrects an authority a revocation retired and storage is never a second origin of authority beside composition.
+· Accept: authority is re-derived at restart from the manifest, the current revocation epoch, and for the R-08-037 persistent scope alone an R-08-037a consent record that witnesses a prior act and confers nothing, so no restore resurrects an authority a revocation retired and storage is a second origin of decisions at that one enumerated point and never of authority.
 · Trace: CJ-CERISE, CJ-CRYPTO-SPEC
+
+**R-10-037a** MUST: The R-10-037 prohibition binds checkpoints and capability-bearing state, and the R-08-037a consent-record store is neither: it is no checkpoint region and holds no capability, tag, lease, or decision in force, and is read only by the powerbox as a witness that a consent act occurred.
+· Accept: the two are distinguishable by inspection, a checkpoint restoring execution state and a record restoring nothing and licensing one attenuation the powerbox could perform anyway; the exclusion is recorded here rather than surviving as an absence R-10-013i would find.
+· Trace: CJ-CERISE, CJ-NI
 
 ---
 
@@ -2849,6 +2907,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-12-081** MUST: A consent response is accepted only from a front-end whose ownership the RoT can latch: the on-device register-slave front-ends qualify, and an external USB HID keyboard or pointer does not.
 · Accept: a BadUSB or HID-injection device is not merely confined with respect to consent but unable to express a response; a prompt additionally requiring a credential is gated by the credential service over the fingerprint AFE on the same ownership terms.
 · Trace: CJ-DEVTREE
+
+**R-12-081a** IS: The grant-review service is a contained non-TCB compartment that renders the R-08-043c standing-grant projection and submits user-initiated retractions; it mints nothing, holds no standing cross-caller authority, and holds authority for no grant it displays.
+· Accept: it is the consent path's sibling of the rollback-manager service (R-12-021), trusted for neither the integrity nor the completeness of what it shows, because a compromised renderer reaches omission and denial of service and never a retention (R-08-043b), and the omission is caught by the trusted count rather than by trusting it (R-08-043d).
+· Trace: CJ-CERISE, CJ-NI
 
 **R-12-082** IS: Rendering is software on V-class cores: graphics acceleration is the general-purpose RVV datapath, so the render and compositor servers are the whole of the graphics driver.
 · Accept: there is no GPU driver, no command-stream validator, and no shader-IR compiler in the display path.
@@ -5032,9 +5094,17 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the release is delimited and robust, so the dominant real-world path is inside the proof rather than near-vacuously admitted or left outside it.
 · Trace: CJ-NI
 
+**R-17-009a** IS: The consent ⋈ declassification seam takes one further premise rather than a tenth lemma: with R-08-037a the delimited-release bound depends on the integrity and freshness of the consent-record store where before it depended on the consent path alone, so a stale store is a wrongful declassification by replay and the theorem is only as sound as the epoch seal beneath it.
+· Accept: R-05-160's nine lemmas are unchanged, the premise being discharged by R-10-013e, a mechanism §10 already carries and proves; what is booked is that the bound now reaches into §10, which is a seam to name rather than a residual to accept.
+· Trace: CJ-NI, CJ-DEVTREE
+
 **R-17-010** IS: Cost (1): the consent TCB genuinely grows: the powerbox, the trusted-path agent, and the RoT secure-attention indicator are small and verified but genuinely trusted, against the delete-rather-than-defend grain, accepted for want of a way to gate authority-crossing consent without some trusted mediator.
 · Accept: its input edge is bounded by RoT-latched front-end ownership, so the addition is a fixed threshold-and-centroid reducer plus a latched register rather than a programmable touch DSP, the smallest available closure, but an addition, and one shifting a share of consent-path integrity onto the RoT.
 · Trace: CJ-NI, CJ-DEVTREE
+
+**R-17-010a** IS: The consent TCB takes one further increment, booked rather than absorbed: the R-08-043d grant count and retract-all action are a fixed-size render and one binary action added inside the trusted-path agent, so what grows is a member's surface and not the membership.
+· Accept: it is the smallest answer available to an untrusted renderer's ability to omit, the alternative being a list widget in the trusted set, and it is against the delete-rather-than-defend grain in the same minimal way the agent already is; R-06-001's enumeration is unchanged.
+· Trace: CJ-NI
 
 **R-17-011** IS: The temporal scope of a grant is bounded, not evaluated: *while-active* stays strictly weaker than one-shot, a compromised compositor colluding with a compromised app retaining a sensitive grant up to the ceiling, bounded and physically legible rather than unbounded and silent, but retained.
 · Accept: consistent with R-08-043.
@@ -5067,6 +5137,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-17-013d** IS: No theorem is stated over the model's behavior: it runs off-platform or as data on the inference server, and the claim is bounded authority and attributable action, never sound judgment.
 · Accept: no seam lemma or inventory entry quantifies over model output.
 · Trace: CJ-T
+
+**R-17-013f** IS: *Attributable* means each live grant names its grantee, object, rights, scope, and issuing epoch in the R-08-043c projection, and *auditable* means the standing set is enumerable in bounded time at any moment; neither word asserts a history, and the platform keeps none.
+· Accept: the platform answers *what do I currently hold out* and cannot answer *what did I grant and later retract*, and that absence is a decision rather than an oversight: an append-only consent log would be unbounded growth, a new confidentiality-labeled observation surface, and a second origin of the grant record beside the grant table R-08-043c reads.
+· Trace: CJ-NI
 
 ### 17.4 Proof-gap residuals
 
@@ -5226,7 +5300,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the refusal is retained because every alternative presents a superseded state as current, which is what the class exists to prevent; the member is a denial an adversary provokes without software access, reached from a direction R-17-030n does not cover, and it is bounded to the declared class rather than to the volume.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
-**R-17-030u** IS: Fail-closed seam **pool exhaustion ⋈ the action ladder**: a full bounded pool answers a binding request with the typed exhausted verdict R-08-047 confers and its owner walks the finite pre-certified ladder R-12-087 fixes, R-12-095's full I/O ring the same refusal in its data-plane instance, so a principal that can legitimately fill a pool holds a bounded denial of that pool's service, priced to itself where R-08-008 reaches, while no global reserve, victim search, or emergency allocator exists to move the shortage onto another owner.
+**R-17-030u** IS: Fail-closed seam **pool exhaustion ⋈ the action ladder**: a full bounded pool answers a binding request with the typed exhausted verdict R-08-047 confers and its owner walks the finite pre-certified ladder R-12-087 fixes, R-12-095's full I/O ring the same refusal in its data-plane instance and R-08-037f's full consent-record store the same refusal taken at the prompt rather than at a binding request, so a principal that can legitimately fill a pool holds a bounded denial of that pool's service, priced to itself where R-08-008 reaches, while no global reserve, victim search, or emergency allocator exists to move the shortage onto another owner.
 · Accept: the runtime sibling of R-17-030q's delivery-side member: the shortage is met by a declared per-pool ladder rather than by a machine-wide event, its rate is counted under R-17-030m through R-16-027, and the worst case is availability of the exhausted pool's service, never another label's schedule, memory, or authority.
 · Trace: CJ-MEMPLAN, CJ-VELUS
 
@@ -5237,7 +5311,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.py` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
-· Accept: twenty-nine requirements confer a refusal and seventeen seams collect them, both figures recomputed rather than maintained here.
+· Accept: thirty requirements confer a refusal and seventeen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.py` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -5708,7 +5782,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1318 requirements. §19 is non-normative and yields none. Counts include the 366 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1336 requirements. §19 is non-normative and yields none. Counts include the 384 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5719,16 +5793,16 @@ All eighteen normative sections are extracted, at 1318 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **205** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **60** |
-| **§8 Authority Model** | **extracted** | **73** |
+| **§8 Authority Model** | **extracted** | **86** |
 | **§9 Boot & Root of Trust** | **extracted** | **39** |
-| **§10 Storage & State** | **extracted** | **52** |
+| **§10 Storage & State** | **extracted** | **53** |
 | **§11 Updates** | **extracted** | **37** |
-| **§12 System Servers** | **extracted** | **125** |
+| **§12 System Servers** | **extracted** | **126** |
 | **§13 Packaging & Supply Chain** | **extracted** | **39** |
 | **§14 Userland** | **extracted** | **29** |
 | **§15 Hardware Platform** | **extracted** | **384** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **120** |
+| **§17 Residual Risks** | **extracted** | **123** |
 | **§18 Realization** | **extracted** | **53** |
 
 §19 is non-normative and yields no requirements.
