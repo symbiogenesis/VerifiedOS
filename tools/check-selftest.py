@@ -705,6 +705,14 @@ CASES = [
     # the extraction it is supposed to stand for has gone.
     ("K-62", "a normative section of the prose that the register no longer extracts",
      _literal(REGISTER, "## §18", "## §20")),
+
+    # A digit is changed inside a citation the model argues from, which is the defect
+    # in the form it actually arrives in: nobody invents a requirement id, they
+    # mistype one or carry one across from an upstream that numbered things its own
+    # way. The site is the timing table's own governing citation, so the mutation is
+    # a sentence that still reads as a citation and names nothing.
+    ("K-63", "a model file citing a requirement the register does not declare",
+     _literal("model/model/core/timing.sail", "R-15-095", "R-15-995")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

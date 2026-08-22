@@ -344,6 +344,8 @@ Only an **active** element raises a capability exception, and the check is nonet
 
 These are the entries the timing-annotated Sail model carries, and the projection from which the per-instruction latency table is derived (R-18-024).
 
+The model carries them as one table of operation classes, in [core/timing.sail](../model/model/core/timing.sail), read by a function that takes an operation class and takes no operand, no register, no address, and no prior state: data independence is held by what that reader accepts rather than by a rule about it (R-15-053, R-15-095). Two constants are stated per **core** class rather than once, the eager zeroize and the padded fence, because one kernel binary budgets a partition switch on every class it may run on (R-07-012, R-15-220); the rest are one table because the scalar front end is one shared microarchitecture (R-15-112). **The magnitudes in it are placeholders and the table says so**: they are R-17-041's crown-jewel specification, `Zicntr` and `Zihpm` are implemented in no lifecycle state so nothing on this machine can read a cycle (R-15-077), and development measurement rides the lifecycle-gated Debug Module trace on real RTL. What is not there yet is a total map from each instruction to its class, which is what would make the annotation complete and what flips R-17-041's inventory row.
+
 | Contract | Governing |
 | --- | --- |
 | Integer DIV/REM completes at fixed worst-case latency always; early-out-on-small-operands dividers forbidden | R-15-080 |

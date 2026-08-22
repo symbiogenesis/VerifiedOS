@@ -564,7 +564,67 @@
     // configuration option for this behaviour.
     "max_time_to_wait": 10
   },
-  "extensions": {
+  // The timing annotations (isa-profile.md §9, core/timing.sail). One entry per
+  // operation class the register states a latency contract over, plus the two
+  // partition-switch constants that are per core class because one kernel binary
+  // budgets a switch on every class it may run on (R-07-012, R-15-220).
+  //
+  // **Every number here is a placeholder.** R-17-041 makes the latency
+  // magnitudes a crown-jewel specification and nothing measures one yet: this
+  // profile implements `Zicntr` and `Zihpm` in no lifecycle state, so no counter
+  // exists to read a cycle from, and development measurement rides the
+  // lifecycle-gated Debug Module trace on real RTL (R-15-077). `qualified` is
+  // what says so on the face of the generated devicetree and it stays `false`
+  // until that measurement lands; nothing in the model computes with these, and
+  // the freeze report is barred from carrying a host-timed column beside them.
+  //
+  // The scalar rows are one table because the scalar front end is one shared
+  // microarchitecture across every class, which is what makes kernel-path WCET a
+  // single analysis (R-15-112); the vector rows are this build's, one build
+  // realizing one VLEN. `vector_mem_indexed` is the fully-conflicted bound, every
+  // element resolving to one bank, which is how an access whose observed latency
+  // varies still yields one sound entry (R-15-085a, R-15-085b).
+  "timing": {
+    "operations": {
+      "qualified": false,
+      "integer": 1,
+      "multiply": 3,
+      "divide": 34,
+      "branch": 1,
+      "csr": 1,
+      "load": 1,
+      "store": 1,
+      "atomic": 2,
+      "cap_inspect": 1,
+      "cap_derive": 1,
+      "cap_select": 1,
+      "cap_clear": 1,
+      "cap_load": 1,
+      "cap_store": 1,
+      "load_tags": 2,
+      "reclaim": 16,
+      "block_zero": 2,
+      "block_scrub": 8,
+      "vector_integer": 4,
+      "vector_float": 8,
+      "vector_divide": 40,
+      "vector_mem_unit": 8,
+      "vector_mem_indexed": 32
+    },
+    // `vmclear_cycles` is zero on the vectorless classes and the validator
+    // refuses anything else: the instruction traps there like any unallocated
+    // encoding, so a latency for it would be a cost for something that cannot be
+    // issued (R-15-069d). `fence_t_cycles` is present on every class, the fence
+    // being core surface everywhere and completing at its padded bound rather
+    // than early (R-15-218).
+    "switch": {
+      "c":   { "vmclear_cycles": 64,   "fence_t_cycles": 32 },
+      "v":   { "vmclear_cycles": 1024, "fence_t_cycles": 32 },
+      "m":   { "vmclear_cycles": 2048, "fence_t_cycles": 32 },
+      "s":   { "vmclear_cycles": 0,    "fence_t_cycles": 32 },
+      "rot": { "vmclear_cycles": 0,    "fence_t_cycles": 32 }
+    }
+  },  "extensions": {
     "M": {
       "supported": true
     },
