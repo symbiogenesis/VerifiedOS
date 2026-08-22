@@ -31,9 +31,11 @@ Three kinds are refused, all three for reasons of format rather than of importan
 
 Files under `model/` keep whatever header they arrived with, and a new file authored there takes the upstream BSD-2-Clause header its neighbours carry.
 
-## What licensing decides that is still open
+## What licensing decided, and what it leaves open
 
 Four planned dependencies carry terms that constrain what the composed system may be licensed as, and each is booked in the [implementation plan](docs/implementation-checklist.md) at the milestone that would incorporate it, ahead of the work rather than after it. **Three of the four foreclose options rather than merely complicating them**, and all three were read at their pins rather than inferred from lineage.
+
+**All three are now decided, and the map above is unchanged by any of them.** The compiler provenance and the control-plane compiler are **contained**: each is a build-time producer this repository never redistributes, so neither term reaches anything offered here, and both of the arms not taken stay available. The kernel-specification provenance is **authored instead**: no `GPL-2.0-only` object is translated, because that is the one of the three that would have reached the shipped image, and a derivation once written is not undone by a later decision. What containment costs is recorded at the milestones that spend it rather than here: a toolchain a third party cannot rebuild the image with, which the reproducible-bootstrap story leans on. What Vélus's reciprocal clause recovers is likewise recorded there: a published fork of it is permitted on Inria's own terms, which CompCert's nontransferable grant has no counterpart to.
 
 - **The compiler provenance** is licensed under a non-commercial agreement whose grant is revocable and confined to educational, research, or evaluation purposes. A restriction on field of endeavor is disqualifying under the Open Source Definition, so the instrument is not an open-source license, and it is incompatible with every license under which this repository's own content is offered above.
 - **The control-plane compiler** that lowers the init system is licensed by the same licensor on the same form of instrument, under a **separate grant**. Terms obtained for the first therefore do not extend to it, and it adds a reciprocal distribution clause the first does not carry.
