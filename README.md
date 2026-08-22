@@ -9,37 +9,54 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
 <details>
 <summary><strong>Contents</strong></summary>
 
-- [Design highlights](#design-highlights)
-  - [Bespoke seL4-inspired multikernel](#bespoke-sel4-inspired-multikernel)
-  - [Fixed-latency on-die memory with end-to-end ECC](#fixed-latency-on-die-memory-with-end-to-end-ecc)
-  - [No wasted memory](#no-wasted-memory)
-  - [CHERI in place of the usual protection hardware](#cheri-in-place-of-the-usual-protection-hardware)
-  - [Temporal safety and no uninitialized reads](#temporal-safety-and-no-uninitialized-reads)
-  - [No speculative or out-of-order execution](#no-speculative-or-out-of-order-execution)
-  - [No simultaneous multithreading (SMT)](#no-simultaneous-multithreading-smt)
-  - [Everything on general-purpose verified cores](#everything-on-general-purpose-verified-cores)
-  - [On-die OpenTitan-class root of trust](#on-die-opentitan-class-root-of-trust)
-- [Bug classes removed by construction](#bug-classes-removed-by-construction)
-  - [RISC-V and microarchitectural omissions](#risc-v-and-microarchitectural-omissions)
-  - [CHERI capability tags, bounds, and monotonicity](#cheri-capability-tags-bounds-and-monotonicity)
-  - [CHERIoT-lineage compartments, sentries, and lifetime](#cheriot-lineage-compartments-sentries-and-lifetime)
-  - [Static time partitioning](#static-time-partitioning)
-  - [Mon CHÉRI property, re-homed without a second tag plane](#mon-chéri-property-re-homed-without-a-second-tag-plane)
-  - [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission)
-  - [Verified OS, I/O, storage, and supply-chain construction](#verified-os-io-storage-and-supply-chain-construction)
-  - [Faults the machine detects rather than prevents](#faults-the-machine-detects-rather-than-prevents)
-  - [Obligations discharged elsewhere](#obligations-discharged-elsewhere)
-  - [The proof artifacts themselves](#the-proof-artifacts-themselves)
-  - [What this inventory does not claim](#what-this-inventory-does-not-claim)
-- [Specification](#specification)
-  - [The typed assembly language](#the-typed-assembly-language)
-  - [The atomic-requirements register](#the-atomic-requirements-register)
-  - [Derived views](#derived-views)
-- [License](#license)
+_Expand a section to jump straight to it._
+
+<details>
+<summary>✨ <strong><a href="#design-highlights">Design highlights</a></strong></summary>
+
+- [Bespoke seL4-inspired multikernel](#bespoke-sel4-inspired-multikernel)
+- [Fixed-latency on-die memory with end-to-end ECC](#fixed-latency-on-die-memory-with-end-to-end-ecc)
+- [CHERI in place of the usual protection hardware](#cheri-in-place-of-the-usual-protection-hardware)
+- [Temporal safety and no uninitialized reads](#temporal-safety-and-no-uninitialized-reads)
+- [No speculative or out-of-order execution](#no-speculative-or-out-of-order-execution)
+- [No simultaneous multithreading (SMT)](#no-simultaneous-multithreading-smt)
+- [Everything on general-purpose verified cores](#everything-on-general-purpose-verified-cores)
+- [On-die OpenTitan-class root of trust](#on-die-opentitan-class-root-of-trust)
+- [No wasted memory](#no-wasted-memory)
 
 </details>
 
-## Design highlights
+<details>
+<summary>🧱 <strong><a href="#bug-classes-removed-by-construction">Bug classes removed by construction</a></strong></summary>
+
+- [RISC-V and microarchitectural omissions](#risc-v-and-microarchitectural-omissions)
+- [CHERI capability tags, bounds, and monotonicity](#cheri-capability-tags-bounds-and-monotonicity)
+- [CHERIoT-lineage compartments, sentries, and lifetime](#cheriot-lineage-compartments-sentries-and-lifetime)
+- [Static time partitioning](#static-time-partitioning)
+- [Mon CHÉRI property, re-homed without a second tag plane](#mon-chéri-property-re-homed-without-a-second-tag-plane)
+- [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission)
+- [Verified OS, I/O, storage, and supply-chain construction](#verified-os-io-storage-and-supply-chain-construction)
+- [Faults the machine detects rather than prevents](#faults-the-machine-detects-rather-than-prevents)
+- [Obligations discharged elsewhere](#obligations-discharged-elsewhere)
+- [The proof artifacts themselves](#the-proof-artifacts-themselves)
+- [What this inventory does not claim](#what-this-inventory-does-not-claim)
+
+</details>
+
+<details>
+<summary>📐 <strong><a href="#specification">Specification</a></strong></summary>
+
+- [The typed assembly language](#the-typed-assembly-language)
+- [The atomic-requirements register](#the-atomic-requirements-register)
+- [Derived views](#derived-views)
+
+</details>
+
+**⚖️ [License](#license)**
+
+</details>
+
+## ✨ Design highlights <a id="design-highlights"></a>
 
 ### Bespoke seL4-inspired multikernel
 
@@ -77,7 +94,7 @@ A scalar CHERI-enabled RV64 core under the same ISA, capability model, and proof
 
 Nothing is allocated while the system runs: every buffer, table, and stack is placed before boot, and the deepest the stack can ever get is proved by the same check that proves worst-case timing. Code that overruns its declared bound is rejected at build time, and a set of bounds too large for the chip is rejected before anything runs, so neither is a failure a user can hit. Placing memory ahead of time is also the cheaper choice: an allocator deciding as it goes can waste a factor that grows with the spread of object sizes, while a plan made offline comes within a constant factor of the best possible, and is exactly optimal for the nested lifetimes this design produces. What replaces the page tables, swap, and allocator bookkeeping is small and itemized: error correction and capability tags at about 8% of stored data, and a revocation bitmap no structure doing that job could beat. Optimality in general is not claimed: pools sized for their peak sit mostly empty, the one case a run-time heap wins on average, and every floor here is measured against this project's own specification rather than a universal one.
 
-## Bug classes removed by construction
+## 🧱 Bug classes removed by construction <a id="bug-classes-removed-by-construction"></a>
 
 This inventory states the guarantees targeted by the **full specified stack**, not by an existing system: nothing is built, and many crown-jewel specifications and proofs remain unauthored. Each row claims one or more of seven discharge modes.
 
@@ -306,7 +323,7 @@ The transferred rows count limits owned elsewhere. The specification's [residual
 
 This inventory summarizes named archetypes; it is not the coverage claim, because such a list can never be complete. The register-computed [coverage matrix](docs/coverage-matrix.md), spanning every boundary and property, makes that claim.
 
-## Specification
+## 📐 Specification <a id="specification"></a>
 
 The normative design lives in [spec.md](docs/spec.md), with non-normative companions covering [prior art](docs/inspirations.md), [evaluated architectural alternatives](docs/architectural-alternatives.md), an [implementation plan and execution checklist](docs/implementation-checklist.md), and [performance estimates](docs/performance-estimates.md).
 
@@ -339,7 +356,7 @@ Seven **derived views** collect what the register states across many entries but
 
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.
 
-## License
+## ⚖️ License <a id="license"></a>
 
 The writing is under [Creative Commons Attribution 4.0](LICENSE-docs.md), the same license the RISC-V specifications carry: quote it, build on it, publish what you make of it, and say where it came from. Everything else this project wrote, the tooling and the proof artifacts, is under the [Apache License 2.0](LICENSE.md), which adds an explicit patent grant for anyone who wants to implement the machine described here.
 
