@@ -9,42 +9,32 @@
 function clause currentlyEnabled(Ext_A) = hartSupports(Ext_A) & misa[A] == 0b1 // TODO: Move currentlyEnabled(Ext_A) to a more central file
 function clause currentlyEnabled(Ext_Zaamo) = hartSupports(Ext_Zaamo) | currentlyEnabled(Ext_A)
 function clause currentlyEnabled(Ext_Zabha) = hartSupports(Ext_Zabha) & currentlyEnabled(Ext_Zaamo)
-function clause currentlyEnabled(Ext_Zacas) = hartSupports(Ext_Zacas) & currentlyEnabled(Ext_Zaamo)
 
 function clause currentlyEnabled(Ext_Ziccamoa) = hartSupports(Ext_Ziccamoa)
-function clause currentlyEnabled(Ext_Ziccamoc) = hartSupports(Ext_Ziccamoc)
 
 // Zaamo defines AMOs for 32-bit and 64-bit.
 // Zabha defines AMOs for 8-bit and 16-bit.
 //
-// The Zacas extension adds a CAS operation which support 32, 64
-// and 128-bit operands. Only sizes up to XLEN*2 are supported
-// (so 128-bit is RV64-only). When XLEN*2 is used the operands
-// are stored in even-numbered register pairs.
+// Those two are the whole of the atomic surface (R-15-024). The
+// compare-and-swap `Zacas` added is gone (R-15-026, R-15-027), and with it
+// the only operand wider than XLEN, so the register-pair operands, the
+// even-numbered-register rule and the reserved behaviour that rule needed a
+// policy for are all absences here rather than configuration.
 //
-// If Zabha and Zacas are implemented then CAS supports 8 and
-// 16-bit operands.
-//
-private function amo_encoding_valid(width : word_width_wide, op : amoop, Regidx(rs2) : regidx, Regidx(rd) : regidx) -> bool =
-  // If AMOCAS, check that extension is enabled.
-  (if op == AMOCAS then currentlyEnabled(Ext_Zacas) else currentlyEnabled(Ext_Zaamo))
+// The operation is no longer an operand of this question. It was one while
+// `AMOCAS` was decoded here, because that one operation answered to a
+// different extension and admitted a different width; every operation that is
+// left is a `Zaamo` one at a `Zaamo` width, so what remains to check is the
+// width alone.
+private function amo_encoding_valid(width : word_width) -> bool =
+  currentlyEnabled(Ext_Zaamo)
   &
-  // Check the size and register alignment.
-  (if width < 4 then currentlyEnabled(Ext_Zabha) else (
-    width <= xlen_bytes | (
-      (op == AMOCAS & width <= xlen_bytes * 2)
-      &
-      (if   rs2[0] == 0b1 | rd[0] == 0b1
-      then match amocas_odd_register_reserved_behavior {
-        AMOCAS_Fatal   => reserved_behavior("AMOCAS.D/Q used an odd-numbered register (rs2 = " ^ dec_str(unsigned(rs2)) ^ ", rd = " ^ dec_str(unsigned(rd)) ^ ")."),
-        AMOCAS_Illegal => false,
-      }
-      else true)
-    )))
+  // Check the size.
+  (if width < 4 then currentlyEnabled(Ext_Zabha) else width <= xlen_bytes)
 
 // *****************************************************************
 
-union clause instruction = AMO : (amoop, bool, bool, regidx, regidx, word_width_wide, regidx)
+union clause instruction = AMO : (amoop, bool, bool, regidx, regidx, word_width, regidx)
 
 mapping encdec_amoop : amoop <-> bits(5) = {
   AMOSWAP <-> 0b00001,
@@ -56,19 +46,18 @@ mapping encdec_amoop : amoop <-> bits(5) = {
   AMOMAX  <-> 0b10100,
   AMOMINU <-> 0b11000,
   AMOMAXU <-> 0b11100,
-  AMOCAS  <-> 0b00101,
 }
 
 mapping clause encdec = AMO(op, aq, rl, rs2, rs1, size, rd)
-  <-> encdec_amoop(op) @ bool_bit(aq) @ bool_bit(rl) @ encdec_reg(rs2) @ encdec_reg(rs1) @ width_enc_wide(size) @ encdec_reg(rd) @ 0b0101111
-  when amo_encoding_valid(size, op, rs2, rd)
+  <-> encdec_amoop(op) @ bool_bit(aq) @ bool_bit(rl) @ encdec_reg(rs2) @ encdec_reg(rs1) @ width_enc_amo(size) @ encdec_reg(rd) @ 0b0101111
+  when amo_encoding_valid(size)
 
 $[split op]
 function clause execute AMO(op, aq, rl, rs2, rs1, width, rd) = {
   let 'width = width;
 
   // This is checked during decoding.
-  assert(width <= xlen_bytes * 2);
+  assert(width <= xlen_bytes);
 
   let access = Atomic(op, aq, rl, Data, Data);
 
@@ -111,10 +100,7 @@ function clause execute AMO(op, aq, rl, rs2, rs1, width, rd) = {
   // Sequence the read of `rs2` after the call to `mem_write_ea` with the effective address.
   // See https://github.com/riscv/sail-riscv/issues/1761.
 
-  // AMOCAS.D for RV32 and AMOCAS.Q for RV64 operate on a pair of
-  // registers. When the first register of a register pair is
-  // x0, then both halves of the pair read/write as zero.
-  let rs2_val : bits('width * 8) = if width <= xlen_bytes then trunc(X(rs2)) else trunc(X_pair(rs2));
+  let rs2_val : bits('width * 8) = trunc(X(rs2));
 
   let result : bits('width * 8) = match op {
     AMOSWAP => rs2_val,
@@ -126,22 +112,13 @@ function clause execute AMO(op, aq, rl, rs2, rs1, width, rd) = {
     AMOMAX  => if rs2_val >_s loaded then rs2_val else loaded,
     AMOMINU => if rs2_val <_u loaded then rs2_val else loaded,
     AMOMAXU => if rs2_val >_u loaded then rs2_val else loaded,
-    // If it *does* store a value, CAS always stores rs2.
-    AMOCAS  => rs2_val,
   };
 
-  // All operations except CAS where loaded != X(rd) write their value back.
-  if op == AMOCAS & loaded != (if width <= xlen_bytes then trunc(X(rd)) else trunc(X_pair(rd))) then {
-    // Compared, but didn't swap.
-    if width <= xlen_bytes
-    then X(rd) = sign_extend(loaded)
-    else X_pair(rd) = sign_extend(loaded);
-    RETIRE_SUCCESS
-  } else match mem_write_value(addr, width, sign_extend(result), access, aq & rl, rl) {
+  // Every operation writes its value back: the one that did not was the
+  // compare-and-swap that compared unequal, and it is gone with `Zacas`.
+  match mem_write_value(addr, width, sign_extend(result), access, aq & rl, rl) {
     Ok(true)  => {
-      if width <= xlen_bytes
-      then X(rd) = sign_extend(loaded)
-      else X_pair(rd) = sign_extend(loaded);
+      X(rd) = sign_extend(loaded);
       RETIRE_SUCCESS
     },
     Ok(false) => internal_error(__FILE__, __LINE__, "AMO got false from mem_write_value"),
@@ -154,4 +131,4 @@ function clause execute AMO(op, aq, rl, rs2, rs1, width, rd) = {
 }
 
 mapping clause assembly = AMO(op, aq, rl, rs2, rs1, width, rd)
-  <-> amo_mnemonic(op) ^ "." ^ width_mnemonic_wide(width) ^ maybe_aqrl(aq, rl) ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs2) ^ sep() ^ "(" ^ reg_name(rs1) ^ ")"
+  <-> amo_mnemonic(op) ^ "." ^ width_mnemonic(width) ^ maybe_aqrl(aq, rl) ^ spc() ^ reg_name(rd) ^ sep() ^ reg_name(rs2) ^ sep() ^ "(" ^ reg_name(rs1) ^ ")"
