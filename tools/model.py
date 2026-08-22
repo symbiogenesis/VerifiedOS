@@ -14,8 +14,10 @@ every batch, and `sweep` is the number each batch reports. `trace-diff` is the M
 differential rig, adjudicating the curated model against the M0.4 oracle, and `oracle`
 builds that reference. `devicetree` generates the attested tree, compiles it, and holds
 the blob against the region it is written into, which is three things the Sail emitter
-cannot decide about its own output. Two more commands answer questions about the
-configuration alone and need no build: `config-keys` and `validate-config`.
+cannot decide about its own output. `reference` prints what the frozen golden model is,
+which is what a downstream artifact records when it says which model it was stated
+against. Two more commands answer questions about the configuration alone and need no
+build: `config-keys` and `validate-config`.
 
 These run inside WSL, where the Sail toolchain lives:
 
@@ -646,6 +648,67 @@ def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_reference(e: env.Environment, args: argparse.Namespace) -> int:
+    """What the frozen golden model *is*, in the form a downstream artifact records.
+
+    The Sail-generated emulator is the executable ISA reference, and everything below
+    it is stated against a particular one: a freeze report carries the model revision
+    its cycle columns came from, a WCET table is a projection of one timing
+    annotation, and a commit-trace digest is a fingerprint of one model's behaviour.
+    None of that means anything unless the reference can say which model it is, and
+    until M0.10 it could not: the out-of-tree build ran `git describe` in the build
+    directory, which is not a repository, so every emulator this tree has ever built
+    stamped itself `unknown commit`.
+
+    So this prints the identity rather than computing anything: the revision the
+    emulator carries, the compiler that generated it, and the two corpora that say
+    what it does. A `-dirty` suffix is printed and not refused, because a working tree
+    under edit is the normal case and a gate that failed on it would be turned off; an
+    *unknown* revision is refused, because that is the state this exists to end.
+    """
+    sim = e.build_dir / "c_emulator" / "sail_riscv_sim"
+    if not sim.exists():
+        print(f"no simulator at {sim}; run `model.py build` first", file=sys.stderr)
+        return 1
+
+    info = subprocess.run([str(sim), "--build-info"],
+                          capture_output=True, text=True, check=False)
+    fields = dict(
+        line.split(": ", 1) for line in info.stdout.splitlines() if ": " in line)
+    revision = fields.get("Sail RISC-V git", "unknown commit")
+
+    corpus = differential.load(e.root)
+    records = sum(m.records for m in corpus.members)
+    checks = sum(m.checks for m in corpus.members)
+
+    # The model's own property harness, which is the other half of what "ISA tests
+    # green" means here: the bundled riscv-tests went with the default data capability
+    # at M0.6f, every one of its programs addressing memory through an integer base
+    # register that a purecap machine faults on, so the corpus below and this harness
+    # are what remains and both are this repository's own.
+    harness = e.build_dir / "test" / "unit_tests" / "unit_tests"
+    properties = 0
+    if harness.exists():
+        run = subprocess.run([str(harness)], capture_output=True, text=True,
+                             timeout=300, check=False)
+        properties = sum(1 for line in run.stdout.splitlines()
+                         if line.startswith("Testing "))
+
+    print(f"model revision   {revision}")
+    print(f"sail compiler    {fields.get('Sail', 'unknown')}")
+    print(f"upstream release {fields.get('Sail RISC-V release', 'unknown')}")
+    print(f"properties       {properties}")
+    print(f"corpus           v{corpus.version}, {len(corpus.members)} members, "
+          f"{checks} checks, {records} records")
+
+    if "unknown" in revision:
+        print("the emulator cannot name the model it was generated from, so nothing "
+              "downstream can record which reference it was stated against",
+              file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_config_keys(e: env.Environment, args: argparse.Namespace) -> int:
     code, lines = config.compare_keys(args.generated, args.profile)
     print("\n".join(lines))
@@ -723,6 +786,9 @@ def main(argv: list[str] | None = None) -> int:
     asm_cmd.add_argument("elf")
     asm_cmd.set_defaults(run=cmd_asm)
 
+    sub.add_parser("reference",
+                   help="print the frozen golden model's identity"
+                   ).set_defaults(run=cmd_reference)
     sub.add_parser("devicetree",
                    help="generate, compile, and size-check the attested devicetree"
                    ).set_defaults(run=cmd_devicetree)
