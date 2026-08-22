@@ -15,8 +15,12 @@
 // the run realizes is refused before it runs (postlude/validate_config.sail).
 //
 // Every other row and every other comment below is verifiedos.json's, unchanged
-// and true here: the key sets are identical, which is what `model.py
-// config-keys` holds them to.
+// and true here: the key sets are identical. `model.py config-keys` holds the
+// keyed part of that and K-65 holds the whole of it, which is the distinction
+// worth keeping: `memory.regions` is a list, so a region's properties are not
+// keys of the configuration tree and the key count cannot see one arrive. A
+// per-region property added to one of these files and not the other is a
+// divergence only K-65 reports.
 {
   "base": {
     "E": false,
@@ -138,7 +142,14 @@
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": false,
           // A device endpoint is on neither class (R-15-247).
-          "memory_class": { "None": null }
+          "memory_class": { "None": null },
+          // The V class is a scratchpad-bearing class (R-15-165, R-15-167),
+          // which the C class is not, so this is the configuration where a
+          // range would first be declarable. It is not declared: R-15-108
+          // selects scratchpad sizes, that exploration has not run, and a
+          // range written ahead of it is how a placeholder becomes an
+          // architectural input. The shape is here and the range is not.
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -164,7 +175,8 @@
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": false,
-          "memory_class": { "None": null }
+          "memory_class": { "None": null },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -194,7 +206,8 @@
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": true,
-          "memory_class": { "Some": "FirstClass" }
+          "memory_class": { "Some": "FirstClass" },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": true
       },
@@ -226,7 +239,8 @@
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": true,
-          "memory_class": { "Some": "SecondClass" }
+          "memory_class": { "Some": "SecondClass" },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": true
       }
