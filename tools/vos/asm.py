@@ -257,6 +257,14 @@ class Assembler:
     def _operands(self, name: str, item: Item, pc: int) -> list[int]:
         wanted = dialect.signature(name)
         given = item.args
+        # The vector mask is the one operand a program leaves out rather than
+        # spells. `v0.t` is written where the operation is masked and nothing at
+        # all where it is not, which is how every RISC-V assembler spells it and
+        # how the model's own `maybe_vmask` mapping reads it back
+        # (extensions/V/vext_utils_insts.sail). It is the last operand of every
+        # form that has one, so the absence is unambiguous.
+        if wanted and wanted[-1] == "vm" and len(given) == len(wanted) - 1:
+            given = [*given, ""]
         if len(given) != len(wanted):
             raise self._error(item.line,
                               f"{name} takes {len(wanted)} operands, given {len(given)}")
@@ -272,6 +280,22 @@ class Assembler:
         text = text.strip()
         if spec == "reg":
             return [self._register(text, item)]
+        if spec == "vreg":
+            key = text.lower()
+            if key not in dialect.VREGISTERS:
+                raise self._error(item.line, f"no vector register {text}")
+            return [dialect.VREGISTERS[key]]
+        if spec == "vm":
+            # Absent is unmasked, which is the `vm` bit set; `v0.t` is masked,
+            # which is the bit clear. There is no third spelling: the mask
+            # register is always `v0`, so naming another one is an error rather
+            # than a mask.
+            if not text:
+                return [1]
+            if text.lower() != "v0.t":
+                raise self._error(item.line, f"the vector mask is spelled v0.t, "
+                                             f"given {text!r}")
+            return [0]
         if spec in ("imm", "sym"):
             return [self._eval(text, item, pc)]
         if spec == "csr":
