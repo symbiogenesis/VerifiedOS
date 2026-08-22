@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 # The tools import `vos` without being installed, so each puts its own directory on
@@ -195,11 +196,23 @@ def _run_ruff(rep: Reporter, root: Path) -> None:
 
 def run(root: Path) -> Reporter:
     """One whole run, as data, on the convention `check.py` set: the caller decides
-    what to do with the verdict rather than parsing what was printed."""
+    what to do with the verdict rather than parsing what was printed.
+
+    The two checkers are separate processes over the same tree and neither reads the
+    other's result, so they run concurrently. Each accumulates onto its own slate and
+    the slates are merged ty-then-ruff, so the report reads the same however the two
+    finished."""
     rep = Reporter()
     rep.line("=== tools ===")
-    _run_ty(rep, root)
-    _run_ruff(rep, root)
+
+    ty_rep, ruff_rep = Reporter(), Reporter()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        for done in (pool.submit(_run_ty, ty_rep, root),
+                     pool.submit(_run_ruff, ruff_rep, root)):
+            done.result()
+    for part in (ty_rep, ruff_rep):
+        rep.out.extend(part.out)
+        rep.findings += part.findings
 
     if rep.findings:
         rep.line(f"{rep.findings} finding(s).")
