@@ -336,7 +336,7 @@ unit_tests {
     unit_tests/test_cheri_insts.sail,
     unit_tests/test_platform.sail,
     unit_tests/test_memory_model.sail,
-    unit_tests/test_vector_mem.sail,
+    unit_tests/test_vector_cap.sail,
 }
 
 main {
