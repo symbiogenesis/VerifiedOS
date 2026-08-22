@@ -96,6 +96,26 @@ private function generate_dts_memory_class(pma : PMA_Region) -> string =
     Some(c) => "    verifiedos,memory-class = \"" ^ memory_class_str(c) ^ "\";\n",
   }
 
+// The datapath whose software-managed scratchpad a region is, as a property of
+// the region's own node (sys/pma.sail, R-15-165, R-15-167). It is emitted for a
+// scratchpad and for nothing else, so a node carrying it is a scratchpad and a
+// node without it is main memory, which is the distinction the two properties
+// make between them: `verifiedos,memory-class` is on every array and on no
+// scratchpad, and this is on every scratchpad and on no array.
+//
+// **The base is here and not in the class node.** The class node already
+// declares the size R-15-113 gives the class, and a class node carrying the base
+// as well would be one attested artifact writing the placement twice. What the
+// kernel needs is the link, and the link is this property: it reads its class
+// out of `mhartid` against the roster and finds the memory node naming that
+// class, which puts the decode beside the thing it decodes exactly as
+// `verifiedos,class-index` does for the roster.
+private function generate_dts_scratchpad(pma : PMA_Region) -> string =
+  match pma.attributes.scratchpad {
+    None()  => "",
+    Some(c) => "    verifiedos,scratchpad = \"" ^ core_class_str(c) ^ "\";\n",
+  }
+
 private function generate_dts_memories(pmas : list(PMA_Region)) -> string =
   match pmas {
     [||] => "",
@@ -111,6 +131,7 @@ private function generate_dts_memories(pmas : list(PMA_Region)) -> string =
         ^ "    reg = <" ^ hex_str(base_hi) ^ " " ^ hex_str(base_lo)
         ^ " " ^ hex_str(size_hi) ^ " " ^ hex_str(size_lo) ^ ">;\n"
         ^ generate_dts_memory_class(pma)
+        ^ generate_dts_scratchpad(pma)
         ^ "  };\n"
         ^ generate_dts_memories(rest)
       } else generate_dts_memories(rest)

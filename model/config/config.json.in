@@ -238,7 +238,17 @@
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": false,
           // A device endpoint is on neither latency class (R-15-247).
-          "memory_class": { "None": null }
+          "memory_class": { "None": null },
+          // No region here is a datapath's software-managed scratchpad
+          // (R-15-165, R-15-167, sys/pma.sail), and no configuration this tree
+          // ships declares one. `scratchpad_bytes` is one of R-15-108's frozen
+          // parameters, the exploration that selects it has not run, and every
+          // class row below says so with `frozen: false`, so a range written in
+          // ahead of it would be a placeholder becoming an architectural input.
+          // What the model carries instead is the shape, and a composition
+          // declaring a wrong one is refused
+          // (postlude/validate_config.sail).
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -274,7 +284,8 @@
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": false,
-          "memory_class": { "None": null }
+          "memory_class": { "None": null },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -311,7 +322,8 @@
           "misaligned_atomicity_granule_size_exp": 4,
           "vector_misaligned_atomicity_granule_size_exp": 4,
           "supports_cbo_zero": true,
-          "memory_class": { "Some": "FirstClass" }
+          "memory_class": { "Some": "FirstClass" },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": true
       },
@@ -351,7 +363,8 @@
           "misaligned_atomicity_granule_size_exp": 4,
           "vector_misaligned_atomicity_granule_size_exp": 4,
           "supports_cbo_zero": true,
-          "memory_class": { "Some": "SecondClass" }
+          "memory_class": { "Some": "SecondClass" },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": true
       }

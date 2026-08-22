@@ -117,7 +117,10 @@ type core_island = range(0, 255)
 //   - `scratchpad_bytes`. The software-managed scratchpad the array streams
 //     through, explicit capability-governed plain memory rather than a cache
 //     (R-15-165, R-15-167). Scalar cores carry no local memory tier, so a scalar
-//     class declares zero (R-15-168).
+//     class declares zero (R-15-168). Where it *is* in the address space is a
+//     region class the address map declares and this table does not repeat
+//     (sys/pma.sail), the two being held against each other by the validator so
+//     that a size here and a range there cannot describe two scratchpads.
 //   - `issue_width` / `pipeline_depth`. R-15-108's frozen parameters, and
 //     R-15-108a's single Pareto axis with core count: each added C-class core
 //     and each unit of issue width spend the same fixed, non-stackable area. The
@@ -238,6 +241,38 @@ function core_class_of_index(i : core_class_index) -> CoreClass =
 function core_class_is_vector_bearing(c : CoreClass) -> bool =
   core_class_datapath(c).vlen_exp > 0
 
+// **The matrix extension is fork-and-frozen and its re-pin obligation is
+// standing, so it is recorded where the model declares the unit rather than left
+// to a document.** R-15-009 carries full Sail semantics for the bespoke
+// extension only *until a ratified RISC-V matrix extension of the AME/IME
+// lineage supersedes it*, at which point it re-pins; that is the one obligation
+// this model holds that no build, no gate, and no proof will ever discharge,
+// because what closes it is an event at another standards body. Three things
+// follow and each is a fact about this file rather than a plan.
+//
+// The obligation is on the **encoding and not on the semantics**: a re-pin
+// substitutes a ratified instruction surface for a bespoke one over the same
+// array, so what it must not do is widen what was frozen, which is the same
+// discipline the Keccak fork takes in freezing both round counts ahead of its
+// own re-pin (R-15-056a, R-15-057a). The geometries above are therefore the
+// unit's whole architectural declaration and the re-pin does not touch them.
+//
+// The obligation is **conditional on an admission that is taken**: R-15-116
+// admits the extension only against an order-of-magnitude sustained dense-GEMM
+// margin over the same GEMM expressed as RVV on this class's own VLEN=1024
+// unit, and the register records dense int8/bf16 inference clearing that bar
+// and the extension kept. So the unit is admitted and it is the *instruction
+// surface* that is unwritten, which is R-15-007j's question and not this
+// requirement's: nothing enters the profile by inheritance, the frozen profile
+// books the matrix extension as a unit and names no instruction for it, and an
+// instruction the enumeration does not name is absent (isa-profile.md §3).
+//
+// And the unit **holds no state for the obligation to be about**. R-15-118's
+// coprocessor line makes every byte it moves core-issued against an explicit
+// capability operand, with no DMA mastership, no translation context, and no
+// firmware, so what a partition can dirty is the scratchpad above and nothing
+// else; that is why the partition switch's inventory names the scratchpad and
+// stops (extensions/platform/vmclear.sail, R-07-014c).
 function core_class_has_matrix(c : CoreClass) -> bool = {
   let d = core_class_datapath(c);
   d.matrix_int8_dim > 0 | d.matrix_bf16_dim > 0
