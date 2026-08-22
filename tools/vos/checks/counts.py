@@ -17,6 +17,7 @@ inequality against the bare figure and never rewritten.
 """
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
 from vos import config, coreclass, decode, figures, geometry
@@ -252,6 +253,12 @@ def _tag_plane(ctx: Context) -> None:
 
     missed: list[str] = []
     for file, key, pattern in TAG_PLANE:
+        # The spans are discarded where the CLAIMS loop keeps them, and that is an
+        # invariant rather than an oversight: a kept span exists to exempt its site
+        # from K-26, which proposes only the distinctive forms of the counted
+        # quantities, and no tag-plane figure is ever one of those, each being a
+        # decimal ratio, a payload width no quantity counts, or a word form below
+        # eleven. A tag-plane site therefore never needs a span to be exempted.
         r = figures.resolve_claim(ctx, file, pattern, expected[key],
                                   f"the tag plane's {key} figure")
         if r.fixed:
@@ -433,7 +440,47 @@ def _core_classes(ctx: Context) -> None:
                f"{len(cc.counts)} stated counts are the composed roster's")
 
 
-def _model_citations(ctx: Context) -> None:
+def _citation_window(ctx: Context) -> tuple[list[tuple[str, str]], list[str]]:
+    """The model-citation window, read once for the two rules that scan it.
+
+    K-63 reads every file the window admits and K-66 re-read the Sail subset of the
+    same files moments later, so the one read lives here and both consumers take
+    `(rel, text)` pairs. The reads go through a thread pool because a file read
+    releases the interpreter lock, so the on-access virus scan the window's first
+    read pays overlaps across files instead of serializing; the pool's `map` returns
+    in submission order, so the pairs come back in the sorted order they were asked
+    in and the run's output does not depend on which read finished first.
+
+    A file the index lists and the working tree no longer holds is dropped silently,
+    as the corpus drops a deleted document; a file that is there and cannot be read
+    is a finding worded once, under K-63, because pricing one unreadable file under
+    both rules would report one defect twice.
+    """
+    rels = [rel for rel in sorted(ctx.corpus.tracked)
+            if corpus_mod.is_model_citation_path(rel)]
+
+    def read(rel: str) -> tuple[str, str] | str | None:
+        path = ctx.root / rel
+        if not path.is_file():
+            return None
+        try:
+            return rel, path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            return f"{rel}: unreadable, so its citations cannot be decided ({exc})"
+
+    pairs: list[tuple[str, str]] = []
+    faults: list[str] = []
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for got in pool.map(read, rels):
+            if isinstance(got, tuple):
+                pairs.append(got)
+            elif got is not None:
+                faults.append(got)
+    return pairs, faults
+
+
+def _model_citations(ctx: Context, window: list[tuple[str, str]],
+                     faults: list[str]) -> None:
     """K-63: every requirement the model cites, in the files this tool can see.
 
     The curated model argues from the register constantly: a Sail file states why a
@@ -457,16 +504,11 @@ def _model_citations(ctx: Context) -> None:
     something else, and the citation carried across from an upstream that had its own.
     """
     rep, reg = ctx.rep, ctx.reg
-    findings: list[str] = []
+    findings: list[str] = list(faults)
     cited = 0
     files = 0
-    for rel in sorted(ctx.corpus.tracked):
-        if not corpus_mod.is_model_citation_path(rel):
-            continue
-        path = ctx.root / rel
-        if not path.is_file():
-            continue
-        found = REQ_TOKEN_RE.findall(path.read_text(encoding="utf-8"))
+    for rel, text in window:
+        found = REQ_TOKEN_RE.findall(text)
         if found:
             files += 1
         cited += len(found)
@@ -484,7 +526,7 @@ def _model_citations(ctx: Context) -> None:
 EXCLUDED_NAME_RE = re.compile(r"`([^`]+)`")
 
 
-def _excluded_forms(ctx: Context) -> None:
+def _excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
     """K-66: no form the profile excludes is still on the model's decode surface.
 
     The profile's §6 excludes by name and the model implements by clause, and until
@@ -521,9 +563,7 @@ def _excluded_forms(ctx: Context) -> None:
     """
     rep = ctx.rep
     findings: list[str] = []
-    spellings = decode.read_spellings(
-        ctx.root, [rel for rel in ctx.corpus.tracked
-                   if corpus_mod.is_model_citation_path(rel)])
+    spellings = decode.read_spellings(window)
 
     names = 0
     for row in ctx.art.exclusion_rows:
@@ -636,7 +676,16 @@ def run(ctx: Context) -> None:
     claim_spans: dict[str, list[re.Match[str]]] = {}
     missed: list[str] = []
     for file, quantity, style, pattern in CLAIMS:
-        r = figures.resolve_claim(ctx, file, pattern, expected(quantity, style), quantity)
+        # `figures.words` refuses a count past ninety-nine, and the count is the
+        # documents' to grow: a quantity that outgrows its word form is this rule's
+        # finding, naming the claim owed a digits spelling, never a stopped run
+        try:
+            want = expected(quantity, style)
+        except ValueError:
+            missed.append(f"{quantity} is {ctx.q[quantity]}, which has no word form; "
+                          f"the claim in {file} must state it in digits")
+            continue
+        r = figures.resolve_claim(ctx, file, pattern, want, quantity)
         if r.fixed:
             rep.line(r.fixed)
         if r.finding:
@@ -743,7 +792,8 @@ def run(ctx: Context) -> None:
     _tag_plane(ctx)
     _block_geometry(ctx)
     _core_classes(ctx)
-    _model_citations(ctx)
-    _excluded_forms(ctx)
+    window, faults = _citation_window(ctx)
+    _model_citations(ctx, window, faults)
+    _excluded_forms(ctx, window)
     _shipped_configurations(ctx)
     rep.line()

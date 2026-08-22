@@ -156,7 +156,7 @@ class Sandbox:
         out: list[str] = [*(proc.stdout or "").splitlines(),
                           *(proc.stderr or "").splitlines()]
         failed: list[str] = sorted({m.group(1) for line in out
-                                    if (m := re.match(r"\s*FAIL (K-\d\d)", line))})
+                                    if (m := re.match(r"\s*FAIL (K-\d{2,3})", line))})
         return proc.returncode, out, failed
 
 
@@ -796,6 +796,12 @@ CASES = [
     # the encoder table, so one mutation exercises both halves of the surface.
     ("K-66", "a form the profile excludes and the model still decodes",
      _literal(PROFILE, "`vle<eew>ff.v`", "`cincoffset`")),
+
+    # The pip line is moved and the checker-table rows are left, which is the shape
+    # the defect takes: a pin bumped where it is enforced or where it is read first,
+    # with the other copies going stale behind it.
+    ("K-67", "a README pin drifted from the version typecheck.py fixes",
+     _literal("tools/README.md", "pip install ty==0.0.73", "pip install ty==0.0.72")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
@@ -1007,7 +1013,7 @@ def _registry_coverage(box: Sandbox) -> list[str]:
     what is held about that reach, and the two are checked against each other for the
     same reason the meta group checks the registry against the code."""
     print("--- coverage of the registry ---")
-    registered = re.findall(r"(?m)^\| (K-\d\d) \|", box.read(RULES))
+    registered = re.findall(r"(?m)^\| (K-\d{2,3}) \|", box.read(RULES))
     covered = {rule for rule, _, _ in CASES}
     gaps = [f"{r} is registered, has no case here, and is not declared unseedable"
             for r in registered if r not in covered and r not in UNSEEDABLE]

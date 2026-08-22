@@ -10,6 +10,9 @@ Output is accumulated rather than streamed. The run is fast enough that streamin
 buys nothing, and accumulating is what lets the mutation selftest call a whole run
 in-process and read its verdict back as data instead of re-parsing a subprocess's
 stdout.
+
+The `FAIL `, `ok `, and `fixed:` prefixes and the seven-space finding indent are
+parsed by check-selftest.py, so they are API rather than styling.
 """
 
 from collections.abc import Iterable
@@ -41,14 +44,10 @@ class Reporter:
         else:
             self.out.append(f"{pad}ok {rule}: {ok or label}")
 
-    def failed_rules(self) -> list[str]:
-        """The rule ids this run reported, so a caller asserts against the verdict
-        rather than against the prose."""
-        seen = []
-        for text in self.out:
-            stripped = text.lstrip()
-            if stripped.startswith("FAIL "):
-                rule = stripped[5:].split(":", 1)[0]
-                if rule not in seen:
-                    seen.append(rule)
-        return sorted(seen)
+
+def sites(name: str, lines: list[int], cap: int = 12) -> str:
+    """A file plus the lines to visit, for the checks whose findings are per-line and
+    whose repair is always the same visit."""
+    shown = (", ".join(str(n) for n in lines[:cap]) + f", and {len(lines) - cap} more"
+             if len(lines) > cap else ", ".join(str(n) for n in lines))
+    return f"{name}: {len(lines)} line(s): {shown}"

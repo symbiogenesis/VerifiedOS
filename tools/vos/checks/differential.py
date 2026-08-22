@@ -45,7 +45,9 @@ def run(ctx: Context) -> None:
 
     try:
         corpus = differential.load(root)
-    except (OSError, json.JSONDecodeError, KeyError) as exc:
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+        # TypeError is a manifest whose members is not the list of row mappings the
+        # parse iterates, which is as unreadable as a row missing a key
         rep.report("K-50", "corpus manifest(s) unreadable:",
                    [f"{differential.CORPUS_DIR}/{differential.MANIFEST}: {exc}"],
                    "the corpus manifest parses")
@@ -82,7 +84,10 @@ def run(ctx: Context) -> None:
         try:
             assembler = asm.Assembler(text, member.source)
             assembler.assemble()
-        except Exception as exc:                       # an assembler diagnostic
+        except asm.AsmError as exc:
+            # the assembler's own diagnostic and nothing broader: any other exception
+            # is a defect in the checker, which crashes loudly rather than reading as
+            # one more corpus finding
             faults.append(f"{member.name}: {exc}")
             continue
         checks = differential.count_checks(text)

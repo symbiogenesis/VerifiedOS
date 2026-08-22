@@ -8,21 +8,27 @@ silently, in whichever direction nobody looked, which is the defect the register
 sweep 2 names. The defect takes several granularities, and they are one mistake, so
 they are one tool:
 
-    traces     the reference     every bookmark a trace cites, and the section it shows
-    names      the vocabulary    every R-, CJ-, A-, B- and P- id used, against its declarer
-    links      the pointer       every cross-document link and every §n.m a sentence names
-    views      the membership    what a derived view carries, checked in both directions
-    confers    the enumeration   every set closed by conferral, and the agenda it misses
-    bindings   the instantiation the apex statement's fields against the view binding them
-    counts     the cardinality   every figure any document asserts, against its artifact
-    compounds  the synthesis     a statement over rows, against the rows it rests on
-    estimates  the arithmetic    every checklist total and share against the item hours
+    traces        the reference       every bookmark a trace cites, and the section it shows
+    coread        the co-currency     every entry against the prose it cites, as last read together
+    extraction    the section set     the prose's normative sections against the register's
+    names         the vocabulary      every R-, CJ-, A-, B- and P- id used, against its declarer
+    links         the pointer         every cross-document link and every §n.m a sentence names
+    views         the membership      what a derived view carries, checked in both directions
+    confers       the enumeration     every set closed by conferral, and the agenda it misses
+    bindings      the instantiation   the apex statement's fields against the view binding them
+    counts        the cardinality     every figure any document asserts, against its artifact
+    compounds     the synthesis       a statement over rows, against the rows it rests on
+    estimates     the arithmetic      every checklist total and share against the item hours
+    differential  the twin roster     the corpus manifest against its document, every member assembling
+    banks         the restated grant  the second class's bank count, contract against composition
 
-Two further groups check what a document is made of rather than what it says, where a
-fault survives a rendered read because the render succeeds:
+Three further groups check what a file is rather than what it says: for a document,
+the shape and the characters, where a fault survives a rendered read because the
+render succeeds, and for every tracked file, the license mark its kind owes:
 
     tables     the shape         every row against the width its header declares
     glyphs     the characters    punctuation the house style forbids, and encoding damage
+    marks      the provenance    every markable file opens with the declared SPDX identifier
 
 Last, the tool checks itself the same way: every check carries a K-nn rule id,
 tools/check-rules.md registers each id with its claim and its ground, and the floors

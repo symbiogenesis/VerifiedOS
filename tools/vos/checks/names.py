@@ -49,11 +49,18 @@ def run(ctx: Context) -> None:
     ]
 
     # the five tokens start with five different letters, so one alternation walks the
-    # corpus once and the first letter of each hit picks its vocabulary back out
+    # corpus once and the first letter of each hit picks its vocabulary back out; a
+    # sixth vocabulary sharing an initial would silently reclassify every hit of the
+    # earlier one, so the invariant is raised where the table is built rather than
+    # left to a dict overwrite
     by_initial: dict[str, str] = {}
     unknown: dict[str, list[str]] = {}
     declared: dict[str, set[str]] = {}
     for kind, token, ids, _home in vocab:
+        if token[0] in by_initial:
+            raise RuntimeError(
+                f"the {by_initial[token[0]]} and {kind} tokens share the initial "
+                f"{token[0]!r}, and the dispatch below reads the first letter")
         by_initial[token[0]] = kind
         declared[kind] = set(ids)
         unknown[kind] = []

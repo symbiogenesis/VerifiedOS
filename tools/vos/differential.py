@@ -78,11 +78,16 @@ def rewrite(corpus: Corpus, measured: dict[str, tuple[int, int, str]]) -> None:
     reformatting declarations to repair a measurement.
     """
     path = corpus.directory / MANIFEST
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    before = path.read_text(encoding="utf-8", newline="")
+    raw = json.loads(before)
     for row in raw["members"]:
         if row["name"] in measured:
             row["checks"], row["records"], row["digest"] = measured[row["name"]]
-    path.write_text(json.dumps(raw, indent=2) + "\n", encoding="utf-8", newline="\n")
+    text = json.dumps(raw, indent=2) + "\n"
+    # a refresh that measured what the manifest already records writes nothing, so
+    # the manifest's bytes and mtime move only when a measurement did
+    if text != before:
+        path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def assemble(corpus: Corpus, member: Member, out_dir: Path) -> Path:

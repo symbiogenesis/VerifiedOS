@@ -288,11 +288,16 @@ def _k_unary(f: Fields, o: list[int], pc: int) -> int:
 
 
 def _k_csr(f: Fields, o: list[int], pc: int) -> int:
-    return _i(o[1], o[2], f["funct3"], o[0], f["op"])
+    # the address is range-checked here like every other operand, because a CSR can
+    # be given as a bare number: unchecked, an out-of-range one overflows into the
+    # word and surfaces as the 32-bit assertion blaming this table for the program
+    return _i(_imm(o[1], 12, signed=False, name="CSR address"), o[2],
+              f["funct3"], o[0], f["op"])
 
 
 def _k_csri(f: Fields, o: list[int], pc: int) -> int:
-    return _i(o[1], _imm(o[2], 5, signed=False, name="CSR immediate"), f["funct3"], o[0], f["op"])
+    return _i(_imm(o[1], 12, signed=False, name="CSR address"),
+              _imm(o[2], 5, signed=False, name="CSR immediate"), f["funct3"], o[0], f["op"])
 
 
 def _k_amo(f: Fields, o: list[int], pc: int) -> int:

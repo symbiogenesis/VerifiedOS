@@ -33,8 +33,7 @@ from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 
 from vos.corpus import Document
-
-from .links import sites
+from vos.report import sites
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an

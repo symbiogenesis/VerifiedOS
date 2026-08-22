@@ -19,7 +19,8 @@ whether a row cites the right authoring artifact is the review gate's question.
 import re
 from typing import TYPE_CHECKING
 
-from vos import apex
+from vos import apex, fieldbindings
+from vos.fieldbindings import BINDINGS
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -29,11 +30,6 @@ if TYPE_CHECKING:
 
 HEADING = "=== bindings: the apex statement's fields against the view that binds them ==="
 
-BINDINGS = "docs/field-bindings.md"
-# the field cell is code-formatted, so the leading backtick is required and is what
-# tells a row from the header above it; the closing one is optional only because the
-# pattern reads the name and not the formatting
-_ROW_RE = re.compile(r"^\| ``?(\w+)``? \|")
 _LINK_RE = re.compile(r"\]\([^)]+\)")
 
 
@@ -59,17 +55,16 @@ def run(ctx: Context) -> None:
     # rather than two readings of one file
     record = apex.read(apex_path)
 
-    row_cells: dict[str, list[str]] = {}
-    row_order: list[str] = []
-    for line in corpus.by_name[BINDINGS].lines:
-        m = _ROW_RE.match(line)
-        if m:
-            cells = line.split("|")
-            name = cells[1].strip().replace("`", "")
-            row_order.append(name)
-            row_cells[name] = cells
+    # the table through the one parse blast-radius.py shares (vos/fieldbindings.py),
+    # so a truncated row is that parse's finding here rather than a crash in either
+    raw = corpus.by_name[BINDINGS].raw
+    table = fieldbindings.rows(raw)
+    by_field = {row.field: row for row in table}
+    row_order = [row.field for row in table]
 
-    problems = [f"{f} has no row" for f in record.fields if f not in row_cells]
+    problems = [f"the row '{line}' is too narrow to carry the view's cells"
+                for line in fieldbindings.malformed(raw)]
+    problems += [f"{f} has no row" for f in record.fields if f not in by_field]
     problems += [f"{f} is no Prop field of the record" for f in row_order
                  if f not in record.field_set]
     if not problems and row_order != record.fields:
@@ -82,7 +77,7 @@ def run(ctx: Context) -> None:
     for f in row_order:
         if f not in record.field_set:
             continue
-        stated = row_cells[f][2].strip().replace("`", "")
+        stated = by_field[f].consumers.replace("`", "")
         computed = ", ".join(sorted(record.consumers[f])) or "none"
         if stated != computed:
             wrong.append(f"{f}: the view says '{stated}', the statement gives '{computed}'")
@@ -93,7 +88,7 @@ def run(ctx: Context) -> None:
     for f in row_order:
         if f not in record.field_set:
             continue
-        cell = row_cells[f][4].strip()
+        cell = by_field[f].instantiated_by
         if cell != "none yet" and not _LINK_RE.search(cell):
             bad.append(f"{f}: '{cell}' is neither 'none yet' nor a link to the "
                        "instantiating artifact")

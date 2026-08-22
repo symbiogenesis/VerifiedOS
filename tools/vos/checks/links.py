@@ -57,6 +57,36 @@ _ENTRY_REF_RE = re.compile(
     r"\s+(?:in|of)\s+\[[^\]]*\]\(([^)\s#]+)\)"
 )
 
+# The literal every entry reference contains, and the tail a window past it must cover:
+# the rest of the word, a connective, and one bracketed link, which four hundred
+# characters hold with an order of magnitude to spare.
+_ENTRY_LEAD = " entr"
+_ENTRY_TAIL = 400
+
+
+def _entry_refs(doc: Document) -> list[re.Match[str]]:
+    """Every entry-reference match, proposed through the literal each one contains.
+
+    The pattern is an alternation under a lazy quantifier, which gives the engine no
+    literal to pre-scan for, so run whole it tries every branch at every position of a
+    three-megabyte corpus to return a handful of matches. `str.find` proposes each
+    ` entr` instead and the pattern decides a window around it, which is the bargain
+    `counts._form_sites` and `figures.find_all` strike: the pattern's own answer, in a
+    different search order. The window is exact on its left because a name's tokens
+    and separators admit no newline, so a match starts on the proposal's own line, and
+    `pos` leaves the lookbehind reading the character before the window. One match may
+    be proposed by several hits on its line, so the spans dedupe.
+    """
+    found: dict[tuple[int, int], re.Match[str]] = {}
+    raw = doc.raw
+    at = raw.find(_ENTRY_LEAD)
+    while at >= 0:
+        line_start = doc.starts[doc.line_of(at)]
+        for m in _ENTRY_REF_RE.finditer(raw, line_start, at + _ENTRY_TAIL):
+            found[(m.start(), m.end())] = m
+        at = raw.find(_ENTRY_LEAD, at + 1)
+    return [found[span] for span in sorted(found)]
+
 
 def resolve(base: str, target: str) -> str:
     """A relative link target, against the document that carries it and not the root."""
@@ -83,14 +113,6 @@ def headings(doc: Document, cache: dict[str, list[str]]) -> list[str]:
     if doc.name not in cache:
         cache[doc.name] = [slug(m.group(1)) for _, m in doc.unfenced("#", HEADING_RE)]
     return cache[doc.name]
-
-
-def sites(name: str, lines: list[int], cap: int = 12) -> str:
-    """A file plus the lines to visit, for the checks whose findings are per-line and
-    whose repair is always the same visit."""
-    shown = (", ".join(str(n) for n in lines[:cap]) + f", and {len(lines) - cap} more"
-             if len(lines) > cap else ", ".join(str(n) for n in lines))
-    return f"{name}: {len(lines)} line(s): {shown}"
 
 
 def run(ctx: Context) -> None:
@@ -134,7 +156,7 @@ def run(ctx: Context) -> None:
                 continue
             unnumbered.setdefault(number, []).append(f"{doc.name}:{doc.at(m.start())}")
 
-        for m in _ENTRY_REF_RE.finditer(doc.raw):
+        for m in _entry_refs(doc):
             name, target = m.group(1), m.group(2)
             if _SCHEME_RE.match(target) or doc.is_fenced(m.start()):
                 continue

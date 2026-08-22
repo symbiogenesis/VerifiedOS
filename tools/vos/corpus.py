@@ -86,7 +86,13 @@ class Document:
 
 
 def _read(path: Path, name: str) -> Document:
-    raw = path.read_bytes().decode("utf-8")
+    try:
+        raw = path.read_bytes().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        # named here because the bare exception names only offsets: the load runs
+        # before any rule reports, so the one thing a stopped run can still do is say
+        # which tracked document is not the UTF-8 the corpus requires
+        raise RuntimeError(f"{name} is not valid UTF-8: {exc}") from exc
 
     # one split hands back every segment with its terminator's length implied, so
     # the offsets accumulate without touching the text again
@@ -324,16 +330,30 @@ def load(root: Path) -> Corpus:
     names: list[str] = []
     gitlinks: set[str] = set()
     tracked: list[str] = []
+    seen: set[str] = set()
     for entry in _git(root, "ls-files", "--stage", "--full-name"):
         staged, _, path = entry.partition("\t")     # `<mode> <object> <stage>\t<path>`
         if staged.startswith(GITLINK_MODE):
             gitlinks.add(path)
             continue
+        # a merge conflict lists an unmerged path once per stage, and one path read
+        # as two documents would report every anchor it declares as declared twice
+        if path in seen:
+            continue
+        seen.add(path)
         if not (root / path).is_file():
             continue
         tracked.append(path)
         if path.endswith(".md") and not path.startswith(UNREAD_PREFIX):
             names.append(path)
 
-    docs = [_read(root / n, n) for n in sorted(names)]
+    docs = []
+    for n in sorted(names):
+        try:
+            docs.append(_read(root / n, n))
+        except FileNotFoundError:
+            # deleted between the listing and the read, by a peer session sharing the
+            # checkout: dropped exactly as a deletion that landed before the listing
+            # is, so its absence stays reportable on every rule's own terms
+            continue
     return Corpus(root, docs, gitlinks, sorted(tracked))

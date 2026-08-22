@@ -52,6 +52,10 @@ DATA_BASE = 0x8000_8000
 
 MASK64 = (1 << 64) - 1
 
+# the data directives and the width each lays down, spelled once for the parse that
+# admits them and the encoder that sizes them
+_DATA_WIDTHS: Final[dict[str, int]] = {".byte": 1, ".half": 2, ".word": 4, ".dword": 8}
+
 _TOKEN = re.compile(r"""
     (?P<hex>0[xX][0-9a-fA-F_]+)
   | (?P<bin>0[bB][01_]+)
@@ -116,10 +120,15 @@ class Assembler:
                                        text=head, args=_split_operands(rest)))
 
     def _directive(self, name: str, rest: str, lineno: int) -> None:
+        # each argument-taking directive states its arity before anything indexes the
+        # list, so a bare directive is this module's diagnostic with its source line
+        # rather than an IndexError blaming the tool
         args = _split_operands(rest)
         if name in (".text", ".data"):
             self.section = name
         elif name == ".section":
+            if not args:
+                raise self._error(lineno, ".section takes a section name")
             if args[0] not in (".text", ".data"):
                 raise self._error(lineno, f"no section {args[0]}: the image has "
                                           f".text and .data")
@@ -127,21 +136,28 @@ class Assembler:
         elif name in (".globl", ".global", ".type", ".size"):
             pass                                   # every label is exported
         elif name in (".equ", ".set"):
+            if len(args) < 2:
+                raise self._error(lineno, f"{name} takes a name and a value")
             self.items.append(Item("equ", lineno, self.section, text=args[0],
                                    args=args[1:]))
-        elif name in (".byte", ".half", ".word", ".dword"):
-            width = {".byte": 1, ".half": 2, ".word": 4, ".dword": 8}[name]
+        elif name in _DATA_WIDTHS:
+            width = _DATA_WIDTHS[name]
             self.items.append(Item("data", lineno, self.section, text=name,
                                    args=args, size=width * len(args)))
         elif name in (".ascii", ".asciz", ".string"):
-            blob = b"".join(_string(a, lineno, self) for a in args)
-            if name != ".ascii":
-                blob += b"\0" * len(args)
+            # one terminator per string, inside the join: `.asciz "a", "b"` lays down
+            # `a\0b\0`, which is what every other assembler means by it, not `ab\0\0`
+            tail = b"" if name == ".ascii" else b"\0"
+            blob = b"".join(_string(a, lineno, self) + tail for a in args)
             self.items.append(Item("data", lineno, self.section, text=".bytes",
                                    args=[str(b) for b in blob], size=len(blob)))
         elif name in (".space", ".zero"):
+            if not args:
+                raise self._error(lineno, f"{name} takes a size")
             self.items.append(Item("space", lineno, self.section, args=args))
         elif name in (".align", ".p2align", ".balign"):
+            if not args:
+                raise self._error(lineno, f"{name} takes a boundary")
             self.items.append(Item("align", lineno, self.section, text=name,
                                    args=args))
         else:
@@ -227,7 +243,7 @@ class Assembler:
         if item.kind == "data":
             if item.text == ".bytes":
                 return bytes(int(a) for a in item.args)
-            width = {".byte": 1, ".half": 2, ".word": 4, ".dword": 8}[item.text]
+            width = _DATA_WIDTHS[item.text]
             out = bytearray()
             for i, arg in enumerate(item.args):
                 value = self._eval(arg, item, item.address + i * width)
@@ -281,6 +297,9 @@ class Assembler:
         if spec == "reg":
             return [self._register(text, item)]
         if spec == "vreg":
+            # The vector register file is a separate file from the merged one,
+            # so this resolves against its own table and an integer register
+            # name in a vector operand is an error rather than an index.
             key = text.lower()
             if key not in dialect.VREGISTERS:
                 raise self._error(item.line, f"no vector register {text}")
@@ -307,14 +326,6 @@ class Assembler:
             if key not in dialect.SCRS:
                 raise self._error(item.line, f"no special capability register {text}")
             return [dialect.SCRS[key]]
-        if spec == "vreg":
-            # The vector register file is a separate file from the merged one,
-            # so this resolves against its own table and an integer register
-            # name in a vector operand is an error rather than an index.
-            key = text.lower()
-            if key not in dialect.VREGISTERS:
-                raise self._error(item.line, f"no vector register {text}")
-            return [dialect.VREGISTERS[key]]
         if spec == "index":
             # `cs1[rs2 << scale]`, the profile's own spelling of the indexed
             # access. The scale is optional and defaults to zero, which is the

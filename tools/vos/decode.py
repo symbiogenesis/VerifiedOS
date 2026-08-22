@@ -36,9 +36,9 @@ of the one clause and of no other: over the profile's whole exclusion table the 
 pairs one name with one clause.
 """
 
+import functools
 import re
 from dataclasses import dataclass
-from pathlib import Path
 
 from . import dialect
 
@@ -56,6 +56,10 @@ _TERM_RE = re.compile(r'"([^"]*)"|[A-Za-z_]\w*\s*\([^()]*\)|[A-Za-z_]\w*')
 # The call every assembly clause puts between the mnemonic and its first operand. A
 # clause without one spells a mnemonic and nothing else.
 _OPERAND_SEP = "spc()"
+
+# A clause's body runs to the next top-level declaration, which is the next line
+# starting in column zero.
+_TOP_LEVEL_RE = re.compile(r"^\S", re.MULTILINE)
 
 # What a document writes where an encoding family varies: `<eew>` names the field,
 # `*` stands for the rest of a family's names. Both mean *some text decided
@@ -110,8 +114,13 @@ def _skeleton(rhs: str) -> str:
                    if m.group(1) is not None)
 
 
-def read_spellings(root: Path, tracked: list[str]) -> list[Spelling]:
-    """Every assembly clause of every tracked Sail file, as a skeleton.
+def read_spellings(window: list[tuple[str, str]]) -> list[Spelling]:
+    """Every assembly clause of the Sail files in the window, as a skeleton.
+
+    The window is `(tracked path, text)` pairs, read once by the caller and shared
+    with whatever else scans the same files, so this stays a pure function over text
+    it never touches disk for. Anything that is not Sail is passed over here rather
+    than filtered by the caller, so the window stays the one the citation rule reads.
 
     A clause whose mnemonic is decided entirely by a mapping has an empty skeleton
     and is dropped, because a name matches an empty skeleton vacuously. Those are
@@ -119,21 +128,15 @@ def read_spellings(root: Path, tracked: list[str]) -> list[Spelling]:
     boundary out loud rather than counting them as checked.
     """
     out: list[Spelling] = []
-    for rel in tracked:
+    for rel, text in window:
         if not rel.endswith(SAIL_SUFFIX):
             continue
-        path = root / rel
-        if not path.is_file():
-            continue
-        text = path.read_text(encoding="utf-8")
         for m in _ASSEMBLY_RE.finditer(text):
             after = _balanced(text, m.end())
             arrow = text.find("<->", after)
             if arrow < 0:
                 continue
-            # the body runs to the next top-level declaration, which is the next
-            # line starting in column zero
-            end = re.compile(r"^\S", re.MULTILINE).search(text, arrow)
+            end = _TOP_LEVEL_RE.search(text, arrow)
             rhs = text[arrow + 3:end.start() if end else len(text)]
             skeleton = _skeleton(rhs)
             if skeleton:
@@ -170,8 +173,11 @@ def spells(skeleton: str, name: str) -> bool:
     return True
 
 
+@functools.cache
 def _expansion(name: str) -> re.Pattern[str]:
-    """A written mnemonic as the pattern its finished spellings match."""
+    """A written mnemonic as the pattern its finished spellings match. Cached in
+    memory for the process, because one run asks about the same written names for
+    every row that spells them and each ask compiled a fresh pattern."""
     parts = _PLACEHOLDER_RE.split(name)
     return re.compile(_PLACEHOLDER_EXPANSION.join(re.escape(p) for p in parts) + r"\Z")
 
