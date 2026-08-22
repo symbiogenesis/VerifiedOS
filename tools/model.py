@@ -58,9 +58,12 @@ from vos import asm, config, differential, env, trace
 # here and asserted at the single point it is called.
 type Command = Callable[[env.Environment, argparse.Namespace], int]
 
-PROFILE_CONFIG = "config/verifiedos.json"
 SCHEMA = "sail_riscv_config_schema.json"
 EMIT_TARGET = "generated_sail_riscv_model"
+
+# How the one binary every Sail loop starts with is installed, for the refusal that
+# names it.
+SAIL_HOW = "the Sail toolchain lives in the opam default switch: opam install sail"
 
 # What `cmd_build` writes after each stage, and what `wait` reads a finished run's
 # verdict back out of. One spelling, at both ends.
@@ -108,28 +111,56 @@ def _configure(e: env.Environment, build_dir: Path,
        add_env=None if admin is None else {"GIT_DIR": str(admin)})
 
 
+def _require(binary: str, how: str) -> None:
+    """Refuse in one line naming the absent binary rather than letting the first
+    subprocess that asks for it raise a FileNotFoundError traceback."""
+    if shutil.which(binary) is None:
+        raise SystemExit(f"no `{binary}` on PATH; {how}")
+
+
+def _missing_simulator(e: env.Environment) -> str | None:
+    """The refusal every loop downstream of a build shares: each reads the simulator
+    back out of this lane's build tree, and an absent one means nothing has built
+    here yet."""
+    if e.simulator.exists():
+        return None
+    return f"no simulator at {e.simulator}; run `model.py build` first"
+
+
 def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
     """Typecheck the curated model without emitting code."""
-    return subprocess.run(
-        ["sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",
-         "--memo-z3", "--memo-z3-path", str(e.typecheck_cache),
-         "--just-check", "--all-modules", "riscv.sail_project"],
-        cwd=e.model / "model", check=False).returncode
+    _require("sail", SAIL_HOW)
+    # Sail rewrites the memo cache whole at exit (see `_seed_smt_cache`), so a second
+    # typecheck over a live one is refused rather than left to interleave two
+    # whole-file rewrites of the one cache.
+    with env.hold_lock(e.typecheck_cache, "a typecheck"):
+        return subprocess.run(
+            ["sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",
+             "--memo-z3", "--memo-z3-path", str(e.typecheck_cache),
+             "--just-check", "--all-modules", "riscv.sail_project"],
+            cwd=e.model / "model", check=False).returncode
 
 
 def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
     """Run the full C++ emission, which regenerates the config schema, then hand the
     fresh schema and the frozen profile to the validator. No C++ is compiled."""
     build_dir = e.build_dir
-    if not (build_dir / "build.ninja").exists() and _configure(e, build_dir):
-        return 1
-    # a single-threaded stage; -j is passed for uniformity, not for speed
-    if env.stage("emit", ["cmake", "--build", str(build_dir), "-j", str(e.jobs),
-                          "--target", EMIT_TARGET]):
-        return 1
-    code, lines = config.validate(build_dir / SCHEMA, e.model / PROFILE_CONFIG)
-    print("\n".join(lines))
-    return code
+    # The same tree `build` locks, held the same way: an emit over a live build, or a
+    # second emit, would drive one cmake state in one tree from two runs.
+    lock = env.build_lock(build_dir)
+    try:
+        if not (build_dir / "build.ninja").exists() and _configure(e, build_dir):
+            return 1
+        # a single-threaded stage; -j is passed for uniformity, not for speed
+        if env.stage("emit", ["cmake", "--build", str(build_dir), "-j", str(e.jobs),
+                              "--target", EMIT_TARGET]):
+            return 1
+        code, lines = config.validate(build_dir / SCHEMA, e.profile)
+        print("\n".join(lines))
+        return code
+    finally:
+        if lock is not None:
+            lock.close()
 
 
 def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
@@ -149,6 +180,7 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
     the lock is taken here, before anything is written, and the detached child inherits
     it, so a second build over a live one is refused rather than merged into it.
     """
+    _require("sail", SAIL_HOW)
     if args.fast:
         build_dir = e.fast_build_dir
         log = e.log("model-build-fast")
@@ -209,21 +241,22 @@ def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
     gives it back when the child exits. `BUILD_LOCK_HELD` is what tells the child not to
     take a second one on a descriptor of its own, which would fail against the first.
 
-    The log is removed before the child starts, so that a `wait` racing the child's
-    first write cannot read the previous run's `ALL_DONE` and call this run finished.
-    Nothing else deletes it: the child recreates it, and `wait` blocks on the lock
-    before it looks at the log at all.
+    The previous run's log is removed only once the child exists, so a `Popen` that
+    raises leaves that evidence standing; it is still gone before a reader can take it
+    for this run's, because the child's first write sits behind its own interpreter
+    start and `env.load`, and `wait` blocks on the lock before it looks at the log at
+    all. Nothing else deletes it: the child recreates it.
     """
     argv = [sys.executable, str(Path(__file__).resolve()), "build"]
     if args.fast:
         argv.append("--fast")
     log.parent.mkdir(parents=True, exist_ok=True)
-    log.unlink(missing_ok=True)
     child = subprocess.Popen(
         argv, start_new_session=True,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         pass_fds=() if lock is None else (lock.fileno(),),
         env={**os.environ, env.BUILD_LOCK_HELD: "1"})
+    log.unlink(missing_ok=True)
     if lock is not None:
         env.record_lock_holder(lock, child.pid)
     print(f"== background: pid {child.pid}")
@@ -314,12 +347,17 @@ def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
 
     The wait is on the lane's lock rather than on the log, because the lock is released
     by the kernel when the builder exits however it exits, where a marker is only
-    written by a build that got as far as writing one. The log is read afterwards, and
-    is what carries the verdict.
+    written by a build that got as far as writing one. The log carries the verdict, and
+    it is read while the lock is still held: read after releasing, a build started in
+    that window truncates the log first and the report is about the wrong run.
     """
     log = e.log("model-build-fast" if args.fast else "model-build")
-    env.wait_for_build(e.fast_build_dir if args.fast else e.build_dir)
-    return _report_build(log)
+    lock = env.wait_for_build(e.fast_build_dir if args.fast else e.build_dir)
+    try:
+        return _report_build(log)
+    finally:
+        if lock is not None:
+            lock.close()
 
 
 def _report_build(log: Path) -> int:
@@ -381,6 +419,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     says the reference is a working machine before `trace-diff` is allowed to treat it
     as evidence.
     """
+    _require("sail", SAIL_HOW)
     src = e.root / ORACLE_SRC
     if not (src / "Makefile").is_file():
         print(f"no oracle source at {src}; the submodule is not checked out",
@@ -392,26 +431,31 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     log = e.log("oracle-build")
     version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
 
-    print(f"== log: {log}", flush=True)
-    with log.open("w", encoding="utf-8") as handle:
-        handle.write(f"== sail: {version.stdout.strip()}\n")
-        handle.write(f"== tree: {tree}\n")
-        if args.resync or not (tree / "Makefile").is_file():
-            handle.write(f"SYNC from {src}\n")
+    # The one tree every lane shares, so the lock sits beside it rather than in any
+    # lane, and a second run, from this checkout or another, is refused rather than
+    # left to rmtree the tree out from under the first's make. Taken before the log is
+    # opened, so a refused run cannot truncate the log of the one it lost to.
+    with env.hold_lock(tree, "an oracle build"):
+        print(f"== log: {log}", flush=True)
+        with log.open("w", encoding="utf-8") as handle:
+            handle.write(f"== sail: {version.stdout.strip()}\n")
+            handle.write(f"== tree: {tree}\n")
+            if args.resync or not (tree / "Makefile").is_file():
+                handle.write(f"SYNC from {src}\n")
+                handle.flush()
+                _sync_oracle_tree(src, tree)
+            else:
+                handle.write("SYNC skipped: the tree is already present\n")
             handle.flush()
-            _sync_oracle_tree(src, tree)
-        else:
-            handle.write("SYNC skipped: the tree is already present\n")
-        handle.flush()
 
-        code = env.stage("oracle", ["make", "-j", str(e.jobs),
-                                    f"C_WARNINGS={ORACLE_CSTD}", ORACLE_TARGET],
-                         cwd=tree, stdout=handle, stderr=handle)
-        handle.write(f"BUILD_EXIT={code}\n")
-        handle.flush()
-        if code == 0:
-            code = _oracle_suite(e, tree, handle, args.timeout)
-        handle.write("ALL_DONE\n")
+            code = env.stage("oracle", ["make", "-j", str(e.jobs),
+                                        f"C_WARNINGS={ORACLE_CSTD}", ORACLE_TARGET],
+                             cwd=tree, stdout=handle, stderr=handle)
+            handle.write(f"BUILD_EXIT={code}\n")
+            handle.flush()
+            if code == 0:
+                code = _oracle_suite(e, tree, handle, args.timeout)
+            handle.write("ALL_DONE\n")
 
     print(f"== {'green' if code == 0 else 'failed'}: {log}")
     return code
@@ -481,17 +525,16 @@ def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
                 that blocks rather than fails (c3's `si-p-dirty` finding), so it is
                 classified rather than left to a ctest timeout
     """
-    build_dir = e.build_dir
-    sim = build_dir / "c_emulator" / "sail_riscv_sim"
-    if not sim.exists():
-        print(f"no simulator at {sim}; run `model.py build` first", file=sys.stderr)
+    if (missing := _missing_simulator(e)) is not None:
+        print(missing, file=sys.stderr)
         return 1
-    suites = sorted(build_dir.glob("test/*/riscv-tests"))
+    sim = e.simulator
+    suites = sorted(e.build_dir.glob("test/*/riscv-tests"))
     if not suites:
-        print(f"no downloaded riscv-tests under {build_dir}/test", file=sys.stderr)
+        print(f"no downloaded riscv-tests under {e.build_dir}/test", file=sys.stderr)
         return 1
 
-    profile = e.model / PROFILE_CONFIG
+    profile = e.profile
     elves = [p for p in sorted(suites[0].glob(f"rv{args.xlen}*-p-*"))
              if p.suffix != ".dump"]
 
@@ -540,9 +583,8 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     by either model. The regression is that the prefix must not *shorten*, which
     --floor enforces.
     """
-    if not e.simulator.exists():
-        print(f"no curated simulator at {e.simulator}; run `model.py build` first",
-              file=sys.stderr)
+    if (missing := _missing_simulator(e)) is not None:
+        print(missing, file=sys.stderr)
         return 1
     if not e.oracle.exists():
         print(f"no M0.4 oracle at {e.oracle}; run `model.py oracle` first",
@@ -560,7 +602,7 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
         print("nothing to compare: pass one or more ELFs, or --corpus", file=sys.stderr)
         return 1
 
-    profile = e.model / PROFILE_CONFIG
+    profile = e.profile
     tally = {"AGREE": 0, "PREFIX": 0, "SHORT": 0, "SKIP": 0}
     shortest = None
 
@@ -572,9 +614,14 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     # program's run long enough to dominate its adjudication, this becomes the same
     # `ThreadPoolExecutor` the sweep uses, measured first.
     for elf in elves:
-        curated = trace.normalize(_run_trace(
+        curated_lines = _run_trace(
             [str(e.simulator), "--config", str(profile), "--trace-instr", "--trace-gpr",
-             "--trace-mem", "--inst-limit", str(args.limit), str(elf)]), "curated")
+             "--trace-mem", "--inst-limit", str(args.limit), str(elf)], args.timeout)
+        if curated_lines is None:
+            print(f"SHORT   {elf.name} (curated executor: no exit within {args.timeout}s)")
+            tally["SHORT"] += 1
+            continue
+        curated = trace.normalize(curated_lines, "curated")
         if not curated:
             # the profile refuses the program outright, which `model.py sweep` already
             # classifies; there is no trace to adjudicate
@@ -582,8 +629,13 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
             tally["SKIP"] += 1
             continue
 
-        oracle = trace.normalize(_run_trace(
-            [str(e.oracle), "-v", "-l", str(args.limit), str(elf)]), "oracle")
+        oracle_lines = _run_trace(
+            [str(e.oracle), "-v", "-l", str(args.limit), str(elf)], args.timeout)
+        if oracle_lines is None:
+            print(f"SHORT   {elf.name} (oracle executor: no exit within {args.timeout}s)")
+            tally["SHORT"] += 1
+            continue
+        oracle = trace.normalize(oracle_lines, "oracle")
         verdict = trace.adjudicate(curated, oracle, args.context)
 
         if verdict.ok:
@@ -625,10 +677,17 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     return 1 if tally["SHORT"] else 0
 
 
-def _run_trace(argv: list[str]) -> list[str]:
+def _run_trace(argv: list[str], timeout: int) -> list[str] | None:
     """Both executors print their trace to stdout and their diagnostics to stderr, and
-    the normalizer reads either, so the two are merged as the shell rig merged them."""
-    done = subprocess.run(argv, capture_output=True, text=True, errors="replace", check=False)
+    the normalizer reads either, so the two are merged as the shell rig merged them.
+    `None` is an executor that never exited: a partial trace would adjudicate as a
+    divergence and blame the wrong machine, so a hang is the caller's finding to word.
+    """
+    try:
+        done = subprocess.run(argv, capture_output=True, text=True, errors="replace",
+                              timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        return None
     return (done.stdout + done.stderr).splitlines()
 
 
@@ -648,7 +707,10 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     which is downstream of everything this corpus gates.
     """
     corpus = differential.load(e.root)
-    out_dir = Path(args.out) if args.out else e.build_root / "corpus"
+    # Lane-scoped like the build trees, so two lanes' runs cannot write one ELF path;
+    # the manifest's digests are over the traces, not the paths, so nothing downstream
+    # cares where the images landed.
+    out_dir = Path(args.out) if args.out else e.lane_root / "corpus"
     wanted = set(args.member)
     members = [m for m in corpus.members if not wanted or m.name in wanted]
     if wanted - {m.name for m in members}:
@@ -656,7 +718,7 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 1
 
-    profile = e.model / PROFILE_CONFIG
+    profile = e.profile
     tally = {"PASS": 0, "FAIL": 0}
     # checks, records, digest: the three fields the manifest holds per member, and
     # the three `differential.rewrite` writes back. The annotation carried two of
@@ -709,8 +771,8 @@ def _check_trace(member: differential.Member, measured: tuple[int, int, str]) ->
 
 def _run_member(e: env.Environment, profile: Path, elf: Path,
                 timeout: int) -> tuple[str, str, list[str] | None]:
-    if not e.simulator.exists():
-        return "FAIL", f" (no simulator at {e.simulator}; run `model.py build` first)", None
+    if (missing := _missing_simulator(e)) is not None:
+        return "FAIL", f" ({missing})", None
     try:
         done = subprocess.run([str(e.simulator), "--config", str(profile),
                                "--trace-commit", "--inst-limit", "1000000", str(elf)],
@@ -757,11 +819,12 @@ def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
     and then handed back through the emulator's own bound rather than through a second
     implementation of it here.
     """
-    sim = e.build_dir / "c_emulator" / "sail_riscv_sim"
-    if not sim.exists():
-        print(f"no simulator at {sim}; run `model.py build` first", file=sys.stderr)
+    if (missing := _missing_simulator(e)) is not None:
+        print(missing, file=sys.stderr)
         return 1
-    profile = e.model / PROFILE_CONFIG
+    _require("dtc", "apt install device-tree-compiler")
+    sim = e.simulator
+    profile = e.profile
 
     dts = subprocess.run([str(sim), "--config", str(profile), "--print-device-tree"],
                          capture_output=True, text=True, check=False)
@@ -797,9 +860,15 @@ def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
         # emulator get that far.
         corpus = differential.load(e.root)
         elf = differential.assemble(corpus, corpus.members[0], Path(tmp))
-        fits = subprocess.run([str(sim), "--config", str(profile),
-                               "--device-tree-blob", str(blob), str(elf)],
-                              capture_output=True, text=True, timeout=120, check=False)
+        try:
+            fits = subprocess.run([str(sim), "--config", str(profile),
+                                   "--device-tree-blob", str(blob), str(elf)],
+                                  capture_output=True, text=True, timeout=120, check=False)
+        except subprocess.TimeoutExpired:
+            print(f"the emulator did not exit within 120 s running "
+                  f"{corpus.members[0].name} with the generated blob loaded",
+                  file=sys.stderr)
+            return 1
         said = fits.stdout + fits.stderr
         if "does not fit" in said:
             print(f"the generated devicetree does not fit the region it is written "
@@ -834,12 +903,11 @@ def cmd_reference(e: env.Environment, args: argparse.Namespace) -> int:
     under edit is the normal case and a gate that failed on it would be turned off; an
     *unknown* revision is refused, because that is the state this exists to end.
     """
-    sim = e.build_dir / "c_emulator" / "sail_riscv_sim"
-    if not sim.exists():
-        print(f"no simulator at {sim}; run `model.py build` first", file=sys.stderr)
+    if (missing := _missing_simulator(e)) is not None:
+        print(missing, file=sys.stderr)
         return 1
 
-    info = subprocess.run([str(sim), "--build-info"],
+    info = subprocess.run([str(e.simulator), "--build-info"],
                           capture_output=True, text=True, check=False)
     fields = dict(
         line.split(": ", 1) for line in info.stdout.splitlines() if ": " in line)
@@ -857,8 +925,13 @@ def cmd_reference(e: env.Environment, args: argparse.Namespace) -> int:
     harness = e.build_dir / "test" / "unit_tests" / "unit_tests"
     properties = 0
     if harness.exists():
-        run = subprocess.run([str(harness)], capture_output=True, text=True,
-                             timeout=300, check=False)
+        try:
+            run = subprocess.run([str(harness)], capture_output=True, text=True,
+                                 timeout=300, check=False)
+        except subprocess.TimeoutExpired:
+            print(f"the property harness at {harness} did not exit within 300 s",
+                  file=sys.stderr)
+            return 1
         properties = sum(1 for line in run.stdout.splitlines()
                          if line.startswith("Testing "))
 
@@ -943,6 +1016,8 @@ def main(argv: list[str] | None = None) -> int:
     td.add_argument("--floor", type=int, default=0,
                     help="the agreeing prefix below which a member is a regression")
     td.add_argument("--limit", type=int, default=100000, help="instruction limit per run")
+    td.add_argument("--timeout", type=int, default=60,
+                    help="seconds before an executor counts as hung")
     td.add_argument("--context", type=int, default=4,
                     help="records of agreement to print before a divergence")
     td.set_defaults(run=cmd_trace_diff)
@@ -980,7 +1055,7 @@ def main(argv: list[str] | None = None) -> int:
     vc.set_defaults(run=cmd_validate_config)
 
     ka = sub.add_parser("keepalive", help="hold the WSL distribution up for a bounded time")
-    ka.add_argument("--hours", type=int, default=env.KEEPALIVE_HOURS)
+    ka.add_argument("--hours", type=int, default=env.keepalive_hours())
     ka.add_argument("--stop", action="store_true")
     ka.set_defaults(run=cmd_keepalive)
 

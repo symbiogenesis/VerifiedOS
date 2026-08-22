@@ -65,17 +65,14 @@ STACK_BYTES = 131072 * 1024
 # is that name under the build root rather than under a lane.
 MODEL_TREE = "verifiedos-model"
 
+# The frozen profile configuration, relative to the model tree. Every loop below a
+# build hands it to the simulator, so `Environment.profile` composes the path once.
+PROFILE_CONFIG = "config/verifiedos.json"
+
 # Set by `model.py build --background` on the child it detaches, which inherits the
 # lock the parent already took rather than taking a second one. Internal, and named
 # rather than spelled at both ends.
 BUILD_LOCK_HELD = "VOS_BUILD_LOCK_HELD"
-
-# `/tmp` and not a private directory, deliberately: the lease is one per distribution
-# rather than one per user, and a second tool has to find the first one's pidfile to
-# know a lease is already held. Overridable for a test that must not touch the real one.
-KEEPALIVE_PIDFILE = Path(
-    os.environ.get("VOS_KEEPALIVE_PIDFILE", "/tmp/vos-keepalive.pid"))  # noqa: S108
-KEEPALIVE_HOURS = int(os.environ.get("VOS_KEEPALIVE_HOURS", "8"))
 
 # The M0.4 oracle's build tree, carrying the upstream pin in its name. Both the tree and
 # the simulator inside it derive from this, so the pin is written once.
@@ -92,14 +89,26 @@ ORACLE_TREE = "sail-cheri-riscv-bb07488d"
 # host gate and the M1.5 container both.
 ROCQ_SWITCH = "rocq-9.1.1"
 
-# The Z3 the Sail typechecker calls, unpacked beside the build trees and named for its
-# version. Ubuntu 26.04 packages 4.13.3 and Sail invokes `z3` by name from PATH, so this
-# directory has to precede /usr/bin or the distribution's answers are the ones cached.
-Z3_BIN = Path(os.environ.get("VOS_Z3_BIN", "/root/z3-5.1.0/bin"))
-
 
 def _env_path(name: str, default: Path) -> Path:
     return Path(os.environ[name]) if os.environ.get(name) else default
+
+
+def _gitdir_pointer(root: Path) -> str | None:
+    """The target a linked checkout's `.git` pointer file names, `None` where `.git`
+    is a directory, absent, or unreadable. The raw spelling is returned rather than a
+    parsed path, because the two readers want different halves of it: `_lane` the
+    worktree's name, `git_dir` the administrative path."""
+    dot_git = root / ".git"
+    if not dot_git.is_file():
+        return None
+    try:
+        pointer = dot_git.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if not pointer.startswith("gitdir:"):
+        return None
+    return pointer.removeprefix("gitdir:").strip()
 
 
 def _lane(root: Path) -> str:
@@ -128,16 +137,10 @@ def _lane(root: Path) -> str:
     override = os.environ.get("VOS_LANE")
     if override is not None:
         return override.strip().lower()
-    dot_git = root / ".git"
-    if not dot_git.is_file():
+    target = _gitdir_pointer(root)
+    if target is None:
         return ""
-    try:
-        pointer = dot_git.read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
-    if not pointer.startswith("gitdir:"):
-        return ""
-    admin = PurePosixPath(pointer.removeprefix("gitdir:").strip().replace("\\", "/"))
+    admin = PurePosixPath(target.replace("\\", "/"))
     return admin.name.lower() if admin.parent.name == "worktrees" else ""
 
 
@@ -197,6 +200,11 @@ class Environment:
         return self.build_dir / "c_emulator" / "sail_riscv_sim"
 
     @property
+    def profile(self) -> Path:
+        """The frozen profile configuration every loop hands to the simulator."""
+        return self.model / PROFILE_CONFIG
+
+    @property
     def log_dir(self) -> Path:
         """One directory for every lane's logs, because a human reading them wants them
         in one place; it is the file name that carries the lane. See `log`."""
@@ -249,6 +257,10 @@ def _mem_available_mb() -> int:
                 return int(line.split()[1]) // 1024
     except OSError:
         pass
+    # Announced rather than passed over: with no figure the memory guard in `_jobs`
+    # cannot bind, and a silent zero would look like a policy instead of a blindness.
+    print("WARNING no MemAvailable figure from /proc/meminfo: the memory guard is "
+          "blind and jobs are sized from cores alone", file=sys.stderr)
     return 0
 
 
@@ -265,8 +277,17 @@ def _jobs(cpus: int, mem_mb: int) -> int:
     15.7 GB available this yields 24 and the guard is inert; under a 4 GB cap it yields
     4 and prevents the thrash.
     """
-    if os.environ.get("VOS_JOBS"):
-        return int(os.environ["VOS_JOBS"])
+    raw = os.environ.get("VOS_JOBS")
+    if raw:
+        # Garbage and non-positive counts alike are refused by name, because either
+        # would otherwise go straight onto ninja's command line as `-j`.
+        try:
+            jobs = int(raw)
+        except ValueError:
+            jobs = 0
+        if jobs < 1:
+            raise SystemExit(f"VOS_JOBS={raw!r} is not a positive count of jobs")
+        return jobs
     jobs = cpus + 2
     if mem_mb > 2048:
         jobs = min(jobs, max(1, (mem_mb - 2048) // 512))
@@ -328,16 +349,23 @@ def _raise_stack_limit() -> None:
 def _prepend_z3_path() -> None:
     """Put the pinned solver ahead of the distribution's.
 
+    The Z3 the Sail typechecker calls is unpacked beside the build trees and named for
+    its version. Ubuntu 26.04 packages 4.13.3 and Sail invokes `z3` by name from PATH,
+    so the pinned directory has to precede /usr/bin or the distribution's answers are
+    the ones cached. `VOS_Z3_BIN` is read here, at call time like every other override,
+    so a test that sets it after importing this module is still honoured.
+
     Absence is announced rather than passed over, which is what separates this from the
     opam guard below. A missing opam switch makes a Sail loop fail at `sail --version`;
     a missing Z3 prefix makes nothing fail at all. It makes the loop typecheck against
     Ubuntu's 4.13.3 and write that solver's answers into a content-keyed cache the
     pinned solver then reads back as its own, which is a difference no later run can see.
     """
-    if Z3_BIN.is_dir():
-        os.environ["PATH"] = f"{Z3_BIN}{os.pathsep}{os.environ.get('PATH', '')}"
+    z3_bin = _env_path("VOS_Z3_BIN", Path("/root/z3-5.1.0/bin"))
+    if z3_bin.is_dir():
+        os.environ["PATH"] = f"{z3_bin}{os.pathsep}{os.environ.get('PATH', '')}"
     else:
-        print(f"WARNING {Z3_BIN} is absent: typechecking will use the z3 on PATH and "
+        print(f"WARNING {z3_bin} is absent: typechecking will use the z3 on PATH and "
               f"cache its answers", file=sys.stderr)
 
 
@@ -495,6 +523,23 @@ def _open_lock(build_dir: Path) -> IO[str]:
     return path.open("a+", encoding="utf-8")
 
 
+def _try_lock(target: Path) -> tuple[IO[str] | None, str]:
+    """Take the lock beside `target`, or name who holds it.
+
+    Exactly one half of the pair is meaningful: the open locked handle with this
+    process recorded as holder, or, when the handle is `None`, the pid the holding
+    run recorded in the lock file.
+    """
+    handle = _open_lock(target)
+    if _flock(handle, blocking=False):
+        record_lock_holder(handle, os.getpid())
+        return handle, ""
+    handle.seek(0)
+    holder = handle.read().strip() or "unknown"
+    handle.close()
+    return None, holder
+
+
 def build_lock(build_dir: Path) -> IO[str] | None:
     """Hold one lane's build tree for the life of this process, or refuse.
 
@@ -514,14 +559,27 @@ def build_lock(build_dir: Path) -> IO[str] | None:
     """
     if os.environ.get(BUILD_LOCK_HELD):
         return None
-    handle = _open_lock(build_dir)
-    if not _flock(handle, blocking=False):
-        handle.seek(0)
-        holder = handle.read().strip() or "unknown"
-        handle.close()
+    handle, holder = _try_lock(build_dir)
+    if handle is None:
         raise SystemExit(f"a build already holds {build_dir} (pid {holder}); wait on it "
                          f"with `model.py wait`, or build in a worktree of your own")
-    record_lock_holder(handle, os.getpid())
+    return handle
+
+
+def hold_lock(target: Path, what: str) -> IO[str]:
+    """Hold `target` for the life of this process, or refuse naming the holder.
+
+    `build_lock`'s machinery for the mutable state a build lock does not cover: the
+    lane's typecheck SMT cache, which Sail rewrites whole at exit, and the oracle tree
+    every lane shares. The lock file sits beside `target` rather than inside it, so it
+    pre-exists whatever the run creates and survives whatever the run deletes. The
+    caller must keep the returned handle bound for as long as it means to hold
+    `target`; dropping it closes the descriptor and releases the lock.
+    """
+    handle, holder = _try_lock(target)
+    if handle is None:
+        raise SystemExit(f"{what} already holds {target} (pid {holder}); "
+                         f"wait for it to finish")
     return handle
 
 
@@ -550,8 +608,8 @@ def build_holder(build_dir: Path) -> str | None:
         return handle.read().strip() or "unknown"
 
 
-def wait_for_build(build_dir: Path) -> None:
-    """Block until this lane's build tree is free again.
+def wait_for_build(build_dir: Path) -> IO[str] | None:
+    """Block until this lane's build tree is free, and keep it held for the caller.
 
     A build holds its lane's lock for exactly as long as it runs, so waiting for the
     lock is waiting for the build: `flock` blocks in the kernel and returns the moment
@@ -559,14 +617,17 @@ def wait_for_build(build_dir: Path) -> None:
     was killed. There is no interval to guess, no marker to poll, and a build that died
     without writing `ALL_DONE` ends the wait rather than hanging it.
 
-    The lock is given back before this returns, so that a build queued behind the wait
-    is not held off by the log-reading the caller does next.
+    The handle comes back still locked rather than released, so that the log the
+    caller reads next still carries the run this wait ended on: released first, a new
+    build's truncation lands between the wait and the read and the verdict reported is
+    the wrong run's opening lines. The caller closes the handle to give the lane back.
+    `None` means nothing has ever built here and there is nothing to hold.
     """
     if not _lock_path(build_dir).exists():
-        return
-    with _open_lock(build_dir) as handle:
-        _flock(handle, blocking=True)
-        _unlock(handle)
+        return None
+    handle = _open_lock(build_dir)
+    _flock(handle, blocking=True)
+    return handle
 
 
 @runtime_checkable
@@ -633,6 +694,28 @@ def _report_stream(report_to: Writable | None, child_stderr: object) -> Writable
     return fallback
 
 
+def _keepalive_pidfile() -> Path:
+    """`/tmp` and not a private directory, deliberately: the lease is one per
+    distribution rather than one per user, and a second tool has to find the first
+    one's pidfile to know a lease is already held. Read at call time like every other
+    override, so a test's `VOS_KEEPALIVE_PIDFILE` names the file the test must not
+    touch no matter when this module was first imported."""
+    return _env_path("VOS_KEEPALIVE_PIDFILE", Path("/tmp/vos-keepalive.pid"))  # noqa: S108
+
+
+def keepalive_hours() -> int:
+    """The lease's duration: `VOS_KEEPALIVE_HOURS`, or eight hours unset. Zero and
+    below turn the lease off. Read at call time like every other override, and
+    garbage is refused by name rather than left to a traceback in whichever tool
+    imported this module first."""
+    raw = os.environ.get("VOS_KEEPALIVE_HOURS", "8")
+    try:
+        return int(raw)
+    except ValueError:
+        raise SystemExit(
+            f"VOS_KEEPALIVE_HOURS={raw!r} is not a whole number of hours") from None
+
+
 def keepalive(hours: int | None = None) -> None:
     """Hold the distribution up for a bounded time, so a loop does not lose the VM.
 
@@ -648,33 +731,53 @@ def keepalive(hours: int | None = None) -> None:
 
     Idempotent via the pidfile, so loading this in every loop starts at most one.
     """
-    hours = KEEPALIVE_HOURS if hours is None else hours
+    hours = keepalive_hours() if hours is None else hours
     if hours <= 0:
         return
-    if _keepalive_running():
+    if _lease_sleep() is not None:
         return
+    # Between the probe above and the replace below, two racers can both find no lease
+    # and both spawn: the later write wins the name and the loser's sleep is orphaned
+    # but expires on its own, so the lease's one job, that at least one lives, holds.
     proc = subprocess.Popen(["sleep", str(hours * 3600)], start_new_session=True,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    KEEPALIVE_PIDFILE.write_text(f"{proc.pid}\n")
-    print(f"KEEPALIVE pid={proc.pid} hours={hours} pidfile={KEEPALIVE_PIDFILE}",
+    pidfile = _keepalive_pidfile()
+    scratch = pidfile.with_name(f"{pidfile.name}.{os.getpid()}")
+    scratch.write_text(f"{proc.pid}\n")
+    # The rename is atomic, so a reader mid-write never parses half a pid as a whole one.
+    scratch.replace(pidfile)
+    print(f"KEEPALIVE pid={proc.pid} hours={hours} pidfile={pidfile}",
           file=sys.stderr)
 
 
-def _keepalive_running() -> bool:
+def _lease_sleep() -> int | None:
+    """The lease's pid, or `None` where no lease is alive. The pidfile is the lease's
+    one record, so this is the one place it is read.
+
+    Liveness alone is not the test, because a pid outlives its process only as a
+    number: once the sleep exits, the kernel hands the number to whatever process
+    comes next, and a dead lease would read as alive for hours. The recorded process
+    is the lease only while it is still this module's detached `sleep`, which its own
+    argv says.
+    """
     try:
-        pid = int(KEEPALIVE_PIDFILE.read_text().strip())
-        os.kill(pid, 0)
+        pid = int(_keepalive_pidfile().read_text().strip())
     except (OSError, ValueError):
-        # no pidfile, an unreadable one, or a process that has exited: all three mean
-        # there is no lease, which is what the caller asked
-        return False
-    return True
+        # no pidfile, an unreadable one, or garbage in it: there is no lease
+        return None
+    try:
+        argv = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
+    except OSError:
+        return None
+    return pid if argv[:1] == [b"sleep"] else None
 
 
 def keepalive_stop() -> None:
-    # Both errors mean the lease is already gone: no pidfile, an unreadable one, or a
-    # process that has exited. The pidfile is removed either way, so suppressing is
-    # the whole handling rather than a swallowed failure.
-    with contextlib.suppress(OSError, ValueError):
-        os.kill(int(KEEPALIVE_PIDFILE.read_text().strip()), 15)
-    KEEPALIVE_PIDFILE.unlink(missing_ok=True)
+    # Only the lease's own sleep is signalled: a recorded pid that is anything else by
+    # now belongs to a stranger. The pidfile is removed either way, so a stale lease
+    # is cleared rather than left to read as one.
+    pid = _lease_sleep()
+    if pid is not None:
+        with contextlib.suppress(OSError):
+            os.kill(pid, 15)
+    _keepalive_pidfile().unlink(missing_ok=True)
