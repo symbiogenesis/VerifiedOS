@@ -141,6 +141,37 @@ MODEL_FACTS = (
     "model/config/config.json.in",
 )
 
+# The second window into the same tree, declared separately because it is narrow for
+# no reason at all and the list above is narrow for a good one.
+#
+# `MODEL_FACTS` is a *value* window: a rule reading a number out of the model should
+# name the file it reads, and adding one is a decision somebody makes on purpose. The
+# citation check is not that kind of rule. What it holds is hygiene over a construct
+# that occurs wherever the curated model argues from the register, which is most of the
+# tree, so a window sized for the other purpose leaves its claim mostly untrue: aimed
+# at the five files above it reached 195 of the 890 citations the model makes, and the
+# sentence *the model's own citations reach no rule* stayed 78% true.
+#
+# The reach is by kind rather than by name for the same reason: a list of seventy-odd
+# files would be a membership nobody maintains, and the day a new Sail file cites a
+# requirement is the day it should be checked rather than the day somebody remembers.
+# The cost is the selftest's sandbox copying these instead of standing them up empty,
+# which is 122 files and about a megabyte.
+MODEL_CITATION_SUFFIXES = (".sail", ".json", ".in")
+
+
+def is_model_citation_path(rel: str) -> bool:
+    """Whether a tracked path is one the citation check reads.
+
+    `dependencies/` is excluded because it is somebody else's code vendored whole: a
+    requirement id appearing there would be a coincidence of digits rather than a
+    citation, and holding upstream to this repository's register is not a claim anyone
+    should make.
+    """
+    return (rel.startswith(UNREAD_PREFIX)
+            and not rel.startswith(UNREAD_PREFIX + "dependencies/")
+            and rel.endswith(MODEL_CITATION_SUFFIXES))
+
 # an index entry's mode, which is what tells a submodule from a file
 GITLINK_MODE = "160000"
 

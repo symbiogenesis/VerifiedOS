@@ -444,11 +444,12 @@ def _model_citations(ctx: Context) -> None:
     only tracked documents. A mistyped or invented id in a model comment therefore
     rendered as a citation, survived review, and pointed at nothing.
 
-    The reach is the `MODEL_FACTS` carve-out and not the whole tree, which is a real
-    limit rather than a chosen scope: those are the files the selftest's sandbox copies
-    instead of standing up empty, so they are the only model paths a rule may read at
-    all. Widening it means widening that list, which is the decision the list exists to
-    make visible.
+    The reach is by kind and not by name, which is a decision rather than the absence
+    of one. `MODEL_FACTS` is the *value* window and stays narrow, because a rule reading
+    a number out of the model should name the file it reads. This rule holds a
+    construct that occurs wherever the model argues from the register, so its natural
+    reach is the tree: pointed at the value window it saw 195 of the model's 890
+    citations, which is a rule reporting `ok` about 22% of its subject.
 
     Ids are permanent and a retired requirement is struck rather than removed
     (CLAUDE.md), so what this catches is not renumbering. It is the typo, the id
@@ -458,19 +459,23 @@ def _model_citations(ctx: Context) -> None:
     rep, reg = ctx.rep, ctx.reg
     findings: list[str] = []
     cited = 0
-    for rel in corpus_mod.MODEL_FACTS:
+    files = 0
+    for rel in sorted(ctx.corpus.tracked):
+        if not corpus_mod.is_model_citation_path(rel):
+            continue
         path = ctx.root / rel
         if not path.is_file():
             continue
-        for ident in sorted(set(REQ_TOKEN_RE.findall(path.read_text(encoding="utf-8")))):
-            cited += 1
-            if ident not in reg.id_set:
-                findings.append(f"{rel} cites {ident}, which the register does not "
-                                "declare")
+        found = REQ_TOKEN_RE.findall(path.read_text(encoding="utf-8"))
+        if found:
+            files += 1
+        cited += len(found)
+        findings += [f"{rel} cites {ident}, which the register does not declare"
+                     for ident in sorted(set(found)) if ident not in reg.id_set]
     ctx.shared["model_citations"] = cited
     rep.report("K-63", "model citation(s) naming no requirement:", findings,
-               f"all {cited} requirement citations in the {len(corpus_mod.MODEL_FACTS)} "
-               "model files this tool reads resolve")
+               f"all {cited} requirement citations the model makes, across {files} of "
+               "its files, name a requirement the register declares")
 
 
 def run(ctx: Context) -> None:
