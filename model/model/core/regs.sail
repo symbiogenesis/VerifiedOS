@@ -330,16 +330,9 @@ function wX_bits(Regidx(i) : regidx, data : xlenbits) -> unit = {
 
 overload X = {rX_bits, wX_bits, rX, wX}
 
-// X_pair accesses a pair of registers. If the index is x0 then
-// it acts as if both registers in the pair are x0.
-
-function rX_pair_bits(i : regidx) -> bits(xlen * 2) =
-  if i != zreg then X(i + 1) @ X(i) else zeros()
-
-function wX_pair_bits(i : regidx, data : bits(xlen * 2)) -> unit =
-  if i != zreg then {
-    X(i) = data[xlen - 1 .. 0];
-    X(i + 1) = data[xlen * 2 - 1 .. xlen];
-  }
-
-overload X_pair = {rX_pair_bits, wX_pair_bits}
+// The even-numbered register pair `X_pair` read and wrote is gone with
+// `Zacas` (R-15-026, R-15-027). Its only callers were `AMOCAS.D` on RV32 and
+// `AMOCAS.Q` on RV64, the two forms whose operand is wider than XLEN; no
+// other instruction on this machine names a register pair, so the accessor,
+// its x0-reads-as-zero rule and the aliasing question a pair asks of a proof
+// leave with the one operand that had them.

@@ -279,10 +279,15 @@ mapping wait_name : WaitReason <-> string = {
 
 overload to_str = {wait_name}
 
-// Width of access for most instructions (load/store, etc.).
+// Width of access for every instruction that names one.
+//
+// The 128-bit access `word_width_wide` carried had exactly one issuer,
+// `AMOCAS.Q`, and is gone with `Zacas` (R-15-026, R-15-027). Nothing else on
+// this machine moves more than XLEN bits per scalar access, so the wide type
+// held one value no decode could reach and its own name for the widths below
+// it; the atomics keep the three-bit encoding field below, which is a shape of
+// their opcode rather than a width they can take.
 type word_width = {1, 2, 4, 8}
-// Some instructions allow 128-bit accesses.
-type word_width_wide = {1, 2, 4, 8, 16}
 
 // Get the bit encoding of word_width.
 mapping width_enc : word_width <-> bits(2) = {
@@ -299,19 +304,12 @@ mapping width_mnemonic : word_width <-> string = {
   8 <-> "d",
 }
 
-// Get the bit encoding of word_width.
-mapping width_enc_wide : word_width_wide <-> bits(3) = {
-  1  <-> 0b000,
-  2  <-> 0b001,
-  4  <-> 0b010,
-  8  <-> 0b011,
-  16 <-> 0b100,
-}
-
-mapping width_mnemonic_wide : word_width_wide <-> string = {
-  1  <-> "b",
-  2  <-> "h",
-  4  <-> "w",
-  8  <-> "d",
-  16 <-> "q",
+// Get the bit encoding of word_width in the atomics' three-bit width field,
+// which is one bit wider than the loads' and stores' because the encoding it
+// came from had a width this machine cannot issue.
+mapping width_enc_amo : word_width <-> bits(3) = {
+  1 <-> 0b000,
+  2 <-> 0b001,
+  4 <-> 0b010,
+  8 <-> 0b011,
 }

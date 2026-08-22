@@ -34,6 +34,23 @@ fault-only-first load from the ordinary segment load beside it. Asking whether t
 *name's* fragments occur in the *skeleton* separates them, because `ff.v` is a literal
 of the one clause and of no other: over the profile's whole exclusion table the test
 pairs one name with one clause.
+
+**A skeleton is a lower bound, and where the document can name the constructor
+instead there is no bound to take.** `amocas.q` is spelled by a clause whose whole
+mnemonic is `amo_mnemonic(op) ^ "." ^ width_mnemonic_wide(width)`, three mappings and
+one dot: the skeleton is `.`, no fragment of the written name occurs in it, and the
+test above pairs that name with nothing. So a document whose subject is a *single
+instruction form* names the Sail constructor beside the mnemonic, and the reading it
+asks for is not a match at all but membership: `read_decoded` below collects the
+names a word can decode *to*, and a marker is in that set or is not. That reaches
+the clauses the skeleton parse drops, and it reaches a form whose constructor is
+shared with its neighbours and whose identity is a field value, which `AMOCAS` is: the
+model decodes `AMO`, and `AMOCAS` is the `amoop` its five-bit field decodes to.
+
+Both readings of the Sail side stand, because they fail differently. A skeleton
+cannot see a mnemonic built inside a mapping; a marker cannot see a form re-added
+under another constructor, and a marker that was misspelled or has gone stale is
+absent for the same reason a deleted form is. Neither is the other's replacement.
 """
 
 import functools
@@ -60,6 +77,29 @@ _OPERAND_SEP = "spc()"
 # A clause's body runs to the next top-level declaration, which is the next line
 # starting in column zero.
 _TOP_LEVEL_RE = re.compile(r"^\S", re.MULTILINE)
+
+# The two shapes a decode site takes, both anchored at column zero because a Sail
+# top-level declaration is. A clause head names an instruction constructor; a named
+# `encdec` mapping decodes one field of one, and its arms name that field's values.
+_DECODE_CLAUSE_RE = re.compile(r"^mapping clause (encdec\w*)\s*=\s*(\w+)", re.MULTILINE)
+_DECODE_MAPPING_RE = re.compile(r"^mapping (encdec\w*)\s*:", re.MULTILINE)
+
+# Where a mapping's body starts: the assignment that ends its signature, and never the
+# first brace, because a signature carries its own (`bits(5) <-> {1, 2, 4, 8}`).
+_BODY_RE = re.compile(r"=\s*\{")
+
+# One arm's name, on each side of its arrow: an identifier, with an argument list
+# stepped over where the arm destructures one (`Regidx(r) <-> r`). Which side of the
+# arrow the encoding is on is the mapping's own choice, so both sides are read; a
+# numeric side matches neither pattern, which is what leaves `1 <-> 0b00` naming
+# nothing at all.
+_ARM_LEFT_RE = re.compile(r"([A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*$")
+_ARM_RIGHT_RE = re.compile(r"\s*([A-Za-z_]\w*)")
+
+# How far back of an arrow the arm's own name can be. Generous against the longest
+# destructuring the model writes, and bounded so that the backward scan costs the same
+# whether the arm is the mapping's first or its hundredth.
+_ARM_WINDOW = 120
 
 # What a document writes where an encoding family varies: `<eew>` names the field,
 # `*` stands for the rest of a family's names. Both mean *some text decided
@@ -143,6 +183,78 @@ def read_spellings(window: list[tuple[str, str]]) -> list[Spelling]:
                 out.append(Spelling(ctor=m.group(1), file=rel,
                                     line=text.count("\n", 0, m.start()) + 1,
                                     skeleton=skeleton))
+    return out
+
+
+@dataclass(frozen=True)
+class Decoded:
+    """One name a word can decode to, and the decode site that names it."""
+
+    ctor: str        # the constructor, exactly as the model spells it
+    file: str        # the tracked path it is written in
+    line: int        # its 1-based line, for a finding a person has to go and visit
+    site: str        # the `encdec` clause or mapping that decodes to it
+
+
+def _body(text: str, start: int) -> tuple[int, int]:
+    """The span of a top-level declaration's body, from its `= {` to column zero.
+
+    A Sail body runs to the next declaration, and the closing brace of a multi-line
+    one is itself in column zero, so the same search ends both shapes.
+    """
+    opened = _BODY_RE.search(text, start)
+    if not opened:
+        return start, start
+    end = _TOP_LEVEL_RE.search(text, opened.end())
+    return opened.end(), end.start() if end else len(text)
+
+
+def _arm_names(text: str, arrow: int, site: str) -> list[tuple[int, str, str]]:
+    """The names either side of one arm's arrow, as offsets into `text`.
+
+    The left side is read out of a window ending at the arrow rather than out of the
+    whole body, because an arm's name is the token immediately before its arrow and
+    an unbounded backward scan would re-read the body once per arm.
+    """
+    out: list[tuple[int, str, str]] = []
+    left = _ARM_LEFT_RE.search(text, max(0, arrow - _ARM_WINDOW), arrow)
+    if left:
+        out.append((left.start(1), left.group(1), site))
+    right = _ARM_RIGHT_RE.match(text, arrow + len("<->"))
+    if right:
+        out.append((right.start(1), right.group(1), site))
+    return out
+
+
+def read_decoded(window: list[tuple[str, str]]) -> list[Decoded]:
+    """Every name the model's decode surface can decode a word to.
+
+    The window is the same `(tracked path, text)` pairs `read_spellings` takes, and
+    what is not Sail is passed over here for the same reason it is there.
+
+    Two shapes, because a form's identity is written in one of two places. It is the
+    instruction constructor where a whole clause is the form, and it is a field value
+    where the clause is shared and one field says which form it is. A reading that
+    took only the first would hold `VLSEGFFTYPE` and miss `AMOCAS` entirely, and the
+    difference between them is a Sail authoring choice rather than anything the
+    document naming either one can be asked to know.
+    """
+    out: list[Decoded] = []
+    for rel, text in window:
+        if not rel.endswith(SAIL_SUFFIX):
+            continue
+        found: list[tuple[int, str, str]] = [
+            (m.start(), m.group(2), m.group(1))
+            for m in _DECODE_CLAUSE_RE.finditer(text)]
+
+        for m in _DECODE_MAPPING_RE.finditer(text):
+            start, end = _body(text, m.end())
+            for arrow in re.finditer("<->", text[start:end]):
+                found += _arm_names(text, start + arrow.start(), m.group(1))
+
+        out += [Decoded(ctor=ctor, file=rel,
+                        line=text.count("\n", 0, offset) + 1, site=site)
+                for offset, ctor, site in found]
     return out
 
 

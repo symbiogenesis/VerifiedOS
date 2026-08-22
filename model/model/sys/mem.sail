@@ -103,7 +103,7 @@ private function pmaCheck forall 'n, 0 < 'n <= max_mem_access .
     Load(_)                => attributes.readable,
     Store(_)               => attributes.writable,
 
-    Atomic(op, _, _, _, _) => attributes.readable & attributes.writable & pma_allows_atomic_op(attributes.atomic_support, op, width),
+    Atomic(op, _, _, _, _) => attributes.readable & attributes.writable & pma_allows_atomic_op(attributes.atomic_support, op),
 
     // "A cache-block zero instruction is permitted to access
     // the specified cache block whenever a store instruction

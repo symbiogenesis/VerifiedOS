@@ -7,8 +7,15 @@
 // =======================================================================================
 
 // These enums are arranged according to the level of PMA support they require:
-// AMOSwap < AMOLogical < AMOArithmetic < AMOCASW < AMOCASD < AMOCASQ
-enum amoop = { AMOSWAP, AMOAND, AMOOR, AMOXOR, AMOADD, AMOMIN, AMOMAX, AMOMINU, AMOMAXU, AMOCAS }
+// AMOSwap < AMOLogical < AMOArithmetic
+//
+// The compare-and-swap operand `AMOCAS` is gone with `Zacas` (R-15-026,
+// R-15-027), which the profile excludes as an absence of the model rather
+// than a configuration key: `Zaamo` refcounts are single-instruction, the
+// rings are SPSC under Ztso, and no capability is in shared mutable memory,
+// so nothing on this machine issues a CAS. The levels above `AMOArithmetic`
+// went with it, that grading being the CAS operand widths and nothing else.
+enum amoop = { AMOSWAP, AMOAND, AMOOR, AMOXOR, AMOADD, AMOMIN, AMOMAX, AMOMINU, AMOMAXU }
 
 mapping amo_mnemonic : amoop <-> string = {
   AMOSWAP <-> "amoswap",
@@ -20,7 +27,6 @@ mapping amo_mnemonic : amoop <-> string = {
   AMOMAX  <-> "amomax",
   AMOMINU <-> "amominu",
   AMOMAXU <-> "amomaxu",
-  AMOCAS  <-> "amocas",
 }
 
 mapping maybe_aqrl : (bool, bool) <-> string = {

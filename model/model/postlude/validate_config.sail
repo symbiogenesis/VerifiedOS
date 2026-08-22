@@ -221,7 +221,6 @@ private function check_pma_region(region : PMA_Region) -> bool = {
 private struct pma_check_opts = {
   zama16b  : bool,
   ziccamoa : bool,
-  ziccamoc : bool,
   ziccif   : bool,
   zicclsm  : bool,
 }
@@ -258,10 +257,6 @@ private function check_pma_regions(regions : list(PMA_Region), prev_base : bits(
         };
         if check_opts.ziccamoa & attributes.atomic_support < AMOArithmetic then {
           print_endline("Main memory region starting at " ^ bits_str(region.base) ^ " is coherent and cacheable with " ^ atomic_support_str(attributes.atomic_support) ^ " atomicity support, but Ziccamoa is enabled which requires AMOArithmetic support.");
-          return false;
-        };
-        if check_opts.ziccamoc & attributes.atomic_support != AMOCASQ then {
-          print_endline("Main memory region starting at " ^ bits_str(region.base) ^ " is coherent and cacheable with " ^ atomic_support_str(attributes.atomic_support) ^ " atomicity support, but Ziccamoc is enabled which requires AMOCASQ support.");
           return false;
         };
         if check_opts.ziccif & not(attributes.executable) then {
@@ -316,7 +311,6 @@ private function check_mem_layout() -> bool =
     let check_opts : pma_check_opts = struct {
       zama16b  = config extensions.Zama16b.supported,
       ziccamoa = config extensions.Ziccamoa.supported,
-      ziccamoc = config extensions.Ziccamoc.supported,
       ziccif   = config extensions.Ziccif.supported,
       zicclsm  = config extensions.Zicclsm.supported,
     };
@@ -354,10 +348,8 @@ private function check_misc_extension_dependencies() -> bool = {
     valid = false;
     print_endline("The Zabha extension is enabled but Zaamo and A are disabled: supporting Zabha requires Zaamo or A.");
   };
-  if (config extensions.Zacas.supported : bool) & not((config extensions.Zaamo.supported : bool) | (config extensions.A.supported : bool)) then {
-    valid = false;
-    print_endline("The Zacas extension is enabled but Zaamo and A are disabled: supporting Zacas requires Zaamo or A.");
-  };
+  // The matching check for `Zacas` is gone with the extension (R-15-026,
+  // R-15-027): there is no key left to enable and no dependency left to state.
 
   if (config extensions.Zvfbfmin.supported : bool) & not(hartSupports(Ext_Zve32f)) then {
     valid = false;

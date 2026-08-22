@@ -20,15 +20,23 @@
 
 // Set of atomic instructions supported by memory.
 // Each value is a superset of the previous ones.
+//
+// Four levels rather than seven, because the three above them graded a region
+// by the *operand width* of the compare-and-swap it could carry, 4, 8 and 16
+// bytes, and `Zacas` is gone (R-15-026, R-15-027). What is left still says
+// everything a region has to say about the atomics this machine admits: the
+// profile takes `Zaamo` and `Zabha` (R-15-024), which are one class of
+// read-modify-write at four widths, so a region either carries none of them,
+// the swap, the logical ones, or all of them, and `AMOArithmetic` is the top
+// because there is nothing above it left to name. Width is not a level here
+// and must not become one: `Zabha`'s byte and halfword forms are the same
+// operation narrower, admitted by the extension in `amo_encoding_valid` and
+// never by the region.
 enum AtomicSupport = {
   AMONone,
   AMOSwap,
   AMOLogical,
   AMOArithmetic,
-  // These require Zacas.
-  AMOCASW,
-  AMOCASD,
-  AMOCASQ,
 }
 
 function pma_atomicity_support_gt(x : AtomicSupport, y : AtomicSupport) -> bool = num_of_AtomicSupport(x) > num_of_AtomicSupport(y)
@@ -46,21 +54,18 @@ mapping atomic_support_str : AtomicSupport <-> string = {
   AMOSwap       <-> "AMOSwap",
   AMOLogical    <-> "AMOLogical",
   AMOArithmetic <-> "AMOArithmetic",
-  AMOCASW       <-> "AMOCASW",
-  AMOCASD       <-> "AMOCASD",
-  AMOCASQ       <-> "AMOCASQ",
 }
 overload to_str = {atomic_support_str}
 
-function pma_allows_atomic_op forall 'n, 0 < 'n <= max_mem_access . (pma : AtomicSupport, op : amoop, width : int('n)) -> bool =
+// The width the compare-and-swap arms discriminated on is gone with them, and
+// the parameter that carried it with the width: what a region admits is a set
+// of operations and never a size.
+function pma_allows_atomic_op(pma : AtomicSupport, op : amoop) -> bool =
   match pma {
     AMONone       => false,
     AMOSwap       => op == AMOSWAP,
     AMOLogical    => op == AMOSWAP | op == AMOAND | op == AMOOR | op == AMOXOR,
-    AMOArithmetic => op != AMOCAS,
-    AMOCASW       => op != AMOCAS | width <= 4,
-    AMOCASD       => op != AMOCAS | width <= 8,
-    AMOCASQ       => op != AMOCAS | width <= 16,
+    AMOArithmetic => true,
   }
 
 enum MemoryRegionType = { MainMemory, IOMemory }
