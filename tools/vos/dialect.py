@@ -19,9 +19,14 @@ a store-conditional, `Zalrsc` having gone with the reservation (R-15-025).
 **What is not here is as deliberate as what is.** The dictionary bundle format
 of §1.1 is a fetch container the model does not yet implement, so the image this
 encoder lays down is a stream of canonical 32-bit instructions, which is what
-the curated model fetches today. The matrix and FEC surface is absent because
-the datapaths those classes name arrive with M0.8c and M0.8d; the corpus version
-that follows each of those adds its rows rather than this one anticipating them.
+the curated model fetches today. The matrix and FEC surface is absent, and
+neither is waiting on a datapath: the frozen profile books both as *units* and
+names no mnemonic, operand form or encoding for either, so there is nothing to
+transcribe and nothing enters by inheritance (R-15-007j). The matrix surface is
+a second-act item conditioned on R-15-116's sustained dense-GEMM margin
+(R-15-014a (ix)); the FEC surface is owed at the provisional freeze, its scope
+being categorical rather than measured (R-15-014b, R-15-119). A row here for
+either would be an encoding this table invented.
 
 **The vector rows are M0.8b's, and they are the memory surface and what feeds
 it** rather than the whole of RVV. The item that adds them is about the
@@ -72,14 +77,6 @@ def _registers() -> dict[str, int]:
 
 
 REGISTERS: Final[dict[str, int]] = _registers()
-
-# The 32 vector registers, and they are a **second table** rather than a fourth
-# spelling of the first. The architectural register file is one merged file of
-# 32 registers of 64+1 bits (R-15-007i), and the vector register file is a
-# separate file of `VLEN` bits beside it, so `v5` and `x5` are different
-# registers and a mnemonic naming one must not accept the other. There is one
-# spelling because RVV gives them no ABI names.
-VREGISTERS: Final[dict[str, int]] = {f"v{number}": number for number in range(32)}
 
 # The CSR bank of isa-profile.md §5.1. An address absent from this map is not
 # assembled by name; a program wanting one writes the number, and the model
@@ -136,6 +133,12 @@ VLEWIDTH = {8: 0b000, 16: 0b101, 32: 0b110, 64: 0b111}
 
 def _vregisters() -> dict[str, int]:
     """`v0` through `v31`, and no second spelling of any of them.
+
+    This is a **second table** rather than a fourth spelling of `REGISTERS`.
+    The architectural register file is one merged file of 32 registers of 64+1
+    bits (R-15-007i) and the vector register file is a separate file of `VLEN`
+    bits beside it, so `v5` and `x5` are different registers and a mnemonic
+    naming one must not accept the other.
 
     The integer file has three spellings because a register there has two
     readings and an ABI role (R-15-007i). A vector register has one of each: it
