@@ -26,9 +26,9 @@
 // register, the class's unit-state inventory naming them all, so its latency is
 // one fixed per-class entry in the timing-annotated model (M0.9, R-15-053).
 //
-// **The inventory is enumerated here rather than gestured at, and two of its
-// four members are not in this model yet.** That is a fact about the milestone
-// and not an exemption, and it is stated the way `fence.t` states its flush set
+// **The inventory is enumerated here rather than gestured at, and the two
+// members the core classes brought are enumerated the same way.** It is stated
+// the way `fence.t` states its flush set
 // (extensions/platform/fence_t.sail):
 //
 //   - The **vector register file** is `v0`–`v31` at the class's VLEN, cleared
@@ -38,11 +38,36 @@
 //     values reset gives them. `vstart` is not among them, being excluded
 //     (R-15-039a), and no scalar rounding mode or accrued-flag CSR is either,
 //     scalar floating point being deleted and rounding static (R-15-083).
-//   - The **matrix unit's architectural state** and the **class's
-//     software-managed scratchpad** arrive with the core classes at M0.8. This
-//     model carries one class and neither structure exists in it, so there is
-//     nothing here to clear rather than something skipped; the clause below
-//     grows by two lines when they land, and the encoding does not change.
+//   - The **class's software-managed scratchpad** is the region the address map
+//     declares for this hart's class (sys/pma.sail, R-15-165, R-15-167), cleared
+//     below in whole 4 KiB chunks, which divide it exactly because every PMA
+//     region is 4 KiB-aligned in base and size
+//     (postlude/validate_config.sail). A class declaring none contributes no
+//     chunk rather than a skipped step, which is what keeps the pass
+//     unconditional: the trip count is a composition constant and never a
+//     function of what the outgoing partition touched.
+//   - The **matrix unit's architectural state** is empty, and that is an
+//     enumeration result rather than a milestone's residue. R-15-117 keeps
+//     de-quantization and block-scale application in software on the same
+//     class's vector unit, so no block-scale register enters the frozen matrix
+//     ISA; the ACE/SME architectural tile file is evaluated and **not imported**
+//     for the same reason, a dedicated tile state being context to save, state
+//     to zeroize, and Sail and switch-proof surface
+//     ([architectural-alternatives.md](../../../../docs/architectural-alternatives.md));
+//     and R-15-118's coprocessor line leaves the unit no state of its own to
+//     hold operands in, every byte it moves being core-issued against an
+//     explicit capability operand. What is left for a partition to dirty is the
+//     scratchpad the array streams through, which is the member above. So the
+//     matrix half of the inventory is *nothing*, and this paragraph is what says
+//     so rather than a clause that clears nothing without explaining why.
+//
+// The one thing the inventory still owes is the matrix unit's **instruction**
+// surface, and it is owed by the profile rather than by this file: the frozen
+// profile books the matrix extension as a unit and names no instruction, no
+// mnemonic, and no encoding for it, where every other bespoke row beside it
+// names all three (isa-profile.md §3, R-15-009, R-15-116). Nothing enters the
+// profile by inheritance (R-15-007j), so there is no instruction here to admit
+// and the encoding below does not change when one is.
 //
 // **On a vectorless class the encoding traps like every other unallocated
 // encoding** (R-15-014), which is what the decode guard below says: a class with
@@ -83,6 +108,50 @@ mapping clause encdec = VMClear()
   <-> 0b0000000 @ 0b00000 @ 0b00000 @ 0b001 @ 0b00000 @ 0b0001011
   when hartSupports(Ext_Zve32x)
 
+// The scratchpad half of the pass (R-07-014c, R-15-165, R-15-167).
+//
+// **It is a physical write and carries no capability**, which is forced rather
+// than convenient: the instruction takes no operand, so there is no authority
+// for it to be checked against, and the range it covers is the composition's
+// rather than a program's. That is the same footing the register-file half
+// stands on, `init_vregs` writing the file without anything authorizing it, and
+// in RTL it is the same reset-wire array clear (R-15-069e).
+//
+// **The write clears the validity tag of every granule it covers for free**,
+// tag clearing being a property of the write path rather than an instruction
+// (R-15-007r): the plain `mem_write_value` passes `default_meta`, so a
+// scratchpad holding capabilities is left holding neither the data nor the
+// authority. That is the disclosure half of the zeroize discipline and it needs
+// no clause of its own here (R-15-060, R-15-182).
+//
+// The chunk is the memory interface's own widest access, so how many granules a
+// call clears is that interface's business and not this file's, exactly as it is
+// for the discharge pass over the second class (sys/memory_sequencer.sail).
+// A failed chunk is not retried and does not stop the pass: a `vmclear` that
+// could take a different number of steps depending on what it found would have
+// the trip count R-15-069e admits it for removing, and the composition that
+// could produce one is refused before it runs (postlude/validate_config.sail).
+private function vmclear_scratchpad() -> unit =
+  match this_core_class() {
+    None()  => (),
+    Some(c) => {
+      let (base, size) = scratchpad_extent_of(c);
+      let chunk  = sizeof(max_mem_access);
+      let chunks = unsigned(size) / chunk;
+      foreach (i from 0 to (chunks - 1)) {
+        let paddr = Physaddr(base + to_bits_truncate(64, i * chunk));
+        match mem_write_ea(paddr, chunk, Store(Data), false, false) {
+          Err(_, _) => (),
+          Ok(_)     =>
+            match mem_write_value(paddr, chunk, zeros(), Store(Data), false, false) {
+              Ok(_)     => (),
+              Err(_, _) => (),
+            },
+        }
+      }
+    },
+  }
+
 // The CSR half is cleared to the values `reset_sys` writes rather than to zeroes
 // (sys/sys_control.sail), and `vtype` is why the distinction is not pedantic: an
 // all-zeroes `vtype` is a *valid* configuration, SEW=8 at LMUL=1, so a clear
@@ -95,6 +164,7 @@ mapping clause encdec = VMClear()
 // saying so is a change the rig cannot see (M0.12).
 function clause execute VMClear() = {
   init_vregs();
+  vmclear_scratchpad();
 
   vl               = zeros();
   vtype[vill]      = 0b1;

@@ -129,7 +129,16 @@
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": false,
           // A device endpoint is on neither class (R-15-247).
-          "memory_class": { "None": null }
+          "memory_class": { "None": null },
+          // No region here is a datapath's software-managed scratchpad
+          // (R-15-165, R-15-167, sys/pma.sail). The composed hart is on the C
+          // class, which carries none, and the two classes that do carry one
+          // have no *size* yet: `scratchpad_bytes` is one of R-15-108's frozen
+          // parameters, the exploration has not run, and `frozen` is false in
+          // every class row below. So the shape is here and the range is not,
+          // and a composition declaring a wrong one is refused
+          // (postlude/validate_config.sail).
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -155,7 +164,8 @@
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": false,
-          "memory_class": { "None": null }
+          "memory_class": { "None": null },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": false
       },
@@ -185,7 +195,8 @@
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": true,
-          "memory_class": { "Some": "FirstClass" }
+          "memory_class": { "Some": "FirstClass" },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": true
       },
@@ -217,7 +228,8 @@
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "supports_cbo_zero": true,
-          "memory_class": { "Some": "SecondClass" }
+          "memory_class": { "Some": "SecondClass" },
+          "scratchpad": { "None": null }
         },
         "include_in_device_tree": true
       }

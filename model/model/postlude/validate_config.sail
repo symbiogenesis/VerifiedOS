@@ -165,16 +165,55 @@ private function check_pma_region(region : PMA_Region) -> bool = {
   // whichever constant a later reader assumed, and a device given a class would
   // put an endpoint's accept time, which the issuing compartment is charged for
   // separately (R-15-015c), into a term that is about arrays.
-  match (pma.mem_type, pma.memory_class) {
-    (MainMemory, None()) => {
+  //
+  // The scratchpad is the third medium and the exemption is stated here rather
+  // than assumed: R-15-247's two classes are media of *main* memory and a
+  // scratchpad is the local tier above them, which R-15-168 gives no scalar core
+  // at all, so it is the one main-memory-typed region carrying no class
+  // (sys/pma.sail, R-15-165, R-15-167).
+  match (pma.mem_type, pma.memory_class, pma.scratchpad) {
+    (MainMemory, None(), None()) => {
       print_endline("Main memory region starting at " ^ bits_str(region.base) ^ " declares no `memory_class`; the static memory plan places every array on one of the two latency classes.");
       return false;
     },
-    (IOMemory, Some(c)) => {
+    (IOMemory, Some(c), _) => {
       print_endline("IO memory region starting at " ^ bits_str(region.base) ^ " declares `memory_class` " ^ to_str(c) ^ "; the latency classes are main-memory media and a device endpoint is on neither.");
       return false;
     },
-    (_, _) => (),
+    (MainMemory, Some(k), Some(c)) => {
+      print_endline("The " ^ to_str(c) ^ " core class's scratchpad at " ^ bits_str(region.base) ^ " declares `memory_class` " ^ to_str(k) ^ "; a scratchpad is the local tier above main memory rather than a region of it, so it is on neither of the two latency classes.");
+      return false;
+    },
+    (IOMemory, _, Some(c)) => {
+      print_endline("The " ^ to_str(c) ^ " core class's scratchpad at " ^ bits_str(region.base) ^ " is declared as IO memory; a scratchpad is capability-governed plain memory the datapath streams through, not a register-slave endpoint.");
+      return false;
+    },
+    (_, _, _) => (),
+  };
+
+  // The scratchpad's own two attributes, both of them refusals of a structure
+  // the requirements decline rather than of a value they bound.
+  match pma.scratchpad {
+    None()  => (),
+    Some(c) => {
+      // R-15-167 states the scratchpad coherence-exempt, which on a machine with
+      // no cache and no coherence protocol (R-15-164) is a declaration and not a
+      // relaxation: there is nothing for it to be exempt *from* except a
+      // composition claiming a property this platform does not implement.
+      if pma.coherent then {
+        print_endline("The " ^ to_str(c) ^ " core class's scratchpad at " ^ bits_str(region.base) ^ " is declared coherent; the scratchpad is coherence-exempt and this platform carries no coherence protocol for it to participate in.");
+        return false;
+      };
+      // A **statically-placed instruction scratchpad is an open question and
+      // explicitly not specified** (R-18-009), narrowed to pinned single-tenant
+      // cores and left as a design-space-exploration parameter. What R-15-167
+      // admits is the datapath's data staging memory, so a composition marking
+      // one executable is declaring the structure that question leaves open.
+      if pma.executable then {
+        print_endline("The " ^ to_str(c) ^ " core class's scratchpad at " ^ bits_str(region.base) ^ " is declared executable; the admitted scratchpad is the datapath's data staging memory, and a statically-placed instruction scratchpad is an open question this profile does not specify.");
+        return false;
+      };
+    },
   };
   true
 }
@@ -584,6 +623,72 @@ private function check_core_roster() -> bool = {
   valid
 }
 
+// The software-managed scratchpads (R-15-165, R-15-167, sys/pma.sail).
+//
+// **Two artifacts describe one structure and neither can see the other**: the
+// class table sizes each class's scratchpad (R-15-113, R-15-108) and the address
+// map places it (R-15-167's *fixed address range*), so a composition can size it
+// at one figure and lay it out at another with nothing in the machine
+// disagreeing. That is the whole of what is held here, and it is held as a
+// refusal for the reason every other shape refusal in this file is: the *values*
+// are R-15-108's exploration to select and this validator asserts none of them.
+//
+// **No configuration this tree ships declares a scratchpad at all**, and that is
+// the correct state rather than a gap. `scratchpad_bytes` is one of R-15-108's
+// frozen parameters, the exploration has not run, and `frozen` is false in every
+// row, so a zero here reads *not selected* exactly as a zero in the matrix
+// geometry does (core/core_class.sail). A number written in ahead of the
+// exploration is how a placeholder becomes an architectural input, so the model
+// carries the shape and refuses a wrong one and carries no size.
+private function scratchpad_region_count(regions : list(PMA_Region), c : CoreClass) -> nat =
+  match regions {
+    [||]           => 0,
+    region :: rest => (if region.attributes.scratchpad == Some(c) then 1 else 0)
+                      + scratchpad_region_count(rest, c),
+  }
+
+private function check_scratchpads() -> bool = {
+  var valid : bool = true;
+
+  foreach (i from 0 to 4) {
+    let c = core_class_of_index(i);
+    let d = core_class_datapath(c);
+    let n = scratchpad_region_count(pma_regions, c);
+
+    // One class has one scratchpad. R-15-167 puts it at *a* fixed address range,
+    // and two ranges claiming one class's would leave `vmclear`'s single
+    // unconditional pass with a choice to make (R-07-014c).
+    if n > 1 then {
+      valid = false;
+      print_endline("The address map declares " ^ dec_str(n) ^ " scratchpad regions for the " ^ to_str(c) ^ " core class; a class's scratchpad is one fixed address range, and the partition switch's single unconditional pass has no way to choose between two.");
+    };
+
+    // Both directions, because each is a different machine. A region with no
+    // class behind it is fast local memory no datapath declares; a class with no
+    // region is a declared size the address map does not place, which is a
+    // scratchpad software cannot address and therefore cannot manage.
+    if d.scratchpad_bytes == 0 & n != 0 then {
+      valid = false;
+      print_endline("The address map declares a scratchpad for the " ^ to_str(c) ^ " core class, whose class table declares none; a scratchpad is a datapath's local memory tier and there is no datapath here to stream through it.");
+    };
+    if d.scratchpad_bytes != 0 & n == 0 then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares a scratchpad of " ^ dec_str(d.scratchpad_bytes) ^ " bytes and the address map places none; the scratchpad is software-managed, so a size with no address range is one no program can reach.");
+    };
+
+    match scratchpad_region_of(pma_regions, c) {
+      None()       => (),
+      Some(region) =>
+        if unsigned(region.size) != d.scratchpad_bytes then {
+          valid = false;
+          print_endline("The " ^ to_str(c) ^ " core class declares a scratchpad of " ^ dec_str(d.scratchpad_bytes) ^ " bytes and the address map places " ^ dec_str(unsigned(region.size)) ^ " bytes at " ^ bits_str(region.base) ^ "; one structure is described twice and the two do not agree.");
+        },
+    };
+  };
+
+  valid
+}
+
 private function check_timing_rows(rows : list((string, timing_cycles_t))) -> bool =
   match rows {
     [||]                  => true,
@@ -842,6 +947,7 @@ private function check_memory_sequencer() -> bool = {
 function config_is_valid() -> bool = {
     check_tvec()
   & check_core_roster()
+  & check_scratchpads()
   & check_timing()
   & check_memory_classes()
   & check_memory_sequencer()
