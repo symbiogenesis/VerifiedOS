@@ -258,7 +258,7 @@ Each row is a `MUST NOT` in the register; the ground is the governing requiremen
 
 ## 6. Exclusions
 
-Every exclusion below is a `MUST NOT` in the register. Where a feature was excluded by the five-part admission test, the failing test is named (R-15-012).
+Every exclusion below is governed by a register entry that carries the absence, in one of two shapes: a `MUST NOT` where the exclusion is stated as an obligation, and an `IS` whose *criterion* states what the model does not carry where it is stated as a fact about the design, which is how `Zalrsc` and `Zacas` are written. A reader or a checker keying on the verb alone would miss the second shape. Where a feature was excluded by the five-part admission test, the failing test is named (R-15-012).
 
 | Excluded | Ground | Governing |
 | --- | --- | --- |
