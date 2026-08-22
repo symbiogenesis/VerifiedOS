@@ -86,14 +86,14 @@ Code is resident, fetched, and decoded in one fixed-rate **dictionary format**. 
 
 ## 3. Custom and fork-and-frozen instructions
 
-Each carries full Sail semantics and a recorded **re-pin obligation** where a standards track exists.
+Each carries a recorded **re-pin obligation** where a standards track exists, and each carries full Sail semantics except where its Disposition names the act that will book its instruction surface. Nothing enters this profile by inheritance (R-15-007j), so a unit whose surface is unwritten names where it will be written rather than leaving the cell blank, an unassigned blank being indistinguishable from an oversight (R-15-014b).
 
 | Instruction / unit | Disposition | Re-pin target | Governing |
 | --- | --- | --- | --- |
 | `fence.t` | platform-custom; specified rather than invoked: enumerated flush set, mechanized completeness classification, padded constant cost | n/a | R-15-062 |
 | Keccak-p[1600] | single vector instruction, fixed-latency permutation, **both 24- and 12-round** modes frozen; **vector-bearing cores only**, not the S-class RoT | `Zvknhk` / `vkeccak.vi` (RISC-V PQC TG, RVG-84) | R-15-056, R-15-056a, R-15-057, R-15-057a, R-15-059, R-15-059a |
-| Matrix extension | bespoke, fork-and-frozen; systolic GEMM geometry | ratified AME/IME lineage | R-15-009, R-15-116 |
-| FEC units | LDPC and polar decoders only, fixed-geometry, deterministic iteration bounds, core-issued capability operands, no firmware | n/a | R-15-119 |
+| Matrix extension | bespoke, fork-and-frozen; systolic GEMM geometry. **Instruction surface not booked**: operand sourcing and encoding are a *second-act* decision, conditioned on the sustained dense-GEMM margin R-15-116 admits the unit against; the model carries the class geometry until that act, and the custom opcode space it will compete for is the space M0.6g and M0.6h kept whole | ratified AME/IME lineage | R-15-009, R-15-116, R-15-014a (ix) |
+| FEC units | LDPC and polar decoders only, fixed-geometry, deterministic iteration bounds, core-issued capability operands, no firmware. **Instruction surface not booked**: its scope is categorical rather than a measured margin, so it carries no second-act conditioning and is owed at the *provisional freeze* | n/a | R-15-119, R-15-014b |
 | CHERI dialect | frozen with the profile; **re-parameterized Concentrate at 64+1 bits**, algebra unchanged (§4.1) | **none**: the RVY re-pin is retired, not deferred, and the dialect is permanently bespoke | R-15-007, R-17-048a |
 | Capability indexed load/store | `cld rd, cs1[rs2 << imm]` and its store form: bounds and permission check at base plus scaled index, **no intermediate capability materialized**; custom opcode space, scale immediate a composition-time parameter | **partial**: RVY's capability shift-and-add (`YSH1ADD`…`YSH4ADD`, `Zba`) covers the address-formation half only; the fused access is bespoke with the dialect, on R-15-007d's ground | R-15-007e, R-15-007f, R-15-007g |
 | Bitfield extract/insert | `bfext rd, rs1, lsb, len` and `bfins rd, rs1, lsb, len`: multi-bit contiguous field read and deposit, where `Zbs` is single-bit only; custom opcode space, I-type field layout unchanged, specifiers and carriage decided by measurement at the freeze | **none**: no general bitfield proposal on the RISC-V track to re-pin to; the obligation opens if one ratifies | R-15-067a, R-15-067b, R-15-067c, R-15-067d |
