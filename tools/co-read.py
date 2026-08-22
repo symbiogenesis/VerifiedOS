@@ -111,10 +111,14 @@ def _show(root: Path, ident: str) -> int:
 
 def _bless(root: Path, idents: list[str], everything: bool) -> int:
     live, ledger = _state(root)
+    stale = sorted(i for i in ledger if i not in live)
 
     if everything:
         idents = [i for i, _ in _pending(live, ledger)]
-        if not idents:
+        # A stale row alone still wants the rebuild: with every pair blessed, K-61
+        # fails on the row a retired requirement left behind, and this is the one
+        # command that purges it.
+        if not idents and not stale:
             print("nothing pending; the ledger already stands as the pairs do.")
             return 0
     else:
@@ -132,6 +136,9 @@ def _bless(root: Path, idents: list[str], everything: bool) -> int:
 
     print(f"recorded {len(blessed)} co-read(s); the ledger now holds {len(rows)} "
           f"of {len(live)} pairs.")
+    if stale:
+        print(f"purged {len(stale)} stale row(s) naming no live requirement: "
+              f"{', '.join(stale)}")
     return 0
 
 
@@ -146,8 +153,19 @@ def main(argv: list[str] | None = None) -> int:
                         help="with --bless, record every pending pair")
     args = parser.parse_args(argv)
 
+    # Each flag names a different act, so a run combining them would have to drop one
+    # silently; refusing is the only answer that cannot be misread as the other act.
+    if args.show is not None and args.bless is not None:
+        raise SystemExit("--show and --bless are different acts: run one, then the other")
+    if args.all and args.bless is None:
+        raise SystemExit("--all records pending pairs and needs --bless")
+    if args.all and args.bless:
+        raise SystemExit("--bless takes explicit ids or --all, not both")
+
     root = corpus_mod.find_root()
-    if args.show:
+    if args.show is not None:
+        if not args.show:
+            raise SystemExit("--show needs a requirement id")
         return _show(root, args.show)
     if args.bless is not None:
         if not args.bless and not args.all:

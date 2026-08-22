@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -56,6 +57,11 @@ RUFF_VERSION = "0.16.4"
 # has just switched a rule on is a list of hundreds of one thing, and the verdict is
 # the count; the individual sites are what the editor is for.
 PER_RULE = 8
+
+# The bound every subprocess must answer within, version probes included. Both
+# checkers finish in about a second on this tree, so a run that reaches it is hung,
+# and a hung checker must become a finding rather than a gate that never returns.
+TIMEOUT = 120
 
 
 def _tool(name: str) -> str | None:
@@ -86,19 +92,33 @@ def _version(exe: str) -> str:
     Both spell it `<name> <version>` and ty adds its build and date, so the second
     token is the whole of what is compared.
     """
-    done = subprocess.run([exe, "--version"], capture_output=True, text=True, check=False)
+    done = subprocess.run([exe, "--version"], capture_output=True, encoding="utf-8",
+                          errors="replace", check=False, timeout=TIMEOUT)
     parts = (done.stdout.strip() or done.stderr.strip()).split()
     return parts[1] if len(parts) > 1 else "unknown"
 
 
 def _pinned(rep: Reporter, name: str, pin: str) -> str | None:
-    """The checker to run, or `None` having already reported why there is not one."""
+    """The checker to run, or `None` having already reported why there is not one.
+
+    The probe itself can fail two ways short of a wrong number: an executable that
+    exists but cannot be run, and one that never answers. Both are findings, because
+    the gate's answer is a verdict and never a traceback and never silence.
+    """
     exe = _tool(name)
     if exe is None:
         rep.report(name, "not installed:", [f"{name} {pin} is not on PATH or beside "
                                             f"{sys.executable}: pip install {name}=={pin}"])
         return None
-    found = _version(exe)
+    try:
+        found = _version(exe)
+    except subprocess.TimeoutExpired:
+        rep.report(name, "checker error(s):",
+                   [f"{exe} answered no --version within {TIMEOUT}s"])
+        return None
+    except OSError as err:
+        rep.report(name, "checker error(s):", [f"{exe} could not be run: {err}"])
+        return None
     if found != pin:
         rep.report(name, "version(s) other than the pinned one:",
                    [f"{name} {found} is installed and this tree pins {pin}: "
@@ -133,65 +153,89 @@ def _summarize(rep: Reporter, rule: str, label: str, findings: list[tuple[str, s
     rep.report(rule, label, lines, ok)
 
 
-def _run_ty(rep: Reporter, root: Path) -> None:
-    """Every expression in the directory, against the types ty can infer for it."""
-    exe = _pinned(rep, "ty", TY_VERSION)
-    if exe is None:
-        return
-
-    tools = root / "tools"
-    done = subprocess.run(
-        [exe, "check", "--config-file", str(tools / "ty.toml"), "--error", "all",
-         "--output-format", "concise", "--color", "never", "."],
-        capture_output=True, text=True, cwd=tools, check=False)
-
-    findings = []
-    for line in (done.stdout + done.stderr).splitlines():
-        # `path:line:col: error[rule-name] message`, and the trailing summary line
+def _parse_ty(text: str) -> list[tuple[str, str]]:
+    """ty's concise lines: `path:line:col: error[rule-name] message`, with a trailing
+    summary line the pattern deliberately does not match."""
+    findings: list[tuple[str, str]] = []
+    for line in text.splitlines():
         if "] " not in line or (": error[" not in line and ": warning[" not in line):
             continue
         where, _, rest = line.partition(": ")
         code = rest.partition("[")[2].partition("]")[0]
         findings.append((code, f"{where} {rest.partition('] ')[2]}"))
-
-    if done.returncode not in (0, 1) and not findings:
-        rep.report("ty", "checker error(s):",
-                   [f"ty exited {done.returncode}: {(done.stderr or done.stdout).strip()[:400]}"])
-        return
-
-    _summarize(rep, "ty", "type error(s):", findings,
-               f"every expression typechecks under ty {TY_VERSION}, all rules at error")
+    return findings
 
 
-def _run_ruff(rep: Reporter, root: Path) -> None:
-    """Every function, against whether it is annotated, and the correctness rules
-    `ruff.toml` admits besides."""
-    exe = _pinned(rep, "ruff", RUFF_VERSION)
-    if exe is None:
-        return
-
-    tools = root / "tools"
-    done = subprocess.run(
-        [exe, "check", "--config", str(tools / "ruff.toml"), "--no-cache",
-         "--output-format", "concise", "--no-fix", "."],
-        capture_output=True, text=True, cwd=tools, check=False)
-
-    findings = []
-    for line in done.stdout.splitlines():
-        # `path:line:col: CODE message`
+def _parse_ruff(text: str) -> list[tuple[str, str]]:
+    """ruff's concise lines: `path:line:col: CODE message`."""
+    findings: list[tuple[str, str]] = []
+    for line in text.splitlines():
         head, _, rest = line.partition(": ")
         code, _, message = rest.partition(" ")
         if not head or not code or not code[0].isalpha() or not code[-1].isdigit():
             continue
         findings.append((code, f"{head} {message}"))
+    return findings
 
-    if done.returncode not in (0, 1) and not findings:
-        rep.report("ruff", "checker error(s):",
-                   [f"ruff exited {done.returncode}: {(done.stderr or done.stdout).strip()[:400]}"])
+
+def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
+                 with_stderr: bool, parse: Callable[[str], list[tuple[str, str]]],
+                 label: str, ok: str) -> None:
+    """One checker: the pin gate, the run, the parse, and the verdict.
+
+    A returncode outside (0, 1) is a crash whatever was printed first, so it is
+    always reported, beside whatever findings did parse: a checker that died partway
+    has not cleared the files it never reached, and its partial list must not read as
+    the whole verdict. A checker that hangs or cannot be executed is a finding for
+    the same reason the version probe's failures are.
+    """
+    exe = _pinned(rep, name, pin)
+    if exe is None:
         return
 
-    _summarize(rep, "ruff", "lint finding(s):", findings,
-               f"every function is annotated and ruff {RUFF_VERSION} is clean")
+    try:
+        done = subprocess.run([exe, *args], capture_output=True, encoding="utf-8",
+                              errors="replace", cwd=cwd, check=False, timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        rep.report(name, "checker error(s):",
+                   [f"{name} gave no verdict within {TIMEOUT}s"])
+        return
+    except OSError as err:
+        rep.report(name, "checker error(s):", [f"{exe} could not be run: {err}"])
+        return
+
+    findings = parse(done.stdout + done.stderr if with_stderr else done.stdout)
+
+    if done.returncode not in (0, 1):
+        rep.report(name, "checker error(s):",
+                   [f"{name} exited {done.returncode}: "
+                    f"{(done.stderr or done.stdout).strip()[:400]}"])
+        if not findings:
+            return
+    _summarize(rep, name, label, findings, ok)
+
+
+def _run_ty(rep: Reporter, root: Path) -> None:
+    """Every expression in the directory, against the types ty can infer for it."""
+    tools = root / "tools"
+    _run_checker(
+        rep, "ty", TY_VERSION,
+        ["check", "--config-file", str(tools / "ty.toml"), "--error", "all",
+         "--output-format", "concise", "--color", "never", "."],
+        tools, with_stderr=True, parse=_parse_ty, label="type error(s):",
+        ok=f"every expression typechecks under ty {TY_VERSION}, all rules at error")
+
+
+def _run_ruff(rep: Reporter, root: Path) -> None:
+    """Every function, against whether it is annotated, and the correctness rules
+    `ruff.toml` admits besides."""
+    tools = root / "tools"
+    _run_checker(
+        rep, "ruff", RUFF_VERSION,
+        ["check", "--config", str(tools / "ruff.toml"), "--no-cache",
+         "--output-format", "concise", "--no-fix", "."],
+        tools, with_stderr=False, parse=_parse_ruff, label="lint finding(s):",
+        ok=f"every function is annotated and ruff {RUFF_VERSION} is clean")
 
 
 def run(root: Path) -> Reporter:
