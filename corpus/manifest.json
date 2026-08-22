@@ -162,6 +162,13 @@
       "checks": 7,
       "records": 296,
       "digest": "5fbe902664052155"
+    },
+    {
+      "name": "keccak-perm",
+      "source": "keccak-perm.s",
+      "checks": 8,
+      "records": 783,
+      "digest": "41d089d1164c816f"
     }
   ]
 }

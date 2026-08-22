@@ -568,6 +568,19 @@ private function check_core_roster() -> bool = {
       };
     };
 
+    // The Keccak unit's geometry floor is the element group's, and it is a
+    // refusal rather than a derivation for the reason the vector geometry is
+    // (R-15-056, R-15-057a). The frozen permutation is one instruction over a
+    // 2048-bit element group of 32 SEW=64 elements, and a vector register group
+    // tops out at LMUL=8, so a class declaring the unit below 256 bits of vector
+    // length or below a 64-bit element width has declared a unit whose one
+    // instruction can never decode on it. The vectorless case is already refused
+    // above and is excluded here so that one defect draws one finding.
+    if core_class_is_vector_bearing(c) & d.keccak_unit & (d.vlen_exp < 8 | d.elen_exp < 6) then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares a Keccak unit at a vector geometry of 2^" ^ dec_str(d.vlen_exp) ^ " bits and 2^" ^ dec_str(d.elen_exp) ^ "-bit elements; the frozen permutation's 2048-bit element group needs a 64-bit element width and at least 256 bits of vector length, a register group topping out at LMUL=8.");
+    };
+
     // The core-class table carries replication for the sentinel row alone
     // (R-16-008e). The lockstep pair presents one architectural core and its
     // comparator holds no architectural state, so replication is a field of the
@@ -731,7 +744,8 @@ private function check_timing() -> bool = {
     ("block_scrub", k.block_scrub), ("vector_integer", k.vector_integer),
     ("vector_float", k.vector_float), ("vector_divide", k.vector_divide),
     ("vector_mem_unit", k.vector_mem_unit),
-    ("vector_mem_indexed", k.vector_mem_indexed)
+    ("vector_mem_indexed", k.vector_mem_indexed),
+    ("keccak_24", k.keccak_24), ("keccak_12", k.keccak_12)
   |];
   valid = check_timing_rows(rows) & valid;
 
@@ -745,6 +759,17 @@ private function check_timing() -> bool = {
   if k.vector_mem_indexed < k.vector_mem_unit then {
     valid = false;
     print_endline("The indexed vector access is declared faster than the unit-stride one; the indexed row is the fully-conflicted bound, every element to one bank, and cannot be below the access whose bank sequence follows from the element width.");
+  };
+
+  // The second relation the register states between two rows, and it is a shape
+  // for the same reason the first one is. Keccak-*p*[1600,12] is the **last
+  // twelve rounds** of Keccak-*p*[1600,24] on one datapath (R-15-056a,
+  // extensions/keccak/keccak_p1600.sail), so the shorter permutation cannot
+  // cost more than the longer one; both are on the `Zvkt` fixed-latency list
+  // (R-15-053) and neither magnitude is anybody's to assert here.
+  if k.keccak_12 > k.keccak_24 then {
+    valid = false;
+    print_endline("The 12-round Keccak permutation is declared slower than the 24-round one; the short form is the last twelve rounds of the long one on the same datapath, so its latency cannot exceed it.");
   };
 
   // The two per-class constants, against the class table they price a switch on.

@@ -402,6 +402,15 @@
     // and the validator refuses a composition where the two disagree. Binding
     // the template here is what keeps every generated test-matrix configuration
     // consistent with its own class table.
+    //
+    // The C row's Keccak unit tracks that geometry for the same reason. The
+    // frozen permutation is one instruction over a 2048-bit element group of 32
+    // SEW=64 elements and a register group tops out at LMUL=8, so the unit needs
+    // a 64-bit element width and at least 256 bits of vector length; the
+    // generated matrix runs below both, and a row declaring the unit there would
+    // be declaring a datapath whose one instruction cannot decode on it
+    // (R-15-056, R-15-057a, postlude/validate_config.sail). The V and M rows are
+    // at 4096 and 1024 bits and carry it unconditionally.
     "core_classes": {
       "c": {
         "frozen": false,
@@ -413,7 +422,7 @@
         "scratchpad_bytes": 0,
         "issue_width": 2,
         "pipeline_depth": 0,
-        "keccak_unit": true,
+        "keccak_unit": @CONFIG__KECCAK_UNIT@,
         "replicated": false
       },
       "v": {
@@ -597,6 +606,14 @@
   // realizing one VLEN. `vector_mem_indexed` is the fully-conflicted bound, every
   // element resolving to one bank, which is how an access whose observed latency
   // varies still yields one sound entry (R-15-085a, R-15-085b).
+  //
+  // `keccak_24` and `keccak_12` are the frozen permutation's two round counts,
+  // both on the `Zvkt` fixed-latency list (R-15-053, R-15-056a). They are two
+  // rows and not one row scaled by the immediate, because a latency computed
+  // from a field of the instruction is a latency with somewhere for an operand
+  // to arrive. At a VLEN=256 configuration these are the C-class figures
+  // R-15-059a states, the 2048-bit element group being LMUL=8 there, rather than
+  // figures extrapolated from the V class.
   "timing": {
     "operations": {
       "qualified": false,
@@ -622,7 +639,9 @@
       "vector_float": 8,
       "vector_divide": 40,
       "vector_mem_unit": 8,
-      "vector_mem_indexed": 32
+      "vector_mem_indexed": 32,
+      "keccak_24": 24,
+      "keccak_12": 12
     },
     // `vmclear_cycles` is zero on the vectorless classes and the validator
     // refuses anything else: the instruction traps there like any unallocated

@@ -458,7 +458,19 @@
       "vector_float": 8,
       "vector_divide": 40,
       "vector_mem_unit": 8,
-      "vector_mem_indexed": 32
+      "vector_mem_indexed": 32,
+      // `keccak_24` and `keccak_12` are the frozen permutation's two round
+      // counts, both on the `Zvkt` fixed-latency list (R-15-053, R-15-056a).
+      // They are the same constants verifiedos.json carries, and the reason is
+      // that the permutation is one fixed-geometry operation over a 2048-bit
+      // element group rather than a whole-register one: what R-15-059a states
+      // at VLEN=256 is the throughput and register-pressure consequence of that
+      // group being LMUL=8 there and LMUL less than or equal to one here, which
+      // is a budget figure and not this latency. Both configurations are
+      // `qualified: false` regardless, so neither is a measurement (R-15-247m,
+      // R-17-041).
+      "keccak_24": 24,
+      "keccak_12": 12
     },
     // `vmclear_cycles` is zero on the vectorless classes and the validator
     // refuses anything else: the instruction traps there like any unallocated
