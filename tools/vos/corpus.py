@@ -156,8 +156,17 @@ MODEL_FACTS = (
 # files would be a membership nobody maintains, and the day a new Sail file cites a
 # requirement is the day it should be checked rather than the day somebody remembers.
 # The cost is the selftest's sandbox copying these instead of standing them up empty,
-# which is 122 files and about a megabyte.
-MODEL_CITATION_SUFFIXES = (".sail", ".json", ".in")
+# which is a few hundred files and about a megabyte.
+#
+# The kinds are not only Sail. The emulator harness and the test build files argue from
+# the register too, and those arguments are this repository's rather than upstream's:
+# upstream has no reason to cite an id in this numbering, so a requirement named in a
+# `.cpp` under `c_emulator/` is a curation decision exactly as one in a `.sail` is. A
+# window that admitted only Sail left nine of them unread, which is the same defect one
+# scale down.
+MODEL_CITATION_SUFFIXES = (".sail", ".json", ".in", ".cpp", ".hpp", ".c", ".h",
+                           ".cmake")
+MODEL_CITATION_NAMES = ("CMakeLists.txt",)
 
 
 def is_model_citation_path(rel: str) -> bool:
@@ -165,12 +174,14 @@ def is_model_citation_path(rel: str) -> bool:
 
     `dependencies/` is excluded because it is somebody else's code vendored whole: a
     requirement id appearing there would be a coincidence of digits rather than a
-    citation, and holding upstream to this repository's register is not a claim anyone
-    should make.
+    citation, and holding an upstream to this repository's register is not a claim
+    anyone should make. It carries none today, so the exclusion is a statement about
+    what the window means rather than a filter doing work.
     """
     return (rel.startswith(UNREAD_PREFIX)
             and not rel.startswith(UNREAD_PREFIX + "dependencies/")
-            and rel.endswith(MODEL_CITATION_SUFFIXES))
+            and (rel.endswith(MODEL_CITATION_SUFFIXES)
+                 or rel.rsplit("/", 1)[-1] in MODEL_CITATION_NAMES))
 
 # an index entry's mode, which is what tells a submodule from a file
 GITLINK_MODE = "160000"
