@@ -19,13 +19,17 @@ a store-conditional, `Zalrsc` having gone with the reservation (R-15-025).
 **What is not here is as deliberate as what is.** The dictionary bundle format
 of §1.1 is a fetch container the model does not yet implement, so the image this
 encoder lays down is a stream of canonical 32-bit instructions, which is what
-the curated model fetches today. The vector, matrix, and FEC surface is absent
-because M0.8a lands the class table and the roster while the datapaths those
-classes name arrive with M0.8b to M0.8d; the corpus version that follows each
-of those adds its rows rather than this one anticipating them. `vmclear` is
-here despite that and is not an exception to it: it clears the unit's *state*
-and names no vector operand, so it decodes and executes on a class whose
-datapath this table cannot yet reach.
+the curated model fetches today. The matrix and FEC surface is absent because
+the datapaths those classes name arrive with M0.8c and M0.8d; the corpus version
+that follows each of those adds its rows rather than this one anticipating them.
+
+**The vector rows are M0.8b's, and they are the memory surface and what feeds
+it** rather than the whole of RVV. The item that adds them is about the
+capability semantics of a vector access, so what a program has to be able to
+write is every form whose element addresses are made differently: unit-stride,
+fault-only-first, runtime-strided, indexed in both orderings, whole-register,
+and the mask pair, at all four element widths. The arithmetic is not here,
+because a row nothing in the corpus writes is a row nothing checks.
 """
 
 from dataclasses import dataclass
@@ -107,6 +111,36 @@ CHERI = 0b1011011
 # custom-3 whole for the rows the freeze's measured act admits (R-15-014a).
 CUSTOM_0 = 0b0001011
 
+# --- the vector surface's three opcodes (M0.8b) ----------------------------
+# The two the vector memory surface uses are the base ISA's floating-point load
+# and store majors, which this profile has no other claimant for: scalar F and D
+# went at c4 with the register file they addressed (R-15-039), so `0000111` and
+# `0100111` carry vector accesses and nothing else. `OP_V` is RVV's own major.
+LOAD_FP = 0b0000111
+STORE_FP = 0b0100111
+OP_V = 0b1010111
+
+# The width code a vector access carries in its `funct3`, which is RVV's own
+# encoding of EEW and is not the base ISA's: 8-bit is 000 and the other three
+# start at 101 (`encdec_vlewidth`, extensions/V/vext_mem_insts.sail).
+VLEWIDTH = {8: 0b000, 16: 0b101, 32: 0b110, 64: 0b111}
+
+
+def _vregisters() -> dict[str, int]:
+    """`v0` through `v31`, and no second spelling of any of them.
+
+    The integer file has three spellings because a register there has two
+    readings and an ABI role (R-15-007i). A vector register has one of each: it
+    holds no capability, so there is no `cv3`, and the calling convention names
+    none of them, so there is no ABI alias. The table is therefore the
+    architectural names alone, which is also how the model's own `vreg_name`
+    mapping spells them (extensions/V/vext_regs.sail).
+    """
+    return {f"v{number}": number for number in range(32)}
+
+
+VREGISTERS: Final[dict[str, int]] = _vregisters()
+
 
 class AsmError(Exception):
     """A defect in the program being assembled, reported with its source line by
@@ -163,6 +197,8 @@ def _j(imm: int, rd: int, op: int) -> int:
 #   mem   `imm(reg)`, which the parser flattens into (imm, reg)
 #   csr   a CSR by name or number
 #   scr   a special capability register by name
+#   vreg  a vector register, `v0` through `v31`
+#   vm    the vector mask: `v0.t`, or nothing at all where the form is unmasked
 #
 # `emit(fields, ops, pc)` builds the word. `pc` is the address of the
 # instruction, which only the pc-relative kinds read.
@@ -314,6 +350,71 @@ def _k_cclear(f: Fields, o: list[int], pc: int) -> int:
     return _s(mask & 0xFFF, (h << 4) | ((mask >> 12) & 0xF), 0, 0b000, CUSTOM_0)
 
 
+# --- the vector kinds (M0.8b) ----------------------------------------------
+# Every vector memory form has one layout, and it is worth writing once: the top
+# twelve bits are `nf`, a reserved zero, `mop`, `vm`, and a five-bit field that
+# is a constant for the unit-stride and whole-register forms and a register for
+# the strided and indexed ones. That is an I-type shape for the store forms too,
+# the source vector register sitting in the `rd` slot, which is what a
+# three-register store has to do in this layout and is the same thing `csd`'s
+# `indexed` kind does (extensions/V/vext_mem_insts.sail).
+
+def _v_mem(f: Fields, vd: int, rs1: int, sub: int, vm: int) -> int:
+    imm = (f["nf"] << 9) | (f["mop"] << 6) | (vm << 5) | sub
+    return _i(imm, rs1, f["funct3"], vd, f["op"])
+
+
+def _k_vmem(f: Fields, o: list[int], pc: int) -> int:
+    """`vd, (rs1)[, v0.t]`: the unit-stride forms, whose five-bit field is the
+    `lumop`/`sumop` constant naming which one it is."""
+    return _v_mem(f, o[0], o[1], f["sub"], o[2])
+
+
+def _k_vmems(f: Fields, o: list[int], pc: int) -> int:
+    """`vd, (rs1), rs2[, v0.t]`: the stride is a runtime register, which is what
+    puts this form off the data-independent-timing list (R-15-085a)."""
+    return _v_mem(f, o[0], o[1], o[2], o[3])
+
+
+def _k_vmemx(f: Fields, o: list[int], pc: int) -> int:
+    """`vd, (rs1), vs2[, v0.t]`: the index is a vector register, so each element
+    carries its own address and its own check (R-08-003)."""
+    return _v_mem(f, o[0], o[1], o[2], o[3])
+
+
+def _k_vmemw(f: Fields, o: list[int], pc: int) -> int:
+    """`vd, (rs1)`: the whole-register and mask forms, whose `vm` is the literal
+    one in the encoding rather than an operand, so they have no masked-off
+    element (R-15-115b)."""
+    return _v_mem(f, o[0], o[1], f["sub"], 1)
+
+
+def _k_vsetvli(f: Fields, o: list[int], pc: int) -> int:
+    """`rd, rs1, vtypei`: the eleven-bit `vtype` image, whose top three bits are
+    reserved and whose remaining eight are `vma`, `vta`, `vsew` and `vlmul`. It
+    is taken as a number rather than as `e64,m1,ta,ma`, because a program that
+    writes the field out is a program whose `vtype` can be read against the
+    model's own bitfield (extensions/V/vext_regs.sail)."""
+    return _i(_imm(o[2], 11, signed=False, name="vtype immediate"), o[1], 0b111, o[0], OP_V)
+
+
+def _k_vmovi(f: Fields, o: list[int], pc: int) -> int:
+    """`vd, simm`: the five-bit signed immediate rides the `rs1` field."""
+    return _r(f["funct7"], 0, _imm(o[1], 5, signed=True, name="immediate"),
+              f["funct3"], o[0], OP_V)
+
+
+def _k_vmovx(f: Fields, o: list[int], pc: int) -> int:
+    """`vd, rs1`: an integer register into a vector one."""
+    return _r(f["funct7"], 0, o[1], f["funct3"], o[0], OP_V)
+
+
+def _k_vmovs(f: Fields, o: list[int], pc: int) -> int:
+    """`rd, vs2`: element zero of a vector register into an integer one, which
+    is how a corpus program reads a vector result back to compare it."""
+    return _r(f["funct7"], o[1], 0, f["funct3"], o[0], OP_V)
+
+
 KINDS: dict[str, Kind] = {
     "r": Kind(("reg", "reg", "reg"), _k_r),
     "i": Kind(("reg", "reg", "imm"), _k_i),
@@ -340,6 +441,17 @@ KINDS: dict[str, Kind] = {
     # the index register, and the scale.
     "indexed": Kind(("reg", "index"), _k_indexed),
     "cclear": Kind(("imm", "imm"), _k_cclear),
+    # The vector kinds. `vm` is the one operand a program leaves out rather than
+    # spells: `v0.t` where the operation is masked and nothing at all where it is
+    # not, which is how the model's own `maybe_vmask` mapping reads it back.
+    "vsetvli": Kind(("reg", "reg", "imm"), _k_vsetvli),
+    "vmovi": Kind(("vreg", "imm"), _k_vmovi),
+    "vmovx": Kind(("vreg", "reg"), _k_vmovx),
+    "vmovs": Kind(("reg", "vreg"), _k_vmovs),
+    "vmem": Kind(("vreg", "mem0", "vm"), _k_vmem),
+    "vmems": Kind(("vreg", "mem0", "reg", "vm"), _k_vmems),
+    "vmemx": Kind(("vreg", "mem0", "vreg", "vm"), _k_vmemx),
+    "vmemw": Kind(("vreg", "mem0"), _k_vmemw),
 }
 
 
@@ -559,6 +671,47 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     # It names no operand and no destination, the class's unit-state inventory
     # naming them all, so every other field is zero and reserved (R-15-069d).
     add("vmclear", "none", word=_r(0, 0, 0, 0b001, 0, CUSTOM_0))
+
+    # --- V: the vector memory surface, and the moves that feed it ----------
+    # M0.8b's rows. `nf` here is the encoded three-bit field and not the segment
+    # count: `encdec_nfields` maps 000 to one field, and the whole-register and
+    # mask forms carry the same 000 as a literal. Every row below is at nf=1,
+    # the segment forms being a field this table does not yet spell because no
+    # member of the corpus writes one.
+    for width, code in VLEWIDTH.items():
+        add(f"vle{width}.v", "vmem", nf=0, mop=0b00, sub=0b00000, funct3=code, op=LOAD_FP)
+        add(f"vse{width}.v", "vmem", nf=0, mop=0b00, sub=0b00000, funct3=code, op=STORE_FP)
+        add(f"vle{width}ff.v", "vmem", nf=0, mop=0b00, sub=0b10000, funct3=code, op=LOAD_FP)
+        add(f"vlse{width}.v", "vmems", nf=0, mop=0b10, funct3=code, op=LOAD_FP)
+        add(f"vsse{width}.v", "vmems", nf=0, mop=0b10, funct3=code, op=STORE_FP)
+        # The index EEW is what the mnemonic names, and the data EEW is `vtype`'s
+        # `vsew`: the two are separately encoded, which is the whole reason an
+        # indexed element's address is a runtime value (R-15-085a).
+        add(f"vluxei{width}.v", "vmemx", nf=0, mop=0b01, funct3=code, op=LOAD_FP)
+        add(f"vloxei{width}.v", "vmemx", nf=0, mop=0b11, funct3=code, op=LOAD_FP)
+        add(f"vsuxei{width}.v", "vmemx", nf=0, mop=0b01, funct3=code, op=STORE_FP)
+        add(f"vsoxei{width}.v", "vmemx", nf=0, mop=0b11, funct3=code, op=STORE_FP)
+        add(f"vl1re{width}.v", "vmemw", nf=0, mop=0b00, sub=0b01000, funct3=code, op=LOAD_FP)
+    # The whole-register store and the mask pair carry no width code at all: the
+    # transfer is a register's worth of bytes and the mask access is one byte per
+    # element, so both are `funct3` 000 whatever `vtype` says.
+    add("vs1r.v", "vmemw", nf=0, mop=0b00, sub=0b01000, funct3=0b000, op=STORE_FP)
+    add("vlm.v", "vmemw", nf=0, mop=0b00, sub=0b01011, funct3=0b000, op=LOAD_FP)
+    add("vsm.v", "vmemw", nf=0, mop=0b00, sub=0b01011, funct3=0b000, op=STORE_FP)
+
+    # `vsetvli` is here because no vector memory operation means anything without
+    # it: `vl` and `vtype` are what say how many elements an access has and how
+    # wide each one is, and they are read-only CSRs this is the only writer of.
+    add("vsetvli", "vsetvli")
+
+    # The four moves a program needs to put a value into the vector file and read
+    # one back out, which is what makes a vector memory check a check rather than
+    # a store nobody reads. `vmv.v.i` is also how `v0` is given a mask, the mask
+    # being an ordinary vector register (extensions/V/vext_arith_insts.sail).
+    add("vmv.v.i", "vmovi", funct7=0b0101111, funct3=0b011)
+    add("vmv.v.x", "vmovx", funct7=0b0101111, funct3=0b100)
+    add("vmv.s.x", "vmovx", funct7=0b0100001, funct3=0b110)
+    add("vmv.x.s", "vmovs", funct7=0b0100001, funct3=0b010)
 
     return table
 
