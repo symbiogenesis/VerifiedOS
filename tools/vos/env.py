@@ -40,9 +40,22 @@ and the compile held only 83% of a core, so it is an upper bound rather than a c
 one. Against the 13.3 MB, 423,101-line, 150 s unit recorded at M0.3 the direction is
 what matters: the floor is roughly 3 min and it is falling, and no amount of
 parallelism reduces it. Memory is not binding: the heaviest single compile is that
-unit. The source tree's residence on /mnt/c was tested and rejected as a suspect: it is
-1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm versus an ext4 copy.
-The build tree already lives on ext4 under /root/build.
+unit.
+
+The source tree's residence on /mnt/c is a suspect for exactly one stage, and the
+rejection that stood here measured a stage that is not it. Reading the 1.19 MB of Sail
+sources across 125 files does cost only ~0.4 s over 9p; `configure` walks the whole
+824-file cmake project and pays per stat rather than per byte. Measured 2026-08-22 on a
+quiet toolchain with the arms alternated, a re-configure costs 17.0/17.4/20.4 s at
+10-12% of a core from /mnt/c against 0.9/1.0/1.1 s at 47-48% from a byte-identical ext4
+copy, and a fresh one, downloads already in the tree, 26.7/29.5/34.9 s against
+11.3/7.3/7.6 s. CPU is 1.7-2.4 s against 0.4-0.5 s, so most of the gap is wait and the
+rest is 9p syscall overhead, and the arms do not overlap at any repeat. That is about
+17 s of every build, and it is still not a reason to move: the host lane pays the same
+tax in reverse, `tools/check.py` costing 1.0/1.1/1.6 s over the NTFS checkout against
+11.4/13.5/18.5 s over the same tree on the wsl.localhost share, on the loop that runs
+after every document edit rather than once per build. The build tree already lives on
+ext4 under /root/build.
 """
 
 import contextlib
