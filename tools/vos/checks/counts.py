@@ -19,7 +19,7 @@ inequality against the bare figure and never rewritten.
 import re
 from typing import TYPE_CHECKING
 
-from vos import coreclass, figures, geometry
+from vos import config, coreclass, figures, geometry
 from vos import corpus as corpus_mod
 from vos.register import REGISTER, REQ_TOKEN_RE, cj_class, cj_status
 
@@ -478,6 +478,79 @@ def _model_citations(ctx: Context) -> None:
                "its files, name a requirement the register declares")
 
 
+# The configurations this tree ships, in the order the second is read against the
+# first, and the keys the second is *allowed* to differ in.
+#
+# Both are enumerations rather than patterns on purpose. A third configuration is a
+# line here, which is the point at which somebody decides what it is a configuration
+# *of*; a third divergent key is the point at which somebody decides whether the second
+# file still describes the same machine or has quietly become another one.
+SHIPPED_CONFIGS = ("model/config/verifiedos.json", "model/config/verifiedos-v.json")
+
+CONFIG_DIVERGENCE = ("platform.hartid", "extensions.V.vlen_exp")
+
+
+def _shipped_configurations(ctx: Context) -> None:
+    """K-65: the second shipped configuration is a configuration and not a fork.
+
+    There is exactly one Sail model, parameterized by core class, and a V-class
+    emulator is that model handed a different configuration rather than a second model
+    (R-15-005, M0.8b). What makes the claim true is that the two files differ in the two
+    keys naming which core of the one composed roster the emulator is, and in nothing
+    else: the composed hart, and the vector geometry that hart's class declares.
+
+    Nothing else holds them together. The model's own validator refuses a configuration
+    whose roster puts the composed hart on a class whose declared geometry is not the
+    one the run realizes, but it sees one file at a time and only when a run happens
+    (postlude/validate_config.sail); `model.py config-keys` compares a configuration
+    against the *generated* one and answers about keys rather than values. So the second
+    file is a five-hundred-line near-copy of the first with no instrument over the
+    copying, which is the two-copies-of-one-fact defect this checker exists to catch,
+    sitting inside the artifact it checks.
+
+    The divergent keys are held in **both** directions. A key that drifted makes the
+    second file a second machine; a declared-divergent key that stopped diverging makes
+    it a second *copy* of the first machine, and the V-class evidence measured against
+    it would be evidence about the C class under another name.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    primary, second = (config.flat_of(ctx.root / rel) for rel in SHIPPED_CONFIGS)
+
+    findings += [f"{rel} is not there or no longer parses as the model's configuration "
+                 f"dialect"
+                 for rel, table in zip(SHIPPED_CONFIGS, (primary, second), strict=True)
+                 if not table]
+
+    if primary and second:
+        findings += [f"{SHIPPED_CONFIGS[1]} does not declare {key}, which "
+                     f"{SHIPPED_CONFIGS[0]} does"
+                     for key in sorted(set(primary) - set(second))]
+        findings += [f"{SHIPPED_CONFIGS[1]} declares {key}, which "
+                     f"{SHIPPED_CONFIGS[0]} does not"
+                     for key in sorted(set(second) - set(primary))]
+        findings += [f"the two shipped configurations disagree on {key}, which is not "
+                     f"one of the {len(CONFIG_DIVERGENCE)} keys that say which core of "
+                     f"the composed roster an emulator is"
+                     for key in sorted(set(primary) & set(second))
+                     if primary[key] != second[key] and key not in CONFIG_DIVERGENCE]
+        findings += [f"{key} is declared as the divergence between the two shipped "
+                     f"configurations and does not diverge, so the second describes the "
+                     f"same core as the first"
+                     for key in CONFIG_DIVERGENCE
+                     if key in primary and key in second
+                     and primary[key] == second[key]]
+
+    # Leaf paths rather than every key path, which is what `keys` counts and what
+    # `model.py config-keys` reports: the question here is what the two files *say*, so
+    # the figure is the values compared and not the surface declaring them.
+    ctx.shared["shipped_config_values"] = len(primary)
+    rep.report("K-65", "shipped configuration(s) that are not one model's:", findings,
+               f"the {len(SHIPPED_CONFIGS)} shipped configurations state the same "
+               f"{len(primary)} values and differ in the {len(CONFIG_DIVERGENCE)} that "
+               "name the core each of them composes")
+
+
 def run(ctx: Context) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
     ctx.q = _quantities(ctx)
@@ -599,4 +672,5 @@ def run(ctx: Context) -> None:
     _block_geometry(ctx)
     _core_classes(ctx)
     _model_citations(ctx)
+    _shipped_configurations(ctx)
     rep.line()

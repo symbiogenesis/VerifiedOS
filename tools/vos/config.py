@@ -90,6 +90,39 @@ def keys(node: Json, prefix: str = "") -> set[str]:
     return found
 
 
+def flat(node: Json, prefix: str = "") -> dict[str, Json]:
+    """Every leaf of a configuration, by the key path that names it.
+
+    `keys` above answers what a configuration *declares*; this answers what it
+    *says*. The two questions separated when a second configuration of the same model
+    started shipping (M0.8b): two configurations of one composition may differ only
+    where the core they compose differs, and a key set alone cannot see a value that
+    drifted (R-15-005).
+
+    A list is a leaf here, as it is in `keys`, and for the same reason: the walk does
+    not enter one, so `memory.regions` is compared whole or not at all.
+    """
+    found: dict[str, Json] = {}
+    if isinstance(node, dict) and node and not _is_value(node):
+        for key, value in node.items():
+            found |= flat(value, prefix + key + ".")
+    else:
+        found[prefix.removesuffix(".")] = node
+    return found
+
+
+def flat_of(path: Path) -> dict[str, Json]:
+    """The same, read from a file. A file that is not there and a file that does not
+    parse both answer empty, which is `value`'s contract: an absent configuration is a
+    finding the caller words rather than an exception it has to catch."""
+    if not path.is_file():
+        return {}
+    try:
+        return flat(jsonc.load(path))
+    except ValueError:
+        return {}
+
+
 def compare_keys(left_path: Path, right_path: Path) -> tuple[int, list[str]]:
     left, right = keys(jsonc.load(left_path)), keys(jsonc.load(right_path))
     out: list[str] = []
