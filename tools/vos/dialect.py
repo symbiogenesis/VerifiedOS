@@ -69,6 +69,14 @@ def _registers() -> dict[str, int]:
 
 REGISTERS: Final[dict[str, int]] = _registers()
 
+# The 32 vector registers, and they are a **second table** rather than a fourth
+# spelling of the first. The architectural register file is one merged file of
+# 32 registers of 64+1 bits (R-15-007i), and the vector register file is a
+# separate file of `VLEN` bits beside it, so `v5` and `x5` are different
+# registers and a mnemonic naming one must not accept the other. There is one
+# spelling because RVV gives them no ABI names.
+VREGISTERS: Final[dict[str, int]] = {f"v{number}": number for number in range(32)}
+
 # The CSR bank of isa-profile.md §5.1. An address absent from this map is not
 # assembled by name; a program wanting one writes the number, and the model
 # traps it if the bank does not allocate it (R-15-014).
@@ -158,6 +166,7 @@ def _j(imm: int, rd: int, op: int) -> int:
 # The kinds. `operands` is the signature the parser fills, in source order:
 #
 #   reg   a register, in any of its three spellings
+#   vreg  a vector register, which is a different file (see `VREGISTERS`)
 #   imm   an integer expression
 #   sym   an integer expression naming a code address (branch and jump targets)
 #   mem   `imm(reg)`, which the parser flattens into (imm, reg)
@@ -314,6 +323,23 @@ def _k_cclear(f: Fields, o: list[int], pc: int) -> int:
     return _s(mask & 0xFFF, (h << 4) | ((mask >> 12) & 0xF), 0, 0b000, CUSTOM_0)
 
 
+def _k_vkeccak(f: Fields, o: list[int], pc: int) -> int:
+    """`vkeccak.vi vd, vs2, rounds`: the frozen Keccak permutation.
+
+    An R-type in custom-0 whose `rs2` field carries the round-count immediate
+    and whose `funct7` is reserved zero. Only 12 and 24 are admitted; every
+    other value of the field reaches no decode clause and traps, so this refuses
+    to emit one rather than laying down a word whose meaning is *unallocated*
+    (R-15-057a, R-15-014). A program that means to check that refusal writes the
+    word, exactly as one meaning to write a read-only CSR does.
+    """
+    rounds = _imm(o[2], 5, signed=False, name="round count")
+    if rounds not in (12, 24):
+        raise AsmError("vkeccak.vi takes 12 or 24 rounds, the two the frozen "
+                       "fork defines; every other immediate is unallocated")
+    return _r(0, rounds, o[1], f["funct3"], o[0], CUSTOM_0)
+
+
 KINDS: dict[str, Kind] = {
     "r": Kind(("reg", "reg", "reg"), _k_r),
     "i": Kind(("reg", "reg", "imm"), _k_i),
@@ -340,6 +366,8 @@ KINDS: dict[str, Kind] = {
     # the index register, and the scale.
     "indexed": Kind(("reg", "index"), _k_indexed),
     "cclear": Kind(("imm", "imm"), _k_cclear),
+    # `vreg` is the vector register file's own spelling; see `VREGISTERS`.
+    "vkeccak": Kind(("vreg", "vreg", "imm"), _k_vkeccak),
 }
 
 
@@ -559,6 +587,15 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     # It names no operand and no destination, the class's unit-state inventory
     # naming them all, so every other field is zero and reserved (R-15-069d).
     add("vmclear", "none", word=_r(0, 0, 0, 0b001, 0, CUSTOM_0))
+    # --- M0.8d: the frozen Keccak fork ------------------------------------
+    # The fifth row in this opcode and the fifth to spend none of its own: 010
+    # sits between `vmclear`'s 001 and the indexed load's 011, so custom-1 and
+    # custom-3 stay whole (R-15-014a, R-15-056, R-15-057a). The RVV surface the
+    # corpus needs around it, `vsetvli` and the unit-stride vector load and
+    # store, is **not** added here: it belongs to the V-class datapath M0.8b
+    # lands, so `keccak-perm.s` writes those three words by hand rather than
+    # this table anticipating a lane it is not.
+    add("vkeccak.vi", "vkeccak", funct3=0b010)
 
     return table
 

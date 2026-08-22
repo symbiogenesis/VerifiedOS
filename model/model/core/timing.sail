@@ -104,6 +104,22 @@
 //     latency to the analysis (R-15-085b). The pessimism is paid in the schedule
 //     rather than in the leakage model, and the schedule is non-work-conserving,
 //     so the unspent remainder is burned inside the issuing partition's own slot.
+//   - `Timing_Keccak24` and `Timing_Keccak12` are the frozen permutation's two
+//     round counts, and they are **two rows because R-15-056a defines two round
+//     counts and puts both on the `Zvkt` list** (R-15-053), not because either
+//     is conditional. A single row scaled by the immediate would be a latency
+//     computed from an operand of the instruction, which is the one shape this
+//     table's signature exists to refuse; the immediate is not data, but a
+//     function that took it would be a function with somewhere for data to
+//     arrive. There is no third row for a revoked, faulting, or short case
+//     because the permutation has none: it reads no memory, takes no operand
+//     the round count could depend on, and ends at the round it names
+//     (R-15-056, extensions/keccak/keccak_insts.sail). Both rows are this
+//     build's geometry, one build realizing one VLEN, which is what
+//     R-15-059a's *stated at the C class's VLEN=256* means for a table with no
+//     class column: at VLEN=256 the 2048-bit element group is LMUL=8, and the
+//     figure in a VLEN=256 configuration is the C-class figure by construction
+//     rather than by extrapolation from the V class.
 enum TimingClass = {
   Timing_Integer,
   Timing_Multiply,
@@ -128,6 +144,8 @@ enum TimingClass = {
   Timing_VectorDivide,
   Timing_VectorMemUnit,
   Timing_VectorMemIndexed,
+  Timing_Keccak24,
+  Timing_Keccak12,
 }
 
 mapping timing_class_str : TimingClass <-> string = {
@@ -154,6 +172,8 @@ mapping timing_class_str : TimingClass <-> string = {
   Timing_VectorDivide     <-> "vector-divide",
   Timing_VectorMemUnit    <-> "vector-mem-unit",
   Timing_VectorMemIndexed <-> "vector-mem-indexed",
+  Timing_Keccak24         <-> "keccak-24",
+  Timing_Keccak12         <-> "keccak-12",
 }
 overload to_str = {timing_class_str}
 
@@ -193,6 +213,8 @@ struct TimingConstants = {
   vector_divide        : timing_cycles_t,
   vector_mem_unit      : timing_cycles_t,
   vector_mem_indexed   : timing_cycles_t,
+  keccak_24            : timing_cycles_t,
+  keccak_12            : timing_cycles_t,
 }
 
 // The two per-class constants, and they are per class for a reason the scalar
@@ -256,6 +278,8 @@ function timing_cycles(t : TimingClass) -> timing_cycles_t = {
     Timing_VectorDivide     => k.vector_divide,
     Timing_VectorMemUnit    => k.vector_mem_unit,
     Timing_VectorMemIndexed => k.vector_mem_indexed,
+    Timing_Keccak24         => k.keccak_24,
+    Timing_Keccak12         => k.keccak_12,
   }
 }
 
