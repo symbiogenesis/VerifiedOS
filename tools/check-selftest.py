@@ -210,26 +210,38 @@ def _link_or_copy(src: str | Path, dst: str | Path) -> None:
 def stand_up(template: Path, path: Path, fix_ok: bool = False) -> Sandbox:
     """One sandbox, as hardlinks into the template.
 
+    Its .git is one pointer file naming the template's rather than a linked tree.
+    Everything the checker asks git is `ls-files`, a read of the shared index, and a
+    third of the template's files are the object store `git add` wrote beside it, so
+    the pointer spares every sandbox linking, and later unlinking, a store nothing
+    reads. git resolves the pointer's worktree to the directory holding it, which is
+    what keeps each sandbox's checker reading its own mutated tree against the one
+    shared index.
+
     A fix-safe sandbox is the exception the repair path needs: the checker's --fix
     rewrites documents in place through whatever name it opens, which a hardlink
     would relay straight into the template under every running case. What --fix can
-    name is the document corpus, so everything outside model/ and .git/ is a real
-    copy there, a boundary that contains that corpus with room to spare while keeping
-    the copying, and the scan a fresh copy costs on first read, to the hundred-odd
-    files outside those two trees.
+    name is the document corpus, so everything outside model/ is a real copy there,
+    a boundary that contains that corpus with room to spare while keeping the
+    copying, and the scan a fresh copy costs on first read, to the hundred-odd files
+    outside that tree.
     """
     remove_tree(path)
-    for dirpath, _dirnames, filenames in template.walk():
+    for dirpath, dirnames, filenames in template.walk():
         rel = dirpath.relative_to(template)
         target = path / rel
         target.mkdir(parents=True, exist_ok=True)
-        top = rel.parts[0] if rel.parts else ""
-        linked = not fix_ok or top in (".git", "model")
-        for name in filenames:
+        names = filenames
+        if not rel.parts:
+            dirnames.remove(".git")
+            names = [name for name in names if name != _MANIFEST]
+        linked = not fix_ok or rel.parts[:1] == ("model",)
+        for name in names:
             if linked:
                 _link_or_copy(dirpath / name, target / name)
             else:
                 shutil.copy2(dirpath / name, target / name)
+    (path / ".git").write_text(f"gitdir: {template / '.git'}\n", encoding="utf-8")
     return Sandbox(path, template, fix_ok=fix_ok)
 
 
