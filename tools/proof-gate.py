@@ -18,6 +18,8 @@ Needs the pinned Rocq switch, which `vos.env` locates and which is deliberately 
 switch the Sail toolchain lives in. From Windows: wsl -e python3 tools/proof-gate.py
 """
 
+import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -32,25 +34,105 @@ from vos.corpus import find_root
 PROOFS = "proofs"
 CLOSED = "Closed under the global context"
 
-# The statement artifact compiles first because every companion imports it; the rest
-# follow in name order.
+# The statement artifact, whose absence is reported by name: a gate over an empty
+# directory would pass green with nothing enumerated to fail it.
 STATEMENT = "ApexTheorem.v"
 
 # The declared set, which R-05-164 reads from the register. It is empty today, and an
 # entry is added here only when the register grows one, never to make a run pass.
 DECLARED: set[str] = set()
 
+# What a source Requires, read to derive the compile order: name order is not a
+# dependency order, and a Require compiled ahead of its dependency is satisfied by
+# whatever stale .vo a previous run left behind.
+REQUIRE = re.compile(r"^\s*(?:From\s+\S+\s+)?Require(?:\s+(?:Import|Export))?\s+([^.]+)\.",
+                     re.MULTILINE)
 
-def _compile(root: Path, source: Path) -> str:
+
+def _local_requires(source: Path, stems: set[str]) -> set[str]:
+    """The proofs this source Requires from its own directory, by file stem; what a
+    library provides is not this gate's to order."""
+    text = source.read_text(encoding="utf-8")
+    named = (name for found in REQUIRE.finditer(text) for name in found.group(1).split())
+    return {name for name in named if name in stems}
+
+
+def _waves(sources: list[Path]) -> list[list[Path]]:
+    """The sources in dependency order: each wave Requires only what earlier waves
+    compiled, and is name-sorted within itself so the order is deterministic."""
+    stems = {source.stem for source in sources}
+    needs = {source: _local_requires(source, stems) for source in sources}
+    waves: list[list[Path]] = []
+    done: set[str] = set()
+    remaining = sorted(sources)
+    while remaining:
+        ready = [source for source in remaining if needs[source] <= done]
+        if not ready:
+            stuck = ", ".join(source.name for source in remaining)
+            raise SystemExit(f"FAIL: a Require cycle among {stuck}; "
+                             f"no compile order satisfies it")
+        waves.append(ready)
+        done |= {source.stem for source in ready}
+        remaining = [source for source in remaining if source not in ready]
+    return waves
+
+
+def _hold(proofs: Path) -> int:
+    """Hold the proofs directory for the whole run.
+
+    Two concurrent gates rewrite each other's .vo mid-Require, so the second blocks
+    until the first is done, which the unconditional recompile then makes a correct
+    second verdict rather than a stale one. The lock is the directory's own descriptor
+    rather than a lock file, because everything this gate writes is gitignored and a
+    lock file beside the proofs would be a tree write nothing owns. The descriptor
+    stays open, and locked, until the process exits.
+
+    POSIX-only, and this file is typed on the host as well as run in the guest, so the
+    import is deferred the way `vos.env` defers its own.
+    """
+    import fcntl  # noqa: PLC0415
+    fd = os.open(str(proofs), os.O_RDONLY)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    return fd
+
+
+def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
     # -Q roots the logical path so a companion's Require Import resolves to the .vo
     # built here, never to an installed one
-    proc = subprocess.run(
+    return subprocess.run(
         [*env.rocq_command(), "-q", "-Q", PROOFS, "",
-         str(source.relative_to(root).as_posix())],
+         source.relative_to(root).as_posix()],
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
-    if proc.returncode != 0:
-        raise SystemExit(f"FAIL: {source.name} did not compile:\n{proc.stderr.strip()}")
-    return proc.stdout
+
+
+def _assumptions(stdout: str) -> tuple[int, list[str]]:
+    """One compile's Print Assumptions output, read back block by block.
+
+    An `Axioms:` header opens a block and is structure rather than a finding, and a
+    wrapped axiom type's indented continuation lines belong to the entry above them,
+    so an axiom compares against the declared set whole rather than line by line.
+    Anything else the compiler printed is an entry too: chatter fails the gate rather
+    than passing beneath it.
+    """
+    closed = 0
+    entries: list[str] = []
+    in_axioms = False
+    for raw in stdout.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line == CLOSED:
+            closed += 1
+            in_axioms = False
+            continue
+        if line == "Axioms:":
+            in_axioms = True
+            continue
+        if in_axioms and raw[:1].isspace() and entries:
+            entries[-1] += f" {line}"
+            continue
+        entries.append(line)
+    return closed, entries
 
 
 def main() -> int:
@@ -60,23 +142,39 @@ def main() -> int:
     if not statement.exists():
         print(f"FAIL: {PROOFS}/{STATEMENT} is not in the repository")
         return 1
+    _hold(proofs)
 
-    sources = [statement, *sorted(p for p in proofs.glob("*.v") if p != statement)]
-    output = "".join(_compile(root, source) for source in sources)
+    # Every source is compiled and every verdict kept, so a run with two broken proofs
+    # reports two rather than whichever came first. The recompile is unconditional on
+    # every run, fresh .vo or not: the Print Assumptions output produced during
+    # compilation is the evidence this gate reads, and a skipped compile is a skipped
+    # enumeration.
+    failures: list[tuple[Path, str]] = []
+    closed = 0
+    undeclared: list[str] = []
+    for wave in _waves(sorted(proofs.glob("*.v"))):
+        for source in wave:
+            done = _compile(root, source)
+            if done.returncode != 0:
+                failures.append((source, done.stderr.strip()))
+                continue
+            enumerated, entries = _assumptions(done.stdout)
+            closed += enumerated
+            undeclared.extend(entry for entry in entries if entry not in DECLARED)
 
-    lines = [line.strip() for line in output.splitlines() if line.strip()]
-    closed = [line for line in lines if line == CLOSED]
-    undeclared = [line for line in lines if line != CLOSED and line not in DECLARED]
-
+    if failures:
+        for source, stderr in failures:
+            print(f"FAIL: {source.name} did not compile:\n{stderr}")
+        return 1
     if undeclared:
         print("FAIL: an assumption outside the declared set, which is empty (R-05-164):")
-        for line in undeclared:
-            print(line)
+        for entry in undeclared:
+            print(entry)
         return 1
     if not closed:
         print("FAIL: no constant was enumerated; the artifact must end in Print Assumptions")
         return 1
-    print(f"ok: {len(closed)} constant(s), each closed under the global context")
+    print(f"ok: {closed} constant(s), each closed under the global context")
     return 0
 
 
