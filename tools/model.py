@@ -230,25 +230,8 @@ def _seed_tree(e: env.Environment, target: Path) -> None:
 
     The pre-downloaded test ELFs would otherwise re-download the tarball. The Sail SMT
     memo cache matters more: a cold cache re-discharges every Z3 obligation and turns
-    the ~2 min emission into ~25 min (measured once).
-
-    Copied and never shared, which is the whole of the I2 finding. Sail's memo cache is
-    a single flat file of 17-byte records, read whole at startup and rewritten whole at
-    exit with no lock and no atomic rename, so two runs against one path do not merge:
-    the later writer discards what the earlier one learned, and a reader that arrives
-    mid-rewrite sees a prefix or, if the byte it reads as a verdict is out of range, a
-    cache Sail declares invalid and empties. Two *writers* are worse than either, their
-    records interleaving at whatever offset each buffer flushed, which at one boundary
-    in seventeen pairs a real digest with another query's answer. A copy has one writer
-    and cannot do any of that.
-
-    Content-keying then makes a stale copy cost misses and nothing worse, but only
-    within one distribution and one solver: the key is the obligation, not the prover
-    that discharged it, so a cache carried across either boundary hands the pinned
-    solver another solver's answers to read back as its own. That is the silent
-    difference `env._prepend_z3_path` exists to announce, and across either boundary the
-    ~25 min of a cold rebuild is the price of a baseline that is wholly this
-    toolchain's. Both donors below are this machine's, so neither boundary is crossed.
+    the ~2 min emission into ~25 min (measured once). Standing a lane up is 237.7 s
+    seeded, which is what makes a lane cheap enough to be worth having.
     """
     # This lane's canonical tree first and the primary worktree's second: the fast tree
     # wants the lane it belongs to, and a lane's own first build has only the primary to
@@ -259,6 +242,37 @@ def _seed_tree(e: env.Environment, target: Path) -> None:
 
 
 def _seed_smt_cache(donors: list[Path], target: Path) -> None:
+    """Copy a warm memo cache into a tree that has none, and never share one. This is
+    the whole of the I2 finding, and it is a property of the pinned compiler rather
+    than a preference.
+
+    Sail's cache is one flat file of fixed records, a 16-byte digest of the SMT query
+    and one byte of verdict, read whole into a map at startup by `load_digests` and
+    rewritten whole from that map at exit by `save_digests` (libsail 0.20.2,
+    `constraint.ml`). There is no lock, no atomic rename, and `open_out_bin` truncates
+    in place. A tree's cache here measures 1,418,412 bytes, which is 83,436 records
+    with no remainder.
+
+    Three things follow, and each alone is enough to refuse a shared path. Concurrent
+    runs do not *merge*: each writes back what it loaded plus what it learned, so the
+    later writer's file is missing everything the earlier one learned during the
+    overlap, and that is worst exactly when the cache is cold and the learning is
+    largest. A reader arriving mid-rewrite sees a prefix, or sees one byte out of the
+    verdict range and takes the invalid path, which empties both maps and then replaces
+    the shared file with only this run's own entries: measured, one such byte destroyed
+    77,260 of 83,436 records and Sail still exited 0. And two writers interleave at
+    whatever offset each buffer flushed; records are 17 bytes and OCaml flushes at
+    65,536, which is 1 modulo 17, so the sixteenth boundary falls exactly on a verdict
+    byte and leaves one run's genuine digest carrying another run's answer to a
+    different obligation.
+
+    Content-keying then makes a stale *copy* cost misses and nothing worse, but only
+    within one distribution and one solver: the key is the obligation, not the prover
+    that discharged it, so a cache carried across either boundary hands the pinned
+    solver another solver's answers to read back as its own. That is the silent
+    difference `env._prepend_z3_path` exists to announce. Both donors are this
+    machine's, so neither boundary is crossed, and a copy has one writer.
+    """
     cache = target / "model" / "sail_smt_cache"
     if cache.exists():
         return
