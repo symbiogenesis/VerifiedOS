@@ -408,6 +408,12 @@
   // realizing one VLEN. `vector_mem_indexed` is the fully-conflicted bound, every
   // element resolving to one bank, which is how an access whose observed latency
   // varies still yields one sound entry (R-15-085a, R-15-085b).
+  //
+  // `keccak_24` and `keccak_12` are the frozen permutation's two round counts,
+  // both on the `Zvkt` fixed-latency list (R-15-053, R-15-056a). This is a
+  // VLEN=256 configuration, so they are the C-class figures R-15-059a states,
+  // the 2048-bit element group being LMUL=8 here, rather than figures
+  // extrapolated from the V class's VLEN=4096.
   "timing": {
     "operations": {
       "qualified": false,
@@ -433,7 +439,9 @@
       "vector_float": 8,
       "vector_divide": 40,
       "vector_mem_unit": 8,
-      "vector_mem_indexed": 32
+      "vector_mem_indexed": 32,
+      "keccak_24": 24,
+      "keccak_12": 12
     },
     // `vmclear_cycles` is zero on the vectorless classes and the validator
     // refuses anything else: the instruction traps there like any unallocated

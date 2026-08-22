@@ -283,6 +283,14 @@ class Assembler:
             if key not in dialect.SCRS:
                 raise self._error(item.line, f"no special capability register {text}")
             return [dialect.SCRS[key]]
+        if spec == "vreg":
+            # The vector register file is a separate file from the merged one,
+            # so this resolves against its own table and an integer register
+            # name in a vector operand is an error rather than an index.
+            key = text.lower()
+            if key not in dialect.VREGISTERS:
+                raise self._error(item.line, f"no vector register {text}")
+            return [dialect.VREGISTERS[key]]
         if spec == "index":
             # `cs1[rs2 << scale]`, the profile's own spelling of the indexed
             # access. The scale is optional and defaults to zero, which is the
