@@ -53,7 +53,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
 from vos.coread import LEDGER
-from vos.corpus import MODEL_FACTS, UNREAD_PREFIX
+from vos.corpus import MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
 from vos.figures import words
 
 CHECKER = "tools/check.py"
@@ -208,14 +208,17 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     empty, and the saving is the whole cost of standing a sandbox up, which is otherwise
     95% files no rule opens.
 
-    The exception is named rather than guessed at. A handful of model files carry a
-    fact a document restates, the welded block size being the one that forced this, and
-    a rule holding the two together has to read both. `vos.corpus.MODEL_FACTS` is the
-    list, beside the exclusion it carves out of and read by the parses as well as by
-    this, and a path on it is copied here instead of touched. A rule reading a model
-    path the list omits would pass on the host and fail every sandbox's baseline, which
-    reports as a red tree rather than as a bad mutant, so the list is the one place
-    that can go wrong and it goes wrong loudly.
+    There are two exceptions and they are named rather than guessed at, in
+    `vos.corpus` beside the exclusion they carve out of. `MODEL_FACTS` is a handful of
+    model files carrying a fact a document restates, the welded block size being the
+    one that forced it, and a rule holding the two together has to read both.
+    `is_model_citation_path` is the wider one: the requirement citations the model
+    makes occur in most of its Sail, so the rule holding them against the register
+    reaches by kind rather than by name and this copies that kind instead of touching
+    it. Either way a rule reading a model path neither admits would pass on the host
+    and fail every sandbox's baseline, which reports as a red tree rather than as a bad
+    mutant, so the declarations are the one place that can go wrong and they go wrong
+    loudly.
 
     A submodule's contents are not copied, because the checker excludes upstream prose
     from its corpus, but the directory itself is stood up: a link at a submodule is
@@ -243,7 +246,8 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     def place(rel: str) -> int:
         src, dst = repo / rel, into / rel
         if src.is_file():
-            if rel.startswith(UNREAD_PREFIX) and rel not in MODEL_FACTS:
+            if (rel.startswith(UNREAD_PREFIX) and rel not in MODEL_FACTS
+                    and not is_model_citation_path(rel)):
                 dst.touch()
             else:
                 shutil.copy2(src, dst)

@@ -26,7 +26,7 @@ function ext_reset() -> unit = {
   // R-15-007p). The execute side spans the address space so that the first
   // fetch is inside its bounds, and the trap capabilities start from it. The
   // composition-fixed initial distribution that replaces this is M-mode
-  // firmware's to install (§3, R-15-076a), and it can only narrow what it is
+  // firmware's to install (§3, R-07-019), and it can only narrow what it is
   // given.
   PCC     = default_cap;
   nextPCC = default_cap;
