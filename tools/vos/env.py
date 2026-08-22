@@ -419,6 +419,48 @@ def load() -> Environment:
     )
 
 
+def git_dir(root: Path) -> Path | None:
+    """This checkout's git administrative directory, where a lane needs it translated
+    before the guest can use it at all. `None` means there is nothing to translate.
+
+    A linked worktree's `.git` is a file holding an absolute path to that directory, and
+    one created by the *host's* git writes a Windows path into it. Inside the guest that
+    path is not absolute, so git appends it to the worktree and looks for
+    `/mnt/c/.../VerifiedOS-inst/C:/Users/.../worktrees/VerifiedOS-inst`, which is
+    nowhere: every `git` run inside a lane fails with `not a git repository`, exit 128.
+
+    What that costs is not cosmetic. cmake's `git describe` is one of those runs, so it
+    fails at configure and the emulator stamps itself `unknown commit`, which is the
+    exact state M0.10 exists to end and which building in a worktree silently restores.
+    `model.py reference` is the gate that catches it, and in a lane it caught it.
+
+    `wslpath` does the translation rather than a rule about `/mnt`, because the mount
+    root is configurable and the tool that knows it ships with the guest. A pointer that
+    is already usable, a primary worktree, and a lane with no `wslpath` to ask all
+    answer `None`, which leaves the behaviour exactly as it was.
+    """
+    dot_git = root / ".git"
+    if not dot_git.is_file():
+        return None
+    try:
+        pointer = dot_git.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if not pointer.startswith("gitdir:"):
+        return None
+    target = pointer.removeprefix("gitdir:").strip()
+    if Path(target).is_dir():
+        return None
+    if not re.match(r"^[A-Za-z]:[/\\]", target):
+        return None
+    tool = shutil.which("wslpath")
+    if tool is None:
+        return None
+    done = subprocess.run([tool, "-u", target], capture_output=True, text=True, check=False)
+    translated = Path(done.stdout.strip())
+    return translated if done.returncode == 0 and translated.is_dir() else None
+
+
 def _lock_path(build_dir: Path) -> Path:
     """Beside the tree rather than inside it, because the lock has to exist before the
     first build creates the tree and has to survive the `rm -rf` that retires it."""
@@ -546,8 +588,13 @@ class Writable(Protocol):
 
 def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
           cwd: Path | None = None, stdout: IO[str] | None = None,
-          stderr: IO[str] | None = None) -> int:
+          stderr: IO[str] | None = None, add_env: dict[str, str] | None = None) -> int:
     """Run a build stage and record what it cost.
+
+    `add_env` is laid over this process's environment for the child alone, which is how
+    `GIT_DIR` reaches cmake's `git describe` without reaching anything else: exported
+    globally it would follow every later `git` into trees it does not describe, the
+    oracle's among them, and answer for this repository there.
 
     The breakdown of a full build was known only for its two serial stages; every
     future tuning decision wants the rest, and the cheapest way to get it is to have
@@ -558,7 +605,8 @@ def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
         STAGE emit wall=107.4s cpu=99% maxrss=2411360kB
     """
     started = time.perf_counter()
-    proc = subprocess.Popen(argv, cwd=cwd, stdout=stdout, stderr=stderr)
+    proc = subprocess.Popen(argv, cwd=cwd, stdout=stdout, stderr=stderr,
+                            env=None if add_env is None else {**os.environ, **add_env})
     _, status, usage = os.wait4(proc.pid, 0)
     proc.returncode = os.waitstatus_to_exitcode(status)
 
