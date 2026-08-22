@@ -85,6 +85,8 @@ The two lanes spell the interpreter differently, and that is not an oversight. O
 
 `test.py` leaves the cases marked slow to `--slow`, so the default run answers in seconds.
 
+`trace-diff` bounds each executor run with `--timeout`, so an emulator that hangs without retiring instructions becomes a SHORT finding instead of a command that never returns.
+
 ## One toolchain, several checkouts
 
 There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `model.py lane` prints which one this is, where it builds, and whether anything is building there right now.
