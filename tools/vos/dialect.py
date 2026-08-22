@@ -27,9 +27,9 @@ that follows each of those adds its rows rather than this one anticipating them.
 it** rather than the whole of RVV. The item that adds them is about the
 capability semantics of a vector access, so what a program has to be able to
 write is every form whose element addresses are made differently: unit-stride,
-fault-only-first, runtime-strided, indexed in both orderings, whole-register,
-and the mask pair, at all four element widths. The arithmetic is not here,
-because a row nothing in the corpus writes is a row nothing checks.
+runtime-strided, indexed in both orderings, whole-register, and the mask pair,
+at all four element widths. The arithmetic is not here, because a row nothing
+in the corpus writes is a row nothing checks.
 """
 
 from dataclasses import dataclass
@@ -717,10 +717,12 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     # mask forms carry the same 000 as a literal. Every row below is at nf=1,
     # the segment forms being a field this table does not yet spell because no
     # member of the corpus writes one.
+    # The fault-only-first `lumop` 0b10000 has no row and is not an omission: the
+    # profile excludes the form, so no `encdec` clause decodes that constant and a
+    # word carrying it is an undefined instruction (R-15-039b, R-15-040a).
     for width, code in VLEWIDTH.items():
         add(f"vle{width}.v", "vmem", nf=0, mop=0b00, sub=0b00000, funct3=code, op=LOAD_FP)
         add(f"vse{width}.v", "vmem", nf=0, mop=0b00, sub=0b00000, funct3=code, op=STORE_FP)
-        add(f"vle{width}ff.v", "vmem", nf=0, mop=0b00, sub=0b10000, funct3=code, op=LOAD_FP)
         add(f"vlse{width}.v", "vmems", nf=0, mop=0b10, funct3=code, op=LOAD_FP)
         add(f"vsse{width}.v", "vmems", nf=0, mop=0b10, funct3=code, op=STORE_FP)
         # The index EEW is what the mnemonic names, and the data EEW is `vtype`'s
