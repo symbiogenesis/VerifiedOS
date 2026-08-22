@@ -52,10 +52,6 @@
       "fetch_access_fault": true
     },
     "reserved_behavior": {
-      // The configuration option determines how to handle the reserved behavior `amocas_odd_registers`.
-      // "AMOCAS_Fatal"  – raise a Sail exception, stopping execution.
-      // "AMOCAS_Illegal" – treat it as an illegal instruction.
-      "amocas_odd_register": "AMOCAS_Illegal",
       // The configuration option determines how to handle the reserved behavior `xenvcfg.CBIE` with 0b10.
       // The configuration option determines how to handle the reserved behavior `xtvec[Mode] >= 2`.
       // "Xtvec_Fatal"  – raise a Sail exception, stopping execution.
@@ -318,7 +314,7 @@
             },
             "amo": "AccessFault"
           },
-          "atomic_support": "AMOCASQ",
+          "atomic_support": "AMOArithmetic",
           "misaligned_atomicity_granule_size_exp": 4,
           "vector_misaligned_atomicity_granule_size_exp": 4,
           "supports_cbo_zero": true,
@@ -359,7 +355,7 @@
             },
             "amo": "AccessFault"
           },
-          "atomic_support": "AMOCASQ",
+          "atomic_support": "AMOArithmetic",
           "misaligned_atomicity_granule_size_exp": 4,
           "vector_misaligned_atomicity_granule_size_exp": 4,
           "supports_cbo_zero": true,
@@ -710,9 +706,6 @@
     "Ziccamoa": {
       "supported": true
     },
-    "Ziccamoc": {
-      "supported": true
-    },
     "Ziccif": {
       "supported": true
     },
@@ -732,9 +725,6 @@
       "supported": false
     },
     "Zabha": {
-      "supported": true
-    },
-    "Zacas": {
       "supported": true
     },
     // This extension just asserts that each memory region has a MAG

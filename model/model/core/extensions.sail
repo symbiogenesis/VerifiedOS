@@ -82,10 +82,11 @@ function clause hartSupports(Ext_Zaamo) = config extensions.Zaamo.supported
 enum clause extension = Ext_Zabha
 mapping clause extensionName = Ext_Zabha <-> "zabha"
 function clause hartSupports(Ext_Zabha) = config extensions.Zabha.supported
-// Atomic Compare-and-Swap (CAS) Instructions
-enum clause extension = Ext_Zacas
-mapping clause extensionName = Ext_Zacas <-> "zacas"
-function clause hartSupports(Ext_Zacas) = config extensions.Zacas.supported
+// The Atomic Compare-and-Swap extension `Zacas` is gone (R-15-026, R-15-027).
+// It is not a supported-flag reading false: no `AMOCAS` operand, encoding,
+// execute path or PMA level remains for a configuration to re-enable, so the
+// exclusion is a property of this model and survives being handed any
+// configuration at all.
 // Extension for 16-byte Misaligned Atomicity
 enum clause extension = Ext_Zama16b
 mapping clause extensionName = Ext_Zama16b <-> "zama16b"
@@ -126,10 +127,11 @@ function clause hartSupports(Ext_Zbs) = config extensions.Zbs.supported
 enum clause extension = Ext_Ziccamoa
 mapping clause extensionName= Ext_Ziccamoa <-> "ziccamoa"
 function clause hartSupports(Ext_Ziccamoa) = config extensions.Ziccamoa.supported
-// Main memory supports atomics in Zacas
-enum clause extension = Ext_Ziccamoc
-mapping clause extensionName= Ext_Ziccamoc <-> "ziccamoc"
-function clause hartSupports(Ext_Ziccamoc) = config extensions.Ziccamoc.supported
+// `Ziccamoc`, main memory supporting the atomics in `Zacas`, is gone with the
+// atomics it names: it is a claim about a form no configuration of this model
+// can issue, so it has no referent rather than a false value. `Ziccamoa`
+// above is a different extension and stays, its subject being the `Zaamo`
+// atomics the profile does admit (R-15-024).
 // Instruction-Fetch Atomicity
 enum clause extension = Ext_Ziccif
 mapping clause extensionName = Ext_Ziccif <-> "ziccif"
@@ -374,7 +376,6 @@ let extensions_ordered_for_isa_string = [
   Ext_Zic64b,
   Ext_Zicboz,
   Ext_Ziccamoa,
-  Ext_Ziccamoc,
   Ext_Ziccif,
   Ext_Zicclsm,
   Ext_Zicond,
@@ -386,7 +387,6 @@ let extensions_ordered_for_isa_string = [
   // Za
   Ext_Zaamo,
   Ext_Zabha,
-  Ext_Zacas,
   Ext_Zama16b,
 
   // Zf, Zd, and Zq have no members: scalar floating point is excluded
