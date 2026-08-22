@@ -809,11 +809,18 @@ CASES: list[Case] = [
     # actually arrives from: an amendment excludes a form and the model goes on
     # implementing it, which is exactly what R-15-039b did. Mutating the model instead
     # would seed the mirror defect and would have to pick a file two other lanes are
-    # curating; the exclusion row is permanent, so the anchor cannot rot. `cincoffset`
-    # is the substitution because it is spelled by an assembly clause *and* carried by
-    # the encoder table, so one mutation exercises both halves of the surface.
+    # curating; the exclusion row is permanent, so the anchor cannot rot.
+    #
+    # The *marker* is what the substitution moves, because that is the half of the rule
+    # a break would leave silent. The fragment path was seeded here as
+    # "`vle<eew>ff.v`" -> "`cincoffset`", a name spelled by an assembly clause and
+    # carried by the encoder table at once; it is written down rather than kept because
+    # one rule gets one case, and the membership path is the one whose reading is new.
+    # `AMO` is the substituted constructor because the model decodes it in the clause
+    # next to the deleted one, so the case fires on a name that is certainly there and
+    # will not rot into an unseeded pass.
     ("K-66", "a form the profile excludes and the model still decodes",
-     _literal(PROFILE, "`vle<eew>ff.v`", "`cincoffset`")),
+     _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
     # The pip line is moved and the checker-table rows are left, which is the shape
     # the defect takes: a pin bumped where it is enforced or where it is read first,

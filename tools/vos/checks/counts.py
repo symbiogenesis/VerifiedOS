@@ -528,6 +528,12 @@ def _model_citations(ctx: Context, window: list[tuple[str, str]],
 # describing, which is the only part of that cell a machine has any business reading.
 EXCLUDED_NAME_RE = re.compile(r"`([^`]+)`")
 
+# The Sail constructor a row names where its subject is a single instruction form,
+# written `Sail: `CTOR`` inside the first cell. It is read out before the names are,
+# because a constructor is not a mnemonic the profile spells and counting it as one is
+# what let it sit in that cell matching nothing and reported as checked.
+MARKER_RE = re.compile(r"Sail:\s*`([^`]+)`")
+
 
 def _excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
     """K-66: no form the profile excludes is still on the model's decode surface.
@@ -549,30 +555,59 @@ def _excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
     it was found in, and the rule is not satisfied by either half alone.
 
     **The reach is by kind, and here that is not a preference.** `MODEL_FACTS` is the
-    *value* window of five named files and **none of the 139 readable spellings is in
-    one of them**, so aimed there this rule would have read nothing at all and passed
+    *value* window of five named files and **none of the readable spellings is in one
+    of them**, so aimed there this rule would have read nothing at all and passed
     green over the whole decode surface: not K-63's 22% of its subject but none of it.
     A decode clause occurs wherever the model defines an instruction, which is most of
     the tree, so the window that fits it is the one that admits by kind.
+
+    **Where a row's subject is a single instruction form the profile names the Sail
+    constructor, and that name is tested by membership rather than by matching.** A
+    skeleton is a lower bound on what a clause spells, so a mnemonic assembled out of
+    three mappings and a dot leaves nothing to match against: the profile writes
+    `amocas.q`, the model writes `amo_mnemonic(op) ^ "." ^ width_mnemonic_wide(width)`,
+    and the fragment test pairs the one with nothing. A marker is not a spelling and is
+    not matched: the constructor is in the set of names the decode surface decodes to
+    or it is not, which additionally reaches a form whose clause is shared with its
+    neighbours and whose identity is a field value, `AMOCAS` being both.
+
+    **The marker widens the rule and replaces no part of it.** The fragment path runs
+    over every row's names exactly as before, marked or not, because a marker cannot
+    see a form re-added under another constructor and is worth only the run that
+    validated it: one that is stale or misspelled is absent for the same reason a
+    deleted form is, and degrading to the fragment path is what keeps that from being a
+    silent green. A row naming several forms, or an extension spanning many
+    constructors, carries no marker and is out of the membership test's reach rather
+    than mis-typed, so an unmarked row is read exactly as it was.
 
     **What it cannot see is most of the exclusion table, and the honest figure is in
     the `ok` line.** A row is read only where a name it spells matches something the
     machine can spell back: a CSR, a privilege mode, an extension name, and a
     microarchitectural structure are all excluded in prose that no mnemonic test
     decides, and such a row is read and passes. So a green run says *no excluded name
-    is spelled by the surface*, never *every exclusion is honoured*. On the model's
-    side the same boundary: 81 of the 220 assembly clauses build their mnemonic
-    entirely inside a mapping, leave no literal in the file, and are invisible here.
+    is spelled by the surface and no marked constructor is decoded by it*, never *every
+    exclusion is honoured*. On the model's side the same boundary holds for the
+    fragment path: the assembly clauses that build their mnemonic entirely inside a
+    mapping leave no literal in the file and are invisible to it, which is the gap a
+    marker on such a form closes one row at a time.
     """
     rep = ctx.rep
     findings: list[str] = []
     spellings = decode.read_spellings(window)
+    decoded = decode.read_decoded(window)
 
     names = 0
+    markers = 0
     for row in ctx.art.exclusion_rows:
         cells = row.strip().strip("|").split("|")
         ground = ", ".join(sorted(set(REQ_TOKEN_RE.findall(cells[-1])))) or "no requirement"
-        for name in EXCLUDED_NAME_RE.findall(cells[0]):
+        for ctor in MARKER_RE.findall(cells[0]):
+            markers += 1
+            findings += [
+                f"{ISA_PROFILE} §6 excludes `{ctor}` on {ground}, and "
+                f"{d.file}:{d.line} still decodes it, in {d.site}"
+                for d in decoded if d.ctor == ctor]
+        for name in EXCLUDED_NAME_RE.findall(MARKER_RE.sub("", cells[0])):
             names += 1
             findings += [
                 f"{ISA_PROFILE} §6 excludes `{name}` on {ground}, and "
@@ -584,13 +619,17 @@ def _excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
                 for mnemonic in decode.encoder_rows(name)]
 
     ctx.shared["exclusion_names"] = names
+    ctx.shared["exclusion_markers"] = markers
     ctx.shared["decode_spellings"] = len(spellings)
+    ctx.shared["decoded_names"] = len(decoded)
     ctx.shared["encoder_rows"] = len(decode.dialect.MNEMONICS)
     rep.report("K-66", "excluded form(s) still on the decode surface:", findings,
                f"none of the {names} names the profile's {len(ctx.art.exclusion_rows)} "
                f"exclusion rows spell is spelled by the {len(spellings)} readable "
                f"assembly clauses or carried by the "
-               f"{len(decode.dialect.MNEMONICS)} encoder rows")
+               f"{len(decode.dialect.MNEMONICS)} encoder rows, and none of the "
+               f"{markers} Sail constructors they mark is among the {len(decoded)} "
+               f"names the decode surface decodes to")
 
 
 # The configurations this tree ships, in the order the second is read against the

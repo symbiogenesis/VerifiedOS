@@ -141,11 +141,11 @@ let fetch_access_fault_writes_xtval : bool = config base.xtval_nonzero.fetch_acc
 
 // Define the policy for handling reserved behaviors.
 
-enum AmocasOddRegisterReservedBehavior = {
-  AMOCAS_Fatal,
-  AMOCAS_Illegal,
-}
-
+// The odd-numbered-register reserved behaviour is gone with `Zacas`
+// (R-15-026, R-15-027): the rule it needed a policy for was `AMOCAS.D/Q`
+// naming an odd register for a pair operand, and no surviving instruction
+// names a register pair at all, so there is no reserved behaviour left to
+// have a policy about.
 
 enum XtvecModeReservedBehavior = {
   Xtvec_Fatal,
@@ -159,7 +159,6 @@ enum IllegalVtypeReservedBehavior = {
   IllegalVtype_Fatal,
 }
 
-let amocas_odd_register_reserved_behavior : AmocasOddRegisterReservedBehavior = config base.reserved_behavior.amocas_odd_register
 let xtvec_mode_reserved_behavior : XtvecModeReservedBehavior = config base.reserved_behavior.xtvec_mode
 let illegal_vtype_reserved_behavior : IllegalVtypeReservedBehavior = config extensions.V.reserved_behavior.illegal_vtype
 

@@ -41,7 +41,6 @@
       "fetch_access_fault": true
     },
     "reserved_behavior": {
-      "amocas_odd_register": "AMOCAS_Illegal",
       "xtvec_mode": "Xtvec_Ignore"
     },
     "mstatus": {
@@ -508,7 +507,6 @@
     "Zic64b": { "supported": false },
     "Zicboz": { "supported": true },
     "Ziccamoa": { "supported": false },
-    "Ziccamoc": { "supported": false },
     "Ziccif": { "supported": false },
     "Zicclsm": { "supported": false },
     "Zicond": { "supported": true },
@@ -516,7 +514,6 @@
     "Zmmul": { "supported": false },
     "Zaamo": { "supported": true },
     "Zabha": { "supported": true },
-    "Zacas": { "supported": false },
     "Zama16b": { "supported": false },
     "Zba": { "supported": false },
     "Zbb": { "supported": false },
