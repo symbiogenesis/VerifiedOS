@@ -3489,7 +3489,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL · [§15](spec.md#r-15-025), [§15](spec.md#r-15-025-2)
 
 **R-15-026** IS: `Zacas` is excluded for want of a consumer: the multikernel is share-nothing with no kernel locks, rings are single-writer SPSC under Ztso, refcounts and status flags are single-instruction `Zaamo`, and no capability ever resides in shared mutable memory.
-· Accept: no admitted software requires compare-and-swap; the 128-bit CAS coherence point is absent from the memory model.
+· Accept: no admitted software requires compare-and-swap; the 128-bit CAS coherence point is absent from the memory model; and the exclusion is carried by deletion from the decode surface rather than by a configuration key, so no `AMOCAS` operand, encoding, execute path, or PMA arm remains for a configuration to re-enable, which is what R-15-099 requires of the pair this entry is named in and what R-15-025 already delivers for the other half of it.
 · Trace: CJ-SAIL, CJ-KERNEL
 
 **R-15-027** IS: `Zabha` supplies only the byte and halfword forms of the retained unconditional AMOs; sub-word compare-and-swap (`amocas.b`/`.h`) remains excluded with `Zacas`.

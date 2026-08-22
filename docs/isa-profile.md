@@ -226,7 +226,7 @@ The matrix unit consumes int8/bf16 only: de-quantization and block-scale applica
 
 ### 5.2 Absent
 
-Each row is a `MUST NOT` in the register; the ground is the governing requirement's, restated in one clause.
+Each row is governed by a register entry that carries the absence, in the two shapes §6 states: a `MUST NOT` where the exclusion is an obligation, and an `IS` whose *criterion* states what the machine does not carry where it is a fact about the design, which is how the S-mode bank and `satp` rows are written. K-29 holds that every row cites its admitting or excluding requirement, and no rule holds the verb, so a reader keying on the verb alone would misread those rows. The ground is the governing requirement's, restated in one clause.
 
 | CSR | Ground | Governing |
 | --- | --- | --- |
@@ -390,6 +390,9 @@ The RISC-V Debug Module exists in silicon but is **lifecycle-fused at the hardwa
 | The one further code-size candidate the same act weighs: a `csetbounds` taking a large immediate length, carried or dropped | R-15-067e |
 | Capability indexed load/store: whether the scale immediate earns its encoding bits | R-15-007g |
 | Frozen fusion-set membership | R-15-031a |
+| The welded CBO block size, scored against a first-class SRAM macro geometry and a second-class deck row and page geometry together, so the answer is the interval satisfying both rather than a value satisfying one | R-15-007q |
+| The per-class bank count, carrying the droop envelope as a hard admission constraint that prunes infeasible points rather than as an objective the search trades against | R-15-247p |
+| The bespoke matrix extension's instruction surface: its operand sourcing and its encoding together, conditioned on the sustained dense-GEMM margin the unit is admitted against, with the provisional value that GEMM folds onto the V-class RVV unit exactly as it does below that margin | R-15-009, R-15-116, R-15-014a |
 
 Each row has a **declining provisional value** (no admission, PC-relative forms, an unselected dictionary), so the provisional profile is a complete compilation target rather than a partial one, and an item admitted at the final freeze costs one selection pattern, one Sail clause, and a dictionary regeneration. A change outside the table is an amendment and reruns the review gate (R-18-034). The gating artifacts of the second act are R-18-003c's: the CHERI-CompCert functional core with outlining landed, a composed image taken after the §10 and §13 stripping levers, and the corpora R-15-067d names. Permanence attaches to the second act alone, no image encoded under the provisional dictionary being deployed or stored, which is what keeps R-15-036i's wholesale-invalidation cost and R-15-007d's width commitment where the proof is.
 
