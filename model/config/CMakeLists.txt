@@ -27,6 +27,19 @@ foreach(CONFIG__V__ELEN_EXP RANGE 5 6)
 
         set(CONFIG__PHYSADDR__BITS 56)
 
+        # The C row's Keccak unit follows the geometry this configuration is
+        # generated at. The frozen permutation is one instruction over a
+        # 2048-bit element group of 32 SEW=64 elements and a vector register
+        # group tops out at LMUL=8, so the unit needs ELEN=64 and VLEN >= 256;
+        # below either, a row declaring it describes a datapath whose one
+        # instruction can never decode, which the validator refuses
+        # (model/postlude/validate_config.sail, R-15-056, R-15-057a).
+        if((CONFIG__V__ELEN_EXP GREATER_EQUAL 6) AND (CONFIG__V__VLEN_EXP GREATER_EQUAL 8))
+            set(CONFIG__KECCAK_UNIT "true")
+        else()
+            set(CONFIG__KECCAK_UNIT "false")
+        endif()
+
         configure_file(config.json.in ${CMAKE_CURRENT_BINARY_DIR}/${config_filename})
 
         install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${config_filename}

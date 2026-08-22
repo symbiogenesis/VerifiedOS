@@ -254,6 +254,21 @@ extensions {
     }
   }
 
+  // The frozen Keccak fork (isa-profile.md §3, R-15-056, R-15-057). It is
+  // outside `vector_crypto` because every module in there is a ratified
+  // extension with an upstream clause behind it and this one is not: RVG-84 has
+  // not ratified, so the permutation and the instruction are authored here and
+  // diffed against the draft at each PQC Task Group milestone, which is the same
+  // ground `platform_insts` sits on. It shares `Zvk_core`'s element-group check
+  // rather than carrying a second copy of it.
+  keccak {
+    requires core, exceptions, sys, V, K, Zvk_core
+
+    files
+      extensions/keccak/keccak_p1600.sail,
+      extensions/keccak/keccak_insts.sail
+  }
+
   // Control and Status Register (CSR) Instructions
   Zicsr {
     requires core
@@ -328,7 +343,7 @@ postlude {
 unit_tests {
   after postlude
   requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts, V_core,
-           V_instructions
+           V_instructions, keccak
 
   files
     unit_tests/test_privilege.sail,
@@ -338,6 +353,7 @@ unit_tests {
     unit_tests/test_matrix_scratchpad.sail,
     unit_tests/test_memory_model.sail,
     unit_tests/test_vector_cap.sail,
+    unit_tests/test_keccak.sail,
 }
 
 main {
