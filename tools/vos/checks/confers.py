@@ -90,6 +90,7 @@ AGENDAS: list[Agenda] = [
             "R-05-125": "the same admission refusal, stated as the contrast with a runtime trap",
             "R-08-008": "a denial priced out structurally, not a refusal the platform performs",
             "R-08-019": "an instance of the budget refusal composed at R-17-030q",
+            "R-08-043b": "the revoke-only asymmetry's availability cost, the shape R-08-039 already carries: a compromised submitter subtracts authority the platform then faithfully retires, so nothing refuses; the bound is priced at R-08-043f",
             "R-12-084b": "an instance of the budget admission refusal composed at R-17-030q, taken at the session boundary against the R-15-238c ceiling",
             "R-12-093": "a status vocabulary: its refused arm names the completion a server publishes, the capacity refusal itself conferred at R-12-095",
             "R-12-099": "the teardown half of the ring contract: stale-generation refusal is the R-12-095-conferred discipline seen from restart, and its fail-stop is an instance of the §16 supervision policy",
