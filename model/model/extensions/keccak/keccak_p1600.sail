@@ -110,13 +110,18 @@ val keccak_prev5 : range(0, 4) -> range(0, 4)
 function keccak_prev5(x) = match x { 0 => 4, 1 => 0, 2 => 1, 3 => 2, _ => 3 }
 
 // (2*x + 3*y) mod 5, the row *pi* sends lane (*x*, *y*) to. The argument spans
-// 0 to 20 because *x* and *y* each span 0 to 4.
+// 0 to **20**, because *x* and *y* each span 0 to 4, so twenty is a reachable
+// argument and the wildcard is its arm and not nineteen's. Lane (4, 4) is the
+// only lane that reaches it, and a wildcard written one row earlier answers 4
+// where the standard says 0, which makes *pi* drop one lane and write another
+// twice. `test_keccak_tables_are_well_formed` holds exactly that property.
 val keccak_mod5 : range(0, 20) -> range(0, 4)
 function keccak_mod5(n) = match n {
    0 => 0,  1 => 1,  2 => 2,  3 => 3,  4 => 4,
    5 => 0,  6 => 1,  7 => 2,  8 => 3,  9 => 4,
   10 => 0, 11 => 1, 12 => 2, 13 => 3, 14 => 4,
-  15 => 0, 16 => 1, 17 => 2, 18 => 3, _  => 4,
+  15 => 0, 16 => 1, 17 => 2, 18 => 3, 19 => 4,
+   _ => 0,
 }
 
 // One round of FIPS 202 Algorithm 7, in the standard's own five steps and in

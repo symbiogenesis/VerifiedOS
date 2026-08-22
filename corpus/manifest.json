@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "trace_schema": 1,
   "members": [
     {
@@ -148,6 +148,13 @@
       "checks": 7,
       "records": 139,
       "digest": "08dc5de2138fc13f"
+    },
+    {
+      "name": "keccak-perm",
+      "source": "keccak-perm.s",
+      "checks": 8,
+      "records": 0,
+      "digest": "0000000000000000"
     }
   ]
 }

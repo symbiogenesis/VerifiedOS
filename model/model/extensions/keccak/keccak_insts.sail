@@ -114,10 +114,22 @@ union clause instruction = VKECCAK_VI : (bits(5), vregidx, vregidx)
 // bound to a name: `zvk_check_encdec` takes them at the type level, so a name
 // would have to carry the bound the check needs and would hide the two figures
 // a reader is here to check against the register.
+// `valid_vtype()` is in the guard and is **not** inherited from the vendored
+// vector crypto beside it, none of whose rows carry it. This instruction reads
+// its element width out of `vtype`, so it depends on `vtype`, and the rule the
+// model already spells out is that a vector instruction depending on `vtype`
+// with `vill` set is illegal (`valid_vtype` in
+// extensions/V/vext_utils_insts.sail). What makes it load-bearing here rather
+// than pedantic is what sets `vill`: it is the state `vmclear` leaves behind,
+// *no configuration* being spelled as `vill` precisely so that a successor
+// partition cannot inherit a usable one it never selected
+// (extensions/platform/vmclear.sail, R-15-069d). An instruction ignoring it
+// would run at a SEW the partition never chose, on the first instruction after
+// a switch.
 mapping clause encdec = VKECCAK_VI(rnd, vs2, vd)
   <-> 0b0000000 @ rnd @ encdec_vreg(vs2) @ 0b010 @ encdec_vreg(vd) @ 0b0001011
   when keccak_unit_present() & currentlyEnabled(Ext_Zve64x) & keccak_valid_rounds(rnd)
-       & get_sew() == 64 & zvk_check_encdec(2048, 32)
+       & valid_vtype() & get_sew() == 64 & zvk_check_encdec(2048, 32)
 
 mapping clause assembly = VKECCAK_VI(rnd, vs2, vd)
   <-> "vkeccak.vi" ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ dec_bits_5(rnd)
