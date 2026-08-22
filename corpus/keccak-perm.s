@@ -18,8 +18,16 @@
 # spells the `mhartid` write, so this member claims no lane it is not.
 #
 #   0x01BE72D7  vsetvli t0, t3, e64, m8      zimm 0x1B: vlmul 011, vsew 011
-#   0x0205F007  vle64.v v0, (c10)            nf 1, vm 1, unit stride, width 111
-#   0x0205F027  vse64.v v0, (c10)            the same at STORE-FP
+#   0x0205F807  vle64.v v16, (c11)           nf 1, vm 1, unit stride, width 111
+#   0x02057027  vse64.v v0, (c10)            the same at STORE-FP
+#
+# The base register is `rs1` at bits 19:15 and the width code is `funct3` at
+# 14:12, which is where the first version of these words got two of them wrong:
+# a store meant for `c10` was written with those two fields' nibbles merged and
+# so named `c11`, an uninitialized register whose untagged value faults the
+# access. The corpus reported it as a wrong permutation and the commit trace
+# named it a tag violation on register 11, which is the difference between a rig
+# that runs programs and one that asserts properties.
 #
 # The handler is installed by writing MTCC, which is reachable because the reset
 # PCC carries access-system-registers, and each faulting check leaves the cause
@@ -63,7 +71,7 @@ _start:
         # vector for the permutation.
         li      gp, 2
         vkeccak.vi v0, v0, 24
-        .word   0x0205F027
+        .word   0x02057027
         ld      t1, 0(c10)
         li      t2, 0xF1258F7940E1DDE7
         bne     t1, t2, fail
@@ -81,7 +89,7 @@ _start:
         # and fail this one.
         li      gp, 3
         vkeccak.vi v0, v0, 24
-        .word   0x0205F027
+        .word   0x02057027
         ld      t1, 0(c10)
         li      t2, 0x2D5C954DF96ECB3C
         bne     t1, t2, fail
@@ -99,7 +107,7 @@ _start:
         vmclear
         .word   0x01BE72D7
         vkeccak.vi v8, v0, 12
-        .word   0x0205F427
+        .word   0x02057427
         ld      t1, 0(c10)
         li      t2, 0x8E5E5438B9A78617
         bne     t1, t2, fail
@@ -108,7 +116,7 @@ _start:
         bne     t1, t2, fail
         # And the source group survived: a permutation into another group leaves
         # the group it read alone.
-        .word   0x0205F027
+        .word   0x02057027
         ld      t1, 0(c10)
         bnez    t1, fail
         ld      t1, 192(c10)
@@ -127,7 +135,7 @@ _start:
         csetaddr c11, c8, t0
         .word   0x0205F807
         vkeccak.vi v16, v16, 24
-        .word   0x0205F827
+        .word   0x02057827
         ld      t1, 0(c10)
         li      t2, 0x66D71EBFF8C6FFA7
         bne     t1, t2, fail

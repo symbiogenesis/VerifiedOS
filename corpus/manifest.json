@@ -153,8 +153,8 @@
       "name": "keccak-perm",
       "source": "keccak-perm.s",
       "checks": 8,
-      "records": 0,
-      "digest": "0000000000000000"
+      "records": 783,
+      "digest": "41d089d1164c816f"
     }
   ]
 }
