@@ -137,6 +137,7 @@ class Artifacts:
     cj_rows: list[str] = field(default_factory=list)
     absence_ids: list[str] = field(default_factory=list)
     csr_rows: dict[str, list[str]] = field(default_factory=dict)
+    exclusion_rows: list[str] = field(default_factory=list)
     cm_bounds: list[str] = field(default_factory=list)
     cm_props: list[str] = field(default_factory=list)
     cm_cells: dict[str, str] = field(default_factory=dict)
@@ -145,6 +146,9 @@ class Artifacts:
 
 _ABSENCE_RE = re.compile(r"^\| \*\*(A-\d+)\*\*")
 _CSR_SECTION_RE = re.compile(r"^### (5\.\d) ")
+_EXCLUSION_SECTION_RE = re.compile(r"^## 6\. ")
+# a table's header rule, which is the one `|` line that is not a row
+_TABLE_RULE_RE = re.compile(r"^\|[\s\-:|]+\|$")
 _CM_CELL_RE = re.compile(r"^\| `(B-\d\d)` \| `(P-\d)` \|")
 _CM_BOUND_RE = re.compile(r"^\| `(B-\d\d)` \| [^`|]")
 _CM_PROP_RE = re.compile(r"^\| `(P-\d)` \| [^`|]")
@@ -168,9 +172,18 @@ def read_artifacts(corpus: Corpus) -> Artifacts:
     # shape the check reads: "Each row below cites the requirement that admits or
     # excludes it; a row citing none would be a defect in this view, not an
     # implementer's discretion".
+    #
+    # §6's exclusion table is read in the same pass and kept whole rather than split
+    # into cells, because what a rule wants from a row differs by rule: the names it
+    # excludes are in its first cell and the requirements it rests on in its last, and
+    # a parse that decided which was which here would be deciding the rule's question.
+    # Its rows are not filtered to `| \`` as the CSR bank's are: an exclusion's subject
+    # is written as prose where it has no single spelling, so a row may open with a
+    # bare word, and dropping those would silently shorten the table.
     profile = corpus.get(ISA_PROFILE)
     if profile:
         sec = None
+        excluding = False
         for line in profile.lines:
             m = _CSR_SECTION_RE.match(line)
             if m:
@@ -178,8 +191,13 @@ def read_artifacts(corpus: Corpus) -> Artifacts:
                 art.csr_rows[sec] = []
             elif line.startswith("#"):
                 sec = None
+                excluding = bool(_EXCLUSION_SECTION_RE.match(line))
             elif sec and line.startswith("| `"):
                 art.csr_rows[sec].append(line)
+            elif (excluding and line.startswith("|")
+                  and not _TABLE_RULE_RE.match(line)
+                  and not line.startswith("| Excluded ")):
+                art.exclusion_rows.append(line)
 
     # A definition row names one id and then prose; a matrix row names two ids. That
     # is the whole difference, so one pass reads all three.
