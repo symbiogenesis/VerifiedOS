@@ -118,8 +118,17 @@ class Sandbox:
         return True
 
     def delete(self, rel: str) -> bool:
+        """Delete, and say whether anything was deleted.
+
+        A file already absent is the same drift a null edit is: the case has stopped
+        seeding its rule, and that is reported as unseeded rather than raised as a
+        worker's crash.
+        """
+        target = self.path / rel
+        if not target.exists():
+            return False
         self.touched.add(rel)
-        (self.path / rel).unlink()
+        target.unlink(missing_ok=True)
         return True
 
     def reset(self) -> None:
@@ -151,8 +160,17 @@ class Sandbox:
                              "this sandbox's hardlinks into the template; it may only "
                              "run on the repair sandbox, which holds real copies")
         argv = [sys.executable, str(self.path / CHECKER)] + (["--fix"] if fix else [])
-        proc = subprocess.run(argv, cwd=self.path, capture_output=True,
-                              text=True, encoding="utf-8", check=False)
+        # a run is ~1 s, so an overrun this size is a hang (a mutant that sends a
+        # pattern into catastrophic backtracking), and it must land as its case's
+        # failure rather than as a run that never ends; errors='replace' for the same
+        # containment, a mutant being allowed to make the checker's output undecodable
+        timeout = 300
+        try:
+            proc = subprocess.run(argv, cwd=self.path, capture_output=True,
+                                  text=True, encoding="utf-8", errors="replace",
+                                  timeout=timeout, check=False)
+        except subprocess.TimeoutExpired:
+            return 1, [f"FAIL: the checker run overran {timeout} s and was killed"], []
         out: list[str] = [*(proc.stdout or "").splitlines(),
                           *(proc.stderr or "").splitlines()]
         failed: list[str] = sorted({m.group(1) for line in out
@@ -510,7 +528,7 @@ def _keep_own_id(entry_line: str) -> str:
                                  entry_line[len(head.group()):])
 
 
-CASES = [
+CASES: list[Case] = [
     ("K-00", "a registered rule with its registry row retitled out of the table",
      _literal(RULES, "| K-40 | glyphs", "| K-xx | glyphs")),
 
@@ -707,9 +725,9 @@ CASES = [
 
     # The owner is moved rather than one of the eleven figures, because a figure edited
     # alone is the easy half: what the rule is for is the granule changing under all of
-    # them at once, which is the edit nobody would think to propagate by hand. K-54 is
-    # not in REPAIRABLE, its repair being `figures.resolve_claim`'s, which K-24 already
-    # takes the repair path through.
+    # them at once, which is the edit nobody would think to propagate by hand. The
+    # repair lane seeds K-54 a defect of its own instead of this one; REPAIRABLE says
+    # why a moved owner cannot ride it.
     ("K-54", "the tag granule moved out from under every figure derived from it",
      _renumber(REGISTER, r"one validity tag per \*\*(\d+)-bit\*\* granule", 1, "128")),
 
@@ -807,9 +825,34 @@ CASES = [
 # A rule with no case is not a defect, but it must be a decision.
 UNSEEDABLE: dict[str, str] = {}
 
-# the three groups a repair touches, one case each: the repair path is never exercised
-# by a green tree, so it ships untested unless something breaks it on purpose
-REPAIRABLE = ("K-24", "K-28", "K-37")
+
+def _case_mutation(rule: str) -> Mutation:
+    """A rule's own case mutant, reused as its repair seed."""
+    for ident, _, apply in CASES:
+        if ident == rule:
+            return apply
+    raise SystemExit(f"no case to reuse as {rule}'s repair seed")
+
+
+# Every rule with a --fix branch: the substring its rewrite's `fixed:` line must carry,
+# and the defect the repair lane seeds. The repair path is never exercised by a
+# green tree, so a branch missing here ships untested unless something breaks it on
+# purpose. Five seeds are the rules' own case mutants, each an arithmetic figure whose
+# repair writes the pristine bytes back. K-54's case cannot be the sixth: it moves the
+# granule owner, and repairing from a moved owner rewrites every derived figure to the
+# new granule and dirties co-read pairs no --fix may bless, so the after-check could
+# never pass. Its seed here moves one derived figure instead, in the exact document
+# bytes a case would anchor on, and the repair restores the tree it found.
+REPAIRABLE: dict[str, tuple[str, Mutation]] = {
+    "K-24": ("cj-targets", _case_mutation("K-24")),
+    "K-28": (f"Coverage {SEC}", _case_mutation("K-28")),
+    "K-32": ("product:", _case_mutation("K-32")),
+    "K-36": (" subtotal:", _case_mutation("K-36")),
+    "K-37": ("the total estimate", _case_mutation("K-37")),
+    "K-54": ("the tag plane's", _literal(
+        REGISTER, "granule is 15.6 MB per GB of data",
+        "granule is 99.9 MB per GB of data")),
+}
 
 
 # =====================================================================================
@@ -924,13 +967,20 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
             box.reset()
             boxes.put(box)
 
-    # the repair path is three more whole runs of the checker and depends on nothing a
+    # The repair path is five more whole runs of the checker and depends on nothing a
     # case does, so it goes in beside them on the sandbox held back for it, and reports
-    # where it has always reported: after the cases
+    # where it has always reported: after the cases. Under --rule it runs only when a
+    # selected rule carries a --fix branch, because for any other rule it is most of
+    # the iteration path's cost and proves nothing about the rule being iterated on.
+    repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
-        repairing = pool.submit(_repair_path, repair_ready)
+        repairing = pool.submit(_repair_path, repair_ready) if repairable else None
         results = list(pool.map(one, selected))
-        repair, repair_out = repairing.result()
+        repair: list[str] = []
+        repair_out = ["--- the repair path ---",
+                      "  skipped: no selected rule carries a --fix branch"]
+        if repairing is not None:
+            repair, repair_out = repairing.result()
 
     survived, unseeded, ran = [], [], 0
     for rule, what, verdict, how in results:
@@ -961,17 +1011,48 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
             print(line)
         print(f"{findings} finding(s); {ran} of {len(selected)} case(s) ran.")
         return 1
-    print(f"every one of {ran} rule(s) killed its mutant, the repair path holds, "
+    held = ("the repair path holds" if repairable
+            else "the repair path had nothing to prove")
+    print(f"every one of {ran} rule(s) killed its mutant, {held}, "
           "and the registry is covered.")
     return 0
 
 
+def _copied_bytes(box: Sandbox) -> dict[str, bytes]:
+    """Every real-copied file in the fix-safe sandbox, as its bytes.
+
+    The walk skips exactly the two trees `stand_up` links rather than copies, `.git/`
+    and `model/`; the rest is the whole surface --fix can reach, so holding its bytes
+    before and after a run turns "rewrote nothing" from a report into a measurement.
+    """
+    held: dict[str, bytes] = {}
+    for dirpath, dirnames, filenames in box.path.walk():
+        if dirpath == box.path:
+            dirnames[:] = [d for d in dirnames if d not in (".git", "model")]
+        if "__pycache__" in dirnames:
+            # the interpreter's leavings from the checker runs themselves: ignored by
+            # git, written on import, and no part of the surface --fix can reach
+            dirnames.remove("__pycache__")
+        for name in filenames:
+            held[str((dirpath / name).relative_to(box.path))] = (dirpath / name).read_bytes()
+    return held
+
+
+def _bytes_moved(before: dict[str, bytes], after: dict[str, bytes]) -> list[str]:
+    """The files two snapshots disagree on, appearances and losses included."""
+    differing = {rel for rel in before.keys() & after.keys() if before[rel] != after[rel]}
+    return sorted((before.keys() ^ after.keys()) | differing)
+
+
 def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
-    """--fix rewrites the asserted counts, the compounded product, and the checklist's
-    totals from their artifacts, and on a repository that already agrees it rewrites
-    nothing, so the branch ships untested unless something breaks it on purpose. Three
-    defects at once, one per repairable group, and the test is that the repair leaves a
-    tree the checker then passes.
+    """--fix rewrites the asserted counts, the Coverage rows, the compounded products,
+    the checklist's cells and totals, and the tag-plane figures from their artifacts,
+    and on a repository that already agrees it rewrites nothing, so those branches ship
+    untested unless something breaks them on purpose. One seed per rule in REPAIRABLE,
+    all six at once, each repair asserted by its own `fixed:` line, and the lane is
+    bracketed by two fixpoint proofs: --fix on the pristine tree exits clean, rewrites
+    nothing, and moves no byte; and once the seeded defects are repaired and the
+    checker passes, a second --fix again rewrites nothing and moves no byte.
 
     Its problems and its report are handed back rather than printed, because this runs
     beside the cases and the report reads after them; its sandbox is the fix-safe one,
@@ -979,32 +1060,65 @@ def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
     """
     box = ready.result()
     box.reset()
-    for rule, _, apply in CASES:
-        if rule in REPAIRABLE:
-            apply(box)
-
-    before, _, _ = box.check()
-    _, fix_out, _ = box.check(fix=True)
-    after, after_out, _ = box.check()
-    box.reset()
-
     problems: list[str] = []
-    if before == 0:
-        problems.append("the three seeded figures did not fail the checker, so the repair "
-                        "proves nothing")
-    if after != 0:
-        problems.append("--fix left findings standing:")
-        problems += [f"    {line}" for line in after_out if line.lstrip().startswith("FAIL")]
+
+    # the tracked tree is itself required to stand at the --fix fixpoint, so this run
+    # comes first, before any seed lands
+    pristine = _copied_bytes(box)
+    idle_code, idle_out, _ = box.check(fix=True)
+    if idle_code != 0:
+        problems.append("--fix on the pristine tree did not exit clean")
+    problems += [f"--fix on the pristine tree rewrote: {line}"
+                 for line in idle_out if line.startswith("fixed:")]
+    problems += [f"--fix on the pristine tree moved bytes in {rel}"
+                 for rel in _bytes_moved(pristine, _copied_bytes(box))]
+
+    for rule, (_, seed) in REPAIRABLE.items():
+        if not seed(box):
+            problems.append(f"{rule}: its repair seed no longer applies; the document "
+                            "it edits has moved")
+
+    before_code, _, before_failed = box.check()
+    if before_code == 0:
+        problems.append(f"the {words(len(REPAIRABLE))} seeded figures did not fail the "
+                        "checker, so the repair proves nothing")
+    else:
+        problems += [f"{rule}: its seeded figure did not fail its own rule"
+                     for rule in REPAIRABLE if rule not in before_failed]
+
+    _, fix_out, _ = box.check(fix=True)
     rewrites = [line for line in fix_out if line.startswith("fixed:")]
-    if not rewrites:
-        problems.append("--fix reported no repair, so it did not recognize the seeded figures")
+    for rule, (marker, _) in REPAIRABLE.items():
+        if not any(marker in line for line in rewrites):
+            problems.append(f"{rule}: no 'fixed:' line carries {marker!r}, so --fix "
+                            "did not recognize its seeded figure")
+
+    after_code, after_out, _ = box.check()
+    if after_code != 0:
+        problems.append("--fix left findings standing:")
+        problems += [f"    {line}" for line in after_out
+                     if line.lstrip().startswith("FAIL")]
+
+    # fix-after-fix is a no-op: the repaired tree stands at the same fixpoint the
+    # pristine one did
+    repaired = _copied_bytes(box)
+    again_code, again_out, _ = box.check(fix=True)
+    if again_code != 0:
+        problems.append("the second --fix did not exit clean")
+    problems += [f"the second --fix rewrote again: {line}"
+                 for line in again_out if line.startswith("fixed:")]
+    problems += [f"the second --fix moved bytes in {rel}"
+                 for rel in _bytes_moved(repaired, _copied_bytes(box))]
+    box.reset()
 
     out = ["--- the repair path ---"]
     if problems:
         out += [f"  {line}" for line in problems]
     else:
-        out.append(f"  ok: three seeded figures failed the checker, --fix rewrote "
-                   f"{len(rewrites)}, and the tree then passes")
+        out.append(f"  ok: --fix on the pristine tree rewrote nothing and moved no "
+                   f"byte, {words(len(REPAIRABLE))} seeded figures failed the checker, "
+                   f"--fix rewrote {len(rewrites)} and the tree then passes, and a "
+                   f"second --fix rewrote nothing and moved no byte")
     return problems, out
 
 
