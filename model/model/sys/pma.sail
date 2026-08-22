@@ -111,6 +111,42 @@ struct PMA = {
   // act, so this is a declaration and never a runtime property; nothing
   // reads it on any access path.
   memory_class : option(MemoryClass),
+  // The datapath whose **software-managed scratchpad** this region is, or
+  // `None` for every ordinary region (core/core_class.sail, R-15-165,
+  // R-15-167).
+  //
+  // **A scratchpad is a region class and not a structure**, which is the whole
+  // of what the model can carry about one. R-15-167 makes it capability-governed
+  // plain memory at a fixed address range: no fill, no eviction, no valid or tag
+  // array, and no lookup that is not the ordinary address decode, so it is
+  // *declared* here beside every other property the composition fixes about an
+  // address range rather than modeled as a second memory. R-15-165's test is
+  // what that buys: the contents are a function of an explicit software
+  // placement and never of access history, and it is history-dependence and not
+  // address-indexing that carries the channel.
+  //
+  // **It is on neither main-memory latency class, and that is a placement fact
+  // rather than an omission.** R-15-247's two classes are two media of *main*
+  // memory; a scratchpad is the local tier above them, which R-15-168 says
+  // scalar cores do not have at all. So `memory_class` is `None` here where it
+  // is `Some` on every other array, and the validator holds the pair in both
+  // directions rather than leaving a scratchpad to read as an unplaced array
+  // (postlude/validate_config.sail).
+  //
+  // **Whose it is, is carried rather than derived.** R-15-165 places scratchpads
+  // on the V- and M-class datapaths and R-15-113 sizes each class's in the class
+  // table, so a region naming its class is what lets the two be held against
+  // each other: a declared range whose size is not the class's declared
+  // `scratchpad_bytes` is a composition describing two different scratchpads,
+  // and neither artifact alone can see it.
+  //
+  // **Nothing on any access path reads it**, for the reason `memory_class`
+  // states next door: the region is ordinary capability-governed memory, and
+  // R-08-003's checks reach it unchanged, so a load or store that consulted this
+  // field would be a machine deciding at run time what the memory plan decided
+  // at composition. Its readers are the validator, the generated devicetree, the
+  // `vmclear` pass R-07-014c defines over it, and the model's own properties.
+  scratchpad : option(CoreClass),
   // TODO: Memory Ordering PMA
 }
 
@@ -258,6 +294,10 @@ function pma_attributes_to_str(attr : PMA) -> string =
      None()  => "",
      Some(c) => " memory-class=" ^ memory_class_str(c),
    }) ^
+  (match attr.scratchpad {
+     None()  => "",
+     Some(c) => " scratchpad=" ^ core_class_str(c),
+   }) ^
   " "
 
 function pma_region_to_str(region : PMA_Region) -> string =
@@ -283,4 +323,44 @@ function memory_class_at(addr : physaddr) -> option(MemoryClass) =
   match matching_pma_region(pma_regions, addr, 1) {
     None()       => None(),
     Some(region) => region.attributes.memory_class,
+  }
+
+// The datapath whose scratchpad an address falls in, or `None` where it falls in
+// no scratchpad (R-15-165, R-15-167). It asks the same kind of question
+// `memory_class_at` asks and carries the same prohibition: it is about the
+// composition's placement and never a step of an access.
+function scratchpad_class_at(addr : physaddr) -> option(CoreClass) =
+  match matching_pma_region(pma_regions, addr, 1) {
+    None()       => None(),
+    Some(region) => region.attributes.scratchpad,
+  }
+
+// The region a class's scratchpad is, walked from the class rather than from an
+// address, which is the direction the validator, the devicetree, and the
+// `vmclear` pass all want it in: each of them starts from a core class and asks
+// where its scratchpad is, and none of them holds an address to start from.
+//
+// `option` because most classes have none. R-15-168 gives the scalar classes no
+// local memory tier at all, and a class whose exploration has not selected a
+// size declares zero and gets no region, which is the state every configuration
+// this tree ships is in (R-15-108).
+function scratchpad_region_of(regions : list(PMA_Region), c : CoreClass) -> option(PMA_Region) =
+  match regions {
+    [||] => None(),
+    region :: rest =>
+      if region.attributes.scratchpad == Some(c)
+      then Some(region)
+      else scratchpad_region_of(rest, c),
+  }
+
+// The declared extent of a class's scratchpad, in bytes, read off the region
+// that is it rather than off the class table that sizes it. The two are held
+// against each other by the validator, so this is the same number by the time
+// the machine runs; it is read from here and not from there because what a pass
+// over the scratchpad needs is the *placement*, and a size with no base is not
+// one.
+function scratchpad_extent_of(c : CoreClass) -> (bits(64), bits(64)) =
+  match scratchpad_region_of(pma_regions, c) {
+    None()       => (zeros(), zeros()),
+    Some(region) => (region.base, region.size),
   }
