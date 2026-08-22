@@ -138,6 +138,7 @@ MODEL_FACTS = (
     "model/model/core/timing.sail",
     "model/model/unit_tests/test_cheri_insts.sail",
     "model/config/verifiedos.json",
+    "model/config/verifiedos-v.json",
     "model/config/config.json.in",
 )
 
