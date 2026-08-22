@@ -137,7 +137,10 @@ TAG_PLANE: list[tuple[str, str, str]] = [
     (ESTIMATES, "plane-short", r"(?<=the plane is )[\d.]+(?=% of the array rather than)"),
     (ESTIMATES, "half-short", r"(?<=% of the array rather than )[\d.]+(?=% and its DECTED)"),
     (ESTIMATES, "payload", r"(?<=codeword is unchanged at )\d+(?= data bits)"),
-    (ESTIMATES, "tags-per-codeword", r"(?<=data bits carrying )\w+(?= tag bits)"),
+    # [\w-]+ and not \w+: the expected value is figures.words(payload // granule), and
+    # every word form from twenty-one up that is not a round ten is hyphenated, so a
+    # bare \w+ would repair to a spelling its own pattern can no longer find.
+    (ESTIMATES, "tags-per-codeword", r"(?<=data bits carrying )[\w-]+(?= tag bits)"),
 ]
 
 # The DECTED-inclusive bands beside the bare figures. These are judgment: the code over
