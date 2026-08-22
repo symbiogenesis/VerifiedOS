@@ -137,6 +137,13 @@ def run(ctx: Context) -> None:
         "bank counts the DSE contract declares": sh.get("bank_candidates", 0),
         "core-class table sites the rule can read": sh.get("core_class_sites", 0),
         "requirement citations in the model files read": sh.get("model_citations", 0),
+        # Three rather than one, because the exclusion rule pairs two enumerations and
+        # either side emptying leaves it reporting green over nothing: the names are
+        # what the profile spells, and the two surfaces are what could spell them back.
+        "names the profile's exclusion rows spell": sh.get("exclusion_names", 0),
+        "mnemonic spellings the model's assembly clauses make":
+            sh.get("decode_spellings", 0),
+        "rows of the corpus assembler's encoder table": sh.get("encoder_rows", 0),
         "values the shipped configurations state": sh.get("shipped_config_values", 0),
         "per-class capacity figures the register owns": owned,
         "region classes the placement compound reads": sh.get("placement_terms", 0),
