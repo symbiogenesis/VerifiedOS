@@ -37,6 +37,8 @@ Exit 0 when every case kills its mutant and every registered rule is accounted f
 """
 
 import argparse
+import hashlib
+import json
 import os
 import re
 import shutil
@@ -44,10 +46,12 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
+from typing import cast
 
 # The tools import `vos` without being installed, so each puts its own directory on
 # the path first. Every import below this line is deliberately not at the top.
@@ -269,7 +273,109 @@ def replace_span(text: str, m: re.Match[str], new: str) -> str:
     return text[:m.start()] + new + text[m.end():]
 
 
-def build_template(repo: Path, into: Path, jobs: int) -> int:
+# =====================================================================================
+# the template cache: the previous run's template, reused file by file
+# =====================================================================================
+#
+# Building the template is copying nine hundred files under the on-access scanner,
+# which costs more than every case that then runs against it. Almost none of those
+# files changed since the last run, so the newest published template is kept between
+# runs and each unchanged file is hardlinked forward instead of copied. What decides
+# "unchanged" is deliberately conservative, because a stale-but-believed-current
+# template would run every mutant against the wrong tree and nothing above the
+# selftest exists to catch that: a file is carried only when its path, size, mtime and
+# treatment all match the manifest the previous build wrote, and a file whose mtime
+# falls within the grace of that manifest's own write is re-copied however it
+# compares, which is the racily-clean rule git's index keeps and it closes the race
+# of a file rewritten between being measured and being copied. Every other doubt
+# answers "copy from the repository": a manifest that does not parse, a snapshot
+# whose file cannot be linked, a treatment the current declarations changed.
+#
+# Snapshots are immutable and numbered, and a run publishes by renaming its own
+# template into the cache after every case is done, so a run that dies publishes
+# nothing and concurrent runs race only over the next number, never over a tree
+# either of them is reading. The manifest lives inside the snapshot it describes and
+# is written after `git add`, so no sandbox index ever carries it.
+
+_MANIFEST = ".selftest-manifest.json"
+_GRACE_NS = 2_000_000_000
+
+# how each listed path was placed: a byte copy of the repository's file, or an empty
+# stand-in whose content owes nothing to the source
+type Placement = tuple[int, int, str]     # size, mtime_ns, "copy" | "empty"
+
+
+def _cache_root(repo: Path) -> Path:
+    """Where this checkout's templates survive between runs, keyed by the checkout's
+    own path so that worktrees of one repository never share a cache."""
+    digest = hashlib.sha256(str(repo).casefold().encode()).hexdigest()[:12]
+    return Path(tempfile.gettempdir()) / f"verifiedos-selftest-cache-{digest}"
+
+
+def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]]] | None:
+    """The highest-numbered snapshot carrying a readable manifest, as its path, the
+    manifest's own write time, and what it says each file was placed from."""
+    if not cache.is_dir():
+        return None
+    for path in sorted((p for p in cache.iterdir() if re.fullmatch(r"t\d+", p.name)),
+                       key=lambda p: int(p.name[1:]), reverse=True):
+        try:
+            data = json.loads((path / _MANIFEST).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        built, files = data.get("built_ns"), data.get("files")
+        if isinstance(built, int) and isinstance(files, dict):
+            return path, built, cast("dict[str, list[int | str]]", files)
+    return None
+
+
+def _link_tree(src: Path, dst: Path) -> None:
+    for dirpath, _dirnames, filenames in src.walk():
+        target = dst / dirpath.relative_to(src)
+        target.mkdir(parents=True, exist_ok=True)
+        for name in filenames:
+            _link_or_copy(dirpath / name, target / name)
+
+
+def _publish(template: Path, cache: Path) -> None:
+    """The run's template becomes the next run's source, atomically and last.
+
+    A rename rather than a copy, after every case is done: a sandbox's hardlinks do
+    not care what the shared file's directory entry is called, and a run that died
+    before reaching here has published nothing, leaving the previous snapshot
+    standing. Losing the race for a number is retried at the next one, and any other
+    refusal is abandoned rather than fought: the cache is a saving, never a claim.
+    Snapshots below the newest are removed once comfortably older than any run that
+    could still be linking out of them.
+    """
+    if not template.is_dir():
+        return
+    cache.mkdir(parents=True, exist_ok=True)
+    taken = max((int(p.name[1:]) for p in cache.iterdir()
+                 if re.fullmatch(r"t\d+", p.name)), default=0)
+    published = 0
+    for n in range(taken + 1, taken + 20):
+        try:
+            template.rename(cache / f"t{n}")
+        except FileExistsError:
+            continue
+        except OSError:
+            return
+        published = n
+        break
+    if not published:
+        return
+    for p in cache.iterdir():
+        if not (re.fullmatch(r"t\d+", p.name) and int(p.name[1:]) < published):
+            continue
+        try:
+            if time.time() - p.stat().st_mtime > 600:
+                remove_tree(p)
+        except OSError:
+            pass                        # a concurrent run is sweeping the same snapshot
+
+
+def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
     """The working tree, not HEAD and not the index: the checker under test is the one
     being edited, and so is every document it reads. Untracked files are copied for the
     same reason. A document or a tool written but not yet staged is exactly the thing
@@ -302,6 +408,9 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     resolved against the filesystem here, where the sandbox's own index carries no
     gitlink to resolve it against instead. The placeholder is what makes the directory
     survive the clean between cases, git having no way to track an empty one.
+
+    What comes back is how many files the template holds and how many of those were
+    carried from the previous run's snapshot under the cache's rules, stated above it.
     """
     remove_tree(into)
     into.mkdir(parents=True)
@@ -320,33 +429,69 @@ def build_template(repo: Path, into: Path, jobs: int) -> int:
     for parent in {(into / rel).parent for rel in listed}:
         parent.mkdir(parents=True, exist_ok=True)
 
-    def place(rel: str) -> int:
+    held = _newest_snapshot(_cache_root(repo))
+    snapshot, built_ns, old_files = held or (None, 0, {})
+    placed: dict[str, Placement] = {}
+
+    def place(rel: str) -> tuple[int, int]:
         src, dst = repo / rel, into / rel
-        if src.is_file():
-            if (rel.startswith(UNREAD_PREFIX) and rel not in MODEL_FACTS
-                    and not is_model_citation_path(rel)):
-                dst.touch()
-            else:
-                shutil.copy2(src, dst)
-            return 1
         if src.is_dir():
             dst.mkdir(parents=True, exist_ok=True)
             (dst / ".selftest-submodule").write_text(
                 f"a stand-in for the {rel} submodule, so links at it resolve\n",
                 encoding="utf-8")
-        return 0
+            return 0, 0
+        try:
+            measured = src.stat()
+        except OSError:
+            return 0, 0        # listed but gone: a deletion not yet staged, dropped here
+        empty = (rel.startswith(UNREAD_PREFIX) and rel not in MODEL_FACTS
+                 and not is_model_citation_path(rel))
+        kind = "empty" if empty else "copy"
+        placed[rel] = (measured.st_size, measured.st_mtime_ns, kind)
+        if empty:
+            # a stand-in owes nothing to the source's bytes, so writing it fresh is
+            # the same act carrying it forward would be
+            dst.touch()
+            return 1, 0
+        if (snapshot is not None
+                and old_files.get(rel) == [measured.st_size, measured.st_mtime_ns, kind]
+                and measured.st_mtime_ns + _GRACE_NS < built_ns):
+            try:
+                os.link(snapshot / rel, dst)
+            except OSError:
+                pass                    # the snapshot moved: the repository decides
+            else:
+                return 1, 1
+        shutil.copy2(src, dst)
+        return 1, 0
 
-    copied = sum(_across(place, listed, jobs))
+    counts = _across(place, listed, jobs)
+    copied = sum(one for one, _ in counts)
+    carried = sum(one for _, one in counts)
 
     # The index, and no commit on top of it. `ls-files --stage` is the whole of what the
     # checker asks git and `add` is what answers it, so a commit would be a third of a
     # second per run spent writing a HEAD that nothing here ever reads: a case is undone
-    # from the pristine tree beside it rather than out of git.
-    for args in (["-c", "init.defaultBranch=main", "init", "-q"], ["add", "-A"]):
-        proc = subprocess.run(["git", *args], cwd=into, capture_output=True, check=False)
-        if proc.returncode != 0:
-            raise SystemExit(f"could not build the sandbox index: git {args[0]}")
-    return copied
+    # from the pristine tree beside it rather than out of git. When every copied file
+    # was carried and the manifests agree entry for entry, the snapshot's index already
+    # describes this exact tree, empty stand-ins included, and is carried the same way;
+    # any file this run copied afresh means the index is rebuilt from scratch.
+    manifest = {rel: [size, mtime, kind] for rel, (size, mtime, kind) in placed.items()}
+    if (snapshot is not None and manifest == old_files
+            and carried == sum(1 for _, _, kind in placed.values() if kind == "copy")):
+        _link_tree(snapshot / ".git", into / ".git")
+    else:
+        for args in (["-c", "init.defaultBranch=main", "init", "-q"], ["add", "-A"]):
+            proc = subprocess.run(["git", *args], cwd=into, capture_output=True, check=False)
+            if proc.returncode != 0:
+                raise SystemExit(f"could not build the sandbox index: git {args[0]}")
+
+    # written after the index is built, so no `git add` ever sees it
+    (into / _MANIFEST).write_text(
+        json.dumps({"built_ns": time.time_ns(), "files": manifest}),
+        encoding="utf-8")
+    return copied, carried
 
 
 # =====================================================================================
@@ -906,8 +1051,9 @@ def main(argv: list[str] | None = None) -> int:
     made: list[Sandbox] = []
     print(f"building {jobs + 1} sandbox(es) at {sandbox}")
     template = sandbox / "template"
-    copied = build_template(repo, template, jobs)
-    print(f"copied {copied} file(s), indexed as the baseline")
+    copied, carried = build_template(repo, template, jobs)
+    print(f"placed {copied} file(s), {carried} carried from the previous run, "
+          "indexed as the baseline")
     print()
 
     try:
@@ -933,7 +1079,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.keep:
             print(f"sandboxes kept at {sandbox}")
         else:
-            # deleted the way they were built, and the parent last
+            # the template leaves for the cache before the estate is deleted, and the
+            # estate is deleted the way it was built, the parent last
+            _publish(template, _cache_root(repo))
             _across(remove_tree, [box.path for box in made], jobs + 1)
             remove_tree(sandbox)
 
