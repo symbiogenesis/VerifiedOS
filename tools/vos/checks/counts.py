@@ -19,9 +19,9 @@ inequality against the bare figure and never rewritten.
 import re
 from typing import TYPE_CHECKING
 
-from vos import config, coreclass, figures, geometry
+from vos import config, coreclass, decode, figures, geometry
 from vos import corpus as corpus_mod
-from vos.register import REGISTER, REQ_TOKEN_RE, cj_class, cj_status
+from vos.register import ISA_PROFILE, REGISTER, REQ_TOKEN_RE, cj_class, cj_status
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -478,6 +478,78 @@ def _model_citations(ctx: Context) -> None:
                "its files, name a requirement the register declares")
 
 
+# A backticked name in an exclusion row's first cell. The cell is prose around them,
+# so the backticks are what marks a name the document is spelling exactly rather than
+# describing, which is the only part of that cell a machine has any business reading.
+EXCLUDED_NAME_RE = re.compile(r"`([^`]+)`")
+
+
+def _excluded_forms(ctx: Context) -> None:
+    """K-66: no form the profile excludes is still on the model's decode surface.
+
+    The profile's §6 excludes by name and the model implements by clause, and until
+    now nothing held the two together. `model.py sweep` does not: it runs the profile
+    configuration against upstream `riscv-tests` and counts refusals of *those*
+    programs, which is conformance against an external corpus and not a claim that the
+    model implements only what the profile admits. Its figure reads the same whether or
+    not an excluded form is still decoded, which is how the fault-only-first loads
+    (R-15-039b) stayed on the surface after the amendment that excluded them.
+
+    **Both halves of the surface are read, because a form leaves by two doors.** A
+    `mapping clause assembly` is the model spelling what it decoded; `dialect.MNEMONICS`
+    is the corpus assembler emitting a word for the model to decode. A form deleted from
+    one and left in the other is still reachable: an encoder row with no clause lays
+    down a word the model refuses, and a clause with no encoder row is surface no corpus
+    program can reach and an implementation still carries. So a finding names the half
+    it was found in, and the rule is not satisfied by either half alone.
+
+    **The reach is by kind, and here that is not a preference.** `MODEL_FACTS` is the
+    *value* window of five named files and **none of the 139 readable spellings is in
+    one of them**, so aimed there this rule would have read nothing at all and passed
+    green over the whole decode surface: not K-63's 22% of its subject but none of it.
+    A decode clause occurs wherever the model defines an instruction, which is most of
+    the tree, so the window that fits it is the one that admits by kind.
+
+    **What it cannot see is most of the exclusion table, and the honest figure is in
+    the `ok` line.** A row is read only where a name it spells matches something the
+    machine can spell back: a CSR, a privilege mode, an extension name, and a
+    microarchitectural structure are all excluded in prose that no mnemonic test
+    decides, and such a row is read and passes. So a green run says *no excluded name
+    is spelled by the surface*, never *every exclusion is honoured*. On the model's
+    side the same boundary: 81 of the 220 assembly clauses build their mnemonic
+    entirely inside a mapping, leave no literal in the file, and are invisible here.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    spellings = decode.read_spellings(
+        ctx.root, [rel for rel in ctx.corpus.tracked
+                   if corpus_mod.is_model_citation_path(rel)])
+
+    names = 0
+    for row in ctx.art.exclusion_rows:
+        cells = row.strip().strip("|").split("|")
+        ground = ", ".join(sorted(set(REQ_TOKEN_RE.findall(cells[-1])))) or "no requirement"
+        for name in EXCLUDED_NAME_RE.findall(cells[0]):
+            names += 1
+            findings += [
+                f"{ISA_PROFILE} §6 excludes `{name}` on {ground}, and "
+                f"{s.file}:{s.line} still spells it, as {s.ctor}"
+                for s in spellings if decode.spells(s.skeleton, name)]
+            findings += [
+                f"{ISA_PROFILE} §6 excludes `{name}` on {ground}, and the corpus "
+                f"assembler still encodes `{mnemonic}`"
+                for mnemonic in decode.encoder_rows(name)]
+
+    ctx.shared["exclusion_names"] = names
+    ctx.shared["decode_spellings"] = len(spellings)
+    ctx.shared["encoder_rows"] = len(decode.dialect.MNEMONICS)
+    rep.report("K-66", "excluded form(s) still on the decode surface:", findings,
+               f"none of the {names} names the profile's {len(ctx.art.exclusion_rows)} "
+               f"exclusion rows spell is spelled by the {len(spellings)} readable "
+               f"assembly clauses or carried by the "
+               f"{len(decode.dialect.MNEMONICS)} encoder rows")
+
+
 # The configurations this tree ships, in the order the second is read against the
 # first, and the keys the second is *allowed* to differ in.
 #
@@ -672,5 +744,6 @@ def run(ctx: Context) -> None:
     _block_geometry(ctx)
     _core_classes(ctx)
     _model_citations(ctx)
+    _excluded_forms(ctx)
     _shipped_configurations(ctx)
     rep.line()
