@@ -46,6 +46,7 @@ $ python tools/check.py                       # after any document edit
 $ python tools/check.py --fix                 # and rewrite what is arithmetic
 $ python tools/co-read.py --show R-15-073c    # a pair K-61 says is owed a reading
 $ python tools/check-selftest.py              # after touching the checker itself
+$ python tools/test.py                        # after changing what any tool does
 $ python tools/typecheck.py                   # after touching any Python
 
 $ wsl -u root -e python3 tools/model.py typecheck

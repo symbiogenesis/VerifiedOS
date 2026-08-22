@@ -32,13 +32,14 @@ Two more the floor makes available go unused, because a version floor is a licen
 | [check.py](check.py) | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. |
 | [check-selftest.py](check-selftest.py) | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | [typecheck.py](typecheck.py) | host | Holds this directory's own Python to the discipline it holds the documents to. |
+| [test.py](test.py) | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
 | [blast-radius.py](blast-radius.py) | host | Answers what an edit to the apex statement re-opens, before the work starts. |
 | [bank-dse.py](bank-dse.py) | host | Scores every candidate second-class bank count against the arithmetic the composition fixes, and admits none: the hard constraint's coefficients are pending. |
 | [co-read.py](co-read.py) | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
-| [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof and holds its assumption set against the declared one. |
+| [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. |
 | [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. |
 
-The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, and [env.py](vos/env.py) the build environment. Two more read a *model* fact a document restates rather than a document: [geometry.py](vos/geometry.py) the welded block size and [banks.py](vos/banks.py) the second class's bank grant. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
+The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, [fieldbindings.py](vos/fieldbindings.py) the field-bindings table the bindings group and [blast-radius.py](blast-radius.py) both read, and [env.py](vos/env.py) the build environment. Two more read a *model* fact a document restates rather than a document: [geometry.py](vos/geometry.py) the welded block size and [banks.py](vos/banks.py) the second class's bank grant. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
 
 Those two are where the checker reaches past its own corpus, and the reach is declared rather than habitual. `model/` is excluded from the document corpus by name, and [check-selftest.py](check-selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
 
@@ -57,6 +58,7 @@ $ python tools/check.py                       # the daily check
 $ python tools/check.py --fix                 # and rewrite what is arithmetic
 $ python tools/check-selftest.py              # every rule against its own mutant
 $ python tools/typecheck.py                   # the tools against their own discipline
+$ python tools/test.py                        # the tools against their own tests
 $ python tools/blast-radius.py --field spatial_safety
 $ python tools/bank-dse.py                    # the second class's bank grant, scored
 $ python tools/co-read.py                     # the pairs owed a reading
@@ -81,6 +83,8 @@ The two lanes spell the interpreter differently, and that is not an oversight. O
 
 `model.py build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
 
+`test.py` leaves the cases marked slow to `--slow`, so the default run answers in seconds.
+
 ## One toolchain, several checkouts
 
 There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `model.py lane` prints which one this is, where it builds, and whether anything is building there right now.
@@ -91,6 +95,8 @@ The lane is derived from the checkout rather than declared: a linked worktree's 
 
 A build **holds its lane** for exactly as long as it runs, so a second build over a live one is refused and named rather than merged into it. The lock is `flock` rather than a pidfile, so a killed build leaves nothing to break, and `model.py build --background` hands the lock to the run it detaches rather than dropping it. `model.py wait` blocks on that lock and then reports the log's verdict: the lock is released by the kernel whether the build finished or died, so a wait ends either way, where a wait on the marker alone would hang on the build that never wrote one.
 
+A build is not the only holder of state, and every holder refuses a concurrent run by naming the one that holds it. `emit` takes the same lock as `build`, because both drive the one cmake tree; `typecheck` holds a lock beside its lane's SMT memo cache, which Sail rewrites whole at exit; and `oracle` holds the one tree every lane shares. `corpus` writes its images into the lane's own directory, so two lanes' runs cannot land one ELF path.
+
 A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests and the Sail SMT memo cache, and the cache is **copied and never shared**: see `model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other.
 
 ## Checking the tools themselves
@@ -99,8 +105,9 @@ The documents are checked against each other by [check.py](check.py), and the ch
 checked against its own mutants by [check-selftest.py](check-selftest.py). Neither of
 them reads a line of Python as Python, so without a gate of their own the tools are the
 one artifact here with no proof, no model, and no reader but their author.
-[typecheck.py](typecheck.py) is that gate, and it runs two checkers because one cannot do
-the whole job.
+[typecheck.py](typecheck.py) is that gate for the Python's discipline, and it runs two
+checkers because one cannot do the whole job; what a type cannot decide, the behavior, is
+[test.py](test.py)'s to hold.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
@@ -142,7 +149,7 @@ without a carve-out to audit.
 
 Each of these is a rule the next tool added is expected to keep.
 
-- **Exit 0 is clean, 1 is a finding.** Nothing else is returned, and nothing returns 0 while printing a problem.
+- **Exit 0 is clean, 1 is a finding.** argparse answers a usage error with 2, and a crash is a traceback rather than a verdict; nothing else is returned deliberately, and nothing returns 0 while printing a problem.
 - **The root is found, not assumed.** `vos.corpus.find_root` walks up from the tool's own file. No tool reads the working directory, and no tool needs `cd` first.
 - **A run is one verdict per rule.** `ok <rule>: <what it decided>` or `FAIL <rule>: <n> <what went wrong>` with the findings indented under it. A check prints nothing else.
 - **Output is accumulated, not streamed.** A run is data the caller can read back, which is what lets the selftest call the checker and read its verdict instead of parsing stdout.
