@@ -129,11 +129,12 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
 
     --fast selects the iterate profile: a separate build dir whose only divergence from
     the canonical build is dropping `-g` from RelWithDebInfo. Debug info on the
-    machine-generated translation unit is the single largest compile cost (314 s against
-    239 s, both measured in-build and so under N-way contention; alone the -O2 -g compile
-    is 150 s wall, 136 s CPU, 1.43 GB peak) and is never used; optimization level,
-    assertions, and the test suite are identical. The canonical build remains the exit
-    criterion for every batch.
+    machine-generated translation unit is the single largest compile cost, 314 s against
+    239 s measured in-build and so under N-way contention, and is never used;
+    optimization level, assertions, and the test suite are identical. What that unit
+    costs compiled alone is `vos/env.py`'s to state, because it is the same fact and it
+    moves with the curation. The canonical build remains the exit criterion for every
+    batch.
 
     --background detaches the run and returns, because a fifteen-minute build is started
     and left and the caller has other work. What it does not do is let go of the lane:

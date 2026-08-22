@@ -31,13 +31,18 @@ What the numbers say (measured 2026-08-18, 12-core Snapdragon X Elite, 31.6 GB h
 WSL2 default allocation of 12 CPUs and 15.7 GB). Cores are already fully exposed; the
 guest sees all 12. Raising the CPU count is therefore not available, and would not help
 if it were, because the build's critical path is two strictly single-threaded stages
-back to back: the Sail C++ emission (107 s warm) followed by the one generated
-translation unit it produces (13.3 MB, 423,101 lines, 150 s wall and 136 s CPU at -O2
--g when compiled alone). That is a ~4.3 min floor no amount of parallelism reduces.
-Memory is not binding either: the heaviest single compile peaks at 1.43 GB against
-15.7 GB available. The source tree's residence on /mnt/c was tested and rejected as a
-suspect: it is 1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm versus
-an ext4 copy. The build tree already lives on ext4 under /root/build.
+back to back: the Sail C++ emission followed by the one generated translation unit it
+produces. Both figures move as the curation deletes surface, so both are dated. At the
+C-class freeze the emission is 41.2 s against a warm memo cache and the unit is
+10,539,981 bytes over 336,909 lines, compiling alone at -O2 -g in 139.1 s wall and
+115 s CPU with a 1.02 GB peak; that wall figure was taken with a sibling lane building
+and the compile held only 83% of a core, so it is an upper bound rather than a clean
+one. Against the 13.3 MB, 423,101-line, 150 s unit recorded at M0.3 the direction is
+what matters: the floor is roughly 3 min and it is falling, and no amount of
+parallelism reduces it. Memory is not binding: the heaviest single compile is that
+unit. The source tree's residence on /mnt/c was tested and rejected as a suspect: it is
+1.3 MB across 114 files, and reading it over 9p costs ~0.4 s warm versus an ext4 copy.
+The build tree already lives on ext4 under /root/build.
 """
 
 import contextlib
@@ -254,10 +259,11 @@ def _jobs(cpus: int, mem_mb: int) -> int:
 
     The memory guard does not bind on a default-sized VM and exists so that it would
     bind on a shrunken one. Sized from measurement rather than a rule of thumb: the
-    generated model unit peaks at 1.43 GB and is the only large one, so reserve 2 GB for
-    it outright and budget a slim 512 MB for each other concurrent job. At 15.7 GB
-    available this yields 24 and the guard is inert; under a 4 GB cap it yields 4 and
-    prevents the thrash.
+    generated model unit is the only large one and its peak is a bit over 1 GB, which
+    the module docstring measures and this reserve deliberately sits above, so reserve
+    2 GB for it outright and budget a slim 512 MB for each other concurrent job. At
+    15.7 GB available this yields 24 and the guard is inert; under a 4 GB cap it yields
+    4 and prevents the thrash.
     """
     if os.environ.get("VOS_JOBS"):
         return int(os.environ["VOS_JOBS"])
@@ -271,10 +277,30 @@ def _ccache_args() -> list[str]:
     """Opt-in and absent by default: this stays empty unless ccache is installed, so
     loading this module changes nothing until `apt install ccache` is run.
 
-    The win it buys is specific. 366 of the 367 units are third-party and do not change
-    across a deletion batch, yet the canonical and fast build trees each compile all of
-    them from scratch, and so does any fresh build directory. A shared cache makes the
-    second tree's 366 free.
+    **What the shared cache buys, measured rather than assumed (I4).** ccache hashes the
+    command line along with the source, so the six cases separate like this, each run
+    against a private cache directory:
+
+        the very same command again          HIT
+        -g dropped (the --fast profile)      miss
+        same flags, other -I directory       miss
+        byte-identical source, other path    miss
+        mtime touched, bytes unchanged       HIT
+
+    Two of those decide the shape of the win. The last one is the one this cache is
+    worth having for: an emission that reproduces the C++ it produced last time is a
+    direct hit, so a regeneration costs a cache lookup instead of the compile. The two
+    in the middle say what the cache does *not* reach: `CCACHE_DIR` is shared by every
+    build tree, but the fast tree differs from the canonical one by `-g` and a second
+    worktree differs by every `-I`, so neither shares a single entry with the other. At
+    scale, a lane's first 367-unit build against a cache holding another lane's 939
+    entries took 367 misses and no hits at all. The cache pays back within one tree and
+    one build type, which is a narrower claim than the one this docstring used to make.
+
+    `CCACHE_BASEDIR` is the lever that would make lanes share, and it is deliberately
+    not pulled: it rewrites absolute paths before hashing, so the object a second lane
+    gets back carries the first lane's directory in its debug info. That is not a wrong
+    program but it is a wrong artifact, and the standard below applies to it.
 
     Deliberately no CCACHE_SLOPPINESS. The loose settings trade a correctness margin for
     hit rate, and a false hit in a build whose output is a verification oracle is not a
