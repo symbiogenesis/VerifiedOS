@@ -137,6 +137,7 @@ def run(ctx: Context) -> None:
         "bank counts the DSE contract declares": sh.get("bank_candidates", 0),
         "core-class table sites the rule can read": sh.get("core_class_sites", 0),
         "requirement citations in the model files read": sh.get("model_citations", 0),
+        "values the shipped configurations state": sh.get("shipped_config_values", 0),
         "per-class capacity figures the register owns": owned,
         "region classes the placement compound reads": sh.get("placement_terms", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),

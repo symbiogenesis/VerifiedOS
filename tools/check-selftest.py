@@ -717,6 +717,16 @@ CASES = [
     # a sentence that still reads as a citation and names nothing.
     ("K-63", "a model file citing a requirement the register does not declare",
      _literal("model/model/core/timing.sail", "R-15-095", "R-15-995")),
+
+    # The composed hart of the V-class configuration is moved back to the C-class one,
+    # which is the *quiet* half of the rule rather than the loud half. A key that
+    # drifted makes the second file a different machine and shows up as a diff nobody
+    # can miss; a declared divergence that stopped diverging leaves two files that
+    # validate, run, and agree, with the second one no longer a second core at all. The
+    # platform key is the first `"hartid": 6` in the file, ahead of the roster entry
+    # naming the same identity, which is why the literal is unambiguous.
+    ("K-65", "a second shipped configuration that composes the same core as the first",
+     _literal("model/config/verifiedos-v.json", '"hartid": 6', '"hartid": 0')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
