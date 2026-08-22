@@ -144,8 +144,14 @@ def read_spellings(root: Path, tracked: list[str]) -> list[Spelling]:
 
 
 def fragments(name: str) -> tuple[str, ...]:
-    """A written mnemonic's literal parts, with its variable parts taken out."""
-    return tuple(p for p in _PLACEHOLDER_RE.split(name) if p)
+    """A written mnemonic's literal parts, with its variable parts taken out.
+
+    The pattern carries no capturing group, so every piece a split returns is a
+    span of the name and never a group's `None`; saying so is what lets the
+    result be the tuple of strings the callers below read it as.
+    """
+    parts: list[str] = [p for p in _PLACEHOLDER_RE.split(name) if isinstance(p, str)]
+    return tuple(p for p in parts if p)
 
 
 def spells(skeleton: str, name: str) -> bool:

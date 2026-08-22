@@ -727,6 +727,16 @@ CASES = [
     # naming the same identity, which is why the literal is unambiguous.
     ("K-65", "a second shipped configuration that composes the same core as the first",
      _literal("model/config/verifiedos-v.json", '"hartid": 6', '"hartid": 0')),
+
+    # The *profile* is edited rather than the model, which is the direction this defect
+    # actually arrives from: an amendment excludes a form and the model goes on
+    # implementing it, which is exactly what R-15-039b did. Mutating the model instead
+    # would seed the mirror defect and would have to pick a file two other lanes are
+    # curating; the exclusion row is permanent, so the anchor cannot rot. `cincoffset`
+    # is the substitution because it is spelled by an assembly clause *and* carried by
+    # the encoder table, so one mutation exercises both halves of the surface.
+    ("K-66", "a form the profile excludes and the model still decodes",
+     _literal(PROFILE, "`vle<eew>ff.v`", "`cincoffset`")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
