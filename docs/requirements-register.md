@@ -1765,12 +1765,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: dynamic grants flow through the powerbox, not permission dialogs.
 · Trace: CJ-NI
 
-**R-08-036** MUST: A grant is an authenticated user act over the trusted consent path: a fresh selection of a specific object, on which the powerbox mints a capability CHERI-bounded to that object alone.
-· Accept: no grant is minted without a witnessed consent act (R-06-017).
+**R-08-036** MUST: A grant is an authenticated user act over the trusted consent path selecting a specific object, on which the powerbox mints a capability CHERI-bounded to that object alone; whether that act is contemporaneous with the use it authorizes is the R-08-037 temporal scope's property and not a property of every mint.
+· Accept: no grant is minted without a witnessed consent act (R-06-017), and R-06-017's two clauses are mint-on-witness and bound-to-the-named-object, neither of which requires the act to be contemporaneous, so the persistent scope is inside this entry rather than in contradiction with it.
 · Trace: CJ-NI, CJ-CERISE
 
-**R-08-037** IS: A grant carries a temporal scope (one-shot, while-active, or persistent) enforced by the same first-class revocation, so *only this time* and *while using the app* are the capability model expressing itself, not a separate permission subsystem.
+**R-08-037** IS: A grant carries a temporal scope (one-shot, valid for a single use; while-active, bounded by a trusted-expiring lease; or persistent, valid across the app's own sessions until revoked and retired at restart with every other grant) enforced by the same first-class revocation, so *only this time* and *while using the app* are the capability model expressing itself, not a separate permission subsystem.
 · Accept: no permission subsystem exists beside the capability model.
+· Accept: the persistent scope is bounded by the boot rather than by the device's lifetime, R-10-037 keeping consent grants and powerbox decisions out of the checkpoint and re-deriving authority at restart from the manifest and the current revocation epoch; a scope surviving the power cycle would need a durable representation of the consent decision that no requirement here carries, so the bound is stated rather than discovered at the first reboot.
 · Trace: CJ-CERISE
 
 **R-08-038** MUST: While-active is a lease on a trusted clock, not a focus predicate with an untrusted evaluator, and is re-founded on three mechanisms so that the untrusted judgment can only ever *subtract*.
