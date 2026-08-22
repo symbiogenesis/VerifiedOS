@@ -3629,8 +3629,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-LEAK, CJ-SAIL
 
 **R-15-039a** MUST NOT: The vector element-restart CSR `vstart` is excluded: no vector instruction carries element-restart state, and a vector operation is all-or-nothing.
-· Accept: no resumable-trap consumer exists on the platform, each of the four cuts being absent or fatal: asynchronous interrupt delivery is absent (R-07-038), no MMU means no mid-instruction page fault (R-15-038), a capability fault is contained and restarted (R-16-001), and a slot-boundary cut is a broken admission bound §7 restarts rather than resumes (R-07-014a). Every vector instruction's Sail definition runs its element loop from zero with no base to read and no residue to write, `vle*ff` reports a short transfer in `vl`, and `vstart` is absent from the §7 zeroize set because it is absent from the machine.
+· Accept: no resumable-trap consumer exists on the platform, each of the four cuts being absent or fatal: asynchronous interrupt delivery is absent (R-07-038), no MMU means no mid-instruction page fault (R-15-038), a capability fault is contained and restarted (R-16-001), and a slot-boundary cut is a broken admission bound §7 restarts rather than resumes (R-07-014a). Every vector instruction's Sail definition runs its element loop from zero with no base to read and no residue to write, and `vstart` is absent from the §7 zeroize set because it is absent from the machine. All-or-nothing holds without exception because R-15-039b excludes the one family that would have carried one.
 · Trace: CJ-SAIL, CJ-ISOL
+
+**R-15-039b** MUST NOT: The fault-only-first vector loads (`vle<eew>ff.v` and the `vlseg<nf>e<eew>ff.v` segment forms) are excluded: no vector load reports a short transfer, and `vl` is written by `vsetvl`/`vsetvli` alone.
+· Accept: the form exists to speculate past an MMU page boundary and this machine has none (R-15-038), so on the admitted profile its only remaining trimming trigger is a capability violation, which R-16-001 contains and restarts rather than absorbing into a silently short transfer; the bound it would discover by faulting is already readable from the capability, so a caller clamps the element count exactly instead, in fewer instructions than the trimmed form and with no fault path, which is why the exclusion costs no throughput on the string and parse loops the form exists for.
+· Accept: the residue is hand-written RVV assembly, which admission rejects as an undefined instruction rather than miscompiling, the same disposition and the same absence of ABI cost R-15-040a records for `vstart`.
+· Trace: CJ-SAIL, CJ-CERISE
 
 **R-15-040** IS: Vector-FP-without-scalar-FP is a deliberate, Sail-modeled fork of standard RVV, admissible because the platform curates its own profile and formal model.
 · Accept: the fork is recorded, with its ABI cost (a soft-float-register calling convention) accepted.
@@ -4002,7 +4007,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: ISA-visible removals are absences in the frozen Sail model and owe nothing further; microarchitectural removals owe the absence contract.
 · Trace: CJ-SAIL, CJ-RTL-SAIL
 
-**R-15-099** IS: The ISA-visible removals are the MMU and its Sv39 walker, PMP, the S/U rings, `C`, `Zifencei`, `Zalrsc`/`Zacas`, scalar F/D, the dynamic `frm` state, the vector element-restart state `vstart` (R-15-039a), and asynchronous interrupt delivery.
+**R-15-099** IS: The ISA-visible removals are the MMU and its Sv39 walker, PMP, the S/U rings, `C`, `Zifencei`, `Zalrsc`/`Zacas`, scalar F/D, the dynamic `frm` state, the vector element-restart state `vstart` (R-15-039a), the fault-only-first vector loads (R-15-039b), and asynchronous interrupt delivery.
 · Accept: an RTL implementing any of them fails ordinary refinement.
 · Trace: CJ-SAIL
 
@@ -5786,7 +5791,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1337 requirements. §19 is non-normative and yields none. Counts include the 385 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1338 requirements. §19 is non-normative and yields none. Counts include the 386 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5804,7 +5809,7 @@ All eighteen normative sections are extracted, at 1337 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **126** |
 | **§13 Packaging & Supply Chain** | **extracted** | **39** |
 | **§14 Userland** | **extracted** | **29** |
-| **§15 Hardware Platform** | **extracted** | **385** |
+| **§15 Hardware Platform** | **extracted** | **386** |
 | **§16 Reliability** | **extracted** | **35** |
 | **§17 Residual Risks** | **extracted** | **123** |
 | **§18 Realization** | **extracted** | **53** |
