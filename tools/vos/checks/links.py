@@ -30,6 +30,7 @@ to be carried by a heading over there while a name written as a *rationale* or a
 """
 
 import re
+from collections.abc import Iterator
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
@@ -57,35 +58,39 @@ _ENTRY_REF_RE = re.compile(
     r"\s+(?:in|of)\s+\[[^\]]*\]\(([^)\s#]+)\)"
 )
 
-# The literal every entry reference contains, and the tail a window past it must cover:
-# the rest of the word, a connective, and one bracketed link, which four hundred
-# characters hold with an order of magnitude to spare.
-_ENTRY_LEAD = " entr"
-_ENTRY_TAIL = 400
+def _entry_refs(raw: str) -> Iterator[re.Match[str]]:
+    """Every `_ENTRY_REF_RE` match, found from the rare word rather than the common one.
 
-
-def _entry_refs(doc: Document) -> list[re.Match[str]]:
-    """Every entry-reference match, proposed through the literal each one contains.
-
-    The pattern is an alternation under a lazy quantifier, which gives the engine no
-    literal to pre-scan for, so run whole it tries every branch at every position of a
-    three-megabyte corpus to return a handful of matches. `str.find` proposes each
-    ` entr` instead and the pattern decides a window around it, which is the bargain
-    `counts._form_sites` and `figures.find_all` strike: the pattern's own answer, in a
-    different search order. The window is exact on its left because a name's tokens
-    and separators admit no newline, so a match starts on the proposal's own line, and
-    `pos` leaves the lookbehind reading the character before the window. One match may
-    be proposed by several hits on its line, so the spans dedupe.
+    A plain scan of that pattern anchors on `the `, which the corpus carries many
+    thousands of times, and each one pays an attempt at the five-token name: measured
+    over this corpus, 137 ms to find five matches, most of what the whole group cost.
+    The entry word is the part a match cannot do without and the corpus carries under
+    a thousand of, so the walk goes the other way: every occurrence of `entr`, the
+    line it sits on, and one anchored attempt at each `the ` on that line before it,
+    which finds the same five in about ten. The head of a match cannot
+    span lines, because no separator inside it admits a newline, so the line bound
+    loses nothing; the tail past the entry word may, so each attempt runs against the
+    whole text. Matches come back leftmost-first and non-overlapping, which is the
+    contract `finditer` kept.
     """
-    found: dict[tuple[int, int], re.Match[str]] = {}
-    raw = doc.raw
-    at = raw.find(_ENTRY_LEAD)
-    while at >= 0:
-        line_start = doc.starts[doc.line_of(at)]
-        for m in _ENTRY_REF_RE.finditer(raw, line_start, at + _ENTRY_TAIL):
-            found[(m.start(), m.end())] = m
-        at = raw.find(_ENTRY_LEAD, at + 1)
-    return [found[span] for span in sorted(found)]
+    found: dict[int, re.Match[str]] = {}
+    tried: set[int] = set()
+    k = raw.find("entr")
+    while k != -1:
+        line_start = raw.rfind("\n", 0, k) + 1
+        t = raw.find("the ", line_start, k)
+        while t != -1:
+            if t not in tried:
+                tried.add(t)
+                if m := _ENTRY_REF_RE.match(raw, t):
+                    found[t] = m
+            t = raw.find("the ", t + 1, k)
+        k = raw.find("entr", k + 1)
+    last_end = -1
+    for start in sorted(found):
+        if start >= last_end:
+            last_end = found[start].end()
+            yield found[start]
 
 
 def resolve(base: str, target: str) -> str:
@@ -156,7 +161,7 @@ def run(ctx: Context) -> None:
                 continue
             unnumbered.setdefault(number, []).append(f"{doc.name}:{doc.at(m.start())}")
 
-        for m in _entry_refs(doc):
+        for m in _entry_refs(doc.raw):
             name, target = m.group(1), m.group(2)
             if _SCHEME_RE.match(target) or doc.is_fenced(m.start()):
                 continue
