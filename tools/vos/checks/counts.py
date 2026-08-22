@@ -20,7 +20,8 @@ import re
 from typing import TYPE_CHECKING
 
 from vos import coreclass, figures, geometry
-from vos.register import REGISTER, cj_class, cj_status
+from vos import corpus as corpus_mod
+from vos.register import REGISTER, REQ_TOKEN_RE, cj_class, cj_status
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -432,6 +433,46 @@ def _core_classes(ctx: Context) -> None:
                f"{len(cc.counts)} stated counts are the composed roster's")
 
 
+def _model_citations(ctx: Context) -> None:
+    """K-63: every requirement the model cites, in the files this tool can see.
+
+    The curated model argues from the register constantly: a Sail file states why a
+    field is the width it is, why a class declares nothing where another declares
+    something, why an instruction traps where the base ISA would execute. Every one of
+    those arguments names a requirement id, and until now not one of them was checked,
+    because `model/` is excluded from the checker's corpus wholesale and K-11 reads
+    only tracked documents. A mistyped or invented id in a model comment therefore
+    rendered as a citation, survived review, and pointed at nothing.
+
+    The reach is the `MODEL_FACTS` carve-out and not the whole tree, which is a real
+    limit rather than a chosen scope: those are the files the selftest's sandbox copies
+    instead of standing up empty, so they are the only model paths a rule may read at
+    all. Widening it means widening that list, which is the decision the list exists to
+    make visible.
+
+    Ids are permanent and a retired requirement is struck rather than removed
+    (CLAUDE.md), so what this catches is not renumbering. It is the typo, the id
+    invented while writing prose about a requirement that turned out to be numbered
+    something else, and the citation carried across from an upstream that had its own.
+    """
+    rep, reg = ctx.rep, ctx.reg
+    findings: list[str] = []
+    cited = 0
+    for rel in corpus_mod.MODEL_FACTS:
+        path = ctx.root / rel
+        if not path.is_file():
+            continue
+        for ident in sorted(set(REQ_TOKEN_RE.findall(path.read_text(encoding="utf-8")))):
+            cited += 1
+            if ident not in reg.id_set:
+                findings.append(f"{rel} cites {ident}, which the register does not "
+                                "declare")
+    ctx.shared["model_citations"] = cited
+    rep.report("K-63", "model citation(s) naming no requirement:", findings,
+               f"all {cited} requirement citations in the {len(corpus_mod.MODEL_FACTS)} "
+               "model files this tool reads resolve")
+
+
 def run(ctx: Context) -> None:
     rep, reg, art = ctx.rep, ctx.reg, ctx.art
     ctx.q = _quantities(ctx)
@@ -552,4 +593,5 @@ def run(ctx: Context) -> None:
     _tag_plane(ctx)
     _block_geometry(ctx)
     _core_classes(ctx)
+    _model_citations(ctx)
     rep.line()

@@ -747,3 +747,99 @@ function test_the_composed_hart_runs_the_geometry_its_class_declares() -> unit =
     },
   };
 }
+// The timing annotations.
+
+// The obligations this platform states against the microarchitecture split by
+// whether a model of architectural state can express them (R-15-089), and this
+// file is the expressible half read back. What is asserted here is the table's
+// shape and the one relation the register states inside it; what is asserted by
+// **absence** is the whole of the rest, because a Sail model executes no cycles
+// and can no more measure a latency than it can state that no branch predictor
+// exists (R-15-098). The magnitudes are R-17-041's crown-jewel specification and
+// none is measured, which is what `qualified` records.
+$[test]
+function test_every_operation_carries_a_latency() -> unit = {
+  // Total by construction, the reader being a match over the enumeration, so
+  // what a property can add is that no row is zero: every one is a term a WCET
+  // derivation sums (R-11-015, R-18-024), and a zero contributes nothing to a
+  // bound that has to be sound.
+  assert(timing_cycles(Timing_Integer) > 0);
+  assert(timing_cycles(Timing_Divide) > 0);
+  assert(timing_cycles(Timing_Branch) > 0);
+  assert(timing_cycles(Timing_Atomic) > 0);
+  assert(timing_cycles(Timing_CapLoad) > 0);
+  assert(timing_cycles(Timing_LoadTags) > 0);
+  assert(timing_cycles(Timing_Reclaim) > 0);
+  assert(timing_cycles(Timing_BlockZero) > 0);
+  assert(timing_cycles(Timing_BlockScrub) > 0);
+  assert(timing_cycles(Timing_VectorFloat) > 0);
+
+  // The one relation the register states between two rows, and it is a shape
+  // rather than a value: the off-list vector access enters at its
+  // fully-conflicted bound, every element resolving to one bank, where the
+  // on-list one's bank sequence follows from the element width and a
+  // granule-aligned base alone (R-15-085a, R-15-085b).
+  assert(timing_cycles(Timing_VectorMemIndexed) >= timing_cycles(Timing_VectorMemUnit));
+
+  // Reading twice answers twice the same, which is the whole of what a model
+  // with no cycle counter can say about data independence beyond the signature
+  // that carries it: `timing_cycles` takes an operation class and takes no
+  // operand, no register, no address, and no prior state, so there is nowhere
+  // for a value to enter it (R-15-053, R-15-095).
+  assert(timing_cycles(Timing_Divide) == timing_cycles(Timing_Divide));
+}
+
+// The two tables meet at one function and neither restates the other's constants
+// (R-15-247, R-15-247j). A memory access costs the pipeline's own term plus the
+// fixed constant of the class its region is placed on, so the delta §11 charges
+// a second-class placement is the difference of two array constants and nothing
+// about the instruction changes across the boundary.
+$[test]
+function test_a_placement_moves_only_the_array_term() -> unit = {
+  let first  = memory_class_constants(FirstClass).read_cycles;
+  let second = memory_class_constants(SecondClass).read_cycles;
+
+  assert(timing_access_cycles(Timing_Load, FirstClass)
+         == timing_cycles(Timing_Load) + first);
+  assert(timing_access_cycles(Timing_Load, SecondClass)
+         == timing_cycles(Timing_Load) + second);
+
+  // The delta is the classes' and not the operation's, which is why the same
+  // difference falls out whichever operation is priced.
+  assert(timing_access_cycles(Timing_Load, SecondClass)
+         - timing_access_cycles(Timing_Load, FirstClass)
+         == timing_access_cycles(Timing_CapLoad, SecondClass)
+            - timing_access_cycles(Timing_CapLoad, FirstClass));
+}
+
+// The partition switch costs three terms and no fourth (R-15-220), and two of
+// them are here: the padded `fence.t` constant and the eager vector and matrix
+// zeroize. The third is the operating-point relock, which is a property of the
+// rail and the mode schedule rather than of anything the machine executes
+// (R-11-017), so this model carries two and says which two.
+$[test]
+function test_the_switch_costs_the_fence_and_the_zeroize() -> unit = {
+  foreach (i from 0 to 4) {
+    let c = core_class_of_index(i);
+    let t = core_class_timing(c);
+    assert(partition_switch_cycles(c) == t.vmclear_cycles + t.fence_t_cycles);
+
+    // The fence is core surface on every class and completes at its bound rather
+    // than early, so every class carries the constant (R-15-218). The zeroize is
+    // the class's own: on a vectorless class `vmclear` traps like any
+    // unallocated encoding, so there is no pass to cost and the switch is the
+    // fence alone (R-15-069d, R-07-014c).
+    assert(t.fence_t_cycles > 0);
+    if core_class_is_vector_bearing(c) then {
+      assert(t.vmclear_cycles > 0);
+    } else {
+      assert(t.vmclear_cycles == 0);
+      assert(partition_switch_cycles(c) == t.fence_t_cycles);
+    };
+  };
+
+  // Nothing is asserted about `qualified`, deliberately, for the reason nothing
+  // is asserted about the memory classes': its value is a fact about whether the
+  // measurement has landed, so a property fixing it would be a property about
+  // the calendar.
+}

@@ -25,6 +25,7 @@ core {
     core/platform_config.sail,
     core/core_class.sail,
     core/memory_class.sail,
+    core/timing.sail,
     core/revocation.sail,
     core/extensions.sail,
     core/types_common.sail,

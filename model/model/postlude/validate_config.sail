@@ -584,6 +584,93 @@ private function check_core_roster() -> bool = {
   valid
 }
 
+private function check_timing_rows(rows : list((string, timing_cycles_t))) -> bool =
+  match rows {
+    [||]                  => true,
+    (name, cycles) :: rest => {
+      var valid : bool = true;
+      if cycles == 0 then {
+        valid = false;
+        print_endline("The timing table declares a zero latency for `" ^ name ^ "`; every row is a per-instruction latency a WCET derivation sums, so a zero is a term contributing nothing to a bound that has to be sound.");
+      };
+      valid & check_timing_rows(rest)
+    },
+  }
+
+// The timing annotations (isa-profile.md §9, core/timing.sail).
+//
+// The magnitudes are R-17-041's crown-jewel specification and nothing has
+// measured one, so a validator asserting a range for any of them would be the
+// architectural input that requirement is waiting on, exactly as it would be for
+// the memory classes below. What can be held instead is that the table says what
+// kind of table it is: that every operation has a latency at all, that the one
+// relation the register states between two of them holds, and that the two
+// per-class switch constants exist where the instruction they price does.
+private function check_timing() -> bool = {
+  var valid : bool = true;
+  let k = plat_timing;
+
+  // A zero-cycle operation is not an operation. Every row is a per-instruction
+  // latency a WCET derivation sums (R-11-015, R-18-024), so a zero is a term
+  // silently contributing nothing to a bound that is supposed to be sound. The
+  // rows are named individually rather than folded into one message because a
+  // finding that says which row is the one a reader can act on.
+  let rows : list((string, timing_cycles_t)) = [|
+    ("integer", k.integer), ("multiply", k.multiply), ("divide", k.divide),
+    ("branch", k.branch), ("csr", k.csr), ("load", k.load), ("store", k.store),
+    ("atomic", k.atomic), ("cap_inspect", k.cap_inspect),
+    ("cap_derive", k.cap_derive), ("cap_select", k.cap_select),
+    ("cap_clear", k.cap_clear), ("cap_load", k.cap_load),
+    ("cap_store", k.cap_store), ("load_tags", k.load_tags),
+    ("reclaim", k.reclaim), ("block_zero", k.block_zero),
+    ("block_scrub", k.block_scrub), ("vector_integer", k.vector_integer),
+    ("vector_float", k.vector_float), ("vector_divide", k.vector_divide),
+    ("vector_mem_unit", k.vector_mem_unit),
+    ("vector_mem_indexed", k.vector_mem_indexed)
+  |];
+  valid = check_timing_rows(rows) & valid;
+
+  // The one relation the register states between two of these rows, and it is a
+  // shape rather than a value: an indexed or runtime-strided vector access is
+  // off the data-independent-timing list and enters the table at its
+  // **fully-conflicted** bound, every element resolving to one bank, where a
+  // unit-stride access's bank sequence follows from the element width alone
+  // (R-15-085a, R-15-085b). A fully-conflicted bound below the unconflicted one
+  // is not a bound.
+  if k.vector_mem_indexed < k.vector_mem_unit then {
+    valid = false;
+    print_endline("The indexed vector access is declared faster than the unit-stride one; the indexed row is the fully-conflicted bound, every element to one bank, and cannot be below the access whose bank sequence follows from the element width.");
+  };
+
+  // The two per-class constants, against the class table they price a switch on.
+  // `vmclear` traps on a vectorless class like any unallocated encoding
+  // (R-15-069d), so a latency for it there is a cost for something that cannot
+  // be issued; and on a class that has the unit it is the switch's whole
+  // zeroize term, so its absence would delete one of R-15-220's three
+  // (R-07-014c, R-15-069e).
+  foreach (i from 0 to 4) {
+    let c = core_class_of_index(i);
+    let t = core_class_timing(c);
+    if core_class_is_vector_bearing(c) & t.vmclear_cycles == 0 then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares no `vmclear` latency; it has a vector unit, so the partition switch's eager zeroize is one of that switch's three terms and this is the term.");
+    };
+    if not(core_class_is_vector_bearing(c)) & t.vmclear_cycles != 0 then {
+      valid = false;
+      print_endline("The vectorless " ^ to_str(c) ^ " core class declares a `vmclear` latency; the encoding traps there like any unallocated one, so there is no pass to cost.");
+    };
+    // The fence is core surface on every class and completes at its padded bound
+    // rather than early (R-15-218), so every class has the constant whether or
+    // not a switch is ever taken on it.
+    if t.fence_t_cycles == 0 then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares no `fence.t` latency; the fence completes at a padded per-class constant on every class, which is what keeps the store-buffer drain one term in the switch budget rather than a second beside it.");
+    };
+  };
+
+  valid
+}
+
 // The two static latency classes (R-15-247, core/memory_class.sail). What is
 // checked here is the shape a composition may declare, never the values: the
 // numbers themselves are R-15-247m's to measure on a repaired megabit-class
@@ -755,6 +842,7 @@ private function check_memory_sequencer() -> bool = {
 function config_is_valid() -> bool = {
     check_tvec()
   & check_core_roster()
+  & check_timing()
   & check_memory_classes()
   & check_memory_sequencer()
   & check_revocation()
