@@ -1,3 +1,12 @@
+# The default location the worktree tooling stands isolation checkouts up in, so
+# it recurs rather than happening once. A linked worktree carries a `.git`
+# pointer *file*, whose kind no ruling in tools/vos/checks/marks.py covers, and
+# the selftest's sandbox reads untracked files where check.py reads the git
+# index: the checker stays green and the selftest's baseline goes red, which
+# stops every mutant from deciding anything. Ignored here rather than refused as
+# a tree, so that anything else unruled landing under `.claude/` is still loud.
+.claude/worktrees/
+
 proofs/*.vo
 proofs/*.vok
 proofs/*.vos
