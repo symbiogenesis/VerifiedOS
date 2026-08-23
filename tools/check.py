@@ -21,6 +21,7 @@ they are one tool:
     estimates     the arithmetic      every checklist total and share against the item hours
     differential  the twin roster     the corpus manifest against its document, every member assembling
     banks         the restated grant  the second class's bank count, contract against composition
+    costated      the joint statement a fact stated in more than one pair, at each site stating it
 
 Three further groups check what a file is rather than what it says: for a document,
 the shape and the characters, where a fault survives a rendered read because the

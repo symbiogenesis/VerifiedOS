@@ -1004,6 +1004,14 @@ CASES: list[Case] = [
     # with the other copies going stale behind it.
     ("K-67", "a README pin drifted from the version typecheck.py fixes",
      _literal("tools/README.md", "pip install ty==0.0.73", "pip install ty==0.0.72")),
+
+    # One site of a fact two pairs state is reworded while its siblings stand, which
+    # is the drift K-61 cannot see: the edited pair blesses on its own two sides and
+    # the other pair's copy stays green. K-61 fires on the edited entry too, which is
+    # expected collateral; the case passes only on K-68's own report.
+    ("K-68", "a co-stated fact one of its sites no longer states",
+     _entry("R-14-007", lambda entry: entry.replace(
+         "capabilities beyond pure compute", "capabilities beyond pure computation"))),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
