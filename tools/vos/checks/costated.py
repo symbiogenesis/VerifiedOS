@@ -167,6 +167,19 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
         ("R-15-010", "(3) no new hidden shared microarchitectural state"),
         ("R-15-010", "(5) no autonomous behaviour"),
     ]),
+    # the disturbance class's one headline, standing in three pairs: the entry that
+    # owns it with the prose it is extracted from, the §15 safety inventory's bullet
+    # under a neighbouring anchor, and the §17 residual roll-call, which states the
+    # residual and cites the headline rather than restating it. A strength claim is
+    # what grew back here last, so each site is pinned in its own spelling and the
+    # two citing sites are pinned as citations
+    ("the disturbance class's headline: deletion rather than tuning", [
+        ("R-15-184", "deleting the apparatus rather than tuning it"),
+        (SPEC, "the apparatus that answers them is deleted rather than tuned"),
+        (SPEC, "deleting the RFM and PRAC apparatus rather than tuning it"),
+        ("R-17-058", "only as the per-class residual R-15-184 states"),
+        (SPEC, "only as the narrowed per-class residual §15 states"),
+    ]),
     ("the admissible power mechanisms, cited by ordinal elsewhere", [
         ("R-15-186", "race-to-idle with in-slot gating; static per-partition "
                      "operating points; pre-proved global mode schedules; deep sleep "
