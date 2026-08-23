@@ -547,6 +547,7 @@ PLAN = "docs/implementation-checklist.md"
 BINDINGS = "docs/field-bindings.md"
 ABSENCE = "docs/absence-contract.md"
 CORPUS_DOC = "docs/differential-corpus.md"
+CONTRACT = "docs/freeze-measurement-contract.md"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1025,6 +1026,17 @@ CASES: list[Case] = [
     # from the owner.
     ("K-69", "a restated owned figure drifted from the entry that fixes it",
      _literal(SPEC, "target ≤10k lines", "target ≤12k lines")),
+
+    # The marker is stripped from one §1 row and the row is otherwise left alone, which
+    # is the state the real defect leaves behind: a delta item the register enumerates
+    # and the instrument accounts for nowhere. The row keeps its width, its governing
+    # citation and its decision, so no table, view or citation rule reads the edit and
+    # K-70 is the one rule that can. It seeds no `FD-`, `FM-` or `G-` count, those being
+    # restated in a document this case may not repair.
+    ("K-70", "a delta item of the closed freeze delta that its instrument does not "
+             "account for",
+     _literal(CONTRACT, "| (v) the capability indexed",
+              "| the capability indexed")),
 
     # The second reach of K-60: a free-prose VLEN token names a geometry no composed
     # class carries. The first spec token the seed happens to hit may sit in the
