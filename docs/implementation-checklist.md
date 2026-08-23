@@ -393,12 +393,12 @@ Four more rows take their upstreams off this clock while their authoring rides t
 
 ### Current summary
 
-* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M1.1, M1.1a, M1.5, M4.1, M4.1a, M6.0a, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7 and the initial check/emit/FAST tooling. Four of those instruments carry **declines carrying a measurement**: I4's second clause, I2 and I6 whole, and I5's prefix-map clause each had its premise removed by the act of measuring it, which is a result rather than a shortfall.
+* Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M1.1, M1.1a, M1.5, M4.1, M4.1a, M6.0a, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I9 and the initial check/emit/FAST tooling. Four of those instruments carry **declines carrying a measurement**: I4's second clause, I2 and I6 whole, and I5's prefix-map clause each had its premise removed by the act of measuring it, which is a result rather than a shortfall.
 * Current serial path: **none in M0**. The C-class freeze is taken: M0.6 closed the decode surface, M0.14 and M0.16 put both latency classes and their maintenance in the model without adding an instruction, M0.8a fixed the per-class parameterization at the C class, M0.9 put the timing annotations over it, and M0.10 generated the emulator and gave it the revision every downstream artifact records. What is left in M0 is M0.8c and M0.8d, and neither is a datapath waiting its turn: M0.8b landed the V class, M0.8c's scratchpad landed and its instruction surface is a second-act item conditioned on R-15-116's margin (R-15-014a (ix)), and M0.8d lands Keccak while FEC's surface is owed at the provisional freeze (R-15-014b, R-15-119). The next serial work is M1's toolchain spine, and it is ungated: M1.1a is taken, and `upstream/SECOMP` is populated at its pin with the 33-file `cheririscV/` backend in hand, so M1.2's contingency for an unusable artifact is not triggered.
 * Available parallel work: M2.1, the open build-loop instruments, and M1.3, M1.6 and M1.8 once M1.2 has landed. **Two M0 items are open without being work in the ordinary sense**: M0.8c and M0.8d each landed the half the profile books and each carries a surface the profile does not name, so what closes them is a profile act rather than a model one, and neither is on any milestone's path. **The four decisions that gated the next milestones are taken**: M4.1 dropped the quiescent point without amending the register, and M1.1a, M4.1a and M6.0a resolved the three provenance forks as contain, author instead, and contain, so M1.2, M4.2 and M6.1 are ungated. The two arms not taken stay open on both contained instruments, which is what containment is for.
-* Total estimate: 934.8 h midpoint, range 660.3–1,209.3 h.
-* Progress by estimate: 117.3 of 934.8 h complete (12.5%); 817.5 h remaining (87.5%).
-* M8 gate: 839.3 h of the 934.8 h midpoint falls at or before it, everything but M9, M9a, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 360–411 h, a serial-path figure no sum gives, the serial Sail path ahead of the C-class freeze now closed while M6.7 and M6.8 are parallel and add none.
+* Total estimate: 938.9 h midpoint, range 664.4–1,213.4 h.
+* Progress by estimate: 121.4 of 938.9 h complete (12.9%); 817.5 h remaining (87.1%).
+* M8 gate: 843.4 h of the 938.9 h midpoint falls at or before it, everything but M9, M9a, M10, and the post-M10 obligations. Planned optimizations remove roughly 32 h from that and measured gating may defer a further 35 h past the gate; the critical chain through it is approximately 360–411 h, a serial-path figure no sum gives, the serial Sail path ahead of the C-class freeze now closed while M6.7 and M6.8 are parallel and add none.
 
 ### M0 · Hardware reference
 
@@ -933,7 +933,7 @@ Two more are owed at the same opening: the combined-adversary route is already s
 * [ ] **Post-M10 · Publish opening hardening obligations** · 8 h, range 6–10 · 0.9%
   * State the RTL-to-Sail fallback, reduction-theorem verification plan, masking obligations, and first-silicon characterization plan.
 
-**M8–M10 subtotal:** 98.5 h · 11% · open range 66–131 h.
+**M8–M10 subtotal:** 98.5 h · 10% · open range 66–131 h.
 
 ## Build-loop instruments
 
@@ -983,8 +983,13 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * Finding, reported rather than closed: the sibling lanes had already worked the collision around by hand, `/root/build/verifiedos-model-m08c` being a second tree named for one worktree. That workaround is per-agent and undeclared, and it reaches neither the log nor the typecheck cache, which every lane still shared as one file; the derivation reaches all three.
   * Exit evidence: `model.py lane` on the primary checkout prints the four paths it always used, unchanged. A lane standing up from nothing is green at 375 of 375 edges in 237.7 s, configure 29.6 s, build 172.9 s at 715% CPU, ctest 35.2 s, seeded from the primary tree rather than cold. A second `model.py build` against a live one exits 1 naming the holder's pid and writes nothing. `wait` returns the finished log's verdict at exit 0, and against a stand-in holder it returned 6.0 s after that holder exited, with no interval anywhere in it. In the lane, `corpus` is 21 of 21 with 193 checks over 5,231 records, `devicetree` compiles with no warning at 4,466 bytes inside its region, and `reference` names the model at `636aa07-dirty` over 62 properties. Every later figure in this section was taken in that lane, and the ones marked contended were taken with a sibling lane building.
 * [ ] **I8 · Optionally move quick checks to push CI and canonical tests to nightly CI** · 1.5 h, range 1–2 · 0.2%
+* [x] **I9 · Hold the co-stated facts and derive the reading view** · 4.1 h actual · 0.4%
+  * The one drift K-61 cannot see by construction, a fact stated in two of its pairs moving in one while the other stands green, was surveyed across both documents against the whole holder inventory and closed where it was found: rule K-68 pins the surveyed facts at every site that states them, nine new K-24 quantities read each restated count from the artifact that owns it so `--fix` rewrites a grown list's own restatements, K-69 holds the figures one entry fixes with the repair always running from the owner, and K-60 answers every free-prose VLEN token against the composed geometries.
+  * Where position was the defect the bookmarks moved rather than the machinery: the clock-discipline block leaves the interrupt entry's pair for the entries that state it, nine further `-2` bookmarks fold restating lines into their own entries' pairs, four prose restatements become citations per the register's own cite-don't-restate discipline, and the truncated tag-plane share is corrected to the value its arithmetic gives and pinned as a K-54 site.
+  * The reading loop is priced down rather than restructured: `co-read.py --show --all` prints every pending pair in one read and `--where` opens both sides at file:line, and `tools/read-view.py` derives the join the two documents never gave a reader, the prose with every entry rendered beneath the bookmark that cites it, written into ignored `out/` and never a source. [spec.md](spec.md) now opens with the precedence banner every other document in the constellation already carried.
+  * Exit evidence: check.py green at 69 rules with K-68 holding 18 co-stated facts at 45 sites; the selftest kills every mutant with the K-69 repair lane proving pristine-fixpoint both ways; 31 co-read pairs re-read and blessed the same day their spans moved; the view weaves all entries with none left homeless; test.py and typecheck.py green throughout.
 
-**Instrument subtotal:** 16.2 h · 2% · 12.7 h complete · open range 2–5 h.
+**Instrument subtotal:** 20.3 h · 2% · 16.8 h complete · open range 2–5 h.
 
 ## Estimate and schedule basis
 
@@ -995,6 +1000,6 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 934.8 h midpoint over a 660.3–1,209.3 h range.
+* Grand total: the sum of the item cells, 938.9 h midpoint over a 664.4–1,213.4 h range.
 * Planned optimizations remove roughly 32 h from the midpoint; measured gating may move another approximately 35 h beyond M8.
 * At 10–20 attended hours per week across two or three lanes, M8 is approximately 5–10 months away. Review capacity, not lane count, is the constraint beyond three lanes.
