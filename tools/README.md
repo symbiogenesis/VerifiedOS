@@ -135,12 +135,12 @@ about this tree, and it is the one gate that runs the others.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | 0.0.73 | Every expression, against the types it can infer, with `--error all` |
+| [ty](https://github.com/astral-sh/ty) | 0.0.74 | Every expression, against the types it can infer, with `--error all` |
 | [ruff](https://github.com/astral-sh/ruff) | 0.16.4 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
 annotations contradicts nothing and is invisible to it; ruff's `ANN` group is what makes
-coverage a rule. Both install with `pip install ty==0.0.73 ruff==0.16.4`, need no
+coverage a rule. Both install with `pip install ty==0.0.74 ruff==0.16.4`, need no
 toolchain beyond pip, and so stay in reach of a directory that is one language. Both are
 pinned for the reason Rocq and z3 are pinned, and a version other than the pinned one is
 a finding rather than a warning.

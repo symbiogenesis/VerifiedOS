@@ -91,6 +91,32 @@ def _summarize_truncation() -> None:
            f"no findings must report the ok line, got {clean.out!r}")
 
 
+def _summarize_counts_findings_not_lines() -> None:
+    # The verdict is how many findings there are, and the lines are never that number:
+    # a rule header sits above each sample, so under the cap they run long, and a
+    # single tail line stands in for everything the cap held back, so over it they run
+    # short. Both directions are pinned because the first is what a clean tree meeting
+    # a newly escalated rule sees, and the second is what a large regression sees.
+    rep = Reporter()
+    findings = [("A100", "a-one"), ("A100", "a-two"), ("B900", "b-one")]
+    typecheck._summarize(rep, "stub", "finding(s):", findings, "clean")
+    ensure(rep.findings == 3, f"three findings must decide 3, not {rep.findings}")
+    ensure(rep.out[0] == "FAIL stub: 3 finding(s):",
+           f"the verdict line read {rep.out[0]!r}")
+    ensure(len(rep.out) - 1 > 3,
+           "this sample prints more lines than there are findings, which is the point")
+
+    over = Reporter()
+    many = [("Z999", f"site-{n}") for n in range(typecheck.PER_RULE + 5)]
+    typecheck._summarize(over, "stub", "finding(s):", many, "clean")
+    ensure(over.findings == typecheck.PER_RULE + 5,
+           f"the sample cap must not lower the verdict: {over.findings}")
+    ensure(over.out[0] == f"FAIL stub: {typecheck.PER_RULE + 5} finding(s):",
+           f"the verdict line read {over.out[0]!r}")
+    ensure(len(over.out) - 1 < typecheck.PER_RULE + 5,
+           "this sample prints fewer lines than there are findings, which is the point")
+
+
 def _stub(directory: Path, name: str, body: str) -> Path:
     # A .bat file is the one stub shape CreateProcess runs from a bare argv on this
     # lane, which is why the cases that need one are marked host.
@@ -197,6 +223,7 @@ def cases() -> list[Case]:
         Case("parse-ruff", _parse_ruff),
         Case("summarize-ordering", _summarize_ordering),
         Case("summarize-truncation", _summarize_truncation),
+        Case("summarize-counts-findings", _summarize_counts_findings_not_lines),
         Case("version-probe", _version_probe, lane="host"),
         Case("crash-reported-beside-findings", _crash_reported_beside_findings, lane="host"),
         Case("crash-with-nothing-parsed", _crash_with_nothing_parsed, lane="host"),

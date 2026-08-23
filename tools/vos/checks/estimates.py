@@ -27,7 +27,7 @@ counted. Anything else missing a cell is counted by nothing and is the finding.
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from vos import figures
 from vos.figures import format_hours, percent
@@ -105,7 +105,10 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
             bucket = []
             continue
 
-        label = m.group("label").strip()
+        # `Match.group` answers `str | Any` for a named group the pattern makes
+        # mandatory, so the `Any` arm is narrowed here rather than at each of the
+        # places `label` is carried into a typed slot.
+        label = cast("str", m.group("label")).strip()
         indent = len(m.group("ind"))
         rest = m.group("rest")
 

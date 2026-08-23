@@ -29,17 +29,26 @@ class Reporter:
         self.out.append(text)
 
     def report(self, rule: str, label: str, items: Iterable[object],
-               ok: str = "", pad: str = "") -> None:
+               ok: str = "", pad: str = "", count: int | None = None) -> None:
         """Decide one rule.
 
         `items` is whatever the check produced; falsy members are dropped, because a
         check that builds its findings inside a comprehension over a larger set
         yields `None` for every member it cleared.
+
+        `count` is how many findings those lines stand for, and exists for the one
+        caller whose lines are a *summary* rather than one line per finding:
+        typecheck.py groups a checker's output by rule and prints a header and a
+        sample under each, so its line count is neither the number of findings nor a
+        bound on it, being larger than it while a rule is under the sample cap and
+        smaller once it is over. Everywhere else the lines are the findings one for
+        one and the default is what the docstring above promises.
         """
         found = [str(i) for i in items if i]
         if found:
-            self.findings += len(found)
-            self.out.append(f"{pad}FAIL {rule}: {len(found)} {label}")
+            total = len(found) if count is None else count
+            self.findings += total
+            self.out.append(f"{pad}FAIL {rule}: {total} {label}")
             self.out.extend(f"{pad}       {f}" for f in found)
         else:
             self.out.append(f"{pad}ok {rule}: {ok or label}")

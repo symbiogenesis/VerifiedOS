@@ -11,7 +11,7 @@ inside strings, terminators that never come, and the lone slash at EOF.
 import json
 import tempfile
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 from tests.harness import Case, ensure
 from vos import jsonc
@@ -39,7 +39,7 @@ def _dialect_corners() -> None:
     for text, want in _CASES:
         out = jsonc.strip_comments(text)
         try:
-            got: jsonc.Json | None = json.loads(out)
+            got = cast("jsonc.Json | None", json.loads(out))
         except ValueError:
             got = None
         ensure(got == want,
