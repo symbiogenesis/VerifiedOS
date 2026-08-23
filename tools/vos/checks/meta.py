@@ -16,16 +16,18 @@ decides is whether a registered claim is the right claim, which is the same resi
 every conferral declares.
 
 K-67 is the same discipline pointed at the tools' own documentation. typecheck.py
-fixes the ty and ruff pins, tools/README.md restates them four times over, in its
-checker table's two rows and in the `uv tool install` line each checker carries, and
-nothing owned the copy. The rule holds every site against the source and is
-fail-closed in the reading: a side it cannot find is a finding, never a pass over
-nothing.
+fixes the ty and ruff pins, tools/README.md restates them in its checker table's two
+rows and in the `uv tool install` line each checker carries, and nothing owned the
+copy. The rule holds every site against the source and is fail-closed in the reading:
+a side it cannot find is a finding, never a pass over nothing. The sites are
+enumerated rather than counted here, because the count is `_README_SITES`' to state.
 """
 
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from vos import figures
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -42,16 +44,28 @@ REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 README = "tools/README.md"
 TYPECHECK = "tools/typecheck.py"
 
-# The pins as typecheck.py declares them, and the four README sites restating them.
-# The version cell and the install argument are captured alone, so a disagreement
-# names the two figures and nothing else. Each checker carries its own install line
-# because `uv tool install` takes one tool per command, which is the same fact that
-# makes the four sites two symmetrical pairs rather than two rows and a joint line.
+# The pins as typecheck.py declares them, and the README sites restating them. The
+# version cell and the install argument are captured alone, so a disagreement names
+# the two figures and nothing else. Each checker carries its own install line because
+# `uv tool install` takes one tool per command, which is what makes the sites two
+# symmetrical pairs rather than two rows and a joint line.
 _PIN_SRC_RE = re.compile(r'^(TY|RUFF)_VERSION = "([^"\r\n]*)"', re.MULTILINE)
 _README_TY_ROW_RE = re.compile(r"(?m)^\| \[ty\]\([^)]*\) \| ([^ |]+) \|")
 _README_RUFF_ROW_RE = re.compile(r"(?m)^\| \[ruff\]\([^)]*\) \| ([^ |]+) \|")
 _README_TY_INSTALL_RE = re.compile(r"`uv tool install ty==([^\s`=]+)`")
 _README_RUFF_INSTALL_RE = re.compile(r"`uv tool install ruff==([^\s`=]+)`")
+
+# The sites, as the table every figure stated over them is read off rather than
+# copied from. Each row names the constant it holds that site against, so a site and
+# a pin cannot be paired wrongly and a site added here moves the ok line's count with
+# it: the derived-fact discipline this rule enforces on the README, applied to the
+# rule's own prose, which is where a hand-copied count last went stale.
+_README_SITES: list[tuple[str, re.Pattern[str], str]] = [
+    ("checker-table row", _README_TY_ROW_RE, "TY"),
+    ("checker-table row", _README_RUFF_ROW_RE, "RUFF"),
+    ("install line", _README_TY_INSTALL_RE, "TY"),
+    ("install line", _README_RUFF_INSTALL_RE, "RUFF"),
+]
 
 
 def carried_rules() -> set[str]:
@@ -99,8 +113,8 @@ def run(ctx: Context) -> None:
 def _pins(ctx: Context) -> None:
     """K-67: tools/README.md's checker pins are the versions typecheck.py fixes.
 
-    Fail-closed on the reading itself: the source constants and each of the three
-    README sites either parse in the form written today or are findings, so a
+    Fail-closed on the reading itself: the source constants and every site in
+    `_README_SITES` either parse in the form written today or are findings, so a
     reworded README cannot take the comparison down with it and leave the rule green.
     """
     rep = ctx.rep
@@ -120,12 +134,11 @@ def _pins(ctx: Context) -> None:
     if doc is None:
         findings.append(f"{README} is not in the repository")
 
-    if not findings and doc is not None and ty is not None and ruff is not None:
-        for label, pattern, checker, want in (
-                ("checker-table row", _README_TY_ROW_RE, "ty", ty),
-                ("checker-table row", _README_RUFF_ROW_RE, "ruff", ruff),
-                ("install line", _README_TY_INSTALL_RE, "ty", ty),
-                ("install line", _README_RUFF_INSTALL_RE, "ruff", ruff)):
+    # An empty findings list here already means both pins parsed, so each row's own
+    # key indexes them rather than a fourth pair of locals threaded through the loop.
+    if not findings and doc is not None:
+        for label, pattern, key in _README_SITES:
+            checker, want = key.lower(), pins[key]
             m = pattern.search(doc.raw)
             if m is None:
                 findings.append(f"{README} no longer states {checker}'s pin in its "
@@ -136,5 +149,5 @@ def _pins(ctx: Context) -> None:
 
     rep.report("K-67", "README pin site(s) disagreeing with the versions typecheck.py "
                "fixes:", findings,
-               f"tools/README.md's four pin sites state ty {ty} and ruff {ruff}, the "
-               f"versions {TYPECHECK} fixes")
+               f"tools/README.md's {figures.words(len(_README_SITES))} pin sites state "
+               f"ty {ty} and ruff {ruff}, the versions {TYPECHECK} fixes")
