@@ -271,8 +271,11 @@ def _seed_tree(e: env.Environment, target: Path) -> None:
 
     The pre-downloaded test ELFs would otherwise re-download the tarball. The Sail SMT
     memo cache matters more: a cold cache re-discharges every Z3 obligation and turns
-    the ~2 min emission into ~25 min (measured once). Standing a lane up is 237.7 s
-    seeded, which is what makes a lane cheap enough to be worth having.
+    the ~36 s emission into ~3.6 min under the pinned solver, ~4.7 min under the
+    distribution's (I3, two repeats per arm, 2026-08-22; the ~25 min once measured
+    here described the model before the curation deleted most of its surface).
+    Standing a lane up is 237.7 s seeded, which is what makes a lane cheap enough to
+    be worth having.
     """
     # This lane's canonical tree first and the primary worktree's second: the fast tree
     # wants the lane it belongs to, and a lane's own first build has only the primary to
