@@ -29,6 +29,7 @@ Two more the floor makes available go unused, because a version floor is a licen
 
 | Tool | Lane | What it does |
 | --- | --- | --- |
+| [gate.py](gate.py) | host | Runs check.py, check-selftest.py and typecheck.py together, one verdict over the three. `--fix` sends the repair in first, alone. |
 | [check.py](check.py) | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. |
 | [check-selftest.py](check-selftest.py) | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | [typecheck.py](typecheck.py) | host | Holds this directory's own Python to the discipline it holds the documents to. |
@@ -55,6 +56,8 @@ Four more modules are the differential corpus's, and they are named for what the
 From anywhere. Every tool finds the repository root from its own location, never from the working directory, so there is no wrong directory to run one from.
 
 ```console
+$ python tools/gate.py                        # the three gates below, in one run
+$ python tools/gate.py --fix                  # the repair first, then the other two
 $ python tools/check.py                       # the daily check
 $ python tools/check.py --fix                 # and rewrite what is arithmetic
 $ python tools/check-selftest.py              # every rule against its own mutant
@@ -114,6 +117,21 @@ one artifact here with no proof, no model, and no reader but their author.
 [typecheck.py](typecheck.py) is that gate for the Python's discipline, and it runs two
 checkers because one cannot do the whole job; what a type cannot decide, the behavior, is
 [test.py](test.py)'s to hold.
+
+Three of those four decide about the tree as it stands, and they contend for nothing:
+all three only read the checkout, and the two small ones fit inside the slack of the
+large one. So [gate.py](gate.py) runs them as one command and one exit code, each
+member's own report printed whole under its own heading in the order the tool declares
+rather than the order the three finished in. Measured warm on a twelve-core host over
+three alternated runs of each arm, the selftest alone takes a median 22.8 s, the wave
+23.9 s, and the same three in sequence 26.0 s: the other two cost about a second inside
+the wave where they cost three beside it. The saving is the smaller half of the point
+and the single verdict is the larger. `--fix` is the one exception to the wave
+and a correctness one, the repair running alone and to completion before the rest,
+because the selftest opens by copying the working tree and a document rewritten
+mid-copy seeds a torn sandbox that reports as a baseline failure about nothing.
+[test.py](test.py) is deliberately not a member: it decides about the tools rather than
+about this tree, and it is the one gate that runs the others.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
