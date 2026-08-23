@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """counts: every figure any document asserts, against the artifact it derives from.
 
-"1290 requirements", "twenty-two crown-jewel specifications", "sixteen enumerated
-absences" are all restatements of something a table already holds. Each quantity is
+"N requirements", "N crown-jewel specifications", "N enumerated absences" are all
+restatements of something a table already holds, and the figure each stands in for is
+the table's rather than this docstring's. Each quantity is
 computed here; each claim says where it is asserted and in which style, and captures
 the number alone, so a repair is the substitution of a single token.
 
@@ -34,6 +35,7 @@ HEADING = "=== counts: every asserted figure against its artifact ==="
 
 SPEC = "docs/spec.md"
 TAL = "docs/typed-assembly-language.md"
+TOOLS_README = "tools/README.md"
 
 # file, quantity, style, and the pattern that captures the stated figure alone
 CLAIMS = [
@@ -169,6 +171,13 @@ CLAIMS = [
     (REGISTER, "radio-protocols", "words", r"(?<=narrowed for the )[\w-]+(?= radio protocols)"),
     (REGISTER, "radio-protocols", "words", r"(?<=analyzed models for the )[\w-]+(?= radio protocols)"),
     (SPEC, "radio-protocols", "words", r"(?<=for the )[\w-]+(?= radio protocols that layer)"),
+
+    # the tools' own value window, owned by the tuple that declares it. The artifact is
+    # a constant rather than a table, which changes nothing about the discipline: the
+    # size of that window was hand-copied into three sentences and drifted from the
+    # tuple the day a file joined it, so the one sentence left states it derived.
+    (TOOLS_README, "model-facts", "words",
+     r"(?<=`MODEL_FACTS` names )[\w-]+(?= files by path)"),
 ]
 
 # The claims are the whole mechanism, so a restatement nobody registered is not checked
@@ -452,6 +461,7 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "properties": len(art.cm_props),
         "cells": len(art.cm_cells),
         "absences": len(art.absence_ids),
+        "model-facts": len(corpus_mod.MODEL_FACTS),
         # the counts the co-statement survey found restated across K-61 pairs, each
         # computed from the artifact that owns it: an entry's own enumeration, the
         # specification's own list or table, or the row range the register pins
@@ -976,8 +986,9 @@ def _model_citations(ctx: Context, window: list[tuple[str, str]],
     of one. `MODEL_FACTS` is the *value* window and stays narrow, because a rule reading
     a number out of the model should name the file it reads. This rule holds a
     construct that occurs wherever the model argues from the register, so its natural
-    reach is the tree: pointed at the value window it saw 195 of the model's 890
-    citations, which is a rule reporting `ok` about 22% of its subject.
+    reach is the tree: pointed at the value window it would see under a quarter of the
+    model's citations, which is a rule reporting `ok` about a quarter of its subject.
+    The count itself is this rule's own `ok` line and is never written down here.
 
     Ids are permanent and a retired requirement is struck rather than removed
     (CLAUDE.md), so what this catches is not renumbering. It is the typo, the id
@@ -1033,9 +1044,9 @@ def _excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
     it was found in, and the rule is not satisfied by either half alone.
 
     **The reach is by kind, and here that is not a preference.** `MODEL_FACTS` is the
-    *value* window of five named files and **none of the readable spellings is in one
-    of them**, so aimed there this rule would have read nothing at all and passed
-    green over the whole decode surface: not K-63's 22% of its subject but none of it.
+    *value* window of files named one by one, and **none of the readable spellings is
+    in one of them**, so aimed there this rule would have read nothing at all and passed
+    green over the whole decode surface: not K-63's quarter of its subject but none of it.
     A decode clause occurs wherever the model defines an instruction, which is most of
     the tree, so the window that fits it is the one that admits by kind.
 

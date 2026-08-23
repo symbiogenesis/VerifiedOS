@@ -156,8 +156,10 @@ MODEL_FACTS = (
 # citation check is not that kind of rule. What it holds is hygiene over a construct
 # that occurs wherever the curated model argues from the register, which is most of the
 # tree, so a window sized for the other purpose leaves its claim mostly untrue: aimed
-# at the five files above it reached 195 of the 890 citations the model makes, and the
-# sentence *the model's own citations reach no rule* stayed 78% true.
+# at the files above it reaches under a quarter of the citations the model makes, and
+# the sentence *the model's own citations reach no rule* stays true of the rest. The
+# citations are counted on every run and the live figure is K-63's `ok` line's to state,
+# never this comment's.
 #
 # The reach is by kind rather than by name for the same reason: a list of seventy-odd
 # files would be a membership nobody maintains, and the day a new Sail file cites a

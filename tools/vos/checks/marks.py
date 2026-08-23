@@ -3,13 +3,15 @@
 
 [COPYRIGHT.md](../../../COPYRIGHT.md) governs Markdown by path and every other
 original file by a mark in the file itself. The first half is closed by having no
-per-file fact to drift. The second is a claim about forty-odd files that nothing
-held: a new source file arrives unmarked and reads exactly like a marked one,
-because the mark's whole job is to be there when somebody later asks a question
-nobody is asking today.
+per-file fact to drift. The second is a claim about every markable file in the tree
+that nothing held: a new source file arrives unmarked and reads exactly like a marked
+one, because the mark's whole job is to be there when somebody later asks a question
+nobody is asking today. How many such files there are is this group's `ok` line to
+state and is deliberately not written down anywhere here, the count being exactly the
+kind of fact the tool exists to keep out of prose.
 
-**The identifier is read from the map rather than restated here.** Forty files
-repeating `Apache-2.0` are forty copies of one sentence COPYRIGHT.md owns, so this
+**The identifier is read from the map rather than restated here.** Every marked file
+repeating `Apache-2.0` is one more copy of a sentence COPYRIGHT.md owns, so this
 group takes the identifier out of that document and holds the files against it. Change
 the map and the files are wrong; change the files and they are wrong; the two cannot
 quietly disagree.
