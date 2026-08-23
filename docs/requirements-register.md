@@ -5579,6 +5579,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the RTL of record is authored in a formal-semantics HDL, so even open CVA6-CHERI enters as a functional reference.
 · Trace: CJ-RTL-SAIL
 
+**R-18-001a** MUST: Every maturity claim this specification makes about an upstream is a reading with a date, taken from that upstream's own repository, release page, licence file, or specification build, re-taken at the milestone that would spend it on exactly the rule a licence is read under, and never inherited from the reading before it or inferred from a project's lineage or reputation. The substrate this design starts from is accordingly a set of start-froms of unequal maturity and not an ecosystem: a vendored model and its capability oracle at one end, an unverified backend prototype and an unratified standardization draft in the middle, and an unauthored soundness metatheorem at the other.
+· Accept: no maturity claim about an upstream stands anywhere in the corpus without the artifact that read it and the date it was read on, [the version matrix](cheri-version-matrix.md) carrying the date for the three CHERI lineages and the plan carrying it per pin at the item that took it. An unowned or undated maturity claim is a review-gate finding against this requirement exactly as an unbuilt prerequisite is one against R-18-003b, and a claim contrasting this substrate with an alternative's is read against the same measurements rather than against the phrase naming it.
+· Trace: CJ-COMPCERT, CJ-TAL-SOUND
+
 **R-18-002** MUST: The platform is purecap-only: there is no non-CHERI host, no capability-degraded interim, and no plain-RV64 compilation target anywhere, so every stage enforces hardware capabilities from first bring-up.
 · Accept: both staging phases are purecap and both gate on the CHERI toolchain.
 · Trace: CJ-CERISE
@@ -5799,7 +5803,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1340 requirements. §19 is non-normative and yields none. Counts include the 388 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1341 requirements. §19 is non-normative and yields none. Counts include the 389 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5820,7 +5824,7 @@ All eighteen normative sections are extracted, at 1340 requirements. §19 is non
 | **§15 Hardware Platform** | **extracted** | **387** |
 | **§16 Reliability** | **extracted** | **35** |
 | **§17 Residual Risks** | **extracted** | **123** |
-| **§18 Realization** | **extracted** | **53** |
+| **§18 Realization** | **extracted** | **54** |
 
 §19 is non-normative and yields no requirements.
 
