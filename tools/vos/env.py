@@ -69,7 +69,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import IO, Protocol, runtime_checkable
+from typing import IO, Protocol, cast, runtime_checkable
 
 # The OCaml native stack Sail's emission needs, in bytes (the shell loops spelled it
 # `ulimit -s 131072`, which is the same number in kilobytes).
@@ -725,10 +725,9 @@ def _report_stream(report_to: Writable | None, child_stderr: object) -> Writable
     for candidate in (report_to, child_stderr):
         if isinstance(candidate, Writable):
             return candidate
-    # named rather than returned directly: `sys.stderr` is rebindable, so its inferred
+    # cast rather than returned directly: `sys.stderr` is rebindable, so its inferred
     # type carries an `Any` arm, and the one place that is pinned down is here
-    fallback: Writable = sys.stderr
-    return fallback
+    return cast("Writable", sys.stderr)
 
 
 def _keepalive_pidfile() -> Path:
