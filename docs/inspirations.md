@@ -1317,7 +1317,7 @@ The platform axiom decides it as ever: a redundant FP datapath and one of the tw
 
 ---
 
-## Cerebras and all-SRAM machines: main memory without refresh, RowHammer, or PRAC
+## Cerebras and all-SRAM machines: main memory without refresh management, RowHammer counting, or PRAC
 
 Cerebras supplies the large-scale existence proof for an all-SRAM, cacheless machine; embedded tightly-coupled-memory systems supply the smaller precedent.
 This platform applies that lineage to **on-die main memory on the same die as the cores**, accepting far lower capacity in exchange for flat latency, high bandwidth, and deletion of the DRAM control mechanisms.
@@ -1326,8 +1326,8 @@ DRAM, an SRAM/DRAM hybrid, and non-volatile working memory do not transfer, beca
 
 **Proof-surface and timing-channel reduction.**
 DRAM stores each bit as charge on a capacitor that leaks and must be refreshed, and that same charge-disturbance physics is the RowHammer primitive: repeated activation of an aggressor row flips bits in a victim row.
-SRAM stores each bit in a bistable cross-coupled latch: no leakage, no refresh, and no remote charge-disturbance primitive, so the probability of a RowHammer-class flip is *dramatically lower* (SRAM has its own far weaker, local read/write-disturb and half-select modes at aggressive nodes, covered by ECC and cell margin, not a remote flip).
-And because there is no refresh there is nothing to *manage*: the entire deterministic-refresh-management (RFM) cadence, the per-row-activation-counting (PRAC) counters, and their alert-and-back-off feedback loop are **deleted, not merely tuned**.
+SRAM stores each bit in a bistable cross-coupled latch: no leakage, no refresh, and no remote charge-disturbance primitive on the class it carries (SRAM has its own far weaker, local read/write-disturb and half-select modes at aggressive nodes, covered by ECC and cell margin, not a remote flip).
+And there is nothing to *manage* on either class: the entire deterministic-refresh-management (RFM) cadence, the per-row-activation-counting (PRAC) counters, and their alert-and-back-off feedback loop are **deleted, not merely tuned**, the bulk class's refresh being a composition-time schedule that reads no access pattern (R-15-184).
 That loop is a load-reactive coupling on the most-shared resource, the very thing a DRAM design must demote to a fail-stop tripwire and book as a §17 residual; removing it removes that residual, shrinks the proof surface (no refresh-cadence or PRAC crown-jewel spec, no reactive-refresh timing channel to argue closed, and the DRAM channel and sub-channel structure with its row-buffer state gone from the Sail model, so the worst-case memory-access latency is a flat SRAM constant rather than a pessimistic row-miss bound), and cleans the graded memory-tier isolation hierarchy: the sub-channel sharing a DRAM design must grade as *weaker* (two sub-channels of a die share its refresh and PRAC) has no such coupling to grade around when the memory is SRAM (§15).
 SRAM's higher speed also *improves* performance (lower latency, higher bandwidth, no activate, precharge, or refresh stalls), a rare case where the security-motivated choice is not on the subordinated performance axis.
 
@@ -1354,7 +1354,7 @@ Both are therefore absent, and the memory controller carries no key material at 
 The one clean simplification the bespoke SRAM buys here is **native tag bits**: a tag-less DRAM forces CHERI validity tags into a reserved-memory tag table behind a partitioned tag cache, but SRAM is widened to carry the tags *in the word*, deleting the table, the cache, and with them a whole element of shared microarchitectural state and its admission-test bookkeeping (§15).
 
 **What the platform takes.**
-Main memory is bespoke SRAM on the same die as the cores; refresh, RFM, PRAC, self-refresh, and DRAM-side autonomous power modes are absent; RowHammer narrows to an ECC-covered cell-disturb residual; CHERI tags are native SRAM bits; and the density and leakage response is static process and circuit design rather than a reactive controller.
+Main memory is bespoke SRAM on the same die as the cores; refresh, RFM, PRAC, self-refresh, and DRAM-side autonomous power modes are absent; RowHammer narrows to the per-class residual R-15-184 states; CHERI tags are native SRAM bits; and the density and leakage response is static process and circuit design rather than a reactive controller.
 
 **Honest residual (§17):** capacity is materially lower than a DRAM design's, the accepted price, and lower still than a chiplet or bonded-stack SRAM design would reach, the price of a singular trust structure; idle leakage is higher, mitigated but not erased by the static levers; and the capacity figure now rests on **sequential-3D tier count**, the least mature lever in the design and the one with no verification-effort substitute.
 That dependency is **discrete rather than graded**: tier count is gated on complementary devices at a back-end thermal budget reaching array quality and manufacturable scale, which low-temperature p-type has not, so the honest two-case reading is a working vertical lever with tier count as an ordinary cost question, or no vertical lever and a single planar tier near 2 GB at a full reticle; §18's staging is written against the one-tier case.
