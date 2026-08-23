@@ -7,6 +7,14 @@
 
 It exists so the living document carries the reasoning behind what was *not* adopted.
 
+**How a ground is read here.**
+A **derived** ground restates a commitment [the register](requirements-register.md) already carries and applies it to the candidate.
+The five-part §15 admission test is the standing case: R-15-010a names the commitment each of its parts restates, so a rejection reading *fails admission test N* settles the case against a commitment already taken, and a reader who disputes the rejection disputes that commitment rather than the entry citing it.
+Two further grounds have the same shape and are marked where they are used: the instruction set of record chosen by whose semantics is already mechanized (R-05-019), and a candidate rejected for breaking *one base ISA, one kernel binary* (R-15-111).
+A derived ground is sound and it is not evidence, and saying which it is costs nothing while leaving it unsaid lets a rejection read as an independent finding it never was.
+A **non-deciding** observation is a different thing and is kept for a different reason: it is what a reader notices first and would otherwise supply as a reason of their own, so it stands in the entry that carries it, marked as deciding nothing, beside the ground that decides.
+Both are §17's discipline for residuals applied to grounds: booked with its owner and scope rather than absorbed.
+
 ## Belt / Mill-class architecture: deferred to a hypothetical gen-2, on one ground
 
 Mill's security features were run through the §15 admission test and the import discipline:
@@ -27,9 +35,11 @@ A Mill-style machine recovers wide ILP through exposed, statically-scheduled par
 Counterweights: (1) even ignoring verification *effort*, a belt gen-2 means rebuilding the entire substrate this spec depends on: RISC-V Sail model, CHERI-CompCert backend, Islaris, Cerise, RVV; none of which transfers; "ignore verification effort" does not make the ecosystem exist.
 (2) If leaving RISC-V anyway, the belt may not be the most spec-coherent target: **EDGE / block-atomic execution** (TRIPS/EDGE lineage) issues dataflow blocks that **commit atomically as a unit**: instruction-level transactionality, a direct downward extension of G4 and §11 all the way into the pipeline.
 A belt is a clever operand-lifetime trick; block-atomic execution *rhymes* with the rest of the architecture.
+**That rhyme decides nothing**, and it is kept rather than deleted because it is the thing a reader notices first about the pairing and would otherwise take for the reason.
+What decides the preference is the block commit's transactionality: G4 is *stateless, atomic, transactional, rollback-friendly* (R-01-004), and a block committing as a unit is that shape one layer further down, which makes the ground a derived one and not evidence for G4.
 EDGE is even less mature than Mill, so it is a research program, not a spec.
 
-**Disposition:** gen-2 candidate iff ILP-without-speculation becomes the binding constraint and a formal/toolchain ecosystem can be built around the target; **block-atomic (EDGE) is the preferred "abandon the register file" direction** over the belt for this design, on transactional-coherence grounds.
+**Disposition:** gen-2 candidate iff ILP-without-speculation becomes the binding constraint and a formal/toolchain ecosystem can be built around the target; **block-atomic (EDGE) is the preferred "abandon the register file" direction** over the belt for this design, on the transactional-coherence ground G4 (R-01-004) already carries and not on the rhyme beside it.
 Both remain non-normative.
 
 ---
@@ -70,13 +80,15 @@ By the platform axiom this is the wrong trade: spending the scarce currency (tru
 The instinct that VLIW needs specially compiled binaries is right, and it is fatal, on three compounding counts.
 (1) VLIW bundles are a distinct encoding, so standard RV64IMV+CHERI binaries do not run: forking the single-recompile-target premise of [userspace-porting.md](userspace-porting.md) (certifying Rust → RV64+CHERI) into two.
 (2) VLIW's classic curse: a schedule encodes the *specific* issue width and operation latencies it was packed for, so a pipeline change forces a recompile: re-coupling ISA to microarchitecture, the exact thing RISC-V's abstract contract exists to prevent, and violating §15's "one base ISA, one kernel binary, one parameterized model; classes differ only in datapath" property (a bundle schedule is not portable across the C/V/M scalar front ends).
+That property is R-15-111 and this count is a derived ground: a rule written to exclude microarchitecture-coupled binaries excludes them, so what the count settles is that VLIW is on the wrong side of a commitment already taken, which decides the entry and is not evidence for the commitment.
 (3) Every FPCC artifact (the binary-level proofs, memory-safety certificates, and constant-time certificates of §5/§6/§13) is stated *at binary level against the CHERI-RISC-V Sail model*, so a new ISA forks that model, CHERI itself, the CHERI-CompCert backend, Cerise, and Islaris, and **re-mints every certificate stated against it**, retargeting the whole Tier-1/2 toolchain.
 This count is the **substrate-cost disqualifier**, and it is stated here once: every later entry proposing a distinct instruction set pays it in full and cites it rather than re-deriving it.
 The bespoke-binary requirement thus re-imports precisely the microarchitecture-in-the-binary coupling RISC-V's abstract ISA was chosen to delete.
 
 **Where EPIC ranks among the "abandon RISC-V for ILP" targets.**
-The belt entry already ordered EDGE ≻ belt on transactional-coherence grounds (block-atomic commit *rhymes* with G4 and §11).
-EPIC ranks **below both**: its one edge over Mill and TRIPS is that it *shipped*, but it shipped and *died*, so the ecosystem advantage is negative; its ILP recipe leans on ALAT and RSE, which fail the admission test where the belt's spiller and EDGE's block commit do not; and it *rhymes* with nothing in the architecture.
+The belt entry already ordered EDGE ≻ belt on transactional-coherence grounds, block-atomic commit being G4 (R-01-004) one layer further down; the rhyme that entry also notes decides nothing there.
+EPIC ranks **below both**: its one edge over Mill and TRIPS is that it *shipped*, but it shipped and *died*, so the ecosystem advantage is negative; and its ILP recipe leans on ALAT and RSE, which fail the admission test where the belt's spiller and EDGE's block commit do not.
+It also *rhymes* with nothing in the architecture, which is an observation and not a third ground: the two above are what rank it.
 A belt is a clever operand-lifetime trick and EDGE a transactional pipeline; EPIC is a compiler-scheduling bet whose hardware crutches this spec forbids.
 
 **Disposition:** rejected as a base direction: EPIC abandons the RISC-V substrate as fully as the belt (into a post-mortem ecosystem), *inverts* the hoped-for simplification (the in-order IPC tax is the price of forbidding speculation, not a removable engine; VLIW only adds verified surface), and mandates bespoke, microarchitecture-coupled binaries that fork both the ecosystem and the proof base.
@@ -215,6 +227,7 @@ The minimal-ISA entries add nothing but substrate abandonment on top of a parsim
 **Where it ranks.**
 Beside EPIC on the "abandon RISC-V" scale and below the belt and EDGE: more radical in decode-minimalism than any of them, but into a *deader* ecosystem (OISC/TTA never shipped an application platform, let alone a verified one) and *inverting* the proof-shrink it promises, so it clears none of the bars the belt's spiller or EDGE's block-atomic commit clear.
 The one point on this axis that *did* ship an application platform is Wirth's **RISC5** (fourteen instructions, sixteen registers, a few hundred lines of Verilog, carrying a compiler, an operating system, and a graphical environment), and it is weighed separately in the Oberon-system entry below, where it loses on the criterion this entry leaves implicit: the instruction set of record is chosen by whose semantics is already mechanized, not by whose instruction count is smaller.
+That criterion is a derived ground and is marked as one: it is R-05-019's frozen enumeration of semantic anchors asked as a question about a candidate, the same commitment the admission test's part (1) restates, so it returns whichever anchor is already frozen and is not evidence that RISC5 is the worse machine.
 
 **Disposition:** rejected as a substrate: OISC/TTA abandon RV64 and re-mint every artifact stated against its Sail model (the EPIC disqualifier), TTA re-couples binary to microarchitecture, and neither actually shrinks the proof surface once capabilities, DMA, interrupts, and timing are modeled; the genuine parsimony atom (minimal decode, curated extensions) is already banked **inside** RISC-V (§15).
 The platform axiom decides it as ever: parsimony is spent where it shrinks the proof without forfeiting the substrate, not past the point the substrate and the proof survive.
