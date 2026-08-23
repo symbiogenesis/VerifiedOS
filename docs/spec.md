@@ -151,7 +151,15 @@ Anything that cannot be expressed as an ISA-visible, Sail-modeled, capability-ch
 The platform contains exactly one computer: the multikernel die.
 Every function conventionally delegated to a firmware-running coprocessor is either (a) **dissolved** into software on disciplined cores under the kernel, capabilities, and admission proofs; (b) reduced to a **fixed-geometry arithmetic unit** under the §15 coprocessor line (core-issued, capability-operand data movement; no instruction fetch, no firmware, no grammar); (c) reduced to **firmware-free device RTL** behind capability-checked DMA (§15); or (d) reduced to a **transducer or register slave** with no instruction fetch at all.
 A component that fetches and executes instructions outside this discipline does not go on the die or the board.
+**The sorting question is what fixes a block's next step.** <a id="r-04-010a"></a>
+A block that is not a core of the one computer is *matter* when three things hold together: its transition relation is welded in RTL over no writable program store; every operand it consumes and every schedule it runs to are handed to it by core-issued software under explicit capability operands (the coprocessor line, §15), so it masters nothing of its own; and it runs to a bound this composition states, carrying no autonomous behaviour in the fifth admission test's sense (§15) and accumulating no state across the operations it is handed.
+A block failing any one of the three answers *what next* out of a program, out of a mastership, or out of a private history, and is a foreign computer: size is not the axis, and nothing becomes matter by being small.
+The question is asked of blocks, not of the one computer's own cores and root of trust, which the heterogeneity discipline above and the §6 trusted base decide instead.
+Two readings the conditions are drawn against, because the boundary reads as a continuum until they are separated.
+**Reacting is not deciding:** the USB-PD contract sequencer (§12) steps on a message a foreign device sent, under a relation this composition welded, which is why the first condition is stated over the program store and never over input dependence.
+**Holding no program is not enough:** the autonomous bitstream engine (§15) holds none and is excluded on the second condition alone, as the display's dimming feedback loop (§15) is on the third.
 The single tolerated exception is the eUICC (§12) (a carrier-mandated foreign trust domain) contained as a register-slave crypto oracle with zero platform authority. <a id="r-04-011"></a>
+It is an exception and not a pass: the eUICC holds a carrier's program and fails the first condition outright, so what makes it survivable is containment, and a second exception is an act taken against the criterion with its own containment stated rather than a reading of this one.
 Consequences: the device allowlist collapses toward transducers; N vendor firmware-update channels collapse into the one proof-checked generation mechanism (§11); attestation coverage becomes total, radio included. <a id="r-04-012"></a>
 
 ---
