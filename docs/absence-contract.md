@@ -27,6 +27,8 @@ The contract does **not** prove that hyperproperty over a cycle-accurate model. 
 | **ISA-visible removals**: MMU and its Sv39 walker, PMP, the S/U rings, `C`, `Zifencei`, `Zalrsc`/`Zacas`, scalar `F`/`D`, dynamic `frm` state, `vstart` element-restart state, the fault-only-first vector loads, asynchronous interrupt delivery | **Nothing further.** These are absences in the frozen Sail model; an RTL implementing any of them fails *ordinary* refinement | R-15-098, R-15-099, R-15-039a, R-15-039b |
 | **Microarchitectural removals**: the register in §3 | **This contract.** Invisible to a model of architectural state, so no rung of the RTL ⊑ Sail ladder discharges them | R-15-098, R-15-100 |
 
+One removal in each class is held against a mechanism the alternatives document defers rather than declines, and §3 names both against the trigger that would fire them: the `Zifencei` row of the first class, and A-16 of the second (R-15-100b).
+
 ## 3. The register
 
 Each row is a structure whose **absence** is claimed, with the discharge form that closes it. Discharge form is fixed by who authored the block, not by the structure (§4). The numbered tests in the ground column are R-15-010's five admission tests: (1) deterministic architectural semantics, (2) data-independent timing, (3) no hidden microarchitectural state surviving a partition switch un-flushed by `fence.t`, (4) no authority path outside capabilities, (5) no autonomous behaviour.
@@ -56,6 +58,13 @@ Each row is a structure whose **absence** is claimed, with the discharge form th
 | **A-15** | Scalar-FP register file (`f0`–`f31`) and dynamic rounding-mode state | scalar `F`/`D` excluded; rounding is static, encoded per-instruction | R-15-039, R-15-083, R-15-215 |
 | **A-16** | Second tag plane (initialization-tag plane) | declined hedge under the *verify rather than hedge* clause; one tag bit per granule, not two | R-15-013, R-15-035 |
 | **A-17** | Second-class memory maintenance opcodes (discharge, refresh, tag maintenance, class migration, tier promotion) and any decode path reaching them | no instruction exists to remove: maintenance is §12 matter sequenced by the RoT while every requester is held in reset, refresh rides `cbo.scrub`, and class assignment is the static memory plan's composition-time act | R-15-247h, R-15-247, R-15-177a |
+
+**Two removals are held against a deferred alternative, and this register says which** (R-15-100b). A removal whose ground is that no consumer exists holds only while no consumer exists, so where [Evaluated Architectural Alternatives](architectural-alternatives.md) **defers** a mechanism rather than declining it, the removal it would retire is named against it here with the trigger that would fire it, instead of leaving an enumeration that states its members unconditionally. Naming admits nothing: each alternative stays deferred, and R-15-035, R-15-047 and R-13-010 stand as written until an amendment takes a trigger (R-18-034).
+
+- **A-16, the second tag plane**, would be retired by a **deterministic generation-tag plane**, the admissible form of identity-based temporal safety, should the R-08-005 load filter and the R-08-006 sweep ever prove too costly. The row's ground is *one tag plane in the SRAM word, not two* (R-15-035), and a second address-indexed plane is the second one whatever property it carries; the bit per granule, DECTED coverage, Sail invariant, RTL ⊑ Sail obligation and exploration parameter that exclusion recovers are spent again with it.
+- **The ISA-visible `Zifencei` removal of §2** would be retired by **static code overlays**, a statically scheduled instruction bank filled from the authenticated object store, should a measured composed roster exceed its executable SRAM budget after R-13-010a, R-13-010b, R-13-010c and R-15-036a. `Zifencei` is excluded for want of a runtime write-then-execute consumer (R-15-047); a loader filling an executable bank at every phase transition is that consumer, and is the on-device loader R-13-010 deletes rather than hardens.
+
+**A-09 and A-10 are on neither list.** That disposition excludes a demand-filled cache, a miss path and application-directed code loading by name, and a statically scheduled bank carries no cache data, tag or valid array, so the evidence this section has an auditor search for on the fetch and data paths is unchanged (R-15-100b, R-15-103).
 
 ## 4. The two discharge forms
 

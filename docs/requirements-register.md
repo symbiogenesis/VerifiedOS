@@ -4029,6 +4029,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the artifact exists, records both discharge forms (in-prover structural predicate for Kôika/Kami blocks per R-15-102; netlist state-enumeration plus synthesis-configuration provenance for imported cores per R-15-103), carries the table-freeness rule (R-15-104) and the `fence.t` four-class completeness map (R-15-217), and its agreement with this register is mechanically checked in both directions by `tools/check.py`. Because R-18-012 makes this the one part of the least-built layer buildable before that layer exists, the artifact is a day-one deliverable under R-18-003b(ii) and an absent one blocks it.
 · Trace: CJ-RTL-SAIL
 
+**R-15-100b** MUST: A removal whose ground is that no consumer exists holds only while no consumer exists, so where [Evaluated Architectural Alternatives](architectural-alternatives.md) defers a mechanism rather than declining it, the removal it would retire is named against it. Static code overlays, deferred until a measured composed roster exceeds its executable SRAM budget after R-13-010a, R-13-010b, R-13-010c and R-15-036a, would retire R-15-047's ground, a fill component writing an executable bank at run time being the runtime write-then-execute consumer that exclusion rests on the absence of, and R-13-010's deleted on-device loader with it. A deterministic generation-tag plane, preserved as the admissible form of identity-based temporal safety should the R-08-005 load filter and the R-08-006 sweep prove too costly, would retire R-15-035's exclusion of a second metadata plane. R-15-100's caches are retired by neither: the overlay disposition excludes a demand-filled instruction cache, a miss path and application-directed code loading by name, and a statically scheduled bank carries no tag or valid array for R-15-103's audit to find.
+· Accept: R-15-100a's artifact names each alternative that document defers against the removal it would retire and the trigger that would fire it, so a member held by a capacity bet is legible as one rather than read off an enumeration that states its members unconditionally. Naming admits nothing: R-15-035, R-15-047 and R-13-010 stand as written, each alternative stays deferred, and a trigger is taken by amendment (R-18-034) or not at all.
+· Trace: CJ-SAIL, CJ-RTL-SAIL
+
 **R-15-101** IS: The semantic content of the removals is one hyperproperty: cycle-level timing and memory traffic are a function of the instruction stream and architectural state alone, never of prior execution history.
 · Accept: the contract discharges a sufficient structural condition for it (that the enumerated structures and their state elements do not exist) rather than proving it over a cycle-accurate model.
 · Trace: CJ-ISOL
@@ -5809,7 +5813,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1342 requirements. §19 is non-normative and yields none. Counts include the 390 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1343 requirements. §19 is non-normative and yields none. Counts include the 391 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5827,7 +5831,7 @@ All eighteen normative sections are extracted, at 1342 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **126** |
 | **§13 Packaging & Supply Chain** | **extracted** | **39** |
 | **§14 Userland** | **extracted** | **29** |
-| **§15 Hardware Platform** | **extracted** | **387** |
+| **§15 Hardware Platform** | **extracted** | **388** |
 | **§16 Reliability** | **extracted** | **35** |
 | **§17 Residual Risks** | **extracted** | **123** |
 | **§18 Realization** | **extracted** | **54** |
