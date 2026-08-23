@@ -3,7 +3,9 @@
 
 Blessing is a judgment, so every mutating case here runs against a fixture tree and
 never the live ledger. What is held: list mode is a worklist that exits 0 with pairs
-pending, `--show` prints the two sides, `--bless` reaches a green list, a re-bless
+pending, `--show` prints the two sides for one pair, several, or with `--all` every
+pending pair in one read, `--where` names both sides' file:line sites so an editor
+opens at the pair, `--bless` reaches a green list, a re-bless
 of a current pair leaves the ledger's bytes and mtime alone (the write-path
 fixpoint), `--bless --all` with nothing pending writes nothing, a stale row left by
 a retired requirement is rebuilt away and the purge is reported even when nothing is
@@ -133,6 +135,36 @@ def _show_pair() -> None:
            f"--show prints one pair, not the register, got {done.stdout!r}")
 
 
+def _show_several() -> None:
+    done = _run(_root(), "--show", "R-01-001", "R-01-003")
+    ensure(done.returncode == 0, f"--show on two live pairs exits 0, got {done.returncode}")
+    ensure("=== R-01-001 ===" in done.stdout and "=== R-01-003 ===" in done.stdout
+           and "R-01-002" not in done.stdout,
+           f"--show prints the named pairs and no other, got {done.stdout!r}")
+    ensure("record the readings with `python tools/co-read.py --bless "
+           "R-01-001 R-01-003`." in done.stdout,
+           f"several pairs end in one bless hint naming them all, got {done.stdout!r}")
+
+
+def _show_all_pending() -> None:
+    done = _run(_root(), "--show", "--all")
+    ensure(done.returncode == 0, f"--show --all exits 0, got {done.returncode}")
+    for ident in ("R-01-001", "R-01-002", "R-01-003"):
+        ensure(f"=== {ident} ===" in done.stdout,
+               f"--show --all covers every pending pair, {ident} missing: {done.stdout!r}")
+
+
+def _where_pair() -> None:
+    done = _run(_root(), "--where", "R-01-002")
+    ensure(done.returncode == 0, f"--where on a live pair exits 0, got {done.returncode}")
+    ensure("R-01-002:" in done.stdout
+           and "docs/spec.md:8  #r-01-002" in done.stdout
+           and "docs/requirements-register.md:9" in done.stdout,
+           f"--where names both sides' file:line sites, got {done.stdout!r}")
+    ensure("r-01-001" not in done.stdout and "r-01-003" not in done.stdout,
+           f"--where prints one pair's sites, not the register's, got {done.stdout!r}")
+
+
 def _bless_one_then_all() -> None:
     done = _run(_root(), "--bless", "R-01-001")
     ensure(done.returncode == 0
@@ -160,6 +192,14 @@ def _bless_one_then_all() -> None:
     ensure(all(len(pair) == 2 and all(len(d) == 12 for d in pair)
                for pair in rows.values()),
            f"every row is two 12-hex digests, got {rows!r}")
+
+
+def _show_all_with_nothing_pending() -> None:
+    done = _run(_root(), "--show", "--all")
+    ensure(done.returncode == 0
+           and "nothing pending; the ledger already stands as the pairs do." in done.stdout,
+           f"--show --all with nothing pending says so, got {done.returncode}: "
+           f"{done.stdout!r}")
 
 
 def _rebless_is_a_fixpoint() -> None:
@@ -250,12 +290,21 @@ def _refusals() -> None:
     for args, message in (
         (("--show", "R-01-001", "--bless", "R-01-002"),
          "--show and --bless are different acts: run one, then the other"),
-        (("--all",), "--all records pending pairs and needs --bless"),
+        (("--where", "R-01-001", "--bless", "R-01-002"),
+         "--where and --bless are different acts: run one, then the other"),
+        (("--show", "R-01-001", "--where", "R-01-002"),
+         "--show and --where are different acts: run one, then the other"),
+        (("--all",), "--all covers pending pairs and needs --show or --bless"),
+        (("--where", "R-01-001", "--all"),
+         "--all covers pending pairs and needs --show or --bless"),
         (("--bless", "R-01-001", "--all"), "--bless takes explicit ids or --all, not both"),
+        (("--show", "R-01-001", "--all"), "--show takes explicit ids or --all, not both"),
         (("--bless",), "--bless needs an id, or --all to record every pending pair"),
         (("--show", ""), "--show needs a requirement id"),
+        (("--where", ""), "--where needs a requirement id"),
         (("--bless", "R-77-777"), "no requirement in the register: R-77-777"),
         (("--show", "R-77-777"), "no requirement 'R-77-777' in the register"),
+        (("--where", "R-77-777"), "no requirement 'R-77-777' in the register"),
     ):
         done = _run(_root(), *args)
         ensure(done.returncode != 0 and message in done.stderr,
@@ -276,7 +325,11 @@ def cases() -> list[Case]:
     return [
         Case("list-pending", _list_pending, lane="host"),
         Case("show-pair", _show_pair, lane="host"),
+        Case("show-several", _show_several, lane="host"),
+        Case("show-all-pending", _show_all_pending, lane="host"),
+        Case("where-pair", _where_pair, lane="host"),
         Case("bless-one-then-all", _bless_one_then_all, lane="host"),
+        Case("show-all-with-nothing-pending", _show_all_with_nothing_pending, lane="host"),
         Case("rebless-is-a-fixpoint", _rebless_is_a_fixpoint, lane="host"),
         Case("bless-all-with-nothing-pending", _bless_all_with_nothing_pending, lane="host"),
         Case("stale-row-purged", _stale_row_purged, lane="host"),
