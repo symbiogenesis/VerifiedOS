@@ -1032,6 +1032,15 @@ CASES: list[Case] = [
     # report is K-60's own.
     ("K-60", "a VLEN token naming a geometry no composed class carries",
      _literal(SPEC, "VLEN=4096", "VLEN=2048")),
+
+    # The manifest is bumped and the document's §4 heading is left, which is the shape
+    # the defect takes: the record grammar advances where an executor is checked
+    # against it, and the prose describing the grammar stands still. The seed is an
+    # increment of whatever the manifest declares rather than a literal, so the day
+    # the schema legitimately advances is not the day this case stops applying.
+    ("K-71", "a manifest declaring a commit-trace schema the document does not state",
+     _first_match("corpus/manifest.json", r'"trace_schema": (\d+)',
+                  lambda m: f'"trace_schema": {int(m.group(1)) + 1}')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
