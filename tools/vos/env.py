@@ -33,14 +33,15 @@ guest sees all 12. Raising the CPU count is therefore not available, and would n
 if it were, because the build's critical path is two strictly single-threaded stages
 back to back: the Sail C++ emission followed by the one generated translation unit it
 produces. Both figures move as the curation deletes surface, so both are dated. At the
-C-class freeze the emission is 41.2 s against a warm memo cache and the unit is
-10,539,981 bytes over 336,909 lines, compiling alone at -O2 -g in 139.1 s wall and
-115 s CPU with a 1.02 GB peak; that wall figure was taken with a sibling lane building
-and the compile held only 83% of a core, so it is an upper bound rather than a clean
-one. Against the 13.3 MB, 423,101-line, 150 s unit recorded at M0.3 the direction is
-what matters: the floor is roughly 3 min and it is falling, and no amount of
-parallelism reduces it. Memory is not binding: the heaviest single compile is that
-unit.
+C-class freeze the emission is 41.2 s against a warm memo cache. The unit, remeasured
+clean 2026-08-22 on a quiet toolchain at 10,835,851 bytes over 344,963 lines, compiles
+alone at -O2 -g in 81.8 s wall and 71 s CPU with a 1.20 GB peak under gcc 15.2.0, and
+in 38.7 s under clang 21.1.8 accepting the same command verbatim (I5's sweep); the
+139.1 s this docstring carried before was taken with a sibling lane building, so
+roughly 40% of it was contention rather than compiler. Against the 13.3 MB,
+423,101-line, 150 s unit recorded at M0.3 the direction is what matters: the floor is
+roughly 2 min and it is falling, and no amount of parallelism reduces it. Memory is
+not binding: the heaviest single compile is that unit.
 
 The source tree's residence on /mnt/c is a suspect for exactly one stage, and the
 rejection that stood here measured a stage that is not it. Reading the 1.19 MB of Sail
