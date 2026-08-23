@@ -10,6 +10,8 @@ Bank granularity on the second class is admitted against three quantities jointl
 
 The count is item (viii) of R-15-014a's closed final-freeze delta, so this document is an instrument for an act that has not happened. [The freeze-measurement contract](freeze-measurement-contract.md)'s own §10 says why the instrument is separate: the bank count is re-derived from realized macro geometry rather than from a composed image, so no corpus, no composition recipe, and no byte delta there reaches it, and *a freeze report quoting either from this instrument is a finding against this bullet*. This document therefore carries no corpus and no byte threshold, and acquiring either would make it the thing that contract refuses.
 
+**R-15-108's parameter list names the bank count**, so this instrument's governing entry and the entry that selects its subject agree on what the subject is. The count sits there beside the bank/macro/tier-to-island assignment rather than inside it, because an assignment distributes objects and arrays over the banks a map already grants and so presupposes a set of banks rather than fixing how many exist, which is the distinction R-15-228a states from the other side when it makes that map an input to the §8 plan and never an output of it. Neither name is scoped to a medium: the second class is not SRAM (R-15-247n) and its banks are whole-bound to islands exactly as the first class's are, so an enumeration reaching only one of the two classes would have left this instrument's own subject outside the set it is admitted against.
+
 ## 1. The knob
 
 The second class is divided into banks whole-bound to islands: no address interleaving crosses an island boundary, no bank is dynamically allocated, stolen, or donated, and no bank count varies with occupancy or load (R-15-247p). So the count is a composition-time constant with three consumers and no runtime reader at all, which is what makes it searchable off-model.
@@ -72,8 +74,7 @@ The report carries a residuals block naming every pending symbol and what owes i
 | BD-5 | a candidate outside the declared set, which is a search defect rather than a choice |
 | BD-6 | a freeze report reaching this item from the freeze-measurement instrument, which that contract's §10 already makes a finding against itself |
 
-## 6. Two things this document records rather than settles
+## 6. One thing this document records rather than settles
 
 **The per-class capacity split is a precondition nobody has taken.** How much of the roster's working set is genuinely cycle-critical decides how the budget divides between the two classes (R-15-247, R-15-247s), and until it is stated the second class has no bandwidth target its bank grant is scored against. It is a reading of the roster rather than a search output, and it is carried above as `split_cycle_critical` so that the freeze does not settle it by whatever the memory plan happened to place.
 
-**R-15-108's own parameter list does not name the bank count.** Its criterion enumerates the frozen microarchitectural set as VLEN per class, core count per class, issue width and pipeline depth, the SRAM bank/macro/tier-to-island assignment, scratchpad sizes, the CBO block size, the FEC decoders' realization geometry, and the TDM-NoC schedule. R-15-247p and R-15-014a (viii) both put the per-class bank count in the frozen set, and the tier-to-island assignment is the nearest thing R-15-108 has to it. Whether that is the same parameter under another name or an omission is a register question rather than this instrument's, and repairing it is an amendment that reruns the review gate, so it is reported here and not absorbed.
