@@ -9,6 +9,13 @@ to cite rather than restate, and where the prose obeys it there is nothing here 
 hold; these are the residue, the facts a survey of both documents found stated at
 sites no single pair covers, each confirmed to be held by no other rule.
 
+One row sits outside that survey and rides the same mechanism for a different reason.
+A fact about the *outside world*, restated wherever an obligation is priced, drifts
+with no act of this repository behind it, and no pair reaches it at all when the
+documents stating it are ones the register does not cite. Nothing else here changes:
+a site is still a literal some tracked artifact states, and the finding is still that
+one site moved while its siblings stood.
+
 The hold is the K-55 shape one size up: each fact names its sites, each site is a
 literal the artifact still states, and a site that stops stating it is the finding,
 which names the sibling sites so the fact is revisited jointly rather than repaired
@@ -34,6 +41,9 @@ HEADING = "=== costated: every fact stated across pairs, at each site stating it
 
 SPEC = "docs/spec.md"
 REGISTER = "docs/requirements-register.md"
+CHECKLIST = "docs/implementation-checklist.md"
+CRITIQUE = "docs/critique.md"
+INSPIRATIONS = "docs/inspirations.md"
 
 # One row per fact: what it is, and the sites that state it. A site names a register
 # entry (held against that entry's own lines: body, criteria, conferrals) or a
@@ -162,6 +172,18 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
                      "operating points; pre-proved global mode schedules; deep sleep "
                      "as a boot-chain variant; and composition-time gating of "
                      "unallocated SRAM"),
+    ]),
+    # The one row whose sites are all outside the register and the spec, and it is
+    # here for the reason the rest are: the masking obligation's nearest start-from
+    # is a fact about the outside world, so it moves without any act of this
+    # repository moving it, and it is stated wherever that obligation is priced. The
+    # Coq half still imports nothing at every site; what drifts is *which* half has a
+    # machine-checked source and in whose prover, which is the part a costing reads.
+    ("the masking obligation's nearest start-froms", [
+        (CHECKLIST, "Lean prime-field PINI development"),
+        (CHECKLIST, "arithmetic masking over prime fields"),
+        (CRITIQUE, "Lean arithmetic-masking development over prime fields"),
+        (INSPIRATIONS, "PINI-class composition over prime fields"),
     ]),
 ]
 
