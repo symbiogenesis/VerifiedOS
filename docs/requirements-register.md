@@ -1960,8 +1960,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CERISE
 
 **R-09-022** MUST: A distinct duress credential, presented in place of the ordinary one, commands the RoT to crypto-erase rather than unlock: it destroys the sealing root wrapping the per-profile volume keys and the device-identity secret, rendering every user-data domain permanently unrecoverable in the time to zeroize a key.
-· Accept: a key destruction rather than a bulk overwrite; SRAM volatility retains nothing across the power-down the erase forces.
+· Accept: a key destruction rather than a bulk overwrite; data-at-rest is AEAD-sealed under the destroyed keys, and main memory is answered per class, the first by volatility across the power-down the erase forces and the second by R-09-022a's discharge rather than by volatility it does not have (R-15-247, R-17-058f).
 · Trace: CJ-CRYPTO-SPEC
+
+**R-09-022a** MUST: The duress erase forces the discharge of every second-class domain ON or RETAINED when the credential is presented, and that discharge completes before the RoT reset R-09-023 orders, so no second-class plaintext survives the erase.
+· Accept: it rides R-15-247e's existing write devices and R-15-247f's fixed worst-corner dwell and single completion read rather than adding a second path to the array, adds no instruction and no access type, and is ordered after authority invalidation exactly as R-15-247d orders every other reset; R-09-023's indistinguishability is undisturbed, being stated only until the erase completes and the discharge sitting inside completing; what it closes is R-17-058f's window for the domains resident at that instant, leaving that entry's own residual, the adversary cutting power mid-path, where R-17-058f already books it.
+· Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
 **R-09-023** IS: The erase is one-way and non-rollbackable, rooted in the RoT's monotonic-counter and sealing machinery, followed by an RoT reset, and indistinguishable to an observer from an ordinary failed attempt until it completes.
 · Accept: the holder can be compelled to enter *a* credential, never the *right* one.
@@ -5791,7 +5795,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1338 requirements. §19 is non-normative and yields none. Counts include the 386 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1339 requirements. §19 is non-normative and yields none. Counts include the 387 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5803,7 +5807,7 @@ All eighteen normative sections are extracted, at 1338 requirements. §19 is non
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **60** |
 | **§8 Authority Model** | **extracted** | **86** |
-| **§9 Boot & Root of Trust** | **extracted** | **39** |
+| **§9 Boot & Root of Trust** | **extracted** | **40** |
 | **§10 Storage & State** | **extracted** | **53** |
 | **§11 Updates** | **extracted** | **37** |
 | **§12 System Servers** | **extracted** | **126** |
