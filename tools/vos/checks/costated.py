@@ -71,6 +71,15 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     ("the admission rule's non-duplication clause, cited by ordinal", [
         ("R-05-132", "(2) duplicates no existing grade or label axis"),
     ]),
+    ("the frozen theory's absence (2), cited by ordinal", [
+        ("R-05-129", "Absence (2): no type-level computation"),
+    ]),
+    ("the consent TCB's two proof clauses", [
+        ("R-06-017", "exactly two clauses: mint only on witnessed consent, and bound "
+                     "the mint to the named object"),
+        ("R-08-036", "R-06-017's two clauses are mint-on-witness and "
+                     "bound-to-the-named-object"),
+    ]),
     # the terminal period encodes the list's tail: a reorder that stops the ninth
     # seam being ninth breaks this literal while every id still resolves
     ("the seam-lemma list's tail, which 'the ninth seam' resolves against", [
@@ -120,6 +129,12 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
         ("R-17-058c", "the three R-16-008c sequences"),
         (SPEC, "the three protected sequences carry their detection as a theorem"),
         (SPEC, "The three §16 protected sequences"),
+    ]),
+    ("the admission test's numbered discharges, cited by test ordinal elsewhere", [
+        ("R-15-010", "(1) deterministic architectural semantics"),
+        ("R-15-010", "(2) data-independent timing"),
+        ("R-15-010", "(3) no new hidden shared microarchitectural state"),
+        ("R-15-010", "(5) no autonomous behaviour"),
     ]),
     ("the admissible power mechanisms, cited by ordinal elsewhere", [
         ("R-15-186", "race-to-idle with in-slot gating; static per-partition "

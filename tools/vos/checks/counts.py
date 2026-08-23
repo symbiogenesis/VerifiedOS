@@ -32,6 +32,9 @@ if TYPE_CHECKING:
 
 HEADING = "=== counts: every asserted figure against its artifact ==="
 
+SPEC = "docs/spec.md"
+TAL = "docs/typed-assembly-language.md"
+
 # file, quantity, style, and the pattern that captures the stated figure alone
 CLAIMS = [
     # the register states its own coverage
@@ -94,6 +97,66 @@ CLAIMS = [
     ("docs/critique.md", "cj-specs", "words", r"[\w-]+(?= crown jewels, each a small oracle)"),
     ("docs/critique.md", "requirements", "digits", r"(?<=of )[\d,]+(?= acceptance criteria)"),
     ("docs/critique.md", "requirements", "digits", r"(?<=of the )[\d,]+(?= requirements has yet been booked)"),
+
+    # the type-obligation menu: owned by R-05-029's enumeration, its count restated
+    # across both documents and the assembly language's own account
+    (REGISTER, "type-obligations", "words", r"(?<=partitions the canonical )[\w-]+(?= rather)"),
+    (REGISTER, "type-obligations", "words", r"(?<=a flat list of )[\w-]+(?= obligations)"),
+    (REGISTER, "type-obligations", "words", r"(?<=R-05-029's )[\w-]+(?= type-level obligations)"),
+    (REGISTER, "type-obligations", "words", r"(?<=\*\*the )[\w-]+(?= type-level obligations of R-05-029)"),
+    (SPEC, "type-obligations", "words", r"(?<=These )[\w-]+(?= type-level obligations)"),
+    (SPEC, "type-obligations", "words", r"(?<=The )[\w-]+(?= obligations above)"),
+    (SPEC, "type-obligations", "words", r"(?<=a flat list of )[\w-]+(?= obligations)"),
+    (SPEC, "type-obligations", "words", r"(?<=subset of the )[\w-]+(?= type-level obligations)"),
+    (SPEC, "type-obligations", "words", r"(?<=\*\*The )[\w-]+(?= type-level obligations of §5)"),
+    (SPEC, "type-obligations", "words", r"(?<=§5's )[\w-]+(?= type-level obligations)"),
+    (TAL, "type-obligations", "words", r"(?<=exactly these )[\w-]+(?= obligations)"),
+    (TAL, "type-obligations", "words", r"(?<=all )[\w-]+(?=, canonically enumerated)"),
+    (TAL, "type-obligations", "words", r"(?<=partition the )[\w-]+(?= menu rows)"),
+
+    # the four unary invariants, owned by R-05-159's enumeration
+    (REGISTER, "unary-invariants", "words", r"[\w-]+(?= unary invariants form the substrate)"),
+    (REGISTER, "unary-invariants", "words", r"(?<=against the )[\w-]+(?= unary invariants)"),
+    (SPEC, "unary-invariants", "words", r"(?<=the )[\w-]+(?= unary invariants that make)"),
+    (SPEC, "unary-invariants", "words", r"(?<=against the )[\w-]+(?= unary invariants)"),
+    (SPEC, "unary-invariants", "words", r"(?<=the )[\w-]+(?= invariants and the seam lemmas)"),
+
+    # the nine seam lemmas, owned by R-05-160's semicolon list; the prose states the
+    # list without its count, so the register's is the one count-word to hold
+    (REGISTER, "seam-lemmas", "words", r"(?<=seam lemmas are exactly )[\w-]+(?=: NI)"),
+
+    # the frozen theory's absences, owned by the entries themselves
+    (SPEC, "frozen-absences", "words", r"(?<=the )[\w-]+(?= absences that produce)"),
+    (TAL, "frozen-absences", "words", r"(?<=### 7\.1 The )[\w-]+(?= absences)"),
+    (TAL, "frozen-absences", "words", r"(?<=The )[\w-]+(?= absences hold)"),
+
+    # the five-part admission test, owned by R-15-010's own markers
+    (REGISTER, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?= tests)"),
+    (REGISTER, "admission-tests", "words", r"(?<=### 15\.2 The )[\w-]+(?=-part admission test)"),
+    (REGISTER, "admission-tests", "words", r"(?<=carries )[\w-]+(?= recorded dispositions)"),
+    (SPEC, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?=: \(1\))"),
+    (SPEC, "admission-tests", "words", r"(?<=The )[\w-]+(?=-part test governs)"),
+    (SPEC, "admission-tests", "words", r"(?<=passes all )[\w-]+(?= admission tests)"),
+    (SPEC, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part mechanism test)"),
+    (SPEC, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part admission test)"),
+
+    # the TCB's item count, owned by the specification's own §6 list
+    (REGISTER, "tcb-items", "words", r"(?<=exhaustively enumerated as )[\w-]+(?= items)"),
+    (REGISTER, "tcb-items", "words", r"(?<=R-06-001's )[\w-]+(?=-item enumeration)"),
+
+    # the assurance tiers, owned by the specification's own tier table
+    (REGISTER, "assurance-tiers", "words", r"(?<=There are exactly )[\w-]+(?= assurance tiers)"),
+
+    # the required-but-untrusted build artifacts, owned by the spec line's own markers
+    (REGISTER, "build-prereqs", "words", r"[\w-]+(?= artifacts are hard prerequisites)"),
+    (REGISTER, "build-prereqs", "words", r"(?<=list has )[\w-]+(?= entries rather than five)"),
+    (SPEC, "build-prereqs", "words", r"(?<=All )[\w-]+(?= are untrusted evidence-producing)"),
+
+    # the machine-checked radio protocols, owned by the inventory-row span R-12-043e pins
+    (REGISTER, "radio-protocols", "words", r"(?<=and for the )[\w-]+(?= radio protocols)"),
+    (REGISTER, "radio-protocols", "words", r"(?<=narrowed for the )[\w-]+(?= radio protocols)"),
+    (REGISTER, "radio-protocols", "words", r"(?<=analyzed models for the )[\w-]+(?= radio protocols)"),
+    (SPEC, "radio-protocols", "words", r"(?<=for the )[\w-]+(?= radio protocols that layer)"),
 ]
 
 # The claims are the whole mechanism, so a restatement nobody registered is not checked
@@ -112,7 +175,6 @@ COUNTED_NOUN = re.compile(
 # CRLF file, and every row would read as missing.
 COVERAGE_ROW_RE = r"(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|(?=\r?$)"
 
-SPEC = "docs/spec.md"
 ALTERNATIVES = "docs/architectural-alternatives.md"
 ESTIMATES = "docs/performance-estimates.md"
 
@@ -132,6 +194,8 @@ TAG_PLANE: list[tuple[str, str, str]] = [
     (SPEC, "mb-per-gb", r"(?<=granule is )[\d.]+(?= MB per GB of data)"),
     (SPEC, "plane-exact", r"(?<=native tags cost )[\d.]+(?=% plus that code)"),
     (SPEC, "plane-short", r"(?<=the tag plane doubles to )[\d.]+(?=% of the array)"),
+    (REGISTER, "plane-short", r"(?<=tag plane's ~)[\d.]+(?=% share of the array)"),
+    (SPEC, "plane-short", r"(?<=tag plane's ~)[\d.]+(?=% share of the array)"),
     (ALTERNATIVES, "mb-per-gb", r"(?<=granule is )[\d.]+(?= MB per GB of data)"),
     (ESTIMATES, "plane-short", r"(?<=and )[\d.]+(?=% in array area)"),
     (ESTIMATES, "plane-short", r"(?<=the plane is )[\d.]+(?=% of the array rather than)"),
@@ -152,6 +216,56 @@ BAND_MB_RE = re.compile(r"about (\d+)–(\d+) MB of SRAM per GB")
 BAND_PCT_RE = re.compile(r"some ([\d.]+)–([\d.]+)% of the bulk array")
 SIDECAR_RE = re.compile(r"consume (\d+)–\d+% of a \d+–(\d+) GB first class")
 TIER_RE = re.compile(r"a (\d+) GB bulk tier")
+
+# The enumerations the co-statement survey found restated as counts across K-61
+# pairs, each read from the one entry that owns it rather than declared here: the
+# count moves with the list, and every count-word restating it is a claim below.
+TYPE_OBLIGATIONS_RE = re.compile(r"obligations are exactly: ([^.]+)\.")
+UNARY_INVARIANTS_RE = re.compile(
+    r"unary invariants form the substrate every seam assumes: (.+)")
+SEAM_LEMMAS_RE = re.compile(r"seam lemmas are exactly [\w-]+: ([^.]+)\.")
+# a parenthesized single digit is an enumeration's own marker; a requirement id or a
+# section reference never takes that shape
+ENUM_MARK_RE = re.compile(r"\(\d\)")
+RADIO_ROWS_RE = re.compile(r"inventory rows (\d+)–(\d+)")
+TCB_ITEM_RE = re.compile(r"^\d+\. ")
+TIER_ROW_RE = re.compile(r"^\s*\| \*\*Tier \d")
+
+# K-69: a figure one entry fixes and other sites restate verbatim, with no arithmetic
+# between them: the K-54 shape without the ratio. Each row is the figure's key, the
+# owning entry, the pattern reading it from that entry's own lines, and the sites the
+# repair rewrites from the owner. Each site pattern captures the figure alone and
+# holds every occurrence its file carries.
+OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
+    ("kernel-line-budget", "R-07-001", r"targeting ≤(\d+k) lines", [
+        (REGISTER, r"(?<=on the order of )\d+k(?= LoC)"),
+        (SPEC, r"(?<=\(~)\d+k(?= LoC verified C\))"),
+        (SPEC, r"(?<=target ≤)\d+k(?= lines)"),
+        # the prose writes a thin space (U+2009) between the sign and the figure
+        (SPEC, r"(?<=below the ≤\u2009)\d+k(?=-line target)"),
+    ]),
+    ("range-decoder-share", "R-15-067g", r"measured at roughly (\d+)% of decode time", [
+        (SPEC, r"(?<=measured at roughly )\d+(?=% of decode time)"),
+    ]),
+    ("reference-slot-width", "R-15-036a", r"seven (\d+)-bit slots", [
+        (SPEC, r"(?<=At the reference )\d+(?=-bit slot)"),
+        (SPEC, r"(?<=collects one )\d+(?=-bit slot rather than four bytes)"),
+        (REGISTER, r"(?<=collects one )\d+(?=-bit slot rather than four bytes)"),
+    ]),
+    ("rvc-break-even", "R-15-036k", r"fails below \*p\* = ([\d.]+)", [
+        (SPEC, r"(?<=reached at \*p\* = \*\*)[\d.]+(?=\*\*)"),
+    ]),
+]
+
+# The one owned figure that is a range, held in both dash spellings: the documents
+# write 33-43 in an entry's own line and 33–43 in running prose, both derived from
+# the owner's capture below, so neither spelling is normalized away.
+RANGE_OWNER = ("R-15-007e", r"the (\d+)-(\d+)% no-C penalty")
+RANGE_SITES: list[tuple[str, str, str]] = [
+    (REGISTER, r"(?<=the )\d+-\d+(?=% no-C penalty)", "{lo}-{hi}"),
+    (SPEC, r"(?<=an accepted )\d+–\d+(?=% code-size penalty)", "{lo}–{hi}"),
+    (SPEC, r"(?<=the former )\d+-\d+(?=% code-size penalty)", "{lo}-{hi}"),
+]
 
 
 def _form_sites(form_re: re.Pattern[str], forms: list[str], raw: str) -> list[re.Match[str]]:
@@ -185,6 +299,53 @@ def _form_sites(form_re: re.Pattern[str], forms: list[str], raw: str) -> list[re
     return [m for at in sorted(sites) if (m := form_re.match(raw, at))]
 
 
+def _enumeration(pattern: re.Pattern[str], text: str, sep: str = ",") -> int:
+    """The member count of an owned enumeration, zero where the owner has moved:
+    a claim then disagrees loudly with every count-word restating it."""
+    m = pattern.search(text)
+    return len([s for s in m.group(1).split(sep) if s.strip()]) if m else 0
+
+
+def _spec_lines(ctx: Context, lead: str, pattern: re.Pattern[str],
+                until: str | None = None) -> int:
+    """Lines of the specification a pattern decides, optionally scoped to run from
+    one heading to the next `## `. The fence mask is honored as everywhere."""
+    doc = ctx.corpus.get(SPEC)
+    if doc is None:
+        return 0
+    inside = until is None
+    n = 0
+    for i, line in enumerate(doc.lines):
+        if until is not None:
+            if line.startswith(until):
+                inside = True
+                continue
+            if inside and line.startswith("## "):
+                break
+        if inside and lead in line and not doc.fenced[i] and pattern.match(line):
+            n += 1
+    return n
+
+
+def _anchor_line_marks(ctx: Context, ident: str) -> int:
+    """The enumeration markers on the one spec line declaring a bookmark."""
+    doc = ctx.corpus.get(SPEC)
+    if doc is None:
+        return 0
+    needle = f'<a id="{ident}">'
+    for i, line in enumerate(doc.lines):
+        if needle in line and not doc.fenced[i]:
+            return len(ENUM_MARK_RE.findall(line))
+    return 0
+
+
+def _radio_protocols(reg_accept: str) -> int:
+    """The curated-analysis set's size, read as the register itself states it: the
+    span of crown-jewel inventory rows R-12-043e pins its lineages to."""
+    m = RADIO_ROWS_RE.search(reg_accept)
+    return int(m.group(2)) - int(m.group(1)) + 1 if m else 0
+
+
 def _quantities(ctx: Context) -> dict[str, int]:
     reg, art, sh = ctx.reg, ctx.art, ctx.shared
     classes = [cj_class(row) for row in art.cj_rows]
@@ -210,6 +371,20 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "properties": len(art.cm_props),
         "cells": len(art.cm_cells),
         "absences": len(art.absence_ids),
+        # the counts the co-statement survey found restated across K-61 pairs, each
+        # computed from the artifact that owns it: an entry's own enumeration, the
+        # specification's own list or table, or the row range the register pins
+        "type-obligations": _enumeration(TYPE_OBLIGATIONS_RE,
+                                         reg.body.get("R-05-029", "")),
+        "unary-invariants": _enumeration(UNARY_INVARIANTS_RE,
+                                         reg.body.get("R-05-159", "")),
+        "seam-lemmas": _enumeration(SEAM_LEMMAS_RE, reg.body.get("R-05-160", ""), ";"),
+        "frozen-absences": sum(1 for b in reg.body.values() if ": Absence (" in b),
+        "admission-tests": len(ENUM_MARK_RE.findall(reg.body.get("R-15-010", ""))),
+        "tcb-items": _spec_lines(ctx, ". ", TCB_ITEM_RE, until="## 6. "),
+        "assurance-tiers": _spec_lines(ctx, "| **Tier", TIER_ROW_RE),
+        "build-prereqs": _anchor_line_marks(ctx, "r-06-024"),
+        "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
     }
 
 
@@ -377,6 +552,66 @@ def _block_geometry(ctx: Context) -> None:
                f"{len(candidates)}")
 
 
+def _owned_figures(ctx: Context) -> None:
+    """K-69: every figure one entry fixes, restated identically wherever it is stated.
+
+    The K-54 shape without the arithmetic: a budget, a measurement, or a frozen width
+    is one entry's statement, other sites repeat it verbatim, and an edit to the owner
+    left the repeats standing in pairs whose other side states no figure at all, which
+    is the drift the co-statement survey found K-61 structurally cannot see. Each
+    figure is read from the entry that fixes it and every registered site is held to
+    it; under `--fix` the sites are rewritten from the owner, never the other way,
+    because the owner is where the decision lives.
+
+    The one range among them is held in both dash spellings on purpose: an entry's own
+    line writes 33-43 and running prose writes 33–43, both derived from the owner's
+    captures, so the hold does not flatten a typographic convention.
+    """
+    rep, reg = ctx.rep, ctx.reg
+    missed: list[str] = []
+    held = 0
+
+    def owner_text(ident: str) -> str:
+        return reg.body.get(ident, "") + " " + reg.accept_text.get(ident, "")
+
+    for key, ident, owner_pattern, sites in OWNED:
+        m = re.search(owner_pattern, owner_text(ident))
+        if not m:
+            missed.append(f"{ident} no longer states the {key} figure in a form this "
+                          "rule reads")
+            continue
+        for file, pattern in sites:
+            held += 1
+            r = figures.resolve_claim(ctx, file, pattern, m.group(1),
+                                      f"the {key} figure")
+            if r.fixed:
+                rep.line(r.fixed)
+            if r.finding:
+                missed.append(r.finding)
+
+    range_id, range_pattern = RANGE_OWNER
+    m = re.search(range_pattern, owner_text(range_id))
+    if not m:
+        missed.append(f"{range_id} no longer states the no-C code-size range in a "
+                      "form this rule reads")
+    else:
+        lo, hi = m.group(1), m.group(2)
+        for file, pattern, shape in RANGE_SITES:
+            held += 1
+            r = figures.resolve_claim(ctx, file, pattern,
+                                      shape.format(lo=lo, hi=hi),
+                                      "the no-C code-size range")
+            if r.fixed:
+                rep.line(r.fixed)
+            if r.finding:
+                missed.append(r.finding)
+
+    rep.report("K-69", "owned figure(s) restated differently than their entry fixes:",
+               missed,
+               f"all {len(OWNED) + 1} owned figures are restated identically at "
+               f"their {held} registered sites")
+
+
 def _core_classes(ctx: Context) -> None:
     """K-60: the core-class table, in every artifact that writes it.
 
@@ -434,13 +669,35 @@ def _core_classes(ctx: Context) -> None:
                      f"composed roster carries {cc.roster[name]}"
                      for name, n in sorted(cc.counts.items()) if cc.roster[name] != n]
 
+    # The free-prose tokens beyond the four table sites: a VLEN=n anywhere in the
+    # corpus is a claim about some composed class's datapath, and the ones outside
+    # the tables were held by nothing, so a re-picked geometry (R-15-108 names each
+    # class's VLEN as a searched parameter) moved the tables and left the prose
+    # citing a machine no longer composed. Membership is the strongest form the
+    # token admits: a bare VLEN=n names no class, so a swap of two classes'
+    # geometries stays in-set and is the residue the registry row declares.
+    tokens = 0
+    if cc.declared is not None:
+        geometries = {v for v in cc.declared.values() if v}
+        for doc in ctx.corpus.docs:
+            for m in coreclass.VLEN_RE.finditer(doc.raw):
+                if doc.is_fenced(m.start()):
+                    continue
+                tokens += 1
+                if int(m.group(1)) not in geometries:
+                    findings.append(
+                        f"{doc.name}:{doc.at(m.start())} states VLEN={m.group(1)}, "
+                        f"a geometry no composed class carries")
+
     ctx.shared["core_class_sites"] = sum(
         1 for table in cc.stated.values() if table is not None) + (
         (cc.declared is not None) + (cc.roster is not None))
+    ctx.shared["vlen_tokens"] = tokens
     rep.report("K-60", "core-class table site(s) that disagree:", findings,
                f"the {len(coreclass.CLASSES)} core classes carry one vector geometry "
-               f"across all {len(cc.stated) + 1} sites that write it, and the "
-               f"{len(cc.counts)} stated counts are the composed roster's")
+               f"across all {len(cc.stated) + 1} sites that write it, the "
+               f"{len(cc.counts)} stated counts are the composed roster's, and every "
+               f"one of the corpus's {tokens} VLEN tokens is a composed geometry")
 
 
 def _citation_window(ctx: Context) -> tuple[list[tuple[str, str]], list[str]]:
@@ -832,6 +1089,7 @@ def run(ctx: Context) -> None:
                    "every Coverage row matches the register")
 
     _tag_plane(ctx)
+    _owned_figures(ctx)
     _block_geometry(ctx)
     _core_classes(ctx)
     window, faults = _citation_window(ctx)
