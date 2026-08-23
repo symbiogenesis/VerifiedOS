@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """The welded block size, read out of every artifact that writes it.
 
-This is the one parse in this package that reads the curated model rather than a
-document, and the exception is the point rather than an oversight. The block size is
+This parse reaches past the documents into the curated model, as `banks.py`,
+`coreclass.py` and `decode.py` do, and each such reach is declared rather than
+habitual: the exception is the point and not an oversight. The block size is
 declared twice in Sail and twice in JSON, transcribed once more in the model's own
 harness, and stated a sixth time in the document that constrains it. Five of those
 six are outside the checker's ordinary corpus, so without this the document's number

@@ -43,7 +43,10 @@ def run(ctx: Context) -> None:
     vocab = [
         ("requirement", r"R-\d\d-\d+[a-z]?", reg.ids, "the register"),
         ("crown-jewel target", r"CJ-[A-Z][A-Z-]*", reg.cj_targets, "the register's CJ- table"),
-        ("absence", r"A-\d+", art.absence_ids, "docs/absence-contract.md"),
+        # the absence token carries the suffix for the same reason the requirement one
+        # does: `A-12a` is an id, and a pattern stopping at the digits does not report
+        # it as unknown but fails the right boundary and skips the citation entirely
+        ("absence", r"A-\d+[a-z]?", art.absence_ids, "docs/absence-contract.md"),
         ("boundary", r"B-\d+", art.cm_bounds, "docs/coverage-matrix.md"),
         ("property", r"P-\d+", art.cm_props, "docs/coverage-matrix.md"),
     ]
