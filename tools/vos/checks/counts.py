@@ -110,6 +110,9 @@ CLAIMS = [
     (SPEC, "type-obligations", "words", r"(?<=subset of the )[\w-]+(?= type-level obligations)"),
     (SPEC, "type-obligations", "words", r"(?<=\*\*The )[\w-]+(?= type-level obligations of §5)"),
     (SPEC, "type-obligations", "words", r"(?<=§5's )[\w-]+(?= type-level obligations)"),
+    (REGISTER, "type-obligations", "words", r"(?<=admission check that is not one of the )[\w-]+"),
+    (SPEC, "type-obligations", "words", r"(?<=admission check and not one of the )[\w-]+"),
+    (SPEC, "type-obligations", "words", r"(?<=WCET\) are not )[\w-]+(?= mechanisms)"),
     (TAL, "type-obligations", "words", r"(?<=exactly these )[\w-]+(?= obligations)"),
     (TAL, "type-obligations", "words", r"(?<=all )[\w-]+(?=, canonically enumerated)"),
     (TAL, "type-obligations", "words", r"(?<=partition the )[\w-]+(?= menu rows)"),
@@ -134,11 +137,14 @@ CLAIMS = [
     (REGISTER, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?= tests)"),
     (REGISTER, "admission-tests", "words", r"(?<=### 15\.2 The )[\w-]+(?=-part admission test)"),
     (REGISTER, "admission-tests", "words", r"(?<=carries )[\w-]+(?= recorded dispositions)"),
+    (REGISTER, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part admission test)"),
+    (REGISTER, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part test)"),
     (SPEC, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?=: \(1\))"),
     (SPEC, "admission-tests", "words", r"(?<=The )[\w-]+(?=-part test governs)"),
     (SPEC, "admission-tests", "words", r"(?<=passes all )[\w-]+(?= admission tests)"),
     (SPEC, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part mechanism test)"),
     (SPEC, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part admission test)"),
+    (SPEC, "admission-tests", "words", r"(?<=The \*\*)[\w-]+(?=-part admission test)"),
 
     # the TCB's item count, owned by the specification's own §6 list
     (REGISTER, "tcb-items", "words", r"(?<=exhaustively enumerated as )[\w-]+(?= items)"),
@@ -169,7 +175,7 @@ CLAIMS = [
 COUNTED_NOUN = re.compile(
     r"requirement|acceptance criteri|normative section|crown.jewel|specification|"
     r"theorem target|`CJ-`|absence|boundar|propert|pair|cell|derived view|seam|"
-    r"CSR|letter-suffixed|such entries", re.IGNORECASE)
+    r"CSR|letter-suffixed|such entries|obligation|menu row", re.IGNORECASE)
 
 # The trailing lookahead keeps CRLF out of the match: an anchored `\|$` never matches a
 # CRLF file, and every row would read as missing.
@@ -238,7 +244,10 @@ TIER_ROW_RE = re.compile(r"^\s*\| \*\*Tier \d")
 # holds every occurrence its file carries.
 OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
     ("kernel-line-budget", "R-07-001", r"targeting ≤(\d+k) lines", [
-        (REGISTER, r"(?<=on the order of )\d+k(?= LoC)"),
+        # anchored on the microkernel's own sentence, not the stock magnitude
+        # idiom: "on the order of Nk LoC" is a spelling any entry may use, and a
+        # repair rewrites every match its pattern holds
+        (REGISTER, r"(?<=microkernel is on the order of )\d+k(?= LoC of verified C)"),
         (SPEC, r"(?<=\(~)\d+k(?= LoC verified C\))"),
         (SPEC, r"(?<=target ≤)\d+k(?= lines)"),
         # the prose writes a thin space (U+2009) between the sign and the figure
@@ -299,11 +308,34 @@ def _form_sites(form_re: re.Pattern[str], forms: list[str], raw: str) -> list[re
     return [m for at in sorted(sites) if (m := form_re.match(raw, at))]
 
 
+# Every quantity below is a reading of one owner's phrasing, and a reading that
+# returns zero means the phrasing moved, never that the list emptied: none of these
+# enumerations can be empty while its entry exists. `run` therefore refuses to
+# resolve a zero-valued owned count's claims, because resolving them would hold, and
+# under `--fix` rewrite, every restatement to "zero", a confident corruption in
+# place of the loud stop the K-54 and K-69 owner guards give.
+OWNED_COUNTS = frozenset({
+    "type-obligations", "unary-invariants", "seam-lemmas", "frozen-absences",
+    "admission-tests", "tcb-items", "assurance-tiers", "build-prereqs",
+    "radio-protocols",
+})
+
+_PARENTHETICAL_RE = re.compile(r"\([^)]*\)")
+
+
 def _enumeration(pattern: re.Pattern[str], text: str, sep: str = ",") -> int:
-    """The member count of an owned enumeration, zero where the owner has moved:
-    a claim then disagrees loudly with every count-word restating it."""
+    """The member count of an owned enumeration, zero where the owner has moved.
+
+    Parentheticals are stripped before the split, so a comma inside a member's
+    gloss is never a member; what this cannot survive is a separator gaining a
+    second meaning inside a member's bare text, which is the register's own
+    single-line entry grammar to refuse.
+    """
     m = pattern.search(text)
-    return len([s for s in m.group(1).split(sep) if s.strip()]) if m else 0
+    if not m:
+        return 0
+    bare = _PARENTHETICAL_RE.sub("", m.group(1))
+    return len([s for s in bare.split(sep) if s.strip()])
 
 
 def _spec_lines(ctx: Context, lead: str, pattern: re.Pattern[str],
@@ -972,9 +1004,20 @@ def run(ctx: Context) -> None:
         n = ctx.q[quantity]
         return figures.words(n) if style == "words" else str(n)
 
+    # An owned count of zero is a moved owner, never an empty list, and its claims
+    # are skipped rather than resolved: resolved, they would hold every restating
+    # count-word to "zero", and one routine `--fix` would write that corruption
+    # into three documents and leave the next run green.
+    dead = {q for q in OWNED_COUNTS if not ctx.q.get(q)}
+    missed: list[str] = [
+        f"{q}'s owner no longer states its enumeration in a form this rule reads, "
+        f"so its claims stand unresolved rather than repaired to zero"
+        for q in sorted(dead)]
+
     claim_spans: dict[str, list[re.Match[str]]] = {}
-    missed: list[str] = []
     for file, quantity, style, pattern in CLAIMS:
+        if quantity in dead:
+            continue
         # `figures.words` refuses a count past ninety-nine, and the count is the
         # documents' to grow: a quantity that outgrows its word form is this rule's
         # finding, naming the claim owed a digits spelling, never a stopped run

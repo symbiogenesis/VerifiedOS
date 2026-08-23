@@ -1013,6 +1013,13 @@ CASES: list[Case] = [
      _entry("R-14-007", lambda entry: entry.replace(
          "capabilities beyond pure compute", "capabilities beyond pure computation"))),
 
+    # An owned enumeration's lead-in moves with the list untouched: the reader
+    # returns zero, and the guard must report the moved owner rather than resolve
+    # the claims, whose --fix would rewrite every restating count-word to "zero"
+    # across three documents and leave the next run green.
+    ("K-24", "an owned enumeration whose lead-in moved out of the reader's reach",
+     _literal(REGISTER, "obligations are exactly:", "obligations are precisely:")),
+
     # A restated figure drifts from the entry that fixes it: the kernel budget's spec
     # restatement moves while R-07-001 stands, the drift K-69's --fix rewrites back
     # from the owner.
@@ -1043,7 +1050,7 @@ def _case_mutation(rule: str) -> Mutation:
 # and the defect the repair lane seeds. The repair path is never exercised by a
 # green tree, so a branch missing here ships untested unless something breaks it on
 # purpose. Six seeds are the rules' own case mutants, each an arithmetic figure whose
-# repair writes the pristine bytes back. K-54's case cannot be the sixth: it moves the
+# repair writes the pristine bytes back. K-54's case cannot be the seventh: it moves the
 # granule owner, and repairing from a moved owner rewrites every derived figure to the
 # new granule and dirties co-read pairs no --fix may bless, so the after-check could
 # never pass. Its seed here moves one derived figure instead, in the exact document
@@ -1265,7 +1272,7 @@ def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
     the checklist's cells and totals, and the tag-plane figures from their artifacts,
     and on a repository that already agrees it rewrites nothing, so those branches ship
     untested unless something breaks them on purpose. One seed per rule in REPAIRABLE,
-    all six at once, each repair asserted by its own `fixed:` line, and the lane is
+    all seven at once, each repair asserted by its own `fixed:` line, and the lane is
     bracketed by two fixpoint proofs: --fix on the pristine tree exits clean, rewrites
     nothing, and moves no byte; and once the seeded defects are repaired and the
     checker passes, a second --fix again rewrites nothing and moves no byte.

@@ -151,9 +151,13 @@ def anchor(pattern: str) -> str:
         char, width, literal = body[i], 1, False
         if char == "\\":
             # an escape stands for the character it names, unless that character is a
-            # letter or a digit, which is how a class or an assertion is spelled
+            # letter or a digit, which is how a class or an assertion is spelled; a
+            # hex escape (\xXX, \uXXXX, \UXXXXXXXX) names one character whose digits
+            # are its spelling and not document text, so they are consumed with it
             char, width = body[i + 1:i + 2], 2
             literal = not char.isalnum()
+            if char in "xuU":
+                width += {"x": 2, "u": 4, "U": 8}[char]
         elif char == "[":
             width = _class_end(body, i) - i
         elif char == "(":

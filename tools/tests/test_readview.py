@@ -112,10 +112,11 @@ def _weave_places_every_entry() -> None:
            f"{beneath!r}")
 
     recur = lines.index('The second claim recurs here. <a id="r-01-002-2"></a>')
-    ensure("cited here again: R-01-002" in lines[recur + 2]
+    ensure("cited here again: R-01-002, stated in full at their own bookmarks."
+           in lines[recur + 2]
            and "**R-01-002**" not in "\n".join(lines[recur:]),
-           f"a repeat bookmark gets a pointer and never a second copy, got "
-           f"{lines[recur:recur + 3]!r}")
+           f"a repeat bookmark gets a direction-neutral pointer and never a second "
+           f"copy, got {lines[recur:recur + 3]!r}")
 
 
 def _doubled_run_is_byte_identical() -> None:
