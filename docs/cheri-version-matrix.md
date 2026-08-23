@@ -31,7 +31,7 @@ Three lineages have incremented since CHERI began, and the profile stands in a d
 | Capabilities as an in-address-space feature composing with MMU virtual memory | 1.0 | ⛔ | R-15-002, R-15-038 | Inverted deliberately: one dense 36-bit **physical** space, `satp` Bare, MMU and walker deleted rather than exempted. ISAv9 later added a model section for exactly this case (§7 below). |
 | Capabilities implement C code and data pointers | 1.0 | ✅ | R-15-001, R-18-002 | Purecap only, no hybrid, no plain-RV64 target. |
 | Monotonic non-increase on derivation | 1.0 | ✅ | R-15-007b, R-07-006, R-14-002 | Restated over the enumerated permission lattice rather than inherited over independent bits, the one place the algebra changes. |
-| Explicit capability instructions targeted by the compiler | 1.0 | ✅ | R-18-014a | CHERI-CompCert backend targets the frozen profile. |
+| Explicit capability instructions targeted by the compiler | 1.0 | ✅ | R-18-014a, R-05-023b | CHERI-CompCert backend targets the frozen profile, by pattern where a source form denotes the instruction and by named primitive where none does; the second set is closed against the profile's own instruction rows, so a compiler mints no instruction the profile does not carry. |
 | Bounds derived from allocators and OS policy | 1.0 | ✅ | R-15-007c | Displaced to composition time: the static memory plan computes the padding. |
 | Capabilities in registers **and** in memory | 1.0 | ✅ | R-15-203 | One native tag bit per 64-bit SRAM granule, one plane, no tag cache. |
 | Tagged memory for provenance | 1.0 | ✅ | R-15-203, R-15-209 | Fabric propagates tags; non-capability transducer writes clear them by construction. |
