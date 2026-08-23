@@ -106,7 +106,7 @@ def _configure(e: env.Environment, build_dir: Path,
         "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
         "-DDOWNLOAD_GMP=FALSE",
         "-DENABLE_RISCV_TESTS=TRUE",
-        *e.ccache, *(extra or []),
+        *e.compilers, *e.ccache, *(extra or []),
     ], stdout=out, stderr=out,
        add_env=None if admin is None else {"GIT_DIR": str(admin)})
 

@@ -172,6 +172,7 @@ class Environment:
     mem_available_mb: int
     jobs: int
     test_jobs: int
+    compilers: list[str] = field(default_factory=list)
     ccache: list[str] = field(default_factory=list)
 
     @property
@@ -350,6 +351,26 @@ def _ccache_args() -> list[str]:
     return ["-DCMAKE_C_COMPILER_LAUNCHER=ccache", "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"]
 
 
+def _compiler_args() -> list[str]:
+    """Prefer clang for the model's C and C++ when the distribution carries one.
+
+    Measured rather than assumed (I5, 2026-08-22): clang 21.1.8 compiles the generated
+    unit in 38.7 s where gcc 15.2.0 takes 81.8 s from the same command verbatim, and
+    that unit is the largest term of a real-edit build, so the preference buys about
+    43 s per real regeneration. Found-or-absent like ccache above: a machine without
+    clang builds under cmake's default compiler and nothing here pretends otherwise.
+
+    cmake does not migrate a configured tree across a compiler change, so this flag
+    decides only a tree configured fresh: an existing tree keeps the compiler it was
+    born with until it is retired, which is a deletion, the lane idiom. The canonical
+    and fast trees were retired and rebuilt at the flip (I10), with the canonical's
+    memo cache saved aside and restored exactly as a lane seed would be.
+    """
+    if shutil.which("clang") and shutil.which("clang++"):
+        return ["-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"]
+    return []
+
+
 def _raise_stack_limit() -> None:
     # POSIX-only, and this module is read on the host as well as run in the guest.
     # Deferring the import is what keeps `import vos.env` from failing on Windows.
@@ -458,6 +479,7 @@ def load() -> Environment:
         # Each ctest case is one single-threaded process with a small footprint, so the
         # core count is the whole story and the memory guard does not apply.
         test_jobs=int(os.environ.get("VOS_TEST_JOBS", cpus)),
+        compilers=_compiler_args(),
         ccache=_ccache_args(),
     )
 
