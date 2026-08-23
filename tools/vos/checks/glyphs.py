@@ -12,6 +12,16 @@ Both are reported per file with the lines to visit, and neither is repaired. An
 em-dash is removed by deciding what the sentence meant; a mangled character can only
 be restored by whoever knows what it was.
 
+The window is the **whole git index** rather than the `.md` corpus every other group
+reads, and that follows from the rule being absolute. Both faults are properties of a
+file's bytes and not of its prose, so a comment in Sail, in assembly, or in JavaScript
+carries them exactly as a paragraph does, and a rule stated with no carve-out that
+silently stopped at one suffix would be a carve-out nobody had to audit. A file the
+index carries that is not UTF-8 is skipped rather than reported, because neither fault
+can be stated over bytes that are not text. Submodule contents never arrive here at
+all: a gitlink carries no file of its own, so an upstream's punctuation is out of
+reach by construction rather than by an exemption.
+
 The rule is absolute, and that is a decision rather than an oversight. It stood
 failing across nine files for as long as it did because it conflated prose punctuation
 with two structural uses that no rewrite can reach: the register's entry header
@@ -32,7 +42,6 @@ import re
 from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 
-from vos.corpus import Document
 from vos.report import sites
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -86,16 +95,35 @@ def _offsets(raw: str, needle: str) -> Iterator[int]:
         start = raw.find(needle, start + 1)
 
 
-def _lines_carrying(doc: Document, offsets: Iterable[int]) -> list[int]:
+def _lines_carrying(raw: str, offsets: Iterable[int]) -> list[int]:
     """One entry per line, however many hits it carries: the repair is one visit."""
     found: list[int] = []
     last = -1
     for offset in offsets:
-        i = doc.line_of(offset)
+        i = raw.count("\n", 0, offset)
         if i != last:
             found.append(i + 1)
             last = i
     return found
+
+
+def _texts(ctx: Context) -> Iterator[tuple[str, str]]:
+    """Every tracked file, as text, in the index's own order.
+
+    A document is read from the corpus rather than from disk a second time, because it
+    is already in memory and its bytes are the same bytes. Everything else is read
+    here, and a file that will not decode as UTF-8 is skipped: it is not text, so
+    neither fault below is a thing that could be said about it.
+    """
+    for rel in ctx.corpus.tracked:
+        doc = ctx.corpus.get(rel)
+        if doc is not None:
+            yield rel, doc.raw
+            continue
+        try:
+            yield rel, (ctx.corpus.root / rel).read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
 
 
 def run(ctx: Context) -> None:
@@ -104,18 +132,18 @@ def run(ctx: Context) -> None:
 
     em_hits: list[str] = []
     mojibake_hits: list[str] = []
-    for doc in ctx.corpus.docs:
-        dashes = _lines_carrying(doc, _offsets(doc.raw, EM_DASH))
+    for name, raw in _texts(ctx):
+        dashes = _lines_carrying(raw, _offsets(raw, EM_DASH))
         damage: list[int] = []
-        if any(mark in doc.raw for mark in MOJIBAKE_MARKS):
-            damage = _lines_carrying(doc, (m.start() for m in MOJIBAKE_RE.finditer(doc.raw)))
+        if any(mark in raw for mark in MOJIBAKE_MARKS):
+            damage = _lines_carrying(raw, (m.start() for m in MOJIBAKE_RE.finditer(raw)))
         if dashes:
-            em_hits.append(sites(doc.name, dashes))
+            em_hits.append(sites(name, dashes))
         if damage:
-            mojibake_hits.append(sites(doc.name, damage))
+            mojibake_hits.append(sites(name, damage))
 
     rep.report("K-40", "file(s) carrying an em-dash (U+2014)", em_hits,
-               "no em-dash in any document")
+               "no em-dash in any tracked file")
     rep.report("K-41", "file(s) carrying mojibake or a replacement character", mojibake_hits,
-               "no encoding damage in any document")
+               "no encoding damage in any tracked file")
     rep.line()

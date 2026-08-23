@@ -6,7 +6,7 @@
 # the bit is set, and the next load of a stale capability delivers it with its
 # validity tag cleared. That clear is one of the load's own defined results, so
 # nothing traps, no cause code is raised, and the value itself arrives
-# unchanged — which is the shape a load *has* to have for the check to be
+# unchanged, which is the shape a load *has* to have for the check to be
 # expressible at all.
 #
 # The program plays both parts. It is the kernel revocation path when it writes

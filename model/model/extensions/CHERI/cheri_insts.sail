@@ -751,8 +751,8 @@ union clause instruction = CReclaim : (regidx, regidx)
 // (R-15-007s, R-08-007b).
 //
 // Over one granule group it applies the per-granule conditional clear the sweep
-// exists to apply — each stored capability whose **base** falls under a set
-// revocation bit has its validity tag cleared in place — and returns the
+// exists to apply: each stored capability whose **base** falls under a set
+// revocation bit has its validity tag cleared in place, and returns the
 // group's tags as they stand after the pass. A granule whose bit is clear is
 // untouched bit for bit, and no data is written by either case.
 //

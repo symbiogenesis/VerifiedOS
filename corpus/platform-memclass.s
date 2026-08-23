@@ -23,7 +23,7 @@
 # The tag plane is the structure that could have made the boundary a trust
 # boundary and does not. Validity tags are native to each class's own array, one
 # plane per class, read and written in parallel with the data, with no sidecar
-# in a foreign medium and no tag table (R-15-247a, R-15-203) — which is also
+# in a foreign medium and no tag table (R-15-247a, R-15-203), which is also
 # what keeps `cloadtags` at one cost model wherever the group it names resides.
 #
 # Two things the corpus cannot reach and does not pretend to: refresh and

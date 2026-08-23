@@ -114,7 +114,7 @@ private function pmaCheck forall 'n, 0 < 'n <= max_mem_access .
 
     // The scrub is the memory controller's read-modify-write stage minus the
     // merge (R-15-181, R-15-177a), so it is permitted where a read and a write
-    // both are — and only over an array that carries the error-detecting code
+    // both are, and only over an array that carries the error-detecting code
     // it verifies. A device register has no codeword to scrub, and a scrub of
     // one would be a read and a write of that device with no architectural
     // reason, so IO memory refuses it here rather than at the instruction.

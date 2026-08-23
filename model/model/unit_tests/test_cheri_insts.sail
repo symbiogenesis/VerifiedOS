@@ -408,7 +408,7 @@ function test_the_conditional_capability_move_carries_the_whole_register() -> un
   assert(C(encdec_reg(0b00100)) == value);
 
   // Not taken: the destination is untouched, which is a stronger statement than
-  // *unchanged in value* — nothing is written, so a tagged destination keeps its
+  // *unchanged in value*: nothing is written, so a tagged destination keeps its
   // own authority rather than being rewritten with it.
   C(encdec_reg(0b00100)) = null_cap;
   X(encdec_reg(0b00011)) = 0x0000000000000001;

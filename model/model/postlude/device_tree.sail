@@ -27,7 +27,7 @@ enum ISA_Format = {Canonical_Lowercase, DeviceTree_ISA_Extensions}
 //   most closely related alphabetical extension category,
 //   IMAFDQLCBKJTPVH.  If multiple "Z" extensions are named, they
 //   should be ordered first by category, then alphabetically within a
-//   category—for example, "Zicsr_Zifencei_Ztso".
+//   category: for example, "Zicsr_Zifencei_Ztso".
 //
 // * All multi-letter extensions, including those with the "Z" prefix, must be
 //   separated from other multi-letter extensions by an underscore, e.g.,

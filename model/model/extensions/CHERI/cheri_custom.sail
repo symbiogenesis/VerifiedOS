@@ -102,7 +102,7 @@ mapping clause assembly = CClear(h, mask)
 // Its ground is bytes: the offset-then-dereference pair it replaces is already
 // fused, so the issue slot is collected and what remains is the four bytes of
 // image and of fetch bandwidth the pair still occupies. The fusion pair is
-// therefore **narrowed, not deleted** — the sequence stays legal and stays
+// therefore **narrowed, not deleted**: the sequence stays legal and stays
 // emitted wherever this form does not apply (R-15-031a).
 //
 // **Membership is doubleword and its store form, because that is what the
