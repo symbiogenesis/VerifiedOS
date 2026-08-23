@@ -11,6 +11,8 @@ were last read together; this is where the reading is done.
 
     tools/co-read.py                     # the pairs a reading is owed on
     tools/co-read.py --show R-15-073c    # the two sides, against each other
+    tools/co-read.py --show --all        # every pending pair's two sides, in one read
+    tools/co-read.py --where R-15-073c   # where the two sides live, as file:line
     tools/co-read.py --bless R-15-073c   # record that they were read and agree
     tools/co-read.py --bless --all       # record every pending pair at once
 
@@ -36,7 +38,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import coread
 from vos import corpus as corpus_mod
-from vos.register import read_register
+from vos.corpus import ANCHOR_RE, PROSE
+from vos.register import REGISTER, read_register
 
 RULE = "tools/co-read.py"
 
@@ -84,28 +87,80 @@ def _list(root: Path) -> int:
     return 0
 
 
-def _show(root: Path, ident: str) -> int:
+def _show(root: Path, idents: list[str], everything: bool) -> int:
     corpus = corpus_mod.load(root)
     reg = read_register(corpus)
-    if ident not in reg.id_set:
-        raise SystemExit(f"no requirement '{ident}' in the register")
-
-    prose, entry = coread.pairs(corpus, reg)[ident]
+    pairs = coread.pairs(corpus, reg)
     ledger = coread.read_ledger(root)
-    was = ledger.get(ident)
-    now = (coread.digest(prose), coread.digest(entry))
 
-    def state(n: int) -> str:
-        if was is None:
-            return "never recorded"
-        return "unchanged" if now[n] == was[n] else "CHANGED since the last reading"
+    if everything:
+        live = {i: (coread.digest(p), coread.digest(e)) for i, (p, e) in pairs.items()}
+        idents = [i for i, _ in _pending(live, ledger)]
+        if not idents:
+            print("nothing pending; the ledger already stands as the pairs do.")
+            return 0
+    else:
+        unknown = [i for i in idents if i not in reg.id_set]
+        if unknown:
+            raise SystemExit(f"no requirement '{', '.join(unknown)}' in the register")
 
-    print(f"=== {ident} ===\n")
-    print(f"--- the prose it cites ({state(0)}) ---\n")
-    print(prose or "(no prose reaches this entry)")
-    print(f"\n--- the entry ({state(1)}) ---\n")
-    print(entry)
-    print(f"\nrecord the reading with `python {RULE} --bless {ident}`.")
+    for ident in idents:
+        prose, entry = pairs[ident]
+        was = ledger.get(ident)
+        now = (coread.digest(prose), coread.digest(entry))
+        state = ["never recorded" if was is None
+                 else "unchanged" if now[n] == was[n]
+                 else "CHANGED since the last reading" for n in (0, 1)]
+
+        print(f"=== {ident} ===\n")
+        print(f"--- the prose it cites ({state[0]}) ---\n")
+        print(prose or "(no prose reaches this entry)")
+        print(f"\n--- the entry ({state[1]}) ---\n")
+        print(entry)
+        print()
+
+    if len(idents) == 1:
+        print(f"record the reading with `python {RULE} --bless {idents[0]}`.")
+    else:
+        print(f"record the readings with `python {RULE} --bless {' '.join(idents)}`.")
+    return 0
+
+
+def _where(root: Path, idents: list[str]) -> int:
+    """Each pair's sites as file:line, one block per requirement.
+
+    The prose lines are the bookmarks the pairing rule reaches, so what an editor
+    opens here is exactly what `--show` digests; the entry line is where the register
+    declares the requirement. Presentation only: nothing here decides anything.
+    """
+    corpus = corpus_mod.load(root)
+    reg = read_register(corpus)
+    unknown = [i for i in idents if i not in reg.id_set]
+    if unknown:
+        raise SystemExit(f"no requirement '{', '.join(unknown)}' in the register")
+
+    doc = corpus.by_name[PROSE]
+    anchor_at: dict[str, int] = {}
+    for m in ANCHOR_RE.finditer(doc.raw):
+        i = doc.line_of(m.start())
+        if not doc.fenced[i] and m.group(1) not in anchor_at:
+            anchor_at[m.group(1)] = i + 1
+
+    regdoc = corpus.by_name[REGISTER]
+    entry_at: dict[str, int] = {}
+    for i, line in enumerate(regdoc.lines):
+        for ident in idents:
+            if ident not in entry_at and line.startswith(f"**{ident}** "):
+                entry_at[ident] = i + 1
+
+    marks = coread.bookmarks(corpus, reg)
+    for ident in idents:
+        print(f"{ident}:")
+        for mark in marks[ident]:
+            if mark in anchor_at:
+                print(f"  {PROSE}:{anchor_at[mark]}  #{mark}")
+        if ident in entry_at:
+            print(f"  {REGISTER}:{entry_at[ident]}")
     return 0
 
 
@@ -145,29 +200,40 @@ def _bless(root: Path, idents: list[str], everything: bool) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Read a register entry against its prose, and record it.")
-    parser.add_argument("--show", metavar="ID",
-                        help="print one pair's two sides against each other")
+    parser.add_argument("--show", nargs="*", metavar="ID",
+                        help="print these pairs' two sides against each other")
+    parser.add_argument("--where", nargs="*", metavar="ID",
+                        help="print where each pair's two sides live, as file:line")
     parser.add_argument("--bless", nargs="*", metavar="ID",
                         help="record that these pairs were read and agree")
     parser.add_argument("--all", action="store_true",
-                        help="with --bless, record every pending pair")
+                        help="with --show or --bless, cover every pending pair")
     args = parser.parse_args(argv)
 
     # Each flag names a different act, so a run combining them would have to drop one
     # silently; refusing is the only answer that cannot be misread as the other act.
-    if args.show is not None and args.bless is not None:
-        raise SystemExit("--show and --bless are different acts: run one, then the other")
-    if args.all and args.bless is None:
-        raise SystemExit("--all records pending pairs and needs --bless")
-    if args.all and args.bless:
-        raise SystemExit("--bless takes explicit ids or --all, not both")
+    acts = [name for name, value in
+            (("--show", args.show), ("--where", args.where), ("--bless", args.bless))
+            if value is not None]
+    if len(acts) > 1:
+        raise SystemExit(f"{' and '.join(acts)} are different acts: run one, then the other")
+    if args.all and args.show is None and args.bless is None:
+        raise SystemExit("--all covers pending pairs and needs --show or --bless")
 
     root = corpus_mod.find_root()
     if args.show is not None:
-        if not args.show:
-            raise SystemExit("--show needs a requirement id")
-        return _show(root, args.show)
+        if args.all and args.show:
+            raise SystemExit("--show takes explicit ids or --all, not both")
+        if not args.all and not [i for i in args.show if i]:
+            raise SystemExit("--show needs a requirement id, or --all for every pending pair")
+        return _show(root, args.show, args.all)
+    if args.where is not None:
+        if not [i for i in args.where if i]:
+            raise SystemExit("--where needs a requirement id")
+        return _where(root, args.where)
     if args.bless is not None:
+        if args.all and args.bless:
+            raise SystemExit("--bless takes explicit ids or --all, not both")
         if not args.bless and not args.all:
             raise SystemExit("--bless needs an id, or --all to record every pending pair")
         return _bless(root, args.bless, args.all)

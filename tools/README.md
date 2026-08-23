@@ -63,6 +63,8 @@ $ python tools/blast-radius.py --field spatial_safety
 $ python tools/bank-dse.py                    # the second class's bank grant, scored
 $ python tools/co-read.py                     # the pairs owed a reading
 $ python tools/co-read.py --show R-15-073c    # one pair, side against side
+$ python tools/co-read.py --show --all        # every pending pair, in one read
+$ python tools/co-read.py --where R-15-073c   # both sides as file:line sites
 
 $ wsl -u root -e python3 tools/model.py typecheck
 $ wsl -u root -e python3 tools/model.py lane           # where this checkout builds

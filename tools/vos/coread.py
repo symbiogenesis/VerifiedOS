@@ -127,18 +127,15 @@ def spans(corpus: Corpus) -> dict[str, str]:
     return out
 
 
-def pairs(corpus: Corpus, reg: Register) -> dict[str, tuple[str, str]]:
-    """Every requirement, as the prose it cites and the entry it is.
+def _bookmarks(by_span: dict[str, str], reg: Register) -> dict[str, list[str]]:
+    """Every requirement's prose bookmarks, in the order the prose side joins them.
 
-    The prose side is the union of every bookmark the entry actually reaches, in a
-    fixed order: the one its id derives, the further places the prose carries that same
-    bookmark under a `-n` suffix, and any bookmark a written-out trace names. An entry
-    reaching none of them pairs with the empty string, which the rule reports rather
-    than passes: it means the traces group found a citation that resolves and this one
-    found no prose behind it.
+    This is the pairing rule stated once, without the text: the one bookmark an id
+    derives, the further places the prose carries that same bookmark under a `-n`
+    suffix, and any bookmark a written-out trace names. `pairs` reads it to build the
+    digested text and `co-read.py --where` reads it to say where a pair lives, so the
+    two cannot come to disagree about which bookmarks a pair reaches.
     """
-    by_span = spans(corpus)
-
     # base id -> the bookmarks carrying it, so the `-n` repeats are found once for the
     # whole register instead of by scanning every bookmark for every entry
     carried: dict[str, list[str]] = {}
@@ -146,17 +143,34 @@ def pairs(corpus: Corpus, reg: Register) -> dict[str, tuple[str, str]]:
         if _PROSE_ID_RE.match(ident):
             carried.setdefault(_CITATION_SUFFIX_RE.sub(r"\1", ident), []).append(ident)
 
-    out: dict[str, tuple[str, str]] = {}
+    out: dict[str, list[str]] = {}
     for ident in reg.ids:
         derived = "r" + ident[1:].lower()
         targets = set(carried.get(derived, ()))
         trace = reg.trace_of.get(ident, "")
         if "(spec.md#" in trace:
             targets.update(a for a in _TRACE_ANCHOR_RE.findall(trace) if a in by_span)
-
-        prose = "\n".join(by_span[t] for t in sorted(targets))
-        out[ident] = (prose, entry_text(reg, ident))
+        out[ident] = sorted(targets)
     return out
+
+
+def bookmarks(corpus: Corpus, reg: Register) -> dict[str, list[str]]:
+    """The pairing rule over a loaded corpus, for a caller holding no span table."""
+    return _bookmarks(spans(corpus), reg)
+
+
+def pairs(corpus: Corpus, reg: Register) -> dict[str, tuple[str, str]]:
+    """Every requirement, as the prose it cites and the entry it is.
+
+    The prose side is the union of every bookmark the entry actually reaches, in the
+    fixed order `_bookmarks` states. An entry reaching none of them pairs with the
+    empty string, which the rule reports rather than passes: it means the traces group
+    found a citation that resolves and this one found no prose behind it.
+    """
+    by_span = spans(corpus)
+    marks = _bookmarks(by_span, reg)
+    return {ident: ("\n".join(by_span[t] for t in marks[ident]), entry_text(reg, ident))
+            for ident in reg.ids}
 
 
 def entry_text(reg: Register, ident: str) -> str:
