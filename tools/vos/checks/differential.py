@@ -39,6 +39,17 @@ the edition advances, which is the day the corpus is working as designed. The
 check the edition does want is that a refresh which moves a member advances it,
 and that is `model.py corpus --refresh`'s to make, because it is the tool that
 writes both fields.
+
+The fourth rule holds the corpus's hand-written words. A `.word` reaches an
+encoding with none of the operand-kind, register-class, and immediate-range
+checking a mnemonic passes through, so the document closes the grounds for
+writing one at three and enumerates every word standing on them. Membership is
+the cheap half. The half worth the rule is that each ground is *decided* against
+the encoder rather than asserted: the document carries the assembler text the
+member's own comment says the word is, and on the two grounds claiming the
+encoder cannot or will not build it, assembling that text must not produce the
+word. That is the ground that expires when a row lands, and nothing else reads a
+`.word` to notice it has.
 """
 
 import json
@@ -132,6 +143,7 @@ def run(ctx: Context) -> None:
                f"{sum(m.checks for m in corpus.members)} checks and a recorded digest")
 
     _schema(ctx, corpus.trace_schema)
+    _hand_written_words(ctx, corpus, doc)
     rep.line()
 
 
@@ -165,6 +177,93 @@ def _schema(ctx: Context, declared: int | None) -> None:
                "disagree on:", findings,
                f"{DOC}'s §{section} heading states commit-trace schema version "
                f"{stated}, the grammar {manifest} declares")
+
+
+# The three grounds §3 admits, keyed by the word the Ground cell leads with, and
+# what each one says the encoder does with the reading beside it. `False` is the
+# ground that expires: the encoder must not build the word, and the day a row
+# lands that does, this rule is what says so.
+GROUNDS = {"cannot": False, "refuses": False, "reader": True}
+
+# One row of §3's table: the member's link, the word, the ground, and the reading.
+_ROW = re.compile(
+    r"^\| \[(?P<member>[\w-]+)\]\(\.\./corpus/(?P<source>[\w.-]+)\) "
+    r"\| `0x(?P<word>[0-9A-Fa-f]{8})` "
+    r"\| (?P<ground>[^|]+?) "
+    r"\| `(?P<reading>[^`]+)` \|$", re.MULTILINE)
+
+
+def _hand_written_words(ctx: Context, corpus: differential.Corpus, doc: str) -> None:
+    """K-72: every `.word` in a member is enumerated, on a ground the encoder agrees to."""
+    rep = ctx.rep
+    declared: dict[tuple[str, int], tuple[str, str]] = {}
+    faults = []
+
+    for row in _ROW.finditer(doc):
+        key = (row["source"], int(row["word"], 16))
+        # The ground is prose and the keyword is what carries it, so the cell is read
+        # by which keyword it contains and a cell containing two is as unreadable as
+        # one containing none: this rule reports rather than guesses.
+        words = set(row["ground"].split())
+        named = sorted(words & GROUNDS.keys())
+        if len(named) != 1:
+            faults.append(f"{DOC}: 0x{row['word']} in {row['source']} states the ground "
+                          f"\"{row['ground'].strip()}\", which names "
+                          + ("none" if not named else f"{len(named)}")
+                          + " of the three §3 admits")
+            continue
+        declared[key] = (named[0], row["reading"])
+
+    # Both directions over the corpus's own sources, so a word added to a member
+    # and never enumerated is a finding, and so is a row for a word that has gone.
+    found: set[tuple[str, int]] = set()
+    for member in corpus.members:
+        source = corpus.source(member)
+        if not source.is_file():
+            continue
+        for text in differential.hand_written_words(source.read_text(encoding="utf-8")):
+            try:
+                found.add((member.source, int(text, 0)))
+            except ValueError:
+                faults.append(f"{member.source} writes `.word {text}`, an operand this "
+                              f"rule cannot read as a number")
+    faults += [f"{source} writes 0x{word:08X} by hand and {DOC} does not enumerate it"
+               for source, word in sorted(found - set(declared))]
+    faults += [f"{DOC} enumerates 0x{word:08X} in {source}, which no longer writes it"
+               for source, word in sorted(set(declared) - found)]
+
+    # And the ground itself, decided against the encoder rather than asserted.
+    for (source, word), (lead, reading) in sorted(declared.items()):
+        built = _encode(reading)
+        builds = built == word
+        if builds is not GROUNDS[lead]:
+            faults.append(
+                f"{source}: 0x{word:08X} stands on \"{lead}\" and the encoder "
+                + (f"builds it from `{reading}`, so that ground has expired"
+                   if builds else
+                   f"answers `{reading}` with "
+                   + ("a refusal" if built is None else f"0x{built:08X}")
+                   + ", which is not the word the member writes"))
+
+    rep.report("K-72", "hand-written corpus word(s) unenumerated or on a stale ground:",
+               faults, f"all {len(declared)} hand-written words are enumerated on a "
+                       f"ground the encoder agrees to")
+
+
+def _encode(reading: str) -> int | None:
+    """The word the encoder builds from one instruction, or None where it refuses.
+
+    A refusal is an answer rather than an error here, which is why the reading is
+    assembled in isolation: a whole member would report the first fault anywhere
+    in it, and what this asks about is one line.
+    """
+    try:
+        assembler = asm.Assembler(f"        .text\n_start:\n        {reading}\n", "<reading>")
+        sections, _symbols, _entry = assembler.assemble()
+    except asm.AsmError:
+        return None
+    data = b"".join(section.data for section in sections)
+    return int.from_bytes(data[:4], "little") if len(data) >= 4 else None
 
 
 def _linked_sources(doc: str) -> set[str]:

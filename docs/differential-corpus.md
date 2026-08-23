@@ -67,7 +67,23 @@ The corpus is purecap and no toolchain assembles it: LLVM's MC layer and `lld` a
 
 **The vector rows are the memory surface and what feeds it**, which is the surface **M0.8b** puts the per-element capability check on: every form whose element addresses are made differently, at all four element widths, plus the configuration instruction that says how many elements there are and the four moves that put a value into the vector file and read one back. The vector arithmetic is not encoded, because a row nothing in the corpus writes is a row nothing checks.
 
-**M0.8d adds one row to the encoder and writes three words by hand, which is the same distinction one level down.** `vkeccak.vi` is in the table because the frozen Keccak fork is that item's own surface. The RVV instructions `keccak-perm` needs around it, `vsetvli` and the unit-stride vector load and store, are **not**: they are the V-class datapath's, which **M0.8b** lands, so the member spells those three words out with their fields the way [`platform-coreclass`](../corpus/platform-coreclass.s) spells the `mhartid` write. A hand-written word is how a member reaches an encoding the table deliberately does not carry, and it is also how one reaches an encoding the table deliberately *refuses*: the row for `vkeccak.vi` will not emit a round count other than 12 or 24, so the check that an unassigned one traps writes the word.
+**A hand-written word is the marked exception.** A member reaches an encoding through a mnemonic, and the parser then checks its operand kinds, register classes, and immediate ranges against the row before the encoder builds anything. A `.word` reaches one with none of that checked, so the grounds for writing one are closed rather than open, and there are three:
+
+- **The encoder cannot express it.** A field the row holds constant is the point of the check, so the encoding is outside what any operand assignment reaches. Both of [`memory-model`](../corpus/memory-model.s)'s words are here: the `fence` row emits `fm` as the literal zero and `rd` and `rs1` as zero, which is what makes a reserved `fm` and a set-but-ignored register pair unreachable through it.
+- **The encoder refuses it.** The row for `vkeccak.vi` will not emit a round count other than 12 or 24, so the check that an unassigned one traps writes the word. This is the only refusal in the table, and it is one because the round count is the operand whose unallocated values are the point of the requirement (R-15-057a).
+- **The word is what the reader must see.** [`platform-coreclass`](../corpus/platform-coreclass.s)'s write to a read-only `mhartid` and [`cap-trap`](../corpus/cap-trap.s)'s read of a CSR address the PMP deletion emptied are both encodings the table emits perfectly well, because what a row can express is the encoder's business and what an encoding means is the machine's. They are written as words so that a listing cannot be read as a program that did it by accident.
+
+***Not carried yet* is not a fourth ground**, and that is the one worth stating rather than leaving to judgment: a row that has not landed lands, and the member goes on writing the word afterward because nothing reads a `.word` to notice. The words below are therefore enumerated, and **K-72** holds the list against the members in both directions and holds each row's ground against the encoder itself, assembling the reading and requiring the encoder to answer as the ground says it does.
+
+| Member | Word | Ground | Reading |
+| --- | --- | --- | --- |
+| [cap-trap](../corpus/cap-trap.s) | `0x3B0022F3` | the word is what the reader must see | `csrrs t0, 0x3b0, zero` |
+| [keccak-perm](../corpus/keccak-perm.s) | `0x0170200B` | the encoder refuses it | `vkeccak.vi v0, v0, 23` |
+| [memory-model](../corpus/memory-model.s) | `0x1330000F` | the encoder cannot express it | `fence rw, rw` |
+| [memory-model](../corpus/memory-model.s) | `0x0332830F` | the encoder cannot express it | `fence rw, rw` |
+| [platform-coreclass](../corpus/platform-coreclass.s) | `0xF1429073` | the word is what the reader must see | `csrrw zero, mhartid, t0` |
+
+The **Reading** is the assembler text the member's own comment says the word is, and the rule reads it two ways according to the ground. On the first two grounds the encoder's answer to that text must **not** be the word, which is the ground restated as something a machine can decide and is what expires when a row lands. On the third it must be **exactly** the word, which is the member's comment held against the encoder rather than against a reader.
 
 ## 4. The commit-trace schema, version 1
 

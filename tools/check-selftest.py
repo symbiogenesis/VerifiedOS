@@ -1053,6 +1053,16 @@ CASES: list[Case] = [
     ("K-71", "a manifest declaring a commit-trace schema the document does not state",
      _first_match("corpus/manifest.json", r'"trace_schema": (\d+)',
                   lambda m: f'"trace_schema": {int(m.group(1)) + 1}')),
+
+    # The ground rather than the membership, because the ground is the half that
+    # expires in silence: the seed moves one word onto *cannot express it*, which
+    # the encoder contradicts by building it from the reading beside it. That is
+    # the shape the real defect takes, a row standing on a ground that stopped
+    # being true the day a table row landed, and the member goes on writing the
+    # word because nothing else reads a `.word` to notice.
+    ("K-72", "a hand-written corpus word standing on a ground the encoder contradicts",
+     _literal(CORPUS_DOC, "| the word is what the reader must see | `csrrw",
+              "| the encoder cannot express it | `csrrw")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
