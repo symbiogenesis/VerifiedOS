@@ -5269,7 +5269,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: booked as a countermeasure rather than a guarantee, and carried here because irreversibility is an availability cost the user pays without an adversary needing to be present.
 · Trace: CJ-CRYPTO-SPEC
 
-**R-17-030i** IS: Fail-closed seam **the untrusted compositor and driver ⋈ the consent path**: a compromised compositor's best play is premature revocation and a hostile touch driver's is to fight the ownership transition (R-12-076, R-12-082-2, R-17-010), so both reach denial of the prompt and neither reaches a forged or captured grant.
+**R-17-030i** IS: Fail-closed seam **the untrusted compositor and driver ⋈ the consent path**: a compromised compositor's best play is premature revocation and a hostile touch driver's is to fight the ownership transition (R-12-076, R-17-010), so both reach denial of the prompt and neither reaches a forged or captured grant.
 · Accept: the bound is deliberate and identical in both cases, and it is still a denial, which is what makes an authority the user cannot obtain indistinguishable at the surface from one the platform refused.
 · Trace: CJ-NI
 
