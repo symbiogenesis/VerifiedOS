@@ -16,10 +16,11 @@ decides is whether a registered claim is the right claim, which is the same resi
 every conferral declares.
 
 K-67 is the same discipline pointed at the tools' own documentation. typecheck.py
-fixes the ty and ruff pins, tools/README.md restates them three times over, in its
-checker table's two rows and its pip line, and nothing owned the copy. The rule holds
-every site against the source and is fail-closed in the reading: a side it cannot
-find is a finding, never a pass over nothing.
+fixes the ty and ruff pins, tools/README.md restates them four times over, in its
+checker table's two rows and in the `uv tool install` line each checker carries, and
+nothing owned the copy. The rule holds every site against the source and is
+fail-closed in the reading: a side it cannot find is a finding, never a pass over
+nothing.
 """
 
 import re
@@ -41,13 +42,16 @@ REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 README = "tools/README.md"
 TYPECHECK = "tools/typecheck.py"
 
-# The pins as typecheck.py declares them, and the three README sites restating them.
-# The version cell and the pip arguments are captured alone, so a disagreement names
-# the two figures and nothing else.
+# The pins as typecheck.py declares them, and the four README sites restating them.
+# The version cell and the install argument are captured alone, so a disagreement
+# names the two figures and nothing else. Each checker carries its own install line
+# because `uv tool install` takes one tool per command, which is the same fact that
+# makes the four sites two symmetrical pairs rather than two rows and a joint line.
 _PIN_SRC_RE = re.compile(r'^(TY|RUFF)_VERSION = "([^"\r\n]*)"', re.MULTILINE)
-_README_TY_RE = re.compile(r"(?m)^\| \[ty\]\([^)]*\) \| ([^ |]+) \|")
-_README_RUFF_RE = re.compile(r"(?m)^\| \[ruff\]\([^)]*\) \| ([^ |]+) \|")
-_README_PIP_RE = re.compile(r"`pip install ty==([^\s`=]+) ruff==([^\s`=]+)`")
+_README_TY_ROW_RE = re.compile(r"(?m)^\| \[ty\]\([^)]*\) \| ([^ |]+) \|")
+_README_RUFF_ROW_RE = re.compile(r"(?m)^\| \[ruff\]\([^)]*\) \| ([^ |]+) \|")
+_README_TY_INSTALL_RE = re.compile(r"`uv tool install ty==([^\s`=]+)`")
+_README_RUFF_INSTALL_RE = re.compile(r"`uv tool install ruff==([^\s`=]+)`")
 
 
 def carried_rules() -> set[str]:
@@ -118,8 +122,10 @@ def _pins(ctx: Context) -> None:
 
     if not findings and doc is not None and ty is not None and ruff is not None:
         for label, pattern, checker, want in (
-                ("checker-table row", _README_TY_RE, "ty", ty),
-                ("checker-table row", _README_RUFF_RE, "ruff", ruff)):
+                ("checker-table row", _README_TY_ROW_RE, "ty", ty),
+                ("checker-table row", _README_RUFF_ROW_RE, "ruff", ruff),
+                ("install line", _README_TY_INSTALL_RE, "ty", ty),
+                ("install line", _README_RUFF_INSTALL_RE, "ruff", ruff)):
             m = pattern.search(doc.raw)
             if m is None:
                 findings.append(f"{README} no longer states {checker}'s pin in its "
@@ -127,18 +133,8 @@ def _pins(ctx: Context) -> None:
             elif m.group(1) != want:
                 findings.append(f"{README}'s {checker} {label} states {m.group(1)}, "
                                 f"{TYPECHECK} pins {want}")
-        pip = _README_PIP_RE.search(doc.raw)
-        if pip is None:
-            findings.append(f"{README} no longer carries the pip install line in a "
-                            "form this rule reads")
-        else:
-            findings += [f"{README}'s pip line installs {checker}=={got}, "
-                         f"{TYPECHECK} pins {want}"
-                         for checker, got, want in (("ty", pip.group(1), ty),
-                                                    ("ruff", pip.group(2), ruff))
-                         if got != want]
 
     rep.report("K-67", "README pin site(s) disagreeing with the versions typecheck.py "
                "fixes:", findings,
-               f"tools/README.md's three pin sites state ty {ty} and ruff {ruff}, the "
+               f"tools/README.md's four pin sites state ty {ty} and ruff {ruff}, the "
                f"versions {TYPECHECK} fixes")

@@ -140,10 +140,18 @@ about this tree, and it is the one gate that runs the others.
 
 The split is not a preference. ty infers rather than demands, so a function with no
 annotations contradicts nothing and is invisible to it; ruff's `ANN` group is what makes
-coverage a rule. Both install with `pip install ty==0.0.74 ruff==0.16.4`, need no
-toolchain beyond pip, and so stay in reach of a directory that is one language. Both are
-pinned for the reason Rocq and z3 are pinned, and a version other than the pinned one is
-a finding rather than a warning.
+coverage a rule. Both are pinned for the reason Rocq and z3 are pinned, and a version
+other than the pinned one is a finding rather than a warning.
+
+Both install with `uv tool install ty==0.0.74` and `uv tool install ruff==0.16.4`, one
+command each because a uv tool install is one environment holding one pinned tool. That
+isolation is the point rather than a side effect: neither checker is a dependency of
+anything here, so neither belongs in the environment ty resolves this directory's own
+imports against, and the pinned checker stays the same one whichever interpreter runs
+[typecheck.py](typecheck.py). The shims land in uv's tool bin directory, which
+[typecheck.py](typecheck.py) looks in first, ahead of the interpreter's own script
+directories and then `PATH`; all three are kept, because reporting absent what is
+present is the one failure a pinned-version gate must not have.
 
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or
 switched off, and that is deliberate: the alternative is a list of opt-ins that silently
@@ -156,8 +164,12 @@ The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml) rather than o
 command line, so that an editor's language server decides exactly what this gate decides.
 
 `jsonschema` is the third prerequisite and the one dependency here that is not the
-standard library, `pip install jsonschema` on the host and `apt install
-python3-jsonschema` in the guest. It is required on **both** lanes although only the
+standard library, `uv pip install --system jsonschema` on the host and `apt install
+python3-jsonschema` in the guest. It is the one prerequisite that is **not** a uv tool
+install, and the reason is the distinction that decides every such choice here: the two
+checkers are tools this directory runs, so they get an environment of their own, while
+this is a library this directory imports, so it has to be in the environment the
+interpreter and ty both resolve against. It is required on **both** lanes although only the
 guest validates a configuration, and that is what keeps the gate lane-independent rather
 than merely convenient. ty resolves a third-party import against the environment it
 finds, so an absent package is an `unresolved-import` and a suppression for it is an

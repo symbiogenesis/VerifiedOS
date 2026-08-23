@@ -144,13 +144,14 @@ def _counts_overflow_is_a_finding() -> None:
 
 
 # K-67's fixture pin sites: the constants as typecheck.py spells them, and the
-# three README sites the rule holds against them.
+# four README sites the rule holds against them.
 _TYPECHECK_PINNED = 'TY_VERSION = "1.2.3"\nRUFF_VERSION = "4.5.6"\n'
 _README_PINNED = ("# Tools\n\n"
                   "| Checker | Pin | What |\n| --- | --- | --- |\n"
                   "| [ty](https://x) | 1.2.3 | types |\n"
                   "| [ruff](https://x) | 4.5.6 | lint |\n\n"
-                  "Install with `pip install ty==1.2.3 ruff==4.5.6`.\n")
+                  "Install with `uv tool install ty==1.2.3` and "
+                  "`uv tool install ruff==4.5.6`.\n")
 
 
 def _k67(readme: str, typecheck: str | None) -> Context:
@@ -166,9 +167,9 @@ def _k67(readme: str, typecheck: str | None) -> Context:
 
 def _k67_agreement_is_ok() -> None:
     ctx = _k67(_README_PINNED, _TYPECHECK_PINNED)
-    ensure("ok K-67: tools/README.md's three pin sites state ty 1.2.3 and "
+    ensure("ok K-67: tools/README.md's four pin sites state ty 1.2.3 and "
            "ruff 4.5.6, the versions tools/typecheck.py fixes" in ctx.rep.out,
-           f"three agreeing sites are one ok line naming both pins: {ctx.rep.out!r}")
+           f"four agreeing sites are one ok line naming both pins: {ctx.rep.out!r}")
 
 
 def _k67_disagreement_names_both_figures() -> None:
