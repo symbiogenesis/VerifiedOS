@@ -32,8 +32,9 @@ WSL2 default allocation of 12 CPUs and 15.7 GB). Cores are already fully exposed
 guest sees all 12. Raising the CPU count is therefore not available, and would not help
 if it were, because the build's critical path is two strictly single-threaded stages
 back to back: the Sail C++ emission followed by the one generated translation unit it
-produces. Both figures move as the curation deletes surface, so both are dated. At the
-C-class freeze the emission is 41.2 s against a warm memo cache. The unit, remeasured
+produces. Both figures move as the curation deletes surface, so both are dated. The
+emission is 41.2 s at the C-class freeze against a warm memo cache, and 34.4 s
+remeasured clean 2026-08-22 (I6's stock arm). The unit, remeasured
 clean 2026-08-22 on a quiet toolchain at 10,835,851 bytes over 344,963 lines, compiles
 alone at -O2 -g in 81.8 s wall and 71 s CPU with a 1.20 GB peak under gcc 15.2.0, and
 in 38.7 s under clang 21.1.8 accepting the same command verbatim (I5's sweep); the
