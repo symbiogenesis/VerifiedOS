@@ -21,9 +21,28 @@ What is *not* here is the trace digest, and that is a boundary rather than an
 omission: reproducing it needs the emulator, so `model.py corpus` decides it and
 this group only requires the field to be present. A rule that cannot recompute a
 figure should not pretend to check it.
+
+The third rule is the derived-fact discipline pointed at the one thing the two
+halves both commit to. `trace_schema` in the manifest and the version word in the
+document's §4 heading are two statements of one grammar: a record type added or a
+field widened advances both, and nothing owned the pair, so the manifest could
+declare a grammar the document does not describe with every other rule green.
+K-71 holds them equal and is fail-closed in the reading itself: a heading it
+cannot parse in the form written today is a finding, never a pass over nothing.
+
+The manifest's other number, the corpus **edition**, is deliberately not held
+here, and the reason is the split the two halves are built on. The document says
+what `version` *means* and never what it is; its only prose sites are completion
+evidence frozen on checked milestones, which record what an edition measured at
+its gate, so a rule holding the live manifest against them would be red the day
+the edition advances, which is the day the corpus is working as designed. The
+check the edition does want is that a refresh which moves a member advances it,
+and that is `model.py corpus --refresh`'s to make, because it is the tool that
+writes both fields.
 """
 
 import json
+import re
 from typing import TYPE_CHECKING
 
 from vos import asm, differential
@@ -37,6 +56,14 @@ if TYPE_CHECKING:
 HEADING = "=== differential: the corpus manifest, its document, and its programs ==="
 
 DOC = "docs/differential-corpus.md"
+
+# The document's §4 heading, which is the one place it writes the record grammar's
+# version. The section number is a wildcard because renumbering the section is not
+# this rule's subject; the version is captured alone, so a disagreement names the two
+# figures and nothing else, and the spellings are compared rather than their values,
+# so a padded or reformatted number is a finding rather than a silent equality.
+_SCHEMA_HEADING_RE = re.compile(
+    r"(?m)^## (\d+)\. The commit-trace schema, version (\d+)\s*$")
 
 
 def run(ctx: Context) -> None:
@@ -53,6 +80,9 @@ def run(ctx: Context) -> None:
                    "the corpus manifest parses")
         rep.report("K-51", "corpus member(s) that do not assemble:", [],
                    "no members to assemble")
+        # the manifest is the rule's other side, so an unreadable one is a finding
+        # rather than a rule that quietly does not run
+        _schema(ctx, None)
         rep.line()
         return
 
@@ -100,7 +130,41 @@ def run(ctx: Context) -> None:
     rep.report("K-51", "corpus member(s) that do not assemble as recorded:", faults,
                f"all {len(corpus.members)} members assemble, with "
                f"{sum(m.checks for m in corpus.members)} checks and a recorded digest")
+
+    _schema(ctx, corpus.trace_schema)
     rep.line()
+
+
+def _schema(ctx: Context, declared: int | None) -> None:
+    """K-71: the manifest's trace_schema is the version the document's §4 heading states.
+
+    Fail-closed on the reading itself, in the shape K-67 uses over the tools' own
+    pins: the manifest's field and the heading either answer in the form written
+    today or are findings, so a reworded heading takes the comparison down loudly
+    instead of leaving the rule green over a version nothing states.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    manifest = f"{differential.CORPUS_DIR}/{differential.MANIFEST}"
+    section, stated = "", ""
+
+    if declared is None:
+        findings.append(f"{manifest} does not state a trace_schema this rule can read")
+
+    m = _SCHEMA_HEADING_RE.search(ctx.text(DOC))
+    if m is None:
+        findings.append(f"{DOC} no longer states the commit-trace schema's version in "
+                        "its section heading, in a form this rule reads")
+    else:
+        section, stated = m.group(1), m.group(2)
+        if declared is not None and stated != str(declared):
+            findings.append(f"{DOC}'s §{section} heading states version {stated}, "
+                            f"{manifest} declares trace_schema {declared}")
+
+    rep.report("K-71", "commit-trace schema version(s) the document and the manifest "
+               "disagree on:", findings,
+               f"{DOC}'s §{section} heading states commit-trace schema version "
+               f"{stated}, the grammar {manifest} declares")
 
 
 def _linked_sources(doc: str) -> set[str]:
