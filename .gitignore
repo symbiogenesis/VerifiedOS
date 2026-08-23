@@ -7,6 +7,11 @@
 # a tree, so that anything else unruled landing under `.claude/` is still loud.
 .claude/worktrees/
 
+# The generated reading view tools/read-view.py rebuilds on demand: a derived
+# artifact of the two documents and never a source, kept out of the index and,
+# being ignored, out of the selftest sandbox's corpus alike.
+out/
+
 proofs/*.vo
 proofs/*.vok
 proofs/*.vos

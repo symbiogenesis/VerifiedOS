@@ -36,6 +36,7 @@ Two more the floor makes available go unused, because a version floor is a licen
 | [blast-radius.py](blast-radius.py) | host | Answers what an edit to the apex statement re-opens, before the work starts. |
 | [bank-dse.py](bank-dse.py) | host | Scores every candidate second-class bank count against the arithmetic the composition fixes, and admits none: the hard constraint's coefficients are pending. |
 | [co-read.py](co-read.py) | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
+| [read-view.py](read-view.py) | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
 | [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. |
 | [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. |
 
@@ -65,6 +66,7 @@ $ python tools/co-read.py                     # the pairs owed a reading
 $ python tools/co-read.py --show R-15-073c    # one pair, side against side
 $ python tools/co-read.py --show --all        # every pending pair, in one read
 $ python tools/co-read.py --where R-15-073c   # both sides as file:line sites
+$ python tools/read-view.py                   # the two documents woven, for reading
 
 $ wsl -u root -e python3 tools/model.py typecheck
 $ wsl -u root -e python3 tools/model.py lane           # where this checkout builds
