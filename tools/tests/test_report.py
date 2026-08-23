@@ -46,6 +46,25 @@ def _findings_count_items_not_rules() -> None:
            f"each FAIL line carries its own count: {rep.out!r}")
 
 
+def _count_overrides_the_line_total() -> None:
+    # typecheck.py's lines are a summary rather than one line per finding, so it says
+    # what they stand for; without this the verdict counts rule headers and the
+    # truncation tail as findings, and the sample's shape decides the number.
+    rep = Reporter()
+    rep.report("K-77", "thing(s):", ["Z999: 9", "  a", "  ... and 8 more"], count=9)
+    ensure(rep.findings == 9,
+           f"count decides the verdict, not the three lines carrying it: {rep.findings}")
+    ensure(rep.out[0] == "FAIL K-77: 9 thing(s):", f"the verdict line read {rep.out[0]!r}")
+    ensure(len(rep.out) == 4, f"every line is still printed under it: {rep.out!r}")
+
+
+def _count_absent_is_the_line_total() -> None:
+    rep = Reporter()
+    rep.report("K-78", "thing(s):", ["one", "two"])
+    ensure(rep.findings == 2 and rep.out[0] == "FAIL K-78: 2 thing(s):",
+           f"with no count the lines are the findings, one for one: {rep.out!r}")
+
+
 def _pad_prefixes_every_line() -> None:
     rep = Reporter()
     rep.report("K-05", "x:", ["f"], pad="  ")
@@ -82,6 +101,8 @@ def cases() -> list[Case]:
         Case("all-falsy-reads-ok", _all_falsy_reads_ok),
         Case("ok-text-preferred", _ok_text_preferred),
         Case("findings-count-items", _findings_count_items_not_rules),
+        Case("count-overrides-line-total", _count_overrides_the_line_total),
+        Case("count-absent-is-line-total", _count_absent_is_the_line_total),
         Case("pad-prefixes-every-line", _pad_prefixes_every_line),
         Case("line-appends-verbatim", _line_appends_verbatim),
         Case("sites-uncapped", _sites_uncapped),
