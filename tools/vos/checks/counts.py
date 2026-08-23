@@ -158,6 +158,12 @@ CLAIMS = [
     (REGISTER, "build-prereqs", "words", r"(?<=list has )[\w-]+(?= entries rather than five)"),
     (SPEC, "build-prereqs", "words", r"(?<=All )[\w-]+(?= are untrusted evidence-producing)"),
 
+    # the one program logic's theories, owned by R-13-017's roster
+    (REGISTER, "iris-theories", "words", r"(?<=program logic with its )[\w-]+(?= theories)"),
+    (REGISTER, "iris-theories", "words", r"(?<=program logic with )[\w-]+(?= theories, not five frameworks)"),
+    (SPEC, "iris-theories", "words", r"(?<=logic\*\* with its )[\w-]+(?= theories)"),
+    (SPEC, "iris-theories", "words", r"(?<=Iris-over-Sail logic with )[\w-]+(?= theories)"),
+
     # the machine-checked radio protocols, owned by the inventory-row span R-12-043e pins
     (REGISTER, "radio-protocols", "words", r"(?<=and for the )[\w-]+(?= radio protocols)"),
     (REGISTER, "radio-protocols", "words", r"(?<=narrowed for the )[\w-]+(?= radio protocols)"),
@@ -230,6 +236,9 @@ TYPE_OBLIGATIONS_RE = re.compile(r"obligations are exactly: ([^.]+)\.")
 UNARY_INVARIANTS_RE = re.compile(
     r"unary invariants form the substrate every seam assumes: (.+)")
 SEAM_LEMMAS_RE = re.compile(r"seam lemmas are exactly [\w-]+: ([^.]+)\.")
+# the roster ends where the entry turns to what the theories instantiate, so the
+# capture is bounded by that turn rather than by a period the names never carry
+IRIS_THEORIES_RE = re.compile(r"theories, not five frameworks: (.+?), all instantiating")
 # a parenthesized single digit is an enumeration's own marker; a requirement id or a
 # section reference never takes that shape
 ENUM_MARK_RE = re.compile(r"\(\d\)")
@@ -317,7 +326,7 @@ def _form_sites(form_re: re.Pattern[str], forms: list[str], raw: str) -> list[re
 OWNED_COUNTS = frozenset({
     "type-obligations", "unary-invariants", "seam-lemmas", "frozen-absences",
     "admission-tests", "tcb-items", "assurance-tiers", "build-prereqs",
-    "radio-protocols",
+    "radio-protocols", "iris-theories",
 })
 
 _PARENTHETICAL_RE = re.compile(r"\([^)]*\)")
@@ -417,6 +426,7 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "assurance-tiers": _spec_lines(ctx, "| **Tier", TIER_ROW_RE),
         "build-prereqs": _anchor_line_marks(ctx, "r-06-024"),
         "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
+        "iris-theories": _enumeration(IRIS_THEORIES_RE, reg.body.get("R-13-017", "")),
     }
 
 

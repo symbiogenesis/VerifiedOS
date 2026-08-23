@@ -113,9 +113,21 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
         ("R-18-010", "rvfi first, then Sail-generated SystemVerilog plus commercial "
                      "FEV, then Isla-generated obligations, then the Kami/Kôika "
                      "Coq refinement"),
+        ("R-01-002a", "the rungs R-18-010 stages split at the unbounded one"),
         (SPEC, "**Kami/Kôika** (Coq) is the closing vehicle"),
         (SPEC, "**riscv-formal/rvfi** (SVA + BMC) is the cheapest bring-up gate"),
         (SPEC, "**Isla** (symbolic Sail) generates the obligations"),
+    ]),
+    # the ruling R-05-022 states and the prose used to contradict: three interims on
+    # the books, aiT and Binsec/Rel on none
+    ("the interim-anchor books", [
+        ("R-05-022", "The three entries (F\\*/Z3 for libcrux/HACL\\*, EasyCrypt's "
+                     "Why3/SMT, Cranelift/Crocus's SMT)"),
+        ("R-05-022", "aiT and Binsec/Rel are not interim anchors and carry no "
+                     "retirement rule"),
+        (SPEC, "aiT and Binsec/Rel are on no book at all"),
+        (SPEC, "aiT and Binsec/Rel are bring-up gates and cross-checks that carry "
+               "no claim"),
     ]),
     ("the WCET tooling disposition", [
         ("R-18-024", "retired as a workstream"),
