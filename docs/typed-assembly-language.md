@@ -1111,6 +1111,7 @@ Keys are document-local and stable across versions of this document; they assert
 **Deployment and revival evidence for the certificate architecture.** The JVM's split verifier (stack-map frames, mandatory since class-file version 51) is this architecture in production at large scale, its type-checking core a few thousand lines over a richer vocabulary than §8.2's. Klein and Nipkow's account is re-checked against every Isabelle release in the Archive of Formal Proofs. CertrBPF (CAV 2022) is a Coq-verified admission checker extracted to C and shipped in an embedded operating system. BCF (SOSP 2025) has the Linux eBPF verifier accept load-time certificates proved in user space and checked by a small kernel-side checker.
 
 **Adjacent active lines.** Universal contracts and secure calling conventions on CHERI-RISC-V, taint-typed assembly for cryptographic code, and now attestation contracts (Cerisier, PLDI 2026, still on the idealized machine) each cover one slice of the menu; none is the assembly language.
+A fourth slice arrives from outside the program-logic line entirely: a symbolic memory model for a CHERI-enabled idealized assembly language, mechanized and proven OX-sound in the compositional-symbolic-execution lineage, with UX soundness and the tool integration booked by its own authors as future work. It is a memory model rather than a type system, and it is stated over an idealized machine rather than over the pinned Sail term, so it joins the list on the same footing as the three above: one slice, and not the assembly language.
 
 ---
 
