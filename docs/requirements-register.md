@@ -72,7 +72,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T, CJ-CERISE
 
 **R-01-002a** IS: G2 has two premises in different conditions. Its software premise admits no interim: nothing executes that the certifying toolchain has not certified, so a missing certificate is a delivery failure and never a degraded admission (R-13-022, R-17-033). Its hardware premise admits one, because every isolation boundary rests on CHERI alone with no disjoint backstop retained (R-17-037, R-17-045) and the arrow beneath it is the least-built layer of the stack (R-18-010): until that arrow closes, the premise stands at *evidence tier* (rvfi conformance, Sail-generated SystemVerilog under commercial FEV, the structural netlist audit carrying the imported-core half of the absence contract) rather than at *theorem tier* (the Kami/Kôika Coq unbounded refinement).
-· Accept: each tier is identified by its vehicles rather than by adjective, so which tier a core stands at is read off the artifacts admitted for that core; the two tiers partition the rungs R-18-010 stages, at the unbounded one.
+· Accept: each tier is identified by its vehicles rather than by adjective, so which tier a core stands at is read off the artifacts admitted for that core; the rungs R-18-010 stages split at the unbounded one, everything below it evidence and the Kami/Kôika Coq refinement alone theorem, with Isla's obligations on the evidence side and the netlist audit beside the rungs as R-18-012's own gate rather than among them.
 · Trace: CJ-T, CJ-RTL-SAIL, CJ-CERISE
 
 **R-01-002b** MUST: A unit built before R-18-010's unbounded rung is admitted for its cores asserts G2 at evidence tier and no higher, as does every §3 defended entry answered by CHERI containment (R-03-006). The tier rises per core when that core's unbounded refinement is admitted, never at an intermediate rung, under the retirement discipline R-05-022 imposes on every interim non-Coq anchor.
@@ -403,7 +403,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 5.7 The three checker moves
 
 **R-05-036** IS: The checker discharges every type-level obligation by exactly three moves: (I) cite a runtime invariant CHERI enforces, (II) evaluate a Knuth-style attribute over the already-typed CFG, (III) confirm a deletion.
-· Accept: each obligation in R-05-029 maps to exactly one move; the checker's implementation has no fourth mechanism.
+· Accept: each obligation in R-05-029 maps to exactly one move, except the two whose halves split: memory safety takes move (I) for its spatial half and move (II) for its temporal half, and control-flow integrity takes move (I) for its runtime half and move (II) for its compose-time callee-set enumeration (R-05-037, R-05-038); the checker's implementation has no fourth mechanism.
 · Trace: CJ-TAL-SOUND
 
 **R-05-037** IS: Move I carries spatial memory safety, no-runtime-codegen, and CFI-runtime through sentry reachability.
