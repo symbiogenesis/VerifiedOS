@@ -42,19 +42,20 @@
 There is no CI in this repository. Nothing runs these but you, by hand, before anything lands.
 
 ```console
-$ python tools/check.py                       # after any document edit
-$ python tools/check.py --fix                 # and rewrite what is arithmetic
+$ python tools/gate.py                        # the three host gates, in one run
+$ python tools/gate.py --fix                  # and rewrite what is arithmetic first
+$ python tools/check.py                       # one gate alone, after a document edit
+$ python tools/check-selftest.py              # one alone, after touching the checker
+$ python tools/typecheck.py                   # one alone, after touching any Python
 $ python tools/co-read.py --show R-15-073c    # a pair K-61 says is owed a reading
-$ python tools/check-selftest.py              # after touching the checker itself
 $ python tools/test.py                        # after changing what any tool does
-$ python tools/typecheck.py                   # after touching any Python
 
 $ wsl -u root -e python3 tools/model.py typecheck
 $ wsl -u root -e python3 tools/model.py build
 $ wsl -u root -e python3 tools/proof-gate.py
 ```
 
-The host spells the interpreter `python` and the guest spells it `python3`; neither spelling is portable, and there is no `-d` because `Ubuntu` is WSL's default distribution. `model.py build` logs to a file and writes `ALL_DONE` as its last line, so a caller waits on that marker rather than on a sleep. [tools/README.md](tools/README.md) states why, and the conventions a new tool keeps.
+`gate.py` is the three host gates as one run and one exit code, and they share it because all three only read the checkout; under `--fix` the repair runs alone and first, the selftest copying the working tree as it starts. The host spells the interpreter `python` and the guest spells it `python3`; neither spelling is portable, and there is no `-d` because `Ubuntu` is WSL's default distribution. `model.py build` logs to a file and writes `ALL_DONE` as its last line, so a caller waits on that marker rather than on a sleep. [tools/README.md](tools/README.md) states why, and the conventions a new tool keeps.
 
 **Adding a rule to the checker is three edits**: the check in its [tools/vos/checks/](tools/vos/checks/) module, its row in [tools/check-rules.md](tools/check-rules.md), and its mutant in [tools/check-selftest.py](tools/check-selftest.py). The tools fail on any one of the three being forgotten.
 
