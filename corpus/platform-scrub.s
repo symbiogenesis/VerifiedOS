@@ -136,11 +136,16 @@ _start:
 
         # `vmclear` clears the vector register file, the vector CSRs, the matrix
         # unit's architectural state, and the class's scratchpad in one
-        # unconditional pass. Two of those four are not in the model until the
-        # core classes arrive (M0.8) and the vector register file cannot be
-        # written from this corpus at all until the datapath does, so what a
-        # program can check today is the CSR half: `vcsr` is writable, so it can
-        # be dirtied and found clean afterwards. Reaching it at all needs the
+        # unconditional pass. All four are in the model: the scratchpad is the
+        # extent this hart's class declares, and the matrix half is *nothing*,
+        # an enumeration result rather than a residue, the unit holding no
+        # architectural state of its own (vmclear.sail, R-15-117, R-15-118).
+        # What this member checks is the CSR half: `vcsr` is writable, so it can
+        # be dirtied and found clean afterwards, where the register file, `vl`
+        # and `vtype` are asserted against their reset values rather than
+        # against a configuration this program selected. The surface that would
+        # dirty those three arrived with M0.8b and the rewrite over it is owed
+        # (docs/differential-corpus.md §7). Reaching the CSR at all needs the
         # extension-context gate on, which is the next check's whole point.
         li      gp, 8
         li      t0, 0x200
