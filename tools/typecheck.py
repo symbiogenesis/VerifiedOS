@@ -50,7 +50,7 @@ from vos.report import Reporter
 # The pins. Both are recorded in tools/README.md, and both are installed with
 # `pip install ty==<v> ruff==<v>` on either lane; neither needs a toolchain beyond
 # pip, which is what kept them in reach of a directory that is one language.
-TY_VERSION = "0.0.73"
+TY_VERSION = "0.0.74"
 RUFF_VERSION = "0.16.4"
 
 # How many findings of one rule are printed before the rest are counted. A run that
@@ -150,7 +150,10 @@ def _summarize(rep: Reporter, rule: str, label: str, findings: list[tuple[str, s
         lines.extend(f"  {h}" for h in hits[:PER_RULE])
         if len(hits) > PER_RULE:
             lines.append(f"  ... and {len(hits) - PER_RULE} more")
-    rep.report(rule, label, lines, ok)
+    # `count` because `lines` is a summary: a rule header sits above each sample and a
+    # tail line stands in for whatever the cap held back, so the verdict is the length
+    # of `findings` and never the length of what is printed for them.
+    rep.report(rule, label, lines, ok, count=len(findings))
 
 
 def _parse_ty(text: str) -> list[tuple[str, str]]:

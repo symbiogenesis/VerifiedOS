@@ -16,6 +16,7 @@ import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import ModuleType
+from typing import cast
 
 from tests.harness import TOOLS, Case, ensure
 from vos import differential
@@ -57,9 +58,9 @@ def _report(text: str | None) -> tuple[int, str, str]:
         if text is not None:
             log.write_text(text, encoding="utf-8", newline="")
         with redirect_stdout(out), redirect_stderr(err):
-            # annotated because a module loaded from a path answers `Any` for every
+            # cast because a module loaded from a path answers `Any` for every
             # attribute, and the tuple below states what the seam really returns
-            code: int = _MODEL._report_build(log)
+            code = cast("int", _MODEL._report_build(log))
     return code, out.getvalue(), err.getvalue()
 
 

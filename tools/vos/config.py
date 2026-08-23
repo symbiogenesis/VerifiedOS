@@ -62,12 +62,19 @@ def value(path: Path, *keys: str) -> Json:
     for key in keys:
         if not isinstance(node, dict) or key not in node:
             return None
-        node = node[key]
-    # `Json` is recursive, and a walk that re-binds through it leaves the checker
-    # holding the alias expanded one level rather than the alias, which is the same
-    # type spelled longer. Narrowed back to what it is, as `jsonc.load` narrows the
-    # untyped boundary it stands on.
-    return cast("Json", node)
+        # `Json` is recursive, and a walk that re-binds through it leaves the checker
+        # holding the alias expanded one level rather than the alias, which is the same
+        # type spelled longer. Narrowed back to what it is at every step, as `jsonc.load`
+        # narrows the untyped boundary it stands on.
+        #
+        # The suppression is on ty's own disagreement rather than on this line's
+        # soundness: without the cast it calls the assignment and the return unsound
+        # against the expansion, and with it calls the cast redundant because the value
+        # is already `Json`. Both cannot hold. The cast stays, because it is a no-op at
+        # runtime and it is the half that would still be needed if the unsoundness
+        # reading were the right one; only the redundancy reading is silenced.
+        node = cast("Json", node[key])  # ty: ignore[redundant-cast]
+    return node
 
 
 def integer(path: Path, *keys: str) -> int | None:

@@ -45,7 +45,7 @@ import tempfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import IO
+from typing import IO, cast
 
 # The tools import `vos` without being installed, so each puts its own directory on
 # the path first. Every import below this line is deliberately not at the top.
@@ -1078,7 +1078,7 @@ def main(argv: list[str] | None = None) -> int:
     # gone: named here so that the exit code this returns is checked to be one, and
     # so that a handler with the wrong shape is a finding rather than a TypeError on
     # whichever subcommand nobody ran lately.
-    run: Command = args.run
+    run = cast("Command", args.run)
     return run(e, args)
 
 
