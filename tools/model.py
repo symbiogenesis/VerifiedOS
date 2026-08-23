@@ -274,8 +274,10 @@ def _seed_tree(e: env.Environment, target: Path) -> None:
     the ~36 s emission into ~3.6 min under the pinned solver, ~4.7 min under the
     distribution's (I3, two repeats per arm, 2026-08-22; the ~25 min once measured
     here described the model before the curation deleted most of its surface).
-    Standing a lane up is 237.7 s seeded, which is what makes a lane cheap enough to
-    be worth having.
+    Standing a lane up is 202.3 s seeded under the clang `env._compiler_args` selects,
+    configure 50.6 s, build 106.9 s at 329% CPU and ctest 44.8 s over 375 edges (one
+    run, quiet box, 2026-08-22), which is what makes a lane cheap enough to be worth
+    having.
     """
     # This lane's canonical tree first and the primary worktree's second: the fast tree
     # wants the lane it belongs to, and a lane's own first build has only the primary to
@@ -315,7 +317,11 @@ def _seed_smt_cache(donors: list[Path], target: Path) -> None:
     that discharged it, so a cache carried across either boundary hands the pinned
     solver another solver's answers to read back as its own. That is the silent
     difference `env._prepend_z3_path` exists to announce. Both donors are this
-    machine's, so neither boundary is crossed, and a copy has one writer.
+    machine's, so neither boundary is crossed, and the copy has one writer. The donor
+    may have another: this read takes neither donor's build lock, so a seed arriving
+    while a donor's own build is at `save_digests` copies whatever that rewrite has
+    reached. What that costs stays on the copy, a lane starting from a prefix or a torn
+    record paying the cold cache this seed exists to avoid and no donor paying anything.
     """
     cache = target / "model" / "sail_smt_cache"
     if cache.exists():
