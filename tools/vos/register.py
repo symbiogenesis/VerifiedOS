@@ -144,7 +144,12 @@ class Artifacts:
     cm_twice: list[str] = field(default_factory=list)
 
 
-_ABSENCE_RE = re.compile(r"^\| \*\*(A-\d+)\*\*")
+# An absence row's id, letter suffix and all. The absence contract inserts between two
+# rows the way the register inserts between two entries, `A-12a` sitting where its
+# structure belongs rather than where its number would put it, so a pattern that stops
+# at the digits reads one row fewer than the table has and every figure derived from it
+# is short by that row while the rule reporting them stays green.
+_ABSENCE_RE = re.compile(r"^\| \*\*(A-\d+[a-z]?)\*\*")
 _CSR_SECTION_RE = re.compile(r"^### (5\.\d) ")
 _EXCLUSION_SECTION_RE = re.compile(r"^## 6\. ")
 # a table's header rule, which is the one `|` line that is not a row

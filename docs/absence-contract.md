@@ -109,7 +109,7 @@ The contract needs no RTL of record, no Sail model, and no proof toolchain: only
 
 1. **Elaborate** the core at its intended synthesis configuration.
 2. **Enumerate** every state element in the elaborated netlist.
-3. **Search** that inventory for the A-01 – A-12a structures by the evidence column of §3; confirm A-13 – A-16.
+3. **Search** that inventory for the A-01 – A-12a structures by the evidence column of §3; confirm A-13 – A-17.
 4. **Record synthesis-configuration provenance** (the parameters that disable each structure) so the absence is bound to a build, not to a reading. CVA6's branch-predictor and cache parameters are the live instance.
 5. **Classify** every remaining state element into one of §6's four classes; anything unclassifiable is a finding, not a footnote.
 6. Apply **§5's table-freeness rule** to every fetch-path element, mechanically.
