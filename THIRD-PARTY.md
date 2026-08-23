@@ -45,7 +45,7 @@ These are gitlink entries. This repository carries a URL and a commit hash for e
 
 | Submodule | Upstream | Pin | Standing |
 | --- | --- | --- | --- |
-| `upstream/sail-riscv` | `riscv/sail-riscv` | `6266b40c` | The edition the curation is reconciled against. Same BSD-2-Clause terms as the vendored tree. |
+| `upstream/sail-riscv` | `riscv/sail-riscv` | `ac2a5855` | The edition the curation is reconciled against. Same BSD-2-Clause terms as the vendored tree. |
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | The capability-semantics oracle. Same BSD-2-Clause terms. |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | A CompCert fork, and the one pin whose terms are not permissive. The project is renamed on GitHub and the older `secure-compilation/CompCert` path redirects here, so the PriSC'23 abstract's link and this row name one repository. Read at the pin and decomposed below. |
 
