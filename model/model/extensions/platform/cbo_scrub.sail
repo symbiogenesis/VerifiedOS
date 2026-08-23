@@ -29,7 +29,7 @@
 // worth having.** A scrub that rewrote a block through the ordinary store path
 // would clear the validity tag of every granule it covered, tag clearing being
 // a property of the write path and not an instruction (R-15-007r,
-// core/mem_metadata.sail) — which would make maintenance of a capability-
+// core/mem_metadata.sail), which would make maintenance of a capability-
 // bearing array destroy the authority in it. So the block is read and written
 // back a granule at a time with its metadata carried across, and the tag plane
 // survives a scrub where it does not survive an `sd` of the same bits.

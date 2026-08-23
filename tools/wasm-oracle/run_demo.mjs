@@ -24,7 +24,7 @@ if (instance.exports.out_of_mem.value === 1) {
 }
 
 // bool per tests/wasm/js/modules/pp.js print_bool: odd-tagged unboxed
-// scalar, payload in the upper bits — 1 is true, 0 is false.
+// scalar, payload in the upper bits: 1 is true, 0 is false.
 const raw = instance.exports.result.value;
 if (raw & 1) {
   const b = raw >> 1 === 1;

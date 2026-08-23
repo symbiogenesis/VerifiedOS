@@ -54,8 +54,8 @@ A second instrument stands behind the rows themselves. [check-selftest.py](check
 | K-37 | estimates | every restated total, share, and gate figure agrees with the items | the same declared shape |
 | K-38 | tables | every table row is the width its header declares | the counts above read cells by position |
 | K-39 | tables | every table row belongs to a table with a header rule | the same; a ruleless run renders as prose and is read by nothing |
-| K-40 | glyphs | no document carries an em-dash | house style; the rule is absolute so it needs no audited carve-out |
-| K-41 | glyphs | no document carries mojibake or a replacement character | encoding damage survives a rendered read |
+| K-40 | glyphs | no tracked file carries an em-dash | house style; the rule is absolute so it needs no audited carve-out, and reading the whole index rather than the `.md` corpus is what leaves it none |
+| K-41 | glyphs | no tracked file carries mojibake or a replacement character | encoding damage survives a rendered read, and a comment carries it as readily as a paragraph |
 | K-42 | bindings | the field-bindings view carries exactly the apex record's Prop fields, in declaration order | R-18-031 |
 | K-43 | bindings | every consumer cell restates what the statement does with its field | R-18-031, R-05-160, R-05-161 |
 | K-44 | bindings | every instantiation cell is 'none yet' or a link to the instantiating artifact | R-18-031 |
