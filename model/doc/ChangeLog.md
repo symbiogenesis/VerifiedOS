@@ -18,10 +18,9 @@ configuration is fully compatible with that of version 0.13.
 # Release notes for version 0.13
 
 The main highlights of this release are the addition of the misaligned
-atomicity granule PMA, an [experimental RISC-V
-emulator](../lean_emulator/README.md) in Lean extracted from the Sail
-model, and experimental support for a [remote server endpoint for GDB
-and LLDB](../c_emulator/gdb/README.md).
+atomicity granule PMA, an experimental RISC-V emulator in Lean
+extracted from the Sail model, and experimental support for a [remote
+server endpoint for GDB and LLDB](../c_emulator/gdb/README.md).
 
 - The following extensions have been added:
   - Zama16b

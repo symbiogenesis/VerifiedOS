@@ -214,9 +214,6 @@ add_subdirectory("model")
 # Emulator binary.
 add_subdirectory("c_emulator")
 
-# Lean emulator
-add_subdirectory("lean_emulator")
-
 # Old pre-compiled riscv-tests & first-party tests.
 add_subdirectory("test")
 
