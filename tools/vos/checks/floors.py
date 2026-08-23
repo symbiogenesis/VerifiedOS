@@ -155,6 +155,8 @@ def run(ctx: Context) -> None:
         "values the shipped configurations state": sh.get("shipped_config_values", 0),
         "per-class capacity figures the register owns": owned,
         "region classes the placement compound reads": sh.get("placement_terms", 0),
+        "physical byte classes the composition is charged":
+            sh.get("charged_terms", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),
         "CSR rows the profile excludes": len(art.csr_rows.get("5.2", [])),
         "Prop fields of the apex record": len(sh["apex"].fields) if sh.get("apex") else 0,

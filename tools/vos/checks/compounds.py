@@ -51,6 +51,18 @@ restating the pair does not move a region across. The class boundary carries no 
 gradient (R-15-247s), which is exactly what makes this a bookkeeping property and not
 a security one: nothing is weakened by a region sitting on the second class, so the
 only thing wrong with a misplaced one is that it is wrong.
+
+The placement is held total over the charge rather than over itself, which is the
+difference between a rule that decides something and a rule that agrees with the words
+it was written from. R-08-045 enumerates every physical byte a composition pays for; a
+check reading only the placement's own terms is total over a vocabulary the placement
+chose, so a charged term neither list mentions is invisible to it in exactly the case
+that matters. The charge is therefore the enumeration here, read from the entry that
+states it, and each of its terms is either placed on one class by name or answered by
+the criterion's own clause for what a latency boundary sorts rather than names: an
+application payload is an owner and not a latency, so its cycle-critical part is
+first-class and its bulk is second-class and neither list names it. Both readings are
+the register's; what is here is the totality over them.
 """
 
 import re
@@ -124,11 +136,25 @@ PLACEMENT: list[tuple[str, str, str, str]] = [
     ("framebuffers", r"framebuffers", "second", "R-15-247s"),
     ("images", r"\bimages\b", "second", "R-15-247s"),
     ("vector and matrix extents", r"vector and matrix extents", "second", "R-15-247s"),
-    ("interpreter origin arenas", r"origin arenas", "second", "R-14-015"),
+    ("interpreter object arenas", r"interpreter object arenas", "second", "R-14-015"),
     ("media buffers", r"media buffers", "second", "R-15-247s"),
     ("cold statically-placed code", r"cold statically-placed code", "second", "R-15-247s"),
     ("model weights", r"model weights", "second", "R-15-247s"),
 ]
+
+# The other vocabulary the boundary answers to, read from the entry that states it. A
+# term added to the charge is a physical byte somebody now pays for, and it has to be
+# placed before this rule goes green over it again, which is the whole of what taking
+# the charge as the enumeration buys.
+CHARGE_RE = re.compile(r"every physical byte \(([^)]*)\)")
+
+# The criterion's own clause for the charged terms it answers without naming. Read
+# rather than assumed: a term dropped out of the clause stops being accounted for
+# anywhere, and that is a finding rather than a silence. Several terms join on ' and ',
+# so a charged term that itself carries an ' and ' cannot be answered here; it reads as
+# unplaced, which is the direction that fails loudly rather than the one that passes.
+BY_CRITERION_RE = re.compile(
+    r"the boundary places ([^,;:.]+?) by criterion and not by name")
 
 # What each governing entry must still say in its own words, so that a placement holds
 # where it is decided and not only where it is summarized. R-15-247s is the summary
@@ -152,11 +178,14 @@ def _lists(text: str) -> tuple[str, str] | None:
 
 
 def _placement(ctx: Context) -> None:
-    """K-56: every region class carries exactly one latency class, in three readings."""
+    """K-56: every region class carries exactly one latency class, in three readings,
+    and every physical byte the charge names is placed exactly once."""
     rep, reg = ctx.rep, ctx.reg
     ctx.shared["placement_terms"] = 0
+    ctx.shared["charged_terms"] = 0
 
-    register = _lists(reg.accept_text.get("R-15-247s", ""))
+    accept = reg.accept_text.get("R-15-247s", "")
+    register = _lists(accept)
     spec = _lists(ctx.text(SPEC))
     if register is None or spec is None:
         rep.report("K-56", "two-class placement reading(s) that have moved:", [
@@ -196,11 +225,43 @@ def _placement(ctx: Context) -> None:
             findings.append(f"{ident} no longer states the placement R-15-247s "
                             f"attributes to it, which this rule reads as '{literal}'")
 
+    # the charge, and the terms the criterion answers without naming
+    charge = CHARGE_RE.search(reg.body.get("R-08-045", ""))
+    unnamed = BY_CRITERION_RE.search(accept)
+    charged = [term.strip() for term in charge.group(1).split(",")] if charge else []
+    by_criterion = {part.strip().lower()
+                    for part in unnamed.group(1).split(" and ")} if unnamed else set()
+
+    if charge is None:
+        findings.append("R-08-045 no longer enumerates the physical bytes it charges in "
+                        "a form this rule reads, so the placement has nothing to be "
+                        "total over but its own words")
+
+    for term in charged:
+        rx = re.compile(rf"\b{re.escape(term)}\b")
+        placed = [name for name, lst in (("the first class", register[0]),
+                                         ("the second class", register[1]))
+                  if rx.search(lst)]
+        if term.lower() in by_criterion:
+            placed.append("the criterion's clause for what it places by criterion")
+        if len(placed) == 1:
+            continue
+        findings.append(
+            f"R-08-045 charges {term} and R-15-247s places it nowhere; a byte the "
+            "composition pays for lies on one of the two classes or is answered by "
+            "the clause that says why it lies on neither"
+            if not placed else
+            f"R-08-045 charges {term} and R-15-247s places it on "
+            f"{' and '.join(placed)}, which is one charge placed twice")
+
     ctx.shared["placement_terms"] = len(PLACEMENT)
-    rep.report("K-56", "region class(es) the two-class placement does not partition:",
+    ctx.shared["charged_terms"] = len(charged)
+    rep.report("K-56", "term(s) the two-class placement does not place exactly once:",
                findings,
                f"all {len(PLACEMENT)} region classes carry exactly one latency class, "
-               f"{len(GOVERNS)} of them held at the entries that decide them")
+               f"{len(GOVERNS)} of them held at the entries that decide them, and all "
+               f"{len(charged)} physical bytes R-08-045 charges are placed, "
+               f"{len(by_criterion)} of them by criterion rather than by name")
 
 
 def _band(ctx: Context) -> None:
