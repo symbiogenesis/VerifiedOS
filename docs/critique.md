@@ -166,8 +166,6 @@ No contradictions were found on the checked points for the MCS deletion against 
 
 ## Register: contradictions and overlaps
 
-**R-17-058 against R-15-184.** Rowhammer is *dramatically reduced rather than mitigated* in one place and has *no charge-disturbance analog in SRAM*, apparatus *deleted rather than tuned*, in the other. Reconcilable through R-15-184's own residuals, but the two headlines disagree in strength, and the qualifier carrying the weight is not the SRAM one: *no analog* is a claim about SRAM, and the second class is not SRAM (R-15-247n), its own disturb behaviour being a device property R-15-247m's qualification measurement has not returned and which R-15-184 asserts nothing about ahead of it.
-
 **Aligned restatements**, stated two or three times each and worth citing rather than repeating: no asynchronous interrupt delivery; no MMU and a single address space; biometrics never releasing at-rest keys; sealed cutoffs dominating emergency call; lockout cutting microphone, camera, and USB while the radio stays pageable; global mode transitions being rare and never load-following; no link-time specialization on confidential values; no POSIX shim; no dynamic speculation. Three earlier collisions are self-documented as repaired (competing axiom enumerations scoped, crown-jewel roll-call drift closed by conferral, the obligation list replaced by citation), and the repair pattern is consistent.
 
 ## Register: weak acceptance criteria
@@ -203,7 +201,6 @@ Requirements carrying `· Fail-closed:` confer into R-17-030r's seam register, a
 
 ### A. Defects: the answer is already in the documents
 
-3. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with two qualifiers on whichever wording survives: R-15-184's residual read/write-disturb and half-select modes on the first class, and, the live one, the second class's own disturb behaviour, which is not SRAM's, is a device property R-15-247m's qualification measurement has not returned, and is asserted nowhere ahead of it (R-15-184, R-15-247n, R-15-247r).
 8. **Give §1 and §3 criteria a decision procedure or §17's preamble.** Goal and threat entries currently restate their premises without §17's explicit *booked with its owner and scope rather than absorbed* excuse.
 
 ### B. Decisions: someone has to make the call
