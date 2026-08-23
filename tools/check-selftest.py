@@ -1012,6 +1012,19 @@ CASES: list[Case] = [
     ("K-68", "a co-stated fact one of its sites no longer states",
      _entry("R-14-007", lambda entry: entry.replace(
          "capabilities beyond pure compute", "capabilities beyond pure computation"))),
+
+    # A restated figure drifts from the entry that fixes it: the kernel budget's spec
+    # restatement moves while R-07-001 stands, the drift K-69's --fix rewrites back
+    # from the owner.
+    ("K-69", "a restated owned figure drifted from the entry that fixes it",
+     _literal(SPEC, "target ≤10k lines", "target ≤12k lines")),
+
+    # The second reach of K-60: a free-prose VLEN token names a geometry no composed
+    # class carries. The first spec token the seed happens to hit may sit in the
+    # class table itself, in which case the table half fires instead; either half's
+    # report is K-60's own.
+    ("K-60", "a VLEN token naming a geometry no composed class carries",
+     _literal(SPEC, "VLEN=4096", "VLEN=2048")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
@@ -1029,7 +1042,7 @@ def _case_mutation(rule: str) -> Mutation:
 # Every rule with a --fix branch: the substring its rewrite's `fixed:` line must carry,
 # and the defect the repair lane seeds. The repair path is never exercised by a
 # green tree, so a branch missing here ships untested unless something breaks it on
-# purpose. Five seeds are the rules' own case mutants, each an arithmetic figure whose
+# purpose. Six seeds are the rules' own case mutants, each an arithmetic figure whose
 # repair writes the pristine bytes back. K-54's case cannot be the sixth: it moves the
 # granule owner, and repairing from a moved owner rewrites every derived figure to the
 # new granule and dirties co-read pairs no --fix may bless, so the after-check could
@@ -1044,6 +1057,7 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-54": ("the tag plane's", _literal(
         REGISTER, "granule is 15.6 MB per GB of data",
         "granule is 99.9 MB per GB of data")),
+    "K-69": ("kernel-line-budget", _case_mutation("K-69")),
 }
 
 

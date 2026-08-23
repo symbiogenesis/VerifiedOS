@@ -1749,7 +1749,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-08-032** MUST: Interrupt-send is authority: an interrupt is a store to an interrupt file, so *who may interrupt whom* is a write capability in the static capability topology rather than a separate routing table. Interrupt-receive is a load from state the partition already owns and needs no separate authority.
 · Accept: no interrupt-routing side table exists.
-· Trace: CJ-CERISE · [§8](spec.md#r-08-032), [§8](spec.md#r-08-032-2)
+· Trace: CJ-CERISE
 
 **R-08-033** IS: There is no authority to *disable* interrupts, because there is no asynchronous delivery to disable: the attack the interrupt-state sentry discipline existed to stop is absent rather than bounded, and its two lemmas are vacuous rather than discharged.
 · Accept: the boundary timer is unmaskable by construction, so the overhang is zero rather than capped (R-07-041).
@@ -5208,7 +5208,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-SAIL
 
 **R-17-024a** IS: Seam: **retention ⋈ sanitization**, separated by name rather than reconciled: the property making the R-15-247 second class's refresh cheap is the property widening its power-off plaintext window, so authority invalidation and residue sanitization are two boundaries and not one.
-· Accept: authority invalidation is a confirmed discharge of the tag plane through the cells' own write devices, taken at mode exit (R-15-247d, R-15-247e, R-15-247q); residue sanitization is a later, separately admitted step; neither rests on decay (R-15-247c); and the tag plane's ~1.5% share of the array (R-15-247a) is what makes the first boundary cheap without making the second optional (R-17-058f).
+· Accept: authority invalidation is a confirmed discharge of the tag plane through the cells' own write devices, taken at mode exit (R-15-247d, R-15-247e, R-15-247q); residue sanitization is a later, separately admitted step; neither rests on decay (R-15-247c); and the tag plane's ~1.56% share of the array (R-15-247a) is what makes the first boundary cheap without making the second optional (R-17-058f).
 · Trace: CJ-CERISE, CJ-DEVTREE
 
 **R-17-025** IS: Seam: **clock domains ⋈ determinism**, mesochronous by construction, with three asynchronous boundaries terminated and unmodeled.

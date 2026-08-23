@@ -136,6 +136,7 @@ def run(ctx: Context) -> None:
         "welded block sizes the constraints admit": sh.get("block_candidates", 0),
         "bank counts the DSE contract declares": sh.get("bank_candidates", 0),
         "core-class table sites the rule can read": sh.get("core_class_sites", 0),
+        "VLEN tokens the composition answers": sh.get("vlen_tokens", 0),
         "requirement citations in the model files read": sh.get("model_citations", 0),
         # Five rather than one, because the exclusion rule pairs what the profile writes
         # against what could answer it, and either side of either pairing emptying leaves
