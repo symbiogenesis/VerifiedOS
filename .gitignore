@@ -9,8 +9,10 @@
 
 # The generated reading view tools/read-view.py rebuilds on demand: a derived
 # artifact of the two documents and never a source, kept out of the index and,
-# being ignored, out of the selftest sandbox's corpus alike.
-out/
+# being ignored, out of the selftest sandbox's corpus alike. Anchored to the
+# root on purpose: an unanchored out/ would silently swallow any out directory
+# a future vendored tree carries, and a curation batch adds by recursive add.
+/out/
 
 proofs/*.vo
 proofs/*.vok

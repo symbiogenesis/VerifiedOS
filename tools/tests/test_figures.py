@@ -144,6 +144,9 @@ def _anchor_extraction() -> None:
     got = figures.anchor(r"(?<=granule is )[\d.]+(?= MB per GB of data)")
     ensure(got == " MB per GB of data",
            f"a positive lookaround's text counts, and the longest run wins: {got!r}")
+    got = figures.anchor(r"(?<=below the ≤\u2009)\d+k(?=-line target)")
+    ensure(got == "-line target",
+           f"a hex escape's digits are its spelling, never document text: {got!r}")
 
 
 def _no_registered_flags() -> None:

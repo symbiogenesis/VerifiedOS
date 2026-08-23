@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 HEADING = "=== costated: every fact stated across pairs, at each site stating it ==="
 
 SPEC = "docs/spec.md"
+REGISTER = "docs/requirements-register.md"
 
 # One row per fact: what it is, and the sites that state it. A site names a register
 # entry (held against that entry's own lines: body, criteria, conferrals) or a
@@ -66,7 +67,15 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     # them apart is exactly the edit this row reports
     ("the sealed-cutoff device trio", [
         ("R-15-145", "the microphone, the radios, and the wired data port"),
+        ("R-15-150", "The microphone, radio, and USB-data cutoffs"),
         (SPEC, "the microphone, the radios, and the USB data lanes"),
+    ]),
+    # the two heads state one relationship: the register's line-3 banner and the
+    # banner spec.md opens with; editing either names the other for a joint revisit
+    ("the precedence relationship, stated at both documents' heads", [
+        (REGISTER, "This register, not the prose, is the artifact"),
+        (SPEC, "where the two disagree the register wins (R-05-152)"),
+        (SPEC, "which rule K-61 reports and `tools/co-read.py` records"),
     ]),
     ("the admission rule's non-duplication clause, cited by ordinal", [
         ("R-05-132", "(2) duplicates no existing grade or label axis"),

@@ -113,9 +113,11 @@ def weave(corpus: Corpus) -> tuple[list[str], int, list[str]]:
                 placed += 1
             cited = repeats.get(anchor, ())
             if cited:
+                # direction-neutral on purpose: a -n repeat may precede its base
+                # bookmark in the prose (r-12-035-2 does), so "above" would misdirect
                 lines.append("")
                 lines.append("> ↳ cited here again: " + ", ".join(cited)
-                             + ", stated at their own bookmarks above.")
+                             + ", stated in full at their own bookmarks.")
     if homeless:
         lines += ["", "## Entries no bookmark places", ""]
         for ident in homeless:
