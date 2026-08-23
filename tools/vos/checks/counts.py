@@ -205,6 +205,13 @@ ESTIMATES = "docs/performance-estimates.md"
 GRANULE_RE = re.compile(r"one validity tag per \*\*(\d+)-bit\*\* granule")
 PAYLOAD_RE = re.compile(r"data payload is (\d+) bits")
 
+# R-15-007q's own statement of the welded block's ceiling. The bound is the width of
+# the register the group comes back in, so it is the entry's to state and this rule's
+# to recompute: of every site that writes a figure about this parameter, the entry is
+# the only normative one, and the only one an edit can move without the model or a
+# composition rendering wrong.
+BLOCK_CEILING_RE = re.compile(r"the block at most \*\*(\d+) bytes\*\*")
+
 # file, key, and the pattern capturing the stated figure alone. Each pattern holds
 # exactly one site in its own file, which a claim owes because a repair rewrites every
 # site the pattern matches.
@@ -586,6 +593,13 @@ def _block_geometry(ctx: Context) -> None:
     line-ending sweep the tools' `newline=""` convention exists to prevent, and the
     seventh thing this rule could touch, which value inside the set is taken, is
     R-15-014a's second act rather than arithmetic.
+
+    The ceiling has a ground as well as a value, and R-15-007q states both: the group
+    comes back in one integer register, so the bound is that register's width times the
+    granule. Holding the entry's number against the same arithmetic is what keeps the
+    derivable half of the constraint from having its only normative statement be one a
+    later edit could move on its own. The value is the entry's and the arithmetic is
+    here, and neither rewrites the other.
     """
     rep, reg = ctx.rep, ctx.reg
     geo = geometry.read(ctx.root)
@@ -626,6 +640,17 @@ def _block_geometry(ctx: Context) -> None:
         findings.append(f"{geometry.DOCUMENT} states a ceiling of {geo.ceiling} bytes, "
                         f"the {granule}-byte granule and an integer destination give "
                         f"{ceiling}")
+
+    stated = BLOCK_CEILING_RE.search(reg.accept_text.get("R-15-007q", ""))
+    if stated is None:
+        findings.append("R-15-007q no longer states the welded block's ceiling in a "
+                        "form this rule reads, so the bound the destination register "
+                        "sets has no normative statement left")
+    elif int(stated.group(1)) != ceiling:
+        findings.append(f"R-15-007q states a ceiling of {stated.group(1)} bytes, the "
+                        f"{granule}-byte granule and an integer destination give "
+                        f"{ceiling}")
+
     if geo.declared and geo.declared != candidates:
         findings.append(f"{geometry.DOCUMENT} declares candidates {geo.declared}, the "
                         f"constraints it states compound to {candidates}")
@@ -641,7 +666,7 @@ def _block_geometry(ctx: Context) -> None:
     rep.report("K-57", "welded block-size site(s) that disagree:", findings,
                f"the welded block size is {1 << next(iter(written.values()), 0)} bytes "
                f"in all {len(geo.sites)} sites that write it, inside a candidate set of "
-               f"{len(candidates)}")
+               f"{len(candidates)} under the {ceiling}-byte ceiling R-15-007q states")
 
 
 def _owned_figures(ctx: Context) -> None:
