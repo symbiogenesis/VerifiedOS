@@ -7,3 +7,6 @@
 [submodule "upstream/SECOMP"]
 	path = upstream/SECOMP
 	url = https://github.com/secure-compilation/SECOMP
+[submodule "upstream/llvm-project"]
+	path = upstream/llvm-project
+	url = https://github.com/llvm/llvm-project
