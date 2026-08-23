@@ -70,6 +70,26 @@ def count_checks(source: str) -> int:
     return max((int(n) for n in CHECK_RE.findall(source)), default=0)
 
 
+# A `.word` lays an instruction down with none of the operand checking a mnemonic
+# passes through, so §3 of the document closes the grounds for one at three and
+# enumerates every word standing on them. This finds the words to hold that list
+# against, and it matches the *directive* rather than a literal shape: an operand
+# this rule cannot read is then a finding at the caller, in the fail-closed shape
+# K-71 uses over the schema heading, and never a word it passes over in silence.
+WORD_RE = re.compile(r"^\s*\.word\s+(\S+)\s*$", re.MULTILINE)
+
+
+def hand_written_words(source: str) -> list[str]:
+    """Every operand a member lays a `.word` down with, in source order.
+
+    The text rather than the value, because reading it is the caller's to report
+    on: a member is free to write one in any base the assembler evaluates, and a
+    rule that returned only the ones it happened to parse would answer a question
+    about the corpus with a question about its own regular expression.
+    """
+    return [str(operand) for operand in WORD_RE.findall(source)]
+
+
 def rewrite(corpus: Corpus, measured: dict[str, tuple[int, int, str]]) -> None:
     """Write the measured fields back into the manifest.
 

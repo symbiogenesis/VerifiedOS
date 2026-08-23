@@ -442,7 +442,10 @@ def _k_vkeccak(f: Fields, o: list[int], pc: int) -> int:
     other value of the field reaches no decode clause and traps, so this refuses
     to emit one rather than laying down a word whose meaning is *unallocated*
     (R-15-057a, R-15-014). A program that means to check that refusal writes the
-    word, exactly as one meaning to write a read-only CSR does.
+    word instead, which is the one refusal this table makes: it is the encoder's
+    business what a row can express and the machine's what an encoding means, so
+    an access to an unallocated CSR address and a write to a read-only one are
+    both emitted here and both trap there.
     """
     rounds = _imm(o[2], 5, signed=False, name="round count")
     if rounds not in (12, 24):
@@ -712,11 +715,10 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     # --- M0.8d: the frozen Keccak fork ------------------------------------
     # The fifth row in this opcode and the fifth to spend none of its own: 010
     # sits between `vmclear`'s 001 and the indexed load's 011, so custom-1 and
-    # custom-3 stay whole (R-15-014a, R-15-056, R-15-057a). The RVV surface the
-    # corpus needs around it, `vsetvli` and the unit-stride vector load and
-    # store, is **not** added here: it belongs to the V-class datapath M0.8b
-    # lands, so `keccak-perm.s` writes those three words by hand rather than
-    # this table anticipating a lane it is not.
+    # custom-3 stay whole (R-15-014a, R-15-056, R-15-057a). The RVV surface
+    # `keccak-perm.s` needs around it, `vsetvli` and the unit-stride vector load
+    # and store, is the V-class datapath's rather than this row's and is below,
+    # among the rows M0.8b adds.
     add("vkeccak.vi", "vkeccak", funct3=0b010)
 
     # --- V: the vector memory surface, and the moves that feed it ----------

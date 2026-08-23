@@ -10,29 +10,24 @@
 # C class's own VLEN of 256 where the 2048-bit element group is LMUL=8 and one
 # permutation names eight of the thirty-two vector registers (R-15-059a).
 #
-# **The RVV instructions here are written as words rather than as mnemonics, and
-# that is deliberate.** `vsetvli` and the unit-stride vector load and store are
-# the V-class datapath's surface, which M0.8b lands; the dialect table carries
-# `vkeccak.vi` because that row is this item's, and the three words below are
-# spelled out with their fields the way [platform-coreclass.s](platform-coreclass.s)
-# spells the `mhartid` write, so this member claims no lane it is not.
-#
-#   0x01BE72D7  vsetvli t0, t3, e64, m8      zimm 0x1B: vlmul 011, vsew 011
-#   0x0205F807  vle64.v v16, (c11)           nf 1, vm 1, unit stride, width 111
-#   0x02057027  vse64.v v0, (c10)            the same at STORE-FP
-#
-# The base register is `rs1` at bits 19:15 and the width code is `funct3` at
-# 14:12, which is where the first version of these words got two of them wrong:
-# a store meant for `c10` was written with those two fields' nibbles merged and
-# so named `c11`, an uninitialized register whose untagged value faults the
-# access. The corpus reported it as a wrong permutation and the commit trace
-# named it a tag violation on register 11, which is the difference between a rig
-# that runs programs and one that asserts properties.
+# **One instruction here is written as a word rather than as a mnemonic**, and it
+# is on the one ground the corpus admits for writing one: the `vkeccak.vi` row
+# refuses a round count other than 12 or 24, so the check that an unassigned one
+# traps writes the word the table will not build
+# ([differential-corpus.md](../docs/differential-corpus.md) §3). Every other
+# instruction this member executes is a mnemonic the table encodes, the RVV
+# configuration and the unit-stride access included: those are the V-class
+# datapath's surface and the table carries them.
 #
 # The handler is installed by writing MTCC, which is reachable because the reset
 # PCC carries access-system-registers, and each faulting check leaves the cause
 # it expects in `t5` and the trap value in `t6`, exactly as
 # [cap-trap.s](cap-trap.s) does.
+
+        # The one `vtype` this instruction decodes at, written as its fields the
+        # way [vector-geometry.s](vector-geometry.s) writes its own: `vma`,
+        # `vta`, `vsew` and `vlmul`, with SEW=64 and LMUL=8.
+        .equ    VTYPE_E64_M8, (0 << 7) | (0 << 6) | (3 << 3) | 3
 
         .text
         .globl _start
@@ -56,7 +51,7 @@ _start:
         # which is VLMAX exactly, so there is no tail and no mask.
         li      gp, 1
         li      t3, 32
-        .word   0x01BE72D7
+        vsetvli t0, t3, VTYPE_E64_M8
         csrr    t1, vl
         bne     t1, t3, fail
         csrr    t1, vlenb
@@ -71,7 +66,7 @@ _start:
         # vector for the permutation.
         li      gp, 2
         vkeccak.vi v0, v0, 24
-        .word   0x02057027
+        vse64.v v0, (c10)
         ld      t1, 0(c10)
         li      t2, 0xF1258F7940E1DDE7
         bne     t1, t2, fail
@@ -89,7 +84,7 @@ _start:
         # and fail this one.
         li      gp, 3
         vkeccak.vi v0, v0, 24
-        .word   0x02057027
+        vse64.v v0, (c10)
         ld      t1, 0(c10)
         li      t2, 0x2D5C954DF96ECB3C
         bne     t1, t2, fail
@@ -105,9 +100,9 @@ _start:
         # rather than assumed to have survived (R-15-069d).
         li      gp, 4
         vmclear
-        .word   0x01BE72D7
+        vsetvli t0, t3, VTYPE_E64_M8
         vkeccak.vi v8, v0, 12
-        .word   0x02057427
+        vse64.v v8, (c10)
         ld      t1, 0(c10)
         li      t2, 0x8E5E5438B9A78617
         bne     t1, t2, fail
@@ -116,7 +111,7 @@ _start:
         bne     t1, t2, fail
         # And the source group survived: a permutation into another group leaves
         # the group it read alone.
-        .word   0x02057027
+        vse64.v v0, (c10)
         ld      t1, 0(c10)
         bnez    t1, fail
         ld      t1, 192(c10)
@@ -133,9 +128,9 @@ _start:
         li      gp, 5
         li      t0, block
         csetaddr c11, c8, t0
-        .word   0x0205F807
+        vle64.v v16, (c11)
         vkeccak.vi v16, v16, 24
-        .word   0x02057827
+        vse64.v v16, (c10)
         ld      t1, 0(c10)
         li      t2, 0x66D71EBFF8C6FFA7
         bne     t1, t2, fail
@@ -170,7 +165,7 @@ _start:
         csetboundsimm c12, c12, 64
         li      t5, 28
         li      t6, 0x181
-        .word   0x02067007
+        vle64.v v0, (c12)
 
         # And the gate is the context as well as the class, which is where this
         # instruction parts company with `vmclear`: that one is the switcher's
@@ -182,7 +177,7 @@ _start:
         csrrc   zero, mstatus, t0
         li      t5, 2
         li      t6, 0x0180200B
-        .word   0x0180200B
+        vkeccak.vi v0, v0, 24
         li      t0, 0x200
         csrrs   zero, mstatus, t0
 
