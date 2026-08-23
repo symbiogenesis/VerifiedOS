@@ -305,9 +305,12 @@ def replace_span(text: str, m: re.Match[str], new: str) -> str:
 #
 # Snapshots are immutable and numbered, and a run publishes by renaming its own
 # template into the cache after every case is done, so a run that dies publishes
-# nothing and concurrent runs race only over the next number, never over a tree
-# either of them is reading. The manifest lives inside the snapshot it describes and
-# is written after `git add`, so no sandbox index ever carries it.
+# nothing and concurrent runs race only over the next number. A run touches the
+# snapshot it links out of as it picks it, so a concurrent publisher's sweep spares
+# any tree a build could still be reading, and an index carry the sweep interrupts
+# anyway answers the way every other doubt does, by rebuilding from scratch. The
+# manifest lives inside the snapshot it describes and is written after `git add`,
+# so no sandbox index ever carries it.
 
 _MANIFEST = ".selftest-manifest.json"
 _GRACE_NS = 2_000_000_000
@@ -357,8 +360,10 @@ def _publish(template: Path, cache: Path) -> None:
     before reaching here has published nothing, leaving the previous snapshot
     standing. Losing the race for a number is retried at the next one, and any other
     refusal is abandoned rather than fought: the cache is a saving, never a claim.
-    Snapshots below the newest are removed once comfortably older than any run that
-    could still be linking out of them.
+    Snapshots below the newest are removed once their last pick is comfortably old:
+    the age test reads the mtime `build_template` bumps as it picks, a snapshot is
+    read only during the build that picked it, and ten minutes bounds that build by
+    two orders of magnitude.
     """
     if not template.is_dir():
         return
@@ -443,6 +448,13 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
 
     held = _newest_snapshot(_cache_root(repo))
     snapshot, built_ns, old_files = held or (None, 0, {})
+    if snapshot is not None:
+        # the pick is marked on the snapshot itself, which is what `_publish`'s sweep
+        # ages: a tree some build is still linking out of always reads as just used
+        try:
+            os.utime(snapshot)
+        except OSError:
+            snapshot, old_files = None, {}    # gone under the pick: the repository decides
     placed: dict[str, Placement] = {}
 
     def place(rel: str) -> tuple[int, int]:
@@ -490,10 +502,18 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
     # describes this exact tree, empty stand-ins included, and is carried the same way;
     # any file this run copied afresh means the index is rebuilt from scratch.
     manifest = {rel: [size, mtime, kind] for rel, (size, mtime, kind) in placed.items()}
+    carried_index = False
     if (snapshot is not None and manifest == old_files
             and carried == sum(1 for _, _, kind in placed.values() if kind == "copy")):
-        _link_tree(snapshot / ".git", into / ".git")
-    else:
+        # a snapshot swept mid-carry surfaces as a link that fails or a walk that
+        # yields nothing, and either answers like every other doubt: rebuild
+        try:
+            _link_tree(snapshot / ".git", into / ".git")
+            carried_index = (into / ".git" / "index").is_file()
+        except OSError:
+            carried_index = False
+    if not carried_index:
+        remove_tree(into / ".git")
         for args in (["-c", "init.defaultBranch=main", "init", "-q"], ["add", "-A"]):
             proc = subprocess.run(["git", *args], cwd=into, capture_output=True, check=False)
             if proc.returncode != 0:
@@ -1042,8 +1062,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="leave the sandboxes on disk for inspection")
     args = parser.parse_args(argv)
 
-    # A private directory per run rather than one path every run reuses. The template is
-    # rebuilt from the working tree on each run, so a shared location bought nothing and
+    # A private directory per run rather than one path every run reuses. What survives
+    # between runs is the template cache, carried file by file under its own rules, so
+    # a shared estate would buy nothing that the cache does not already keep and would
     # cost correctness: two runs at once rebuild each other's tree underneath the cases
     # reading it, and neither verdict is about its mutant afterwards. The failure is also
     # not self-clearing on Windows, where the losing run's checker subprocesses outlive
@@ -1059,7 +1080,11 @@ def main(argv: list[str] | None = None) -> int:
     jobs = max(1, min(args.jobs, len(selected)))
 
     # One sandbox per worker, and one more the repair path keeps to itself so that its
-    # three runs go beside the cases rather than after them.
+    # five runs go beside the cases rather than after them. When no selected rule
+    # carries a --fix branch the lane never runs, so the extra sandbox is stood up
+    # cheap, as links, and joins the case queue instead of holding real copies for
+    # nothing.
+    repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
     made: list[Sandbox] = []
     print(f"building {jobs + 1} sandbox(es) at {sandbox}")
     template = sandbox / "template"
@@ -1076,7 +1101,7 @@ def main(argv: list[str] | None = None) -> int:
         boxes: Queue[Sandbox] = Queue()
         with ThreadPoolExecutor(max_workers=jobs) as setup:
             def later(i: int) -> Sandbox:
-                box = stand_up(template, sandbox / f"w{i}", fix_ok=i == jobs)
+                box = stand_up(template, sandbox / f"w{i}", fix_ok=repairable and i == jobs)
                 made.append(box)
                 if not box.fix_ok:
                     boxes.put(box)
@@ -1188,9 +1213,11 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
 def _copied_bytes(box: Sandbox) -> dict[str, bytes]:
     """Every real-copied file in the fix-safe sandbox, as its bytes.
 
-    The walk skips exactly the two trees `stand_up` links rather than copies, `.git/`
-    and `model/`; the rest is the whole surface --fix can reach, so holding its bytes
-    before and after a run turns "rewrote nothing" from a report into a measurement.
+    The walk skips `model/`, the one tree `stand_up` links there rather than copies,
+    and any `.git/` directory; the sandbox's own `.git` is a pointer file, so its
+    bytes ride along, written once at standup and never by --fix. The rest is the
+    whole surface --fix can reach, so holding its bytes before and after a run turns
+    "rewrote nothing" from a report into a measurement.
     """
     held: dict[str, bytes] = {}
     for dirpath, dirnames, filenames in box.path.walk():
