@@ -178,8 +178,8 @@ Roughly a fifth of acceptance criteria are documentation-presence checks, consis
 | --- | --- |
 | §17 | Weakest by design, and honest about it: the preamble declares acceptance to be *booked with its owner and scope rather than absorbed*, so nearly every entry's criterion is a presence-of-text check |
 | §15, §12, §5 | Largest absolute counts, mixing crisp mandates with bookings and scope statements |
-| §1, §3 | Weak without §17's excuse: goal and threat entries whose criteria restate their own premises |
-| §9, §11, §13, §14 | Mostly crisp |
+| §1 | Ends rather than obligations, carrying §17's preamble device for the three goals that name one predicate and no parts |
+| §3, §9, §11, §13, §14 | Mostly crisp |
 
 The recurring *the §17 residual entry exists* pattern is sound bookkeeping and content-free about the underlying claim.
 
@@ -204,7 +204,6 @@ Requirements carrying `· Fail-closed:` confer into R-17-030r's seam register, a
 ### A. Defects: the answer is already in the documents
 
 3. **Align the Rowhammer headline.** R-17-058's *dramatically reduced rather than mitigated* against R-15-184's *no charge-disturbance analog, apparatus deleted*, with two qualifiers on whichever wording survives: R-15-184's residual read/write-disturb and half-select modes on the first class, and, the live one, the second class's own disturb behaviour, which is not SRAM's, is a device property R-15-247m's qualification measurement has not returned, and is asserted nowhere ahead of it (R-15-184, R-15-247n, R-15-247r).
-8. **Give §1 and §3 criteria a decision procedure or §17's preamble.** Goal and threat entries currently restate their premises without §17's explicit *booked with its owner and scope rather than absorbed* excuse.
 
 ### B. Decisions: someone has to make the call
 
