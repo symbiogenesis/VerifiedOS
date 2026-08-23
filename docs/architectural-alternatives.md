@@ -37,7 +37,7 @@ Both remain non-normative.
 ## Itanium / EPIC / VLIW: ILP without a belt, but the substrate cost *is* the belt's; the one importable atom is already NaR
 
 "Itanium-style VLIW" is not one mechanism but four separable ones, and the import discipline resolves them individually against the §15 admission test: the same decomposition that logged the belt's spiller while rejecting its backless memory.
-The premise (recover in-order ILP without a belt and without leaving RISC-V) is only half-answerable: **EPIC is a distinct ISA, not a RISC-V extension**, so its bundle substrate abandons the platform exactly as the belt does, and into a *deader* ecosystem; IA-64 was discontinued in 2021 and dropped from the Linux kernel, so there is no Sail model, no CHERI-IA64, no verified CompCert backend, no Cerise, no RVV analog to inherit.
+The premise (recover in-order ILP without a belt and without leaving RISC-V) is only half-answerable: **EPIC is a distinct ISA, not a RISC-V extension**, so its bundle substrate abandons the platform exactly as the belt does, and into a *deader* ecosystem; IA-64 was discontinued in 2021 and dropped from the Linux kernel, so there is no Sail model, no CHERI-IA64, no CompCert backend at any stage of completion, no Cerise, no RVV analog to inherit.
 The counterweight (1) written against the belt, "rebuilding the entire substrate this spec depends on," applies verbatim and harder: a belt is at least live research; EPIC's ecosystem is post-mortem.
 
 Run the four ingredients through the admission test:
@@ -73,6 +73,20 @@ The instinct that VLIW needs specially compiled binaries is right, and it is fat
 (3) Every FPCC artifact (the binary-level proofs, memory-safety certificates, and constant-time certificates of §5/§6/§13) is stated *at binary level against the CHERI-RISC-V Sail model*, so a new ISA forks that model, CHERI itself, the CHERI-CompCert backend, Cerise, and Islaris, and **re-mints every certificate stated against it**, retargeting the whole Tier-1/2 toolchain.
 This count is the **substrate-cost disqualifier**, and it is stated here once: every later entry proposing a distinct instruction set pays it in full and cites it rather than re-deriving it.
 The bespoke-binary requirement thus re-imports precisely the microarchitecture-in-the-binary coupling RISC-V's abstract ISA was chosen to delete.
+
+**What the disqualifier is worth, priced at the maturity the substrate actually has.**
+The count is a forfeit of **start-froms** and not of a finished ecosystem, and stating it the second way would overstate it in the one direction this document is least placed to check.
+The substrate is a program rather than a product, and it is uneven in a way the noun phrase "the CHERI-CompCert backend" hides.
+CompCert itself is a released and maintained compiler that has carried DO-178C certification credit on an aircraft program; the CHERI backend beside it is a prototype its own upstream calls unverified and unintegrated, whose correctness files sit outside the build, whose admits sit inside it, and most of whose instruction arms print a placeholder where an instruction belongs, all of which [the implementation plan](implementation-checklist.md)'s compiler milestone measures on this toolchain rather than infers from a README.
+The CHERI-TAL soundness metatheorem is a crown jewel with no author, and the foundational typed-assembly line it would build on is dormant rather than live, its standing soundness results long settled and its recent descendants applied rather than foundational.
+The RVY standardization line is a draft in its own words and is not ratified, which [the version matrix](cheri-version-matrix.md) reads at a date rather than assumes.
+What *is* built is the half this document leans on hardest and names least: a vendored Sail model that runs, its capability-semantics oracle, an emulator generated from both, published Iris-over-Sail developments (Cerise, Islaris, Katamaran) whose contracts stand over capability machines adjacent to this profile rather than over it, and RVV as an ordinary ratified extension.
+
+**The direction of the count survives the repricing; its size does not.**
+A distinct instruction set forfeits a program several artifacts in rather than a finished toolchain, and it forfeits it into a start-from set that is empty: for EPIC, for OISC and TTA, for a language ISA, for an object-addressed machine, and for a ternary word there is no partial backend to finish, no capability memory model to re-home, no universal contract to instantiate from an adjacent machine, and no vendored model to curate.
+A half-built start-from is worth less than its noun phrase suggests and more than nothing, and nothing is what these alternatives offer, so the honest form of the count is not *you would lose a mature ecosystem* but *you would restart a program already underway, against upstreams that are themselves readings with a date on them*.
+Every entry below pays it in that form, and the *deader ecosystem* comparisons that follow are between two unfinished things rather than between a finished one and an idea.
+Upstream status above was read from each project's own repository, release page, or specification build on 2026-08-23, and R-18-001a is what makes re-taking that reading an obligation rather than a courtesy; no measurement above is restated here, each belonging to the plan item or the matrix that took it.
 
 **Where EPIC ranks among the "abandon RISC-V for ILP" targets.**
 The belt entry already ordered EDGE ≻ belt on transactional-coherence grounds (block-atomic commit *rhymes* with G4 and §11).
@@ -202,7 +216,7 @@ A minimal ISA is a minimal Sail model, a minimal decoder, and the least surface 
 
 **Why it fails: the EPIC disqualifier, plus an inverted proof-shrink.**
 - **It abandons RISC-V for a dead ecosystem: the EPIC/Wasm cost verbatim.**
-  OISC and TTA are not RV64 extensions, so they pay the **substrate-cost disqualifier** in full (the Itanium/EPIC entry above), into an ecosystem with no CHERI, no verified compiler, and no RVV to inherit.
+  OISC and TTA are not RV64 extensions, so they pay the **substrate-cost disqualifier** in full (the Itanium/EPIC entry above), into an ecosystem with no CHERI, no compiler backend at any stage of completion, and no RVV to inherit.
 - **TTA re-couples the binary to the microarchitecture.**
   A transport-triggered schedule encodes the *specific* functional-unit ports and latencies it was compiled against, so a pipeline change forces a recompile: the VLIW binary-portability curse (the EPIC entry's second count), violating §15's *"one base ISA, one parameterized model; classes differ only in datapath"* property.
 - **Minimal *instruction count* is not minimal *proof surface*: the shrink inverts.**
