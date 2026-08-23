@@ -63,6 +63,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## §1. Goals
 
+*§1 is a register of ends rather than obligations. Its entries are therefore mostly `IS`, the obligations that serve each goal being other sections' entries. A goal that names parts decides part by part, and its criterion says which entry answers each. A goal that names one predicate and no parts has its operative form in a single entry elsewhere, so the strongest criterion available is the naming of that entry, and this section states it as a naming rather than dressing it as a test. A naming is not a test and still fails: naming nothing, naming an entry that does not carry the goal, claiming the goal here above the tier that entry stands at (R-01-002b), or keeping a second copy of what the named entry states, which is the failure that drifts. A goal whose operative entry is retired without the naming moving is a spec defect in the same sense R-05-153 defines.*
+
 **R-01-001** IS: G1: minimal attack surface.
 · Accept: discharged by R-04-001, the goal's operative form, which states the test once with its decision procedure; this entry carries no second copy to drift.
 · Trace: CJ-T
@@ -80,15 +82,15 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T, CJ-RTL-SAIL
 
 **R-01-003** IS: G3: end-to-end formal verification from abstract spec through source, binary, ISA, and modeled hardware to RTL, with RTL ⊑ Sail a named in-scope mechanization workstream rather than a bare trust assumption.
-· Accept: the RTL of record is authored in Kami/Kôika, with riscv-formal/rvfi the bring-up gate and Isla the obligation bridge; below it, fabricated silicon versus verified RTL is the irreducible fab residual.
+· Accept: the workstream this goal calls in-scope is R-18-010's, which stages it with its vehicles and its closing goal, and the seam it crosses is R-17-039's; this entry cites both rather than carrying a second copy of the staging. Below that arrow, fabricated silicon versus verified RTL is the irreducible fab residual.
 · Trace: CJ-RTL-SAIL
 
 **R-01-004** IS: G4: stateless, atomic, transactional, rollback-friendly.
-· Accept: discharged by the immutable content-addressed image plus enumerated mutable volumes (R-10-026) and the A/B transactor (R-11-001).
+· Accept: decided adjective by adjective against the entries that carry them: stateless by R-10-026's immutable content-addressed image over enumerated mutable volumes, with everything else gone at reboot; atomic and transactional by R-11-001's image-based A/B update, committing through the single trusted transactor R-11-002 requires; rollback-friendly by that update's health-gated auto-rollback over a base never mutated in place. An adjective this goal lists that no entry carries is the finding.
 · Trace: CJ-DEVTREE
 
 **R-01-005** IS: G5: reliability through fault isolation, crash-only components, and health-gated recovery.
-· Accept: discharged by §16.
+· Accept: decided mechanism by mechanism against the entries that carry them: fault isolation and crash-only restart by R-16-001, which contains any driver or server crash without implicating the kernel; the escalation recovery runs on by R-16-005's two watchdog tiers, bounded against abuse by R-16-007; and the health gate itself by R-11-002's automatic health-gated path, which is §11's rather than §16's. A mechanism this goal lists that no entry carries is the finding.
 · Trace: CJ-KERNEL
 
 **R-01-006** IS: Performance is subordinate to security and pessimism is free by axiom; this is the tie-break the no-tightening rule and the design-space exploration both invoke.
@@ -136,11 +138,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T
 
 **R-03-002** IS: Covert activation of the microphone, camera, or radios by compromised software or firmware, and use of the wired port in a deliberately-hostile environment, are additionally countered by user-controlled cutoffs beneath the capability-gated per-app access.
-· Accept: the cutoffs are the sealed Hall-effect switches and the mechanical camera shutter (R-15-145, R-15-152).
+· Accept: decided surface by surface: the microphone, the radios, and the wired data port each carry R-15-145's sealed switch, which the user actuates directly and no compromised OS, firmware, or RoT overrides, and the camera carries R-15-152's mechanical shutter, which is why it needs no switch of its own. A surface this entry lists with no cutoff entry behind it fails it, as does a cutoff some entry puts under software control, these sitting beneath the capability gate rather than inside it.
 · Trace: CJ-T
 
 **R-03-003** IS: The electromagnetic environment is in scope: radiated and conducted EMI and electromagnetic fault injection are countered by the Faraday enclosure with residual faults caught by fixed-latency ECC and the fail-stop path; single-event upsets are deliberately *not* shielded but detected, corrected, or contained, with their rate cut at the source by a radiation-hardened realization where the deployment warrants.
-· Accept: consistent with R-15-153 through R-15-157.
+· Accept: decided disposition by disposition: the continuous shell with its treated apertures is R-15-153's and stays continuous across the antenna feed by R-15-154; the interference and fault-injection coverage, with the fixed-latency ECC and fail-stop path catching what still lands, is R-15-155's; the refusal to shield single-event upsets, with the in-logic detection, correction, and containment answering them instead, is R-15-156's; and the hardened realization graded to the deployment is R-15-157's, a process and RTL property leaving the Sail model unchanged. A disposition this entry carries that none of those entries answers fails it, and an injected fault discharged by citing the shield's attenuation is refused by R-16-008a rather than admitted here.
 · Trace: CJ-T
 
 **R-03-004** IS: The residual set is enumerated: timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; protocol-level security above the scheme level (the composed session security of TLS 1.3 and WireGuard, which the §5 crypto assurance does not reach, and for the four radio protocols the R-12-043f remainder of that layer, the analyzed models' faithfulness to the prose standards and the symbolic abstraction, their session security being machine-checked upstream per R-12-043e); invasive physical attack; malicious silicon fabrication; and carrier or certification-body acceptance of an open cellular stack.
@@ -148,7 +150,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T
 
 **R-03-005** IS: Invasive physical attack is the only way to reach main memory at all, main memory being on-die, so delidding and probing is the entry price; the line is what scopes the memory path in §15, and drawing it elsewhere would make every on-die interface a defended one.
-· Accept: the scope line is load-bearing and is booked as such (R-17-059).
+· Accept: decided as R-03-004's residuals are, by opening the §17 entry this one maps to: R-17-059 carries the line as load-bearing rather than conservative, which holds only while the §15 memory path carries no defence-in-depth layer beneath the package boundary. A memory-path entry that put one there would not repair this criterion but falsify it, the line ceasing to be load-bearing.
 · Trace: CJ-T
 
 **R-03-006** MUST: The defended set enumerates scope, not strength: each entry is asserted at the discharge tier of the mechanism answering it (R-01-002a), so the entries answered by CHERI containment carry R-01-002b's tier until the RTL ⊑ Sail ladder reaches its unbounded rung.
