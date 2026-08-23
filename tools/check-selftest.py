@@ -923,12 +923,31 @@ CASES: list[Case] = [
      _first_match(REGISTER, r"(?m)^· Accept: the first class carries[^\r\n]*",
                   lambda m: m.group().replace("recovery workspaces, ", ""))),
 
+    # The charge gains a term and the placement is left alone, which is the direction
+    # this arm exists for and the one the other case cannot reach: every term already
+    # in the lists still checks out, the two lists still partition, and what is wrong
+    # is that a byte somebody now pays for is on neither class. A ring is chosen
+    # because the nearest existing term is a substring of it, so a rule matching
+    # loosely would place the new term by accident and pass.
+    ("K-56", "a physical byte the composition is charged and neither class carries",
+     _literal(REGISTER, "quarantine entries, interpreter object arenas",
+              "quarantine entries, telemetry rings, interpreter object arenas")),
+
     # One of the four transcriptions is moved and the other three are left, which is
     # the shape a real drift takes: an exponent edited in the composition that the
     # model's own assertion would catch only once something executed.
     ("K-57", "a composition that writes a welded block size the model does not",
      _literal("model/config/verifiedos.json",
               '"cache_block_size_exp": 6', '"cache_block_size_exp": 5')),
+
+    # The entry's ceiling rather than one of the transcriptions, because it is the one
+    # normative statement of the bound and the one site whose moving leaves every other
+    # still agreeing with every other. A halved ceiling also leaves the declared block
+    # inside the set it admits, so what has to catch it is the arithmetic against the
+    # granule and the destination width and not the membership test beside it.
+    ("K-57", "a stated block ceiling the destination register's width does not give",
+     _literal(REGISTER, "the block at most **512 bytes**",
+              "the block at most **256 bytes**")),
 
     # The bank grant is moved in the composition and left in the contract, which is the
     # direction a real edit takes: the emulator needs a number, so the configuration is
