@@ -46,15 +46,17 @@ One row per constraint, each citing the entry that owns it. The **status** colum
 | C7 | the block is a whole number of first-class SRAM macro rows, and does not straddle one | R-15-014a (vii) | owed to R4, R5 |
 | C8 | the block is a whole number of second-class deck rows, and lies within one page | R-15-014a (vii), R-15-247 | owed to R4, R5 |
 | C9 | the block's single-access sense width is realizable on the second class | R-15-181a's fallback clause, R-15-247m | owed to R5 |
-| C10 | the per-block latency of each of the four instructions is inside its slot | R-15-182, R-15-177a | owed to M0.8, M0.9 |
-| C11 | the sweep's preemption granularity survives the block width | R-08-007, R-08-007b | owed to M0.9 |
-| C12 | the block is consistent with the frozen per-class bank count | R-15-247p | owed to M0.17 |
+| C10 | the per-block latency of each of the four instructions is inside its slot | R-15-182, R-15-177a | owed to R-17-041's magnitudes, the M1 schedule |
+| C11 | the sweep's preemption granularity survives the block width | R-08-007, R-08-007b | owed to R-17-041's magnitudes, the M1 schedule |
+| C12 | the block is consistent with the frozen per-class bank count | R-15-247p | owed to R5, the freeze's second act |
 
 **C3 is this item's one new architectural fact, and it is derived from the model rather than stated by the register.** `cloadtags` and `creclaim` both end by zero-extending `bits(caps_per_block)` into an integer destination register, and an integer register is 64 bits (R-15-002a, R-15-007i). A group wider than 64 granules therefore has no destination to be returned in, and the model refuses it at typecheck rather than at run time. At the 8-byte granule R-15-203 fixes, that is a ceiling of **512 bytes**, and it is stated in no document today: R-15-007q's criterion enumerates the admission tests and the two parameters the pin left open, and does not record the bound. An Accept-line clause on R-15-007q is where it belongs, being a criterion about an already-admitted instruction rather than a fresh obligation. Until it lands, the ceiling is held by the model and by this table and not by the register.
 
 **Two of the derivable rows bind and the rest are implied by them.** The floor is C5's codeword and the ceiling is C3's integer destination, so **the block is 32, 64, 128, 256, or 512 bytes**, which is 4, 8, 16, 32, or 64 granules. C2 is implied by C5, a codeword being a whole number of granules; C4 is implied by C3; and C6 binds nothing on that set, because every candidate at or above 64 bytes is already a multiple of the interval's alignment and every candidate below one fits inside a single interval. Under R-15-181a's 128-bit fallback codeword the floor halves and the set gains 16 bytes at two granules.
 
 The declared 64 bytes is interior to that set, which is the useful shape of the result: the value the tree carries is at neither end, so no derivable constraint is what is holding it there, and what decides it is one of the owed rows.
+
+**Three of the owed rows have their instrument and not their figure, which is why a landed instrument does not close them.** The timing-annotated model carries a row for each of the four instructions ([core/timing.sail](../model/model/core/timing.sail)), and R-17-041 makes the magnitudes in those rows the crown-jewel specification, not one of which is measured, so C10 and C11 have a table to be evaluated in and nothing to evaluate in it; the slot the latency is held against is the schedule's, which arrives with M1. C12 is the same shape one artifact over: [the bank-count instrument](bank-count-dse-contract.md) states that search and its pruning predicate has no operands, so no candidate is admitted there either, and the count arrives with R5's macro evidence at the freeze's second act rather than out of the search alone.
 
 ## 4. Why one parameter answers to two geometries
 
@@ -84,4 +86,4 @@ One row per first-class macro geometry candidate, one column per second-class de
 
 ## 7. What this document is not
 
-It is not the macro architecture, which R4 authors. It is not the per-class bank count, which R-15-247p owns and M0.17 decides. It does not name a value: the block size is item (vii) of R-15-014a's closed final-freeze delta, and a document naming one would be taking a freeze decision early, which is an amendment that reruns the review gate under R-18-034 rather than a second-act decision.
+It is not the macro architecture, which R4 authors. It is not the per-class bank count, which R-15-247p owns and [its own instrument](bank-count-dse-contract.md) constrains the way this one constrains the block. It does not name a value, and neither does that one: the block size is item (vii) of R-15-014a's closed final-freeze delta and the bank count is item (viii) of the same closed delta, so a document naming either would be taking a freeze decision early, which is an amendment that reruns the review gate under R-18-034 rather than a second-act decision.
