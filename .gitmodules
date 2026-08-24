@@ -10,3 +10,21 @@
 [submodule "upstream/llvm-project"]
 	path = upstream/llvm-project
 	url = https://github.com/llvm/llvm-project
+[submodule "upstream/mocha"]
+	path = upstream/mocha
+	url = https://github.com/lowRISC/mocha
+[submodule "upstream/cva6-cheri"]
+	path = upstream/cva6-cheri
+	url = https://github.com/lowRISC/cva6-cheri
+[submodule "upstream/axi-cheri-tagcontroller"]
+	path = upstream/axi-cheri-tagcontroller
+	url = https://github.com/Capabilities-Limited/axi_cheri_tagcontroller
+[submodule "upstream/opentitan"]
+	path = upstream/opentitan
+	url = https://github.com/lowRISC/opentitan
+[submodule "upstream/ibex"]
+	path = upstream/ibex
+	url = https://github.com/lowRISC/ibex
+[submodule "upstream/cheriot-ibex"]
+	path = upstream/cheriot-ibex
+	url = https://github.com/microsoft/cheriot-ibex
