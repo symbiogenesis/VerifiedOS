@@ -2207,7 +2207,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: expansion is a bounded §11 task, never per read.
 · Trace: CJ-WCET, CJ-DEVTREE
 
-**R-10-020** IS: Build-time compression buys *stored* bytes, never *resident* ones: every live byte is a capability-delegated SRAM byte with no swap, no overcommit, and no demand paging.
+**R-10-020** IS: Build-time compression buys *stored* bytes, never *resident* ones: every live byte is a capability-delegated byte of one class or the other with no swap, no overcommit, and no demand paging.
 · Accept: it is not a capacity lever. The resident-code axis is a separate question with a separate answer, settled by the dictionary encoding (R-15-036a), which is the *resident* form rather than a stored one and so does touch the ceiling this requirement says artifact compression does not.
 · Trace: CJ-MEMPLAN
 
