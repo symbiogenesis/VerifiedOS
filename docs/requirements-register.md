@@ -282,6 +282,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the trust-base inventory names one checker; no admitted artifact's acceptance depends on any other checker.
 · Trace: CJ-T
 
+**R-05-011a** IS: The ground of R-05-011 is composition, not a defect ranking among proof kernels. T is one linked development whose seam lemmas each state a conclusion in the next premise's vocabulary and whose meta-lemma owes coverage over their union (R-05-160, R-05-161), so a constituent discharged in a second logic joins that union only across a semantics bridge, which no artifact supplies for any pair this design would need and which would itself be the largest unproved object in the tower. The reliability reading is not the claim and would not survive being made, kernel defects being ordinary everywhere in the field: Rocq's own critical-bug list runs to some eighty entries at roughly one a year with a handful open, Isabelle's to about one a decade, and Lean's kernel admitted an axiom-free proof of falsity in July 2026, each read on 2026-08-23 under R-18-001a.
+· Accept: no entry in this register grounds the one-checker rule on one kernel carrying fewer defects than another, and the meta-lemma's coverage obligation is stated over one logic. A reader disputing a disposition that cites this section is disputing the composition obligation and not a comparison of provers, which is where the dispute goes. What settles the consequence is prior art rather than argument: Verisoft split its stack across PVS and Isabelle and its one pervasive-verification theorem never closed as a single machine-checked object.
+· Trace: CJ-T
+
+**R-05-011b** IS: R-05-011 decides trust-base membership and reaches no further. A tool is a second checker when an admitted claim's ground is its verdict; a tool whose output grounds nothing is untrusted evidence-producing machinery (R-06-015) and this section does not constrain it. So a disposition citing the rule against a foreign-prover artifact claims one of three commitments taken elsewhere and nothing beyond it: that the artifact would enter the union R-05-011a owes coverage over; that the closing obligation it does not state is owed regardless (R-15-091, R-05-023a); or that it emits a verdict where R-05-015 asks for an artifact a second checker can replay. Where none of the three reaches a candidate, this section settles nothing about it and the disposition stands on its remaining grounds.
+· Accept: every foreign-prover artifact the corpus dispositions resolves either to the trust base or to the evidence tier, each evidence-tier member carrying its own criterion that it is the ground of no refinement claim (R-15-094). A candidate all three commitments miss, declined on this section alone, is a review-gate finding against this requirement.
+· Trace: CJ-T
+
+**R-05-011c** IS: What R-05-011 holds to one is the logic, not the count of checking programs: admission runs two checkers and the second enters the trust base on a soundness metatheorem in the first, which R-06-008 and R-06-011 state rather than this row. A checker is therefore admitted by carrying a proved soundness statement rather than by being the only one, and read instead as a bound on checker count the rule would forbid this design's own admission architecture.
+· Accept: the admission axiom inventory names two checkers and the metatheorem relating them, and no entry reads this section as a bound on the number of programs that check.
+· Trace: CJ-TAL-SOUND
+
 **R-05-012** MUST: The kernel is seL4's design re-proved end-to-end in Coq, not seL4's Isabelle proof adopted.
 · Accept: no Isabelle artifact appears in the trust base; the kernel refinement proof is a Coq development.
 · Trace: CJ-KERNEL · [§5](spec.md#r-05-012), [§5](spec.md#r-05-012-2)
@@ -302,6 +314,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-016** MUST NOT: No tool is admitted as a second checker.
 · Accept: no artifact is accepted on the strength of a non-Coq checker's verdict.
+· Trace: CJ-T
+
+**R-05-016a** IS: Proof diversity composes with R-05-016 rather than opposing it, because a re-check can only reject: a second implementation refusing a kernel-checked term is a finding, and one accepting a term adds no ground the first did not already give. What R-05-015 requires of every externally-found proof is accordingly the re-checkable term the de Bruijn criterion asks for, diversity that only rejects costing no trust and being spent freely, and what R-05-016 excludes is only a second logic whose acceptance is a ground. Practice outside this project has that shape and supplies no counter-example to it: no verified-systems project states a one-checker rule, the minimal-kernel tradition this is confused with governs kernel size rather than checker count, DO-333 and Common Criteria ask for tool qualification rather than a second prover, and the one documented case of an independent kernel deciding anything is Lean's July 2026 unsoundness, which an independently written checker rejected and a port of the reference implementation accepted, each read on 2026-08-23 under R-18-001a.
+· Accept: no admitted claim's ground is a second implementation's acceptance, and no entry declines a re-check that can only withhold. Rocq's `coqchk` shares the kernel's lineage and its bug list records defects reaching that checker equally, so a cross-check of this shape is authored here rather than adopted, and none is claimed as assurance the design already holds. The strongest standing counter-instance is a system rather than a checker and is named rather than answered: seL4's binary-level result spans Isabelle/HOL, HOL4 and trusted SMT verdicts where its C-level correctness is Isabelle-only, which is the shape R-05-023a's instrument exists to make unnecessary here rather than one this design has shown avoidable.
 · Trace: CJ-T
 
 **R-05-017** MUST: SMT results enter only via in-kernel reconstruction (SMTCoq-style witness import).
@@ -5824,7 +5840,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1345 requirements. §19 is non-normative and yields none. Counts include the 393 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1349 requirements. §19 is non-normative and yields none. Counts include the 397 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5832,7 +5848,7 @@ All eighteen normative sections are extracted, at 1345 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **7** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **13** |
-| **§5 Languages & Verification** | **extracted** | **206** |
+| **§5 Languages & Verification** | **extracted** | **210** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **60** |
 | **§8 Authority Model** | **extracted** | **86** |
