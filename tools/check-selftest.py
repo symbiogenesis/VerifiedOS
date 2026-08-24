@@ -1093,6 +1093,14 @@ CASES: list[Case] = [
     ("K-73", "a freshness conferral naming a state the enumeration does not carry",
      _first_match(REGISTER, f"(?m)^{MID} RoT-fresh: (.+?) \\(R-10-013\\)",
                   lambda m: m.group().replace(m.group(1), "a state of its own"))),
+    # The §17 citation is dropped from a residual cell and the mode is left standing,
+    # which is the state the real defect leaves behind: a cell reporting that §17 books
+    # its remainder, over requirements that discharge the pair instead. The cell keeps
+    # two citations, so it still rests on a requirement and K-16 reads it as sound; the
+    # ids it keeps resolve, so the names group reads it as sound; and its pair is
+    # untouched, so K-15 never looks. K-74 is the one rule that can.
+    ("K-74", "a residual cell whose citation of the section booking it has gone",
+     _literal(MATRIX, "R-08-006, R-15-208, R-17-037", "R-08-006, R-15-208")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

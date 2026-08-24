@@ -11,6 +11,12 @@ pattern matched against requirement bodies anywhere in the register (`body`). Th
 every id a view cites resolves is the names group's business, not this one's: a view
 is not a special case of the vocabulary, it is the only place membership is also owed
 in the other direction.
+
+The matrix is the one view whose rows say something a citation check cannot read. A
+cell states how a pair is carried in one column and by what in the next, and whether
+the cited entry carries what the column claims is a reading. One mode is the exception
+and K-74 takes it: R-17-001a fixes the answer for `residual` by naming the section that
+books it, so that column's claim has a membership question behind it.
 """
 
 import re
@@ -84,6 +90,67 @@ VIEWS: list[View] = [
 ]
 
 
+# The discharge vocabulary, read from the one sentence of §3 that declares it, and the
+# section a residual is booked in. Both are located by pattern, so the sets they yield
+# are members of the floors group's enumerations.
+_CM_VOCAB_LEAD = "The modes are "
+_CM_MODE_RE = re.compile(r"\*\*([a-z][a-z-]*)\*\* where")
+_SEC17_RE = re.compile(r"R-17-\d")
+
+
+def _discharge(lines: list[str], cells: dict[str, str]) -> tuple[list[str], int, list[str]]:
+    """The modes the matrix declares, how many cells book a residual, and every cell
+    whose mode its own citations do not answer.
+
+    A cell says how the pair is carried and then by what, and nothing held the two
+    columns against each other: K-16 asks only that some requirement be cited, so
+    `residual` standing over nothing but discharging entries reads exactly like a booked
+    remainder. R-17-001a fixes the answer for that one mode, a pair carrying *either a
+    requirement that discharges it or a §17 residual that books it*, and which section
+    an entry sits in is a membership question. That is the substitution this rule is:
+    whether a cited entry carries what the cell claims is a reading no rule reaches, and
+    whether a cell claiming §17 books its remainder cites §17 is not.
+
+    Only that direction. A cell citing a §17 entry need not be a residual, because §17
+    carries seams and compositions as well as bookings, and `B-06` by `P-5` is one:
+    proved and detected over two seam entries, with nothing booked away.
+
+    Fail-closed on the reading rather than on the claim. The mode column is placed
+    against the vocabulary its own document declares, so a mode this rule cannot place
+    stops the comparison for that cell instead of passing over it as a cell carrying no
+    residual, and a matrix declaring no vocabulary this rule can read is one finding
+    rather than sixty-three silent passes.
+    """
+    vocab: list[str] = []
+    for line in lines:
+        if _CM_VOCAB_LEAD in line:
+            vocab = [str(mode) for mode in _CM_MODE_RE.findall(line)]
+            break
+    if not vocab:
+        return [], 0, ["the matrix declares no discharge vocabulary this rule can read, "
+                       "so no cell's mode is placed against one"]
+
+    residual = 0
+    gaps: list[str] = []
+    for pair, row in cells.items():
+        cols = [c.strip() for c in row.strip().strip("|").split("|")]
+        if len(cols) != 5:
+            gaps.append(f"{pair} is not the five columns the matrix's header declares, "
+                        "so its mode and its citations are not read")
+            continue
+        modes = [m.strip() for m in cols[3].split("/")]
+        stray = [m for m in modes if m not in vocab]
+        if stray:
+            gaps.append(f"{pair} is discharged {', '.join(stray)}, which the matrix's "
+                        "own vocabulary does not declare")
+        elif "residual" in modes:
+            residual += 1
+            if not _SEC17_RE.search(cols[4]):
+                gaps.append(f"{pair} declares a residual and cites no §17 entry booking "
+                            "it, so what the mode names as booked is booked nowhere")
+    return vocab, residual, gaps
+
+
 def run(ctx: Context) -> None:
     rep, reg, art, corpus = ctx.rep, ctx.reg, ctx.art, ctx.corpus
     ctx.views = VIEWS
@@ -135,6 +202,15 @@ def run(ctx: Context) -> None:
                        [pair for pair, row in art.cm_cells.items()
                         if not REQ_TOKEN_RE.search(row)],
                        "every cell cites a requirement", "  ")
+
+            modes, residual, unanswered = _discharge(doc.lines, art.cm_cells)
+            ctx.shared["cm_modes"] = len(modes)
+            ctx.shared["cm_residual"] = residual
+            rep.report("K-74", "cell(s) whose mode its own citations do not answer:",
+                       unanswered,
+                       f"every cell's discharge mode names one of the {len(modes)} the "
+                       f"matrix declares, and each of the {residual} booking a residual "
+                       "cites the §17 entry that books it", "  ")
 
         # the profile's CSR bank is the one table in a derived view whose rows are
         # decided one at a time rather than carried wholesale from a subsection, so
