@@ -928,6 +928,7 @@ The same roster carries the ring-parameter measurement: queue depths, batch size
 
 * [ ] **M7.1 · Boot the composed stack on the fast emulator and rerun it under Sail in CI** · 22.5 h, range 15–30 · 2.4%
 * [ ] **M7.2 · Measure allocation churn across the composed roster** · 4.5 h, range 3–6 · 0.5%
+  * The kernel-mediated teardown rate and the capability-bearing footprint swept per teardown, read off the composed roster and compared against the background slot class and quarantine pool the composition sized. R-08-008a is what reads the figure: the sweep's economics are booked there as an expectation about that rate, and this is the reading that settles it. Naming the reader adds nothing to the item, the measurement and the roster being the ones it already takes.
 * [ ] **M7.3 · Measure ring parameters across the composed roster** · 4.5 h, range 3–6 · 0.5%
   * Queue depths, batch sizes, notification cadence, and slot budgets read off the composed system against the §12 per-operation accounting.
 
