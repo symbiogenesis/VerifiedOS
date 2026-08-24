@@ -59,7 +59,7 @@ The split runs through COSMIC: the **compositor** is required userland, the **sh
 
 ## Roster: the elective applications
 
-These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes one point in it, deferring the browser.
+These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes one point in it, deferring the browser. What §18's product floor adds is a bound from below rather than a sequence: the floor names capabilities and never targets, so nothing on this roster becomes normative and nothing here is a way to meet a floor clause, while a release meeting no clause of it is a release the floor fails whatever this roster has reached.
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
 - **Zed**, the reference editor, a software-rendered Tier-2 app: its GPU-first framework and its C parsing runtime are both bounded re-targets, it carries no language-support commitment, and it is the reference client of the editor-agent protocol the next entry uses.
@@ -399,7 +399,7 @@ Stages, not a schedule: within a stage nothing is serialized, and each stage pre
    An editor follows the compositor rather than preceding it, for want of a surface to draw on, and the coding agent arrives with it: the agent gates on the network stack rather than on the renderer, and would sit in stage 3 the moment a headless client for it exists.
 5. **Deferred by the specification itself.**
    §18 defers the **browser**, the largest porting program here and the one gated on a pure-interpreter JavaScript engine that does not yet exist.
-   The **inference server** is optional in §12 and waits on M-class bring-up (M10).
+   The **inference server** is optional in §12 and waits on M-class bring-up (M10); its *sequencing* is stageable here while its *presence* in the first release is fixed by §18's product floor, so what this stage defers is when it arrives and never whether.
    These two are the whole of this stage: the radio roster is not in it, sitting in stage 1 with its delivery gated on FEC-unit bring-up.
 
 **What would reorder this.**
