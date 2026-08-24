@@ -594,8 +594,9 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each such binary passes the artifact-level CT check; no secret-dependent branch survives in the admitted binary.
 · Trace: CJ-CT-SOUND, CJ-LEAK
 
-**R-05-068** MUST: Where a lowering resists CT hardening, the fix is in the source; no hand-written or checker-admitted assembly leaf is introduced.
-· Accept: the crypto build manifest contains no assembly leaf; a primitive that cannot be hardened is restructured or not shipped (fail-closed).
+**R-05-068** MUST: Where a lowering resists CT hardening, the fix is in the source; no hand-written or checker-admitted assembly leaf is introduced, and a primitive that cannot be hardened is refused rather than shipped.
+· Accept: the crypto build manifest contains no assembly leaf, and no shipped primitive fails the artifact-level constant-time check, the restructuring the obligation names being the only route between the two.
+· Fail-closed: an unhardenable primitive is refused rather than shipped with a leaf (R-17-030e); the cost lands on delivery of that primitive and never on a running unit.
 · Trace: CJ-CRYPTO-SPEC
 
 **R-05-069** IS: Constant-time is carried by the move-II secret-taint attribute (a two-point lattice) where a type discipline suffices, and proved where it does not.
@@ -1923,8 +1924,9 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: cold boot, deep-sleep wake, and the recovery generation all take this one path, so no second loader exists.
 · Trace: CJ-DEVTREE
 
-**R-09-006a** MUST: The RoT's start-up entropy health tests (R-15-241b) complete before the first draw any measured stage can make, their verdict is measured into the chain, and on failure the RoT derives no key, unseals no material, and completes no attestation quote.
-· Accept: the machine halts in a stated failure state rather than booting to a usable device on a weak root; the failure is a §16 fault class and not a boot-counting event, so the automatic A/B revert (R-09-028) is not its response and consumes no attempt.
+**R-09-006a** MUST: The RoT's start-up entropy health tests (R-15-241b) complete before the first draw any measured stage can make, their verdict is measured into the chain, and on failure the RoT derives no key, unseals no material, completes no attestation quote, and the boot is refused, the machine halting in a stated failure state rather than booting to a usable device on a weak root.
+· Accept: the failure is a §16 fault class and not a boot-counting event, so the automatic A/B revert (R-09-028) is not its response and consumes no attempt, which is what separates this stop from the revert path.
+· Fail-closed: a failed start-up health test halts the boot in a stated failure state (R-17-030o); the cost is the device, against booting on a weak root as the alternative.
 · Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC
 
 **R-09-007** MUST NOT: There is no UEFI, no SMM, no ACPI, and no option ROMs; a static devicetree instead declares core classes, islands, the NoC schedule, OPP tables, and radio calibration and limit values.
@@ -2508,7 +2510,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-IDL, CJ-TAL-SOUND, CJ-WCET
 
 **R-12-092** MUST: Every descriptor is a member of its interface's closed IDL variant carrying exactly an operation tag, a request identifier unique among the session's live requests, bounded operation-specific scalars, zero or more buffer references (session-table index, offset, length, direction, declared content type), an optional deadline drawn from the interface's finite deadline classes, and a closed flag set; the server validates bounds, permissions, direction, content type, and generation against the pre-delegated session table before the operation becomes eligible to execute.
-· Accept: an unknown tag, reserved flag, malformed bound, duplicate live identifier, or stale generation produces a defined refusal completion and never extends the vocabulary or triggers fallback interpretation; no field admits a path, raw address, capability encoding, executable name, recursive value, or unbounded collection (R-12-006, R-12-012).
+· Accept: an unknown tag, reserved flag, malformed bound, duplicate live identifier, or stale generation produces one of the defined refusal completions R-12-093's closed status set names, never extending that vocabulary or triggering fallback interpretation; no field admits a path, raw address, capability encoding, executable name, recursive value, or unbounded collection (R-12-006, R-12-012).
 · Trace: CJ-IDL, CJ-CERISE
 
 **R-12-093** MUST: Every accepted request receives exactly one terminal completion carrying its request identifier, a status from the closed common set (`ok`, `refused`, `invalid`, `cancelled`, `deadline_expired`, `peer_restarted`, `device_fault`, `resource_exhausted`), bounded result metadata, consumed and produced byte counts where applicable, and the server generation, unless the session itself is torn down, teardown being represented out of band by revocation plus a generation change after which every formerly live request has the logical result `peer_restarted`.
@@ -2980,8 +2982,9 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the agent's manifest confers no object, namespace, device, or network authority directly, and every such authority held in a live session traces to a recorded grant.
 · Trace: CJ-NI
 
-**R-12-085b** MUST: An agent's tool surface is exactly the interfaces its manifest declares it may request, each answered by a live consent or a standing grant; model output is an untrusted proposal that reaches no object without a capability already granted for it.
-· Accept: a tool call naming an interface absent from the manifest is refused before any consent prompt, and no code path derives authority from model output.
+**R-12-085b** MUST: An agent's tool surface is exactly the interfaces its manifest declares it may request, each answered by a live consent or a standing grant, and a call naming an interface the manifest does not carry is refused before any consent prompt; model output is an untrusted proposal that reaches no object without a capability already granted for it.
+· Accept: no out-of-manifest call reaches the user as a prompt, so the declared surface is not widened by consent fatigue, and no code path derives authority from model output.
+· Fail-closed: a call naming an interface the manifest does not carry is refused before any consent prompt (R-17-030w); the cost is the action the agent asked for, against a manifest a user can widen under fatigue as the alternative.
 · Trace: CJ-CERISE
 
 **R-12-085c** MUST: The agent's peer wire is the §12 typed IDL over a ring, started by the service manager and held to the §5 Narcissus discipline; there is no `fork`/`exec`, and running a command is a capability-delegated compartment.
@@ -4512,8 +4515,9 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: R-15-178 fixes the code's strength and leaves its grouping open, and the grouping decides both the cost and the independence. Independence is the security property: a combined or unequal-protection code would make the categorically-worse failure's guarantee conditional on the ordinary failure's distribution, which is refused in [Evaluated Architectural Alternatives](architectural-alternatives.md); the area it would recover is taken instead from R-15-181a's codeword width.
 · Trace: CJ-CERISE
 
-**R-15-179** MUST: ECC correction is deterministic: a fixed data-independent latency folded into WCET, the corrected and uncorrected paths taking the same cycles.
-· Accept: no variable slow path exists; every corrected error is reported to the sentinel as telemetry and every detected-but-uncorrectable error is a fail-stop sentinel event, never silently consumed.
+**R-15-179** MUST: ECC correction is deterministic: a fixed data-independent latency folded into WCET, the corrected and uncorrected paths taking the same cycles, and a detected-but-uncorrectable error is a fail-stop sentinel event rather than a returned value.
+· Accept: no variable slow path exists; every corrected error is reported to the sentinel as telemetry and no uncorrectable one is silently consumed.
+· Fail-closed: a detected-but-uncorrectable ECC event stops the machine (R-17-030n); the cost is the running state, against consuming a word the code cannot correct as the alternative.
 · Trace: CJ-WCET, CJ-LEAK
 
 **R-15-180** IS: ECC is the memory path's only integrity mechanism, deliberately: it answers the random bit flip, which is the threat main memory on this die actually faces.
@@ -4582,9 +4586,9 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a verifier learns which arrays were live in which mode; the transition stays a log₂(#modes)-bit audited event, the attestation surface growing by a named constant table and not by an open set of runtime decisions.
 · Trace: CJ-DEVTREE, CJ-NI
 
-**R-15-189g** MUST: For every mode, the union of address ranges authorized by any capability reachable by any resident compartment is contained in the union of that mode's ON domains, decided by the same on-device pass that checks slot disjointness; a power vector that switches off a reachable array fails to type-check and is rejected at admission.
-· Accept: hardware decode disable is a backstop only (an access decoding to a non-ON domain is a fail-stop sentinel event, never a floating read, a stall, or a wake); there is no wake-on-access anywhere in the mechanism, that being demand paging with a power rail.
-· Fail-closed: a failed containment check rejects the composition (an availability outcome), never admits it with an unreachable-but-live array.
+**R-15-189g** MUST: For every mode, the union of address ranges authorized by any capability reachable by any resident compartment is contained in the union of that mode's ON domains, decided by the same on-device pass that checks slot disjointness; a power vector that switches off a reachable array fails to type-check and is rejected at admission, hardware decode disable standing as a backstop only and an access decoding to a non-ON domain being a fail-stop sentinel event rather than a floating read, a stall, or a wake.
+· Accept: there is no wake-on-access anywhere in the mechanism, that being demand paging with a power rail, and the backstop is therefore a second failure action of this entry rather than the mechanism the first one names.
+· Fail-closed: two actions at two times, and the conferral carries both because a requirement states one line: a failed containment check rejects the composition (R-17-030e), an availability outcome that never admits it with an unreachable-but-live array; and at run time an access decoding to a non-ON domain stops the machine (R-17-030n), the cost there being the running state rather than delivery.
 · Trace: CJ-CERISE, CJ-ISOL, CJ-WCET
 
 **R-15-189h** MUST NOT: Six adjacent forms are declined for rebuilding the loop: idle-timer, watermark, or access-counter bank gating; wake-on-access, demand power-up, or any cold-array slow path; runtime occupancy compaction with a relocation pass; leakage-, temperature-, or aging-sensing modulation of the retention rail; a power domain shared across islands participating in different modes; and per-domain voltage or frequency scaling following bandwidth demand.
@@ -4683,7 +4687,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-204** IS: Tag integrity is an ECC property, not a cryptographic one, because the tag bits never leave the die; a tag-integrity failure is an ECC event and a fail-stop sentinel event.
 · Accept: non-capability transducer and DMA writes clear the corresponding tag bit by construction.
-· Fail-closed: an uncorrectable ECC or tag-integrity event stops the machine (R-17-030n); the cost is the running state, against a silent integrity failure as the alternative.
+· Fail-closed: a tag-integrity event stops the machine (R-17-030n); the cost is the running state, against a silent integrity failure as the alternative. The uncorrectable-ECC half is R-15-179's and is conferred there, this entry's obligation reaching the tag plane alone.
 · Trace: CJ-CERISE
 
 ### 15.26 Capability-checked DMA
@@ -5318,7 +5322,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: an adversary who can force the degraded subset on demand holds durable partial denial under cover of containment having worked, which R-16-009's per-incident budget cannot express; the obligation that makes it expressible is R-17-030m.
 · Trace: CJ-CERISE
 
-**R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022); the same pass rejects a composition whose per-mode power vector would switch off an SRAM array some admitted capability can still reach (R-15-189g), and an install-path proof that exhausts the on-device kernel's declared budget ends the same way, the artifact unadmitted and the cost on delivery rather than on a running device (R-06-015a).
+**R-17-030e** IS: Fail-closed seam **admission refusal ⋈ delivery**: a certifier that cannot emit a derivation refuses a safe program (R-17-033), and because there is no interim weakening the cost lands on delivery rather than on a device in a user's hands (R-13-022); a crypto primitive whose lowering resists constant-time hardening is refused rather than shipped with a hand-written leaf, on the same delivery-side footing (R-05-068); the same pass rejects a composition whose per-mode power vector would switch off an SRAM array some admitted capability can still reach (R-15-189g), and an install-path proof that exhausts the on-device kernel's declared budget ends the same way, the artifact unadmitted and the cost on delivery rather than on a running device (R-06-015a).
 · Accept: the one member whose denial cannot reach a running unit, named so that the register is not read as uniformly a field risk.
 · Trace: CJ-TAL-SOUND
 
@@ -5354,11 +5358,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: R-16-009 budgets one window and R-17-035 books its cost, and neither expresses windows per unit time; without this, an attacker holding a surface degraded indefinitely is reported by the platform as a mechanism working correctly, once per window, forever. The record is a §16 event class and adds no trusted component, the sentinel already driving the attested transition it counts.
 · Trace: CJ-DEVTREE, CJ-WCET
 
-**R-17-030n** IS: Fail-closed seam **detector trip ⋈ continued operation**: every fault detector answers detection by stopping, an uncorrectable ECC event and a tag-integrity failure being fail-stop sentinel events (R-15-204, R-16-008b), a control-flow signature mismatch on the three protected sequences raising the same class (R-16-008c), a divergence on the sentinel's lockstepped pair latching a fail-stop to the RoT (R-16-008d), residual synchronizer failure landing in the same place (R-15-197), a gating domain whose rail fails its discharge confirmation at a mode transition latching the same class rather than completing the transition (R-15-189n), a second-class granule whose refresh or discharge write does not commit raising the same class rather than leaving a tag over data it no longer describes (R-15-247b) and a negative reading of the discharge completion indication stopping the transition rather than repeating it (R-15-247f), and a trap taken while the trap path is live latching it rather than vectoring a second time onto a context it has already destroyed (R-15-073c).
+**R-17-030n** IS: Fail-closed seam **detector trip ⋈ continued operation**: every fault detector answers detection by stopping, an uncorrectable ECC event and a tag-integrity failure being fail-stop sentinel events (R-15-179, R-15-204, R-16-008b), a control-flow signature mismatch on the three protected sequences raising the same class (R-16-008c), a divergence on the sentinel's lockstepped pair latching a fail-stop to the RoT (R-16-008d), residual synchronizer failure landing in the same place (R-15-197), an access decoding to a domain the running mode leaves off landing in the same class rather than a floating read, a stall, or a wake (R-15-189g), a gating domain whose rail fails its discharge confirmation at a mode transition latching the same class rather than completing the transition (R-15-189n), a second-class granule whose refresh or discharge write does not commit raising the same class rather than leaving a tag over data it no longer describes (R-15-247b) and a negative reading of the discharge completion indication stopping the transition rather than repeating it (R-15-247f), and a trap taken while the trap path is live latching it rather than vectoring a second time onto a context it has already destroyed (R-15-073c).
 · Accept: the member whose provocation needs no software access, because the adversary it answers is the radiated-EMI and electromagnetic-fault-injection adversary in scope by name (R-03-003, R-15-155), so a probe held near the enclosure stops a correctly behaving device; each detector is right to stop and the composition is the finding, not any member of it.
 · Trace: CJ-SAIL, CJ-RTL-SAIL
 
-**R-17-030o** IS: Fail-closed seam **entropy health-test failure ⋈ every operation needing fresh randomness**: the noise source's start-up and continuous on-line health tests have fail-stop as their sole failure action, with no reduced-rate, best-effort, or last-known-good path in hardware or firmware (R-15-241b), so key generation, sealing, attestation, and every protocol needing a fresh nonce stop with the source.
+**R-17-030o** IS: Fail-closed seam **entropy health-test failure ⋈ every operation needing fresh randomness**: the noise source's start-up and continuous on-line health tests have fail-stop as their sole failure action, with no reduced-rate, best-effort, or last-known-good path in hardware or firmware (R-15-241b), so key generation, sealing, attestation, and every protocol needing a fresh nonce stop with the source, and a start-up test failing before the first measured draw halts the boot in a stated failure state rather than booting to a usable device on a weak root (R-09-006a).
 · Accept: the refusal is correct because every alternative turns a detected failure into an undetected one, which is the one member of this register whose weakening would cost confidentiality rather than availability; it is therefore stated as a member and not repaired into a degraded mode, and an adversary who can bias a source into tripping its own test denies more than the RoT.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
@@ -5383,10 +5387,15 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: refusal is the correct direction on this seam because both alternatives are worse in the property each requirement exists to establish, installing an artifact whose population is unknown and installing one whose currency is unknown; the member is therefore retained as a refusal rather than repaired into a degraded mode, and it costs availability alone as R-03-009 requires of every member.
 · Trace: CJ-T, CJ-DEVTREE
 
+**R-17-030w** IS: Fail-closed seam **the declared manifest ⋈ the action asked for**: a tool call naming an interface an agent's manifest does not carry is refused before any consent prompt (R-12-085b), so an agent whose manifest is narrower than its later behaviour holds a standing denial of that behaviour, and the holder cannot lift it from the prompt because the prompt is what the refusal precedes.
+· Accept: the refusal is retained because the alternative is a declared surface a user can widen under fatigue, which would make the manifest advisory rather than exact; the cost is the action asked for and never authority, the same entry's second clause keeping model output from deriving any, and widening is an install act rather than a runtime one.
+· Accept: what makes it a member rather than the ordinary capability enforcement this register deliberately does not collect is that the denial is **standing rather than incidental**: it is held open for as long as the manifest stands and is liftable only by an install, where an ordinary capability check denies one operation and says nothing about the next. Its cost reaches no life-safety path and no other label's schedule, memory, or authority, so R-17-030l's composition is unmoved by it.
+· Trace: CJ-CERISE
+
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted. The collector is a set of entries and not one sentence, so it grows by a seam written beside the others and a new refusal reopens no entry that already stands.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.py` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: the conferral gates the collection here, which is the opposite of the direction R-10-013a takes and for the reason that entry states: this register holds no budget, R-03-009 pricing every member against availability alone and member by member, so what a seam adds is the composition none of its members states alone and never the admission of any of them. Growth by addition is what makes that safe, an author with a refusal to book owing a seam of their own rather than an amendment to somebody else's obligation.
-· Accept: thirty requirements confer a refusal and seventeen seams collect them, both figures recomputed rather than maintained here.
+· Accept: thirty-four requirements confer a refusal and eighteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.py` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -5898,7 +5907,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1360 requirements. §19 is non-normative and yields none. Counts include the 408 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1361 requirements. §19 is non-normative and yields none. Counts include the 409 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5918,7 +5927,7 @@ All eighteen normative sections are extracted, at 1360 requirements. §19 is non
 | **§14 Userland** | **extracted** | **29** |
 | **§15 Hardware Platform** | **extracted** | **392** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **126** |
+| **§17 Residual Risks** | **extracted** | **127** |
 | **§18 Realization** | **extracted** | **58** |
 
 §19 is non-normative and yields no requirements.
