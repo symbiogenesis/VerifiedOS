@@ -934,9 +934,9 @@ CASES: list[Case] = [
      _literal(REGISTER, "quarantine entries, interpreter object arenas",
               "quarantine entries, telemetry rings, interpreter object arenas")),
 
-    # One of the four transcriptions is moved and the other three are left, which is
-    # the shape a real drift takes: an exponent edited in the composition that the
-    # model's own assertion would catch only once something executed.
+    # One of the transcriptions is moved and the rest are left, which is the shape a
+    # real drift takes: an exponent edited in the composition that the model's own
+    # assertion would catch only once something executed.
     ("K-57", "a composition that writes a welded block size the model does not",
      _literal("model/config/verifiedos.json",
               '"cache_block_size_exp": 6', '"cache_block_size_exp": 5')),
@@ -1120,6 +1120,19 @@ CASES: list[Case] = [
     ("K-76", "a synthesis parameter the provenance record binds set to another value",
      _literal("rtl/vos_c_class_config_pkg.sv", "BHTEntries: unsigned'(0),",
               "BHTEntries: unsigned'(1),")),
+
+    # The transcription is moved and the definition is left, which is the direction the
+    # defect arrives from: the model is the definition and nothing edits it to follow a
+    # SystemVerilog package. The address width is the one to move because it is the
+    # parameter with the most restatements, so a real drift in it would leave four other
+    # sites still agreeing with each other and only this rule reading the fifth against
+    # the model. K-57 opens that file too, for the welded block size, and this moves a
+    # different localparam, so the case passes on K-79's own report.
+    ("K-79", "a capability-format width the authored package and the model no longer "
+             "agree on",
+     _literal("rtl/vos_cheri_pkg.sv",
+              "localparam int unsigned CapAddrWidth = 36;",
+              "localparam int unsigned CapAddrWidth = 32;")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
