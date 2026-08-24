@@ -34,13 +34,24 @@ The fourth is a floor under a figure rather than under a set, and it exists beca
 the two-class memory plan is the one place where a quantity the tool would like to
 compare does not exist yet. The per-class capacity budgets are stated, each owned by
 one entry, so the floor under them is the ordinary one: the owner still says it. The
-per-class bank count is not stated anywhere, and must not be: it is an open item of
-the frozen parameter set, three artifacts book it as open, and a figure quoted ahead
-of the act that decides it is a decision taken by nobody. So the floor under *that*
-one is the booking rather than the figure, and it is the reading whose moving is the
-signal. The day M0.17 lands a bank count and M6.8 a bandwidth ceiling is the day this
-rule's second half becomes the comparison the plan describes; until then the
-comparison has no operands and inventing them would be worse than not making it.
+per-class bank count is stated and decided by nothing, which is a different state and
+the reason the floor under it is a different instrument. A count is written: the
+composition declares one and `vos/banks.py` reads it, the exploration contract holds
+that declaration inside a candidate set and admits no candidate, and both disclaim
+the figure on their own face while the class's `qualified` flag is false. What is
+open is the *frozen* count, item (viii) of R-15-014a's closed delta, and a figure
+quoted ahead of the act that decides it is a decision taken by nobody. So the floor
+under that one is the booking rather than the figure, three artifacts booking it
+open, and it is the reading whose moving is the signal.
+
+M0.17 has landed and supplied no figure to compare against, which is that item's own
+result rather than a shortfall in it. Its search admits no candidate because every
+coefficient R-15-247p names is pending; the count itself arrives with R5's macro
+evidence at the freeze's second act rather than out of the search; and the island
+bandwidth ceiling is an *output* of the count under search, times a per-bank width
+M0.8 owes and a TDM slot share M1 owes, which R-15-228a forbids the memory plan from
+producing. Until those land the comparison has no operands, and inventing them would
+be worse than not making it.
 
 No floor decides that the members are the right ones, and none of them sees a reading
 that narrows without emptying: a vocabulary that loses one term still catches the rest
