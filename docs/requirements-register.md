@@ -1565,7 +1565,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the check is deterministic and architectural, fixed-latency, riding the load with no added memory traffic, so it passes the §15 admission test.
 · Trace: CJ-CERISE, CJ-LEAK
 
-**R-08-005a** MUST: The load filter is backed by a dedicated ECC-protected revocation bitmap over a composition-fixed union of 64-byte-aligned revocable SRAM intervals, with one architectural revocation bit per 8-byte capability granule: `0` is live and `1` is revoked. For covered intervals *I*, its payload is exactly Σ|*I*|/64 bytes; the static memory plan charges that payload, its ECC bits, and macro periphery against the §15 SRAM capacity budget, and admission rejects a composition that does not fit. The interval map and resulting bitmap size are attested-devicetree constants; ordinary compartments cannot address the bitmap, and only the kernel revocation path may update it.
+**R-08-005a** MUST: The load filter is backed by a dedicated ECC-protected revocation bitmap over a composition-fixed union of 64-byte-aligned revocable main-memory intervals, with one architectural revocation bit per 8-byte capability granule: `0` is live and `1` is revoked. For covered intervals *I*, its payload is exactly Σ|*I*|/64 bytes; the static memory plan charges that payload, its ECC bits, and macro periphery against the §15 SRAM capacity budget, and admission rejects a composition that does not fit. The interval map and resulting bitmap size are attested-devicetree constants; ordinary compartments cannot address the bitmap, and only the kernel revocation path may update it.
 · Accept: this is the CHERIoT non-MMU realization, not RVY `Svyrg`: the loaded capability's base selects the bit and a set bit clears its tag before architectural writeback. RVY's four-bit PTE state machine has no PTE in which to live here and is not silently compressed into one bit; epoch, sweep, and quarantine state remain in their separately specified protocol, while this array carries only the load-time live/revoked predicate. The covered union includes the R-08-004a grant table, whose per-slot bits carry the subtree case. The bitmap is a bank-side sidecar read with the data/tag access, not a second fabric or main-memory transaction.
 · Trace: CJ-CERISE, CJ-WCET, CJ-SAIL
 
@@ -3320,7 +3320,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the width is bounded by what one die can carry rather than by architecture, which is what makes it safe to freeze permanently: main memory is on-die in both R-15-247 classes on one reticle-limited die, there is no external memory bus, and R-15-162 declines the chiplet and bonded-stack realizations that are the only routes a second die and its growth axis could arrive by, so the bound holds whatever the per-class budgets R-15-170 and R-15-173a state come to. Fitting is checked rather than expected, R-15-002b refusing at composition any map that does not lie inside the space. It is not a window onto a wider space: no extension, segment, or bank register widens it, and the 36 bits are what put R-15-007's format inside 64 bits.
 · Trace: CJ-SAIL, CJ-CERISE
 
-**R-15-002b** MUST: The physical address map is **dense**: every SRAM region and every MMIO aperture is placed inside the 36-bit space, with no aperture scattered at a wide power-of-two offset, and the placement is a stated constraint on the attested devicetree (R-09-007) and on the bank/macro/tier binding map (R-15-228).
+**R-15-002b** MUST: The physical address map is **dense**: every main-memory region of either R-15-247 class and every MMIO aperture is placed inside the 36-bit space, with no aperture scattered at a wide power-of-two offset, and the placement is a stated constraint on the attested devicetree (R-09-007) and on the bank/macro/tier binding map (R-15-228).
 · Accept: the address map is checked against the 36-bit bound at composition, so an aperture that does not fit is a composition failure rather than a runtime trap. A narrow space cannot absorb the scattering a 64-bit map tolerates, so the constraint is stated where the map is authored instead of being discovered when the first devicetree is composed.
 · Trace: CJ-DEVTREE, CJ-ISOL
 
@@ -4334,7 +4334,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 15.22 Memory subsystem
 
-**R-15-158** MUST: Main memory is bespoke on-die SRAM on the same die as the cores, not DRAM.
+**R-15-158** MUST: Main memory's **first class** is bespoke on-die SRAM on the same die as the cores, not DRAM. The **second class** is on that same die and its medium is R-15-247's rather than this entry's (R-15-247n), so what this entry fixes is the first class's medium and the one die both classes sit on.
 · Accept: SRAM carries no refresh and no refresh-management or activation-counting apparatus, the disturbance class being R-15-184's; the accepted price is density and idle leakage.
 · Trace: CJ-SAIL, CJ-WCET
 
@@ -4391,7 +4391,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the arithmetic is stated per class and the half-field and ~400 mm² net derate govern both. The first class budgets ~4–8 GB phone-class (8–16 memory tiers) and 16–32 GB laptop/desktop-class, as composition-time constants in the attested devicetree, every figure above its single planar tier contingent on R-15-163's grading and not to be read as scheduled; the second class budgets the R-15-247 bulk decks, whose deck feature size and not the 4F² cell is the load-bearing unknown. Each class's realized usable density enters as an attested devicetree constant measured on a repaired macro at part qualification (R-15-247m), never as an architectural input.
 · Trace: CJ-DEVTREE
 
-**R-15-171** MUST: The roster is fit to the budget explicitly, and a workload that does not fit is refused at admission, not paged: there is no swap and no overcommit anywhere, every resident byte being a capability-delegated SRAM byte.
+**R-15-171** MUST: The roster is fit to the budget explicitly, and a workload that does not fit is refused at admission, not paged: there is no swap and no overcommit anywhere, every resident byte being a capability-delegated byte of one class or the other.
 · Accept: the budget is stated over both R-15-247 classes, the scalar working set and every cycle-critical array against the first and bulk by volume against the second, so the model class a form factor serves follows its bulk capacity rather than its SRAM; browser origins take a composition-sized budget with crash-only eviction. A mixture-of-experts model is admitted only with every expert resident and top-k fixed, which makes residency a declared ceiling term and work per token a constant regardless of which experts route; routed fetch across the storage boundary is refused, an input-dependent fill schedule being both a timing channel and an unbounded §11 term.
 · Fail-closed: a workload that does not fit the budget is refused at admission (R-17-030q); the cost is delivery of that workload.
 · Trace: CJ-MEMPLAN
