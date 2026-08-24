@@ -22,9 +22,8 @@ that must itself be audited, and the day a new file kind lands is the day it is
 silently outside the rule. So the tool carries a table of comment syntaxes rather than
 a list of exceptions, and a kind in neither table is a finding that names the kind and
 asks for a decision. Refusals are refusals of *format*, not of importance: JSON admits
-no comment at all, and a patch's bytes are its meaning, so a mark in either is not a
-mark but a corruption. Markdown is refused for the opposite reason, that the map
-already reaches it by path.
+no comment at all, so a mark in one is not a mark but a corruption. Markdown is refused
+for the opposite reason, that the map already reaches it by path.
 
 Both directions are held, as the conferral rules elsewhere hold theirs. A file kind no
 ruling covers is a gap; a ruling no file exercises is a carve-out nobody audits, and it
@@ -85,12 +84,11 @@ MARKABLE: dict[str, tuple[str, str]] = {
 }
 
 # Every kind that is not marked, each with the reason it is not. A reason of *format*
-# is the only kind admitted here: the two JSON and diff entries would be corrupted by a
-# mark, and Markdown is reached by the map instead.
+# is the only kind admitted here: the JSON entry would be corrupted by a mark, and
+# Markdown is reached by the map instead.
 REFUSED: dict[str, str] = {
     ".md": f"{LICENSE_MAP} governs prose by path, so a per-file mark would restate it",
     ".json": "JSON admits no comment, so a mark would make the file unparseable",
-    ".patch": "a diff's bytes are its meaning; a prepended line breaks the hunks it names",
     ".gitattributes": "git's own metadata rather than authored content",
     ".gitignore": "git's own metadata rather than authored content",
     ".gitmodules": "git's own metadata rather than authored content",

@@ -3,9 +3,13 @@
 # Gallina components exercised on a stock Wasm engine, no cross-toolchain, no
 # image, no machine model. This container is that engine's pinned environment.
 #
-# Rocq 9.1.1 is deliberate, not stale: CertiRocq main constrains
+# Rocq 9.1.1 is deliberate, not stale: CertiRocq constrains
 # rocq >= 9.1 & < 9.2~, and SECOMP (upstream/SECOMP, M1.2) states Rocq 9.1 too,
 # so one prover version serves both legs.
+#
+# The image is published for linux/amd64 only, at every 9.1 tag, so on an arm64
+# host this path wants emulation and the native recipe in README.md is the one
+# that runs.
 FROM rocq/rocq-prover:9.1-ocaml-4.14-flambda
 
 USER root
@@ -18,21 +22,15 @@ RUN apt-get update \
 # RUN update-ca-certificates
 
 USER rocq
-# CertiRocq main carries the merged CertiCoq-Wasm backend (CodegenWasm,
-# mechanized against WasmCert-Coq; CPP 2025); the 0.9 opam release predates
-# it, hence the source pin. Main's tip tracks the unreleased MetaRocq 9.1
-# branch, so the pin is the last commit before that drift (4f53ca97, June 9
-# 2026) plus a two-site compat patch for where released MetaRocq 1.5.1 moved
-# the erasure inlining toggle into unsafe_passes.
-ARG CERTIROCQ_SHA=4f53ca97303847cfb41265ac676e324703f77dcd
-COPY --chown=rocq:rocq metarocq-1.5.1-compat.patch /tmp/
-RUN git clone https://github.com/CertiCoq/certicoq.git /home/rocq/certicoq \
-    && cd /home/rocq/certicoq \
-    && git checkout ${CERTIROCQ_SHA} \
-    && git apply /tmp/metarocq-1.5.1-compat.patch \
-    && git -c user.email=oracle@local -c user.name=oracle commit -aqm "metarocq 1.5.1 compat" \
-    && opam pin -n -y . \
-    && opam install -y rocq-certirocq
+# CertiRocq 0.9.1 for Rocq 9.1 is a released package that carries the merged
+# CertiCoq-Wasm backend (theories/CodegenWasm, mechanized against WasmCert-Coq;
+# CPP 2025) and takes released MetaRocq 1.5.1, which is both halves of what a
+# source pin and a compat patch used to buy here. The release is the whole
+# environment: no clone, no checkout, no patch.
+ARG CERTIROCQ_VERSION=0.9.1+9.1
+RUN opam repo list --all | grep -q rocq-released \
+    || opam repo add rocq-released https://rocq-prover.org/opam/released
+RUN opam install -y rocq-certirocq.${CERTIROCQ_VERSION}
 
 WORKDIR /home/rocq/oracle
 COPY --chown=rocq:rocq demo.v run_demo.mjs ./
