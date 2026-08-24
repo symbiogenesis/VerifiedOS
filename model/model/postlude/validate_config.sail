@@ -129,6 +129,29 @@ private function check_vext_config() -> bool = {
     valid = false;
     print_endline("Zvkt is enabled but Zve32x is disabled: Zvkt requires Zve32x.");
   };
+  // **A vectorless composition names no vector extension**, and this is the one
+  // rung of the vector surface that was reachable without it. Every check above
+  // reads a `supported` key or a level, so a composition turning the vector unit
+  // off is refused each of the eight vector-crypto flags by name; the `Zvl`
+  // ladder is gated on `sizeof(vlen_exp)` **alone** (core/extensions.sail), and
+  // `vlen_exp` is type-level and constrained `3 <= vlen_exp <= 16`, so it cannot
+  // be set to zero to mean *vectorless*. A composition at `support_level`
+  // `Disabled` and the C class's own exponent therefore validated, ran, and
+  // emitted `zvl32b_zvl64b_zvl128b_zvl256b` into the `riscv,isa` string and the
+  // `riscv,isa-extensions` array of the **attested** devicetree
+  // (postlude/device_tree.sail) of a core with no vector register file at all,
+  // which is exactly the defect R-15-014b and M0.8d refuse when they keep
+  // `Ext_Zvknhk` out of the extension registry until RVG-84 ratifies.
+  //
+  // The ladder is monotone in the exponent, so its lowest rung decides every
+  // rung above it: `Zvl32b` false is the whole claim. What the composition does
+  // instead is declare the floor of `vlen_exp`'s own constraint, which is the
+  // nearest a type-level geometry can come to declaring no geometry at all
+  // (model/config/verifiedos-rot.json).
+  if vector_support_level == Disabled & hartSupports(Ext_Zvl32b) then {
+    valid = false;
+    print_endline("`extensions.V.support_level` is `Disabled` and VLEN is 2^" ^ dec_str(vlen_exp) ^ ", which is at or above the Zvl32b rung: the minimum-vector-length extensions are gated on the vector length alone, so this composition has no vector register file and would name Zvl32b and every wider rung in its attested `riscv,isa` string.");
+  };
   valid;
 }
 
@@ -337,7 +360,25 @@ private function check_mem_layout() -> bool =
     let sequencer_window_ok = not(plat_have_memory_sequencer) |
                    within_configured_pma_memory("memory sequencer window (platform.memory_sequencer)", Some(IOMemory),
                                                 plat_memory_sequencer_base, plat_memory_sequencer_size);
+    // The Root of Trust's four peripherals are register slaves like the four
+    // above, so all four belong in IO memory (R-09-001, sys/rot.sail). That
+    // three of them answer only the RoT and refuse every other class is a
+    // property of the slave and not of where it sits, exactly as the
+    // sequencer's refusal is (R-15-194).
+    let otp_window_ok = not(plat_have_otp) |
+                   within_configured_pma_memory("OTP window (platform.otp)", Some(IOMemory),
+                                                plat_otp_base, plat_otp_size);
+    let trng_window_ok = not(plat_have_trng) |
+                   within_configured_pma_memory("entropy root window (platform.trng)", Some(IOMemory),
+                                                plat_trng_base, plat_trng_size);
+    let monotonic_window_ok = not(plat_have_monotonic) |
+                   within_configured_pma_memory("monotonic counter window (platform.monotonic_counters)", Some(IOMemory),
+                                                plat_monotonic_base, plat_monotonic_size);
+    let watchdog_window_ok = not(plat_have_watchdog) |
+                   within_configured_pma_memory("watchdog window (platform.watchdog)", Some(IOMemory),
+                                                plat_watchdog_base, plat_watchdog_size);
     pmas_ok & clint_ok & imsic_ok & revocation_window_ok & sequencer_window_ok
+    & otp_window_ok & trng_window_ok & monotonic_window_ok & watchdog_window_ok
   }
 
 private function check_misc_extension_dependencies() -> bool = {
@@ -1044,9 +1085,117 @@ private function check_memory_sequencer() -> bool = {
   valid
 }
 
+// The Root of Trust's four peripherals (R-09-001, sys/rot.sail).
+//
+// **What is held here is the shape a composition may declare and never a
+// value**, which is the register every other geometry in this file is checked
+// under and which the register itself states for these two: R-15-240 sources the
+// watchdog's window bounds from the §11 schedule theorem, and R-11-017 emits
+// them with the operating-point assignment and the TDM NoC schedule as one
+// artifact that is itself a crown-jewel specification; R-15-241b calls the
+// start-up sample budget *fixed* and puts its sizing in the source's stochastic
+// model. Neither artifact exists, so a validator asserting a range for either
+// would be the architectural input those artifacts owe.
+//
+// **Two things are deliberately not refused, and each is a composition somebody
+// has not sized rather than a wrong one** (the asymmetry M0.8d's FEC refusals
+// take). A composition declaring the four peripherals while composing a hart the
+// roster puts on some other class is not refused: the peripherals are the die's,
+// the roster says which of the die's cores this run is, and the windows answer
+// the RoT alone whichever core that is (R-15-194, sys/platform.sail). And the
+// lifecycle state a composition resets into is not refused at any of its five
+// values, RMA included: all five are states a real part is in, and a refusal
+// here would be the model deciding what a part's history was.
+private function check_rot() -> bool = {
+  var valid : bool = true;
+
+  // The four are one block on one island (R-09-001, R-15-113): the RoT provides
+  // measured boot, key storage, entropy, monotonic counters and boot-attempt
+  // counting, and a die carrying three of the four is a management processor
+  // missing a duty. Declared whole or not at all, under the zero-is-absent idiom
+  // the FEC geometry and the class table take.
+  let declared = (if plat_have_otp then 1 else 0) + (if plat_have_trng then 1 else 0)
+               + (if plat_have_monotonic then 1 else 0) + (if plat_have_watchdog then 1 else 0);
+  if declared != 0 & declared != 4 then {
+    valid = false;
+    print_endline("The composition declares " ^ dec_str(declared) ^ " of the Root of Trust's four peripherals; the OTP fuse bank, the entropy root, the monotonic counters and the watchdog are one block on one island and are declared together or not at all.");
+  };
+
+  // Each declared window is wide enough to address the doors the model gives it.
+  // The extents are the model's own (sys/rot.sail), the way the revocation
+  // plane's width is: a Sail register is a fixed width, so a window narrower
+  // than the doors behind it leaves the top of a fuse bank or a counter file
+  // outside the address map rather than refused inside it.
+  if plat_have_otp & unsigned(plat_otp_size) < ROT_OTP_BYTES then {
+    valid = false;
+    print_endline("`platform.otp.size` is " ^ dec_str(unsigned(plat_otp_size)) ^ " bytes but the OTP's doors run to " ^ dec_str(ROT_OTP_BYTES) ^ "; the fuse bank's width is the model's own and a narrower window leaves its top words with no address.");
+  };
+  if plat_have_trng & unsigned(plat_trng_size) < ROT_TRNG_BYTES then {
+    valid = false;
+    print_endline("`platform.trng.size` is " ^ dec_str(unsigned(plat_trng_size)) ^ " bytes but the entropy root's doors run to " ^ dec_str(ROT_TRNG_BYTES) ^ ".");
+  };
+  if plat_have_monotonic & unsigned(plat_monotonic_size) < ROT_CTR_BYTES then {
+    valid = false;
+    print_endline("`platform.monotonic_counters.size` is " ^ dec_str(unsigned(plat_monotonic_size)) ^ " bytes but the counter file's doors run to " ^ dec_str(ROT_CTR_BYTES) ^ ".");
+  };
+  if plat_have_watchdog & unsigned(plat_watchdog_size) < ROT_WDT_BYTES then {
+    valid = false;
+    print_endline("`platform.watchdog.size` is " ^ dec_str(unsigned(plat_watchdog_size)) ^ " bytes but the watchdog's doors run to " ^ dec_str(ROT_WDT_BYTES) ^ ".");
+  };
+
+  if not(plat_have_trng) then () else {
+    // **At least two, and the floor is the requirement rather than a choice.**
+    // R-15-241e takes multiple independent noise sources spanning at least two
+    // physical mechanisms into the one conditioner, each separately
+    // health-tested, so that no single source's death, sticking, or narrowed
+    // distribution silently repairs or silently corrupts the root's output. One
+    // source is a root with nothing to compare against.
+    if plat_rot_noise_sources < 2 then {
+      valid = false;
+      print_endline("`platform.trng.noise_sources` is " ^ dec_str(plat_rot_noise_sources) ^ "; the entropy root takes multiple independent noise sources spanning at least two physical mechanisms into the one conditioner, so that no single source's failure silently repairs or silently corrupts its output.");
+    };
+    // **The ceiling is the type's and is deliberately not a clause here.** The
+    // model realizes a fixed number of sources, the way the revocation plane
+    // realizes a fixed width, but the two are bounded in different places and
+    // running the seeded refusals is what shows which: `plat_rot_noise_sources`
+    // is read at `range(0, rot_max_noise_sources)` (sys/rot.sail), which the
+    // emission writes into the generated schema as a maximum, so an over-wide
+    // declaration is refused at schema conformance before `config_is_valid` runs
+    // at all. A clause here would be a message no configuration reaches. The
+    // floor below is the opposite case and is why the two are not symmetric: a
+    // *minimum* of two is R-15-241e's and no type expresses it, the schema's own
+    // minimum for that range being zero.
+    //
+    // A health test over no samples is a test that cannot fail (R-15-241b).
+    if plat_rot_startup_samples == 0 then {
+      valid = false;
+      print_endline("`platform.trng.startup_samples` is zero; the start-up health tests run over a fixed sample budget before the first output leaves the RoT, and a test over no samples is one that cannot fail.");
+    };
+  };
+
+  if not(plat_have_watchdog) then () else {
+    // **A window that is not a window.** R-15-240 makes the watchdog windowed,
+    // early pets faulting as well as late, which is the half a one-sided
+    // watchdog gets wrong: a core stuck in a loop petting as fast as it can is
+    // exactly as dead as one that has stopped, and only the early bound catches
+    // it. A zero early bound deletes that half without deleting the device.
+    if plat_rot_watchdog_early == 0 then {
+      valid = false;
+      print_endline("`platform.watchdog.early_ticks` is zero; the watchdog is windowed and an early pet faults as well as a late one, so a zero early bound is a one-sided watchdog wearing a window's name.");
+    };
+    if plat_rot_watchdog_late <= plat_rot_watchdog_early then {
+      valid = false;
+      print_endline("`platform.watchdog.late_ticks` is " ^ dec_str(plat_rot_watchdog_late) ^ " against an early bound of " ^ dec_str(plat_rot_watchdog_early) ^ "; the two bound a window and the late one is above the early one.");
+    };
+  };
+
+  valid
+}
+
 function config_is_valid() -> bool = {
     check_tvec()
   & check_core_roster()
+  & check_rot()
   & check_fec_codes()
   & check_scratchpads()
   & check_timing()

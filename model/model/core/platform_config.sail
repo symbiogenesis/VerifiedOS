@@ -116,6 +116,37 @@ let plat_memory_sequencer_refresh_phase_cycles      : memory_sequencer_cycles = 
 let plat_memory_sequencer_discharge_banks_per_phase : memory_sequencer_banks  = config platform.memory_sequencer.banks_per_discharge_phase
 let plat_memory_sequencer_discharge_phase_cycles    : memory_sequencer_cycles = config platform.memory_sequencer.discharge_phase_cycles
 
+// The Root of Trust's four peripherals (R-09-001, sys/rot.sail): the OTP fuse
+// bank holding the lifecycle state (R-09-003, R-09-032), the entropy root
+// (R-15-241), the monotonic counter file (R-10-013), and the windowed watchdog
+// (R-15-240). Each is a register slave whose window is in the address map of
+// every composition, because the die has one RoT whichever of its cores an
+// emulator composes (R-15-194, R-15-113); which requester the window *answers*
+// is the composed hart's class and not a key, the roster already saying which
+// core this run is (R-15-052b, sys/rot.sail).
+//
+// **Only the windows are here.** The lifecycle reset state, the declared noise
+// source count, the start-up sample budget, the emulation seed and the two
+// watchdog bounds are read in sys/rot.sail instead, beside the enumerations and
+// widths that bound them, which is where core/core_class.sail reads the class
+// table for the same reason: a bound written here and a type written there is
+// one fact in two files.
+let plat_have_otp : bool = config platform.otp.supported
+let plat_otp_base : physaddrbits = to_bits_checked(config platform.otp.base : int)
+let plat_otp_size : physaddrbits = to_bits_checked(config platform.otp.size : int)
+
+let plat_have_trng : bool = config platform.trng.supported
+let plat_trng_base : physaddrbits = to_bits_checked(config platform.trng.base : int)
+let plat_trng_size : physaddrbits = to_bits_checked(config platform.trng.size : int)
+
+let plat_have_monotonic : bool = config platform.monotonic_counters.supported
+let plat_monotonic_base : physaddrbits = to_bits_checked(config platform.monotonic_counters.base : int)
+let plat_monotonic_size : physaddrbits = to_bits_checked(config platform.monotonic_counters.size : int)
+
+let plat_have_watchdog : bool = config platform.watchdog.supported
+let plat_watchdog_base : physaddrbits = to_bits_checked(config platform.watchdog.base : int)
+let plat_watchdog_size : physaddrbits = to_bits_checked(config platform.watchdog.size : int)
+
 let plat_insns_per_tick : nat1 = config platform.instructions_per_tick
 
 // The spine frequency (R-15-195). Two things read it: the generated devicetree

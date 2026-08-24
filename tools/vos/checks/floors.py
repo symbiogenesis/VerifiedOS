@@ -165,6 +165,11 @@ def run(ctx: Context) -> None:
         "names the model's decode surface decodes to": sh.get("decoded_names", 0),
         "rows of the corpus assembler's encoder table": sh.get("encoder_rows", 0),
         "values the shipped configurations state": sh.get("shipped_config_values", 0),
+        # The ladder K-78 holds a vectorless composition below. It is the one vector
+        # rung reachable without a configuration key, so a registry this rule can no
+        # longer read would leave it reporting that every geometry is below no rungs
+        # at all.
+        "minimum-vector-length rungs the model declares": sh.get("zvl_rungs", 0),
         "per-class capacity figures the register owns": owned,
         "region classes the placement compound reads": sh.get("placement_terms", 0),
         "physical byte classes the composition is charged":

@@ -61,6 +61,7 @@ sys {
 
   files
     sys/sys_control.sail,
+    sys/rot.sail,
     sys/platform.sail,
     sys/mem_utils.sail,
     sys/split_access_utils.sail,
@@ -382,6 +383,7 @@ unit_tests {
     unit_tests/test_vector_cap.sail,
     unit_tests/test_keccak.sail,
     unit_tests/test_fec.sail,
+    unit_tests/test_rot.sail,
 }
 
 main {
