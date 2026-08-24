@@ -175,6 +175,13 @@ def run(ctx: Context) -> None:
         # deciding nothing while every mode still places.
         "discharge modes the coverage matrix declares": sh.get("cm_modes", 0),
         "coverage cells booking a residual": sh.get("cm_residual", 0),
+        # Two rather than one, because K-76 pairs a contract's enumeration against a
+        # record of bindings: a contract whose identifiers have been respelled leaves
+        # the rule holding an empty set against a full one and reporting that every
+        # absence of none is bound, and a record whose tables this rule can no longer
+        # find leaves it reporting the reverse.
+        "absences the contract enumerates": sh.get("absence_ids", 0),
+        "rows of the synthesis provenance record": sh.get("provenance_rows", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),
         "CSR rows the profile excludes": len(art.csr_rows.get("5.2", [])),
         "Prop fields of the apex record": len(sh["apex"].fields) if sh.get("apex") else 0,

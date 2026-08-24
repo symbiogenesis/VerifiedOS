@@ -95,8 +95,10 @@ Reciprocity under these licenses runs to derivative and combined works rather th
 | Tool | License | Standing |
 | --- | --- | --- |
 | The CHERI-QEMU fork, the fast emulator | `GPL-2.0`, with the particulars below | A development instrument, maintained in a separate repository. No conveyed image links against it or embeds it. |
-| Verilator | `LGPL-3.0 OR Artistic-2.0`, at the recipient's option | Observes a build. |
+| Verilator | `LGPL-3.0 OR Artistic-2.0`, at the recipient's option | Elaborates and simulates RTL, pinned at **5.032**. |
 | `ccache` | `GPL-3.0-or-later` | Accelerates a build. |
+
+**Verilator is pinned and its terms reach nothing it elaborates.** The pin is **5.032**, the version Ubuntu 26.04 packages, which is what keeps the RTL lane reproducible without a source build; a version other than the pin is a finding rather than a warning, as it is for the two type checkers and the prover. The bring-up SoC this lane's imported sources come from pins **5.040** through nix, and that difference is recorded rather than chased, nothing here running the reference's own flow. Reciprocity under the LGPL runs to derivative and combined works, and an elaborator's output is neither: a netlist Verilator reports on is the input's, not Verilator's, and no conveyed artifact links against it. The Artistic arm is available at the recipient's option in any case, and this repository conveys no Verilator and no binary built from one.
 
 **QEMU's own `LICENSE` is more particular than `GPL-2.0-only`, and the particulars leave the disposition where it was.** The emulator as a whole is released under GPL version 2. A source file carrying no licensing information of its own is version 2 or, at the recipient's option, any later version; contributions to `bsd-user/`, `linux-user/`, `hw/vfio/` and `hw/xen/xen_pt*` are taken under version 2 and no later version; and the Tiny Code Generator is mostly BSD or MIT with parts under other terms. So the fork is copyleft whichever arm a given file falls under, which is all the containment rule turns on, and the narrower version-2-only term bites only on a fork that keeps the user-mode trees, which a machine type modelling one bare-metal board has no use for.
 

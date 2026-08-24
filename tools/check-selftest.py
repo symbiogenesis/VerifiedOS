@@ -1111,6 +1111,15 @@ CASES: list[Case] = [
     ("K-75", "a checker settings file at an interpreter floor the other does not fix",
      _literal("tools/ruff.toml", 'target-version = "py314"',
               'target-version = "py313"')),
+
+    # The configuration is moved rather than the record, because that is the direction
+    # no reader of one file can see: the record goes on naming the parameter that takes
+    # the predictor and the build it names has stopped taking it, which is a claim that
+    # a structure is absent standing over an elaboration that instantiates it. Moving
+    # the record instead would be the easy half and would read as an ordinary edit.
+    ("K-76", "a synthesis parameter the provenance record binds set to another value",
+     _literal("rtl/vos_c_class_config_pkg.sv", "BHTEntries: unsigned'(0),",
+              "BHTEntries: unsigned'(1),")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
