@@ -59,6 +59,18 @@ These are gitlink entries. This repository carries a URL and a commit hash for e
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | `BSD-2-Clause` | The capability-semantics oracle. |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | A CompCert fork, and the one pin whose terms are not permissive. |
 | `upstream/llvm-project` | `llvm/llvm-project` | `ca7933e4`, tagged `llvmorg-22.1.8` | `Apache-2.0 WITH LLVM-exception` | The untrusted assembler and linker the compiler milestone re-homes to the frozen dialect: LLVM's MC layer and `lld`. |
+| `upstream/mocha` | `lowRISC/mocha` | `032d6dd1`, named by tag `v0.1.0` | `Apache-2.0` for lowRISC's own content; each vendored subtree carries its own terms, below | The bring-up SoC, and the integration the scalar-RTL milestone reads its device list and its tag-carrying fabric from. |
+| `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `36a1dc5c` | `SHL-0.51` at the root, with `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` on files that carry their own tag | The CHERI-CVA6 datapath itself: the C-class scalar front end the profile re-parameterizes to the 64+1-bit dialect. |
+| `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `173646d5` | `SHL-0.51` | The functional reference for the tag-carrying fabric: tags on the bus user bits, held in a memory block of their own. |
+| `upstream/opentitan` | `lowRISC/opentitan` | `bf4a2b24` | `Apache-2.0` | The RoT peripherals, at the revision the bring-up SoC vendors rather than at the upstream's own tip. |
+| `upstream/ibex` | `lowRISC/ibex` | `8b8ee086` | `Apache-2.0` | The RoT functional reference. |
+| `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `930feb29` | `Apache-2.0` | The CHERI-on-Ibex reference, whose separate RV32 capability encoding this profile declines while taking its conformance methodology. |
+
+**The RTL pins' terms were each read from the file at the pin, on 2026-08-23, and every one is permissive.** Three of them are hardware licenses, a family read in full under [the RTL substrate](#the-rtl-substrate) below. Two of the seven readings do not resolve at a single file, and both are recorded here rather than smoothed over.
+
+**Mocha declares its terms in a manifest rather than in a license file, and the manifest governs its own content only.** There is no `LICENSE` at the repository root. `REUSE.toml` at the pin annotates `path = ["*", "doc/**"]` as `Apache-2.0` for *lowRISC Contributors (COSMIC project)*, and `LICENSES/` carries the full text of that and of six further instruments the tree needs. The tree those six serve is `hw/vendor/`, whose own `REUSE.toml` annotates the vendored subtrees separately: the CHERI-CVA6 core as `SHL-0.51 OR Apache-2.0 OR BSD-3-Clause`, the tag controller and the PULP AXI, AXI-LLC, register-interface, debug and atomics blocks as `SHL-0.51`, the high-performance data cache as `Apache-2.0 WITH SHL-2.1`, and the Ethernet block as `MIT`. So *Mocha is Apache-2.0* is true of what lowRISC wrote and false of a third of what the repository ships, and a reading that stopped at the announcement would have carried the wrong instrument onto four of the blocks the scalar milestone actually wants.
+
+**The CHERI-CVA6 tree carries three instruments and no file falls outside them.** `LICENSE` at the root is Solderpad v0.51 and governs the files that carry no tag of their own, which is most of `core/`. Of the tagged files, thirty-five carry `Apache-2.0 WITH SHL-2.0` and twelve carry `Apache-2.0 WITH SHL-2.1`, both being Solderpad's later wraparound form, and two carry `SHL-0.51` explicitly. All three permit the licensee to elect Apache-2.0: v0.51 in its preamble, and v2.0 and v2.1 in their opening paragraph, which reads *"You may, at your option, choose to treat any Work released under this license as released under the Apache License."* The election is available at every file in the tree, so the whole datapath can be taken under the license this repository's own content already carries.
 
 **LLVM's terms were read from `LICENSE.TXT` at the pin.** They are permissive, with no copyleft term and no non-commercial restriction, and the exception waives the notice conditions of Apache §4(a), (b) and (d) for portions embedded in object form by compilation, which is the case a compiler's runtime pieces raise. The gitlink is deliberately unpopulated, that milestone not having started; `git submodule update --init upstream/llvm-project` fetches it when it does.
 
@@ -92,21 +104,18 @@ None of these is vendored, fetched, or pinned: this repository carries no URL, n
 
 ### The RTL substrate
 
-The scalar-RTL milestone would incorporate several cores and peripherals at once. None of their terms is a surprise, though two of them are hardware licenses rather than software ones, a family this repository has not previously had to read.
+The scalar half of that substrate is pinned rather than read ahead: [the submodule table](#pinned-as-submodules) carries the CHERI-CVA6 datapath, the tag controller, the bring-up SoC and the three RoT references, each with its terms taken from the file at its own pin. What is left here is the vector and matrix half, which no milestone before the datapath's touches.
 
 | Component | Upstream | License | Read from |
 | --- | --- | --- | --- |
-| CVA6, the C-class scalar front end | `openhwgroup/cva6` | `SHL-0.51`, Solderpad Hardware License v0.51 | `LICENSE` at the repository root |
 | Ara, the V-class vector unit | `pulp-platform/ara` | `SHL-0.51`, Solderpad Hardware License v0.51 | `LICENSE` at the repository root |
 | Gemmini, the M-class matrix unit | `ucb-bar/gemmini` | `BSD-3-Clause`, The Regents of the University of California | `LICENSE` at the repository root |
-| OpenTitan, the RoT peripherals | `lowRISC/opentitan` | `Apache-2.0` | `LICENSE` at the repository root |
-| Ibex, the RoT functional reference | `lowRISC/ibex` | `Apache-2.0` | `LICENSE` at the repository root |
-| CHERIoT-Ibex, the CHERI-on-Ibex reference | `microsoft/cheriot-ibex` | `Apache-2.0` | `LICENSE` at the repository root |
-| CHERI Mocha, the bring-up SoC | `lowRISC/mocha` | `Apache-2.0` | the repository's own statement |
+
+**A fork's terms are the fork's, which is why the base core is not a row.** The datapath the scalar milestone takes is `lowRISC/cva6-cheri`, not `openhwgroup/cva6`, and it does not carry one instrument: three appear at three different files in its own tree, and which governs a given file is a property of that file rather than of the project. Reading the base and attributing the result to the fork would be exactly the inference from lineage this plan refuses, so the fork is read at the fork and the base is left unread, having no route of its own.
 
 **Solderpad is Apache-2.0 wearing a hardware hat, and it says so in its own text rather than by resemblance.** Version 0.51 grants "a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable license under the Rights to reproduce, prepare Derivative Works of, publicly display, publicly perform, sublicense, and distribute the Work", and conditions redistribution on the Apache notice obligations and nothing beyond them: a copy of the license to recipients, prominent notices on modified files, retention of the attribution notices in source form, and the NOTICE file's contents where one exists. It then settles the question outright: "As this license is not currently OSI or FSF approved, the Licensor permits any Work licensed under this License, at the option of the Licensee, to be treated as licensed under the Apache License Version 2.0." The licensee may therefore elect the license this repository's own content is already offered under.
 
-No row above carries a reciprocal obligation, a field-of-use restriction, or a source-disclosure condition, and the CERN Open Hardware family, whose permissive, weakly-reciprocal and strongly-reciprocal variants differ materially in exactly those respects, appears nowhere on this plan.
+No RTL row on this page carries a reciprocal obligation, a field-of-use restriction, or a source-disclosure condition, whether it is read here or pinned above, and the CERN Open Hardware family, whose permissive, weakly-reciprocal and strongly-reciprocal variants differ materially in exactly those respects, appears nowhere on this plan.
 
 ### 3GPP TS 38.212 and TS 38.331
 
