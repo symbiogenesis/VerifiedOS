@@ -120,6 +120,21 @@
 //     class column: at VLEN=256 the 2048-bit element group is LMUL=8, and the
 //     figure in a VLEN=256 configuration is the C-class figure by construction
 //     rather than by extrapolation from the V class.
+//   - `Timing_FecLdpc` and `Timing_FecPolar` are the two channel decoders, and
+//     they are **two rows because R-15-119 names two code families** and a
+//     receiver runs two decoders, not because either is conditional. Each is one
+//     fixed latency at the maximum lifted block length its datapath is sized for
+//     and at the deterministic iteration bound R-15-119 requires, run to that
+//     bound and never stopped early, so the latency is independent of the
+//     descriptor's lengths, of the soft symbols themselves, and of whether the
+//     block was correctable at all (R-15-119c). A shorter block is padded to the
+//     sized maximum rather than priced at its own length, which is the same
+//     discipline R-15-218 applies to the fence and R-15-115b to a masked-off
+//     element's access: an operation whose cost tracked its operand would report
+//     the operand, and the operand here is attacker-authored wire. A single row
+//     multiplied by the block length would be a latency computed from a field of
+//     the descriptor, which is the one shape this table's signature exists to
+//     refuse (extensions/fec/fec_insts.sail).
 enum TimingClass = {
   Timing_Integer,
   Timing_Multiply,
@@ -146,6 +161,8 @@ enum TimingClass = {
   Timing_VectorMemIndexed,
   Timing_Keccak24,
   Timing_Keccak12,
+  Timing_FecLdpc,
+  Timing_FecPolar,
 }
 
 mapping timing_class_str : TimingClass <-> string = {
@@ -174,6 +191,8 @@ mapping timing_class_str : TimingClass <-> string = {
   Timing_VectorMemIndexed <-> "vector-mem-indexed",
   Timing_Keccak24         <-> "keccak-24",
   Timing_Keccak12         <-> "keccak-12",
+  Timing_FecLdpc          <-> "fec-ldpc",
+  Timing_FecPolar         <-> "fec-polar",
 }
 overload to_str = {timing_class_str}
 
@@ -215,6 +234,8 @@ struct TimingConstants = {
   vector_mem_indexed   : timing_cycles_t,
   keccak_24            : timing_cycles_t,
   keccak_12            : timing_cycles_t,
+  fec_ldpc             : timing_cycles_t,
+  fec_polar            : timing_cycles_t,
 }
 
 // The two per-class constants, and they are per class for a reason the scalar
@@ -280,6 +301,8 @@ function timing_cycles(t : TimingClass) -> timing_cycles_t = {
     Timing_VectorMemIndexed => k.vector_mem_indexed,
     Timing_Keccak24         => k.keccak_24,
     Timing_Keccak12         => k.keccak_12,
+    Timing_FecLdpc          => k.fec_ldpc,
+    Timing_FecPolar         => k.fec_polar,
   }
 }
 

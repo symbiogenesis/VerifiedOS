@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "trace_schema": 1,
   "members": [
     {
@@ -169,6 +169,13 @@
       "checks": 8,
       "records": 616,
       "digest": "eb25a51fc2e6fca4"
+    },
+    {
+      "name": "fec-surface",
+      "source": "fec-surface.s",
+      "checks": 9,
+      "records": 196,
+      "digest": "b048eb2c8a035985"
     }
   ]
 }
