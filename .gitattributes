@@ -1,2 +1,15 @@
 * text=auto eol=lf
 model/** -text -eol
+
+# rtl/ takes the default above rather than model/'s verbatim rule, and the difference
+# between the two trees is the whole ground. model/ is vendored byte-identically from
+# an upstream pin, so any tool that writes CRLF rewrites every line of the file it
+# touched and destroys the line counts a curation batch reports as its evidence; -text
+# freezes its bytes to protect that evidence. rtl/ holds only files this repository
+# authored. There is no upstream to stay identical to and no vendored diff to protect,
+# so the same rule would protect nothing while making a normal edit from either lane
+# read as a whole-file rewrite. What is stated rather than sniffed is that these
+# sources are text: text=auto decides that by inspecting content, and a waveform or a
+# generated netlist landing under rtl/ is a thing review should refuse rather than a
+# thing an attribute should quietly normalize.
+rtl/**/*.sv text eol=lf

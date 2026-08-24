@@ -79,6 +79,7 @@ MARKABLE: dict[str, tuple[str, str]] = {
     ".v": ("(* ", " *)"),
     ".mjs": ("// ", ""),
     ".s": ("# ", ""),
+    ".sv": ("// ", ""),
     ".toml": ("# ", ""),
     "Dockerfile": ("# ", ""),
 }
