@@ -5403,6 +5403,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the strongest microarchitectural claims about imported cores rest on the evidence tier, not the Coq close.
 · Trace: CJ-RTL-SAIL
 
+**R-17-039a** MUST: Every deletion that spends the arrow states what it becomes if the arrow lands late or partially, and the five that spend it are sorted by what the arrow supplies rather than by the document that rejects them. **PMP backstop** (R-15-076) and the **shadow stack**'s backward edge (R-15-044) hedge one failure on one block, so their position is R-01-002a's evidence rungs held at R-01-002b's per-core tier and nothing else, restoring confidence and never the disjoint failure domain forgone; the shadow stack's forward-edge half runs on the CHERI-TAL metatheorem's schedule rather than the arrow's and falls back on R-05-112's sentry discipline with R-05-114a's compose-time devirtualization. **IOMMU** (R-15-205): the redundancy argument is the single address space and survives any schedule, and the only part riding the arrow is the fabric's own capability check, which is a net-new authored block (R-15-092) and so closes on the ladder's closing rung ahead of the core it serves; the re-open is not merely costly but closed, a hardware walker failing R-15-010's part (5), which R-15-010a settles as R-11-006's commitment reaching that candidate rather than as a ground argued here. **MTE** (R-15-045): the exclusion rests on the evidentiary ground R-08-031a shares, which the arrow does not move, and the temporal half it would hedge rests on R-08-005's load filter over the linear and affine discipline rather than on the arrow, its own contingency being the deterministic full-width generation-tag plane [the alternatives](architectural-alternatives.md) hold as a design-space option, triggered by a costly sweep rather than by a late refinement. **Initialization plane** (R-15-035): eager zeroize (R-05-126) closes the disclosure consequence disjointly, degrading the uncaught case to a deterministic zero read. What the hardening program's opening owes is the instantiation of these positions against measured route coverage, not the positions themselves.
+· Accept: partial is the expected case rather than the pessimistic one, R-17-040's ladder being per-block by construction, so each position is read per core or per block and a global reading of any of them is a finding; no position claims to restore a disjoint failure domain unless it names a mechanism disjoint from CHERI, which among the five only the initialization plane's does and only for disclosure; and re-opening a rejection counts as a stated position only where the re-open does not itself add architectural state and a fresh RTL ⊑ Sail obligation to the layer whose lateness prompted it, which R-15-035 enumerates outright and R-15-075's absent region registers give back. A deletion that acquires a dependence on the arrow without a position here is a review-gate finding, as is a position asserted above the tier of the rung standing in for it (R-01-002b).
+· Trace: CJ-RTL-SAIL, CJ-CERISE
+
 **R-17-041** IS: The WCET seam carries three residuals: the timing-annotated Sail model's latency *magnitudes* become a crown-jewel spec; WCET inherits the RTL ⊑ Sail residual; and composability without an interference term rests on the isolation model, so WCET soundness and timing-channel deletion share one non-interference proof.
 · Accept: MBPTA/EVT stays rejected as the admitted bound and aiT stays the unverified cross-check.
 · Trace: CJ-WCET, CJ-RTL-SAIL
@@ -5824,7 +5828,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1345 requirements. §19 is non-normative and yields none. Counts include the 393 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1346 requirements. §19 is non-normative and yields none. Counts include the 394 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5844,7 +5848,7 @@ All eighteen normative sections are extracted, at 1345 requirements. §19 is non
 | **§14 Userland** | **extracted** | **29** |
 | **§15 Hardware Platform** | **extracted** | **389** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **123** |
+| **§17 Residual Risks** | **extracted** | **124** |
 | **§18 Realization** | **extracted** | **54** |
 
 §19 is non-normative and yields no requirements.
