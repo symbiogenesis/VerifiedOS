@@ -27,6 +27,15 @@ wholly inside the other file, which leaves a pointer that resolves as a link and
 nothing. That is the case this rule takes, so a name written as an *entry* is required
 to be carried by a heading over there while a name written as a *rationale* or an
 *argument* claims no heading and is not read here at all.
+
+The fourth form is a pointer written as a *path* rather than as a link, and the one
+place in the repository where that pointer carries a licence obligation:
+[THIRD-PARTY.md](../../../THIRD-PARTY.md)'s vendored and fetched tables discharge
+their notice obligations by naming the file each component's terms arrive in, and a
+cell naming `model/dependencies/elfio/LICENSE.txt` is text where a cell naming
+[model/LICENCE](model/LICENCE) is a link. The link half is K-12's. The other half
+reached no rule at all, so deleting a licence file left a page claiming to
+redistribute a component whose terms are nowhere in the tree, with every rule green.
 """
 
 import re
@@ -91,6 +100,88 @@ def _entry_refs(raw: str) -> Iterator[re.Match[str]]:
         if start >= last_end:
             last_end = found[start].end()
             yield found[start]
+
+
+# The two tables of THIRD-PARTY.md whose last column names where a component's terms
+# arrive. The other tables on that page are deliberately out of reach: the submodule
+# table names terms without naming a file this tree carries, and the read-ahead tables
+# name a file inside an upstream nothing here tracks, which is what "read ahead"
+# means.
+THIRD_PARTY = "THIRD-PARTY.md"
+LICENCE_TABLES = ("Vendored, and redistributed here", "Fetched at build time")
+LICENCE_COLUMN = "License text"
+
+_CELL_PATH_RE = re.compile(r"`([^`]+)`")
+_CELL_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s#]+)\)")
+_H2_RE = re.compile(r"## +(.*)")
+
+
+def _licence_texts(ctx: Context) -> tuple[list[tuple[int, str, bool]], list[str]]:
+    """Every path THIRD-PARTY.md names as a component's licence text, with its line.
+
+    Fail-closed in the reading, which matters more here than in most of this group:
+    the claim is about redistribution, so a table this rule cannot find has to be a
+    finding rather than a comparison made against an empty set. The page missing, a
+    named section missing, a section carrying no table, and a table whose last column
+    is no longer the licence text are four separate stops, each worded as itself.
+
+    The third member of each tuple says whether the cell wrote a link, because a link
+    at a file that is not there at all is K-12's finding and pricing one defect as two
+    is what this group already refuses at K-59.
+    """
+    doc = ctx.corpus.get(THIRD_PARTY)
+    if doc is None:
+        return [], [f"{THIRD_PARTY} is not in the repository, so no component's "
+                    "licence text can be located at all"]
+
+    found: list[tuple[int, str, bool]] = []
+    faults: list[str] = []
+    for wanted in LICENCE_TABLES:
+        rows = [(i, line) for i, line in _table_rows(doc, wanted)]
+        if not rows:
+            faults.append(f"{THIRD_PARTY} carries no table under '{wanted}', so the "
+                          "components it lists cannot be read")
+            continue
+        header = [c.strip() for c in rows[0][1].strip().strip("|").split("|")]
+        if not header or header[-1] != LICENCE_COLUMN:
+            faults.append(f"{THIRD_PARTY}:{rows[0][0] + 1} the '{wanted}' table's last "
+                          f"column is '{header[-1] if header else ''}' and not "
+                          f"'{LICENCE_COLUMN}', so this rule is reading the wrong cell")
+            continue
+        for i, line in rows[2:]:
+            cell = line.strip().strip("|").split("|")[-1].strip()
+            link = _CELL_LINK_RE.search(cell)
+            if link:
+                found.append((i + 1, resolve(THIRD_PARTY, link.group(1)), True))
+                continue
+            paths = _CELL_PATH_RE.findall(cell)
+            if not paths:
+                faults.append(f"{THIRD_PARTY}:{i + 1} names no licence text at all, so "
+                              "the row claims a component and locates its terms nowhere")
+                continue
+            found += [(i + 1, resolve(THIRD_PARTY, p), False) for p in paths]
+    return found, faults
+
+
+def _table_rows(doc: Document, heading: str) -> Iterator[tuple[int, str]]:
+    """The `|`-led lines of the first table under a `##` heading, header row first."""
+    inside = False
+    started = False
+    for i, line in enumerate(doc.lines):
+        if doc.fenced[i]:
+            continue
+        if m := _H2_RE.match(line):
+            if started:
+                return
+            inside = m.group(1).strip() == heading
+            continue
+        if not inside:
+            continue
+        if line.startswith("|"):
+            started = True
+            yield i, line
+        elif started:
+            return
 
 
 def resolve(base: str, target: str) -> str:
@@ -190,4 +281,26 @@ def run(ctx: Context) -> None:
     ctx.shared["entry_refs"] = attributed
     rep.report("K-59", "entry reference(s) their target document no longer carries:", stale,
                f"all {attributed} entries a document names in another are headings there")
+
+    # The membership is the index and not the filesystem, which is the whole of what
+    # separates this from K-12: a licence file present but untracked is one this
+    # repository does not redistribute, so the page's claim over it is false while the
+    # file sits right there. `tracked` is the index's own listing, so a licence text
+    # staged for deletion reports here before the deletion lands.
+    texts, faults = _licence_texts(ctx)
+    tracked = set(corpus.tracked)
+    findings = list(faults)
+    for line, path, was_link in texts:
+        if path in tracked:
+            continue
+        if was_link and not (ctx.root / path).exists():
+            continue                           # K-12's finding; not priced twice
+        findings.append(
+            f"{THIRD_PARTY}:{line} locates a component's licence text at {path}, which "
+            "the index does not carry, so the page claims to redistribute terms this "
+            "repository does not ship")
+    ctx.shared["licence_texts"] = len(texts)
+    rep.report("K-80", "licence text(s) the repository does not carry:", findings,
+               f"all {len(texts)} licence texts the third-party page locates are "
+               "tracked files")
     rep.line()

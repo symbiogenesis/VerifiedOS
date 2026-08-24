@@ -26,14 +26,12 @@ Each component keeps its own license file in place, unmodified, beside the code 
 | The transplanted capability semantics | n/a | `CTSRD-CHERI/sail-cheri-riscv` | `BSD-2-Clause` | [model/LICENCE.cheri](model/LICENCE.cheri) |
 | ELFIO | 3.12 | Serge Lamikhov-Center | `MIT` | `model/dependencies/elfio/LICENSE.txt` |
 | Berkeley SoftFloat | 3e | The Regents of the University of California, John R. Hauser | `BSD-3-Clause` | `model/dependencies/softfloat/berkeley-softfloat-3/COPYING.txt` |
-| RISC-V encoding header | n/a | RISC-V International | `BSD-3-Clause` | In-file tag, `model/test/first_party/src/common/encoding.h` |
-| nanoprintf | 0.8.0 | Charles Nicholson | `0BSD OR Unlicense`, at the recipient's option | In-file, at the foot of `model/test/first_party/src/common/nanoprintf.h` |
 
-Every license in that table is permissive and non-reciprocal. Each conditions redistribution on nothing more than retention of a copyright notice and a warranty disclaimer, and `0BSD` and the Unlicense impose not even that. None carries a reciprocal obligation, a field-of-use restriction, or a source-disclosure condition, which is why the licenses in [COPYRIGHT.md](COPYRIGHT.md) are available to choose at all.
+Every license in that table is permissive and non-reciprocal. Each conditions redistribution on nothing more than retention of a copyright notice and a warranty disclaimer. None carries a reciprocal obligation, a field-of-use restriction, or a source-disclosure condition, which is why the licenses in [COPYRIGHT.md](COPYRIGHT.md) are available to choose at all.
 
 **The curated model is a modified derivative rather than a copy.** Batches under the plan's hardware-reference milestone delete most of the upstream surface and transplant the capability layer into what remains. The upstream notice governs the result whole, and [COPYRIGHT.md](COPYRIGHT.md) records that modifications made here are offered back on the same terms.
 
-**The encoding header and nanoprintf sit outside the upstream carve-out.** [model/LICENCE](model/LICENCE) places every file under BSD-2-Clause *except* the third-party dependencies in the `dependencies` directory, and these two are third-party code that does not live there: they are vendored into the first-party test harness and carry their own headers. The headers govern. Nothing here depends on resolving the tension, because every candidate reading is permissive and non-reciprocal.
+**No row above falls outside [model/LICENCE](model/LICENCE)'s own scheme.** It places every file under BSD-2-Clause *except* the third-party dependencies in the `dependencies` directory, the first two rows are the curated tree that licence governs directly, and the other two are third-party code living exactly in the directory it carves out, each beside the licence file naming its terms. Nothing here states its terms in a source-file header instead of a licence file, which is why the License-text column locates a tracked path in every row and why K-80 can hold it.
 
 ## Fetched at build time
 
