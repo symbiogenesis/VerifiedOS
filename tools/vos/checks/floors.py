@@ -182,6 +182,28 @@ def run(ctx: Context) -> None:
         # find leaves it reporting the reverse.
         "absences the contract enumerates": sh.get("absence_ids", 0),
         "rows of the synthesis provenance record": sh.get("provenance_rows", 0),
+        # Nine rather than one, because K-77 pairs nine of the freeze contract's
+        # enumerations against the instrument that implements them and each is a
+        # separate table with a separate row shape. The instrument's side is a Python
+        # literal and cannot narrow in silence; the contract's is a pattern over a
+        # document, so it is the side a renumbering or a reworded header empties, and
+        # K-77's own fail-closed reading and this floor catch that from both ends.
+        "freeze corpus members": sh.get("freeze corpus members", 0),
+        "freeze recipe steps": sh.get("freeze recipe steps", 0),
+        "freeze operand classes": sh.get("freeze operand classes", 0),
+        "freeze region classes": sh.get("freeze region classes", 0),
+        "freeze region-class refusal reasons":
+            sh.get("freeze region-class refusal reasons", 0),
+        "freeze decisions": sh.get("freeze decisions", 0),
+        "freeze report blocks": sh.get("freeze report blocks", 0),
+        "freeze declared parameters": sh.get("freeze declared parameters", 0),
+        "freeze CI predicates": sh.get("freeze CI predicates", 0),
+        # And two more for the two pairs K-77 holds that are relations rather than
+        # memberships. These are the floors under the *rule* rather than under the
+        # document: a relation dropped out of the comparison narrows K-77 to its nine
+        # memberships with every gate still green, which no membership floor can see.
+        "freeze corpus feeds edges": sh.get("freeze corpus feeds edges", 0),
+        "freeze threshold bindings in §6": sh.get("freeze threshold bindings in §6", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),
         "CSR rows the profile excludes": len(art.csr_rows.get("5.2", [])),
         "Prop fields of the apex record": len(sh["apex"].fields) if sh.get("apex") else 0,
