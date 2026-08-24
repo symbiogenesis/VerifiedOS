@@ -549,6 +549,7 @@ ABSENCE = "docs/absence-contract.md"
 CORPUS_DOC = "docs/differential-corpus.md"
 CONTRACT = "docs/freeze-measurement-contract.md"
 GEOMETRY = "docs/block-geometry-constraint.md"
+THIRD_PARTY = "THIRD-PARTY.md"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1120,6 +1121,16 @@ CASES: list[Case] = [
     ("K-76", "a synthesis parameter the provenance record binds set to another value",
      _literal("rtl/vos_c_class_config_pkg.sv", "BHTEntries: unsigned'(0),",
               "BHTEntries: unsigned'(1),")),
+
+    # A one-letter respelling of a licence file's name, inside the backticks that make
+    # the cell a path rather than a link. That is the whole point of the case: the row
+    # still renders, the table is still the width its header declares, no id and no
+    # count moves, and K-12 cannot see it because there is no link here to follow. The
+    # component goes on being listed as redistributed here while the terms it is
+    # redistributed under are named at a file the index does not carry.
+    ("K-80", "a component's licence text named at a path the repository does not carry",
+     _literal(THIRD_PARTY, "`model/dependencies/elfio/LICENSE.txt`",
+              "`model/dependencies/elfio/LICENCE.txt`")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

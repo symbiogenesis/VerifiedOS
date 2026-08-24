@@ -389,7 +389,6 @@ sail-riscv
 - sail_runtime            // build files for sail runtime
 - doc                     // documentation, including a reading guide
 - test                    // CMake test setup and URL references for RISC-V test suites
-  - first_party           // custom C and assembly tests for the model
 - os-boot                 // information and sample files for booting OS images
 ```
 
