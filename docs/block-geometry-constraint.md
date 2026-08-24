@@ -14,7 +14,7 @@ This is not a second freeze-measurement instrument. [The freeze-measurement cont
 
 ## 1. Where the parameter lives
 
-**Four artifacts write the number, one declares the key it arrives on, and this document states the set it must lie in.** The model's declaration and the composition's are two independent statements of one fact, asserted equal at each of the four instructions rather than merged, and the assertion is what keeps them from drifting once something executes. The harness and the generated configurations are transcriptions with no assertion behind them at all, which is what the rule below is for.
+**Five artifacts write the number, one declares the key it arrives on, and this document states the set it must lie in.** The model's declaration and the composition's are two independent statements of one fact, asserted equal at each of the four instructions rather than merged, and the assertion is what keeps them from drifting once something executes. The harness, the generated configurations and the authored capability package are transcriptions with no assertion behind them at all, which is what the rule below is for.
 
 | Site | What it writes | Role |
 | --- | --- | --- |
@@ -22,6 +22,7 @@ This is not a second freeze-measurement instrument. [The freeze-measurement cont
 | [`config/verifiedos.json`](../model/config/verifiedos.json) | `platform.cache_block_size_exp` | the frozen profile's own composition |
 | [`config/config.json.in`](../model/config/config.json.in) | the same key | the generated test-matrix configurations |
 | [`unit_tests/test_cheri_insts.sail`](../model/model/unit_tests/test_cheri_insts.sail) | `caps_per_block` as a literal | the harness's transcription of the group width |
+| [`vos_cheri_pkg.sv`](../rtl/vos_cheri_pkg.sv) | `Log2CapBlockSize` | the authored RTL's transcription, and the one site outside the model |
 | [`core/platform_config.sail`](../model/model/core/platform_config.sail) | the key itself, at `range(0, 12)` | the bound a composition is read under, not a value |
 | this document | the candidate set the number must lie in | the constraint statement |
 

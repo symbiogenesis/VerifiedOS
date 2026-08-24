@@ -9,27 +9,48 @@
 // [docs/rtl-reparameterization-delta.md]. Where this file and the Sail model
 // disagree the model wins and this file is defective.
 //
-// **What has been checked and what has not.** This package lints and elaborates
-// under Verilator. Nothing here is verified: no equivalence against the model is
-// claimed, and the instrument that would decide one is the capability-widened
-// commit trace of the co-simulation gate, which is R2's and not this file's. A
-// reader should treat every function below as a transcription owed a check.
+// **What has been checked and what has not.** The widths and the packed field
+// positions below are held against the model on the host by rule K-79, which
+// reads them out of `cap_format.sail` and `cap_common.sail` and holds every
+// restatement of them against that. The *functions* are held by
+// `tools/rtl.py crosscheck`, which compiles the model with a generator that calls
+// the same functions, prints what they return, and requires this package to
+// reproduce every line; the package lints clean and is executed there behind a
+// testbench, and nothing in a design instantiates it yet.
 //
-// **What is carried and what is owed.** The packed form, the permission lattice,
-// the object-type space, the encode and decode of a capability including the
-// exponent's normalized case and the top mantissa's derived high bits, the null
-// transform across the memory interface, and the bounds decode are here. The
-// bounds *construction* (`setCapBounds`), the fast representability check, and
-// the address and offset setters that rest on it are owed and are named in
-// [rtl/README.md].
+// What a cross-check decides is agreement over the vectors it ran, which is a
+// measurement and not a proof, and it is not the co-simulation gate either: the
+// capability-widened commit trace of a running core is R2's instrument and this
+// is a function-level cross-check ahead of it. Nothing below is verified.
+//
+// **What is carried.** The packed form, the permission lattice, the object-type
+// space, the encode and decode of a capability including the exponent's
+// normalized case and the top mantissa's derived high bits, the null transform
+// across the memory interface, the bounds decode, the bounds construction
+// `csetbounds` performs, the representable-limit comparison and the fast
+// representability check, the address and offset setters that rest on it, the
+// length, and the malformed predicate.
+//
+// **What is not.** No instruction, no datapath and no register file: this is the
+// format and its algebra, and the unit that decodes an opcode into a call on it
+// is R1's remaining curation. `CRAM`, `CRRL` and `CSetBoundsExact` are excluded
+// at the architecture rather than owed here (R-15-007k, R-08-011), so no
+// representable-alignment mask is computed and none is returned.
 
 package vos_cheri_pkg;
 
   // ---------------------------------------------------------------------------
-  // 1. Field widths. These are cap_format.sail's, and they spend 64 bits exactly:
-  //    no reserved field, no software-defined permission field, no capability-mode
-  //    flag, and no revocation colour appears, each needing a bit the table has
-  //    already spent.
+  // 1. Field widths. Each is the model's and not this file's: the packed fields'
+  //    widths are cap_format.sail's, the permission bitmap's and the reserved
+  //    object-type count are cap_common.sail's, and the register width is
+  //    core/xlen.sail's. Rule K-79 reads them out of those three and holds every
+  //    site below against them.
+  //
+  //    The six packed fields spend 64 bits exactly, which is why no reserved
+  //    field, no software-defined permission field, no capability-mode flag and no
+  //    revocation colour appears: each would need a bit the table has already
+  //    spent. That sum is arithmetic rather than a claim, and K-79 recomputes it
+  //    at this packing and at the model's.
   // ---------------------------------------------------------------------------
 
   // The capability, excluding its validity tag. Also the tag plane's granule:
@@ -44,7 +65,7 @@ package vos_cheri_pkg;
   localparam int unsigned CapsPerBlock = 2 ** (Log2CapBlockSize - Log2CapSize);
 
   // Five bits naming one of 32 enumerated permission sets, not one bit per
-  // permission. The expansion is in section 3.
+  // permission. The expansion is in section 4.
   localparam int unsigned CapPermsCodeWidth = 5;
   localparam int unsigned CapPermsWidth = 12;
 
@@ -307,6 +328,13 @@ package vos_cheri_pkg;
     return get_cap_perms(c)[PermAsr];
   endfunction
 
+  // Narrows to the largest admitted set contained in `want`. **The caller
+  // intersects first**, and that is a precondition rather than a nicety: what
+  // makes `candperm` unable to widen is `want` already being the capability's own
+  // set masked, so a caller handing this an unrelated mask gets the largest
+  // admitted set inside that mask and not a subset of what the input held. The
+  // model states the same obligation at `setCapPerms` and has a caller that meets
+  // it; here there is no caller yet, so this is the only place it can be written.
   function automatic capability_t set_cap_perms(capability_t cap, cap_perms_t want);
     capability_t ret = cap;
     ret.perms = perms_narrow(want);
@@ -323,8 +351,16 @@ package vos_cheri_pkg;
   // beside it, so the flag rides the field itself, IEEE-754 fashion: a zero
   // exponent field is the denormal case (effective exponent zero, length mantissa
   // below its own half), and a field of k+1 is the normalized case at effective
-  // exponent k. The effective exponent runs to CapMaxE, so k+1 runs to 31 and the
-  // five bits are spent exactly.
+  // exponent k.
+  //
+  // The model's own account of that adds "the effective exponent runs to
+  // cap_max_E, so k+1 runs to 31 and the five bits are spent exactly", and that
+  // sentence is true of a requested top at or below 2^CapAddrWidth and not above
+  // it: `set_cap_bounds` reaches an internal exponent of 31 there, which
+  // `capability_to_enc` below writes as 31 + 1 in five bits, so the field reads
+  // back as the denormal case and section 8's clamp catches it. It is not
+  // restated as this file's claim for that reason. Which requested tops the
+  // sentence covers is part of what R-15-007a owes and is not decided here.
   // ---------------------------------------------------------------------------
 
   function automatic enc_capability_t cap_bits_to_enc(cap_bits_t c);
@@ -449,10 +485,12 @@ package vos_cheri_pkg;
   // out and the resulting NULL is not the one the zeroize discipline reads back.
   // ---------------------------------------------------------------------------
 
-  localparam cap_bits_t NullCapBits = {
-      PermsNone, OTypeUnsealed, 5'd31, {CapMantissaWidth{1'b0}},
-      {CapStoredTWidth{1'b0}}, {CapAddrWidth{1'b0}}
-  };
+  // Derived from the null capability rather than written out beside it, which is
+  // what `cap_common.sail`'s `let null_cap_bits : CapBits = capToBits(null_cap)`
+  // does: the exponent field this packs is the reset exponent plus one, so a
+  // spelled-out literal would be a second statement of the reset bounds that an
+  // edit to `CapResetE` could not reach.
+  localparam cap_bits_t NullCapBits = capability_to_bits(NullCap);
 
   function automatic cap_bits_t capability_to_mem_bits(capability_t cap);
     return capability_to_bits(cap) ^ NullCapBits;
@@ -484,6 +522,13 @@ package vos_cheri_pkg;
   // wide, which is the model's formulation; the imported datapath states the same
   // quantity over the whole mantissa, and the correspondence between the two is
   // part of what the representation-correctness proof owes.
+  //
+  // **`get_cap_bounds` is the model's `getCapBoundsBits` and not its
+  // `getCapBounds`**, which is the one place a name in this file does not
+  // transliterate its Sail counterpart. Sail has an unbounded integer type and
+  // states the pair twice, once over bits and once over integers; SystemVerilog
+  // has only the first, so there is one function here and it is the bits-valued
+  // one. The same holds for `get_cap_top_bits` and `get_cap_offset_bits`.
   // ---------------------------------------------------------------------------
 
   // Wide enough to hold `(a_top + correction) << (CapMantissaWidth + E)` before
@@ -589,6 +634,349 @@ package vos_cheri_pkg;
     capability_t ret = cap;
     ret.tag = cap.tag & ~cond;
     return ret;
+  endfunction
+
+  function automatic capability_t clear_tag(capability_t cap);
+    capability_t ret = cap;
+    ret.tag = 1'b0;
+    return ret;
+  endfunction
+
+  function automatic capability_t clear_tag_if_sealed(capability_t cap);
+    return clear_tag_if(cap, is_cap_sealed(cap));
+  endfunction
+
+  // ---------------------------------------------------------------------------
+  // 9. The quantities read off the decoded bounds.
+  //
+  // Each is one line over section 8's decode and each is stated here rather than
+  // open-coded at a caller, because the model states them and the caller that
+  // recomputes one is the caller that will recompute it differently. The offset
+  // is a modular quantity in the address space's own width, so it wraps at 2^36
+  // and not at 2^64 (`cap_common.sail`, `getCapOffsetBits`).
+  // ---------------------------------------------------------------------------
+
+  // The address as an *effective* address, which is XLEN wide where the field is
+  // 36 (R-15-002a): the widening is a reading of the field and never a path to an
+  // access above 2^36, the bounds check in section 8 being stated over the wide
+  // value.
+  function automatic logic [Xlen-1:0] cap_addr_bits(capability_t c);
+    return {{(Xlen - CapAddrWidth){1'b0}}, c.address};
+  endfunction
+
+  function automatic cap_addr_t get_cap_base(capability_t c);
+    cap_bounds_t bounds = get_cap_bounds(c);
+    return bounds.base;
+  endfunction
+
+  function automatic logic [Xlen-1:0] get_cap_base_bits(capability_t c);
+    cap_bounds_t bounds = get_cap_bounds(c);
+    return {{(Xlen - CapAddrWidth){1'b0}}, bounds.base};
+  endfunction
+
+  function automatic cap_len_t get_cap_top_bits(capability_t c);
+    cap_bounds_t bounds = get_cap_bounds(c);
+    return bounds.top;
+  endfunction
+
+  function automatic logic [Xlen-1:0] get_cap_offset_bits(capability_t c);
+    cap_bounds_t bounds = get_cap_bounds(c);
+    return {{(Xlen - CapAddrWidth){1'b0}}, (c.address - bounds.base)};
+  endfunction
+
+  function automatic cap_addr_t get_cap_cursor(capability_t c);
+    return c.address;
+  endfunction
+
+  // The length, as the model states it: a **wrapping** quantity and not the
+  // saturating one the imported datapath computes, whose own comment there calls
+  // that saturation short of being correct (docs/rtl-reparameterization-delta.md
+  // §2.1, line 493). For a tagged capability top is at or above base and this is
+  // the plain difference; the representation admits top below base for some
+  // untagged ones, and there the difference wraps at 2^cap_len_width, which is
+  // what the 37-bit subtraction below does.
+  function automatic cap_len_t get_cap_length(capability_t c);
+    cap_bounds_t bounds = get_cap_bounds(c);
+    return bounds.top - {1'b0, bounds.base};
+  endfunction
+
+  // The malformed predicate, and the whole of it: an encoding is malformed when
+  // its own decode puts the top below the base. The imported datapath states this
+  // as a case analysis on `exp == 0` and `exp == 1` over the ISAv8/v9 widths,
+  // which has no reading at 8 and 6 bits; the frozen definition has no explicit
+  // predicate at all and states the same fact as an assertion inside
+  // `getCapLength` (`cap_common.sail`, `assert(not(c.tag) | top >= base)`), so
+  // this is that assertion made computable rather than a behaviour invented here.
+  //
+  // Which encodings satisfy it is a property of the algorithm at these widths and
+  // is R-15-007a's to characterize; `tools/rtl.py crosscheck` decides the two
+  // implementations agree on it over the whole 19-bit bounds encoding, which is a
+  // measurement and not that characterization.
+  function automatic logic cap_bounds_malformed(capability_t c);
+    cap_bounds_t bounds = get_cap_bounds(c);
+    return bounds.top < {1'b0, bounds.base};
+  endfunction
+
+  function automatic logic cap_bounds_equal(capability_t c1, capability_t c2);
+    cap_bounds_t a = get_cap_bounds(c1);
+    cap_bounds_t b = get_cap_bounds(c2);
+    return (a.base == b.base) && (a.top == b.top);
+  endfunction
+
+  // ---------------------------------------------------------------------------
+  // 10. The bounds construction.
+  //
+  // `setCapBounds` of `cap_common.sail`, which is the CHERI Concentrate paper's
+  // ideal narrowing at the frozen widths. It is authored against that statement
+  // rather than re-parameterized from the imported `set_cap_reg_bounds`, for the
+  // reason [docs/rtl-reparameterization-delta.md] §2.1 gives at that row: the
+  // frozen format has no internal-exponent flag and steals no mantissa bits, so
+  // the imported function's `int_exp`, `lmask_lo`, `lmask_lo_ovflw`,
+  // `len_carry_in`, `len_max` and `len_max_less_1` family has nothing to compute
+  // and its shape is not this one's.
+  //
+  // Three orderings inside it read like defects and are the definition's, so they
+  // are reproduced and not repaired (the delta document's precedence note: where
+  // this file and the model disagree the model wins).
+  //
+  //   * `norm` is decided from the exponent chosen *before* any increment and is
+  //     never recomputed, so an incremented exponent can sit beside a denormal
+  //     case flag.
+  //   * Inside the increment branch the base's lost-significance flag reads bit 0
+  //     of the mantissa as it stood *before* the recompute, the top's reads bit 0
+  //     of the mantissa as it stands *after* the +1 above, and the recomputed top
+  //     mantissa's own +1 reads the flag that line has just updated. Reorder any
+  //     two and the exactness verdict is wrong on a subset of inputs that still
+  //     elaborates and still decodes.
+  //   * The exponent the increment produces can be CapMaxE + 1, which this
+  //     function returns as it stands and which section 5's encode then writes as
+  //     32 truncated into five bits, so the field reads back as the denormal case
+  //     and section 8's clamp catches it on the way back. The truncation is the
+  //     encoder's and not this function's, which matters to a reader looking for
+  //     where the value goes. Whether the case is reachable at all is a question
+  //     about the requested top's domain and is part of what R-15-007a owes;
+  //     nothing here decides it.
+  //
+  // The result carries the exactness verdict beside the capability because the
+  // caller needs both: `csetbounds` narrows whether or not the narrowing was
+  // exact, the region only ever growing, and `CSetBoundsExact` is excluded at the
+  // architecture (R-15-007k, R-08-011) so no third answer is returned.
+  // ---------------------------------------------------------------------------
+
+  // A derivation's two answers: whether it was exact or representable, and the
+  // capability it produced. Four functions return this shape and the model
+  // returns a pair at each of them.
+  typedef struct packed {
+    logic        ok;
+    capability_t cap;
+  } cap_result_t;
+
+  // The leading-zero count the exponent choice is made from, over the slice
+  // `length[cap_addr_width .. cap_mantissa_width - 1]`. That slice is CapMaxE
+  // bits wide at these parameters, which is why the count and the exponent share
+  // a range: an all-zero length answers CapMaxE and gives exponent zero.
+  function automatic int unsigned count_leading_zeros_len(logic [CapMaxE-1:0] v);
+    int unsigned n;
+    n = CapMaxE;
+    // Ascending, so the last index at which a bit is set is the most significant
+    // one and its answer is the one left standing.
+    for (int unsigned i = 0; i < CapMaxE; i++) begin
+      if (v[i]) begin
+        n = (CapMaxE - 1) - i;
+      end
+    end
+    return n;
+  endfunction
+
+  function automatic cap_result_t set_cap_bounds(capability_t cap, cap_addr_t base,
+                                                 cap_len_t top);
+    cap_result_t ret;
+    cap_len_t    ext_base;
+    cap_len_t    length;
+    cap_len_t    mask_lo;
+    int unsigned e;
+    logic        norm;
+    cap_mant_t   b_bits;
+    cap_mant_t   t_bits;
+    cap_mant_t   len_mant;
+    logic        lost_base;
+    logic        lost_top;
+    logic        inc_e;
+
+    ext_base = {1'b0, base};
+    length   = top - ext_base;
+
+    // The exponent that puts the length's most significant bit second from the
+    // top of the mantissa, which is what decoding assumes.
+    e = CapMaxE - count_leading_zeros_len(length[CapLenWidth-1:CapMantissaWidth-1]);
+
+    // The denormal case is an exponent of zero whose length does not reach the
+    // mantissa's half, which is the one case decoding cannot infer 0b01 for.
+    norm = (e != 0) || (length[CapMantissaWidth-2] == 1'b1);
+
+    b_bits  = cap_mant_t'(base >> e);
+    t_bits  = cap_mant_t'(top >> e);
+
+    // The bits the shift drops, against which significance is decided.
+    mask_lo   = ~({CapLenWidth{1'b1}} << e);
+    lost_base = |(ext_base & mask_lo);
+    lost_top  = |(top & mask_lo);
+    inc_e     = 1'b0;
+
+    // The top mantissa must be incremented to stay above the requested top with
+    // the lost bits. It may wrap, and decoding compensates where that makes the
+    // base mantissa exceed it.
+    if (lost_top) begin
+      t_bits = t_bits + 8'd1;
+    end
+
+    // Has the length overflowed? The exponent was chosen so that the length
+    // mantissa's top two bits would be 0b01, and incrementing the top can grow it
+    // past that.
+    len_mant = t_bits - b_bits;
+    if (len_mant[CapMantissaWidth-1] == 1'b1) begin
+      inc_e     = 1'b1;
+      lost_base = lost_base | b_bits[0];
+      lost_top  = lost_top | t_bits[0];
+      b_bits    = cap_mant_t'(base >> (e + 1));
+      t_bits    = cap_mant_t'(top >> (e + 1)) + (lost_top ? 8'd1 : 8'd0);
+    end
+
+    ret.cap            = cap;
+    ret.cap.address    = base;
+    ret.cap.e          = cap_e_t'(inc_e ? (e + 1) : e);
+    ret.cap.b          = b_bits;
+    ret.cap.t          = t_bits;
+    ret.cap.normalized = norm;
+    ret.ok             = ~(lost_base | lost_top);
+    return ret;
+  endfunction
+
+  // ---------------------------------------------------------------------------
+  // 11. Representability, and the setters that rest on it.
+  //
+  // A derivation that moves the address outside the region the encoding can
+  // represent yields an **untagged result and not a trap** (R-15-007h): the
+  // failure is a data value that faults at its next dereference, so the check
+  // below decides a tag and never an exception.
+  //
+  // Two checks, and they are not interchangeable. `setCapAddr` decides
+  // representability by decoding the bounds on both sides and requiring them
+  // equal, which is exact and costs two decodes. `fastRepCheck` decides the same
+  // question about an *increment* from the representable limit alone, which is
+  // the comparison the datapath can afford, and the offset setters take it. The
+  // imported datapath's `is_offset_in_range` is not the counterpart of either: it
+  // assigns its result and then overwrites it with zero unconditionally, which is
+  // why the delta document books that row as a deletion rather than a rewrite.
+  // ---------------------------------------------------------------------------
+
+  // The fast representability check of `cap_common.sail`. `i` is the increment,
+  // read as a signed quantity in the address field's own width.
+  //
+  // It reads the exponent raw, without the `min(cap_max_E, ...)` clamp the decode
+  // in section 8 applies, and answers true outright at and above `cap_max_E - 2`
+  // because there the representable region is the whole address space.
+  function automatic logic fast_rep_check(capability_t c, cap_addr_t i);
+    logic        ret;
+    int unsigned e;
+    cap_addr_t   i_top;
+    cap_mant_t   i_mid;
+    cap_mant_t   a_mid;
+    logic [2:0]  b3;
+    logic [2:0]  r3;
+    cap_mant_t   r_full;
+    cap_mant_t   diff;
+    cap_mant_t   diff1;
+
+    e = 32'(c.e);
+    if (e >= (CapMaxE - 2)) begin
+      ret = 1'b1;
+    end else begin
+      // The increment's own top decides both whether it is inside the
+      // representable region, which is 2^(E+MW) wide, and its sign, so the only
+      // cases of interest are an i_top of 0 and of -1.
+      i_top  = cap_addr_t'($signed(i) >>> (e + CapMantissaWidth));
+      i_mid  = cap_mant_t'(i >> e);
+      a_mid  = cap_mant_t'(c.address >> e);
+      b3     = c.b[CapMantissaWidth-1:CapMantissaWidth-3];
+      r3     = b3 - 3'b001;
+      r_full = {r3, {(CapMantissaWidth - 3){1'b0}}};
+      diff   = r_full - a_mid;
+      diff1  = diff - 8'd1;
+      if (i_top == '0) begin
+        ret = i_mid < diff1;
+      end else if (&i_top) begin
+        ret = (i_mid >= diff) && (r_full != a_mid);
+      end else begin
+        ret = 1'b0;
+      end
+    end
+    return ret;
+  endfunction
+
+  function automatic cap_result_t set_cap_addr(capability_t c, logic [Xlen-1:0] addr);
+    cap_result_t ret;
+    ret.cap         = c;
+    ret.cap.address = addr[CapAddrWidth-1:0];
+    ret.ok          = addr_in_range(addr) & cap_bounds_equal(c, ret.cap);
+    return ret;
+  endfunction
+
+  // The tag is cleared where the move is unrepresentable **or** the input was
+  // sealed, a sealed capability's address being immovable.
+  function automatic capability_t set_cap_addr_checked(capability_t c,
+                                                       logic [Xlen-1:0] addr);
+    cap_result_t moved = set_cap_addr(c, addr);
+    return clear_tag_if(moved.cap, ~moved.ok | is_cap_sealed(c));
+  endfunction
+
+  // The offset is measured from the decoded base, and the range test is on the
+  // *offset* rather than on the address it produces, which is the model's own
+  // asymmetry and not a slip: an offset above 2^36 is refused before the wrapped
+  // address it would give is ever examined.
+  function automatic cap_result_t set_cap_offset(capability_t c,
+                                                 logic [Xlen-1:0] offset);
+    cap_result_t ret;
+    cap_bounds_t bounds;
+    cap_addr_t   new_address;
+    bounds          = get_cap_bounds(c);
+    new_address     = bounds.base + offset[CapAddrWidth-1:0];
+    ret.cap         = c;
+    ret.cap.address = new_address;
+    ret.ok          = addr_in_range(offset)
+                      & fast_rep_check(c, new_address - c.address);
+    return ret;
+  endfunction
+
+  function automatic capability_t set_cap_offset_checked(capability_t c,
+                                                         logic [Xlen-1:0] offset);
+    cap_result_t moved = set_cap_offset(c, offset);
+    return clear_tag_if(moved.cap, ~moved.ok | is_cap_sealed(c));
+  endfunction
+
+  // The increment form, which carries no range test at all: the delta is taken
+  // modulo the address field's width and the representability check is the whole
+  // of the answer.
+  function automatic cap_result_t inc_cap_offset(capability_t c,
+                                                 logic [Xlen-1:0] delta);
+    cap_result_t ret;
+    cap_addr_t   d;
+    d               = delta[CapAddrWidth-1:0];
+    ret.cap         = c;
+    ret.cap.address = c.address + d;
+    ret.ok          = fast_rep_check(c, d);
+    return ret;
+  endfunction
+
+  // With PCC relocation folded out, the integer program counter of a capability
+  // is its address field widened to an effective address (R-15-001c).
+  function automatic logic [Xlen-1:0] cap_to_integer_pc(capability_t cap);
+    return cap_addr_bits(cap);
+  endfunction
+
+  function automatic capability_t update_cap_with_integer_pc(capability_t cap,
+                                                             logic [Xlen-1:0] pc);
+    return set_cap_addr_checked(cap, pc);
   endfunction
 
 endpackage

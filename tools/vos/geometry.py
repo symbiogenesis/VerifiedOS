@@ -2,16 +2,18 @@
 """The welded block size, read out of every artifact that writes it.
 
 This parse reaches past the documents into the curated model, as `banks.py`,
-`coreclass.py` and `decode.py` do, and each such reach is declared rather than
-habitual: the exception is the point and not an oversight. The block size is written
-at four sites, twice in Sail and twice in the model's configuration dialect, and every
-one of them is outside the checker's ordinary corpus, so without this the number the
-document beside them constrains is a copy nothing holds and the defect the tool exists
-to catch would be sitting in the tool's own view of the parameter.
+`capformat.py`, `coreclass.py` and `decode.py` do, and each such reach is declared
+rather than habitual: the exception is the point and not an oversight. The block size
+is written at five sites, twice in Sail, twice in the model's configuration dialect and
+once in the authored SystemVerilog, and every one of them is outside the checker's
+ordinary corpus, so without this the number the document beside them constrains is a
+copy nothing holds and the defect the tool exists to catch would be sitting in the
+tool's own view of the parameter.
 
 The document that constrains it is *inside* the corpus, so its own statements of the
 set and the bound are claims like any other document's, held and repaired in
-`vos/checks/counts.py` where every claim lives. What is read here is the model alone,
+`vos/checks/counts.py` where every claim lives. What is read here is what the corpus
+does not carry: four sites in the curated model and one in the authored SystemVerilog,
 which is what makes this module's whole reason the reach.
 
 Everything here is a parse and never a decision, as everywhere else in this package.
@@ -32,6 +34,15 @@ _SAIL_INT_RE = r"(?m)^type {} : Int = (\d+)\s*$"
 GRANULE_RE = re.compile(_SAIL_INT_RE.format("log2_cap_size"))
 BLOCK_RE = re.compile(_SAIL_INT_RE.format("log2_cap_block_size"))
 HARNESS_RE = re.compile(r"assert\(caps_per_block == (\d+)\)")
+
+# The fifth site, and the one that is not in the model: the authored capability
+# package writes the block size as a SystemVerilog localparam. It is a transcription
+# with no assertion behind it, exactly as the harness and the generated
+# configurations are, and it is here rather than under the rule that holds the
+# package's other widths because a parameter two rules hold is a parameter two rules
+# can disagree about.
+PACKAGE = "rtl/vos_cheri_pkg.sv"
+PACKAGE_RE = re.compile(r"(?m)^\s*localparam int unsigned Log2CapBlockSize = (\d+);")
 
 CONFIG_KEY = ("platform", "cache_block_size_exp")
 
@@ -56,7 +67,7 @@ def _int(pattern: re.Pattern[str], text: str) -> int | None:
 
 
 def read(root: Path) -> Geometry:
-    """One pass over the four sites and the granule they are read against. A file that
+    """One pass over the five sites and the granule they are read against. A file that
     is not there yields `None` for its site rather than raising, because a missing
     artifact is a finding the caller words and not an exception it has to catch."""
     geo = Geometry()
@@ -81,4 +92,6 @@ def read(root: Path) -> Geometry:
     geo.sites["the model's own harness"] = (
         None if granules is None or granules < 1 or granules & (granules - 1)
         else granules.bit_length() - 1 + (geo.granule_exp or 0))
+
+    geo.sites["the authored capability package"] = _int(PACKAGE_RE, text(PACKAGE))
     return geo

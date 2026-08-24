@@ -210,6 +210,15 @@ def run(ctx: Context) -> None:
         # memberships with every gate still green, which no membership floor can see.
         "freeze corpus feeds edges": sh.get("freeze corpus feeds edges", 0),
         "freeze threshold bindings in §6": sh.get("freeze threshold bindings in §6", 0),
+        # Two rather than one, on the same ground the pair above states: K-79 holds a
+        # definition against the sites that restate it, so a model whose declarations
+        # have moved leaves it reporting that every site agrees with nothing, and a set
+        # of sites this rule can no longer find leaves it reporting that nothing
+        # disagrees with the definition.
+        "capability-format parameters the model declares":
+            sh.get("cap_format_params", 0),
+        "sites restating a capability-format parameter":
+            sh.get("cap_format_sites", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),
         "CSR rows the profile excludes": len(art.csr_rows.get("5.2", [])),
         "Prop fields of the apex record": len(sh["apex"].fields) if sh.get("apex") else 0,
