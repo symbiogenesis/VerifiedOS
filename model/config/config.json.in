@@ -419,6 +419,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": @CONFIG__KECCAK_UNIT@,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       },
       "v": {
@@ -432,6 +436,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": true,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       },
       "m": {
@@ -445,6 +453,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": true,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       },
       "s": {
@@ -458,6 +470,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": false,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": true
       },
       "rot": {
@@ -471,6 +487,10 @@
         "issue_width": 1,
         "pipeline_depth": 0,
         "keccak_unit": false,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       }
     },
@@ -512,6 +532,21 @@
       // does not reach it and there is no slot for pinning to delete.
       { "hartid": 15, "class": "CoreClass_RoT", "island": 5, "pinned": false, "fec_units": false }
     ],
+    // The channel codes the FEC decoders are written over (R-15-119a,
+    // extensions/fec/fec_codes.sail). **It is empty here and in every shipped
+    // composition, and that is forced rather than pending.** A row names which of
+    // 3GPP TS 38.212's tables a code uses, by a selector the composition assigns
+    // out of the copy its builder holds under that standard's own in-house
+    // carve-out; the tables themselves are never a tracked file of this
+    // repository and this file is a tracked file. So the shape is declared, the
+    // values are the builder's, and the properties that exercise the surface
+    // install a code of their own (unit_tests/test_fec.sail).
+    //
+    // The decoders' own geometry is not here: the parallelism, the maximum lifted
+    // block length, the iteration bound and the polar list width are this
+    // machine's rather than the standard's and are declared on the core class
+    // above, where R-15-108's exploration selects them and has not.
+    "fec_codes": [],
     // Cache block size, specified as a power of 2.
     "cache_block_size_exp": 6,
     "clint": {
@@ -637,7 +672,9 @@
       "vector_mem_unit": 8,
       "vector_mem_indexed": 32,
       "keccak_24": 24,
-      "keccak_12": 12
+      "keccak_12": 12,
+      "fec_ldpc": 96,
+      "fec_polar": 48
     },
     // `vmclear_cycles` is zero on the vectorless classes and the validator
     // refuses anything else: the instruction traps there like any unallocated

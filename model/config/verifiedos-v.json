@@ -279,6 +279,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": true,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       },
       "v": {
@@ -292,6 +296,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": true,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       },
       "m": {
@@ -305,6 +313,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": true,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       },
       "s": {
@@ -318,6 +330,10 @@
         "issue_width": 2,
         "pipeline_depth": 0,
         "keccak_unit": false,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": true
       },
       "rot": {
@@ -331,6 +347,10 @@
         "issue_width": 1,
         "pipeline_depth": 0,
         "keccak_unit": false,
+        "fec_parallelism": 0,
+        "fec_max_block": 0,
+        "fec_iterations": 0,
+        "fec_polar_list": 0,
         "replicated": false
       }
     },
@@ -365,6 +385,11 @@
       // does not reach it and there is no slot for pinning to delete.
       { "hartid": 15, "class": "CoreClass_RoT", "island": 5, "pinned": false, "fec_units": false }
     ],
+    // The channel codes the FEC decoders are written over (R-15-119a). Empty
+    // here and in every shipped composition: a row names which of TS 38.212's
+    // tables a code uses, by a selector the builder assigns out of its own copy
+    // under that standard's in-house carve-out, and this file is tracked.
+    "fec_codes": [],
     // the CBO block Zicboz allocates and cloadtags groups by (R-15-060, R-15-007q).
     "cache_block_size_exp": 6,
     // mtime/mtimecmp are memory-mapped, programmed directly by the kernel (R-15-063).
@@ -469,7 +494,9 @@
       // `qualified: false` regardless, so neither is a measurement (R-15-247m,
       // R-17-041).
       "keccak_24": 24,
-      "keccak_12": 12
+      "keccak_12": 12,
+      "fec_ldpc": 96,
+      "fec_polar": 48
     },
     // `vmclear_cycles` is zero on the vectorless classes and the validator
     // refuses anything else: the instruction traps there like any unallocated

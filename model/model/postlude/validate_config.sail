@@ -558,6 +558,24 @@ private function check_core_roster() -> bool = {
         valid = false;
         print_endline("The vectorless " ^ to_str(c) ^ " core class declares a Keccak unit; the frozen permutation is a single vector instruction, so it is placed on the vector-bearing cores and the vectorless ones hash in plain 64-bit integer with `Zbb` rotations.");
       };
+      if core_class_has_fec(c) then {
+        valid = false;
+        print_endline("The vectorless " ^ to_str(c) ^ " core class declares an FEC decoder geometry; the LDPC and polar decoders are core-issued attachments to a long-vector datapath and the scaling axis is core count rather than a firmware processor.");
+      };
+    };
+
+    // The FEC geometry is declared whole or not at all, under the same
+    // zero-is-absent idiom the vector and matrix fields take (R-15-119a). All
+    // four are one datapath: a decoder parallelism with no block length the
+    // datapath is sized for describes a unit whose one instruction could never be
+    // admitted, and a sized block with no iteration bound describes one whose
+    // latency has no bound to be deterministic at (R-15-119, R-15-119c). Zero
+    // across all four is *not selected*, which is what R-15-108's exploration
+    // has not yet done and what `frozen` is false for in every row here.
+    if core_class_has_fec(c) &
+       (d.fec_parallelism == 0 | d.fec_max_block == 0 | d.fec_iterations == 0 | d.fec_polar_list == 0) then {
+      valid = false;
+      print_endline("The " ^ to_str(c) ^ " core class declares part of an FEC decoder geometry; the parallelism, the maximum lifted block length, the deterministic iteration bound and the polar list width are one datapath and are declared together or not at all.");
     };
 
     // The Keccak unit's geometry floor is the element group's, and it is a
@@ -623,6 +641,70 @@ private function check_core_roster() -> bool = {
         print_endline("The composed hart is on the " ^ to_str(entry.class) ^ " core class, whose declared vector geometry and this model's `extensions.V.support_level` disagree about whether this core has a vector unit at all.");
       };
     },
+  };
+
+  valid
+}
+
+// The channel codes the FEC decoders are written over (R-15-119a,
+// extensions/fec/fec_codes.sail).
+//
+// **What is held here is the shape and never a value**, for the reason the class
+// table's fields are held that way and for one more besides. The LDPC base graph
+// and lifting size and the polar reliability sequence and rate-matching schedule
+// are TS 38.212's, so a validator asserting a range over one would be reproducing
+// a number the standard has already decided inside a public tracked file, which is
+// the single act the standard's in-house carve-out does not reach. What a row
+// declares is a *selector* into the copy its builder holds, and what is checked is
+// that a row says which family it is a code of and declares that family's fields
+// and not the other's.
+private function check_fec_code_rows(codes : list(FecCode), n : int) -> bool =
+  match codes {
+    [||]         => true,
+    code :: rest => {
+      var valid : bool = true;
+
+      // The record is symmetric and the two families are not. A row declaring the
+      // other family's fields is describing a code that is neither.
+      match code.family {
+        FecFamily_Ldpc => {
+          if code.reliability_sequence != 0 | code.rate_matching != 0 then {
+            valid = false;
+            print_endline("FEC code " ^ dec_str(n) ^ " is an LDPC code declaring a polar reliability sequence or rate-matching schedule; the two families' parameters are declared by the family that has them.");
+          };
+          // A protograph code without a lifting size is not lifted, and the
+          // lifted block length is the whole of what the decoder's datapath is
+          // sized against (core/core_class.sail).
+          if code.lifting_size == 0 then {
+            valid = false;
+            print_endline("FEC code " ^ dec_str(n) ^ " is an LDPC code declaring no lifting size; a protograph code the decoder lifts has one, and it is the figure the datapath's maximum block length is sized against.");
+          };
+        },
+        FecFamily_Polar => {
+          if code.base_graph != 0 | code.lifting_size != 0 then {
+            valid = false;
+            print_endline("FEC code " ^ dec_str(n) ^ " is a polar code declaring an LDPC base graph or lifting size; the two families' parameters are declared by the family that has them.");
+          };
+        },
+      };
+
+      valid & check_fec_code_rows(rest, n + 1)
+    },
+  }
+
+private function check_fec_codes() -> bool = {
+  var valid : bool = check_fec_code_rows(fec_codes, 0);
+
+  // A code set with no decoder to run it. The declaration is the composition's
+  // and the decoders follow the statically pinned radio cores (R-12-038), so a
+  // machine declaring codes and carrying no unit has described a receiver whose
+  // channel decoding has nowhere to happen. The converse is deliberately **not**
+  // refused: a hart carrying the units on a class that declares no geometry is
+  // R-15-108's exploration not having run, which is the state every composition
+  // in this tree is in and not a defect in one.
+  if fec_code_count(fec_codes) > 0 & fec_unit_count(core_roster) == 0 then {
+    valid = false;
+    print_endline("The composition declares " ^ dec_str(fec_code_count(fec_codes)) ^ " FEC code(s) and no hart in the roster carries the decoders; a channel code with no unit to decode it is a receiver with nowhere to run its physical layer.");
   };
 
   valid
@@ -737,7 +819,8 @@ private function check_timing() -> bool = {
     ("vector_float", k.vector_float), ("vector_divide", k.vector_divide),
     ("vector_mem_unit", k.vector_mem_unit),
     ("vector_mem_indexed", k.vector_mem_indexed),
-    ("keccak_24", k.keccak_24), ("keccak_12", k.keccak_12)
+    ("keccak_24", k.keccak_24), ("keccak_12", k.keccak_12),
+    ("fec_ldpc", k.fec_ldpc), ("fec_polar", k.fec_polar)
   |];
   valid = check_timing_rows(rows) & valid;
 
@@ -964,6 +1047,7 @@ private function check_memory_sequencer() -> bool = {
 function config_is_valid() -> bool = {
     check_tvec()
   & check_core_roster()
+  & check_fec_codes()
   & check_scratchpads()
   & check_timing()
   & check_memory_classes()
