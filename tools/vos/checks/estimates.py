@@ -59,7 +59,7 @@ OPEN_RE = re.compile(r"^ · (?P<h>[\d.,]+) h, range (?P<lo>[\d.,]+)–(?P<hi>[\d
 # that do are named here rather than inferred, everything else falling at or before it. A
 # label names a position in the order rather than one item, and `Post-M10` carries several,
 # so what is held below is that each label is occupied and not that the two counts match
-AFTER_GATE = ["M9", "M9a", "M10", "Post-M10"]
+AFTER_GATE = ["R4", "R5", "M9", "M9a", "M10", "Post-M10"]
 
 
 def _hours(text: str) -> float:
