@@ -3,12 +3,16 @@
 
 This parse reaches past the documents into the curated model, as `banks.py`,
 `coreclass.py` and `decode.py` do, and each such reach is declared rather than
-habitual: the exception is the point and not an oversight. The block size is
-declared twice in Sail and twice in JSON, transcribed once more in the model's own
-harness, and stated a sixth time in the document that constrains it. Five of those
-six are outside the checker's ordinary corpus, so without this the document's number
-is a copy nothing holds and the defect the tool exists to catch would be sitting in
-the tool's own view of the parameter.
+habitual: the exception is the point and not an oversight. The block size is written
+at four sites, twice in Sail and twice in the model's configuration dialect, and every
+one of them is outside the checker's ordinary corpus, so without this the number the
+document beside them constrains is a copy nothing holds and the defect the tool exists
+to catch would be sitting in the tool's own view of the parameter.
+
+The document that constrains it is *inside* the corpus, so its own statements of the
+set and the bound are claims like any other document's, held and repaired in
+`vos/checks/counts.py` where every claim lives. What is read here is the model alone,
+which is what makes this module's whole reason the reach.
 
 Everything here is a parse and never a decision, as everywhere else in this package.
 What the sites mean and which of them may disagree is `vos/checks/counts.py`'s.
@@ -29,10 +33,6 @@ GRANULE_RE = re.compile(_SAIL_INT_RE.format("log2_cap_size"))
 BLOCK_RE = re.compile(_SAIL_INT_RE.format("log2_cap_block_size"))
 HARNESS_RE = re.compile(r"assert\(caps_per_block == (\d+)\)")
 
-# the document's candidate row: "the block is 32, 64, 128, 256, or 512 bytes"
-CANDIDATE_RE = re.compile(r"the block is ([\d, ]+ or \d+) bytes")
-CEILING_RE = re.compile(r"a ceiling of \*\*(\d+) bytes\*\*")
-
 CONFIG_KEY = ("platform", "cache_block_size_exp")
 
 # `config.json.in` is a CMake template carrying `@VARIABLE@` placeholders where the
@@ -48,9 +48,6 @@ class Geometry:
     # site -> the exponent or count it writes, or None where the site has moved
     sites: dict[str, int | None] = field(default_factory=dict)
     granule_exp: int | None = None
-    # the candidate set the document declares, in bytes
-    declared: list[int] = field(default_factory=list)
-    ceiling: int | None = None
 
 
 def _int(pattern: re.Pattern[str], text: str) -> int | None:
@@ -59,9 +56,9 @@ def _int(pattern: re.Pattern[str], text: str) -> int | None:
 
 
 def read(root: Path) -> Geometry:
-    """One pass over the six sites. A file that is not there yields `None` for its
-    site rather than raising, because a missing artifact is a finding the caller
-    words and not an exception it has to catch."""
+    """One pass over the four sites and the granule they are read against. A file that
+    is not there yields `None` for its site rather than raising, because a missing
+    artifact is a finding the caller words and not an exception it has to catch."""
     geo = Geometry()
 
     def text(rel: str) -> str:
@@ -84,10 +81,4 @@ def read(root: Path) -> Geometry:
     geo.sites["the model's own harness"] = (
         None if granules is None or granules < 1 or granules & (granules - 1)
         else granules.bit_length() - 1 + (geo.granule_exp or 0))
-
-    doc = text(DOCUMENT)
-    candidates = CANDIDATE_RE.search(doc)
-    if candidates:
-        geo.declared = [int(tok) for tok in re.findall(r"\d+", candidates.group(1))]
-    geo.ceiling = _int(CEILING_RE, doc)
     return geo
