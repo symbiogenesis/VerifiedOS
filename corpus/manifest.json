@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "trace_schema": 1,
   "members": [
     {
@@ -176,6 +176,13 @@
       "checks": 9,
       "records": 196,
       "digest": "b048eb2c8a035985"
+    },
+    {
+      "name": "platform-rot",
+      "source": "platform-rot.s",
+      "checks": 11,
+      "records": 341,
+      "digest": "e55fa211df468baa"
     }
   ]
 }

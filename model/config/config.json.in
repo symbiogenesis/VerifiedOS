@@ -601,6 +601,85 @@
       "banks_per_discharge_phase": 4,
       "discharge_phase_cycles": 8192
     },
+    // The Root of Trust's four peripherals (R-09-001, model/sys/rot.sail): the
+    // OTP fuse bank holding the lifecycle state (R-09-003, R-09-032), the
+    // entropy root (R-15-241), the monotonic counter file (R-10-013), and the
+    // windowed watchdog (R-15-240).
+    //
+    // **All four windows are in every composition's address map**, because the
+    // die has one management processor whichever of its cores an emulator
+    // composes (R-15-194, R-15-113). What decides whether a door opens is the
+    // composed hart's class and not a key here: on any class but the RoT's the
+    // four windows refuse every access in both directions at every width,
+    // exactly as the refresh sequencer's window does, and there is no fifth key
+    // saying so because the roster already says which core this run is
+    // (R-15-052b). They are declared together or not at all: the four are one
+    // block on one island and a die carrying three of them is a management
+    // processor missing a duty (model/postlude/validate_config.sail).
+    "otp": {
+      "supported": true,
+      "base": 37748736,
+      "size": 4096,
+      // The state a part resets into. All five of R-09-032's states are states
+      // a real part is in, so the validator refuses none of them: a part on a
+      // bench is in `development` and a fielded one is in `production`, and both
+      // are compositions of this one machine. `production` is what R-09-037 has
+      // the reference integrity manifest carry as the expected value, so it is
+      // what every composition here declares.
+      "lifecycle_state": "Lifecycle_Production"
+    },
+    "trng": {
+      "supported": true,
+      "base": 38797312,
+      "size": 4096,
+      // **At least two, and the floor is R-15-241e's rather than a choice**:
+      // multiple independent noise sources spanning at least two physical
+      // mechanisms into the one conditioner, each separately health-tested and
+      // none reaching it unattributed. Which two mechanisms they are is a
+      // silicon fact with no architectural content, exactly as the memory
+      // classes' media are.
+      "noise_sources": 2,
+      // **A placeholder.** R-15-241b calls the start-up sample budget *fixed*
+      // and sizes it against the source's stochastic model, an artifact this
+      // repository does not hold and no milestone yet authors, so nothing here
+      // is a measurement. What the model holds is the shape: a budget of zero is
+      // refused, a health test over no samples being one that cannot fail.
+      "startup_samples": 1024,
+      // **An emulation fact and not an architectural one.** §2 of the
+      // implementation plan models the TRNG as a seeded PRNG in emulation; a
+      // real part has no seed, and this one is not emitted into the attested
+      // devicetree because every draw from the entropy root is secret
+      // nondeterminism, which R-16-017 records as a sealed commitment and never
+      // as a value. Its value is immaterial: nothing in the model is a claim
+      // about a distribution (model/sys/rot.sail).
+      "seed": 1
+    },
+    "monotonic_counters": {
+      "supported": true,
+      "base": 39845888,
+      "size": 4096
+      // No count is declared. R-10-013's enumeration is closed by conferral and
+      // its four members are named in the model, so a count beside it would be
+      // the same fact written twice, which is the rule the core roster's own
+      // per-class counts are derived under (R-10-013a, R-15-113).
+    },
+    "watchdog": {
+      "supported": true,
+      "base": 40894464,
+      "size": 4096,
+      // **Both are placeholders**, in the watchdog's own slow-clock ticks.
+      // R-15-240 sources the bounds from the §11 schedule theorem and R-11-017
+      // emits them with the operating-point assignment and the TDM NoC schedule
+      // as one artifact that is itself a crown-jewel specification; that
+      // artifact has not been authored, so nothing here is a selected value and
+      // what the validator holds is that a window is a window: the early bound
+      // is non-zero, an early pet faulting as well as a late one, and the late
+      // bound is above it. There is deliberately no divisor beside them: the
+      // RoT's clock is one of exactly three genuinely asynchronous boundaries,
+      // none modeled as fixed-latency (R-15-196).
+      "early_ticks": 1024,
+      "late_ticks": 65536
+    },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,
