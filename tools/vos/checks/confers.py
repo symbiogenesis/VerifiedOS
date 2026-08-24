@@ -25,6 +25,13 @@ hypothetical: run against the ten-seam fail-closed register it returned the dete
 class (R-17-030n), the entropy health test (R-17-030o), the display path (R-17-030p),
 and budget admission (R-17-030q), none of which any reading had found.
 
+The three sets differ in how their collector grows, and that difference is the
+register's rather than this file's: R-17-030 and the crown-jewel inventory grow by
+addition, a seam or a row written beside the others, and R-10-013 grows by amendment,
+because its sentence is a budget over a wearing counter rather than a roll-call. So the
+freshness enumeration is the one place a collector gates a conferral, and the rule that
+holds it there is the only one here that reads a member's own words rather than an id.
+
 A disposition is a decision, so it is recorded here beside the rule rather than as a
 marker in the prose. A marker would tax the vocabulary instead of the judgment, and
 an author who has to spend a word to avoid a finding rewords the sentence rather than
@@ -47,6 +54,12 @@ HEADING = "=== confers: every enumeration closed by conferral, both directions =
 CJ_VOCAB = re.compile(r"crown.jewel spec", re.IGNORECASE)
 _FC_SEAM_RE = re.compile(r"Fail-closed seam \*\*", re.IGNORECASE)
 _ROT_ENUM_RE = re.compile(r"R-10-013", re.IGNORECASE)
+
+# The enumeration R-10-013 states, and the state a conferral names before citing it.
+# Both are read out of the register rather than listed here, so the rule holds the two
+# sides against each other and never either of them against a copy kept in this file.
+_ROT_STATES_RE = re.compile(r"that set is enumerated: (.+?), advancing on ")
+_ROT_STATE_OF_RE = re.compile(r"^· RoT-fresh: (.+?) \(R-10-013\)")
 
 # Conferral lives in the entry's normative line, never in a criterion: an Accept line
 # tests the obligation and states none. But the vocabulary can still appear there, and
@@ -187,15 +200,55 @@ def run(ctx: Context) -> None:
     # --- the RoT-fresh enumeration --------------------------------------------------
     #
     # The collection here is one entry's prose enumeration rather than a row or a seam,
-    # so only the outbound direction is symbolic: every conferral names R-10-013. The
-    # inbound direction is the count claim in the counts group, which fails when a
-    # conferral is added and the enumeration it must join is not amended.
+    # so the citation and the membership are two readings rather than one: K-22 decides
+    # that a conferral names the entry collecting it, and K-73 below decides that the
+    # state it names is one that entry carries.
     rot = reg.confers.get("RoT-fresh", {})
     rf_confer = list(rot)
     rep.report("K-22", "RoT-fresh conferral(s) not naming the enumeration:",
                [f"{i} confers freshness without citing R-10-013"
                 for i in rf_confer if not _ROT_ENUM_RE.search(rot[i])],
                f"all {len(rf_confer)} conferred states name the enumeration")
+
+    # --- and its states, against the conferrals that name them ----------------------
+    #
+    # This is the direction R-10-013a states and nothing read. Citation is not
+    # membership, so K-22 passes a conferral naming a state R-10-013 does not carry,
+    # and the count of conferrals cannot catch one either: the figure is derived, so
+    # `--fix` rewrites it as the new member lands and the sentence forbidding the member
+    # survives the edit that falsified it. Membership is by the state's own words
+    # because that is what both sides are written in, and it is read both ways, a
+    # conferral outside the enumeration being counter endurance spent without the budget
+    # sentence being reopened and an enumerated state no requirement confers being the
+    # collecting entry legislating, which is R-17-016's defect on this register.
+    #
+    # Fail-closed on the reading itself: an enumeration this rule cannot parse is a
+    # finding rather than a comparison quietly made against nothing.
+    states: list[str] = []
+    disagree: list[str] = []
+    enumerated = _ROT_STATES_RE.search(reg.body.get("R-10-013", ""))
+    if enumerated is None:
+        disagree.append("R-10-013 no longer enumerates its states in a form this rule "
+                        "reads")
+    else:
+        states = [s.removeprefix("and ") for s in enumerated.group(1).split(", ")]
+        named: set[str] = set()
+        for i in rf_confer:
+            state = _ROT_STATE_OF_RE.match(rot[i])
+            if state is None:
+                disagree.append(f"{i} confers freshness and names no state before the "
+                                "entry collecting it")
+            elif state.group(1) not in states:
+                disagree.append(f"{i} confers freshness on a state R-10-013 does not "
+                                "enumerate")
+            else:
+                named.add(state.group(1))
+        disagree += [f"R-10-013 enumerates '{s}' and no requirement confers it"
+                     for s in states if s not in named]
+    rep.report("K-73", "freshness state(s) the enumeration and its conferrals disagree "
+               "on:", disagree,
+               f"all {len(states)} states R-10-013 enumerates stand on a conferral, and "
+               "every conferral names one")
 
     # --- the agenda: what the vocabulary catches and the conferral did not -----------
     held_by_agenda = {
@@ -251,6 +304,7 @@ def run(ctx: Context) -> None:
         fc_seams=fc_seams,
         fc_confer=fc_confer,
         rf_confer=rf_confer,
+        rot_states=len(states),
         dispositions=dispositions,
         rot_cases=len(AGENDAS[1]["disposition"]),
     )
