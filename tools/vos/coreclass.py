@@ -140,6 +140,89 @@ def _composition(root: Path) -> tuple[dict[str, int] | None, dict[str, int] | No
     return declared, roster
 
 
+# The model's own extension registry, and the two readings of it a rule about a
+# *vectorless* composition needs (model/model/core/extensions.sail).
+#
+# **They live here rather than in a module of their own because the question is the
+# class table's.** What a configuration composes is a hart on a class, and what a
+# class row's `vlen_exp` of zero means is *this core has no vector unit*; the
+# registry is where the model turns a vector length into a set of extension names,
+# so the two readings below are the geometry half of the same table read from the
+# model's side. Nothing else in this package asks the registry anything.
+#
+# The `Zvl` ladder is gated on the vector length **alone**, with no vector-support
+# conjunct, which is why its thresholds have to be read rather than assumed: a rung
+# added, moved, or re-based changes which geometries name a vector extension, and
+# the rule that holds a vectorless composition to naming none of them has to move
+# with it.
+ZVL_RUNG_RE = re.compile(
+    r"function clause hartSupports\(Ext_(Zvl\d+b)\)\s*=\s*sizeof\(vlen_exp\)\s*>=\s*(\d+)")
+
+# The vector extensions gated on a configuration key of their own rather than on a
+# level or a geometry. These are the ones a composition can leave switched on while
+# turning the vector unit off, which the model's validator refuses one by one; the
+# names are read here so that a flag added upstream joins the rule rather than
+# waiting to be transcribed.
+CONFIG_GATED_VECTOR_RE = re.compile(
+    r"function clause hartSupports\(Ext_(Zv\w+)\)\s*=\s*config extensions\.(\w+)\.supported")
+
+EXTENSIONS_SAIL = "model/model/core/extensions.sail"
+
+
+def zvl_rungs(root: Path) -> dict[str, int]:
+    """Each minimum-vector-length rung against the `vlen_exp` it needs.
+
+    An empty answer is a moved reading rather than a ladder with no rungs, and the
+    floors group is what says so; this returns what it finds.
+    """
+    path = root / EXTENSIONS_SAIL
+    if not path.is_file():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    return {m.group(1): int(m.group(2)) for m in ZVL_RUNG_RE.finditer(text)}
+
+
+def config_gated_vector_extensions(root: Path) -> dict[str, str]:
+    """Each config-gated vector extension against the configuration key path that
+    switches it on."""
+    path = root / EXTENSIONS_SAIL
+    if not path.is_file():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    return {m.group(1): f"extensions.{m.group(2)}.supported"
+            for m in CONFIG_GATED_VECTOR_RE.finditer(text)}
+
+
+def composed(path: Path) -> tuple[str, int] | None:
+    """The class a configuration composes, and that class's declared vector length
+    exponent.
+
+    `platform.hartid` is an index into `platform.core_roster` rather than a value
+    beside it (R-15-052b), so the class a configuration is a configuration *of* is
+    the class of the roster entry naming that identity, and a zero exponent in that
+    class's row is the table's way of saying the core has no vector unit at all.
+    A configuration whose roster does not name its own composed hart answers None,
+    which the model's validator refuses at load and which is a finding the caller
+    words rather than an exception it has to catch.
+    """
+    hartid = config.integer(path, "platform", "hartid")
+    entries = config.value(path, "platform", "core_roster")
+    if hartid is None or not isinstance(entries, list):
+        return None
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("hartid") != hartid:
+            continue
+        token = entry.get("class")
+        if not isinstance(token, str):
+            return None
+        name = token.removeprefix("CoreClass_")
+        if name not in CLASSES:
+            return None
+        exp = config.integer(path, "platform", "core_classes", name.lower(), "vlen_exp")
+        return None if exp is None else (name, exp)
+    return None
+
+
 def read(root: Path, register_body: str) -> CoreClasses:
     """One pass over the four sites. A file that is not there yields an unreadable
     site rather than raising, for the reason the geometry parse does the same."""

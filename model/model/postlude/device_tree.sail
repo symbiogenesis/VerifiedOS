@@ -325,6 +325,104 @@ private function generate_dts_memory_sequencer() -> string =
   ^ "      verifiedos,mode-exit-cycles = <" ^ generate_dts_u64(memory_sequencer_mode_exit_cycles()) ^ ">;\n"
   ^ "    };\n"
 
+// The Root of Trust's four peripherals (R-09-001, sys/rot.sail).
+//
+// **What puts a device window in this tree is R-15-002b and not R-09-007.** That
+// entry's enumeration of what the static devicetree declares names core classes,
+// islands, the NoC schedule, OPP tables, and radio calibration and limit values,
+// and a device window is none of the five; R-15-002b makes every MMIO aperture's
+// placement *a stated constraint on the attested devicetree*, which is the
+// sentence a `reg` here answers to, and the memory sequencer's node already
+// rides its own requirement rather than the enumeration (R-15-247h). Each node
+// below therefore carries its window under R-15-002b and its constants under the
+// entry that fixes them, and none of them widens R-09-007's list.
+//
+// **The emulation seed is not here and its absence is the requirement.** Every
+// draw from the single entropy root is secret nondeterminism, which R-16-017
+// records as a sealed commitment and never as a value, and an attested
+// devicetree is exactly the artifact designed to leave the device that its
+// criterion names. What the tree carries is the source count and the sample
+// budget, which are facts about the root's construction; the seed is an emulation
+// fact and a real part has none (sys/rot.sail).
+private function generate_dts_otp() -> string =
+  if not(plat_have_otp) then ""
+  else
+    "    otp@" ^ string_drop(hex_str(unsigned(plat_otp_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,otp\";\n"
+  ^ "      reg = <" ^ hex_str(unsigned(plat_otp_base >> 32))
+  ^ " " ^ hex_str(unsigned(plat_otp_base[31 .. 0]))
+  ^ " " ^ hex_str(unsigned(plat_otp_size >> 32))
+  ^ " " ^ hex_str(unsigned(plat_otp_size[31 .. 0])) ^ ">;\n"
+  // The lifecycle state, which R-09-037 has the RoT extend into the measured
+  // chain as its first extension and the reference integrity manifest carry the
+  // production value of. The enumeration's size and the relation's arity travel
+  // with it, so a reader of the tree knows how many states there are and how
+  // many edges join them without reading the model (R-09-032).
+  ^ "      verifiedos,lifecycle-state = \"" ^ lifecycle_state_str(otp_lifecycle) ^ "\";\n"
+  ^ "      verifiedos,lifecycle-states = <" ^ dec_str(lifecycle_state_count) ^ ">;\n"
+  ^ "      verifiedos,lifecycle-edges = <" ^ dec_str(lifecycle_edge_count()) ^ ">;\n"
+  // R-15-078's gate, in the attested artifact a relying party appraises the part
+  // from: *no DM transaction reaches the fabric in the production state*.
+  ^ "      verifiedos,debug-module-gated = <" ^ (if debug_module_fabric_gated() then "1" else "0") ^ ">;\n"
+  ^ "      verifiedos,fuse-words = <" ^ dec_str(otp_fuse_words) ^ ">;\n"
+  ^ "    };\n"
+
+private function generate_dts_trng() -> string =
+  if not(plat_have_trng) then ""
+  else
+    "    trng@" ^ string_drop(hex_str(unsigned(plat_trng_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,entropy-root\";\n"
+  ^ "      reg = <" ^ hex_str(unsigned(plat_trng_base >> 32))
+  ^ " " ^ hex_str(unsigned(plat_trng_base[31 .. 0]))
+  ^ " " ^ hex_str(unsigned(plat_trng_size >> 32))
+  ^ " " ^ hex_str(unsigned(plat_trng_size[31 .. 0])) ^ ">;\n"
+  // The two figures R-15-241e and R-15-241b make properties of the root's
+  // construction: how many attributed sources reach the one conditioner, and
+  // over how many samples the start-up health tests run. The conditioner count
+  // is written out rather than left implicit because *the one conditioner* is
+  // the half of R-15-241e a reader would otherwise have to infer from its
+  // absence.
+  ^ "      verifiedos,noise-sources = <" ^ dec_str(plat_rot_noise_sources) ^ ">;\n"
+  ^ "      verifiedos,conditioners = <1>;\n"
+  ^ "      verifiedos,startup-samples = <" ^ dec_str(plat_rot_startup_samples) ^ ">;\n"
+  ^ "    };\n"
+
+private function generate_dts_monotonic() -> string =
+  if not(plat_have_monotonic) then ""
+  else
+    "    monotonic-counters@" ^ string_drop(hex_str(unsigned(plat_monotonic_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,monotonic-counters\";\n"
+  ^ "      reg = <" ^ hex_str(unsigned(plat_monotonic_base >> 32))
+  ^ " " ^ hex_str(unsigned(plat_monotonic_base[31 .. 0]))
+  ^ " " ^ hex_str(unsigned(plat_monotonic_size >> 32))
+  ^ " " ^ hex_str(unsigned(plat_monotonic_size[31 .. 0])) ^ ">;\n"
+  // The arity and nothing else. R-10-013's enumeration is closed by conferral
+  // and its four members are named in the model (sys/rot.sail); a tree
+  // repeating their names would be the enumeration written twice inside one
+  // attested artifact, which is what the roster's own count is kept out of the
+  // core-class nodes for.
+  ^ "      verifiedos,counters = <" ^ dec_str(monotonic_counter_count) ^ ">;\n"
+  ^ "    };\n"
+
+private function generate_dts_watchdog() -> string =
+  if not(plat_have_watchdog) then ""
+  else
+    "    watchdog@" ^ string_drop(hex_str(unsigned(plat_watchdog_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,watchdog\";\n"
+  ^ "      reg = <" ^ hex_str(unsigned(plat_watchdog_base >> 32))
+  ^ " " ^ hex_str(unsigned(plat_watchdog_base[31 .. 0]))
+  ^ " " ^ hex_str(unsigned(plat_watchdog_size >> 32))
+  ^ " " ^ hex_str(unsigned(plat_watchdog_size[31 .. 0])) ^ ">;\n"
+  // The two bounds, in the watchdog's own slow-clock ticks. **No ratio to the
+  // spine is emitted and none exists**: R-15-196 makes the RoT's independent
+  // slow clock one of exactly three genuinely asynchronous boundaries, none
+  // modeled as fixed-latency, so a `clock-frequency` or a divisor here would
+  // attest a crossing this platform states one-sided bounds over instead
+  // (R-15-240, R-11-017).
+  ^ "      verifiedos,early-ticks = <" ^ generate_dts_u64(plat_rot_watchdog_early) ^ ">;\n"
+  ^ "      verifiedos,late-ticks = <" ^ generate_dts_u64(plat_rot_watchdog_late) ^ ">;\n"
+  ^ "    };\n"
+
 function generate_dts() -> string = {
   let clock_freq : nat = plat_clock_frequency;
 
@@ -399,6 +497,10 @@ function generate_dts() -> string = {
 ^ " " ^ hex_str(clint_size_hi) ^ " " ^ hex_str(clint_size_lo) ^ ">;\n"
 ^ "    };\n"
 ^ generate_dts_memory_sequencer()
+^ generate_dts_otp()
+^ generate_dts_trng()
+^ generate_dts_monotonic()
+^ generate_dts_watchdog()
 ^ "  };\n"
 ^ "  htif {\n"
 ^ "    compatible = \"ucb,htif0\";\n"
