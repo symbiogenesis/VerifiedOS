@@ -5463,7 +5463,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: eager-zeroize keeps the *disclosure* consequence closed independently, so the uncaught case is a correctness bug reading zeros rather than a residue leak; the deletion is a net subtraction on every scarce axis.
 · Trace: CJ-TAL-SOUND, CJ-HAL
 
-**R-17-045a** IS: The object-model deletion (R-07-002, R-07-002b, R-08-004) spends the independent-scrutiny argument that carried the seL4 design choice: the deleted classes were the most scrutinized part of that specification, their CHERIoT-lineage replacements carry thinner published assurance, and less of seL4's executable model transfers through `hs-to-coq`, so a larger fraction of the Gallina specification is authored fresh.
+**R-17-045a** IS: The object-model deletion (R-07-002, R-07-002b, R-08-004) spends the independent-scrutiny argument that carried the seL4 design choice: the deleted classes were the most scrutinized part of that specification, their CHERIoT-lineage replacements carry thinner published assurance, and the Gallina specification is authored fresh in whole, the `hs-to-coq` carriage of seL4's executable model being foreclosed by the kernel-specification provenance fork rather than narrowed by this deletion.
 · Accept: booked as a specification-scrutiny residual rather than a mechanism residual, nothing joining the trusted set; bounded by the authored artifact being a smaller oracle than the one it replaces, and offset by the retirement of the CDT revocation refinement the kernel-design disposition named as the route's early kill switch.
 · Trace: CJ-KERNEL
 
