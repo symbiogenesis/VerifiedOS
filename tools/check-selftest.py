@@ -548,6 +548,7 @@ BINDINGS = "docs/field-bindings.md"
 ABSENCE = "docs/absence-contract.md"
 CORPUS_DOC = "docs/differential-corpus.md"
 CONTRACT = "docs/freeze-measurement-contract.md"
+GEOMETRY = "docs/block-geometry-constraint.md"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1101,6 +1102,15 @@ CASES: list[Case] = [
     # untouched, so K-15 never looks. K-74 is the one rule that can.
     ("K-74", "a residual cell whose citation of the section booking it has gone",
      _literal(MATRIX, "R-08-006, R-15-208, R-17-037", "R-08-006, R-15-208")),
+
+    # One of the two settings rather than one of the five sentences, because the pair of
+    # settings is where the figure is hardest to see moving: `py314` and `3.14` are one
+    # floor in two dialects, so a bump taken in one of them looks like an edit to a
+    # different quantity, and the prose that restates the floor goes on agreeing with
+    # the half that did not move.
+    ("K-75", "a checker settings file at an interpreter floor the other does not fix",
+     _literal("tools/ruff.toml", 'target-version = "py314"',
+              'target-version = "py313"')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
@@ -1119,11 +1129,14 @@ def _case_mutation(rule: str) -> Mutation:
 # and the defect the repair lane seeds. The repair path is never exercised by a
 # green tree, so a branch missing here ships untested unless something breaks it on
 # purpose. Six seeds are the rules' own case mutants, each an arithmetic figure whose
-# repair writes the pristine bytes back. K-54's case cannot be the seventh: it moves the
-# granule owner, and repairing from a moved owner rewrites every derived figure to the
-# new granule and dirties co-read pairs no --fix may bless, so the after-check could
-# never pass. Its seed here moves one derived figure instead, in the exact document
-# bytes a case would anchor on, and the repair restores the tree it found.
+# repair writes the pristine bytes back. Two rules cannot ride their own case. K-54's
+# moves the granule owner, and repairing from a moved owner rewrites every derived
+# figure to the new granule and dirties co-read pairs no --fix may bless, so the
+# after-check could never pass. K-57's two both seed a site that is *not* repaired, one
+# under a `-text` tree and one the register's own normative statement, so neither would
+# reach a `fixed:` line. Each takes a seed here instead, moving one derived figure in
+# the exact document bytes a case would anchor on, and the repair restores the tree it
+# found.
 REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-24": ("cj-targets", _case_mutation("K-24")),
     "K-28": (f"Coverage {SEC}", _case_mutation("K-28")),
@@ -1133,6 +1146,9 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-54": ("the tag plane's", _literal(
         REGISTER, "granule is 15.6 MB per GB of data",
         "granule is 99.9 MB per GB of data")),
+    "K-57": ("the block-size ceiling", _literal(
+        GEOMETRY, "that is a ceiling of **512 bytes**",
+        "that is a ceiling of **256 bytes**")),
     "K-69": ("kernel-line-budget", _case_mutation("K-69")),
 }
 

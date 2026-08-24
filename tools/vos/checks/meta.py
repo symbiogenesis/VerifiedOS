@@ -21,9 +21,25 @@ rows and in the `uv tool install` line each checker carries, and nothing owned t
 copy. The rule holds every site against the source and is fail-closed in the reading:
 a side it cannot find is a finding, never a pass over nothing. The sites are
 enumerated rather than counted here, because the count is `_README_SITES`' to state.
+
+K-75 is that rule one figure over, on the version the tools are *written* to rather
+than the versions they run. The interpreter floor decides what the two checkers admit
+and what this directory's Python may say, and it is written twice as a setting, once
+in ty's dialect and once in ruff's, and restated five times in prose; ty.toml's is the
+source because it is the environment an editor's language server and this gate both
+resolve against, and the only site that writes the figure bare. The two dialects are
+why the rule is worth having rather than obvious: `3.14` and `py314` are one figure in
+two spellings, so a bump applied to one of them does not read as a disagreement with
+the other, and each of the five prose sites was a hand-copy nothing owned.
+
+The window is `tools/` by decision rather than by reach. The plan restates the floor in
+two of its own cells, and a rule about how this directory is written has no business
+holding a sentence in a document about the build order; that pairing is the plan's to
+own if anything is to own it.
 """
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -67,6 +83,45 @@ _README_SITES: list[tuple[str, re.Pattern[str], str]] = [
     ("install line", _README_RUFF_INSTALL_RE, "RUFF"),
 ]
 
+TY_CONF = "tools/ty.toml"
+RUFF_CONF = "tools/ruff.toml"
+
+# The interpreter floor, as the type checker's own environment fixes it.
+_FLOOR_SRC_RE = re.compile(r'(?m)^python-version = "([^"\r\n]*)"')
+
+
+def _plain(floor: str) -> str:
+    """The floor as ty.toml writes it, which is how the prose writes it too."""
+    return floor
+
+
+def _packed(floor: str) -> str:
+    """ruff's own spelling, the same figure with its separator dropped."""
+    return "py" + floor.replace(".", "")
+
+
+# The floor's sites, each with the file it is in, the pattern that reads it, and how
+# that site spells the figure. Every group a pattern captures is held, which is what
+# lets one row cover the interpreter table's two cells: they state the versions the two
+# lanes actually carry, so what is held there is the major and minor each one is at and
+# never the patch either has reached.
+_FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
+    ("target version", RUFF_CONF,
+     re.compile(r'(?m)^target-version = "([^"\r\n]*)"'), _packed),
+    ("modernization comment", RUFF_CONF,
+     re.compile(r"constructs the (\S+) floor makes obsolete"), _plain),
+    ("opening sentence", README,
+     re.compile(r"in this directory is Python (\S+?)\.(?=\s)"), _plain),
+    ("interpreter table", README,
+     re.compile(r"(?m)^\| Python \| (\d+\.\d+)\.\d+ \| (\d+\.\d+)\.\d+ \|"), _plain),
+    ("floor sentence", README,
+     re.compile(r"The floor is \*\*([^*]+)\*\*"), _plain),
+    ("lazy-annotations bullet", README,
+     re.compile(r"Under (\S+) that import is the \*opt-out\*"), _plain),
+    ("launcher spelling", README,
+     re.compile(r"`py -([^`\s]+)`"), _plain),
+]
+
 
 def carried_rules() -> set[str]:
     """Every rule id the checks package names."""
@@ -107,7 +162,21 @@ def run(ctx: Context) -> None:
                    f"the registry's {len(seen)} rules and the checks agree, both directions")
 
     _pins(ctx)
+    _floor(ctx)
     rep.line()
+
+
+def _source(ctx: Context, rel: str) -> str:
+    """A file under `tools/` that the document corpus does not carry, read off disk.
+
+    A file that will not read is "", which makes every site in it a finding: the
+    fail-closed reading both rules below want, and the reason this returns text rather
+    than raising.
+    """
+    try:
+        return (ctx.root / rel).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
 
 
 def _pins(ctx: Context) -> None:
@@ -120,11 +189,8 @@ def _pins(ctx: Context) -> None:
     rep = ctx.rep
     findings: list[str] = []
 
-    try:
-        source = (ctx.root / TYPECHECK).read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        source = ""
-    pins = {m.group(1): m.group(2) for m in _PIN_SRC_RE.finditer(source)}
+    pins = {m.group(1): m.group(2)
+            for m in _PIN_SRC_RE.finditer(_source(ctx, TYPECHECK))}
     ty, ruff = pins.get("TY"), pins.get("RUFF")
     if ty is None or ruff is None:
         findings.append(f"{TYPECHECK} no longer states TY_VERSION and RUFF_VERSION in "
@@ -151,3 +217,56 @@ def _pins(ctx: Context) -> None:
                "fixes:", findings,
                f"tools/README.md's {figures.words(len(_README_SITES))} pin sites state "
                f"ty {ty} and ruff {ruff}, the versions {TYPECHECK} fixes")
+
+
+def _floor(ctx: Context) -> None:
+    """K-75: every site under `tools/` states the interpreter floor ty.toml fixes.
+
+    Fail-closed in the same two places K-67 is. The source either parses in the form it
+    is written in today or is a finding, so a reworded setting cannot take the
+    comparison down and leave the rule green; and a site whose pattern no longer matches
+    is a finding rather than a site quietly dropped from the enumeration.
+
+    The comparison is on the spelling each site owes rather than on the floor itself,
+    because two of them do not write it the way ty.toml does: ruff packs it into one
+    token of its own dialect, and the interpreter table states the running version of
+    each lane, which is at the floor without being it.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+
+    stated = _FLOOR_SRC_RE.search(_source(ctx, TY_CONF))
+    if stated is None:
+        findings.append(f"{TY_CONF} no longer states python-version in a form this rule "
+                        "reads, so there is no floor to hold the rest against")
+
+    doc = ctx.corpus.get(README)
+    if doc is None:
+        findings.append(f"{README} is not in the repository")
+
+    # Both guards above have to have passed before a site can be read: without the
+    # source there is nothing to compare a site to, and without the README five of the
+    # seven sites are missing for a reason that is not their own.
+    floor = stated.group(1) if stated else ""
+    if not findings and doc is not None:
+        # one read per file the table names, the README's coming from the corpus the
+        # run already holds rather than from a second trip to disk
+        text: dict[str, str] = {README: doc.raw}
+        for _, file, _, _ in _FLOOR_SITES:
+            if file not in text:
+                text[file] = _source(ctx, file)
+
+        for label, file, pattern, spell in _FLOOR_SITES:
+            want = spell(floor)
+            hit = pattern.search(text[file])
+            if hit is None:
+                findings.append(f"{file} no longer states the floor in its {label}, in a "
+                                "form this rule reads")
+                continue
+            findings += [f"{file}'s {label} states {found}, {TY_CONF} fixes {want}"
+                         for found in hit.groups() if found != want]
+
+    rep.report("K-75", "interpreter floor site(s) disagreeing with the version ty.toml "
+               "fixes:", findings,
+               f"the {figures.words(len(_FLOOR_SITES))} sites under tools/ that restate "
+               f"the interpreter floor spell ty.toml's {floor}")
