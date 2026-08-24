@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "trace_schema": 1,
   "members": [
     {
@@ -117,9 +117,9 @@
     {
       "name": "platform-scrub",
       "source": "platform-scrub.s",
-      "checks": 11,
-      "records": 361,
-      "digest": "68c0dad7fb375693"
+      "checks": 12,
+      "records": 1996,
+      "digest": "62a3e53a86244741"
     },
     {
       "name": "platform-memclass",
