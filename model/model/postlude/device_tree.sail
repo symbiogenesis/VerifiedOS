@@ -209,6 +209,18 @@ private function generate_dts_core_class_node(c : CoreClass) -> string = {
   ^ "      verifiedos,issue-width = <" ^ dec_str(d.issue_width) ^ ">;\n"
   ^ "      verifiedos,pipeline-depth = <" ^ dec_str(d.pipeline_depth) ^ ">;\n"
   ^ "      verifiedos,keccak-unit = <" ^ (if d.keccak_unit then "1" else "0") ^ ">;\n"
+  // The FEC decoders' realization geometry, which is a datapath figure of this
+  // class exactly as the matrix dimensions and the scratchpad size above are, so
+  // it lands here for the same reason (R-15-119a, R-09-007). The channel codes
+  // themselves are **not** here and their absence is the point: a code set is a
+  // selector into TS 38.212 that the composition declares and the validator
+  // refuses a wrong one, and R-09-007's enumeration of what this tree carries
+  // names core classes, islands, the NoC schedule, OPP tables, and radio
+  // calibration and limit values, none of which a code set is.
+  ^ "      verifiedos,fec-parallelism = <" ^ dec_str(d.fec_parallelism) ^ ">;\n"
+  ^ "      verifiedos,fec-max-block = <" ^ dec_str(d.fec_max_block) ^ ">;\n"
+  ^ "      verifiedos,fec-iterations = <" ^ dec_str(d.fec_iterations) ^ ">;\n"
+  ^ "      verifiedos,fec-polar-list = <" ^ dec_str(d.fec_polar_list) ^ ">;\n"
   ^ "      verifiedos,replicated = <" ^ (if d.replicated then "1" else "0") ^ ">;\n"
   ^ "    };\n"
 }

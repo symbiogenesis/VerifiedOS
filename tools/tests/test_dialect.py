@@ -73,6 +73,11 @@ _GOLDEN: Final[tuple[tuple[str, tuple[int, ...], int, int], ...]] = (
     ("cclear", (1, 0xFFFF), 0x0, 0xFFF00F8B),
     ("vmclear", (), 0x0, 0x0000100B),
     ("vkeccak.vi", (1, 2, 24), 0x0, 0x0181208B),
+    # The FEC pair shares `funct3` 100 and differs in `funct7` alone, which is
+    # what one row per code family rather than one `funct3` per family buys
+    # (R-15-119b). The two words below differ by exactly 1 << 25.
+    ("ldpcdec", (1, 2, 3), 0x0, 0x0031408B),
+    ("polardec", (1, 2, 3), 0x0, 0x0231408B),
     ("vsetvli", (1, 2, 0b00011011000), 0x0, 0x0D8170D7),
     ("vmv.v.i", (1, -16), 0x0, 0x5E0830D7),
     ("vmv.v.x", (1, 2), 0x0, 0x5E0140D7),
@@ -127,11 +132,12 @@ def _golden_covers_every_kind() -> None:
 
 
 def _row_count() -> None:
-    # 351 rows as of corpus version 6. A milestone adding mnemonics moves this
+    # 353 rows as of corpus version 7, the two above 351 being the FEC pair
+    # M0.8d books (R-15-119b). A milestone adding mnemonics moves this
     # legitimately: rerecord as len(dialect.TABLE) after reading the batch that
     # added them. What this pins is a row dropped by nobody's decision.
-    ensure(len(dialect.TABLE) == 351,
-           f"TABLE carries {len(dialect.TABLE)} rows, recorded 351")
+    ensure(len(dialect.TABLE) == 353,
+           f"TABLE carries {len(dialect.TABLE)} rows, recorded 353")
 
 
 def _operand_specs_dispatch() -> None:

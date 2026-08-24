@@ -269,6 +269,30 @@ extensions {
       extensions/keccak/keccak_insts.sail
   }
 
+  // The FEC decoders (isa-profile.md §3, R-15-119, R-15-119a, R-15-119b). It is
+  // its own group for the reason `keccak` is: no standards-track extension
+  // stands behind either mnemonic and there is none to re-pin to, so the surface
+  // is authored here rather than configured out of somebody else's. It requires
+  // no vector module at all: the decoders are core-issued against two explicit
+  // capability operands and touch no vector register and no vector CSR
+  // (R-15-118), so what they need is the memory path and nothing above it.
+  fec {
+    requires core
+
+    // The composition's code declaration is `before sys` for the reason every
+    // other `_types` module here is: `FecFamily` is an operand of a scattered
+    // union clause, so it has to exist before the union is declared.
+    fec_types {
+      before sys
+      files extensions/fec/fec_codes.sail
+    }
+
+    fec_insts {
+      requires exceptions, sys, fec_types
+      files extensions/fec/fec_insts.sail
+    }
+  }
+
   // Control and Status Register (CSR) Instructions
   Zicsr {
     requires core
@@ -323,7 +347,10 @@ extensions {
 postlude {
   after extensions, core
 
-  requires prelude, core, sys, exceptions
+  // `fec_types` is required rather than only ordered before this group because
+  // the validator refuses a composition's declared code set (R-15-119a), and a
+  // declaration the validator cannot see is a declaration nothing refuses.
+  requires prelude, core, sys, exceptions, fec_types
 
   files
     postlude/insts_end.sail,
@@ -343,7 +370,7 @@ postlude {
 unit_tests {
   after postlude
   requires prelude, core, sys, exceptions, postlude, I, CHERI, platform_insts, V_core,
-           V_instructions, keccak
+           V_instructions, keccak, fec_types, fec_insts
 
   files
     unit_tests/test_privilege.sail,
@@ -354,6 +381,7 @@ unit_tests {
     unit_tests/test_memory_model.sail,
     unit_tests/test_vector_cap.sail,
     unit_tests/test_keccak.sail,
+    unit_tests/test_fec.sail,
 }
 
 main {

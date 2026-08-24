@@ -19,14 +19,14 @@ a store-conditional, `Zalrsc` having gone with the reservation (R-15-025).
 **What is not here is as deliberate as what is.** The dictionary bundle format
 of §1.1 is a fetch container the model does not yet implement, so the image this
 encoder lays down is a stream of canonical 32-bit instructions, which is what
-the curated model fetches today. The matrix and FEC surface is absent, and
-neither is waiting on a datapath: the frozen profile books both as *units* and
-names no mnemonic, operand form or encoding for either, so there is nothing to
-transcribe and nothing enters by inheritance (R-15-007j). The matrix surface is
-a second-act item conditioned on R-15-116's sustained dense-GEMM margin
-(R-15-014a (ix)); the FEC surface is owed at the provisional freeze, its scope
-being categorical rather than measured (R-15-014b, R-15-119). A row here for
-either would be an encoding this table invented.
+the curated model fetches today. The **matrix** surface is absent, and it is not
+waiting on a datapath: the frozen profile books the unit and names no mnemonic,
+operand form or encoding for it, so there is nothing to transcribe and nothing
+enters by inheritance (R-15-007j); it is a second-act item conditioned on
+R-15-116's sustained dense-GEMM margin (R-15-014a (ix)), and a row here would be
+an encoding this table invented. The **FEC** surface is now booked and is below
+(R-15-119b), its scope being categorical rather than measured, which is why it
+was owed at the provisional freeze and not at that act (R-15-014b, R-15-119).
 
 **The vector rows are M0.8b's, and they are the memory surface and what feeds
 it** rather than the whole of RVV. The item that adds them is about the
@@ -720,6 +720,23 @@ def _rows() -> dict[str, tuple[str, Fields]]:
     # and store, is the V-class datapath's rather than this row's and is below,
     # among the rows M0.8b adds.
     add("vkeccak.vi", "vkeccak", funct3=0b010)
+
+    # --- The FEC decoders (R-15-119b) --------------------------------------
+    # `ldpcdec cd, cs1, rs2` and `polardec cd, cs1, rs2`. The two share
+    # `funct3` 100 and are separated by the code family in `funct7`, because two
+    # code families on one attachment are one instruction group and not two
+    # opcode rows: 101 and 110 stay unspent in custom-0 where a row apiece would
+    # have left one, and custom-1 and custom-3 stay whole (R-15-014a, R-15-067e).
+    #
+    # They take the plain R-type kind and that is the point rather than a
+    # shortcut: the surface adds no field layout at all. `cd` sits in the `rd`
+    # slot and is read as a *source*, which is what a three-register store has to
+    # do in this layout and is exactly what `csd` above does. The descriptor is
+    # an ordinary register, so what it holds is the machine's business and never
+    # this table's: nothing about a channel code reaches a field here, which is
+    # the invariance R-15-119a requires seen from the encoder's side.
+    add("ldpcdec", "r", funct7=0b0000000, funct3=0b100, op=CUSTOM_0)
+    add("polardec", "r", funct7=0b0000001, funct3=0b100, op=CUSTOM_0)
 
     # --- V: the vector memory surface, and the moves that feed it ----------
     # M0.8b's rows. `nf` here is the encoded three-bit field and not the segment
