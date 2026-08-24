@@ -85,6 +85,14 @@ type core_class_scratchpad = range(0, 4294967295)
 type core_class_issue      = range(0, 15)
 type core_class_depth      = range(0, 63)
 
+// The FEC decoders' realization geometry, which is **this machine's own** and
+// not the channel codes' (R-15-119a). Each bound is a width and none of them is
+// a value: what a composition may declare, never what it declares.
+type core_class_fec_lanes  = range(0, 255)
+type core_class_fec_block  = range(0, 65535)
+type core_class_fec_iters  = range(0, 255)
+type core_class_fec_list   = range(0, 255)
+
 // The roster's own widths. `core_hartid` is the value space R-15-052b makes a
 // composition-time constant, and `core_island` names the clock and power island
 // a core is bound to, the third thing the kernel reads out of `mhartid`.
@@ -132,6 +140,23 @@ type core_island = range(0, 255)
 //     vectorless sentinel or RoT (R-15-056, R-15-059). It is a class property
 //     because the unit is a datapath attachment, and the validator refuses it on
 //     a class that declares no vector geometry.
+//   - `fec_parallelism`, `fec_max_block`, `fec_iterations` and `fec_polar_list`.
+//     The FEC decoders' realization geometry, which R-15-119a sorts onto **this
+//     machine's** side of the parameter split and R-15-108's exploration selects
+//     like every other geometry it selects. The decoder parallelism, the maximum
+//     lifted block length the datapath is sized for in soft symbols, the
+//     deterministic iteration bound R-15-119 requires, and the successive-
+//     cancellation list width are here; the LDPC base graph and lifting size and
+//     the polar reliability sequence and rate-matching schedule are TS 38.212's
+//     and are declared where the codes are (extensions/fec/fec_codes.sail).
+//     Only the second of the four has a consumer, the refusal of a block longer
+//     than the datapath is sized for; the other three are declared for the
+//     reason `issue_width` and `pipeline_depth` are, a frozen parameter with
+//     nowhere to be written being a parameter the freeze records in prose alone.
+//     **The unit count is not among them and is not missing**: a class's FEC unit
+//     count is the number of its roster entries carrying `fec_units`, exactly as
+//     its core count is the number of its entries (R-15-113), and a declared
+//     count beside an enumeration is the same fact written twice.
 //   - `replicated`. The S class is one architectural core realized as a
 //     detection-only lockstepped pair, and **the core-class table carries
 //     replication for that row alone** (R-16-008d, R-16-008e). The comparator
@@ -161,6 +186,10 @@ struct CoreClassDatapath = {
   issue_width      : core_class_issue,
   pipeline_depth   : core_class_depth,
   keccak_unit      : bool,
+  fec_parallelism  : core_class_fec_lanes,
+  fec_max_block    : core_class_fec_block,
+  fec_iterations   : core_class_fec_iters,
+  fec_polar_list   : core_class_fec_list,
   replicated       : bool,
 }
 
@@ -278,6 +307,16 @@ function core_class_has_matrix(c : CoreClass) -> bool = {
   d.matrix_int8_dim > 0 | d.matrix_bf16_dim > 0
 }
 
+// A class declares an FEC geometry iff it declares any of its four fields, and
+// this is the one derived predicate that half of the table needs. It is stated
+// once for the reason `core_class_is_vector_bearing` is: the validator's
+// whole-or-nothing refusal and the vectorless refusal are two consumers of one
+// question (R-15-119a).
+function core_class_has_fec(c : CoreClass) -> bool = {
+  let d = core_class_datapath(c);
+  d.fec_parallelism > 0 | d.fec_max_block > 0 | d.fec_iterations > 0 | d.fec_polar_list > 0
+}
+
 // The composed roster. `platform.hartid` is an index into it rather than a value
 // beside it, which is what makes R-15-052b's reachable value space a
 // composition-time constant: a hart identity outside the roster is not a value
@@ -319,4 +358,24 @@ function core_roster_size(roster : list(CoreRosterEntry)) -> nat =
   match roster {
     [||]          => 0,
     _ :: rest     => 1 + core_roster_size(rest),
+  }
+
+// The FEC unit count, derived from the roster and declared nowhere, which is
+// R-15-113's rule for a count applied to the one geometry R-15-119a names that
+// is an enumeration rather than a width. The decoders follow the statically
+// pinned radio cores rather than the class (R-12-038), so the count is over
+// entries and the geometry above is over classes.
+function fec_unit_count(roster : list(CoreRosterEntry)) -> nat =
+  match roster {
+    [||]          => 0,
+    entry :: rest => (if entry.fec_units then 1 else 0) + fec_unit_count(rest),
+  }
+
+// Whether this hart carries the decoders. It is the whole of the FEC decode
+// surface's gate (extensions/fec/fec_insts.sail) and it is a **static** property
+// of the composed hart, which is what makes it the roster's and not the class's.
+function this_core_has_fec_units() -> bool =
+  match this_core_entry() {
+    Some(entry) => entry.fec_units,
+    None()      => false,
   }
