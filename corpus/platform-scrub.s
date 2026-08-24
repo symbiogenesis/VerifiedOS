@@ -25,6 +25,12 @@
 # it expects in `t5` and the trap value in `t6`, exactly as [cap-trap.s](cap-trap.s)
 # does.
 
+        # The one `vtype` this member configures, written as its fields the way
+        # [vector-geometry.s](vector-geometry.s) writes its own: `vma`, `vta`,
+        # `vsew` and `vlmul`, with SEW=64 and the LMUL that makes one access a
+        # group of eight registers, so four accesses are the whole file.
+        .equ    VTYPE_E64_M8, (0 << 7) | (0 << 6) | (3 << 3) | 3
+
         .text
         .globl _start
 _start:
@@ -140,13 +146,24 @@ _start:
         # extent this hart's class declares, and the matrix half is *nothing*,
         # an enumeration result rather than a residue, the unit holding no
         # architectural state of its own (vmclear.sail, R-15-117, R-15-118).
-        # What this member checks is the CSR half: `vcsr` is writable, so it can
-        # be dirtied and found clean afterwards, where the register file, `vl`
-        # and `vtype` are asserted against their reset values rather than
-        # against a configuration this program selected. The surface that would
-        # dirty those three arrived with M0.8b and the rewrite over it is owed
-        # (docs/differential-corpus.md §7). Reaching the CSR at all needs the
-        # extension-context gate on, which is the next check's whole point.
+        #
+        # **Every target is dirtied by the surface that owns it before the
+        # clear runs**, because a state held against its reset value is a weaker
+        # reading of the same clause: reset and the clear agree there by
+        # construction, so a clause that cleared nothing would pass. `vcsr` is
+        # dirtied by a CSR write, `vl` and `vtype` by the configuration
+        # instruction that is their only writer, and the register file by a
+        # vector load, which is the surface M0.8b supplies. Reaching any of them
+        # needs the extension-context gate on, which is the next check's whole
+        # point.
+        #
+        # **Every extent below is derived from `vlenb`**, the class table's
+        # vector length in bytes and the only figure from that table the
+        # instruction set carries (R-15-113), so nothing here is written against
+        # the class this emulator composes. At SEW=64 and LMUL=8 one access
+        # covers a group of eight registers, and `vl` times eight held against a
+        # group's bytes is what says it covers the whole group rather than a
+        # prefix of it.
         li      gp, 8
         li      t0, 0x200
         csrrs   zero, mstatus, t0
@@ -155,6 +172,55 @@ _start:
         csrr    t2, vcsr
         li      t3, 7
         bne     t2, t3, fail
+        csrr    s2, vlenb
+        vsetvli s3, zero, VTYPE_E64_M8
+        slli    t1, s3, 3
+        slli    t2, s2, 3
+        bne     t1, t2, fail
+
+        # A whole register file's worth of image, with the authority bounded to
+        # exactly that, so an access that ran past the file faults rather than
+        # reaching the datum beyond it.
+        li      t0, vregs
+        csetaddr c20, c8, t0
+        slli    t3, s2, 5
+        csetbounds c20, c20, t3
+
+        # The pattern reaches the file through memory rather than through a
+        # broadcast: one broadcast fills a group, four stores put that group
+        # under all four quarters of the image, and four loads bring it back
+        # into every one of the thirty-two registers. The image keeps the
+        # pattern afterwards, which is what check 11 reads the cleared file back
+        # over.
+        li      t0, 0x5a5a5a5a5a5a5a5a
+        vmv.v.x v0, t0
+        cmove   c21, c20
+        vse64.v v0, (c21)
+        cincoffset c21, c21, t2
+        vse64.v v0, (c21)
+        cincoffset c21, c21, t2
+        vse64.v v0, (c21)
+        cincoffset c21, c21, t2
+        vse64.v v0, (c21)
+        cmove   c21, c20
+        vle64.v v0, (c21)
+        cincoffset c21, c21, t2
+        vle64.v v8, (c21)
+        cincoffset c21, c21, t2
+        vle64.v v16, (c21)
+        cincoffset c21, c21, t2
+        vle64.v v24, (c21)
+
+        # `vmv.x.s` reads element zero of the register it names whatever `vl`
+        # and `vtype` say, so the last register of the last group is read back
+        # directly: nothing but the fourth load reaches v31. `vl` is a count and
+        # `vtype` a configuration rather than the `vill` the clear leaves.
+        vmv.x.s t1, v31
+        bne     t1, t0, fail
+        csrr    t2, vl
+        beqz    t2, fail
+        csrr    t2, vtype
+        bltz    t2, fail
 
         # **The clear does not ask the outgoing partition's permission.**
         # `mstatus.VS` gates every ordinary use of the vector unit, and the
@@ -163,6 +229,12 @@ _start:
         # off, and leave the switch's zeroize trapping on the residue it exists
         # to erase (R-07-014a, R-15-214). So the gate is the class and not the
         # context: the unit is unreachable here and the clear still runs.
+        #
+        # The CSR half is read back here and in the check below, ahead of the
+        # register file's, because reading the file back needs a configuration
+        # and the instruction that selects one is `vl`'s and `vtype`'s only
+        # writer: taken later, these two assertions would be about that
+        # instruction rather than about the clear.
         li      gp, 9
         li      t0, 0x600
         csrrc   zero, mstatus, t0
@@ -187,11 +259,42 @@ _start:
         csrr    t2, vtype
         bgez    t2, fail
 
+        # The register file is the largest member of the inventory and the one a
+        # program reads back only through memory. It is stored out under a
+        # configuration selected here rather than one that survived the clear,
+        # four group accesses covering all thirty-two registers, and over the
+        # image that still holds check 8's pattern: a register the clear missed
+        # and a store that never happened both read back as the pattern rather
+        # than as zero. The scan is every doubleword of the file and not a
+        # sample of it, its trip count derived from `vlenb` like every other
+        # extent here.
+        li      gp, 11
+        vsetvli s3, zero, VTYPE_E64_M8
+        slli    t2, s2, 3
+        cmove   c21, c20
+        vse64.v v0, (c21)
+        cincoffset c21, c21, t2
+        vse64.v v8, (c21)
+        cincoffset c21, c21, t2
+        vse64.v v16, (c21)
+        cincoffset c21, c21, t2
+        vse64.v v24, (c21)
+        cmove   c21, c20
+        slli    t3, s2, 2
+scan:
+        ld      t1, 0(c21)
+        bnez    t1, fail
+        cincoffsetimm c21, c21, 8
+        addi    t3, t3, -1
+        bnez    t3, scan
+
         # It disturbs nothing outside its own inventory: no integer register, no
         # capability register, and no memory. The switch that issues it has
         # already saved what it means to keep, and what this clears is exactly
-        # what it does not save (R-07-014a).
-        li      gp, 11
+        # what it does not save (R-07-014a). The datum below and the tag beside
+        # it are the ones checks 1 to 3 left, and no vector access above reaches
+        # them, the file's image being a region of its own.
+        li      gp, 12
         cgettag t2, c11
         li      t3, 1
         bne     t2, t3, fail
@@ -237,3 +340,11 @@ value:
         .space  64
 block:
         .space  128
+
+        # The vector register file's image. A register at the widest class the
+        # table declares is 512 bytes, so a whole file is 16 KiB and the
+        # reservation is that; what the program covers is the class it runs on,
+        # every extent of it derived from `vlenb`.
+        .align  6
+vregs:
+        .space  16384
