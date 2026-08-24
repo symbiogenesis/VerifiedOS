@@ -1575,6 +1575,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the cost of queued sweeps is delayed reclamation of the *requester's* quarantined memory, bounded by the composition-sized quarantine pool, never schedule perturbation of any hard task; retraction is the one trigger whose submitter need not hold the grant, so this entry does not price it and R-08-043f does.
 · Trace: CJ-WCET, CJ-ISOL
 
+**R-08-008a** IS: The sweep's economics rest on a rate no artifact has measured. That static composition holds kernel-mediated teardown, and with it the quarantine interval and the sweep work the R-08-007 background slot class is sized for, to a small share of the machine's memory traffic is what R-08-010's compiled heap, §10's GC-free storage and §16's crash-only explicit state are expected to buy, and it is carried as an expectation: no entry here states the rate, and the first artifact able to take it is the measured composed roster R-15-100b's static-code-overlay trigger already reads.
+· Accept: three clauses decide it, and it is met when all three hold. (1) The expectation is booked with its owner and its scope rather than absorbed into a guarantee, R-08-004c's shape applied to a rate instead of to a cost: it is stated as a premise at every site that argues from it, including the temporal-trade objection of [Evaluated Architectural Alternatives](architectural-alternatives.md), so a corpus sentence reading the rate as settled is a review-gate finding. (2) No bound reads the rate. Containment is R-08-006's epoch flip and waits on no sweep pass, and the answers to a higher rate are a wider R-08-007 slot class, a longer R-08-007a interval against a larger composition-sized quarantine pool, and a composition that does not fit at admission, each of them a slot or a byte R-08-045 already charges at composition; an entry making a §11 bound or a time-to-containment constant a function of the rate fails this clause. (3) The rate is not R-15-100b's A-16 trigger, which reads the cost of the load filter and the sweep rather than the traffic feeding them, so a measurement is an input to that judgment and neither fires it nor disturbs R-15-035.
+· Trace: CJ-WCET, CJ-MEMPLAN
+
 **R-08-009** MUST NOT: The autonomous background engines a CHERI microcontroller ships for this purpose (CHERIoT-Ibex TBRE revocation-sweep and STKZ stack-zeroing) are declined as autonomous memory-touching walkers under admission test 5; only the deterministic load filter is imported and the sweep stays software.
 · Accept: no engine walks memory on its own.
 · Trace: CJ-SAIL
@@ -5824,7 +5828,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1345 requirements. §19 is non-normative and yields none. Counts include the 393 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1346 requirements. §19 is non-normative and yields none. Counts include the 394 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5835,7 +5839,7 @@ All eighteen normative sections are extracted, at 1345 requirements. §19 is non
 | **§5 Languages & Verification** | **extracted** | **206** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **60** |
-| **§8 Authority Model** | **extracted** | **86** |
+| **§8 Authority Model** | **extracted** | **87** |
 | **§9 Boot & Root of Trust** | **extracted** | **40** |
 | **§10 Storage & State** | **extracted** | **53** |
 | **§11 Updates** | **extracted** | **37** |
