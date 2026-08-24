@@ -16,23 +16,28 @@ The reason is the one [THIRD-PARTY.md](../THIRD-PARTY.md) already turns on: a ve
 | --- | --- |
 | [synthesis-provenance.md](synthesis-provenance.md) | One row per claimed absence, naming what removes it in a build. R-15-103's second half, and the artifact rule K-76 holds against both the absence contract and the package below |
 | [vos_c_class_config_pkg.sv](vos_c_class_config_pkg.sv) | The curated C-class synthesis configuration: the record's parameter values, written as literals at the fields the imported core's own configuration record declares |
-| [vos_cheri_pkg.sv](vos_cheri_pkg.sv) | The frozen 64+1-bit capability format, authored against the Sail model |
+| [vos_cheri_pkg.sv](vos_cheri_pkg.sv) | The frozen 64+1-bit capability format and its algebra, authored against the Sail model |
+
+One instrument that reads this tree is deliberately not in it. The cross-check below drives the capability package from a SystemVerilog testbench that reads a file, which is a checking harness and not something this repository would synthesize, so it lives beside the tool that runs it in [tools/cheri-equiv/](../tools/cheri-equiv/).
 
 ## 3. What each has been held to, and what it has not
 
 Neither package is verified and neither claims to be. What has been run is stated per file so that a reader does not have to infer it:
 
 - **The configuration package elaborates.** The imported CHERI-CVA6 core builds under Verilator at this configuration with zero errors and zero warnings, and against the imported tree's own stock CHERI configuration it instantiates eleven fewer module kinds and adds none.
-- **The capability package lints.** It compiles clean under every warning a package can answer. Nothing instantiates it yet, so no elaboration reaches it and no simulation has ever run a line of it.
-- **Neither is checked against the model.** The Sail model is the definition, the RTL is the third implementation of it after the model and the emulator fork, and the instrument that decides agreement is the capability-widened commit trace of the co-simulation gate. Until that runs, every function in the capability package is a transcription owed a check.
+- **The capability package lints, and it runs.** It compiles clean under every warning a package can answer, and [`tools/rtl.py crosscheck`](../tools/rtl.py) builds it under Verilator behind a testbench that replays the model's own vectors, so the functions the vectors name are executed rather than merely compiled. Five are named by no vector, and each is a one-line wrapper over one that is: `set_cap_perms`, `clear_tag`, `clear_tag_if_sealed`, `get_cap_base` and `update_cap_with_integer_pc`. Nothing in the *design* instantiates the package at all, and no elaboration of a core reaches it.
+- **The capability package's declared parameters are held against the model, and its functions are held against the model's own answers.** Rule K-79 reads the frozen format out of `cap_format.sail` and `cap_common.sail` and holds every width, every derived figure and both packings against it, on the host, before anything is built. The cross-check decides the rest: the model is compiled with a generator that calls its capability functions and prints what they return, and this package has to reproduce every line, the vectors crossing as text so that no adapter sits between the two implementations. Two of its sweeps are exhaustive over their own domain rather than sampled, decode over the whole 19-bit bounds encoding and the narrowing search over every mask a permission bitmap can take.
+- **The configuration package is not checked against the model, and neither package is proved against it.** What a cross-check decides is agreement over the vectors it ran, which is a measurement. The Sail model is the definition, the RTL is the third implementation of it after the model and the emulator fork, and the instrument that decides agreement for a *core* is the capability-widened commit trace of the co-simulation gate. Until that runs, no claim here reaches past the format's own algebra.
 
 ## 4. What is owed
 
-The capability package carries the format, the permission lattice, the object-type space, encode and decode, the null transform across the memory interface, and the bounds decode. Three things it does not carry, each named because a reader should not have to discover the gap by looking for a function:
+The capability package carries the format, the permission lattice, the object-type space, encode and decode, the null transform across the memory interface, the bounds decode, the bounds construction `csetbounds` performs, the representable-limit comparison and the fast representability check, the address and offset setters that rest on it, the length, and the malformed predicate. What it does not carry is named here so that a reader does not have to discover a gap by looking for a function:
 
-- **`setCapBounds`**, the bounds construction. It is the largest single item of [the re-parameterization delta](../docs/rtl-reparameterization-delta.md) and the one function there that is a rewrite against the model rather than a re-parameterization of the imported source.
-- **The fast representability check**, and the address, offset and increment setters that rest on it.
-- **`getCapLength`**, which the imported source implements with a saturation its own comment calls short of being correct, and which the model states as a wrapping quantity with an assertion over it.
+- **No instruction and no datapath.** This is the format and its algebra; the unit that decodes an opcode into a call on one of these functions is the rest of R1's curation, along with the caches, the store buffer, the prediction rule and the platform devices.
+- **`CRAM`, `CRRL` and `CSetBoundsExact` are excluded at the architecture rather than owed here** (R-15-007k, R-08-011), so no representable-alignment mask is computed and none is returned. A reader looking for the rounding surface upstream returns should read that absence as a decision.
+- **`capToString` has no RTL reading.** It is the model's debug printer.
+- **`perms_count` has none either.** It is a helper inside the model's own narrowing search, and the search here counts with `$countones`.
+- **The model's three integer-valued accessors have no counterpart**, `getCapBounds`, `getCapTop` and `getCapOffset` being the unbounded-integer twins of `getCapBoundsBits`, `getCapTopBits` and `getCapOffsetBits`. Sail has an integer type and SystemVerilog does not, so the bits-valued form is the only one there is to write; a reader looking for the pair should read the singular as both.
 
 Beyond the format, four pieces of the curation are authoring work that no configuration parameter reaches, and [the provenance record's §4](synthesis-provenance.md#4-what-no-parameter-reaches-and-what-that-costs) is where they are booked: the flat-SRAM replacement for the two caches, the PMP wrapper shells, the capability-mode signals, and the static-only prediction rule.
 
@@ -41,6 +46,8 @@ Beyond the format, four pieces of the curation are authoring work that no config
 ```console
 $ python tools/rtl.py provenance                       # the record, parsed
 $ wsl -u root -e python3 tools/rtl.py lint             # the authored sources
+$ wsl -u root -e python3 tools/rtl.py vectors          # the model's own answers, as text
+$ wsl -u root -e python3 tools/rtl.py crosscheck       # and this package reproducing them
 $ wsl -u root -e python3 tools/rtl.py elaborate        # both configurations, diffed
 $ wsl -u root -e python3 tools/rtl.py elaborate --background
 $ wsl -u root -e python3 tools/rtl.py wait             # and its verdict when it lands
