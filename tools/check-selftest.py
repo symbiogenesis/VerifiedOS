@@ -548,6 +548,7 @@ BINDINGS = "docs/field-bindings.md"
 ABSENCE = "docs/absence-contract.md"
 CORPUS_DOC = "docs/differential-corpus.md"
 CONTRACT = "docs/freeze-measurement-contract.md"
+GEOMETRY = "docs/block-geometry-constraint.md"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1128,11 +1129,14 @@ def _case_mutation(rule: str) -> Mutation:
 # and the defect the repair lane seeds. The repair path is never exercised by a
 # green tree, so a branch missing here ships untested unless something breaks it on
 # purpose. Six seeds are the rules' own case mutants, each an arithmetic figure whose
-# repair writes the pristine bytes back. K-54's case cannot be the seventh: it moves the
-# granule owner, and repairing from a moved owner rewrites every derived figure to the
-# new granule and dirties co-read pairs no --fix may bless, so the after-check could
-# never pass. Its seed here moves one derived figure instead, in the exact document
-# bytes a case would anchor on, and the repair restores the tree it found.
+# repair writes the pristine bytes back. Two rules cannot ride their own case. K-54's
+# moves the granule owner, and repairing from a moved owner rewrites every derived
+# figure to the new granule and dirties co-read pairs no --fix may bless, so the
+# after-check could never pass. K-57's two both seed a site that is *not* repaired, one
+# under a `-text` tree and one the register's own normative statement, so neither would
+# reach a `fixed:` line. Each takes a seed here instead, moving one derived figure in
+# the exact document bytes a case would anchor on, and the repair restores the tree it
+# found.
 REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-24": ("cj-targets", _case_mutation("K-24")),
     "K-28": (f"Coverage {SEC}", _case_mutation("K-28")),
@@ -1142,6 +1146,9 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-54": ("the tag plane's", _literal(
         REGISTER, "granule is 15.6 MB per GB of data",
         "granule is 99.9 MB per GB of data")),
+    "K-57": ("the block-size ceiling", _literal(
+        GEOMETRY, "that is a ceiling of **512 bytes**",
+        "that is a ceiling of **256 bytes**")),
     "K-69": ("kernel-line-budget", _case_mutation("K-69")),
 }
 

@@ -212,6 +212,21 @@ PAYLOAD_RE = re.compile(r"data payload is (\d+) bits")
 # composition rendering wrong.
 BLOCK_CEILING_RE = re.compile(r"the block at most \*\*(\d+) bytes\*\*")
 
+# The constraint document's own statements of the figures this rule computes. The two
+# in §3 are held as whole sentences because each states its figure a second way, the
+# ceiling beside the granule it is taken at and the set in bytes and again in granules:
+# a repair that wrote one and left the other would leave the sentence describing a set
+# it no longer carries, which is the shape that keeps K-70 report-only. The two in the
+# constraint table stand alone in their own rows and are claims accordingly.
+BLOCK_CEILING_SENTENCE = (
+    r"At the (?P<granule>\d+)-byte granule R-15-203 fixes, that is a "
+    r"ceiling of \*\*(?P<ceiling>\d+) bytes\*\*")
+BLOCK_CANDIDATE_SENTENCE = (
+    r"\*\*the block is (?P<bytes>[\d, ]+or \d+) bytes\*\*, which is "
+    r"(?P<granules>[\d, ]+or \d+) granules")
+BLOCK_C3_CEILING = r"(?<=so the block is at most )\d+(?= bytes)"
+BLOCK_C5_CODEWORD = r"(?<=whole number of ECC codewords, )\d+(?= bytes at the payload)"
+
 # file, key, and the pattern capturing the stated figure alone. Each pattern holds
 # exactly one site in its own file, which a claim owes because a repair rewrites every
 # site the pattern matches.
@@ -575,31 +590,61 @@ def _tag_plane(ctx: Context) -> None:
                f"R-15-203 fixes and the {p}-bit payload R-15-181a fixes")
 
 
+def _series(values: list[int]) -> str:
+    """A set of candidates as the document writes one, not as a list repr.
+
+    A repair writes prose back into a sentence, so the spelling is the sentence's: the
+    members separated by commas with an `or` before the last, and no comma before it
+    where there are only two, which is the one place the pattern would otherwise put
+    one.
+    """
+    if len(values) == 2:
+        return f"{values[0]} or {values[1]}"
+    if len(values) < 2:
+        return ", ".join(str(v) for v in values)
+    return ", ".join(str(v) for v in values[:-1]) + f", or {values[-1]}"
+
+
 def _block_geometry(ctx: Context) -> None:
     """K-57: the welded block size, in every artifact that writes it.
 
-    Four instructions share one parameter, and it is written six times: twice in Sail,
-    twice in the model's configuration dialect, once as a literal in the model's own
-    harness, and once as the candidate set of the document that constrains it. The
-    assertions inside the model hold the first pair together at run time; nothing held
-    the harness's literal or the document's set against them, and a document stating a
-    figure nothing checks is worse than one that states none, because it reads as
-    checked.
+    Four instructions share one parameter, and it is written at four sites: the model's
+    declaration, the frozen profile's composition, the generated configurations'
+    template, and a literal in the model's own harness. The assertions inside the model
+    hold the declaration and the composition together at run time; nothing held the
+    template or the harness's literal against them, nor the set the document beside them
+    states, and a document stating a figure nothing checks is worse than one that states
+    none, because it reads as checked.
 
     The candidate set is recomputed rather than trusted, from the granule the model
-    declares and the ceiling an integer destination imposes, so a candidate row edited
-    in the document without its arithmetic is a finding. It is reported and never
-    repaired: four of the six sites are under a `-text` tree, where a rewrite risks the
-    line-ending sweep the tools' `newline=""` convention exists to prevent, and the
-    seventh thing this rule could touch, which value inside the set is taken, is
-    R-15-014a's second act rather than arithmetic.
+    declares and the codeword the payload gives, so a candidate row edited in the
+    document without its arithmetic is a finding.
+
+    **What is repaired and what is reported divides on the two grounds, and the two
+    grounds fall on different sides of it.** All four sites are under a `-text` tree,
+    where a rewrite risks the line-ending sweep the tools' `newline=""` convention
+    exists to prevent, so a site that disagrees is reported; and which value inside the
+    set is taken is R-15-014a's second act rather than arithmetic, so it is not this
+    rule's to write at all. Neither ground reaches the *document's* own figures: they
+    are arithmetic over the granule and the codeword, in a document git normalizes like
+    every other, so the ceiling, the candidate set, and the two constraint rows that
+    restate them are rewritten from the arithmetic under `--fix`. Two of the four are
+    repaired as whole sentences, because the prose beside each states its figure a second
+    way, the ceiling beside the granule it is taken at and the set in bytes and again in
+    granules: half a sentence rewritten leaves the other half describing a set it no
+    longer carries, which is the shape that keeps K-70 report-only. What the document
+    states from an operand this rule does not read stays a person's: R-15-181a's fallback
+    codeword and the halved floor it gives are stated in those same two places and held
+    by nothing.
 
     The ceiling has a ground as well as a value, and R-15-007q states both: the group
     comes back in one integer register, so the bound is that register's width times the
     granule. Holding the entry's number against the same arithmetic is what keeps the
     derivable half of the constraint from having its only normative statement be one a
-    later edit could move on its own. The value is the entry's and the arithmetic is
-    here, and neither rewrites the other.
+    later edit could move on its own. That one is reported and never repaired however
+    the document's copies are treated: the value is the entry's, the arithmetic is here,
+    and a repair rewriting the normative statement from the tool would delete the
+    decision instead of checking it.
     """
     rep, reg = ctx.rep, ctx.reg
     geo = geometry.read(ctx.root)
@@ -636,10 +681,27 @@ def _block_geometry(ctx: Context) -> None:
     ceiling = granule * 64                       # caps_per_block at most XLEN
     candidates = [b for e in range(13) if codeword <= (b := 1 << e) <= ceiling]
 
-    if geo.ceiling != ceiling:
-        findings.append(f"{geometry.DOCUMENT} states a ceiling of {geo.ceiling} bytes, "
-                        f"the {granule}-byte granule and an integer destination give "
-                        f"{ceiling}")
+    for pattern, want, what in (
+        (BLOCK_CEILING_SENTENCE,
+         {"granule": str(granule), "ceiling": str(ceiling)},
+         "the block-size ceiling"),
+        (BLOCK_CANDIDATE_SENTENCE,
+         {"bytes": _series(candidates),
+          "granules": _series([b // granule for b in candidates])},
+         "the block's candidate set"),
+    ):
+        sentence = figures.resolve_line(ctx, geometry.DOCUMENT, pattern, want, what)
+        findings += sentence.findings
+        for repaired in sentence.fixed:
+            rep.line(repaired)
+
+    for pattern, value, what in ((BLOCK_C3_CEILING, ceiling, "the C3 row's ceiling"),
+                                 (BLOCK_C5_CODEWORD, codeword, "the C5 row's codeword")):
+        row = figures.resolve_claim(ctx, geometry.DOCUMENT, pattern, str(value), what)
+        if row.fixed:
+            rep.line(row.fixed)
+        if row.finding:
+            findings.append(row.finding)
 
     stated = BLOCK_CEILING_RE.search(reg.accept_text.get("R-15-007q", ""))
     if stated is None:
@@ -650,12 +712,6 @@ def _block_geometry(ctx: Context) -> None:
         findings.append(f"R-15-007q states a ceiling of {stated.group(1)} bytes, the "
                         f"{granule}-byte granule and an integer destination give "
                         f"{ceiling}")
-
-    if geo.declared and geo.declared != candidates:
-        findings.append(f"{geometry.DOCUMENT} declares candidates {geo.declared}, the "
-                        f"constraints it states compound to {candidates}")
-    elif not geo.declared:
-        findings.append(f"{geometry.DOCUMENT} states no candidate set this rule reads")
 
     for site, exp in written.items():
         if (1 << exp) not in candidates:
