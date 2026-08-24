@@ -7,7 +7,3 @@ The simulator supports multiple test suites that are downloaded on-demand during
 - **RISC-V Vector Extension Tests** from the [`riscv-vector-tests`](https://github.com/chipsalliance/riscv-vector-tests) repository: Comprehensive vector extension tests enabled with CMake options like `-DENABLE_RISCV_VECTOR_TESTS_V256_E32=ON` for specific VLEN/ELEN configurations (supported combinations: V128_E32, V128_E64, V256_E32, V256_E64, V512_E32, V512_E64).
 
 - **RISC-V Architectural Certification Tests** from the [`riscv-arch-test`](https://github.com/riscv/riscv-arch-test) repository: Tests designed to certify that a design faithfully implements the RISC-V specification (can be enabled with `-DENABLE_RISCV_ARCH_TESTS=TRUE`).
-
-## Local Test Directory
-
-- `first_party` - tests specifically designed for this Sail model. These tests are not designed to test all the features of RISC-V. Rather they are for testing new code that we add, and bug fixes.
