@@ -1120,6 +1120,38 @@ CASES: list[Case] = [
     ("K-76", "a synthesis parameter the provenance record binds set to another value",
      _literal("rtl/vos_c_class_config_pkg.sv", "BHTEntries: unsigned'(0),",
               "BHTEntries: unsigned'(1),")),
+
+    # The contract's own last CI predicate is renumbered and the analyzer is left, which
+    # is the direction the defect arrives from and the one that fires both halves of the
+    # rule at once: the contract states a predicate no function can make, and the
+    # analyzer carries a function no predicate asks for. A renumbering is chosen over an
+    # insertion because it moves no count anywhere, so the table keeps its width, the row
+    # keeps its governing citation, and every other rule that reads this document reads
+    # the edit as no edit at all. It is the gate's own membership rather than the
+    # corpus's or the decisions' because a predicate is the one enumeration here whose
+    # member is a body of code, so a member nobody wrote is a rejection nobody can make.
+    ("K-77", "a CI predicate the freeze contract states and its analyzer cannot make",
+     _literal(CONTRACT, "| `G-12` | a threshold value in the report",
+              "| `G-13` | a threshold value in the report")),
+
+    # One rule gets one case, and this rule gets three, because two of its pairs are
+    # relations rather than memberships and neither is reached by the case above: with
+    # either relation deleted from the comparison the mutant above is still killed, so a
+    # rule narrowed to its enumerations would pass its own selftest. A member's Feeds
+    # cell is what a real edit moves, an instrument gaining a decision over a corpus §2
+    # sends elsewhere being the shape a copied column takes.
+    ("K-77", "a corpus member the freeze contract sends to fewer decisions than its "
+             "analyzer measures over it",
+     _literal(CONTRACT, "| FD-5, FD-7 |", "| FD-5 |")),
+
+    # The other relation, seeded on the document side for the same reason: §6 states in
+    # each decision's own section which materiality floor it spends, and §8's table
+    # collects the values, so a set comparison over §8's keys passes a decision spending
+    # the 0.5% opcode floor where the contract puts the 0.1% one.
+    ("K-77", "a decision spending a materiality floor its own section does not name",
+     _literal(CONTRACT,
+              "**Threshold, declared: T-form**, the instruction being admitted",
+              "**Threshold, declared: T-enc**, the instruction being admitted")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
