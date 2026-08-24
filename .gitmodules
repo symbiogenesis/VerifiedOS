@@ -28,3 +28,9 @@
 [submodule "upstream/cheriot-ibex"]
 	path = upstream/cheriot-ibex
 	url = https://github.com/microsoft/cheriot-ibex
+[submodule "upstream/cheri-compressed-cap"]
+	path = upstream/cheri-compressed-cap
+	url = https://github.com/CTSRD-CHERI/cheri-compressed-cap
+[submodule "upstream/qemu"]
+	path = upstream/qemu
+	url = https://github.com/CTSRD-CHERI/qemu
