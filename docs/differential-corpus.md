@@ -14,7 +14,7 @@ It exists **now**, ahead of both of those executors, because the corpus is the m
 
 ## 1. What the corpus is
 
-Twenty-five purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model, the profile rows M0.6g and M0.6h add that no upstream model carries, the memory plan M0.14 and M0.16 put beneath all of it, the memory model M0.7 states over it, the core-class roster M0.8a indexes `mhartid` into, the vector memory surface M0.8b puts the per-element capability check on, and the frozen Keccak unit M0.8d attaches to the classes that roster names.
+Twenty-six purecap programs, hand-written in the frozen dialect, each running to a defined end on the curated Sail emulator and reporting through HTIF. Together they exercise the base ISA, the adopted extensions, the capability surface the M0.6e transplant and the M0.6f re-parameterization put in the model, the profile rows M0.6g and M0.6h add that no upstream model carries, the memory plan M0.14 and M0.16 put beneath all of it, the memory model M0.7 states over it, the core-class roster M0.8a indexes `mhartid` into, the vector memory surface M0.8b puts the per-element capability check on, and the frozen Keccak unit M0.8d attaches to the classes that roster names.
 
 | Member | What it exercises |
 | --- | --- |
