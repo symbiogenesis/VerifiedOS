@@ -191,6 +191,14 @@ def run(ctx: Context) -> None:
         "dominant terms read from the big table": len(sh.get("ends", [])),
         "differential corpus members": len(sh.get("corpus_members", [])),
         "files that must carry a license mark": len(sh.get("markable", [])),
+        # Two rather than one, on the pair K-76 states above: K-81 holds a record of
+        # pins against the index that owns them and then holds every restatement
+        # against that record, so a record whose table this rule can no longer read
+        # leaves it reporting that every pin of none agrees, and a repository that
+        # has stopped restating any leaves the second half deciding nothing while
+        # the first still passes.
+        "upstream pins the licence record states": sh.get("record_pins", 0),
+        "sites restating an upstream pin": sh.get("pin_restatements", 0),
     }
     ctx.floors = floors
     rep.report("K-47", "enumeration(s) the tool reads and finds empty:",
