@@ -12,6 +12,7 @@
 | [docs/implementation-checklist.md](docs/implementation-checklist.md) | Build order, milestones, estimates, and execution state |
 | [docs/absence-contract.md](docs/absence-contract.md) | What an auditor searches for and must not find |
 | [model/](model/) | The curated Sail model |
+| [rtl/](rtl/) | The RTL this repository authored, and the record binding each claimed absence to a build |
 | [tools/](tools/) | Every checker and build loop, and [tools/README.md](tools/README.md) states their own rules |
 | [THIRD-PARTY.md](THIRD-PARTY.md) | Which upstreams are pinned and which are vendored |
 
@@ -37,6 +38,10 @@
 
 **[model/](model/) is `-text` in [.gitattributes](.gitattributes)**, so git stores its line endings verbatim instead of normalizing them, and any tool that writes CRLF rewrites every line of the file it touched. Two do it silently: PowerShell's `Set-Content -Value <array>`, where the fix is `[System.IO.File]::WriteAllText` or `-NoNewline` on a `-Raw` string, and a plain `git archive` when vendoring, which honours `core.autocrlf` and so wants `git -c core.autocrlf=false archive`. The tree is vendored byte-identically from its upstream pin, so a swept file hides the real diff of a curation batch and breaks the line counts that batch reports as its evidence. After any scripted edit, check `git diff --stat` against the number of lines the edit meant to touch.
 
+## Before editing the RTL tree
+
+**[rtl/](rtl/) holds only files this repository authored**, and an imported core is reached through its gitlink under `upstream/` rather than copied in. It takes the repository's default line endings and **not** `model/`'s verbatim rule, for the reason stated at that rule in [.gitattributes](.gitattributes): there is no upstream here to stay byte-identical to. **A synthesis parameter is stated twice on purpose**, once in [the provenance record](rtl/synthesis-provenance.md) with the absence it removes and once in the configuration package as a literal at its field, and rule K-76 holds the two together with the absence contract; changing one alone is a finding, which is what makes the record a binding rather than a description.
+
 ## Running the tools
 
 There is no CI in this repository. Nothing runs these but you, by hand, before anything lands.
@@ -49,7 +54,11 @@ $ python tools/check-selftest.py              # one alone, after touching the ch
 $ python tools/typecheck.py                   # one alone, after touching any Python
 $ python tools/co-read.py --show R-15-073c    # a pair K-61 says is owed a reading
 $ python tools/test.py                        # after changing what any tool does
+$ python tools/rtl.py provenance              # the absences, and what binds each
 
+$ wsl -u root -e python3 tools/rtl.py lint    # the authored RTL, alone
+$ wsl -u root -e python3 tools/rtl.py elaborate --background
+$ wsl -u root -e python3 tools/rtl.py wait    # and the module set it removed
 $ wsl -u root -e python3 tools/model.py typecheck
 $ wsl -u root -e python3 tools/model.py build
 $ wsl -u root -e python3 tools/proof-gate.py

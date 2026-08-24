@@ -22,6 +22,7 @@ books it, so that column's claim has a membership question behind it.
 import re
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
+from vos import provenance
 from vos.register import REQ_TOKEN_RE
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -151,6 +152,75 @@ def _discharge(lines: list[str], cells: dict[str, str]) -> tuple[list[str], int,
     return vocab, residual, gaps
 
 
+ABSENCE_CONTRACT = "docs/absence-contract.md"
+_ABSENCE_ID_RE = re.compile(r"\*\*(A-\d+[a-z]?)\*\*")
+
+
+def _provenance(ctx: Context) -> list[str]:
+    """Every absence bound to a build, and every binding the package states.
+
+    The absence contract enumerates structures whose absence is claimed and
+    R-15-103 requires the imported-core half of it to be discharged by a state
+    enumeration *plus* the synthesis-configuration provenance, "so the absence is
+    bound to a build, not to a reading". Nothing owned that second half. A
+    parameter set written into a checklist cell is prose: it reads exactly the
+    same the day the configuration moves under it, and the cell goes on saying
+    which parameters take which absence long after one of them has stopped.
+
+    Three directions, because the record can fail in three different ways and
+    each is a different repair. An absence the record does not carry is claimed
+    and bound to nothing. A row naming an identifier the contract does not
+    declare is a binding for an absence nobody claims, which is the shape a
+    renumbering leaves. And a setting the configuration package does not state at
+    that value is a record describing a build that is not this one, which is the
+    failure the whole instrument exists to prevent and the only one of the three
+    that a reader of either file alone cannot see.
+
+    Fail-closed on the reading. An absent record, an absent configuration package
+    and a contract this rule can find no identifiers in are each one finding
+    rather than a comparison quietly made against nothing.
+    """
+    record = provenance.read(ctx.root)
+    contract = ctx.text(ABSENCE_CONTRACT)
+    declared = dict.fromkeys(_ABSENCE_ID_RE.findall(contract))
+    ctx.shared["absence_ids"] = len(declared)
+    ctx.shared["provenance_rows"] = len(record.rows)
+
+    if not record.present:
+        return [f"{provenance.RECORD} is not in the repository, so no absence is "
+                "bound to a build and R-15-103's provenance half is discharged by "
+                "nothing"]
+    if not declared:
+        return [f"{ABSENCE_CONTRACT} declares no absence this rule can find, so the "
+                "record is held against nothing"]
+
+    stated = dict.fromkeys(provenance.stated_ids(record))
+    gaps = [f"{ident} is claimed by the contract and the record binds it to nothing"
+            for ident in declared if ident not in stated]
+    gaps += [f"{ident} is bound by the record and the contract declares no such "
+             "absence" for ident in stated if ident not in declared]
+    gaps += [f"{row.subject} states a binding that is neither a setting nor `n/a` "
+             "with a ground, so what removes it is not written down"
+             for row in record.rows if not row.is_bound]
+
+    config = ctx.root / provenance.CONFIG
+    if not config.is_file():
+        return [*gaps, f"{provenance.CONFIG} is not in the repository, so no setting "
+                       "the record names is held against the build that takes it"]
+
+    text = config.read_text(encoding="utf-8")
+    for subject, name, value in record.settings:
+        found = provenance.config_values(text, name)
+        if found is None:
+            gaps.append(f"{subject} binds `{name}`, which {provenance.CONFIG} does "
+                        "not state")
+        elif found != (int(value),):
+            gaps.append(f"{subject} binds `{name} = {value}` and "
+                        f"{provenance.CONFIG} states it as "
+                        f"{', '.join(str(v) for v in found) or 'no literal'}")
+    return gaps
+
+
 def run(ctx: Context) -> None:
     rep, reg, art, corpus = ctx.rep, ctx.reg, ctx.art, ctx.corpus
     ctx.views = VIEWS
@@ -229,4 +299,16 @@ def run(ctx: Context) -> None:
             rep.report("K-17", "CJ- target(s) unaccounted for:",
                        [t for t in reg.cj_targets if t.lower() not in lowered],
                        f"all {len(reg.cj_targets)} CJ- targets accounted for", "  ")
+
+    # The absence contract is the one view whose discharge has a second half living
+    # outside the document corpus: a configuration that takes each absence in a
+    # build. The record binding the two is held here rather than in a group of its
+    # own, because what it is held against is this view's own enumeration.
+    gaps = _provenance(ctx)
+    rep.report("K-76", "absence(s) bound to nothing, or bound to a build that is "
+               "not this one:", gaps,
+               f"all {ctx.shared.get('absence_ids', 0)} absences the contract "
+               f"enumerates are bound by the provenance record's "
+               f"{ctx.shared.get('provenance_rows', 0)} rows, and every setting "
+               "they name is the one the configuration package states")
     rep.line()
