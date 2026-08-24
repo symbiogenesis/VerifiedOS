@@ -141,6 +141,8 @@ UNREAD_PREFIX = "model/"
 # as a bad mutant. One list, read by the sandbox and by the parses alike.
 MODEL_FACTS = (
     "model/model/core/cap_format.sail",
+    "model/model/core/cap_common.sail",
+    "model/model/core/xlen.sail",
     "model/model/core/timing.sail",
     "model/model/unit_tests/test_cheri_insts.sail",
     "model/config/verifiedos.json",

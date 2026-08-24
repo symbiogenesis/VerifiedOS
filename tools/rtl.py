@@ -1,37 +1,54 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The RTL lane: the authored sources, and the elaboration the absence contract wants.
+"""The RTL lane: the authored sources, the cross-check against the model, and the
+elaboration the absence contract wants.
 
-Three loops, and the first two answer on the host:
+Five loops, and the first answers on the host:
 
     provenance  instant  the synthesis-configuration record, parsed and printed
     lint        ~1 s     Verilator over the authored sources in rtl/, alone
+    vectors     ~2 min   the model's own answers about the capability format, as text
+    crosscheck  ~2 min   and the authored package required to reproduce every line
     elaborate   ~2 min   the imported core at the curated configuration and at the
                          stock CHERI one, and the difference between the two
 
-`elaborate` is the one that matters and it is the imported-core half of the absence
-contract's day-one procedure: elaborate the core at its intended synthesis
-configuration, enumerate what the elaborator instantiated, and hold that against the
-stock configuration so that every structure the disabling parameters remove is named
-rather than asserted. What it prints is what the elaborator reports; what removes each
-structure is [rtl/synthesis-provenance.md](../rtl/synthesis-provenance.md)'s to say, and
-rule K-76 holds the record against the configuration package so the two cannot drift.
+`elaborate` is the imported-core half of the absence contract's day-one procedure:
+elaborate the core at its intended synthesis configuration, enumerate what the
+elaborator instantiated, and hold that against the stock configuration so that every
+structure the disabling parameters remove is named rather than asserted. What it prints
+is what the elaborator reports; what removes each structure is
+[rtl/synthesis-provenance.md](../rtl/synthesis-provenance.md)'s to say, and rule K-76
+holds the record against the configuration package so the two cannot drift.
+
+`crosscheck` is the other half of the same discipline pointed at the authored package
+rather than at the imported core, and its method is M2.1's rather than a new one: the
+curated model's own `prelude`, `core/xlen.sail`, `core/cap_format.sail` and
+`core/cap_common.sail` are compiled together with a generator that calls those
+functions and prints what they return, and the SystemVerilog is required to reproduce
+every line. The vectors cross as **text**, so no adapter sits between the two
+implementations, neither is compiled against the other's types, and a disagreement
+names a line a person can read on both sides. What it decides is agreement over the
+vectors it emitted; it is not the co-simulation gate, which is R2's and runs a core.
 
 **Nothing here is copied out of an imported tree.** `rtl/` holds files this repository
 authored and the imported sources are reached through the gitlinks under `upstream/`,
 so this tool composes a file list across the two rather than a vendored tree.
 
-The last two run inside WSL, where Verilator lives:
+The last four run inside WSL, where Verilator and the Sail toolchain live:
 
     python tools/rtl.py provenance
     wsl -u root -e python3 tools/rtl.py lint
+    wsl -u root -e python3 tools/rtl.py vectors
+    wsl -u root -e python3 tools/rtl.py crosscheck
     wsl -u root -e python3 tools/rtl.py elaborate --background
     wsl -u root -e python3 tools/rtl.py wait
 
 `elaborate` writes its whole run to a log and prints only where the log is, and the last
 line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a
 sleep. Its lane is the one `vos/env.py` derives from the checkout, so two worktrees
-elaborating at once write two logs and share no working directory.
+elaborating at once write two logs and share no working directory; `vectors` and
+`crosscheck` take a lane directory of their own for the same reason, a 60 MB vector
+file being exactly the kind of artifact two checkouts must not share.
 """
 
 import argparse
@@ -40,6 +57,7 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Callable
+from itertools import zip_longest
 from pathlib import Path
 
 # The tools import `vos` without being installed, so each puts its own directory on
@@ -68,6 +86,55 @@ VERILATOR_HOW = "apt-get install verilator on Ubuntu 26.04"
 AUTHORED: tuple[str, ...] = (
     "rtl/vos_cheri_pkg.sv",
 )
+
+# The cross-check's two halves. The generator is Sail because it has to call the
+# model's own functions, and the harness is SystemVerilog because it has to call the
+# package's; neither is a translation of the other and the only thing they share is
+# the line format each states in its own header.
+GENERATOR = "tools/cheri-equiv/gen_vectors.sail"
+HARNESS = "tools/cheri-equiv/vos_cheri_vectors_tb.sv"
+HARNESS_TOP = "vos_cheri_vectors_tb"
+
+# The model files the generator is compiled against, in dependency order. Named
+# rather than taken from the model's own project file, because what is wanted here is
+# the capability format and its algebra alone: pulling the whole model in would
+# compile the decode surface, the CSR file and the memory interface to print a bounds
+# decode, and would make this loop fail for reasons that are not about the format.
+MODEL_SOURCES: tuple[str, ...] = (
+    "model/model/prelude/prelude.sail",
+    "model/model/prelude/errors.sail",
+    "model/model/core/xlen.sail",
+    "model/model/core/cap_format.sail",
+    "model/model/core/cap_common.sail",
+)
+
+# Sail's own C runtime, named rather than globbed for the reason PRIM_PACKAGES is:
+# a runtime file arriving under a new name should be a failed build with a message
+# and not a silent change of what was linked.
+SAIL_RUNTIME: tuple[str, ...] = (
+    "sail.c", "rts.c", "elf.c", "sail_failure.c", "cJSON.c", "sail_config.c",
+)
+
+# The two texts a run compares, in the lane's own working directory. Their names are
+# fixed rather than passed, because the harness has to open them from inside
+# SystemVerilog and a plus-argument would be one more thing to keep spelled alike at
+# both ends.
+VECTORS = "vectors.txt"
+REPLAY = "replay.txt"
+
+# How many disagreements a run prints before it stops printing them. A defect in a
+# shared term disagrees on tens of thousands of lines and the first few say what it
+# is; the count is what says how far it reaches.
+SHOWN = 8
+
+# `<kind> <inputs> -> <outputs>`, and the kind is the first token. Read here so that
+# the per-kind census a run prints comes from the file rather than from a list this
+# tool would have to keep in step with the generator.
+KIND_RE = re.compile(r"^([a-z]+) ")
+
+# The harness's own count of the vectors it could not place, read out of what it
+# printed. Fail-closed: a line this cannot find is a refusal rather than a zero.
+UNHANDLED_RE = re.compile(r"(\d+) of an unknown kind")
 
 # The imported core, reached through its gitlink and never copied.
 CORE = "upstream/cva6-cheri"
@@ -225,6 +292,296 @@ def cmd_lint(args: argparse.Namespace) -> int:
     return 0
 
 
+def _equiv_dir(e: env.Environment) -> Path:
+    """Where this lane builds and runs the cross-check.
+
+    Under the lane root and never in the checkout: the two texts a run produces are
+    tens of megabytes apiece, they are derived from the checkout rather than part of
+    it, and two worktrees running at once must not write one file.
+    """
+    work = e.lane_root / "cheri-equiv"
+    work.mkdir(parents=True, exist_ok=True)
+    return work
+
+
+def _require(name: str, how: str, out: list[str]) -> str | None:
+    """One prerequisite, refused by name rather than by the error its absence
+    produces three commands later."""
+    found = shutil.which(name)
+    if found is None:
+        out.append(f"FAIL {name} is not on PATH; {how}")
+        return None
+    return found
+
+
+def _sail_lib(sail: str) -> Path:
+    """Sail's own library directory, asked of Sail rather than derived from a switch
+    name, so that a re-installed toolchain moves this without an edit."""
+    done = subprocess.run([sail, "--dir"], capture_output=True, encoding="utf-8",
+                          errors="replace", check=False)
+    return Path(done.stdout.strip()) / "lib"
+
+
+def _build_generator(root: Path, work: Path, out: list[str]) -> Path | None:
+    """Compile the model's capability format together with the generator, and hand
+    back the executable that prints the vectors.
+
+    Two steps and both are named in the output, because they fail differently: Sail
+    typechecks the model and emits C, and the C compiler links that against Sail's own
+    runtime. A model file that has moved fails the first with a Sail error naming it;
+    an absent GMP fails the second.
+    """
+    sail = _require("sail", "the Sail toolchain lives in the opam `default` switch, "
+                            "which `vos/env.py` puts on PATH", out)
+    if sail is None:
+        return None
+    compiler = shutil.which("cc") or shutil.which("gcc")
+    if compiler is None:
+        out.append("FAIL neither cc nor gcc is on PATH, so the emitted C cannot be "
+                   "compiled")
+        return None
+
+    sources = [root / s for s in (*MODEL_SOURCES, GENERATOR)]
+    missing = [str(s) for s in sources if not s.is_file()]
+    if missing:
+        out.extend(f"FAIL {s} is not in the repository" for s in missing)
+        return None
+
+    emitted = work / "gen.c"
+    # Deliberately without `--c-no-mangle`. Readable names would be pleasant and are
+    # not worth the collision: the model's own `bit_to_bool` is the name Sail's C
+    # runtime already gives a static inline, so an unmangled emission that reaches it
+    # fails to compile on a redefinition several hundred lines from anything a reader
+    # of this tool wrote.
+    done = subprocess.run([sail, "-c", "-o", "gen", *[str(s) for s in sources]],
+                          capture_output=True, encoding="utf-8", errors="replace",
+                          check=False, cwd=work)
+    if done.returncode != 0 or not emitted.is_file():
+        out.append(done.stdout + done.stderr)
+        out.append("FAIL sail did not emit C for the generator")
+        return None
+
+    lib = _sail_lib(sail)
+    runtime = [lib / name for name in SAIL_RUNTIME]
+    absent = [str(p) for p in runtime if not p.is_file()]
+    if absent:
+        out.extend(f"FAIL {p} is not in Sail's library directory" for p in absent)
+        return None
+
+    binary = work / "gen"
+    done = subprocess.run([compiler, "-O2", "-o", str(binary), str(emitted),
+                           *[str(p) for p in runtime], "-I", str(lib), "-lgmp", "-lm"],
+                          capture_output=True, encoding="utf-8", errors="replace",
+                          check=False, cwd=work)
+    if done.returncode != 0:
+        out.append(done.stdout + done.stderr)
+        out.append("FAIL the emitted C did not compile against Sail's runtime")
+        return None
+    return binary
+
+
+def _census(path: Path) -> tuple[dict[str, int], int, int]:
+    """What one vector file holds: how many of each kind, how many vectors, and how
+    many lines that are commentary rather than vectors.
+
+    The kinds are read out of the file rather than declared here, so a kind the
+    generator adds is counted the day it is added.
+    """
+    kinds: dict[str, int] = {}
+    vectors = 0
+    other = 0
+    with path.open(encoding="utf-8", errors="replace", newline="") as handle:
+        for line in handle:
+            found = KIND_RE.match(line)
+            if found is None:
+                other += 1
+                continue
+            kinds[found.group(1)] = kinds.get(found.group(1), 0) + 1
+            vectors += 1
+    return kinds, vectors, other
+
+
+def cmd_vectors(args: argparse.Namespace) -> int:
+    """The model's own answers about the capability format, written out as text.
+
+    Every value the file carries is the model's. Nothing here decides what is right;
+    what it decides is what the definition returns for a stated set of inputs, which
+    is the thing the other implementation is then held to.
+    """
+    del args
+    e = env.load()
+    root = find_root()
+    work = _equiv_dir(e)
+    out: list[str] = []
+
+    binary = _build_generator(root, work, out)
+    if binary is None:
+        print("\n".join(out))
+        return 1
+
+    vectors = work / VECTORS
+    with vectors.open("wb") as handle:
+        done = subprocess.run([str(binary)], stdout=handle, stderr=subprocess.PIPE,
+                              check=False, cwd=work)
+    if done.returncode != 0:
+        print((done.stderr or b"").decode("utf-8", "replace"))
+        print(f"FAIL the generator exited {done.returncode}")
+        return 1
+
+    kinds, total, other = _census(vectors)
+    out.append(f"== {vectors}")
+    out.append(f"   {total} vector(s) over {len(kinds)} kind(s), and {other} "
+               "commentary line(s)")
+    out.extend(f"     {kind:<4} {count}" for kind, count in sorted(kinds.items()))
+    out.append(f"ok the model emitted {total} vectors from {len(MODEL_SOURCES)} of "
+               "its own sources")
+    print("\n".join(out))
+    return 0
+
+
+def _compare(want: Path, got: Path) -> tuple[list[str], int, int, int]:
+    """The two texts, line against line: what disagrees, how much, and how long each
+    file is.
+
+    Streamed rather than read whole, the pair being over a hundred megabytes together,
+    and compared on the raw line so that a trailing-whitespace difference is a
+    disagreement rather than something a strip would hide.
+    """
+    shown: list[str] = []
+    bad = 0
+    n_want = 0
+    n_got = 0
+    with (want.open(encoding="utf-8", errors="replace", newline="") as a,
+          got.open(encoding="utf-8", errors="replace", newline="") as b):
+        # zip_longest rather than zip, so that a file which stops early is a run of
+        # disagreements at the line it stopped on rather than a comparison that
+        # quietly ends there and reports the prefix green.
+        for n, (left, right) in enumerate(zip_longest(a, b), start=1):
+            if left is not None:
+                n_want = n
+            if right is not None:
+                n_got = n
+            if left == right:
+                continue
+            bad += 1
+            if len(shown) < SHOWN * 2:
+                gone = "<no line>"
+                shown.append(f"line {n} model: "
+                             f"{gone if left is None else left.rstrip()}")
+                shown.append(f"line {n} rtl:   "
+                             f"{gone if right is None else right.rstrip()}")
+    if n_want != n_got:
+        shown.append(f"the model wrote {n_want} line(s) and the replay wrote {n_got}, "
+                     "so one implementation stopped before the other")
+    return shown, bad, n_want, n_got
+
+
+def _unhandled(said: str) -> int:
+    """How many vectors the harness could not place, out of what it printed.
+
+    `-1` where the harness said nothing this can read, which is a refusal and not a
+    zero: the figure is the one thing a text comparison cannot decide for itself, so
+    a run that cannot read it has to fail rather than assume the good case.
+    """
+    found = UNHANDLED_RE.search(said)
+    return int(found.group(1)) if found else -1
+
+
+def cmd_crosscheck(args: argparse.Namespace) -> int:
+    """The authored package against the model, over the model's own vectors.
+
+    The verdict is a text comparison and nothing else: the harness reformats each
+    input from the value it parsed and prints the answers the package computed, so a
+    line that differs differs in a field a person can name. What a green run decides
+    is agreement over these vectors, which is a measurement and not a proof, and what
+    it does not decide is whether the vectors reach the case that matters.
+    """
+    e = env.load()
+    root = find_root()
+    work = _equiv_dir(e)
+    out: list[str] = []
+
+    binary = _require("verilator", VERILATOR_HOW, out)
+    if binary is None:
+        print("\n".join(out))
+        return 1
+    version = _verilator_version(binary)
+    if version != VERILATOR_PIN:
+        print(f"FAIL verilator is {version} where this lane pins {VERILATOR_PIN}; a "
+              "version other than the pin is a finding")
+        return 1
+
+    vectors = work / VECTORS
+    if args.reuse:
+        if not vectors.is_file():
+            print(f"FAIL --reuse was given and there is no {vectors} to reuse")
+            return 1
+    else:
+        code = cmd_vectors(args)
+        if code != 0:
+            return code
+
+    sources = [root / s for s in (*AUTHORED, HARNESS)]
+    missing = [str(s) for s in sources if not s.is_file()]
+    if missing:
+        print("\n".join(f"FAIL {s} is not in the repository" for s in missing))
+        return 1
+
+    argv = [binary, "--binary", "--timescale", "1ns/1ps", "-Wall",
+            "-Wno-UNUSEDPARAM", "-Wno-UNUSEDSIGNAL", "-O2",
+            "--Mdir", str(work / "obj_dir"), "-o", "replay",
+            "--top-module", HARNESS_TOP, *[str(s) for s in sources]]
+    done = subprocess.run(argv, capture_output=True, encoding="utf-8",
+                          errors="replace", check=False, cwd=work)
+    if done.returncode != 0:
+        print(done.stdout + done.stderr)
+        print("FAIL the harness did not build")
+        return 1
+
+    replay = work / REPLAY
+    replay.unlink(missing_ok=True)
+    done = subprocess.run([str(work / "obj_dir" / "replay")], capture_output=True,
+                          encoding="utf-8", errors="replace", check=False, cwd=work)
+    if done.returncode != 0 or not replay.is_file():
+        print(done.stdout + done.stderr)
+        print("FAIL the harness did not replay the vectors")
+        return 1
+    said = [line for line in (done.stdout + done.stderr).splitlines()
+            if line.startswith(("replayed", "FAIL"))]
+
+    # The one thing a text comparison cannot see for itself: a vector kind the
+    # harness does not carry. The census below reads the kinds out of the model's
+    # own file, so an unhandled kind is counted as a vector on that side, and a
+    # harness that copied the line through would have the two agreeing on a line
+    # nothing computed. It writes a line that cannot match instead, and this reads
+    # the count it kept, so the refusal does not rest on the spelling of that line.
+    unhandled = _unhandled(done.stdout + done.stderr)
+
+    shown, bad, n_want, n_got = _compare(vectors, replay)
+    kinds, total, _ = _census(vectors)
+
+    out.append(f"== crosscheck under verilator {VERILATOR_PIN}, lane "
+               f"{e.lane or 'primary'}")
+    out.extend(f"   {line}" for line in said)
+    out.append(f"   {total} vector(s) over {len(kinds)} kind(s): "
+               + ", ".join(f"{kind} {count}" for kind, count in sorted(kinds.items())))
+    if shown:
+        out.append("")
+        out.extend(f"   {line}" for line in shown)
+    out.append("")
+    if unhandled != 0:
+        out.append(f"FAIL {unhandled if unhandled > 0 else 'an unreadable number of'} "
+                   "vector(s) name a kind the harness does not carry, so the model "
+                   "computed an answer nothing was held to")
+    if bad or n_want != n_got:
+        out.append(f"FAIL {bad} of {total} vector(s) disagree with the model")
+    elif unhandled == 0:
+        out.append(f"ok all {total} vector(s) reproduce the model's own answers, "
+                   f"line for line over {n_want} lines")
+    print("\n".join(out))
+    return 1 if (bad or n_want != n_got or unhandled != 0) else 0
+
+
 def _file_list(root: Path, config: Path) -> list[str]:
     """The imported core's own manifest, with one configuration substituted into it.
 
@@ -327,6 +684,20 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
         return 1
 
     root = find_root()
+    # Refused by name rather than raising three calls in, which is what an absent
+    # gitlink used to do: a submodule this checkout has not initialized is an
+    # ordinary state of the tree and not a defect in this tool, and the message a
+    # person needs is which one and how to get it.
+    absent = [rel for rel in (f"{CORE}/{CORE_FLIST}", PRIM)
+              if not (root / rel).exists()]
+    if absent:
+        out.extend(f"FAIL {rel} is not in this checkout" for rel in absent)
+        out.append("     the imported cores are gitlinks and this elaboration reads "
+                   "them: `git submodule update --init upstream/cva6-cheri "
+                   "upstream/opentitan`")
+        print("\n".join(out))
+        return 1
+
     work = e.lane_root / "rtl-elaborate"
     work.mkdir(parents=True, exist_ok=True)
 
@@ -419,6 +790,10 @@ def cmd_wait(args: argparse.Namespace) -> int:
 COMMANDS: dict[str, tuple[Command, str]] = {
     "provenance": (cmd_provenance, "parse and print the synthesis-provenance record"),
     "lint": (cmd_lint, "Verilator over the authored sources in rtl/"),
+    "vectors": (cmd_vectors,
+                "the model's own answers about the capability format, as text"),
+    "crosscheck": (cmd_crosscheck,
+                   "and the authored package required to reproduce every line"),
     "elaborate": (cmd_elaborate,
                   "elaborate the imported core at both configurations and diff them"),
     "wait": (cmd_wait, "the verdict of a backgrounded elaboration"),
@@ -434,6 +809,10 @@ def main() -> int:
         if name == "elaborate":
             sub.add_argument("--background", action="store_true",
                              help="detach, writing the whole run to this lane's log")
+        if name == "crosscheck":
+            sub.add_argument("--reuse", action="store_true",
+                             help="replay the vectors this lane already emitted "
+                                  "instead of emitting them again")
         if name == "wait":
             sub.add_argument("--block", action="store_true",
                              help="say so rather than failing where the run is live")

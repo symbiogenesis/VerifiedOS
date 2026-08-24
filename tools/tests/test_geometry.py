@@ -2,12 +2,12 @@
 """The block-size parse, one fixture file per site that writes the figure.
 
 `geometry.read` is the checker's reach past its own corpus and nothing besides: two
-Sail declarations, the frozen configuration, the CMake template, and the harness
-assert. What the constraining document says about them is inside the corpus and is
-held as claims in `vos/checks/counts.py`, so no fixture here carries it. The live
-tree exercises the happy path on every `check.py` run; what only a fixture can pin is
-each site's refusal shape, the granules-to-exponent conversion, and the template's
-uniqueness rule.
+Sail declarations, the frozen configuration, the CMake template, the harness assert,
+and the authored SystemVerilog package's localparam. What the constraining document
+says about them is inside the corpus and is held as claims in `vos/checks/counts.py`,
+so no fixture here carries it. The live tree exercises the happy path on every
+`check.py` run; what only a fixture can pin is each site's refusal shape, the
+granules-to-exponent conversion, and the template's uniqueness rule.
 """
 
 import tempfile
@@ -18,7 +18,7 @@ from pathlib import Path
 from tests.harness import Case, ensure
 from vos import geometry
 
-# The four sites and the granule they are read against, spelled the way the live
+# The five sites and the granule they are read against, spelled the way the live
 # tree spells them and agreeing on a 64-byte block over a 16-byte granule.
 _SAIL = ("type log2_cap_size : Int = 4\n"
          "type log2_cap_block_size : Int = 6\n")
@@ -26,12 +26,16 @@ _CONFIG = '{"platform": {"cache_block_size_exp": 6}}\n'
 _TEMPLATE = ('{\n  "platform": {\n    "cache_block_size_exp": 6,\n'
              '    "clock_frequency": @CLOCK@\n  }\n}\n')
 _HARNESS = "assert(caps_per_block == 4)\n"
+_PACKAGE = ("package vos_cheri_pkg;\n"
+            "  localparam int unsigned Log2CapBlockSize = 6;\n"
+            "endpackage\n")
 
 _FILES = {
     "model/model/core/cap_format.sail": _SAIL,
     "model/config/verifiedos.json": _CONFIG,
     "model/config/config.json.in": _TEMPLATE,
     "model/model/unit_tests/test_cheri_insts.sail": _HARNESS,
+    geometry.PACKAGE: _PACKAGE,
 }
 
 
@@ -55,8 +59,9 @@ def _all_sites() -> None:
     ensure(geo.sites == {"the model's declaration": 6,
                          "the frozen profile's configuration": 6,
                          "the generated configurations": 6,
-                         "the model's own harness": 6},
-           f"the four sites must all answer 6, got {geo.sites}")
+                         "the model's own harness": 6,
+                         "the authored capability package": 6},
+           f"the five sites must all answer 6, got {geo.sites}")
 
 
 def _harness_granules_to_exponent() -> None:
@@ -108,7 +113,8 @@ def _absent_files() -> None:
     ensure(geo.sites == {"the model's declaration": None,
                          "the frozen profile's configuration": None,
                          "the generated configurations": None,
-                         "the model's own harness": None},
+                         "the model's own harness": None,
+                         "the authored capability package": None},
            f"an empty root must answer None at every site, got {geo.sites}")
     ensure(geo.granule_exp is None, "the granule must also read as absent")
 
