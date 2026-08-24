@@ -143,6 +143,7 @@ def run(ctx: Context) -> None:
     floors = {
         "prose bookmarks": len(ctx.corpus.anchor_count),
         "entries one document names in another": sh.get("entry_refs", 0),
+        "licence texts the third-party page locates": sh.get("licence_texts", 0),
         "tag-plane figures the granule fixes": sh.get("tag_plane", 0),
         "welded block sizes the constraints admit": sh.get("block_candidates", 0),
         "items of the freeze's closed delta": sh.get("delta_items", 0),

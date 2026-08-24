@@ -229,12 +229,22 @@ if(ENABLE_RISCV_ARCH_TESTS)
     endforeach()
 endif()
 
-# This is off by default so we don't require people who
-# just want to build the model to have Clang or RISC-V GCC
-# installed.
-option(FIRST_PARTY_TESTS "Compile & run first party tests (requires Clang or RISC-V GCC).")
-if (FIRST_PARTY_TESTS)
-    add_subdirectory("first_party")
-endif()
+# There is no `first_party` directory and no `FIRST_PARTY_TESTS` option, and the
+# ground is the one that retired `riscv-tests` above rather than a second one.
+# Every program in that set was an ordinary RV64 program: `crt0.S` opened by
+# writing integer zero over all thirty-one registers, `c1` among them, and then
+# addressed its own stack, global pointer and HTIF exit door through integer base
+# registers.  On a purecap machine an integer written into a register is an
+# untagged capability, so that prologue destroys the store-side root it was handed
+# at reset and then faults at its first store, before `main` (R-15-001, R-15-001c,
+# R-15-007h, R-15-007p; model/core/addr_checks.sail).  No `-march` string and no
+# curated subset reaches past that: what the set needs is the purecap toolchain,
+# whose `la` derives a capability off PCC rather than materializing an integer,
+# and that is M1.4's.
+#
+# What answers the question the set was asked is this repository's own pair, the
+# model's `$[test]` harness (model/unit_tests/) and the differential corpus
+# (corpus/), both of which are purecap programs against this machine rather than
+# stock RISC-V programs against a machine it no longer is.
 
 add_subdirectory("unit_tests")
