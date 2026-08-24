@@ -345,6 +345,231 @@ function memory_sequencer_load(access, paddr, _width) = Err(paddr, accessFaultFr
 private val memory_sequencer_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
 function memory_sequencer_store(paddr, _width, _data) = Err(paddr, E_SAMO_Access_Fault())
 
+// The Root of Trust's four register slaves (R-09-001, sys/rot.sail): the OTP
+// fuse bank holding the lifecycle state, the entropy root, the monotonic counter
+// file, and the windowed watchdog.
+//
+// **All four are in the address map of every composition and all four answer the
+// RoT alone.** The die has one management processor (R-15-194) and one RoT class
+// in the roster (R-15-113), so these windows are the die's exactly as the
+// refresh sequencer's is, and what decides whether a door opens is the composed
+// hart's class rather than a configuration key: a requester on any other class
+// is refused in both directions at every width, which is the same fail-stop
+// event reaching the sequencer's window already is. That refusal is a *claimed*
+// window and not an absent one, because an IO address no device claims falls
+// through to the RAM path and reads as zero (sys/mem.sail), which is silence and
+// not a refusal; corpus/platform-rot.s runs into both answers one page apart.
+//
+// **Doublewords only, and every unclaimed offset faults.** The unit of a fuse, a
+// counter, a nonce and a conditioned word is the word, so a narrower or wider
+// access names a sub-word of a structure whose index is the word, which is the
+// revocation slave's own reason for the same restriction. And the decode below
+// claims exactly the doors sys/rot.sail enumerates: there is no offset that
+// disables the watchdog, clears the entropy latch, writes a counter, or unburns
+// a fuse, and an access to one that is not a door faults rather than reading as
+// zero.
+
+private function within_rot_window forall 'n, 0 < 'n <= max_mem_access .
+    (declared : bool, base : physaddrbits, size : physaddrbits,
+     Physaddr(addr) : physaddr, width : int('n)) -> bool = {
+  if not(declared) then return false;
+  let addr_int = unsigned(addr);
+  let base_int = unsigned(base);
+  let size_int = unsigned(size);
+    base_int <= addr_int
+  & (addr_int + sizeof('n)) <= (base_int + size_int)
+}
+
+private function within_otp forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
+  within_rot_window(plat_have_otp, plat_otp_base, plat_otp_size, addr, width)
+
+private function within_trng forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
+  within_rot_window(plat_have_trng, plat_trng_base, plat_trng_size, addr, width)
+
+private function within_monotonic forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
+  within_rot_window(plat_have_monotonic, plat_monotonic_base, plat_monotonic_size, addr, width)
+
+private function within_watchdog forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
+  within_rot_window(plat_have_watchdog, plat_watchdog_base, plat_watchdog_size, addr, width)
+
+// The fuse bank's word index, or `None` where the offset is not one of its
+// doors. Written as a bounds check rather than as a mask because the bank's
+// width is the model's own and a mask would silently wrap a word past the end of
+// it onto one inside it (sys/rot.sail, core/revocation.sail).
+private function otp_fuse_index(offset : int) -> option(range(0, otp_fuse_words - 1)) = {
+  if offset < ROT_OTP_FUSE_BASE then None()
+  else {
+    let byte = offset - ROT_OTP_FUSE_BASE;
+    if byte % 8 != 0 then None()
+    else {
+      let word = byte / 8;
+      if 0 <= word & word < otp_fuse_words then Some(word) else None()
+    }
+  }
+}
+
+private val otp_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function otp_load(access, paddr, width) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_otp_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_OTP_STATE then
+    Ok(zero_extend(64, to_bits_truncate(64, lifecycle_to_index(otp_lifecycle))))
+  else if rot & ('n == 8) & offset == ROT_OTP_DM_GATE then
+    Ok(zero_extend(64, if debug_module_fabric_gated() then 0x0000000000000001 else zeros()))
+  else if rot & ('n == 8) & offset == ROT_OTP_FUSE_COUNT then
+    Ok(zero_extend(64, to_bits_truncate(64, otp_fuse_words)))
+  else if rot & ('n == 8) then match otp_fuse_index(offset) {
+    Some(word) => Ok(zero_extend(64, otp_read_fuse(word))),
+    None()     => Err(paddr, accessFaultFromAccessType(access)),
+  }
+  else Err(paddr, accessFaultFromAccessType(access))
+}
+
+private val otp_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function otp_store(paddr, width, data) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_otp_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_OTP_BURN then {
+    // The one door that moves the lifecycle, and it moves it only along
+    // R-09-032's relation: a target outside the enumeration and an edge the
+    // relation does not carry are both refused here, so *no edge outside the
+    // relation exists* is the decode and not a check somebody may skip.
+    let target = unsigned(zero_extend(64, data));
+    if target >= lifecycle_state_count then Err(paddr, E_SAMO_Access_Fault())
+    else if lifecycle_burn(lifecycle_of_index(target)) then Ok(true)
+    else Err(paddr, E_SAMO_Access_Fault())
+  }
+  else if rot & ('n == 8) then match otp_fuse_index(offset) {
+    // A burn sets bits and clears none. A write that would clear a bit already
+    // set is refused rather than masked, so an attempt to unburn is a fault a
+    // program can see instead of a store that quietly did nothing (R-09-033).
+    Some(word) => if otp_burn_fuse(word, zero_extend(64, data)) then Ok(true)
+                  else Err(paddr, E_SAMO_Access_Fault()),
+    None()     => Err(paddr, E_SAMO_Access_Fault()),
+  }
+  else Err(paddr, E_SAMO_Access_Fault())
+}
+
+private val trng_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function trng_load(access, paddr, width) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_trng_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_TRNG_DRAW then
+    // **The conditioner's output and never a source's** (R-15-241c). There is no
+    // second offset here that answers with a raw sample, and the sampler that
+    // produces one is private to sys/rot.sail, so *raw source output reaches no
+    // consumer* is an absence in this decode rather than a rule about it. A draw
+    // before the start-up health tests complete (R-09-006a) and a draw after the
+    // fail-stop has latched (R-15-241b) are refused rather than answered at a
+    // reduced rate, which is what *no degraded path* means at the one place a
+    // consumer could ask for one.
+    match rot_draw() {
+      Some(word) => Ok(zero_extend(64, word)),
+      None()     => Err(paddr, accessFaultFromAccessType(access)),
+    }
+  else if rot & ('n == 8) & offset == ROT_TRNG_HEALTH then {
+    let started : bits(64) = zero_extend(64, rot_source_started);
+    let complete : bits(64) = if rot_startup_complete() then 0x0000000100000000 else zeros();
+    let stopped : bits(64) = if rot_entropy_fail_stop then 0x0000000200000000 else zeros();
+    Ok(zero_extend(64, started | complete | stopped))
+  }
+  else if rot & ('n == 8) & offset == ROT_TRNG_SOURCES then
+    Ok(zero_extend(64, to_bits_truncate(64, plat_rot_noise_sources)))
+  else if rot & ('n == 8) & offset == ROT_TRNG_BUDGET then
+    Ok(zero_extend(64, to_bits_truncate(64, plat_rot_startup_samples)))
+  else Err(paddr, accessFaultFromAccessType(access))
+}
+
+private val trng_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function trng_store(paddr, width, _data) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_trng_base);
+  if rot_is_composed_hart() & ('n == 8) & offset == ROT_TRNG_STARTUP then
+    // The start-up tests are run, not requested: the door takes no argument
+    // whose value could select a shorter budget, a subset of the sources, or a
+    // weaker test, which is the whole of what the *fixed* in R-15-241b's fixed
+    // sample budget can mean on this side of the fabric.
+    if rot_run_startup_tests() then Ok(true) else Err(paddr, E_SAMO_Access_Fault())
+  else Err(paddr, E_SAMO_Access_Fault())
+}
+
+private function monotonic_door_index(offset : int) -> option(monotonic_counter_index) = {
+  if offset < ROT_CTR_BASE then None()
+  else {
+    let byte = offset - ROT_CTR_BASE;
+    if byte % 8 != 0 then None()
+    else {
+      let i = byte / 8;
+      if 0 <= i & i < monotonic_counter_count then Some(i) else None()
+    }
+  }
+}
+
+private val monotonic_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function monotonic_load(access, paddr, width) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_monotonic_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_CTR_COUNT then
+    Ok(zero_extend(64, to_bits_truncate(64, monotonic_counter_count)))
+  else if rot & ('n == 8) then match monotonic_door_index(offset) {
+    Some(i) => Ok(zero_extend(64, monotonic_read(monotonic_counter_of_index(i)))),
+    None()  => Err(paddr, accessFaultFromAccessType(access)),
+  }
+  else Err(paddr, accessFaultFromAccessType(access))
+}
+
+private val monotonic_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function monotonic_store(paddr, width, data) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_monotonic_base);
+  if rot_is_composed_hart() & ('n == 8) & offset == ROT_CTR_ADVANCE then {
+    // The one write, and it names a counter rather than carrying a value: there
+    // is no door that sets, reloads, or decrements one, so *nothing rolls it
+    // back* is a property of the address map (R-12-017, R-10-013).
+    let i = unsigned(zero_extend(64, data));
+    if i >= monotonic_counter_count then Err(paddr, E_SAMO_Access_Fault())
+    else if monotonic_advance(monotonic_counter_of_index(i)) then Ok(true)
+    else Err(paddr, E_SAMO_Access_Fault())
+  }
+  else Err(paddr, E_SAMO_Access_Fault())
+}
+
+private val watchdog_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function watchdog_load(access, paddr, width) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_watchdog_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_WDT_NONCE then Ok(zero_extend(64, watchdog_nonce))
+  else if rot & ('n == 8) & offset == ROT_WDT_TICKS then Ok(zero_extend(64, watchdog_ticks))
+  else if rot & ('n == 8) & offset == ROT_WDT_BITTEN then
+    Ok(zero_extend(64, if watchdog_bitten then 0x0000000000000001 else zeros()))
+  else if rot & ('n == 8) & offset == ROT_WDT_EARLY then
+    Ok(zero_extend(64, to_bits_truncate(64, plat_rot_watchdog_early)))
+  else if rot & ('n == 8) & offset == ROT_WDT_LATE then
+    Ok(zero_extend(64, to_bits_truncate(64, plat_rot_watchdog_late)))
+  else Err(paddr, accessFaultFromAccessType(access))
+}
+
+private val watchdog_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function watchdog_store(paddr, width, data) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_watchdog_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_WDT_PET then
+    // A pet outside the window and a pet that is not the outstanding challenge
+    // both latch the bite, so the store *retires* and the machine is what
+    // changed: a bite is a reset line rather than a fault a program handles
+    // (R-15-198, R-16-005), and reporting it as an access fault here would make
+    // the last resort trappable by the thing it exists to catch.
+    { let _ = watchdog_pet(zero_extend(64, data)); Ok(true) }
+  else if rot & ('n == 8) & offset == ROT_WDT_ARM then { watchdog_arm(); Ok(true) }
+  else Err(paddr, E_SAMO_Access_Fault())
+}
+
 // Basic terminal character I/O.
 
 val plat_term_write = impure {cpp: "plat_term_write", lem: "plat_term_write"} : bits(8) -> unit
@@ -476,6 +701,8 @@ function within_mmio_readable forall 'n, 0 < 'n <= max_mem_access . (addr : phys
   then false
   else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
        | within_memory_sequencer(addr, width)
+       | within_otp(addr, width) | within_trng(addr, width)
+       | within_monotonic(addr, width) | within_watchdog(addr, width)
        | (within_htif_readable(addr, width) & 1 <= 'n)
 
 function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
@@ -483,6 +710,8 @@ function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : phys
   then false
   else within_clint(addr, width) | within_imsic(addr, width) | within_revocation(addr, width)
        | within_memory_sequencer(addr, width)
+       | within_otp(addr, width) | within_trng(addr, width)
+       | within_monotonic(addr, width) | within_watchdog(addr, width)
        | (within_htif_writable(addr, width) & 'n <= 8)
 
 function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessType(mem_payload), paddr : physaddr, width : int('n)) -> MemoryOpResult(bits(8 * 'n)) =
@@ -494,6 +723,14 @@ function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessT
   then revocation_load(access, paddr, width)
   else if within_memory_sequencer(paddr, width)
   then memory_sequencer_load(access, paddr, width)
+  else if within_otp(paddr, width)
+  then otp_load(access, paddr, width)
+  else if within_trng(paddr, width)
+  then trng_load(access, paddr, width)
+  else if within_monotonic(paddr, width)
+  then monotonic_load(access, paddr, width)
+  else if within_watchdog(paddr, width)
+  then watchdog_load(access, paddr, width)
   else if within_htif_readable(paddr, width)
   then htif_load(access, paddr, width)
   else Err(paddr, accessFaultFromAccessType(access))
@@ -507,6 +744,14 @@ function mmio_write forall 'n, 0 < 'n <= max_mem_access . (paddr : physaddr, wid
   then revocation_store(paddr, width, data)
   else if within_memory_sequencer(paddr, width)
   then memory_sequencer_store(paddr, width, data)
+  else if within_otp(paddr, width)
+  then otp_store(paddr, width, data)
+  else if within_trng(paddr, width)
+  then trng_store(paddr, width, data)
+  else if within_monotonic(paddr, width)
+  then monotonic_store(paddr, width, data)
+  else if within_watchdog(paddr, width)
+  then watchdog_store(paddr, width, data)
   else if within_htif_writable(paddr, width)
   then htif_store(paddr, width, data)
   else Err(paddr, E_SAMO_Access_Fault())

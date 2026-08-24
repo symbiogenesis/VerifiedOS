@@ -1004,6 +1004,19 @@ CASES: list[Case] = [
     ("K-65", "a second shipped configuration that composes the same core as the first",
      _literal("model/config/verifiedos-v.json", '"hartid": 6', '"hartid": 0')),
 
+    # The *model* is edited rather than a configuration, which is the half of this rule
+    # nothing else can see. A geometry moved in a shipped file is K-65's finding too and
+    # would seed a case that passes on somebody else's report; a rung re-based in the
+    # extension registry moves which vector extensions a vector length names, and no
+    # other rule reads that ladder at all. `Zvl32b` is the lowest rung and so the one
+    # that decides every rung above it, and the substitution puts its threshold under
+    # the floor of `vlen_exp`'s own constraint, which makes it true at every geometry
+    # this model can be built at and therefore true of the vectorless composition.
+    ("K-78", "a minimum-vector-length rung a vectorless composition now reaches",
+     _literal("model/model/core/extensions.sail",
+              "hartSupports(Ext_Zvl32b) = sizeof(vlen_exp) >= 5",
+              "hartSupports(Ext_Zvl32b) = sizeof(vlen_exp) >= 3")),
+
     # The *profile* is edited rather than the model, which is the direction this defect
     # actually arrives from: an amendment excludes a form and the model goes on
     # implementing it, which is exactly what R-15-039b did. Mutating the model instead

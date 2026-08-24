@@ -1,26 +1,57 @@
-// The **V-class** composition of the profile configuration
-// (docs/isa-profile.md, verifiedos.json). It is the same machine as
-// verifiedos.json in every row but two, and those two say which core of the one
-// composed roster this emulator is: the composed hart is `6`, which the roster
-// puts on the V class, and the vector geometry is that class's, VLEN=4096 at
-// ELEN=64 (R-15-113).
+// The **RoT** composition of the profile configuration (docs/isa-profile.md,
+// verifiedos.json). It is the same machine as verifiedos.json and the same
+// composed die: the identical sixteen-entry roster, the identical five-row core
+// class table, the identical address map, and the identical four Root of Trust
+// peripherals, because a die has one management processor whichever of its cores
+// an emulator composes (R-15-194, R-15-113). What differs is which core this one
+// is: the composed hart is `15`, which the roster puts on the RoT class, and
+// this is therefore the one configuration in the tree from which the OTP fuse
+// bank, the entropy root, the monotonic counters and the watchdog answer at all
+// (model/sys/rot.sail).
 //
-// **This is a second configuration of the one model and not a second model**
-// (R-15-005). Nothing is forked, no file differs, and no instruction is added
-// or removed: heterogeneity lives in the datapath and never in the trust
-// structure, so a V-class emulator is this file handed to the same binary
-// verifiedos.json is handed to (R-04-009, R-15-111, core/core_class.sail). The
-// validator is what holds the two halves together: a composition whose roster
-// puts the composed hart on a class whose declared geometry is not the geometry
-// the run realizes is refused before it runs (postlude/validate_config.sail).
+// **This is a third configuration of the one model and not a third model**
+// (R-15-005). Nothing is forked, no file differs, and no instruction is added or
+// removed: R-15-005's own criterion says *no second capability encoding forks
+// the model, the RoT's scalar core included*, so the RoT is this binary handed
+// this file, exactly as the V class is verifiedos-v.json handed to it.
+//
+// **It diverges in twelve keys where verifiedos-v.json diverges in two, and
+// eleven of the twelve are forced by a validator clause rather than chosen.**
+// The RoT class declares no vector geometry, so `extensions.V.support_level` is
+// refused at anything but `Disabled` (postlude/validate_config.sail's
+// core-roster check); a disabled vector unit is refused any
+// `base.mstatus.vs_legal_states` but `ExtContext_Off`; each of the six
+// config-gated vector-crypto flags is refused by name while `Zve32x` is
+// unavailable; `elen_exp` is constrained at or below `vlen_exp` and
+// `max_index_eew_exp` at or below `elen_exp`. The twelfth is `platform.hartid`,
+// which is the one that says which core this is.
+//
+// **The one that is a decision is `extensions.V.vlen_exp`, and it is 3 because
+// nothing lower exists.** That knob is Sail **type**-level and constrained
+// `3 <= vlen_exp <= 16` (core/vlen.sail), so it cannot be set to zero to mean
+// *vectorless*; and the `Zvl` minimum-vector-length ladder is gated on it
+// **alone**, with no vector-support conjunct (core/extensions.sail), so a
+// vectorless composition left at the C class's own exponent validates, runs, and
+// emits `zvl32b_zvl64b_zvl128b_zvl256b` into the `riscv,isa` string of the
+// **attested** devicetree of a core with no vector register file. 3 is the floor
+// of the type's own constraint and the nearest a type-level geometry can come to
+// declaring no geometry at all; `elen_exp` follows it down because an element
+// does not exceed the register holding it. The validator now refuses the
+// alternative outright, and K-78 holds it over the shipped files that no build
+// loop hands to the emulator.
+//
+// **The cost of that floor is stated rather than absorbed.** The generated
+// test-matrix configurations cover `vlen_exp` 6 through 9 only, and the SMT,
+// Rocq, Lean and Lem lanes bake `config/rv64d_v256_e64.json` at emission
+// (model/CMakeLists.txt), so 3 is realizable on the C++ lane alone, which is the
+// one lane that reads a shipped configuration at all (M0.8b). That is not a cost
+// this file adds: those four lanes compose hart 0 on the C class whatever this
+// file says.
 //
 // Every other row and every other comment below is verifiedos.json's, unchanged
 // and true here: the key sets are identical. `model.py config-keys` holds the
-// keyed part of that and K-65 holds the whole of it, which is the distinction
-// worth keeping: `memory.regions` is a list, so a region's properties are not
-// keys of the configuration tree and the key count cannot see one arrive. A
-// per-region property added to one of these files and not the other is a
-// divergence only K-65 reports.
+// keyed part of that and K-65 holds the whole of it against the divergence set
+// this file's own row declares.
 {
   "base": {
     "E": false,
@@ -44,7 +75,12 @@
       "xtvec_mode": "Xtvec_Ignore"
     },
     "mstatus": {
-      "vs_legal_states": "ExtContext_FourState"
+      // `mstatus.VS` is read-only zero on a hart with no vector unit, and the
+      // validator refuses anything else once `extensions.V.support_level` is
+      // `Disabled`: an extension-context field over an extension that is not
+      // there is a field a partition can dirty for a unit no switch has to
+      // clear (postlude/validate_config.sail's `check_mstatus_fields`).
+      "vs_legal_states": "ExtContext_Off"
     },
     "privileged_isa_version": "Privileged_ISA_1_13"
   },
@@ -142,12 +178,15 @@
           "supports_cbo_zero": false,
           // A device endpoint is on neither class (R-15-247).
           "memory_class": { "None": null },
-          // The V class is a scratchpad-bearing class (R-15-165, R-15-167),
-          // which the C class is not, so this is the configuration where a
-          // range would first be declarable. It is not declared: R-15-108
-          // selects scratchpad sizes, that exploration has not run, and a
-          // range written ahead of it is how a placeholder becomes an
-          // architectural input. The shape is here and the range is not.
+          // No region here is a datapath's software-managed scratchpad
+          // (R-15-165, R-15-167, sys/pma.sail). The composed hart is on the
+          // RoT class, a scalar core carrying no local memory tier at all
+          // (R-15-168), and the two classes that do carry one
+          // have no *size* yet: `scratchpad_bytes` is one of R-15-108's frozen
+          // parameters, the exploration has not run, and `frozen` is false in
+          // every class row below. So the shape is here and the range is not,
+          // and a composition declaring a wrong one is refused
+          // (postlude/validate_config.sail).
           "scratchpad": { "None": null }
         },
         "include_in_device_tree": false
@@ -250,7 +289,7 @@
     // The other four are hardwired zero in the model and have no key.
     // It is an index into `core_roster` below rather than a value beside
     // it, and the validator refuses a roster that does not name it.
-    "hartid": 6,
+    "hartid": 15,
     // The core-class table (R-15-113, core/core_class.sail): one model
     // parameterized by class (R-15-005), the classes differing only in
     // datapath. **Every number is R-15-113's reference instantiation and
@@ -260,13 +299,16 @@
     // records. In an unfrozen row a zero reads as *not selected*; in a
     // frozen one it reads as *absent*.
     //
-    // The V row carries the geometry this run realizes, because one run
-    // realizes one VLEN (core/vlen.sail) and the composed hart is V-class.
-    // The rows themselves are the same rows verifiedos.json declares: the
-    // table is the composition's and does not move with which core of it is
-    // being emulated. The S and RoT rows are vectorless, so no vector permutation
-    // instruction is reachable there and they hash SHA-3/SHAKE in plain
-    // 64-bit integer with `Zbb` rotations (R-15-041, R-15-042, R-15-059).
+    // The rows themselves are the rows verifiedos.json declares: the table is
+    // the composition's and does not move with which core of it is being
+    // emulated. The composed hart is on the RoT row, which is vectorless, so no
+    // vector permutation instruction is reachable there and it hashes
+    // SHA-3/SHAKE in plain 64-bit integer with `Zbb` rotations (R-15-041,
+    // R-15-042, R-15-059, R-09-005a). **No row's `vlen_exp` binds this run's**:
+    // the refusal that ties the class table to the geometry the model realizes
+    // is stated over vector-bearing classes alone, a vectorless class declaring
+    // zero and zero being no geometry rather than a small one
+    // (postlude/validate_config.sail).
     "core_classes": {
       "c": {
         "frozen": false,
@@ -437,15 +479,12 @@
     // entropy root (R-15-241), the monotonic counter file (R-10-013), and the
     // windowed watchdog (R-15-240).
     //
-    // **All four windows are here and the composed hart is not the RoT**, which
-    // is not a contradiction: the die has one management processor whichever of
-    // its cores an emulator composes (R-15-194, R-15-113), so the windows are
-    // the die's exactly as the refresh sequencer's is. What decides whether a
-    // door opens is the composed hart's class, and on any class but the RoT's
-    // all four refuse every access in both directions at every width. That is
-    // the only side a program on this configuration reaches them from, and it is
-    // what corpus/platform-rot.s checks; the mechanism behind the doors is
-    // reached by verifiedos-rot.json, which composes hart 15.
+    // **This is the configuration the four windows answer.** The composed hart
+    // is on the RoT class, which is the die's one management processor
+    // (R-15-194), so the doors open here and refuse every requester under
+    // verifiedos.json and verifiedos-v.json. The rows are byte for byte those
+    // two files' rows: the address map is the die's and does not move with which
+    // of its cores is being emulated.
     //
     // There is no fifth key saying which class may open them, because the roster
     // above already says which core this run is (R-15-052b), and a second
@@ -534,6 +573,14 @@
   // realizing one VLEN. `vector_mem_indexed` is the fully-conflicted bound, every
   // element resolving to one bank, which is how an access whose observed latency
   // varies still yields one sound entry (R-15-085a, R-15-085b).
+  //
+  // `keccak_24` and `keccak_12` are the frozen permutation's two round counts,
+  // both on the `Zvkt` fixed-latency list (R-15-053, R-15-056a). They are the
+  // same constants verifiedos.json carries and they are unreachable on this
+  // composition, the RoT carrying no Keccak unit and no vector instruction to
+  // be one (R-09-005a); every row of this table is non-zero because a zero is a
+  // WCET term contributing nothing to a bound that has to be sound, which is a
+  // property of the table rather than of which rows this core can issue.
   "timing": {
     "operations": {
       "qualified": false,
@@ -560,16 +607,6 @@
       "vector_divide": 40,
       "vector_mem_unit": 8,
       "vector_mem_indexed": 32,
-      // `keccak_24` and `keccak_12` are the frozen permutation's two round
-      // counts, both on the `Zvkt` fixed-latency list (R-15-053, R-15-056a).
-      // They are the same constants verifiedos.json carries, and the reason is
-      // that the permutation is one fixed-geometry operation over a 2048-bit
-      // element group rather than a whole-register one: what R-15-059a states
-      // at VLEN=256 is the throughput and register-pressure consequence of that
-      // group being LMUL=8 there and LMUL less than or equal to one here, which
-      // is a budget figure and not this latency. Both configurations are
-      // `qualified: false` regardless, so neither is a measurement (R-15-247m,
-      // R-17-041).
       "keccak_24": 24,
       "keccak_12": 12,
       "fec_ldpc": 96,
@@ -592,19 +629,22 @@
     "M": { "supported": true },
     // A narrowed to Zaamo + Zabha (R-15-024): the umbrella is off, the parts are on.
     "A": { "supported": false },
-    // The V class's geometry: VLEN=4096, ELEN=64 (R-15-113, M0.8b). This is
-    // the one key that makes this a V-class emulator rather than a C-class one
-    // running under a V-class hart identity, `vlen_exp` sizing the vector
-    // register file (core/vlen.sail).
+    // The RoT is vectorless, and this block is what that costs a type-level
+    // geometry: `Disabled` is forced by the class the roster puts hart 15 on,
+    // and 3 is the floor of `vlen_exp`'s own constraint, which is as close to
+    // *no vector register file* as the type gets. Left at the C class's 8 this
+    // composition would still validate and would name four minimum-vector-length
+    // extensions it does not implement in its attested devicetree; see the
+    // preamble.
     "V": {
-      "support_level": "Full",
-      "vlen_exp": 12,
-      "elen_exp": 6,
+      "support_level": "Disabled",
+      "vlen_exp": 3,
+      "elen_exp": 3,
       "reserved_behavior": {
         "illegal_vtype": "IllegalVtype_SetVill"
       },
       "vl_use_ceil": false,
-      "max_index_eew_exp": 6
+      "max_index_eew_exp": 3
     },
     // B = Zba+Zbb+Zbs exactly, single-bit only at Zbs (R-15-067).
     "B": { "supported": true },
@@ -631,13 +671,13 @@
     "Zvfbfwma": { "supported": false },
     "Zvfh": { "supported": false },
     "Zvfhmin": { "supported": false },
-    "Zvbb": { "supported": true },
-    "Zvbc": { "supported": true },
+    "Zvbb": { "supported": false },
+    "Zvbc": { "supported": false },
     "Zvkb": { "supported": false },
-    "Zvkg": { "supported": true },
-    "Zvkned": { "supported": true },
+    "Zvkg": { "supported": false },
+    "Zvkned": { "supported": false },
     "Zvknha": { "supported": false },
-    "Zvknhb": { "supported": true },
-    "Zvkt": { "supported": true }
+    "Zvknhb": { "supported": false },
+    "Zvkt": { "supported": false }
   }
 }

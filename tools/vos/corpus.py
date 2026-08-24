@@ -142,9 +142,11 @@ UNREAD_PREFIX = "model/"
 MODEL_FACTS = (
     "model/model/core/cap_format.sail",
     "model/model/core/timing.sail",
+    "model/model/core/extensions.sail",
     "model/model/unit_tests/test_cheri_insts.sail",
     "model/config/verifiedos.json",
     "model/config/verifiedos-v.json",
+    "model/config/verifiedos-rot.json",
     "model/config/config.json.in",
 )
 
