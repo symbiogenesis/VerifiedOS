@@ -1101,6 +1101,15 @@ CASES: list[Case] = [
     # untouched, so K-15 never looks. K-74 is the one rule that can.
     ("K-74", "a residual cell whose citation of the section booking it has gone",
      _literal(MATRIX, "R-08-006, R-15-208, R-17-037", "R-08-006, R-15-208")),
+
+    # One of the two settings rather than one of the five sentences, because the pair of
+    # settings is where the figure is hardest to see moving: `py314` and `3.14` are one
+    # floor in two dialects, so a bump taken in one of them looks like an edit to a
+    # different quantity, and the prose that restates the floor goes on agreeing with
+    # the half that did not move.
+    ("K-75", "a checker settings file at an interpreter floor the other does not fix",
+     _literal("tools/ruff.toml", 'target-version = "py314"',
+              'target-version = "py313"')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
