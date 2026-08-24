@@ -1077,8 +1077,42 @@ So there is no hop, and the mechanism has no customer.
 Shutdown zeroization: SRAM is volatile with near-zero remanence and the platform zeroizes anyway (§9).
 Bus interposers: there is no bus.
 Cold boot: the same volatility.
-What remains is an adversary already inside the package and onto the die, which is **invasive physical attack, out of scope by name** (§3, §17) and out of scope for a reason that survives scrutiny: an attacker at that level reads and writes SRAM directly, and would equally reach the keys and root registers any controller-side construction depends on.
+What remains is an adversary already inside the package and onto the die, which is **invasive physical attack, out of scope by name** (§3, §17) and out of scope for a reason that survives scrutiny **at a scope this entry states rather than leaves implicit**: against a **powered** die, an attacker at that level reads and writes SRAM directly, and the same access reaches the keys and root registers any construction placed on this die depends on, key custody and data being one custodian's.
+The evidence for the equal reach is that the readout instrument does not distinguish them: thermal laser stimulation extracts a stored 256-bit AES key from an SRAM-class array in a single measurement after under seven hours of preparation (Krachenfels et al., *IACR TCHES* 2018(3)), and the low-cost follow-on does data extraction and key readout on one setup at roughly a fifth the equipment cost (Krachenfels et al., 2020).
+A key register on this die is cells and flops read by the instrument that reads the array beside it.
 Encrypting against that adversary is structurally identical to PMP, the IOMMU, MTE, and the Harvard split, each declined on *verify rather than hedge* grounds; declining this one is consistency, not economy.
+
+**The separate-key-holder constructions are what would complicate that claim, and each is taken as its designers state it.**
+Each is a scheme in which the party who observes or tampers with memory is not the party holding the key, and the question each puts to this entry is the same one: does it yield an attacker who reaches the memory path and not the key holder?
+
+*A key held in another trust domain across a memory interface* is the deployed case, and it yields exactly that attacker.
+AMD SEV-SNP generates a per-VM AES key in the AMD Secure Processor that is never exposed to software the CPU runs, so the hypervisor never holds it; Intel TME encrypts all of memory under an ephemeral platform key the CPU's own generator produces on every boot and exposes to no software and no external interface; TDX and MKTME hold their key table where software cannot read it.
+The attacker who reaches the DRAM and not the key is real and cheap, and wins anyway: WireTap (CCS 2025) builds a ciphertext dictionary from a passive DDR4 interposer and lifts the SGX attestation key, Battering RAM (IEEE S&P 2026) silently redirects protected addresses with an active interposer of about fifty dollars and replays ciphertext past both vendors' boot-time alias checks, and TEE.fail (IEEE S&P 2026) carries the class to DDR5 against TDX and SEV-SNP; **none of the three ever obtains the memory encryption key**, and all three say so.
+What fails there is custody separation without freshness, and freshness is the tree this entry declines below on grounds of its own.
+The separation is therefore genuine and its yield is not, which is a sharper result than the one this entry needed.
+
+*On-die key custody with off-die data* is Apple's SEP, and it draws this entry's line from the inside.
+The Secure Enclave Boot ROM generates a random ephemeral memory protection key at startup, the Memory Protection Engine encrypts the enclave's DRAM region and authenticates it, and the anti-replay values are protected by an integrity tree **rooted in dedicated SRAM within the Secure Enclave** (Apple Platform Security, Secure Enclave page revised 19 December 2024), because memory inside the boundary needs no cryptography.
+This platform is entirely that root, so the construction terminates precisely where this design begins.
+
+*Split-custody and threshold arrangements* distribute the creation, storage, and use of a key across parties, and NIST's own call for multi-party threshold schemes is still at the submission-and-evaluation stage (NIST IR 8214C, January 2026).
+Distinct parties are the premise and one die is one party, so the family has no instance on this memory path.
+The one split-custody arrangement this design does carry is the masked datapath in the crypto core, and it is bounded by a probing order rather than by a scope line, which is why it sits in §17's analog entry (R-17-058a) and not here: collection beyond the order is exactly what an invasive attacker has.
+
+*A tamper-responsive custodian*, which destroys the key when the boundary is broken, is the family that would genuinely produce the wanted attacker against an invasive adversary, and it is a module property rather than a die property.
+FIPS 140-3 Level 4 requires that penetration from any direction zeroize the module's plaintext critical security parameters, and the IBM 4770 destroys its secrets and renders itself permanently inoperable on tamper.
+Its on-die form is a monitored top-metal mesh, whose standing defeat path is backside entry through the substrate, which is the same face the IRIS posture (§17) requires to stay open.
+What it yields is an attenuation and not a bound, and this document declines to count difficulty here as it declines to count it everywhere else.
+
+*Schemes where the controller sees ciphertext it cannot decrypt* are research, and they relocate the decrypt point rather than removing it.
+InvisiMem and ObfusMem (both ISCA 2017) move the cryptography into a smart memory's logic layer and thereby **expand** the trust base to include it, and the ORAM line hides the access pattern from an untrusted memory while still decrypting at the trusted processor.
+Every member separates across a package boundary that the second-die entry below deletes.
+
+**One attacker does sit outside the claim, and it is named here rather than absorbed: the second memory class after power loss.**
+First-class 6T SRAM has near-zero remanence, and the R-15-247 second class retains plaintext for a measured minutes-to-hours interval, so a per-boot key held in the first class would decay while the bulk decks still held their contents; the adversary who cuts power and depackages afterwards reaches memory and does **not** reach the key.
+That is the Intel TME shape applied to this die, and against that adversary the equal-reach claim above is false.
+It changes the ground and not the disposition, and the replacement ground is stated rather than implied: the mode-exit discharge already narrows the window from every domain ever written to those live at the instant of power loss, at no per-access cost, and what a bulk-class cipher would buy beyond that is a net-new encrypt-and-key pipeline on the least-built arrow (the Kôika-authored RTL ⊑ Sail workstream, §18) spent on a residual §17 books open by name.
+That is *verify rather than hedge* once more, and the WCET argument is not available for it: a cipher is one more fixed constant, and the log-depth hit-or-miss term that kills the tree is not a term a cipher has.
 
 **The tree carried a soundness defect on top of the scope problem.**
 Its node cache would hold *recently-used* tree nodes, which is ordinarily defended as "address- not history-indexed, so no data-cache timing channel."
@@ -1105,6 +1139,7 @@ Integrity against the threat main memory on this die actually faces, the random 
 
 **Honest residual (§17):** the design has **no defence-in-depth layer beneath the package boundary on the memory path**, so the invasive-attack scope line is load-bearing rather than conservative.
 If that line is ever judged wrong, nothing sits behind it: there is no encryption to slow an attacker down and no freshness check to catch a replay.
+The scope at which the equal-reach ground holds is stated above rather than left implicit (R-17-059a), and the one attacker outside it, the second class after power loss, is declined on the grounds named there and its residual booked open in §17 rather than answered here.
 This is the document's own posture (*verify rather than hedge*) applied to its own threat model, and it is booked as a residual rather than presented as a guarantee.
 
 ---
