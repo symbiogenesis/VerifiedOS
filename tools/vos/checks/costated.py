@@ -42,7 +42,6 @@ HEADING = "=== costated: every fact stated across pairs, at each site stating it
 SPEC = "docs/spec.md"
 REGISTER = "docs/requirements-register.md"
 CHECKLIST = "docs/implementation-checklist.md"
-CRITIQUE = "docs/critique.md"
 INSPIRATIONS = "docs/inspirations.md"
 
 # One row per fact: what it is, and the sites that state it. A site names a register
@@ -192,10 +191,12 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     # repository moving it, and it is stated wherever that obligation is priced. The
     # Coq half still imports nothing at every site; what drifts is *which* half has a
     # machine-checked source and in whose prover, which is the part a costing reads.
+    # The critique held a site while the cost was owed; the plan's own cells price it
+    # now, so the sites are the two that state the split and the one that reads it.
     ("the masking obligation's nearest start-froms", [
         (CHECKLIST, "Lean prime-field PINI development"),
         (CHECKLIST, "arithmetic masking over prime fields"),
-        (CRITIQUE, "Lean arithmetic-masking development over prime fields"),
+        (CHECKLIST, "arithmetic composition half"),
         (INSPIRATIONS, "PINI-class composition over prime fields"),
     ]),
 ]
