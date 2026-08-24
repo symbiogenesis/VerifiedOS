@@ -157,6 +157,12 @@ def run(ctx: Context) -> None:
         "region classes the placement compound reads": sh.get("placement_terms", 0),
         "physical byte classes the composition is charged":
             sh.get("charged_terms", 0),
+        # Two rather than one, because K-73 pairs a vocabulary against the cells that
+        # spell it: a matrix whose declaring sentence has been rewritten places no mode
+        # at all, and one whose cells have stopped booking residuals leaves the §17 half
+        # deciding nothing while every mode still places.
+        "discharge modes the coverage matrix declares": sh.get("cm_modes", 0),
+        "coverage cells booking a residual": sh.get("cm_residual", 0),
         "CSR rows the profile presents": len(art.csr_rows.get("5.1", [])),
         "CSR rows the profile excludes": len(art.csr_rows.get("5.2", [])),
         "Prop fields of the apex record": len(sh["apex"].fields) if sh.get("apex") else 0,

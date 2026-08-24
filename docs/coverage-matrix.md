@@ -10,7 +10,9 @@ R-17-001a claims coverage top down rather than by enumerated attack archetype: e
 
 The two enumerations below are nine boundaries and seven properties, and the matrix carries all sixty-three of their pairs.
 
-The point of the shape is what it makes mechanical. `tools/check.py` decides that both enumerations are stated once, that every pair appears exactly once, and that no cell rests on nothing. An uncovered boundary is therefore a failing check rather than a critique somebody had to write, which is the whole difference between a coverage argument and a long list.
+The point of the shape is what it makes mechanical. `tools/check.py` decides that both enumerations are stated once, that every pair appears exactly once, that no cell rests on nothing, and that a cell reporting its remainder as booked in §17 cites §17. An uncovered boundary is therefore a failing check rather than a critique somebody had to write, which is the whole difference between a coverage argument and a long list.
+
+**Derived does not mean generated.** Every obligation a cell rests on is the register's and this document adds none, which is what *derived* means here and is why the register wins where the two disagree. What the register does not carry is the pairing: an entry states its obligation and traces the crown jewel it constrains, and no entry declares a boundary or a property, so which pairs a requirement lands on is decided here and nowhere else. A cell's construction then says what several entries carry *together* and where the join stops, which is a statement no single entry makes, and a discharge mode naming more than one construction is the visible form of it. That is also what bounds the cost of the shape: a requirement added to the register adds no cell, and only a new boundary or a new property adds any, on the terms [the last section](#4-how-to-read-a-cell-and-how-to-change-one) sets out.
 
 ## 1. The boundaries
 
