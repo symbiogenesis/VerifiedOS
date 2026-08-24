@@ -55,8 +55,10 @@ DONE_RE = re.compile(r"^ · (?P<h>[\d.,]+) h actual · (?P<pct>[\d.]+)%(?P<tail>
 OPEN_RE = re.compile(r"^ · (?P<h>[\d.,]+) h, range (?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) "
                      r"· (?P<pct>[\d.]+)%(?P<tail>.*)$")
 
-# the M8 gate figure is the total less the work that lands after the gate, and the items
-# that do are named here rather than inferred, everything else falling at or before it
+# the M8 gate figure is the total less the work that lands after the gate, and the labels
+# that do are named here rather than inferred, everything else falling at or before it. A
+# label names a position in the order rather than one item, and `Post-M10` carries several,
+# so what is held below is that each label is occupied and not that the two counts match
 AFTER_GATE = ["M9", "M9a", "M10", "Post-M10"]
 
 
@@ -192,10 +194,11 @@ def run(ctx: Context) -> None:
     open_hi = round(sum(i.hi for i in open_items), 1)
 
     after = [i for i in items if i.label.split(" · ")[0] in AFTER_GATE]
+    carried = {i.label.split(" · ")[0] for i in after}
     stated: list[str] = []
-    if len(after) != len(AFTER_GATE):
-        stated.append(f"{len(AFTER_GATE)} items land after the M8 gate; the document "
-                      f"carries {len(after)} of those labels")
+    if empty := [name for name in AFTER_GATE if name not in carried]:
+        stated.append(f"{len(AFTER_GATE)} label(s) name work landing after the M8 gate; "
+                      f"the document carries no item under {', '.join(empty)}")
     gate_h = round(grand - sum(i.hours for i in after), 1)
 
     # every derived token, old against new; nothing here is a judgment, so a repair

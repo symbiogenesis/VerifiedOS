@@ -205,8 +205,6 @@ Requirements carrying `· Fail-closed:` confer into R-17-030r's seam register, a
 
 ### C. Analysis and research: work that does not exist yet
 
-29. **Cost the Coq development the selected combined-adversary route sits beside.** The route is selected (R-17-058d): the ineffective-fault countermeasure carried into the masked datapath, its combined claim a reduction theorem spending the two stated axioms, with the combined-statement families declined as the pin on their broken-a-year-after record and their outside-any-prover tooling kept as producer-side evidence. What remains is the half that imports nothing: every machine-checked masking development is EasyCrypt or unvetted Lean, none Coq and none artifact-level, so the Coq formalization of the probing model, a PINI-class composition theorem, and the reduction theorem beside them is original work. What it costs turns on which of the three is being priced, because their nearest start-froms are no longer one thing: the composition theorem's arithmetic half can transcribe a **Lean arithmetic-masking development over prime fields**, machine-checked and instantiated against a published accelerator; its Boolean half has the EasyCrypt gadget proofs and nothing nearer; and the reduction theorem has nothing machine-checked in any prover, which makes it the one that is original all the way down. The cost is still unstated (R-05-004a, R-15-053a, R-17-058c, R-17-058d).
-
 ---
 
 ## Not gaps: the ceilings this document keeps naming
