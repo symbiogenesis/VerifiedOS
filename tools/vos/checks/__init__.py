@@ -90,6 +90,7 @@ from . import (  # noqa: E402
     marks,
     meta,
     names,
+    pins,
     tables,
     traces,
     views,
@@ -114,6 +115,7 @@ GROUPS = [
     tables,
     glyphs,
     marks,
+    pins,
     floors,
     meta,
 ]

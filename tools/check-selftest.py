@@ -59,7 +59,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
 from vos.coread import LEDGER
-from vos.corpus import MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
+from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
 from vos.figures import words
 
 CHECKER = "tools/check.py"
@@ -245,6 +245,49 @@ def stand_up(template: Path, path: Path, fix_ok: bool = False) -> Sandbox:
     return Sandbox(path, template, fix_ok=fix_ok)
 
 
+# The file a submodule's directory is stood up around, so that the empty directory
+# survives into every sandbox and a link at it resolves against the filesystem.
+SUBMODULE_STAND_IN = ".selftest-submodule"
+
+
+def stamp_gitlinks(into: Path, gitlinks: dict[str, str]) -> None:
+    """Put the repository's gitlinks back into the sandbox's own index.
+
+    A sandbox's index is `git add -A` over a tree in which every submodule is a
+    directory holding one stand-in file, so what it records at `upstream/<name>` is
+    that stand-in and no gitlink at all. That cost nothing while no rule read one.
+    K-81 reads the commit each gitlink records, out of the index because that is
+    where it is written whether or not the submodule was ever fetched, so a sandbox
+    that dropped them would report every pin as owned by nothing and fail its
+    baseline, which reports as a red tree rather than as a bad mutant.
+
+    Run on every template, carried index or fresh one, because the two fail the same
+    way and a carried index is the older of the two. git rewrites an index through a
+    lock and a rename, so this never writes through the hardlink a carried one is.
+
+    What the repository pins is asked of `vos.corpus`, which already splits the
+    index's gitlinks out of one listing: a second parse of `ls-files --stage` here
+    would be the two-copies-of-one-question defect the tools' own conventions refuse.
+    """
+    if not gitlinks:
+        return
+    # The stand-in leaves the index first, because a blob under `upstream/<name>` and
+    # a gitlink at it cannot both be entries; and `--cacheinfo` is what states the
+    # entry, taking the mode, the object and the path outright rather than asking
+    # git to work them out from a working tree where the submodule is an empty
+    # directory and not a repository.
+    stand_ins = [f"{path}/{SUBMODULE_STAND_IN}" for path in sorted(gitlinks)]
+    cacheinfo = [arg for path, oid in sorted(gitlinks.items())
+                 for arg in ("--cacheinfo", f"{GITLINK_MODE},{oid},{path}")]
+    for args in (["update-index", "--force-remove", "--", *stand_ins],
+                 ["update-index", "--add", *cacheinfo]):
+        proc = subprocess.run(["git", *args], cwd=into, capture_output=True,
+                              text=True, encoding="utf-8", check=False)
+        if proc.returncode != 0:
+            raise SystemExit("could not put the sandbox index's gitlinks back: "
+                             f"git {args[0]}: {proc.stderr.strip()}")
+
+
 def _across[T, R](work: Callable[[T], R], items: Iterable[T], jobs: int) -> list[R]:
     """One call per item, run at once, answered in the order the items were given.
 
@@ -421,10 +464,13 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
     loudly.
 
     A submodule's contents are not copied, because the checker excludes upstream prose
-    from its corpus, but the directory itself is stood up: a link at a submodule is
-    resolved against the filesystem here, where the sandbox's own index carries no
-    gitlink to resolve it against instead. The placeholder is what makes the directory
-    survive the clean between cases, git having no way to track an empty one.
+    from its corpus, but the directory itself is stood up and its gitlink is put back
+    into the index afterwards. The two serve different readers and both are needed. A
+    link at a submodule resolves against the filesystem, and the stand-in file is what
+    makes the directory survive, git having no way to track an empty one; the pin rule
+    reads the commit each submodule is at out of the index, where `git add -A` over
+    that stand-in leaves a blob and no gitlink at all, so `stamp_gitlinks` restores
+    what the sandbox's own tree cannot say.
 
     What comes back is how many files the template holds and how many of those were
     carried from the previous run's snapshot under the cache's rules, stated above it.
@@ -461,7 +507,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
         src, dst = repo / rel, into / rel
         if src.is_dir():
             dst.mkdir(parents=True, exist_ok=True)
-            (dst / ".selftest-submodule").write_text(
+            (dst / SUBMODULE_STAND_IN).write_text(
                 f"a stand-in for the {rel} submodule, so links at it resolve\n",
                 encoding="utf-8")
             return 0, 0
@@ -518,6 +564,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
             proc = subprocess.run(["git", *args], cwd=into, capture_output=True, check=False)
             if proc.returncode != 0:
                 raise SystemExit(f"could not build the sandbox index: git {args[0]}")
+    stamp_gitlinks(into, corpus_mod.load(repo).gitlinks)
 
     # written after the index is built, so no `git add` ever sees it
     (into / _MANIFEST).write_text(
@@ -550,6 +597,7 @@ CORPUS_DOC = "docs/differential-corpus.md"
 CONTRACT = "docs/freeze-measurement-contract.md"
 GEOMETRY = "docs/block-geometry-constraint.md"
 THIRD_PARTY = "THIRD-PARTY.md"
+DELTA = "docs/rtl-reparameterization-delta.md"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1187,6 +1235,15 @@ CASES: list[Case] = [
      _literal("rtl/vos_cheri_pkg.sv",
               "localparam int unsigned CapAddrWidth = 36;",
               "localparam int unsigned CapAddrWidth = 32;")),
+    # A restating site rather than the record's row, which is the direction the rule
+    # is built around: the licence record and the gitlink go on agreeing, so the
+    # first hop stays green and only the second can see it. Moving the row instead
+    # would fire the first hop and prove nothing about the second. The digit changed
+    # is the last of the delta's provenance cell, so the mutant is a transcription
+    # slip and not a pin that has moved, and no other rule opens that cell: the case
+    # passes on K-81's own report with no collateral.
+    ("K-81", "an upstream pin restated as a commit the record does not record",
+     _literal(DELTA, "| `36a1dc5c` | 2026-08-23 |", "| `36a1dc5d` | 2026-08-23 |")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
@@ -1433,7 +1490,7 @@ def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
     the checklist's cells and totals, and the tag-plane figures from their artifacts,
     and on a repository that already agrees it rewrites nothing, so those branches ship
     untested unless something breaks them on purpose. One seed per rule in REPAIRABLE,
-    all seven at once, each repair asserted by its own `fixed:` line, and the lane is
+    all of them at once, each repair asserted by its own `fixed:` line, and the lane is
     bracketed by two fixpoint proofs: --fix on the pristine tree exits clean, rewrites
     nothing, and moves no byte; and once the seeded defects are repaired and the
     checker passes, a second --fix again rewrites nothing and moves no byte.
