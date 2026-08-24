@@ -199,16 +199,25 @@ GITLINK_MODE = "160000"
 class Corpus:
     """The tracked Markdown of the repository, and what a link may name in it."""
 
-    def __init__(self, root: Path, docs: list[Document], gitlinks: set[str],
+    def __init__(self, root: Path, docs: list[Document], gitlinks: dict[str, str],
                  tracked: list[str]) -> None:
         self.root = root
         self.docs = docs
         self.by_name = {d.name: d for d in docs}
+        # Each submodule's path *and* the commit the index records for it. A link at
+        # a submodule wants only the path and asks with `in`, which reads a mapping
+        # exactly as it read a set; the pin rule wants the commit, and the index is
+        # the one place it is written down. Keeping it costs the split the listing
+        # already performs and is the difference between the checker reading the
+        # pins and shelling out to git a second time to ask what it has just been
+        # told.
         self.gitlinks = gitlinks
         # Every tracked path that is a file rather than a gitlink, Markdown and not,
-        # model/ and not. Only the marks group reads it, and it reads the whole tree
-        # on purpose: its question is what kind each file is, so the exclusions the
-        # document groups apply by construction are that group's to state and refuse.
+        # model/ and not. The groups that read it read the whole tree on purpose,
+        # because their questions are about every file rather than about the prose:
+        # what kind each one is, what bytes it is made of, and what commit it states.
+        # So the exclusions the document groups apply by construction are each of
+        # those groups' own to state and refuse.
         self.tracked = tracked
 
         # A fragment resolves to a bookmark or to a heading's slug, and Markdown makes
@@ -303,7 +312,7 @@ def find_root(start: Path | None = None) -> Path:
 
 
 def load(root: Path) -> Corpus:
-    """Every tracked Markdown document, plus the gitlinks a link may point at.
+    """Every tracked Markdown document, plus the gitlinks and the commit each records.
 
     The corpus is what the repository tracks, which git already knows: `ls-files`
     skips ignored files and build output without this tool maintaining a list of
@@ -322,27 +331,33 @@ def load(root: Path) -> Corpus:
     the pointers at it dead, which is a finding a person can act on; reading it
     instead would abort the run on an IO error before any rule decided anything.
     """
-    # One listing answers both questions the corpus asks of the index, because both are
-    # answered by an entry's mode. A link at a submodule points at something the
-    # repository carries as a gitlink rather than as a directory, and whether that
-    # gitlink is checked out is the reader's business and not the pointer's. So a
-    # submodule path resolves whether or not its contents are on disk: a shallow clone,
-    # or a checkout that skipped submodules, is not a repository whose cross-references
-    # have gone stale.
+    # One listing answers every question the corpus asks of the index, because each is
+    # answered by an entry's mode and the object beside it. A link at a submodule points
+    # at something the repository carries as a gitlink rather than as a directory, and
+    # whether that gitlink is checked out is the reader's business and not the
+    # pointer's. So a submodule path resolves whether or not its contents are on disk: a
+    # shallow clone, or a checkout that skipped submodules, is not a repository whose
+    # cross-references have gone stale. The commit each gitlink records is kept for the
+    # same reason and it is what makes the pin rule work on such a checkout: the id is
+    # in the index whether or not anything was ever fetched, and most checkouts here
+    # have `upstream/` unpopulated.
     names: list[str] = []
-    gitlinks: set[str] = set()
+    gitlinks: dict[str, str] = {}
     tracked: list[str] = []
     seen: set[str] = set()
     for entry in _git(root, "ls-files", "--stage", "--full-name"):
         staged, _, path = entry.partition("\t")     # `<mode> <object> <stage>\t<path>`
-        if staged.startswith(GITLINK_MODE):
-            gitlinks.add(path)
-            continue
-        # a merge conflict lists an unmerged path once per stage, and one path read
-        # as two documents would report every anchor it declares as declared twice
+        # A merge conflict lists an unmerged path once per stage, and the first is
+        # taken whatever the entry is. One path read as two documents would report
+        # every anchor it declares as declared twice; one gitlink read three times
+        # would keep whichever stage git happened to list last, which for a
+        # conflicted submodule is *theirs* rather than a pin anybody chose.
         if path in seen:
             continue
         seen.add(path)
+        if staged.startswith(GITLINK_MODE):
+            gitlinks[path] = staged.split()[1]
+            continue
         if not (root / path).is_file():
             continue
         tracked.append(path)

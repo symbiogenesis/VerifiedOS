@@ -17,11 +17,12 @@ all, the DECTED code over the plane being fixed at no width; that half is held b
 inequality against the bare figure and never rewritten.
 """
 
+import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
-from vos import config, coreclass, decode, figures, geometry
+from vos import config, coreclass, decode, differential, figures, geometry
 from vos import corpus as corpus_mod
 from vos.register import ISA_PROFILE, REGISTER, REQ_TOKEN_RE, cj_class, cj_status
 
@@ -178,6 +179,14 @@ CLAIMS = [
     # tuple the day a file joined it, so the one sentence left states it derived.
     (TOOLS_README, "model-facts", "words",
      r"(?<=`MODEL_FACTS` names )[\w-]+(?= files by path)"),
+
+    # the differential corpus's own size, owned by the manifest. K-50 holds the
+    # membership in both directions and says nothing about how many members there
+    # are, so a program added to the manifest and described in the document left
+    # this sentence behind with every rule green; and the counted-noun sweep does
+    # not reach it either, `programs` not being one of the nouns it proposes.
+    ("docs/differential-corpus.md", "corpus-members", "words",
+     r"[\w-]+(?= purecap programs)"),
 ]
 
 # The claims are the whole mechanism, so a restatement nobody registered is not checked
@@ -398,6 +407,12 @@ OWNED_COUNTS = frozenset({
     "type-obligations", "unary-invariants", "seam-lemmas", "frozen-absences",
     "admission-tests", "tcb-items", "assurance-tiers", "build-prereqs",
     "radio-protocols", "iris-theories",
+    # The one member here whose owner is a file rather than an entry, and it is a
+    # member for exactly the same reason: a manifest that will not parse yields no
+    # members, which is a reading that has moved and never a corpus that has
+    # emptied, and resolving its claim would rewrite the document's own sentence to
+    # "zero" under one routine `--fix`.
+    "corpus-members",
 })
 
 _PARENTHETICAL_RE = re.compile(r"\([^)]*\)")
@@ -451,6 +466,22 @@ def _anchor_line_marks(ctx: Context, ident: str) -> int:
     return 0
 
 
+def _corpus_members(ctx: Context) -> int:
+    """How many programs the differential corpus's manifest lists, zero where it
+    will not parse.
+
+    Guarded rather than allowed to raise, because this group runs well before the
+    differential group that owns the manifest: an unreadable one there is that
+    group's finding, worded once, and here it must not take the whole run down
+    before any rule has decided anything. Zero is the moved-reading answer
+    `OWNED_COUNTS` refuses to resolve a claim against.
+    """
+    try:
+        return len(differential.load(ctx.root).members)
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return 0
+
+
 def _radio_protocols(reg_accept: str) -> int:
     """The curated-analysis set's size, read as the register itself states it: the
     span of crown-jewel inventory rows R-12-043e pins its lineages to."""
@@ -499,6 +530,7 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "build-prereqs": _anchor_line_marks(ctx, "r-06-024"),
         "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
         "iris-theories": _enumeration(IRIS_THEORIES_RE, reg.body.get("R-13-017", "")),
+        "corpus-members": _corpus_members(ctx),
     }
 
 
@@ -1016,7 +1048,7 @@ def _citation_window(ctx: Context) -> tuple[list[tuple[str, str]], list[str]]:
     """The model-citation window, read once for the two rules that scan it.
 
     K-63 reads every file the window admits and K-66 re-read the Sail subset of the
-    same files moments later, so the one read lives here and both consumers take
+    same files moments later, so the one read lives here and every consumer takes
     `(rel, text)` pairs. The reads go through a thread pool because a file read
     releases the interpreter lock, so the on-access virus scan the window's first
     read pays overlaps across files instead of serializing; the pool's `map` returns
@@ -1418,6 +1450,10 @@ def run(ctx: Context) -> None:
     _freeze_delta(ctx)
     _core_classes(ctx)
     window, faults = _citation_window(ctx)
+    # A third consumer, in a later group: the pin rule reads the ported headers'
+    # provenance lines out of the same files. Handed on rather than re-read, for the
+    # reason `_citation_window` states about the second one.
+    ctx.shared["citation_window"] = window
     _model_citations(ctx, window, faults)
     _excluded_forms(ctx, window)
     _shipped_configurations(ctx)
