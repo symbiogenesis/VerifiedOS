@@ -1083,6 +1083,16 @@ CASES: list[Case] = [
     ("K-72", "a hand-written corpus word standing on a ground the encoder contradicts",
      _literal(CORPUS_DOC, "| the word is what the reader must see | `csrrw",
               "| the encoder cannot express it | `csrrw")),
+
+    # The state and not the citation, which is K-22's half and stays intact: the seeded
+    # line goes on naming the entry that collects it and stops naming a state that entry
+    # carries, which is the member admitted without the budget sentence being reopened.
+    # Read from the register rather than spelled here, so the case survives a reworded
+    # state, and both directions fire on it at once, the conferral standing outside the
+    # enumeration and the state it left standing under no conferral.
+    ("K-73", "a freshness conferral naming a state the enumeration does not carry",
+     _first_match(REGISTER, f"(?m)^{MID} RoT-fresh: (.+?) \\(R-10-013\\)",
+                  lambda m: m.group().replace(m.group(1), "a state of its own"))),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

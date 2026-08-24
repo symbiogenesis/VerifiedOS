@@ -135,6 +135,7 @@ def run(ctx: Context) -> None:
         "tag-plane figures the granule fixes": sh.get("tag_plane", 0),
         "welded block sizes the constraints admit": sh.get("block_candidates", 0),
         "items of the freeze's closed delta": sh.get("delta_items", 0),
+        "states the freshness enumeration names": sh.get("rot_states", 0),
         "bank counts the DSE contract declares": sh.get("bank_candidates", 0),
         "core-class table sites the rule can read": sh.get("core_class_sites", 0),
         "VLEN tokens the composition answers": sh.get("vlen_tokens", 0),
