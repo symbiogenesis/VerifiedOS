@@ -76,6 +76,13 @@ def _bank_dse_twice() -> None:
     ensure(code == 0, f"the live composition scores clean, got {code}: {out!r}")
 
 
+def _freeze_report_twice() -> None:
+    code, out, _ = _twice_identical("freeze-report.py")
+    ensure(code == 0, f"the instrument agrees with its contract, got {code}: {out!r}")
+    ensure("This report is not a freeze." in out,
+           f"and says so on every run, got {out[-200:]!r}")
+
+
 def _typecheck_twice() -> None:
     code, out, _ = _twice_identical("typecheck.py")
     ensure(code == 0, f"the tools hold to their own discipline, got {code}: {out!r}")
@@ -107,6 +114,7 @@ def cases() -> list[Case]:
         Case("coread-list-twice", _coread_list_twice, lane="host"),
         Case("blast-radius-twice", _blast_radius_twice, lane="host"),
         Case("bank-dse-twice", _bank_dse_twice, lane="host"),
+        Case("freeze-report-twice", _freeze_report_twice, lane="host"),
         Case("typecheck-twice", _typecheck_twice, lane="host"),
         Case("check-twice", _check_twice, slow=True, lane="host"),
         Case("tree-status-after", _tree_status_after, lane="host"),
