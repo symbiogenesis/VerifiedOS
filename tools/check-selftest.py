@@ -886,6 +886,12 @@ CASES: list[Case] = [
                   lambda m: re.sub(rf" {MID} [\d.,]+ h actual {MID} [\d.]+%",
                                    " (about half a day)", m.group()))),
 
+    ("K-34", "an open item's cell carrying no authority class",
+     _first_match(PLAN,
+                  rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} [\d.,]+ h, range [\d.,]+–[\d.,]+ "
+                  rf"{MID} [\d.]+% {MID} [IX](?= {MID}|$)",
+                  lambda m: re.sub(rf" {MID} [IX]$", "", m.group()))),
+
     ("K-35", "an open midpoint that is not the mean of its own range",
      _renumber(PLAN, rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} ([\d.,]+)(?= h, range )",
                1, "999")),
@@ -895,6 +901,12 @@ CASES: list[Case] = [
 
     ("K-37", "a restated grand total the items do not give",
      _renumber(PLAN, r"(?m)^\* Total estimate: ([\d.,]+)(?= h midpoint)", 1, "999")),
+
+    ("K-37", "a restated class sum the open items of that class do not give",
+     _renumber(PLAN, r"(?m)^\* Total estimate:.*?class I ([\d.,]+) h and class X", 1, "999")),
+
+    ("K-37", "a gate figure the partition beneath it does not give",
+     _renumber(PLAN, r"(?m)^\* M8a gate: ([\d.,]+) h of open work", 1, "999")),
 
     ("K-38", "a table row of the wrong width",
      _literal(MATRIX, "| `B-01` | `P-1` |", "| seeded | `B-01` | `P-1` |")),
