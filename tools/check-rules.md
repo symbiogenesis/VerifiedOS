@@ -48,10 +48,10 @@ A second instrument stands behind the rows themselves. [check-selftest.py](check
 | K-31 | compounds | every dominant term reads its own big-table row | the same declared shape |
 | K-32 | compounds | the compounded product agrees with the rows beneath it | arithmetic is nobody's opinion; only the credit is a judgment |
 | K-33 | compounds | every credit is the gap between the band and its product | the same split of arithmetic from judgment |
-| K-34 | estimates | every checklist item carries an estimate cell the tool can read | the checklist's own declared shape |
+| K-34 | estimates | every checklist item carries an estimate cell the tool can read, and every open one carries an authority class beside it | the checklist's own declared shape; the class is the one authored token the cell gained beside the range, and everything resting on it is arithmetic K-37 holds, so a cell that omits it is a cell two derived figures are computed over a smaller subject than the document claims |
 | K-35 | estimates | every open item's midpoint is the mean of its own range | the same declared shape |
 | K-36 | estimates | every item cell and subtotal agrees with the hours beneath it | the same declared shape |
-| K-37 | estimates | every restated total, share, and gate figure agrees with the items | the same declared shape |
+| K-37 | estimates | every restated total, share, class sum, calibrated total, and gate figure agrees with the items | the same declared shape; the gate is two gates over two chains, so the partition is two named lists and each figure is the open hours the list leaves at or before it, and the class sums and the calibrated total are arithmetic over the authority class K-34 requires, which is what keeps a judgment token from being restated as a figure nobody recomputes |
 | K-38 | tables | every table row is the width its header declares | the counts above read cells by position |
 | K-39 | tables | every table row belongs to a table with a header rule | the same; a ruleless run renders as prose and is read by nothing |
 | K-40 | glyphs | no tracked file carries an em-dash | house style; the rule is absolute so it needs no audited carve-out, and reading the whole index rather than the `.md` corpus is what leaves it none |

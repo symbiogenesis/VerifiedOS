@@ -15,9 +15,16 @@ grand total, and every subtotal, the grand range, and the progress pair are sums
 the items beneath them. All of it is arithmetic, so a repair rewrites all of it;
 unlike the compounded product, there is no judgment layer here to leave standing.
 
-What the group does not compute is what the sums cannot give: the optimization and
-gating adjustments and the critical chain are the author's, stated beside the derived
-M8 figure rather than folded into it, so the two kinds of figure stay separable.
+What the group does not compute is what the sums cannot give: the critical chain is the
+author's, stated beside the derived gate figures rather than folded into them, so the two
+kinds of figure stay separable.
+
+A third authored token joins the range: an open item's **authority class**, `I` where what
+the item realizes is fixed inside this repository and `X` where it is not. It is a judgment
+and stays one, but everything resting on it is arithmetic and lands here: the two class
+sums, and the calibrated total, which re-weights each class's open hours by the ratio that
+class of completed item actually ran at. A completed item carries no class, having an actual
+where the class would have widened a range.
 
 An item carrying no cell at all is legal in one place, a parent whose children carry
 the estimates, which is why the check reads the indent rather than demanding a figure
@@ -55,11 +62,29 @@ DONE_RE = re.compile(r"^ · (?P<h>[\d.,]+) h actual · (?P<pct>[\d.]+)%(?P<tail>
 OPEN_RE = re.compile(r"^ · (?P<h>[\d.,]+) h, range (?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) "
                      r"· (?P<pct>[\d.]+)%(?P<tail>.*)$")
 
-# the M8 gate figure is the total less the work that lands after the gate, and the labels
-# that do are named here rather than inferred, everything else falling at or before it. A
+# the authority class opens the tail, ahead of whatever prose follows it. An open item owes
+# one and a completed item does not: the class is a prior on a range, and a completed item
+# has an actual instead of a range for the prior to widen
+CLASS_RE = re.compile(r"^ · (?P<cls>[IX])(?= ·|$)")
+
+# the gate is two gates over two chains, so the partition is two lists rather than one. A
 # label names a position in the order rather than one item, and `Post-M10` carries several,
-# so what is held below is that each label is occupied and not that the two counts match
-AFTER_GATE = ["R4", "R5", "M9", "M9a", "M10", "Post-M10"]
+# so what is held below is that each label is occupied and not that the two counts match.
+# `AFTER_M8B` is what falls beyond the co-simulation gate; `AFTER_M8A` is that plus the RTL
+# chain, which runs beside the software one rather than inside it, so an item on it falls
+# after the software gate without being deferred past anything
+AFTER_M8B = ["R4", "R5", "M9", "M9a", "M10", "Post-M10",
+             "M0.8c", "M1.3", "M1.3a", "M1.4", "M1.8b",
+             "M3.4b", "M3.6b", "M5.4", "M6.1b", "M6.2b", "M6.3b", "M6.5b",
+             "M6.6", "M6.7", "M6.8", "S5", "S6"]
+AFTER_M8A = ["R1b", "R1c", "R2", "R3", "M8b", *AFTER_M8B]
+
+# the outturn ratios the plan's own §12 measures over the completed items, one per authority
+# class. They multiply the open hours of their class and nothing else: a completed item's
+# actual is what it cost, so the calibrated figure is the done hours plus the open ones
+# re-weighted, and the ratios are stated here rather than in the document because the
+# document restates the figure they produce
+CLASS_RATIO = {"I": 0.66, "X": 1.68}
 
 
 def _hours(text: str) -> float:
@@ -77,6 +102,7 @@ class Item:
     lo: float
     hi: float
     tail: str
+    cls: str | None
 
 
 @dataclass
@@ -137,6 +163,10 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
 
         lo = _hours(opened.group("lo")) if opened else 0.0
         hi = _hours(opened.group("hi")) if opened else 0.0
+        klass = CLASS_RE.match(cell.group("tail"))
+        if opened and klass is None:
+            malformed.append(f"{label}: no authority class beside the estimate; an open cell "
+                             "reads '· I' or '· X' after its percentage")
         # every sum below reads `hours`, and for an open item that is the range's mean
         # rather than the midpoint as written: the range is the estimate, so a stated
         # midpoint that disagrees with it is a stale token, reported and rewritten
@@ -146,7 +176,8 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
             done=bool(done),
             stated=_hours(cell.group("h")),
             hours=round((lo + hi) / 2, 1) if opened else _hours(cell.group("h")),
-            lo=lo, hi=hi, tail=cell.group("tail"))
+            lo=lo, hi=hi, tail=cell.group("tail"),
+            cls=klass.group("cls") if klass else None)
         items.append(item)
         bucket.append(item)
 
@@ -193,13 +224,31 @@ def run(ctx: Context) -> None:
     open_lo = round(sum(i.lo for i in open_items), 1)
     open_hi = round(sum(i.hi for i in open_items), 1)
 
-    after = [i for i in items if i.label.split(" · ")[0] in AFTER_GATE]
-    carried = {i.label.split(" · ")[0] for i in after}
     stated: list[str] = []
-    if empty := [name for name in AFTER_GATE if name not in carried]:
-        stated.append(f"{len(AFTER_GATE)} label(s) name work landing after the M8 gate; "
-                      f"the document carries no item under {', '.join(empty)}")
-    gate_h = round(grand - sum(i.hours for i in after), 1)
+    carried = {i.label.split(" · ")[0] for i in items}
+    for name, partition in (("M8a", AFTER_M8A), ("M8b", AFTER_M8B)):
+        if empty := [label for label in partition if label not in carried]:
+            stated.append(f"the {name} partition names work the document carries no item "
+                          f"under: {', '.join(empty)}")
+
+    def _at_or_before(partition: list[str]) -> list[Item]:
+        return [i for i in open_items if i.label.split(" · ")[0] not in partition]
+
+    # the software gate is what open work falls at or before it, where the old single gate
+    # was the whole midpoint less the deferred tail; the two differ by the completed hours,
+    # and the open reading is the one a schedule is made against
+    gate_a = _at_or_before(AFTER_M8A)
+    gate_a_h = round(sum(i.hours for i in gate_a), 1)
+    gate_a_x = round(sum(i.hours for i in gate_a if i.cls == "X"), 1)
+    # the RTL chain is what the two partitions differ by: after the software gate, and not
+    # deferred past the co-simulation one, so it runs beside rather than behind
+    chain_b = round(sum(i.hours for i in open_items
+                        if i.label.split(" · ")[0] in AFTER_M8A
+                        and i.label.split(" · ")[0] not in AFTER_M8B), 1)
+
+    by_class = {c: round(sum(i.hours for i in open_items if i.cls == c), 1)
+                for c in CLASS_RATIO}
+    calibrated = round(done_h + sum(CLASS_RATIO[c] * h for c, h in by_class.items()), 1)
 
     # every derived token, old against new; nothing here is a judgment, so a repair
     # takes all of it
@@ -262,9 +311,14 @@ def run(ctx: Context) -> None:
     hi_t = format_hours(done_h + open_hi)
     derived_lines = [
         ("the total estimate",
-         r"(?m)^\* Total estimate: (?P<mid>[\d.,]+) h midpoint, range "
-         r"(?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h",
-         {"mid": grand_t, "lo": lo_t, "hi": hi_t}),
+         r"(?m)^\* Total estimate: (?P<mid>[\d.,]+) h midpoint, class I (?P<ci>[\d.,]+) h "
+         r"and class X (?P<cx>[\d.,]+) h over the open items",
+         {"mid": grand_t, "ci": format_hours(by_class["I"]),
+          "cx": format_hours(by_class["X"])}),
+        ("the calibrated total",
+         r"(?m)^\* Calibrated against completed-item outturn \(class I 0\.66, class X "
+         r"1\.68\): approximately (?P<cal>[\d.,]+) h",
+         {"cal": format_hours(calibrated)}),
         ("the progress pair",
          r"(?m)^\* Progress by estimate: (?P<done>[\d.,]+) of (?P<total>[\d.,]+) h complete "
          r"\((?P<donePct>[\d.]+)%\); (?P<left>[\d.,]+) h remaining \((?P<leftPct>[\d.]+)%\)",
@@ -272,9 +326,13 @@ def run(ctx: Context) -> None:
           "donePct": percent(done_h, grand, 1),
           "left": format_hours(grand - done_h),
           "leftPct": percent(grand - done_h, grand, 1)}),
-        ("the M8 gate figure",
-         r"(?m)^\* M8 gate: (?P<gate>[\d.,]+) h of the (?P<total>[\d.,]+) h midpoint",
-         {"gate": format_hours(gate_h), "total": grand_t}),
+        ("the M8a gate figure",
+         r"(?m)^\* M8a gate: (?P<gate>[\d.,]+) h of open work falls at or before it, of "
+         r"which (?P<x>[\d.,]+) h is class X",
+         {"gate": format_hours(gate_a_h), "x": format_hours(gate_a_x)}),
+        ("the M8b chain figure",
+         r"(?m)^\* M8b gate: a (?P<chain>[\d.,]+) h chain of open work",
+         {"chain": format_hours(chain_b)}),
         ("the grand-total basis",
          r"(?m)^\* Grand total: the sum of the item cells, (?P<mid>[\d.,]+) h midpoint over "
          r"a (?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h range",
