@@ -398,6 +398,8 @@ The other four are the radio reference state machines (inventory rows 19–22), 
 
 ### Current summary
 
+**In one paragraph.** Take the owed register acts and the two licence reads first, because they are the only work that cannot be delegated and they gate the most. Re-base the compiler item on stock CompCert, where the delta is a back end rather than a memory model. Let the Gallina front run on the Wasm oracle it was designed for, and let the assembler this repository already built be the assembler. Join the RVFI-DII ecosystem, build the three generators, and stop hand-writing what a model can emit. Generate the derived artifacts rather than policing their transcriptions, which retires much of the tool surface and the rules bolted on to hold those transcriptions equal. Split the gate that welded two independent tracks, strike the emulator fork whose two jobs other items now do, and move the lanes off the laptop. **The stated bill barely moves. What halves is the open work before a booting system, and what falls by nearly two thirds is the serial chain through it**, because the plan's problem was never the cost: it was that the schedule was serial where it need not be, hand-validated where it could generate, and pointed at start-froms that do not carry what they were priced to carry.
+
 * Completed: M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M1.1, M1.1a, M1.5, M1.8a, M3.1, M4.1, M4.1a, M4.2a, M6.0a, R1a, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause.
 * **The serial constraint is lane 1 and no instrument removes it.** S1's owed register acts are the author's own, they gate the whole Gallina front and both RTL lanes, and nothing here can take them for itself. That is the argument for spending the opening almost entirely there.
 * **The Gallina front is not blocked and was sequenced as though it were.** §0's own discipline is that each component runs host-side on a stock Wasm engine *before it is lowered at all*, needing no toolchain, no image and no machine model, and M1.5 is landed and green. So M3.2, M3.3, M3.4a, M4.2b, M4.3, M5.1, M5.2, M6.1a, M6.2a, M6.3a and M6.4 are `Wasm-parallel`, gated on the register rather than on M1, and every one of them is class I. Only the lowering-and-integration items genuinely want the backend: M1.7, M3.5, M4.4, M5.3, M6.5a and M7.1.
@@ -420,12 +422,44 @@ The order the lanes open in, which is not the order the sections are written in.
 
 | Phase | Work | Why then |
 | --- | --- | --- |
-| Opening | S4, S3, S9, S12, M1.1b, M4.1b, and S1's first sitting | An hour of measurement decides whether the M2 strike stands; two hours of deletion and a `submodule update` unblock the RTL lanes; three hours retire a finding class; the reads dispose six start-froms; and the two decisions price M1.2, M4.4, M6.3a and M6.5a |
-| Instruments | S1 completed, then S7, S2, S8, S10, S11, S13, S14, S15, S16 | The undelegatable work, and every instrument the lanes depend on. S13, S14 and S15 are front-loaded because they pay back on every item after them and on nothing before them |
-| Gallina lanes | M3.2, M3.3, M5.1, M6.1a, M6.2a and the rest of the `Wasm-parallel` set | Gated on S1 rather than on M1, and self-validating under S13 |
-| Spine and RTL | M1.9 → M1.2; R1b split at S7, and R1c | Counterexample-driven under S11 from the first elaboration |
-| To the software gate | M1.7 → M3.5 → M4.4 → M5.3 → M6.5a → M7.1 → **M8a** | The critical chain, and lane 1's to release |
-| Beside it | R2 → R3 → **M8b** | The RTL chain, decoupled from the software one by the gate split |
+| Opening | S4, S3, S9, S12, M1.1b, M4.1b, and S1's first sitting | An hour of measurement decides whether the struck milestone stays struck; two hours of deletion and one `submodule update` unblock both RTL lanes; three hours retire a finding class; the reads dispose six start-froms; and the two decisions price M1.2, M4.4, M6.3a and M6.5a |
+| Opening to third week | S1 completed, then S7, S2, S8, S10, S11, S13, S14, S15, S16 | The undelegatable work, and every instrument the ten lanes depend on. **The instruments are front-loaded**: S13, S14 and S15 pay back on every item after them and on nothing before them |
+| From the second week | The Gallina lanes open: M3.2, M3.3, M5.1, M6.1a, M6.2a and the rest of the `Wasm-parallel` set | Gated on S1 rather than on M1, and self-validating under S13 |
+| From the third week | The spine, M1.9 → M1.2; the RTL lanes, R1b split at S7 and R1c | Counterexample-driven under S11 from the first elaboration |
+| Then | M1.7 → M3.5 → M4.4 → M5.3 → M6.5a → M7.1 → **M8a** | The critical chain the summary states, and lane 1's to release |
+| Beside it | R2 → R3 → **M8b** | The RTL chain the summary computes, decoupled from the software one by the gate split |
+
+### Risks to the sequencing
+
+What would falsify the order above, and what each risk is answered by. Nothing here is a hedge: every row names either the item that measures it or the property that bounds what it costs.
+
+| Risk | Severity | What answers it |
+| --- | --- | --- |
+| **The authority-class calibration rests on two completed items in the class that matters.** | High for the conclusion, low for the actions | Every act it motivates is independently justified. The convention already treats the ratio as a prior on range width rather than a re-price of midpoints, and the calibrated total is stated separately rather than folded in. S7 is what turns the prior into a measurement. |
+| **M1.1b forfeits SECOMP's integration path for robust preservation.** | High: that theorem is the §5 end-state | The arms and their forfeits are recorded at the decision. SECOMP's recomposition, blame and back-translation are stated over the compartment layer rather than over `cheririscV/`, so the pin stays for the front and middle end. Refusing the arm costs M1.2's re-price and no structure. |
+| **M4.1b's read forecloses the CHERI-seL4 start-from.** | High: M4.4, M6.3a and M6.5a re-price upward | The exposure exists today and is unrecorded, which is the whole argument for the hour. It buys knowing before M4.4 is scheduled rather than after it is half done. |
+| **The M2 strike is wrong**, the multikernel wanting real SMP or the reference emulator being too slow. | High, for the whole of what was struck | Both rulings are opening-phase items, S4 and S1's multi-hart act. Both upstreams stay gitlinks, so reinstating costs the pin. |
+| **The Gallina front is authored against register acts that later move.** | Medium | Why S1 runs first. M4.2a is the precedent and the discipline: it authored what the register fixed and refused what it did not. |
+| **Tier B admits a defect a full read would have caught.** | Medium | Tier B admits nothing without a rule holding whatever fact the item created, so the admissible defect class shrinks with every landing, and S14 turns the mechanical half from a promise into a gate. |
+| **The model's own documentation bundle is not rich enough to supply what the five parsers read.** | Medium | S15 opens by reading the bundle the build already produces against those parsers' outputs. If it falls short for one fact, that parser stays and the others go: the proposal degrades per fact rather than wholesale. |
+| **Generation makes a wrong fact consistent everywhere**, where a transcription would have shown a visible disagreement. | Medium | The tree's own evidence runs the other way. K-79's sites were held by nothing at all until the rule was written, and K-54's first run found a live disagreement in a document nobody had noticed. Consistency was never a property the transcriptions had; it was the property the rules were bolted on to create. |
+| **The generator dividend does not materialize** across the Gallina front. | Medium | It is a small share of the reduction, the mechanism is named per cell rather than asserted over the total, and it is falsifiable at the first Gallina item that lands with S13 in place. |
+| **M6.2's offline-admission reading is wrong.** | Medium to high | The split keeps the checker before the gate and defers only the CompCert-C refinement, so a wrong reading costs the deferral rather than the work. The question is on S1's list. |
+| **Ten lanes exceed what one author can adjudicate**, Tier A being irreducible. | High for the calendar | Lane 1's serial content is the real ceiling and no instrument removes it. If ten is too many, the binding figure is the critical chain rather than the gate total, and the chain wants three lanes rather than ten. |
+| **Rupicola's restricted subset does not cover what §0 assigns it.** | Medium | Its authors call it not a universal compiler. S12 reads the subset before M1.6 re-scopes, and the CompCert-C/VST route stays the default. |
+| **Katamaran's Sail-to-µSail translation is still manual.** | Medium | S12 reads it before anything depends on it, and its value is to the deferred §13 program rather than to anything before the gate, so a bad read costs the read. |
+| **Quarantine rots the instruments S16 sets aside.** | Low to medium | They move whole, with their selftest cases and their contract documents, and one rule holds that nothing outside the quarantine imports them. |
+
+### Considered and rejected
+
+Recorded so they are not re-proposed, which is the same discipline [the alternatives register](architectural-alternatives.md) keeps for the design.
+
+- **Lowering as a post-pass over stock `ccomp -S` output.** Wrong on this machine's own semantics: an integer write yields an **untagged** capability (M0.6e e3, R-05-136), so ordinary RV64 pointer arithmetic clears the tag on every address it touches. Rewriting each such site into a capability increment needs type information CompCert has erased by `Asm`, and CompCert deliberately conflates pointers and integers at 64 bits. The idea's residue is what M1.1b rests on: the delta is concentrated in `Asmgen` and the calling convention.
+- **Cutting the rules, the mutation selftest or the co-read ledger to reduce review cost.** Backwards. That machinery is exactly what makes a Tier-B landing admissible, so shrinking it moves work back into the one lane that cannot be widened.
+- **Adopting CHERIoT-Ibex for the main core.** Already correctly excluded, its distinct compressed encoding being what R-15-005's single-encoding requirement refuses.
+- **Parallelizing the build further.** I5, I6 and I10 measured it: clang took the generated unit's compile down by half and the residual is Sail's own single-threaded emission, which I6 showed a compiler mode cannot reach. CPU is not the constraint. Hardware still helps, through S9's finding class rather than through throughput.
+- **Deleting `model/dependencies/`.** Checked at S3's scoping; every member has a live consumer, softfloat serving the surviving vector floating point and `asio` being S11's socket layer.
+- **Raising the attended-hours budget.** Not a proposal at all. It is the one input this document cannot supply.
 
 ### S · Serial-path decisions and program instruments
 
