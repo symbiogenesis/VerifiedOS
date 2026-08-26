@@ -291,6 +291,50 @@ Non-normative; no spec-body change.
 
 ---
 
+## The fast-track vector lane past the consideration window: three carried as standing adoptions, three refused
+
+The profile's consideration window closed before a lane of fast-track vector arithmetic reached freeze, so this section is the record of reading that lane against the same gate the four amendments above fail, and its answer is not uniform.
+What makes the lane different from every candidate above is that its members are **standards-track**, so the two costs the gate weighs hardest, a custom opcode point and a re-pin obligation, are both zero: an extension that ratifies is adopted by amendment at an encoding somebody else chose, against a golden model somebody else maintains.
+That does not make them free, and it does not make them adoptable today, which is why the profile grew a third disposition rather than stretching either of the two it had ([the frozen profile](isa-profile.md) §2.1, R-15-067k).
+
+**Three are carried as standing adoptions**, admitted on their grounds with no encoding, no Sail clause, no dictionary entry, and no timing-model row until they ratify.
+The **vector dot-product pair** `Zvldot`/`Zvbdot` passes the five-part admission test on its own construction, adding no architectural state and touching no memory, and its consequence arrives before its encoding does: a batched dot product is a term in the RVV expression the bespoke matrix extension's admission margin is measured against, which is why that denominator is now normative rather than left to whoever runs the measurement (R-15-067l, R-15-116a).
+**`Zvzip`** is a fixed permutation of a register group, and it lands on the one archetype [performance-estimates.md](performance-estimates.md) carries no figure for at all: the post-quantum handshake, whose NTT butterfly staging is interleave and deinterleave (R-15-067m).
+The **integer vector absolute difference** is the encode side's kernel operation and is scored as declared-ceiling capacity rather than as a multiplier, motion estimation already vectorizing and the serial mode-decision layer above it setting the figure (R-15-067n).
+
+**Three are refused, and each on a ground already in the register rather than a fresh one.**
+- **`Zvqdotq`** is the alternative to the dot-product pair and is unratified, with toolchain support carried experimentally against a draft; adopting a draft encoding into a frozen profile is the dead-Sail-surface failure the ShangMi suites are excluded for (R-15-067l, R-15-048).
+- **`Zibi`** is this design's *bytes* admission template exactly, and it fails on the arithmetic that drops the `csetbounds` immediate: the cycle is already collected by compare-and-branch fusion, and a site-invariant `li` is already one dictionary entry, so the immediate form collects one 16-bit slot per site (R-15-067o, R-15-067e).
+  It is the one candidate on this page whose refusal is close, since being standards-track it spends no opcode point and opens no re-pin obligation, which is why it is written down rather than left out.
+- **`Zvfbfa` and `Zvfofp8min`** are refused *per half* rather than as extensions, because each carries scalar-operand forms and so pays the re-homing surcharge the vector-FP fork books as its second accepted cost (R-15-040b): the OFP8 conversion half has a live consumer in the software de-quantization the matrix lane assigns to the M-class vector unit and acts on the term that actually binds inference, and the native bf16 arithmetic half has no consumer at all (R-15-067p).
+
+**One adoption in the same lane is not a candidate but an omission repaired.** `Zvfbfmin` is `Zvfbfwma`'s own standards-track dependency, so the profile adopting the second and not the first was stating an incomplete extension set rather than a narrower one; it carries no scalar-operand form, so it opens none of the surcharge above, and the curated model already carried its clauses (R-15-067i).
+
+**Disposition:** carry three as standing adoptions reviewed at every re-pin act, refuse three with their grounds recorded, and adopt the dependency that was owed.
+Normative side: R-15-067i through R-15-067p, R-15-116a, and R-15-040b.
+
+---
+
+## `Zfinx`/`Zdinx`: the road not taken to deleting `f0`-`f31`, and why the fork is taken instead
+
+This is the one extension on the standards track whose entire purpose is the objective the scalar-FP deletion pursues by another route, so silence about it was the wrong shape whichever way it resolved.
+`Zfinx` and `Zdinx` are scalar floating point sourcing and writing the **integer** register file: no `f` bank at all, which is the load-bearing half of what deleting `F`/`D` buys here (R-15-039).
+Reached that way it would cost neither the fork of standard RVV nor the soft-float-register calling convention nor the dependent-recurrence latency [performance-estimates.md](performance-estimates.md)'s scalar-float row prices, which is a strictly better position on three axes at once, and that is why the comparison is worth writing down rather than assuming.
+
+**It is not adoptable here, on three counts, and the first is decisive.**
+- **The fork is not avoided.** RVV's scalar-operand forms architecturally name an `f` register, and `Zfinx` deletes that register, so a machine carrying both must re-home those operands exactly as this profile already does. The standards track fixes no `Zfinx`-with-`V` interaction to inherit, the two extensions disagreeing about whether an `f` register exists, so the adoption would be a second bespoke interaction rather than an inheritance (R-15-007j). Whatever else it buys, it does not buy back R-15-040.
+- **What it adds beside that fork is a datapath or the latency it was taken to escape.** Either the machine grows a second scalar floating-point datapath, which is the second realization the scalar AES and SHA-2 rounds are excluded for (R-15-041) and which is precisely the *datapath* the deletion removes, or the `Zfinx` operations are routed to the vector FPU, at which point the dependent-recurrence latency comes straight back and the only thing gained is an encoding.
+- **It carries a calling convention of its own**, so the soft-float-register ABI is replaced rather than retired, and a porting obstacle is exchanged rather than deleted.
+
+**What the comparison does change is which ground the deletion is stated on**, and that is the part of this section with a consequence.
+Reading `Zfinx` makes visible that most of the verification yield credited to the `F`/`D` deletion did not require it: the dynamic rounding mode and the accrued-exception flags are separable, both being deletable on a machine that keeps `F`/`D`, since RISC-V encodes a rounding mode per instruction already, and the fixed-latency contract applies to whichever FPU exists.
+Strip those and what the deletion uniquely buys is **no second architectural register bank**, which is now the ground the register states first, with the timing contract second and the two separable deletions booked apart from the fork rather than credited to it (R-15-039, R-15-039c).
+
+**Disposition:** decline `Zfinx`/`Zdinx` as a governed absence with a named ground rather than a silence (R-15-039d), and restate the scalar-FP deletion's ground as the register file.
+Normative side: R-15-039, R-15-039c, R-15-039d; the fork's second accepted cost is R-15-040b and its observable subset is R-15-040c.
+
+---
+
 ## Self-timed datapath logic: rejected at the timing axiom
 
 Delay-insensitive or bundled-data asynchronous logic offers average-case completion, lower clock-distribution power, and reduced clock-spectrum emission.
@@ -1008,7 +1052,12 @@ x86 ACE and Arm SME were evaluated as models for the frozen matrix extension.
 Dedicated architectural tile files and block-scale registers add large context and zeroization state, serialize low-precision operations around scale writes unless renamed, and enlarge the Sail and switch proofs.
 The platforms' ISA encodings themselves are not importable into RV64.
 
-**Disposition:** import neither ACE/SME tile state nor an architectural block-scale register.
+**The decline is now priced rather than taken as free, which is what separates a booked cost from a clean line.** A block-scaled dot-product unit integrated into a vector machine at a comparable node reports about 7.0× and 4.8× over software emulation for FP32 and bf16 accumulation, at about 4.9× and 3.8× better energy.
+That is the measurement standing against this section's disposition, and it is booked as an accepted cost in the register rather than left as an argument nobody had run the numbers on (R-15-117a): it is charged in the M-class vector unit's own slot, it is an in-slot term standing in front of the array's multiple rather than a debit against it, and what buys it is exactly what this section declines, a frozen matrix ISA with no scale field and therefore no per-format architectural state.
+A proposal that carries such a field reopens this comparison against that figure rather than against silence, which is the state the booking creates.
+**Outer-product sourcing has a third lineage this section's comparison did not reach**, the vector-coupled VME (`Zvopmm`), whose accumulation into a matrix accumulator register file needs no two-dimensional load and store surface and no major CSR bank; it is now named in the re-pin target beside AME and IME (R-15-009), and it is the track whose state this section's objection reaches least.
+
+**Disposition:** import neither ACE/SME tile state nor an architectural block-scale register, and book the software path's measured price rather than stating it as costless.
 Outer-product sourcing remains a proof-aware microarchitectural DSE question rather than a new ISA commitment.
 The software de-quantization and scaling path adopted from this comparison is documented in [Inspirations & Prior Art](inspirations.md).
 
@@ -1019,6 +1068,11 @@ The software de-quantization and scaling path adopted from this comparison is do
 HORCRUX, PQCUARK, and related coprocessors add NTT butterflies, modular reduction, samplers, and algorithm-specific datapaths beside Keccak.
 They target small vectorless embedded cores, whereas this application-class profile already has RVV: the lattice arithmetic is straight-line, statically scheduled, and constant-time on the vector unit.
 Specialized NTT instructions would add Sail semantics, `Zvkt` timing clauses, and RTL refinement cases without deleting a difficult proof.
+
+Neither has a ratification path, which is the second half of the ground: what the standards track carries for this lane is Keccak first, with the lattice arithmetic in software, so *the NTT rides plain RVV* is the standards-aligned position rather than a gap in this profile.
+
+**The declining does leave a residual, and it now has a standards-track instrument aimed at it rather than a bespoke one.** The residual is that the post-quantum handshake is the only archetype in [performance-estimates.md](performance-estimates.md) carrying no figure at all, and it is the *default* handshake. `Zvzip` reaches most of the butterfly's staging as a fixed permutation of a register group, at no architectural state and on a ratifying track, so it is carried as a standing adoption above rather than being an argument for reopening this section (R-15-067m).
+That is the distinction this page exists to keep: a bespoke unit is refused on what it costs the proof, and a standards-track permutation that reaches part of the same work is a different question with a different answer.
 
 **Disposition:** reject the full PQC coprocessor and its NTT, modular-reduction, and sampler instructions.
 The one primitive that crossed the hardware threshold and the software path retained for the rest are documented in [Inspirations & Prior Art](inspirations.md).
