@@ -19,7 +19,7 @@ They come first because their sequencing dominates: the roster below is elective
 
 Most of them are not ports.
 There is no upstream to re-target for a powerbox, a trusted consent path, or a signed translator graph, and where an ancestor exists (systemd's supervision model, Plan 9's plumber and Factotum, BeOS's translators, bcachefs's structure) the design takes the *pattern* and supersedes the mechanism, exactly as [inspirations.md](inspirations.md) records.
-The four obstacles below still bind on whatever code these do reuse, but *which crate do we start from* mostly has no answer here, and the honest cost is authoring against §12's typed IDL rather than subtraction from a POSIX original.
+The five obstacles below still bind on whatever code these do reuse, but *which crate do we start from* mostly has no answer here, and the honest cost is authoring against §12's typed IDL rather than subtraction from a POSIX original.
 
 - **Powerbox and trusted-path agent** (§6 item 7, §8, §12), the **consent TCB**: the one userland component the non-interference theorem trusts, because it mints the single capability edge not fixed at compose time and a wrongful declassification is a legitimate capability operation CHERI cannot catch.
   It is not one program but three cooperating pieces: the powerbox itself, the agent that renders the consent surface into a region it holds by capability under the RoT-driven secure-attention indicator (§9), and the fixed threshold-and-centroid reducer, with no adaptive state, that reads raw front-end frames while the touch AFE's ownership is RoT-latched away from its driver (§12, §15).
@@ -74,9 +74,9 @@ These are stageable behind the userland above, in the order **Sequencing** (belo
 
 ---
 
-## The porting discipline: four obstacles every target meets
+## The porting discipline: five obstacles every target meets
 
-Independent of the application, the same four substrate mismatches are re-targeted the same way, so they are stated once here and referenced per target below:
+Independent of the application, the same five substrate mismatches are re-targeted the same way, so they are stated once here and referenced per target below:
 
 1. **`unsafe` must go.**
    FFI shims, GPU bindings, and hand-rolled synchronization are inadmissible in app logic (§5): each `unsafe` site is either deleted with the POSIX/GPU assumption that motivated it or routed through the formally verified HAL (§5).
@@ -92,12 +92,18 @@ Independent of the application, the same four substrate mismatches are re-target
    Process trees become the service manager's static supervision tree (§12); path-based file access becomes a manifest-backed private namespace (§14); "spawn a helper" becomes a capability-delegated compartment reached over a ring (§12).
 4. **No runtime code generation, anywhere.**
    Compilation is an off-device build step (the certifying toolchain, §5/§18), never an on-device service; nothing on the device JITs (§14), so any embedded script/Wasm engine runs **pure-interpreter**.
+5. **The floating-point environment is a subset, and one C header has no implementation.**
+   Scalar `F`/`D` is deleted rather than reimplemented on the vector unit (§15, R-15-039, R-15-040c), so three things a port may assume are absent and each is absent *architecturally*, with no shim to write.
+   There is **no runtime-selected rounding mode**: every vector floating-point instruction rounds to nearest, ties to even, and only the conversions that name their mode architecturally do anything else, so directed-rounding interval arithmetic and the decimal-conversion and libm paths that switch modes are gone rather than slow.
+   There are **no accrued exception flags**: the unit's flags reach no architectural state, so software detects an invalid or inexact result by testing the result, and **`<fenv.h>` is unimplementable**, `fetestexcept` and `feraiseexcept` having nothing to read. A closure member whose correctness argument rests on the C floating-point environment is a sub-port on this obstacle alone, and the admission gate refuses it rather than admitting it to fail later (§13).
+   And `vfmv.f.s` **zero-extends** where standard RVV NaN-boxes, which is a divergence in a value and not in an encoding, so hand-written vector assembly carried across from another RISC-V target is inadmissible here for a reason no assembler reports.
+   Floats also cross call boundaries in integer registers under the soft-float-register calling convention, which is an ABI a port never writes down and a hand-written assembly stub always does.
 
 ---
 
 ## Writing for the fast paths: a source-level discipline, not a mechanism
 
-The four obstacles above decide whether a port is *admissible*; this decides whether it is *fast*, and it is the one performance lever that lives entirely in application source.
+The five obstacles above decide whether a port is *admissible*; this decides whether it is *fast*, and it is the one performance lever that lives entirely in application source.
 SoA layouts, batching, and replacing pointer-chasing with vectorizable or matrix-shaped structure move general-purpose work onto the RVV, systolic-GEMM, and table-free-crypto paths (§15) that already run at parity-to-many-×, which is where the compute deleted by obstacle 2 has to land.
 The single address space (no MMU, §7) already helps pointer-chasing on its own.
 
@@ -338,6 +344,7 @@ Two spec hooks are load-bearing.
 **(b) Timing.**
 Dense-GEMM decode over a fixed model geometry is naturally data-independent (favorable for the §15 `Zkt`/`Zvkt` posture), but token-dependent sampling, KV-cache-length-dependent work, and any mixture-of-experts routing are genuine data-dependent channels; a session carrying secret-labeled prompts (§8/§13) therefore either scopes a constant-time obligation onto exactly those paths, or the flow theorems (§8, §13) must forbid secret material from reaching it.
 No CUDA/GPU path exists (§15); throughput is the honest M-class envelope (§15 capacity honesty), not datacenter-class.
+**(c) Obstacle 5 lands on the de-quantization code and nowhere else in this target**, which is worth saying because the de-quant path is the one place a framework reaches for the floating-point environment: rounding is round-to-nearest at every vector instruction, so a de-quant kernel that switches modes to match a reference implementation cannot, and must instead be validated bit-exactly against that reference at build time. The conversions themselves are `Zvfbfmin`'s (§15, R-15-067i) and are adopted; what is not adopted is native bf16 arithmetic or an OFP8 conversion form, both priced per half against the fork's re-homing surcharge (R-15-067p), so the software path here is the one the spec assigns and its cost is booked at R-15-117a rather than treated as free.
 
 **Disposition:** adopt `burn` as the safe-Rust framework and write the M-class GEMM engine as a custom `burn` backend, the single net-new artifact, the systolic units having no existing backend, shedding `burn`'s training/autodiff; verify the GGUF parser (§5), route all matrix work through the M-class capability-operand movers (§15, no private DMA), and treat sampling/routing data-dependence as the residual to bound or label-fence.
 `candle`/`mistral.rs` are the rejected re-target alternatives, GGUF-native but enum-baked backends, `mistral.rs` maximizing the very data-dependent surface (b).
