@@ -97,7 +97,7 @@
 // The encoding is custom-0 `funct3` 001, beside `cclear`'s 000 and below the
 // indexed access's width-coded 011 and 111 (extensions/CHERI/cheri_custom.sail).
 // Every other field is zero and reserved, so a non-zero field decodes to nothing
-// and traps. The four rows in that opcode spend one between them, which is the
+// and traps. The six rows in that opcode spend one between them, which is the
 // point: custom opcode space is what the freeze's single measured act makes the
 // remaining candidates compete for, so custom-1 and custom-3 stay whole
 // (R-15-014a, R-15-067e).

@@ -61,10 +61,11 @@
 // re-pin delta rather than resolved here. VLEN = 256 is also the C class's own
 // geometry, which is what R-15-059a states its figures at (R-15-113).
 //
-// **The encoding is custom-0 `funct3` 010, and the five custom-opcode rows
+// **The encoding is custom-0 `funct3` 010, and the six custom-opcode rows
 // still spend one opcode between them.** It sits beside `cclear`'s 000,
-// `vmclear`'s 001 and the indexed access's width-coded 011 and 111
-// (extensions/CHERI/cheri_custom.sail, extensions/platform/vmclear.sail), so
+// `vmclear`'s 001, the two FEC decoders sharing 100 and the indexed access's
+// width-coded 011 and 111 (extensions/CHERI/cheri_custom.sail,
+// extensions/platform/vmclear.sail, extensions/fec/fec_insts.sail), so
 // custom-1 and custom-3 stay whole for the rows the freeze's single measured act
 // admits (R-15-014a, R-15-067e). A fork takes custom space rather than an
 // unallocated point in the standard OP-V opcode deliberately: the vector major

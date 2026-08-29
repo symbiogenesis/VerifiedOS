@@ -583,8 +583,8 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     carries the 64+1-bit purecap dialect (M0.6f), so the two executors are different
     machines and the prefix is read as a fact about how far they happen to agree. The
     module docstring of vos/trace.py holds the rig's standing: its second executor for
-    the frozen profile is M2's CHERI-QEMU fork, and its corpus is M0.12's purecap
-    programs.
+    the frozen profile is the RTL under Verilator co-simulation (R2), M2's fork having
+    been struck, and its corpus is M0.12's purecap programs.
 
     Over `riscv-tests` the two part company inside the test prologue, at the first load
     through an integer base register, which a purecap machine reads as an untagged
