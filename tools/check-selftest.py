@@ -930,6 +930,19 @@ CASES: list[Case] = [
      _renumber(PLAN, rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} ([\d.,]+)(?= h, range )",
                1, "999")),
 
+    # the range is narrowed about its own stated midpoint rather than at one end, so the
+    # mean still holds and K-35 stays quiet: the seeded defect is the span alone, which is
+    # what makes this case evidence that K-86 reads the width and not the arithmetic.
+    ("K-86", "an open class-X range narrowed to under a factor of two",
+     _first_match(PLAN,
+                  rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} ([\d.,]+) h, range [\d.,]+–[\d.,]+ "
+                  rf"{MID} [\d.]+% {MID} X(?= {MID}|$)",
+                  lambda m: re.sub(
+                      r"range [\d.,]+–[\d.,]+",
+                      f"range {float(m.group(1).replace(',', '')) - 0.5:g}–"
+                      f"{float(m.group(1).replace(',', '')) + 0.5:g}",
+                      m.group()))),
+
     ("K-36", "a subtotal that no longer sums the items beneath it",
      _renumber(PLAN, r"(?m)^\*\*[^*]+ subtotal:\*\* ([\d.,]+)(?= h )", 1, "999")),
 

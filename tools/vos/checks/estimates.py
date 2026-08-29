@@ -218,6 +218,26 @@ def run(ctx: Context) -> None:
                     for i in items if not i.done and i.stated != i.hours],
                    "every open midpoint is the mean of its own range")
 
+    # the width test the authority class has always implied and never stated. The class is a
+    # prior on a range, and a prior nothing measures the range against decides nothing, so the
+    # floor is a span: a class-X range's upper end is at least twice its lower end, which is
+    # the "roughly a factor of two" the conventions claim of every range, made a gate for the
+    # one class whose outturn says it is not decoration. Class I carries no floor, having run
+    # under estimate; a completed item carries no range for a floor to reach.
+    #
+    # The threshold the 1.68 ratio actually motivates, that the calibrated value lie inside the
+    # range, is arithmetically unavailable beside K-35 and the conventions say so: a midpoint is
+    # the mean of the range ends, so `hi >= 1.68 * mid` is `lo <= 0.32 * mid` and forces every
+    # class-X span above five. Reported and never repaired, because which end of a range moves
+    # is the estimate itself and not arithmetic over one.
+    narrow = [i for i in items
+              if not i.done and i.cls == "X" and i.lo > 0 and i.hi < 2 * i.lo]
+    rep.report("K-86", "open class-X item(s) whose range spans under a factor of two:",
+               [f"{i.label}: {format_hours(i.lo)}–{format_hours(i.hi)} spans "
+                f"{i.hi / i.lo:.2f}, against the 2.00 the class owes"
+                for i in narrow],
+               "every open class-X range spans at least a factor of two end to end")
+
     open_items = [i for i in items if not i.done]
     grand = round(sum(i.hours for i in items), 1)
     done_h = round(sum(i.hours for i in items if i.done), 1)
