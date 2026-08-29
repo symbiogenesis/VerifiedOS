@@ -7,6 +7,14 @@ tool. The order below is the order a run reports in, and it is a dependency orde
 well: a group may read what an earlier one computed, through the `Context` every
 group is handed, and never the other way round.
 
+One group is larger than one module, and the split is inside the group rather than a
+second entry below: `counts` is entered at `counts.py`, which holds its claim table
+and its run, and its families are the `counts_*.py` modules beside it, which nothing
+outside that group imports. A rule belongs to the group whose heading reports it and
+not to the file carrying it, which is what `check-rules.md` registers; the meta
+group's scan reads every module in this directory, so a rule id in one of those
+files is carried exactly as one in a group module is.
+
 Adding a rule is three edits and no more: the check, its row in `check-rules.md`,
 and its mutant in `check-selftest.py`. The meta group holds the first two in
 agreement and the selftest holds the third, so none of them can be forgotten

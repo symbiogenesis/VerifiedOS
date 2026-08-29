@@ -14,7 +14,7 @@ specification states is a claim about that machine. A count stated in prose that
 roster realizes is a figure nobody renders wrong.
 
 Everything here is a parse and never a decision, as everywhere else in this package.
-What the sites mean and which of them may disagree is `vos/checks/counts.py`'s.
+What the sites mean and which of them may disagree is `vos/checks/counts_coreclass.py`'s.
 """
 
 import re

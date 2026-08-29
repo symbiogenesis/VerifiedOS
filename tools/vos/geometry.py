@@ -12,12 +12,12 @@ tool's own view of the parameter.
 
 The document that constrains it is *inside* the corpus, so its own statements of the
 set and the bound are claims like any other document's, held and repaired in
-`vos/checks/counts.py` where every claim lives. What is read here is what the corpus
-does not carry: four sites in the curated model and one in the authored SystemVerilog,
-which is what makes this module's whole reason the reach.
+`vos/checks/counts_geometry.py` with every other claim about it. What is read here is
+what the corpus does not carry: four sites in the curated model and one in the
+authored SystemVerilog, which is what makes this module's whole reason the reach.
 
 Everything here is a parse and never a decision, as everywhere else in this package.
-What the sites mean and which of them may disagree is `vos/checks/counts.py`'s.
+What the sites mean and which of them may disagree is `vos/checks/counts_geometry.py`'s.
 """
 
 import re

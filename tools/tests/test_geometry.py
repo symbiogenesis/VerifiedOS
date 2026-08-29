@@ -4,10 +4,11 @@
 `geometry.read` is the checker's reach past its own corpus and nothing besides: two
 Sail declarations, the frozen configuration, the CMake template, the harness assert,
 and the authored SystemVerilog package's localparam. What the constraining document
-says about them is inside the corpus and is held as claims in `vos/checks/counts.py`,
-so no fixture here carries it. The live tree exercises the happy path on every
-`check.py` run; what only a fixture can pin is each site's refusal shape, the
-granules-to-exponent conversion, and the template's uniqueness rule.
+says about them is inside the corpus and is held as claims in
+`vos/checks/counts_geometry.py`, so no fixture here carries it. The live tree
+exercises the happy path on every `check.py` run; what only a fixture can pin is each
+site's refusal shape, the granules-to-exponent conversion, and the template's
+uniqueness rule.
 """
 
 import tempfile
