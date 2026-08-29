@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 200 of them across 48 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 203 of them across 49 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -71,6 +71,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-000g** method: a schema-version bump can drift the meeting and elision tables away from the code that produces them, with every gate green
 · Raised: S11
 · Disposition: open, named as K-85 in the differential group with its three edits and a floors-group member count, and left rather than added
+
+**F-000h** measurement: the `$[test]` harness does reach the capability format's packing, killing all five live mutants of it, and names one property for every one of them because it stops at the alphabetically first to fire
+· Raised: S13a
+· Disposition: standing, which makes the argument for generation at that site resolution rather than reach and narrows M0.12's structural claim to the decode surface a property never sees
+
+**F-000i** method: a mutation loop that writes into the checkout is a loop nothing else may read beside, the tree on disk being wrong for the length of one mutant however reversible the write
+· Raised: S13a
+· Disposition: closed as far as a lock reaches, the loop holding the lane's build lock so a second run of it and a build beside it are refused; an advisory lock reaches no reader that does not ask for it, so the printed warning stands beside it rather than being replaced by it
+
+**F-000j** upstream-defect: the model lane's opam environment leaks into a prover child, and where that child shells out to the library manager it sees two definitions of one library and picks the wrong one
+· Raised: S13a
+· Disposition: closed, a prover child given its own switch's variables laid over the inherited ones; what it printed named neither switch
 
 ## M0 · Hardware reference
 
