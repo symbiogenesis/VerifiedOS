@@ -451,6 +451,16 @@ def cmd_properties(args: argparse.Namespace) -> int:
     wrong, so `git add` stages a defect, `check.py` reports a capability format that
     disagrees with itself, and the selftest copies a mutated tree into its template.
     The run says so when it starts rather than leaving it to be discovered.
+
+    It also **takes the lane's build lock for the whole run**, which is `model.py
+    build`'s own lock rather than a second mechanism: this loop rewrites the lane's
+    build tree once per mutant, so two of these in one lane, or one of these beside a
+    build, is the same wrongness that lock already exists to refuse. What the lock
+    reaches is stated exactly, because an advisory lock overclaimed is worse than
+    none: it refuses another run that *takes* it, and it does not and cannot refuse a
+    `git add`, a `check.py`, or a selftest, none of which asks for it. Those stay the
+    reader's to keep out of the window, which is why the warning below is printed as
+    well as the lock being held.
     """
     e = env.load()
     root = find_root()
@@ -463,6 +473,13 @@ def cmd_properties(args: argparse.Namespace) -> int:
         print(f"FAIL {rel} has uncommitted changes; this loop writes into it and puts "
               "it back, so it refuses to start over an edit it would have to restore")
         return 1
+    # Held for the life of this process; dropping the handle releases it, so it stays
+    # bound rather than being taken and discarded. Refuses a second run of this loop in
+    # the lane and a build beside it, which are the two collisions a lock can reach.
+    # Taken before the harness is looked for rather than after: that look reads the
+    # build tree, and a build holding the lane is exactly the run that would be part
+    # way through writing what it reads.
+    _lane = env.build_lock(e.build_dir)
     harness = e.build_dir / "test" / "unit_tests" / "unit_tests"
     if not harness.exists():
         print(f"FAIL no $[test] harness at {harness}; run `model.py build` first")
