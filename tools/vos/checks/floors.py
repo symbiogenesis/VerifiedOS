@@ -236,6 +236,14 @@ def run(ctx: Context) -> None:
         # the first still passes.
         "upstream pins the licence record states": sh.get("record_pins", 0),
         "sites restating an upstream pin": sh.get("pin_restatements", 0),
+        # Two rather than one, on the pair ground stated twice above: K-82 holds an
+        # index against the notes it indexes, so a register whose entry shape this
+        # rule can no longer read leaves it reporting that every finding of none is
+        # indexed, and a plan whose findings blocks it can no longer find leaves it
+        # reporting that the register indexes findings nobody records.
+        "findings the register indexes": sh.get("findings the register indexes", 0),
+        "findings the plan's notes count":
+            sh.get("findings the plan's notes count", 0),
     }
     ctx.floors = floors
     rep.report("K-47", "enumeration(s) the tool reads and finds empty:",
