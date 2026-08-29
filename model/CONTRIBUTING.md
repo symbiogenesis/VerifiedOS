@@ -35,9 +35,6 @@ style issues can be detected and fixed before submitting the pull request.
 To set up these hooks, install [pre-commit](https://pre-commit.com)
 (e.g. using `pip install --user pre-commit`) and run `pre-commit install`.
 
-For information on contributing an extension, please see
-[doc/AddingExtensions.md](doc/AddingExtensions.md).
-
 PRs for contributions of extensions under development can be made at
 any point during the [ratification
 lifecycle](https://tech.riscv.org/ratification-process)
