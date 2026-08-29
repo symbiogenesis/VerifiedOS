@@ -193,6 +193,29 @@ def config_gated_vector_extensions(root: Path) -> dict[str, str]:
             for m in CONFIG_GATED_VECTOR_RE.finditer(text)}
 
 
+# Every extension the registry gates on a `supported` key, vector or not. The vector
+# reading above is a subset of this one and is kept separate because it answers a
+# different question: that one asks what a vectorless composition can leave switched
+# on, this one asks which exclusions are a setting rather than a shape of the model.
+CONFIG_GATED_RE = re.compile(
+    r"function clause hartSupports\(Ext_(\w+)\)\s*=\s*config extensions\.(\w+)\.supported")
+
+
+def config_gated_extensions(root: Path) -> dict[str, str]:
+    """Each config-gated extension against the configuration key path that switches it
+    on, keyed by the registry's own spelling of the extension name.
+
+    An empty answer is a moved reading rather than a registry with no gated rows, and
+    the floors group is what says so; this returns what it finds.
+    """
+    path = root / EXTENSIONS_SAIL
+    if not path.is_file():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    return {m.group(1): f"extensions.{m.group(2)}.supported"
+            for m in CONFIG_GATED_RE.finditer(text)}
+
+
 def composed(path: Path) -> tuple[str, int] | None:
     """The class a configuration composes, and that class's declared vector length
     exponent.

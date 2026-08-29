@@ -10,6 +10,7 @@ file against the model's own extension registry, and neither can see what the ot
 does.
 """
 
+import re
 from typing import TYPE_CHECKING
 
 from vos import config, coreclass
@@ -221,3 +222,83 @@ def vectorless_configurations(ctx: Context) -> None:
                f"the {vectorless} shipped configuration(s) composing a hart on a "
                f"vectorless class clear all {len(gated)} config-gated vector extensions "
                f"and sit below all {len(rungs)} minimum-vector-length rungs")
+
+
+# The exclusion row of the profile's §6 that names its extensions inline rather than one
+# per row: the names are the backticked tokens on the row whose text says the exclusion
+# is by name rather than by silence (R-15-048a).
+BY_NAME_ROW_RE = re.compile(r"(?m)^\|([^|\n]*)\|[^|\n]*excluded \*\*by name rather than "
+                            r"by silence\*\*")
+BACKTICKED_RE = re.compile(r"`(\w+)`")
+PROFILE = "docs/isa-profile.md"
+
+
+def excluded_by_name_keys(ctx: Context) -> None:
+    """K-87: an extension excluded by name reads false wherever a key still carries it.
+
+    Two kinds of exclusion look identical from the profile and are not the same fact.
+    Most excluded extensions are absent from the model: the surface was deleted, so the
+    exclusion is a **shape** of the tree and nothing can turn it back on. A few are still
+    implemented and switched off by a `supported` key reading false in every shipped
+    configuration, so the exclusion is a **setting**, and a setting is undone by editing
+    a file that no review gate reads. `Zbc` and `Zicclsm` are the two today, and no
+    artifact said which kind either was: the profile writes both sorts of row the same
+    way, and M0.19 recorded the distinction in a completion note where no rule reads it.
+
+    K-66 is the neighbour and cannot see this. It holds that no name the exclusion rows
+    spell is spelled back by the model's assembly clauses or carried by the corpus
+    assembler, which is exactly the *shape* half; an extension whose clauses are still in
+    the tree behind a false key is, to that rule, an excluded name whose clauses it finds
+    and reports. So the two rules partition the exclusion set rather than overlapping on
+    it, and this one takes the half K-66's own reading has to leave alone.
+
+    Both readings are the artifacts' own. The excluded names are the backticked tokens on
+    the profile row that says the exclusion is by name; the gated extensions and their key
+    paths are parsed out of the model's extension registry, so a flag added upstream joins
+    the rule rather than waiting to be transcribed. The intersection is what this decides
+    about, and it is deliberately narrow: an excluded name the registry does not gate is
+    outside the rule rather than passing it, that being K-66's subject.
+
+    Fail-closed on the reading, on K-67's and K-75's ground: an absent profile, a §6 that
+    yields no by-name row, and a registry that yields no gated extension are each a
+    finding rather than a comparison made against nothing.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    path = ctx.root / PROFILE
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    if not text:
+        rep.report("K-87", "missing artifact:", [f"{PROFILE} is not in the repository"],
+                   "")
+        return
+
+    rows = BY_NAME_ROW_RE.findall(text)
+    excluded = {name for row in rows for name in BACKTICKED_RE.findall(row)}
+    gated = coreclass.config_gated_extensions(ctx.root)
+    if not rows:
+        findings.append(f"{PROFILE} carries no row declaring an exclusion by name, so "
+                        "the set this rule decides about cannot be read")
+    if not gated:
+        findings.append("the model's extension registry yields no config-gated "
+                        "extension, so no exclusion can be placed as a setting")
+
+    carried = sorted(excluded & gated.keys())
+    for ext in carried:
+        key = gated[ext]
+        for rel in SHIPPED_CONFIGS:
+            value = config.value(ctx.root / rel, *key.split("."))
+            if value is None:
+                findings.append(f"{rel} declares no `{key}`, so {ext}'s exclusion rests "
+                                f"on a key that file does not carry")
+            elif value is not True:
+                continue
+            else:
+                findings.append(f"{rel} leaves `{key}` true, so {ext} reads supported on "
+                                f"a machine the profile excludes it from by name")
+
+    ctx.shared["excluded_by_name_gated"] = len(carried)
+    rep.report("K-87", "excluded-by-name extension(s) a configuration still switches on:",
+               findings,
+               f"each of the {len(carried)} extensions the profile excludes by name and "
+               f"the model still gates on a key reads false in all "
+               f"{len(SHIPPED_CONFIGS)} shipped configurations")
