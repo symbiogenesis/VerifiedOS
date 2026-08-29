@@ -1,0 +1,96 @@
+{
+  "name": "keccak",
+  "what": "the frozen Keccak-p[1600] permutation at both round counts, as the model's own answers",
+  "answers": "M0.8d: the two transcription defects a known-answer vector found and a structural property did not",
+  "sources": [
+    "model/model/prelude/prelude.sail",
+    "model/model/prelude/errors.sail",
+    "model/model/extensions/keccak/keccak_p1600.sail"
+  ],
+  "probes": [
+    {
+      "kind": "kf",
+      "what": "Keccak-f[1600], the twenty-four-round permutation, over drawn states; every lane of the answer is printed rather than a fold of them, a fold being blind to exactly the lane permutation pi's own defect was",
+      "params": [
+        { "name": "a", "width": 64, "over": "draw", "show": "h16" },
+        { "name": "b", "width": 64, "over": "draw", "show": "h16" }
+      ],
+      "repeat": 500,
+      "seed": "0x0a5c3f19d",
+      "body": [
+        "var st : keccak_state = vector_init(zeros())",
+        "foreach (i from 0 to 24) { st[i] = (a + to_bits_truncate(64, i)) ^ (b << i) }",
+        "let res = keccak_p1600(st, 24)"
+      ],
+      "shows": [
+        { "expr": "res[0]", "show": "h16" },
+        { "expr": "res[1]", "show": "h16" },
+        { "expr": "res[2]", "show": "h16" },
+        { "expr": "res[3]", "show": "h16" },
+        { "expr": "res[4]", "show": "h16" },
+        { "expr": "res[5]", "show": "h16" },
+        { "expr": "res[6]", "show": "h16" },
+        { "expr": "res[7]", "show": "h16" },
+        { "expr": "res[8]", "show": "h16" },
+        { "expr": "res[9]", "show": "h16" },
+        { "expr": "res[10]", "show": "h16" },
+        { "expr": "res[11]", "show": "h16" },
+        { "expr": "res[12]", "show": "h16" },
+        { "expr": "res[13]", "show": "h16" },
+        { "expr": "res[14]", "show": "h16" },
+        { "expr": "res[15]", "show": "h16" },
+        { "expr": "res[16]", "show": "h16" },
+        { "expr": "res[17]", "show": "h16" },
+        { "expr": "res[18]", "show": "h16" },
+        { "expr": "res[19]", "show": "h16" },
+        { "expr": "res[20]", "show": "h16" },
+        { "expr": "res[21]", "show": "h16" },
+        { "expr": "res[22]", "show": "h16" },
+        { "expr": "res[23]", "show": "h16" },
+        { "expr": "res[24]", "show": "h16" }
+      ]
+    },
+    {
+      "kind": "kp",
+      "what": "Keccak-p[1600,12], which FIPS 202 makes the last twelve rounds of the same twenty-four; the round range and the constant table's read order are the two things this separates from the sweep above",
+      "params": [
+        { "name": "a", "width": 64, "over": "draw", "show": "h16" },
+        { "name": "b", "width": 64, "over": "draw", "show": "h16" }
+      ],
+      "repeat": 500,
+      "seed": "0x0c0ffee12",
+      "body": [
+        "var st : keccak_state = vector_init(zeros())",
+        "foreach (i from 0 to 24) { st[i] = (a + to_bits_truncate(64, i)) ^ (b << i) }",
+        "let res = keccak_p1600(st, 12)"
+      ],
+      "shows": [
+        { "expr": "res[0]", "show": "h16" },
+        { "expr": "res[1]", "show": "h16" },
+        { "expr": "res[2]", "show": "h16" },
+        { "expr": "res[3]", "show": "h16" },
+        { "expr": "res[4]", "show": "h16" },
+        { "expr": "res[5]", "show": "h16" },
+        { "expr": "res[6]", "show": "h16" },
+        { "expr": "res[7]", "show": "h16" },
+        { "expr": "res[8]", "show": "h16" },
+        { "expr": "res[9]", "show": "h16" },
+        { "expr": "res[10]", "show": "h16" },
+        { "expr": "res[11]", "show": "h16" },
+        { "expr": "res[12]", "show": "h16" },
+        { "expr": "res[13]", "show": "h16" },
+        { "expr": "res[14]", "show": "h16" },
+        { "expr": "res[15]", "show": "h16" },
+        { "expr": "res[16]", "show": "h16" },
+        { "expr": "res[17]", "show": "h16" },
+        { "expr": "res[18]", "show": "h16" },
+        { "expr": "res[19]", "show": "h16" },
+        { "expr": "res[20]", "show": "h16" },
+        { "expr": "res[21]", "show": "h16" },
+        { "expr": "res[22]", "show": "h16" },
+        { "expr": "res[23]", "show": "h16" },
+        { "expr": "res[24]", "show": "h16" }
+      ]
+    }
+  ]
+}

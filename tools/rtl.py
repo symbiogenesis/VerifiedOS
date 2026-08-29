@@ -57,14 +57,13 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Callable
-from itertools import zip_longest
 from pathlib import Path
 
 # The tools import `vos` without being installed, so each puts its own directory on
 # the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from vos import env, provenance
+from vos import env, provenance, sailrig
 from vos.corpus import find_root
 
 # What every subcommand handler is. `main` attaches one to each subparser and argparse
@@ -108,13 +107,6 @@ MODEL_SOURCES: tuple[str, ...] = (
     "model/model/core/cap_common.sail",
 )
 
-# Sail's own C runtime, named rather than globbed for the reason PRIM_PACKAGES is:
-# a runtime file arriving under a new name should be a failed build with a message
-# and not a silent change of what was linked.
-SAIL_RUNTIME: tuple[str, ...] = (
-    "sail.c", "rts.c", "elf.c", "sail_failure.c", "cJSON.c", "sail_config.c",
-)
-
 # The two texts a run compares, in the lane's own working directory. Their names are
 # fixed rather than passed, because the harness has to open them from inside
 # SystemVerilog and a plus-argument would be one more thing to keep spelled alike at
@@ -126,11 +118,6 @@ REPLAY = "replay.txt"
 # shared term disagrees on tens of thousands of lines and the first few say what it
 # is; the count is what says how far it reaches.
 SHOWN = 8
-
-# `<kind> <inputs> -> <outputs>`, and the kind is the first token. Read here so that
-# the per-kind census a run prints comes from the file rather than from a list this
-# tool would have to keep in step with the generator.
-KIND_RE = re.compile(r"^([a-z]+) ")
 
 # The harness's own count of the vectors it could not place, read out of what it
 # printed. Fail-closed: a line this cannot find is a refusal rather than a zero.
@@ -304,103 +291,6 @@ def _equiv_dir(e: env.Environment) -> Path:
     return work
 
 
-def _require(name: str, how: str, out: list[str]) -> str | None:
-    """One prerequisite, refused by name rather than by the error its absence
-    produces three commands later."""
-    found = shutil.which(name)
-    if found is None:
-        out.append(f"FAIL {name} is not on PATH; {how}")
-        return None
-    return found
-
-
-def _sail_lib(sail: str) -> Path:
-    """Sail's own library directory, asked of Sail rather than derived from a switch
-    name, so that a re-installed toolchain moves this without an edit."""
-    done = subprocess.run([sail, "--dir"], capture_output=True, encoding="utf-8",
-                          errors="replace", check=False)
-    return Path(done.stdout.strip()) / "lib"
-
-
-def _build_generator(root: Path, work: Path, out: list[str]) -> Path | None:
-    """Compile the model's capability format together with the generator, and hand
-    back the executable that prints the vectors.
-
-    Two steps and both are named in the output, because they fail differently: Sail
-    typechecks the model and emits C, and the C compiler links that against Sail's own
-    runtime. A model file that has moved fails the first with a Sail error naming it;
-    an absent GMP fails the second.
-    """
-    sail = _require("sail", "the Sail toolchain lives in the opam `default` switch, "
-                            "which `vos/env.py` puts on PATH", out)
-    if sail is None:
-        return None
-    compiler = shutil.which("cc") or shutil.which("gcc")
-    if compiler is None:
-        out.append("FAIL neither cc nor gcc is on PATH, so the emitted C cannot be "
-                   "compiled")
-        return None
-
-    sources = [root / s for s in (*MODEL_SOURCES, GENERATOR)]
-    missing = [str(s) for s in sources if not s.is_file()]
-    if missing:
-        out.extend(f"FAIL {s} is not in the repository" for s in missing)
-        return None
-
-    emitted = work / "gen.c"
-    # Deliberately without `--c-no-mangle`. Readable names would be pleasant and are
-    # not worth the collision: the model's own `bit_to_bool` is the name Sail's C
-    # runtime already gives a static inline, so an unmangled emission that reaches it
-    # fails to compile on a redefinition several hundred lines from anything a reader
-    # of this tool wrote.
-    done = subprocess.run([sail, "-c", "-o", "gen", *[str(s) for s in sources]],
-                          capture_output=True, encoding="utf-8", errors="replace",
-                          check=False, cwd=work)
-    if done.returncode != 0 or not emitted.is_file():
-        out.append(done.stdout + done.stderr)
-        out.append("FAIL sail did not emit C for the generator")
-        return None
-
-    lib = _sail_lib(sail)
-    runtime = [lib / name for name in SAIL_RUNTIME]
-    absent = [str(p) for p in runtime if not p.is_file()]
-    if absent:
-        out.extend(f"FAIL {p} is not in Sail's library directory" for p in absent)
-        return None
-
-    binary = work / "gen"
-    done = subprocess.run([compiler, "-O2", "-o", str(binary), str(emitted),
-                           *[str(p) for p in runtime], "-I", str(lib), "-lgmp", "-lm"],
-                          capture_output=True, encoding="utf-8", errors="replace",
-                          check=False, cwd=work)
-    if done.returncode != 0:
-        out.append(done.stdout + done.stderr)
-        out.append("FAIL the emitted C did not compile against Sail's runtime")
-        return None
-    return binary
-
-
-def _census(path: Path) -> tuple[dict[str, int], int, int]:
-    """What one vector file holds: how many of each kind, how many vectors, and how
-    many lines that are commentary rather than vectors.
-
-    The kinds are read out of the file rather than declared here, so a kind the
-    generator adds is counted the day it is added.
-    """
-    kinds: dict[str, int] = {}
-    vectors = 0
-    other = 0
-    with path.open(encoding="utf-8", errors="replace", newline="") as handle:
-        for line in handle:
-            found = KIND_RE.match(line)
-            if found is None:
-                other += 1
-                continue
-            kinds[found.group(1)] = kinds.get(found.group(1), 0) + 1
-            vectors += 1
-    return kinds, vectors, other
-
-
 def cmd_vectors(args: argparse.Namespace) -> int:
     """The model's own answers about the capability format, written out as text.
 
@@ -414,21 +304,18 @@ def cmd_vectors(args: argparse.Namespace) -> int:
     work = _equiv_dir(e)
     out: list[str] = []
 
-    binary = _build_generator(root, work, out)
+    sources = [root / s for s in (*MODEL_SOURCES, GENERATOR)]
+    binary = sailrig.build(sources, work, out)
     if binary is None:
         print("\n".join(out))
         return 1
 
     vectors = work / VECTORS
-    with vectors.open("wb") as handle:
-        done = subprocess.run([str(binary)], stdout=handle, stderr=subprocess.PIPE,
-                              check=False, cwd=work)
-    if done.returncode != 0:
-        print((done.stderr or b"").decode("utf-8", "replace"))
-        print(f"FAIL the generator exited {done.returncode}")
+    if not sailrig.emit(binary, vectors, out):
+        print("\n".join(out))
         return 1
 
-    kinds, total, other = _census(vectors)
+    kinds, total, other = sailrig.census(vectors)
     out.append(f"== {vectors}")
     out.append(f"   {total} vector(s) over {len(kinds)} kind(s), and {other} "
                "commentary line(s)")
@@ -440,40 +327,16 @@ def cmd_vectors(args: argparse.Namespace) -> int:
 
 
 def _compare(want: Path, got: Path) -> tuple[list[str], int, int, int]:
-    """The two texts, line against line: what disagrees, how much, and how long each
-    file is.
+    """The two texts, line against line, with the sides named for this cross-check.
 
-    Streamed rather than read whole, the pair being over a hundred megabytes together,
-    and compared on the raw line so that a trailing-whitespace difference is a
-    disagreement rather than something a strip would hide.
+    The comparison itself is [vos/sailrig.py](vos/sailrig.py)'s, three tools making it
+    now; what stays here is which side is which, `a` and `b` meaning nothing to a
+    reader looking for a disagreement between the model and the RTL.
     """
-    shown: list[str] = []
-    bad = 0
-    n_want = 0
-    n_got = 0
-    with (want.open(encoding="utf-8", errors="replace", newline="") as a,
-          got.open(encoding="utf-8", errors="replace", newline="") as b):
-        # zip_longest rather than zip, so that a file which stops early is a run of
-        # disagreements at the line it stopped on rather than a comparison that
-        # quietly ends there and reports the prefix green.
-        for n, (left, right) in enumerate(zip_longest(a, b), start=1):
-            if left is not None:
-                n_want = n
-            if right is not None:
-                n_got = n
-            if left == right:
-                continue
-            bad += 1
-            if len(shown) < SHOWN * 2:
-                gone = "<no line>"
-                shown.append(f"line {n} model: "
-                             f"{gone if left is None else left.rstrip()}")
-                shown.append(f"line {n} rtl:   "
-                             f"{gone if right is None else right.rstrip()}")
-    if n_want != n_got:
-        shown.append(f"the model wrote {n_want} line(s) and the replay wrote {n_got}, "
-                     "so one implementation stopped before the other")
-    return shown, bad, n_want, n_got
+    shown, bad, n_want, n_got = sailrig.compare(want, got, shown=SHOWN)
+    named = [line.replace(" a: ", " model: ").replace(" b: ", " rtl:   ")
+             for line in shown]
+    return named, bad, n_want, n_got
 
 
 def _unhandled(said: str) -> int:
@@ -501,7 +364,7 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
     work = _equiv_dir(e)
     out: list[str] = []
 
-    binary = _require("verilator", VERILATOR_HOW, out)
+    binary = sailrig.require("verilator", VERILATOR_HOW, out)
     if binary is None:
         print("\n".join(out))
         return 1
@@ -558,7 +421,7 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
     unhandled = _unhandled(done.stdout + done.stderr)
 
     shown, bad, n_want, n_got = _compare(vectors, replay)
-    kinds, total, _ = _census(vectors)
+    kinds, total, _ = sailrig.census(vectors)
 
     out.append(f"== crosscheck under verilator {VERILATOR_PIN}, lane "
                f"{e.lane or 'primary'}")
