@@ -81,7 +81,6 @@ class Context:
 # one, so importing them any earlier would be a cycle through a name that does not
 # exist yet.
 from . import (  # noqa: E402
-    banks,
     bindings,
     compounds,
     confers,
@@ -93,7 +92,6 @@ from . import (  # noqa: E402
     extraction,
     findings,
     floors,
-    freeze,
     glyphs,
     links,
     marks,
@@ -118,8 +116,6 @@ GROUPS = [
     compounds,
     estimates,
     differential,
-    banks,
-    freeze,
     findings,
     costated,
     tables,

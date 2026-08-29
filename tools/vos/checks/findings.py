@@ -83,7 +83,7 @@ def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
 
-    # the index and not the disk, on K-77's own ground: the checker's corpus is what
+    # the index and not the disk, on the freeze rule's own ground: the checker's corpus is what
     # git tracks, so a register deleted from the index and left in the working tree is
     # a document this repository does not have
     index = findings.parse(ctx.text(findings.REGISTER)

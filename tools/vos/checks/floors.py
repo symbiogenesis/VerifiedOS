@@ -36,7 +36,7 @@ compare does not exist yet. The per-class capacity budgets are stated, each owne
 one entry, so the floor under them is the ordinary one: the owner still says it. The
 per-class bank count is stated and decided by nothing, which is a different state and
 the reason the floor under it is a different instrument. A count is written: the
-composition declares one and `vos/banks.py` reads it, the exploration contract holds
+composition declares one and the quarantined bank-grant parse reads it, the contract holds
 that declaration inside a candidate set and admits no candidate, and both disclaim
 the figure on their own face while the class's `qualified` flag is false. What is
 open is the *frozen* count, item (viii) of R-15-014a's closed delta, and a figure
@@ -148,7 +148,6 @@ def run(ctx: Context) -> None:
         "welded block sizes the constraints admit": sh.get("block_candidates", 0),
         "items of the freeze's closed delta": sh.get("delta_items", 0),
         "states the freshness enumeration names": sh.get("rot_states", 0),
-        "bank counts the DSE contract declares": sh.get("bank_candidates", 0),
         "core-class table sites the rule can read": sh.get("core_class_sites", 0),
         "VLEN tokens the composition answers": sh.get("vlen_tokens", 0),
         "requirement citations in the model files read": sh.get("model_citations", 0),
@@ -188,28 +187,6 @@ def run(ctx: Context) -> None:
         # find leaves it reporting the reverse.
         "absences the contract enumerates": sh.get("absence_ids", 0),
         "rows of the synthesis provenance record": sh.get("provenance_rows", 0),
-        # Nine rather than one, because K-77 pairs nine of the freeze contract's
-        # enumerations against the instrument that implements them and each is a
-        # separate table with a separate row shape. The instrument's side is a Python
-        # literal and cannot narrow in silence; the contract's is a pattern over a
-        # document, so it is the side a renumbering or a reworded header empties, and
-        # K-77's own fail-closed reading and this floor catch that from both ends.
-        "freeze corpus members": sh.get("freeze corpus members", 0),
-        "freeze recipe steps": sh.get("freeze recipe steps", 0),
-        "freeze operand classes": sh.get("freeze operand classes", 0),
-        "freeze region classes": sh.get("freeze region classes", 0),
-        "freeze region-class refusal reasons":
-            sh.get("freeze region-class refusal reasons", 0),
-        "freeze decisions": sh.get("freeze decisions", 0),
-        "freeze report blocks": sh.get("freeze report blocks", 0),
-        "freeze declared parameters": sh.get("freeze declared parameters", 0),
-        "freeze CI predicates": sh.get("freeze CI predicates", 0),
-        # And two more for the two pairs K-77 holds that are relations rather than
-        # memberships. These are the floors under the *rule* rather than under the
-        # document: a relation dropped out of the comparison narrows K-77 to its nine
-        # memberships with every gate still green, which no membership floor can see.
-        "freeze corpus feeds edges": sh.get("freeze corpus feeds edges", 0),
-        "freeze threshold bindings in §6": sh.get("freeze threshold bindings in §6", 0),
         # Two rather than one, on the same ground the pair above states: K-79 holds a
         # definition against the sites that restate it, so a model whose declarations
         # have moved leaves it reporting that every site agrees with nothing, and a set

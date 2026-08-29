@@ -64,6 +64,42 @@ a property of the reading a landing was given, so a landing taken before the tie
 existed has none to state and none a later hand can assign it. The floor is inside the
 rule rather than in the floors group, on the precedent the two rules above set: a
 corpus naming no holder at all is a finding here rather than a green line over nothing.
+
+K-83 is the third of them and the one that makes a directory a quarantine. S16 took
+two whole instruments out of the landing loop, the profile-freeze analyzer and the
+bank-count exploration, and moved them to `tools/quarantine/` with the two rules that
+hold them. **Moving them is not what decouples them.** The quarantine is an ordinary
+package on `tools/`, so `import quarantine.freeze` resolves for any tool that puts its
+own directory on the path, exactly as `import vos.freeze` did before the move: without
+a rule the whole act would be a rename, and the first landing-loop tool to reach back
+in would restore the coupling with every gate still green. So the rule is the act, and
+the move is what gives it something to say.
+
+Two ways in are held rather than one, because the instruments' own entry points carry
+hyphens no import statement can name: an `import` or `from ... import` that names the
+package, and a path naming the directory, which is how a tool launches `bank-dse.py`
+or `freeze-report.py` as a subprocess. Both are quantified over every source under
+`tools/` that the index carries and the quarantine does not, so a file added tomorrow
+is inside the rule the day it is staged and a module added to the quarantine is
+protected the day it lands: neither side is a list anybody maintains. Fail-closed in
+both readings, on K-67's and K-75's own ground: a quarantine carrying no module and a
+window carrying no source are each a finding, never a pass over nothing. It owes the
+floors group no member count for the same reason those two do not, its own reading
+being the floor: an empty roster or an empty window reports here, on the day it
+empties, rather than passing vacuously for as long as nobody looks.
+
+The path half takes two carve-outs and both are declared rather than dodged: this module
+names the quarantine's directory in order to find it, and check-selftest.py has to spell
+the coupling in order to seed the mutant that proves this rule bites. The alternative was
+to write both so the rule's own pattern would miss them, which is a rule written around
+its own text. The *import* half takes no carve-out at all, so the two files the path half
+excuses are still held against the coupling that matters, and it is the same reasoning
+that keeps the selftest outside K-00's scan: a rule that read its own prover would decide
+less rather than more.
+
+What K-83 does not decide is whether the quarantine should still be one. That is the
+condition `tools/quarantine/README.md` states per instrument and a person's to read at
+the milestone that meets it.
 """
 
 import re
@@ -82,6 +118,7 @@ if TYPE_CHECKING:
 HEADING = "=== meta: the rule registry against the checks carried ==="
 
 RULES = "tools/check-rules.md"
+Q_RULES = "tools/quarantine/check-rules.md"
 RULE_ID_RE = re.compile(r"\bK-\d{2,3}\b")
 REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 
@@ -127,6 +164,37 @@ _HOLDER_RE = re.compile(r"\*\*(K-\d{2,3})\*\*")
 # which is what makes a mistyped declaration a finding instead of a line nothing reads.
 _LANDED_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed:")
 _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest>.*)")
+
+# The two trees K-83 stands between, and the kind of file it reads in each.
+TOOLS_TREE = "tools/"
+QUARANTINE_TREE = "tools/quarantine/"
+SOURCE_SUFFIX = ".py"
+
+# An import that names the quarantine, line-anchored so that a mutant seed carrying the
+# statement inside a string literal is the case that seeds it and not a site that fails
+# it. `quarantine` alone and any module under it are one pattern, because reaching the
+# package at all is the coupling.
+_Q_IMPORT_RE = re.compile(
+    r"(?m)^[ \t]*(?:from[ \t]+(quarantine(?:\.[\w.]+)?)[ \t]+import\b"
+    r"|import[ \t]+(quarantine(?:\.[\w.]+)?)\b)")
+
+# The other way in: the directory named as a path or as a string, which is how a
+# hyphenated entry point is launched and how a dynamic import spells one. The name has
+# to be *delimited on both sides* rather than merely quoted, and that is not fussiness:
+# the memory plan's own vocabulary carries a region class called `quarantine entries`,
+# which the compounds group holds as a quoted literal, so a pattern reading any quoted
+# occurrence would report a rule about second-class memory as a coupling to an
+# instrument. A sentence saying *the quarantine* or *the quarantine's* names no file
+# either, and neither is read.
+_Q_PATH_RE = re.compile(
+    r"""[/\\]quarantine\b|quarantine[/\\]|["']quarantine["']|["']quarantine\.""")
+
+# The two sites the path half excuses, and the only two: this module has to name the
+# directory in order to find it, and the mutation selftest has to spell the coupling in
+# order to seed it. Both are declared rather than pattern-dodged, and both are files a
+# reader auditing this rule is already reading; the import half excuses neither, so the
+# coupling that matters is held at every site without exception.
+_Q_PATH_EXEMPT = ("tools/vos/checks/meta.py", "tools/check-selftest.py")
 
 # The interpreter floor, as the type checker's own environment fixes it.
 _FLOOR_SRC_RE = re.compile(r'(?m)^python-version = "([^"\r\n]*)"')
@@ -193,6 +261,7 @@ def run(ctx: Context) -> None:
             if m:
                 registered.append(m.group(1))
 
+        seen: set[str] = set()
         findings: list[str] = []
         for rule in registered:
             if rule in seen:
@@ -208,7 +277,13 @@ def run(ctx: Context) -> None:
 
     _pins(ctx)
     _floor(ctx)
-    _landings(ctx, seen)
+    # A holder citation resolves against either registry, because a quarantined rule
+    # still holds what the landing created; what quarantine moved is which loop runs it
+    # and never whether it holds. Reading the landing loop's registry alone would report
+    # every landing held by a quarantined rule as naming nothing, which is a finding
+    # against the landing for an act taken two items away from it.
+    _landings(ctx, seen | _quarantined_rules(ctx))
+    _quarantine(ctx)
     rep.line()
 
 
@@ -318,6 +393,21 @@ def _floor(ctx: Context) -> None:
                f"the interpreter floor spell ty.toml's {floor}")
 
 
+def _quarantined_rules(ctx: Context) -> set[str]:
+    """Every rule id the quarantine's own registry carries.
+
+    Read for K-84 alone and deliberately not for K-00, which holds the landing loop's
+    registry against the checks reporting *under it*: a quarantined rule reports under
+    the quarantine's gate, so admitting it here would make K-00 green over a rule this
+    loop no longer runs. An unreadable quarantine registry yields the empty set, which
+    leaves K-84 exactly as fail-closed as it was before the quarantine existed.
+    """
+    doc = ctx.corpus.get(Q_RULES)
+    if doc is None:
+        return set()
+    return {m.group(1) for m in re.finditer(r"(?m)^\|\s*(K-\d+)\s*\|", doc.raw)}
+
+
 def _landings(ctx: Context, registered: set[str]) -> None:
     """K-84: a holder citation names a registered rule, and a Tier-B landing names one.
 
@@ -339,8 +429,8 @@ def _landings(ctx: Context, registered: set[str]) -> None:
     findings: list[str] = []
 
     if not registered:
-        findings.append(f"{RULES} yields no rule this run can read, so a holder citation "
-                        "would be held against nothing")
+        findings.append(f"neither {RULES} nor {Q_RULES} yields a rule this run can "
+                        "read, so a holder citation would be held against nothing")
 
     cited = 0
     for doc in ctx.corpus.docs:
@@ -374,8 +464,73 @@ def _landings(ctx: Context, registered: set[str]) -> None:
                                 "holding what it created, which is the fourth of the "
                                 "four conditions Tier B is admitted on")
 
-    rep.report("K-84", "holder citation(s) and landing declaration(s) the registry does "
-               "not answer:", findings,
-               f"the corpus's {cited} holder citations name rules {RULES} carries, and "
-               f"each of the plan's {declared} landing declarations states a tier and, "
-               "at Tier B, the rule holding what it created")
+    rep.report("K-84", "holder citation(s) and landing declaration(s) no registry "
+               "answers:", findings,
+               f"the corpus's {cited} holder citations name rules {RULES} or "
+               f"{Q_RULES} carries, and each of the plan's {declared} landing "
+               "declarations states a tier and, at Tier B, the rule holding what it "
+               "created")
+
+
+def _at(text: str, offset: int) -> int:
+    """The 1-based line an offset falls on, for a finding somebody has to go and read."""
+    return text.count("\n", 0, offset) + 1
+
+
+def _reaches(path: str, text: str) -> list[str]:
+    """Every way one source outside the quarantine reaches into it."""
+    found: list[str] = []
+    for hit in _Q_IMPORT_RE.finditer(text):
+        named = hit.group(1) or hit.group(2)
+        found.append(f"{path}:{_at(text, hit.start())} imports `{named}`, and the "
+                     "quarantine is what the landing loop does not depend on")
+    launch = None if path in _Q_PATH_EXEMPT else _Q_PATH_RE.search(text)
+    if launch is not None:
+        found.append(f"{path}:{_at(text, launch.start())} names the quarantine as a "
+                     "path, which couples it to an instrument whose decision is "
+                     "deferred exactly as an import would")
+    return found
+
+
+def _quarantine(ctx: Context) -> None:
+    """K-83: nothing outside `tools/quarantine/` imports or launches what is in it.
+
+    Both rosters are read off the index rather than transcribed, so each grows and
+    shrinks with the tree: a module the quarantine gains is protected the day it is
+    staged, and a tool the landing loop gains is inside the window the same day. That is
+    what makes this catch the import somebody adds next year rather than the ones that
+    are absent today.
+
+    Fail-closed twice over, on K-67's and K-75's ground. A quarantine this rule finds
+    empty holds nothing out of anything, and a window it finds empty is the same failure
+    from the other end; each is a finding rather than a green line over an empty walk.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+
+    roster = [path for path in ctx.corpus.tracked
+              if path.startswith(QUARANTINE_TREE) and path.endswith(SOURCE_SUFFIX)]
+    window = [path for path in ctx.corpus.tracked
+              if path.startswith(TOOLS_TREE) and path.endswith(SOURCE_SUFFIX)
+              and not path.startswith(QUARANTINE_TREE)]
+    if not roster:
+        findings.append(f"the index carries no {SOURCE_SUFFIX} file under "
+                        f"{QUARANTINE_TREE}, so there is no quarantine for this rule to "
+                        "hold anything out of")
+    if not window:
+        findings.append(f"the index carries no {SOURCE_SUFFIX} file under {TOOLS_TREE} "
+                        "outside the quarantine, so this rule reads no site at all")
+
+    # Both guards have to have passed before a site can be read: with either side empty
+    # there is nothing for a site to reach into, or nothing to read.
+    if roster and window:
+        for path in window:
+            if not (ctx.root / path).is_file():
+                findings.append(f"{path} is in the index and not on disk, so whether it "
+                                "reaches into the quarantine is undecided")
+                continue
+            findings += _reaches(path, _source(ctx, path))
+
+    rep.report("K-83", "site(s) outside the quarantine that reach into it:", findings,
+               f"none of the {len(window)} sources under {TOOLS_TREE} outside the "
+               f"quarantine imports or launches one of the {len(roster)} it carries")

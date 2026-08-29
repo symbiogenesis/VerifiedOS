@@ -24,7 +24,8 @@ from pathlib import Path
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 
 # The live sources the sandbox copy of the tool runs on, relative to the root.
-_SOURCES = ("tools/bank-dse.py", "tools/vos/__init__.py", "tools/vos/banks.py",
+_SOURCES = ("tools/quarantine/bank-dse.py", "tools/quarantine/__init__.py",
+            "tools/quarantine/banks.py", "tools/vos/__init__.py",
             "tools/vos/config.py", "tools/vos/jsonc.py", "tools/vos/corpus.py")
 
 # The composition, small enough to score by hand. The region is 60000h + 40000h =
@@ -121,7 +122,7 @@ def _fixture(config: str | None, contract: str) -> dict[str, str]:
 
 def _run(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(root / "tools" / "bank-dse.py")],
+        [sys.executable, str(root / "tools" / "quarantine" / "bank-dse.py")],
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
 
@@ -253,11 +254,11 @@ def _no_candidate_set() -> None:
 def _live_tree_facts() -> None:
     # Golden values from the live contract and configuration as of 2026-08-22:
     # 11 candidates (64 through 65,536), 8 clearing the shape constraints, 4,096
-    # declared. Rerecord by running `python tools/bank-dse.py` after a deliberate
-    # change to docs/bank-count-dse-contract.md or model/config/verifiedos.json and
-    # carrying the new figures here.
+    # declared. Rerecord by running `python tools/quarantine/bank-dse.py` after a
+    # deliberate change to docs/bank-count-dse-contract.md or
+    # model/config/verifiedos.json and carrying the new figures here.
     done = subprocess.run(
-        [sys.executable, str(TOOLS / "bank-dse.py")],
+        [sys.executable, str(TOOLS / "quarantine" / "bank-dse.py")],
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
     ensure(done.returncode == 0, f"the live tree scores clean, got "
