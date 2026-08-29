@@ -1045,12 +1045,6 @@ CASES: list[Case] = [
      _literal(REGISTER, "the block at most **512 bytes**",
               "the block at most **256 bytes**")),
 
-    # The bank grant is moved in the composition and left in the contract, which is the
-    # direction a real edit takes: the emulator needs a number, so the configuration is
-    # where somebody changes one, and the contract is the copy that goes stale.
-    ("K-58", "a bank grant the contract and the composition no longer agree on",
-     _literal("model/config/verifiedos.json", '"banks": 4096', '"banks": 2048')),
-
     # The citing document is edited rather than the cited one, because that is the
     # cheaper half of the same defect and the harder one to see: the name here is the
     # entry's own former title, so the sentence reads exactly as it did before the
@@ -1238,37 +1232,28 @@ CASES: list[Case] = [
     ("K-80", "a component's licence text named at a path the repository does not carry",
      _literal(THIRD_PARTY, "`model/dependencies/elfio/LICENSE.txt`",
               "`model/dependencies/elfio/LICENCE.txt`")),
-    # The contract's own last CI predicate is renumbered and the analyzer is left, which
-    # is the direction the defect arrives from and the one that fires both halves of the
-    # rule at once: the contract states a predicate no function can make, and the
-    # analyzer carries a function no predicate asks for. A renumbering is chosen over an
-    # insertion because it moves no count anywhere, so the table keeps its width, the row
-    # keeps its governing citation, and every other rule that reads this document reads
-    # the edit as no edit at all. It is the gate's own membership rather than the
-    # corpus's or the decisions' because a predicate is the one enumeration here whose
-    # member is a body of code, so a member nobody wrote is a rejection nobody can make.
-    ("K-77", "a CI predicate the freeze contract states and its analyzer cannot make",
-     _literal(CONTRACT, "| `G-12` | a threshold value in the report",
-              "| `G-13` | a threshold value in the report")),
+    # A landing-loop tool is given an import of the quarantine, which is the whole of
+    # what the move would otherwise not have prevented: the directory is an ordinary
+    # package on `tools/`, so the statement resolves and the coupling is back with every
+    # other gate still green. The seeded file is one no other tool imports, so the
+    # sandbox's own checker run is unaffected and the case decides about K-83 alone; the
+    # statement is written here inside a string on one line, which is why the rule is
+    # anchored at a line start and this file is not a site of its own.
+    ("K-83", "a landing-loop tool that imports the quarantined instruments",
+     _literal("tools/blast-radius.py", "from vos import apex, fieldbindings",
+              "from quarantine import freeze\nfrom vos import apex, fieldbindings")),
 
-    # One rule gets one case, and this rule gets three, because two of its pairs are
-    # relations rather than memberships and neither is reached by the case above: with
-    # either relation deleted from the comparison the mutant above is still killed, so a
-    # rule narrowed to its enumerations would pass its own selftest. A member's Feeds
-    # cell is what a real edit moves, an instrument gaining a decision over a corpus §2
-    # sends elsewhere being the shape a copied column takes.
-    ("K-77", "a corpus member the freeze contract sends to fewer decisions than its "
-             "analyzer measures over it",
-     _literal(CONTRACT, "| FD-5, FD-7 |", "| FD-5 |")),
+    # One rule gets one case, and this rule gets two, because it holds two ways in and
+    # the case above reaches only one: with the path half deleted the mutant above is
+    # still killed, so a rule narrowed to imports would pass its own selftest while a
+    # landing-loop tool went on launching a quarantined entry point by path. The seed is
+    # a tool putting the quarantine on its own import path, which is how the coupling
+    # arrives for a program whose hyphenated name no import statement can spell.
+    ("K-83", "a landing-loop tool that puts the quarantine on its own path",
+     _literal("tools/blast-radius.py",
+              'sys.path.insert(0, str(Path(__file__).resolve().parent))',
+              'sys.path.insert(0, str(Path(__file__).resolve().parent / "quarantine"))')),
 
-    # The other relation, seeded on the document side for the same reason: §6 states in
-    # each decision's own section which materiality floor it spends, and §8's table
-    # collects the values, so a set comparison over §8's keys passes a decision spending
-    # the 0.5% opcode floor where the contract puts the 0.1% one.
-    ("K-77", "a decision spending a materiality floor its own section does not name",
-     _literal(CONTRACT,
-              "**Threshold, declared: T-form**, the instruction being admitted",
-              "**Threshold, declared: T-enc**, the instruction being admitted")),
     # The transcription is moved and the definition is left, which is the direction the
     # defect arrives from: the model is the definition and nothing edits it to follow a
     # SystemVerilog package. The address width is the one to move because it is the

@@ -25,7 +25,7 @@ enumeration in this tool declares, and they are a person's.
 
 from typing import TYPE_CHECKING
 
-from vos import banks
+from quarantine import banks
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
