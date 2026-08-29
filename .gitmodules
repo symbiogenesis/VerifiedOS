@@ -52,3 +52,6 @@
 [submodule "upstream/sail-cheri-riscv-verif"]
 	path = upstream/sail-cheri-riscv-verif
 	url = https://github.com/CTSRD-CHERI/sail-cheri-riscv-verif
+[submodule "upstream/TestRIG"]
+	path = upstream/TestRIG
+	url = https://github.com/CTSRD-CHERI/TestRIG
