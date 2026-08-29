@@ -48,7 +48,7 @@ def _live() -> Context:
 def _tag_expected(reg: Register) -> dict[str, str]:
     """The tag-plane values, from the two register fields that fix them.
 
-    Deliberately the same arithmetic counts._tag_plane performs: the test must
+    Deliberately the same arithmetic counts_tagplane.tag_plane performs: the test must
     compute the expected spellings independently of the code under test, and a
     drift between the two is this test failing loudly, which is the point.
     """

@@ -28,9 +28,10 @@ a subject larger than the one it read.
 
 **Everything here is a parse and never a decision**, as everywhere else in this package.
 What the values must be, which derivations they owe, and which disagreements matter is
-`vos/checks/counts.py`'s. A file that is not there, or a declaration that has moved out
-of the form read below, yields `None` for its site rather than raising, because a
-missing artifact is a finding the caller words and not an exception it has to catch.
+`vos/checks/counts_capformat.py`'s. A file that is not there, or a declaration that
+has moved out of the form read below, yields `None` for its site rather than raising,
+because a missing artifact is a finding the caller words and not an exception it has
+to catch.
 """
 
 import re
