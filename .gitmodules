@@ -34,3 +34,6 @@
 [submodule "upstream/qemu"]
 	path = upstream/qemu
 	url = https://github.com/CTSRD-CHERI/qemu
+[submodule "upstream/TestRIG"]
+	path = upstream/TestRIG
+	url = https://github.com/CTSRD-CHERI/TestRIG
