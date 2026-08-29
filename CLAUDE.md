@@ -21,7 +21,7 @@
 - **Derived facts are computed, not copied.** Any count, table, list, or line number some other artifact determines is recomputed by `tools/check.py`, which rewrites the arithmetic under `--fix` and reports the rest. Do not hand-maintain one, and do not add a new one that nothing owns. See [the register's preamble](docs/requirements-register.md#how-to-read-this).
 - **Requirement IDs are permanent and order is the prose's.** A retired requirement is struck, never renumbered and never reused; a requirement inserted between two others takes a letter suffix and sits where its obligation belongs, not where its number would put it. Inserting numerically is the natural wrong move.
 - **Every register entry carries a criterion**, criterion lines come first, and `· Fail-closed:` and `· RoT-fresh:` confer membership in sets other entries collect. Traces are derived from the entry's own id; spelling one out that the id already derives is a finding. A criterion clause is admitted where it decides and not where it is short, so one that decides nothing is deleted or made to decide, never moved into the prose the gate does not audit.
-- **An entry and the prose it cites are read together.** Editing either side leaves that pair owed a re-reading, which rule K-61 reports; `tools/co-read.py --show <id>` prints the two sides against each other and `--bless <id>` records the reading. Blessing is a judgment and deliberately not `--fix`, so a stale pair cannot be cleared by repairing arithmetic. A prose edit dirties a median of four pairs.
+- **An entry and the prose it cites are read together.** Editing either side leaves that pair owed a re-reading, which rule K-61 reports; `tools/run.py coread --show <id>` prints the two sides against each other and `--bless <id>` records the reading. Blessing is a judgment and deliberately not `--fix`, so a stale pair cannot be cleared by repairing arithmetic. A prose edit dirties a median of four pairs.
 - **To change a coverage cell, change the register first.** Adding a boundary or a property adds a whole line or column, every cell of which must be filled before the checker passes. See [how to change a cell](docs/coverage-matrix.md#4-how-to-read-a-cell-and-how-to-change-one).
 - **Every checklist item carries one estimate cell**, and every subtotal, the grand total, and the progress figures are sums over those cells that `tools/check.py --fix` recomputes. See [checklist conventions](docs/implementation-checklist.md#checklist-conventions).
 - **No em-dash (U+2014) in any tracked document**, with no carve-out: rule K-40. A not-applicable cell is `n/a`, never a blank and never a bare dash.
@@ -46,33 +46,35 @@
 
 There is no CI in this repository. Nothing runs these but you, by hand, before anything lands.
 
+**There is one entry point, [tools/run.py](tools/run.py), and a command is a name rather than a path.** `run.py help` lists every command and the lane it runs in; `run.py <command> --help` is that command's own help. A command that needs the toolchain is re-launched inside WSL by `run.py` itself, so there is no `wsl -u root -e python3` to spell and no wrong lane to be in.
+
 ```console
-$ python tools/gate.py                        # the three host gates, in one run
-$ python tools/gate.py --fix                  # and rewrite what is arithmetic first
-$ python tools/check.py                       # one gate alone, after a document edit
-$ python tools/check-selftest.py              # one alone, after touching the checker
-$ python tools/typecheck.py                   # one alone, after touching any Python
-$ python tools/co-read.py --show R-15-073c    # a pair K-61 says is owed a reading
-$ python tools/test.py                        # after changing what any tool does
-$ python tools/rtl.py provenance              # the absences, and what binds each
-$ python tools/oracle.py list                 # the oracle specs, and how large each is
-$ python tools/seed.py list --file <source>   # the mutants one source yields
+$ python tools/run.py                             # every host gate, in one run
+$ python tools/run.py --fix                       # and rewrite what is arithmetic first
+$ python tools/check.py                           # the checker alone, after a document edit
+$ python tools/run.py selftest                    # one alone, after touching the checker
+$ python tools/run.py typecheck                   # one alone, after touching any Python
+$ python tools/run.py coread --show R-15-073c     # a pair K-61 says is owed a reading
+$ python tools/run.py test                        # after changing what any tool does
+$ python tools/run.py rtl provenance              # the absences, and what binds each
+$ python tools/run.py oracle list                 # the oracle specs, and how large each is
+$ python tools/run.py seed list --file <source>   # the mutants one source yields
 
-$ wsl -u root -e python3 tools/oracle.py vectors --spec capformat
-$ wsl -u root -e python3 tools/seed.py coq --sample 20
-$ wsl -u root -e python3 tools/quickchick.py vectors
-
-$ wsl -u root -e python3 tools/rtl.py lint    # the authored RTL, alone
-$ wsl -u root -e python3 tools/rtl.py elaborate --background
-$ wsl -u root -e python3 tools/rtl.py wait    # and the module set it removed
-$ wsl -u root -e python3 tools/model.py typecheck
-$ wsl -u root -e python3 tools/model.py build
-$ wsl -u root -e python3 tools/proof-gate.py
+$ python tools/run.py evidence                    # the whole exit-evidence sweep, one block
+$ python tools/run.py model typecheck
+$ python tools/run.py model build
+$ python tools/run.py rtl lint                    # the authored RTL, alone
+$ python tools/run.py rtl elaborate --background
+$ python tools/run.py rtl wait                    # and the module set it removed
+$ python tools/run.py oracle vectors --spec capformat
+$ python tools/run.py seed coq --sample 20
+$ python tools/run.py quickchick vectors
+$ python tools/run.py proofs
 ```
 
-`gate.py` is the three host gates as one run and one exit code, and they share it because all three only read the checkout; under `--fix` the repair runs alone and first, the selftest copying the working tree as it starts. The host spells the interpreter `python` and the guest spells it `python3`; neither spelling is portable, and there is no `-d` because `Ubuntu` is WSL's default distribution. `model.py build` logs to a file and writes `ALL_DONE` as its last line, so a caller waits on that marker rather than on a sleep. [tools/README.md](tools/README.md) states why, and the conventions a new tool keeps.
+A bare `run.py` is the three host gates as one run and one exit code, and they share it because all three only read the checkout; under `--fix` the repair runs alone and first, the selftest copying the working tree as it starts, and `--tests` adds the tools' own tests to the wave. `tools/check.py` stays a path of its own because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite it for what it decides. The host spells the interpreter `python` and the guest spells it `python3`; neither spelling is portable, and there is no `-d` on the `wsl` invocation because `Ubuntu` is WSL's default distribution. `run.py model build` logs to a file and writes `ALL_DONE` as its last line, so a caller waits on that marker rather than on a sleep, and `run.py evidence` is the six-command exit-evidence sweep as one run with the block of figures a completion note quotes. [tools/README.md](tools/README.md) states why, and the conventions a new tool keeps.
 
-**Adding a rule to the checker is three edits**: the check in its [tools/vos/checks/](tools/vos/checks/) module, its row in [tools/check-rules.md](tools/check-rules.md), and its mutant in [tools/check-selftest.py](tools/check-selftest.py). The tools fail on any one of the three being forgotten.
+**Adding a rule to the checker is three edits**: the check in its [tools/vos/checks/](tools/vos/checks/) module, its row in [tools/check-rules.md](tools/check-rules.md), and its mutant in [tools/run.py selftest](tools/vos/cli/selftest.py). The tools fail on any one of the three being forgotten.
 
 **Validation is generated where an oracle exists**, and the three instruments are `oracle.py`, whose spec makes any Sail function a differential oracle, `seed.py`, whose mutation operators produce the defects an oracle must notice, and `quickchick.py`, which is the Gallina front's input side. A run of `seed.py` reports three verdicts and not two: a **stillborn** mutant did not compile and decided nothing, a **killed** one moved the oracle's answer, and a **survivor** is the finding, being a site the oracle does not reach. [tools/README.md](tools/README.md#the-three-generators-and-what-each-answers) states which of the tree's own findings each answers.
 

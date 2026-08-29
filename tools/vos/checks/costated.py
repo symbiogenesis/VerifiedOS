@@ -84,7 +84,7 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     ("the precedence relationship, stated at both documents' heads", [
         (REGISTER, "This register, not the prose, is the artifact"),
         (SPEC, "where the two disagree the register wins (R-05-152)"),
-        (SPEC, "which rule K-61 reports and `tools/co-read.py` records"),
+        (SPEC, "which rule K-61 reports and `tools/run.py coread` records"),
     ]),
     ("the admission rule's non-duplication clause, cited by ordinal", [
         ("R-05-132", "(2) duplicates no existing grade or label axis"),

@@ -6,7 +6,7 @@
 
 ## How to read a row
 
-- **Consumed by** lists every definition of the statement that touches the field: a seam lemma that takes it as premise or concludes it, the substrate or tower conjunction that carries it, the `Ax` ledger, or a record coercion. This is the blast-radius column: an edit that changes what a field *states* re-opens exactly the definitions listed, and nothing else, which is what entitles a workstream behind one field to refactor freely against a fixed statement. `tools/blast-radius.py` answers the same question as a query, with the seam-to-seam trail shown.
+- **Consumed by** lists every definition of the statement that touches the field: a seam lemma that takes it as premise or concludes it, the substrate or tower conjunction that carries it, the `Ax` ledger, or a record coercion. This is the blast-radius column: an edit that changes what a field *states* re-opens exactly the definitions listed, and nothing else, which is what entitles a workstream behind one field to refactor freely against a fixed statement. `tools/run.py blast` answers the same question as a query, with the seam-to-seam trail shown.
 - **Authored by** names the artifact that gives the field its meaning: a crown-jewel inventory row (see [crown-jewels.md](crown-jewels.md)), a theorem target, or the register entry that states it. Proofs against a wrong authoring artifact match it rather than check it, so this column is review-gate subject matter, not a tool's.
 - **Instantiated by** names the proof development that discharges the field, linked, or `none yet`. A row reading `none yet` is R-18-031(a)'s uncovered obligation, named. Today every row reads `none yet`: no proof workstream has landed, which is the honest position the [crown-jewel inventory](crown-jewels.md) counts from the specification side.
 
@@ -52,5 +52,5 @@
 ## Standing obligations
 
 - **The mechanical half is never edited by hand toward a wish.** A `Consumed by` cell disagreeing with the statement is repaired by re-deriving it from the `.v`, or the statement itself is wrong and that is an amendment to the statement, decided at the review gate.
-- **An instantiation is a landing, not a claim.** A cell that moves off `none yet` links the proof development that discharges the field, and the linked artifact answers to `tools/proof-gate.py` like everything shipped under [proofs](../proofs/).
+- **An instantiation is a landing, not a claim.** A cell that moves off `none yet` links the proof development that discharges the field, and the linked artifact answers to `tools/run.py proofs` like everything shipped under [proofs](../proofs/).
 - **A new field is a new row before it is anything else.** `check.py` fails the view that lags the record in either direction, so the checklist property (every obligation has exactly one name) survives amendment mechanically.

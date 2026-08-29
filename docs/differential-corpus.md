@@ -129,7 +129,7 @@ Two halves of that reuse are worth stating, because they went in opposite direct
 
 ## 6. How a run is adjudicated
 
-`wsl -u root -e python3 tools/model.py corpus` assembles every member, runs it once, and asks two questions of that run.
+`python tools/run.py model corpus` assembles every member, runs it once, and asks two questions of that run.
 
 * **The program's own.** It reports through HTIF, so the verdict is the exit code it wrote, and a failure names the check that failed because `gp` carries it.
 * **The rig's.** The same run emits the commit trace; the runner normalizes it, digests it, and holds the digest against the manifest's.
@@ -161,18 +161,18 @@ Two instruments, and they run in different places for a reason: one needs a buil
 | every member assembles | `tools/check.py` (host) |
 | the manifest and this document name the same members, in both directions | `tools/check.py` (host) |
 | each member's recorded check count is the count its source carries | `tools/check.py` (host) |
-| every member runs to a HTIF verdict of success | `tools/model.py corpus` (WSL) |
-| every member's commit trace matches the digest the manifest records | `tools/model.py corpus` (WSL) |
-| the wire format of §9 below is what the codec encodes and decodes | `tools/test.py` (host) |
-| the emulator negotiates RVFI-DII v2 and retires an injected instruction | `tools/testrig.py handshake` (WSL) |
-| a generated stream's packets and its commit records agree, one run, both dialects | `tools/testrig.py bridge` (WSL) |
-| every seeded defect is reported, and no unseeded run diverges | `tools/testrig.py run` (WSL) |
+| every member runs to a HTIF verdict of success | `tools/run.py model corpus` (WSL) |
+| every member's commit trace matches the digest the manifest records | `tools/run.py model corpus` (WSL) |
+| the wire format of §9 below is what the codec encodes and decodes | `tools/run.py test` (host) |
+| the emulator negotiates RVFI-DII v2 and retires an injected instruction | `tools/run.py testrig handshake` (WSL) |
+| a generated stream's packets and its commit records agree, one run, both dialects | `tools/run.py testrig bridge` (WSL) |
+| every seeded defect is reported, and no unseeded run diverges | `tools/run.py testrig run` (WSL) |
 
 ## 9. The RVFI-DII rig
 
 *§4 above is the trace format the plan's §10 sentence names; this is the runner it has never had, and this section says what the wire is, where it meets §4, and what the rig can drive today.*
 
-**The corpus is authored and this is generated, which is the whole of what it adds.** A hand-written member exercises what somebody thought to write; a verification engine generates instruction streams, consumes execution traces, adjudicates two executors against each other, and **shrinks a counterexample automatically**, which no corpus can do at all. The instrument is [tools/testrig.py](../tools/testrig.py) over [vos/rvfi.py](../tools/vos/rvfi.py), the wire format, and [vos/vengine.py](../tools/vos/vengine.py), the generator, the socket and the shrinker; adjudication is [vos/trace.py](../tools/vos/trace.py)'s, unchanged, so there is one adjudicator here and not two.
+**The corpus is authored and this is generated, which is the whole of what it adds.** A hand-written member exercises what somebody thought to write; a verification engine generates instruction streams, consumes execution traces, adjudicates two executors against each other, and **shrinks a counterexample automatically**, which no corpus can do at all. The instrument is [tools/run.py testrig](../tools/vos/cli/testrig.py) over [vos/rvfi.py](../tools/vos/rvfi.py), the wire format, and [vos/vengine.py](../tools/vos/vengine.py), the generator, the socket and the shrinker; adjudication is [vos/trace.py](../tools/vos/trace.py)'s, unchanged, so there is one adjudicator here and not two.
 
 ### 9.1 The wire, and where it is read from
 

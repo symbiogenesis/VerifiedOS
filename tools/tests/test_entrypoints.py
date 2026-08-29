@@ -30,12 +30,13 @@ def _run(*argv: str) -> tuple[int, str, str]:
     return done.returncode, done.stdout, done.stderr
 
 
-def _twice_identical(tool: str, *args: str) -> tuple[int, str, str]:
-    """Run one tool twice and hold every observable equal, handing back the verdict."""
-    first = _run(sys.executable, str(TOOLS / tool), *args)
-    second = _run(sys.executable, str(TOOLS / tool), *args)
+def _twice_identical(command: str, *args: str) -> tuple[int, str, str]:
+    """Run one command twice and hold every observable equal, handing back the
+    verdict. Launched through the one entry point, which is how a caller runs it."""
+    first = _run(sys.executable, str(TOOLS / "run.py"), command, *args)
+    second = _run(sys.executable, str(TOOLS / "run.py"), command, *args)
     ensure(first == second,
-           f"{tool} answered differently on its second run:\n"
+           f"{command} answered differently on its second run:\n"
            f"first:  {first!r}\nsecond: {second!r}")
     return first
 
@@ -59,25 +60,25 @@ def _tree_status_before() -> None:
 
 
 def _coread_list_twice() -> None:
-    code, out, _ = _twice_identical("co-read.py")
+    code, out, _ = _twice_identical("coread")
     ensure(code == 0, f"list mode is a worklist and exits 0 either way, got {code}")
     ensure("pair" in out, f"the worklist names its pairs, got {out!r}")
 
 
 def _blast_radius_twice() -> None:
-    code, out, _ = _twice_identical("blast-radius.py")
+    code, out, _ = _twice_identical("blast")
     ensure(code == 0, f"bare mode on the live record exits 0, got {code}: {out!r}")
     ensure(out.startswith("the Vocabulary record's Prop fields and their consumers:"),
            f"bare mode prints the consumers map, got {out!r}")
 
 
 def _typecheck_twice() -> None:
-    code, out, _ = _twice_identical("typecheck.py")
+    code, out, _ = _twice_identical("typecheck")
     ensure(code == 0, f"the tools hold to their own discipline, got {code}: {out!r}")
 
 
 def _check_twice() -> None:
-    code, out, _ = _twice_identical("check.py")
+    code, out, _ = _twice_identical("check")
     ensure(code == 0, f"the live tree checks clean, got {code}: {out!r}")
     ensure("every derived fact agrees with its artifact." in out,
            f"a clean run closes on its one sentence, got {out[-400:]!r}")

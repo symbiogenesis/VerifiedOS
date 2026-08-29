@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""read-view.py end to end, in a sandbox checkout small enough to derive by hand.
+"""The `view` command end to end, in a sandbox checkout small enough to derive by hand.
 
 What is held: the view opens by declaring itself generated, every entry renders as
 a quoted block directly beneath the bookmark that cites it, a `-n` repeat bookmark
@@ -18,7 +18,8 @@ from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 
-_SOURCES = ("tools/read-view.py", "tools/vos/__init__.py", "tools/vos/coread.py",
+_SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/view.py",
+            "tools/vos/__init__.py", "tools/vos/coread.py",
             "tools/vos/corpus.py", "tools/vos/register.py")
 
 # Three entries: one plain, one whose bookmark the prose repeats under a -2 suffix,
@@ -64,7 +65,7 @@ def _fixture() -> dict[str, str]:
 
 def _run(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(root / "tools" / "read-view.py")],
+        [sys.executable, str(root / "tools" / "run.py"), "view"],
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
 

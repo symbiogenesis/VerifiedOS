@@ -90,7 +90,7 @@ def cap_format(ctx: Context) -> None:
     hazard that keeps K-70 report-only.
 
     What this rule does not decide is whether the *algorithm* agrees, which is
-    `tools/rtl.py crosscheck`'s: the model emits its own answers and the package is
+    `run.py rtl crosscheck`'s: the model emits its own answers and the package is
     required to reproduce every line. The two are complements and the split is the
     tool's reach rather than a preference. A drifted width is caught here, on the host,
     before anything is built; a drifted expression is caught there, under a toolchain

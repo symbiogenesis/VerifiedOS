@@ -20,7 +20,7 @@ report names which side moved, because that is the difference between *the desig
 changed and the obligation has not caught up* and *the obligation was sharpened and the
 rationale still argues the old one*, and they are different readings to do.
 
-`tools/co-read.py` is where a person does the reading: it prints the two sides against
+`tools/run.py coread` is where a person does the reading: it prints the two sides against
 each other and records the pair once they agree. That is deliberately not `--fix`.
 tools/README.md's convention is that arithmetic is repaired and judgment reported, and
 a co-read has no artifact to recompute it from; a `--fix` that blessed these pairs
@@ -79,7 +79,7 @@ def run(ctx: Context) -> None:
             findings.append(
                 f"{ident}: {' and '.join(moved)} changed since the pair was last read; "
                 f"read the two against each other and record it with "
-                f"`python tools/co-read.py --bless {ident}`"
+                f"`python tools/run.py coread --bless {ident}`"
             )
 
     findings += [

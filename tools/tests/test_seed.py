@@ -14,15 +14,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-import seed
 from tests.harness import TOOLS, Case, ensure
 from vos import mutate
+from vos.cli import seed
 
 _ROOT = TOOLS.parent
 
 
-def _run(tool: str, *args: str) -> tuple[int, str]:
-    done = subprocess.run([sys.executable, str(TOOLS / tool), *args],
+def _run(command: str, *args: str) -> tuple[int, str]:
+    done = subprocess.run([sys.executable, str(TOOLS / "run.py"), command, *args],
                           capture_output=True, encoding="utf-8", errors="replace",
                           check=False, timeout=300, cwd=_ROOT)
     return done.returncode, done.stdout + done.stderr
@@ -110,13 +110,13 @@ def _moved_counts_a_length_change() -> None:
 
 
 def _oracle_list_runs() -> None:
-    code, out = _run("oracle.py", "list")
+    code, out = _run("oracle", "list")
     ensure(code == 0, f"the live specs do not parse: {out}")
     ensure("vector(s) in all" in out, f"the listing printed {out!r}")
 
 
 def _oracle_emit_runs() -> None:
-    code, out = _run("oracle.py", "emit", "--spec", "capformat")
+    code, out = _run("oracle", "emit", "--spec", "capformat")
     ensure(code == 0, f"the capformat harness did not emit: {out[-400:]}")
     ensure(out.startswith("// SPDX-License-Identifier"),
            "a generated Sail file does not open with the mark COPYRIGHT.md requires")
@@ -124,14 +124,14 @@ def _oracle_emit_runs() -> None:
 
 
 def _seed_list_runs_over_a_live_source() -> None:
-    code, out = _run("seed.py", "list", "--file",
+    code, out = _run("seed", "list", "--file",
                      "model/model/extensions/keccak/keccak_p1600.sail", "--limit", "3")
     ensure(code == 0, f"the live Sail source yields no population: {out[-400:]}")
     ensure("mutant(s) over" in out, f"the listing printed {out!r}")
 
 
 def _seed_list_refuses_an_unmutable_kind() -> None:
-    code, out = _run("seed.py", "list", "--file", "tools/seed.py")
+    code, out = _run("seed", "list", "--file", "tools/vos/cli/seed.py")
     ensure(code != 0, "a Python file was given a lane")
     ensure("two lanes" in out, f"the refusal said {out!r}")
 
@@ -146,10 +146,10 @@ def cases() -> list[Case]:
              _a_sample_spreads_and_a_limit_takes_a_prefix),
         Case("a source round trips byte for byte", _a_source_round_trips_byte_for_byte),
         Case("a length change counts as movement", _moved_counts_a_length_change),
-        Case("oracle.py list runs over the live specs", _oracle_list_runs, lane="host"),
-        Case("oracle.py emit produces a marked harness", _oracle_emit_runs, lane="host"),
-        Case("seed.py list runs over a live source",
+        Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),
+        Case("oracle emit produces a marked harness", _oracle_emit_runs, lane="host"),
+        Case("seed list runs over a live source",
              _seed_list_runs_over_a_live_source, lane="host"),
-        Case("seed.py list refuses a kind it has no lane for",
+        Case("seed list refuses a kind it has no lane for",
              _seed_list_refuses_an_unmutable_kind, lane="host"),
     ]

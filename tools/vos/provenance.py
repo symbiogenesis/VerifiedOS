@@ -4,7 +4,7 @@
 R-15-103 asks that an imported core's absences be bound to a build rather than to
 a reading, and [rtl/synthesis-provenance.md](../../rtl/synthesis-provenance.md) is
 the record that binds them. Two tools read it: the checker holds it against the
-absence contract and against the configuration package, and `tools/rtl.py` prints
+absence contract and against the configuration package, and `run.py rtl provenance` prints
 it and elaborates against it. So the parse lives here and neither carries a copy,
 which is the convention every other reading in this directory keeps.
 

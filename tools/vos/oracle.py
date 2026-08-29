@@ -17,7 +17,7 @@ So this module owns those, and a **spec** owns the dozen. A spec is a JSON file 
 or more *probes*: a line kind, the parameters a probe takes and how the domain walks
 them, the Sail that calls the model with them, and the expressions to print. What
 comes out is a Sail harness that prints one line per vector, which
-[tools/oracle.py](../oracle.py) compiles against those sources and runs. **The vectors
+[tools/run.py oracle](../oracle.py) compiles against those sources and runs. **The vectors
 cross as text**, which is M2.1's discipline and R1a's: no adapter sits between the two
 implementations, neither is compiled against the other's types, and a disagreement
 names a line a person reads on both sides.
@@ -59,7 +59,7 @@ One vector per line, `<kind> <inputs> -> <outputs>`, every field lowercase hex w
 prefix at a width fixed by the field rather than by the value in it, so a reproducing
 implementation holding each field in a variable of that width prints the same digits
 with a bare `%x`. Lines opening with `#` are commentary. It is R1a's format unchanged,
-which is deliberate: `tools/rtl.py`'s census and comparison read it already.
+which is deliberate: the RTL lane's census and comparison read it already.
 """
 
 import json
@@ -80,7 +80,7 @@ SPECS = "tools/oracle-specs"
 # this lane's working directory and vector file under the lane root. Named here rather
 # than in the CLI because two tools drive this rig and neither may have its own name
 # for where the other one's output went.
-TOOL = "tools/oracle.py"
+TOOL = "tools/run.py oracle"
 WORK = "oracle"
 VECTORS = "vectors.txt"
 
@@ -90,7 +90,7 @@ VECTORS = "vectors.txt"
 # nothing defines, and fail several hundred lines from the spec that wrote it.
 SHOW = re.compile(r"^(?:h(\d{1,2})|b1)$")
 
-# A kind is the first token of every line the probe writes, and `tools/rtl.py`'s census
+# A kind is the first token of every line the probe writes, and the RTL lane's census
 # reads it back with `^([a-z]+) `. Held to that shape here so a spec cannot emit a line
 # that census counts as commentary.
 KIND = re.compile(r"^[a-z]+$")

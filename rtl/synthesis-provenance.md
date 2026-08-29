@@ -74,4 +74,4 @@ It is not. The three-route ladder exists so a block can stand at evidence tier b
 
 ## 5. Where the enumeration is taken
 
-The state enumeration this record is the second half of is taken by [`tools/rtl.py`](../tools/rtl.py), which elaborates the imported core at this configuration and at the stock CHERI configuration and reports the module set, the instance count and the difference. The record states which parameters cause that difference; the tool states what the difference is. Neither is derived from the other, which is what makes them evidence rather than one fact written twice.
+The state enumeration this record is the second half of is taken by [`tools/run.py rtl`](../tools/vos/cli/rtl.py), which elaborates the imported core at this configuration and at the stock CHERI configuration and reports the module set, the instance count and the difference. The record states which parameters cause that difference; the tool states what the difference is. Neither is derived from the other, which is what makes them evidence rather than one fact written twice.

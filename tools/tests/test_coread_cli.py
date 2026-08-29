@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""co-read.py end to end, in a sandbox checkout small enough to derive by hand.
+"""The `coread` command end to end, in a sandbox checkout small enough to derive by hand.
 
 Blessing is a judgment, so every mutating case here runs against a fixture tree and
 never the live ledger. What is held: list mode is a worklist that exits 0 with pairs
@@ -29,7 +29,8 @@ from pathlib import Path
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 
 # The live sources the sandbox copy of the tool runs on, relative to the root.
-_SOURCES = ("tools/co-read.py", "tools/vos/__init__.py", "tools/vos/coread.py",
+_SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/coread.py",
+            "tools/vos/__init__.py", "tools/vos/coread.py",
             "tools/vos/corpus.py", "tools/vos/register.py")
 
 # Three entries in the register's own shape: body line, criterion, conferral on the
@@ -79,7 +80,7 @@ def _fixture() -> dict[str, str]:
 
 def _run(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(root / "tools" / "co-read.py"), *args],
+        [sys.executable, str(root / "tools" / "run.py"), "coread", *args],
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
 
@@ -141,7 +142,7 @@ def _show_several() -> None:
     ensure("=== R-01-001 ===" in done.stdout and "=== R-01-003 ===" in done.stdout
            and "R-01-002" not in done.stdout,
            f"--show prints the named pairs and no other, got {done.stdout!r}")
-    ensure("record the readings with `python tools/co-read.py --bless "
+    ensure("record the readings with `python tools/run.py coread --bless "
            "R-01-001 R-01-003`." in done.stdout,
            f"several pairs end in one bless hint naming them all, got {done.stdout!r}")
 

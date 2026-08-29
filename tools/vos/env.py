@@ -14,7 +14,7 @@ Five invariants every loop needs, and used to carry its own copy of:
      finding, twice reproduced). The limit is raised here, in the parent, and every
      child inherits it.
   2. The Sail toolchain lives in the opam `default` switch, which a bare
-     `wsl -e python3 tools/model.py` does not put on PATH.
+     `wsl -e python3 tools/run.py model` does not put on PATH.
   3. The Z3 that discharges Sail's typechecking obligations is the pinned one, not the
      distribution's. This is the one invariant whose absence is silent rather than
      loud, which is why it is announced: see `_prepend_z3_path`.
@@ -452,7 +452,7 @@ def load() -> Environment:
     """Prepare this process, and describe the machine it is preparing it on."""
     if sys.platform == "win32":
         raise SystemExit("the model loops run inside WSL: "
-                         "wsl -u root -e python3 tools/model.py <command>")
+                         "python tools/run.py model <command>")
 
     _raise_stack_limit()
     _apply_opam_env()

@@ -123,7 +123,7 @@ RULE_ID_RE = re.compile(r"\bK-\d{2,3}\b")
 REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 
 README = "tools/README.md"
-TYPECHECK = "tools/typecheck.py"
+TYPECHECK = "tools/vos/cli/typecheck.py"
 
 # The pins as typecheck.py declares them, and the README sites restating them. The
 # version cell and the install argument are captured alone, so a disagreement names
@@ -194,7 +194,7 @@ _Q_PATH_RE = re.compile(
 # order to seed it. Both are declared rather than pattern-dodged, and both are files a
 # reader auditing this rule is already reading; the import half excuses neither, so the
 # coupling that matters is held at every site without exception.
-_Q_PATH_EXEMPT = ("tools/vos/checks/meta.py", "tools/check-selftest.py")
+_Q_PATH_EXEMPT = ("tools/vos/checks/meta.py", "tools/vos/cli/selftest.py")
 
 # The interpreter floor, as the type checker's own environment fixes it.
 _FLOOR_SRC_RE = re.compile(r'(?m)^python-version = "([^"\r\n]*)"')

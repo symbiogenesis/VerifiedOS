@@ -25,7 +25,8 @@ from vos import differential
 def _load_model() -> ModuleType:
     """model.py from its own path: the file is importable by name too, but loading it
     from the path pins exactly which file this module is testing."""
-    spec = importlib.util.spec_from_file_location("model", TOOLS / "model.py")
+    spec = importlib.util.spec_from_file_location(
+        "model", TOOLS / "vos" / "cli" / "model.py")
     if spec is None or spec.loader is None:
         raise RuntimeError(f"no import spec for {TOOLS / 'model.py'}")
     module = importlib.util.module_from_spec(spec)

@@ -158,7 +158,7 @@ def _k67(readme: str, typecheck: str | None) -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
              "tools/README.md": readme}
     if typecheck is not None:
-        files["tools/typecheck.py"] = typecheck
+        files["tools/vos/cli/typecheck.py"] = typecheck
     with sandbox_tree(files) as root:
         ctx = _context(root)
         meta.run(ctx)
@@ -168,7 +168,7 @@ def _k67(readme: str, typecheck: str | None) -> Context:
 def _k67_agreement_is_ok() -> None:
     ctx = _k67(_README_PINNED, _TYPECHECK_PINNED)
     ensure("ok K-67: tools/README.md's four pin sites state ty 1.2.3 and "
-           "ruff 4.5.6, the versions tools/typecheck.py fixes" in ctx.rep.out,
+           "ruff 4.5.6, the versions tools/vos/cli/typecheck.py fixes" in ctx.rep.out,
            f"four agreeing sites are one ok line naming both pins: {ctx.rep.out!r}")
 
 
@@ -176,7 +176,7 @@ def _k67_disagreement_names_both_figures() -> None:
     ctx = _k67(_README_PINNED.replace("| 1.2.3 |", "| 9.9.9 |"), _TYPECHECK_PINNED)
     found = _findings_under(ctx, "K-67")
     ensure("tools/README.md's ty checker-table row states 9.9.9, "
-           "tools/typecheck.py pins 1.2.3" in found,
+           "tools/vos/cli/typecheck.py pins 1.2.3" in found,
            f"a drifted site names the two figures and nothing else: {found!r}")
 
 

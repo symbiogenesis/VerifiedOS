@@ -29,7 +29,7 @@ $ rocq c demo.v && node --stack-size=10000000 run_demo.mjs demo.oracle_demo.wasm
 true
 ```
 
-The switch is its own rather than the [proof gate](../proof-gate.py)'s `rocq-9.1.1`, which the gate reads while this installs, and it takes the distribution's OCaml 4.14.2 without flambda: the round trip is a functional check on one boolean, so nothing it decides turns on the optimizer the emitted OCaml is compiled with.
+The switch is its own rather than the [proof gate](../vos/cli/proofs.py)'s `rocq-9.1.1`, which the gate reads while this installs, and it takes the distribution's OCaml 4.14.2 without flambda: the round trip is a functional check on one boolean, so nothing it decides turns on the optimizer the emitted OCaml is compiled with.
 
 `demo.v` is the M1.5 smoke program in the oracle's intended shape: a pure Gallina computation checked against a known answer *inside* Gallina (the §4 crypto module's KAT pattern), so only one boolean crosses the Wasm boundary. `run_demo.mjs` decodes it per the upstream value representation (nullary constructors are odd-tagged unboxed scalars). The `--stack-size` flag matches the upstream harness: the generated code recurses deeply and overflows V8's default stack.
 
@@ -38,7 +38,7 @@ The switch is its own rather than the [proof gate](../proof-gate.py)'s `rocq-9.1
 WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it, and the opam install above is long enough to be that build whichever environment runs it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:
 
 ```console
-$ wsl -u root -e python3 tools/model.py keepalive
+$ python tools/run.py model keepalive
 KEEPALIVE pid=... hours=8 pidfile=/tmp/vos-keepalive.pid
 ```
 

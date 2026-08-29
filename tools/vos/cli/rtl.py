@@ -36,12 +36,12 @@ so this tool composes a file list across the two rather than a vendored tree.
 
 The last four run inside WSL, where Verilator and the Sail toolchain live:
 
-    python tools/rtl.py provenance
-    wsl -u root -e python3 tools/rtl.py lint
-    wsl -u root -e python3 tools/rtl.py vectors
-    wsl -u root -e python3 tools/rtl.py crosscheck
-    wsl -u root -e python3 tools/rtl.py elaborate --background
-    wsl -u root -e python3 tools/rtl.py wait
+    python tools/run.py rtl provenance
+    python tools/run.py rtl lint
+    python tools/run.py rtl vectors
+    python tools/run.py rtl crosscheck
+    python tools/run.py rtl elaborate --background
+    python tools/run.py rtl wait
 
 `elaborate` writes its whole run to a log and prints only where the log is, and the last
 line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a
@@ -55,15 +55,10 @@ import argparse
 import re
 import shutil
 import subprocess
-import sys
 from collections.abc import Callable
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from vos import env, provenance, sailrig
+from vos import cli, env, provenance, sailrig
 from vos.corpus import find_root
 
 # What every subcommand handler is. `main` attaches one to each subparser and argparse
@@ -619,11 +614,10 @@ def _detach(log: Path) -> int:
     last run's verdict readable rather than deleting it in favour of nothing.
     """
     log.parent.mkdir(parents=True, exist_ok=True)
-    argv = [sys.executable, str(Path(__file__).resolve()), "elaborate"]
     with log.open("w", encoding="utf-8") as handle:
-        child = subprocess.Popen(argv, stdout=handle, stderr=subprocess.STDOUT,
-                                 start_new_session=True)
-    print(f"== log: {log} (pid {child.pid}); wait on it with `rtl.py wait`")
+        child = subprocess.Popen(cli.entry("rtl", "elaborate"), stdout=handle,
+                                 stderr=subprocess.STDOUT, start_new_session=True)
+    print(f"== log: {log} (pid {child.pid}); wait on it with `run.py rtl wait`")
     return 0
 
 
@@ -686,6 +680,3 @@ def main() -> int:
         print(MARKER, flush=True)
     return code
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())

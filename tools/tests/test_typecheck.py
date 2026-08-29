@@ -14,8 +14,8 @@ import os
 import tempfile
 from pathlib import Path
 
-import typecheck
 from tests.harness import Case, ensure
+from vos.cli import typecheck
 from vos.report import Reporter
 
 # What the version-probing stubs answer, chosen not to collide with any real tool

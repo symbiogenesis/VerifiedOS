@@ -28,9 +28,9 @@ what make a whole pass half a minute rather than a coffee break; a case only eve
 sees its own sandbox, and a write breaks its link before it lands, so neither the
 parallelism nor the sharing changes a verdict.
 
-    tools/check-selftest.py                 # every case
-    tools/check-selftest.py --rule K-23     # one rule, while iterating on it
-    tools/check-selftest.py --keep          # leave the sandboxes for inspection
+    tools/run.py selftest                 # every case
+    tools/run.py selftest --rule K-23     # one rule, while iterating on it
+    tools/run.py selftest --keep          # leave the sandboxes for inspection
 
 Exit 0 when every case kills its mutant and every registered rule is accounted for,
 1 otherwise.
@@ -52,10 +52,6 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
 from typing import cast
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
 from vos.coread import LEDGER
@@ -1263,7 +1259,7 @@ CASES: list[Case] = [
     # statement is written here inside a string on one line, which is why the rule is
     # anchored at a line start and this file is not a site of its own.
     ("K-83", "a landing-loop tool that imports the quarantined instruments",
-     _literal("tools/blast-radius.py", "from vos import apex, fieldbindings",
+     _literal("tools/vos/cli/blast.py", "from vos import apex, fieldbindings",
               "from quarantine import freeze\nfrom vos import apex, fieldbindings")),
 
     # One rule gets one case, and this rule gets two, because it holds two ways in and
@@ -1273,7 +1269,7 @@ CASES: list[Case] = [
     # a tool putting the quarantine on its own import path, which is how the coupling
     # arrives for a program whose hyphenated name no import statement can spell.
     ("K-83", "a landing-loop tool that puts the quarantine on its own path",
-     _literal("tools/blast-radius.py",
+     _literal("tools/run.py",
               'sys.path.insert(0, str(Path(__file__).resolve().parent))',
               'sys.path.insert(0, str(Path(__file__).resolve().parent / "quarantine"))')),
 
@@ -1680,6 +1676,3 @@ def _registry_coverage(box: Sandbox) -> list[str]:
         print(f"  ok: all {len(registered)} registered rules carry a case")
     return gaps
 
-
-if __name__ == "__main__":
-    sys.exit(main())

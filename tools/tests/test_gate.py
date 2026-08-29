@@ -20,15 +20,15 @@ default run.
 import subprocess
 import sys
 
-import gate
 from tests.harness import TOOLS, Case, ensure
+from vos.cli import BY_NAME, gate
 from vos.report import Reporter
 
 _ROOT = TOOLS.parent
 
 
 def _plan_is_one_wave() -> None:
-    plan = gate._plan(fix=False)
+    plan = gate._plan(fix=False, tests=False)
     ensure(len(plan) == 1, f"with no repair every member goes in one wave, got {plan!r}")
     ensure([m.name for m in plan[0]] == [m.tool for m in gate.MEMBERS],
            f"the wave carries every member, in the order declared, got "
@@ -36,7 +36,7 @@ def _plan_is_one_wave() -> None:
 
 
 def _plan_repairs_ahead_of_the_wave() -> None:
-    plan = gate._plan(fix=True)
+    plan = gate._plan(fix=True, tests=False)
     ensure(len(plan) == 2, f"the repair is a wave of its own ahead of the rest, got {plan!r}")
     ensure([m.name for m in plan[0]] == [f"{gate.REPAIRS} --fix"],
            f"the first wave is the repair alone, got {[m.name for m in plan[0]]!r}")
@@ -50,13 +50,22 @@ def _plan_repairs_ahead_of_the_wave() -> None:
            f"every member is planned exactly once, got {planned!r}")
 
 
-def _members_name_tools_that_exist() -> None:
-    missing = [m.tool for m in gate.MEMBERS if not (TOOLS / m.tool).is_file()]
-    ensure(not missing, f"every member names a tool on disk, missing {missing!r}")
+def _members_name_commands_the_table_carries() -> None:
+    missing = [m.tool for m in (*gate.MEMBERS, gate.TESTS) if m.tool not in BY_NAME]
+    ensure(not missing, f"every member names a command run.py dispatches, missing {missing!r}")
+
+
+def _tests_join_the_wave_only_when_asked() -> None:
+    default = [m.tool for wave in gate._plan(fix=False, tests=False) for m in wave]
+    asked = [m.tool for wave in gate._plan(fix=False, tests=True) for m in wave]
+    ensure(gate.TESTS.tool not in default,
+           f"the tools' own tests are not in the default wave, got {default!r}")
+    ensure(asked == [*default, gate.TESTS.tool],
+           f"--tests adds them once, after the three, got {asked!r}")
 
 
 def _launch_carries_the_members_verdict() -> None:
-    member = next(m for m in gate.MEMBERS if m.tool == "typecheck.py")
+    member = next(m for m in gate.MEMBERS if m.tool == "typecheck")
     result = gate._launch(_ROOT, member)
     ensure(result.code == 0,
            f"the type gate is green on this tree, got {result.code}: {result.out!r}")
@@ -66,7 +75,7 @@ def _launch_carries_the_members_verdict() -> None:
     rep = Reporter()
     gate._verdict(rep, [result])
     ensure(rep.findings == 0, f"a member that exited 0 is no finding, got {rep.out!r}")
-    ensure(rep.out[0] == "--- typecheck.py: the tools' own Python, under two pinned "
+    ensure(rep.out[0] == "--- typecheck: the tools' own Python, under two pinned "
                          "checkers ---",
            f"the member reports under a heading naming what it decides, got {rep.out[0]!r}")
     ensure(rep.out[-1] == "ok gate: all 1 host gate(s) green",
@@ -76,7 +85,7 @@ def _launch_carries_the_members_verdict() -> None:
 def _launch_names_a_member_that_gave_no_verdict() -> None:
     # argparse answers a usage error with 2, which is neither clean nor a finding:
     # the gate must say the member never got as far as deciding anything.
-    refused = gate.Launch("typecheck.py", ("--no-such-flag",), "a flag it does not take")
+    refused = gate.Launch("typecheck", ("--no-such-flag",), "a flag it does not take")
     result = gate._launch(_ROOT, refused)
     ensure(result.code == 2,
            f"a usage error exits 2, got {result.code}: {result.out!r}")
@@ -84,7 +93,7 @@ def _launch_names_a_member_that_gave_no_verdict() -> None:
     rep = Reporter()
     gate._verdict(rep, [result])
     ensure(rep.findings == 1, f"a member that never decided is one finding, got {rep.out!r}")
-    ensure("typecheck.py --no-such-flag: exited 2 without reaching a verdict"
+    ensure("typecheck --no-such-flag: exited 2 without reaching a verdict"
            in "\n".join(rep.out),
            f"the finding names the command and that it reached no verdict, got {rep.out!r}")
 
@@ -96,7 +105,7 @@ def _verdict_names_the_member_that_reported() -> None:
     rep = Reporter()
     gate._verdict(rep, results)
     ensure(rep.findings == 1, f"one member reported, so one finding, got {rep.findings}")
-    ensure("check-selftest.py: reported, above" in "\n".join(rep.out),
+    ensure("selftest: reported, above" in "\n".join(rep.out),
            f"the finding names which member to go and read, got {rep.out!r}")
     ensure(all(any(line.startswith(f"--- {m.name}:") for line in rep.out)
                for m in gate.MEMBERS),
@@ -104,7 +113,7 @@ def _verdict_names_the_member_that_reported() -> None:
 
 
 def _gate_over_the_live_tree() -> None:
-    done = subprocess.run([sys.executable, str(TOOLS / "gate.py")], cwd=_ROOT,
+    done = subprocess.run([sys.executable, str(TOOLS / "run.py")], cwd=_ROOT,
                           capture_output=True, encoding="utf-8", errors="replace",
                           check=False, timeout=gate.TIMEOUT)
     ensure(done.returncode == 0,
@@ -121,7 +130,10 @@ def cases() -> list[Case]:
     return [
         Case("plan-is-one-wave", _plan_is_one_wave),
         Case("plan-repairs-ahead-of-the-wave", _plan_repairs_ahead_of_the_wave),
-        Case("members-name-tools-that-exist", _members_name_tools_that_exist),
+        Case("members-name-commands-the-table-carries",
+             _members_name_commands_the_table_carries),
+        Case("tests-join-the-wave-only-when-asked",
+             _tests_join_the_wave_only_when_asked),
         Case("launch-carries-the-members-verdict", _launch_carries_the_members_verdict,
              lane="host"),
         Case("launch-names-a-member-that-gave-no-verdict",

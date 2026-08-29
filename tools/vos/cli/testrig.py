@@ -19,9 +19,9 @@ Four commands, and only the first needs no toolchain:
 
 The last three need a built emulator, so they run where it is:
 
-    wsl -u root -e python3 tools/testrig.py handshake
-    wsl -u root -e python3 tools/testrig.py run --count 400 --shrink
-    wsl -u root -e python3 tools/testrig.py bridge --template mixed
+    python tools/run.py testrig handshake
+    python tools/run.py testrig run --count 400 --shrink
+    python tools/run.py testrig bridge --template mixed
 
 **`run` is a mutation gate and not a fuzzer.** A defect is seeded into the
 second executor and the rig has to report it: a run that finds nothing is a
@@ -35,12 +35,7 @@ import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import IO, cast
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import env, rvfi, trace, vengine
 
@@ -128,7 +123,7 @@ def cmd_protocol(args: argparse.Namespace) -> int:
 
 def _requirements(e: env.Environment) -> str | None:
     if not e.simulator.exists():
-        return f"no simulator at {e.simulator}; run `model.py build` first"
+        return f"no simulator at {e.simulator}; run `run.py model build` first"
     if not e.profile.is_file():
         return f"no frozen profile at {e.profile}"
     return None
@@ -458,6 +453,3 @@ def main(argv: list[str] | None = None) -> int:
     handler = cast("Command", args.run)
     return handler(args)
 
-
-if __name__ == "__main__":
-    sys.exit(main())

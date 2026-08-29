@@ -10,11 +10,11 @@ discipline a third time. This is that rig standing, and what a caller supplies i
 **spec**: the model sources to compile against, and per line kind the parameters, the
 domain that walks them, the Sail that calls the model, and what to print.
 
-    python tools/oracle.py list                     # the specs, and how large each is
-    python tools/oracle.py emit --spec capformat    # the Sail harness, on the host
+    python tools/run.py oracle list                     # the specs, and how large each is
+    python tools/run.py oracle emit --spec capformat    # the Sail harness, on the host
 
-    wsl -u root -e python3 tools/oracle.py vectors --spec capformat
-    wsl -u root -e python3 tools/oracle.py vectors --spec keccak
+    python tools/run.py oracle vectors --spec capformat
+    python tools/run.py oracle vectors --spec keccak
 
 `list` and `emit` answer on the host, being a parse and a text emission. `vectors`
 runs in the guest, where Sail lives: it emits the harness, compiles it together with
@@ -24,7 +24,7 @@ worktrees emitting at once must not write one path, which is why the lane owns i
 
 **What a run decides** is what the named functions return over the domain the spec
 states. It is a measurement and not a proof, and what it does not decide is whether
-the domain reaches the case that matters. [tools/seed.py](seed.py) is the instrument
+the domain reaches the case that matters. [tools/run.py seed](seed.py) is the instrument
 that answers *that*, by seeding a defect and requiring these vectors to move.
 
 **Which finding this answers.** M0.12's: its corpus found an encoding defect the
@@ -35,13 +35,8 @@ about, so the encode side is reachable by declaring it.
 """
 
 import argparse
-import sys
 from collections.abc import Callable
 from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import oracle, sailrig
 from vos.corpus import find_root
@@ -167,6 +162,3 @@ def main(argv: list[str] | None = None) -> int:
     handler, _ = COMMANDS[args.command]
     return handler(args)
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())

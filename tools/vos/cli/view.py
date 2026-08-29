@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Weave the specification and the register into one generated reading view.
 
-    tools/read-view.py                 # writes out/spec-woven.md
-    tools/read-view.py --out PATH      # writes somewhere else
+    tools/run.py view                 # writes out/spec-woven.md
+    tools/run.py view --out PATH      # writes somewhere else
 
 The two documents are one obligation written twice on purpose: prose a person
 reads to understand the design, and atomic entries a reviewer decides alone,
@@ -25,12 +25,7 @@ about where an entry belongs.
 
 import argparse
 import re
-import sys
 from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import coread
 from vos import corpus as corpus_mod
@@ -40,7 +35,7 @@ from vos.register import REGISTER, read_register
 BANNER = (
     "*A generated reading view, never a source: the specification's prose with each "
     "register entry rendered beneath the bookmark that cites it. Derived by "
-    "`tools/read-view.py` from [spec.md](../docs/spec.md) and "
+    "`tools/run.py view` from [spec.md](../docs/spec.md) and "
     "[requirements-register.md](../docs/requirements-register.md); edit those and "
     "regenerate.*"
 )
@@ -147,6 +142,3 @@ def main(argv: list[str] | None = None) -> int:
               f"end: {', '.join(homeless)}")
     return 0
 
-
-if __name__ == "__main__":
-    sys.exit(main())

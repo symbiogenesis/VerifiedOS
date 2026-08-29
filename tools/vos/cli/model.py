@@ -21,9 +21,9 @@ build: `config-keys` and `validate-config`.
 
 These run inside WSL, where the Sail toolchain lives:
 
-    wsl -u root -e python3 tools/model.py build --background
-    wsl -u root -e python3 tools/model.py wait
-    wsl -u root -e python3 tools/model.py sweep --xlen 64
+    python tools/run.py model build --background
+    python tools/run.py model wait
+    python tools/run.py model sweep --xlen 64
 
 Everything about the machine and the build trees comes from vos/env.py, which also
 raises the OCaml stack the emission needs and puts the opam switch on PATH.
@@ -47,11 +47,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import IO, cast
 
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from vos import asm, config, differential, env, trace
+from vos import asm, cli, config, differential, env, trace
 
 # What every subcommand handler is. `main` attaches one to each subparser and
 # `argparse` hands it back as an untyped attribute, so the shape is stated once
@@ -124,7 +120,7 @@ def _missing_simulator(e: env.Environment) -> str | None:
     here yet."""
     if e.simulator.exists():
         return None
-    return f"no simulator at {e.simulator}; run `model.py build` first"
+    return f"no simulator at {e.simulator}; run `run.py model build` first"
 
 
 def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
@@ -247,9 +243,7 @@ def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
     start and `env.load`, and `wait` blocks on the lock before it looks at the log at
     all. Nothing else deletes it: the child recreates it.
     """
-    argv = [sys.executable, str(Path(__file__).resolve()), "build"]
-    if args.fast:
-        argv.append("--fast")
+    argv = cli.entry("model", "build", *(["--fast"] if args.fast else []))
     log.parent.mkdir(parents=True, exist_ok=True)
     child = subprocess.Popen(
         argv, start_new_session=True,
@@ -261,7 +255,7 @@ def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
         env.record_lock_holder(lock, child.pid)
     print(f"== background: pid {child.pid}")
     print(f"== log: {log}")
-    print(f"== wait: model.py wait{' --fast' if args.fast else ''}")
+    print(f"== wait: run.py model wait{' --fast' if args.fast else ''}")
     return 0
 
 
@@ -596,7 +590,7 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
         print(missing, file=sys.stderr)
         return 1
     if not e.oracle.exists():
-        print(f"no M0.4 oracle at {e.oracle}; run `model.py oracle` first",
+        print(f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first",
               file=sys.stderr)
         return 1
 
@@ -632,7 +626,7 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
             continue
         curated = trace.normalize(curated_lines, "curated")
         if not curated:
-            # the profile refuses the program outright, which `model.py sweep` already
+            # the profile refuses the program outright, which `run.py model sweep` already
             # classifies; there is no trace to adjudicate
             print(f"SKIP    {elf.name} (curated model retired nothing)")
             tally["SKIP"] += 1
@@ -993,7 +987,7 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--fast", action="store_true",
                        help="the iterate profile: the canonical build without -g")
     build.add_argument("--background", action="store_true",
-                       help="detach the run and return; wait on it with `model.py wait`")
+                       help="detach the run and return; wait on it with `run.py model wait`")
     build.set_defaults(run=cmd_build)
 
     wait = sub.add_parser("wait", help="wait for this lane's build, then report it")
@@ -1081,6 +1075,3 @@ def main(argv: list[str] | None = None) -> int:
     run = cast("Command", args.run)
     return run(e, args)
 
-
-if __name__ == "__main__":
-    sys.exit(main())

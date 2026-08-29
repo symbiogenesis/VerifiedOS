@@ -24,7 +24,7 @@ def _refuses_win32() -> None:
     try:
         env.load()
     except SystemExit as err:
-        ensure("wsl -u root -e python3 tools/model.py" in str(err),
+        ensure("python tools/run.py model" in str(err),
                f"the win32 refusal must name the guest spelling, said {err}")
         return
     raise AssertionError("env.load() on win32 must refuse rather than load")
