@@ -34,3 +34,21 @@
 [submodule "upstream/qemu"]
 	path = upstream/qemu
 	url = https://github.com/CTSRD-CHERI/qemu
+[submodule "upstream/rupicola"]
+	path = upstream/rupicola
+	url = https://github.com/mit-plv/rupicola
+[submodule "upstream/katamaran"]
+	path = upstream/katamaran
+	url = https://github.com/katamaran-project/katamaran
+[submodule "upstream/sail-katamaran-backend"]
+	path = upstream/sail-katamaran-backend
+	url = https://github.com/katamaran-project/sail-backend
+[submodule "upstream/cerise"]
+	path = upstream/cerise
+	url = https://github.com/logsem/cerise
+[submodule "upstream/cerisier"]
+	path = upstream/cerisier
+	url = https://github.com/logsem/cerisier
+[submodule "upstream/sail-cheri-riscv-verif"]
+	path = upstream/sail-cheri-riscv-verif
+	url = https://github.com/CTSRD-CHERI/sail-cheri-riscv-verif
