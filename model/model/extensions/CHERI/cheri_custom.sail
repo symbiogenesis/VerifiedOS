@@ -19,7 +19,9 @@
 // leaving custom-1 and custom-3 whole for the rows the measurement admits.
 // `vmclear` takes `funct3` 001 in the same opcode from
 // extensions/platform/vmclear.sail, being platform surface rather than
-// capability surface; four rows, one opcode.
+// capability surface; six rows, one opcode. The other three are `vkeccak.vi` at
+// 010 (extensions/keccak/keccak_insts.sail) and the two FEC decoders sharing 100
+// (extensions/fec/fec_insts.sail), which leaves 101 and 110 unspent.
 //
 // The `funct3` assignment is not arbitrary either: the indexed load and store
 // carry `ld`'s and `sd`'s own width code in the low bits, so a reader reads the

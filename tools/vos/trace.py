@@ -16,9 +16,11 @@ reference for the frozen profile: upstream implements ISAv9's 128-bit encoding
 with a hybrid mode and a default data capability, where the curated model
 carries the 64+1-bit purecap dialect (M0.6f), so the two are different machines
 and the agreeing prefix is read as a fact about how far they happen to agree.
-The rig outlives it. Its standing second executor is the CHERI-QEMU fork of M2,
-a second implementation of the *frozen* profile from an independent code
-lineage.
+The rig outlives it. Its standing second executor is the RTL under Verilator
+co-simulation (R2), adjudicated over one RVFI-DII trace format by the rig S11
+stands up; the CHERI-QEMU fork carried for that job is struck with the rest of
+M2, so the second implementation the rig adjudicates against is the artifact
+that ships rather than a second model.
 
 Against one executor the rig still has a question to ask, and the corpus is what
 lets it: a member's normalized record stream has a **digest**, the manifest
