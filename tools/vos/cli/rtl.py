@@ -55,15 +55,10 @@ import argparse
 import re
 import shutil
 import subprocess
-from collections.abc import Callable
 from pathlib import Path
 
 from vos import cli, env, provenance, sailrig
 from vos.corpus import find_root
-
-# What every subcommand handler is. `main` attaches one to each subparser and argparse
-# hands it back as an untyped attribute, so the shape is stated once here.
-type Command = Callable[[argparse.Namespace], int]
 
 # The pinned simulator, and the ground the pin stands on. Ubuntu 26.04 packages this
 # version, which is what keeps a lane reproducible without a source build: a simulator
@@ -644,7 +639,7 @@ def cmd_wait(args: argparse.Namespace) -> int:
     return 0 if "FAIL" not in text else 1
 
 
-COMMANDS: dict[str, tuple[Command, str]] = {
+COMMANDS: cli.Table = {
     "provenance": (cmd_provenance, "parse and print the synthesis-provenance record"),
     "lint": (cmd_lint, "Verilator over the authored sources in rtl/"),
     "vectors": (cmd_vectors,
@@ -657,26 +652,28 @@ COMMANDS: dict[str, tuple[Command, str]] = {
 }
 
 
-def main() -> int:
-    """Dispatch, and write the marker every backgrounded run is waited on by."""
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    subs = parser.add_subparsers(dest="command", required=True)
-    for name, (_, help_text) in COMMANDS.items():
-        sub = subs.add_parser(name, help=help_text)
-        if name == "elaborate":
-            sub.add_argument("--background", action="store_true",
-                             help="detach, writing the whole run to this lane's log")
-        if name == "crosscheck":
-            sub.add_argument("--reuse", action="store_true",
-                             help="replay the vectors this lane already emitted "
-                                  "instead of emitting them again")
-        if name == "wait":
-            sub.add_argument("--block", action="store_true",
-                             help="say so rather than failing where the run is live")
-    args = parser.parse_args()
-    handler, _ = COMMANDS[args.command]
-    code = handler(args)
-    if args.command == "elaborate" and not getattr(args, "background", False):
+def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name == "elaborate":
+        sub.add_argument("--background", action="store_true",
+                         help="detach, writing the whole run to this lane's log")
+    if name == "crosscheck":
+        sub.add_argument("--reuse", action="store_true",
+                         help="replay the vectors this lane already emitted "
+                              "instead of emitting them again")
+    if name == "wait":
+        sub.add_argument("--block", action="store_true",
+                         help="say so rather than failing where the run is live")
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Dispatch, and write the marker every backgrounded run is waited on by.
+
+    The marker is this command's own and not the shared dispatch's, so it is written
+    here around the call rather than pushed into a helper four commands share.
+    """
+    args = list(argv or [])
+    code = cli.dispatch(__doc__, COMMANDS, args, _flags, prog="run.py rtl")
+    if args[:1] == ["elaborate"] and "--background" not in args:
         print(MARKER, flush=True)
     return code
 

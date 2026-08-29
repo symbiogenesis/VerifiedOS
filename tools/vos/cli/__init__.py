@@ -24,9 +24,39 @@ the coverage matrix, the crown jewels, the field bindings and the findings regis
 all say what `tools/check.py` decides, so the path is load-bearing and stays.
 """
 
+import argparse
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# What a subcommand handler is, and the table a command's module keeps them in: one
+# row per subcommand, the handler and the line `--help` prints for it. Four modules
+# wrote the same dispatch over the same shape, which is the two-copies-of-one-parse
+# defect these tools exist to catch, in the tools.
+type Handler = Callable[[argparse.Namespace], int]
+type Table = dict[str, tuple[Handler, str]]
+
+
+def dispatch(doc: str | None, table: Table, argv: list[str] | None,
+             flags: Callable[[str, argparse.ArgumentParser], None] | None = None,
+             prog: str | None = None) -> int:
+    """Parse one command's own arguments and run the subcommand they name.
+
+    `flags` is where a module says what its subcommands take beyond their name; it
+    is handed each subparser as it is built, so a flag stays beside the subcommand
+    it belongs to rather than moving into a table nothing reads.
+    """
+    parser = argparse.ArgumentParser(
+        prog=prog, description=(doc or "").splitlines()[0] if doc else None)
+    subs = parser.add_subparsers(dest="command", required=True)
+    for name, (_, help_text) in table.items():
+        sub = subs.add_parser(name, help=help_text)
+        if flags is not None:
+            flags(name, sub)
+    args = parser.parse_args(argv)
+    handler, _ = table[args.command]
+    return handler(args)
 
 
 def entry(command: str, *args: str) -> list[str]:

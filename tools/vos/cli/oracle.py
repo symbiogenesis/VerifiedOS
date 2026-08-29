@@ -35,13 +35,10 @@ about, so the encode side is reachable by declaring it.
 """
 
 import argparse
-from collections.abc import Callable
 from pathlib import Path
 
-from vos import oracle, sailrig
+from vos import cli, oracle, sailrig
 from vos.corpus import find_root
-
-type Command = Callable[[argparse.Namespace], int]
 
 
 def cmd_list(args: argparse.Namespace) -> int:
@@ -141,24 +138,21 @@ def cmd_vectors(args: argparse.Namespace) -> int:
     return 0
 
 
-COMMANDS: dict[str, tuple[Command, str]] = {
+COMMANDS: cli.Table = {
     "list": (cmd_list, "the specs this repository carries, and the size of each"),
     "emit": (cmd_emit, "the generated Sail harness for one spec"),
     "vectors": (cmd_vectors, "compile the harness against the model and run it"),
 }
 
 
+def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name in ("emit", "vectors"):
+        sub.add_argument("--spec", required=True, help="which spec to run")
+    if name == "emit":
+        sub.add_argument("--to", metavar="PATH",
+                         help="write the harness here instead of to stdout")
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    subs = parser.add_subparsers(dest="command", required=True)
-    for name, (_, help_text) in COMMANDS.items():
-        sub = subs.add_parser(name, help=help_text)
-        if name in ("emit", "vectors"):
-            sub.add_argument("--spec", required=True, help="which spec to run")
-        if name == "emit":
-            sub.add_argument("--to", metavar="PATH",
-                             help="write the harness here instead of to stdout")
-    args = parser.parse_args(argv)
-    handler, _ = COMMANDS[args.command]
-    return handler(args)
+    return cli.dispatch(__doc__, COMMANDS, argv, _flags, prog="run.py oracle")
 
