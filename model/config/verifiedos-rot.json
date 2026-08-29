@@ -41,11 +41,11 @@
 // loop hands to the emulator.
 //
 // **The cost of that floor is stated rather than absorbed.** The generated
-// test-matrix configurations cover `vlen_exp` 6 through 9 only, and the SMT,
-// Rocq, Lean and Lem lanes bake `config/rv64d_v256_e64.json` at emission
+// test-matrix configurations cover `vlen_exp` 6 through 9 only, and the SMT and
+// Rocq lanes bake `config/rv64d_v256_e64.json` at emission
 // (model/CMakeLists.txt), so 3 is realizable on the C++ lane alone, which is the
 // one lane that reads a shipped configuration at all (M0.8b). That is not a cost
-// this file adds: those four lanes compose hart 0 on the C class whatever this
+// this file adds: those two lanes compose hart 0 on the C class whatever this
 // file says.
 //
 // Every other row and every other comment below is verifiedos.json's, unchanged

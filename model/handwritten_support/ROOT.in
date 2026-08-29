@@ -1,4 +1,0 @@
-session "Sail-%ARCH%" = "Sail" +
-  options [document = false]
-  theories
-    "%ARCH%_lemmas"
