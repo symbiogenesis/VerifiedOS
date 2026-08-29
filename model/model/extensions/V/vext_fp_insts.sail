@@ -1317,89 +1317,17 @@ mapping clause assembly = VFMERGE(vs2, rs1, vd)
   <-> "vfmerge.vfm" ^ spc() ^ vreg_name(vd) ^ sep() ^ vreg_name(vs2) ^ sep() ^ reg_name(rs1) ^ sep() ^ "v0"
 
 // ************************* OPFVF (Move Instruction) ***************************
-// This instruction shares the encoding with vfmerge.vfm, but with vm=1 and vs2=v0
-union clause instruction = VFMV : (regidx, vregidx)
-
-mapping clause encdec = VFMV(rs1, vd)
-  <-> 0b010111 @ 0b1 @ 0b00000 @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
-  when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
-     | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
-     | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
-
-function clause execute VFMV(rs1, vd) = {
-  let rm_3b    = fp_static_rm;
-  let SEW      = get_sew();
-  let LMUL_pow = get_lmul_pow();
-  let num_elem = get_num_elem(LMUL_pow, SEW);
-
-  if illegal_fp_vd_unmasked(SEW) |
-     not(valid_reg_group(vd, LMUL_pow))
-  then return Illegal_Instruction();
-
-  assert(SEW != 8);
-
-  let 'n = num_elem;
-  let 'm = SEW;
-
-  let rs1_val : bits('m)             = get_scalar_fp(rs1, 'm);
-  let vd_val  : vector('n, bits('m)) = read_vreg(num_elem, SEW, LMUL_pow, vd);
-
-  let (initial_result, mask) : (vector('n, bits('m)), bits('n)) = init_masked_result(num_elem, SEW, LMUL_pow, vd_val, ones());
-  var result = initial_result;
-
-  foreach (i from 0 to (num_elem - 1)) {
-    if mask[i] == 0b1 then result[i] = rs1_val
-  };
-
-  write_vreg(num_elem, SEW, LMUL_pow, vd, result);
-  RETIRE_SUCCESS
-}
-
-mapping clause assembly = VFMV(rs1, vd)
-  <-> "vfmv.v.f" ^ spc() ^ vreg_name(vd) ^ sep() ^ reg_name(rs1)
-
-// ***************************** OPFVF (VRFUNARY0) ******************************
-union clause instruction = VFMVSF : (regidx, vregidx)
-
-mapping clause encdec = VFMVSF(rs1, vd)
-  <-> 0b010000 @ 0b1 @ 0b00000 @ encdec_reg(rs1) @ 0b101 @ encdec_vreg(vd) @ 0b1010111
-  when (currentlyEnabled(Ext_Zvfh)   & get_sew() == 16)
-     | (currentlyEnabled(Ext_Zve32f) & get_sew() == 32)
-     | (currentlyEnabled(Ext_Zve64d) & get_sew() == 64)
-
-function clause execute VFMVSF(rs1, vd) = {
-  let rm_3b    = fp_static_rm;
-  let SEW      = get_sew();
-  let num_elem = get_num_elem(0, SEW);
-
-  if illegal_fp_vd_unmasked(SEW) then return Illegal_Instruction();
-
-  assert(num_elem > 0 & SEW != 8);
-
-  let 'n = num_elem;
-  let 'm = SEW;
-
-  let rs1_val : bits('m)             = get_scalar_fp(rs1, 'm);
-  let vd_val  : vector('n, bits('m)) = read_vreg(num_elem, SEW, 0, vd);
-
-  let (initial_result, mask) : (vector('n, bits('m)), bits('n)) = init_masked_result(num_elem, SEW, 0, vd_val, ones());
-  var result = initial_result;
-
-  // one body element
-  if mask[0] == 0b1 then result[0] = rs1_val;
-
-  // others treated as tail elements
-  let tail_ag : agtype = get_vtype_vta();
-  foreach (i from 1 to (num_elem - 1)) {
-    result[i] = match tail_ag {
-      UNDISTURBED => vd_val[i],
-      AGNOSTIC    => vd_val[i] // TODO: configuration support
-    }
-  };
-
-  write_vreg(num_elem, SEW, 0, vd, result);
-  RETIRE_SUCCESS
-}
-
-mapping clause assembly = VFMVSF(rs1, vd)
-  <-> "vfmv.s.f" ^ spc() ^ vreg_name(vd) ^ sep() ^ reg_name(rs1)
+// `vfmv.v.f` and `vfmv.s.f` are gone (R-15-040d). Re-homing the scalar operand
+// to an integer register (R-15-039, R-15-040) left each one a bit-for-bit
+// duplicate of `vmv.v.x` and `vmv.s.x`, which is the unused encoding vocabulary
+// R-15-048 excludes two whole suites for, so the profile struck them at the
+// provisional freeze rather than mint two instances of what it refuses on
+// principle.
+//
+// Both encoding points are unallocated here and reach the illegal-instruction
+// path by the route every unallocated point does (R-15-014). Neither falls
+// through to `vfmerge.vfm` above, whose own clause fixes `vm` at zero.
+//
+// `vfmv.f.s` stays, above: it differs from `vmv.x.s` in zero- rather than
+// sign-extension, which is the fork's own semantics and decides something
+// (R-15-040c).
