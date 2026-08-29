@@ -71,6 +71,7 @@ These are gitlink entries. This repository carries a URL and a commit hash for e
 | `upstream/cerise` | `logsem/cerise` | `9eb72e67` | `BSD-3-Clause`, with `extra/` carved out and covered below | The universal contract for a capability machine, and the sentry reasoning the kernel milestone cites the lineage of. |
 | `upstream/cerisier` | `logsem/cerisier` | `57ed584a` | `BSD-3-Clause`, on the same carve-out | That contract extended to local attestation, which is the measured-boot half of the same citation. |
 | `upstream/sail-cheri-riscv-verif` | `CTSRD-CHERI/sail-cheri-riscv-verif` | `4da8fd10` | `BSD-2-Clause` | The capability-helper properties of the transplanted semantics, checked over the whole input space by an SMT solver rather than at chosen values. |
+| `upstream/TestRIG` | `CTSRD-CHERI/TestRIG` | `70717956` | `BSD-2-Clause` | The RVFI-DII protocol's own specification and the harness around it, read at `LICENSE` at the pin. The engine it drives is a submodule of *its* tree and not a gitlink here; nothing in this repository builds from this pin. |
 
 **The RTL pins' terms were each read from the file at the pin, on 2026-08-23, and every one is permissive.** Three of them are hardware licenses, a family read in full under [the RTL substrate](#the-rtl-substrate) below. Two of the seven readings do not resolve at a single file, and both are recorded here rather than smoothed over.
 
