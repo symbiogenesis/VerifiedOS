@@ -20,8 +20,6 @@ they are one tool:
     compounds     the synthesis       a statement over rows, against the rows it rests on
     estimates     the arithmetic      every checklist total and share against the item hours
     differential  the twin roster     the corpus manifest against its document, every member assembling
-    banks         the restated grant  the second class's bank count, contract against composition
-    freeze        the instrument      the freeze contract's enumerations, against the analyzer's
     costated      the joint statement a fact stated in more than one pair, at each site stating it
 
 Three further groups check what a file is rather than what it says: for a document,

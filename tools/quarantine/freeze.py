@@ -6,17 +6,17 @@ the specification: the versioned corpus manifest, the composition recipe, the
 emitter-provenance schema, the admitted region classes, the nine decisions of the
 freeze's single measured act, the declared parameters, the report's two renderings,
 and the twelve CI predicates that reject a report. This module is the instrument
-that runs against it, read by two callers: `tools/freeze-report.py`, which produces
-the report, and the `freeze` check group, which holds the instrument's own
-enumerations against the contract's in both directions.
+that runs against it, read by two callers: `tools/quarantine/freeze-report.py`,
+which produces the report, and the `freeze` check group beside it, which holds the
+instrument's own enumerations against the contract's in both directions.
 
 **The instrument cannot be run end to end today, and that is a schedule fact rather
 than a shortfall in it.** The analyzer joins three inputs (§4): the provenance
 sidecar stream from S1 and S4, the link map from S5, and the encoded image from S7.
 The first is M1.2's backend and the other two are M1.4's linker and image composer,
 so no member of §2's corpus exists yet and no byte or cycle column is a measurement.
-What this module therefore does is exactly what `vos/banks.py` does for the bank
-count: it computes everything the composition already fixes, and for every column
+What this module therefore does is exactly what `quarantine/banks.py` does for the
+bank count: it computes everything the composition already fixes, and for every column
 whose operand does not exist it carries **the symbol it waits on** rather than a
 number or a blank.
 
@@ -54,10 +54,10 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .jsonc import Json
+from vos.jsonc import Json
 
 CONTRACT = "docs/freeze-measurement-contract.md"
-MODULE = "tools/vos/freeze.py"
+MODULE = "tools/quarantine/freeze.py"
 
 # =====================================================================================
 # the contract, parsed
@@ -577,8 +577,8 @@ class Enumeration:
 def enumerations(contract: Contract) -> list[Enumeration]:
     """Every enumeration the contract states and this instrument implements.
 
-    Written once here rather than in each caller: `tools/freeze-report.py` refuses to
-    report about a set that is not its contract's, and the `freeze` check group holds
+    Written once here rather than in each caller: `freeze-report.py` beside it refuses
+    to report about a set that is not its contract's, and the `freeze` check group holds
     the same pair on every run, and two copies of one list is exactly the drift the
     checker exists to catch.
 

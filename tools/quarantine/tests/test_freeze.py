@@ -27,8 +27,11 @@ import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from quarantine import freeze
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
-from vos import freeze
+
+# `TOOLS` is `tools/`, so the instruments this module runs are one directory below it.
+QUARANTINE = TOOLS / "quarantine"
 
 _ROOT = TOOLS.parent
 
@@ -601,7 +604,7 @@ def _relations_are_held() -> None:
 
 def _run(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(root / "tools" / "freeze-report.py"), *args],
+        [sys.executable, str(root / "tools" / "quarantine" / "freeze-report.py"), *args],
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=180)
 
@@ -665,10 +668,12 @@ def _membership_is_an_instrument_error() -> None:
         "docs/requirements-register.md": "# register stub for find_root\n",
         freeze.CONTRACT: raw.replace("| `G-12` | a threshold value",
                                      "| `G-13` | a threshold value"),
-        "tools/freeze-report.py": (TOOLS / "freeze-report.py").read_text(
+        "tools/quarantine/freeze-report.py": (QUARANTINE / "freeze-report.py").read_text(
             encoding="utf-8"),
     }
-    for rel in ("__init__.py", "freeze.py", "jsonc.py", "corpus.py"):
+    for rel in ("__init__.py", "freeze.py"):
+        files[f"tools/quarantine/{rel}"] = (QUARANTINE / rel).read_text(encoding="utf-8")
+    for rel in ("__init__.py", "jsonc.py", "corpus.py"):
         files[f"tools/vos/{rel}"] = (TOOLS / "vos" / rel).read_text(encoding="utf-8")
     with sandbox_tree(files) as root:
         done = _run(root)

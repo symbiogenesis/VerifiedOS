@@ -42,7 +42,7 @@ The configuration declares **4096 banks** over an 8 GiB second-class region, and
 
 ## 3. What the arithmetic can decide today
 
-Four figures fall out of the composition with no coefficient at all, and [tools/bank-dse.py](../tools/bank-dse.py) computes them per candidate: the bank's own size, the refresh sweep against the deadline the retention floor sets, the mode-exit discharge dwell, and whether the region divides the count exactly. None of them is an objective and none of them admits anything; they are the shape constraints a candidate must satisfy before the pruning predicate would even be asked.
+Four figures fall out of the composition with no coefficient at all, and [tools/quarantine/bank-dse.py](../tools/quarantine/bank-dse.py) computes them per candidate: the bank's own size, the refresh sweep against the deadline the retention floor sets, the mode-exit discharge dwell, and whether the region divides the count exactly. None of them is an objective and none of them admits anything; they are the shape constraints a candidate must satisfy before the pruning predicate would even be asked.
 
 They are not restated here as numbers, because the tool computes them from the configuration and a figure copied into prose is the defect this repository is built to catch. What is worth stating is which of them binds: the refresh sweep is the only one that can fail, and it fails by the count rising until the phases the cadence needs no longer fit inside the retention floor.
 

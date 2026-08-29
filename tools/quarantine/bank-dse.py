@@ -21,15 +21,26 @@ Exit 0 where the tree is consistent, 1 on a finding. It may be run from anywhere
 repository root is found from this file, never from the working directory.
 """
 
+# ruff: noqa: N999
+# The one rule this file has to differ on, and the reason: every command-line tool in
+# this repository is named with a hyphen, and every one of them sat in `tools/`, which
+# is not a package, so the name was never a module name. The quarantine is a package,
+# because K-83 holds an import of it and an import needs something to name, so ruff now
+# reads this script's filename as a module name and refuses the hyphen. The alternative
+# was to rename the command, which would be the tool's user-facing name changed to suit
+# a lint rule about a module nothing imports.
+
 import argparse
 import sys
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The tools import `vos` without being installed, so each puts `tools/` on the path
+# first; a tool inside the quarantine puts the directory *above* its own there, which
+# is the one that carries both `vos` and this package. Every import below this line is
+# deliberately not at the top.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vos import banks
+from quarantine import banks
 from vos.corpus import find_root
 
 

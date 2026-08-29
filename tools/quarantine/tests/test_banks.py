@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """The bank-grant parse and the coefficient-free arithmetic over it.
 
-`banks.read` is exercised against the live tree on every `check.py` run, but
-`score()` and the `Score` properties have no caller there: only `bank-dse.py`
-runs them, and nothing held their arithmetic until this module. The fixture
+`banks.read` is exercised against the live tree on every run of the quarantine's
+gate, but `score()` and the `Score` properties have no caller there: only
+`bank-dse.py` runs them, and nothing held their arithmetic until this module. The fixture
 figures are transcribed from the configuration's own placeholders, so the
 near-deadline boundary here is the one the composition actually sits at today:
 8192 banks sweep in 59.392 billion cycles against a 60 billion cycle floor.
@@ -16,8 +16,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Final
 
+from quarantine import banks
 from tests.harness import Case, ensure
-from vos import banks
 from vos.jsonc import Json
 
 # The configuration side, on the live file's own shapes: the second class, the

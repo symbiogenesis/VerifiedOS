@@ -14,8 +14,8 @@ image from S7, and two of the three are M1.4's linker and image composer rather 
 M1.2's backend. So no member of §2's corpus exists, no byte or cycle column is a
 measurement, and no decision carries a verdict.
 
-What runs today is the rest of it, in the shape `tools/bank-dse.py` established at
-M0.17: the corpus, the recipe, the ordered act, the region classes and their
+What runs today is the rest of it, in the shape `bank-dse.py` beside it established
+at M0.17: the corpus, the recipe, the ordered act, the region classes and their
 enumerated refusals, the report's two renderings, and the twelve CI predicates of §9
 as predicates over the record, each able to reject a report and each naming what it
 rejected. Every column whose operand does not exist prints **the symbol it waits
@@ -36,17 +36,28 @@ the two do not share. It may be run from anywhere: the repository root is found 
 this file, never from the working directory.
 """
 
+# ruff: noqa: N999
+# The one rule this file has to differ on, and the reason: every command-line tool in
+# this repository is named with a hyphen, and every one of them sat in `tools/`, which
+# is not a package, so the name was never a module name. The quarantine is a package,
+# because K-83 holds an import of it and an import needs something to name, so ruff now
+# reads this script's filename as a module name and refuses the hyphen. The alternative
+# was to rename the command, which would be the tool's user-facing name changed to suit
+# a lint rule about a module nothing imports.
+
 import argparse
 import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The tools import `vos` without being installed, so each puts `tools/` on the path
+# first; a tool inside the quarantine puts the directory *above* its own there, which
+# is the one that carries both `vos` and this package. Every import below this line is
+# deliberately not at the top.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vos import freeze
+from quarantine import freeze
 from vos.corpus import find_root
 
 # The region lengths the outlining break-even is tabulated over. One instruction can
@@ -230,7 +241,8 @@ def report(root: Path, fixture: bool, overrides: dict[str, Path | None]) -> Run:
         return Run(1, [f"FAIL: {freeze.CONTRACT} is not in the repository, so this "
                        "instrument has no specification to run against"])
 
-    # K-77 is the standing hold and reports the same disagreement on every checker run;
+    # K-77 is the standing hold and reports the same disagreement on every run of this
+    # directory's own gate;
     # this is the tool refusing to report about a set that is not its contract's,
     # because a report block nobody writes and an instrument measuring what nothing
     # asked for are both instrument errors rather than pending measurements. The

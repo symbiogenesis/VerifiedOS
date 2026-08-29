@@ -71,18 +71,6 @@ def _blast_radius_twice() -> None:
            f"bare mode prints the consumers map, got {out!r}")
 
 
-def _bank_dse_twice() -> None:
-    code, out, _ = _twice_identical("bank-dse.py")
-    ensure(code == 0, f"the live composition scores clean, got {code}: {out!r}")
-
-
-def _freeze_report_twice() -> None:
-    code, out, _ = _twice_identical("freeze-report.py")
-    ensure(code == 0, f"the instrument agrees with its contract, got {code}: {out!r}")
-    ensure("This report is not a freeze." in out,
-           f"and says so on every run, got {out[-200:]!r}")
-
-
 def _typecheck_twice() -> None:
     code, out, _ = _twice_identical("typecheck.py")
     ensure(code == 0, f"the tools hold to their own discipline, got {code}: {out!r}")
@@ -107,14 +95,13 @@ def _tree_status_after() -> None:
 def cases() -> list[Case]:
     # the first case captures the tree's state and the last holds the tree to it, so
     # everything between must leave no trace; `check.py` doubles past the ~2s mark
-    # and rides in the slow set, which leaves the bracket and four doubled tools in
-    # the fast one
+    # and rides in the slow set, which leaves the bracket and two doubled tools in
+    # the fast one. The quarantined instruments' own doubled runs went with them and
+    # are bracketed the same way by the quarantine's own gate.
     return [
         Case("tree-status-before", _tree_status_before, lane="host"),
         Case("coread-list-twice", _coread_list_twice, lane="host"),
         Case("blast-radius-twice", _blast_radius_twice, lane="host"),
-        Case("bank-dse-twice", _bank_dse_twice, lane="host"),
-        Case("freeze-report-twice", _freeze_report_twice, lane="host"),
         Case("typecheck-twice", _typecheck_twice, lane="host"),
         Case("check-twice", _check_twice, slow=True, lane="host"),
         Case("tree-status-after", _tree_status_after, lane="host"),
