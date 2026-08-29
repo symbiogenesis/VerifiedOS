@@ -1369,7 +1369,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-KERNEL
 
 **R-07-020** IS: The microkernel is the sole resident code holding the system-register permission and the switch/seal authority: event-driven, with no kernel threads, executing on the caller's budget.
-· Accept: no kernel thread exists in the object inventory.
+· Accept: no kernel thread exists in the object inventory R-07-027a closes.
 · Trace: CJ-KERNEL
 
 **R-07-021** MUST: The kernel is entered for exactly two reasons: a synchronous exception or syscall on the running instruction, and the slot-boundary timer.
@@ -1399,8 +1399,14 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-NI
 
 **R-07-027** MUST: The §12 IDL worlds and interfaces lower to a capDL-class capability-distribution spec: kernel-object-granular over endpoints, notifications, and partition contexts, re-homed to Coq, extended so cap edges carry CHERI-bounds grants, and stripped of the VSpace, page-table, and frame-mapping object classes together with the untyped and CNode classes R-07-002 and R-07-002b delete.
-· Accept: the spec is a Coq artifact, not a documentation format, and its object classes are exactly those the kernel retains.
+· Accept: the spec is a Coq artifact, not a documentation format, and its object classes are exactly those R-07-027a closes.
 · Trace: CJ-IDL, CJ-KERNEL
+
+**R-07-027a** IS: The object inventory is **three** classes and is closed: the **endpoint**, the **notification**, and the **partition context**. Beside them the kernel holds **two tables that are not objects**, no capability naming either and neither being created, derived or revoked: the **grant table** (R-08-004d, outside the restored classes by that entry's own placement) and the **schedule table** R-11-024's rung change swaps. Nothing else is kernel state a principal can name, and a fourth object class is an amendment under R-18-034 rather than an extension.
+· Accept: **the three-way disagreement was a conflation of two kinds and is resolved by naming both rather than by picking a number.** Five is the count of things the kernel holds and three is the count of things a capability designates: R-07-027's three are the object classes, and R-07-031a's fourth ABI group, revocation, names an act rather than a class, which [PartitionContext.v](../proofs/PartitionContext.v) records from the other side. Both counts were right about different sets and neither said which set it was counting, which is why the criterion at R-07-020 quantified over one nobody had written down.
+· Accept: **no reply object survives, and a reply is not a kernel object of any kind.** A synchronous server names its caller by the **badge** the endpoint invocation carries (R-07-031's *registers plus capability slots*, whose bit budget is R-15-007's), and replies by an ordinary send to the capability that badge designates. That spends no object class, mints no capability at runtime against R-04-008, and spends none of R-15-007's sixteen object types, which a one-shot sealed reply capability would. It is available because R-07-029a makes the transfer rendezvous-or-refuse: with no blocking call there is no parked request for a reply object to represent, which is seL4's reason for carrying one and is a reason this design deleted along with the blocking send.
+· Accept: what the arms not taken forfeit is recorded rather than elided. A fifth ABI group amends a MUST NOT and re-opens R-07-035's MCS deletion at its edge, seL4's reply object being the structure carrying the passive-server donation that entry deletes without naming it. A one-shot linear reply capability spends an object type from a composition-fixed set and has the kernel mint at runtime, which R-04-008 admits only on a reading of *mint* as attenuation that no entry states. What the badge arm forfeits is the borrowed scrutiny R-17-045a books: an endpoint model whose return path is a badge rather than an object sits further from the model R-07-001 takes its design from, and that widening is booked there rather than absorbed here.
+· Trace: CJ-KERNEL, CJ-NI
 
 **R-07-028** MUST: The capability-distribution spec carries an initialisation-refinement obligation: the M-mode firmware that installs the distribution is proved to instantiate exactly the composed cap graph as running kernel state.
 · Accept: *machine-checked at build time* is joined by *machine-checked as installed*, closing the gap between the composed graph and the booted machine.
@@ -1412,6 +1418,13 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no bulk-data path traverses privileged code.
 · Trace: CJ-KERNEL
 
+**R-07-029a** MUST: *Synchronous* at R-07-029 means **rendezvous or refusal** and never rendezvous or wait: a send or receive that meets no ready peer returns a typed refusal to its caller within the invocation's own bounded cost, and no partition is ever left in a kernel-held wait. There is no blocked-partition queue, no wait state in the partition context, and no kernel act that resumes a partition on another partition's behalf. R-12-096's *sleep* is the poll-site yield of R-07-037b (a synchronous invocation that advances the composition-fixed rotation and returns), and it is nowhere a block.
+· Accept: the three entries that state this act state it compatibly under exactly this reading and under no other, which is what makes it one act rather than three. R-07-037a's *no blocking call* is the load-bearing sentence and is left unamended; R-07-029's *synchronous* is a property of the transfer, that a message crosses at one instant with no buffering between sender and receiver, rather than a property of the caller's schedule; and R-12-096's verb acquires the only referent the register defines. A reading on which a partition waits is refused by R-07-037a on its face and, independently, by R-11-006: a static cyclic executive admits a task on its in-slot WCET, and an unbounded wait has no WCET for the admission arithmetic to read.
+· Accept: the refusal is **typed** rather than a status word, so it is a case the caller's reaction handles at its own poll site rather than a value it may ignore, which is what keeps R-07-037a's run-to-completion shape total: a compartment that cannot proceed returns to its poll site and is re-dispatched by the rotation or by the next slot, and nothing about that path is a scheduling decision (R-07-032, R-07-036).
+· Accept: what this costs is stated rather than absorbed. A synchronous server cannot park a request it is not ready for, so a caller that must wait re-offers at its next visit, which is latency the composition pays for in buffer depth under R-11-010 rather than in kernel state; R-07-042's bound on a wait is accordingly a bound on re-offer latency and not on a block. The arms not taken are recorded at [architectural-alternatives.md](architectural-alternatives.md): a blocking send amends R-07-037a and forfeits the per-slot WCET argument the whole scheduling design is stated on, and two endpoint kinds add an object class R-07-031b's inventory does not carry.
+· Fail-closed: a send or receive meeting no ready peer refuses and costs the caller its own invocation, never the core's slot.
+· Trace: CJ-KERNEL, CJ-WCET
+
 **R-07-030** MUST NOT: No io_uring-style opcode surface re-enters privileged code.
 · Accept: the kernel ABI admits no submission-queue opcode dispatch.
 · Trace: CJ-KERNEL
@@ -1421,8 +1434,15 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-KERNEL, CJ-IDL
 
 **R-07-031a** MUST NOT: The kernel ABI carries no retype, no capability-space, and no derivation-tree invocation; the surface the frozen ABI specifies and the proof covers is the endpoint, notification, partition-context, and revocation set alone.
-· Accept: the invocation list is enumerated and closed, and an invocation outside that set is a failure of the ABI freeze rather than an extension of it.
+· Accept: the invocation list is enumerated and closed at R-07-031b, and an invocation outside that set is a failure of the ABI freeze rather than an extension of it.
 · Trace: CJ-KERNEL
+
+**R-07-031b** IS: **An invocation is what the ABI numbers**: an act a principal requests by trapping into the kernel with an ABI number the frozen surface assigns, dispatched by that number. The list is closed at **five**, grouped by R-07-031a's four groups, and each member cites the entry that obliges it. Endpoint: **(i) send** and **(ii) receive** (R-07-029, refusing rather than waiting under R-07-029a). Notification: **none**. Partition-context: **(iii) the poll-site yield** (R-07-037b), which advances the composition-fixed rotation and returns. Revocation: **(iv) grant redeem**, where the kernel unseals the slot and yields the underlying capability for the duration of the call (R-08-004c), and **(v) revoke**, the principal-requested trigger of the set R-08-008 enumerates (R-08-043a's user retraction being its named instance). An act outside these five is an amendment under R-18-034 and not an extension of the freeze.
+· Accept: the cut is what the ABI *numbers* rather than what traps, and that is what makes the list decidable where *what traps* does not: R-07-021 admits a synchronous exception as a kernel entry and no entry calls a fault an invocation, so a trap-shaped cut over-collects by the whole exception surface. It is also the cut [CyclicExecutive.v](../proofs/CyclicExecutive.v) already ships, whose *none is named, signed, or numbered as an invocation* becomes this entry's definition rather than a claim a later cut could falsify.
+· Accept: **the notification group is empty, and that is a result rather than an omission**, which is why the list resisted enumeration. Both halves of a notification are memory operations already: R-08-032 makes the signal a store to an interrupt file and R-07-039 makes the receive ordinary loads at poll sites, so neither traps and neither takes a number. The group survives in R-07-031a's surface sentence because it names what the ABI *covers*, and an empty group there is the correct reading of a mechanism the design moved out of the kernel; a reviewer meeting the emptiness should read R-08-032 and R-07-039 rather than suspect a dropped member.
+· Accept: two candidates are excluded by entries that already decide them, so neither is a judgment taken here. Grant **mint** is composition-time, R-08-004c putting the grant *never chosen by a principal at runtime*, so it is not a principal's request and takes no number. The schedule transitions, focus rebinding (R-11-023), rung selection (R-11-024) and suspension (R-11-026), are enacted by the kernel at a major-frame boundary on an untrusted compositor's request; under this cut a request that is not ABI-numbered is not an invocation, and R-11-023's own sentence has the kernel *enact* rather than the compositor *invoke*. What carries that request is owed at R-11-023 and is not an ABI act.
+· Accept: five sits inside R-07-031's *under a dozen* with the margin that bound is for, and the figure is this entry's to state and every other site's to cite (R-05-152). The enumeration is a closed list inside one entry with per-item citations and an amendment criterion, which is the shape R-07-007, R-07-021, R-08-008 and R-15-014a already use here; a derived view was the alternative and is refused as a document whose bearing set would ship mostly empty.
+· Trace: CJ-KERNEL, CJ-IDL
 
 ### 7.7 Scheduling
 
@@ -1457,6 +1477,18 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-07-037b** MUST: The tenant of a discretionary slot is a confidentiality label, not a compartment: a slot may be assigned at composition to an ordered set of same-label partitions dispatched by a composition-fixed rotation over their syntactic poll sites, a member's poll-site yield being a synchronous kernel invocation that advances the rotation in fixed order and wraps while slot time remains. The rotation holds no priority, no budget, no inner timer, and no runtime decision, and the intra-slot step swaps register and partition context and omits fence.t, eager zeroize, and OPP relock (every flow those constants cut is internal to one label; all three return at the slot boundary). Group membership, order, and cadences are composition constants so a tenant launches, suspends, and permutes whole, and the reserved band takes no part, a hard task keeping sole tenancy.
 · Accept: nothing observable outside the label moves with any member's behaviour, the outer boundaries staying timer-fixed, so R-07-036 and R-07-038 hold unchanged and R-07-043 keeps its lost term; intra-group cadence is the R-11-006b admission obligation rather than a runtime mechanism, every member reaction carrying a derived WCET the admitted binary cannot exceed on any input; the preemptive and budgeted inner forms are declined in architectural-alternatives.md, an inner enforcement timer being a second asynchronous trap and the restoration of the preemption term; the cost is one ABI invocation, an intra-slot switch path that is a strict subset of the partition switch, and one label-internal case in the non-interference unwinding.
 · Trace: CJ-NI, CJ-WCET, CJ-KERNEL
+
+**R-07-037c** MUST: The intra-slot rotation **swaps the interrupt-file pending component** exactly as the partition switch does, on the arm of R-07-044's disjunction where a swap exists at all: a member begins its reaction seeing its own pending bits and no other member's, and the bits it leaves are restored to it at its next dispatch.
+· Accept: the alternative is observable rather than harmless, which is why the silence was a defect and not a detail: with the component unswapped, two rotations reaching one successor from different predecessors deliver different pending state to the same member, so a member's view of its own interrupts becomes a function of which sibling ran before it, and that is a schedule-dependent value inside what R-07-037b makes a composition-fixed rotation. The consequence is machine-checked at [PartitionContext.v](../proofs/PartitionContext.v), whose `rotation_pending_arm_is_observable` exhibits both arms.
+· Accept: this is a **delivery** obligation and not a confidentiality one, which is what separates it from R-07-037d and is why the two are answered differently. Pending bits are architectural state a member reads to learn what has arrived for it; they are not residue, so R-07-037b's ground for omitting the eager zeroize (that every flow those constants cut is internal to one label) does not reach them, an interrupt addressed to one member being no less misdelivered for the recipient sharing a label with the addressee.
+· Accept: the cost lands in R-15-220a's context term rather than in R-15-220's three, so R-07-037b's *strictly fewer* remains true of the platform terms and is now exact rather than approximate: the rotation performs the whole context term and none of the three.
+· Trace: CJ-ISOL, CJ-KERNEL
+
+**R-07-037d** IS: The members of one R-07-037b same-label group share a single confidentiality domain, so a member **may** begin its reaction on the zeroize-class state a sibling left: the vector register file, the vector CSRs, the matrix unit's architectural state and the class scratchpad the rotation does not clear. What the rotation omits is omitted because the observation is in-domain and not because it is unreachable.
+· Accept: this states the assumption R-07-037b was already relying on rather than adding one, which is the whole of the act: that entry omits the eager zeroize on the ground that *every flow those constants cut is internal to one label*, and that ground is an assertion about the group's members being one domain that nothing said out loud. Left unstated, the omission and the switch disagree about the same post-state, which [PartitionContext.v](../proofs/PartitionContext.v)'s `rotation_omits_the_zeroize_at_state_level` exhibits: a value the rotation admits the switch refuses.
+· Accept: it is a constraint on **composition** and not a permission granted to code, so the reviewable obligation is on the composer: a group is admitted only where its members are same-label in the R-07-037b sense and would be admitted to read each other's zeroize-class state directly, and a partition whose confidentiality label differs from a group's is not a candidate for that group at any cadence. Where that is not wanted the composition assigns the partition its own slot, which costs capacity under R-07-037 and buys the clear back.
+· Accept: what it does **not** license is stated, because the permissive reading is the dangerous one: no member may assume the residue is *any particular* sibling's, the rotation being composition-fixed but the residue being whatever the previous member's reaction left, so this admits observation and never inference about which member ran. Nothing here reaches across a label boundary, where R-07-014c's unconditional pass at the slot boundary is what clears, and nothing here reaches the pending component, which R-07-037c swaps.
+· Trace: CJ-NI, CJ-KERNEL
 
 ### 7.8 Interrupts
 
@@ -2438,7 +2470,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-WCET
 
 **R-11-023** MUST: (4) Which tenant occupies which slot is a permutation, not a schedule: slot widths and offsets are fixed by the rung, and the compositor requests a focus rebinding at a major-frame boundary which the kernel enacts by permuting the slot→tenant map (a tenant being a sole compartment or one R-07-037b same-label group, permuted whole).
-· Accept: every admission property is invariant under the permutation, the interval arithmetic quantifying over widths and offsets and never occupants; the untrusted compositor steers responsiveness without touching the admitted schedule, the same shape §8 gives its focus judgment.
+· Accept: every admission property is invariant under the permutation, the interval arithmetic quantifying over the four quantities the check declares and never over occupants: slot widths, slot offsets, each task's period (R-11-006), and the switch-duty ratio R-11-009 requires counted explicitly. The enumeration is four rather than two because *never occupants* is the load-bearing half and a narrower list would put it over a check neither R-11-006 nor R-11-009 states: an invariance proved over widths and offsets alone leaves the period and the duty ratio free to read a tenant, which is the one thing the permutation must not do.
+· Accept: the untrusted compositor steers responsiveness without touching the admitted schedule, the same shape §8 gives its focus judgment.
 · Trace: CJ-WCET, CJ-NI
 
 **R-11-024** IS: (5) A rung change is a table swap at a major-frame boundary, not an admission event: it selects among schedules the generation already proved, so it is neither RoT-attested nor rare, costing one partition-switch constant plus the table load.
@@ -4835,6 +4868,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: listing the fence and the drain separately would inflate every switch bound feeding §11 by a full drain.
 · Trace: CJ-WCET · [§15](spec.md#r-15-220), [§15](spec.md#r-15-220-2)
 
+**R-15-220a** IS: R-15-220's three are the **platform** terms, the costs the hardware imposes on a boundary crossing, and the switch budget §11 admits against is those three plus the context term: R-07-015's total register and CSR restore, and R-07-044's pending-bit swap on the arm of that entry's disjunction where a swap exists rather than a static identity partition. The context term is one term and not two, both halves being writes the switch performs into the successor's architectural state over a set fixed at composition.
+· Accept: this is stated here rather than by amending R-15-220 because the two are different quantities with different owners and different behaviour under the design's own parameters. The platform terms are per core class and are constants of the timing-annotated model (R-15-053); the context term is a function of the composed CSR bank and the interrupt-file partition, so it moves with a composition where the three do not. Amending R-15-220 to four terms would move every entry that consumes *the partition-switch constant* (R-07-034, R-11-009, R-11-024, R-11-027) and the four §15 entries that argue from three, to state a fact none of them is wrong about.
+· Accept: the arithmetic is unchanged and only its attribution moves, so no §11 admission figure is re-derived by this entry: R-07-044 already places the swap *in the switch budget* and R-07-015 already obliges the restore, and what was missing was a sentence saying which budget line they are. An entry reading R-15-220's three as the whole budget is reading a platform figure as a switch figure, which is the defect this entry names; R-18-009's *three-term switch budget* is one such reading and is corrected at its own site.
+· Accept: R-07-037b's intra-slot rotation performs strictly fewer of R-15-220's three and the whole of the context term, which is what makes the rotation cheaper than a switch without making it a different kind of act; that relation is stated at R-07-037b and is not restated here.
+· Trace: CJ-WCET, CJ-KERNEL
+
 **R-15-221** IS: The flush-set statement is itself a crown-jewel spec, now over one structure rather than two.
 · Accept: it appears in the crown-jewel inventory and is subject to independent review.
 · Trace: CJ-ISOL
@@ -5465,10 +5504,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: what makes it a member rather than the ordinary capability enforcement this register deliberately does not collect is that the denial is **standing rather than incidental**: it is held open for as long as the manifest stands and is liftable only by an install, where an ordinary capability check denies one operation and says nothing about the next. Its cost reaches no life-safety path and no other label's schedule, memory, or authority, so R-17-030l's composition is unmoved by it.
 · Trace: CJ-CERISE
 
+**R-17-030x** IS: Fail-closed seam **the endpoint with no ready peer ⋈ the transfer**: a send or receive meeting no ready peer is refused rather than parked (R-07-029a), so a partition that is never ready holds a standing denial of *transfer* against every peer that offers to it, for as long as it stays unready.
+· Accept: what the pair spends is the transfer alone and never authority or the core's slot: the refusal is typed and returns inside the caller's own invocation, so the caller keeps its slot, re-offers at its next visit, and the composition pays the latency in buffer depth under R-11-010. A peer that is permanently unready is a liveness fault of that peer and is the supervision tree's to detect (R-12-087), which is where an unready server is restarted rather than waited on.
+· Accept: refusal is the correct direction because the alternative is the one this design deletes rather than a milder degradation: parking the caller is the blocking call R-07-037a forbids, and it reintroduces the unbounded wait R-11-006's interval arithmetic has no WCET to read, so the seam's cost is bounded latency where the alternative's cost is the admission argument itself.
+· Accept: it is a member rather than ordinary flow control because the denial is **standing rather than incidental**, held open for as long as the peer is unready and liftable only by that peer becoming ready, and because it is the one refusal on this register whose cost lands on the *offering* party rather than on the party that failed. Its cost reaches no life-safety path, a hard task keeping sole tenancy under R-07-037b and never sharing an endpoint's readiness with a discretionary tenant, so R-17-030l's composition is unmoved by it.
+· Trace: CJ-KERNEL, CJ-WCET
+
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted. The collector is a set of entries and not one sentence, so it grows by a seam written beside the others and a new refusal reopens no entry that already stands.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.py` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: the conferral gates the collection here, which is the opposite of the direction R-10-013a takes and for the reason that entry states: this register holds no budget, R-03-009 pricing every member against availability alone and member by member, so what a seam adds is the composition none of its members states alone and never the admission of any of them. Growth by addition is what makes that safe, an author with a refusal to book owing a seam of their own rather than an amendment to somebody else's obligation.
-· Accept: thirty-four requirements confer a refusal and eighteen seams collect them, both figures recomputed rather than maintained here.
+· Accept: thirty-five requirements confer a refusal and nineteen seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.py` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -5806,7 +5851,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a manufacturing dependency in both branches and a proof obligation in neither, so the §17 frontier is unmoved; what moves is R-18-030, which plans the multi-tier envelope as upside and must show the roster closing on the single tier.
 · Trace: CJ-DEVTREE
 
-**R-18-009** IS: Two memory-path questions are named as open and explicitly *not* specified: a statically-placed instruction scratchpad, narrowed to pinned single-tenant cores (whose remaining motivation is port contention alone; on a slotted core it is excluded outright, per-tenant partitioning dividing its capacity by the rung and a switch-time refill adding a code-fill term the three-term switch budget of R-15-220 does not carry), and sequential consistency in place of Ztso (whose reach is narrower than it looks: `fence.t` and the `A` extension both survive it).
+**R-18-009** IS: Two memory-path questions are named as open and explicitly *not* specified: a statically-placed instruction scratchpad, narrowed to pinned single-tenant cores (whose remaining motivation is port contention alone; on a slotted core it is excluded outright, per-tenant partitioning dividing its capacity by the rung and a switch-time refill adding a code-fill term neither R-15-220's three platform terms nor R-15-220a's context term carries), and sequential consistency in place of Ztso (whose reach is narrower than it looks: `fence.t` and the `A` extension both survive it).
 · Accept: each is open because the timing budget makes it worth revisiting, not because a change is pending; Ztso and the shared fetch path are what the specification states, and the pinned-core scratchpad stays a design-space-exploration parameter (R-15-108).
 · Trace: CJ-SAIL
 
@@ -5982,7 +6027,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1377 requirements. §19 is non-normative and yields none. Counts include the 425 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1384 requirements. §19 is non-normative and yields none. Counts include the 432 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -5992,7 +6037,7 @@ All eighteen normative sections are extracted, at 1377 requirements. §19 is non
 | **§4 Organizing Principle** | **extracted** | **13** |
 | **§5 Languages & Verification** | **extracted** | **210** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
-| **§7 Kernel** | **extracted** | **60** |
+| **§7 Kernel** | **extracted** | **65** |
 | **§8 Authority Model** | **extracted** | **87** |
 | **§9 Boot & Root of Trust** | **extracted** | **40** |
 | **§10 Storage & State** | **extracted** | **53** |
@@ -6000,9 +6045,9 @@ All eighteen normative sections are extracted, at 1377 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **126** |
 | **§13 Packaging & Supply Chain** | **extracted** | **39** |
 | **§14 Userland** | **extracted** | **29** |
-| **§15 Hardware Platform** | **extracted** | **408** |
+| **§15 Hardware Platform** | **extracted** | **409** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **127** |
+| **§17 Residual Risks** | **extracted** | **128** |
 | **§18 Realization** | **extracted** | **58** |
 
 §19 is non-normative and yields no requirements.
