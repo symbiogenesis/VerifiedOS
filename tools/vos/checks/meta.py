@@ -36,6 +36,34 @@ The window is `tools/` by decision rather than by reach. The plan restates the f
 two of its own cells, and a rule about how this directory is written has no business
 holding a sentence in a document about the build order; that pairing is the plan's to
 own if anything is to own it.
+
+K-84 is the third direction on the same registry and the one that faces outward. K-00
+holds the registry against the checks and the selftest holds it against the mutants,
+and nothing held a rule id *cited* outside the registry to naming a rule at all. K-11
+does that for every other id family the repository declares, R-, CJ-, A-, B- and P-,
+and the K- family is the one it does not reach. What makes the gap worth a rule is the
+two-tier landing rule the plan's checklist conventions state: a Tier-B landing is a
+spot read of an item's findings, admitted on four conditions, and the fourth is that
+some rule holds whatever fact the landing created. Three of the four are gates that
+run. The fourth is a claim about the item, so the item states it and this rule holds
+the statement, which is what turns a promise into a condition something can fail.
+
+The form is the one the landed items already write, a rule id in bold where the
+landing says what that rule holds, and it is bold rather than plain because both forms
+occur and only one is a claim. A rule *discussed* is written plain: a hole in the
+numbering nothing records, a rule that retires when the generator replacing it lands,
+a rule named as the price of an instrument. Holding every citation instead would
+report the hole in the numbering as a finding against the document that reports it,
+which is the one live case in the tree, and it belongs to the register act that owns
+the hole rather than to a rule about landings.
+
+Two things this one deliberately does not decide. Whether the named rule holds *that*
+fact is a reading, and it is the residue every conferral here declares. And a
+declaration is read where it is made and never demanded where it is absent: a tier is
+a property of the reading a landing was given, so a landing taken before the tiers
+existed has none to state and none a later hand can assign it. The floor is inside the
+rule rather than in the floors group, on the precedent the two rules above set: a
+corpus naming no holder at all is a finding here rather than a green line over nothing.
 """
 
 import re
@@ -85,6 +113,20 @@ _README_SITES: list[tuple[str, re.Pattern[str], str]] = [
 
 TY_CONF = "tools/ty.toml"
 RUFF_CONF = "tools/ruff.toml"
+
+PLAN = "docs/implementation-checklist.md"
+
+# A holder citation, in the form the landed items write it: the rule id in bold, on the
+# sentence saying what that rule holds. Bold is the whole of what separates a claim
+# from prose about the checker, which is why the plan's conventions state the form
+# rather than leaving the typography to be inferred.
+_HOLDER_RE = re.compile(r"\*\*(K-\d{2,3})\*\*")
+
+# A landing declaration, line-anchored so that a sentence mentioning one is not read as
+# making one. The first pattern finds the line at all and the second decides its form,
+# which is what makes a mistyped declaration a finding instead of a line nothing reads.
+_LANDED_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed:")
+_TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest>.*)")
 
 # The interpreter floor, as the type checker's own environment fixes it.
 _FLOOR_SRC_RE = re.compile(r'(?m)^python-version = "([^"\r\n]*)"')
@@ -136,6 +178,10 @@ def run(ctx: Context) -> None:
     rep.line(HEADING)
 
     doc = ctx.corpus.get(RULES)
+    # every rule the registry carries, hoisted out of the K-00 block below because K-84
+    # holds citations against the same set: an absent registry leaves it empty, which is
+    # the fail-closed reading both rules want rather than a comparison against nothing
+    seen: set[str] = set()
     if doc is None:
         rep.report("K-00", "missing artifact:", [f"{RULES} is not in the repository"])
     else:
@@ -147,7 +193,6 @@ def run(ctx: Context) -> None:
             if m:
                 registered.append(m.group(1))
 
-        seen: set[str] = set()
         findings: list[str] = []
         for rule in registered:
             if rule in seen:
@@ -163,6 +208,7 @@ def run(ctx: Context) -> None:
 
     _pins(ctx)
     _floor(ctx)
+    _landings(ctx, seen)
     rep.line()
 
 
@@ -270,3 +316,66 @@ def _floor(ctx: Context) -> None:
                "fixes:", findings,
                f"the {figures.words(len(_FLOOR_SITES))} sites under tools/ that restate "
                f"the interpreter floor spell ty.toml's {floor}")
+
+
+def _landings(ctx: Context, registered: set[str]) -> None:
+    """K-84: a holder citation names a registered rule, and a Tier-B landing names one.
+
+    Two readings of the plan's two-tier landing rule, held as one rule because they are
+    one claim seen from its two ends. A landing that created a fact says which rule
+    holds it, and the rule it names is one the registry carries.
+
+    Fail-closed in three places. An unreadable registry leaves `registered` empty, so
+    every citation is a finding rather than a pass over nothing; a corpus stating no
+    holder at all is a finding, which is this rule's own floor; and a `Landed:` line
+    whose form this rule cannot read is a finding rather than a declaration silently
+    skipped.
+
+    The citation half reads the whole document corpus and the declaration half reads
+    the plan, and the asymmetry is deliberate: naming a holder is the same claim
+    wherever it is written, where a landing is an act the plan records.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+
+    if not registered:
+        findings.append(f"{RULES} yields no rule this run can read, so a holder citation "
+                        "would be held against nothing")
+
+    cited = 0
+    for doc in ctx.corpus.docs:
+        for m in _HOLDER_RE.finditer(doc.raw):
+            if doc.is_fenced(m.start()):
+                continue
+            cited += 1
+            if m.group(1) not in registered:
+                findings.append(f"{doc.name}:{doc.at(m.start())} names {m.group(1)} as "
+                                f"the rule holding what it created, and {RULES} carries "
+                                "no such rule")
+    if not cited and registered:
+        findings.append("no document names a rule holding what a landing created, so "
+                        "this rule reads nothing; the form is the rule id in bold, which "
+                        f"{PLAN}'s checklist conventions fix")
+
+    declared = 0
+    plan = ctx.corpus.get(PLAN)
+    if plan is None:
+        findings.append(f"{PLAN} is not in the repository, so no landing can be read")
+    else:
+        for i, _ in plan.unfenced("Landed:", _LANDED_RE):
+            declared += 1
+            tier = _TIER_RE.match(plan.lines[i])
+            if tier is None:
+                findings.append(f"{PLAN}:{i + 1} declares a landing in a form this rule "
+                                "does not read; a declaration is 'Landed: Tier A' or "
+                                "'Landed: Tier B under' the rules holding what it created")
+            elif tier.group("tier") == "B" and not _HOLDER_RE.search(tier.group("rest")):
+                findings.append(f"{PLAN}:{i + 1} lands at Tier B and names no rule "
+                                "holding what it created, which is the fourth of the "
+                                "four conditions Tier B is admitted on")
+
+    rep.report("K-84", "holder citation(s) and landing declaration(s) the registry does "
+               "not answer:", findings,
+               f"the corpus's {cited} holder citations name rules {RULES} carries, and "
+               f"each of the plan's {declared} landing declarations states a tier and, "
+               "at Tier B, the rule holding what it created")
