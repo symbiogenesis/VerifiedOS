@@ -163,3 +163,75 @@ Two instruments, and they run in different places for a reason: one needs a buil
 | each member's recorded check count is the count its source carries | `tools/check.py` (host) |
 | every member runs to a HTIF verdict of success | `tools/model.py corpus` (WSL) |
 | every member's commit trace matches the digest the manifest records | `tools/model.py corpus` (WSL) |
+| the wire format of §9 below is what the codec encodes and decodes | `tools/test.py` (host) |
+| the emulator negotiates RVFI-DII v2 and retires an injected instruction | `tools/testrig.py handshake` (WSL) |
+| a generated stream's packets and its commit records agree, one run, both dialects | `tools/testrig.py bridge` (WSL) |
+| every seeded defect is reported, and no unseeded run diverges | `tools/testrig.py run` (WSL) |
+
+## 9. The RVFI-DII rig
+
+*§4 above is the trace format the plan's §10 sentence names; this is the runner it has never had, and this section says what the wire is, where it meets §4, and what the rig can drive today.*
+
+**The corpus is authored and this is generated, which is the whole of what it adds.** A hand-written member exercises what somebody thought to write; a verification engine generates instruction streams, consumes execution traces, adjudicates two executors against each other, and **shrinks a counterexample automatically**, which no corpus can do at all. The instrument is [tools/testrig.py](../tools/testrig.py) over [vos/rvfi.py](../tools/vos/rvfi.py), the wire format, and [vos/vengine.py](../tools/vos/vengine.py), the generator, the socket and the shrinker; adjudication is [vos/trace.py](../tools/vos/trace.py)'s, unchanged, so there is one adjudicator here and not two.
+
+### 9.1 The wire, and where it is read from
+
+**RVFI-DII is not this repository's format and is read at its own source**, which is `RVFI-DII.md` in CTSRD-CHERI's TestRIG at the commit [THIRD-PARTY.md](../THIRD-PARTY.md) pins. Two structures over one socket, the implementation listening and the engine connecting:
+
+| Structure | Size | What it is |
+| --- | --- | --- |
+| instruction packet | 8 bytes | `[0-3]` the instruction word, `[4-5]` an injection time, `[6]` a command, `[7]` padding |
+| execution packet, v1 | 88 bytes | one fixed structure, the field order that document states |
+| execution packet, v2 | 64 bytes and its extensions | a header stating its own total, then a 40-byte integer extension and an 88-byte memory extension where the header announces them |
+
+Two commands are defined, `0` EndOfTrace and `1` Instruction, and a third, `v`, selects the wire format. An EndOfTrace whose instruction word is the ASCII `VERS` is a version probe rather than a reset; the reply is a v1-shaped packet whose halt byte is 1 for an implementation carrying only v1 and 3 for one that also has v2. The v2 structure is **not** in that document, which describes v1 alone; it is read from the model's own [core/rvfi_dii_v2.sail](../model/model/core/rvfi_dii_v2.sail), which is the format's only written statement.
+
+Three further requirements are the protocol's rather than the packet's, and this machine meets all three without anything being added for them: an EndOfTrace resets registers, memory and the program counter; the reset vector is `0x80000000`; and instructions are consumed from the socket rather than fetched, which `rvfi_fetch` does by taking the word out of the packet while still checking PCC's bounds and the alignment.
+
+**The target upstream names does not exist here and the capability does.** `sail-cheri-riscv` builds a separate binary, `cheri_riscv_rvfi_RV64`, from an RVFI-specific source list compiled with `-DRVFI_DII`; the curated tree follows the current C++ backend, where the same capability is one binary behind `--rvfi-dii <port>`. TestRIG's own runner constructs that binary's *name*, so an unmodified `runTestRIG.py` reaches this model through its `--path-to-sail-riscv-dir` argument at a directory carrying that name, and nothing else about the conversation differs.
+
+### 9.2 Where the packet and §4's record meet, field by field
+
+| §4 record | The packet's fields | Reading |
+| --- | --- | --- |
+| `I` | `rvfi_order`, `rvfi_pc_rdata`, `rvfi_insn` | one for one |
+| `X` | `rvfi_rd_addr`, `rvfi_rd_wdata`, `rvfi_rd_tag` | one for one where `rd` is not `x0`. The tag is M0.12's bit, taken from the Integer extension's padding |
+| `R` | `rvfi_mem_addr`, `rvfi_mem_rdata`, `rvfi_mem_rmask` | the mask's low run of ones is the width in bytes and the bit above it is the access's tag |
+| `W` | the same three write fields | the same reading |
+
+The mask's two readings are told apart by **the widths being powers of two**: a run of nine ones is an eight-byte tagged access, because nine is not a width. One length is genuinely ambiguous, a run of two being a two-byte untagged access and also a one-byte tagged one, and it is decided the first way because the tag granule is eight bytes (R-15-203): no access narrower than a granule can carry a tag, so the second reading names an access this machine has no form for.
+
+### 9.3 Where they do not
+
+| §4 record | Why the packet cannot carry it |
+| --- | --- |
+| `S` | there is no field for the four capability registers outside the merged file. Upstream declares an availability bit for them and implements no structure behind it |
+| `C` | the same, for CSR writes |
+| `T` | `rvfi_trap` is a boolean where the record carries the cause |
+| a second `R` or `W` under one instruction | the packet holds one memory access. A block operation therefore has no form in it at all, and `rvfi_write` and `rvfi_read` raise an internal error above sixteen bytes, which **stops the emulator** rather than reporting something narrower |
+| `order`, when comparing | carried by both and compared by neither, for the reason §4 gives |
+| the order of effects under an instruction | a packet is a structure and not a sequence: it has one read group, one write group and one destination group, and no field saying which happened first. A comparison involving a packet therefore puts both sides in one fixed order, `R`, `W`, `X`, which is the model's own for the instruction that has all three |
+
+One field the packet has and this model never fills is the source half of the Integer extension: `rvfi_rs1_addr`, `rvfi_rs2_addr` and their data are declared and never written, the model populating the destination half alone. That is a true statement under the packet's own rule, which requires the data only where the address is non-zero, and it is what a comparison over the full field set would find first.
+
+### 9.4 A dialect of the standard packet, and not an extension of it
+
+**The widening M0.12 made is inside the standard packet**, and deliberately: `rvfi_rd_tag` is one bit out of the Integer extension's padding, and the memory masks carry the tag one bit above the byte mask, which is the extension the CHERI-widened 32-bit masks were already sized for.
+
+**What does not fit is structural rather than a field short.** A format that must grow a variable-length effect list, a fifth register file and a trap cause is a different grammar and not a longer packet, and every one of §9.3's rows is that shape. So the record stream of §4 carries the whole schema and the packet carries the subset it can, exactly as §5 says, and [vos/rvfi.py](../tools/vos/rvfi.py)'s projection is the one place the two are held to say the same thing. The alternative, an extended packet, would fork the wire format away from every other TestRIG implementation to buy fields the record stream already has.
+
+**Version 1 cannot carry the widening at all**, which is why every loop negotiates v2: v1 has no `rd_tag` field, and it truncates the 32-bit masks to their byte halves, so the tag of an eight-byte capability access, which sits at bit 8, is deleted rather than cleared. A v1 conversation is a conversation about an integer machine.
+
+### 9.5 What a generated stream may contain
+
+Five templates, and each is a property of this machine rather than a taste. A stream opens with a preamble because on a purecap machine every register holds the null capability until something is put in it, and the authority a memory access needs does not exist until a stream derives one from the root the reset puts in `c1` (R-15-001c). The words are encoded through [vos/dialect.py](../tools/vos/dialect.py), the same table the corpus assembles through, so a stream is in the frozen dialect by construction.
+
+Two exclusions are the format's and not the machine's, and both are stated rather than left to be discovered. The **block operations** are out because `rvfi_write` stops the emulator on them, which is §9.3's last row seen from the side that has to generate around it. The **sub-32-bit encodings** are out because the profile excludes `C` and fixes ILEN at 32, so a word whose low two bits are not `11` is not an instruction this machine has; injecting one makes the two emitters disagree about what was injected, the commit trace reporting the sixteen-bit halfword `rvfi_fetch` decoded through upstream's compressed branch and the packet reporting the whole word, and which of those is right is a question for the model rather than for the generator.
+
+### 9.6 What the rig adjudicates today, and what it will
+
+**The second executor does not exist yet**, and the rig says which one it drove rather than implying two. M2's CHERI-QEMU fork is struck and the RTL is R1b's, so today the second side is the first **under a seeded defect**: a named packet-level mutation standing for a way a second implementation of the frozen profile gets an answer wrong. Each is written so that most instructions do not expose it, which is what makes shrinking a measurement rather than a demonstration, and the gate is the checker's own: a seeded defect that goes unreported is a finding, exactly as a checker rule saying nothing about its own mutant is.
+
+The rig's other arm needs no second executor at all and is not a substitute for one: **one run emits both dialects**, the packets over the socket and the records into the trace log, because the two callback classes are registered independently. Holding those against each other is the only place §9.2's meeting is a measurement rather than a reading of two documents, and it is what would catch the emitters drifting apart.
+
+**When R2 supplies the RTL's `rvfi` port**, it is the port this rig's socket already connects to and nothing else here changes: the generator, the projection, the adjudicator and the shrinker are all on this side of the socket. That is the sense in which this is the second executor the struck M2 items were carried for.

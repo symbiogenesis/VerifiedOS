@@ -45,6 +45,7 @@ Two more the floor makes available go unused, because a version floor is a licen
 | [cheri-equiv/](cheri-equiv/) | WSL | The two halves of that cross-check: a Sail generator that calls the model's capability functions, and a SystemVerilog testbench that replays what it printed. Neither is a translation of the other and the only thing they share is the line format each states in its own header. |
 | [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. |
 | [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. |
+| [testrig.py](testrig.py) | host and WSL | The RVFI-DII rig: `protocol` reads the wire format off the codec on the host; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
 | [wasm-oracle/](wasm-oracle/) | WSL | The container the CertiCoq → Wasm oracle is built and run in, and the smoke program that exercises it. The one entry here that is an environment rather than a program: [its own README](wasm-oracle/README.md) states what it pins and why. |
 
 The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, [provenance.py](vos/provenance.py) the synthesis record binding each claimed absence to a build, [freeze.py](vos/freeze.py) the freeze measurement contract and the instrument that runs against it, [pins.py](vos/pins.py) the licence record's table of upstream pins and the shape a restatement of one takes, [fieldbindings.py](vos/fieldbindings.py) the field-bindings table the bindings group and [blast-radius.py](blast-radius.py) both read, [env.py](vos/env.py) the build environment, and [report.py](vos/report.py) the one verdict line every check prints. Five more read the *model*, which the document corpus excludes by name: [geometry.py](vos/geometry.py) the welded block size, [capformat.py](vos/capformat.py) the frozen capability format's widths and both packings of it, [banks.py](vos/banks.py) the second class's bank grant, and [coreclass.py](vos/coreclass.py) the core-class table, each out of a configuration or Sail file named by path, with [decode.py](vos/decode.py) reading the assembly clauses the model spells its mnemonics with, which are everywhere in the tree and named by kind instead. Two of them read outside the model as well as inside it, and by path in both directions: geometry.py takes the block size the authored capability package writes, and capformat.py takes every site that restates a format width, in `rtl/` and in four documents the corpus does carry. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code.
@@ -54,6 +55,8 @@ Those five are where the checker reaches past its own corpus, and the reach is d
 **The two declarations are narrow for opposite reasons and are deliberately not one list.** `MODEL_FACTS` names ten files by path: it is the *value* window, and a rule reading a number out of the model should name the file it reads, so adding one is a decision somebody makes. `is_model_citation_path` admits by kind instead, because the rule behind it holds a construct that occurs wherever the model argues from the register, and a window sized for the other purpose left it reporting `ok` about a quarter of its subject. Merging them would make the audited list quietly mean two things.
 
 Four more modules are the differential corpus's, and they are named for what they are rather than for where they sit: [dialect.py](vos/dialect.py) is one row per mnemonic the curated model decodes, [asm.py](vos/asm.py) the parser and layout over it, [image.py](vos/image.py) the ELF the emulator loads, and [differential.py](vos/differential.py) the corpus manifest. The one name that has to be read carefully is `corpus`: [vos/corpus.py](vos/corpus.py) reads the *documents* this repository checks, and [vos/differential.py](vos/differential.py) reads the *programs* the model runs. They share a word and nothing else.
+
+Two more are the RVFI-DII rig's and sit beside them for the same reason: [rvfi.py](vos/rvfi.py) is the wire format TestRIG defines and the projection from one of its packets onto the commit trace's records, and [vengine.py](vos/vengine.py) is the stream generator, the socket, the seeded defects and the shrinker. Neither decides anything about behaviour: what a divergence *is* stays [trace.py](vos/trace.py)'s, so the rig and the corpus adjudicate through one function rather than two.
 
 [check-rules.md](check-rules.md) is the checker's registry: one row per rule, what passing means, and on what ground. It is the reviewable account of the tool's reach, and the checker holds it against the code in both directions on every run.
 
@@ -80,6 +83,7 @@ $ python tools/co-read.py --show --all        # every pending pair, in one read
 $ python tools/co-read.py --where R-15-073c   # both sides as file:line sites
 $ python tools/read-view.py                   # the two documents woven, for reading
 $ python tools/rtl.py provenance              # the absences, and what binds each
+$ python tools/testrig.py protocol            # the RVFI-DII wire, against the commit trace
 
 $ wsl -u root -e python3 tools/rtl.py lint             # the authored RTL, alone
 $ wsl -u root -e python3 tools/rtl.py vectors          # the model's own answers, as text
@@ -96,6 +100,10 @@ $ wsl -u root -e python3 tools/model.py corpus --refresh
 $ wsl -u root -e python3 tools/model.py devicetree
 $ wsl -u root -e python3 tools/model.py reference
 $ wsl -u root -e python3 tools/model.py trace-diff --corpus --floor 67
+$ wsl -u root -e python3 tools/testrig.py handshake     # the emulator, over RVFI-DII
+$ wsl -u root -e python3 tools/testrig.py run --seeds 100 --defect none
+$ wsl -u root -e python3 tools/testrig.py run --defect tag-dropped --shrink
+$ wsl -u root -e python3 tools/testrig.py bridge        # both dialects, one run
 $ wsl -u root -e python3 tools/proof-gate.py
 ```
 
