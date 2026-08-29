@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 193 of them across 47 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 200 of them across 48 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -41,6 +41,36 @@ A defect this repository's own work introduced and the same item closed is a `me
 **What is outside this register.** A note's own reasoning is not a finding: an exit-evidence figure, a net-change line, or the ground for a disposition the item took. A fact of finding character that a note neither counts nor calls a finding is outside it too, by the same rule that makes the counted half checkable, and the repair for one worth indexing is to state it in the note's own declared shape.
 
 ---
+
+## S · Serial-path decisions and program instruments
+
+**F-000a** upstream-defect: the commit trace's default destination is block-buffered into a pipe while the injection diagnostics are unbuffered on the other descriptor, and the end-of-trace acknowledgement prints whatever the trace flag says because its call site passes a comparison where every other passes the flag
+· Raised: S11
+· Disposition: closed on this side, the rig giving the trace a file of its own; a diagnostic landing inside a half-written record reads as a divergence about a run that agreed
+
+**F-000b** upstream-defect: a version-2 reply is two or three separate writes on a socket with no delay disabled, so the second waits on an acknowledgement this side has nothing to piggyback on
+· Raised: S11
+· Disposition: closed, quick acknowledgement re-armed after every read taking 1,022 instructions from 49.1 s to 0.66 s; disabling delay on this side does not reach the held write, which is the emulator's
+
+**F-000c** upstream-defect: the packet's write and read raise an internal error above sixteen bytes, so the block operations abort a run under injection rather than reporting something narrower
+· Raised: S11
+· Disposition: standing, the generated stream excluding them, which is the packet not being the transport seen from the side that has to generate around it
+
+**F-000d** measurement: the two emitters disagree about a word whose low two bits are not `11`, the fetch path still taking upstream's compressed branch where the profile excludes `C` and fixes the instruction length
+· Raised: S11
+· Disposition: open, which emitter is right being the model's question; the generator spends no stream on encodings the profile does not have
+
+**F-000e** upstream-defect: the source half of the packet's integer extension is declared and never written, both source addresses and their data always zero
+· Raised: S11
+· Disposition: standing, vacuously legal under the packet's own rule and what a comparison over the full field set would find first
+
+**F-000f** measurement: the physical-address width is 64 and not 36, so a commit memory record's address is sixteen hexadecimal digits and the narrower space is the composition's rather than the address type's
+· Raised: S11
+· Disposition: standing, the bridge measuring the width off the records it compares rather than restating it
+
+**F-000g** method: a schema-version bump can drift the meeting and elision tables away from the code that produces them, with every gate green
+· Raised: S11
+· Disposition: open, named as K-85 in the differential group with its three edits and a floors-group member count, and left rather than added
 
 ## M0 · Hardware reference
 
