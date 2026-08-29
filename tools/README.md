@@ -42,6 +42,11 @@ Two more the floor makes available go unused, because a version floor is a licen
 | [read-view.py](read-view.py) | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
 | [rtl.py](rtl.py) | host and WSL | The RTL lane: `provenance` parses the synthesis record on the host; `lint`, `vectors`, `crosscheck` and `elaborate` run in the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. |
 | [cheri-equiv/](cheri-equiv/) | WSL | The two halves of that cross-check: a Sail generator that calls the model's capability functions, and a SystemVerilog testbench that replays what it printed. Neither is a translation of the other and the only thing they share is the line format each states in its own header. |
+| [oracle.py](oracle.py) | host and WSL | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on the host; `vectors` needs Sail. |
+| [oracle-specs/](oracle-specs/) | n/a | One JSON file per oracle: the sources to compile, and per line kind the parameters, the domain that walks them, the Sail that calls the model, and what to print. |
+| [seed.py](seed.py) | host and WSL | The seeded-defect generator: mutation operators walked over a Sail or Gallina source, pointed at an oracle that must notice. `list` answers on the host; `sail`, `coq` and `properties` each need their oracle's toolchain. |
+| [quickchick.py](quickchick.py) | WSL | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
+| [quickchick/](quickchick/) | WSL | The Gallina harnesses: the composition both halves probe, the enumerative generator that prints one line per point, and the QuickChick properties that draw and shrink instead. |
 | [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. |
 | [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. |
 | [testrig.py](testrig.py) | host and WSL | The RVFI-DII rig: `protocol` reads the wire format off the codec on the host; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
@@ -52,6 +57,8 @@ The shared machinery is [vos/](vos/), and it holds parses, never decisions: [cor
 Those five are where the checker reaches past its own corpus, and the reach is declared rather than habitual. `model/` is excluded from the document corpus by name, and [check-selftest.py](check-selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
 
 **The two declarations are narrow for opposite reasons and are deliberately not one list.** `MODEL_FACTS` names ten files by path: it is the *value* window, and a rule reading a number out of the model should name the file it reads, so adding one is a decision somebody makes. `is_model_citation_path` admits by kind instead, because the rule behind it holds a construct that occurs wherever the model argues from the register, and a window sized for the other purpose left it reporting `ok` about a quarter of its subject. Merging them would make the audited list quietly mean two things.
+
+Five are the generators' and none of them holds a question: [oracle.py](vos/oracle.py) parses a spec and emits the Sail harness a domain description implies, [sailrig.py](vos/sailrig.py) compiles a Sail source set with a harness and runs it, which is the rig M2.1 and R1a each built inside one item, [mutate.py](vos/mutate.py) walks a Sail or Gallina source and produces the mutant population, [proofs.py](vos/proofs.py) reads what a Rocq source Requires and orders a directory by it, and [gallina.py](vos/gallina.py) stages a scratch copy of the proofs, compiles it, and reads back what a harness printed. What decides is the spec, the operator table, and the oracle a run points them at.
 
 Four more modules are the differential corpus's, and they are named for what they are rather than for where they sit: [dialect.py](vos/dialect.py) is one row per mnemonic the curated model decodes, [asm.py](vos/asm.py) the parser and layout over it, [image.py](vos/image.py) the ELF the emulator loads, and [differential.py](vos/differential.py) the corpus manifest. The one name that has to be read carefully is `corpus`: [vos/corpus.py](vos/corpus.py) reads the *documents* this repository checks, and [vos/differential.py](vos/differential.py) reads the *programs* the model runs. They share a word and nothing else.
 
@@ -80,6 +87,9 @@ $ python tools/co-read.py --where R-15-073c   # both sides as file:line sites
 $ python tools/read-view.py                   # the two documents woven, for reading
 $ python tools/rtl.py provenance              # the absences, and what binds each
 $ python tools/testrig.py protocol            # the RVFI-DII wire, against the commit trace
+$ python tools/oracle.py list                 # the oracle specs, and how large each is
+$ python tools/oracle.py emit --spec keccak   # the Sail harness one spec implies
+$ python tools/seed.py list --file model/model/core/cap_common.sail
 
 $ wsl -u root -e python3 tools/rtl.py lint             # the authored RTL, alone
 $ wsl -u root -e python3 tools/rtl.py vectors          # the model's own answers, as text
@@ -101,6 +111,12 @@ $ wsl -u root -e python3 tools/testrig.py run --seeds 100 --defect none
 $ wsl -u root -e python3 tools/testrig.py run --defect tag-dropped --shrink
 $ wsl -u root -e python3 tools/testrig.py bridge        # both dialects, one run
 $ wsl -u root -e python3 tools/proof-gate.py
+
+$ wsl -u root -e python3 tools/oracle.py vectors --spec capformat
+$ wsl -u root -e python3 tools/quickchick.py check       # and what the install costs
+$ wsl -u root -e python3 tools/quickchick.py vectors     # the Gallina front's answers
+$ wsl -u root -e python3 tools/seed.py coq --sample 20
+$ wsl -u root -e python3 tools/seed.py sail --spec keccak --sample 14
 ```
 
 There is no `-d`, because `Ubuntu` is WSL's default and the default is what every command above wants. The name is plain `Ubuntu` and the release is 26.04; it is not the only distribution registered on this machine, and nothing in the tools reads the distribution's name, so the only thing holding this together is that default. `wsl --install` sets the newly installed distribution as the default, so installing another one is the single action that quietly redirects every command above. `wsl -l -v` says which one holds the default today and `wsl -s Ubuntu` puts it back.
@@ -126,6 +142,41 @@ A build **holds its lane** for exactly as long as it runs, so a second build ove
 A build is not the only holder of state, and every holder refuses a concurrent run by naming the one that holds it. `emit` takes the same lock as `build`, because both drive the one cmake tree; `typecheck` holds a lock beside its lane's SMT memo cache, which Sail rewrites whole at exit; and `oracle` holds the one tree every lane shares. `corpus` writes its images into the lane's own directory, so two lanes' runs cannot land one ELF path.
 
 A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests and the Sail SMT memo cache, and the cache is **copied and never shared**: see `model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other.
+
+## The three generators, and what each answers
+
+Validation here is generated rather than authored wherever an oracle exists, and until
+these landed the technique had been proved twice and used nowhere else: M2.1 emitted
+21,546 vectors from the model itself and R1a emitted 658,659 over thirteen kinds,
+killing twelve seeded defects on between 4 and 61,579 lines. Both rigs were built
+inside one item and thrown away. These three are the standing instruments, and each
+answers one of the two findings that say why generation pays.
+
+| Generator | The finding it answers | What it does |
+| --- | --- | --- |
+| [oracle.py](oracle.py) | **M0.12**: its corpus found an encoding defect the `$[test]` harness structurally cannot, a `$[test]` calling `execute` on an already-decoded instruction and so never seeing a mis-encoded word | A spec names model sources and a domain; the harness is emitted, compiled against them, and run, and what it reaches is decided by the domain rather than by what a property happens to be about |
+| [seed.py](seed.py) | **M0.8d**: the property that named a defect was written before the vectors and never ran, the harness running alphabetically so the symptom aborted the executable ahead of the cause | Mutation operators walked over a Sail or Gallina source, each mutant pointed at an oracle that must notice; a written property inherits the blind spots of the choice to write it and a generated mutant is not chosen at all |
+| [quickchick.py](quickchick.py) | **M0.8d**, one language over: both defects its known-answer vectors found were transcriptions no structural property was written about | The Gallina front's inputs, which the Wasm oracle has never had any generator for: an enumerative half in the oracle's own switch, and a randomized half under QuickChick 2.2.0 in a switch of its own, with automatic counterexample shrinking |
+
+Three verdicts and never two, wherever a mutant is run. **Stillborn** is a mutant that
+did not compile, and nothing was decided about the oracle because the oracle never ran.
+**Killed** is one that compiled and moved the oracle's answer. **Survived** is one that
+compiled and did not, and it is the finding: the oracle does not reach that site.
+Counting stillborn mutants as kills is the standard way a mutation score is inflated,
+so a run scores over the live population and reports the three apart.
+
+`seed.py`'s oracles are separate subcommands because they are three prices, not three
+kinds: a Gallina mutant costs a prover run, a Sail mutant costs a compile of the spec's
+own handful of model files, and a `$[test]` mutant costs a re-emission and a recompile
+of the model's one large translation unit. **`seed.py properties` is the only loop here
+that writes into the checkout**, `model/` being where cmake is pointed; it refuses to
+start over an edit, the write is byte-for-byte reversible, the restore is verified
+before the next mutant is written, and the lane's build tree is rebuilt from the
+restored source before the run reports. **Nothing else may read the checkout while it
+runs.** For the length of one mutant the tree on disk is wrong, so `git add` stages a
+defect, `check.py` reports a capability format that disagrees with itself, and
+`check-selftest.py` copies a mutated tree into the template every sandbox links
+against. The run says so on its first line.
 
 ## Checking the tools themselves
 

@@ -405,7 +405,10 @@ def _prepend_z3_path() -> None:
               f"cache its answers", file=sys.stderr)
 
 
-def _opam_root() -> Path:
+def opam_root() -> Path:
+    """Where the switches live. Public because more than one prover switch is reached
+    from this repository now: the proof gate's, and the CertiRocq oracle's that
+    [vos/gallina.py](gallina.py) compiles the Gallina front in."""
     return _env_path("OPAMROOT", Path.home() / ".opam")
 
 
@@ -420,7 +423,7 @@ def rocq_command() -> list[str]:
     override = os.environ.get("VOS_ROCQ")
     if override:
         return [override, "c"]
-    pinned = _opam_root() / ROCQ_SWITCH / "bin" / "rocq"
+    pinned = opam_root() / ROCQ_SWITCH / "bin" / "rocq"
     if pinned.is_file():
         return [str(pinned), "c"]
     found = shutil.which("rocq")

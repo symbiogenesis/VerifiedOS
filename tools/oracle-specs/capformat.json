@@ -1,0 +1,239 @@
+{
+  "name": "capformat",
+  "what": "the frozen capability format's algebra, as the model's own answers",
+  "answers": "M0.12: the encode side a $[test] on a decoded instruction never reaches",
+  "sources": [
+    "model/model/prelude/prelude.sail",
+    "model/model/prelude/errors.sail",
+    "model/model/core/xlen.sail",
+    "model/model/core/cap_format.sail",
+    "model/model/core/cap_common.sail"
+  ],
+  "probes": [
+    {
+      "kind": "pn",
+      "what": "perms_narrow over every mask the expanded bitmap can take, which is the whole of the domain candperm hands it: exhaustive at 4096 lines",
+      "params": [
+        { "name": "want", "width": 12, "over": "all", "show": "h3" }
+      ],
+      "body": [
+        "let code = perms_narrow(want)"
+      ],
+      "shows": [
+        { "expr": "code", "show": "h2" },
+        { "expr": "perms_expand(code)", "show": "h3" }
+      ]
+    },
+    {
+      "kind": "pe",
+      "what": "every permission codepoint against its own expansion and against the twelve accessors that index it, which is the same defect seen from two sides",
+      "params": [
+        { "name": "code", "width": 5, "over": "all", "show": "h2" }
+      ],
+      "body": [
+        "let cap : Capability = { null_cap with perms = code }"
+      ],
+      "shows": [
+        { "expr": "perms_expand(code)", "show": "h3" },
+        { "expr": "cap_global(cap)", "show": "b1" },
+        { "expr": "cap_permit_load(cap)", "show": "b1" },
+        { "expr": "cap_permit_store(cap)", "show": "b1" },
+        { "expr": "cap_load_cap(cap)", "show": "b1" },
+        { "expr": "cap_store_cap(cap)", "show": "b1" },
+        { "expr": "cap_store_local_cap(cap)", "show": "b1" },
+        { "expr": "cap_load_global(cap)", "show": "b1" },
+        { "expr": "cap_load_mutable(cap)", "show": "b1" },
+        { "expr": "cap_permit_execute(cap)", "show": "b1" },
+        { "expr": "cap_permit_seal(cap)", "show": "b1" },
+        { "expr": "cap_permit_unseal(cap)", "show": "b1" },
+        { "expr": "cap_access_system_regs(cap)", "show": "b1" }
+      ]
+    },
+    {
+      "kind": "dec",
+      "what": "the decode, the re-encode, the bounds, the length and the malformed predicate, over drawn encodings; the tag is derived rather than chosen, getCapLength asserting that a tagged capability has its top at or above its base",
+      "params": [
+        { "name": "c", "width": 64, "over": "draw", "show": "h16" }
+      ],
+      "repeat": 4000,
+      "seed": "0x0a5c3f19d",
+      "body": [
+        "let probe = capBitsToCapability(false, c)",
+        "let (base, top) = getCapBoundsBits(probe)",
+        "let mal : bool = unsigned(top) < unsigned(0b0 @ base)",
+        "let cap = capBitsToCapability(not(mal), c)",
+        "let len = getCapLength(cap)"
+      ],
+      "shows": [
+        { "expr": "not(mal)", "show": "b1" },
+        { "expr": "cap.perms", "show": "h2" },
+        { "expr": "cap.otype", "show": "h1" },
+        { "expr": "cap.normalized", "show": "b1" },
+        { "expr": "cap.E", "show": "h2" },
+        { "expr": "cap.B", "show": "h2" },
+        { "expr": "cap.T", "show": "h2" },
+        { "expr": "cap.address", "show": "h9" },
+        { "expr": "capToBits(cap)", "show": "h16" },
+        { "expr": "base", "show": "h9" },
+        { "expr": "top", "show": "h10" },
+        { "expr": "to_bits_truncate(cap_len_width, len)", "show": "h10" },
+        { "expr": "mal", "show": "b1" }
+      ]
+    },
+    {
+      "kind": "sb",
+      "what": "the narrowing csetbounds performs, at a spread of magnitudes: the requested top is a shifted draw above a drawn base, so the exponent choice, the rounding and the exactness verdict are exercised off every boundary",
+      "params": [
+        { "name": "base", "width": 36, "over": "draw", "show": "h9" },
+        { "name": "raw", "width": 36, "over": "draw", "show": "h9" },
+        { "name": "sh", "width": 5, "over": "draw", "show": "h2" }
+      ],
+      "repeat": 4000,
+      "seed": "0x123456789",
+      "body": [
+        "let top : CapLenBits = (0b0 @ base) + ((0b0 @ raw) >> unsigned(sh))",
+        "let (exact, res) = setCapBounds(root_data_cap, base, top)",
+        "let (dbase, dtop) = getCapBoundsBits(res)",
+        "let len = getCapLength(res)"
+      ],
+      "shows": [
+        { "expr": "top", "show": "h10" },
+        { "expr": "exact", "show": "b1" },
+        { "expr": "res.tag", "show": "b1" },
+        { "expr": "res.normalized", "show": "b1" },
+        { "expr": "res.E", "show": "h2" },
+        { "expr": "res.B", "show": "h2" },
+        { "expr": "res.T", "show": "h2" },
+        { "expr": "res.address", "show": "h9" },
+        { "expr": "dbase", "show": "h9" },
+        { "expr": "dtop", "show": "h10" },
+        { "expr": "to_bits_truncate(cap_len_width, len)", "show": "h10" }
+      ]
+    },
+    {
+      "kind": "mv",
+      "what": "the two address movers, the increment form, the fast representability check and the bounds check, each at the ends of a derived region and one either side of them: the selector is exhaustive over the eight targets a move is worth taking at, because a drawn address lands on an edge with probability nobody should rely on",
+      "params": [
+        { "name": "base", "width": 36, "over": "draw", "show": "h9" },
+        { "name": "raw", "width": 36, "over": "draw", "show": "h9" },
+        { "name": "sh", "width": 5, "over": "draw", "show": "h2" },
+        { "name": "sel", "width": 3, "over": "all", "show": "h1" }
+      ],
+      "repeat": 250,
+      "seed": "0x0fedcba98",
+      "body": [
+        "let top : CapLenBits = (0b0 @ base) + ((0b0 @ raw) >> unsigned(sh))",
+        "let (_, c) = setCapBounds(root_data_cap, base, top)",
+        "let (dbase, dtop) = getCapBoundsBits(c)",
+        "let e = unsigned(c.E)",
+        "let tgt : xlenbits = (match sel { 0b000 => zero_extend(dbase), 0b001 => zero_extend(dbase) - 1, 0b010 => zero_extend(dbase) + 1, 0b011 => zero_extend(dtop), 0b100 => zero_extend(dtop) - 1, 0b101 => zero_extend(dtop) + 1, 0b110 => zero_extend(raw), _ => 0x0000001000000000 })",
+        "let step : CapAddrBits = (match sel { 0b000 => zeros(), 0b001 => to_bits_truncate(cap_addr_width, 1), 0b010 => ones(), 0b011 => to_bits_truncate(cap_addr_width, pow2(e + cap_mantissa_width) - 1), 0b100 => to_bits_truncate(cap_addr_width, pow2(e + cap_mantissa_width)), 0b101 => to_bits_truncate(cap_addr_width, 0 - pow2(e + cap_mantissa_width)), 0b110 => raw, _ => not_vec(raw) })",
+        "let sz : CapLenBits = to_bits_truncate(cap_len_width, unsigned(sel) * 7)",
+        "let (rep, moved) = setCapAddr(c, tgt)",
+        "let (repo, movedo) = setCapOffset(c, tgt)",
+        "let (repi, movedi) = incCapOffset(c, tgt)"
+      ],
+      "shows": [
+        { "expr": "capToBits(c)", "show": "h16" },
+        { "expr": "tgt", "show": "h16" },
+        { "expr": "rep", "show": "b1" },
+        { "expr": "moved.address", "show": "h9" },
+        { "expr": "setCapAddrChecked(c, tgt).tag", "show": "b1" },
+        { "expr": "repo", "show": "b1" },
+        { "expr": "movedo.address", "show": "h9" },
+        { "expr": "setCapOffsetChecked(c, tgt).tag", "show": "b1" },
+        { "expr": "repi", "show": "b1" },
+        { "expr": "movedi.address", "show": "h9" },
+        { "expr": "fastRepCheck(c, step)", "show": "b1" },
+        { "expr": "inCapBounds(c, tgt, unsigned(sz))", "show": "b1" },
+        { "expr": "sz", "show": "h10" }
+      ]
+    },
+    {
+      "kind": "sbe",
+      "what": "the same narrowing at the corners a sweep off entropy alone does not reach: R1a measured a defect inside the exponent-increment branch that reproduced 647,179 sampled vectors and was killed only by a deliberate corner, so the bases and tops here are named rather than hoped for",
+      "params": [
+        {
+          "name": "base",
+          "width": 36,
+          "over": "table",
+          "show": "h9",
+          "rows": [
+            "0x000000000", "0x000000001", "0x080000000", "0x080000003",
+            "0x0fffffff0", "0x0ffffffff", "0x800000000", "0xc00000000",
+            "0xfffffff00", "0xfffffffff", "0x555555555", "0x0abcdef01"
+          ]
+        },
+        {
+          "name": "top",
+          "width": 37,
+          "over": "table",
+          "show": "h10",
+          "rows": [
+            "0b0 @ 0x000000000", "0b0 @ 0x000000001", "0b0 @ 0x000000010",
+            "0b0 @ 0x000000080", "0b0 @ 0x080000000", "0b0 @ 0x0ffffffff",
+            "0b0 @ 0x800000000", "0b0 @ 0xc00000000", "0b0 @ 0xfffffffff",
+            "0b1 @ 0x000000000", "0b1 @ 0x555555554", "0b1 @ 0xfffffffff"
+          ]
+        }
+      ],
+      "body": [
+        "let (exact, res) = setCapBounds(root_data_cap, base, top)",
+        "let (dbase, dtop) = getCapBoundsBits(res)"
+      ],
+      "shows": [
+        { "expr": "exact", "show": "b1" },
+        { "expr": "res.normalized", "show": "b1" },
+        { "expr": "res.E", "show": "h2" },
+        { "expr": "res.B", "show": "h2" },
+        { "expr": "res.T", "show": "h2" },
+        { "expr": "dbase", "show": "h9" },
+        { "expr": "dtop", "show": "h10" }
+      ]
+    },
+    {
+      "kind": "sl",
+      "what": "sealing over every object type, the reserved types and both sentry edges",
+      "params": [
+        { "name": "c", "width": 64, "over": "draw", "show": "h16" },
+        { "name": "otyp", "width": 4, "over": "all", "show": "h1" }
+      ],
+      "repeat": 200,
+      "seed": "0x0c0ffee12",
+      "body": [
+        "let cap = capBitsToCapability(true, c)",
+        "let sealed = sealCap(cap, otyp)"
+      ],
+      "shows": [
+        { "expr": "isCapSealed(sealed)", "show": "b1" },
+        { "expr": "hasReservedOType(sealed)", "show": "b1" },
+        { "expr": "isSentry(sealed)", "show": "b1" },
+        { "expr": "capToBits(sealed)", "show": "h16" },
+        { "expr": "capToBits(unsealCap(sealed))", "show": "h16" }
+      ]
+    },
+    {
+      "kind": "mb",
+      "what": "the null transform across the memory interface, and an integer read as a capability",
+      "params": [
+        { "name": "v", "width": 64, "over": "draw", "show": "h16" }
+      ],
+      "repeat": 2000,
+      "seed": "0x0fedcba98",
+      "body": [
+        "let cap = capBitsToCapability(true, v)",
+        "let mem = capToMemBits(cap)",
+        "let back = memBitsToCapability(true, mem)",
+        "let asint = int_to_cap(v)"
+      ],
+      "shows": [
+        { "expr": "mem", "show": "h16" },
+        { "expr": "back.tag", "show": "b1" },
+        { "expr": "capToBits(back)", "show": "h16" },
+        { "expr": "asint.tag", "show": "b1" },
+        { "expr": "capToBits(asint)", "show": "h16" },
+        { "expr": "asint.address", "show": "h9" }
+      ]
+    }
+  ]
+}

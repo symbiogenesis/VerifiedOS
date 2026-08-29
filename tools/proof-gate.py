@@ -19,7 +19,6 @@ switch the Sail toolchain lives in. From Windows: wsl -e python3 tools/proof-gat
 """
 
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -29,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import env
+from vos import proofs as proofs_mod
 from vos.corpus import find_root
 
 PROOFS = "proofs"
@@ -41,40 +41,6 @@ STATEMENT = "ApexTheorem.v"
 # The declared set, which R-05-164 reads from the register. It is empty today, and an
 # entry is added here only when the register grows one, never to make a run pass.
 DECLARED: set[str] = set()
-
-# What a source Requires, read to derive the compile order: name order is not a
-# dependency order, and a Require compiled ahead of its dependency is satisfied by
-# whatever stale .vo a previous run left behind.
-REQUIRE = re.compile(r"^\s*(?:From\s+\S+\s+)?Require(?:\s+(?:Import|Export))?\s+([^.]+)\.",
-                     re.MULTILINE)
-
-
-def _local_requires(source: Path, stems: set[str]) -> set[str]:
-    """The proofs this source Requires from its own directory, by file stem; what a
-    library provides is not this gate's to order."""
-    text = source.read_text(encoding="utf-8")
-    named = (name for found in REQUIRE.finditer(text) for name in found.group(1).split())
-    return {name for name in named if name in stems}
-
-
-def _waves(sources: list[Path]) -> list[list[Path]]:
-    """The sources in dependency order: each wave Requires only what earlier waves
-    compiled, and is name-sorted within itself so the order is deterministic."""
-    stems = {source.stem for source in sources}
-    needs = {source: _local_requires(source, stems) for source in sources}
-    waves: list[list[Path]] = []
-    done: set[str] = set()
-    remaining = sorted(sources)
-    while remaining:
-        ready = [source for source in remaining if needs[source] <= done]
-        if not ready:
-            stuck = ", ".join(source.name for source in remaining)
-            raise SystemExit(f"FAIL: a Require cycle among {stuck}; "
-                             f"no compile order satisfies it")
-        waves.append(ready)
-        done |= {source.stem for source in ready}
-        remaining = [source for source in remaining if source not in ready]
-    return waves
 
 
 def _hold(proofs: Path) -> int:
@@ -152,7 +118,7 @@ def main() -> int:
     failures: list[tuple[Path, str]] = []
     closed = 0
     undeclared: list[str] = []
-    for wave in _waves(sorted(proofs.glob("*.v"))):
+    for wave in proofs_mod.waves(sorted(proofs.glob("*.v"))):
         for source in wave:
             done = _compile(root, source)
             if done.returncode != 0:
