@@ -587,7 +587,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-124e** owed-act: an extension excluded by name has its exclusion carried by a configuration key rather than by a shape of the model, and no artifact says so
 · Raised: M0.19
-· Disposition: open, the extension having no instruction file of its own to record the disposition in
+· Disposition: closed, held by K-87, which holds every excluded-by-name extension the model still gates on a key false in every shipped configuration
 
 **F-124f** measurement: nothing left with the two struck clauses, every candidate checked against its callers by name rather than assumed dead
 · Raised: M0.19
@@ -674,7 +674,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-144** owed-act: the bounds-setting containment property holds over a domain that nothing states, the decoded top wrapping below its own base above it
 · Raised: M2.1
-· Disposition: open, R-15-007a's representation-correctness proof owing the condition and the format's property harness owing that edge; no register entry governs the item that found it
+· Disposition: closed, taken at R-15-007a, which now states the containment domain as a requested top at or below 2^36 and owes the format's property harness that edge
 
 ## M3 · Boot chain
 
@@ -726,75 +726,75 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-156** owed-act: two requirements cannot both be true of the Debug Module, one closing it permanently at the transition out of test and the other making entry an authenticated exchange in a later state
 · Raised: M3.1, in prose
-· Disposition: open, which sentence is short being a register act; the model carries the production gate the entries agree on
+· Disposition: closed, taken at R-09-034, which carves the Debug Module out of the permanent test-exit closure and leaves it live in development and RMA alone
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
-· Disposition: open, the mode-transition budget reading one dwell on one arm and two on the other
+· Disposition: closed, taken at R-15-247d: the disjunction resolves to one pass over both planes, so the transition carries one dwell and one read rather than two of each
 
 **F-156b** owed-act: the completion indication's arity against the bank staggering is unstated, one read per transition, one per phase and one per bank being three budget terms and three degrees of partiality visibility
 · Raised: M3.6a
-· Disposition: open, the consequence machine-checked, a per-domain reader confirming exactly where the per-bank reader refuses
+· Disposition: closed, taken at R-15-247f: the read is per phase, per transition being refuted by DischargeSequence.v's own construction and per bank costing the bank count
 
 **F-156c** owed-act: an acceptance clause is a necessary condition rather than its criterion, a bank nothing reached satisfying *no path admits a partially sanitized bank*
 · Raised: M3.6a
-· Disposition: open, the reader that is that clause shown to admit an undrained domain, so the clause and the completion read are two obligations
+· Disposition: closed, taken at R-15-247d, which states the clause and the completion read's domain as two obligations, each catching what the other cannot
 
 **F-156d** owed-act: the reset hold has no scope, a die-wide hold and the one island kept live across standby with an admitted hard task on it not both holding as written
 · Raised: M3.6a
-· Disposition: open, the requester roster carried as a field so the obligation is stated over whatever the register decides it names
+· Disposition: closed, taken at R-15-247h: the reset hold is scoped to initiators that can address the domain, which is what leaves R-15-190's admitted hard task standing
 
 **F-156e** owed-act: where the fail-stop latch lives is unstated, two entries latching on a negative reading and neither naming the power domain the latch sits in
 · Raised: M3.6a
-· Disposition: open, which matters because the discharge is relocated onto the path that collapses the rail
+· Disposition: closed, taken at R-15-247f: the latch sits in the always-on root-of-trust domain, the discharge being taken on the path that collapses the rail
 
 ## M4 · Kernel
 
 **F-157** owed-act: an acceptance criterion audits an artifact that does not exist, no artifact here carrying the invocation enumeration it calls enumerated and closed
 · Raised: M4.2a
-· Disposition: open, a Gallina interface authored now becoming the list rather than implementing it, under a gate that never asks the review gate's question
+· Disposition: closed, taken at R-07-031b, which enumerates the invocation list and closes it at five with an amendment criterion, in the register the review gate audits
 
 **F-158** owed-act: three entries state incompatible things about one act, two fixing synchronous endpoints and run-to-completion with no blocking call and a third naming a wait the register defines nowhere
 · Raised: M4.2a
-· Disposition: open, what a partition does when an endpoint has no ready peer being unfixed three ways
+· Disposition: closed, taken at R-07-029a: synchronous means rendezvous or refusal, which is the only reading on which all three entries agree and the only one R-11-006 admits
 
 **F-159** owed-act: whether the intra-slot rotation swaps the pending bits is unstated, and the silence is observable rather than harmless
 · Raised: M4.2a
-· Disposition: open, the consequence machine-checked on both arms, so it is a decision the register owes rather than a detail composition may settle
+· Disposition: closed, taken at R-07-037c: the rotation swaps the pending component, those bits being delivery state rather than residue
 
 **F-160** owed-act: a same-label group member begins its reaction on state the rotation does not clear, and no entry says what it may assume about it
 · Raised: M4.2a
-· Disposition: open, the consequence machine-checked, a post-state carrying the previous member's value being admitted by the rotation and refused by the switch
+· Disposition: closed, taken at R-07-037d, which states the in-domain assumption R-07-037b's own ground for omitting the zeroize was already resting on
 
 **F-161** owed-act: an invariance criterion enumerates the admission check's inputs more narrowly than the two entries that state the check
 · Raised: M4.2a
-· Disposition: open, the invariance proved over all four declared quantities and the narrower enumeration reported rather than repaired
+· Disposition: closed, taken at R-11-023, whose criterion now names the four quantities the invariance is proved over, with the prose carrying the narrow reading repaired
 
 **F-162** owed-act: the switch cost is fixed at three terms and names neither the total restore nor the pending swap among them, while two other entries put both inside the budget
 · Raised: M4.2a
-· Disposition: open, either the budget is not exactly three terms or those two sit inside one of the three, and no entry says which
+· Disposition: closed, taken at R-15-220a: the restore and the swap are a context term beside R-15-220's three platform terms, so no entry consuming the constant moves
 
 **F-163** owed-act: the surviving object count is five in the prose and three or four in the register, and nothing enumerates the five
 · Raised: M4.2a
-· Disposition: open, a closed inductive authored here resolving a three-way disagreement by fiat and then machine-checking the resolution
+· Disposition: closed, taken at R-07-027a, which resolves the count as a conflation of two kinds rather than by picking a number, and settles that no reply object survives
 
 **F-164** owed-act: the rule registry has a gap in its numbering that nothing records and no rule can see, the id occurring nowhere else in the tree
 · Raised: M4.2a
-· Disposition: open, whether it was retired or never allocated being unanswerable; nothing depends on the answer and the next free ids follow the registry's highest
+· Disposition: closed, held by a struck row in the rule registry recording that the id was never allocated and is not reused, written struck so K-00 holds the live rows alone
 
 **F-165** owed-act: the emulator runs one hart and every shipped configuration composes one, so the multikernel's defining property is first exercisable on the RTL track
 · Raised: M4.4, in prose
-· Disposition: open, the ruling having a priced consequence on both arms and being the one argument that reinstates the struck fast-emulator items
+· Disposition: closed, taken at M4.4: single-instance bring-up, the multikernel's defining property being first exercisable on the RTL track where a second implementation stands
 
 ## M6 · Userland spine
 
 **F-166** owed-act: whether a statically composed image re-admits on device or measured boot covers it is unruled, and the split of the admission-checker milestone rests on it
 · Raised: M6.2, in prose
-· Disposition: open, a wrong reading costing the deferral rather than the work
+· Disposition: closed, taken at M6.2: measured boot covers a statically composed image, on R-13-001c's own statement of the composer and of the device's act
 
 **F-167** owed-act: the typed interface profile the ring contract is stated in is carried by no path in the tree and authored by no milestone here
 · Raised: M6.4, in prose
-· Disposition: open, a schema authored into it authoring the type layer it is stated over by implication; recorded rather than costed, the profile's scope being what a costing would have to assume
+· Disposition: closed, taken at M6.0b, which gives the typed IDL profile an item of its own rather than leaving M6.4 to author the type layer it is stated over
 
 ## RTL track
 
@@ -808,16 +808,16 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-170** owed-act: whether curating the pinned tag controller is the act R-15-092 forbids is a question this plan answers nowhere, the interconnect being a net-new block that requirement wants authored and proven
 · Raised: R1, in prose
-· Disposition: open, the reading being the user's, and Coq and Kami authoring being priced in none of the item's children
+· Disposition: closed, taken at R1: the fabric is curated as a functional reference now and authored under route (a) afterwards, on section 11's own sentence about that route
 
 **F-171** owed-act: the bounds-setting containment property holds over a domain nothing states, measured here from the RTL side and agreed by both implementations
 · Raised: R1a
-· Disposition: open, the same act owed, and it is unreachable with a tag because the narrowing clears the tag on precisely the test that fails there
+· Disposition: closed, together with F-144 at R-15-007a; three implementations agreeing line for line is what made it the algebra's rather than any one of theirs
 · Restates: F-144
 
 **F-172** owed-act: the same domain falsifies a sentence the model states about itself, the internal exponent leaving its stated range and the encoder truncating it into the other case
 · Raised: R1a
-· Disposition: open, the header sentence owing its domain; decode's own clamp catches it and the two implementations agree line for line
+· Disposition: closed, together with F-144: the header sentence describes the stated domain, and the domain is now stated where the proof obligation is
 
 **F-173** method: a vector population off entropy alone cannot tell one clause from its absence, the branch that decides firing only where both operands are aligned to a large power of two
 · Raised: R1a
@@ -837,7 +837,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-177** owed-act: the platform devices have no definition in this repository to be authored against, there being no interconnect top, no bus and no address map, and the shipped composition declaring no serial port at all
 · Raised: R1c, in prose
-· Disposition: open, a register gap taken at S1; the net-new-block enumeration does not name them and its fixed-function clause plausibly reaches part of what a link layer would be
+· Disposition: closed, taken at R1c: the address map is a register act under R-15-002b and the peripherals are route-(c) references, the top following the map
 
 ## Build-loop instruments
 
