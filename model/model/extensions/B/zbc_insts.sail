@@ -44,6 +44,20 @@ function clause execute CLMULH(rs2, rs1, rd) = {
 }
 
 // *****************************************************************
+// `Zbc` is excluded by name (R-15-048a), and `clmulr` below is gated on it
+// alone: no shipped configuration enables the key, so the clause decodes for
+// nothing and its encoding point reaches the illegal-instruction path by the
+// route every unallocated point does (R-15-014).
+//
+// The clause stays, and that is a curation call rather than an oversight.
+// Where an excluded extension owns its whole file, the file goes and the next
+// re-pin has nothing to reconcile. This file is not that one: `clmul` and
+// `clmulh` above are reached through the adopted `Zbkc` (R-15-042), so the only
+// deletion on offer is a surgical edit inside a vendored file, a divergence
+// carried into every re-pin from here on, and it would buy nothing the key does
+// not already buy. So this exclusion is a supported-flag reading false, where
+// `Zacas`'s is a property of the model (R-15-026): what separates them is which
+// deletion the file admits, and not how firmly either is excluded.
 union clause instruction = CLMULR : (regidx, regidx, regidx)
 
 $[wavedrom "MINMAX/CLMUL _ _ CLMULR _ OP"]
