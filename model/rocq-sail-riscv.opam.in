@@ -22,8 +22,6 @@ depends: [
   "sail_coq_backend" {>= "@sail_required_version_rocq@"}
   "sail_doc_backend" {>= "@sail_required_version_rocq@"}
   "sail_latex_backend" {>= "@sail_required_version_rocq@"}
-  "sail_lean_backend" {>= "@sail_required_version_rocq@"}
-  "sail_lem_backend" {>= "@sail_required_version_rocq@"}
   "sail_smt_backend" {>= "@sail_required_version_rocq@"}
   "sail_sv_backend" {>= "@sail_required_version_rocq@"}
   "sail_ocaml_backend" {>= "@sail_required_version_rocq@"}

@@ -7,7 +7,6 @@ _sbuild/
 *.o
 *.a
 z3_problems
-.lake
 
 # Typical CMake build directory.
 /build

@@ -38,32 +38,11 @@ install(FILES "${CMAKE_SOURCE_DIR}/dependencies/asio/LICENSE_1_0.txt"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/${CMAKE_PROJECT_NAME}"
 )
 
-# Debian requires compressed changelogs.
-# https://lintian.debian.org/tags/changelog-file-not-compressed
-#
-# It also requires the timestamp to be 0 for reproducible builds.
-# https://lintian.debian.org/tags/package-contains-timestamped-gzip.html
-#
-# To achieve that with CMake we need to `export SOURCE_DATE_EPOCH=0`.
-# See https://gitlab.kitware.com/cmake/cmake/-/issues/23418#note_1714128
-set(src_changelog "${CMAKE_SOURCE_DIR}/doc/ChangeLog.md")
-set(gzip_changelog "${CMAKE_BINARY_DIR}/changelog.gz")
-
-file(ARCHIVE_CREATE
-    OUTPUT ${gzip_changelog}
-    FORMAT raw
-    COMPRESSION GZip
-    COMPRESSION_LEVEL 9
-    PATHS ${src_changelog}
-)
-
-# https://lintian.debian.org/tags/no-changelog
-install(FILES ${gzip_changelog}
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/${CMAKE_PROJECT_NAME}")
-
-# RPM doesn't need a compressed changelog.
-install(FILES ${src_changelog}
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/${CMAKE_PROJECT_NAME}")
+# No changelog is installed, and so lintian's `no-changelog` tag goes
+# unanswered: `doc/` held upstream's account of releases of a model this tree is
+# a curation of, and a changelog for the wrong artifact is worse than none.  The
+# rule had to go with the file rather than be left to fail later, because the
+# `file(ARCHIVE_CREATE)` that gzipped it ran at *configure*.
 
 # CPack configuration
 

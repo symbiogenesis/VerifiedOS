@@ -4,9 +4,7 @@ This repository contains a formal specification of the RISC-V architecture, writ
 [Sail](https://github.com/rems-project/sail). It has been adopted by RISC-V International.
 
 The model specifies assembly language formats of the instructions, the corresponding
-encoders and decoders, and the instruction semantics. A [reading guide](doc/ReadingGuide.md)
-to the model is provided in the [doc/](doc/) subdirectory, along with a guide on [how to
-add a new extension](doc/AddingExtensions.md) to the model.
+encoders and decoders, and the instruction semantics.
 
 ## What is Sail?
 
@@ -15,16 +13,11 @@ add a new extension](doc/AddingExtensions.md) to the model.
 engineer-friendly language, much like earlier vendor pseudocode, but more precisely defined and with tooling to support a wide range of use-cases.
 
 Given a Sail specification, the tool can type-check it, generate documentation snippets (in LaTeX or AsciiDoc), generate executable emulators, show specification coverage, generate versions of the ISA for relaxed memory model tools, support automated instruction-sequence test generation, generate theorem-prover definitions for
-interactive proof (in Isabelle, Rocq, and Lean), support proof about binary code (in Islaris), and (in progress) generate a reference ISA model in SystemVerilog that can be used for formal hardware verification.
+interactive proof (in Rocq), support proof about binary code (in Islaris), and (in progress) generate a reference ISA model in SystemVerilog that can be used for formal hardware verification.
 
 <img width="800" src="https://www.cl.cam.ac.uk/~pes20/sail/overview-sail.png?raw=true">
 
 ## Using the Sail RISC-V specification
-
-The most common workflows using the Sail model of RISC-V are shown
-below.
-
-![](./doc/figs/workflow.svg)
 
 The Sail components of the model are a Sail project file
 [`riscv.sail_project`](model/riscv.sail_project) and several
@@ -115,11 +108,6 @@ To override only a small subset of options while using the default configuration
 or a custom configuration file as a base, the `--config-override` option can be
 used. This option allows one or more additional JSON configuration files to be specified,
 whose fields take precedence over those in the base configuration.
-
-### Booting OS images
-
-For booting operating system images, see the information under the
-[os-boot/](os-boot/) subdirectory.
 
 ### Attaching a debugger
 
@@ -359,8 +347,10 @@ Imperas. To date, only sequentially consistent behaviour was observed there.
 ## Generating theorem-prover definitions
 
 Sail aims to support the generation of idiomatic theorem prover
-definitions across multiple tools. At present it supports Isabelle,
-Rocq, and Lean.
+definitions across multiple tools. Of those, this tree builds Rocq alone.
+There is no Isabelle, HOL4 or Lean target and no handwritten Lem or Lean
+library under one, because a dormant target's support is model state that
+goes stale where no typechecker can see it.
 
 These theorem-prover translations can target multiple monads for
 different purposes. The first is a state monad with nondeterminism and
@@ -374,8 +364,8 @@ monad over an effect datatype of memory actions. This monad is also
 used as part of the aforementioned concurrency support via the RMEM
 tool.
 
-The files under [`handwritten_support`](./handwritten_support) provide library definitions for
-each prover.
+The files under [`handwritten_support`](./handwritten_support) provide the library
+definitions Rocq needs.
 
 ## Directory Structure
 
@@ -387,9 +377,7 @@ sail-riscv
 - cmake                   // extra build system modules
 - dependencies            // external dependencies
 - sail_runtime            // build files for sail runtime
-- doc                     // documentation, including a reading guide
 - test                    // CMake test setup and URL references for RISC-V test suites
-- os-boot                 // information and sample files for booting OS images
 ```
 
 ## Licence
