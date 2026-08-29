@@ -598,6 +598,7 @@ CONTRACT = "docs/freeze-measurement-contract.md"
 GEOMETRY = "docs/block-geometry-constraint.md"
 THIRD_PARTY = "THIRD-PARTY.md"
 DELTA = "docs/rtl-reparameterization-delta.md"
+FINDINGS = "docs/findings-register.md"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -708,6 +709,23 @@ def _k84(box: Sandbox) -> bool:
         return False
     return box.write(PLAN, replace_span(
         text, m, f"{m.group()}\n{m.group('ind')}* Landed: Tier B."))
+
+
+def _k82_figure(box: Sandbox) -> bool:
+    """The register's own size, moved off the figure the entries give.
+
+    Computed from what it finds rather than pinned as a literal, because the figure it
+    seeds is one `--fix` rewrites: a literal here would be a derived fact hand-maintained
+    in the selftest, and it would go stale on the next item that lands a finding rather
+    than on any change to the rule. What the case asks is unchanged, that the repair path
+    recognizes the register's size as its own to rewrite.
+    """
+    text = box.read(FINDINGS)
+    m = re.search(r"The plan records (?P<n>\d+) of them", text)
+    if not m:
+        return False
+    return box.write(FINDINGS, replace_span(
+        text, m, f"The plan records {int(m.group('n')) - 1} of them"))
 
 
 def _k30(box: Sandbox) -> bool:
@@ -1286,6 +1304,28 @@ CASES: list[Case] = [
     # pass its own selftest. A Tier-B landing naming nothing is what the fourth of the
     # four conditions exists to refuse, and it is the state the rule was written for.
     ("K-84", "a Tier-B landing naming no rule holding what it created", _k84),
+
+    # Seeded on the plan's side, which is the direction the defect arrives from: a
+    # completion note is edited far more often than the index over it. The word alone
+    # moves and its bullets stay, which is exactly what a finding added to a note
+    # without the count following it looks like, and it is why the block's size is
+    # counted from the bullets rather than read off the word. Nothing else opens this
+    # bullet: it carries no figure, no id, no citation and no table cell, so the case
+    # passes on K-82's own report with no collateral.
+    ("K-82", "a completion note whose declared count is not the number of findings "
+             "beneath it",
+     _literal(PLAN, "  * Six findings.\n    * **The discharge needed no mechanism",
+              "  * Seven findings.\n    * **The discharge needed no mechanism")),
+
+    # One rule gets one case, and this rule gets two, because the pairing fails from
+    # two sides and neither case reaches the other: with the resolution half deleted
+    # the mutant above is still killed, so a rule narrowed to the count word would
+    # pass its own selftest. The raising item is respelled to one the plan does not
+    # carry, which is what a split or a strike leaves behind, and it fires both
+    # readings at once, the item resolving against nothing and its note's one counted
+    # finding losing the entry that indexed it.
+    ("K-82", "a register entry raised at an item the plan does not carry",
+     _literal(FINDINGS, "· Raised: I11", "· Raised: I12")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
@@ -1325,6 +1365,15 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
         GEOMETRY, "that is a ceiling of **512 bytes**",
         "that is a ceiling of **256 bytes**")),
     "K-69": ("kernel-line-budget", _case_mutation("K-69")),
+    # A third that cannot ride its own case, and for the plainest reason: neither of
+    # K-82's cases is an arithmetic figure. One moves a count word in the plan and the
+    # other an item id in the register, and repairing either would mean writing a
+    # finding or a note, so neither reaches a `fixed:` line. The seed instead moves the
+    # one figure the rule does rewrite, the register's own size, in the sentence that
+    # states it beside the item count, and it computes that figure rather than pinning
+    # it: the number moves whenever an item lands a finding, so a literal would go stale
+    # on work that never touched the rule.
+    "K-82": ("findings the plan records", _k82_figure),
 }
 
 
