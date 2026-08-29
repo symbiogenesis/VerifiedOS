@@ -6,6 +6,14 @@
 //  SPDX-License-Identifier: BSD-2-Clause
 //=======================================================================================
 
+// The profile adopts `Zvfbfmin` beside `Zvfbfwma`, being that extension's own
+// standards-track dependency: the widening bf16 multiply-accumulate is defined
+// over an element type whose narrowing and widening conversions are the two
+// clauses below, so adopting the second and not the first would state an
+// incomplete extension set rather than a narrower one (R-15-067i). Neither
+// clause takes a scalar operand, so neither pays the re-homing surcharge every
+// other vector floating-point adoption here pays (R-15-040b) and neither
+// diverges from upstream.
 function clause currentlyEnabled(Ext_Zvfbfmin) = hartSupports(Ext_Zvfbfmin) & currentlyEnabled(Ext_Zve32f)
 
 union clause instruction = VFNCVTBF16_F_F_W : (bits(1), vregidx, vregidx)
