@@ -33,12 +33,9 @@ structural property was written about. Generation does not depend on the choice.
 
 import argparse
 import subprocess
-from collections.abc import Callable
 
-from vos import env, gallina
+from vos import cli, env, gallina
 from vos.corpus import find_root
-
-type Command = Callable[[argparse.Namespace], int]
 
 # The opam package, and what installing it costs. Measured on 2026-08-29 rather than
 # estimated, because the cost is the whole reason this is a priced step and the three
@@ -193,22 +190,19 @@ def cmd_properties(args: argparse.Namespace) -> int:
     return 0
 
 
-COMMANDS: dict[str, tuple[Command, str]] = {
+COMMANDS: cli.Table = {
     "check": (cmd_check, "whether QuickChick is installed, and what installing costs"),
     "vectors": (cmd_vectors, "the enumerative half: generated inputs, as text"),
     "properties": (cmd_properties, "the randomized half, which QuickChick runs"),
 }
 
 
+def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name == "vectors":
+        sub.add_argument("--show", type=int, default=3, metavar="N",
+                         help="print the first N vectors as a sample")
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    subs = parser.add_subparsers(dest="command", required=True)
-    for name, (_, help_text) in COMMANDS.items():
-        sub = subs.add_parser(name, help=help_text)
-        if name == "vectors":
-            sub.add_argument("--show", type=int, default=3, metavar="N",
-                             help="print the first N vectors as a sample")
-    args = parser.parse_args(argv)
-    handler, _ = COMMANDS[args.command]
-    return handler(args)
+    return cli.dispatch(__doc__, COMMANDS, argv, _flags, prog="run.py quickchick")
 

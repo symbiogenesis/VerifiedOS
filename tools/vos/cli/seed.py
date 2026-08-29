@@ -56,15 +56,13 @@ the same entry point either way, so the host gate is unchanged by the move.
 import argparse
 import shutil
 import subprocess
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from vos import env, gallina, mutate, sailrig
+from vos import cli, env, gallina, mutate, sailrig
 from vos import oracle as oracle_spec
 from vos.corpus import find_root
-
-type Command = Callable[[argparse.Namespace], int]
 
 # The three verdicts, spelled once.
 KILLED = "killed"
@@ -565,7 +563,7 @@ def _properties_run(harness: Path) -> tuple[bool, str]:
     return False, first[:160]
 
 
-COMMANDS: dict[str, tuple[Command, str]] = {
+COMMANDS: cli.Table = {
     "list": (cmd_list, "the mutants one source yields, without running anything"),
     "sail": (cmd_sail, "seed a model source and require the generated vectors to move"),
     "coq": (cmd_coq, "seed a Gallina definition; the prover first, the vectors after"),
@@ -574,40 +572,37 @@ COMMANDS: dict[str, tuple[Command, str]] = {
 }
 
 
+def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    sub.add_argument("--limit", type=int, default=0, metavar="N",
+                     help="run the first N mutants of the population")
+    sub.add_argument("--sample", type=int, default=0, metavar="N",
+                     help="run N evenly spaced mutants, which is what a "
+                          "measurement wants where a prefix is one operator's")
+    if name == "sail":
+        sub.add_argument("--spec", required=True,
+                         help="the oracle spec whose vectors decide")
+        sub.add_argument("--file", help="which of the spec's sources to mutate; "
+                                        "the last one by default")
+    if name == "coq":
+        sub.add_argument("--file", default=COQ_SUBJECT,
+                         help="which Gallina source to mutate")
+        sub.add_argument("--quickchick", action="store_true",
+                         help="let QuickChick's draws and shrinking decide instead "
+                              "of the enumerative harness's vectors")
+    if name in ("list", "properties"):
+        sub.add_argument("--file", required=True, help="the source to mutate")
+    sub.add_argument("--region", action="append", default=[], metavar="NAME",
+                     help="mutate only the region of this name; repeatable. What "
+                          "it is for is asking an oracle about the definitions it "
+                          "computes over rather than about every definition in the "
+                          "file, a fixture no generated input reaches being a "
+                          "survivor about the domain and not about the oracle")
+    sub.add_argument("--operator", action="append", default=[], metavar="NAME",
+                     help="run only this operator's mutants; repeatable. What it "
+                          "is for is holding two oracles to the same population, "
+                          "which a sample cannot do")
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    subs = parser.add_subparsers(dest="command", required=True)
-    for name, (_, help_text) in COMMANDS.items():
-        sub = subs.add_parser(name, help=help_text)
-        sub.add_argument("--limit", type=int, default=0, metavar="N",
-                         help="run the first N mutants of the population")
-        sub.add_argument("--sample", type=int, default=0, metavar="N",
-                         help="run N evenly spaced mutants, which is what a "
-                              "measurement wants where a prefix is one operator's")
-        if name == "sail":
-            sub.add_argument("--spec", required=True,
-                             help="the oracle spec whose vectors decide")
-            sub.add_argument("--file", help="which of the spec's sources to mutate; "
-                                            "the last one by default")
-        if name == "coq":
-            sub.add_argument("--file", default=COQ_SUBJECT,
-                             help="which Gallina source to mutate")
-            sub.add_argument("--quickchick", action="store_true",
-                             help="let QuickChick's draws and shrinking decide instead "
-                                  "of the enumerative harness's vectors")
-        if name in ("list", "properties"):
-            sub.add_argument("--file", required=True, help="the source to mutate")
-        sub.add_argument("--region", action="append", default=[], metavar="NAME",
-                         help="mutate only the region of this name; repeatable. What "
-                              "it is for is asking an oracle about the definitions it "
-                              "computes over rather than about every definition in the "
-                              "file, a fixture no generated input reaches being a "
-                              "survivor about the domain and not about the oracle")
-        sub.add_argument("--operator", action="append", default=[], metavar="NAME",
-                         help="run only this operator's mutants; repeatable. What it "
-                              "is for is holding two oracles to the same population, "
-                              "which a sample cannot do")
-    args = parser.parse_args(argv)
-    handler, _ = COMMANDS[args.command]
-    return handler(args)
+    return cli.dispatch(__doc__, COMMANDS, argv, _flags, prog="run.py seed")
 
