@@ -55,6 +55,12 @@ $ python tools/typecheck.py                   # one alone, after touching any Py
 $ python tools/co-read.py --show R-15-073c    # a pair K-61 says is owed a reading
 $ python tools/test.py                        # after changing what any tool does
 $ python tools/rtl.py provenance              # the absences, and what binds each
+$ python tools/oracle.py list                 # the oracle specs, and how large each is
+$ python tools/seed.py list --file <source>   # the mutants one source yields
+
+$ wsl -u root -e python3 tools/oracle.py vectors --spec capformat
+$ wsl -u root -e python3 tools/seed.py coq --sample 20
+$ wsl -u root -e python3 tools/quickchick.py vectors
 
 $ wsl -u root -e python3 tools/rtl.py lint    # the authored RTL, alone
 $ wsl -u root -e python3 tools/rtl.py elaborate --background
@@ -67,5 +73,7 @@ $ wsl -u root -e python3 tools/proof-gate.py
 `gate.py` is the three host gates as one run and one exit code, and they share it because all three only read the checkout; under `--fix` the repair runs alone and first, the selftest copying the working tree as it starts. The host spells the interpreter `python` and the guest spells it `python3`; neither spelling is portable, and there is no `-d` because `Ubuntu` is WSL's default distribution. `model.py build` logs to a file and writes `ALL_DONE` as its last line, so a caller waits on that marker rather than on a sleep. [tools/README.md](tools/README.md) states why, and the conventions a new tool keeps.
 
 **Adding a rule to the checker is three edits**: the check in its [tools/vos/checks/](tools/vos/checks/) module, its row in [tools/check-rules.md](tools/check-rules.md), and its mutant in [tools/check-selftest.py](tools/check-selftest.py). The tools fail on any one of the three being forgotten.
+
+**Validation is generated where an oracle exists**, and the three instruments are `oracle.py`, whose spec makes any Sail function a differential oracle, `seed.py`, whose mutation operators produce the defects an oracle must notice, and `quickchick.py`, which is the Gallina front's input side. A run of `seed.py` reports three verdicts and not two: a **stillborn** mutant did not compile and decided nothing, a **killed** one moved the oracle's answer, and a **survivor** is the finding, being a site the oracle does not reach. [tools/README.md](tools/README.md#the-three-generators-and-what-each-answers) states which of the tree's own findings each answers.
 
 **The checker's corpus is the git index**, so a new document is invisible to `check.py` until it is tracked, while the selftest's sandbox tracks untracked files too. An untracked `.md` under `docs/` therefore passes the checker and fails the selftest's baseline; keep working notes outside `docs/`.
