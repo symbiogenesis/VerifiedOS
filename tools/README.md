@@ -168,25 +168,25 @@ There is no `-d` on the `wsl` invocation `run.py` makes, because `Ubuntu` is WSL
 
 The two lanes spell the interpreter differently, and that is not an oversight. On the host `python3` is worse than absent: the python.org installer ships `python.exe` and `pythonw.exe` and no third spelling, and what answers to `python3` is Windows' own app execution alias, a stub that resolves, prints *Python was not found*, and exits 9009. A tool invoked through it fails as though the tool were broken. So `python` is the name, with `py -3.14` available when several versions are installed. Inside the guest the reverse holds. Ubuntu ships `python3` and no bare `python` at all; this distribution answers to both only because `python-is-python3` is installed on it, and [PEP 394](https://peps.python.org/pep-0394/) still names `python3` as the one spelling a script may assume. So the shebangs stay `#!/usr/bin/env python3` and so does every WSL command written down here, because both have to work on a stock 26.04 that has never had that metapackage. Treating `python` as portable is the one shortcut this rule exists to refuse.
 
-`model.py build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
+`run.py model build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
 
-`test.py` leaves the cases marked slow to `--slow`, so the default run answers in seconds.
+`run.py test` leaves the cases marked slow to `--slow`, so the default run answers in seconds.
 
 `trace-diff` bounds each executor run with `--timeout`, so an emulator that hangs without retiring instructions becomes a SHORT finding instead of a command that never returns.
 
 ## One toolchain, several checkouts
 
-There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `model.py lane` prints which one this is, where it builds, and whether anything is building there right now.
+There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `run.py model lane` prints which one this is, where it builds, and whether anything is building there right now.
 
 The lane is derived from the checkout rather than declared: a linked worktree's `.git` is a *file* naming its administrative directory under the primary checkout's `.git/worktrees/`, and the lane is git's own name for the worktree, which is unique within the repository by construction. The primary worktree has no lane and keeps the paths it always had; a linked one builds under `/root/build/lane-<name>/`, which is one directory holding the whole of what that lane knows, so a lane is retired by deleting it. The one tree every lane shares is the M0.4 oracle's, because it is stock upstream at a pinned commit and none of this repository's curation reaches it.
 
 **Three things collide when two checkouts share one tree, and only one of them is loud.** cmake refuses outright to point an existing cache at a second source directory, so the second lane's build fails at `configure` with an error that names cmake rather than the collision. A build opens its log with `w`, so the second lane truncates the first's while the first is still writing into it. And every loop downstream of a build reads the simulator back out of the build tree, `sweep`, `corpus`, `trace-diff`, `devicetree` and `reference` all of them, and none can tell whose model generated it: that one is silent, and it is the reason lanes exist.
 
-A build **holds its lane** for exactly as long as it runs, so a second build over a live one is refused and named rather than merged into it. The lock is `flock` rather than a pidfile, so a killed build leaves nothing to break, and `model.py build --background` hands the lock to the run it detaches rather than dropping it. `model.py wait` blocks on that lock and then reports the log's verdict: the lock is released by the kernel whether the build finished or died, so a wait ends either way, where a wait on the marker alone would hang on the build that never wrote one.
+A build **holds its lane** for exactly as long as it runs, so a second build over a live one is refused and named rather than merged into it. The lock is `flock` rather than a pidfile, so a killed build leaves nothing to break, and `run.py model build --background` hands the lock to the run it detaches rather than dropping it. `run.py model wait` blocks on that lock and then reports the log's verdict: the lock is released by the kernel whether the build finished or died, so a wait ends either way, where a wait on the marker alone would hang on the build that never wrote one.
 
 A build is not the only holder of state, and every holder refuses a concurrent run by naming the one that holds it. `emit` takes the same lock as `build`, because both drive the one cmake tree; `typecheck` holds a lock beside its lane's SMT memo cache, which Sail rewrites whole at exit; and `oracle` holds the one tree every lane shares. `corpus` writes its images into the lane's own directory, so two lanes' runs cannot land one ELF path.
 
-A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests and the Sail SMT memo cache, and the cache is **copied and never shared**: see `model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other.
+A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests and the Sail SMT memo cache, and the cache is **copied and never shared**: see `vos/cli/model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other.
 
 ## The three generators, and what each answers
 
@@ -210,17 +210,17 @@ compiled and did not, and it is the finding: the oracle does not reach that site
 Counting stillborn mutants as kills is the standard way a mutation score is inflated,
 so a run scores over the live population and reports the three apart.
 
-`seed.py`'s oracles are separate subcommands because they are three prices, not three
+`seed`'s oracles are separate subcommands because they are three prices, not three
 kinds: a Gallina mutant costs a prover run, a Sail mutant costs a compile of the spec's
 own handful of model files, and a `$[test]` mutant costs a re-emission and a recompile
-of the model's one large translation unit. **`seed.py properties` is the only loop here
+of the model's one large translation unit. **`run.py seed properties` is the only loop here
 that writes into the checkout**, `model/` being where cmake is pointed; it refuses to
 start over an edit, the write is byte-for-byte reversible, the restore is verified
 before the next mutant is written, and the lane's build tree is rebuilt from the
 restored source before the run reports. **Nothing else may read the checkout while it
 runs.** For the length of one mutant the tree on disk is wrong, so `git add` stages a
 defect, `check.py` reports a capability format that disagrees with itself, and
-`check-selftest.py` copies a mutated tree into the template every sandbox links
+`run.py selftest` copies a mutated tree into the template every sandbox links
 against. The run says so on its first line.
 
 ## Checking the tools themselves
@@ -235,7 +235,7 @@ checkers because one cannot do the whole job; what a type cannot decide, the beh
 
 Three of those four decide about the tree as it stands, and they contend for nothing:
 all three only read the checkout, and the two small ones fit inside the slack of the
-large one. So [gate.py](run.py) runs them as one command and one exit code, each
+large one. So [a bare `run.py`](run.py) runs them as one command and one exit code, each
 member's own report printed whole under its own heading in the order the tool declares
 rather than the order the three finished in. Measured warm on a twelve-core host over
 three alternated runs of each arm, the selftest alone takes a median 22.8 s, the wave
@@ -245,8 +245,11 @@ and the single verdict is the larger. `--fix` is the one exception to the wave
 and a correctness one, the repair running alone and to completion before the rest,
 because the selftest opens by copying the working tree and a document rewritten
 mid-copy seeds a torn sandbox that reports as a baseline failure about nothing.
-[run.py test](vos/cli/test.py) is deliberately not a member: it decides about the tools rather than
-about this tree, and it is the one gate that runs the others.
+[run.py test](vos/cli/test.py) is a member only when `--tests` asks for it, and for two
+reasons: it decides about the tools rather than about this tree, so a document edit has
+no reason to pay for it, and one of its own cases launches the wave as a subprocess to
+hold its verdict, which a default that ran the tests would make a recursion rather than
+a case.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |

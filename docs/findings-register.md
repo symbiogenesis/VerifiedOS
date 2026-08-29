@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 203 of them across 49 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 207 of them across 50 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -872,3 +872,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-182** measurement: the mutation sandbox's index carried no gitlink at all, standing each submodule up as a directory holding a stand-in
 · Raised: I11
 · Disposition: closed, the template putting the repository's own gitlinks back into its index on every build
+
+**F-183** measurement: one entry point read the process's own arguments rather than a list handed to it, so it typechecked green under a cast and would have raised the moment a dispatcher called it
+· Raised: I12
+· Disposition: closed, that command taking argv like every other and keeping the marker it writes around the dispatch rather than inside the shared helper
+
+**F-184** method: a mutation case anchored on a construct a refactor deletes reports itself unseeded rather than passing, and a case written to match loosely would have seeded something else and killed a mutant about nothing
+· Raised: I12
+· Disposition: closed, the case re-seeded at the one site of that construct the move leaves standing
+
+**F-185** measurement: the documents cite tool paths 180 times and the register names only one of those paths, in six places, so exactly one tool path is a claim a review gate audits and the rest are pointers
+· Raised: I12
+· Disposition: standing, and it is what decided which entry point keeps its path across the move
+
+**F-186** measurement: a census over the tracked Python finds no public function named outside its own module and no module outside the test package that nothing imports, so the tool surface is the number of cross-artifact facts somebody decided to hold rather than unused code
+· Raised: I12
+· Disposition: standing, which is what puts the lever on S15's generation rather than on a search for dead code
