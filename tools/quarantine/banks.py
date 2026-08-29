@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """The second class's bank grant, and the schedule the composition wraps around it.
 
-One parse, read by two callers: `tools/bank-dse.py`, which scores candidate bank
-counts against the arithmetic that exists today, and the `banks` check group, which
-holds the contract's declared point against the configuration's.
+One parse, read by two callers: `tools/quarantine/bank-dse.py`, which scores
+candidate bank counts against the arithmetic that exists today, and the `banks`
+check group beside it, which holds the contract's declared point against the
+configuration's.
 
-Everything here is a parse and never a decision, as everywhere else in this package.
+Everything here is a parse and never a decision, as it is in `vos`.
 What is admissible is `docs/bank-count-dse-contract.md`'s and the check group's; what
 is *stated* is the model configuration's, and the configuration says on its own face
 that every one of these figures is a placeholder until R-15-247m measures it.
@@ -15,8 +16,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import config
-from .jsonc import Json
+from vos import config
+from vos.jsonc import Json
 
 CONFIG = "model/config/verifiedos.json"
 DOCUMENT = "docs/bank-count-dse-contract.md"

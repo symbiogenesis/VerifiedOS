@@ -4,7 +4,7 @@
 `docs/freeze-measurement-contract.md` fixes the instrument M1.8 builds: the corpus
 members, the recipe steps, the operand classes, the region classes with their
 enumerated refusal reasons, the decisions, the report blocks, the declared
-parameters, and the CI predicates. `tools/vos/freeze.py` is that instrument, and
+parameters, and the CI predicates. `tools/quarantine/freeze.py` is that instrument, and
 every one of those enumerations is a *membership it has to carry*, because each is
 behaviour: a corpus member is a producer and a set of pins the report records, a
 region class is a row with one refusal count per reason under it, a decision is a
@@ -57,8 +57,8 @@ rather than reporting that two empty sets agree. The corpus is what git tracks, 
 contract deleted from the index and left in the working tree is a document this
 repository does not have; reading it off disk instead would report green over it,
 which is the one place this group and the tool that shares its parse have to differ.
-The floors group carries a member count for each enumeration and a size for each of
-the two relations besides, and the second is a floor under the *rule* rather than
+The quarantine's gate carries a member count for each enumeration and a size for each
+of the two relations besides, and the second is a floor under the *rule* rather than
 under the document: a relation dropped from the comparison narrows what K-77 decides
 with every gate still green, and no membership floor can see that.
 
@@ -71,7 +71,7 @@ nothing here and the finding names the side that has to be edited by a person.
 
 from typing import TYPE_CHECKING
 
-from vos import freeze
+from quarantine import freeze
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -83,7 +83,7 @@ HEADING = "=== freeze: the measurement instrument against its contract ==="
 
 
 def run(ctx: Context) -> None:
-    """K-77, over the pairs `vos.freeze` states once and two callers read.
+    """K-77, over the pairs `quarantine.freeze` states once and two callers read.
 
     The comparison lives beside the parse rather than here, because `freeze-report.py`
     asks the same question of the same document before it will report about a set that
