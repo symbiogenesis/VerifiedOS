@@ -12,8 +12,9 @@ is not six fields at fixed slices is withheld whole rather than compared field b
 field against a set the parse guessed at.
 
 Nothing here restates what the values must be. The definition decides that and
-`vos/checks/counts.py` computes it; a fixture asserting 36 would be a third copy of the
-address width in a repository whose whole point is that there are not three.
+`vos/checks/counts_capformat.py` computes it; a fixture asserting 36 would be a third
+copy of the address width in a repository whose whole point is that there are not
+three.
 """
 
 import tempfile
