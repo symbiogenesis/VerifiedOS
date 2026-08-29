@@ -694,6 +694,22 @@ def _k29(box: Sandbox) -> bool:
     return box.write(PROFILE, text[:at] + row + text[at + len(m.group()):])
 
 
+def _k84(box: Sandbox) -> bool:
+    """A Tier-B landing that names no rule holding what it created.
+
+    Seeded on the first exit-evidence line rather than written into one item by name,
+    so the case survives items landing and being re-ordered around it. The declaration
+    is the whole mutation: the four conditions Tier B is admitted on are prose until
+    something reads them, and what this asks is whether the fourth one now bites.
+    """
+    text = box.read(PLAN)
+    m = re.search(r"(?m)^(?P<ind>[^\S\r\n]*)\* Exit evidence:[^\r\n]*", text)
+    if not m:
+        return False
+    return box.write(PLAN, replace_span(
+        text, m, f"{m.group()}\n{m.group('ind')}* Landed: Tier B."))
+
+
 def _k30(box: Sandbox) -> bool:
     text = box.read(PERF)
     m = re.search(r"(?m)^\|[^\r\n]*In-order issue[^\r\n]*", text)
@@ -1256,6 +1272,20 @@ CASES: list[Case] = [
     # passes on K-81's own report with no collateral.
     ("K-81", "an upstream pin restated as a commit the record does not record",
      _literal(DELTA, "| `36a1dc5c` | 2026-08-23 |", "| `36a1dc5d` | 2026-08-23 |")),
+
+    # One holder citation moved onto the id the numbering is missing, which is the
+    # defect in the shape it actually arrives in rather than an invented one: the plan
+    # already reports a gap at that id, so a hand reaching for the next free number
+    # writes exactly this. The citation moved is the capability format's, and no other
+    # rule reads a K- id in this document, so the case passes on K-84's own report.
+    ("K-84", "a landing naming a holder the rule registry does not carry",
+     _literal(PLAN, "**K-79**", "**K-64**")),
+
+    # The other half, and the case above does not reach it: with the declaration loop
+    # deleted that mutant is still killed, so a rule narrowed to its citations would
+    # pass its own selftest. A Tier-B landing naming nothing is what the fourth of the
+    # four conditions exists to refuse, and it is the state the rule was written for.
+    ("K-84", "a Tier-B landing naming no rule holding what it created", _k84),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
