@@ -40,7 +40,11 @@ from typing import TYPE_CHECKING
 from vos import corpus as corpus_mod
 from vos import differential, figures
 from vos.checks.counts_capformat import cap_format
-from vos.checks.counts_configs import shipped_configurations, vectorless_configurations
+from vos.checks.counts_configs import (
+    excluded_by_name_keys,
+    shipped_configurations,
+    vectorless_configurations,
+)
 from vos.checks.counts_coreclass import core_classes
 from vos.checks.counts_delta import freeze_delta
 from vos.checks.counts_fields import GRANULE_RE, PAYLOAD_RE
@@ -574,4 +578,5 @@ def run(ctx: Context) -> None:
     excluded_forms(ctx, window)
     shipped_configurations(ctx)
     vectorless_configurations(ctx)
+    excluded_by_name_keys(ctx)
     rep.line()

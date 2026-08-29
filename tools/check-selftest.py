@@ -1118,6 +1118,16 @@ CASES: list[Case] = [
               "hartSupports(Ext_Zvl32b) = sizeof(vlen_exp) >= 5",
               "hartSupports(Ext_Zvl32b) = sizeof(vlen_exp) >= 3")),
 
+    # The *configuration* is edited rather than the profile or the model, because that
+    # is the direction this defect arrives from and the reason the rule exists: the
+    # exclusion is a setting, so switching it back on is one key in one file that no
+    # review gate reads, where an edit to either of the other two artifacts is an act
+    # somebody takes deliberately.
+    ("K-87", "an excluded-by-name extension a shipped configuration switches back on",
+     _literal("model/config/verifiedos.json",
+              '"Zbc": { "supported": false }',
+              '"Zbc": { "supported": true }')),
+
     # The *profile* is edited rather than the model, which is the direction this defect
     # actually arrives from: an amendment excludes a form and the model goes on
     # implementing it, which is exactly what R-15-039b did. Mutating the model instead
