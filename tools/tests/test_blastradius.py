@@ -23,7 +23,8 @@ from pathlib import Path
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 
 # The live sources the sandbox copy of the tool runs on, relative to the root.
-_SOURCES = ("tools/blast-radius.py", "tools/vos/__init__.py", "tools/vos/apex.py",
+_SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/blast.py",
+            "tools/vos/__init__.py", "tools/vos/apex.py",
             "tools/vos/fieldbindings.py", "tools/vos/corpus.py")
 
 # Small enough to derive by hand: witness consumes alpha and beta through its type,
@@ -72,7 +73,7 @@ def _fixture() -> dict[str, str]:
 
 def _run(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(root / "tools" / "blast-radius.py"), *args],
+        [sys.executable, str(root / "tools" / "run.py"), "blast", *args],
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
 

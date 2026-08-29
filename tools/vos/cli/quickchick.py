@@ -21,9 +21,9 @@ priced part rather than an aesthetic: the two routes into a switch this reposito
 already had cost a rebuild of a landed environment apiece, which is what `_INSTALL`
 below records.
 
-    wsl -u root -e python3 tools/quickchick.py check
-    wsl -u root -e python3 tools/quickchick.py vectors
-    wsl -u root -e python3 tools/quickchick.py properties
+    python tools/run.py quickchick check
+    python tools/run.py quickchick vectors
+    python tools/run.py quickchick properties
 
 **Which finding this answers.** M0.8d's, in the register's other language: a property
 written before the vectors and never run is a property whose subject somebody chose,
@@ -33,13 +33,7 @@ structural property was written about. Generation does not depend on the choice.
 
 import argparse
 import subprocess
-import sys
 from collections.abc import Callable
-from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import env, gallina
 from vos.corpus import find_root
@@ -117,12 +111,12 @@ def cmd_check(args: argparse.Namespace) -> int:
     out.append("")
     if where:
         out.append(f"ok {PACKAGE} is installed: {', '.join(where)}; "
-                   "`quickchick.py properties` runs the randomized half")
+                   "`run.py quickchick properties` runs the randomized half")
         print("\n".join(out))
         return 0
     out.append(f"FAIL {PACKAGE} is installed in no switch this repository reaches, so "
                "the randomized half does not run")
-    out.append("     the enumerative half does: `quickchick.py vectors`")
+    out.append("     the enumerative half does: `run.py quickchick vectors`")
     out.append("     the install, as one priced step:")
     out.append(f"       {_INSTALL}")
     print("\n".join(out))
@@ -218,6 +212,3 @@ def main(argv: list[str] | None = None) -> int:
     handler, _ = COMMANDS[args.command]
     return handler(args)
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())

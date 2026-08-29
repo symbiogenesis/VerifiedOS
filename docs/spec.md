@@ -1,6 +1,6 @@
 # Verification-Maximal Capability OS: Specification
 
-*Rationale and commentary. The normative artifact is the [atomic requirements register](requirements-register.md): every obligation argued here is extracted there as an atomic entry with its own acceptance criterion, and where the two disagree the register wins (R-05-152). The pair is one obligation written twice on purpose, prose a person reads to understand the design beside a claim a reviewer can decide alone, and an edit to either side leaves the pair owed a re-reading, which rule K-61 reports and `tools/co-read.py` records.*
+*Rationale and commentary. The normative artifact is the [atomic requirements register](requirements-register.md): every obligation argued here is extracted there as an atomic entry with its own acceptance criterion, and where the two disagree the register wins (R-05-152). The pair is one obligation written twice on purpose, prose a person reads to understand the design beside a claim a reviewer can decide alone, and an edit to either side leaves the pair owed a re-reading, which rule K-61 reports and `tools/run.py coread` records.*
 
 **Goal:** a hyper-secure, extensively formally verified, transactional/stateless, reliable capability OS.
 Compatibility is narrow by design, and performance is subordinate to security. <a id="r-01-006-2"></a>

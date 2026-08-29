@@ -56,14 +56,9 @@ the same entry point either way, so the host gate is unchanged by the move.
 import argparse
 import shutil
 import subprocess
-import sys
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import env, gallina, mutate, sailrig
 from vos import oracle as oracle_spec
@@ -322,7 +317,7 @@ def cmd_coq(args: argparse.Namespace) -> int:
     found = gallina.prover(switch)
     if found is None:
         print(f"FAIL no prover in the {switch} switch; "
-              "`quickchick.py check` says which switch holds what")
+              "`run.py quickchick check` says which switch holds what")
         return 1
 
     work = e.lane_root / WORK / ("quickchick" if args.quickchick else "coq")
@@ -452,7 +447,7 @@ def cmd_properties(args: argparse.Namespace) -> int:
     disagrees with itself, and the selftest copies a mutated tree into its template.
     The run says so when it starts rather than leaving it to be discovered.
 
-    It also **takes the lane's build lock for the whole run**, which is `model.py
+    It also **takes the lane's build lock for the whole run**, which is `run.py model
     build`'s own lock rather than a second mechanism: this loop rewrites the lane's
     build tree once per mutant, so two of these in one lane, or one of these beside a
     build, is the same wrongness that lock already exists to refuse. What the lock
@@ -482,7 +477,7 @@ def cmd_properties(args: argparse.Namespace) -> int:
     _lane = env.build_lock(e.build_dir)
     harness = e.build_dir / "test" / "unit_tests" / "unit_tests"
     if not harness.exists():
-        print(f"FAIL no $[test] harness at {harness}; run `model.py build` first")
+        print(f"FAIL no $[test] harness at {harness}; run `run.py model build` first")
         return 1
 
     original = read_source(path)
@@ -532,7 +527,7 @@ def cmd_properties(args: argparse.Namespace) -> int:
     code = summarize(out, verdicts, rel, "$[test] harness")
     if not (rebuilt and ok):
         out.append(f"FAIL the lane's build tree does not hold the unmutated model; "
-                   f"run `model.py build` before anything reads {e.simulator}")
+                   f"run `run.py model build` before anything reads {e.simulator}")
         code = 1
     print("\n".join(out))
     return code
@@ -616,6 +611,3 @@ def main(argv: list[str] | None = None) -> int:
     handler, _ = COMMANDS[args.command]
     return handler(args)
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())

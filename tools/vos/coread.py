@@ -20,7 +20,7 @@ deleting either would delete something the other never carried.
 
 So what is owed is not derivation but **co-currency**: when one side of a pair moves,
 the other is owed a reading. This module computes the pair and reduces each side to a
-digest; `checks/coread.py` decides the rule over them and `tools/co-read.py` is where a
+digest; `checks/coread.py` decides the rule over them and `tools/run.py coread` is where a
 person does the reading and records it.
 
 **A co-read is a judgment, so it is recorded and never repaired.** tools/README.md

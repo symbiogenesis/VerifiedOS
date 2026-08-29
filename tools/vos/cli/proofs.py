@@ -15,17 +15,14 @@ An admitted lemma, an unresolved obligation, a locally declared parameter, or an
 fails this gate rather than shipping green.
 
 Needs the pinned Rocq switch, which `vos.env` locates and which is deliberately not the
-switch the Sail toolchain lives in. From Windows: wsl -e python3 tools/proof-gate.py
+switch the Sail toolchain lives in. It is a guest command, so `python tools/run.py
+proofs` on the host re-launches it there rather than refusing.
 """
 
+import argparse
 import os
 import subprocess
-import sys
 from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import env
 from vos import proofs as proofs_mod
@@ -101,7 +98,12 @@ def _assumptions(stdout: str) -> tuple[int, list[str]]:
     return closed, entries
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    argparse.ArgumentParser(
+        prog="run.py proofs",
+        description="Compile every shipped proof and hold its assumptions against the "
+                    "declared set.").parse_args(argv)
+
     root = find_root()
     proofs = root / PROOFS
     statement = proofs / STATEMENT
@@ -143,6 +145,3 @@ def main() -> int:
     print(f"ok: {closed} constant(s), each closed under the global context")
     return 0
 
-
-if __name__ == "__main__":
-    sys.exit(main())

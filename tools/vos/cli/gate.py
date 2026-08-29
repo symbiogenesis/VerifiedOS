@@ -1,17 +1,17 @@
-#!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Run every gate this repository keeps on the host, as one command and one verdict.
 
 There are three, and each decides about a different artifact:
 
-    check.py           the documents   every derived fact against the artifact that owns it
-    check-selftest.py  the checker     every rule it carries, against its own mutant
-    typecheck.py       the Python      every expression and every signature, under two pins
+    check      the documents   every derived fact against the artifact that owns it
+    selftest   the checker     every rule it carries, against its own mutant
+    typecheck  the Python      every expression and every signature, under two pins
 
 Nothing runs them but a person, by hand, before anything lands, so three commands
 are three chances to remember two. This is the one command that removes that: one
 launch, one exit code, and each member's own report printed whole under its own
-heading, in the order declared here rather than the order the three finished in.
+heading, in the order declared here rather than the order the three finished in. It
+is what `run.py` does when it is asked for nothing else.
 
 **They run together because they contend for nothing.** All three only read the
 checkout, and the two small ones fit inside the slack of the large one. Measured
@@ -22,19 +22,18 @@ the wave's spread is the tighter of the two, 23.8 to 24.2 s against 23.7 to 26.6
 The saving is the smaller half of why this exists. The one verdict is the other
 half, and the larger.
 
-**`--fix` is the exception to the wave, and a correctness one.** `check.py --fix`
+**`--fix` is the exception to the wave, and a correctness one.** `check --fix`
 rewrites the documents whose arithmetic moved, and the selftest opens by copying
 the working tree into the template every sandbox links against, so a repair landing
 mid-copy would seed the sandboxes a half-written tree. That reports as a baseline
 that does not pass, which is a red run about nothing at all. So the repair runs
 alone and to completion, and the other two follow it.
 
-**`test.py` is deliberately not a member.** It is the gate over the tools' own
-behavior rather than over this tree, and it is the one gate that runs the others:
-its entry-point module launches check.py and typecheck.py itself and brackets them
-with the tree's git status, so nesting it here would put two answers to one
-question in one report. It stays its own command, run when what changed is what a
-tool does.
+**The tools' own tests are a member only when asked for.** `--tests` adds them,
+and they are not in the default wave for two reasons. They decide about the tools
+rather than about this tree, so a document edit has no reason to pay for them. And
+one of them launches this wave as a subprocess to hold its verdict, which a default
+that ran the tests would make a recursion rather than a case.
 
 Exit 0 when every member exits 0, 1 otherwise. It may be run from anywhere: the
 repository root is found from this file, never from the working directory.
@@ -46,10 +45,6 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
 from vos.report import Reporter
@@ -71,7 +66,7 @@ NO_VERDICT = -1
 
 @dataclass(frozen=True)
 class Launch:
-    """One member: the tool, the arguments it takes here, and what it decides."""
+    """One member: the command, the arguments it takes here, and what it decides."""
 
     tool: str
     args: tuple[str, ...]
@@ -93,17 +88,21 @@ class Result:
 
 
 MEMBERS: tuple[Launch, ...] = (
-    Launch("check.py", (), "every derived fact against the artifact that owns it"),
-    Launch("check-selftest.py", (), "every rule the checker carries, against its mutant"),
-    Launch("typecheck.py", (), "the tools' own Python, under two pinned checkers"),
+    Launch("check", (), "every derived fact against the artifact that owns it"),
+    Launch("selftest", (), "every rule the checker carries, against its mutant"),
+    Launch("typecheck", (), "the tools' own Python, under two pinned checkers"),
 )
+
+# The member `--tests` adds, named here rather than spelled at its call site so that
+# the wave's membership is one table.
+TESTS = Launch("test", (), "the tools' own behavior, against the cases that hold it")
 
 # The one member with a --fix branch, named rather than taken by position so that
 # reordering the table above cannot quietly move which member the repair wave holds.
-REPAIRS = "check.py"
+REPAIRS = "check"
 
 
-def _plan(fix: bool) -> list[list[Launch]]:
+def _plan(fix: bool, tests: bool) -> list[list[Launch]]:
     """The launch plan: one list per wave, waves in order, a wave's members together.
 
     Without `--fix` that is one wave, because no member writes anything any other
@@ -114,11 +113,12 @@ def _plan(fix: bool) -> list[list[Launch]]:
     Every member appears exactly once either way. An empty wave is dropped rather
     than launched, so a table that ever loses its repairing member still plans.
     """
+    members = [*MEMBERS, *([TESTS] if tests else [])]
     if not fix:
-        return [list(MEMBERS)]
+        return [members]
     repair = [Launch(m.tool, (*m.args, "--fix"), m.decides)
-              for m in MEMBERS if m.tool == REPAIRS]
-    rest = [m for m in MEMBERS if m.tool != REPAIRS]
+              for m in members if m.tool == REPAIRS]
+    rest = [m for m in members if m.tool != REPAIRS]
     return [wave for wave in (repair, rest) if wave]
 
 
@@ -126,18 +126,16 @@ def _launch(root: Path, member: Launch) -> Result:
     """One member, in its own process, as what it printed and the code it exited.
 
     A subprocess rather than an import, and for reasons rather than for symmetry.
-    One member cannot be imported at all, `check-selftest.py` carrying a hyphen no
-    module name admits; that one also reports by printing as it goes rather than by
-    handing back a slate, so its verdict is a stream and this is what reads it. And
-    a member's exit code is its own to decide, which keeps this tool from
-    re-deriving three verdicts it would then have to keep in agreement with three
-    `main` functions.
+    The selftest reports by printing as it goes rather than by handing back a slate,
+    so its verdict is a stream and this is what reads it. And a member's exit code is
+    its own to decide, which keeps this tool from re-deriving three verdicts it would
+    then have to keep in agreement with three `main` functions.
 
     Neither of the two ways a run can fail short of a verdict is allowed to become
     a traceback here: a member that hangs and a member that cannot be executed are
     both findings, on the convention typecheck.py's own runner keeps.
     """
-    argv = [sys.executable, str(root / "tools" / member.tool), *member.args]
+    argv = [sys.executable, str(root / "tools" / "run.py"), member.tool, *member.args]
     try:
         done = subprocess.run(argv, capture_output=True, encoding="utf-8",
                               errors="replace", cwd=root, check=False, timeout=TIMEOUT)
@@ -173,7 +171,7 @@ def _verdict(rep: Reporter, results: list[Result]) -> None:
                f"all {len(results)} host gate(s) green")
 
 
-def run(root: Path, fix: bool = False) -> Reporter:
+def run(root: Path, fix: bool = False, tests: bool = False) -> Reporter:
     """One whole run, as data, on the convention `check.py` set: the caller decides
     what to do with the verdict rather than parsing what was printed.
 
@@ -185,7 +183,7 @@ def run(root: Path, fix: bool = False) -> Reporter:
     rep.line(HEADING)
 
     results: list[Result] = []
-    for wave in _plan(fix):
+    for wave in _plan(fix, tests):
         with ThreadPoolExecutor(max_workers=len(wave)) as pool:
             running = [pool.submit(_launch, root, member) for member in wave]
         results += [one.result() for one in running]
@@ -196,22 +194,21 @@ def run(root: Path, fix: bool = False) -> Reporter:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
+        prog="run.py gate",
         description="Run the host's gates together and answer with one verdict.")
     parser.add_argument("--fix", action="store_true",
-                        help="pass --fix to check.py, which then runs alone, first")
+                        help="pass --fix to check, which then runs alone, first")
+    parser.add_argument("--tests", action="store_true",
+                        help="add the tools' own behavioral tests to the wave")
     args = parser.parse_args(argv)
 
-    plan = _plan(args.fix)
+    plan = _plan(args.fix, args.tests)
     # Printed rather than accumulated, which the report itself is not: the longest
     # member is most of a minute and this is the only line that can say what is
     # being waited for while it runs.
     print(f"running {sum(len(w) for w in plan)} gate(s): "
           + ", ".join(m.name for wave in plan for m in wave), flush=True)
 
-    report = run(corpus_mod.find_root(), fix=args.fix)
+    report = run(corpus_mod.find_root(), fix=args.fix, tests=args.tests)
     print("\n".join(report.out))
     return 1 if report.findings else 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

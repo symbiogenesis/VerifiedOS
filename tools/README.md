@@ -27,38 +27,71 @@ Two things at that floor the tools depend on rather than merely tolerate:
 
 Two more the floor makes available go unused, because a version floor is a licence to use what pays and not an obligation to use what is new. `pathlib.Path.copy` would replace `shutil.copy2` one call for one call and buy nothing at sites the selftest runs fifty times over. Unparenthesized `except A, B:` ([PEP 758](https://peps.python.org/pep-0758/)) is spelling, and a handler reads the same either way.
 
-## What each tool is
+## One entry point, and the commands under it
 
-| Tool | Lane | What it does |
+There is one executable here, [run.py](run.py), and a command is a name rather than a
+path. It was seventeen executables, and using them meant knowing which file answered
+which question and which of the two lanes it ran in; both of those are now the tool's
+to know. `python tools/run.py` with no command runs the host gate wave, which is what
+has to be green before anything lands, and `run.py <command> --help` is that command's
+own help.
+
+**The lane is the front door's business rather than the caller's.** A `[wsl]` command
+asked for on the host is re-launched in the guest and says so, so there is no
+`wsl -u root -e python3` to remember and no wrong lane to be in. A guest command has
+to *drive* the toolchain to need the hop: `model config-keys`, `rtl provenance`,
+`oracle list`, `seed list` and `testrig protocol` read this checkout and answer on
+either lane.
+
+| Command | Lane | What it does |
 | --- | --- | --- |
-| [gate.py](gate.py) | host | Runs check.py, check-selftest.py and typecheck.py together, one verdict over the three. `--fix` sends the repair in first, alone. |
-| [check.py](check.py) | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. |
-| [check-selftest.py](check-selftest.py) | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
-| [typecheck.py](typecheck.py) | host | Holds this directory's own Python to the discipline it holds the documents to. |
-| [test.py](test.py) | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
-| [blast-radius.py](blast-radius.py) | host | Answers what an edit to the apex statement re-opens, before the work starts. |
-| [quarantine/](quarantine/) | host | The two instruments whose decisions are deferred, the two rules that hold them, and [gate.py](quarantine/gate.py), the one command over all of it. Not a member of the wave below: [its own README](quarantine/README.md) states what each waits on and what un-quarantines it. |
-| [co-read.py](co-read.py) | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
-| [read-view.py](read-view.py) | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
-| [rtl.py](rtl.py) | host and WSL | The RTL lane: `provenance` parses the synthesis record on the host; `lint`, `vectors`, `crosscheck` and `elaborate` run in the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. |
-| [cheri-equiv/](cheri-equiv/) | WSL | The two halves of that cross-check: a Sail generator that calls the model's capability functions, and a SystemVerilog testbench that replays what it printed. Neither is a translation of the other and the only thing they share is the line format each states in its own header. |
-| [oracle.py](oracle.py) | host and WSL | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on the host; `vectors` needs Sail. |
-| [oracle-specs/](oracle-specs/) | n/a | One JSON file per oracle: the sources to compile, and per line kind the parameters, the domain that walks them, the Sail that calls the model, and what to print. |
-| [seed.py](seed.py) | host and WSL | The seeded-defect generator: mutation operators walked over a Sail or Gallina source, pointed at an oracle that must notice. `list` answers on the host; `sail`, `coq` and `properties` each need their oracle's toolchain. |
-| [quickchick.py](quickchick.py) | WSL | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
-| [quickchick/](quickchick/) | WSL | The Gallina harnesses: the composition both halves probe, the enumerative generator that prints one line per point, and the QuickChick properties that draw and shrink instead. |
-| [proof-gate.py](proof-gate.py) | WSL | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. |
-| [model.py](model.py) | WSL | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. |
-| [testrig.py](testrig.py) | host and WSL | The RVFI-DII rig: `protocol` reads the wire format off the codec on the host; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
-| [wasm-oracle/](wasm-oracle/) | WSL | The container the CertiCoq → Wasm oracle is built and run in, and the smoke program that exercises it. The one entry here that is an environment rather than a program: [its own README](wasm-oracle/README.md) states what it pins and why. |
+| `gate` | host | The three gates below together, one verdict over them. `--fix` sends the repair in first, alone; `--tests` adds the fourth. This is what a bare `run.py` runs. |
+| `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
+| `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
+| `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
+| `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
+| `coread` | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
+| `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
+| `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
+| `model` | wsl | Every loop over the curated Sail model: `typecheck`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. |
+| `evidence` | wsl | The exit-evidence sweep as one run: the build and its bundled suite, the property harness, the profile sweep, the differential corpus, the devicetree, the reference, and the proof gate, with the block of figures a completion note quotes. |
+| `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record on either lane; `lint`, `vectors`, `crosscheck` and `elaborate` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. |
+| `oracle` | wsl | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on either lane; `vectors` needs Sail. |
+| `seed` | wsl | The seeded-defect generator: mutation operators walked over a Sail or Gallina source, pointed at an oracle that must notice. `list` answers on either lane; `sail`, `coq` and `properties` each need their oracle's toolchain. |
+| `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
+| `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
+| `proofs` | wsl | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. |
 
-The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, [provenance.py](vos/provenance.py) the synthesis record binding each claimed absence to a build, [pins.py](vos/pins.py) the licence record's table of upstream pins and the shape a restatement of one takes, [fieldbindings.py](vos/fieldbindings.py) the field-bindings table the bindings group and [blast-radius.py](blast-radius.py) both read, [env.py](vos/env.py) the build environment, and [report.py](vos/report.py) the one verdict line every check prints. Four more read the *model*, which the document corpus excludes by name: [geometry.py](vos/geometry.py) the welded block size, [capformat.py](vos/capformat.py) the frozen capability format's widths and both packings of it, and [coreclass.py](vos/coreclass.py) the core-class table, each out of a configuration or Sail file named by path, with [decode.py](vos/decode.py) reading the assembly clauses the model spells its mnemonics with, which are everywhere in the tree and named by kind instead. Two of them read outside the model as well as inside it, and by path in both directions: geometry.py takes the block size the authored capability package writes, and capformat.py takes every site that restates a format width, in `rtl/` and in four documents the corpus does carry. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code. The `counts` group is the one that outgrew that: [counts.py](vos/checks/counts.py) holds its claim table and the run, and its families sit in the `counts_*.py` modules beside it, one per artifact its rules read. The group is still one heading, one entry in `GROUPS`, and one column of [check-rules.md](check-rules.md), because a rule is registered by its id and its group and never by the file carrying it.
+Each command is one module of [vos/cli/](vos/cli/), which is what those executables
+became: each keeps its docstring, its argparse and its `main(argv)`, less its own
+preamble and its own `__main__` block. [vos/cli/\_\_init\_\_.py](vos/cli/__init__.py)
+is the table `run.py` reads, and it is the only place a command's name, its module and
+its lane are written down.
 
-Those five are where the checker reaches past its own corpus, and the reach is declared rather than habitual. `model/` is excluded from the document corpus by name, and [check-selftest.py](check-selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
+Four directories are inputs rather than commands. [oracle-specs/](oracle-specs/) is
+one JSON file per oracle: the sources to compile, and per line kind the parameters,
+the domain that walks them, the Sail that calls the model, and what to print.
+[cheri-equiv/](cheri-equiv/) is the cross-check's two halves, a Sail generator that
+calls the model's capability functions and a SystemVerilog testbench that replays what
+it printed; neither is a translation of the other and the only thing they share is the
+line format each states in its own header. [quickchick/](quickchick/) is the Gallina
+harnesses. [wasm-oracle/](wasm-oracle/) is the container the CertiCoq → Wasm oracle is
+built and run in, and [its own README](wasm-oracle/README.md) states what it pins.
+
+[quarantine/](quarantine/) is the exception to the one entry point, and deliberately:
+it holds the two instruments whose decisions are deferred, the two rules that hold
+them, and [its own gate](quarantine/gate.py), the one command over all of it. K-83 is
+what makes it a quarantine rather than a folder, and it forbids exactly the coupling a
+`run.py` command would be. [Its README](quarantine/README.md) states what each
+instrument waits on and what un-quarantines it.
+
+The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, [provenance.py](vos/provenance.py) the synthesis record binding each claimed absence to a build, [pins.py](vos/pins.py) the licence record's table of upstream pins and the shape a restatement of one takes, [fieldbindings.py](vos/fieldbindings.py) the field-bindings table the bindings group and [run.py blast](vos/cli/blast.py) both read, [env.py](vos/env.py) the build environment, and [report.py](vos/report.py) the one verdict line every check prints. Four more read the *model*, which the document corpus excludes by name: [geometry.py](vos/geometry.py) the welded block size, [capformat.py](vos/capformat.py) the frozen capability format's widths and both packings of it, and [coreclass.py](vos/coreclass.py) the core-class table, each out of a configuration or Sail file named by path, with [decode.py](vos/decode.py) reading the assembly clauses the model spells its mnemonics with, which are everywhere in the tree and named by kind instead. Two of them read outside the model as well as inside it, and by path in both directions: geometry.py takes the block size the authored capability package writes, and capformat.py takes every site that restates a format width, in `rtl/` and in four documents the corpus does carry. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code. The `counts` group is the one that outgrew that: [counts.py](vos/checks/counts.py) holds its claim table and the run, and its families sit in the `counts_*.py` modules beside it, one per artifact its rules read. The group is still one heading, one entry in `GROUPS`, and one column of [check-rules.md](check-rules.md), because a rule is registered by its id and its group and never by the file carrying it.
+
+Those five are where the checker reaches past its own corpus, and the reach is declared rather than habitual. `model/` is excluded from the document corpus by name, and [run.py selftest](vos/cli/selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
 
 **The two declarations are narrow for opposite reasons and are deliberately not one list.** `MODEL_FACTS` names ten files by path: it is the *value* window, and a rule reading a number out of the model should name the file it reads, so adding one is a decision somebody makes. `is_model_citation_path` admits by kind instead, because the rule behind it holds a construct that occurs wherever the model argues from the register, and a window sized for the other purpose left it reporting `ok` about a quarter of its subject. Merging them would make the audited list quietly mean two things.
 
-Five are the generators' and none of them holds a question: [oracle.py](vos/oracle.py) parses a spec and emits the Sail harness a domain description implies, [sailrig.py](vos/sailrig.py) compiles a Sail source set with a harness and runs it, which is the rig M2.1 and R1a each built inside one item, [mutate.py](vos/mutate.py) walks a Sail or Gallina source and produces the mutant population, [proofs.py](vos/proofs.py) reads what a Rocq source Requires and orders a directory by it, and [gallina.py](vos/gallina.py) stages a scratch copy of the proofs, compiles it, and reads back what a harness printed. What decides is the spec, the operator table, and the oracle a run points them at.
+Five are the generators' and none of them holds a question: [run.py oracle](vos/oracle.py) parses a spec and emits the Sail harness a domain description implies, [sailrig.py](vos/sailrig.py) compiles a Sail source set with a harness and runs it, which is the rig M2.1 and R1a each built inside one item, [mutate.py](vos/mutate.py) walks a Sail or Gallina source and produces the mutant population, [proofs.py](vos/proofs.py) reads what a Rocq source Requires and orders a directory by it, and [gallina.py](vos/gallina.py) stages a scratch copy of the proofs, compiles it, and reads back what a harness printed. What decides is the spec, the operator table, and the oracle a run points them at.
 
 Four more modules are the differential corpus's, and they are named for what they are rather than for where they sit: [dialect.py](vos/dialect.py) is one row per mnemonic the curated model decodes, [asm.py](vos/asm.py) the parser and layout over it, [image.py](vos/image.py) the ELF the emulator loads, and [differential.py](vos/differential.py) the corpus manifest. The one name that has to be read carefully is `corpus`: [vos/corpus.py](vos/corpus.py) reads the *documents* this repository checks, and [vos/differential.py](vos/differential.py) reads the *programs* the model runs. They share a word and nothing else.
 
@@ -68,58 +101,70 @@ Two more are the RVFI-DII rig's and sit beside them for the same reason: [rvfi.p
 
 ## Running them
 
-From anywhere. Every tool finds the repository root from its own location, never from the working directory, so there is no wrong directory to run one from.
+From anywhere, and from either lane. Every tool finds the repository root from its own
+location rather than from the working directory, and `run.py` sends a guest command
+into WSL itself, so there is neither a wrong directory nor a wrong lane to be in.
 
 ```console
-$ python tools/gate.py                        # the three gates below, in one run
-$ python tools/gate.py --fix                  # the repair first, then the other two
-$ python tools/check.py                       # the daily check
-$ python tools/check.py --fix                 # and rewrite what is arithmetic
-$ python tools/check-selftest.py              # every rule against its own mutant
-$ python tools/typecheck.py                   # the tools against their own discipline
-$ python tools/test.py                        # the tools against their own tests
-$ python tools/blast-radius.py --field spatial_safety
-$ python tools/quarantine/gate.py             # the deferred instruments, off the wave
-$ python tools/co-read.py                     # the pairs owed a reading
-$ python tools/co-read.py --show R-15-073c    # one pair, side against side
-$ python tools/co-read.py --show --all        # every pending pair, in one read
-$ python tools/co-read.py --where R-15-073c   # both sides as file:line sites
-$ python tools/read-view.py                   # the two documents woven, for reading
-$ python tools/rtl.py provenance              # the absences, and what binds each
-$ python tools/testrig.py protocol            # the RVFI-DII wire, against the commit trace
-$ python tools/oracle.py list                 # the oracle specs, and how large each is
-$ python tools/oracle.py emit --spec keccak   # the Sail harness one spec implies
-$ python tools/seed.py list --file model/model/core/cap_common.sail
-
-$ wsl -u root -e python3 tools/rtl.py lint             # the authored RTL, alone
-$ wsl -u root -e python3 tools/rtl.py vectors          # the model's own answers, as text
-$ wsl -u root -e python3 tools/rtl.py crosscheck       # and the RTL reproducing them
-$ wsl -u root -e python3 tools/rtl.py elaborate --background
-$ wsl -u root -e python3 tools/rtl.py wait             # and the structures it removed
-$ wsl -u root -e python3 tools/model.py typecheck
-$ wsl -u root -e python3 tools/model.py lane           # where this checkout builds
-$ wsl -u root -e python3 tools/model.py build --background
-$ wsl -u root -e python3 tools/model.py wait           # and its verdict when it lands
-$ wsl -u root -e python3 tools/model.py oracle
-$ wsl -u root -e python3 tools/model.py corpus
-$ wsl -u root -e python3 tools/model.py corpus --refresh
-$ wsl -u root -e python3 tools/model.py devicetree
-$ wsl -u root -e python3 tools/model.py reference
-$ wsl -u root -e python3 tools/model.py trace-diff --corpus --floor 67
-$ wsl -u root -e python3 tools/testrig.py handshake     # the emulator, over RVFI-DII
-$ wsl -u root -e python3 tools/testrig.py run --seeds 100 --defect none
-$ wsl -u root -e python3 tools/testrig.py run --defect tag-dropped --shrink
-$ wsl -u root -e python3 tools/testrig.py bridge        # both dialects, one run
-$ wsl -u root -e python3 tools/proof-gate.py
-
-$ wsl -u root -e python3 tools/oracle.py vectors --spec capformat
-$ wsl -u root -e python3 tools/quickchick.py check       # and what the install costs
-$ wsl -u root -e python3 tools/quickchick.py vectors     # the Gallina front's answers
-$ wsl -u root -e python3 tools/seed.py coq --sample 20
-$ wsl -u root -e python3 tools/seed.py sail --spec keccak --sample 14
+$ python tools/run.py help                       # every command, and the lane it runs in
+$ python tools/run.py                            # the three host gates, in one run
+$ python tools/run.py --fix                      # the repair first, then the other two
+$ python tools/run.py --tests                    # and the tools' own tests beside them
+$ python tools/check.py                          # the daily check, at the path the register cites
+$ python tools/run.py check --fix                # and rewrite what is arithmetic
+$ python tools/run.py selftest                   # every rule against its own mutant
+$ python tools/run.py typecheck                  # the tools against their own discipline
+$ python tools/run.py test                       # the tools against their own tests
+$ python tools/run.py blast --field spatial_safety
+$ python tools/quarantine/gate.py                # the deferred instruments, off the wave
+$ python tools/run.py coread                     # the pairs owed a reading
+$ python tools/run.py coread --show R-15-073c    # one pair, side against side
+$ python tools/run.py coread --show --all        # every pending pair, in one read
+$ python tools/run.py coread --where R-15-073c   # both sides as file:line sites
+$ python tools/run.py coread --bless R-15-073c   # the reading recorded
+$ python tools/run.py view                       # the two documents woven, for reading
+$ python tools/run.py rtl provenance             # the absences, and what binds each
+$ python tools/run.py testrig protocol           # the RVFI-DII wire, against the commit trace
+$ python tools/run.py oracle list                # the oracle specs, and how large each is
+$ python tools/run.py oracle emit --spec keccak  # the Sail harness one spec implies
+$ python tools/run.py seed list --file model/model/core/cap_common.sail
 ```
 
-There is no `-d`, because `Ubuntu` is WSL's default and the default is what every command above wants. The name is plain `Ubuntu` and the release is 26.04; it is not the only distribution registered on this machine, and nothing in the tools reads the distribution's name, so the only thing holding this together is that default. `wsl --install` sets the newly installed distribution as the default, so installing another one is the single action that quietly redirects every command above. `wsl -l -v` says which one holds the default today and `wsl -s Ubuntu` puts it back.
+The rest need the toolchain, so asked for on the host they are re-launched in the
+guest and say so. Inside the guest they are `python3 tools/run.py <command>` and
+nothing else changes.
+
+```console
+$ python tools/run.py evidence                   # the whole exit-evidence sweep, one block
+$ python tools/run.py evidence --no-build        # and without rebuilding first
+$ python tools/run.py model typecheck
+$ python tools/run.py model lane                 # where this checkout builds
+$ python tools/run.py model build --background
+$ python tools/run.py model wait                 # and its verdict when it lands
+$ python tools/run.py model oracle
+$ python tools/run.py model corpus
+$ python tools/run.py model corpus --refresh
+$ python tools/run.py model devicetree
+$ python tools/run.py model reference
+$ python tools/run.py model trace-diff --corpus --floor 67
+$ python tools/run.py rtl lint                   # the authored RTL, alone
+$ python tools/run.py rtl vectors                # the model's own answers, as text
+$ python tools/run.py rtl crosscheck             # and the RTL reproducing them
+$ python tools/run.py rtl elaborate --background
+$ python tools/run.py rtl wait                   # and the structures it removed
+$ python tools/run.py testrig handshake          # the emulator, over RVFI-DII
+$ python tools/run.py testrig run --seeds 100 --defect none
+$ python tools/run.py testrig run --defect tag-dropped --shrink
+$ python tools/run.py testrig bridge             # both dialects, one run
+$ python tools/run.py oracle vectors --spec capformat
+$ python tools/run.py quickchick check           # and what the install costs
+$ python tools/run.py quickchick vectors         # the Gallina front's answers
+$ python tools/run.py seed coq --sample 20
+$ python tools/run.py seed sail --spec keccak --sample 14
+$ python tools/run.py proofs
+```
+
+There is no `-d` on the `wsl` invocation `run.py` makes, because `Ubuntu` is WSL's default and the default is what every guest command wants. The name is plain `Ubuntu` and the release is 26.04; it is not the only distribution registered on this machine, and nothing in the tools reads the distribution's name, so the only thing holding this together is that default. `wsl --install` sets the newly installed distribution as the default, so installing another one is the single action that quietly redirects every guest command. `wsl -l -v` says which one holds the default today and `wsl -s Ubuntu` puts it back.
 
 The two lanes spell the interpreter differently, and that is not an oversight. On the host `python3` is worse than absent: the python.org installer ships `python.exe` and `pythonw.exe` and no third spelling, and what answers to `python3` is Windows' own app execution alias, a stub that resolves, prints *Python was not found*, and exits 9009. A tool invoked through it fails as though the tool were broken. So `python` is the name, with `py -3.14` available when several versions are installed. Inside the guest the reverse holds. Ubuntu ships `python3` and no bare `python` at all; this distribution answers to both only because `python-is-python3` is installed on it, and [PEP 394](https://peps.python.org/pep-0394/) still names `python3` as the one spelling a script may assume. So the shebangs stay `#!/usr/bin/env python3` and so does every WSL command written down here, because both have to work on a stock 26.04 that has never had that metapackage. Treating `python` as portable is the one shortcut this rule exists to refuse.
 
@@ -154,9 +199,9 @@ answers one of the two findings that say why generation pays.
 
 | Generator | The finding it answers | What it does |
 | --- | --- | --- |
-| [oracle.py](oracle.py) | **M0.12**: its corpus found an encoding defect the `$[test]` harness structurally cannot, a `$[test]` calling `execute` on an already-decoded instruction and so never seeing a mis-encoded word | A spec names model sources and a domain; the harness is emitted, compiled against them, and run, and what it reaches is decided by the domain rather than by what a property happens to be about |
-| [seed.py](seed.py) | **M0.8d**: the property that named a defect was written before the vectors and never ran, the harness running alphabetically so the symptom aborted the executable ahead of the cause | Mutation operators walked over a Sail or Gallina source, each mutant pointed at an oracle that must notice; a written property inherits the blind spots of the choice to write it and a generated mutant is not chosen at all |
-| [quickchick.py](quickchick.py) | **M0.8d**, one language over: both defects its known-answer vectors found were transcriptions no structural property was written about | The Gallina front's inputs, which the Wasm oracle has never had any generator for: an enumerative half in the oracle's own switch, and a randomized half under QuickChick 2.2.0 in a switch of its own, with automatic counterexample shrinking |
+| [run.py oracle](vos/cli/oracle.py) | **M0.12**: its corpus found an encoding defect the `$[test]` harness structurally cannot, a `$[test]` calling `execute` on an already-decoded instruction and so never seeing a mis-encoded word | A spec names model sources and a domain; the harness is emitted, compiled against them, and run, and what it reaches is decided by the domain rather than by what a property happens to be about |
+| [run.py seed](vos/cli/seed.py) | **M0.8d**: the property that named a defect was written before the vectors and never ran, the harness running alphabetically so the symptom aborted the executable ahead of the cause | Mutation operators walked over a Sail or Gallina source, each mutant pointed at an oracle that must notice; a written property inherits the blind spots of the choice to write it and a generated mutant is not chosen at all |
+| [run.py quickchick](vos/cli/quickchick.py) | **M0.8d**, one language over: both defects its known-answer vectors found were transcriptions no structural property was written about | The Gallina front's inputs, which the Wasm oracle has never had any generator for: an enumerative half in the oracle's own switch, and a randomized half under QuickChick 2.2.0 in a switch of its own, with automatic counterexample shrinking |
 
 Three verdicts and never two, wherever a mutant is run. **Stillborn** is a mutant that
 did not compile, and nothing was decided about the oracle because the oracle never ran.
@@ -181,16 +226,16 @@ against. The run says so on its first line.
 ## Checking the tools themselves
 
 The documents are checked against each other by [check.py](check.py), and the checker is
-checked against its own mutants by [check-selftest.py](check-selftest.py). Neither of
+checked against its own mutants by [run.py selftest](vos/cli/selftest.py). Neither of
 them reads a line of Python as Python, so without a gate of their own the tools are the
 one artifact here with no proof, no model, and no reader but their author.
-[typecheck.py](typecheck.py) is that gate for the Python's discipline, and it runs two
+[run.py typecheck](vos/cli/typecheck.py) is that gate for the Python's discipline, and it runs two
 checkers because one cannot do the whole job; what a type cannot decide, the behavior, is
-[test.py](test.py)'s to hold.
+[run.py test](vos/cli/test.py)'s to hold.
 
 Three of those four decide about the tree as it stands, and they contend for nothing:
 all three only read the checkout, and the two small ones fit inside the slack of the
-large one. So [gate.py](gate.py) runs them as one command and one exit code, each
+large one. So [gate.py](run.py) runs them as one command and one exit code, each
 member's own report printed whole under its own heading in the order the tool declares
 rather than the order the three finished in. Measured warm on a twelve-core host over
 three alternated runs of each arm, the selftest alone takes a median 22.8 s, the wave
@@ -200,7 +245,7 @@ and the single verdict is the larger. `--fix` is the one exception to the wave
 and a correctness one, the repair running alone and to completion before the rest,
 because the selftest opens by copying the working tree and a document rewritten
 mid-copy seeds a torn sandbox that reports as a baseline failure about nothing.
-[test.py](test.py) is deliberately not a member: it decides about the tools rather than
+[run.py test](vos/cli/test.py) is deliberately not a member: it decides about the tools rather than
 about this tree, and it is the one gate that runs the others.
 
 | Checker | Pin | What it decides |
@@ -218,8 +263,8 @@ command each because a uv tool install is one environment holding one pinned too
 isolation is the point rather than a side effect: neither checker is a dependency of
 anything here, so neither belongs in the environment ty resolves this directory's own
 imports against, and the pinned checker stays the same one whichever interpreter runs
-[typecheck.py](typecheck.py). The shims land in uv's tool bin directory, which
-[typecheck.py](typecheck.py) looks in first, ahead of the interpreter's own script
+[run.py typecheck](vos/cli/typecheck.py). The shims land in uv's tool bin directory, which
+[run.py typecheck](vos/cli/typecheck.py) looks in first, ahead of the interpreter's own script
 directories and then `PATH`; all three are kept, because reporting absent what is
 present is the one failure a pinned-version gate must not have.
 
@@ -274,10 +319,10 @@ Three edits, and the tools refuse to let one be forgotten:
 
 1. The check itself, in the [vos/checks/](vos/checks/) module for its group.
 2. Its row in [check-rules.md](check-rules.md). The meta group fails on a rule with no row and a row with no rule.
-3. Its mutant in [check-selftest.py](check-selftest.py). The selftest fails on a registered rule with no case, and on a case whose mutation no longer applies.
+3. Its mutant in [run.py selftest](vos/cli/selftest.py). The selftest fails on a registered rule with no case, and on a case whose mutation no longer applies.
 
 A rule that reads an enumeration owes the floors group a member count too, so that the day its pattern stops matching anything is the day it says so rather than the day it starts passing vacuously. The meta group's own rules are the exception and state why: their sites are declared in code and read fail-closed, so a reading that has emptied reports there rather than one group later.
 
 A **quarantined** rule keeps all three edits and keeps them together, in [quarantine/](quarantine/): the check under [quarantine/checks/](quarantine/checks/), the row in [quarantine/check-rules.md](quarantine/check-rules.md), and the mutant in [quarantine/gate.py](quarantine/gate.py), which holds the three against each other exactly as the meta group and the selftest hold the landing loop's. What decides which of the two places a rule belongs in is not the rule but its subject: an instrument whose decision is deferred is not worth a second of every landing, and [that directory's README](quarantine/README.md) states the condition that brings each one back.
 
-And whatever the edit, `python tools/typecheck.py` has to be green before it lands, the same way `python tools/check.py` does.
+And whatever the edit, `python tools/run.py typecheck` has to be green before it lands, the same way `python tools/check.py` does.

@@ -41,10 +41,6 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
 from vos import corpus as corpus_mod
 from vos.report import Reporter
 
@@ -306,6 +302,3 @@ def main(argv: list[str] | None = None) -> int:
     print("\n".join(report.out))
     return 1 if report.findings else 0
 
-
-if __name__ == "__main__":
-    sys.exit(main())

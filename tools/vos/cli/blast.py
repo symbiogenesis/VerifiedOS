@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Answer, before work starts, what an edit re-opens in the apex statement.
 
-    tools/blast-radius.py --field composed_schedulability
-    tools/blast-radius.py --artifact proofs/SomeWorkstream.v
-    tools/blast-radius.py                    # every field with its consumers
+    tools/run.py blast --field composed_schedulability
+    tools/run.py blast --artifact proofs/SomeWorkstream.v
+    tools/run.py blast                    # every field with its consumers
 
 The mechanical facts come from proofs/ApexTheorem.v alone, through the one parse
 vos/apex.py holds, which the checker's bindings group also reads, so the answer here
@@ -26,13 +26,8 @@ thing re-opened and is listed once rather than per line.
 
 import argparse
 import re
-import sys
 from collections import deque
 from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import apex, fieldbindings
 from vos.corpus import find_root
@@ -160,6 +155,3 @@ def main(argv: list[str] | None = None) -> int:
     print("\n".join(out))
     return code
 
-
-if __name__ == "__main__":
-    sys.exit(main())

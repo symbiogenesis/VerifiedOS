@@ -4,7 +4,7 @@
 This is the rig M2.1 built and R1a rebuilt: hand Sail a list of model files and one
 more file that calls into them, take the C it emits, link it against Sail's own
 runtime, and run the executable. Nothing about it is specific to the capability
-format, and it was written inside [tools/rtl.py](../rtl.py) because at the time there
+format, and it was written inside [the RTL lane](cli/rtl.py) because at the time there
 was one caller. There are now three, so it lives here and the callers name their own
 sources.
 

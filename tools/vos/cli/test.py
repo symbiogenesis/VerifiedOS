@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """Run the tools' own behavioral tests.
 
-`check.py` checks the documents, `check-selftest.py` checks the checker's rules by
-mutation, and `typecheck.py` checks the Python's discipline. What none of them
-checks is the tools' *behavior*: that a repair reaches its fixpoint, that a parse
-answers what its docstring promises, that a CLI's exit code means what the
-conventions say. The modules under `tests/` hold exactly that, one subject per
-module, and this is their runner.
+`check` checks the documents, `selftest` checks the checker's rules by mutation, and
+`typecheck` checks the Python's discipline. What none of them checks is the tools'
+*behavior*: that a repair reaches its fixpoint, that a parse answers what its
+docstring promises, that a CLI's exit code means what the conventions say. The
+modules under `tools/tests/` hold exactly that, one subject per module, and this is
+their runner.
 
 Modules run concurrently (most cases wait on subprocesses, which releases the
 lock the interpreter holds); the cases inside a module run in order, and every
@@ -16,8 +16,8 @@ report reads the same however the pool scheduled them. Discovering no modules at
 all is a failure, not a green run: an empty suite decides nothing, and this tool
 must say so rather than pass vacuously.
 
-Exit 0 clean, 1 on any failure. It may be run from anywhere: modules are found
-beside this file, never from the working directory.
+Exit 0 clean, 1 on any failure. It may be run from anywhere: the modules are found
+from this file's own location, never from the working directory.
 """
 
 import argparse
@@ -25,11 +25,6 @@ import importlib
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-
-# The tools import `vos` and `tests` without being installed, so each puts its own
-# directory on the path first. Every import below this line is deliberately not at
-# the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from tests.harness import Case
 from vos.report import Reporter
@@ -39,8 +34,8 @@ LANE = "host" if sys.platform == "win32" else "guest"
 
 
 def _module_names(only: str | None) -> list[str]:
-    """Every test module beside this file, sorted so the report order is fixed."""
-    here = Path(__file__).resolve().parent / "tests"
+    """Every test module under `tools/tests/`, sorted so the report order is fixed."""
+    here = Path(__file__).resolve().parents[2] / "tests"
     names = sorted(path.stem for path in here.glob("test_*.py"))
     if only:
         names = [name for name in names if only in name]
@@ -131,6 +126,3 @@ def main(argv: list[str] | None = None) -> int:
     print("\n".join(report.out))
     return 1 if report.findings else 0
 
-
-if __name__ == "__main__":
-    sys.exit(main())

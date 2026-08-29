@@ -9,12 +9,12 @@ while the entry extracted from it stays as it was, every reference still resolvi
 the run still green. K-61 reports each pair where either side has moved since the two
 were last read together; this is where the reading is done.
 
-    tools/co-read.py                     # the pairs a reading is owed on
-    tools/co-read.py --show R-15-073c    # the two sides, against each other
-    tools/co-read.py --show --all        # every pending pair's two sides, in one read
-    tools/co-read.py --where R-15-073c   # where the two sides live, as file:line
-    tools/co-read.py --bless R-15-073c   # record that they were read and agree
-    tools/co-read.py --bless --all       # record every pending pair at once
+    tools/run.py coread                     # the pairs a reading is owed on
+    tools/run.py coread --show R-15-073c    # the two sides, against each other
+    tools/run.py coread --show --all        # every pending pair's two sides, in one read
+    tools/run.py coread --where R-15-073c   # where the two sides live, as file:line
+    tools/run.py coread --bless R-15-073c   # record that they were read and agree
+    tools/run.py coread --bless --all       # record every pending pair at once
 
 **Blessing is a judgment and deliberately not a repair.** tools/README.md's convention
 is that arithmetic is repaired and judgment is reported, so `check.py --fix` does not
@@ -29,19 +29,14 @@ This is a worklist and not a gate, so it exits 0 whether or not a reading is owe
 """
 
 import argparse
-import sys
 from pathlib import Path
-
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import coread
 from vos import corpus as corpus_mod
 from vos.corpus import ANCHOR_RE, PROSE
 from vos.register import REGISTER, read_register
 
-RULE = "tools/co-read.py"
+RULE = "tools/run.py coread"
 
 
 def _state(root: Path) -> tuple[dict[str, tuple[str, str]], dict[str, tuple[str, str]]]:
@@ -239,6 +234,3 @@ def main(argv: list[str] | None = None) -> int:
         return _bless(root, args.bless, args.all)
     return _list(root)
 
-
-if __name__ == "__main__":
-    sys.exit(main())
