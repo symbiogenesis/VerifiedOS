@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 228 of them across 54 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 235 of them across 55 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -885,6 +885,34 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Disposition: closed, taken at M4.4: single-instance bring-up, the multikernel's defining property being first exercisable on the RTL track where a second implementation stands
 
 ## M6 · Userland spine
+
+**F-186g** owed-act: the extent of the authority a restart re-grants is stated three ways and they are not one statement, one entry fixing it at exactly the manifest's edges, another re-deriving at the manifest and the current revocation epoch, a third making user retraction a trigger beside restart, and a fourth carrying no epoch at all
+· Raised: M6.1a
+· Disposition: open, the difference observable on a retired edge and machine-checked at the item: the construction that faithfully rebuilds the manifest mints nothing and resurrects what a revocation retired
+
+**F-186h** owed-act: a supervised unit has no lifecycle, the monotone lifecycle one entry states being a pool member's and the status set another states being a request's, so nothing gives a declarative unit states
+· Raised: M6.1a
+· Disposition: open, the item inventing none and stating its obligations over an arbitrary reaction instead
+
+**F-186i** owed-act: what *no residue crosses the restart* quantifies over is unclear, the clause being attributed whole to a memory-allocation property that decides nothing about a grant slot while the authority half belongs to two other entries
+· Raised: M6.1a
+· Disposition: open, one mechanism credited with both halves
+
+**F-186j** owed-act: the minimal recovery state is named and never stated, no entry saying what it holds or which roster it brings up, where one entry names it, a second makes boot counting a root-of-trust duty and a third sequences the ROM
+· Raised: M6.1a
+· Disposition: open
+
+**F-186k** owed-act: the backoff index's scope is three different counters, one entry declaring a backoff per detector and action pair, another stating restart-with-backoff of the tree, and a third making a complete supervised subtree one victim
+· Raised: M6.1a
+· Disposition: open, per unit, per subtree and per window not being the same count
+
+**F-186l** owed-act: two ladders carry one name, a default order over nine actions and a per-class permitted ordered ladder being different lists with no entry saying which one a class ladder is
+· Raised: M6.1a
+· Disposition: open
+
+**F-186m** owed-act: a hysteresis band may be zero-width, both thresholds being required to be declared and nothing being said about the width between them, so a pair whose clear threshold equals its assertion threshold re-asserts the moment it clears
+· Raised: M6.1a
+· Disposition: open, the item taking the weaker reading because that is what the words carry; the oscillation admitted is the one the same entry's criterion is about
 
 **F-166** owed-act: whether a statically composed image re-admits on device or measured boot covers it is unruled, and the split of the admission-checker milestone rests on it
 · Raised: M6.2, in prose
