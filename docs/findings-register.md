@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 214 of them across 51 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 222 of them across 53 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -111,6 +111,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-000j** upstream-defect: the model lane's opam environment leaks into a prover child, and where that child shells out to the library manager it sees two definitions of one library and picks the wrong one
 · Raised: S13a
 · Disposition: closed, a prover child given its own switch's variables laid over the inherited ones; what it printed named neither switch
+
+**F-000r** owed-act: a fourth mutation loop carries its own table, its own seeding and its own accounting, and merges the case whose seed no longer applies with the mutant that survived into one list under one label
+· Raised: S13b
+· Disposition: open, the loop being the quarantine's own gate and outside this absorption's scope; it may read the shared vocabulary, the rule holding the boundary forbidding only the landing loop reaching into the quarantine and not the reverse
+
+**F-000s** method: an item's stated blocker did not survive the act it blocked, an appended case and the rewritten run loop lying far outside the context a merge reads and the shared region coming through byte-identical
+· Raised: S13b
+· Disposition: closed, the region measured identical on both sides rather than inspected; what is real is a last mile and an ordering preference, so the ordering stands and the ground under it does not
 
 ## M0 · Hardware reference
 
@@ -767,6 +775,31 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-156** owed-act: two requirements cannot both be true of the Debug Module, one closing it permanently at the transition out of test and the other making entry an authenticated exchange in a later state
 · Raised: M3.1, in prose
 · Disposition: closed, taken at R-09-034, which carves the Debug Module out of the permanent test-exit closure and leaves it live in development and RMA alone
+
+**F-186a** owed-act: which codepoint names which permission set is unfixed, the lattice being enumerated at freeze time and no artifact here carrying the enumeration
+· Raised: M3.3
+· Disposition: open, so the decode is a field and every one of the item's exclusion obligations is stated of an arbitrary one
+
+**F-186b** owed-act: a normative clause states the mechanism its own criterion demotes, grounding the invariant on monotonicity and an absence in the static capability distribution where the criterion discharges it at the permission encoding and keeps the distribution check as redundant confirmation alone
+· Raised: M3.3
+· Disposition: open, the asymmetry machine-checked at the item rather than argued: the composed distribution passes on a machine whose encoding assigns the combination, so the two checks are not one check stated twice
+
+**F-186c** owed-act: what *running kernel state* comprises is unstated, no entry saying whether the partition contexts one requirement restores and the schedule table another swaps are inside the phrase or beside it
+· Raised: M3.3
+· Disposition: open, the item stating the capability distribution alone, which is the narrowest reading the entries fix
+
+**F-186d** owed-act: what completes a core's root set is unstated, the bound being fixed and the totality only ever *some root per core*, with no artifact distinguishing an image's text extent from its data extent at a region
+· Raised: M3.3
+· Disposition: open, the bound stated and the totality stated at the weakest thing the entries carry
+
+**F-186e** owed-act: an acceptance criterion audits a resident-code inventory no artifact enumerates, not the register, the prose, the proofs, the model or the corpus
+· Raised: M3.3
+· Disposition: open, one entry over the shape M4.2a met at the invocation list, and closing the way that one closed
+· Restates: F-157
+
+**F-186f** owed-act: a Tier-0 proof obligation has no owner, the no-ambient-state clause being put on the firmware as ordinary proof over its statically planned state and no artifact here being that proof
+· Raised: M3.3
+· Disposition: open, the item shipping the obligation stated and refuted, which is a statement and not a discharge
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
