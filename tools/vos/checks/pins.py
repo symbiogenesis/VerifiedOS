@@ -110,6 +110,7 @@ from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
 from vos import pins as pins_mod
+from vos.checks import generated
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -168,13 +169,22 @@ def _sources(ctx: Context) -> list[tuple[str, list[str], list[bool]]]:
     the duplication [vos/](..) exists to refuse. Everything else is read here, and
     carries no mask, a fence being a thing Markdown does and these files are not.
 
-    That leaves one part of the index unread and it is the one exclusion worth
-    stating: `model/` *outside* the citation window is vendored upstream at its own
-    revisions, `dependencies/` most of all, and a commit recorded there is somebody
-    else's provenance rather than a pin taken here. Holding an upstream's own
-    recorded commits against this repository's licence record is not a claim anyone
-    should make, which is the ground `corpus.is_model_citation_path` already gives
-    for the same boundary.
+    That leaves two parts of the index unread and both are worth stating. `model/`
+    *outside* the citation window is vendored upstream at its own revisions,
+    `dependencies/` most of all, and a commit recorded there is somebody else's
+    provenance rather than a pin taken here. Holding an upstream's own recorded commits
+    against this repository's licence record is not a claim anyone should make, which is
+    the ground `corpus.is_model_citation_path` already gives for the same boundary.
+
+    The second is **the generated artifacts**, and the ground is this rule's own subject
+    rather than a cost. What it holds is a *restatement*: a person naming an upstream and
+    writing a commit beside it, which drifts because a person wrote it. A generated
+    artifact restates nothing, its content being a function of its owners and held
+    byte-for-byte by K-88, so an object-id-shaped token inside one is not a
+    transcription and there is no edit for a finding to ask for. The bundle makes that
+    concrete: it is one line of four megabytes carrying every Sail bit literal in the
+    model, so `0b00000` reads as seven hex digits on a line that also names an upstream,
+    and the rule reported thousands of restatements nobody wrote.
 
     A file that will not read as text is skipped rather than reported: what every
     tracked file is made of is the glyphs group's question, and pricing one
@@ -182,6 +192,7 @@ def _sources(ctx: Context) -> list[tuple[str, list[str], list[bool]]]:
     """
     window: list[tuple[str, list[str], list[bool]]] = [
         (doc.name, doc.lines, doc.fenced) for doc in ctx.corpus.docs]
+    machine = generated.paths()
 
     # Narrowed here rather than trusted, which is what `Context.shared` being `Any`
     # asks of each reader: the counts group puts `(rel, text)` pairs there and this
@@ -191,6 +202,8 @@ def _sources(ctx: Context) -> list[tuple[str, list[str], list[bool]]]:
 
     for rel in ctx.corpus.tracked:
         if rel in ctx.corpus or rel.startswith(corpus_mod.UNREAD_PREFIX):
+            continue
+        if rel in machine:
             continue
         try:
             text = (ctx.root / rel).read_text(encoding="utf-8")
