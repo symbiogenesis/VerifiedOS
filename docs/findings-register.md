@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 235 of them across 55 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 237 of them across 56 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -689,11 +689,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-130** upstream-defect: the guest idles out between commands and takes its containers with it, and the switch that disables it is global and permanent on the human's box
 · Raised: M1.5, in prose
-· Disposition: closed, the fix scoped into the repository as a detached, idempotent, self-expiring keepalive every model loop starts; S9 retires the class
+· Disposition: closed, the fix scoped into the repository as a detached, idempotent, self-expiring keepalive every model loop starts; the class stays open on WSL, S9 being a provisioner rather than a move
 
 **F-131** upstream-defect: an intercepting proxy re-signs the release-asset host, so the exported root CA must be installed into any guest trust store that fetches one
 · Raised: M1.5, in prose
-· Disposition: standing, a setting on the human's box that no benchmark reaches; S9 retires the class
+· Disposition: standing, a setting on the human's box that no benchmark reaches, and one S9's provisioner does not reach either, standing up a lane rather than a box's trust store
 
 **F-132** method: an instrument's landed half was gated on neither milestone the plan books it behind, what it needs from a backend being a transport rather than a design
 · Raised: M1.8a
@@ -825,6 +825,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-186f** owed-act: a Tier-0 proof obligation has no owner, the no-ambient-state clause being put on the firmware as ordinary proof over its statically planned state and no artifact here being that proof
 · Raised: M3.3
 · Disposition: open, the item shipping the obligation stated and refuted, which is a statement and not a discharge
+
+**F-187** method: an upstream's licence election is stated in this repository's own prose rather than read at the upstream's own file, which is the inference from lineage this page forbids and has already had to correct once
+· Raised: M3.4, in prose
+· Disposition: open, the arm recorded at the decision and the reading taken at the pin in M3.4a, which is where the rule that a licence is read at the incorporating milestone already puts it
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
@@ -963,7 +967,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-177** owed-act: the platform devices have no definition in this repository to be authored against, there being no interconnect top, no bus and no address map, and the shipped composition declaring no serial port at all
 · Raised: R1c, in prose
-· Disposition: closed, taken at R1c: the address map is a register act under R-15-002b and the peripherals are route-(c) references, the top following the map
+· Disposition: closed, taken at R1c: the address map is a composition act under R-15-002b and the peripherals are route-(c) references, the top following the map
+
+**F-177a** owed-act: the root of trust's RTL route is unassigned, one entry's acceptance naming three imported cores and another's authored list naming three blocks with the root of trust on neither, while a third puts it in the trusted base and calls it verified
+· Raised: R1c, in prose
+· Disposition: open, a register act naming its route; the plan had been reading it onto the imported side by default, and R1c re-homes it to the authored one on the proof argument rather than on the uniformity one
 
 ## Build-loop instruments
 
