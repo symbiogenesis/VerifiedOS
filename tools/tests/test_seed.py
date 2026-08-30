@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The seeded-defect generator's accounting, and the three tools' host entry points.
+"""The seeded-defect generator's own reading of a source, and the three tools' host
+entry points.
 
-Two things are pinned here that a run's output cannot show. The first is the **verdict
-arithmetic**: counting a stillborn mutant as a kill is the standard way a mutation
-score is inflated, and a run that did it would print a larger number and read exactly
-like a better one. The second is that the loop **puts the tree back**: the `$[test]`
-oracle writes into `model/`, which is a `-text` tree where a newline-translating round
-trip rewrites every line of the file it touched.
+What is pinned here is that the loop **puts the tree back**: the `$[test]` oracle
+writes into `model/`, which is a `-text` tree where a newline-translating round trip
+rewrites every line of the file it touched. The verdict arithmetic this tool reports
+through is `vos/seeded.py`'s and is held in [test_seeded.py](test_seeded.py), beside
+the module that decides it and beside the loops that share it.
 """
 
 import subprocess
@@ -15,7 +15,6 @@ import tempfile
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import mutate
 from vos.cli import seed
 
 _ROOT = TOOLS.parent
@@ -26,64 +25,6 @@ def _run(command: str, *args: str) -> tuple[int, str]:
                           capture_output=True, encoding="utf-8", errors="replace",
                           check=False, timeout=300, cwd=_ROOT)
     return done.returncode, done.stdout + done.stderr
-
-
-def _mutant(line: int = 1) -> mutate.Mutant:
-    return mutate.Mutant(ident=f"op/{line}", operator="op", path="f.sail", line=line,
-                         start=0, end=1, before="a", after="b")
-
-
-def _a_survivor_fails_the_run() -> None:
-    out: list[str] = []
-    code = seed.summarize(out, [seed.Verdict(_mutant(), seed.SURVIVED, "reproduced")],
-                          "f.sail", "test")
-    ensure(code == 1, "a survivor did not fail the run")
-    ensure(any("survived" in line for line in out), f"the report said {out}")
-
-
-def _a_stillborn_mutant_does_not_fail_the_run() -> None:
-    """Nothing was decided about the oracle by a mutant that never compiled, so it is
-    counted and reported and is not a finding."""
-    out: list[str] = []
-    code = seed.summarize(out, [seed.Verdict(_mutant(1), seed.KILLED, "moved", 4),
-                                seed.Verdict(_mutant(2), seed.STILLBORN, "no build")],
-                          "f.sail", "test")
-    ensure(code == 0, f"a stillborn mutant beside a kill failed the run: {out}")
-    ensure(any("1 killed, 0 survived, 1 stillborn" in line for line in out),
-           f"the three verdicts were not counted apart: {out}")
-
-
-def _an_all_stillborn_run_is_a_finding() -> None:
-    """The vacuous pass every floor in this repository exists to catch: a population
-    that never compiled measured the compiler and not the oracle."""
-    out: list[str] = []
-    code = seed.summarize(out, [seed.Verdict(_mutant(), seed.STILLBORN, "no build")],
-                          "f.sail", "test")
-    ensure(code == 1, "a run that decided nothing passed")
-    ensure(any("decided nothing" in line for line in out), f"the report said {out}")
-
-
-def _the_kill_span_is_reported() -> None:
-    out: list[str] = []
-    seed.summarize(out, [seed.Verdict(_mutant(1), seed.KILLED, "moved", 4),
-                         seed.Verdict(_mutant(2), seed.KILLED, "moved", 61579)],
-                   "f.sail", "test")
-    ensure(any("between 4 and 61579 lines" in line for line in out),
-           f"the span R1a's standard is stated in is absent: {out}")
-
-
-def _a_sample_spreads_and_a_limit_takes_a_prefix() -> None:
-    """A population is ordered by operator, so a prefix of it is one operator's
-    mutants: `--limit` is for iterating and `--sample` is for measuring."""
-    population = [_mutant(n) for n in range(100)]
-    ensure([m.line for m in seed.chosen(population, 3, 0)] == [0, 1, 2],
-           "a limit did not take a prefix")
-    spread = [m.line for m in seed.chosen(population, 0, 4)]
-    ensure(spread == [0, 25, 50, 75], f"a sample of four gave {spread}")
-    ensure(len(seed.chosen(population, 0, 0)) == 100,
-           "neither flag should narrow the population")
-    ensure(len(seed.chosen(population, 0, 200)) == 100,
-           "a sample larger than the population is the population")
 
 
 def _a_source_round_trips_byte_for_byte() -> None:
@@ -138,12 +79,6 @@ def _seed_list_refuses_an_unmutable_kind() -> None:
 
 def cases() -> list[Case]:
     return [
-        Case("a survivor fails the run", _a_survivor_fails_the_run),
-        Case("a stillborn mutant does not", _a_stillborn_mutant_does_not_fail_the_run),
-        Case("an all-stillborn run is a finding", _an_all_stillborn_run_is_a_finding),
-        Case("the kill span is reported", _the_kill_span_is_reported),
-        Case("a sample spreads where a limit takes a prefix",
-             _a_sample_spreads_and_a_limit_takes_a_prefix),
         Case("a source round trips byte for byte", _a_source_round_trips_byte_for_byte),
         Case("a length change counts as movement", _moved_counts_a_length_change),
         Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),

@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """The seeded-defect generator: one engine, several oracles, three verdicts.
 
-[check-selftest.py](check-selftest.py) proved mutation testing here, on the checker's
-own rules, with one hand-authored mutant per rule. That shape is right for a registry
+[run.py selftest](selftest.py) proved mutation testing here, on the checker's own
+rules, with one hand-authored mutant per rule. That shape is right for a registry
 and wrong for everything else in this tree: a Sail function and a Gallina definition
 have hundreds of mutable sites each and nobody is going to author hundreds of cases.
-So [vos/mutate.py](vos/mutate.py) generates the population and this tool points it at
+So [vos/mutate.py](../mutate.py) generates the population and this tool points it at
 an **oracle**, which is whatever decides that a defect has been noticed:
 
     seed.py sail --spec capformat     the generated vectors, which must move
@@ -19,6 +19,9 @@ mutant that compiled and moved the oracle's answer. **Survived** is a mutant tha
 compiled and did not, and a survivor is the finding: the oracle does not reach that
 site. Counting stillborn mutants as kills is the standard way a mutation score is
 inflated, so a run here reports the three apart and scores over the live population.
+What a verdict is, and the report and the exit code they imply, is
+[vos/seeded.py](../seeded.py)'s and is shared with every other loop that seeds a
+defect; what is here is the population and the three oracles.
 
 The Coq lane runs **two** oracles in sequence and the second is the one worth the
 item. A mutation the prover refuses is killed by the artifact's own statements, which
@@ -32,42 +35,30 @@ written before the vectors and never ran, the harness running alphabetically so 
 symptom aborted the executable ahead of the cause. A written property inherits every
 blind spot in the choice of what to write; a generated mutant is not chosen at all.
 
-**Absorbing check-selftest.py is a later, mechanical step, and it is not taken here**
-because ten sibling lanes are adding mutants to that file right now and the absorption
-would conflict with every one of them: a case is one row of one list, so ten lanes
-adding a rule apiece is ten edits to one region of one file, and moving that region in
-the same window would make each of them a conflict rather than an append.
-
-**What it costs, measured against the file as it stands at 1,598 lines.** Its `CASES`
-table is lines 759 to 1264, **506 lines of data that move unchanged**: the checker's
-oracle keeps an *authored* population rather than a generated one, and that is correct
-rather than a shortfall, its subject being a registry where one mutant per rule is two
-halves of one claim. What the absorption adds here is a fourth oracle of about forty
-lines, staging the corpus the way `stage_sail` below stages a model source and
-`gallina.stage` stages the proofs. What it deletes is the run loop and the report,
-`_run` and `main`'s accounting, roughly 150 lines replaced by `chosen` and
-`summarize`. And **three parts do not move at all**: the `Sandbox` class and its
+**The checker's own rules are a fourth oracle over the same vocabulary, and its
+population stays authored.** [run.py selftest](selftest.py) keeps one hand-written
+mutant per registered rule, which is right rather than a shortfall: its subject is a
+registry, where a rule and its mutant are two halves of one claim, and there is no
+source to walk. What it shares is [vos/seeded.py](../seeded.py) and nothing else.
+What stays its own is the `CASES` table, which sits where the rules are added and
+where the one rule that reads a quoted path exempts it; the `Sandbox` class and its
 hardlink template over the git index, which is that oracle's own staging and no other
-oracle's; the repair path, which decides about `--fix` rather than about mutation; and
-the registry-coverage check, which decides about the rule registry. `gate.py` invokes
-the same entry point either way, so the host gate is unchanged by the move.
+oracle's; the repair path, which decides about `--fix` rather than about mutation;
+and the registry-coverage check, which decides about the rule registry rather than
+about any run. Its third verdict is `unseeded` rather than `stillborn`, and
+`vos/seeded.py` states why the two are counted apart.
 """
 
 import argparse
 import shutil
 import subprocess
 from collections.abc import Iterable
-from dataclasses import dataclass
 from pathlib import Path
 
 from vos import cli, env, gallina, mutate, sailrig
 from vos import oracle as oracle_spec
 from vos.corpus import find_root
-
-# The three verdicts, spelled once.
-KILLED = "killed"
-SURVIVED = "survived"
-STILLBORN = "stillborn"
+from vos.seeded import KILLED, STILLBORN, SURVIVED, Verdict, chosen, summarize
 
 # This lane's working directories under the lane root, one per oracle, because two of
 # them are running compilers over trees that must not be the same tree.
@@ -78,16 +69,6 @@ WORK = "seed"
 # a stillborn mutant with near certainty and mutating `ApexTheorem.v`'s vocabulary is
 # a mutation of a `Prop` no vector computes.
 COQ_SUBJECT = "proofs/CyclicExecutive.v"
-
-
-@dataclass(frozen=True)
-class Verdict:
-    """One mutant, run: what the oracle decided and on how much."""
-
-    mutant: mutate.Mutant
-    outcome: str
-    detail: str
-    moved: int = 0
 
 
 def read_source(path: Path) -> str:
@@ -104,62 +85,6 @@ def read_source(path: Path) -> str:
 def write_source(path: Path, text: str) -> None:
     """And back, byte for byte."""
     path.write_bytes(text.encode("utf-8"))
-
-
-def chosen(population: list[mutate.Mutant], limit: int, sample: int,
-           ) -> list[mutate.Mutant]:
-    """Which of a population to run, and the two ways of narrowing it.
-
-    `--limit` takes a prefix, which is the right shape while iterating on one operator.
-    `--sample` takes evenly spaced members, which is the right shape for a
-    measurement: a prefix of an operator-ordered population is one operator's mutants
-    and says nothing about the rest.
-    """
-    if sample and sample < len(population):
-        step = len(population) / sample
-        return [population[int(n * step)] for n in range(sample)]
-    return population[:limit] if limit else population
-
-
-def summarize(out: list[str], verdicts: list[Verdict], subject: str,
-              oracle_name: str) -> int:
-    """The one report shape all three loops share, and the exit code it implies.
-
-    A survivor is a finding and a stillborn mutant is not: nothing was decided about
-    the oracle by a mutant that never compiled, so it is counted and reported and does
-    not fail the run. The score is over the live population, which is the only
-    population the oracle was asked about.
-    """
-    killed = [v for v in verdicts if v.outcome == KILLED]
-    survived = [v for v in verdicts if v.outcome == SURVIVED]
-    still = [v for v in verdicts if v.outcome == STILLBORN]
-    live = len(killed) + len(survived)
-
-    out.append("")
-    out.append(f"== {subject} against the {oracle_name} oracle")
-    out.append(f"   {len(verdicts)} mutant(s) run: {len(killed)} killed, "
-               f"{len(survived)} survived, {len(still)} stillborn")
-    if killed:
-        moved = [v.moved for v in killed if v.moved]
-        span = (f", on between {min(moved)} and {max(moved)} lines"
-                if moved else "")
-        out.append(f"   every kill{span}")
-        out.extend(f"     {v.mutant.what}: {v.detail}" for v in killed)
-    if still:
-        out.append(f"   {len(still)} stillborn, which decide nothing about the oracle:")
-        out.extend(f"     {v.mutant.what}: {v.detail}" for v in still)
-    out.append("")
-    if survived:
-        out.append(f"FAIL {len(survived)} of {live} live mutant(s) survived the "
-                   f"{oracle_name} oracle, so it does not reach the site:")
-        out.extend(f"       {v.mutant.what}" for v in survived)
-        return 1
-    if not live:
-        out.append(f"FAIL every one of {len(verdicts)} mutant(s) was stillborn, so the "
-                   f"{oracle_name} oracle decided nothing")
-        return 1
-    out.append(f"ok all {live} live mutant(s) were killed by the {oracle_name} oracle")
-    return 0
 
 
 def population(root: Path, rel: str, named: tuple[str, ...] = (),
