@@ -2,8 +2,24 @@
 """The frozen capability format's parameters, read out of every artifact that writes one.
 
 This parse reaches past the documents into the curated model, as `geometry.py`,
-`banks.py`, `coreclass.py` and `decode.py` do, and the reach is declared rather than
-habitual. The format is fixed in three Sail files, `model/model/core/cap_format.sail`
+`coreclass.py` and `decode.py` do, and the reach is declared rather than habitual.
+
+**The model's half is resolved by name out of the generated bundle and the rest is
+not.** The ten parameters below are Sail *definitions*, and the emitter indexes every
+one of them by the name the model gives it, so a renamed or deleted declaration is a
+lookup that misses and says which name missed. What is bought is exactly that and no
+more: the bundle hands back the declaration's own text, `type cap_addr_width : Int =
+36`, so the figure is still one `= <n>` extraction further in and the pattern that takes
+it is unchanged. Under a file scan the same rename was a regex quietly matching nothing,
+which reads as a moved site and is indistinguishable from a value nobody wrote down.
+
+Everything else here stays a scan of the artifact that writes it, and two of those
+artifacts are inside the model: the address-space sentence and the maximum-exponent
+sentence are *comments*, which `--doc-format identity` drops, so they do not appear in
+the bundle at all and a rule that dropped their patterns would stop holding two
+restatements. A regex whose fact the bundle does not carry is kept.
+
+The format is fixed in three Sail files, `model/model/core/cap_format.sail`
 for the packed fields, `cap_common.sail` for the permission bitmap and the reserved
 object types, and `core/xlen.sail` for the register width the address field sits
 inside, and it is restated in eight other artifacts: the authored SystemVerilog
@@ -38,6 +54,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import sailbundle
+
 CAP_FORMAT = "model/model/core/cap_format.sail"
 CAP_COMMON = "model/model/core/cap_common.sail"
 XLEN_FILE = "model/model/core/xlen.sail"
@@ -49,33 +67,37 @@ SPEC = "docs/spec.md"
 MATRIX = "docs/cheri-version-matrix.md"
 BLOCK = "docs/block-geometry-constraint.md"
 
-# The declaration form `cap_format.sail` and `xlen.sail` both use, and the one
-# `geometry.py` already reads that tree through.
-_SAIL_TYPE = r"(?m)^type {} : Int = (\d+)\s*$"
+# The figure a Sail declaration ends in, whichever of the two forms it takes:
+# `type cap_addr_width : Int = 36` and `let reserved_otypes = 3` differ in everything
+# ahead of the `=` and in nothing after it, which is why the bundle resolving the name
+# leaves one pattern here where the file scan needed two.
+SAIL_VALUE_RE = re.compile(r"=\s*(\d+)\s*\Z")
 
-
-def _sail_type(name: str) -> str:
-    return _SAIL_TYPE.format(re.escape(name))
+# Which map of the bundle a definition is indexed in. `TYPE` is a Sail type synonym and
+# `LET` a top-level binding, and the emitter keeps them apart, so this says which
+# lookup a name is owed rather than trying both and taking whichever answered.
+TYPE, LET = "type", "let"
 
 
 def _sv_param(name: str) -> str:
     return rf"(?m)^\s*localparam int unsigned {re.escape(name)} = (\d+);"
 
 
-# The parameters the Sail model fixes: the key this repository reads them by, the file
-# that declares each, and the pattern that finds it there. The key is the model's own
-# spelling, so that a reader of a finding can grep the definition for it.
+# The parameters the Sail model fixes: the key this repository reads them by, which of
+# the bundle's maps declares it, and the file a finding sends a reader to. The key is
+# the model's own spelling, which is also the name the bundle indexes it under, so a
+# reader of a finding can grep the definition for it and a rename is a miss here.
 DEFINITIONS: tuple[tuple[str, str, str], ...] = (
-    ("cap_size", CAP_FORMAT, _sail_type("cap_size")),
-    ("log2_cap_size", CAP_FORMAT, _sail_type("log2_cap_size")),
-    ("cap_perms_code_width", CAP_FORMAT, _sail_type("cap_perms_code_width")),
-    ("cap_otype_width", CAP_FORMAT, _sail_type("cap_otype_width")),
-    ("cap_mantissa_width", CAP_FORMAT, _sail_type("cap_mantissa_width")),
-    ("cap_E_width", CAP_FORMAT, _sail_type("cap_E_width")),
-    ("cap_addr_width", CAP_FORMAT, _sail_type("cap_addr_width")),
-    ("cap_perms_width", CAP_COMMON, _sail_type("cap_perms_width")),
-    ("reserved_otypes", CAP_COMMON, r"(?m)^let reserved_otypes = (\d+)\s*$"),
-    ("xlen", XLEN_FILE, _sail_type("xlen")),
+    ("cap_size", TYPE, CAP_FORMAT),
+    ("log2_cap_size", TYPE, CAP_FORMAT),
+    ("cap_perms_code_width", TYPE, CAP_FORMAT),
+    ("cap_otype_width", TYPE, CAP_FORMAT),
+    ("cap_mantissa_width", TYPE, CAP_FORMAT),
+    ("cap_E_width", TYPE, CAP_FORMAT),
+    ("cap_addr_width", TYPE, CAP_FORMAT),
+    ("cap_perms_width", TYPE, CAP_COMMON),
+    ("reserved_otypes", LET, CAP_COMMON),
+    ("xlen", TYPE, XLEN_FILE),
 )
 
 # Every other site that writes one of those parameters or one of the figures they
@@ -235,6 +257,10 @@ class Format:
     # budget label -> the six field widths it writes and the total, empty where the
     # sentence has moved
     budgets: dict[str, tuple[tuple[int, ...], int]] = field(default_factory=dict)
+    # the parameters the model does not declare under the name this reads them by,
+    # which is a different fact from a declaration whose figure has moved out of the
+    # read form and is worded differently by the rule
+    undeclared: set[str] = field(default_factory=set)
 
     @property
     def fields(self) -> tuple[str, ...]:
@@ -256,8 +282,32 @@ def _int(pattern: str, text: str) -> int | None:
     return int(found[0]) if len(found) == 1 else None
 
 
-def read(root: Path) -> Format:
-    """One pass over every artifact that writes a capability-format parameter."""
+def _declared(bundle: sailbundle.Bundle | None, key: str, kind: str) -> str | int | None:
+    """One definition's figure, `None` where its declaration has moved out of the read
+    form, and the key itself where the model declares no such name at all.
+
+    Three answers rather than two, because the third is the one the bundle made
+    available: a name that is not there is a rename or a deletion and says so, where a
+    file scan could only report that a pattern matched nothing.
+    """
+    if bundle is None:
+        return key
+    try:
+        text = (bundle.type_text(key) if kind == TYPE else bundle.let_text(key))
+    except sailbundle.BundleError:
+        return key
+    found = SAIL_VALUE_RE.search(text.strip())
+    return int(found.group(1)) if found else None
+
+
+def read(root: Path, bundle: sailbundle.Bundle | None) -> Format:
+    """One pass over every artifact that writes a capability-format parameter.
+
+    The definitions come from `bundle` and everything else from the tree. A `None`
+    bundle is a run with no readable generated artifact, which leaves every definition
+    unresolved and is a finding K-88 has already worded; the sites are still read, so
+    the rule can say which of the two halves it lost.
+    """
     fmt = Format()
     cache: dict[str, str] = {}
 
@@ -267,8 +317,13 @@ def read(root: Path) -> Format:
             cache[rel] = path.read_text(encoding="utf-8") if path.is_file() else ""
         return cache[rel]
 
-    for key, rel, pattern in DEFINITIONS:
-        fmt.defined[key] = _int(pattern, text(rel))
+    for key, kind, _ in DEFINITIONS:
+        got = _declared(bundle, key, kind)
+        if isinstance(got, str):
+            fmt.undeclared.add(key)
+            fmt.defined[key] = None
+        else:
+            fmt.defined[key] = got
 
     for rel, key, label, pattern in SITES:
         fmt.sites[(label, key)] = _int(pattern, text(rel))

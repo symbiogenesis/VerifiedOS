@@ -21,7 +21,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import config
+from . import config, sailbundle
 
 CONFIG = "model/config/verifiedos.json"
 
@@ -150,70 +150,80 @@ def _composition(root: Path) -> tuple[dict[str, int] | None, dict[str, int] | No
 # so the two readings below are the geometry half of the same table read from the
 # model's side. Nothing else in this package asks the registry anything.
 #
+# **The registry is resolved by name out of the generated bundle**, on `capformat.py`'s
+# ground: `hartSupports` is a Sail function and the emitter indexes it, so the clause
+# heads come back as the structured patterns they are, `Ext_Zvl64b` rather than a
+# capture group off a line, and a registry renamed or deleted is a lookup that misses
+# instead of a pattern that quietly matches nothing. What each clause *decides* is still
+# its body's text, which is an expression and not a name, so the two patterns below read
+# a body and neither reads a file.
+#
 # The `Zvl` ladder is gated on the vector length **alone**, with no vector-support
 # conjunct, which is why its thresholds have to be read rather than assumed: a rung
 # added, moved, or re-based changes which geometries name a vector extension, and
 # the rule that holds a vectorless composition to naming none of them has to move
 # with it.
-ZVL_RUNG_RE = re.compile(
-    r"function clause hartSupports\(Ext_(Zvl\d+b)\)\s*=\s*sizeof\(vlen_exp\)\s*>=\s*(\d+)")
+EXT_PREFIX = "Ext_"
+SUPPORTS = "hartSupports"
 
-# The vector extensions gated on a configuration key of their own rather than on a
-# level or a geometry. These are the ones a composition can leave switched on while
-# turning the vector unit off, which the model's validator refuses one by one; the
-# names are read here so that a flag added upstream joins the rule rather than
-# waiting to be transcribed.
-CONFIG_GATED_VECTOR_RE = re.compile(
-    r"function clause hartSupports\(Ext_(Zv\w+)\)\s*=\s*config extensions\.(\w+)\.supported")
+ZVL_NAME_RE = re.compile(r"\AZvl\d+b\Z")
+ZVL_BODY_RE = re.compile(r"\Asizeof\(vlen_exp\)\s*>=\s*(\d+)\Z")
+
+# The extensions gated on a configuration key of their own rather than on a level or a
+# geometry. These are the ones a composition can leave switched on while turning a
+# unit off, which the model's validator refuses one by one; the names are read here so
+# that a flag added upstream joins the rule rather than waiting to be transcribed.
+CONFIG_GATED_BODY_RE = re.compile(r"\Aconfig extensions\.(\w+)\.supported\Z")
+
+# The vector subset of the reading below is kept separate because it answers a
+# different question: that one asks what a vectorless composition can leave switched
+# on, this one asks which exclusions are a setting rather than a shape of the model.
+VECTOR_PREFIX = "Zv"
 
 EXTENSIONS_SAIL = "model/model/core/extensions.sail"
 
 
-def zvl_rungs(root: Path) -> dict[str, int]:
-    """Each minimum-vector-length rung against the `vlen_exp` it needs.
+def _supports(bundle: sailbundle.Bundle | None) -> list[tuple[str, str]]:
+    """Every `hartSupports` clause as `(the extension name, the gate's own text)`.
 
-    An empty answer is a moved reading rather than a ladder with no rungs, and the
-    floors group is what says so; this returns what it finds.
+    An empty answer is a reading that has moved rather than a registry with no clauses,
+    and the floors group is what says so; this returns what it finds.
     """
-    path = root / EXTENSIONS_SAIL
-    if not path.is_file():
-        return {}
-    text = path.read_text(encoding="utf-8")
-    return {m.group(1): int(m.group(2)) for m in ZVL_RUNG_RE.finditer(text)}
+    if bundle is None:
+        return []
+    try:
+        clauses = bundle.function_clauses(SUPPORTS)
+    except sailbundle.BundleError:
+        return []
+    return [(ident.removeprefix(EXT_PREFIX), body.strip())
+            for ident, body, _ in clauses if ident.startswith(EXT_PREFIX)]
 
 
-def config_gated_vector_extensions(root: Path) -> dict[str, str]:
-    """Each config-gated vector extension against the configuration key path that
-    switches it on."""
-    path = root / EXTENSIONS_SAIL
-    if not path.is_file():
-        return {}
-    text = path.read_text(encoding="utf-8")
-    return {m.group(1): f"extensions.{m.group(2)}.supported"
-            for m in CONFIG_GATED_VECTOR_RE.finditer(text)}
+def zvl_rungs(bundle: sailbundle.Bundle | None) -> dict[str, int]:
+    """Each minimum-vector-length rung against the `vlen_exp` it needs."""
+    out: dict[str, int] = {}
+    for name, body in _supports(bundle):
+        rung = ZVL_BODY_RE.match(body)
+        if ZVL_NAME_RE.match(name) and rung:
+            out[name] = int(rung.group(1))
+    return out
 
 
-# Every extension the registry gates on a `supported` key, vector or not. The vector
-# reading above is a subset of this one and is kept separate because it answers a
-# different question: that one asks what a vectorless composition can leave switched
-# on, this one asks which exclusions are a setting rather than a shape of the model.
-CONFIG_GATED_RE = re.compile(
-    r"function clause hartSupports\(Ext_(\w+)\)\s*=\s*config extensions\.(\w+)\.supported")
-
-
-def config_gated_extensions(root: Path) -> dict[str, str]:
+def config_gated_extensions(bundle: sailbundle.Bundle | None) -> dict[str, str]:
     """Each config-gated extension against the configuration key path that switches it
-    on, keyed by the registry's own spelling of the extension name.
+    on, keyed by the registry's own spelling of the extension name."""
+    out: dict[str, str] = {}
+    for name, body in _supports(bundle):
+        gate = CONFIG_GATED_BODY_RE.match(body)
+        if gate:
+            out[name] = f"extensions.{gate.group(1)}.supported"
+    return out
 
-    An empty answer is a moved reading rather than a registry with no gated rows, and
-    the floors group is what says so; this returns what it finds.
-    """
-    path = root / EXTENSIONS_SAIL
-    if not path.is_file():
-        return {}
-    text = path.read_text(encoding="utf-8")
-    return {m.group(1): f"extensions.{m.group(2)}.supported"
-            for m in CONFIG_GATED_RE.finditer(text)}
+
+def config_gated_vector_extensions(bundle: sailbundle.Bundle | None) -> dict[str, str]:
+    """Each config-gated vector extension against the key path that switches it on."""
+    return {name: key for name, key in config_gated_extensions(bundle).items()
+            if name.startswith(VECTOR_PREFIX)}
 
 
 def composed(path: Path) -> tuple[str, int] | None:

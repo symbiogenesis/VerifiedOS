@@ -298,6 +298,23 @@ def _git(root: Path, *args: str) -> list[str]:
     return proc.stdout.splitlines()
 
 
+def staged_bytes(root: Path, path: str) -> bytes | None:
+    """The bytes the index holds for one tracked path, or `None` where it holds none.
+
+    The index and not HEAD, for the reason `load` states: what this checker's corpus is
+    is what git has been told the tree says, so a generated artifact's authority is its
+    staged blob and a working tree that has drifted from it is the finding.
+
+    Read as bytes and through `stdout` whole rather than through `_git`'s line split,
+    because the caller compares byte for byte: a blob with no interior newline and one
+    at the end is indistinguishable from one without after a `splitlines` and a rejoin,
+    and that is exactly the difference a byte-identity rule exists to see.
+    """
+    proc = subprocess.run(["git", "cat-file", "blob", f":{path}"],
+                          cwd=root, capture_output=True, check=False)
+    return proc.stdout if proc.returncode == 0 else None
+
+
 def find_root(start: Path | None = None) -> Path:
     """The repository root, found from a path rather than from the caller's cwd.
 

@@ -3,9 +3,12 @@
 
 `model/` is outside the document corpus, so two claims about it were held by nothing:
 that every requirement a Sail comment argues from exists, and that no form the profile
-excludes is still on the decode surface. Both are read over the same window of files,
-admitted by kind rather than by name, and the window is opened once here and handed to
-each rule that reads it.
+excludes is still on the decode surface. The two are read out of different things now
+and the split is the point. **A citation is a comment**, which no emitter records, so
+K-63 still scans the tree, admitted by kind rather than by name, and the window is
+opened once here and handed to each rule that reads it. **A decode surface is a
+definition**, which the emitter records exactly, so K-66 reads the generated bundle the
+`generated` group settles ahead of this one and scans nothing.
 """
 
 import re
@@ -13,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
 from vos import corpus as corpus_mod
-from vos import decode
+from vos import decode, sailbundle
 from vos.register import ISA_PROFILE, REQ_TOKEN_RE
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -37,9 +40,9 @@ MARKER_RE = re.compile(r"Sail:\s*`([^`]+)`")
 def citation_window(ctx: Context) -> tuple[list[tuple[str, str]], list[str]]:
     """The model-citation window, read once for the two rules that scan it.
 
-    K-63 reads every file the window admits and K-66 re-read the Sail subset of the
-    same files moments later, so the one read lives here and every consumer takes
-    `(rel, text)` pairs. The reads go through a thread pool because a file read
+    K-63 reads every file the window admits, and the pin rule reads the ported headers'
+    provenance lines out of the same files a group later, so the one read lives here and
+    every consumer takes `(rel, text)` pairs. The reads go through a thread pool because a file read
     releases the interpreter lock, so the on-access virus scan the window's first
     read pays overlaps across files instead of serializing; the pool's `map` returns
     in submission order, so the pairs come back in the sorted order they were asked
@@ -115,11 +118,11 @@ def model_citations(ctx: Context, window: list[tuple[str, str]],
                "its files, name a requirement the register declares")
 
 
-def excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
+def excluded_forms(ctx: Context) -> None:
     """K-66: no form the profile excludes is still on the model's decode surface.
 
     The profile's §6 excludes by name and the model implements by clause, and until
-    now nothing held the two together. `model.py sweep` does not: it runs the profile
+    this rule nothing held the two together. `model.py sweep` does not: it runs the profile
     configuration against upstream `riscv-tests` and counts refusals of *those*
     programs, which is conformance against an external corpus and not a claim that the
     model implements only what the profile admits. Its figure reads the same whether or
@@ -134,28 +137,35 @@ def excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
     program can reach and an implementation still carries. So a finding names the half
     it was found in, and the rule is not satisfied by either half alone.
 
-    **The reach is by kind, and here that is not a preference.** `MODEL_FACTS` is the
-    *value* window of files named one by one, and **none of the readable spellings is
-    in one of them**, so aimed there this rule would have read nothing at all and passed
-    green over the whole decode surface: not K-63's quarter of its subject but none of it.
-    A decode clause occurs wherever the model defines an instruction, which is most of
-    the tree, so the window that fits it is the one that admits by kind.
+    **The model's side is the emitter's own bundle, and the direction of the reading
+    flipped with it.** A text scan could take only a clause's string literals, so a
+    mnemonic assembled entirely inside mappings left nothing to match and the reading
+    was a *lower* bound over 136 of 218 clauses. The bundle carries each clause as
+    structured patterns, so every mapping in a mnemonic is resolved against its own
+    literal arms and 217 of the 218 are enumerated outright. What that buys is a ceiling
+    rather than a floor: `LOAD` spells `"l" ^ width_mnemonic(width) ^
+    maybe_u(is_unsigned)`, whose cross product admits `ldu`, and the constraint that
+    forbids that combination lives in the `encdec` clause and not in the assembly
+    mapping. For *this* rule the over-approximation is fail-safe, an over-report never
+    being a false green, and it is a different sentence from the one it replaces rather
+    than a stronger version of it. One clause is still read as a skeleton, `FENCE`,
+    whose `forwards ... when` form the emitter leaves as body text.
 
     **Where a row's subject is a single instruction form the profile names the Sail
-    constructor, and that name is tested by membership rather than by matching.** A
-    skeleton is a lower bound on what a clause spells, so a mnemonic assembled out of
-    three mappings and a dot leaves nothing to match against: the profile writes
-    `amocas.q`, the model writes `amo_mnemonic(op) ^ "." ^ width_mnemonic_wide(width)`,
-    and the fragment test pairs the one with nothing. A marker is not a spelling and is
-    not matched: the constructor is in the set of names the decode surface decodes to
-    or it is not, which additionally reaches a form whose clause is shared with its
-    neighbours and whose identity is a field value, `AMOCAS` being both.
+    constructor, and that name is tested by membership rather than by matching.** The
+    profile writes `amocas.q`; the clause that would have to spell it is
+    `amo_mnemonic(op) ^ "." ^ width_mnemonic(width) ^ maybe_aqrl(aq, rl)`, three
+    mappings and a dot, and no fragment of the written name occurs in the dot. A marker
+    is not a spelling and is not matched: the constructor is in the set of names the
+    decode surface decodes to or it is not, which additionally reaches a form whose
+    clause is shared with its neighbours and whose identity is a field value, `AMOCAS`
+    being both.
 
-    **The marker widens the rule and replaces no part of it.** The fragment path runs
+    **The marker widens the rule and replaces no part of it.** The spelling path runs
     over every row's names exactly as before, marked or not, because a marker cannot
     see a form re-added under another constructor and is worth only the run that
     validated it: one that is stale or misspelled is absent for the same reason a
-    deleted form is, and degrading to the fragment path is what keeps that from being a
+    deleted form is, and degrading to the spelling path is what keeps that from being a
     silent green. A row naming several forms, or an extension spanning many
     constructors, carries no marker and is out of the membership test's reach rather
     than mis-typed, so an unmarked row is read exactly as it was.
@@ -166,15 +176,25 @@ def excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
     microarchitectural structure are all excluded in prose that no mnemonic test
     decides, and such a row is read and passes. So a green run says *no excluded name
     is spelled by the surface and no marked constructor is decoded by it*, never *every
-    exclusion is honoured*. On the model's side the same boundary holds for the
-    fragment path: the assembly clauses that build their mnemonic entirely inside a
-    mapping leave no literal in the file and are invisible to it, which is the gap a
-    marker on such a form closes one row at a time.
+    exclusion is honoured*.
+
+    **Fail-closed on the artifact**, on K-67's and K-75's ground: the bundle is the
+    whole of this rule's model side, so a run whose generated group could not settle one
+    is a finding here rather than a comparison the encoder table is left to make alone.
     """
     rep = ctx.rep
     findings: list[str] = []
-    spellings = decode.read_spellings(window)
-    decoded = decode.read_decoded(window)
+    bundle = ctx.shared.get("bundle")
+    spellings: list[sailbundle.Spelled] = []
+    decoded: list[sailbundle.Decoded] = []
+    if isinstance(bundle, sailbundle.Bundle):
+        spellings = bundle.assembly()
+        decoded = bundle.decoded()
+    else:
+        findings.append(
+            f"the model's side of this rule is {sailbundle.BUNDLE}, of which this run "
+            "has no readable copy, so no exclusion can be decided against the decode "
+            "surface at all")
 
     names = 0
     markers = 0
@@ -185,28 +205,31 @@ def excluded_forms(ctx: Context, window: list[tuple[str, str]]) -> None:
             markers += 1
             findings += [
                 f"{ISA_PROFILE} §6 excludes `{ctor}` on {ground}, and "
-                f"{d.file}:{d.line} still decodes it, in {d.site}"
+                f"{d.site} still decodes it, in {d.mapping}"
                 for d in decoded if d.ctor == ctor]
         for name in EXCLUDED_NAME_RE.findall(MARKER_RE.sub("", cells[0])):
             names += 1
             findings += [
-                f"{ISA_PROFILE} §6 excludes `{name}` on {ground}, and "
-                f"{s.file}:{s.line} still spells it, as {s.ctor}"
-                for s in spellings if decode.spells(s.skeleton, name)]
+                f"{ISA_PROFILE} §6 excludes `{name}` on {ground}, and {s.site} still "
+                f"spells `{hit}`, as {s.ctor}"
+                for s in spellings for hit in decode.spelled_by(s, name)]
             findings += [
                 f"{ISA_PROFILE} §6 excludes `{name}` on {ground}, and the corpus "
                 f"assembler still encodes `{mnemonic}`"
                 for mnemonic in decode.encoder_rows(name)]
 
+    mnemonics = {m for s in spellings for m in s.mnemonics}
+    exact = sum(1 for s in spellings if s.exact)
     ctx.shared["exclusion_names"] = names
     ctx.shared["exclusion_markers"] = markers
-    ctx.shared["decode_spellings"] = len(spellings)
+    ctx.shared["decode_spellings"] = len(mnemonics)
     ctx.shared["decoded_names"] = len(decoded)
     ctx.shared["encoder_rows"] = len(decode.dialect.MNEMONICS)
     rep.report("K-66", "excluded form(s) still on the decode surface:", findings,
                f"none of the {names} names the profile's {len(ctx.art.exclusion_rows)} "
-               f"exclusion rows spell is spelled by the {len(spellings)} readable "
-               f"assembly clauses or carried by the "
-               f"{len(decode.dialect.MNEMONICS)} encoder rows, and none of the "
+               f"exclusion rows spell is among the {len(mnemonics)} mnemonics the "
+               f"model's {len(spellings)} assembly clauses spell, {exact} of them "
+               f"enumerated from the bundle and the rest read as skeletons, or carried "
+               f"by the {len(decode.dialect.MNEMONICS)} encoder rows, and none of the "
                f"{markers} Sail constructors they mark is among the {len(decoded)} "
                f"names the decode surface decodes to")

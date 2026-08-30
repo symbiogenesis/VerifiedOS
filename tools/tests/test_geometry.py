@@ -2,8 +2,9 @@
 """The block-size parse, one fixture file per site that writes the figure.
 
 `geometry.read` is the checker's reach past its own corpus and nothing besides: two
-Sail declarations, the frozen configuration, the CMake template, the harness assert,
-and the authored SystemVerilog package's localparam. What the constraining document
+Sail type synonyms resolved by name out of the generated bundle, the frozen
+configuration, the CMake template, the harness assert, and the authored SystemVerilog
+package's localparam. What the constraining document
 says about them is inside the corpus and is held as claims in
 `vos/checks/counts_geometry.py`, so no fixture here carries it. The live tree
 exercises the happy path on every `check.py` run; what only a fixture can pin is each
@@ -17,12 +18,14 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from tests.harness import Case, ensure
-from vos import geometry
+from vos import geometry, sailbundle
 
 # The five sites and the granule they are read against, spelled the way the live
-# tree spells them and agreeing on a 64-byte block over a 16-byte granule.
-_SAIL = ("type log2_cap_size : Int = 4\n"
-         "type log2_cap_block_size : Int = 6\n")
+# tree spells them and agreeing on a 64-byte block over a 16-byte granule. Two of
+# the five are Sail type synonyms and arrive through the bundle rather than
+# through a file, which is what makes a renamed declaration a lookup that misses.
+_TYPES = {"log2_cap_size": "type log2_cap_size : Int = 4",
+          "log2_cap_block_size": "type log2_cap_block_size : Int = 6"}
 _CONFIG = '{"platform": {"cache_block_size_exp": 6}}\n'
 _TEMPLATE = ('{\n  "platform": {\n    "cache_block_size_exp": 6,\n'
              '    "clock_frequency": @CLOCK@\n  }\n}\n')
@@ -32,7 +35,6 @@ _PACKAGE = ("package vos_cheri_pkg;\n"
             "endpackage\n")
 
 _FILES = {
-    "model/model/core/cap_format.sail": _SAIL,
     "model/config/verifiedos.json": _CONFIG,
     "model/config/config.json.in": _TEMPLATE,
     "model/model/unit_tests/test_cheri_insts.sail": _HARNESS,
@@ -53,9 +55,35 @@ def _tree(files: dict[str, str]) -> Iterator[Path]:
         yield root
 
 
+def _bundle(types: dict[str, str],
+            lets: dict[str, str] | None = None) -> sailbundle.Bundle:
+    """A bundle carrying exactly these declarations and nothing else.
+
+    Built here rather than emitted, because what is under test is the parse and not
+    Sail: `sailbundle.Bundle` takes the mapping the tracked artifact decodes to, so a
+    fixture states the declarations it wants and no toolchain runs.
+    """
+    where = {"file": "core/fixture.sail", "loc": [1, 0, 0, 1, 0, 0]}
+    return sailbundle.Bundle({
+        "version": 1,
+        "embedding": "plain",
+        "hashes": {},
+        "functions": {},
+        "mappings": {},
+        "vals": {},
+        "types": {name: {"type": {"contents": text, **where}}
+                  for name, text in types.items()},
+        "registers": {},
+        "lets": {name: {"let": {"source": {"contents": text, **where}}}
+                 for name, text in (lets or {}).items()},
+        "anchors": {},
+        "spans": {},
+    }, "a fixture bundle")
+
+
 def _all_sites() -> None:
     with _tree(_FILES) as root:
-        geo = geometry.read(root)
+        geo = geometry.read(root, _bundle(_TYPES))
     ensure(geo.granule_exp == 4, f"the granule exponent read {geo.granule_exp}, not 4")
     ensure(geo.sites == {"the model's declaration": 6,
                          "the frozen profile's configuration": 6,
@@ -74,7 +102,7 @@ def _harness_granules_to_exponent() -> None:
         files["model/model/unit_tests/test_cheri_insts.sail"] = (
             f"assert(caps_per_block == {granules})\n")
         with _tree(files) as root:
-            got = geometry.read(root).sites["the model's own harness"]
+            got = geometry.read(root, _bundle(_TYPES)).sites["the model's own harness"]
         ensure(got == want,
                f"{granules} granules read as exponent {got}, expected {want}")
 
@@ -88,7 +116,7 @@ def _harness_takes_the_first_assert() -> None:
     files["model/model/unit_tests/test_cheri_insts.sail"] = (
         "assert(caps_per_block == 4)\nassert(caps_per_block == 8)\n")
     with _tree(files) as root:
-        got = geometry.read(root).sites["the model's own harness"]
+        got = geometry.read(root, _bundle(_TYPES)).sites["the model's own harness"]
     ensure(got == 6, f"a second assert must currently be ignored, got {got}")
 
 
@@ -102,15 +130,16 @@ def _template_uniqueness() -> None:
         files = dict(_FILES)
         files["model/config/config.json.in"] = template
         with _tree(files) as root:
-            got = geometry.read(root).sites["the generated configurations"]
+            got = geometry.read(root, _bundle(_TYPES)).sites["the generated configurations"]
         ensure(got == want, f"the template site read {got}, expected {want}")
 
 
 def _absent_files() -> None:
     # A missing artifact is a finding the caller words, never an exception: every
-    # site is present in the answer and holds None.
+    # site is present in the answer and holds None. A run with no readable bundle
+    # is the same shape one level up, and K-88 is what words it.
     with _tree({}) as root:
-        geo = geometry.read(root)
+        geo = geometry.read(root, None)
     ensure(geo.sites == {"the model's declaration": None,
                          "the frozen profile's configuration": None,
                          "the generated configurations": None,
@@ -126,10 +155,9 @@ def _granule_fallback() -> None:
     # instead of answering None. Sound today only because the sole caller returns
     # early on a None granule before reading sites; the audit flags it, and the
     # hardening that answers None here is the change that rerecords this case.
-    files = dict(_FILES)
-    del files["model/model/core/cap_format.sail"]
-    with _tree(files) as root:
-        geo = geometry.read(root)
+    types = {k: v for k, v in _TYPES.items() if k != "log2_cap_size"}
+    with _tree(_FILES) as root:
+        geo = geometry.read(root, _bundle(types))
     harness_site = geo.sites["the model's own harness"]
     ensure(geo.granule_exp is None, "the granule site must be gone with its file")
     ensure(harness_site == 2,

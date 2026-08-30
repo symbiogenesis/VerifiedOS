@@ -100,13 +100,13 @@ def block_geometry(ctx: Context) -> None:
     decision instead of checking it.
     """
     rep, reg = ctx.rep, ctx.reg
-    geo = geometry.read(ctx.root)
+    geo = geometry.read(ctx.root, ctx.shared.get("bundle"))
     payload = PAYLOAD_RE.search(reg.body.get("R-15-181a", ""))
     # The destination register's width, read from the model rather than written here.
     # It was a bare `64` with a comment saying what it was, in a module whose own
     # preamble says it states no width of its own, and the group is the one that
     # exists to keep a figure from being a copy nothing holds.
-    xlen = capformat.read(ctx.root).defined.get("xlen")
+    xlen = capformat.read(ctx.root, ctx.shared.get("bundle")).defined.get("xlen")
 
     if geo.granule_exp is None or payload is None or xlen is None:
         rep.report("K-57", "block-geometry reading(s) that have moved:", [

@@ -2,15 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """The curated Sail model's build loops, from the fastest to the slowest.
 
-Four loops, and each is the exit criterion for the one above it:
+Five loops, and each is the exit criterion for the one above it:
 
     typecheck   ~30 s    Sail reports every dangling reference a cut leaves behind
+    bundle      ~25 s    the model's own machine-readable view of itself, regenerated
     emit        ~2 min   the full C++ emission, then the config against its schema
     build       ~15 min  emission, compile, and the bundled ctest suite
     sweep       ~1 min   the profile configuration against the downloaded riscv-tests
 
 `typecheck` is the inner loop of a deletion batch; `build` stays the exit criterion for
-every batch, and `sweep` is the number each batch reports. `trace-diff` is the M0.6e
+every batch, and `sweep` is the number each batch reports. `bundle` sits between the
+first two because it is a typecheck with a serializer on the end of it: it costs what a
+typecheck costs and it writes the one artifact the host lane reads the model through. `trace-diff` is the M0.6e
 differential rig, adjudicating the curated model against the M0.4 oracle, and `oracle`
 builds that reference. `devicetree` generates the attested tree, compiles it, and holds
 the blob against the region it is written into, which is three things the Sail emitter
@@ -47,7 +50,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import IO, cast
 
-from vos import asm, cli, config, differential, env, trace
+from vos import asm, cli, config, differential, env, sailbundle, trace
 
 # What every subcommand handler is. `main` attaches one to each subparser and
 # `argparse` hands it back as an untyped attribute, so the shape is stated once
@@ -135,6 +138,106 @@ def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
              "--memo-z3", "--memo-z3-path", str(e.typecheck_cache),
              "--just-check", "--all-modules", "riscv.sail_project"],
             cwd=e.model / "model", check=False).returncode
+
+
+def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
+    """Regenerate the model's own machine-readable bundle into the tracked path.
+
+    This is the generator half of K-88, and it is the half a Windows host cannot run.
+    The bundle is Sail's own view of the model it just typechecked, so it is emitted by
+    Sail and by nothing else here: what this function contributes is the lane, the lock,
+    the warm cache and the byte comparison, never a transformation of the output. A
+    tracked artifact that is not exactly what the emitter wrote would make the rule that
+    holds it a rule about this function.
+
+    **Sail is invoked directly rather than through cmake's `generated_sail_riscv_docs`
+    target.** That target chains `generated_html_tgz` (model/model/CMakeLists.txt), so
+    asking cmake for the JSON buys a second full Sail run and a tar of an HTML tree
+    nothing here reads. The flags below are the ones that target passes, less the two
+    that decide nothing about the output: `--require-version`, which asserts a floor the
+    lane already meets, and the html target's own.
+
+    The lane's build lock is held for the run, because the memo cache this reads and
+    rewrites is the build tree's and Sail rewrites it whole at exit; a bundle over a live
+    build in the same lane would be two writers of one cache, which is the failure
+    `_seed_smt_cache` states in full. The tree is seeded first for the same reason a
+    build seeds it: cold, the emission is minutes rather than seconds.
+
+    `--check` emits to a scratch path and compares, writing nothing. That is the guest
+    lane's half of K-88's claim and it is what makes the host lane's half honest: the
+    host holds the tracked bytes against the index and against the sources the bundle
+    itself records, and this holds them against the emitter.
+    """
+    _require("sail", SAIL_HOW)
+    build_dir = e.build_dir
+    lock = env.build_lock(build_dir)
+    try:
+        _seed_tree(e, build_dir)
+        tracked = e.root / sailbundle.BUNDLE
+        scratch = e.lane_root / "bundle"
+        remove = scratch if args.check else None
+        into = scratch if args.check else tracked.parent
+        into.mkdir(parents=True, exist_ok=True)
+        # read before the emission, because without --check the emitter writes over the
+        # very path the comparison is against and every run would report itself unchanged
+        before = tracked.read_bytes() if tracked.is_file() else None
+        code = env.stage("bundle", [
+            "sail",
+            "--strict-var", "--strict-bitvector", "--strict-exponentials",
+            "--memo-z3", "--memo-z3-path", str(build_dir / "model" / "sail_smt_cache"),
+            "--doc",
+            "--doc-format", "identity",
+            "--doc-compact",
+            "--doc-embed", "plain",
+            "--doc-embed-with-location",
+            "-o", str(into),
+            "--doc-bundle", sailbundle.BUNDLE_NAME,
+            "--all-modules", "riscv.sail_project",
+        ], cwd=e.model / "model")
+        if code:
+            return code
+        written = into / sailbundle.BUNDLE_NAME
+        if not written.is_file():
+            print(f"sail exited 0 and wrote no {written}", file=sys.stderr)
+            return 1
+        code = _bundle_verdict(written, before, check=args.check)
+    finally:
+        if remove is not None and remove.is_dir():
+            shutil.rmtree(remove, ignore_errors=True)
+        if lock is not None:
+            lock.close()
+    return code
+
+
+def _bundle_verdict(written: Path, held: bytes | None, *, check: bool) -> int:
+    """Say what the emission decided, in bytes rather than in adjectives.
+
+    Under `--check` the emitted bytes are held against the tracked ones and a
+    difference is the finding; otherwise the emitted bytes *are* the tracked ones and
+    what is reported is whether they moved, because a regeneration that changes nothing
+    is the ordinary case and a caller wants to know which one this was. `held` is the
+    tracked bytes as they stood *before* the run, which is the only reading that means
+    anything on the path that overwrites them.
+    """
+    fresh = written.read_bytes()
+    if not check:
+        moved = "unchanged" if held == fresh else "rewritten"
+        print(f"ok {sailbundle.BUNDLE}: {len(fresh)} bytes, {moved}")
+        return 0
+    if held is None:
+        print(f"{sailbundle.BUNDLE} is not there, so the emitter's {len(fresh)} bytes "
+              "are held against nothing", file=sys.stderr)
+        return 1
+    if held != fresh:
+        where = next((i for i, (a, b) in enumerate(zip(held, fresh, strict=False))
+                      if a != b), min(len(held), len(fresh)))
+        print(f"{sailbundle.BUNDLE} is {len(held)} bytes and the emitter writes "
+              f"{len(fresh)}, first differing at byte {where}; regenerate it with "
+              "`run.py model bundle`", file=sys.stderr)
+        return 1
+    print(f"ok {sailbundle.BUNDLE}: {len(fresh)} bytes, byte-identical to what the "
+          "emitter writes from the model in this checkout")
+    return 0
 
 
 def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
@@ -979,6 +1082,13 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("typecheck", help="Sail typecheck only, no emission").set_defaults(
         run=cmd_typecheck)
+
+    bundle = sub.add_parser(
+        "bundle", help="regenerate the model's machine-readable bundle")
+    bundle.add_argument("--check", action="store_true",
+                        help="emit to a scratch path and hold the tracked bundle "
+                             "against it, writing nothing")
+    bundle.set_defaults(run=cmd_bundle)
 
     sub.add_parser("emit", help="emit C++, then validate the profile config").set_defaults(
         run=cmd_emit)
