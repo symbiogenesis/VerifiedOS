@@ -1,15 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """The capability-format parse, one fixture per artifact that writes a parameter.
 
-`capformat.read` is K-79's reach past the checker's own corpus: two Sail files fix the
-format, a third fixes the register width it sits inside, and six other artifacts
-restate one figure or another. The live tree exercises the agreeing case on every
-`check.py` run, so what only a fixture can pin is the shape of a refusal. Three edges
-carry the rule's fail-closed reading and each has a case here: a declaration that has
-moved out of the read form answers `None` rather than raising, a site that has moved
-answers `None` rather than silently dropping out of the comparison, and a packing that
-is not six fields at fixed slices is withheld whole rather than compared field by
-field against a set the parse guessed at.
+`capformat.read` is K-79's reach past the checker's own corpus: ten Sail definitions
+resolved by name out of the generated bundle, and six other artifacts restating one
+figure or another. The live tree exercises the agreeing case on every `check.py` run, so
+what only a fixture can pin is the shape of a refusal. Four edges carry the rule's
+fail-closed reading and each has a case here: a declaration that has moved out of the
+read form answers `None` rather than raising, a name the model does not declare at all
+answers `None` and says which name missed, a site that has moved answers `None` rather
+than silently dropping out of the comparison, and a packing that is not six fields at
+fixed slices is withheld whole rather than compared field by field against a set the
+parse guessed at.
 
 Nothing here restates what the values must be. The definition decides that and
 `vos/checks/counts_capformat.py` computes it; a fixture asserting 36 would be a third
@@ -23,20 +24,30 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from tests.harness import Case, ensure
-from vos import capformat
+from vos import capformat, sailbundle
 
-# The two Sail files, at deliberately not-the-live-tree values, so that a case
+# The definitions, at deliberately not-the-live-tree values, so that a case
 # asserting agreement is asserting that the parse followed the fixture rather than
-# that it happened to know the real numbers.
+# that it happened to know the real numbers. They are the bundle's rather than a
+# file's, which is where the parse now resolves a definition by name.
+_TYPES = {
+    "cap_size": "type cap_size : Int = 4",
+    "log2_cap_size": "type log2_cap_size : Int = 2",
+    "cap_perms_code_width": "type cap_perms_code_width : Int = 3",
+    "cap_otype_width": "type cap_otype_width : Int = 2",
+    "cap_mantissa_width": "type cap_mantissa_width : Int = 5",
+    "cap_E_width": "type cap_E_width : Int = 4",
+    "cap_addr_width": "type cap_addr_width : Int = 20",
+    "cap_perms_width": "type cap_perms_width : Int = 7",
+    "xlen": "type xlen : Int = 32",
+}
+_LETS = {"reserved_otypes": "let reserved_otypes = 1"}
+
+# The model's own two restatements are *comments*, which the documentation emitter
+# drops, so they stay a scan of the file and stay in these fixtures beside the
+# packing the same file writes.
 _CAP_FORMAT = """\
 // The address space is 20 bits, so the address field is 20 bits.
-type cap_size : Int = 4
-type log2_cap_size : Int = 2
-type cap_perms_code_width : Int = 3
-type cap_otype_width : Int = 2
-type cap_mantissa_width : Int = 5
-type cap_E_width : Int = 4
-type cap_addr_width : Int = 20
 
 function capBitsToEncCapability(c : CapBits) -> EncCapability = struct {
   perms   = c[31 .. 29],
@@ -50,11 +61,7 @@ function capBitsToEncCapability(c : CapBits) -> EncCapability = struct {
 
 _CAP_COMMON = """\
 // The effective exponent runs to `cap_max_E` = 17, so the field is spent.
-let reserved_otypes = 1
-type cap_perms_width : Int = 7
 """
-
-_XLEN = "type xlen : Int = 32\n"
 
 _PACKAGE = """\
 package vos_cheri_pkg;
@@ -129,7 +136,6 @@ _BLOCK = "and an integer register is 32 bits (R-15-002a, R-15-007i).\n"
 _FILES = {
     capformat.CAP_FORMAT: _CAP_FORMAT,
     capformat.CAP_COMMON: _CAP_COMMON,
-    capformat.XLEN_FILE: _XLEN,
     capformat.PACKAGE: _PACKAGE,
     capformat.CONFIG: _CONFIG,
     capformat.PROFILE: _PROFILE,
@@ -153,9 +159,35 @@ def _tree(files: dict[str, str]) -> Iterator[Path]:
         yield root
 
 
+def _bundle(types: dict[str, str],
+            lets: dict[str, str] | None = None) -> sailbundle.Bundle:
+    """A bundle carrying exactly these declarations and nothing else.
+
+    Built here rather than emitted, because what is under test is the parse and not
+    Sail: `sailbundle.Bundle` takes the mapping the tracked artifact decodes to, so a
+    fixture states the declarations it wants and no toolchain runs.
+    """
+    where = {"file": "core/fixture.sail", "loc": [1, 0, 0, 1, 0, 0]}
+    return sailbundle.Bundle({
+        "version": 1,
+        "embedding": "plain",
+        "hashes": {},
+        "functions": {},
+        "mappings": {},
+        "vals": {},
+        "types": {name: {"type": {"contents": text, **where}}
+                  for name, text in types.items()},
+        "registers": {},
+        "lets": {name: {"let": {"source": {"contents": text, **where}}}
+                 for name, text in (lets or {}).items()},
+        "anchors": {},
+        "spans": {},
+    }, "a fixture bundle")
+
+
 def _definitions_read() -> None:
     with _tree(_FILES) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     ensure(fmt.defined == {"cap_size": 4, "log2_cap_size": 2,
                            "cap_perms_code_width": 3, "cap_otype_width": 2,
                            "cap_mantissa_width": 5, "cap_E_width": 4,
@@ -166,7 +198,7 @@ def _definitions_read() -> None:
 
 def _every_site_read() -> None:
     with _tree(_FILES) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     missed = sorted(label for (label, _), value in fmt.sites.items() if value is None)
     ensure(not missed, f"these sites did not match their own fixture: {missed}")
     ensure(len(fmt.sites) == len(capformat.SITES),
@@ -176,20 +208,35 @@ def _every_site_read() -> None:
 def _moved_declaration_is_none() -> None:
     # The fail-closed edge: a declaration reworded out of the read form must answer
     # None so the caller reports it, never a value carried over from somewhere else.
-    files = dict(_FILES)
-    files[capformat.CAP_FORMAT] = _CAP_FORMAT.replace(
-        "type cap_addr_width : Int = 20", "type cap_addr_width : Int = twenty")
-    with _tree(files) as root:
-        fmt = capformat.read(root)
+    types = dict(_TYPES) | {
+        "cap_addr_width": "type cap_addr_width : Int = twenty"}
+    with _tree(_FILES) as root:
+        fmt = capformat.read(root, _bundle(types, _LETS))
     ensure(fmt.defined["cap_addr_width"] is None,
            "a declaration out of the read form must answer None")
+    ensure("cap_addr_width" not in fmt.undeclared,
+           "a declaration that is there is not one the model fails to declare")
     ensure(fmt.defined["cap_E_width"] == 4,
            "one moved declaration must not take its neighbours with it")
 
 
+def _undeclared_definition_is_named() -> None:
+    # The edge the bundle made sayable: a renamed or deleted definition is a lookup
+    # that misses, where a file scan could only report a pattern matching nothing.
+    types = {k: v for k, v in _TYPES.items() if k != "cap_addr_width"}
+    with _tree(_FILES) as root:
+        fmt = capformat.read(root, _bundle(types, _LETS))
+    ensure(fmt.defined["cap_addr_width"] is None,
+           "an undeclared definition must answer None")
+    ensure(fmt.undeclared == {"cap_addr_width"},
+           f"the undeclared set read back as {fmt.undeclared}")
+    ensure(fmt.defined["cap_E_width"] == 4,
+           "one undeclared definition must not take its neighbours with it")
+
+
 def _budgets_read() -> None:
     with _tree(_FILES) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     ensure(len(fmt.budgets) == len(capformat.BUDGETS),
            f"{len(fmt.budgets)} budget(s) read for {len(capformat.BUDGETS)} declared")
     for label, (terms, total) in fmt.budgets.items():
@@ -204,7 +251,7 @@ def _site_matching_twice_is_none() -> None:
     files = dict(_FILES)
     files[capformat.PROFILE] = _PROFILE + "| address | 20 | a second table |\n"
     with _tree(files) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     ensure(fmt.sites[("the profile's address row", "cap_addr_width")] is None,
            "a pattern matching two sites must answer None rather than the first")
     ensure(fmt.sites[("the profile's exponent row", "cap_E_width")] == 4,
@@ -215,7 +262,7 @@ def _budget_matching_twice_is_withheld() -> None:
     files = dict(_FILES)
     files[capformat.SPEC] = _SPEC + "and spends all 32 bits (20+2+3+4+5+3) again.\n"
     with _tree(files) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     ensure("the specification's bit budget" not in fmt.budgets,
            "a budget sentence found twice must be withheld rather than read once")
 
@@ -226,7 +273,7 @@ def _moved_site_is_none() -> None:
         "localparam int unsigned CapAddrWidth = 20;",
         "localparam int CapAddrWidth = 20;")
     with _tree(files) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     ensure(fmt.sites[("the package's CapAddrWidth", "cap_addr_width")] is None,
            "a site whose form has moved must answer None rather than dropping out")
 
@@ -238,7 +285,7 @@ def _packing_withheld_when_short() -> None:
     files = dict(_FILES)
     files[capformat.PACKAGE] = _PACKAGE.replace("    ret.otype   = c[28:27];\n", "")
     with _tree(files) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     ensure("the package's packing" not in fmt.packings,
            "a packing short of a field must be withheld whole")
     ensure("the model's own packing" in fmt.packings,
@@ -247,7 +294,7 @@ def _packing_withheld_when_short() -> None:
 
 def _packings_read() -> None:
     with _tree(_FILES) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, _bundle(_TYPES, _LETS))
     ensure(set(fmt.packings) == {"the model's own packing", "the package's packing"},
            f"the packings read back as {sorted(fmt.packings)}")
     for label, packing in fmt.packings.items():
@@ -262,9 +309,11 @@ def _packings_read() -> None:
 
 def _absent_files() -> None:
     with _tree({}) as root:
-        fmt = capformat.read(root)
+        fmt = capformat.read(root, None)
     ensure(all(v is None for v in fmt.defined.values()),
            "an empty root must answer None at every definition")
+    ensure(len(fmt.undeclared) == len(capformat.DEFINITIONS),
+           "a run with no bundle declares none of the definitions")
     ensure(all(v is None for v in fmt.sites.values()),
            "an empty root must answer None at every site")
     ensure(fmt.packings == {}, "an empty root must yield no packing to compare")
@@ -279,6 +328,7 @@ def cases() -> list[Case]:
         Case("site-matching-twice-is-none", _site_matching_twice_is_none),
         Case("budget-matching-twice-is-withheld", _budget_matching_twice_is_withheld),
         Case("moved-declaration-is-none", _moved_declaration_is_none),
+        Case("undeclared-definition-is-named", _undeclared_definition_is_named),
         Case("moved-site-is-none", _moved_site_is_none),
         Case("packing-withheld-when-short", _packing_withheld_when_short),
         Case("packings-read", _packings_read),

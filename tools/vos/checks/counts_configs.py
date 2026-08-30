@@ -179,8 +179,9 @@ def vectorless_configurations(ctx: Context) -> None:
     """
     rep = ctx.rep
     findings: list[str] = []
-    rungs = coreclass.zvl_rungs(ctx.root)
-    gated = coreclass.config_gated_vector_extensions(ctx.root)
+    bundle = ctx.shared.get("bundle")
+    rungs = coreclass.zvl_rungs(bundle)
+    gated = coreclass.config_gated_vector_extensions(bundle)
     ctx.shared["zvl_rungs"] = len(rungs)
     vectorless = 0
 
@@ -274,7 +275,7 @@ def excluded_by_name_keys(ctx: Context) -> None:
 
     rows = BY_NAME_ROW_RE.findall(text)
     excluded = {name for row in rows for name in BACKTICKED_RE.findall(row)}
-    gated = coreclass.config_gated_extensions(ctx.root)
+    gated = coreclass.config_gated_extensions(ctx.shared.get("bundle"))
     if not rows:
         findings.append(f"{PROFILE} carries no row declaring an exclusion by name, so "
                         "the set this rule decides about cannot be read")

@@ -570,12 +570,12 @@ def run(ctx: Context) -> None:
     freeze_delta(ctx)
     core_classes(ctx)
     window, faults = citation_window(ctx)
-    # A third consumer, in a later group: the pin rule reads the ported headers'
+    # The second consumer, in a later group: the pin rule reads the ported headers'
     # provenance lines out of the same files. Handed on rather than re-read, for the
-    # reason `citation_window` states about the second one.
+    # reason `citation_window` states.
     ctx.shared["citation_window"] = window
     model_citations(ctx, window, faults)
-    excluded_forms(ctx, window)
+    excluded_forms(ctx)
     shipped_configurations(ctx)
     vectorless_configurations(ctx)
     excluded_by_name_keys(ctx)

@@ -97,12 +97,22 @@ def cap_format(ctx: Context) -> None:
     the checker does not have and cannot acquire.
     """
     rep, reg = ctx.rep, ctx.reg
-    fmt = capformat.read(ctx.root)
+    fmt = capformat.read(ctx.root, ctx.shared.get("bundle"))
     findings: list[str] = []
 
     moved = [key for key, value in fmt.defined.items() if value is None]
-    findings += [f"{key} is no longer declared in a form this rule reads, so there is "
-                 "no definition to hold the sites against" for key in sorted(moved)]
+    # Two wordings for one shortfall, because the bundle can now tell them apart. A
+    # name the model does not declare is a rename or a deletion and the reader is sent
+    # to look for it; a name it declares in a shape this rule cannot take a figure out
+    # of is a declaration that has moved. Under a file scan both read as a pattern
+    # matching nothing and only the second was sayable.
+    findings += [
+        (f"the model declares no {key}, which K-79 reads the capability format's "
+         f"{key} from, so there is no definition to hold the sites against"
+         if key in fmt.undeclared else
+         f"{key} is no longer declared in a form this rule reads, so there is "
+         "no definition to hold the sites against")
+        for key in sorted(moved)]
     ctx.shared["cap_format_params"] = len(fmt.defined) - len(moved)
 
     # The derived figures, computed from the definition rather than read anywhere. A

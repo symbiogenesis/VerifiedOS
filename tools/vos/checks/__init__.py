@@ -7,6 +7,11 @@ tool. The order below is the order a run reports in, and it is a dependency orde
 well: a group may read what an earlier one computed, through the `Context` every
 group is handed, and never the other way round.
 
+`generated` is first for that reason and not for prominence: it settles which bytes of
+each generated artifact this run is about, and four rules in the counts group read the
+model through one of them. A repair that landed after them would leave the same run
+reporting counts taken from the defect it had just repaired.
+
 One group is larger than one module, and the split is inside the group rather than a
 second entry below: `counts` is entered at `counts.py`, which holds its claim table
 and its run, and its families are the `counts_*.py` modules beside it, which nothing
@@ -92,6 +97,7 @@ from . import (  # noqa: E402
     extraction,
     findings,
     floors,
+    generated,
     glyphs,
     links,
     marks,
@@ -104,6 +110,7 @@ from . import (  # noqa: E402
 )
 
 GROUPS = [
+    generated,
     traces,
     coread,
     extraction,
