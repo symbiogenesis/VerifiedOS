@@ -10,96 +10,58 @@ the model still decodes with no encoder row is a surface no test can reach but a
 implementation still carries. So both halves are read here, together, and a rule over
 them names which half it found something in.
 
-The two are also parsed differently because they are written differently, and the
-difference is the reason this module is a parse rather than a pattern at a call site.
-`dialect.MNEMONICS` is a tuple of finished names, so a name matches it or does not.
-A Sail assembly clause is a **concatenation**, and the mnemonic is assembled at run
-time out of literals and mappings:
+**The model's half is read out of the emitter's own bundle and not out of the Sail.**
+An assembly clause is a *concatenation*, and the mnemonic is assembled at run time out
+of literals and mappings:
 
-    mapping clause assembly = VLSEGFFTYPE(nf, vm, rs1, width, vd)
-      <-> "vl" ^ nfields_string(nf) ^ "e" ^ vlewidth_bitsnumberstr(width) ^ "ff.v" ^ ...
+    mapping clause assembly = AMO(op, aq, rl, rs2, rs1, width, rd)
+      <-> amo_mnemonic(op) ^ "." ^ width_mnemonic(width) ^ maybe_aqrl(aq, rl) ^ ...
 
-so `vle8ff.v` and `vlseg2e16ff.v` are two spellings of one clause and neither appears
-in the file. What does appear is the clause's **skeleton**: its string literals in
-order, `vleff.v` here, with everything a mapping decides left out. A name written with
-its variable parts marked, which is how a document states a family of encodings, is
-matched against that skeleton by asking whether the name's own literal fragments occur
-in it in order.
+so `amoswap.d.aq` and `amoadd.b` are two spellings of one clause and neither appears in
+the file. A text scan can take only the clause's **skeleton**, its string literals in
+order, which for this clause is the single character `.`; everything the three mappings
+decide is left out. [sailbundle.py](sailbundle.py) reads the clause as the emitter
+structured it instead, resolves each mapping against its own literal arms, and hands
+back the finished mnemonics. Over this model that turns 136 readable skeletons into 217
+of 218 clauses enumerated, and the single residue is `FENCE`, whose `forwards ... when`
+form the emitter leaves as body text with no structured right-hand side.
 
-**The direction of that test is the whole of its precision, and the other direction
-does not work.** Asking whether the *skeleton's* fragments occur in the *name* pairs
-`vlseg<nf>e<eew>ff.v` with `VLSEGTYPE` (skeleton `vle.v`, fragments `vl`, `e`, `.v`,
-all three of which occur in that order in the name) and so cannot tell the excluded
-fault-only-first load from the ordinary segment load beside it. Asking whether the
-*name's* fragments occur in the *skeleton* separates them, because `ff.v` is a literal
-of the one clause and of no other: over the profile's whole exclusion table the test
-pairs one name with one clause.
+**The direction of the reading flips with it, and that is a different sentence rather
+than a stronger one.** A skeleton under-approximates: a name is paired with a clause
+when the name's literal fragments occur in the skeleton in order, which cannot see a
+mnemonic built entirely inside a mapping and so misses forms that are there. Enumerated
+spellings over-approximate: the cross product of `width_mnemonic` with `maybe_u` in
 
-**A skeleton is a lower bound, and where the document can name the constructor
-instead there is no bound to take.** `amocas.q` is spelled by a clause whose whole
-mnemonic is `amo_mnemonic(op) ^ "." ^ width_mnemonic_wide(width)`, three mappings and
-one dot: the skeleton is `.`, no fragment of the written name occurs in it, and the
-test above pairs that name with nothing. So a document whose subject is a *single
-instruction form* names the Sail constructor beside the mnemonic, and the reading it
-asks for is not a match at all but membership: `read_decoded` below collects the
-names a word can decode *to*, and a marker is in that set or is not. That reaches
-the clauses the skeleton parse drops, and it reaches a form whose constructor is
-shared with its neighbours and whose identity is a field value, which `AMOCAS` is: the
-model decodes `AMO`, and `AMOCAS` is the `amoop` its five-bit field decodes to.
+    mapping clause assembly = LOAD(imm, rs1, rd, is_unsigned, width)
+      <-> "l" ^ width_mnemonic(width) ^ maybe_u(is_unsigned) ^ ...
 
-Both readings of the Sail side stand, because they fail differently. A skeleton
-cannot see a mnemonic built inside a mapping; a marker cannot see a form re-added
-under another constructor, and a marker that was misspelled or has gone stale is
-absent for the same reason a deleted form is. Neither is the other's replacement.
+yields `ldu`, which the model never decodes, the constraint that forbids it living in
+the `encdec` clause and not in the assembly mapping. For a rule asking *is an excluded
+form still on the surface* that is fail-safe, an over-report never being a false green;
+for any rule that would count the surface it is a ceiling and not a census.
+
+**Where the document can name the constructor instead there is no bound to take.** The
+profile writes `amocas.q` and the clause that would have to spell it is the AMO clause
+above, whose skeleton is `.` alone: no fragment of the one occurs in the other, so the
+fragment test pairs that name with nothing whether or not the form is present. A
+document whose subject is a *single instruction form* therefore names the Sail
+constructor beside the mnemonic, and the reading it asks for is not a match at all but
+membership: `sailbundle.Bundle.decoded` collects the names a word can decode *to*, and
+a marker is in that set or is not. That reaches a form whose constructor is shared with
+its neighbours and whose identity is a field value, which `AMOCAS` is: the model decodes
+`AMO`, and `AMOCAS` is the `amoop` its five-bit field would decode to.
+
+Both readings of the model's side stand, because they fail differently. An enumeration
+cannot see a form re-added under a clause the emitter cannot structure; a marker cannot
+see a form re-added under another constructor, and a marker that was misspelled or has
+gone stale is absent for the same reason a deleted form is. Neither is the other's
+replacement.
 """
 
 import functools
 import re
-from dataclasses import dataclass
 
-from . import dialect
-
-SAIL_SUFFIX = ".sail"
-
-# The clause head is anchored at column zero because a Sail top-level declaration is,
-# and the body runs to the next one. The argument list is stepped over by hand rather
-# than matched, because it nests.
-_ASSEMBLY_RE = re.compile(r"^mapping clause assembly\s*=\s*(\w+)", re.MULTILINE)
-
-# One term of a right-hand side: a string literal, a call, or a bare name. The call
-# alternative comes before the bare name so that `f(x)` is one term and not two.
-_TERM_RE = re.compile(r'"([^"]*)"|[A-Za-z_]\w*\s*\([^()]*\)|[A-Za-z_]\w*')
-
-# The call every assembly clause puts between the mnemonic and its first operand. A
-# clause without one spells a mnemonic and nothing else.
-_OPERAND_SEP = "spc()"
-
-# A clause's body runs to the next top-level declaration, which is the next line
-# starting in column zero.
-_TOP_LEVEL_RE = re.compile(r"^\S", re.MULTILINE)
-
-# The two shapes a decode site takes, both anchored at column zero because a Sail
-# top-level declaration is. A clause head names an instruction constructor; a named
-# `encdec` mapping decodes one field of one, and its arms name that field's values.
-_DECODE_CLAUSE_RE = re.compile(r"^mapping clause (encdec\w*)\s*=\s*(\w+)", re.MULTILINE)
-_DECODE_MAPPING_RE = re.compile(r"^mapping (encdec\w*)\s*:", re.MULTILINE)
-
-# Where a mapping's body starts: the assignment that ends its signature, and never the
-# first brace, because a signature carries its own (`bits(5) <-> {1, 2, 4, 8}`).
-_BODY_RE = re.compile(r"=\s*\{")
-
-# One arm's name, on each side of its arrow: an identifier, with an argument list
-# stepped over where the arm destructures one (`Regidx(r) <-> r`). Which side of the
-# arrow the encoding is on is the mapping's own choice, so both sides are read; a
-# numeric side matches neither pattern, which is what leaves `1 <-> 0b00` naming
-# nothing at all.
-_ARM_LEFT_RE = re.compile(r"([A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*$")
-_ARM_RIGHT_RE = re.compile(r"\s*([A-Za-z_]\w*)")
-
-# How far back of an arrow the arm's own name can be. Generous against the longest
-# destructuring the model writes, and bounded so that the backward scan costs the same
-# whether the arm is the mapping's first or its hundredth.
-_ARM_WINDOW = 120
+from . import dialect, sailbundle
 
 # What a document writes where an encoding family varies: `<eew>` names the field,
 # `*` stands for the rest of a family's names. Both mean *some text decided
@@ -110,152 +72,6 @@ _PLACEHOLDER_RE = re.compile(r"<[^>]*>|\*")
 # placeholder stands for a field's rendering, so it is at least one character and
 # never spans the separator or the suffix dot that the literals around it anchor.
 _PLACEHOLDER_EXPANSION = r"[0-9a-z]+"
-
-
-@dataclass(frozen=True)
-class Spelling:
-    """One `mapping clause assembly`, reduced to what it can be asked about."""
-
-    ctor: str        # the instruction-union constructor the clause spells
-    file: str        # the tracked path it is written in
-    line: int        # its 1-based line, for a finding a person has to go and visit
-    skeleton: str    # its mnemonic's string literals, concatenated in order
-
-
-def _balanced(text: str, start: int) -> int:
-    """The offset just past the parenthesized group at `start`, or `start` itself.
-
-    A Sail argument list nests, so it is stepped over rather than matched: the
-    pattern that would do it is the one this exists to avoid writing.
-    """
-    if start >= len(text) or text[start] != "(":
-        return start
-    depth = 0
-    for i in range(start, len(text)):
-        if text[i] == "(":
-            depth += 1
-        elif text[i] == ")":
-            depth -= 1
-            if depth == 0:
-                return i + 1
-    return start
-
-
-def _skeleton(rhs: str) -> str:
-    """A right-hand side's mnemonic, as its string literals in order.
-
-    Everything a mapping or a function decides is left out rather than guessed at,
-    so the result is a *lower bound* on what the clause spells and never a claim
-    about the characters between its literals.
-    """
-    cut = rhs.find(_OPERAND_SEP)
-    head = rhs[:cut] if cut >= 0 else rhs
-    return "".join(m.group(1) for m in _TERM_RE.finditer(head)
-                   if m.group(1) is not None)
-
-
-def read_spellings(window: list[tuple[str, str]]) -> list[Spelling]:
-    """Every assembly clause of the Sail files in the window, as a skeleton.
-
-    The window is `(tracked path, text)` pairs, read once by the caller and shared
-    with whatever else scans the same files, so this stays a pure function over text
-    it never touches disk for. Anything that is not Sail is passed over here rather
-    than filtered by the caller, so the window stays the one the citation rule reads.
-
-    A clause whose mnemonic is decided entirely by a mapping has an empty skeleton
-    and is dropped, because a name matches an empty skeleton vacuously. Those are
-    the clauses this parse cannot speak about, and a rule reading it owes that
-    boundary out loud rather than counting them as checked.
-    """
-    out: list[Spelling] = []
-    for rel, text in window:
-        if not rel.endswith(SAIL_SUFFIX):
-            continue
-        for m in _ASSEMBLY_RE.finditer(text):
-            after = _balanced(text, m.end())
-            arrow = text.find("<->", after)
-            if arrow < 0:
-                continue
-            end = _TOP_LEVEL_RE.search(text, arrow)
-            rhs = text[arrow + 3:end.start() if end else len(text)]
-            skeleton = _skeleton(rhs)
-            if skeleton:
-                out.append(Spelling(ctor=m.group(1), file=rel,
-                                    line=text.count("\n", 0, m.start()) + 1,
-                                    skeleton=skeleton))
-    return out
-
-
-@dataclass(frozen=True)
-class Decoded:
-    """One name a word can decode to, and the decode site that names it."""
-
-    ctor: str        # the constructor, exactly as the model spells it
-    file: str        # the tracked path it is written in
-    line: int        # its 1-based line, for a finding a person has to go and visit
-    site: str        # the `encdec` clause or mapping that decodes to it
-
-
-def _body(text: str, start: int) -> tuple[int, int]:
-    """The span of a top-level declaration's body, from its `= {` to column zero.
-
-    A Sail body runs to the next declaration, and the closing brace of a multi-line
-    one is itself in column zero, so the same search ends both shapes.
-    """
-    opened = _BODY_RE.search(text, start)
-    if not opened:
-        return start, start
-    end = _TOP_LEVEL_RE.search(text, opened.end())
-    return opened.end(), end.start() if end else len(text)
-
-
-def _arm_names(text: str, arrow: int, site: str) -> list[tuple[int, str, str]]:
-    """The names either side of one arm's arrow, as offsets into `text`.
-
-    The left side is read out of a window ending at the arrow rather than out of the
-    whole body, because an arm's name is the token immediately before its arrow and
-    an unbounded backward scan would re-read the body once per arm.
-    """
-    out: list[tuple[int, str, str]] = []
-    left = _ARM_LEFT_RE.search(text, max(0, arrow - _ARM_WINDOW), arrow)
-    if left:
-        out.append((left.start(1), left.group(1), site))
-    right = _ARM_RIGHT_RE.match(text, arrow + len("<->"))
-    if right:
-        out.append((right.start(1), right.group(1), site))
-    return out
-
-
-def read_decoded(window: list[tuple[str, str]]) -> list[Decoded]:
-    """Every name the model's decode surface can decode a word to.
-
-    The window is the same `(tracked path, text)` pairs `read_spellings` takes, and
-    what is not Sail is passed over here for the same reason it is there.
-
-    Two shapes, because a form's identity is written in one of two places. It is the
-    instruction constructor where a whole clause is the form, and it is a field value
-    where the clause is shared and one field says which form it is. A reading that
-    took only the first would hold `VLSEGFFTYPE` and miss `AMOCAS` entirely, and the
-    difference between them is a Sail authoring choice rather than anything the
-    document naming either one can be asked to know.
-    """
-    out: list[Decoded] = []
-    for rel, text in window:
-        if not rel.endswith(SAIL_SUFFIX):
-            continue
-        found: list[tuple[int, str, str]] = [
-            (m.start(), m.group(2), m.group(1))
-            for m in _DECODE_CLAUSE_RE.finditer(text)]
-
-        for m in _DECODE_MAPPING_RE.finditer(text):
-            start, end = _body(text, m.end())
-            for arrow in re.finditer("<->", text[start:end]):
-                found += _arm_names(text, start + arrow.start(), m.group(1))
-
-        out += [Decoded(ctor=ctor, file=rel,
-                        line=text.count("\n", 0, offset) + 1, site=site)
-                for offset, ctor, site in found]
-    return out
 
 
 def fragments(name: str) -> tuple[str, ...]:
@@ -272,9 +88,12 @@ def fragments(name: str) -> tuple[str, ...]:
 def spells(skeleton: str, name: str) -> bool:
     """Whether a clause with this skeleton can spell this written name.
 
-    Every literal fragment of the name, in the order the name writes them, inside
-    the literals the clause writes. See this module's docstring for why the test
-    runs in this direction and not the other.
+    Every literal fragment of the name, in the order the name writes them, inside the
+    literals the clause writes. This is the *lower bound* reading, and it survives the
+    move to the bundle because one clause still arrives as text: see this module's
+    docstring for why the test runs in this direction and not the other, which is that
+    asking whether the skeleton's fragments occur in the name pairs a fault-only-first
+    load with the ordinary segment load beside it and cannot tell them apart.
     """
     at = 0
     for fragment in fragments(name):
@@ -298,3 +117,19 @@ def encoder_rows(name: str) -> list[str]:
     """Every row of the corpus assembler's table this written name covers."""
     pattern = _expansion(name)
     return [m for m in dialect.MNEMONICS if pattern.match(m)]
+
+
+def spelled_by(clause: sailbundle.Spelled, name: str) -> list[str]:
+    """Every mnemonic of one assembly clause that a written name covers.
+
+    Two tests and not one, because the clause states which of them it has earned. An
+    enumerated clause carries finished mnemonics, so the written name is expanded to the
+    pattern its spellings match and the answer is exact against that clause. A clause the
+    emitter left as text carries a skeleton instead, so the fragment test decides it and
+    the answer is the lower bound it always was; the skeleton is handed back as the hit
+    so that a finding still names something a person can look for.
+    """
+    if not clause.exact:
+        return [s for s in clause.mnemonics if spells(s, name)]
+    pattern = _expansion(name)
+    return [m for m in clause.mnemonics if pattern.match(m)]

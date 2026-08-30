@@ -151,6 +151,11 @@ def run(ctx: Context) -> None:
         "core-class table sites the rule can read": sh.get("core_class_sites", 0),
         "VLEN tokens the composition answers": sh.get("vlen_tokens", 0),
         "requirement citations in the model files read": sh.get("model_citations", 0),
+        # The owner record K-88 holds a generated artifact against. It is read out of
+        # the artifact rather than out of a list anybody maintains, which is what makes
+        # it worth a floor: an emitter that stopped recording what it read would leave
+        # that rule reporting that the artifact agrees with every one of no sources.
+        "sources the model's generated bundle records": sh.get("bundle_owners", 0),
         # Five rather than one, because the exclusion rule pairs what the profile writes
         # against what could answer it, and either side of either pairing emptying leaves
         # it reporting green over nothing. The profile writes two kinds of thing, a

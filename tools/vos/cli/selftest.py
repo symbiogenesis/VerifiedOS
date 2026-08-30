@@ -71,6 +71,7 @@ from vos import corpus as corpus_mod
 from vos.coread import LEDGER
 from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
 from vos.figures import words
+from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
 
 CHECKER = "tools/check.py"
@@ -1143,10 +1144,18 @@ CASES: list[Case] = [
     # that decides every rung above it, and the substitution puts its threshold under
     # the floor of `vlen_exp`'s own constraint, which makes it true at every geometry
     # this model can be built at and therefore true of the vectorless composition.
+    #
+    # The seed is in the *generated bundle* rather than in `extensions.sail`, because
+    # that is where this rule reads the ladder since S15: editing the Sail alone leaves
+    # the rung this rule sees untouched and reports as K-88's stale artifact instead,
+    # which is the correct verdict about that tree and no test of this rule. The anchor
+    # carries the clause's own pattern id as well as its body, because a body of
+    # `sizeof(vlen_exp) >= 5` is written at more than one rung and `replace_once` would
+    # take whichever came first.
     ("K-78", "a minimum-vector-length rung a vectorless composition now reaches",
-     _literal("model/model/core/extensions.sail",
-              "hartSupports(Ext_Zvl32b) = sizeof(vlen_exp) >= 5",
-              "hartSupports(Ext_Zvl32b) = sizeof(vlen_exp) >= 3")),
+     _literal(BUNDLE,
+              '"id":"Ext_Zvl32b"},"body":{"contents":"sizeof(vlen_exp) >= 5"',
+              '"id":"Ext_Zvl32b"},"body":{"contents":"sizeof(vlen_exp) >= 3"')),
 
     # The *configuration* is edited rather than the profile or the model, because that
     # is the direction this defect arrives from and the reason the rule exists: the
@@ -1389,6 +1398,20 @@ CASES: list[Case] = [
      _literal("tools/vos/rvfi.py",
               '("W", packet.mem_wmask, packet.mem_wdata)',
               '("R", packet.mem_wmask, packet.mem_wdata)')),
+
+    # The whole of the defect and nothing else: one token of a generated artifact
+    # edited by hand. The anchor is the bundle's own `embedding` field rather than
+    # anything it describes, and that is the case rather than tidiness. Every other
+    # token in the file is a fact some rule downstream reads, so seeding one would fire
+    # that rule as well and leave this case passing on a mutant about the capability
+    # format; this field is read by the bundle's own reader and by nothing else, so what
+    # is being asked is exactly *does anything notice a generated file that was
+    # edited*. It is also the seed the repair lane takes: the working tree moves off the
+    # staged blob while the staged blob is still the model's, which is the one state in
+    # which --fix may write the bytes back.
+    ("K-88", "a generated artifact edited by hand, one token off the bytes its "
+             "generator wrote",
+     _literal(BUNDLE, '"embedding":"plain"', '"embedding":"plane"')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
@@ -1437,6 +1460,11 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     # it: the number moves whenever an item lands a finding, so a literal would go stale
     # on work that never touched the rule.
     "K-82": ("findings the plan records", _k82_figure),
+    # The one repair here that is not a figure at all. K-88's own case is already the
+    # state its repair is for, a working tree one token off a staged blob that is still
+    # the model's, so it rides it: what is proved is that --fix writes a whole generated
+    # file back from the index rather than that it recomputes an arithmetic.
+    "K-88": ("restored from the index", _case_mutation("K-88")),
 }
 
 
