@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 237 of them across 56 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 243 of them across 57 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -800,6 +800,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-156** owed-act: two requirements cannot both be true of the Debug Module, one closing it permanently at the transition out of test and the other making entry an authenticated exchange in a later state
 · Raised: M3.1, in prose
 · Disposition: closed, taken at R-09-034, which carves the Debug Module out of the permanent test-exit closure and leaves it live in development and RMA alone
+
+**F-188a** owed-act: where the entropy verdict is extended against the boot-target latch is unordered, one entry fixing the lifecycle extension first and another the verdict before any measured stage draws, with neither placing the latch the third measures *like every other input*
+· Raised: M3.2
+· Disposition: open, the two orders shown at the item to reach different digests, so the silence is observable rather than harmless
+
+**F-188b** owed-act: whether the chain measures each stage before running it or places the payload up front is unfixed, one entry fixing only the pairwise precedence and another taking the front-loaded shape for a single stage and saying nothing about the rest
+· Raised: M3.2
+· Disposition: open, both shapes stated and shown to reach the same digest, so what is unfixed is what ran between the extensions rather than what was measured
+
+**F-188c** owed-act: what a successful boot does to the boot-attempt count is unstated, the counting and the automatic revert being fixed and the entropy halt carved out as a fault class consuming no attempt, with no entry saying whether a success clears the count
+· Raised: M3.2
+· Disposition: open, the item modelling that entry's two failure classes and no success
+
+**F-188d** owed-act: what the reference integrity manifest covers where it differs from the quote is unstated, the entry making it the dual *covering the same vector* and stopping there
+· Raised: M3.2
+· Disposition: open, the appraisal stated over whatever vector the quote covers and no manifest-side enumeration invented
+
+**F-188e** owed-act: whether the attestation vector's *this set* names four terms or five is unfixed, the criterion saying *the quote's vector*, which is not the quote, and one neighbouring entry carrying the referent over without fixing it while another constrains the lifecycle state rather than the chain
+· Raised: M3.2
+· Disposition: open, the item taking the wide reading as a stated judgment carrying this gap rather than as an enumeration the register closes, and pricing the narrow one by computing that a relying party appraises clean on a forked chain
+
+**F-189** measurement: neither differential instrument reaches the root-of-trust firmware artifact, the whole mutation score being the assumption gate refusing to compile, because the QuickChick harness requires two unrelated proof artifacts and nothing stages this one
+· Raised: M3.2, in prose
+· Disposition: open, falsifying that item's own pricing of its validation half as generated, and closed by a tools act rather than a proof one, the harness already staging the proofs tree
 
 **F-186a** owed-act: which codepoint names which permission set is unfixed, the lattice being enumerated at freeze time and no artifact here carrying the enumeration
 · Raised: M3.3
