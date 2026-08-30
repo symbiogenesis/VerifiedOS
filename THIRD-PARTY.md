@@ -160,6 +160,27 @@ These are the one instrument on this page that is not software, and the one whos
 
 **Patents are a separate instrument and not a copyright question at all.** Patents essential to 5G NR are declared under the Organizational Partners' IPR policies and licensed on fair, reasonable and non-discriminatory terms. That instrument attaches to shipping a product rather than to publishing a specification or a model, and no reading of the copyright position substitutes for it.
 
+### The cryptography upstreams
+
+Nothing here is tracked, fetched, or pinned yet. The [implementation plan](docs/implementation-checklist.md)'s cryptography milestone would incorporate all four, and its calls are taken ahead of that act so the milestone opens against a decided standing rather than against an open question. Only one of the four is not permissive, and it is not permissive because it states no terms at all.
+
+| Component | Standing taken | What it is |
+| --- | --- | --- |
+| Fiat-Crypto | Pinned as a submodule, run as a build-time generator, its emission tracked beside the commit it was derived at | The classical field arithmetic, which the register mandates by name and admits by derivation |
+| VST's `sha/` and `hmacdrbg/` | Acquired through the VST opam distribution, which its own `LICENSE` places under `BSD-2-Clause` | SHA-256 and HMAC-DRBG-SHA-256, each carrying a Gallina specification and a refinement proof, the second an FCF security proof besides |
+| The FIPS and ACVP known-answer vectors | Fetched at build time, a URL and an integrity hash tracked and no file | The oracle every authored primitive is validated against |
+| The behavioural oracles | Pinned as submodules, read and never copied, vendored, or extracted from | A second implementation per authored primitive, taken in pairs of independent verification lineage |
+
+**Fiat-Crypto is generated rather than vendored, and the register is what decides that.** The mandate's acceptance is that every field-arithmetic implementation *traces to a Fiat-Crypto derivation*, so a recorded generator run against a pinned commit satisfies it while a bare tracked output does not, having nothing in the checkout that names the derivation. Vendoring the tree would satisfy it too and is declined on the standing rule that pinning is free and vendoring is a commitment.
+
+**Its election is Apache-2.0, and the reading that fixes the arms is owed at the pin rather than taken here.** The project offers three arms at the taker's option, and the sentence stating that in this document is a characterization written while disposing an unlicensed deposit that patches Fiat-Crypto, not a reading of Fiat-Crypto's own licence file. That is the inference from lineage this page forbids, so the arm is recorded and the reading is taken at the milestone that pins it. Apache-2.0 matches the licence this repository's own content already carries and adds an express patent grant on the one primitive class where patents historically bite; the permissive arms keep Apache's notice and patent-termination provisions out of the tree and stay available if a later act wants them.
+
+**The VST route is chosen to avoid a term rather than to fix an edition.** The repository carries `compcert/` and `compcert_new/` in tree, and the second is the one VST's own direction says not to use without satisfying the CompCert licence, so pinning it would re-raise the non-commercial term decomposed under [CompCert and SECOMP](#compcert-and-secomp). The opam distribution is the acquisition route that does not convey it, the Coq sources are what this design reasons in, and the C beside them is OpenSSL- and mbedTLS-derived and is not taken. What the route forfeits is the exactness of a commit: a version constraint fixes the edition more loosely than a pin does.
+
+**The vectors are fetched because they are large and because a floating corpus is worse than a large one.** They carry no usage restriction and two notice conditions, and one set alone is about 110 MB, so they take the shape [fetched at build time](#fetched-at-build-time) already uses here: a tracked URL and integrity hash, with the upstream conveying the bytes. That also makes a vector revision reproducible rather than silently floating under a milestone's acceptance evidence, which is what a corpus obtained by hand would be.
+
+**One oracle states no terms at all, and it is pinned for its edition and read for nothing else.** The most prominent Jasmin ML-KEM artifact carries no licence file, so it may be pinned and read and may not be copied, vendored, or extracted from. That is the disposition [`katamaran-project/sail-backend`](#pinned-as-submodules) already carries, met on a library rather than on a tool, and it is why pinning an oracle is worth the row: what an acceptance figure was compared against is a property of an edition, and an unpinned oracle cannot state one.
+
 ### Non-permissive upstreams, and the calls taken on them
 
 None is tracked here yet. Each was read at its pin or its own license file rather than inferred from lineage, and each is booked in the [implementation plan](docs/implementation-checklist.md) as a decision taken at the milestone that would incorporate it.
