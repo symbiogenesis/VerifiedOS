@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 207 of them across 50 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 214 of them across 51 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -43,6 +43,34 @@ A defect this repository's own work introduced and the same item closed is a `me
 ---
 
 ## S · Serial-path decisions and program instruments
+
+**F-000k** owed-act: the gate demanding a measured emulator throughput states no threshold to measure against, and no artifact in the repository states one for its *sufficient through M6* to mean
+· Raised: S4
+· Disposition: closed at the gate, the item stating the criterion it rules against and saying that it authored it; the register half is F-000l
+
+**F-000l** owed-act: no register entry owns a throughput floor or a boot-time ceiling for the development vehicle, every throughput obligation there being on shipped hardware and R-18-004c putting the emulator outside timed obligations outright
+· Raised: S4
+· Disposition: open, reported and not closed, a register act rerunning the review gate
+
+**F-000m** method: no workload this repository holds can carry a throughput figure, and none can before the composed image exists, so an item wanting one authors its own program outside the differential corpus
+· Raised: S4
+· Disposition: standing, the two programs authored here left untracked because a benchmark decides nothing about the model's answers and a corpus member no check reads is worse than none
+
+**F-000n** measurement: the commit trace costs about a fifth of the rate and 57.6 to 67.0 bytes a retired instruction, so what bounds a traced run is storage rather than speed
+· Raised: S4
+· Disposition: standing, which puts the constraint on the arm that traces and on neither the daily driver nor the emulator
+
+**F-000o** owed-act: a lane's configure child is given the administrative directory and no work tree, so the emulator it builds is stamped dirty whatever the lane's state is, the child's own directory being read as the tree and every tracked file as deleted
+· Raised: S4
+· Disposition: open, reported and not closed; the commit half is right and the flag is noise that would mask a genuinely edited lane
+
+**F-000p** owed-act: three commands the entry point's table declares host-capable cannot run on the host, the command's own dispatch preparing the guest environment before it reads which subcommand was asked for
+· Raised: S4
+· Disposition: open, reported and not closed, the table and the module being one lane's to reconcile
+
+**F-000q** method: the merged register file makes an ABI integer name an authority destroyer, and the failure surfaces at the exit store millions of instructions after the write that caused it
+· Raised: S4
+· Disposition: standing, the dialect's own consequence rather than a defect; what is owed is that a program here name its authority holders before it names its scratch registers
 
 **F-000a** upstream-defect: the commit trace's default destination is block-buffered into a pipe while the injection diagnostics are unbuffered on the other descriptor, and the end-of-trace acknowledgement prints whatever the trace flag says because its call site passes a comparison where every other passes the flag
 · Raised: S11
