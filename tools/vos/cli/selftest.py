@@ -1330,6 +1330,31 @@ CASES: list[Case] = [
     # finding losing the entry that indexed it.
     ("K-82", "a register entry raised at an item the plan does not carry",
      _literal(FINDINGS, "· Raised: I11", "· Raised: I12")),
+
+    # The elision table is made to claim a kind the packet meets, which fires three of
+    # the rule's readings at once: the moved kind is now in both §9 tables, the kind it
+    # displaced is in neither, and the elision table no longer names the set the packet
+    # view actually drops. The anchor carries the whole row rather than its first cell,
+    # and that is the case rather than a style: §4's schema table writes the same first
+    # cell, it comes first in the document, and `replace_once` takes the first
+    # occurrence, so a short anchor would seed the schema instead of the elision table.
+    ("K-85", "an elision table naming a record kind the meeting table also carries",
+     _literal(CORPUS_DOC,
+              "| `T` | `rvfi_trap` is a boolean where the record carries the cause |",
+              "| `X` | `rvfi_trap` is a boolean where the record carries the cause |")),
+
+    # One rule gets one case, and this rule gets two, because the split is written on
+    # both sides and the case above reaches only the document's: with the code half
+    # deleted that mutant is still killed, so a rule narrowed to holding the two tables
+    # against each other would pass its own selftest while the projection an executor is
+    # compared through stopped emitting a record §9.2 goes on describing one for one.
+    # The seed is a copy-paste slip in the projection's own pair of effect kinds, which
+    # leaves the module importable and every other rule silent, so the case passes on
+    # K-85's own report.
+    ("K-85", "a projection that has stopped emitting a record the meeting table claims",
+     _literal("tools/vos/rvfi.py",
+              '("W", packet.mem_wmask, packet.mem_wdata)',
+              '("R", packet.mem_wmask, packet.mem_wdata)')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

@@ -70,7 +70,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000g** method: a schema-version bump can drift the meeting and elision tables away from the code that produces them, with every gate green
 · Raised: S11
-· Disposition: open, named as K-85 in the differential group with its three edits and a floors-group member count, and left rather than added
+· Disposition: closed, K-85 holding §4's declared record kinds against §9's meeting and elision tables in both directions and both tables against the projection and the packet view themselves, which are run rather than read
 
 **F-000h** measurement: the `$[test]` harness does reach the capability format's packing, killing all five live mutants of it, and names one property for every one of them because it stops at the alphabetically first to fire
 · Raised: S13a
