@@ -50,13 +50,34 @@ member's own comment says the word is, and on the two grounds claiming the
 encoder cannot or will not build it, assembling that text must not produce the
 word. That is the ground that expires when a row lands, and nothing else reads a
 `.word` to notice it has.
+
+The fifth rule holds the record grammar's own membership, which is written three
+times. §4 declares the record kinds; §9 divides them, the meeting table naming
+what an RVFI packet carries and the elision table naming what it cannot; and
+[rvfi.py](../rvfi.py) divides them a third time in code, its projection emitting
+one half and its packet view dropping the other. Nothing held the three
+together, so a kind added to the schema could be described by neither table
+while the version rule above stayed green, and a projection narrowed could go on
+being described as one for one. K-85 requires every declared kind in exactly one
+of the two tables, in both directions, and each table equal to the set the code
+answers with, which is decided by **running** the two functions rather than by
+reading them: a regex over that module would be one more transcription of the
+thing this rule exists to hold. Fail-closed at each of the three headings, on
+K-71's ground, and the rows are read inside their own section because the kinds
+are spelled identically in all three tables.
+
+Its residue is stated rather than closed. §9.3's three further rows are not
+record kinds and are outside the rule: `order` is a field both formats carry and
+neither compares, the effect ordering is a property of a comparison rather than
+of a record, and a **second** `R` or `W` under one instruction is a count the
+packet cannot hold rather than a kind it cannot name.
 """
 
 import json
 import re
 from typing import TYPE_CHECKING
 
-from vos import asm, differential
+from vos import asm, differential, rvfi
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -94,6 +115,10 @@ def run(ctx: Context) -> None:
         # the manifest is the rule's other side, so an unreadable one is a finding
         # rather than a rule that quietly does not run
         _schema(ctx, None)
+        # K-85 reads the document and the code and never the manifest, so it runs on
+        # this path too: a manifest that stopped parsing must not take down a rule
+        # whose two sides are both still there to be held against each other
+        _record_kinds(ctx)
         rep.line()
         return
 
@@ -144,6 +169,7 @@ def run(ctx: Context) -> None:
 
     _schema(ctx, corpus.trace_schema)
     _hand_written_words(ctx, corpus, doc)
+    _record_kinds(ctx)
     rep.line()
 
 
@@ -264,6 +290,122 @@ def _encode(reading: str) -> int | None:
         return None
     data = b"".join(section.data for section in sections)
     return int.from_bytes(data[:4], "little") if len(data) >= 4 else None
+
+
+# §9's two tables, located by their own headings. The section numbers are wildcards
+# for the reason the version heading above gives: renumbering is not this rule's
+# subject, and a heading that no longer answers in the form written today is a finding
+# rather than a table read as empty.
+_MEET_HEADING_RE = re.compile(
+    r"(?m)^### (\d+\.\d+) Where the packet and §\d+'s record meet[^\r\n]*$")
+_ELIDE_HEADING_RE = re.compile(r"(?m)^### (\d+\.\d+) Where they do not[ \t]*$")
+
+# A table row whose first cell is one record kind. Single letters and nothing else,
+# which is what leaves §9.3's three further rows outside the rule: `order` is a field,
+# and the other two name a count and an ordering rather than a kind.
+_KIND_ROW_RE = re.compile(r"(?m)^\| `([A-Z])` \|")
+
+# One packet with every branch of the projection taken at once: a destination register
+# write, a memory read and a memory write. Nothing here is a trace and no value decides
+# anything; only the branches do, so what this yields is the set of record kinds the
+# projection can emit at all.
+_MAXIMAL = rvfi.Execution(wire=2, rd_addr=1, mem_rmask=0xFF, mem_wmask=0xFF,
+                          integer_present=True, memory_present=True)
+
+
+def _section(doc: str, heading: re.Match[str]) -> str:
+    """The body under one heading, bounded at the next heading of any depth.
+
+    Required rather than tidy: the record kinds are spelled identically in §4 and in
+    both §9 tables, so a row pattern run over the whole document answers with
+    whichever table carries that letter first instead of with the one being read.
+    """
+    rest = doc[heading.end():]
+    nxt = re.search(r"(?m)^#", rest)
+    return rest[:nxt.start()] if nxt else rest
+
+
+def _kinds(section: str) -> set[str]:
+    return {m.group(1) for m in _KIND_ROW_RE.finditer(section)}
+
+
+def _record_kinds(ctx: Context) -> None:
+    """K-85: §4's record kinds, split by §9's two tables, and the split the code makes.
+
+    Three readings held together rather than two, because the split is written a third
+    time in `rvfi.py` and that third copy is the one an executor is adjudicated
+    through. The code side is decided by calling both functions, so what the rule holds
+    is what the projection does and not what a pattern says about its source.
+    """
+    rep = ctx.rep
+    doc = ctx.text(DOC)
+    findings: list[str] = []
+    declared: set[str] = set()
+    meets: set[str] = set()
+    elides: set[str] = set()
+
+    # Fail-closed at each heading, on K-71's ground: a section this rule cannot find
+    # leaves its set empty, and an empty set satisfies every membership vacuously.
+    schema = _SCHEMA_HEADING_RE.search(doc)
+    if schema is None:
+        findings.append(f"{DOC} states no commit-trace schema heading this rule can "
+                        "find, so the record kinds it declares are read from nothing")
+    else:
+        declared = _kinds(_section(doc, schema))
+
+    meet = _MEET_HEADING_RE.search(doc)
+    if meet is None:
+        findings.append(f"{DOC} states no heading for the table of records the packet "
+                        "meets, in a form this rule reads")
+    else:
+        meets = _kinds(_section(doc, meet))
+
+    elide = _ELIDE_HEADING_RE.search(doc)
+    if elide is None:
+        findings.append(f"{DOC} states no heading for the table of records the packet "
+                        "elides, in a form this rule reads")
+    else:
+        elides = _kinds(_section(doc, elide))
+
+    findings += [f"{DOC} declares the `{kind}` record and §9 both meets and elides it"
+                 for kind in sorted(meets & elides)]
+    findings += [f"{DOC} declares the `{kind}` record and §9 neither meets nor elides it"
+                 for kind in sorted(declared - meets - elides)]
+    findings += [f"{DOC}'s meeting table carries `{kind}`, which its schema table does "
+                 "not declare" for kind in sorted(meets - declared)]
+    findings += [f"{DOC}'s elision table carries `{kind}`, which its schema table does "
+                 "not declare" for kind in sorted(elides - declared)]
+
+    produced = {record[0] for record in rvfi.records(_MAXIMAL)}
+    findings += [f"rvfi.records emits the `{kind}` record and {DOC}'s meeting table "
+                 "does not carry it" for kind in sorted(produced - meets)]
+    findings += [f"{DOC}'s meeting table carries `{kind}` and rvfi.records never emits "
+                 "it" for kind in sorted(meets - produced)]
+
+    # One record of every kind §4 declares, so the stream is the document's enumeration
+    # rather than a list written here beside it.
+    try:
+        view, _elided = rvfi.packet_view([f"{kind} 0" for kind in sorted(declared)])
+    except KeyError as exc:
+        # A kind added to §4 with no branch in the packet view raises exactly here, and
+        # that is the drift this rule exists to catch: it is reported at the checker,
+        # where the document is being read, rather than left to stop the rig.
+        findings.append(f"rvfi.packet_view has no branch for the {exc} record, which "
+                        f"{DOC} declares")
+    else:
+        dropped = declared - {record[0] for record in view}
+        findings += [f"rvfi.packet_view drops the `{kind}` record and {DOC}'s elision "
+                     "table does not carry it" for kind in sorted(dropped - elides)]
+        findings += [f"{DOC}'s elision table carries `{kind}` and rvfi.packet_view "
+                     "keeps it" for kind in sorted(elides - dropped)]
+
+    ctx.shared["record kinds the commit-trace schema declares"] = len(declared)
+    rep.report("K-85", "commit-trace record kind(s) the document and the projection "
+               "disagree on:", findings,
+               f"all {len(declared)} record kinds {DOC}'s schema table declares are met "
+               f"or elided exactly once, and that split is the {len(meets)} kinds "
+               f"rvfi.py's projection emits against the {len(elides)} its packet view "
+               "drops")
 
 
 def _linked_sources(doc: str) -> set[str]:

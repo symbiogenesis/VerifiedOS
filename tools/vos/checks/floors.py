@@ -204,6 +204,14 @@ def run(ctx: Context) -> None:
         "checklist subtotals": len(sh.get("sections", [])),
         "dominant terms read from the big table": len(sh.get("ends", [])),
         "differential corpus members": len(sh.get("corpus_members", [])),
+        # One rather than three, and the two §9 tables are the ones left out. Either of
+        # them emptying leaves every kind the schema table declares in neither, which
+        # K-85 reports once per kind, so the comparison is its own floor there. The
+        # schema table is the enumeration the verdict quantifies over, and the state
+        # this floor is under is the one where every reading has emptied together and
+        # each comparison holds over nothing.
+        "record kinds the commit-trace schema declares":
+            sh.get("record kinds the commit-trace schema declares", 0),
         "files that must carry a license mark": len(sh.get("markable", [])),
         # Two rather than one, on the pair K-76 states above: K-81 holds a record of
         # pins against the index that owns them and then holds every restatement
