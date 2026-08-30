@@ -19,6 +19,19 @@ live, which is not the same as correct: whether it decides the *right* property 
 still the registry's claim and a person's to audit. Nothing here re-states what a rule
 means. It states only that the rule bites.
 
+What a verdict is, and the report and the exit code they imply, is
+[vos/seeded.py](../seeded.py)'s and is shared with the generated loops; what is here
+is the oracle, and it is the one part of a mutation run that cannot be shared. This
+oracle's population is **authored** rather than walked out of a source, because its
+subject is a registry where a rule and its mutant are two halves of one claim, and its
+third verdict is `unseeded` rather than `stillborn`: an authored case can stop
+applying to a document that moved under it, which is a finding, where a generated one
+regenerates itself and can only fail to compile, which is not. The `CASES` table stays
+here for two reasons that are not style. A rule is added by three edits and one of
+them is a row of that list, so it belongs beside the run that reads it; and K-83 holds
+that nothing in the landing loop names the quarantine, exempting this file by name so
+that the two cases seeding that rule can spell the coupling they seed.
+
 Every case runs against a sandbox built from the working tree, so the checker under
 test is the one on disk rather than the one at HEAD, and no case can touch the real
 repository. The sandbox is a git repository because the checker reads its corpus from
@@ -49,6 +62,7 @@ import tempfile
 import time
 from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 from queue import Queue
 from typing import cast
@@ -57,6 +71,7 @@ from vos import corpus as corpus_mod
 from vos.coread import LEDGER
 from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
 from vos.figures import words
+from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
 
 CHECKER = "tools/check.py"
 RULES = "tools/check-rules.md"
@@ -605,6 +620,25 @@ type Mutation = Callable[[Sandbox], bool]
 # One row of `CASES`: the rule the mutant must provoke, what the mutation is in words,
 # and the mutation itself.
 type Case = tuple[str, str, Mutation]
+
+
+@dataclass(frozen=True)
+class Seeding:
+    """One authored case, named the way a verdict names a generated mutant.
+
+    `vos.seeded.Verdict` is about anything with a `.what`, which for a walked mutant is
+    its site and its rewrite. An authored case has no site: it was written rather than
+    found, and what identifies it is the rule it is aimed at and the defect it seeds in
+    words, both of which its row already carries. Nothing else is added, so the row
+    stays the whole of a case and this is a reading of it rather than a second copy.
+    """
+
+    rule: str
+    description: str
+
+    @property
+    def what(self) -> str:
+        return f"{self.rule}: {self.description}"
 
 
 def _literal(rel: str, find: str, repl: str) -> Mutation:
@@ -1505,15 +1539,25 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     print()
     boxes.put(first)
 
-    def one(case: Case) -> tuple[str, str, str, str | None]:
+    def one(case: Case) -> Verdict:
+        """One case, run against a sandbox of its own: the whole of this oracle.
+
+        A case passes when its own rule is among those the checker reported, so the
+        kill states which rules fired rather than only that one did: a mutant that
+        trips its neighbours as well is expected, and a reader who cannot see which
+        ones cannot tell that from a mutant that tripped only a neighbour.
+        """
         rule, what, apply = case
+        seeded = Seeding(rule, what)
         box = boxes.get()
         try:
             if not apply(box):
-                return rule, what, "unseeded", None
+                return Verdict(seeded, UNSEEDED,
+                               "the mutant will not apply; the document it seeds has "
+                               "moved")
             code, _, failed = box.check()
             if rule in failed:
-                return rule, what, "killed", None
+                return Verdict(seeded, KILLED, f"the checker reported {', '.join(failed)}")
             # a run that reported nothing and a run that died before reporting look the
             # same from the rule's side and are repaired differently, so the exit code
             # is stated
@@ -1521,7 +1565,7 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
                    else "the run was green" if code == 0
                    else f"the run exited {code} with no finding, so the checker did not "
                         "survive the mutant either")
-            return rule, what, "survived", how
+            return Verdict(seeded, SURVIVED, how)
         finally:
             box.reset()
             boxes.put(box)
@@ -1534,29 +1578,21 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
         repairing = pool.submit(_repair_path, repair_ready) if repairable else None
-        results = list(pool.map(one, selected))
+        verdicts = list(pool.map(one, selected))
         repair: list[str] = []
         repair_out = ["--- the repair path ---",
                       "  skipped: no selected rule carries a --fix branch"]
         if repairing is not None:
             repair, repair_out = repairing.result()
 
-    survived, unseeded, ran = [], [], 0
-    for rule, what, verdict, how in results:
-        if verdict == "unseeded":
-            # a mutation that would not apply is the sharper finding of the two: the
-            # document it was written against has moved, so the case has stopped testing
-            # anything and would report the rule live for as long as nobody looked
-            unseeded.append(f"{rule}: the mutant will not apply; the document it seeds has moved")
-            print(f"{rule:<6} UNSEEDED  {what}")
-            continue
-        ran += 1
-        if verdict == "killed":
-            print(f"{rule:<6} killed    {what}")
-        else:
-            survived.append(f"{rule}: the mutant survived; the rule read the defect and "
-                            f"reported nothing ({how})")
-            print(f"{rule:<6} SURVIVED  {what}")
+    # The cases' whole report and their own exit code, on the shape every mutation loop
+    # here shares. Two things stay this tool's, because neither is about a mutant: the
+    # repair path, which decides about --fix, and the registry coverage, which decides
+    # about the rule registry and reads `CASES` rather than the run. Their findings are
+    # OR'd in below, which is what the hand-rolled tally did.
+    report: list[str] = []
+    cases_code = summarize(report, verdicts, RULES, "checker")
+    print("\n".join(report))
     print()
 
     print("\n".join(repair_out))
@@ -1564,16 +1600,22 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     gaps = _registry_coverage(first)
     print()
 
-    findings = len(survived) + len(unseeded) + len(repair) + len(gaps)
-    if findings:
-        for line in survived + unseeded:
-            print(line)
-        print(f"{findings} finding(s); {ran} of {len(selected)} case(s) ran.")
+    beside = len(repair) + len(gaps)
+    if cases_code or beside:
+        if beside:
+            print(f"{beside} further finding(s) beside the cases, above.")
         return 1
     held = ("the repair path holds" if repairable
             else "the repair path had nothing to prove")
-    print(f"every one of {ran} rule(s) killed its mutant, {held}, "
+    print(f"every one of {len(verdicts)} rule(s) killed its mutant, {held}, "
           "and the registry is covered.")
+    if len(verdicts) < len(CASES):
+        # A narrowed run says what it did not decide, and it has to say it here. The
+        # coverage check above reads `CASES` rather than the run, so it reports the
+        # registry covered however few cases ran, and a green exit under --rule is a
+        # green exit about those cases alone.
+        print(f"{len(CASES) - len(verdicts)} case(s) were not selected and decided "
+              "nothing, so this run is about the selected rule(s) alone.")
     return 0
 
 

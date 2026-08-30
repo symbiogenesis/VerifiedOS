@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """The seeded-defect generator: mutants produced from a source, not written by hand.
 
-[check-selftest.py](../check-selftest.py) proved the method on the checker's own rules
-and proved it the expensive way: one mutant per rule, each authored, each stating in
+[run.py selftest](cli/selftest.py) proved the method on the checker's own rules and
+proved it the expensive way: one mutant per rule, each authored, each stating in
 prose the defect it seeds. That is the right shape for a *registry*, where a rule and
 its mutant are two halves of one claim, and it is the wrong shape for an artifact with
 no registry behind it. A Sail function and a Gallina definition have hundreds of sites
@@ -21,7 +21,9 @@ moves the oracle's answer is *killed*. A mutant that compiles and does not move 
 is R1a's own measurement ("a vector population off entropy alone cannot tell one
 clause of `setCapBounds` from its absence") stated as a loop instead of as a paragraph.
 Reporting stillborn mutants as kills is the standard way a mutation score is inflated,
-so the three are counted apart.
+so the three are counted apart. What a verdict is and how a run is scored over them is
+[seeded.py](seeded.py)'s, shared with every oracle that runs one; what is here is the
+population.
 
 **Which finding this answers.** M0.8d's: the property that named the *pi* defect was
 written before the vectors and never ran, the harness running alphabetically so the
