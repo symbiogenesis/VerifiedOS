@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 222 of them across 53 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 228 of them across 54 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -119,6 +119,31 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-000s** method: an item's stated blocker did not survive the act it blocked, an appended case and the rewritten run loop lying far outside the context a merge reads and the shared region coming through byte-identical
 · Raised: S13b
 · Disposition: closed, the region measured identical on both sides rather than inspected; what is real is a last mile and an ordering preference, so the ordering stands and the ground under it does not
+
+**F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
+· Raised: S15
+· Disposition: closed, the emitter's git question pointed at a path that is not there so it fails rather than answers, which leaves the artifact a function of the Sail sources alone
+· Restates: F-000o
+
+**F-000u** measurement: a four-megabyte machine-written file entered the tracked corpus and a total-class rule read 2,809 pin restatements out of its bit literals, every one of them an object id on a line that had already named an upstream
+· Raised: S15
+· Disposition: closed on its own subject, the generated artifacts taken out of that rule's window because a machine-written file restates nothing; standing as a coupling for every other total-class rule, one of which is now reachable from an anchored comment in the model
+
+**F-000v** method: repointing a parse at the generated artifact moved a selftest case's subject out from under it, the seeded model source no longer being what the reading opens, so the case reported the artifact stale and the rule it was written to prove survived
+· Raised: S15
+· Disposition: closed, the case re-anchored on the artifact's own clause body; the hazard is general, a case seeding a Sail definition now having to seed the artifact rather than the file
+
+**F-000w** upstream-defect: two artifacts here cite instruction shapes the curated model does not carry, a vector segment form and a widened atomic each taken from upstream under a name this tree does not spell
+· Raised: S15
+· Disposition: closed, both repaired to cite the atomic clause that is really there
+
+**F-000x** owed-act: the encoder table is a proper subset of the surface the model spells and no rule reads the gap, 593 of the enumerated mnemonics having no row in it
+· Raised: S15
+· Disposition: open, recorded as a candidate rule and none added here; the converse holds today, every encoder row but the one unstructured clause appearing in the enumeration
+
+**F-000y** measurement: a count went stale where its own list shrank, a sentence naming five readers standing above a list of four after the quarantine took one out
+· Raised: S15
+· Disposition: closed, repaired there and in the two parser docstrings that named the departed module as a sibling
 
 ## M0 · Hardware reference
 

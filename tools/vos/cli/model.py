@@ -60,6 +60,20 @@ type Command = Callable[[env.Environment, argparse.Namespace], int]
 SCHEMA = "sail_riscv_config_schema.json"
 EMIT_TARGET = "generated_sail_riscv_model"
 
+# The emitter asks git where it is standing, and the answer must not reach the artifact.
+# `sail --doc` shells out to `git rev-parse HEAD` and, where that answers, writes a
+# `git` object of the commit and a dirty flag into the bundle it emits. Two things then
+# follow, and both are fatal to holding the artifact byte-for-byte: the bytes would move
+# on every commit, so a tracked bundle would be stale the moment it landed and the rule
+# over it would report on a fact about the checkout rather than about the model; and
+# whether the object appears at all would depend on whether `GIT_DIR` happened to be
+# exported into the stage, which a lane's configure does and a bare emission does not,
+# so one lane's bundle and another's would differ while describing one model. Pointing
+# `GIT_DIR` at a path that is not there makes the question fail rather than answer, the
+# emitter omits the object, and what is left is a function of the Sail sources alone.
+# The stage runs one binary and that binary reads git for this and nothing else.
+_NO_GIT = "/nonexistent/the-bundle-describes-the-model-not-the-checkout"
+
 # How the one binary every Sail loop starts with is installed, for the refusal that
 # names it.
 SAIL_HOW = "the Sail toolchain lives in the opam default switch: opam install sail"
@@ -193,7 +207,7 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
             "-o", str(into),
             "--doc-bundle", sailbundle.BUNDLE_NAME,
             "--all-modules", "riscv.sail_project",
-        ], cwd=e.model / "model")
+        ], cwd=e.model / "model", add_env={"GIT_DIR": _NO_GIT})
         if code:
             return code
         written = into / sailbundle.BUNDLE_NAME
