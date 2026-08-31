@@ -3,7 +3,7 @@
 """The seeded-defect generator: one engine, several oracles, three verdicts.
 
 [run.py selftest](selftest.py) proved mutation testing here, on the checker's own
-rules, with one hand-authored mutant per rule. That shape is right for a registry
+rules, with at least one hand-authored mutant per rule. That shape is right for a registry
 and wrong for everything else in this tree: a Sail function and a Gallina definition
 have hundreds of mutable sites each and nobody is going to author hundreds of cases.
 So [vos/mutate.py](../mutate.py) generates the population and this tool points it at
