@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 235 of them across 55 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 262 of them across 60 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -689,11 +689,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-130** upstream-defect: the guest idles out between commands and takes its containers with it, and the switch that disables it is global and permanent on the human's box
 · Raised: M1.5, in prose
-· Disposition: closed, the fix scoped into the repository as a detached, idempotent, self-expiring keepalive every model loop starts; S9 retires the class
+· Disposition: closed, the fix scoped into the repository as a detached, idempotent, self-expiring keepalive every model loop starts; the class stays open on WSL, S9 being a provisioner rather than a move
 
 **F-131** upstream-defect: an intercepting proxy re-signs the release-asset host, so the exported root CA must be installed into any guest trust store that fetches one
 · Raised: M1.5, in prose
-· Disposition: standing, a setting on the human's box that no benchmark reaches; S9 retires the class
+· Disposition: standing, a setting on the human's box that no benchmark reaches, and one S9's provisioner does not reach either, standing up a lane rather than a box's trust store
 
 **F-132** method: an instrument's landed half was gated on neither milestone the plan books it behind, what it needs from a backend being a transport rather than a design
 · Raised: M1.8a
@@ -801,6 +801,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M3.1, in prose
 · Disposition: closed, taken at R-09-034, which carves the Debug Module out of the permanent test-exit closure and leaves it live in development and RMA alone
 
+**F-188a** owed-act: where the entropy verdict is extended against the boot-target latch is unordered, one entry fixing the lifecycle extension first and another the verdict before any measured stage draws, with neither placing the latch the third measures *like every other input*
+· Raised: M3.2
+· Disposition: open, the two orders shown at the item to reach different digests, so the silence is observable rather than harmless
+
+**F-188b** owed-act: whether the chain measures each stage before running it or places the payload up front is unfixed, one entry fixing only the pairwise precedence and another taking the front-loaded shape for a single stage and saying nothing about the rest
+· Raised: M3.2
+· Disposition: open, both shapes stated and shown to reach the same digest, so what is unfixed is what ran between the extensions rather than what was measured
+
+**F-188c** owed-act: what a successful boot does to the boot-attempt count is unstated, the counting and the automatic revert being fixed and the entropy halt carved out as a fault class consuming no attempt, with no entry saying whether a success clears the count
+· Raised: M3.2
+· Disposition: open, the item modelling that entry's two failure classes and no success
+
+**F-188d** owed-act: what the reference integrity manifest covers where it differs from the quote is unstated, the entry making it the dual *covering the same vector* and stopping there
+· Raised: M3.2
+· Disposition: open, the appraisal stated over whatever vector the quote covers and no manifest-side enumeration invented
+
+**F-188e** owed-act: whether the attestation vector's *this set* names four terms or five is unfixed, the criterion saying *the quote's vector*, which is not the quote, and one neighbouring entry carrying the referent over without fixing it while another constrains the lifecycle state rather than the chain
+· Raised: M3.2
+· Disposition: open, the item taking the wide reading as a stated judgment carrying this gap rather than as an enumeration the register closes, and pricing the narrow one by computing that a relying party appraises clean on a forked chain
+
+**F-189** measurement: neither differential instrument reaches the root-of-trust firmware artifact, the whole mutation score being the assumption gate refusing to compile, because the QuickChick harness requires two unrelated proof artifacts and nothing stages this one
+· Raised: M3.2, in prose
+· Disposition: open, falsifying that item's own pricing of its validation half as generated, and closed by a tools act rather than a proof one, the harness already staging the proofs tree
+
 **F-186a** owed-act: which codepoint names which permission set is unfixed, the lattice being enumerated at freeze time and no artifact here carrying the enumeration
 · Raised: M3.3
 · Disposition: open, so the decode is a field and every one of the item's exclusion obligations is stated of an arbitrary one
@@ -825,6 +849,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-186f** owed-act: a Tier-0 proof obligation has no owner, the no-ambient-state clause being put on the firmware as ordinary proof over its statically planned state and no artifact here being that proof
 · Raised: M3.3
 · Disposition: open, the item shipping the obligation stated and refuted, which is a statement and not a discharge
+
+**F-187** method: an upstream's licence election is stated in this repository's own prose rather than read at the upstream's own file, which is the inference from lineage this page forbids and has already had to correct once
+· Raised: M3.4, in prose
+· Disposition: open, the arm recorded at the decision and the reading taken at the pin in M3.4a, which is where the rule that a licence is read at the incorporating milestone already puts it
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
@@ -880,6 +908,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M4.2a
 · Disposition: closed, held by a struck row in the rule registry recording that the id was never allocated and is not reused, written struck so K-00 holds the live rows alone
 
+**F-192a** owed-act: the badge width of the message transfer shape is unfixed, one entry fixing the transfer and another the bit budget, with nothing joining them
+· Raised: M4.2b
+· Disposition: open, the transfer stated over an arbitrary width
+
+**F-192b** owed-act: what a typed refusal's type enumerates is unfixed, the refusal being required and its cause set named nowhere
+· Raised: M4.2b
+· Disposition: open
+
+**F-192c** owed-act: which of the closed five invocations may refuse is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192d** owed-act: the ABI numbers themselves are fixed nowhere, the surface check being stated over membership while the artifact also exhibits a second numbering over the same five that passes the same check
+· Raised: M4.2b
+· Disposition: open, the choice exhibited rather than argued
+
+**F-192e** owed-act: what a re-offer costs and how many are admitted is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192f** owed-act: whether a notification word is per partition, per endpoint or per ring is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192g** owed-act: whether an endpoint's readiness is one bit or one per offering peer is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192i** owed-act: what carries the compositor's request for a focus rebinding, a rung selection or a suspension, and so whether the three trap, is unfixed, the entry closing the invocation surface naming the three as kernel-enacted at a frame boundary without saying what carries the request
+· Raised: M4.2b
+· Disposition: open, the trap surface left a parameter with the criterion the register does fix stated over it, two values admitted and three refused, and the one result that would otherwise turn on the gap proved of every admissible value
+
+**F-192j** owed-act: which of create, derive and revoke each surviving object class has is unfixed, one entry stating the lifecycle only negatively of the two tables while two others delete the derivation invocation and carry no create in the closed five
+· Raised: M4.2b
+· Disposition: open, the artifact stating the distinction the entry does draw and exhibiting a second map that discharges both obligations while disagreeing at cells no obligation reads
+
+**F-193** measurement: the Wasm oracle cannot report a defect in the artifact's own deciders that the proof gate would not report first, twelve one-token decider mutations being twelve stillborn, so what it uniquely tests is the compiled pipeline rather than the deciders
+· Raised: M4.3, in prose
+· Disposition: open as a standing reading of what staging a statement artifact into that loop buys, the loop's value being kernel conversion against the erasure and Wasm backend on a real artifact rather than a regression net
+
 **F-165** owed-act: the emulator runs one hart and every shipped configuration composes one, so the multikernel's defining property is first exercisable on the RTL track
 · Raised: M4.4, in prose
 · Disposition: closed, taken at M4.4: single-instance bring-up, the multikernel's defining property being first exercisable on the RTL track where a second implementation stands
@@ -917,6 +985,42 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-166** owed-act: whether a statically composed image re-admits on device or measured boot covers it is unruled, and the split of the admission-checker milestone rests on it
 · Raised: M6.2, in prose
 · Disposition: closed, taken at M6.2: measured boot covers a statically composed image, on R-13-001c's own statement of the composer and of the device's act
+
+**F-190a** owed-act: two enumerations the admission path depends on, the judgment forms and the checker phases, are closed in a pinned language document and nowhere in the register, so an eighth form or a seventh phase is not a register edit and the review gate never reads it
+· Raised: M6.2a
+· Disposition: open, the counts taken from the pinned document and cited there rather than restated as the register's
+
+**F-190b** owed-act: the two lowest tiers state their evidence in a vocabulary the type-level obligation rows do not carry, functional refinement, non-interference, handler termination and information-flow theorems being placed outside every type system by the entry that names them
+· Raised: M6.2a
+· Disposition: open, the type-checker given the memory and ABI half one entry hands it and no more, and the per-tier required sets past Tier 2's left as fields
+
+**F-190c** owed-act: no entry pairs a judgment form with the obligation facet it discharges, one block fixing the forms and another fixing the obligations with nothing joining them
+· Raised: M6.2a
+· Disposition: open, so the checker requires a form to be recognised and requires nothing about which one it is, and that freeness is machine-checked rather than assumed
+
+**F-190d** owed-act: a tier-local admission check sits outside every enumeration, the Tier-2 certificate carrying a manifest-consistency check its own entry calls not one of the eleven
+· Raised: M6.2a
+· Disposition: open, a required check no list carries
+
+**F-190e** owed-act: no entry says whether a roster may name one identifier twice, content addressing and deduplication both suggesting an identifier is a key and neither making a roster with two packages at one identifier malformed
+· Raised: M6.2a
+· Disposition: open
+
+**F-190f** owed-act: which side of the admissible-versus-current line the composition-time act stands on is undecided, one entry making proofs generation-scoped and another separating the two without saying which versions composition compares against, with the pinned document adding a decoder version to a verdict's key that no entry names
+· Raised: M6.2a
+· Disposition: open, all four declared versions carried and compared componentwise so the choice is a reading rather than a mechanism
+
+**F-190g** owed-act: two facet partitions of one obligation-row set are in force, the register's move table and the pinned document splitting it to different widths, and neither says which partition a derivation's discharge records name
+· Raised: M6.2a
+· Disposition: open, the three extra splits measured to take their rows' moves so no verdict turns on the choice, which is what makes the ambiguity survivable rather than absent
+
+**F-190h** owed-act: no entry assigns a component to a tier, the three tiers being defined and every roster choosing its own
+· Raised: M6.2a
+· Disposition: open, so a composed generation's tier assignment is a composition magnitude rather than a reading
+
+**F-191** measurement: a field no admission rule reads is a field a weakening moves in silence, which is the hazard the no-privileged-producer clause creates and which forty-six of one item's fifty-five seeded survivors were
+· Raised: M6.2a, in prose
+· Disposition: open, closed at the item by pinning every witness's pedigree and identity figures in a ledger rather than by narrowing the population, and standing as the shape any artifact carrying unread fields will meet
 
 **F-167** owed-act: the typed interface profile the ring contract is stated in is carried by no path in the tree and authored by no milestone here
 · Raised: M6.4, in prose
@@ -963,7 +1067,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-177** owed-act: the platform devices have no definition in this repository to be authored against, there being no interconnect top, no bus and no address map, and the shipped composition declaring no serial port at all
 · Raised: R1c, in prose
-· Disposition: closed, taken at R1c: the address map is a register act under R-15-002b and the peripherals are route-(c) references, the top following the map
+· Disposition: closed, taken at R1c: the address map is a composition act under R-15-002b and the peripherals are route-(c) references, the top following the map
+
+**F-177a** owed-act: the root of trust's RTL route is unassigned, one entry's acceptance naming three imported cores and another's authored list naming three blocks with the root of trust on neither, while a third puts it in the trusted base and calls it verified
+· Raised: R1c, in prose
+· Disposition: open, a register act naming its route; the plan had been reading it onto the imported side by default, and R1c re-homes it to the authored one on the proof argument rather than on the uniformity one
 
 ## Build-loop instruments
 
