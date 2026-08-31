@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 262 of them across 60 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -951,6 +951,80 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-165** owed-act: the emulator runs one hart and every shipped configuration composes one, so the multikernel's defining property is first exercisable on the RTL track
 · Raised: M4.4, in prose
 · Disposition: closed, taken at M4.4: single-instance bring-up, the multikernel's defining property being first exercisable on the RTL track where a second implementation stands
+
+## M5 · Storage and objects
+
+**F-194a** owed-act: the entry naming the storage layers states no property of a commit, being a layer roster and a prover-provenance criterion, so the multi-block atomicity obligation is owed at the entry whose acceptance clause says no partially updated region is ever committed
+· Raised: M5.1
+· Disposition: open, re-anchored at that entry, which commits a checkpoint as a single transaction and still names no mechanism
+
+**F-194b** owed-act: no entry chooses a recovery discipline, one naming the log's lineage and stating no recovery rule and another stating the enumerate-and-select rule of the root copies rather than of the log
+· Raised: M5.1
+· Disposition: open, both arms exhibited over an arbitrary discipline, each proved to keep every obligation the other keeps, and the choice machine-checked to be observable from one crashed journal
+
+**F-194c** owed-act: no entry of the storage section states a block-reuse rule, the nearest being refcounted extent sharing which states no obligation over the allocator, with the allocator left trusted for availability and one free-space pool given to the subvolumes without saying who may take from it
+· Raised: M5.1
+· Disposition: open, the capability-revocation entry that does state such a rule reaching no disk block
+
+**F-194d** owed-act: no entry fixes an atomic write unit for the persistent medium, one being fixed for the main-memory array and a per-page code for NAND, while a torn write is said to cost a copy without saying at what unit a write is atomic
+· Raised: M5.1
+· Disposition: open
+
+**F-194e** owed-act: no entry says an L0 record is self-verifying, that being said of a root candidate alone, and a log that cannot tell a torn record from a whole one has no recovery point
+· Raised: M5.1
+· Disposition: open
+
+**F-194f** owed-act: no entry names what ends a transaction, a checkpoint being committed as a single transaction with no mechanism named for the commit itself
+· Raised: M5.1
+· Disposition: open
+
+**F-194g** owed-act: the word fanout occurs in no entry, and no entry fixes a node's minimum occupancy or whether an empty index is a legal tree
+· Raised: M5.1
+· Disposition: open
+
+**F-194h** owed-act: every composition magnitude of the journal and the index is a field no entry fixes
+· Raised: M5.1
+· Disposition: open, the demo instantiating each with a witness value that carries no claim
+
+**F-195a** owed-act: the entry representing typed keys does not close its list of kinds, naming four things the layer represents while a neighbouring entry adds a fifth candidate without saying whether it is a kind or a component of the four
+· Raised: M5.2
+· Disposition: open, the count made a field of the composition and a kind a finite index below it, on the precedent where an object inventory had to be closed in the register before authoring could proceed
+
+**F-195b** owed-act: whether a stored extent's existence is observable to a reader holding no key for its domain is unstated
+· Raised: M5.2
+· Disposition: open
+
+**F-195c** owed-act: whether an extent's plaintext length is observable is unstated and no entry bounds the leak, which is the residual a design of this kind ordinarily books explicitly
+· Raised: M5.2
+· Disposition: open, and the largest consequence of this item's nine
+
+**F-195d** owed-act: whether the confidentiality-domain label of a stored extent is observable is unstated
+· Raised: M5.2
+· Disposition: open
+
+**F-195e** owed-act: whether the rescan-required marker occupies a slot of the declared queue bound or stands beside it is unstated
+· Raised: M5.2
+· Disposition: open
+
+**F-195f** owed-act: whether a recorded right may be persisted into a key is unstated, one entry forbidding a capability there and another admitting exactly one durable record that names rights and confers none
+· Raised: M5.2
+· Disposition: open
+
+**F-195g** owed-act: the entry writing ordered deltas names no order over them
+· Raised: M5.2
+· Disposition: open
+
+**F-195h** owed-act: what a freshness-protected region's version is, and what unit such a region is, are unstated, one entry computing a root over the version of every declared region without fixing the representation and another not fixing a region's extent in the keyspace
+· Raised: M5.2
+· Disposition: open, the epoch obligations stated over an arbitrary version pair and an arbitrary declaration
+
+**F-195i** owed-act: every composition magnitude of the two upper layers is a field no entry fixes, the kind roster and the snapshot's declared cost among them
+· Raised: M5.2
+· Disposition: open
+
+**F-196** method: a name a file declares beside one it imports shadows silently and no gate reads it, so a file claiming to restate no imported theorem can restate nine of them while every count stays correct
+· Raised: M5.2, in prose
+· Disposition: closed at the item by renaming all nine and instantiating the four genuinely inherited theorems by conversion, so the sharing a Require is taken for is checked rather than asserted; standing as the hazard any second Require will carry
 
 ## M6 · Userland spine
 
