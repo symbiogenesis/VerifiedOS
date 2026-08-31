@@ -138,7 +138,7 @@ RESIDUE: dict[str, str] = {
                 "owns because a vendored tree has none",
     "b748a82": "the older `sail-riscv` the CHERI oracle's own tree embeds, a fact "
                "about that upstream rather than a pin taken here",
-    "fa8952e6": "the tag object `v0.1.0` names, recorded beside the commit it points "
+    "435618bf": "the tag object `v0.1.1` names, recorded beside the commit it points "
                 "at because transcribing the tag is the trap that row warns of",
     "11007678": "the numeral of SECOMP's Zenodo DOI, which is not an object id",
 }
