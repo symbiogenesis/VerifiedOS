@@ -54,8 +54,8 @@ either lane.
 | `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
 | `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
 | `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. |
-| `evidence` | wsl | The exit-evidence sweep as one run: the build and its bundled suite, the property harness, the profile sweep, the differential corpus, the devicetree, the reference, and the proof gate, with the block of figures a completion note quotes. |
-| `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record on either lane; `lint`, `vectors`, `crosscheck` and `elaborate` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. |
+| `evidence` | wsl | The exit-evidence sweep as one run, six members in the order it runs them: the build and its bundled suite, the reference, the profile sweep, the differential corpus, the devicetree and the proof gate, with the block of figures a completion note quotes. The `$[test]` property harness is one of those figures rather than a seventh member, read back out of what `reference` printed. |
+| `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record on either lane; `lint`, `vectors`, `crosscheck`, `elaborate` and `wait` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove, and `wait` reports the verdict of a backgrounded one; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. |
 | `oracle` | wsl | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on either lane; `vectors` needs Sail. |
 | `seed` | wsl | The seeded-defect generator: mutation operators walked over a Sail or Gallina source, pointed at an oracle that must notice. `list` answers on either lane; `sail`, `coq` and `properties` each need their oracle's toolchain. |
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
@@ -249,10 +249,13 @@ Three of those four decide about the tree as it stands, and they contend for not
 all three only read the checkout, and the two small ones fit inside the slack of the
 large one. So [a bare `run.py`](run.py) runs them as one command and one exit code, each
 member's own report printed whole under its own heading in the order the tool declares
-rather than the order the three finished in. Measured warm on a twelve-core host over
-three alternated runs of each arm, the selftest alone takes a median 22.8 s, the wave
-23.9 s, and the same three in sequence 26.0 s: the other two cost about a second inside
-the wave where they cost three beside it. The saving is the smaller half of the point
+rather than the order the three finished in. What the wave buys in wall time is that the
+two small members fit inside the selftest's slack rather than adding their own; **no
+figure is quoted here**, because the three medians this paragraph used to state were
+taken at a checker of seventy-one rules and seventy-three mutants and this one seeds
+more than a third again as many over a larger corpus, and the only timings in this
+repository with a revision beside them are the ones [the plan](../docs/implementation-checklist.md)'s
+I8 recorded at its own gate. The saving is the smaller half of the point
 and the single verdict is the larger. `--fix` is the one exception to the wave
 and a correctness one, the repair running alone and to completion before the rest,
 because the selftest opens by copying the working tree and a document rewritten
