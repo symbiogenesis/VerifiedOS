@@ -114,7 +114,7 @@ Reciprocity under these licenses runs to derivative and combined works rather th
 | The CHERI-QEMU fork, the fast emulator | `GPL-2.0`, with the particulars below | A development instrument, maintained in a separate repository. No conveyed image links against it or embeds it. |
 | Verilator | `LGPL-3.0 OR Artistic-2.0`, at the recipient's option | Elaborates and simulates RTL, pinned at **5.032**. |
 | QuickChick | `MIT` | Generates the inputs the Gallina front is exercised on, at **2.2.0** in a switch of its own. |
-| Rupicola, Bedrock2, and the Bedrock2 compiler | `MIT` | Lower a Gallina term to imperative code, at **0.0.11** and **0.0.9** in a switch of its own. |
+| Rupicola, Bedrock2, and the Bedrock2 compiler | `MIT` | Lower a Gallina term to imperative code: Rupicola at **0.0.11**, Bedrock2 and its compiler both at **0.0.9**, in a switch of its own. |
 | coqutil | `MIT` | The library Bedrock2 is built against, at **0.0.7** in that switch. |
 | riscv-coq | `BSD-3-Clause` | The instruction-set specification the Bedrock2 compiler emits into, at **0.0.6** in that switch. |
 | CompCert, in the oracle's switch | INRIA Non-Commercial License Agreement, with the decomposition [below](#compcert-and-secomp) | A dependency of the CertiRocq release the host-side Wasm oracle runs, at **3.17** in that one switch. Nothing in this tree invokes the compiler. |
