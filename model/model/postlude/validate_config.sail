@@ -321,9 +321,123 @@ function within_configured_pma_memory(component : string, mem_type_opt : option(
   valid
 }
 
-private function dtb_within_configured_pma_memory(addr : bits(64), size : bits(64)) -> bool =
+// Two byte ranges, and whether they share a byte. Written over unbounded
+// integers for the reason `within_clint` is (sys/platform.sail): a map that
+// reaches the end of the representable range would wrap the comparison rather
+// than answer it.
+private function ranges_overlap(base_a : bits(64), size_a : bits(64), base_b : bits(64), size_b : bits(64)) -> bool = {
+  let a_lo = unsigned(base_a);
+  let a_hi = a_lo + unsigned(size_a);
+  let b_lo = unsigned(base_b);
+  let b_hi = b_lo + unsigned(size_b);
+  a_lo < b_hi & b_lo < a_hi
+}
+
+// Every aperture this composition declares, as the (name, base, size) triples
+// the disjointness check below walks.
+//
+// **This is the one list of the address map and it is built rather than
+// written**, which is what keeps it from becoming a second declaration of the
+// map: each row is guarded by that aperture's own `supported` key and takes that
+// aperture's own base, so a window added to the composition joins the check by
+// joining this list and a window whose composition turns it off leaves it. The
+// revocation window is the one whose size is not a key: the bitmap's width is
+// fixed by the plane it covers (core/revocation.sail), exactly as it is where
+// `check_mem_layout` holds the same window in IO memory.
+private function declared_apertures() -> list((string, bits(64), bits(64))) = {
+  var aps : list((string, bits(64), bits(64))) = [||];
+  if plat_have_blkdev then aps = ("block device (platform.blkdev)", plat_blkdev_base, plat_blkdev_size) :: aps;
+  if plat_have_uart then aps = ("serial port (platform.uart)", plat_uart_base, plat_uart_size) :: aps;
+  if plat_have_boot_rom then aps = ("boot ROM (platform.boot_rom)", plat_boot_rom_base, plat_boot_rom_size) :: aps;
+  if plat_have_watchdog then aps = ("watchdog window (platform.watchdog)", plat_watchdog_base, plat_watchdog_size) :: aps;
+  if plat_have_monotonic then aps = ("monotonic counter window (platform.monotonic_counters)", plat_monotonic_base, plat_monotonic_size) :: aps;
+  if plat_have_trng then aps = ("entropy root window (platform.trng)", plat_trng_base, plat_trng_size) :: aps;
+  if plat_have_otp then aps = ("OTP window (platform.otp)", plat_otp_base, plat_otp_size) :: aps;
+  if plat_have_memory_sequencer then aps = ("memory sequencer window (platform.memory_sequencer)", plat_memory_sequencer_base, plat_memory_sequencer_size) :: aps;
+  if plat_have_revocation then aps = ("revocation bitmap window (platform.revocation)", plat_revocation_base, to_bits(physaddrbits_len, revocation_bitmap_bytes)) :: aps;
+  if plat_have_imsic then aps = ("interrupt file (platform.imsic)", plat_imsic_base, plat_imsic_size) :: aps;
+  if plat_have_clint then aps = ("CLINT (platform.clint)", plat_clint_base, plat_clint_size) :: aps;
+  aps
+}
+
+private function check_aperture_against_rest(name : string, base : bits(64), size : bits(64),
+                                             rest : list((string, bits(64), bits(64)))) -> bool =
+  match rest {
+    [||] => true,
+    (other_name, other_base, other_size) :: tail => {
+      var ok : bool = true;
+      if ranges_overlap(base, size, other_base, other_size) then {
+        ok = false;
+        print_endline("The " ^ name ^ " aperture at " ^ bits_str(base) ^ " overlaps the " ^ other_name ^
+                      " aperture at " ^ bits_str(other_base) ^
+                      "; the physical address map is dense and each aperture is placed beside the others rather than over one.");
+      };
+      // Both halves are evaluated rather than short-circuited, so a composition
+      // that has placed two apertures wrong is told about both.
+      let tail_ok = check_aperture_against_rest(name, base, size, tail);
+      ok & tail_ok
+    },
+  }
+
+private function check_apertures_disjoint(aps : list((string, bits(64), bits(64)))) -> bool =
+  match aps {
+    [||] => true,
+    (name, base, size) :: rest => {
+      let head_ok = check_aperture_against_rest(name, base, size, rest);
+      let rest_ok = check_apertures_disjoint(rest);
+      head_ok & rest_ok
+    },
+  }
+
+// The address map as a whole (R-15-002b), which is the reading `check_mem_layout`
+// structurally cannot take: that function holds each aperture inside a region of
+// the right kind, one aperture at a time, and two apertures declared at the same
+// base are both inside the same IO memory region and both pass it. Nothing else
+// in this file reads two apertures against each other, so before this a
+// composition could put the interrupt file on top of the CLINT and validate.
+//
+// The attested devicetree is the other reader of the same fact: R-15-002b makes
+// the placement a stated constraint on that tree, and a tree whose nodes name one
+// address twice states a map no die has.
+private function check_aperture_map() -> bool = {
+  var valid : bool = check_apertures_disjoint(declared_apertures());
+
+  // The boot ROM and the attested devicetree share a region and are held apart
+  // here, which is the defect this check was added for: `memory.dtb_address` was
+  // the ROM region's own base and the boot ROM had no extent at all, so a boot
+  // ROM image and the tree both began at the same byte and nothing refused it.
+  // The blob's own extent is not known until it is written, which is why the
+  // other half of this pairing is in `dtb_within_configured_pma_memory` below;
+  // what is checked here is the one part a composition alone decides.
+  if plat_have_boot_rom then {
+    let dtb_addr = config memory.dtb_address : bits(64);
+    if ranges_overlap(dtb_addr, zero_extend(64, 0b1), plat_boot_rom_base, plat_boot_rom_size) then {
+      valid = false;
+      print_endline("`memory.dtb_address` is " ^ bits_str(dtb_addr) ^ ", inside the boot ROM declared at " ^
+                    bits_str(plat_boot_rom_base) ^ " for " ^ dec_str(unsigned(plat_boot_rom_size)) ^
+                    " bytes; the attested devicetree is written over whatever is at that address, and the boot ROM is not a place to write it.");
+    };
+  };
+
+  valid
+}
+
+private function dtb_within_configured_pma_memory(addr : bits(64), size : bits(64)) -> bool = {
   // Allow DTBs to be in main memory or IO memory (e.g. ROM).
-  within_configured_pma_memory("DTB", None(), addr, size)
+  let in_region = within_configured_pma_memory("DTB", None(), addr, size);
+  // And clear of the boot ROM, which shares that region with it. This is the
+  // half of the pairing above that needs the blob's real extent, and it is here
+  // rather than in the validator for the reason M0.8a recorded about this same
+  // function: `--validate-config` exits before a tree is ever written, so a
+  // composition-time check sees the tree's address and never its size.
+  let clear_of_boot_rom = not(plat_have_boot_rom) |
+                          not(ranges_overlap(addr, size, plat_boot_rom_base, plat_boot_rom_size));
+  if not(clear_of_boot_rom) then
+    print_endline("The DTB at " ^ bits_str(addr) ^ " is " ^ dec_str(unsigned(size)) ^
+                  " bytes, which reaches the boot ROM declared at " ^ bits_str(plat_boot_rom_base) ^
+                  " for " ^ dec_str(unsigned(plat_boot_rom_size)) ^ " bytes; the two share the ROM region and the tree has grown into it.");
+  in_region & clear_of_boot_rom
+}
 
 // Check that all memory regions are sorted and don't overlap, and that PMAs are compatible with enabled extensions.
 private function check_mem_layout() -> bool =
@@ -338,11 +452,13 @@ private function check_mem_layout() -> bool =
       zicclsm  = config extensions.Zicclsm.supported,
     };
     let pmas_ok  = check_pma_regions(pma_regions, zeros(), zeros(), check_opts);
-    let clint_supported : bool = config platform.clint.supported;
-    let clint_ok = not(clint_supported) |
+    // The CLINT's clause reads the same three keys the eleven below it read, and by the
+    // same names: `core/platform_config.sail` already binds each of them once, and a
+    // second reading of `config platform.clint.base` here would be the one fact in two
+    // places every other window in this function is written to avoid.
+    let clint_ok = not(plat_have_clint) |
                    within_configured_pma_memory("CLINT (platform.clint)", Some(IOMemory),
-                                                to_bits_checked(config platform.clint.base : int),
-                                                to_bits_checked(config platform.clint.size : int));
+                                                plat_clint_base, plat_clint_size);
     // The interrupt file and the revocation bitmap's window are register
     // slaves, so both belong in IO memory rather than in main memory: an MSI is
     // a store to a device (R-15-064), and the bitmap is not addressable as data
@@ -377,8 +493,24 @@ private function check_mem_layout() -> bool =
     let watchdog_window_ok = not(plat_have_watchdog) |
                    within_configured_pma_memory("watchdog window (platform.watchdog)", Some(IOMemory),
                                                 plat_watchdog_base, plat_watchdog_size);
+    // The three devices beside the core (R1c-i). No slave of the model's sits
+    // behind any of them, but where each is placed is exactly what R-15-002b
+    // makes a stated constraint, and IO memory is where a device endpoint is:
+    // the boot ROM's region is the one the attested tree is itself written into
+    // and is IO memory for that reason, and the serial port and the block device
+    // are in the MMIO region beside the eight windows above.
+    let boot_rom_ok = not(plat_have_boot_rom) |
+                   within_configured_pma_memory("boot ROM (platform.boot_rom)", Some(IOMemory),
+                                                plat_boot_rom_base, plat_boot_rom_size);
+    let uart_ok = not(plat_have_uart) |
+                   within_configured_pma_memory("serial port (platform.uart)", Some(IOMemory),
+                                                plat_uart_base, plat_uart_size);
+    let blkdev_ok = not(plat_have_blkdev) |
+                   within_configured_pma_memory("block device (platform.blkdev)", Some(IOMemory),
+                                                plat_blkdev_base, plat_blkdev_size);
     pmas_ok & clint_ok & imsic_ok & revocation_window_ok & sequencer_window_ok
     & otp_window_ok & trng_window_ok & monotonic_window_ok & watchdog_window_ok
+    & boot_rom_ok & uart_ok & blkdev_ok
   }
 
 private function check_misc_extension_dependencies() -> bool = {
@@ -1205,6 +1337,12 @@ function config_is_valid() -> bool = {
   & check_mstatus_fields()
   & check_physaddr_bits()
   & check_mem_layout()
+  // After `check_mem_layout` rather than before it, and the order is the
+  // reachability: that function refuses an aperture that is in no region or in a
+  // region of the wrong kind, so what reaches here is a map whose apertures are
+  // each individually placed and whose only remaining fault is where they sit
+  // with respect to each other.
+  & check_aperture_map()
   & check_vlen_elen()
   & check_vext_config()
   & check_misc_extension_dependencies()

@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 289 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1146,6 +1146,43 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-177a** owed-act: the root of trust's RTL route is unassigned, one entry's acceptance naming three imported cores and another's authored list naming three blocks with the root of trust on neither, while a third puts it in the trusted base and calls it verified
 · Raised: R1c, in prose
 · Disposition: open, a register act naming its route; the plan had been reading it onto the imported side by default, and R1c re-homes it to the authored one on the proof argument rather than on the uniformity one
+
+**F-197** measurement: the fourth of the four windows this item names already exists four times over, the root of trust's peripherals having been declared in every shipped composition one milestone earlier and no artifact naming a fifth
+· Raised: R1c-i
+· Disposition: closed, declined with the measurement stated; three windows are declared and the fourth's premise is gone
+
+**F-198** owed-act: no register entry requires a serial port, a block device, or an SoC boot ROM to exist, so what obliges the three devices is the plan's own list while the entry this item rides obliges only that their placement be stated
+· Raised: R1c-i
+· Disposition: open, a register act if the three are to be obligations rather than plan items; the placement discipline is enough to write the map and is not enough to say what a door does
+
+**F-199** measurement: two apertures every composition declares had no node in the attested devicetree at all, inside the emitter whose own comment says each node below it carries its window under the placement entry
+· Raised: R1c-i
+· Disposition: closed, both nodes emitted and the pairing now held by rule in both directions
+
+**F-200** measurement: the model called the revocation interval map and its register window attested-devicetree constants and neither had ever been in that tree
+· Raised: R1c-i
+· Disposition: closed, the node carries the window and both interval figures, so the sentence and the artifact agree
+
+**F-201** measurement: nothing held two declared apertures apart, the validator reading each window against the regions one at a time so that two windows at one base both passed
+· Raised: R1c-i
+· Disposition: closed, a whole-map check over every aperture the composition declares, built from the composition rather than written out
+
+**F-202** measurement: the boot ROM had no extent anywhere in the tree while the attested devicetree's address was the ROM region's own base, so an image and the tree began at the same byte and nothing refused it
+· Raised: R1c-i
+· Disposition: closed, the extent declared and the two held apart at composition and again when the blob is written
+
+**F-203** method: a composition-time bound and a write-time bound over one region are different facts, and only the second knows a size
+· Raised: R1c-i
+· Disposition: standing, the pairing written in both places rather than in whichever one was reached first
+· Restates: F-057
+
+**F-204** owed-act: three subcommands the command table declares answerable on either lane are refused on the host, the module loading the build environment before it dispatches
+· Raised: R1c-i
+· Disposition: open, a tools act at the module's entry point; the three shipped key sets and the three validations this item reports were taken from inside the guest instead
+
+**F-205** measurement: the plan's own cell for this work stated a composition four apertures out of date, a milestone having added the root of trust's windows after the cell was written
+· Raised: R1c-i
+· Disposition: closed, the parent bullet repaired against the composition it names
 
 ## Build-loop instruments
 
