@@ -1799,12 +1799,50 @@ What transfers is therefore **evidence, not code**: the shipped, consumer-volume
 
 ---
 
+## Larrabee: the software renderer on general cores, the one industrial run of the V-class thesis, and the sampler its own team kept
+
+Larrabee (Intel, disclosed at SIGGRAPH 2008, cancelled as a consumer graphics part in 2010, and shipped as the Knights Corner and Knights Landing accelerators from 2012) is the only industrial machine built on the thesis the entry below states: rasterization, interpolation, blending, and the pipeline's own scheduling written as **software on programmable cores with a wide vector unit**, with the fixed-function stages deleted rather than accelerated.
+Its cores are in-order and dual-issue with a 16-wide 512-bit vector unit each, four hardware threads apiece, and coherent L2 slices on a bidirectional ring.
+R-15-115's prohibition list reads almost as a description of what Larrabee deleted: no rasterizer, no ROPs, no command processor, and no hardware warp scheduler, the vector unit sitting as a coprocessor beside an ordinary scalar core rather than as a SIMT machine with a scheduler of its own.
+The entry below states that arrangement as a design; this one is the machine that ran it, and it is two-sided in the Cell entry's way, with one structure adopted, four mechanisms refused, and a fifth that prices a prohibition rather than confirming it.
+
+**What transfers is the renderer's structure, and R-12-083 is where it lands.**
+The register books the RVV software rasterizer as genuinely net-new engineering, the 2D and text substrate having safe-Rust start-froms where 3D has none, and Larrabee is the nearest thing to one that exists: a **sort-middle binned pipeline**, a geometry front end sorting primitives into per-tile bins, tiles sized so a tile's render target stays in core-local memory for the whole of its shading, and coverage evaluated hierarchically as vector masks rather than as per-pixel tests.
+The structure is portable and none of the code is, so it enters as engineering and never as assurance, exactly as the openwifi and smoltcp start-froms do (§12).
+The tile-sizing decision is the part worth reading against §15 rather than copying: what Larrabee reached by sizing a tile to a coherent L2 is here a bank no other agent shares (R-15-165), and binning is what makes the render working set a **composition-time quantity** rather than a hit rate hoped for at run time, which is the conversion the memory plan performs everywhere else.
+
+**Four mechanisms are the foil, and the first two arrive together for a reason.**
+- **Four-way SMT per core.** R-15-012 refuses the class by construction, failing admission test (3), which is where the Cell PPE lands too. Here it is load-bearing rather than incidental: the threads exist to cover the memory latency the cache hierarchy could not hide, so a machine keeping that hierarchy needs them, and refusing the hierarchy is what makes refusing them affordable. The pair is one decision seen twice.
+- **Coherent L2 slices on a bidirectional ring.** Cross-core cache coherence is the shared mutable state the share-nothing multikernel forbids (§7), and the ring is the neighbour-traffic contention channel the Cell entry above already names, answered the same way by a TDM schedule whose slot does not move because another core is busy (§11, §15).
+- **A dynamic software scheduler.** Larrabee distributed the pipeline's stages across cores by work stealing, which is what let the renderer scale and what makes its timing a function of every other core's progress. That is the transputer distinction of the entry above restated at the granularity of a frame: bounded is not predetermined, and the table determines the sequence rather than bounding the gap (§11).
+- **The texture sampler, retained.** It is the one fixed-function block the design kept, and the paragraph below is why.
+
+**The sampler is the one place a source prices a prohibition of this profile instead of corroborating it.**
+Larrabee's designers deleted every other fixed-function stage and kept texture filtering, on measurement: filtering written for their own vector unit came out roughly an order of magnitude short of the dedicated one, a gap wide enough that keeping a block was cheaper than widening the machine.
+R-15-115 forbids texture units regardless, and [architectural-alternatives.md](architectural-alternatives.md) books the honest cost as the lower peak throughput of a no-JIT software renderer, which [performance-estimates.md](performance-estimates.md) already carries as a range against a real GPU.
+What this entry adds is **attribution inside that range rather than a new cost**: its largest single term is the one stage the thesis's own advocates could not write in software at parity.
+Two things bound that, and neither retracts it.
+The work §12 gives the V-class is compositing, 2D and text, codecs, and the ISP, none of them filtering-bound the way a 2008 game rasterizer was, so the clause's largest customer is smaller here than it was there; and a texture unit is an autonomous memory-touching engine with address generation of its own, so admitting one is the admission-test-5 question the codec block and the bitstream engine already answer negatively ([architectural-alternatives.md](architectural-alternatives.md)) and not a free trade of area for throughput.
+
+**Why it stopped, and why that cause is not on this machine's bill.**
+The consumer part was cancelled on the compatibility contract rather than on the architecture: it had to be conformant and competitive at DirectX and OpenGL against parts whose fixed-function stages it was emulating in software, and the same cores then shipped for years as Knights Corner and Knights Landing once no graphics API stood in the way.
+This platform never signs that contract, exposing no GL, Vulkan, Metal, wgpu, software ICD, command-buffer personality, or runtime shader compiler at all, with direct dispatch of certified kernels over capability-scoped buffers as the interface instead (§12, §13), and paying in the other currency, a native backend per toolkit, at the line the alternatives entry books it on.
+The transferable lesson is therefore not that software rendering works, which Larrabee only half demonstrated, but that **the API burden and the rendering thesis are separable**, so the machine that declines the first is not the machine that was cancelled.
+
+**One ISA, reached for and not quite held.**
+x86 was chosen for R-15-111's own reason, one instruction set and one toolchain across the machine, which makes this the positive form of the argument the Cell entry supplies negatively.
+It did not fully arrive: LRBni was a new vector extension present on no host part, so a Larrabee binary was not a host binary, only the scalar half of the toolchain carried across, and the extension reached general-purpose parts as AVX-512 years afterwards.
+Vector length is a **class parameter** here rather than a second instruction set, the C-, V-, and M-classes differing in VLEN and datapath under one parameterized Sail model and one kernel binary (R-15-111, R-15-112) because the vector ISA is length-agnostic by construction, so what Larrabee reached for is what the profile actually holds, and that clause now has a shipped machine on each side of it.
+
+---
+
 ## Ara, Gemmini, and tensor-core lineage: V-class graphics and M-class inference under one ISA
 
 The graphics and AI topology takes the useful datapaths of a GPU and an NPU while declining their separate computers.
 The **V-class** is an Ara-lineage, wide-RVV core class dedicated by static composition to software rasterization, compositing, codecs, the ISP, and other long-vector work (§12, §15).
 It is neither a fixed-function GPU nor uniform RVV spread over every core: scalar and control classes are not over-provisioned, tasks do not migrate dynamically between classes, and the render and compositor compartments are the whole graphics driver.
 The only display device is firmware-free scanout DMA over a capability-bounded window.
+The entry above is the one industrial machine that ran this thesis, and it is read there for what its renderer demonstrates, for the four mechanisms it kept that the profile deletes, and for the one it kept on a measurement.
 
 **SEAM-V** (a decoupled RVV-backend design, rejected as such in [architectural-alternatives.md](architectural-alternatives.md)) sharpens one admissible performance lesson without transferring that backend.
 Its **static execute-packet packing and same-packet hazard suppression** are the vector form of wider in-order issue plus verified static scheduling: independent vector operations are packed ahead of time, issue remains core-driven and deterministic, and no backend-local instruction stream, prefetcher, or dynamic cross-packet scoreboard is introduced.
