@@ -448,11 +448,39 @@ def _apply_opam_env() -> None:
         os.environ[name] = value.replace("'\\''", "'")
 
 
-def load() -> Environment:
-    """Prepare this process, and describe the machine it is preparing it on."""
-    if sys.platform == "win32":
+def load(*, toolchain: bool = True) -> Environment:
+    """Prepare this process, and describe the machine it is preparing it on.
+
+    `toolchain=False` is the host lane's reading and answers on either machine: it
+    describes the checkout and skips every preparation that only means anything where
+    the toolchain is, the stack limit, the opam environment and the solver's path. It is
+    what a `host_ok` subcommand asks for, and without it the whole `host_ok` mechanism
+    was decoration: `run.py` declined to hop for one, and this refused it a paragraph
+    later anyway, so `run.py model asm` on the host answered *the model loops run inside
+    WSL* about a command that drives no toolchain at all.
+
+    The build paths it reports on that lane are the guest's, and that is deliberate
+    rather than an oversight: they are where a build *would* be, and a host-lane command
+    that needs no build has no use for them, while one that reported a Windows path
+    would be inventing a tree nothing ever writes.
+    """
+    if sys.platform == "win32" and toolchain:
         raise SystemExit("the model loops run inside WSL: "
                          "python tools/run.py model <command>")
+    if sys.platform == "win32":
+        tools = Path(__file__).resolve().parent.parent
+        root = _env_path("VOS_ROOT", tools.parent)
+        return Environment(
+            root=root,
+            model=_env_path("VOS_MODEL", root / "model"),
+            build_root=_env_path("VOS_BUILD_ROOT", Path("/root/build")),
+            log_root=_env_path("VOS_LOG_DIR", Path("/root/logs")),
+            lane=_lane(root),
+            cpus=_cpus(),
+            mem_available_mb=0,
+            jobs=1,
+            test_jobs=1,
+        )
 
     _raise_stack_limit()
     _apply_opam_env()

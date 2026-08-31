@@ -54,6 +54,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from vos import freezeschema
 from vos.jsonc import Json
 
 CONTRACT = "docs/freeze-measurement-contract.md"
@@ -986,51 +987,19 @@ def outlining_break_even(lengths: Iterable[int]) -> list[Outlining]:
 # the three joined inputs, and the fixture that stands in for them
 # =====================================================================================
 
-# Where the analyzer looks for what §4 joins, and which of §4's three inputs each path
-# carries. The paths are the instrument's own declaration rather than the contract's,
-# the contract fixing the record's fields and leaving the transport to whoever streams
-# it; they sit under a build tree no signing or storage path reads, because an image
-# built under the provisional profile is a measurement artifact and is neither deployed
-# nor stored (R-18-003c).
+# §4's schema, and its four declared paths, read from the module that owns them.
 #
-# **Three inputs arrive on four paths**, and the extra one is a circularity rather than
-# a convenience: recovering a site's dictionary index or escape from the encoded image
-# means decoding the bundle format, whose header width and slot count are exactly what
-# FD-2 decides, so an analyzer that decoded the image would need the answer FD-1 and FD-2
-# are jointly measuring. The composer knows the geometry it encoded at, so the encoded
-# image is delivered as its bytes and a per-site encoding table beside them.
-INPUTS: tuple[tuple[str, str, str, str, str], ...] = (
-    ("sidecars", "build/freeze/sidecars.tsv",
-     "the provenance sidecar stream from S1 and S4", "M1.2's backend",
-     "the sidecar stream"),
-    ("link_map", "build/freeze/link-map.tsv",
-     "the link map from S5", "M1.4's linker", "the link map"),
-    ("image", "build/freeze/image.bin",
-     "the encoded image from S7", "M1.4's image composer", "the encoded image"),
-    ("image_sites", "build/freeze/image-sites.tsv",
-     "the composer's per-site encoding table", "M1.4's image composer",
-     "the encoded image"),
-)
-
-# The three inputs §4 names, derived from the paths that carry them rather than counted
-# beside them.
-STREAMS: tuple[str, ...] = tuple(dict.fromkeys(row[4] for row in INPUTS))
-
-# §4's record, in the line-oriented form this analyzer streams: one tab-separated row
-# per emitted instruction site under a header naming these fields in this order, with
-# `-` for a field the site does not carry.
-SIDECAR_FIELDS: tuple[str, ...] = (
-    "site_id", "unit", "compartment", "function", "opcode", "operand_class",
-    "producer", "region_id", "region_class", "ct_arm", "knob",
-)
-LINK_MAP_FIELDS: tuple[str, ...] = ("site_id", "address", "bundle", "slot")
-# The per-site encoding table is the composer's rather than the analyzer's, and the
-# reason is a circularity worth naming: recovering a site's index or escape from the
-# image means decoding the bundle format, whose header width and slot count are exactly
-# what FD-2 decides, so an analyzer that decoded the image would need the answer FD-1 and
-# FD-2 are jointly measuring. The composer knows the geometry it encoded at, so it emits
-# the table beside the image.
-IMAGE_SITE_FIELDS: tuple[str, ...] = ("site_id", "entry", "escape")
+# Owned in `vos/` rather than declared here, because there are now two ends of it: this
+# analyzer reads the streams and M1.4-prime's composer writes two of them, and a schema
+# written down at both ends is a transcription held together by nothing. The direction
+# is the one K-83 permits, the quarantine reading `vos/` and nothing under `tools/`
+# reaching into the quarantine. The names are re-exported under their old spellings
+# because that is what this module's own readers and its tests already ask for.
+INPUTS = freezeschema.INPUTS
+STREAMS = freezeschema.STREAMS
+SIDECAR_FIELDS = freezeschema.SIDECAR_FIELDS
+LINK_MAP_FIELDS = freezeschema.LINK_MAP_FIELDS
+IMAGE_SITE_FIELDS = freezeschema.IMAGE_SITE_FIELDS
 
 
 @dataclass(frozen=True)

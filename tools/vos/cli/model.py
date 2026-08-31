@@ -50,7 +50,17 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import IO, cast
 
-from vos import asm, cli, config, differential, env, sailbundle, trace
+from vos import (
+    asm,
+    cli,
+    compose,
+    config,
+    differential,
+    env,
+    freezeschema,
+    sailbundle,
+    trace,
+)
 
 # What every subcommand handler is. `main` attaches one to each subparser and
 # `argparse` hands it back as an untyped attribute, so the shape is stated once
@@ -876,6 +886,63 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     return 1 if tally["FAIL"] else 0
 
 
+def cmd_freeze_emit(e: env.Environment, args: argparse.Namespace) -> int:
+    """Emit the two of §4's three inputs M1.4-prime's composer produces.
+
+    Host-runnable, and that is a property of what it does rather than a convenience: the
+    assembler and the composer are pure host Python and no emulator is involved, so this
+    answers on either lane exactly as `model asm` does.
+
+    **Two things this run states about itself rather than leaving to be inferred.** The
+    geometry is a declared parameter and not a freeze verdict, FD-2 having no default
+    arm at all; and the dictionary is empty, so every site is a verbatim escape and the
+    hit rate is zero, which is a true statement about a machine no dictionary has been
+    selected for rather than a measurement of one.
+    """
+    corpus = differential.load(e.root)
+    wanted = set(args.member)
+    members = [m for m in corpus.members if not wanted or m.name in wanted]
+    if wanted - {m.name for m in members}:
+        print(f"no such member: {', '.join(sorted(wanted - {m.name for m in members}))}",
+              file=sys.stderr)
+        return 1
+
+    into = Path(args.out) if args.out else e.root / freezeschema.BUILD_DIR
+    geometry = compose.Geometry(header=args.header, slots=args.slots, width=args.width)
+    sites: list[asm.Site] = []
+    blob = bytearray()
+    with tempfile.TemporaryDirectory() as scratch:
+        for member in members:
+            # The ELF is a container this run does not keep: what §4 joins is the
+            # encoded image's *bytes*, which the analyzer reads for their count alone,
+            # and the sections are what those bytes are.
+            elf = Path(scratch) / f"{member.name}.elf"
+            here: list[asm.Site] = []
+            try:
+                asm.assemble_file(corpus.source(member), elf, here)
+            except Exception as exc:                   # an assembler diagnostic
+                print(f"FAIL    {member.name} ({exc})", file=sys.stderr)
+                return 1
+            sites += here
+            blob += elf.read_bytes()
+            print(f"EMIT    {member.name} ({len(here)} site(s))")
+
+    composed = compose.compose(sites, bytes(blob), geometry)
+    written = compose.emit(composed, into)
+    for path, size in written:
+        print(f"WROTE   {path} ({size} bytes)")
+    print(f"TOTAL   {len(sites)} site(s) over {len(members)} member(s) in "
+          f"{composed.placed[-1].bundle + 1 if composed.placed else 0} bundle(s) at "
+          f"h={geometry.header} k={geometry.slots} w={geometry.width} "
+          f"({geometry.bits} bits), a declared parameter and not a freeze verdict; "
+          f"the dictionary is empty, so every site is a {geometry.escape_slots}-slot "
+          f"verbatim escape and the hit rate is "
+          f"{composed.hit_rate:.0%}")
+    print("        the sidecar stream is M1.2's backend's and is not written here: its "
+          "operand and producer labels are the emitter's intent (§4)")
+    return 0
+
+
 def _check_trace(member: differential.Member, measured: tuple[int, int, str]) -> tuple[str, str]:
     """Hold a member's commit trace against the manifest's record of it."""
     checks, records, digest = measured
@@ -1160,6 +1227,19 @@ def main(argv: list[str] | None = None) -> int:
                     help="seconds before a member counts as never having reported")
     cp.set_defaults(run=cmd_corpus)
 
+    fz = sub.add_parser("freeze-emit",
+                        help="emit §4's link map and per-site table for the corpus")
+    fz.add_argument("member", nargs="*", help="the members to emit (default: all)")
+    fz.add_argument("--out", help=f"where to write them (default: "
+                                  f"{freezeschema.BUILD_DIR})")
+    fz.add_argument("--header", type=int, default=compose.Geometry().header,
+                    help="bundle header bits (FD-2 declares no default arm)")
+    fz.add_argument("--slots", type=int, default=compose.Geometry().slots,
+                    help="slots per bundle (FD-2 declares no default arm)")
+    fz.add_argument("--width", type=int, default=compose.Geometry().width,
+                    help="slot width in bits")
+    fz.set_defaults(run=cmd_freeze_emit)
+
     asm_cmd = sub.add_parser("asm", help="assemble one dialect program")
     asm_cmd.add_argument("source")
     asm_cmd.add_argument("elf")
@@ -1187,8 +1267,13 @@ def main(argv: list[str] | None = None) -> int:
     ka.set_defaults(run=cmd_keepalive)
 
     args = parser.parse_args(argv)
-    e = env.load()
-    if args.command != "keepalive":
+    # Which subcommands answer on either lane is `cli.COMMANDS`'s and is asked rather
+    # than restated: a second list here would be the two-copies defect inside the table
+    # that exists to prevent it, and it would drift the first time one is added.
+    hosted = next((c.host_ok for c in cli.COMMANDS if c.name == "model"), frozenset())
+    needs_guest = args.command not in hosted
+    e = env.load(toolchain=needs_guest)
+    if args.command != "keepalive" and needs_guest:
         # every loop holds the distribution up while it runs, so a long build does not
         # lose the VM underneath it; the keepalive command manages that lease directly
         env.keepalive()
