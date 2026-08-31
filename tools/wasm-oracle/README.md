@@ -33,6 +33,26 @@ The switch is its own rather than the [proof gate](../vos/cli/proofs.py)'s `rocq
 
 `demo.v` is the M1.5 smoke program in the oracle's intended shape: a pure Gallina computation checked against a known answer *inside* Gallina (the §4 crypto module's KAT pattern), so only one boolean crosses the Wasm boundary. `run_demo.mjs` decodes it per the upstream value representation (nullary constructors are odd-tagged unboxed scalars). The `--stack-size` flag matches the upstream harness: the generated code recurses deeply and overflows V8's default stack.
 
+## Staging a repository source: `ipc_oracle.v` (M4.3)
+
+`ipc_oracle.v` is the first repository Gallina source put through this loop rather than a smoke program: a battery of checks over [proofs/EndpointIPC.v](../../proofs/EndpointIPC.v)'s decision procedures, folded into one boolean the same way `demo.v` folds one. It needs that file beside it under its own name, because `Require Import EndpointIPC` resolves off the working directory, and the proof gate's `.vo` is built in a different switch and is not reusable here.
+
+```console
+$ mkdir -p /root/wasm-stage && cd /root/wasm-stage
+$ cp <repo>/proofs/EndpointIPC.v <repo>/tools/wasm-oracle/ipc_oracle.v \
+     <repo>/tools/wasm-oracle/run_demo.mjs .
+$ eval $(opam env --switch=certirocq-0.9.1 --set-switch)
+$ rocq c EndpointIPC.v && rocq c ipc_oracle.v
+     = 84
+     : nat
+     = true
+     : bool
+$ node --stack-size=10000000 run_demo.mjs ipc_oracle.ipc_oracle.wasm
+true
+```
+
+The two `Compute` lines are the check count and the answer *inside* the kernel, so a run reports the same verdict twice, once by conversion and once through the compiled pipeline, and a disagreement between them is the finding this staging exists to produce. **A green line is only worth having if a red one is reachable**, so the run is repeated over a source seeded to answer `false`: `sed 's/(upto 31)./(upto 32)./' ipc_oracle.v` widens one mask family past the one mask that is the frozen surface, and the emitted module prints `false` and exits non-zero. No `run.py` command reaches any of this, which is what the [checklist's conventions](../../docs/implementation-checklist.md) mean by the label naming a validator the entry point does not carry.
+
 ## Keeping the VM under a long build
 
 WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it, and the opam install above is long enough to be that build whichever environment runs it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:
