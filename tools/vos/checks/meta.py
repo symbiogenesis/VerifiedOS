@@ -25,12 +25,16 @@ enumerated rather than counted here, because the count is `_README_SITES`' to st
 K-75 is that rule one figure over, on the version the tools are *written* to rather
 than the versions they run. The interpreter floor decides what the two checkers admit
 and what this directory's Python may say, and it is written twice as a setting, once
-in ty's dialect and once in ruff's, and restated five times in prose; ty.toml's is the
-source because it is the environment an editor's language server and this gate both
+in ty's dialect and once in ruff's, restated five times in prose, and restated once
+more as a literal the provisioner probes the running interpreter against; ty.toml's is
+the source because it is the environment an editor's language server and this gate both
 resolve against, and the only site that writes the figure bare. The two dialects are
 why the rule is worth having rather than obvious: `3.14` and `py314` are one figure in
 two spellings, so a bump applied to one of them does not read as a disagreement with
-the other, and each of the five prose sites was a hand-copy nothing owned.
+the other, and each of the five prose sites was a hand-copy nothing owned. The
+provisioner's site is the one that could not be an import at all: a TOML setting is not
+a module, so `run.py provision` either restates the figure or cannot probe it, and this
+window is what makes the restatement checked rather than trusted.
 
 The window is `tools/` by decision rather than by reach. The plan restates the floor in
 two of its own cells, and a rule about how this directory is written has no business
@@ -124,6 +128,7 @@ REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 
 README = "tools/README.md"
 TYPECHECK = "tools/vos/cli/typecheck.py"
+PROVISION = "tools/vos/cli/provision.py"
 
 # The pins as typecheck.py declares them, and the README sites restating them. The
 # version cell and the install argument are captured alone, so a disagreement names
@@ -230,6 +235,8 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
      re.compile(r"Under (\S+) that import is the \*opt-out\*"), _plain),
     ("launcher spelling", README,
      re.compile(r"`py -([^`\s]+)`"), _plain),
+    ("provisioned floor", PROVISION,
+     re.compile(r'(?m)^INTERPRETER_FLOOR = "([^"\r\n]*)"'), _plain),
 ]
 
 
@@ -366,8 +373,8 @@ def _floor(ctx: Context) -> None:
         findings.append(f"{README} is not in the repository")
 
     # Both guards above have to have passed before a site can be read: without the
-    # source there is nothing to compare a site to, and without the README five of the
-    # seven sites are missing for a reason that is not their own.
+    # source there is nothing to compare a site to, and without the README every site
+    # that document carries is missing for a reason that is not its own.
     floor = stated.group(1) if stated else ""
     if not findings and doc is not None:
         # one read per file the table names, the README's coming from the corpus the
