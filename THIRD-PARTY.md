@@ -53,7 +53,7 @@ These are gitlink entries. This repository carries a URL and a commit hash for e
 
 | Submodule | Upstream | Pin | License | Standing |
 | --- | --- | --- | --- | --- |
-| `upstream/sail-riscv` | `riscv/sail-riscv` | `ac2a5855` | `BSD-2-Clause` | The edition the curation is reconciled against. |
+| `upstream/sail-riscv` | `riscv/sail-riscv` | `beaf4499` | `BSD-2-Clause` | The edition the curation is reconciled against. |
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | `BSD-2-Clause` | The capability-semantics oracle. |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | A CompCert fork, and the one pin whose terms are not permissive. |
 | `upstream/llvm-project` | `llvm/llvm-project` | `ca7933e4`, tagged `llvmorg-22.1.8` | `Apache-2.0 WITH LLVM-exception` | The untrusted assembler and linker the compiler milestone re-homes to the frozen dialect: LLVM's MC layer and `lld`. |
