@@ -10,9 +10,16 @@ number separates a win from noise; this tool is the instrument it specifies.
 
 **It cannot be run end to end and it says so.** §4's join takes three inputs, the
 provenance sidecar stream from S1 and S4, the link map from S5, and the encoded
-image from S7, and two of the three are M1.4's linker and image composer rather than
-M1.2's backend. So no member of §2's corpus exists, no byte or cycle column is a
-measurement, and no decision carries a verdict.
+image from S7. Two of the three have a producer since M1.4-prime, `run.py model
+freeze-emit` writing them; the sidecar stream is M1.2's backend and does not exist.
+So no member of §2's corpus exists, no byte or cycle column is a measurement, and no
+decision carries a verdict.
+
+**Absence here is read off the build tree and the build tree is ignored output**, so a
+stream with a producer reads absent until that producer has been run in this checkout.
+The verdict line therefore states what *this* run found rather than what the repository
+has landed, and the count in it moves with the working directory, which is what the
+un-quarantine condition in this directory's README is stated against.
 
 What runs today is the rest of it, in the shape `bank-dse.py` beside it established
 at M0.17: the corpus, the recipe, the ordered act, the region classes and their
@@ -25,8 +32,8 @@ each declared bundle geometry needs to clear the derived bar, the dictionary
 headroom each candidate N owes, and the site count at which outlining begins to pay
 under each call form.
 
-A fixture stands in for the three inputs so that the join is exercised rather than
-merely written. Every cell it produces is marked `[fixture]`, no predicate of §9
+A fixture stands in for whatever the join does not find, so that the join is exercised
+rather than merely written. Every cell it produces is marked `[fixture]`, no predicate of §9
 treats a fixture cell as a measurement, and the verdict line says the report is not
 a freeze.
 
@@ -346,14 +353,17 @@ def verdict_sentence(record: freeze.Record, inputs: freeze.Inputs,
     # They were written out, back when all three were absent and the sentence could name
     # all three at once; M1.4-prime landing two of them made that clause a claim about a
     # state the run was no longer in, which is the shape of stale statement no rule
-    # reads and every reader believes.
+    # reads and every reader believes. They are named as the schema's producers rather
+    # than as who *owes* them for the same reason one step on: a stream is absent here
+    # because nothing has written it into this checkout's ignored build tree, which says
+    # nothing about whether its producer has landed.
     owed = ", ".join(dict.fromkeys(
         producer for _n, _p, _w, producer, stream in freeze.INPUTS
         if stream in absent))
     return (
         f"ok: the instrument is wired and cannot be run. {len(absent)} of "
         f"{len(freeze.STREAMS)} inputs the §4 join takes are absent, with {source}: "
-        f"{', '.join(absent)}, owed by {owed}. So {measured} of "
+        f"{', '.join(absent)}, whose producers are {owed}. So {measured} of "
         f"{len(record.decisions)} decisions carry a verdict, and of §9's "
         f"{len(verdicts)} predicates {passed} already decide, {deferred} defer on a "
         f"named symbol and {rejected} reject. This report is not a freeze."

@@ -38,7 +38,7 @@ import re
 from typing import TYPE_CHECKING
 
 from vos import corpus as corpus_mod
-from vos import differential, figures
+from vos import dialectgen, differential, figures
 from vos.checks.counts_capformat import cap_format
 from vos.checks.counts_configs import (
     excluded_by_name_keys,
@@ -246,6 +246,21 @@ CLAIMS = [
      r"(?<=where the lane now carries )[\w-]+"),
     (TOOLS_README, "provision-switches", "words",
      r"(?<=a particular thing, )[\w-]+(?= opam switches)"),
+
+    # the encoder table's own size, owned by the artifact its generator writes. This is
+    # the derived-fact rule turned on the item that argued it: M1.4-prime replaced a
+    # transcribed table with a generated one and then restated the generated one's
+    # header by hand in the prose that made the argument. K-88 holds the artifact's
+    # bytes against its generator and reads nothing a document says about them, so
+    # until these rows existed the figure was right on the day it was written and would
+    # have gone wrong, silently, the first time the model gained a form. Only the
+    # admitted count is registered: the refusals are twelve, and `twelve` in K-26's
+    # alternation collides with twenty-three unrelated sentences in this corpus, which
+    # is the collision the provisioner's rows above already refused to pay for.
+    (PLAN, "dialect-admitted", "digits",
+     r"(?<=The generated table carries \*\*)[\d,]+(?=\*\* admitted mnemonics)"),
+    (PLAN, "dialect-admitted", "digits",
+     r"(?<=the generated table at \*\*)[\d,]+(?=\*\* admitted mnemonics)"),
 ]
 
 # The claims are the whole mechanism, so a restatement nobody registered is not checked
@@ -336,6 +351,10 @@ OWNED_COUNTS = frozenset({
     # gets an owner; that day the sentences saying otherwise are owed a rewrite by
     # hand, and this refuses to repair them to "zero" and call it done.
     "provision-facts", "provision-uncommanded", "provision-switches",
+    # And the encoder table, for the third statement of the same ground: a table with
+    # no admitted mnemonic is an artifact this run could not read or a header whose
+    # shape moved, never a dialect that decodes nothing.
+    "dialect-admitted",
 })
 
 _PARENTHETICAL_RE = re.compile(r"\([^)]*\)")
@@ -405,6 +424,24 @@ def _corpus_members(ctx: Context) -> int:
         return 0
 
 
+def _dialect_admitted(ctx: Context) -> int:
+    """How many mnemonics the generated encoder table admits, read from the table.
+
+    The artifact is a generated one and K-88 has already decided, in the group that
+    runs before this one, that its bytes are what its generator writes; so this reads
+    the header it wrote rather than re-running the generator. Guarded rather than
+    allowed to raise, on `_corpus_members`' ground: an unreadable artifact is K-88's
+    finding, worded once there, and here it must be the moved-reading zero that
+    `OWNED_COUNTS` refuses to resolve a claim against.
+    """
+    try:
+        raw = (ctx.root / dialectgen.TABLE).read_text(encoding="utf-8")
+        header = json.loads(raw)["header"]
+        return int(header["admitted"])
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return 0
+
+
 def _radio_protocols(reg_accept: str) -> int:
     """The curated-analysis set's size, read as the register itself states it: the
     span of crown-jewel inventory rows R-12-043e pins its lineages to."""
@@ -454,6 +491,7 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
         "iris-theories": _enumeration(IRIS_THEORIES_RE, reg.body.get("R-13-017", "")),
         "corpus-members": _corpus_members(ctx),
+        "dialect-admitted": _dialect_admitted(ctx),
         # the lane's shape, read off the provisioner's own table rather than parsed
         # out of the file a second time: a second parse of one table is exactly the
         # two-copies defect this group exists to catch, and the table is a tuple of
