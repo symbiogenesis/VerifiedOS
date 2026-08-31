@@ -3,12 +3,14 @@
 
 Each case builds a Context by hand over a sandbox tree and runs one group's
 `run(ctx)`, asserting on that group's lines and on `ctx.fixed` alone: a small
-fixture cannot satisfy all sixty-seven rules at once, so other rules' findings
-are tolerated rather than fought. What is pinned here is the wave the selftest's
-single-defect mutants cannot reach: a `--fix` whose only edit is refused writes
-nothing, a repair reaches its fixpoint in one application, a truncated table row
-is a finding rather than a crash, an overgrown quantity is a finding rather than
-a stopped run, and K-67 fails closed on a pin site it cannot read.
+fixture cannot satisfy every rule the checker carries at once, so other rules'
+findings are tolerated rather than fought, and the count is left out of this
+sentence rather than hand-copied into it. What is pinned here is the wave the
+selftest's single-defect mutants cannot reach: a `--fix` whose only edit is
+refused writes nothing, a repair reaches its fixpoint in one application, a
+truncated table row is a finding rather than a crash, an overgrown quantity is a
+finding rather than a stopped run, K-67 fails closed on a pin site it cannot read,
+and K-75 decides the one floor site its single mutant does not seed.
 """
 
 from pathlib import Path
@@ -191,6 +193,51 @@ def _k67_unreadable_source_fails_closed() -> None:
            "fail-closed: no ok line stands beside the unread side")
 
 
+# K-75's newest site: the floor as `run.py provision` restates it, which is the one
+# site that could not have been an import, a TOML setting being no module. The
+# selftest's single mutant for this rule seeds `tools/ruff.toml`, so without these two
+# the claim that the rule bites at the provisioner's site would rest on a hand seed
+# nobody reruns. Only that one site is asserted on; the fixture states no other, so
+# the rest of `_FLOOR_SITES` reports missing and is tolerated exactly as this file's
+# other cases tolerate the rules a small fixture cannot satisfy.
+_TY_CONF = 'python-version = "3.14"\n'
+_PROVISION_AT = 'INTERPRETER_FLOOR = "3.14"\n'
+_PROVISION_DRIFTED = 'INTERPRETER_FLOOR = "3.13"\n'
+_FLOOR_SITE = "tools/vos/cli/provision.py's provisioned floor states "
+
+
+def _k75(provision: str) -> Context:
+    files = {"docs/requirements-register.md": _REGISTER_MIN,
+             "tools/README.md": _README_PINNED,
+             "tools/ty.toml": _TY_CONF,
+             "tools/vos/cli/provision.py": provision}
+    with sandbox_tree(files) as root:
+        ctx = _context(root)
+        meta.run(ctx)
+        return ctx
+
+
+def _k75_provisioned_floor_at_the_pin_is_not_a_finding() -> None:
+    found = _findings_under(_k75(_PROVISION_AT), "K-75")
+    ensure(not any(f.startswith(_FLOOR_SITE) for f in found),
+           f"the provisioner's floor agrees, so its site names nothing: {found!r}")
+
+
+def _k75_provisioned_floor_drifted_is_a_finding() -> None:
+    found = _findings_under(_k75(_PROVISION_DRIFTED), "K-75")
+    ensure(f"{_FLOOR_SITE}3.13, tools/ty.toml fixes 3.14" in found,
+           f"a drifted provisioned floor names the two figures: {found!r}")
+
+
+def _k75_unreadable_provisioner_fails_closed() -> None:
+    # the site gone rather than wrong: a rule that cannot find a site it enumerates
+    # reports it, never drops it and passes over the sites it could still read
+    found = _findings_under(_k75("# no floor here\n"), "K-75")
+    ensure("tools/vos/cli/provision.py no longer states the floor in its provisioned "
+           "floor, in a form this rule reads" in found,
+           f"an unreadable site is the finding: {found!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("estimates-refused-edit-writes-nothing",
@@ -203,4 +250,10 @@ def cases() -> list[Case]:
         Case("k67-disagreement-names-both-figures",
              _k67_disagreement_names_both_figures),
         Case("k67-unreadable-source-fails-closed", _k67_unreadable_source_fails_closed),
+        Case("k75-provisioned-floor-at-the-pin-is-not-a-finding",
+             _k75_provisioned_floor_at_the_pin_is_not_a_finding),
+        Case("k75-provisioned-floor-drifted-is-a-finding",
+             _k75_provisioned_floor_drifted_is_a_finding),
+        Case("k75-unreadable-provisioner-fails-closed",
+             _k75_unreadable_provisioner_fails_closed),
     ]

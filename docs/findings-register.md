@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 293 of them across 64 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 295 of them across 64 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -88,7 +88,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S9
 · Disposition: open, recorded as a candidate rule; what stands in for it is that every row names a consumer already in this tree and a row that cannot name one is not written
 
-**F-197d** owed-act: three provisioning routes have owners that state them as prose for a person rather than as a command a tool can run, so those rows probe and report and plan nothing
+**F-197d** owed-act: three provisioning routes have owners that state them as prose for a person rather than as a command a tool can run, two of them being rows that probe and report and plan nothing and the third a route no row probes at all
 · Raised: S9
 · Disposition: open, the recipes wanting an owner that states them as an argument vector; inventing one would be the unowned derived fact the working rules refuse, and the verdict rather than the plan is what separates nothing to do from nothing this tool may do
 
@@ -103,6 +103,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-197g** measurement: a landed decline's ground names two opam switches where the lane now carries four, two having been added by milestones that landed after the sentence was written, and the argument the ground carries is strengthened rather than weakened by the count
 · Raised: S9
 · Disposition: standing, the decline's cell left alone rather than repaired at its own site, no stock image carrying any of the four
+
+**F-197h** owed-act: every figure any document stated about the provisioner's fact table was a hand-copy no rule read, the row count and the rows carrying a command among them, and three of the stated figures disagreed with the table on the day they landed with every gate green
+· Raised: S9
+· Disposition: closed, the four counts made quantities of the asserted-count rule and computed off the table by import rather than by a second parse of the file, so a repair rewrites them; no rule id is spent, extending a claim table being the cheaper of the two stated acts
+
+**F-197i** method: a lane can leave an untracked file at a tracked path in the worktree its branch merges into, where the merge refuses and the selftest's sandbox reads it as an empty source, and every gate the lane runs is green over it because each decides about the worktree it runs in
+· Raised: S9
+· Disposition: closed, the path clear at the landing and the primary worktree's status empty; the standing reading is that a lane's own gates decide nothing about the tree it merges into
 
 **F-000a** upstream-defect: the commit trace's default destination is block-buffered into a pipe while the injection diagnostics are unbuffered on the other descriptor, and the end-of-trace acknowledgement prints whatever the trace flag says because its call site passes a comparison where every other passes the flag
 · Raised: S11
@@ -170,7 +178,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-198d** method: a landed decline falsifies the forward claims other cells made about the act it declined, and those are present-tense sentences no gate reads
 · Raised: S14
-· Disposition: closed, the composed-boot lead, its item's cell and the two-tier risk row each repaired to what is true, with the rerun returning to the item that owns it and that cell deliberately not re-priced here
+· Disposition: closed, eight such sentences repaired to what is true across the plan and this register, with the rerun returning to the item that owns it and that cell deliberately not re-priced here; two of the eight stood a commit longer than the rest, which is the class arriving inside the item that names it
 
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15

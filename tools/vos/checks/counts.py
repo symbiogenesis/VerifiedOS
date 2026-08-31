@@ -52,6 +52,7 @@ from vos.checks.counts_geometry import block_geometry
 from vos.checks.counts_model import citation_window, excluded_forms, model_citations
 from vos.checks.counts_owned import owned_figures
 from vos.checks.counts_tagplane import TAG_PLANE, tag_plane
+from vos.cli import provision
 from vos.register import REGISTER, cj_class, cj_status
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -70,6 +71,8 @@ HEADING = "=== counts: every asserted figure against its artifact ==="
 SPEC = "docs/spec.md"
 TAL = "docs/typed-assembly-language.md"
 TOOLS_README = "tools/README.md"
+PLAN = "docs/implementation-checklist.md"
+FINDINGS = "docs/findings-register.md"
 
 # file, quantity, style, and the pattern that captures the stated figure alone
 CLAIMS = [
@@ -220,6 +223,29 @@ CLAIMS = [
     # not reach it either, `programs` not being one of the nouns it proposes.
     ("docs/differential-corpus.md", "corpus-members", "words",
      r"[\w-]+(?= purecap programs)"),
+
+    # the lane's own shape, owned by the provisioner's fact table. Three figures are
+    # read off `FACTS` and restated in two documents, and until these rows existed
+    # nothing owned one: the table's landing stated three of them wrongly, in three
+    # sentences across two documents, with every gate green, because no rule computed
+    # a count over that table. The rows *carrying* a command are deliberately not a
+    # quantity: they are the complement of the rows carrying none, and registering
+    # both would put their value into K-26's alternation, where fifteen collides with
+    # an unrelated fifteen in the plan that no artifact here owns. So the documents
+    # state the complement and one figure is registered rather than two.
+    (PLAN, "provision-facts", "words", r"[\w-]+(?= rows, one per switch)"),
+    (PLAN, "provision-facts", "words", r"(?<=the lane is )[\w-]+(?= stated facts)"),
+    (PLAN, "provision-uncommanded", "words",
+     r"(?<=stated facts and all but )[\w-]+(?= of them carry a command)"),
+    (PLAN, "provision-uncommanded", "words",
+     r"[\w-]+(?= of the [\w-]+ rows report and plan nothing)"),
+    (PLAN, "provision-facts", "words",
+     r"(?<=of the )[\w-]+(?= rows report and plan nothing)"),
+    (PLAN, "provision-switches", "words", r"(?<=this lane now carries )[\w-]+"),
+    (FINDINGS, "provision-switches", "words",
+     r"(?<=where the lane now carries )[\w-]+"),
+    (TOOLS_README, "provision-switches", "words",
+     r"(?<=a particular thing, )[\w-]+(?= opam switches)"),
 ]
 
 # The claims are the whole mechanism, so a restatement nobody registered is not checked
@@ -303,6 +329,13 @@ OWNED_COUNTS = frozenset({
     # emptied, and resolving its claim would rewrite the document's own sentence to
     # "zero" under one routine `--fix`.
     "corpus-members",
+    # The provisioner's table, on the same ground: a lane with no facts, no row
+    # stating a command, and no opam switch is an import that failed or a table
+    # that moved, never a machine. `provision-uncommanded` is here too, and it is
+    # the one member that *could* legitimately reach zero, on the day every route
+    # gets an owner; that day the sentences saying otherwise are owed a rewrite by
+    # hand, and this refuses to repair them to "zero" and call it done.
+    "provision-facts", "provision-uncommanded", "provision-switches",
 })
 
 _PARENTHETICAL_RE = re.compile(r"\([^)]*\)")
@@ -421,6 +454,14 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
         "iris-theories": _enumeration(IRIS_THEORIES_RE, reg.body.get("R-13-017", "")),
         "corpus-members": _corpus_members(ctx),
+        # the lane's shape, read off the provisioner's own table rather than parsed
+        # out of the file a second time: a second parse of one table is exactly the
+        # two-copies defect this group exists to catch, and the table is a tuple of
+        # frozen rows an import already resolves
+        "provision-facts": len(provision.FACTS),
+        "provision-uncommanded": sum(1 for f in provision.FACTS if not f.install),
+        "provision-switches": sum(1 for f in provision.FACTS
+                                  if f.name.endswith("switch")),
     }
 
 
