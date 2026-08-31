@@ -29,11 +29,19 @@ from vos import asm, compose, corpus, differential, freezeschema
 
 _ROOT: Final[Path] = corpus.find_root(Path(__file__).resolve())
 
-# Recorded from this tree: the sha256 over every corpus member's image, concatenated in
-# manifest order, and their total size. This is M1.4-prime's own acceptance criterion and
-# the one figure the encoder's generation was not allowed to move. On a mismatch, read
-# the model's `encdec` clause for whichever mnemonic moved before touching either side;
-# never repair a red run by rerecording.
+# The sha256 over every corpus member's image, concatenated in manifest order, and their
+# total size. This is M1.4-prime's own acceptance criterion and the one figure the
+# encoder's generation was not allowed to move. On a mismatch, read the model's `encdec`
+# clause for whichever mnemonic moved before touching either side; never repair a red run
+# by rerecording.
+#
+# **The figure is the transcribed encoder's rather than this one's**, which is the whole
+# of what makes it evidence: recorded from the post-change tree it would pin whatever the
+# current encoder produces and could not show that anything had not moved. It was taken
+# by exporting `8189229`, the commit before generation landed, to a tree outside every
+# checkout and running this function's own body there against that tree's `vos.asm`:
+# 26 members, the digest below, 55,992 bytes. A reader who doubts it repeats exactly
+# that.
 _CORPUS_IMAGES: Final[str] = \
     "03f88f69731aabf59047dbc57b0a3778c908de727278e4e693d52addbf0c0d89"
 _CORPUS_BYTES: Final[int] = 55_992

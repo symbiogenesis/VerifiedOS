@@ -633,8 +633,9 @@ def _live_run() -> None:
     ensure(done.stdout.rstrip().endswith(
         "ok: the instrument is wired and cannot be run. 3 of 3 inputs the §4 join "
         "takes are absent, with a fixture standing in for them: the sidecar stream, "
-        "the link map, the encoded image, owed by M1.2's backend, M1.4-prime's "
-        "composer. So 0 of 9 decisions carry a verdict, and of §9's 12 predicates 4 "
+        "the link map, the encoded image, whose producers are M1.2's backend, "
+        "M1.4-prime's composer. So 0 of 9 decisions carry a verdict, and of §9's "
+        "12 predicates 4 "
         "already decide, 8 defer on a named symbol and 0 reject. This report is not a "
         "freeze."),
         f"the verdict sentence must close the report verbatim, got "
