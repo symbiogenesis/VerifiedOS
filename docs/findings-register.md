@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 288 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 293 of them across 64 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -151,6 +151,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-000s** method: an item's stated blocker did not survive the act it blocked, an appended case and the rewritten run loop lying far outside the context a merge reads and the shared region coming through byte-identical
 · Raised: S13b
 · Disposition: closed, the region measured identical on both sides rather than inspected; what is real is a last mile and an ordering preference, so the ordering stands and the ground under it does not
+
+**F-198** measurement: on a host stripped to the distribution's own PATH the gate group reports three of its five rows absent, and the apply arm forms a plan of exactly two commands both of which invoke an installer the host does not have and this tree states no route for
+· Raised: S14
+· Disposition: standing, and it is the ground of the decline: the arm a push workflow runs cannot be stood up from zero by anything here, which is the second of the two grounds arriving one layer below where it was first found
+
+**F-198a** measurement: a workflow's own green is unobservable from this repository, there being no continuous integration by decision, no runner registered against either remote, and nothing here that exercises a hosted image
+· Raised: S14
+· Disposition: standing, recorded as the ground of the decline rather than as a defect; an authored workflow could be held to nothing before it landed, which is what makes an unrun gate a promise in another file
+
+**F-198b** owed-act: three classes of fact a workflow must state have no owner in this tree, the runner label, the action references it pins, and the bootstrap route
+· Raised: S14
+· Disposition: open, reported and not closed, and the rule this item was priced for is left unwritten with its id unspent: what a rule would hold does not exist until an owner does
+
+**F-198c** measurement: the provisioner's apply arm ended in a traceback rather than a verdict where an installer was absent, found by pointing it at a host that is not the lane
+· Raised: S14
+· Disposition: closed, an absent installer reported per step with the run going on to re-probe, so the row it belongs to fails on its own terms and the exit convention holds
+
+**F-198d** method: a landed decline falsifies the forward claims other cells made about the act it declined, and those are present-tense sentences no gate reads
+· Raised: S14
+· Disposition: closed, the composed-boot lead, its item's cell and the two-tier risk row each repaired to what is true, with the rerun returning to the item that owns it and that cell deliberately not re-priced here
 
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
@@ -1195,7 +1215,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-181** upstream-defect: this tree carries workflow files and their being inert is what keeps them green, two of their own lines naming a target and an option the curation has since removed
 · Raised: I8
-· Disposition: standing, making one live being the permanent vendored divergence I4 and I8 both refuse; S14 is the disposition
+· Disposition: standing, making one live being the permanent vendored divergence I4 and I8 both refuse; S14 was to be the disposition and declined on a measurement, so this repository carries no workflow of its own either
 
 **F-182** measurement: the mutation sandbox's index carried no gitlink at all, standing each submodule up as a directory holding a stand-in
 · Raised: I11

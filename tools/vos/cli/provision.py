@@ -500,11 +500,22 @@ def _apply(rep: Reporter, steps: Sequence[tuple[Fact, tuple[tuple[str, ...], ...
     and apt installs that take minutes and a caller watching a silent process cannot
     tell a download from a hang. What is recorded here is the verdict per step; the
     re-probe afterwards is what decides whether the lane is the lane.
+
+    **An absent installer is a verdict and not a traceback**, which is the one thing
+    this loop learned from being pointed at a host that is not the lane: on a machine
+    with no uv, the two commands that install the pinned checkers are exactly the plan
+    this forms, and `uv` is not there to run them. That is a foreseeable state of the
+    world rather than a defect in this file, so it is reported and the run goes on to
+    re-probe, where the row it belongs to fails on its own terms.
     """
     for fact, commands in steps:
         for argv in commands:
             rep.line(f"   {fact.name}: {' '.join(argv)}")
-            code = subprocess.run(list(argv), check=False).returncode
+            try:
+                code = subprocess.run(list(argv), check=False).returncode
+            except OSError as err:
+                rep.line(f"   {fact.name}: {argv[0]} could not be run: {err}")
+                break
             if code != 0:
                 rep.line(f"   {fact.name}: exited {code}")
                 break
