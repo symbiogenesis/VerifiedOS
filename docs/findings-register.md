@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 299 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1027,6 +1027,82 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Disposition: closed at the item by renaming all nine and instantiating the four genuinely inherited theorems by conversion, so the sharing a Require is taken for is checked rather than asserted; standing as the hazard any second Require will carry
 
 ## M6 · Userland spine
+
+**F-197** upstream-defect: the interface-definition start-from states its terms through a one-line pointer to a second file and the forge reports its licence as `NOASSERTION`, so a reading taken at the forge carries no instrument at all and one taken at the announcement misses that the pointer defers to subdirectory licences
+· Raised: M6.0b
+· Disposition: standing, the deferral resolving at the tree's own licence-file inventory, which carries two files and no subdirectory carve-out
+
+**F-197a** measurement: the wire-layer exemplar's own licence file is the two-clause BSD instrument and not the three-clause one the common characterization carries, there being no name-endorsement clause in it
+· Raised: M6.0b
+· Disposition: standing, taken twice on two independent renderings of the same file because the contradiction with the usual characterization is the inference from lineage the maturity rule forbids
+
+**F-197b** owed-act: no register entry pins the typed IDL profile or names its version, where the language document one artifact over is pinned by name and its bump made a review-gate event, so an amendment to the profile's constructor set or its wire-format mapping is not a register edit and the gate never reads it
+· Raised: M6.0b
+· Disposition: open, the profile declaring its own version and amendment rule as a declared parameter instead; F-190a's shape met a second time, on a document nothing pins rather than on enumerations a pinned document holds
+
+**F-197c** owed-act: the fork-and-frozen start-from is unnamed in the register, only the specification's prose and the prior-art document saying what the fork is a fork of, so naming it is a maturity claim with no register owner
+· Raised: M6.0b
+· Disposition: open, the profile naming it as a declared parameter over the register's silence
+
+**F-197d** owed-act: fork-and-frozen has no freeze act for this profile, no entry saying when it freezes, what its delta is, or what a post-freeze change costs beyond the general amendment rule, where the instruction-set profile has a two-act freeze with a closed delta and an instrument per row
+· Raised: M6.0b
+· Disposition: open, the profile declaring its own version and the amendment rule it asks for
+
+**F-197e** owed-act: no entry closes the type-constructor set, the restriction entry restricting without enumerating what constructors exist, so the profile's table is closed by that document and by nothing the gate audits
+· Raised: M6.0b
+· Disposition: open, the object-inventory closure at M4.2b being the precedent for the register act that would close it
+
+**F-197f** owed-act: whether a floating-point type is admitted is unstated, and it bears on canonicity rather than on taste, NaN payloads and signed zero giving one value several encodings where the no-slack rule forbids a second admissible encoding
+· Raised: M6.0b
+· Disposition: open, the profile deleting the former as a declared parameter carrying both arms and what each forfeits
+
+**F-197g** owed-act: the string former has no admitted encoding and no statement of what its bound counts, the restriction entry requiring an explicit bound and saying nothing about bytes against code points, which encoding is admitted, or whether an ill-formed sequence is a decode failure
+· Raised: M6.0b
+· Disposition: open, the profile fixing the encoding as a declared parameter, over-long sequences being exactly the one-admissible-form case
+
+**F-197h** owed-act: which result type carries the relevance grade is unstated, the closed list of graded result kinds naming IDL call outcomes as one member while a per-operation closed refinement variant is admitted beside the common status set, and nothing saying whether a refinement is graded at its own definition or inherits
+· Raised: M6.0b
+· Disposition: open, the profile grading every result type at its own definition as a declared parameter
+
+**F-197i** owed-act: the relevance grade has no stated wire consequence, its placement entry putting it at the definition and its content entry making it a typing property, so a mapping that encodes it and one that does not are both admissible
+· Raised: M6.0b
+· Disposition: open, the profile carrying no wire field for it, a grade on the wire being a field the no-slack rule would then have to admit no slack in
+
+**F-197j** owed-act: the flow-label lattice is unstated, the entry requiring both labels on every type naming no label set, no order, no join, and no answer to whether a label is a wire field or a composition-time attribute, and the security policy model that would own one is unauthored
+· Raised: M6.0b
+· Disposition: open, the profile declaring the place the labels sit and stating its obligations over an arbitrary lattice rather than inventing one
+
+**F-197k** owed-act: whether the IDL's own wire format is a member of the wire-format inventory is unstated, translator content formats being placed in it and each descriptor there separately conferred, while the IDL mapping is a crown-jewel row of its own
+· Raised: M6.0b
+· Disposition: open, adding it being a crown-jewels and a register act
+
+**F-197l** owed-act: whether the wire-format mapping is on an identity-bearing path, and so owes a canonicity theorem, is undecided, one entry putting the interface descriptor inside the content-addressed manifest and another's enumerated site list not naming a live IDL call
+· Raised: M6.0b
+· Disposition: open, the profile taking the stronger reading as a declared parameter and admitting no slack anywhere
+
+**F-197m** owed-act: the receiver-validation declaration has no vocabulary, the entry requiring the IDL to declare which received values carry the index, length, offset or selector obligation and saying nothing about whether that is a per-field marker, a per-operation clause, or a type of its own
+· Raised: M6.0b
+· Disposition: open, the profile taking a per-field marker plus a per-operation claim for the empty case as a declared parameter
+
+**F-197n** owed-act: the resource former has a control-plane reading and a data-plane reading and no entry says whether that is one constructor or two, one entry mapping resources to capabilities and two others admitting only session-table indices on the data plane
+· Raised: M6.0b
+· Disposition: open, the profile carrying one constructor with two declared readings, the reading a property of the field
+
+**F-197o** owed-act: nothing bounds the size of a declaration, every bound in the register being a bound on a runtime value, so the number of operations, types, fields, or worlds a declaration carries is a composition magnitude with no owner
+· Raised: M6.0b
+· Disposition: open, stated as a field rather than a figure, which is the idiom the landed Gallina items already use
+
+**F-197p** owed-act: the Coq interface subset has no stated boundary, one entry's criterion requiring a Tier-1 proof to be stated against the matching skeleton and another requiring conformance among four generated artifacts, with no entry saying what a skeleton contains
+· Raised: M6.0b
+· Disposition: open, the profile fixing six contents and no seventh and recording the decision in its declared-parameters table rather than presenting it as a reading
+
+**F-197q** owed-act: two coverage cells read as though the interface profile existed, one at mode `proved` over the entries that fix the profile and its object references and one at `admission-rejected` over the restriction and the standing rules, and authoring the profile makes neither proved, no proof, checker or declaration following from a specification act
+· Raised: M6.0b
+· Disposition: open, reported against the matrix rather than repaired, no cell being owed by this item and a mode change being a register-first act
+
+**F-197r** owed-act: the crown-jewel row the wire-format mapping is conferred on reads `not authored` and is ready to flip at the mapping's own section
+· Raised: M6.0b
+· Disposition: open, the flip being a crown-jewels edit whose reading is the release gate's rather than the lane's
 
 **F-186g** owed-act: the extent of the authority a restart re-grants is stated three ways and they are not one statement, one entry fixing it at exactly the manifest's edges, another re-deriving at the manifest and the current revocation epoch, a third making user retraction a trigger beside restart, and a fourth carrying no epoch at all
 · Raised: M6.1a
