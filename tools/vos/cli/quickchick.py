@@ -18,7 +18,7 @@ random generators, `forAll` over them, and the thing no enumeration has, **autom
 counterexample shrinking**. The install is made, in a switch of its own, and `check`
 reports which switch holds it and at what version. That the switch is its own is the
 priced part rather than an aesthetic: the two routes into a switch this repository
-already had cost a rebuild of a landed environment apiece, which is what `_INSTALL`
+already had cost a rebuild of a landed environment apiece, which is what `INSTALL`
 below records.
 
     python tools/run.py quickchick check
@@ -57,13 +57,20 @@ from vos.corpus import find_root
 # into a clean 4.14.2 switch resolves **Coq 8.16.1**, not Rocq 9.1.1, so the harness
 # would be compiled by a prover five years from the one this tree pins and against a
 # standard library whose modules are still named `Coq.`. The prover has to be asked for
-# by name, which is why `rocq-core.9.1.1` and `coq.9.1.1` are on the line below.
+# by name, which is why `rocq-core` and `coq` are asked for below at the version
+# `env.ROCQ_VERSION` fixes rather than left to the solver.
+#
+# Public and stated as argv rather than as a sentence, for the reason `env.ROCQ_INSTALL`
+# is: `run.py provision` stands this switch up and the two refusals below print it, and
+# a recipe written once as a message and once as a command is a recipe only one reader
+# ever runs. `env.install_line` composes the sentence from the argv.
 PACKAGE = "coq-quickchick"
-_INSTALL = (
-    f"opam switch create {gallina.QUICKCHICK_SWITCH} --repos=rocq-released,default "
-    "--packages=ocaml-base-compiler.4.14.2 -y && "
-    f"opam install -y --switch={gallina.QUICKCHICK_SWITCH} rocq-core.9.1.1 coq.9.1.1 "
-    f"{PACKAGE}")
+INSTALL: tuple[tuple[str, ...], ...] = (
+    ("opam", "switch", "create", gallina.QUICKCHICK_SWITCH,
+     "--repos=rocq-released,default", "--packages=ocaml-base-compiler.4.14.2", "-y"),
+    ("opam", "install", "-y", f"--switch={gallina.QUICKCHICK_SWITCH}",
+     f"rocq-core.{env.ROCQ_VERSION}", f"coq.{env.ROCQ_VERSION}", PACKAGE),
+)
 
 
 def installed(switch: str) -> str | None:
@@ -115,7 +122,7 @@ def cmd_check(args: argparse.Namespace) -> int:
                "the randomized half does not run")
     out.append("     the enumerative half does: `run.py quickchick vectors`")
     out.append("     the install, as one priced step:")
-    out.append(f"       {_INSTALL}")
+    out.append(f"       {env.install_line(INSTALL)}")
     print("\n".join(out))
     return 1
 
@@ -156,7 +163,7 @@ def cmd_properties(args: argparse.Namespace) -> int:
     if switch is None:
         print(f"FAIL no switch this repository reaches holds both {PACKAGE} and a "
               f"prover it can call\n     the install, as one priced step:\n"
-              f"       {_INSTALL}")
+              f"       {env.install_line(INSTALL)}")
         return 1
     found = gallina.prover(switch)
     if found is None:

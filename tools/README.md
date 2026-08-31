@@ -53,6 +53,7 @@ either lane.
 | `coread` | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
 | `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
 | `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
+| `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` installs what is absent and re-probes; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. |
 | `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. |
 | `evidence` | wsl | The exit-evidence sweep as one run: the build and its bundled suite, the property harness, the profile sweep, the differential corpus, the devicetree, the reference, and the proof gate, with the block of figures a completion note quotes. |
 | `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record on either lane; `lint`, `vectors`, `crosscheck` and `elaborate` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. |
@@ -135,6 +136,9 @@ guest and say so. Inside the guest they are `python3 tools/run.py <command>` and
 nothing else changes.
 
 ```console
+$ python tools/run.py provision                  # is this machine the lane, and what is missing
+$ python tools/run.py provision --apply          # and install what this tree states a command for
+$ python tools/run.py provision --only gate      # the rows the three host gates alone want
 $ python tools/run.py evidence                   # the whole exit-evidence sweep, one block
 $ python tools/run.py evidence --no-build        # and without rebuilding first
 $ python tools/run.py model typecheck
@@ -189,6 +193,14 @@ A build **holds its lane** for exactly as long as it runs, so a second build ove
 A build is not the only holder of state, and every holder refuses a concurrent run by naming the one that holds it. `emit` takes the same lock as `build`, because both drive the one cmake tree; `typecheck` holds a lock beside its lane's SMT memo cache, which Sail rewrites whole at exit; and `oracle` holds the one tree every lane shares. `corpus` writes its images into the lane's own directory, so two lanes' runs cannot land one ELF path.
 
 A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests and the Sail SMT memo cache, and the cache is **copied and never shared**: see `vos/cli/model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other.
+
+## The lane as a fact list, and what no provisioner reaches
+
+[run.py provision](vos/cli/provision.py) is that machine written down. The guest is a particular thing, four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor and a handful of distribution packages, and until this landed the only statement of it was prose spread across a plan, this README and half a dozen modules. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Every version and switch name in it is imported from the module that fixes it**, so the table is rows and not a second copy of the pins; the one figure written as a literal is the interpreter floor, because a TOML setting is not importable, and K-75 holds that restatement like the others.
+
+It is native rather than containerized, and that is what makes it architecture-agnostic: the prover's published image is amd64-only, an opam build from source is not, and the pinned solver arrives as a wheel built for both. **A row installs only what an artifact here states as a command.** Three routes have owners this file cannot import as an argument vector, uv's own installation, the creation of an opam root, and the CertiRocq oracle switch whose recipe is prose in [wasm-oracle/README.md](wasm-oracle/README.md); those rows report and plan nothing, because inventing a command for a route nothing states would be exactly the unowned derived fact the working rules refuse.
+
+**What it does not reach it prints rather than absorbs.** Two settings decide how this lane behaves and neither is in this tree: WSL2's memory reclamation, which lives in a per-user file global to every distribution, and whether a person edits from the host or from inside the guest. Both are printed at the end of a run as not reached and neither is counted into the verdict, which is the same boundary [vos/env.py](vos/env.py) draws around the idle timer.
 
 ## The three generators, and what each answers
 
