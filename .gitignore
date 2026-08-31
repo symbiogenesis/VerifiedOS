@@ -14,6 +14,16 @@
 # a future vendored tree carries, and a curation batch adds by recursive add.
 /out/
 
+# Where the freeze's producers write what §4 joins, on `/out/`'s exact precedent and
+# for its exact reasons. An image built under the provisional profile is a measurement
+# artifact and is neither deployed nor stored (R-18-003c), so it is derived output and
+# never a source; and keeping it out of the index keeps it out of the selftest
+# sandbox's corpus too, where an untracked file under a directory no rule opens would
+# leave check.py green and the selftest's baseline red. Anchored to the root on the
+# same ground `/out/` is: an unanchored build/ would swallow any build directory a
+# future vendored tree carries.
+/build/
+
 proofs/*.vo
 proofs/*.vok
 proofs/*.vos

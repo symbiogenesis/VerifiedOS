@@ -134,12 +134,18 @@ def _materialize_edges() -> None:
     # The exact expansions at the edges, where the addiw re-extension comment in
     # `_materialize` is load-bearing: +2^31 is NOT the lui form (lui would come
     # out sign-extended), and -2^31 is exactly the lui form.
+    #
+    # The upper immediate is handed over **signed**, which is the reading `UTYPE`'s own
+    # execute clause states (`sign_extend(imm @ 0x000)`) and the one the generated
+    # encoder table therefore admits. The bits are unchanged, `lui` masking its operand
+    # into twenty either way, and the semantics below re-extend it exactly as the model
+    # does; what moved is only which of the two spellings of one bit pattern is written.
     expansions: list[tuple[int, list[asm.Instr]]] = [
         (0, [("addiw", [5, 0, 0])]),
         (-1, [("addiw", [5, 0, -1])]),
         (1 << 31, [("addiw", [5, 0, 1]), ("slli", [5, 5, 31])]),
-        (-(1 << 31), [("lui", [5, 0x80000])]),
-        ((1 << 31) - 1, [("lui", [5, 0x80000]), ("addiw", [5, 5, -1])]),
+        (-(1 << 31), [("lui", [5, -0x80000])]),
+        ((1 << 31) - 1, [("lui", [5, -0x80000]), ("addiw", [5, 5, -1])]),
     ]
     for value, want in expansions:
         out: list[asm.Instr] = []
