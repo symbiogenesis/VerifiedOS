@@ -18,7 +18,7 @@ that has stopped assembling is then a finding on the host, in the run a person
 does before committing, rather than a surprise in WSL after a build.
 
 What is *not* here is the trace digest, and that is a boundary rather than an
-omission: reproducing it needs the emulator, so `model.py corpus` decides it and
+omission: reproducing it needs the emulator, so `run.py model corpus` decides it and
 this group only requires the field to be present. A rule that cannot recompute a
 figure should not pretend to check it.
 
@@ -37,7 +37,7 @@ evidence frozen on checked milestones, which record what an edition measured at
 its gate, so a rule holding the live manifest against them would be red the day
 the edition advances, which is the day the corpus is working as designed. The
 check the edition does want is that a refresh which moves a member advances it,
-and that is `model.py corpus --refresh`'s to make, because it is the tool that
+and that is `run.py model corpus --refresh`'s to make, because it is the tool that
 writes both fields.
 
 The fourth rule holds the corpus's hand-written words. A `.word` reaches an
@@ -162,7 +162,7 @@ def run(ctx: Context) -> None:
                           f"and the program carries {checks}")
         if not member.digest:
             faults.append(f"{member.name}: no commit-trace digest; run "
-                          f"`model.py corpus --refresh`")
+                          f"`run.py model corpus --refresh`")
     rep.report("K-51", "corpus member(s) that do not assemble as recorded:", faults,
                f"all {len(corpus.members)} members assemble, with "
                f"{sum(m.checks for m in corpus.members)} checks and a recorded digest")

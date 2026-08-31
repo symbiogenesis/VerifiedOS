@@ -72,7 +72,7 @@ from typing import TypedDict
 from vos import sailrig
 
 # Where the specs live, relative to the repository root. One file per spec, named for
-# the spec, so `oracle.py vectors --spec keccak` and `tools/oracle-specs/keccak.json`
+# the spec, so `run.py oracle vectors --spec keccak` and `tools/oracle-specs/keccak.json`
 # are the same word twice and never two.
 SPECS = "tools/oracle-specs"
 

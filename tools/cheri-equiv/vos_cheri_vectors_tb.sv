@@ -15,7 +15,7 @@
 //
 // Both file names are fixed rather than taken from a plus-argument, and the run
 // happens in a directory of the lane's own: `vectors.txt` in, `replay.txt` out.
-// `tools/rtl.py crosscheck` is what puts it there.
+// `tools/run.py rtl crosscheck` is what puts it there.
 //
 // This is a checking harness and not hardware. It lives under `tools/` for that
 // reason: `rtl/` holds what this repository would synthesize, and a file-reading

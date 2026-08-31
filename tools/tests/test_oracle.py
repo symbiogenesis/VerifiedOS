@@ -4,7 +4,7 @@ toolchain behind it.
 
 What only a fixture can pin is the refusal shape of a malformed spec and the exact
 Sail a domain description produces: the live specs exercise the happy path on every
-`oracle.py vectors` run, and that run needs Sail, a C compiler and two minutes. Both
+`run.py oracle vectors` run, and that run needs Sail, a C compiler and two minutes. Both
 halves matter for the same reason: an emission that is wrong in a way Sail accepts is
 a harness that prints the wrong question's answers, and the vectors then agree about
 nothing.
