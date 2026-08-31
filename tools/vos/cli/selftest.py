@@ -1427,6 +1427,21 @@ CASES: list[Case] = [
     # so seeding it changes what this rule decides and what no other rule reads.
     ("K-88", "a host-lane generated artifact one token off what its generator writes",
      _literal(DIALECT_TABLE, '"ctor": "RTYPE"', '"ctor": "RTYPEX"')),
+    # The *emitter* is edited rather than a configuration, because that is the direction
+    # this defect arrives from: a window is declared once and a node for it is written
+    # once, and what goes wrong afterwards is the node, either never written or written
+    # about the wrong window. Both of the live findings this rule opened on were of the
+    # first kind, an aperture with a validator clause and no node at all; the seed is
+    # the second kind because it is the one a reader cannot see, the tree still carrying
+    # a node per device and one of them naming a neighbour's address.
+    #
+    # Seeding a *configuration* instead would put the defect in the file K-65 already
+    # reads, so the case would pass on somebody else's report; seeding the validator
+    # would seed the half the composition-time run already refuses out loud.
+    ("K-94", "a devicetree node stating a neighbouring window instead of its own",
+     _literal("model/model/postlude/device_tree.sail",
+              "generate_dts_reg(plat_uart_base, plat_uart_size)",
+              "generate_dts_reg(plat_blkdev_base, plat_uart_size)")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

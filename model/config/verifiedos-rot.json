@@ -144,8 +144,9 @@
       }
     },
     "regions": [
-      // ROM, 16 KiB at 0x1000, holding the boot ROM and the attested
-      // devicetree written at `memory.dtb_address`.
+      // ROM, 32 KiB at 0x1000, holding the attested devicetree written at
+      // `memory.dtb_address` in its lower half and the boot ROM declared at
+      // `platform.boot_rom` in its upper half.
       //
       // **The 4 KiB this was is upstream's default and not this platform's
       // budget.** R-09-007 has the static devicetree declare core classes,
@@ -153,11 +154,17 @@
       // values, and the first of those five is what M0.8a landed: the tree went
       // from 2,741 bytes to 4,466 and stopped fitting. Sizing for the
       // declaration that has arrived is what forces a bump per milestone, so
-      // this is sized for the four that have not. `model.py devicetree` is what
-      // holds the blob against this number on every run.
+      // the tree's half is sized for the four that have not. `model.py
+      // devicetree` is what holds the blob against this number on every run.
+      //
+      // **The two halves are held apart rather than trusted to fit**, 16 KiB
+      // apiece: the boot ROM's extent and the tree's address are checked
+      // disjoint at composition, and the blob's own extent is checked against
+      // the same ROM when it is written, which is the only point its size is
+      // known (model/postlude/validate_config.sail).
       {
         "base": { "len": 64, "value": "0x1000" },
-        "size": { "len": 64, "value": "0x4000" },
+        "size": { "len": 64, "value": "0x8000" },
         "attributes": {
           "mem_type": "IOMemory",
           "cacheable": true,
@@ -548,6 +555,50 @@
       "early_ticks": 1024,
       "late_ticks": 65536
     },
+    // The three devices beside the core: the SoC boot ROM, the serial port and
+    // the block device. R1 names all three and the RoT core in its own list, so
+    // what obliges them to exist is the plan; what obliges their placement to be
+    // stated here and in the attested devicetree is R-15-002b, which puts every
+    // MMIO aperture inside the 36-bit space and makes the placement a stated
+    // constraint on that tree.
+    //
+    // **These are placements and nothing else, which is the whole of what this
+    // composition can say about them.** No register entry gives a serial port or
+    // a block device any register interface, and inventing a transmit register
+    // or a descriptor ring here would author an obligation nothing owns; the
+    // devices arrive as route-(c) references from `lowRISC/mocha` with the SoC
+    // top written over this map (R1c-ii), and the block device's transfer
+    // interface arrives with the storage stack. So no door of the model's opens
+    // at any of the three: `model/sys/platform.sail` claims no window here, so
+    // an address inside one falls through to the RAM path, and what that costs
+    // is decided by the enclosing region's own PMA rather than by the aperture.
+    // The serial port and the block device are in the readable and writable IO
+    // region below, so a load and a store inside either are the RAM path's until
+    // that top lands. The boot ROM is in the ROM region above, which is readable
+    // and neither writable nor executable, so a load there reads zero while a
+    // store or an instruction fetch is an access fault; the fetch is the one
+    // access a boot ROM exists for, and that region's `executable` is R1c-ii's to
+    // decide with the attested tree sharing the region.
+    // The memory sequencer's and the RoT's windows refuse instead, and the
+    // difference is that their refusal is permanent: nothing on this die may ever
+    // open them, where these three are doors whose device has not arrived.
+    //
+    // **Every base and size here is a placeholder**, in the sense the memory
+    // classes' constants and the watchdog's bounds are: no artifact in this
+    // repository selects them, and what the validator holds is the shape, that
+    // each is inside an IO memory region and that no two apertures on this die
+    // overlap (model/postlude/validate_config.sail).
+    "boot_rom": {
+      // The upper half of the ROM region above, above the attested devicetree.
+      // R-09-003's metal-mask ROM is a different ROM and has no aperture in any
+      // composition: it is on the RoT's island, holds the first instruction that
+      // core executes, and is reached by no requester on the fabric.
+      "supported": true,
+      "base": 20480,
+      "size": 16384
+    },
+    "uart": { "supported": true, "base": 41943040, "size": 4096 },
+    "blkdev": { "supported": true, "base": 42991616, "size": 4096 },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,
     "wfi_is_nop": false,

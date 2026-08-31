@@ -41,6 +41,7 @@ from vos import corpus as corpus_mod
 from vos import differential, figures
 from vos.checks.counts_capformat import cap_format
 from vos.checks.counts_configs import (
+    aperture_placements,
     excluded_by_name_keys,
     shipped_configurations,
     vectorless_configurations,
@@ -619,5 +620,6 @@ def run(ctx: Context) -> None:
     excluded_forms(ctx)
     shipped_configurations(ctx)
     vectorless_configurations(ctx)
+    aperture_placements(ctx)
     excluded_by_name_keys(ctx)
     rep.line()

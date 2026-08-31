@@ -294,6 +294,97 @@ private function generate_cbo_block_size(prefix : string, ext : extension) -> st
   else ""
 }
 
+// The four cells a `reg` takes under `soc`, whose `#address-cells` and
+// `#size-cells` are both two. Every device node below carries the window its
+// aperture declares and carries it in these four cells, so the spelling is one
+// function rather than one per node: the placement R-15-002b makes a stated
+// constraint on this tree is stated the same way wherever it is stated, and a
+// node that has stopped stating it is a call that is missing rather than four
+// lines that read almost like the four above them.
+private function generate_dts_reg(base : physaddrbits, size : physaddrbits) -> string =
+    "      reg = <" ^ hex_str(unsigned(base >> 32))
+  ^ " " ^ hex_str(unsigned(base[31 .. 0]))
+  ^ " " ^ hex_str(unsigned(size >> 32))
+  ^ " " ^ hex_str(unsigned(size[31 .. 0])) ^ ">;\n"
+
+// The machine-level interrupt file's window (R-15-064, R-15-065).
+//
+// **The `compatible` is this platform's own and not `riscv,imsics`.** What is
+// here is the pending array and the sender's write-only doorbell; the
+// supervisor and guest/VS files, the delivery-enable, threshold and
+// top-pending-selection machinery, and the whole indirect interface are
+// excluded (isa-profile.md §5.2), so the standard binding would name a device
+// this die does not have. The identity count is not emitted: it is the width of
+// the array's own register rather than a composition parameter, and a tree
+// stating it would be reading the model's geometry out of an attested artifact
+// (sys/platform.sail).
+private function generate_dts_imsic() -> string =
+  if not(plat_have_imsic) then ""
+  else
+    "    imsic@" ^ string_drop(hex_str(unsigned(plat_imsic_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,imsic\";\n"
+  ^ generate_dts_reg(plat_imsic_base, plat_imsic_size)
+  ^ "    };\n"
+
+// The revocation sidecar's window (R-08-005a).
+//
+// **The window's size is the model's and the interval is the composition's**,
+// which is why the two arrive here by different routes: the bitmap's width is
+// fixed by the plane it covers (core/revocation.sail) and there is no key for
+// it, while the revocable interval is declared. Both are here because
+// core/platform_config.sail already calls the interval map and the window
+// *attested-devicetree constants* and neither was in this tree; the kernel
+// revocation path is the reader, and it needs the interval to know which
+// addresses the plane answers about.
+private function generate_dts_revocation() -> string =
+  if not(plat_have_revocation) then ""
+  else
+    "    revocation@" ^ string_drop(hex_str(unsigned(plat_revocation_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,revocation\";\n"
+  ^ generate_dts_reg(plat_revocation_base, to_bits(physaddrbits_len, revocation_bitmap_bytes))
+  ^ "      verifiedos,interval-base = <" ^ generate_dts_u64(unsigned(plat_revocation_interval_base)) ^ ">;\n"
+  ^ "      verifiedos,interval-size = <" ^ generate_dts_u64(unsigned(plat_revocation_interval_size)) ^ ">;\n"
+  ^ "    };\n"
+
+// The three devices beside the core (R1c-i): the SoC boot ROM, the serial port
+// and the block device.
+//
+// **Each node is a placement and carries nothing else, because a placement is
+// all the composition declares.** No register entry gives a serial port or a
+// block device a register interface, so there is no baud rate, no FIFO depth,
+// no block size and no capacity to attest, and a node inventing one would put an
+// architectural input into the artifact a relying party appraises the part from.
+// What each does carry is the `reg` R-15-002b asks of it, so the SoC top written
+// over this map has a map to be written over (R1c-ii) and an auditor reading the
+// tree finds the aperture rather than an address nothing accounts for.
+//
+// The boot ROM's node is the one that is not in the MMIO region: it is the upper
+// half of the ROM region the attested tree is itself written into, and its
+// extent exists so that the two do not share a base (postlude/validate_config.sail).
+private function generate_dts_boot_rom() -> string =
+  if not(plat_have_boot_rom) then ""
+  else
+    "    boot-rom@" ^ string_drop(hex_str(unsigned(plat_boot_rom_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,boot-rom\";\n"
+  ^ generate_dts_reg(plat_boot_rom_base, plat_boot_rom_size)
+  ^ "    };\n"
+
+private function generate_dts_uart() -> string =
+  if not(plat_have_uart) then ""
+  else
+    "    serial@" ^ string_drop(hex_str(unsigned(plat_uart_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,uart\";\n"
+  ^ generate_dts_reg(plat_uart_base, plat_uart_size)
+  ^ "    };\n"
+
+private function generate_dts_blkdev() -> string =
+  if not(plat_have_blkdev) then ""
+  else
+    "    block@" ^ string_drop(hex_str(unsigned(plat_blkdev_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,block-device\";\n"
+  ^ generate_dts_reg(plat_blkdev_base, plat_blkdev_size)
+  ^ "    };\n"
+
 // The refresh and discharge sequencer's node (R-15-247h). Two things belong in
 // an attested tree and both are here: the register slave's window, so a reader
 // knows where the door is that no requester may open (sys/platform.sail), and
@@ -310,10 +401,7 @@ private function generate_dts_memory_sequencer() -> string =
   else
     "    memory-sequencer@" ^ string_drop(hex_str(unsigned(plat_memory_sequencer_base)), 2) ^ " {\n"
   ^ "      compatible = \"verifiedos,memory-sequencer\";\n"
-  ^ "      reg = <" ^ hex_str(unsigned(plat_memory_sequencer_base >> 32))
-  ^ " " ^ hex_str(unsigned(plat_memory_sequencer_base[31 .. 0]))
-  ^ " " ^ hex_str(unsigned(plat_memory_sequencer_size >> 32))
-  ^ " " ^ hex_str(unsigned(plat_memory_sequencer_size[31 .. 0])) ^ ">;\n"
+  ^ generate_dts_reg(plat_memory_sequencer_base, plat_memory_sequencer_size)
   ^ "      verifiedos,banks = <" ^ dec_str(memory_sequencer_banks()) ^ ">;\n"
   ^ "      verifiedos,banks-per-refresh-phase = <" ^ dec_str(plat_memory_sequencer_refresh_banks_per_phase) ^ ">;\n"
   ^ "      verifiedos,refresh-phase-cycles = <" ^ dec_str(plat_memory_sequencer_refresh_phase_cycles) ^ ">;\n"
@@ -349,10 +437,7 @@ private function generate_dts_otp() -> string =
   else
     "    otp@" ^ string_drop(hex_str(unsigned(plat_otp_base)), 2) ^ " {\n"
   ^ "      compatible = \"verifiedos,otp\";\n"
-  ^ "      reg = <" ^ hex_str(unsigned(plat_otp_base >> 32))
-  ^ " " ^ hex_str(unsigned(plat_otp_base[31 .. 0]))
-  ^ " " ^ hex_str(unsigned(plat_otp_size >> 32))
-  ^ " " ^ hex_str(unsigned(plat_otp_size[31 .. 0])) ^ ">;\n"
+  ^ generate_dts_reg(plat_otp_base, plat_otp_size)
   // The lifecycle state, which R-09-037 has the RoT extend into the measured
   // chain as its first extension and the reference integrity manifest carry the
   // production value of. The enumeration's size and the relation's arity travel
@@ -372,10 +457,7 @@ private function generate_dts_trng() -> string =
   else
     "    trng@" ^ string_drop(hex_str(unsigned(plat_trng_base)), 2) ^ " {\n"
   ^ "      compatible = \"verifiedos,entropy-root\";\n"
-  ^ "      reg = <" ^ hex_str(unsigned(plat_trng_base >> 32))
-  ^ " " ^ hex_str(unsigned(plat_trng_base[31 .. 0]))
-  ^ " " ^ hex_str(unsigned(plat_trng_size >> 32))
-  ^ " " ^ hex_str(unsigned(plat_trng_size[31 .. 0])) ^ ">;\n"
+  ^ generate_dts_reg(plat_trng_base, plat_trng_size)
   // The two figures R-15-241e and R-15-241b make properties of the root's
   // construction: how many attributed sources reach the one conditioner, and
   // over how many samples the start-up health tests run. The conditioner count
@@ -392,10 +474,7 @@ private function generate_dts_monotonic() -> string =
   else
     "    monotonic-counters@" ^ string_drop(hex_str(unsigned(plat_monotonic_base)), 2) ^ " {\n"
   ^ "      compatible = \"verifiedos,monotonic-counters\";\n"
-  ^ "      reg = <" ^ hex_str(unsigned(plat_monotonic_base >> 32))
-  ^ " " ^ hex_str(unsigned(plat_monotonic_base[31 .. 0]))
-  ^ " " ^ hex_str(unsigned(plat_monotonic_size >> 32))
-  ^ " " ^ hex_str(unsigned(plat_monotonic_size[31 .. 0])) ^ ">;\n"
+  ^ generate_dts_reg(plat_monotonic_base, plat_monotonic_size)
   // The arity and nothing else. R-10-013's enumeration is closed by conferral
   // and its four members are named in the model (sys/rot.sail); a tree
   // repeating their names would be the enumeration written twice inside one
@@ -409,10 +488,7 @@ private function generate_dts_watchdog() -> string =
   else
     "    watchdog@" ^ string_drop(hex_str(unsigned(plat_watchdog_base)), 2) ^ " {\n"
   ^ "      compatible = \"verifiedos,watchdog\";\n"
-  ^ "      reg = <" ^ hex_str(unsigned(plat_watchdog_base >> 32))
-  ^ " " ^ hex_str(unsigned(plat_watchdog_base[31 .. 0]))
-  ^ " " ^ hex_str(unsigned(plat_watchdog_size >> 32))
-  ^ " " ^ hex_str(unsigned(plat_watchdog_size[31 .. 0])) ^ ">;\n"
+  ^ generate_dts_reg(plat_watchdog_base, plat_watchdog_size)
   // The two bounds, in the watchdog's own slow-clock ticks. **No ratio to the
   // spine is emitted and none exists**: R-15-196 makes the RoT's independent
   // slow clock one of exactly three genuinely asynchronous boundaries, none
@@ -425,11 +501,6 @@ private function generate_dts_watchdog() -> string =
 
 function generate_dts() -> string = {
   let clock_freq : nat = plat_clock_frequency;
-
-  let clint_base_hi = unsigned(plat_clint_base >> 32);
-  let clint_base_lo = unsigned(plat_clint_base[31 .. 0]);
-  let clint_size_hi = unsigned(plat_clint_size >> 32);
-  let clint_size_lo = unsigned(plat_clint_size[31 .. 0]);
 
   // `hex_str` is used for the unit-addresses of the `memory@` and `clint@` nodes
   // instead of `hex_bits_str` since they cannot have leading zeros.  These addresses
@@ -490,17 +561,25 @@ function generate_dts() -> string = {
 ^ "    #size-cells = <2>;\n"
 ^ "    compatible = \"ucbbar,spike-bare-soc\", \"simple-bus\";\n"
 ^ "    ranges;\n"
+         // In address order, and every declared aperture is here: R-15-002b
+         // makes the placement of each a stated constraint on this tree, so a
+         // window declared in the composition with no node below it is an
+         // aperture this artifact does not state (K-94).
+^ generate_dts_boot_rom()
 ^ "    clint@" ^ string_drop(hex_str(unsigned(plat_clint_base)), 2) ^ " {\n"
 ^ "      compatible = \"riscv,clint0\";\n"
 ^ "      interrupts-extended = <&CPU0_intc 3 &CPU0_intc 7>;\n"
-^ "      reg = <" ^ hex_str(clint_base_hi) ^ " " ^ hex_str(clint_base_lo)
-^ " " ^ hex_str(clint_size_hi) ^ " " ^ hex_str(clint_size_lo) ^ ">;\n"
+^ generate_dts_reg(plat_clint_base, plat_clint_size)
 ^ "    };\n"
+^ generate_dts_imsic()
+^ generate_dts_revocation()
 ^ generate_dts_memory_sequencer()
 ^ generate_dts_otp()
 ^ generate_dts_trng()
 ^ generate_dts_monotonic()
 ^ generate_dts_watchdog()
+^ generate_dts_uart()
+^ generate_dts_blkdev()
 ^ "  };\n"
 ^ "  htif {\n"
 ^ "    compatible = \"ucb,htif0\";\n"
