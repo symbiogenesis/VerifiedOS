@@ -1706,11 +1706,19 @@ It was also **incomplete by design**, and the honest version of the lineage clai
 So occam solved the decidable fragment and fell back to a dynamic check for the rest; Rust makes the aliasing structure part of the type; a capability machine makes the bound part of the pointer and checks it in hardware; and this design takes a fourth road, forbidding at composition time the construct that makes the question undecidable.
 The transputer's other legacy is the FPU: the T800's floating-point unit was specified in Z, its algorithms proved in occam and refined to microcode, work that took the Queen's Award in 1990, was reported as *cheaper* than the informal route, and found both an ambiguity in IEEE 754 and a bug in a competitor's part.
 That is the strongest historical precedent for this project's whole premise and it deserves citing wherever the proof-cost argument is made (§17).
+A second citation belongs beside it, from the compiler half of the same lineage rather than the datapath half: Börger and Durdanović's correctness proof for compiling occam to transputer code (*The Computer Journal* 39(1), 1996), which refines the compilation itself through a chain of abstract state machines.
+So the precedent covers both of the halves this project has to pay for, the datapath and the translation onto it, rather than one lucky arithmetic unit.
 
 **The scheduler is where the transputer is usually misremembered, and the distinction is the entry's point.**
 Two priority levels in microcode gave a *bounded* dispatch latency, typically 19 cycles and a published maximum of 53 at high priority, with low priority round-robin at roughly a millisecond and a worst case of `2n - 2` slices for `n` processes.
 Bounded, fast, and published is more than a modern operating system offers, and it is still not what §7 needs: what runs next is decided by a queue whose contents depend on when communications completed, so the gap is bounded while the order and the instants are not predetermined.
 The transputer bounded the gap; the table determines the sequence.
+
+**Workspace-pointer switching is the one mechanism here that tempts, and it does not import.**
+Three data registers behaved as an evaluation stack over a workspace pointer into a memory stack, so a context switch was a pointer change rather than a register save, and the evaluation stack was not preserved across the instructions at which a switch could happen, `Jump` among them.
+That speaks straight to the total restore R-07-015 states and to the merged-file argument that makes the restore quantify over one file of 32 registers (R-15-007i), the same argument that deleted `f0`–`f31`.
+What blocks the import is not the idea but its substrate and its accounting: a different ISA pays the substrate-cost disqualifier in full ([architectural-alternatives.md](architectural-alternatives.md)), and the state does not vanish under a workspace pointer, it moves into memory, where the masked clear and the eager zeroize have to reach it instead of the register file (§7, §15).
+The useful half is already banked under another name, since run-to-completion over syntactic poll sites (R-07-037a) with asynchronous delivery deleted (R-08-033) makes the switch points syntactic here too, so live state at a switch is a static quantity for the same reason it was one there.
 
 **XMOS xCORE is the living commercial foil, founded by the transputer's own architect.**
 Its instruction timing is deterministic by construction in the way §15 is: no forwarding, no speculation, no branch prediction, unified SRAM in place of caches, almost every instruction single-cycle, and a hardware limit of one issue per core per five cycles that guarantees the previous instruction has retired, with the published contract stated as an issue rate against the number of awake cores.
@@ -1719,9 +1727,27 @@ And its limit is the finding that generalizes to everything in this category: **
 Every system here bounds **computation** and none bounds **communication**, because in all of them communication is a rendezvous.
 A composition-time TDM slot table is a different answer rather than a better estimate: the transfer instant is not analyzed, it is scheduled, and a peer's progress becomes a scheduling constraint discharged at build time instead of a term in a WCET expression (§11, §15).
 
-**Two cautionary trajectories close the entry, and they are the same trajectory twice.**
+**Boot over links is the entry's anti-precedent, and it is the concrete shape of what §9 gives up.**
+With `BootFromROM` deasserted a part waits for bytes on any link, reads the first byte as a length, copies that many bytes into low memory and jumps into them; the reserved lengths 0 and 1 are POKE and PEEK, so an unbooted part's memory can be written and read word by word by whatever is on the other end of a wire.
+The loader's shape is almost the one §9 keeps, a fixed-layout length-bounded header ahead of a flat image (R-09-005), and everything that makes that shape safe is what is missing: nothing authenticates the bytes, nothing measures them before they execute, and no monotonic floor stops an old payload from being replayed.
+The debug half is the sharper anti-precedent, since PEEK and POKE are a standing read/write authority into a neighbour reached from a wire, where the Debug Module here is lifecycle-fused off in production and an ML-DSA challenge-response anywhere else, with a crypto-erase before a fielded part becomes debuggable at all (R-15-078, R-15-079).
+Tens of milliseconds on the cold path (R-09-005a) is what refusing that convenience costs here, and this is where the thing being refused can be read at full size rather than imagined.
+
+**One cost of the same lineage lands on this design's own bill, and the receipt is forty years old.**
+The transputer had no MMU and no virtual memory, and the price showed up exactly where it would be expected: it inhibited porting mainstream Unix, which is why the machine got a native operating system rather than a ported one.
+§7's single address space takes the same position deliberately, and [userspace-porting.md](userspace-porting.md) is where the bill is itemized: every entry a source-level re-target rather than a binary that runs, with ambient POSIX authority re-expressed as explicit capabilities one obstacle at a time.
+The lineage offers no discount, only the confirmation that the cost is real and that it lands in porting labour rather than in mechanism.
+
+**Three cautionary trajectories close the entry, and the first two are the same trajectory twice.**
 occam's second act, occam-pi, re-added mobile channels, run-time process creation and mobile processes, which is exactly the dynamism the first act existed to exclude; XMOS is currently moving `par`, `chan` and timed ports out of a language its compiler understands and into a C library it does not, with XC maintained but no longer preferred.
 Static structure decays into dynamic API wherever nothing forces it to stay static, which is the argument for keeping the composition rules in [requirements-register.md](requirements-register.md) and [absence-contract.md](absence-contract.md), where a proof obligation and an auditor's search hold them, rather than in a runtime that can be extended by anyone in a hurry.
+
+**The third is the same decay one layer down, in silicon, and it is the strongest of the three because the experiment finished.**
+The T9000 answered the demand for performance with a 16 KB cache under random replacement, a five-stage pipeline, a *grouper* collecting instructions into packages of up to eight bytes for superscalar issue, and virtual-channel routing that freed a program from knowing the physical link layout.
+The cache under random replacement, the grouper's dynamic packing, and the virtual-channel multiplexing are the hidden-state, data-dependent class the §15 admission test refuses, and two of them put another party into this program's timing: a replacement draw the program does not make, and a peer's traffic sharing its link.
+The pipeline is the one ingredient that would pass, being the in-order kind this design also has.
+What they bought is the point: the part never reached its goal of ten times the T800, stood at roughly 36 MIPS at 50 MHz, and was cancelled.
+That is the EPIC entry's *nothing gets deleted* argument ([architectural-alternatives.md](architectural-alternatives.md)) confirmed by a machine that ran the experiment rather than argued it: what was added to claw performance back was exactly the surface a deterministic machine then has to argue about, and it did not deliver the performance either.
 
 ---
 
