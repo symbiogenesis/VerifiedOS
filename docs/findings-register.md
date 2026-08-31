@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 289 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 297 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1165,7 +1165,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-201** measurement: nothing held two declared apertures apart, the validator reading each window against the regions one at a time so that two windows at one base both passed
 · Raised: R1c-i
-· Disposition: closed, a whole-map check over every aperture the composition declares, built from the composition rather than written out
+· Disposition: closed, a whole-map check over every aperture the composition declares, its list written out one row per window with each row reading that aperture's own key and base, and K-94 holding the list against what the shipped configurations declare
 
 **F-202** measurement: the boot ROM had no extent anywhere in the tree while the attested devicetree's address was the ROM region's own base, so an image and the tree began at the same byte and nothing refused it
 · Raised: R1c-i
@@ -1183,6 +1183,39 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-205** measurement: the plan's own cell for this work stated a composition four apertures out of date, a milestone having added the root of trust's windows after the cell was written
 · Raised: R1c-i
 · Disposition: closed, the parent bullet repaired against the composition it names
+
+**F-206** measurement: five artifacts said an access inside one of the three new windows is silence, and the enclosing region's PMA decides an access before the RAM fall-through, so inside the boot ROM's region a store and an instruction fetch are access faults
+· Raised: R1c-i
+· Disposition: closed, every site repaired against the regions the composition declares, the forfeit the arm not taken is priced against being a load and not every access
+
+**F-207** owed-act: the boot ROM's extent is declared inside a region that is not executable, which refuses the one access an SoC boot ROM exists for
+· Raised: R1c-i
+· Disposition: open, a composition act at the region's attributes, taken with the top that fetches from the ROM; the attested devicetree shares the region, so turning it on makes the tree's own bytes executable
+
+**F-208** measurement: a finding stated what a search of the register returns for the boot ROM and stated a smaller set than it returns, a third entry's acceptance naming the same metal-mask ROM
+· Raised: R1c-i
+· Disposition: closed, the sentence restated as the search's own result; the conclusion is unmoved, no entry obliging an SoC boot ROM
+
+**F-209** measurement: the repair for F-205 replaced a stale enumeration with a hand-maintained aperture count nothing computes, which is the defect F-205 names
+· Raised: R1c-i
+· Disposition: closed, the count deleted rather than owned and the bullet restated as an additive claim about the artifact, with the same shape at an earlier landed cell's ROM size repaired beside it
+· Restates: F-205
+
+**F-210** measurement: the validator's whole-map list is written out one row per window and two artifacts said it was built from the composition, so a window the composition gains was held to join a check nothing made it join
+· Raised: R1c-i
+· Disposition: closed, both prose sites restated to the code's own reading and K-94 given a third hop holding that list against what the shipped configurations declare
+
+**F-211** owed-act: no register entry requires two MMIO apertures to be disjoint, the placement entry constraining the space and the attested tree and saying nothing about two windows sharing a byte, while the validator's refusal borrowed that entry's word to carry the claim
+· Raised: R1c-i
+· Disposition: open, a register act; the refusal now states the ground it has, that two devices cannot answer at one address and an attested tree naming one address twice describes a die that does not exist
+
+**F-212** measurement: a composition comment narrated the revision that produced it where the region's own opening comment already states the present state
+· Raised: R1c-i
+· Disposition: closed, the durable half kept and the narration deleted in all three shipped compositions
+
+**F-213** method: the exit-evidence sweep's model revision is a stamp taken once at cmake configure and carried in the emulator, so its dirty marker names the tree that generated the reference rather than the tree the sweep prints from
+· Raised: R1c-i
+· Disposition: standing, the marker read as the configure-time state it is; the lane's `.git` pointer is translated for the guest so the stamp resolves at all, and a completion note quoting a revision says which build it came from
 
 ## Build-loop instruments
 

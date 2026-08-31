@@ -235,7 +235,7 @@ APERTURE_TREE = "model/model/postlude/device_tree.sail"
 APERTURE_VALIDATOR = "model/model/postlude/validate_config.sail"
 
 # The name the model gives an aperture's base, keyed by the configuration path it reads
-# it from. This is what makes the rule's two hops possible at all: nothing derives
+# it from. This is what makes the rule's three hops possible at all: nothing derives
 # `plat_monotonic_base` from `platform.monotonic_counters`, so the mapping is taken from
 # the one file that writes both halves on one line.
 APERTURE_BASE_RE = re.compile(r"let\s+(plat_\w+_base)\s*:\s*physaddrbits\s*=\s*"
@@ -243,11 +243,15 @@ APERTURE_BASE_RE = re.compile(r"let\s+(plat_\w+_base)\s*:\s*physaddrbits\s*=\s*"
 DTS_REG_RE = re.compile(r"generate_dts_reg\(\s*(plat_\w+_base)\s*,")
 PMA_CALL_RE = re.compile(r'within_configured_pma_memory\("[^"]*",\s*(.*?)\);', re.DOTALL)
 PLAT_BASE_RE = re.compile(r"plat_\w+_base")
+# The rows of the whole-map disjointness list, located by the base each row takes. This
+# is the one hop whose far side is a list somebody maintains, which is exactly why it is
+# here: the other two are patterns over a call the model writes once per window.
+APERTURE_ROW_RE = re.compile(r"aps\s*=\s*\(\s*\"[^\"]*\"\s*,\s*(plat_\w+_base)\s*,")
 
 
 def aperture_placements(ctx: Context) -> None:
-    """K-94: every aperture a composition declares is placed in the attested devicetree
-    and held in IO memory by the validator.
+    """K-94: every aperture a composition declares is placed in the attested devicetree,
+    held in IO memory by the validator, and held apart from the other windows.
 
     R-15-002b puts every MMIO aperture inside the 36-bit space and makes the placement
     *a stated constraint on the attested devicetree*, which is the sentence a `reg`
@@ -257,33 +261,45 @@ def aperture_placements(ctx: Context) -> None:
     declare a window the emitter says nothing about, an emitter can carry a node for a
     window no composition declares, and a validator can pass a window nothing bounds.
 
-    **The two hops are separate because the failures are.** A missing node is an
+    **The three hops are separate because the failures are.** A missing node is an
     attested artifact that under-describes the die, and the reader who is hurt is the
-    relying party appraising the part from it. A missing validator clause is a window
-    the composition may place in main memory, or outside every region, with nothing to
-    say so until something reaches the address. Neither implies the other, and both were
-    live when this rule was written: the interrupt file and the revocation sidecar were
-    declared apertures with `within_configured_pma_memory` clauses and no node at all,
-    in a file whose own comment says each node below it carries its window under
-    R-15-002b.
+    relying party appraising the part from it. A missing `within_configured_pma_memory`
+    clause is a window the composition may place in main memory, or outside every
+    region, with nothing to say so until something reaches the address. A missing row in
+    the validator's whole-map list is a window nothing holds apart from its neighbours,
+    so two devices may be declared at one address and both validate. None implies
+    another, and the first two were live when this rule was written: the interrupt file
+    and the revocation sidecar were declared apertures with `within_configured_pma_memory`
+    clauses and no node at all, in a file whose own comment says each node below it
+    carries its window under R-15-002b.
+
+    **The third hop is the one whose far side is a list rather than a call**, which is
+    why it is worth a hop of its own. `declared_apertures` is written out row by row,
+    one row per window; each row reads its own aperture's `supported` key and base, so a
+    window switched off leaves the check by itself, and a window the composition gains
+    does not join until somebody writes a row. Without this hop that omission is silent
+    with every gate green, which is the shape of defect the other two hops exist for.
 
     **The subject is what the shipped compositions declare and not what the model can
     say.** An aperture the model reads a base for and no composition switches on is
     outside this rule rather than passing it, on K-87's ground: what a composition
     declares is what a die has, and a key set to false is a window that is not there.
 
-    Both readings are the artifacts' own. The aperture set is every `platform.<name>`
+    Every reading is the artifacts' own. The aperture set is every `platform.<name>`
     object of a shipped configuration carrying both `supported` and `base`, so a window
     added to the composition joins the rule by being added; and the name the model gives
     each one is parsed out of the file that reads the key, so a rename joins it too. The
     devicetree side is located by the one function every node states its window through
-    and the validator side by the one function every clause bounds a window with, which
-    is what keeps each hop a pattern over a call rather than a list somebody maintains.
+    and the IO-memory side by the one function every clause bounds a window with, which
+    keeps those two hops patterns over a call rather than over a list; the disjointness
+    side is located by the row form the whole-map list is written in, which is a list
+    and is precisely what that hop is there to hold.
 
-    Fail-closed on the reading, on K-67's and K-75's ground: an absent file and a
-    `platform_config.sail` that yields no aperture at all are findings rather than a
-    comparison made against nothing, and the aperture count is a member of the floors
-    group's enumerations for the case where the compositions stop declaring one.
+    Fail-closed on the reading, on K-67's and K-75's ground: an absent file, a
+    `platform_config.sail` that yields no aperture at all, and a validator whose
+    whole-map list matches no row are each a finding rather than a comparison made
+    against nothing, and the aperture count is a member of the floors group's
+    enumerations for the case where the compositions stop declaring one.
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -307,6 +323,11 @@ def aperture_placements(ctx: Context) -> None:
     for args in PMA_CALL_RE.findall(texts[APERTURE_VALIDATOR]):
         if "Some(IOMemory)" in args:
             guarded |= set(PLAT_BASE_RE.findall(args))
+    listed = set(APERTURE_ROW_RE.findall(texts[APERTURE_VALIDATOR]))
+    if not listed:
+        findings.append(f"{APERTURE_VALIDATOR} carries no row in the form the whole-map "
+                        f"check's list is written in, so no declared window has a row "
+                        f"this rule could hold it to")
 
     declared = 0
     for rel in SHIPPED_CONFIGS:
@@ -334,12 +355,19 @@ def aperture_placements(ctx: Context) -> None:
                                 f"{APERTURE_VALIDATOR} holds it inside no IO memory "
                                 f"region, so a composition may place it in main memory "
                                 f"or outside every region and nothing says so")
+            if ident not in listed:
+                findings.append(f"{rel} declares the aperture `{name}` and "
+                                f"{APERTURE_VALIDATOR}'s whole-map list carries no row "
+                                f"for it, so nothing holds that window apart from the "
+                                f"others and two devices declared at one address both "
+                                f"validate")
 
     ctx.shared["declared_apertures"] = declared
     rep.report("K-94", "declared aperture(s) the model does not place:", findings,
                f"each of the {declared} apertures the {len(SHIPPED_CONFIGS)} shipped "
-               f"configurations declare carries a `reg` in the attested devicetree and a "
-               f"validator clause holding it inside a configured IO memory region")
+               f"configurations declare carries a `reg` in the attested devicetree, a "
+               f"validator clause holding it inside a configured IO memory region, and a "
+               f"row in the list the whole-map check walks")
 
 
 # The exclusion row of the profile's §6 that names its extensions inline rather than one

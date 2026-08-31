@@ -336,11 +336,14 @@ private function ranges_overlap(base_a : bits(64), size_a : bits(64), base_b : b
 // Every aperture this composition declares, as the (name, base, size) triples
 // the disjointness check below walks.
 //
-// **This is the one list of the address map and it is built rather than
-// written**, which is what keeps it from becoming a second declaration of the
-// map: each row is guarded by that aperture's own `supported` key and takes that
-// aperture's own base, so a window added to the composition joins the check by
-// joining this list and a window whose composition turns it off leaves it. The
+// **This list is written out row by row and every row reads the composition**,
+// and both halves of that are load-bearing: a window whose composition turns it
+// off leaves the check on its own `supported` key and every row takes its own
+// aperture's base, so no value of the map is restated here; but a window the
+// composition gains does not join the check until a row is added for it. That
+// second half is held by rule rather than by attention, K-94 reading this list
+// against what the shipped configurations declare, so an aperture declared with
+// no row here is a finding (tools/vos/checks/counts_configs.py). The
 // revocation window is the one whose size is not a key: the bitmap's width is
 // fixed by the plane it covers (core/revocation.sail), exactly as it is where
 // `check_mem_layout` holds the same window in IO memory.
@@ -370,7 +373,7 @@ private function check_aperture_against_rest(name : string, base : bits(64), siz
         ok = false;
         print_endline("The " ^ name ^ " aperture at " ^ bits_str(base) ^ " overlaps the " ^ other_name ^
                       " aperture at " ^ bits_str(other_base) ^
-                      "; the physical address map is dense and each aperture is placed beside the others rather than over one.");
+                      "; two devices cannot answer at one address, and an attested devicetree naming one address twice describes a die that does not exist.");
       };
       // Both halves are evaluated rather than short-circuited, so a composition
       // that has placed two apertures wrong is told about both.
@@ -389,16 +392,21 @@ private function check_apertures_disjoint(aps : list((string, bits(64), bits(64)
     },
   }
 
-// The address map as a whole (R-15-002b), which is the reading `check_mem_layout`
+// The address map as a whole, which is the reading `check_mem_layout`
 // structurally cannot take: that function holds each aperture inside a region of
 // the right kind, one aperture at a time, and two apertures declared at the same
 // base are both inside the same IO memory region and both pass it. Nothing else
-// in this file reads two apertures against each other, so before this a
+// in this file reads two apertures against each other, so without this a
 // composition could put the interrupt file on top of the CLINT and validate.
 //
-// The attested devicetree is the other reader of the same fact: R-15-002b makes
-// the placement a stated constraint on that tree, and a tree whose nodes name one
-// address twice states a map no die has.
+// **What grounds this refusal is not R-15-002b, and saying so is part of it.**
+// That entry places every aperture inside the 36-bit space with none scattered at
+// a wide power-of-two offset, and makes the placement a stated constraint on the
+// attested devicetree (R-09-007); it says nothing about two apertures sharing a
+// byte, and no other entry does either. So the ground here is that two devices
+// cannot answer at one address and that a tree naming one address twice states a
+// map no die has. That no entry requires it is filed as a gap against the
+// register rather than read into R-15-002b (docs/findings-register.md).
 private function check_aperture_map() -> bool = {
   var valid : bool = check_apertures_disjoint(declared_apertures());
 
