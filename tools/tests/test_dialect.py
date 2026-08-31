@@ -1,21 +1,28 @@
 # SPDX-License-Identifier: Apache-2.0
 """The dialect table's encodings, pinned word by word.
 
-Every row of `dialect.TABLE` is transcribed from the curated model's `mapping
-clause encdec`, so the model (model/model/) is the authority behind every golden
-word here, not the RISC-V manuals: the rows deliberately diverge where the model
-does. Nothing else on the host pins a single encoding; a flipped funct7 bit
-would otherwise pass every gate and surface only as a digest mismatch inside a
-WSL emulator run. On a golden mismatch, read the row's `encdec` clause before
-touching either side, and never repair a red run by rerecording alone.
+Every row of `dialect.TABLE` is **generated** from the curated model's `mapping clause
+encdec` and its `mapping clause assembly`, so the model (model/model/) is the authority
+behind every golden word here, not the RISC-V manuals: the rows deliberately diverge
+where the model does. Nothing else on the host pins a single encoding; a flipped funct7
+bit would otherwise pass every gate and surface only as a digest mismatch inside a WSL
+emulator run. On a golden mismatch, read the row's `encdec` clause before touching
+either side, and never repair a red run by rerecording alone.
+
+The generation is why these words matter more than they did, not less. A transcription
+goes wrong one row at a time; a generator goes wrong by a rule, and a rule wrong about
+the positional binding between the two clauses moves forty-nine rows at once with the
+count unchanged.
 """
 
+import json
 from collections.abc import Callable
 from contextlib import suppress
+from pathlib import Path
 from typing import Final
 
 from tests.harness import Case, ensure
-from vos import asm, dialect
+from vos import asm, corpus, dialect, dialectgen
 from vos.dialect import AsmError
 
 # One recorded word per operand kind, and one per row family whose encoding the
@@ -42,7 +49,11 @@ _GOLDEN: Final[tuple[tuple[str, tuple[int, ...], int, int], ...]] = (
     ("sc", (7, 16, 9), 0x0, 0x0074C823),
     ("beq", (1, 2, 0x100), 0x80, 0x08208063),
     ("bltu", (1, 2, 0x40), 0x80, 0xFC20E0E3),
-    ("lui", (3, 0xFFFFF), 0x0, 0xFFFFF1B7),
+    # The word is the one that was always recorded and the operand is written the way
+    # the model reads it: `UTYPE`'s execute clause is `sign_extend(imm @ 0x000)`, so the
+    # upper immediate's admitted range is signed and `0xFFFFF` is spelled `-1`. The bits
+    # are unchanged, `lui` masking its operand into twenty either way.
+    ("lui", (3, -1), 0x0, 0xFFFFF1B7),
     ("auipcc", (3, 1), 0x0, 0x00001197),
     ("clz", (1, 2), 0x0, 0x60011093),
     ("rev8", (1, 2), 0x0, 0x6B815093),
@@ -92,13 +103,21 @@ _GOLDEN: Final[tuple[tuple[str, tuple[int, ...], int, int], ...]] = (
     ("vs1r.v", (1, 2), 0x0, 0x028100A7),
     ("vlm.v", (1, 2), 0x0, 0x02B10087),
     ("vsm.v", (1, 2), 0x0, 0x02B100A7),
+    # Four rows the transcription never carried, recorded when generation reached them
+    # (M1.4'). `vadc.vvm` is the one operand shape no other row here has: the mask
+    # register printed as a literal, so a program writes `v0` and the encoding carries
+    # nothing for it.
+    ("vadd.vv", (1, 2, 3, 1), 0x0, 0x022180D7),
+    ("vand.vi", (1, 2, -16, 0), 0x0, 0x242830D7),
+    ("vmul.vv", (1, 2, 3, 1), 0x0, 0x9621A0D7),
+    ("vadc.vvm", (1, 2, 3), 0x0, 0x402180D7),
 )
 
 # One operand text per spec `asm._operand` dispatches on. A spec named by a KINDS
 # row and absent here fails the structural case below with instructions.
 _OPERAND_TEXT: Final[dict[str, str]] = {
     "reg": "x1", "vreg": "v1", "vm": "", "imm": "0", "sym": "0", "csr": "0x300",
-    "scr": "pcc", "index": "c1[x2 << 1]", "mem": "0(x1)", "mem0": "(x1)",
+    "scr": "pcc", "index": "c1[x2 << 1]", "mem": "0(x1)", "mem0": "(x1)", "v0": "v0",
 }
 
 
@@ -125,32 +144,51 @@ def _golden_words() -> None:
 
 
 def _golden_covers_every_kind() -> None:
-    hit = {dialect.TABLE[mnemonic][0] for mnemonic, _, _, _ in _GOLDEN}
-    ensure(hit == set(dialect.KINDS),
-           f"the golden table exercises no row of kind(s) "
-           f"{sorted(set(dialect.KINDS) - hit)}: add one per new kind")
+    used = {kind for row in dialect.TABLE.values() for kind in row.signature}
+    hit = {kind for mnemonic, _, _, _ in _GOLDEN
+           for kind in dialect.signature(mnemonic)}
+    ensure(hit == used,
+           f"the golden table exercises no row using operand kind(s) "
+           f"{sorted(used - hit)}: add one per kind the table uses")
 
 
 def _row_count() -> None:
-    # 353 rows as of corpus version 7, the two above 351 being the FEC pair
-    # M0.8d books (R-15-119b). A milestone adding mnemonics moves this
-    # legitimately: rerecord as len(dialect.TABLE) after reading the batch that
-    # added them. What this pins is a row dropped by nobody's decision.
-    ensure(len(dialect.TABLE) == 353,
-           f"TABLE carries {len(dialect.TABLE)} rows, recorded 353")
+    """The table's size, against the artifact that determines it.
+
+    Held rather than recorded, which is the whole of what generation changed here: the
+    row count is a function of the model and the admission policy, so a number written
+    down beside it would be a second statement of one fact and would have to be
+    rerecorded every time the model moved. What this still pins is the two ways the
+    count can be wrong without anybody deciding it: a generated row silently absent from
+    what this module loads, and the one authored row going missing beside it.
+    """
+    root = corpus.find_root(Path(__file__).resolve())
+    raw = json.loads((root / dialectgen.TABLE).read_text(encoding="utf-8"))
+    admitted = int(raw["header"]["admitted"])
+    ensure(len(dialect.TABLE) == admitted + 1,
+           f"TABLE carries {len(dialect.TABLE)} rows against the {admitted} the "
+           f"generated artifact admits plus the one authored `fence`")
+    ensure("fence" in dialect.TABLE, "the one authored row is gone from the table")
+    # A floor under the generated half, on the ground the floors group states: the day
+    # the join stops matching anything is the day this says so rather than the day it
+    # starts agreeing with everything. 353 is what the transcription this replaced
+    # carried, so the generated table may not fall below it without a decision.
+    ensure(admitted >= 353,
+           f"the generated table admits {admitted} rows, fewer than the 353 the "
+           f"transcription it replaced carried")
 
 
 def _operand_specs_dispatch() -> None:
-    # Every operand-spec string a KINDS row names must be one `asm._operand`
-    # dispatches on; a typo'd spec otherwise fails only when a corpus program
-    # first uses that kind, as an AssertionError deep in the assembler.
+    # Every operand kind a row's signature names must be one `asm._operand` dispatches
+    # on; a kind the generator emits and the parser does not know otherwise fails only
+    # when a program first uses it, as an AssertionError deep in the assembler.
     assembler = asm.Assembler("")
     item = asm.Item("insn", 1, ".text", text="probe")
-    for kind_name, kind in dialect.KINDS.items():
-        for spec in kind.operands:
+    for mnemonic, row in dialect.TABLE.items():
+        for spec in row.signature:
             ensure(spec in _OPERAND_TEXT,
-                   f"kind {kind_name!r} names operand spec {spec!r} with no "
-                   f"representative text in this module: add one to _OPERAND_TEXT")
+                   f"{mnemonic} names operand spec {spec!r} with no representative "
+                   f"text in this module: add one to _OPERAND_TEXT")
             # An AsmError is a fine answer (the probe text was refused as a
             # program); only the no-such-spec AssertionError may not escape.
             with suppress(AsmError):
@@ -193,27 +231,52 @@ def _csr_range_names_the_line() -> None:
 
 
 def _vkeccak_rounds() -> None:
+    # The refusal was a hand rule quoting the clause and is now the clause: the guard
+    # `keccak_valid_rounds(rnd)` is read out of the model and carried to the site, so
+    # the diagnostic names the predicate rather than restating what it admits.
     for rounds in (0, 1, 11, 13, 16, 23, 25, 31):
         _raises(AsmError,
                 lambda r=rounds: dialect.encode("vkeccak.vi", [1, 2, r], 0),
-                "12 or 24 rounds")
+                "rnd of 12, 24", "keccak_valid_rounds")
     ensure(dialect.encode("vkeccak.vi", [1, 2, 12], 0) == 0x00C1208B,
            "the 12-round form must still encode")
 
 
 def _lc_null_destination() -> None:
-    # At a zero destination the bit pattern is the cache-block block's, so the
-    # encoder refuses rather than laying down `cbo.zero`.
-    _raises(AsmError, lambda: dialect.encode("lc", [0, 0, 1], 0), "cache-block")
+    # At a zero destination the bit pattern is the cache-block block's, so the encoder
+    # refuses rather than laying down `cbo.zero`. This too is now the model's own guard
+    # rather than a rule beside it, so the diagnostic quotes `cd != zreg`.
+    _raises(AsmError, lambda: dialect.encode("lc", [0, 0, 1], 0), "cd != zreg")
     ensure(dialect.encode("lc", [1, 0, 2], 0) == 0x0001208F,
            "a non-null destination must still encode")
 
 
+def _operand_width_guard() -> None:
+    # Every field's width now comes from the model, so a register past its five bits is
+    # the operand diagnostic every other program defect gets rather than the 32-bit
+    # assertion it used to reach.
+    _raises(AsmError, lambda: dialect.encode("add", [1, 1, 4096], 0),
+            "register 4096", "outside", "[0, 31]")
+
+
 def _overflow_guard() -> None:
-    # `encode` takes raw integers, so a field past its slot must die at the
-    # 32-bit guard rather than corrupt the neighbouring field silently.
-    _raises(AssertionError, lambda: dialect.encode("add", [1, 1, 4096], 0),
-            "outside 32 bits")
+    """The 32-bit guard, which no operand can reach any more and still must be there.
+
+    Its subject moved with the table: it used to catch an over-wide operand and now
+    catches a *row* whose placement runs past the word, which is a defect in the
+    generator rather than in a program. Seeded here rather than argued about, because a
+    guard nothing exercises is a guard nobody notices the deletion of.
+    """
+    row = dialect.TABLE["add"]
+    broken = dialect.Row(
+        ctor=row.ctor, site=row.site, word=1 << 32, mask=row.mask, guard=row.guard,
+        signature=row.signature, slots=row.slots, requires=row.requires)
+    dialect.TABLE["_probe"] = broken
+    try:
+        _raises(AssertionError, lambda: dialect.encode("_probe", [1, 1, 1], 0),
+                "outside 32 bits")
+    finally:
+        del dialect.TABLE["_probe"]
 
 
 def cases() -> list[Case]:
@@ -228,5 +291,6 @@ def cases() -> list[Case]:
         Case("csr-range-names-the-line", _csr_range_names_the_line),
         Case("vkeccak-rounds", _vkeccak_rounds),
         Case("lc-null-destination", _lc_null_destination),
+        Case("operand-width-guard", _operand_width_guard),
         Case("overflow-guard", _overflow_guard),
     ]

@@ -70,6 +70,7 @@ from typing import cast
 from vos import corpus as corpus_mod
 from vos.coread import LEDGER
 from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
+from vos.dialectgen import TABLE as DIALECT_TABLE
 from vos.figures import words
 from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
@@ -1412,6 +1413,20 @@ CASES: list[Case] = [
     ("K-88", "a generated artifact edited by hand, one token off the bytes its "
              "generator wrote",
      _literal(BUNDLE, '"embedding":"plain"', '"embedding":"plane"')),
+
+    # A second case for K-88, because the rule's two lanes are two readings and a case
+    # seeded at one proves nothing about the other. The case above moves a *guest* row's
+    # artifact off the blob the index holds, which is the whole of what a lane with no
+    # emitter can decide. This one moves a *host* row's artifact off what its generator
+    # would write now, which is the stronger claim and the one the host lane exists to
+    # make: the generator runs at the gate, so the comparison is against the bytes
+    # rather than against the last commit of them.
+    #
+    # The constructor name is the anchor for the reason `embedding` is the other one:
+    # `dialect.py` reads a row's word, its mask and its slots and never its constructor,
+    # so seeding it changes what this rule decides and what no other rule reads.
+    ("K-88", "a host-lane generated artifact one token off what its generator writes",
+     _literal(DIALECT_TABLE, '"ctor": "RTYPE"', '"ctor": "RTYPEX"')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
