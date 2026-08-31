@@ -586,7 +586,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
 
 
 # =====================================================================================
-# the cases: one mutant per rule, each stating the defect it seeds
+# the cases: at least one mutant per rule, each stating the defect it seeds
 # =====================================================================================
 #
 # A case is either a literal substitution or, where the defect is structural, a

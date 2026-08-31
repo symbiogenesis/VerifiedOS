@@ -2,8 +2,8 @@
 """The seeded-defect generator: mutants produced from a source, not written by hand.
 
 [run.py selftest](cli/selftest.py) proved the method on the checker's own rules and
-proved it the expensive way: one mutant per rule, each authored, each stating in
-prose the defect it seeds. That is the right shape for a *registry*, where a rule and
+proved it the expensive way: at least one mutant per rule, each authored, each stating
+in prose the defect it seeds. That is the right shape for a *registry*, where a rule and
 its mutant are two halves of one claim, and it is the wrong shape for an artifact with
 no registry behind it. A Sail function and a Gallina definition have hundreds of sites
 each and nobody is going to write hundreds of cases; what they need is an engine that
