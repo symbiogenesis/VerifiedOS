@@ -2,7 +2,7 @@
 //
 // The model's own answers about the capability format, printed as text.
 //
-// This is the model side of the cross-check `tools/rtl.py crosscheck` runs, and
+// This is the model side of the cross-check `tools/run.py rtl crosscheck` runs, and
 // the method is M2.1's rather than a new one: compile the curated model's own
 // `prelude`, `core/xlen.sail`, `core/cap_format.sail` and `core/cap_common.sail`
 // together with this generator, call those functions, print what they return, and

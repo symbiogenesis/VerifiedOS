@@ -9,9 +9,9 @@ have hundreds of mutable sites each and nobody is going to author hundreds of ca
 So [vos/mutate.py](../mutate.py) generates the population and this tool points it at
 an **oracle**, which is whatever decides that a defect has been noticed:
 
-    seed.py sail --spec capformat     the generated vectors, which must move
-    seed.py coq                       the prover, and then the Gallina vectors
-    seed.py properties --file ...     the model's own `$[test]` harness
+    run.py seed sail --spec capformat   the generated vectors, which must move
+    run.py seed coq                     the prover, and then the Gallina vectors
+    run.py seed properties --file ...   the model's own `$[test]` harness
 
 Three verdicts and never two. **Stillborn** is a mutant that did not compile, and
 nothing was decided about the oracle because the oracle never ran. **Killed** is a

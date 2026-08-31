@@ -9,7 +9,7 @@ each member exercises; [docs/differential-corpus.md](../../docs/differential-cor
 carries the same rows in prose and `tools/check.py` holds the two equal in both
 directions.
 
-This module is the parse. The runner is `model.py corpus`, which needs a built
+This module is the parse. The runner is `run.py model corpus`, which needs a built
 emulator; the checker only assembles, which needs nothing but Python, so a
 corpus that has stopped assembling is a finding on the host rather than a
 surprise in WSL.
@@ -34,7 +34,7 @@ class Member:
     # manifest carries no prose: what each member exercises is the document's,
     # said once. `checks` is the highest check number the program sets, and
     # `records`/`digest` are its commit trace's length and fingerprint. All
-    # three move together under `model.py corpus --refresh`.
+    # three move together under `run.py model corpus --refresh`.
     checks: int = 0
     records: int = 0
     digest: str = ""

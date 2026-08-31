@@ -80,7 +80,7 @@ def shipped_configurations(ctx: Context) -> None:
     whose roster puts the composed hart on a class whose declared geometry is not the
     one the run realizes, but it sees one file at a time and only when a run happens
     (postlude/validate_config.sail), and no build loop here hands it anything but the
-    primary; `model.py config-keys` compares a configuration against the *generated* one
+    primary; `run.py model config-keys` compares a configuration against the *generated* one
     and answers about keys rather than values. So each non-primary file is a
     six-hundred-line near-copy with no instrument over the copying, which is the
     two-copies-of-one-fact defect this checker exists to catch, sitting inside the
@@ -134,7 +134,7 @@ def shipped_configurations(ctx: Context) -> None:
                  if len(rels) > 1]
 
     # Leaf paths rather than every key path, which is what `keys` counts and what
-    # `model.py config-keys` reports: the question here is what the files *say*, so the
+    # `run.py model config-keys` reports: the question here is what the files *say*, so the
     # figure is the values compared and not the surface declaring them.
     ctx.shared["shipped_config_values"] = len(primary)
     rep.report("K-65", "shipped configuration(s) that are not one model's:", findings,

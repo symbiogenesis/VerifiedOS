@@ -122,7 +122,7 @@ def excluded_forms(ctx: Context) -> None:
     """K-66: no form the profile excludes is still on the model's decode surface.
 
     The profile's §6 excludes by name and the model implements by clause, and until
-    this rule nothing held the two together. `model.py sweep` does not: it runs the profile
+    this rule nothing held the two together. `run.py model sweep` does not: it runs the profile
     configuration against upstream `riscv-tests` and counts refusals of *those*
     programs, which is conformance against an external corpus and not a claim that the
     model implements only what the profile admits. Its figure reads the same whether or

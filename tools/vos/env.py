@@ -84,7 +84,7 @@ MODEL_TREE = "verifiedos-model"
 # build hands it to the simulator, so `Environment.profile` composes the path once.
 PROFILE_CONFIG = "config/verifiedos.json"
 
-# Set by `model.py build --background` on the child it detaches, which inherits the
+# Set by `run.py model build --background` on the child it detaches, which inherits the
 # lock the parent already took rather than taking a second one. Internal, and named
 # rather than spelled at both ends.
 BUILD_LOCK_HELD = "VOS_BUILD_LOCK_HELD"
@@ -500,7 +500,7 @@ def git_dir(root: Path) -> Path | None:
     What that costs is not cosmetic. cmake's `git describe` is one of those runs, so it
     fails at configure and the emulator stamps itself `unknown commit`, which is the
     exact state M0.10 exists to end and which building in a worktree silently restores.
-    `model.py reference` is the gate that catches it, and in a lane it caught it.
+    `run.py model reference` is the gate that catches it, and in a lane it caught it.
 
     `wslpath` does the translation rather than a rule about `/mnt`, because the mount
     root is configurable and the tool that knows it ships with the guest. A pointer that
@@ -602,7 +602,7 @@ def build_lock(build_dir: Path) -> IO[str] | None:
     handle, holder = _try_lock(build_dir)
     if handle is None:
         raise SystemExit(f"a build already holds {build_dir} (pid {holder}); wait on it "
-                         f"with `model.py wait`, or build in a worktree of your own")
+                         f"with `run.py model wait`, or build in a worktree of your own")
     return handle
 
 
