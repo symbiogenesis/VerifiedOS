@@ -1188,8 +1188,8 @@ CASES: list[Case] = [
     # the defect takes: a pin bumped where it is enforced or where it is read first,
     # with the other copies going stale behind it.
     ("K-67", "a README pin drifted from the version typecheck.py fixes",
-     _literal("tools/README.md", "uv tool install ty==0.0.74",
-              "uv tool install ty==0.0.73")),
+     _literal("tools/README.md", "uv tool install ty==0.0.75",
+              "uv tool install ty==0.0.74")),
 
     # One site of a fact two pairs state is reworded while its siblings stand, which
     # is the drift K-61 cannot see: the edited pair blesses on its own two sides and
