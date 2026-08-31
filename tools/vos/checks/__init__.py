@@ -21,7 +21,7 @@ group's scan reads every module in this directory, so a rule id in one of those
 files is carried exactly as one in a group module is.
 
 Adding a rule is three edits and no more: the check, its row in `check-rules.md`,
-and its mutant in `check-selftest.py`. The meta group holds the first two in
+and its mutant in `vos/cli/selftest.py`. The meta group holds the first two in
 agreement and the selftest holds the third, so none of them can be forgotten
 quietly.
 """

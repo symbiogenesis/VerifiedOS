@@ -2,7 +2,7 @@
 """The reporting convention, held to the shape its callers parse.
 
 `Reporter`'s `FAIL `/`ok ` prefixes and seven-space finding indent are parsed by
-check-selftest.py, so the exact strings are API rather than styling, and these
+the selftest, so the exact strings are API rather than styling, and these
 cases pin them as such: a reformat that reads better and breaks the selftest's
 stdout grep must fail here first, beside the module that made the promise.
 """

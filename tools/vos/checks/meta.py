@@ -89,7 +89,7 @@ being the floor: an empty roster or an empty window reports here, on the day it
 empties, rather than passing vacuously for as long as nobody looks.
 
 The path half takes two carve-outs and both are declared rather than dodged: this module
-names the quarantine's directory in order to find it, and check-selftest.py has to spell
+names the quarantine's directory in order to find it, and the selftest has to spell
 the coupling in order to seed the mutant that proves this rule bites. The alternative was
 to write both so the rule's own pattern would miss them, which is a rule written around
 its own text. The *import* half takes no carve-out at all, so the two files the path half
