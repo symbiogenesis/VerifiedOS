@@ -35,8 +35,14 @@ the idle timer.
 owners this file cannot import as an argument vector: uv's own installation, the
 creation of an opam root, and the CertiRocq oracle's switch, whose recipe lives in
 [tools/wasm-oracle/README.md](../../wasm-oracle/README.md) as prose for a person.
-Those rows report and plan nothing, because inventing a command for a route no artifact
-states would be the unowned derived fact the working rules refuse.
+Inventing a command for one of them would be the unowned derived fact the working
+rules refuse. Two of the three are rows here, `uv` and the oracle switch; the third
+is a route no row probes, the `opam` row installing the binary and nothing asking
+whether a root exists. Two further rows carry no command for reasons of their own: the
+interpreter floor is the interpreter taking the probe, which nothing it runs can
+replace, and the cache invariant's repair is to give a lane a copy rather than to
+delete somebody's warm cache. Every figure any document states about this table is a
+count over `FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision              # what is here and what is not
     python tools/run.py provision --apply      # and install what is not
@@ -83,8 +89,9 @@ APT: tuple[str, ...] = ("apt-get", "install", "-y")
 # The two groups, and what separates them. `gate` is what the three host gates and the
 # tools' own tests want and nothing more, which is the split I8 already drew between
 # quick checks and canonical ones; `toolchain` is everything a model, RTL, oracle or
-# prover loop drives. The split is a narrowing rather than a schedule: what runs where
-# is S14's to decide, and this only makes the question askable.
+# prover loop drives. The split is a narrowing rather than a schedule: nothing here
+# decides what runs where, S14 having declined the workflow that would have, so this
+# makes the question askable and leaves it open.
 GATE = "gate"
 TOOLCHAIN = "toolchain"
 GROUPS: tuple[str, ...] = (GATE, TOOLCHAIN)
