@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 243 of them across 57 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 252 of them across 58 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -945,6 +945,42 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-166** owed-act: whether a statically composed image re-admits on device or measured boot covers it is unruled, and the split of the admission-checker milestone rests on it
 · Raised: M6.2, in prose
 · Disposition: closed, taken at M6.2: measured boot covers a statically composed image, on R-13-001c's own statement of the composer and of the device's act
+
+**F-190a** owed-act: two enumerations the admission path depends on, the judgment forms and the checker phases, are closed in a pinned language document and nowhere in the register, so an eighth form or a seventh phase is not a register edit and the review gate never reads it
+· Raised: M6.2a
+· Disposition: open, the counts taken from the pinned document and cited there rather than restated as the register's
+
+**F-190b** owed-act: the two lowest tiers state their evidence in a vocabulary the type-level obligation rows do not carry, functional refinement, non-interference, handler termination and information-flow theorems being placed outside every type system by the entry that names them
+· Raised: M6.2a
+· Disposition: open, the type-checker given the memory and ABI half one entry hands it and no more, and the per-tier required sets past Tier 2's left as fields
+
+**F-190c** owed-act: no entry pairs a judgment form with the obligation facet it discharges, one block fixing the forms and another fixing the obligations with nothing joining them
+· Raised: M6.2a
+· Disposition: open, so the checker requires a form to be recognised and requires nothing about which one it is, and that freeness is machine-checked rather than assumed
+
+**F-190d** owed-act: a tier-local admission check sits outside every enumeration, the Tier-2 certificate carrying a manifest-consistency check its own entry calls not one of the eleven
+· Raised: M6.2a
+· Disposition: open, a required check no list carries
+
+**F-190e** owed-act: no entry says whether a roster may name one identifier twice, content addressing and deduplication both suggesting an identifier is a key and neither making a roster with two packages at one identifier malformed
+· Raised: M6.2a
+· Disposition: open
+
+**F-190f** owed-act: which side of the admissible-versus-current line the composition-time act stands on is undecided, one entry making proofs generation-scoped and another separating the two without saying which versions composition compares against, with the pinned document adding a decoder version to a verdict's key that no entry names
+· Raised: M6.2a
+· Disposition: open, all four declared versions carried and compared componentwise so the choice is a reading rather than a mechanism
+
+**F-190g** owed-act: two facet partitions of one obligation-row set are in force, the register's move table and the pinned document splitting it to different widths, and neither says which partition a derivation's discharge records name
+· Raised: M6.2a
+· Disposition: open, the three extra splits measured to take their rows' moves so no verdict turns on the choice, which is what makes the ambiguity survivable rather than absent
+
+**F-190h** owed-act: no entry assigns a component to a tier, the three tiers being defined and every roster choosing its own
+· Raised: M6.2a
+· Disposition: open, so a composed generation's tier assignment is a composition magnitude rather than a reading
+
+**F-191** measurement: a field no admission rule reads is a field a weakening moves in silence, which is the hazard the no-privileged-producer clause creates and which forty-six of one item's fifty-five seeded survivors were
+· Raised: M6.2a, in prose
+· Disposition: open, closed at the item by pinning every witness's pedigree and identity figures in a ledger rather than by narrowing the population, and standing as the shape any artifact carrying unread fields will meet
 
 **F-167** owed-act: the typed interface profile the ring contract is stated in is carried by no path in the tree and authored by no milestone here
 · Raised: M6.4, in prose
