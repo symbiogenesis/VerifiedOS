@@ -265,15 +265,15 @@ a case.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | 0.0.74 | Every expression, against the types it can infer, with `--error all` |
-| [ruff](https://github.com/astral-sh/ruff) | 0.16.4 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
+| [ty](https://github.com/astral-sh/ty) | 0.0.75 | Every expression, against the types it can infer, with `--error all` |
+| [ruff](https://github.com/astral-sh/ruff) | 0.16.5 | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
 annotations contradicts nothing and is invisible to it; ruff's `ANN` group is what makes
 coverage a rule. Both are pinned for the reason Rocq and z3 are pinned, and a version
 other than the pinned one is a finding rather than a warning.
 
-Both install with `uv tool install ty==0.0.74` and `uv tool install ruff==0.16.4`, one
+Both install with `uv tool install ty==0.0.75` and `uv tool install ruff==0.16.5`, one
 command each because a uv tool install is one environment holding one pinned tool. That
 isolation is the point rather than a side effect: neither checker is a dependency of
 anything here, so neither belongs in the environment ty resolves this directory's own

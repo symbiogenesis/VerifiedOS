@@ -49,8 +49,8 @@ from vos.report import Reporter
 # is what uv's tool installs are: one environment each, holding one pinned tool and
 # nothing else. Neither is a dependency of anything here, so neither belongs in the
 # environment ty resolves this directory's imports against.
-TY_VERSION = "0.0.74"
-RUFF_VERSION = "0.16.4"
+TY_VERSION = "0.0.75"
+RUFF_VERSION = "0.16.5"
 
 # How many findings of one rule are printed before the rest are counted. A run that
 # has just switched a rule on is a list of hundreds of one thing, and the verdict is
