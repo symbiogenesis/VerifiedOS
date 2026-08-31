@@ -147,6 +147,47 @@ let plat_have_watchdog : bool = config platform.watchdog.supported
 let plat_watchdog_base : physaddrbits = to_bits_checked(config platform.watchdog.base : int)
 let plat_watchdog_size : physaddrbits = to_bits_checked(config platform.watchdog.size : int)
 
+// The three devices beside the core (R-15-002b): the SoC boot ROM, the serial
+// port, and the block device. What obliges each to exist is the implementation
+// plan's R1; what obliges its placement to be declared is R-15-002b, which puts
+// every MMIO aperture inside the 36-bit space and makes the placement a stated
+// constraint on the attested devicetree.
+//
+// **These three are placements and nothing else, and the asymmetry with the
+// eight above is deliberate.** Each of those has a slave in sys/platform.sail
+// that either answers or refuses; none of these has one, because no register
+// entry gives a serial port or a block device a register interface and the
+// devices themselves are route-(c) references arriving with the SoC top written
+// over this map. So the only readers of these six values are the attested
+// devicetree, which carries the placement R-15-002b requires it to state, and
+// the validator, which refuses a composition that places one wrong
+// (postlude/device_tree.sail, postlude/validate_config.sail).
+//
+// The cost of that is stated rather than absorbed, and the enclosing region's
+// PMA decides how much of it there is: an IO address no device claims falls
+// through to the RAM path (sys/mem.sail), but `pmaCheck` runs ahead of that
+// fall-through, so what is silent is only what the region already permits. The
+// serial port and the block device sit in a readable and writable IO region, so
+// a load and a store inside either are the RAM path's until the top lands. The
+// boot ROM's region is readable and neither writable nor executable, so a load
+// there reads zero while a store or an instruction fetch is an access fault the
+// region raises today; the fetch is the one access an SoC boot ROM exists for,
+// and that region's `executable` is R1c-ii's to decide with the attested tree
+// sharing the region. Either way this is the opposite disposition from the
+// memory sequencer's window and the RoT's four, and the reason is that their
+// refusal is permanent where these are doors whose device has not arrived.
+let plat_have_boot_rom : bool = config platform.boot_rom.supported
+let plat_boot_rom_base : physaddrbits = to_bits_checked(config platform.boot_rom.base : int)
+let plat_boot_rom_size : physaddrbits = to_bits_checked(config platform.boot_rom.size : int)
+
+let plat_have_uart : bool = config platform.uart.supported
+let plat_uart_base : physaddrbits = to_bits_checked(config platform.uart.base : int)
+let plat_uart_size : physaddrbits = to_bits_checked(config platform.uart.size : int)
+
+let plat_have_blkdev : bool = config platform.blkdev.supported
+let plat_blkdev_base : physaddrbits = to_bits_checked(config platform.blkdev.base : int)
+let plat_blkdev_size : physaddrbits = to_bits_checked(config platform.blkdev.size : int)
+
 let plat_insns_per_tick : nat1 = config platform.instructions_per_tick
 
 // The spine frequency (R-15-195). Two things read it: the generated devicetree
