@@ -94,6 +94,11 @@ _QUOTED_RE = re.compile(r'^"(.*)"$', re.DOTALL)
 # one string, which is what a lower bound on that clause's spelling is made of.
 _TEXT_LITERAL_RE = re.compile(r'"([^"]*)"')
 
+# An `enum` declaration's member list, which the emitter carries as the declaration's own
+# source text rather than as a structured member array. One scan for the braces, because
+# what is inside them is a comma-separated run of names and nothing else in this corpus.
+_ENUM_RE = re.compile(r"^\s*enum\s+\w+\s*=\s*\{(.*)\}\s*$", re.DOTALL)
+
 
 class BundleError(RuntimeError):
     """The bundle is there and is not the artifact this reader was written against.
@@ -253,6 +258,115 @@ class Bundle:
             raise BundleError(f"the model declares no let {name}")
         return str(source.get("contents", ""))
 
+    def let_value(self, name: str) -> str:
+        """A top-level `let`'s right-hand side alone.
+
+        Beside `let_text` rather than instead of it, because the two answer different
+        questions: a rule holding the *declaration* wants the whole line it would send a
+        person to, and an evaluator wants the expression without the name and the type
+        annotation in front of it, which no split of the declaration recovers reliably.
+        """
+        entry = self._map("lets").get(name)
+        exp = entry.get("let", {}).get("exp") if isinstance(entry, dict) else None
+        if not isinstance(exp, dict):
+            raise BundleError(f"the model declares no let {name}")
+        return str(exp.get("contents", ""))
+
+    def has(self, kind: str, name: str) -> bool:
+        """Whether the model declares `name` in one of the bundle's maps.
+
+        One predicate over a named map rather than four `has_*`, because the caller that
+        needs it is resolving a name against every kind in turn and a fixed set of
+        accessors would decide the order here instead of there.
+        """
+        return name in self._map(kind)
+
+    def registers(self) -> frozenset[str]:
+        """Every register the model declares.
+
+        The set an evaluator asks *is this machine state*, which is the one question
+        that can be answered soundly without reading the state itself.
+        """
+        return frozenset(self._map("registers"))
+
+    def enum_members(self) -> dict[str, tuple[str, int]]:
+        """Each enum member, against the enum that declares it and its position in it.
+
+        The position is what makes `vector_support_level >= Full` decidable: the model
+        orders an enum by declaration and compares members with the ordering operators,
+        so a reader carrying names alone could not answer the comparison at all.
+        """
+        out: dict[str, tuple[str, int]] = {}
+        for name, entry in self._map("types").items():
+            slot = entry.get("type") if isinstance(entry, dict) else None
+            text = slot.get("contents", "") if isinstance(slot, dict) else ""
+            found = _ENUM_RE.match(str(text))
+            if not found:
+                continue
+            members = [part.strip() for part in found.group(1).split(",")]
+            for ordinal, member in enumerate(m for m in members if m):
+                out[member] = (name, ordinal)
+        return out
+
+    def constructor_bodies(self, name: str) -> dict[str, str]:
+        """One function's clauses keyed by the constructor each matches.
+
+        The reading `function_bodies` cannot give, and the one `execute` needs: its
+        clauses match an instruction's constructor with its arguments, an `app` pattern
+        rather than an `id`, so the family is keyed by a name that is not a parameter.
+        What a caller wants from it is the body, because the body is where the model
+        says how a field is *read* -- `sign_extend(imm)` against `zero_extend(uimm)` --
+        which the encoding does not state and the printer only displays.
+        """
+        entry = self._map("functions").get(name)
+        found = entry.get("function") if isinstance(entry, dict) else None
+        clauses = found if isinstance(found, list) else [found]
+        if not isinstance(found, (list, dict)):
+            raise BundleError(f"the model declares no function {name}")
+        out: dict[str, str] = {}
+        for clause in clauses:
+            if not isinstance(clause, dict):
+                continue
+            pattern, body = clause.get("pattern"), clause.get("body")
+            if not isinstance(pattern, dict) or not isinstance(body, dict):
+                continue
+            ident = pattern.get("id")
+            if pattern.get("type") == "app" and isinstance(ident, str):
+                out[ident] = str(body.get("contents", ""))
+        return out
+
+    def scattered_members(self) -> frozenset[str]:
+        """Every name a function clause matches its family on.
+
+        The one reading left for a `scattered enum`, whose members the bundle carries
+        nowhere else: `extension` is declared `scattered enum extension` and its members
+        arrive one `enum clause` at a time across the tree, so the type entry is the
+        declaration and nothing more. What does carry them is the family that dispatches
+        on them, `hartSupports` having one clause per extension, so the members are read
+        off the dispatch rather than off the type.
+
+        **Their order is not recoverable this way and must not be invented.** A reader
+        wanting to compare two of them with `<` is asking a question this answer cannot
+        support, which is why they are handed out unordered.
+        """
+        out: set[str] = set()
+        for name in self._map("functions"):
+            clauses = self.function_bodies(name)
+            if len(clauses) < 2:
+                continue
+            out |= {names[0] for names, _body, _site in clauses if len(names) == 1}
+        return frozenset(out)
+
+    def clauses(self, name: str) -> list[dict[str, Any]]:
+        """One mapping's clauses, as the emitter wrote them.
+
+        The public reading of the same walk every accessor above takes privately, for
+        the one caller whose subject *is* a clause's shape rather than a value read out
+        of it: what an `encdec` clause places where is not a question this module can
+        answer for it without becoming that caller.
+        """
+        return self._clauses(name)
+
     def function_clauses(self, name: str) -> list[tuple[str, str, Site]]:
         """One function's clauses, as `(the pattern's id, the body's text, the site)`.
 
@@ -260,21 +374,36 @@ class Bundle:
         without the caller writing a pattern for the head; the body is text, because
         what a caller asks of it is an expression and not a name.
         """
+        return [(names[0] if len(names) == 1 else "", body, site)
+                for names, body, site in self.function_bodies(name)]
+
+    def function_bodies(self, name: str) -> list[tuple[tuple[str, ...], str, Site]]:
+        """The same, with every parameter the clause names rather than only the first.
+
+        Two shapes reach here and the emitter spells them apart: a one-parameter clause
+        carries an `id` pattern and a several-parameter one carries a `tuple`. A reader
+        that knew only the first shape sees a two-parameter function as a function with
+        no clauses at all, which is a lookup that misses rather than a value that is
+        wrong, and is why this sits beside `function_clauses` rather than inside it.
+
+        A function declared with exactly one clause is written by the emitter as the
+        clause itself rather than as a list of one, so both are read.
+        """
         entry = self._map("functions").get(name)
-        clauses = entry.get("function") if isinstance(entry, dict) else None
-        if not isinstance(clauses, list):
+        found = entry.get("function") if isinstance(entry, dict) else None
+        clauses = found if isinstance(found, list) else [found]
+        if not isinstance(found, (list, dict)):
             raise BundleError(f"the model declares no function {name}")
-        out: list[tuple[str, str, Site]] = []
+        out: list[tuple[tuple[str, ...], str, Site]] = []
         for clause in clauses:
             if not isinstance(clause, dict):
                 continue
-            pattern = clause.get("pattern")
             body = clause.get("body")
             source = clause.get("source")
-            ident = pattern.get("id") if isinstance(pattern, dict) else None
-            if not isinstance(ident, str) or not isinstance(body, dict):
+            names = _names(clause.get("pattern"))
+            if names is None or not isinstance(body, dict):
                 continue
-            out.append((ident, str(body.get("contents", "")),
+            out.append((names, str(body.get("contents", "")),
                         self._site(source if isinstance(source, dict) else body)))
         return out
 
@@ -415,6 +544,35 @@ class Bundle:
                     if isinstance(ident, str):
                         out.append(Decoded(ident, site, name))
         return out
+
+
+def _names(pattern: object) -> tuple[str, ...] | None:
+    """One clause's parameter names, or `None` where the pattern is none of the shapes.
+
+    Three shapes: a clause taking nothing carries the unit literal, one taking a single
+    argument carries an `id`, and one taking several carries a `tuple`. The first is
+    easy to miss and its absence is not benign: `get_sew()` and `keccak_unit_present()`
+    are both nullary, and a reader that could not read them reports them unreadable
+    where they are in fact machine state.
+    """
+    if not isinstance(pattern, dict):
+        return None
+    if pattern.get("type") == "literal" and str(pattern.get("value", "")) == "()":
+        return ()
+    if pattern.get("type") == "id":
+        ident = pattern.get("id")
+        return (ident,) if isinstance(ident, str) else None
+    if pattern.get("type") == "tuple":
+        out: list[str] = []
+        for part in pattern.get("patterns", []):
+            if not isinstance(part, dict) or part.get("type") != "id":
+                return None
+            ident = part.get("id")
+            if not isinstance(ident, str):
+                return None
+            out.append(ident)
+        return tuple(out)
+    return None
 
 
 def load(root: Path, path: str = BUNDLE) -> Bundle | None:

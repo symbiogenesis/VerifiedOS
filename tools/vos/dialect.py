@@ -1,44 +1,59 @@
 # SPDX-License-Identifier: Apache-2.0
 """The frozen dialect's canonical 32-bit encodings, as one table.
 
-This is the encoder half of the corpus assembler (M0.12). It holds one row per
-mnemonic the curated model decodes, and nothing else: no parsing, no layout, no
-pseudo-instruction, no symbol. Those are [asm.py](asm.py)'s, so that a row here
-can be read against the `mapping clause encdec` it mirrors without reading a
-line of the assembler around it.
+This is the encoder half of the corpus assembler (M0.12). It holds one row per mnemonic
+the curated model decodes, and nothing else: no parsing, no layout, no
+pseudo-instruction, no symbol. Those are [asm.py](asm.py)'s, so that a row here can be
+read against the `mapping clause encdec` it mirrors without reading a line of the
+assembler around it.
 
-**The rows are transcribed from the model, not from the RISC-V manuals.** Where
-the two differ the model is what the corpus must run on, and they do differ:
-`auipcc`, `cjal` and `cjalr` hold the base encodings of `auipc`, `jal` and
-`jalr` because one ABI mode means there is no integer form to distinguish them
-from ([isa-profile.md](../../docs/isa-profile.md) §1, R-15-001); `lc` sits at
-MISC-MEM `funct3` 010 beside `cbo.zero` and is separated from it by a non-zero
-destination; and `sc` is the capability store at STORE `funct3` 100 rather than
-a store-conditional, `Zalrsc` having gone with the reservation (R-15-025).
+**The rows are generated from the model, not transcribed from it and not read out of the
+RISC-V manuals.** They were transcribed once, and the inversion is M1.4-prime's: the table is
+now emitted by [dialectgen.py](dialectgen.py) out of the bundle the model writes about
+itself, held byte-for-byte by K-88, and loaded here. A fact has one owner and every other
+statement of it is generated; a hand-written restatement held equal by a rule is the
+older discipline, because the rule can only tell you the two disagree after they already
+do.
 
-**What is not here is as deliberate as what is.** The dictionary bundle format
-of §1.1 is a fetch container the model does not yet implement, so the image this
-encoder lays down is a stream of canonical 32-bit instructions, which is what
-the curated model fetches today. The **matrix** surface is absent, and it is not
-waiting on a datapath: the frozen profile books the unit and names no mnemonic,
-operand form or encoding for it, so there is nothing to transcribe and nothing
-enters by inheritance (R-15-007j); it is a second-act item conditioned on
-R-15-116's sustained dense-GEMM margin (R-15-014a (ix)), and a row here would be
-an encoding this table invented. The **FEC** surface is now booked and is below
-(R-15-119b), its scope being categorical rather than measured, which is why it
-was owed at the provisional freeze and not at that act (R-15-014b, R-15-119).
+What that buys is measurable rather than tidy. The transcription carried **353** rows and
+the generated table carries **931**, so **578** forms the model decodes were reachable by
+no corpus program and nothing said so. It also removes three classes of hand fact: the
+branch and jump shift-by-one, which the model states structurally as `imm @ 0b0`; the
+`nonzero_rd` refusal on `lc` and the twelve-or-twenty-four refusal on `vkeccak.vi`, which
+were one-off rules quoting a clause and are now that clause's own guard; and the
+exclusion of `clmulr` beside `clmul` and `clmulh`, which the admission derives from
+`Zbc` being off and `Zbkc` on rather than from a comment.
 
-**The vector rows are M0.8b's, and they are the memory surface and what feeds
-it** rather than the whole of RVV. The item that adds them is about the
-capability semantics of a vector access, so what a program has to be able to
-write is every form whose element addresses are made differently: unit-stride,
-runtime-strided, indexed in both orderings, whole-register, and the mask pair,
-at all four element widths. The arithmetic is not here, because a row nothing
-in the corpus writes is a row nothing checks.
+**What is still authored here, each for a named reason.** The register, CSR and special
+capability register spellings below are the assembler's vocabulary rather than the
+model's encoding: the model encodes a register number and what a program may call it is
+this repository's question. And `fence` is one authored row, because it is the one clause
+whose `assembly` mapping the emitter leaves as unstructured body text, so the mnemonic it
+spells is in the bundle as a skeleton and its operand run is not in the bundle at all.
+
+**What is not here is as deliberate as what is.** The dictionary bundle format of §1.1 is
+a fetch container the model does not yet implement, so the image this encoder lays down
+is a stream of canonical 32-bit instructions, which is what the curated model fetches
+today. The **matrix** surface is absent, and it is not waiting on a datapath: the frozen
+profile books the unit and names no mnemonic, operand form or encoding for it, so there
+is nothing in the model to generate from and nothing enters by inheritance (R-15-007j).
+
+**The vector rows are no longer scoped, and that is a reversal this cell reports.** M0.8b
+carried the vector memory surface and what feeds it, on the ground that a row nothing in
+the corpus writes is a row nothing checks. That ground was a transcription cost, and
+generation removes it: the table now carries every form the admission admits, the vector
+arithmetic included. Nothing in the register, the profile or the plan decides whether it
+should, so the widening is reported as an open finding rather than settled here.
 """
 
+import json
 from dataclasses import dataclass
-from typing import Final, Protocol
+from pathlib import Path
+from typing import Final
+
+from . import corpus
+from .dialectgen import TABLE as TABLE_PATH
+from .dialectgen import VERSION
 
 # The 32 integer registers, spelled three ways. A register is one register with
 # two readings, so `x5`, `t0`, `c5` and `ct0` are the same register and the
@@ -54,12 +69,9 @@ ABI_NAMES = (
 def _registers() -> dict[str, int]:
     """Every spelling of every register, built inside a function deliberately.
 
-    A `for` loop at module scope leaves its variables bound in the module, and the
-    obvious name for the index here is `_i`, which is also the name of the I-type
-    encoder below. Nothing went wrong, because the encoder is defined after the loop
-    and rebinds the name; but the module was one reordering away from every I-type
-    instruction encoding through an integer, and the failure would have been
-    `'int' object is not callable` far from its cause.
+    A `for` loop at module scope leaves its variables bound in the module, and a
+    single-letter index at module scope is one reordering away from shadowing something
+    that matters. Nothing here is a defect today; the function is what keeps it that way.
     """
     table: dict[str, int] = {}
     for number, abi in enumerate(ABI_NAMES):
@@ -98,38 +110,6 @@ CSRS: dict[str, int] = {
 SCRS: dict[str, int] = {"pcc": 0b00000, "mtcc": 0b11100, "mtdc": 0b11101,
                         "mepcc": 0b11111}
 
-OP_IMM = 0b0010011
-OP_IMM_32 = 0b0011011
-OP = 0b0110011
-OP_32 = 0b0111011
-LOAD = 0b0000011
-STORE = 0b0100011
-BRANCH = 0b1100011
-MISC_MEM = 0b0001111
-SYSTEM = 0b1110011
-AMO = 0b0101111
-# The capability opcode ISAv9 allocates, carried across at the transplant.
-CHERI = 0b1011011
-# The one custom opcode the profile's own rows share. ISAv9 already spent
-# custom-2 on the whole capability surface above, so the rows M0.6g adds take
-# custom-0 between them and are separated by `funct3`, leaving custom-1 and
-# custom-3 whole for the rows the freeze's measured act admits (R-15-014a).
-CUSTOM_0 = 0b0001011
-
-# --- the vector surface's three opcodes (M0.8b) ----------------------------
-# The two the vector memory surface uses are the base ISA's floating-point load
-# and store majors, which this profile has no other claimant for: scalar F and D
-# went at c4 with the register file they addressed (R-15-039), so `0000111` and
-# `0100111` carry vector accesses and nothing else. `OP_V` is RVV's own major.
-LOAD_FP = 0b0000111
-STORE_FP = 0b0100111
-OP_V = 0b1010111
-
-# The width code a vector access carries in its `funct3`, which is RVV's own
-# encoding of EEW and is not the base ISA's: 8-bit is 000 and the other three
-# start at 101 (`encdec_vlewidth`, extensions/V/vext_mem_insts.sail).
-VLEWIDTH = {8: 0b000, 16: 0b101, 32: 0b110, 64: 0b111}
-
 
 def _vregisters() -> dict[str, int]:
     """`v0` through `v31`, and no second spelling of any of them.
@@ -159,632 +139,145 @@ class AsmError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# Field assembly. Each helper takes already-checked fields and returns the word,
-# so range checking is one place (`_imm`) rather than one place per format.
+# The row, and the two shapes it is made of.
 
-def _imm(value: int, bits: int, *, signed: bool, name: str, align: int = 1) -> int:
-    if align > 1 and value % align:
-        raise AsmError(f"{name} {value} is not a multiple of {align}")
-    lo, hi = (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if signed else (0, (1 << bits) - 1)
-    if not lo <= value <= hi:
-        raise AsmError(f"{name} {value} is outside [{lo}, {hi}]")
-    return value & ((1 << bits) - 1)
+@dataclass(frozen=True)
+class Slot:
+    """One operand of one row: what it is, how wide, and where its bits go.
 
-
-def _r(funct7: int, rs2: int, rs1: int, funct3: int, rd: int, op: int) -> int:
-    return (funct7 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | op
-
-
-def _i(imm: int, rs1: int, funct3: int, rd: int, op: int) -> int:
-    return (imm << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | op
-
-
-def _s(imm: int, rs2: int, rs1: int, funct3: int, op: int) -> int:
-    return (((imm >> 5) & 0x7F) << 25) | (rs2 << 20) | (rs1 << 15) | \
-        (funct3 << 12) | ((imm & 0x1F) << 7) | op
-
-
-def _b(imm: int, rs2: int, rs1: int, funct3: int, op: int) -> int:
-    return (((imm >> 12) & 1) << 31) | (((imm >> 5) & 0x3F) << 25) | (rs2 << 20) | \
-        (rs1 << 15) | (funct3 << 12) | (((imm >> 1) & 0xF) << 8) | \
-        (((imm >> 11) & 1) << 7) | op
-
-
-def _u(imm20: int, rd: int, op: int) -> int:
-    return (imm20 << 12) | (rd << 7) | op
-
-
-def _j(imm: int, rd: int, op: int) -> int:
-    return (((imm >> 20) & 1) << 31) | (((imm >> 1) & 0x3FF) << 21) | \
-        (((imm >> 11) & 1) << 20) | (((imm >> 12) & 0xFF) << 12) | (rd << 7) | op
-
-
-# ---------------------------------------------------------------------------
-# The kinds. `operands` is the signature the parser fills, in source order:
-#
-#   reg   a register, in any of its three spellings
-#   vreg  a vector register, which is a different file (see `VREGISTERS`)
-#   imm   an integer expression
-#   sym   an integer expression naming a code address (branch and jump targets)
-#   mem   `imm(reg)`, which the parser flattens into (imm, reg)
-#   csr   a CSR by name or number
-#   scr   a special capability register by name
-#   vreg  a vector register, `v0` through `v31`
-#   vm    the vector mask: `v0.t`, or nothing at all where the form is unmasked
-#
-# `emit(fields, ops, pc)` builds the word. `pc` is the address of the
-# instruction, which only the pc-relative kinds read.
-
-# The fields a row carries into its encoder: the constant bits of the encoding,
-# named as the `mapping clause encdec` names them. `bool` is an `int` here and is
-# meant to be, so a flag field like `signed` sits in the same table as `funct3`.
-Fields = dict[str, int]
-
-
-class Emit(Protocol):
-    """What every kind's encoder is, stated once so the table below is checked.
-
-    This is the reason the protocol exists rather than the encoders being stored as
-    plain objects: `KINDS` is a dispatch table, and a table of callbacks that
-    nothing types is a table where a member with the wrong arity or the wrong
-    argument order is found by running the corpus, not by reading the module.
+    `pieces` is `(word_hi, word_lo, src_hi, src_lo)` per run, because a RISC-V immediate
+    is scattered and a placement stated as one shift could not say so. `align` is the
+    implicit shift the model states as `imm @ 0b0`, derived from the lowest source bit no
+    run reaches rather than declared beside it.
     """
 
-    def __call__(self, f: Fields, o: list[int], pc: int) -> int: ...
+    kind: str
+    name: str
+    width: int
+    signed: bool
+    align: int
+    pieces: tuple[tuple[int, int, int, int], ...]
 
 
 @dataclass(frozen=True)
-class Kind:
-    operands: tuple[str, ...]
-    emit: Emit
+class Require:
+    """One condition on an operand the model's own guard states.
 
-
-def _k_r(f: Fields, o: list[int], pc: int) -> int:
-    return _r(f["funct7"], o[2], o[1], f["funct3"], o[0], f["op"])
-
-
-def _k_i(f: Fields, o: list[int], pc: int) -> int:
-    return _i(_imm(o[2], 12, signed=True, name="immediate"), o[1], f["funct3"], o[0], f["op"])
-
-
-def _k_shift(f: Fields, o: list[int], pc: int) -> int:
-    """Shift-immediate, where the shift amount's width says which base it is: six
-    bits for the XLEN forms and five for the `W` forms, the top bits of the
-    funct7 field carrying the operation."""
-    width = f["shamt_bits"]
-    shamt = _imm(o[2], width, signed=False, name="shift amount")
-    return ((f["funct7"] | shamt) << 20) | (o[1] << 15) | (f["funct3"] << 12) | (o[0] << 7) | f["op"]
-
-
-def _k_load(f: Fields, o: list[int], pc: int) -> int:
-    return _i(_imm(o[1], 12, signed=True, name="offset"), o[2], f["funct3"], o[0], f["op"])
-
-
-def _k_store(f: Fields, o: list[int], pc: int) -> int:
-    return _s(_imm(o[1], 12, signed=True, name="offset"), o[0], o[2], f["funct3"], f["op"])
-
-
-def _k_branch(f: Fields, o: list[int], pc: int) -> int:
-    return _b(_imm(o[2] - pc, 13, signed=True, name="branch displacement", align=2),
-              o[1], o[0], f["funct3"], f["op"])
-
-
-def _k_u(f: Fields, o: list[int], pc: int) -> int:
-    return _u(_imm(o[1], 20, signed=False, name="upper immediate"), o[0], f["op"])
-
-
-def _k_jal(f: Fields, o: list[int], pc: int) -> int:
-    return _j(_imm(o[1] - pc, 21, signed=True, name="jump displacement", align=2),
-              o[0], f["op"])
-
-
-def _k_jalr(f: Fields, o: list[int], pc: int) -> int:
-    return _i(_imm(o[2], 12, signed=True, name="offset"), o[1], f["funct3"], o[0], f["op"])
-
-
-def _k_unary(f: Fields, o: list[int], pc: int) -> int:
-    """The one-source forms whose whole 12-bit immediate field is the operation."""
-    return _i(f["funct12"], o[1], f["funct3"], o[0], f["op"])
-
-
-def _k_csr(f: Fields, o: list[int], pc: int) -> int:
-    # the address is range-checked here like every other operand, because a CSR can
-    # be given as a bare number: unchecked, an out-of-range one overflows into the
-    # word and surfaces as the 32-bit assertion blaming this table for the program
-    return _i(_imm(o[1], 12, signed=False, name="CSR address"), o[2],
-              f["funct3"], o[0], f["op"])
-
-
-def _k_csri(f: Fields, o: list[int], pc: int) -> int:
-    return _i(_imm(o[1], 12, signed=False, name="CSR address"),
-              _imm(o[2], 5, signed=False, name="CSR immediate"), f["funct3"], o[0], f["op"])
-
-
-def _k_amo(f: Fields, o: list[int], pc: int) -> int:
-    return _r((f["funct5"] << 2) | f["ordering"], o[1], o[2], f["funct3"], o[0], f["op"])
-
-
-def _k_fence(f: Fields, o: list[int], pc: int) -> int:
-    return _i((_imm(o[0], 4, signed=False, name="predecessor set") << 4) |
-              _imm(o[1], 4, signed=False, name="successor set"), 0, 0b000, 0, MISC_MEM)
-
-
-def _k_none(f: Fields, o: list[int], pc: int) -> int:
-    return f["word"]
-
-
-def _k_cbo(f: Fields, o: list[int], pc: int) -> int:
-    return _i(f["imm"], o[0], 0b010, 0, MISC_MEM)
-
-
-def _k_cheri2(f: Fields, o: list[int], pc: int) -> int:
-    """The two-operand capability forms: `funct7` is all ones and the operation
-    is the five bits the second source register field carries."""
-    return _r(0b1111111, f["funct5"], o[1], 0b000, o[0], CHERI)
-
-
-def _k_cheri3(f: Fields, o: list[int], pc: int) -> int:
-    return _r(f["funct7"], o[2], o[1], 0b000, o[0], CHERI)
-
-
-def _k_cheri_imm(f: Fields, o: list[int], pc: int) -> int:
-    # `signed` is the one field read as a flag rather than as bits, so it is the one
-    # that narrows on the way out of the table (`Fields` is `dict[str, int]`).
-    return _i(_imm(o[2], 12, signed=bool(f["signed"]), name="immediate"),
-              o[1], f["funct3"], o[0], CHERI)
-
-
-def _k_cspecialrw(f: Fields, o: list[int], pc: int) -> int:
-    return _r(0b0000001, o[1], o[2], 0b000, o[0], CHERI)
-
-
-def _k_paren(f: Fields, o: list[int], pc: int) -> int:
-    """`rd, (cs1)`: the tag-group load, whose group is the block rather than an
-    operand, so it names no offset."""
-    return _r(0b1111111, f["funct5"], o[1], 0b000, o[0], CHERI)
-
-
-def _k_indexed(f: Fields, o: list[int], pc: int) -> int:
-    """`rd, cs1[rs2 << scale]`: the capability indexed access.
-
-    An R-type whose `funct7` is five reserved zeroes over the two-bit scale. The
-    store form reads its source out of the `rd` slot, which is what a
-    three-register store has to do in this layout and is how RVV encodes `vs3`.
+    `ne` is a value the operand may not take and `in` is the set it must be in. Two
+    shapes and no more, each generated from the `when` clause that states it: `lc`'s
+    `cd != zreg` and `vkeccak.vi`'s `keccak_valid_rounds(rnd)` were the two hand rules
+    this table used to carry, and they are the clause now.
     """
-    return _r(_imm(o[3], 2, signed=False, name="index scale"),
-              o[2], o[1], f["funct3"], o[0], CUSTOM_0)
+
+    kind: str
+    operand: str
+    values: tuple[int, ...]
+    guard: str
 
 
-def _k_cclear(f: Fields, o: list[int], pc: int) -> int:
-    """`cclear h, mask`: S-type field layout, read as a constant.
+@dataclass(frozen=True)
+class Row:
+    """One mnemonic: what a program writes, what the encoding fixes, and where the rest
+    goes."""
 
-    The mask is the twelve immediate bits and the low four of the `rs2` field,
-    the half selector is that field's top bit, and `rs1` is reserved zero. No
-    destination register is named because the mask names the destinations.
-    """
-    h = _imm(o[0], 1, signed=False, name="register half")
-    mask = _imm(o[1], 16, signed=False, name="register mask")
-    return _s(mask & 0xFFF, (h << 4) | ((mask >> 12) & 0xF), 0, 0b000, CUSTOM_0)
-
-
-# --- the vector kinds (M0.8b) ----------------------------------------------
-# Every vector memory form has one layout, and it is worth writing once: the top
-# twelve bits are `nf`, a reserved zero, `mop`, `vm`, and a five-bit field that
-# is a constant for the unit-stride and whole-register forms and a register for
-# the strided and indexed ones. That is an I-type shape for the store forms too,
-# the source vector register sitting in the `rd` slot, which is what a
-# three-register store has to do in this layout and is the same thing `csd`'s
-# `indexed` kind does (extensions/V/vext_mem_insts.sail).
-
-def _v_mem(f: Fields, vd: int, rs1: int, sub: int, vm: int) -> int:
-    imm = (f["nf"] << 9) | (f["mop"] << 6) | (vm << 5) | sub
-    return _i(imm, rs1, f["funct3"], vd, f["op"])
+    ctor: str
+    site: str
+    word: int
+    mask: int
+    guard: str
+    signature: tuple[str, ...]
+    slots: tuple[Slot, ...]
+    requires: tuple[Require, ...]
 
 
-def _k_vmem(f: Fields, o: list[int], pc: int) -> int:
-    """`vd, (rs1)[, v0.t]`: the unit-stride forms, whose five-bit field is the
-    `lumop`/`sumop` constant naming which one it is."""
-    return _v_mem(f, o[0], o[1], f["sub"], o[2])
-
-
-def _k_vmems(f: Fields, o: list[int], pc: int) -> int:
-    """`vd, (rs1), rs2[, v0.t]`: the stride is a runtime register, which is what
-    puts this form off the data-independent-timing list (R-15-085a)."""
-    return _v_mem(f, o[0], o[1], o[2], o[3])
-
-
-def _k_vmemx(f: Fields, o: list[int], pc: int) -> int:
-    """`vd, (rs1), vs2[, v0.t]`: the index is a vector register, so each element
-    carries its own address and its own check (R-08-003)."""
-    return _v_mem(f, o[0], o[1], o[2], o[3])
-
-
-def _k_vmemw(f: Fields, o: list[int], pc: int) -> int:
-    """`vd, (rs1)`: the whole-register and mask forms, whose `vm` is the literal
-    one in the encoding rather than an operand, so they have no masked-off
-    element (R-15-115b)."""
-    return _v_mem(f, o[0], o[1], f["sub"], 1)
-
-
-def _k_vsetvli(f: Fields, o: list[int], pc: int) -> int:
-    """`rd, rs1, vtypei`: the eleven-bit `vtype` image, whose top three bits are
-    reserved and whose remaining eight are `vma`, `vta`, `vsew` and `vlmul`. It
-    is taken as a number rather than as `e64,m1,ta,ma`, because a program that
-    writes the field out is a program whose `vtype` can be read against the
-    model's own bitfield (extensions/V/vext_regs.sail)."""
-    return _i(_imm(o[2], 11, signed=False, name="vtype immediate"), o[1], 0b111, o[0], OP_V)
-
-
-def _k_vmovi(f: Fields, o: list[int], pc: int) -> int:
-    """`vd, simm`: the five-bit signed immediate rides the `rs1` field."""
-    return _r(f["funct7"], 0, _imm(o[1], 5, signed=True, name="immediate"),
-              f["funct3"], o[0], OP_V)
-
-
-def _k_vmovx(f: Fields, o: list[int], pc: int) -> int:
-    """`vd, rs1`: an integer register into a vector one."""
-    return _r(f["funct7"], 0, o[1], f["funct3"], o[0], OP_V)
-
-
-def _k_vmovs(f: Fields, o: list[int], pc: int) -> int:
-    """`rd, vs2`: element zero of a vector register into an integer one, which
-    is how a corpus program reads a vector result back to compare it."""
-    return _r(f["funct7"], o[1], 0, f["funct3"], o[0], OP_V)
-
-
-# --- the frozen Keccak permutation (M0.8d) ---------------------------------
-
-def _k_vkeccak(f: Fields, o: list[int], pc: int) -> int:
-    """`vkeccak.vi vd, vs2, rounds`: the frozen Keccak permutation.
-
-    An R-type in custom-0 whose `rs2` field carries the round-count immediate
-    and whose `funct7` is reserved zero. Only 12 and 24 are admitted; every
-    other value of the field reaches no decode clause and traps, so this refuses
-    to emit one rather than laying down a word whose meaning is *unallocated*
-    (R-15-057a, R-15-014). A program that means to check that refusal writes the
-    word instead, which is the one refusal this table makes: it is the encoder's
-    business what a row can express and the machine's what an encoding means, so
-    an access to an unallocated CSR address and a write to a read-only one are
-    both emitted here and both trap there.
-    """
-    rounds = _imm(o[2], 5, signed=False, name="round count")
-    if rounds not in (12, 24):
-        raise AsmError("vkeccak.vi takes 12 or 24 rounds, the two the frozen "
-                       "fork defines; every other immediate is unallocated")
-    return _r(0, rounds, o[1], f["funct3"], o[0], CUSTOM_0)
-
-
-KINDS: dict[str, Kind] = {
-    "r": Kind(("reg", "reg", "reg"), _k_r),
-    "i": Kind(("reg", "reg", "imm"), _k_i),
-    "shift": Kind(("reg", "reg", "imm"), _k_shift),
-    "load": Kind(("reg", "mem"), _k_load),
-    "store": Kind(("reg", "mem"), _k_store),
-    "branch": Kind(("reg", "reg", "sym"), _k_branch),
-    "u": Kind(("reg", "imm"), _k_u),
-    "unary": Kind(("reg", "reg"), _k_unary),
-    "jal": Kind(("reg", "sym"), _k_jal),
-    "jalr": Kind(("reg", "reg", "imm"), _k_jalr),
-    "csr": Kind(("reg", "csr", "reg"), _k_csr),
-    "csri": Kind(("reg", "csr", "imm"), _k_csri),
-    "amo": Kind(("reg", "reg", "mem0"), _k_amo),
-    "fence": Kind(("imm", "imm"), _k_fence),
-    "none": Kind((), _k_none),
-    "cbo": Kind(("mem0",), _k_cbo),
-    "cheri2": Kind(("reg", "reg"), _k_cheri2),
-    "cheri3": Kind(("reg", "reg", "reg"), _k_cheri3),
-    "cheri_imm": Kind(("reg", "reg", "imm"), _k_cheri_imm),
-    "cspecialrw": Kind(("reg", "scr", "reg"), _k_cspecialrw),
-    "paren": Kind(("reg", "mem0"), _k_paren),
-    # `index` is `cs1[rs2 << scale]`, which the parser flattens into the base,
-    # the index register, and the scale.
-    "indexed": Kind(("reg", "index"), _k_indexed),
-    "cclear": Kind(("imm", "imm"), _k_cclear),
-    # The vector kinds. `vreg` is the vector register file's own spelling; see
-    # `VREGISTERS`. `vm` is the one operand a program leaves out rather than
-    # spells: `v0.t` where the operation is masked and nothing at all where it is
-    # not, which is how the model's own `maybe_vmask` mapping reads it back.
-    "vsetvli": Kind(("reg", "reg", "imm"), _k_vsetvli),
-    "vmovi": Kind(("vreg", "imm"), _k_vmovi),
-    "vmovx": Kind(("vreg", "reg"), _k_vmovx),
-    "vmovs": Kind(("reg", "vreg"), _k_vmovs),
-    "vmem": Kind(("vreg", "mem0", "vm"), _k_vmem),
-    "vmems": Kind(("vreg", "mem0", "reg", "vm"), _k_vmems),
-    "vmemx": Kind(("vreg", "mem0", "vreg", "vm"), _k_vmemx),
-    "vmemw": Kind(("vreg", "mem0"), _k_vmemw),
-    "vkeccak": Kind(("vreg", "vreg", "imm"), _k_vkeccak),
+# What a diagnostic calls each kind. The immediate kinds take the model's own name for
+# the operand, which is the more useful thing to print; the rest are named for what a
+# program got wrong rather than for what the model calls the field.
+KINDS: Final[dict[str, str]] = {
+    "reg": "register", "vreg": "vector register", "vm": "vector mask",
+    "csr": "CSR address", "scr": "special capability register",
+    "imm": "", "sym": "displacement", "mem": "", "mem0": "", "index": "", "v0": "",
 }
 
 
-def _rows() -> dict[str, tuple[str, Fields]]:
-    table: dict[str, tuple[str, Fields]] = {}
+def _fence() -> Row:
+    """The one authored row, and the reason it is one.
 
-    def add(name: str, kind: str, **fields: int) -> None:
-        # Raised rather than asserted. These are assertions in the sense that they
-        # can only fail on a defect in the table below, but `python -O` deletes an
-        # `assert` and this table is built at import: a duplicated row would then
-        # silently take the later definition, and a bad kind would fail later and
-        # elsewhere. The check has to outlive the flag.
-        if name in table:
-            raise AssertionError(f"{name} is already in the table")
-        if kind not in KINDS:
-            raise AssertionError(f"{name} names no kind {kind}")
-        table[name] = (kind, fields)
+    Every other row here is generated out of the model's paired `encdec` and `assembly`
+    clauses. `FENCE`'s `assembly` clause is a `forwards ... when` whose body the emitter
+    leaves as unstructured text, so the bundle carries the mnemonic only as a skeleton
+    and carries its operand run not at all: there is nothing to generate the spelling
+    from. The *encoding* is the model's own and resolves like every other, and it is
+    restated here rather than looked up, because a row half generated and half authored
+    would be worse to read than one of each.
 
-    # --- RV64I -------------------------------------------------------------
-    add("lui", "u", op=0b0110111)
-    # The base's `auipc`, `jal` and `jalr` are these three: purecap has no
-    # integer control transfer to distinguish them from (R-15-001).
-    add("auipcc", "u", op=0b0010111)
-    add("cjal", "jal", op=0b1101111)
-    add("cjalr", "jalr", funct3=0b000, op=0b1100111)
+    Two four-bit ordering sets in the immediate field, predecessor above successor, over
+    a zero base register, a zero `funct3` and a zero destination (MISC-MEM,
+    extensions/I/base_insts.sail).
+    """
+    return Row(
+        ctor="FENCE",
+        site="model/model/extensions/I/base_insts.sail",
+        word=0b0001111,
+        mask=0xF00FFFFF,
+        guard="",
+        signature=("imm", "imm"),
+        slots=(
+            Slot(kind="imm", name="pred", width=4, signed=False, align=1,
+                 pieces=((27, 24, 3, 0),)),
+            Slot(kind="imm", name="succ", width=4, signed=False, align=1,
+                 pieces=((23, 20, 3, 0),)),
+        ),
+        requires=(),
+    )
 
-    for name, funct3 in (("beq", 0b000), ("bne", 0b001), ("blt", 0b100),
-                         ("bge", 0b101), ("bltu", 0b110), ("bgeu", 0b111)):
-        add(name, "branch", funct3=funct3, op=BRANCH)
 
-    # funct3 is the unsigned flag over the two width bits (core/types.sail).
-    for name, funct3 in (("lb", 0b000), ("lh", 0b001), ("lw", 0b010), ("ld", 0b011),
-                         ("lbu", 0b100), ("lhu", 0b101), ("lwu", 0b110)):
-        add(name, "load", funct3=funct3, op=LOAD)
-    for name, funct3 in (("sb", 0b000), ("sh", 0b001), ("sw", 0b010), ("sd", 0b011)):
-        add(name, "store", funct3=funct3, op=STORE)
+def _load(root: Path | None = None) -> dict[str, Row]:
+    """The generated table, plus the one authored row.
 
-    for name, funct3 in (("addi", 0b000), ("slti", 0b010), ("sltiu", 0b011),
-                         ("xori", 0b100), ("ori", 0b110), ("andi", 0b111)):
-        add(name, "i", funct3=funct3, op=OP_IMM)
-    add("slli", "shift", funct7=0b000000 << 6, funct3=0b001, op=OP_IMM, shamt_bits=6)
-    add("srli", "shift", funct7=0b000000 << 6, funct3=0b101, op=OP_IMM, shamt_bits=6)
-    add("srai", "shift", funct7=0b010000 << 6, funct3=0b101, op=OP_IMM, shamt_bits=6)
-
-    for name, funct7, funct3 in (
-        ("add", 0b0000000, 0b000), ("sub", 0b0100000, 0b000),
-        ("sll", 0b0000000, 0b001), ("slt", 0b0000000, 0b010),
-        ("sltu", 0b0000000, 0b011), ("xor", 0b0000000, 0b100),
-        ("srl", 0b0000000, 0b101), ("sra", 0b0100000, 0b101),
-        ("or", 0b0000000, 0b110), ("and", 0b0000000, 0b111),
-    ):
-        add(name, "r", funct7=funct7, funct3=funct3, op=OP)
-
-    add("addiw", "i", funct3=0b000, op=OP_IMM_32)
-    add("slliw", "shift", funct7=0b0000000 << 5, funct3=0b001, op=OP_IMM_32, shamt_bits=5)
-    add("srliw", "shift", funct7=0b0000000 << 5, funct3=0b101, op=OP_IMM_32, shamt_bits=5)
-    add("sraiw", "shift", funct7=0b0100000 << 5, funct3=0b101, op=OP_IMM_32, shamt_bits=5)
-    for name, funct7, funct3 in (
-        ("addw", 0b0000000, 0b000), ("subw", 0b0100000, 0b000),
-        ("sllw", 0b0000000, 0b001), ("srlw", 0b0000000, 0b101),
-        ("sraw", 0b0100000, 0b101),
-    ):
-        add(name, "r", funct7=funct7, funct3=funct3, op=OP_32)
-
-    add("fence", "fence")
-    add("fence.tso", "none", word=_i(0b1000_0011_0011, 0, 0b000, 0, MISC_MEM))
-    # The temporal-isolation fence, at MISC-MEM funct3 100, which is vacant:
-    # `fence` is 000, `cbo.zero` and `lc` share 010, and `fence.i` went with
-    # `Zifencei`. Every other field is zero and reserved (R-15-062, R-15-014).
-    add("fence.t", "none", word=_i(0, 0, 0b100, 0, MISC_MEM))
-    add("ecall", "none", word=_i(0, 0, 0b000, 0, SYSTEM))
-    add("ebreak", "none", word=_i(1, 0, 0b000, 0, SYSTEM))
-    add("mret", "none", word=_r(0b0011000, 0b00010, 0, 0b000, 0, SYSTEM))
-    add("wfi", "none", word=_r(0b0001000, 0b00101, 0, 0b000, 0, SYSTEM))
-
-    # --- M -----------------------------------------------------------------
-    for name, funct3 in (("mul", 0b000), ("mulh", 0b001), ("mulhsu", 0b010),
-                         ("mulhu", 0b011), ("div", 0b100), ("divu", 0b101),
-                         ("rem", 0b110), ("remu", 0b111)):
-        add(name, "r", funct7=0b0000001, funct3=funct3, op=OP)
-    for name, funct3 in (("mulw", 0b000), ("divw", 0b100), ("divuw", 0b101),
-                         ("remw", 0b110), ("remuw", 0b111)):
-        add(name, "r", funct7=0b0000001, funct3=funct3, op=OP_32)
-
-    # --- Zicsr -------------------------------------------------------------
-    for name, funct3 in (("csrrw", 0b001), ("csrrs", 0b010), ("csrrc", 0b011)):
-        add(name, "csr", funct3=funct3, op=SYSTEM)
-    for name, funct3 in (("csrrwi", 0b101), ("csrrsi", 0b110), ("csrrci", 0b111)):
-        add(name, "csri", funct3=funct3, op=SYSTEM)
-
-    # --- Zaamo + Zabha -----------------------------------------------------
-    # The umbrella `A` is off and the parts are on: unconditional atomic RMW at
-    # four widths, no reservation and no compare-and-swap (R-15-024).
-    amo_ops = {"amoswap": 0b00001, "amoadd": 0b00000, "amoxor": 0b00100,
-               "amoand": 0b01100, "amoor": 0b01000, "amomin": 0b10000,
-               "amomax": 0b10100, "amominu": 0b11000, "amomaxu": 0b11100}
-    widths = {"b": 0b000, "h": 0b001, "w": 0b010, "d": 0b011}
-    orderings = {"": 0b00, ".aq": 0b10, ".rl": 0b01, ".aqrl": 0b11}
-    for op_name, funct5 in amo_ops.items():
-        for width, funct3 in widths.items():
-            for suffix, ordering in orderings.items():
-                add(f"{op_name}.{width}{suffix}", "amo",
-                    funct5=funct5, ordering=ordering, funct3=funct3, op=AMO)
-
-    # --- Zba / Zbb / Zbs ---------------------------------------------------
-    add("add.uw", "r", funct7=0b0000100, funct3=0b000, op=OP_32)
-    add("slli.uw", "shift", funct7=0b000010 << 6, funct3=0b001, op=OP_IMM_32, shamt_bits=6)
-    for shamt, name in ((0b01, "sh1add"), (0b10, "sh2add"), (0b11, "sh3add")):
-        add(name, "r", funct7=0b0010000, funct3=shamt << 1, op=OP)
-        add(f"{name}.uw", "r", funct7=0b0010000, funct3=shamt << 1, op=OP_32)
-
-    for name, funct7, funct3 in (
-        ("andn", 0b0100000, 0b111), ("orn", 0b0100000, 0b110),
-        ("xnor", 0b0100000, 0b100), ("max", 0b0000101, 0b110),
-        ("maxu", 0b0000101, 0b111), ("min", 0b0000101, 0b100),
-        ("minu", 0b0000101, 0b101), ("rol", 0b0110000, 0b001),
-        ("ror", 0b0110000, 0b101),
-    ):
-        add(name, "r", funct7=funct7, funct3=funct3, op=OP)
-    add("rolw", "r", funct7=0b0110000, funct3=0b001, op=OP_32)
-    add("rorw", "r", funct7=0b0110000, funct3=0b101, op=OP_32)
-    add("rori", "shift", funct7=0b011000 << 6, funct3=0b101, op=OP_IMM, shamt_bits=6)
-    add("roriw", "shift", funct7=0b0110000 << 5, funct3=0b101, op=OP_IMM_32, shamt_bits=5)
-
-    for name, funct12, op in (
-        ("clz", 0b011000000000, OP_IMM), ("ctz", 0b011000000001, OP_IMM),
-        ("cpop", 0b011000000010, OP_IMM), ("sext.b", 0b011000000100, OP_IMM),
-        ("sext.h", 0b011000000101, OP_IMM), ("clzw", 0b011000000000, OP_IMM_32),
-        ("ctzw", 0b011000000001, OP_IMM_32), ("cpopw", 0b011000000010, OP_IMM_32),
-    ):
-        add(name, "unary", funct12=funct12, funct3=0b001, op=op)
-    add("zext.h", "unary", funct12=0b000010000000, funct3=0b100, op=OP_32)
-    add("rev8", "unary", funct12=0b011010111000, funct3=0b101, op=OP_IMM)
-    add("orc.b", "unary", funct12=0b001010000111, funct3=0b101, op=OP_IMM)
-    add("brev8", "unary", funct12=0b011010000111, funct3=0b101, op=OP_IMM)
-
-    for name, funct7, funct3 in (
-        ("bclr", 0b0100100, 0b001), ("bext", 0b0100100, 0b101),
-        ("binv", 0b0110100, 0b001), ("bset", 0b0010100, 0b001),
-    ):
-        add(name, "r", funct7=funct7, funct3=funct3, op=OP)
-    for name, funct6, funct3 in (
-        ("bclri", 0b010010, 0b001), ("bexti", 0b010010, 0b101),
-        ("binvi", 0b011010, 0b001), ("bseti", 0b001010, 0b001),
-    ):
-        add(name, "shift", funct7=funct6 << 6, funct3=funct3, op=OP_IMM, shamt_bits=6)
-
-    # --- Zbkb / Zbkc / Zbkx ------------------------------------------------
-    add("pack", "r", funct7=0b0000100, funct3=0b100, op=OP)
-    add("packh", "r", funct7=0b0000100, funct3=0b111, op=OP)
-    add("packw", "r", funct7=0b0000100, funct3=0b100, op=OP_32)
-    add("clmul", "r", funct7=0b0000101, funct3=0b001, op=OP)
-    add("clmulh", "r", funct7=0b0000101, funct3=0b011, op=OP)
-    add("xperm4", "r", funct7=0b0010100, funct3=0b010, op=OP)
-    add("xperm8", "r", funct7=0b0010100, funct3=0b100, op=OP)
-
-    # --- Zicond ------------------------------------------------------------
-    add("czero.eqz", "r", funct7=0b0000111, funct3=0b101, op=OP)
-    add("czero.nez", "r", funct7=0b0000111, funct3=0b111, op=OP)
-
-    # --- Zicboz, and the block scrub beside it -----------------------------
-    # Both are MISC-MEM funct3 010 at a zero destination, which is what `lc`'s
-    # non-zero one is separated from. The scrub takes 5 rather than one of the
-    # three points `Zicbom` vacated: reusing a named standard encoding would
-    # make a stock disassembler print the wrong instruction where an unallocated
-    # one makes it print none (R-15-060, R-15-177a).
-    add("cbo.zero", "cbo", imm=0b000000000100)
-    add("cbo.scrub", "cbo", imm=0b000000000101)
-
-    # --- CHERI: inspection and the two-operand derivations -----------------
-    for name, funct5 in (
-        ("cgetperm", 0b00000), ("cgettype", 0b00001), ("cgetbase", 0b00010),
-        ("cgetlen", 0b00011), ("cgettag", 0b00100), ("cgetsealed", 0b00101),
-        ("cgetoffset", 0b00110), ("cgetaddr", 0b01111), ("cgettop", 0b11000),
-        ("cmove", 0b01010), ("csealentry", 0b10001),
-    ):
-        add(name, "cheri2", funct5=funct5)
-    # The two block operations over the tag plane. `creclaim` takes the first
-    # sub-opcode of this group that ISAv9 never allocated, so it sits beside
-    # `cloadtags` and contends for no custom opcode space (R-15-007s).
-    add("cloadtags", "paren", funct5=0b10010)
-    add("creclaim", "paren", funct5=0b10011)
-
-    # --- CHERI: the three-operand derivations ------------------------------
-    for name, funct7 in (
-        ("csetbounds", 0b0001000), ("cseal", 0b0001011), ("cunseal", 0b0001100),
-        ("candperm", 0b0001101), ("csetoffset", 0b0001111), ("csetaddr", 0b0010000),
-        ("cincoffset", 0b0010001), ("ctoptr", 0b0010010), ("cfromptr", 0b0010011),
-        ("csub", 0b0010100), ("cseqx", 0b0100001),
-    ):
-        add(name, "cheri3", funct7=funct7)
-    add("cincoffsetimm", "cheri_imm", funct3=0b001, signed=True)
-    add("csetboundsimm", "cheri_imm", funct3=0b010, signed=False)
-    add("cspecialrw", "cspecialrw")
-
-    # --- CHERI: the capability load and store ------------------------------
-    # `lc` shares MISC-MEM funct3 010 with the cache-block operations and is
-    # separated from them by a non-zero destination (extensions/CHERI).
-    add("lc", "load", funct3=0b010, op=MISC_MEM, nonzero_rd=True)
-    add("sc", "store", funct3=0b100, op=STORE)
-
-    # --- CHERI: the conditional capability move ----------------------------
-    # The dialect's own encoding rather than custom opcode space, at the first
-    # free `funct7` pair above ISAv9's highest three-operand allocation
-    # (R-15-054a).
-    add("cmovz", "cheri3", funct7=0b0100010)
-    add("cmovn", "cheri3", funct7=0b0100011)
-
-    # --- The profile's custom opcode space ---------------------------------
-    # The indexed access carries `ld`'s and `sd`'s own width code in its
-    # `funct3`, so the width reads off the same three bits the base ISA puts it
-    # in; the masked clear takes 000 beside them (R-15-007e, R-15-069a).
-    add("cld", "indexed", funct3=0b011)
-    add("csd", "indexed", funct3=0b111)
-    add("cclear", "cclear")
-    # The vector/matrix all-state clear takes 001 beside the masked clear's 000.
-    # It names no operand and no destination, the class's unit-state inventory
-    # naming them all, so every other field is zero and reserved (R-15-069d).
-    add("vmclear", "none", word=_r(0, 0, 0, 0b001, 0, CUSTOM_0))
-    # --- M0.8d: the frozen Keccak fork ------------------------------------
-    # The fifth row in this opcode and the fifth to spend none of its own: 010
-    # sits between `vmclear`'s 001 and the indexed load's 011, so custom-1 and
-    # custom-3 stay whole (R-15-014a, R-15-056, R-15-057a). The RVV surface
-    # `keccak-perm.s` needs around it, `vsetvli` and the unit-stride vector load
-    # and store, is the V-class datapath's rather than this row's and is below,
-    # among the rows M0.8b adds.
-    add("vkeccak.vi", "vkeccak", funct3=0b010)
-
-    # --- The FEC decoders (R-15-119b) --------------------------------------
-    # `ldpcdec cd, cs1, rs2` and `polardec cd, cs1, rs2`. The two share
-    # `funct3` 100 and are separated by the code family in `funct7`, because two
-    # code families on one attachment are one instruction group and not two
-    # opcode rows: 101 and 110 stay unspent in custom-0 where a row apiece would
-    # have left one, and custom-1 and custom-3 stay whole (R-15-014a, R-15-067e).
-    #
-    # They take the plain R-type kind and that is the point rather than a
-    # shortcut: the surface adds no field layout at all. `cd` sits in the `rd`
-    # slot and is read as a *source*, which is what a three-register store has to
-    # do in this layout and is exactly what `csd` above does. The descriptor is
-    # an ordinary register, so what it holds is the machine's business and never
-    # this table's: nothing about a channel code reaches a field here, which is
-    # the invariance R-15-119a requires seen from the encoder's side.
-    add("ldpcdec", "r", funct7=0b0000000, funct3=0b100, op=CUSTOM_0)
-    add("polardec", "r", funct7=0b0000001, funct3=0b100, op=CUSTOM_0)
-
-    # --- V: the vector memory surface, and the moves that feed it ----------
-    # M0.8b's rows. `nf` here is the encoded three-bit field and not the segment
-    # count: `encdec_nfields` maps 000 to one field, and the whole-register and
-    # mask forms carry the same 000 as a literal. Every row below is at nf=1,
-    # the segment forms being a field this table does not yet spell because no
-    # member of the corpus writes one.
-    # The fault-only-first `lumop` 0b10000 has no row and is not an omission: the
-    # profile excludes the form, so no `encdec` clause decodes that constant and a
-    # word carrying it is an undefined instruction (R-15-039b, R-15-040a).
-    for width, code in VLEWIDTH.items():
-        add(f"vle{width}.v", "vmem", nf=0, mop=0b00, sub=0b00000, funct3=code, op=LOAD_FP)
-        add(f"vse{width}.v", "vmem", nf=0, mop=0b00, sub=0b00000, funct3=code, op=STORE_FP)
-        add(f"vlse{width}.v", "vmems", nf=0, mop=0b10, funct3=code, op=LOAD_FP)
-        add(f"vsse{width}.v", "vmems", nf=0, mop=0b10, funct3=code, op=STORE_FP)
-        # The index EEW is what the mnemonic names, and the data EEW is `vtype`'s
-        # `vsew`: the two are separately encoded, which is the whole reason an
-        # indexed element's address is a runtime value (R-15-085a).
-        add(f"vluxei{width}.v", "vmemx", nf=0, mop=0b01, funct3=code, op=LOAD_FP)
-        add(f"vloxei{width}.v", "vmemx", nf=0, mop=0b11, funct3=code, op=LOAD_FP)
-        add(f"vsuxei{width}.v", "vmemx", nf=0, mop=0b01, funct3=code, op=STORE_FP)
-        add(f"vsoxei{width}.v", "vmemx", nf=0, mop=0b11, funct3=code, op=STORE_FP)
-        add(f"vl1re{width}.v", "vmemw", nf=0, mop=0b00, sub=0b01000, funct3=code, op=LOAD_FP)
-    # The whole-register store and the mask pair carry no width code at all: the
-    # transfer is a register's worth of bytes and the mask access is one byte per
-    # element, so both are `funct3` 000 whatever `vtype` says.
-    add("vs1r.v", "vmemw", nf=0, mop=0b00, sub=0b01000, funct3=0b000, op=STORE_FP)
-    add("vlm.v", "vmemw", nf=0, mop=0b00, sub=0b01011, funct3=0b000, op=LOAD_FP)
-    add("vsm.v", "vmemw", nf=0, mop=0b00, sub=0b01011, funct3=0b000, op=STORE_FP)
-
-    # `vsetvli` is here because no vector memory operation means anything without
-    # it: `vl` and `vtype` are what say how many elements an access has and how
-    # wide each one is, and they are read-only CSRs this is the only writer of.
-    add("vsetvli", "vsetvli")
-
-    # The four moves a program needs to put a value into the vector file and read
-    # one back out, which is what makes a vector memory check a check rather than
-    # a store nobody reads. `vmv.v.i` is also how `v0` is given a mask, the mask
-    # being an ordinary vector register (extensions/V/vext_arith_insts.sail).
-    add("vmv.v.i", "vmovi", funct7=0b0101111, funct3=0b011)
-    add("vmv.v.x", "vmovx", funct7=0b0101111, funct3=0b100)
-    add("vmv.s.x", "vmovx", funct7=0b0100001, funct3=0b110)
-    add("vmv.x.s", "vmovs", funct7=0b0100001, funct3=0b010)
-
+    Read at import, because every caller here wants the whole table and a lazily built
+    one would move the cost of a missing artifact from this module's own import to
+    whichever caller touched it first.
+    """
+    here = root or corpus.find_root(Path(__file__).resolve())
+    raw = json.loads((here / TABLE_PATH).read_text(encoding="utf-8"))
+    header = raw.get("header", {})
+    if header.get("version") != VERSION:
+        raise AssertionError(
+            f"{TABLE_PATH} states version {header.get('version')!r} and this reader is "
+            f"written against version {VERSION}; regenerate it with "
+            f"`python tools/run.py check --fix`")
+    table: dict[str, Row] = {}
+    for name, row in raw.get("rows", {}).items():
+        table[name] = Row(
+            ctor=str(row["ctor"]),
+            site=str(row["site"]),
+            word=int(row["word"]),
+            mask=int(row["mask"]),
+            guard=str(row["guard"]),
+            signature=tuple(str(kind) for kind in row["signature"]),
+            slots=tuple(Slot(kind=str(s["kind"]), name=str(s["name"]),
+                             width=int(s["width"]), signed=bool(s["signed"]),
+                             align=int(s["align"]),
+                             pieces=tuple((int(p[0]), int(p[1]), int(p[2]), int(p[3]))
+                                          for p in s["pieces"]))
+                        for s in row["slots"]),
+            requires=tuple(Require(kind=str(r[0]), operand=str(r[1]),
+                                   values=tuple(int(v) for v in r[2]),
+                                   guard=str(row["guard"]))
+                           for r in row["requires"]),
+        )
+    # Raised rather than asserted: a duplicated row would silently take the later
+    # definition, and `python -O` deletes an `assert`.
+    fence = _fence()
+    if "fence" in table:
+        raise AssertionError("the generated table now carries `fence`, so the authored "
+                             "row beside it is a second copy of one fact")
+    table["fence"] = fence
     return table
 
 
-TABLE = _rows()
+TABLE: Final[dict[str, Row]] = _load()
 
 # Every mnemonic the assembler will encode, for the corpus documentation and for
 # the checker's count of this table.
@@ -792,30 +285,83 @@ MNEMONICS = tuple(sorted(TABLE))
 
 
 def signature(mnemonic: str) -> tuple[str, ...]:
-    kind, _ = TABLE[mnemonic]
-    return KINDS[kind].operands
+    """What a program writes after the mnemonic, in source order."""
+    return TABLE[mnemonic].signature
+
+
+def _fit(slot: Slot, value: int, mnemonic: str) -> int:
+    """One operand's value as the bits that reach the word.
+
+    The range and the alignment are the field's own, taken from the model: the width is
+    the argument's declared width, the signedness is the reading the model's printer
+    names, and the alignment is the implicit shift the `encdec` clause states. What the
+    check is *for* is the same as it always was: a field that overflows its slot corrupts
+    the neighbouring one silently, so this is where a program's defect is reported rather
+    than assembled.
+    """
+    label = KINDS.get(slot.kind) or slot.name
+    if slot.align > 1 and value % slot.align:
+        raise AsmError(f"{label} {value} is not a multiple of {slot.align}")
+    scaled = value // slot.align
+    bits = slot.width - (slot.align.bit_length() - 1)
+    low, high = (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if slot.signed \
+        else (0, (1 << bits) - 1)
+    if not low <= scaled <= high:
+        raise AsmError(f"{label} {value} is outside "
+                       f"[{low * slot.align}, {high * slot.align}]")
+    return value & ((1 << slot.width) - 1)
+
+
+def _required(row: Row, mnemonic: str, values: list[int]) -> None:
+    """Every condition the model's own guard places on an operand, at the site.
+
+    Reported as a program's defect with the guard quoted, because that is the whole of
+    what it is: the model states `cd != zreg` in the clause that decodes a capability
+    load, and an assembler that emitted one anyway would lay down the cache-block
+    encoding instead.
+    """
+    for want in row.requires:
+        for slot, value in zip(row.slots, values, strict=True):
+            if slot.name != want.operand:
+                continue
+            spelled = ", ".join(str(v) for v in want.values)
+            if want.kind == "ne" and value in want.values:
+                raise AsmError(f"{mnemonic} takes no {slot.name} of {spelled}: the "
+                               f"model decodes it only `when {want.guard}`")
+            if want.kind == "in" and value not in want.values:
+                raise AsmError(f"{mnemonic} takes {slot.name} of {spelled} and no "
+                               f"other: the model decodes it only "
+                               f"`when {want.guard}`")
 
 
 def encode(mnemonic: str, operands: list[int], pc: int) -> int:
     """The word `mnemonic` with these already-resolved operands encodes to.
 
-    `operands` is flat and in source order, with a `mem` operand contributing
-    its displacement and then its base register, which is the order the memory
-    kinds above read them in.
+    `operands` is flat and in source order, with a `mem` operand contributing its
+    displacement and then its base register and an `index` operand its base, its index
+    and its scale, which is the order the parser hands them over in and the order the
+    model prints them in.
     """
-    kind, fields = TABLE[mnemonic]
-    if fields.get("nonzero_rd") and operands[0] == 0:
-        # The decode clause carries this as `when cd != zreg`: at a zero
-        # destination the encoding is the cache-block block's, so a capability
-        # load written that way would assemble to `cbo.zero` (R-15-060).
-        raise AsmError(f"{mnemonic} into the null register is the cache-block "
-                       f"encoding, not a capability load")
-    word = KINDS[kind].emit(fields, operands, pc)
+    row = TABLE[mnemonic]
+    if len(operands) != len(row.slots):
+        raise AssertionError(f"{mnemonic} places {len(row.slots)} operands and was "
+                             f"handed {len(operands)}")
+    _required(row, mnemonic, operands)
+    word = row.word
+    for slot, given in zip(row.slots, operands, strict=True):
+        # A `sym` is written as a code address and encoded as a displacement from the
+        # instruction's own. The two constructors that take one are named in
+        # dialectgen.PC_RELATIVE, that being the one fact about an operand the encoding
+        # does not carry.
+        value = _fit(slot, given - pc if slot.kind == "sym" else given, mnemonic)
+        for _word_hi, word_lo, src_hi, src_lo in slot.pieces:
+            run = (1 << (src_hi - src_lo + 1)) - 1
+            word |= ((value >> src_lo) & run) << word_lo
     # Raised rather than asserted: this is the last thing standing between a
-    # mis-transcribed row and an image the emulator runs anyway. A field that
-    # overflows its slot corrupts the neighbouring one silently, and the corpus
-    # would report a divergence in the model rather than a defect in this table.
-    # `python -O` must not be able to switch that off.
+    # mis-generated row and an image the emulator runs anyway. A field that overflows
+    # its slot corrupts the neighbouring one silently, and the corpus would report a
+    # divergence in the model rather than a defect in this table. `python -O` must not
+    # be able to switch that off.
     if not 0 <= word < (1 << 32):
         raise AssertionError(f"{mnemonic} encoded outside 32 bits: {word:#x}")
     return word

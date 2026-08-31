@@ -317,6 +317,15 @@ class Assembler:
             return [0]
         if spec in ("imm", "sym"):
             return [self._eval(text, item, pc)]
+        if spec == "v0":
+            # The mask register spelled out. A form whose `vm` bit is a literal one in
+            # the encoding still prints `, v0` (extensions/V), so a program writes it
+            # and the encoding carries nothing: this contributes no value at all, which
+            # is what keeps the flat operand list aligned with the encoder's slots.
+            if text.lower() != "v0":
+                raise self._error(item.line, f"{item.text} takes the mask register "
+                                             f"spelled v0, given {text!r}")
+            return []
         if spec == "csr":
             key = text.lower()
             return [dialect.CSRS[key]] if key in dialect.CSRS \
@@ -558,7 +567,13 @@ def _materialize(rd: int, value: int, out: list[Instr]) -> None:
         hi20 = ((value + 0x800) >> 12) & 0xFFFFF
         lo12 = _sign12(value)
         if hi20:
-            out.append(("lui", [rd, hi20]))
+            # Handed over signed, because the model prints `lui`'s upper immediate
+            # `hex_bits_signed_20` and the encoder takes the field's reading from the
+            # model. The bits are the same either way, `lui` masking its operand into
+            # twenty bits; what changes is which values the encoder admits, and a
+            # materialization of an address at or above 2^31 lands above the unsigned
+            # half of that field every time.
+            out.append(("lui", [rd, hi20 - (1 << 20) if hi20 >> 19 else hi20]))
         if lo12 or not hi20:
             out.append(("addiw", [rd, rd if hi20 else 0, lo12]))
         return
@@ -595,7 +610,12 @@ def _p_la(asm: Assembler, item: Item, pc: int) -> list[Instr]:
         raise asm._error(item.line, "la takes a register and a symbol")
     cd = asm._register(item.args[0], item)
     delta = asm._eval(item.args[1], item, pc) - pc
-    return [("auipcc", [cd, ((delta + 0x800) >> 12) & 0xFFFFF]),
+    # Handed over signed, for `_materialize`'s reason: `auipcc`'s upper immediate is
+    # read `sign_extend(imm @ 0x000)` by the model's own execute clause, and a backward
+    # `la` is a negative displacement whose top twenty bits land above the unsigned half
+    # of that field every time.
+    hi20 = ((delta + 0x800) >> 12) & 0xFFFFF
+    return [("auipcc", [cd, hi20 - (1 << 20) if hi20 >> 19 else hi20]),
             ("cincoffsetimm", [cd, cd, _sign12(delta)])]
 
 
