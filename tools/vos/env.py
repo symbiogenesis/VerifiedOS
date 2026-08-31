@@ -80,6 +80,13 @@ STACK_BYTES = 131072 * 1024
 # is that name under the build root rather than under a lane.
 MODEL_TREE = "verifiedos-model"
 
+# Where every lane's build trees live, and the name of the Sail SMT memo cache inside
+# one. Both were literals at their single use until `run.py provision` wanted them
+# without standing an `Environment` up: the cache name is what makes I2's
+# copy-never-share rule checkable, every lane's cache having to be a file of its own.
+BUILD_ROOT = Path("/root/build")
+TYPECHECK_CACHE = "verifiedos-typecheck-smt-cache"
+
 # The frozen profile configuration, relative to the model tree. Every loop below a
 # build hands it to the simulator, so `Environment.profile` composes the path once.
 PROFILE_CONFIG = "config/verifiedos.json"
@@ -93,6 +100,27 @@ BUILD_LOCK_HELD = "VOS_BUILD_LOCK_HELD"
 # the simulator inside it derive from this, so the pin is written once.
 ORACLE_TREE = "sail-cheri-riscv-bb07488d"
 
+# The switch the Sail toolchain lives in, which is opam's own default rather than a name
+# this repository chose, and the Sail that switch has to carry. Both were literals at
+# their one use below until a second reader wanted them: `run.py provision` probes the
+# switch `_apply_opam_env` applies. The install spells the pin because a bare
+# `opam install sail` drops it silently (M0.2), and a Sail other than this one emits a
+# model no evidence in this tree was taken under.
+SAIL_SWITCH = "default"
+SAIL_VERSION = "0.20.2"
+SAIL_INSTALL: tuple[tuple[str, ...], ...] = (
+    ("opam", "install", "-y", f"--switch={SAIL_SWITCH}", f"sail.{SAIL_VERSION}"),
+)
+
+# The pinned solver: its version, where it is unpacked, and the version of the
+# distribution's own that it has to precede. The number is separate from the path so a
+# probe can report what a prefix answered rather than only whether the directory is
+# there; `_prepend_z3_path` below states what a missing prefix costs, and it is the one
+# invariant here whose absence is silent rather than loud.
+Z3_VERSION = "5.1.0"
+Z3_PREFIX = Path(f"/root/z3-{Z3_VERSION}")
+Z3_DISTRIBUTION = "4.13.3"
+
 # The prover, in a switch of its own and carrying its pin in the name for the same reason
 # ORACLE_TREE does. It cannot share the Sail switch: `rocq-core` caps dune below the
 # version the Sail packages are built against, so installing it into `default` wants dune
@@ -102,7 +130,26 @@ ORACLE_TREE = "sail-cheri-riscv-bb07488d"
 # converges on 9.1: CertiRocq constrains `rocq >= 9.1 & < 9.2~`, SECOMP states 9.1, and
 # sail-riscv's own Rocq lane pins `rocq_core_version` 9.1.1. One prover version serves the
 # host gate and the M1.5 container both.
-ROCQ_SWITCH = "rocq-9.1.1"
+ROCQ_VERSION = "9.1.1"
+ROCQ_SWITCH = f"rocq-{ROCQ_VERSION}"
+
+# What creates that switch, as the argv a tool runs rather than as the sentence a person
+# reads: `rocq_command` prints it to a caller that has no prover and `run.py provision`
+# runs it, and a recipe stated twice is the defect these tools exist to catch.
+ROCQ_INSTALL: tuple[tuple[str, ...], ...] = (
+    ("opam", "switch", "create", ROCQ_SWITCH, "ocaml-base-compiler.5.4.0", "--no-switch"),
+    ("opam", "install", "-y", f"--switch={ROCQ_SWITCH}", f"rocq-core.{ROCQ_VERSION}"),
+)
+
+
+def install_line(steps: tuple[tuple[str, ...], ...]) -> str:
+    """A recipe as a person types it, composed from the argv a tool would run.
+
+    One owner and two readers: the message that names an absent switch, and the
+    provisioner that stands one up. Written the other way round, a message and a
+    command are two copies of one recipe and only one of them is ever run.
+    """
+    return " && ".join(" ".join(step) for step in steps)
 
 
 def _env_path(name: str, default: Path) -> Path:
@@ -209,7 +256,7 @@ class Environment:
         """Per lane, and not per machine, because Sail's memo cache is one file that
         every run rewrites whole: see `model.py`'s `_seed_smt_cache` for what two
         writers of it do to each other."""
-        return self.lane_root / "verifiedos-typecheck-smt-cache"
+        return self.lane_root / TYPECHECK_CACHE
 
     @property
     def simulator(self) -> Path:
@@ -386,10 +433,11 @@ def _prepend_z3_path() -> None:
     """Put the pinned solver ahead of the distribution's.
 
     The Z3 the Sail typechecker calls is unpacked beside the build trees and named for
-    its version. Ubuntu 26.04 packages 4.13.3 and Sail invokes `z3` by name from PATH,
-    so the pinned directory has to precede /usr/bin or the distribution's answers are
-    the ones cached. `VOS_Z3_BIN` is read here, at call time like every other override,
-    so a test that sets it after importing this module is still honoured.
+    its version. Ubuntu 26.04 packages the version `Z3_DISTRIBUTION` names and Sail
+    invokes `z3` by name from PATH, so the pinned directory has to precede /usr/bin or
+    the distribution's answers are the ones cached. `VOS_Z3_BIN` is read here, at call
+    time like every other override, so a test that sets it after importing this module
+    is still honoured.
 
     Absence is announced rather than passed over, which is what separates this from the
     opam guard below. A missing opam switch makes a Sail loop fail at `sail --version`;
@@ -397,12 +445,23 @@ def _prepend_z3_path() -> None:
     Ubuntu's 4.13.3 and write that solver's answers into a content-keyed cache the
     pinned solver then reads back as its own, which is a difference no later run can see.
     """
-    z3_bin = _env_path("VOS_Z3_BIN", Path("/root/z3-5.1.0/bin"))
+    z3_bin = _env_path("VOS_Z3_BIN", Z3_PREFIX / "bin")
     if z3_bin.is_dir():
         os.environ["PATH"] = f"{z3_bin}{os.pathsep}{os.environ.get('PATH', '')}"
     else:
         print(f"WARNING {z3_bin} is absent: typechecking will use the z3 on PATH and "
               f"cache its answers", file=sys.stderr)
+
+
+def build_root() -> Path:
+    """Where every lane's build trees live.
+
+    Public because `run.py provision` asks the layout a question without standing an
+    `Environment` up: `load` raises the stack limit, applies the opam environment and
+    prepends the pinned solver, none of which a probe of where the caches are has any
+    business doing.
+    """
+    return _env_path("VOS_BUILD_ROOT", BUILD_ROOT)
 
 
 def opam_root() -> Path:
@@ -430,8 +489,7 @@ def rocq_command() -> list[str]:
     if found:
         return [found, "c"]
     raise SystemExit(f"no prover: neither $VOS_ROCQ, nor {pinned}, nor rocq on PATH. "
-                     f"opam switch create {ROCQ_SWITCH} ocaml-base-compiler.5.4.0 "
-                     f"--no-switch && opam install --switch={ROCQ_SWITCH} rocq-core.9.1.1")
+                     f"{install_line(ROCQ_INSTALL)}")
 
 
 def _apply_opam_env() -> None:
@@ -440,7 +498,7 @@ def _apply_opam_env() -> None:
     `sail --version`."""
     if not shutil.which("opam"):
         return
-    proc = subprocess.run(["opam", "env", "--switch=default", "--shell=sh"],
+    proc = subprocess.run(["opam", "env", f"--switch={SAIL_SWITCH}", "--shell=sh"],
                           capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         return
@@ -468,7 +526,7 @@ def load() -> Environment:
     return Environment(
         root=root,
         model=_env_path("VOS_MODEL", root / "model"),
-        build_root=_env_path("VOS_BUILD_ROOT", Path("/root/build")),
+        build_root=build_root(),
         # Logs under /root and never /tmp, which is the reverse of the keepalive pidfile
         # above and for the reason that decides both: WSL idle-terminates once the last
         # process exits, and Ubuntu clears /tmp on the restart. A lease that dies with

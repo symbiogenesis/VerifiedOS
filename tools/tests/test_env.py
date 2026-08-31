@@ -137,10 +137,58 @@ def _keepalive_pidfile_read() -> None:
         "unset, the lease keeps its one shared name"))
 
 
+def _hoisted_lane_constants() -> None:
+    """The three literals the loops used to spell inline, held at the paths and names
+    a live loop depends on.
+
+    `_prepend_z3_path` is the one invariant here whose absence is silent rather than
+    loud: a wrong prefix does not fail a build, it typechecks against the
+    distribution's solver and caches that solver's answers. So a typo in the composed
+    path is not caught by anything a build does, and this is what catches it.
+    """
+    _with_env("VOS_Z3_BIN", None, lambda: ensure(
+        str(env.Z3_PREFIX / "bin").replace("\\", "/") == "/root/z3-5.1.0/bin",
+        f"the pinned solver's prefix must compose to the unpacked one, got "
+        f"{env.Z3_PREFIX}"))
+    ensure(env.SAIL_SWITCH == "default",
+           f"the Sail switch is opam's own default, got {env.SAIL_SWITCH!r}")
+    ensure(env.ROCQ_SWITCH == "rocq-9.1.1",
+           f"the prover switch carries its pin in its name, got {env.ROCQ_SWITCH!r}")
+    _with_env("VOS_BUILD_ROOT", None, lambda: ensure(
+        str(env.build_root()).replace("\\", "/") == "/root/build",
+        f"the build root is where every lane's tree lives, got {env.build_root()}"))
+    _with_env("VOS_BUILD_ROOT", "/root/build-elsewhere", lambda: ensure(
+        str(env.build_root()).replace("\\", "/") == "/root/build-elsewhere",
+        "VOS_BUILD_ROOT set after import must win, like every other override here"))
+
+
+def _install_recipes_compose() -> None:
+    """A recipe is argv and the sentence is composed from it, never the other way.
+
+    Two readers share each of these, a message that names an absent switch and the
+    provisioner that stands one up, and the point of the hoist is that they cannot
+    come to disagree. What is held is that the sentence still reads as one a person
+    can paste, and that the prover's version reaches both halves of its own recipe.
+    """
+    line = env.install_line(env.ROCQ_INSTALL)
+    ensure(line.startswith(f"opam switch create {env.ROCQ_SWITCH} "),
+           f"the recipe opens by creating the switch, said {line!r}")
+    ensure(" && " in line, "two steps compose into one line a person can paste")
+    ensure(f"rocq-core.{env.ROCQ_VERSION}" in line,
+           f"the prover is asked for at its pin, said {line!r}")
+    ensure(env.install_line(env.SAIL_INSTALL)
+           == f"opam install -y --switch=default sail.{env.SAIL_VERSION}",
+           f"the Sail install spells the pin M0.2 found is dropped without it, said "
+           f"{env.install_line(env.SAIL_INSTALL)!r}")
+    ensure(env.install_line(()) == "", "no steps compose to no sentence")
+
+
 def cases() -> list[Case]:
     return [
         # host-only because on the guest load() would not refuse, it would load
         Case("refuses-win32", _refuses_win32, lane="host"),
+        Case("hoisted-lane-constants", _hoisted_lane_constants),
+        Case("install-recipes-compose", _install_recipes_compose),
         Case("lane-shapes", _lane_shapes),
         Case("lane-override", _lane_override),
         Case("jobs-arithmetic", _jobs_arithmetic),

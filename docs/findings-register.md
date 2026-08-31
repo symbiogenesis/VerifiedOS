@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 295 of them across 64 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -72,6 +72,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S4
 · Disposition: standing, the dialect's own consequence rather than a defect; what is owed is that a program here name its authority holders before it names its scratch registers
 
+**F-197** measurement: the pinned solver's acquisition route was stated in no artifact, and it is an architecture-portable wheel rather than a source build or a published image, one install of that distribution reproducing the unpacked binary byte for byte on one digest
+· Raised: S9
+· Disposition: closed, the provisioner becoming the route's owner and composing the distribution's version from the one the environment module fixes
+
+**F-197a** owed-act: no register entry owns the development lane's toolchain at all, every reproducibility obligation there being over the shipped placement map and the certifying toolchain rather than over the environment the golden model is built in
+· Raised: S9
+· Disposition: open, reported and not closed, a register act rerunning the review gate; the provisioner discharges no requirement and creates none, which is what keeps it a build-loop instrument
+
+**F-197b** owed-act: the simulator's version pin is restated in a document twice and in code once and no rule holds the three together, the commit-pin rule reading object ids alone and the checker-pin rule reading the two checkers alone
+· Raised: S9
+· Disposition: open, recorded as a candidate rule and none added here; the provisioner adds no fourth copy, importing the constant instead
+
+**F-197c** owed-act: no artifact declared the distribution-package set the model build needs, so the provisioner becomes its owner and no rule holds the list
+· Raised: S9
+· Disposition: open, recorded as a candidate rule; what stands in for it is that every row names a consumer already in this tree and a row that cannot name one is not written
+
+**F-197d** owed-act: three provisioning routes have owners that state them as prose for a person rather than as a command a tool can run, two of them being rows that probe and report and plan nothing and the third a route no row probes at all
+· Raised: S9
+· Disposition: open, the recipes wanting an owner that states them as an argument vector; inventing one would be the unowned derived fact the working rules refuse, and the verdict rather than the plan is what separates nothing to do from nothing this tool may do
+
+**F-197e** method: a provisioner whose every fact is already satisfied cannot exercise its own install arm, so what its tests hold is the mapping from a probe's answer to a command and never the running of one
+· Raised: S9
+· Disposition: standing, held over injected tables rather than over the machine the tests run on; a claim of idempotence over an arm that never ran would be a check that decides nothing
+
+**F-197f** upstream-defect: the corpus parse reads the git index without the translation the environment module already provides for a linked worktree, so inside the guest on a lane every corpus-reading tool ends in a traceback naming no git repository rather than in a verdict
+· Raised: S9
+· Disposition: open, reported and not closed, that parse being the one every rule reads; the primary worktree is green on both lanes and this item's own guest case reaches the translation rather than repeating it
+
+**F-197g** measurement: a landed decline's ground names two opam switches where the lane now carries four, two having been added by milestones that landed after the sentence was written, and the argument the ground carries is strengthened rather than weakened by the count
+· Raised: S9
+· Disposition: standing, the decline's cell left alone rather than repaired at its own site, no stock image carrying any of the four
+
+**F-197h** owed-act: every figure any document stated about the provisioner's fact table was a hand-copy no rule read, the row count and the rows carrying a command among them, and three of the stated figures disagreed with the table on the day they landed with every gate green
+· Raised: S9
+· Disposition: closed, the four counts made quantities of the asserted-count rule and computed off the table by import rather than by a second parse of the file, so a repair rewrites them; no rule id is spent, extending a claim table being the cheaper of the two stated acts
+
+**F-197i** method: a lane can leave an untracked file at a tracked path in the worktree its branch merges into, where the merge refuses and the selftest's sandbox reads it as an empty source, and every gate the lane runs is green over it because each decides about the worktree it runs in
+· Raised: S9
+· Disposition: closed, the path clear at the landing and the primary worktree's status empty; the standing reading is that a lane's own gates decide nothing about the tree it merges into
+
 **F-000a** upstream-defect: the commit trace's default destination is block-buffered into a pipe while the injection diagnostics are unbuffered on the other descriptor, and the end-of-trace acknowledgement prints whatever the trace flag says because its call site passes a comparison where every other passes the flag
 · Raised: S11
 · Disposition: closed on this side, the rig giving the trace a file of its own; a diagnostic landing inside a half-written record reads as a divergence about a run that agreed
@@ -119,6 +159,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-000s** method: an item's stated blocker did not survive the act it blocked, an appended case and the rewritten run loop lying far outside the context a merge reads and the shared region coming through byte-identical
 · Raised: S13b
 · Disposition: closed, the region measured identical on both sides rather than inspected; what is real is a last mile and an ordering preference, so the ordering stands and the ground under it does not
+
+**F-198** measurement: on a host stripped to the distribution's own PATH the gate group reports three of its five rows absent, and the apply arm forms a plan of exactly two commands both of which invoke an installer the host does not have and this tree states no route for
+· Raised: S14
+· Disposition: standing, and it is the ground of the decline: the arm a push workflow runs cannot be stood up from zero by anything here, which is the second of the two grounds arriving one layer below where it was first found
+
+**F-198a** measurement: a workflow's own green is unobservable from this repository, there being no continuous integration by decision, no runner registered against either remote, and nothing here that exercises a hosted image
+· Raised: S14
+· Disposition: standing, recorded as the ground of the decline rather than as a defect; an authored workflow could be held to nothing before it landed, which is what makes an unrun gate a promise in another file
+
+**F-198b** owed-act: three classes of fact a workflow must state have no owner in this tree, the runner label, the action references it pins, and the bootstrap route
+· Raised: S14
+· Disposition: open, reported and not closed, and the rule this item was priced for is left unwritten with its id unspent: what a rule would hold does not exist until an owner does
+
+**F-198c** measurement: the provisioner's apply arm ended in a traceback rather than a verdict where an installer was absent, found by pointing it at a host that is not the lane
+· Raised: S14
+· Disposition: closed, an absent installer reported per step with the run going on to re-probe, so the row it belongs to fails on its own terms and the exit convention holds
+
+**F-198d** method: a landed decline falsifies the forward claims other cells made about the act it declined, and those are present-tense sentences no gate reads
+· Raised: S14
+· Disposition: closed, eight such sentences repaired to what is true across the plan and this register, with the rerun returning to the item that owns it and that cell deliberately not re-priced here; two of the eight stood a commit longer than the rest, which is the class arriving inside the item that names it
 
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
@@ -1163,7 +1223,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-181** upstream-defect: this tree carries workflow files and their being inert is what keeps them green, two of their own lines naming a target and an option the curation has since removed
 · Raised: I8
-· Disposition: standing, making one live being the permanent vendored divergence I4 and I8 both refuse; S14 is the disposition
+· Disposition: standing, making one live being the permanent vendored divergence I4 and I8 both refuse; S14 was to be the disposition and declined on a measurement, so this repository carries no workflow of its own either
 
 **F-182** measurement: the mutation sandbox's index carried no gitlink at all, standing each submodule up as a directory holding a stand-in
 · Raised: I11
