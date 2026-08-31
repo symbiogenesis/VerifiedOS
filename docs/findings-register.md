@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 252 of them across 58 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 262 of them across 60 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -907,6 +907,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-164** owed-act: the rule registry has a gap in its numbering that nothing records and no rule can see, the id occurring nowhere else in the tree
 · Raised: M4.2a
 · Disposition: closed, held by a struck row in the rule registry recording that the id was never allocated and is not reused, written struck so K-00 holds the live rows alone
+
+**F-192a** owed-act: the badge width of the message transfer shape is unfixed, one entry fixing the transfer and another the bit budget, with nothing joining them
+· Raised: M4.2b
+· Disposition: open, the transfer stated over an arbitrary width
+
+**F-192b** owed-act: what a typed refusal's type enumerates is unfixed, the refusal being required and its cause set named nowhere
+· Raised: M4.2b
+· Disposition: open
+
+**F-192c** owed-act: which of the closed five invocations may refuse is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192d** owed-act: the ABI numbers themselves are fixed nowhere, the surface check being stated over membership while the artifact also exhibits a second numbering over the same five that passes the same check
+· Raised: M4.2b
+· Disposition: open, the choice exhibited rather than argued
+
+**F-192e** owed-act: what a re-offer costs and how many are admitted is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192f** owed-act: whether a notification word is per partition, per endpoint or per ring is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192g** owed-act: whether an endpoint's readiness is one bit or one per offering peer is unfixed
+· Raised: M4.2b
+· Disposition: open
+
+**F-192i** owed-act: what carries the compositor's request for a focus rebinding, a rung selection or a suspension, and so whether the three trap, is unfixed, the entry closing the invocation surface naming the three as kernel-enacted at a frame boundary without saying what carries the request
+· Raised: M4.2b
+· Disposition: open, the trap surface left a parameter with the criterion the register does fix stated over it, two values admitted and three refused, and the one result that would otherwise turn on the gap proved of every admissible value
+
+**F-192j** owed-act: which of create, derive and revoke each surviving object class has is unfixed, one entry stating the lifecycle only negatively of the two tables while two others delete the derivation invocation and carry no create in the closed five
+· Raised: M4.2b
+· Disposition: open, the artifact stating the distinction the entry does draw and exhibiting a second map that discharges both obligations while disagreeing at cells no obligation reads
+
+**F-193** measurement: the Wasm oracle cannot report a defect in the artifact's own deciders that the proof gate would not report first, twelve one-token decider mutations being twelve stillborn, so what it uniquely tests is the compiled pipeline rather than the deciders
+· Raised: M4.3, in prose
+· Disposition: open as a standing reading of what staging a statement artifact into that loop buys, the loop's value being kernel conversion against the erasure and Wasm backend on a real artifact rather than a regression net
 
 **F-165** owed-act: the emulator runs one hart and every shipped configuration composes one, so the multikernel's defining property is first exercisable on the RTL track
 · Raised: M4.4, in prose
