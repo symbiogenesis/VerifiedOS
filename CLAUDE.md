@@ -32,7 +32,7 @@
 
 ## Before incorporating an upstream
 
-**A licence is read at the milestone that would incorporate it, never at release**, and it is the one property whose discovery cannot be repaired downstream. **A vendored tree binds this repository and a pinned submodule does not**, so pinning to read is free and vendoring is a commitment. Terms come from the upstream's own licence file, never inferred from its lineage. See [the plan's §12](docs/implementation-checklist.md#12-build-order-milestones-and-execution-state) and [THIRD-PARTY.md](THIRD-PARTY.md).
+**A licence is read at the milestone that would incorporate it, never at release**, and it is the one property whose discovery cannot be repaired downstream. **A vendored tree binds this repository and a pinned submodule does not**, so pinning to read is free and vendoring is a commitment. Terms come from the upstream's own licence file, never inferred from its lineage. **What the tracked tree actually conveys is read with `git ls-files -s upstream`**, which returns one `160000` gitlink per submodule and no file beneath any of them; it is checkout-independent, where `git submodule status` run inside a linked worktree reports every submodule uninitialized and so tells a lane an upstream is absent when it is not. See [the plan's §12](docs/implementation-checklist.md#12-build-order-milestones-and-execution-state) and [THIRD-PARTY.md](THIRD-PARTY.md).
 
 ## Before editing the model tree
 
@@ -41,6 +41,10 @@
 ## Before editing the RTL tree
 
 **[rtl/](rtl/) holds only files this repository authored**, and an imported core is reached through its gitlink under `upstream/` rather than copied in. It takes the repository's default line endings and **not** `model/`'s verbatim rule, for the reason stated at that rule in [.gitattributes](.gitattributes): there is no upstream here to stay byte-identical to. **A synthesis parameter is stated twice on purpose**, once in [the provenance record](rtl/synthesis-provenance.md) with the absence it removes and once in the configuration package as a literal at its field, and rule K-76 holds the two together with the absence contract; changing one alone is a finding, which is what makes the record a binding rather than a description.
+
+## Before standing up a worktree
+
+**Every git worktree goes under `.claude/worktrees/<lane>`**, the one path [.gitignore](.gitignore) reserves for them, and its first entry carries the ground: a linked worktree's `.git` is a pointer *file*, a kind no ruling in [tools/vos/checks/marks.py](tools/vos/checks/marks.py) covers, and the selftest's sandbox reads untracked files where `tools/check.py` reads the git index. A worktree anywhere else inside the checkout therefore leaves the checker green and the selftest's baseline red, which stops every mutant from deciding anything, so the gate goes dead silently rather than failing loudly. The directory name is also the lane name [run.py model lane](tools/vos/cli/model.py) derives from git's own worktree name. **Never reuse a lane's branch name**: `git worktree remove` keeps the branch, so a worktree recreated at an existing name checks out that branch's old base rather than current main.
 
 ## Running the tools
 
@@ -77,5 +81,7 @@ A bare `run.py` is the three host gates as one run and one exit code, and they s
 **Adding a rule to the checker is three edits**: the check in its [tools/vos/checks/](tools/vos/checks/) module, its row in [tools/check-rules.md](tools/check-rules.md), and its mutant in [tools/run.py selftest](tools/vos/cli/selftest.py). The tools fail on any one of the three being forgotten.
 
 **Validation is generated where an oracle exists**, and the three instruments are `oracle.py`, whose spec makes any Sail function a differential oracle, `seed.py`, whose mutation operators produce the defects an oracle must notice, and `quickchick.py`, which is the Gallina front's input side. A run of `seed.py` reports three verdicts and not two: a **stillborn** mutant did not compile and decided nothing, a **killed** one moved the oracle's answer, and a **survivor** is the finding, being a site the oracle does not reach. [tools/README.md](tools/README.md#the-three-generators-and-what-each-answers) states which of the tree's own findings each answers.
+
+**`run.py seed properties` writes into the checkout while it runs**, cmake being pointed at [model/](model/), so for the length of one mutant the tree on disk is wrong: `git add` stages a defect, `tools/check.py` reports a capability format that disagrees with itself, and the selftest copies a mutated tree into its template and fails its own baseline. **Nothing else may read the checkout beside it**, another window included. The run says so on its first line, and an inexplicable red in the capability-format rules or the selftest baseline is this before it is your edit.
 
 **The checker's corpus is the git index**, so a new document is invisible to `check.py` until it is tracked, while the selftest's sandbox tracks untracked files too. An untracked `.md` under `docs/` therefore passes the checker and fails the selftest's baseline; keep working notes outside `docs/`.
