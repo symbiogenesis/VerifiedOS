@@ -421,7 +421,7 @@ The other four are the radio reference state machines (inventory rows 19–22), 
 * Progress by estimate: 306 of 1,076.5 h complete (28.4%); 770.5 h remaining (71.6%).
 * M8a gate: 217.5 h of open work falls at or before it, of which 112.5 h is class X.
 * M8b gate: a 93.5 h chain of open work running beside the software one, R1b through M8b.
-* Critical chain through M8a: approximately 92–177 h at a 134.5 h midpoint, a serial-path figure no sum gives and the author's rather than the arithmetic's. It runs S1 and the two provenance decisions, then M1.9, M1.2, M1.7, M3.5, M4.4, M5.3, M6.5a, M7.1 and M8a; every Gallina item beside it is `Wasm-parallel` and adds none.
+* Critical chain through M8a: **its head is discharged**, S1 and every provenance decision being landed, so what remains of it runs M1.9, M1.2, M1.7, M3.5, M4.4, M5.3, M6.5a, M7.1 and M8a; every Gallina item beside it is `Wasm-parallel` and adds none. Over those cells the chain sums to 85–185 h at a 135 h midpoint. **That figure is a hand-taken sum over the nine cells and no rule recomputes it**, unlike the two gate figures above, so it goes stale at the next re-price of anything on the chain and is read as a serial-path ceiling rather than as arithmetic the tool holds.
 
 ### Sequencing
 
