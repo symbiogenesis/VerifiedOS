@@ -12,7 +12,7 @@ in-process and read its verdict back as data instead of re-parsing a subprocess'
 stdout.
 
 The `FAIL `, `ok `, and `fixed:` prefixes and the seven-space finding indent are
-parsed by check-selftest.py, so they are API rather than styling.
+parsed by [vos/cli/selftest.py](cli/selftest.py), so they are API rather than styling.
 """
 
 from collections.abc import Iterable
