@@ -131,6 +131,7 @@ PLACEMENT: list[tuple[str, str, str, str]] = [
     ("grant slots", r"grant slots", "first", "R-15-247s"),
     ("quarantine entries", r"quarantine entries", "first", "R-15-247s"),
     ("recovery workspaces", r"recovery workspaces", "first", "R-15-247s"),
+    ("the servers' scalar working sets", r"servers' scalar working sets", "first", "R-15-247s"),
     ("hard-task and hot code", r"hard-task", "first", "R-15-247j"),
     ("bulk by volume", r"bulk by volume", "second", "R-15-247"),
     ("framebuffers", r"framebuffers", "second", "R-15-247s"),
