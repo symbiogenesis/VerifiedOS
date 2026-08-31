@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 295 of them across 64 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 306 of them across 66 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -139,6 +139,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-000g** method: a schema-version bump can drift the meeting and elision tables away from the code that produces them, with every gate green
 · Raised: S11
 · Disposition: closed, K-85 holding §4's declared record kinds against §9's meeting and elision tables in both directions and both tables against the projection and the packet view themselves, which are run rather than read
+
+**F-000z** measurement: the verified lowering route's compiler emits bare-metal position-independent code over the base integer extension with no capability back end, so the claim that its target exists is true of plain RISC-V and false against the purecap-only requirement
+· Raised: S12, in prose
+· Disposition: standing, the target gap read at the upstream rather than closed, and M1.6 meeting it end to end from the other side
 
 **F-000h** measurement: the `$[test]` harness does reach the capability format's packing, killing all five live mutants of it, and names one property for every one of them because it stops at the alphabetically first to fire
 · Raised: S13a
@@ -754,6 +758,49 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-131** upstream-defect: an intercepting proxy re-signs the release-asset host, so the exported root CA must be installed into any guest trust store that fetches one
 · Raised: M1.5, in prose
 · Disposition: standing, a setting on the human's box that no benchmark reaches, and one S9's provisioner does not reach either, standing up a lane rather than a box's trust store
+
+**F-131a** measurement: the lowering route has two exits and neither carries both properties the plan asks of it, the exit that reaches encoded machine code with the proof intact landing on a target the register forbids anywhere and the exit that reaches a capability backend leaving the prover through a printer carrying no theorem
+· Raised: M1.6
+· Disposition: standing, the fork being what the item measures rather than something it can close
+· Restates: F-000z
+
+**F-131b** measurement: the restricted subset's blocker on this artifact is higher-order code rather than the general recursion and the inductive datatypes the earlier reading forecast from the upstream's own description, the first being at zero sites and the second being closed nullary enumerations, because the target language has neither a function value nor an indirect call
+· Raised: M1.6
+· Disposition: closed, measured construct by construct over the artifact, and the forecasting cell repaired to point at the figures rather than to go on asserting it
+
+**F-131c** measurement: the artifact the plan's section 8 would hand this route is that section's own host-side differential-testing oracle and not the control plane that ships, which the same section assigns to a different compiler and a different item lowers
+· Raised: M1.6
+· Disposition: standing, so a lowering measured against it decides nothing about the image
+
+**F-131d** method: a re-price that substitutes a route for a dead one carries the dead route's consumer across with it unless the substitution is read against the route list, and the plan's own list already gives this route a different consumer
+· Raised: M1.6
+· Disposition: closed, the route re-pointed inside the checklist at the consumer the register and the specification already name for it
+
+**F-131e** owed-act: two register entries assume a single lowering path carrying both proof transport and an admissible target, one requiring the synthesis be counted as transport rather than an anchor and the other admitting a verified compilation step freely with no clause about where the transport stops
+· Raised: M1.6
+· Disposition: open, a register act, and whether the two are one gap or two is a reading this item does not take
+
+**F-131f** owed-act: one consumer in the plan's route list is stale, the arena and extraction bullet naming the static init tree where the init-system section assigns that control plane to a synchronous-dataflow compiler and keeps the Gallina host-side, the rest of the route section already reading it the other way twice
+· Raised: M1.6
+· Disposition: open, a one-bullet plan act on the route list, which the plan's own opening reserves as the authority on what each milestone means where the execution state is a lane's
+
+**F-131g** upstream-defect: a switch created over the system compiler package keeps the distribution's library directory ahead of its own on the library manager's path, so a package the switch has just installed complete is resolved to the distribution's incomplete copy and the build reports it absent rather than shadowed
+· Raised: M1.6
+· Disposition: closed, the switch re-created over a compiler of its own, which is what the proof gate's switch already does; the class stands wherever a switch reuses the system compiler
+· Restates: F-000j
+
+**F-131h** upstream-defect: the upstream ships an inductive-datatype example that it does not lower, and half its example files carry no derivation at all, every data-structure example among them
+· Raised: M1.6
+· Disposition: standing, which is what makes the per-constructor price for a datatype a forecast rather than a measurement even where it is right
+
+**F-131i** measurement: the emitted C reaches the non-capability backend from a Gallina source, and the capability printer's stubbed arms are exactly the arithmetic, the branches and the loads and stores through a capability that a derived loop needs
+· Raised: M1.6
+· Disposition: standing, nothing here resting on the capability output, and the chain measured end to end rather than at the compiler alone
+· Restates: F-128
+
+**F-131j** owed-act: the intermediate language the register entry, the specification and the plan all name for this route is emitted by neither of its exits, one going straight to encoded machine words and the other to C source text through a printer and a second front end
+· Raised: M1.6
+· Disposition: open, a register act reported and not closed, and the checkable half of the gap the entry pair above states as a silence
 
 **F-132** method: an instrument's landed half was gated on neither milestone the plan books it behind, what it needs from a backend being a transport rather than a design
 · Raised: M1.8a
