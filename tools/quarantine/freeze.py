@@ -1691,7 +1691,7 @@ def _provenance_block(contract: Contract, joined: Join | None,
     moves here rather than agreeing with a tuple in this file.
     """
     if joined is None:
-        symbol = "the provenance join of §4, over inputs M1.2 and M1.4 owe"
+        symbol = "the provenance join of §4, over inputs this run did not find"
         return {
             **{oc: pending(symbol) for oc in OPERAND_CLASSES},
             "encoded_text_bytes": pending(symbol),
@@ -1933,8 +1933,8 @@ def g2(record: Record) -> Verdict:
     unmeasured = [oc for oc in OPERAND_CLASSES if not record.provenance[oc].measured]
     if unmeasured or residue is None or not residue.measured:
         return _verdict("G-2", DEFERS,
-                        "the strata and the residue come from the §4 join, whose three "
-                        "inputs M1.2 and M1.4 owe")
+                        "the strata and the residue come from the §4 join, whose "
+                        "inputs this run did not find")
     return _verdict("G-2", PASS, "every stratum carries a count and the residue is zero")
 
 

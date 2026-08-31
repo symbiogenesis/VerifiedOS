@@ -15,9 +15,12 @@ statement of it is generated; a hand-written restatement held equal by a rule is
 older discipline, because the rule can only tell you the two disagree after they already
 do.
 
-What that buys is measurable rather than tidy. The transcription carried **353** rows and
-the generated table carries **931**, so **578** forms the model decodes were reachable by
-no corpus program and nothing said so. It also removes three classes of hand fact: the
+What that buys is measurable rather than tidy. The transcription carried 353 rows, of
+which the generation reproduces 352, and the forms the model decodes that had no row at
+all were reachable by no corpus program with nothing saying so. How many rows there are
+today is the artifact's own header, which is why no count is written here: a docstring is
+not a document `check.py` reads, so a figure in one is a restatement nothing can hold. It
+also removes three classes of hand fact: the
 branch and jump shift-by-one, which the model states structurally as `imm @ 0b0`; the
 `nonzero_rd` refusal on `lc` and the twelve-or-twenty-four refusal on `vkeccak.vi`, which
 were one-off rules quoting a clause and are now that clause's own guard; and the

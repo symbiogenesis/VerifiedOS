@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 320 of them across 67 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 323 of them across 67 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -761,7 +761,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-128d** measurement: one assembly clause of the model resists generation, its `forwards ... when` body left unstructured by the emitter, so its mnemonic is a skeleton and its operand run is absent
 · Raised: M1.4′
-· Disposition: standing, `fence` staying the one authored row of 932 with the encoding it resolves to restated beside it rather than half generated
+· Disposition: standing, `fence` staying the one row of this table the repository writes by hand, with the encoding it resolves to restated beside it rather than half generated
 
 **F-128e** owed-act: nothing decides whether the encoder table carries the model's whole admitted surface or a declared scope, generation having removed the transcription cost the scoping decision was against
 · Raised: M1.4′
@@ -771,9 +771,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.4′
 · Disposition: open, the union over the three shipped configurations taken with its ground stated, and the entry that would fix it not written
 
-**F-128g** measurement: twelve forms are refused for a reason that is not an extension being off, ten carrying a register-overlap guard over machine state and two printing an operand shape this assembler does not write
+**F-128g** measurement: twelve forms are refused and the twelve are four kinds, eight guarded on a vector register operand the evaluator cannot bind, two printing an operand shape this assembler does not write, one refusing itself on the joint encoding constraint the enumeration over-approximates, and one simply an extension off at the shipped configurations
 · Raised: M1.4′
-· Disposition: standing, each refused with its own guard quoted rather than admitted on a reading nobody took
+· Disposition: standing, each refused with its own guard quoted rather than admitted on a reading nobody took, and the artifact carrying the twelve strings the run wrote
 
 **F-128h** owed-act: the sidecar stream has no producer, so the composer mints the site ids the join keys on and no artifact says whether they are the ids the backend will carry
 · Raised: M1.4′
@@ -794,15 +794,27 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-128l** method: the freeze report named all three of its producers in one clause because all three inputs were absent, which two of them landing turned into a claim about a state the run was no longer in
 · Raised: M1.4′
-· Disposition: closed, the clause derived from the contract's own input table over the absent streams alone
+· Disposition: closed, the clause derived from the contract's own input table over the absent streams alone, and the same reading carried to the four prose sites that stated it by hand, the report's docstring and fixture line, the analyzer's two pending symbols, and the quarantine's README
 
 **F-128m** method: a test pinning a report's verdict verbatim depends on untracked output the moment that output has a producer
 · Raised: M1.4′
 · Disposition: closed, the absent state forced by the case rather than assumed, and the end-to-end join it could not make added as a case of its own
 
-**F-128n** measurement: a host-lane generated artifact costs its generator once per selftest sandbox, so a fraction of a second is about a hundred times over
+**F-128n** measurement: a host-lane generated artifact costs its generator once per checker run and the selftest runs the checker once per case, so a fraction of a second is paid about a hundred times over
 · Raised: M1.4′
-· Disposition: standing, the wave moving from 35.6 s to 59 s warm, which is what buys byte identity decided outright rather than against the last commit
+· Disposition: standing, the cost stated as the generator's own median against the number of runs rather than as a wall clock for the wave, which this host does not reproduce within a factor of two and [the tools' README](../tools/README.md) declines to quote for that reason
+
+**F-128o** method: an un-quarantine condition stated over what an instrument reports is decided by the working directory rather than by the repository, once one of the inputs it counts has a producer whose output the checkout ignores
+· Raised: M1.4′
+· Disposition: closed, the condition qualified by the run that produces the streams, so the same revision no longer answers it two ways, and the report saying on its own face that absence is read off an ignored build tree
+
+**F-128p** method: a landing that reverses a scoping decision falsifies the document that states the decision, and no rule reads that document's section, so both gates stay green over a contradiction
+· Raised: M1.4′
+· Disposition: closed for this instance, [the corpus document](differential-corpus.md)'s §3 restated as generation and its vector-scoping paragraph rewritten to what the table now carries; no rule is added, the general case being the standing one S1 reads
+
+**F-128q** measurement: the item arguing that a fact has one owner restated its generated artifact's own header by hand in two documents, where nothing computed it
+· Raised: M1.4′
+· Disposition: closed, the admitted count registered as a K-24 claim at both sites and recomputed from the artifact under `--fix`; the refusal count is left unregistered and stated in prose, its word form colliding with twenty-three unrelated sentences in K-26's alternation
 
 **F-129** upstream-defect: the container recipe exists for the prover rather than for privilege, and no container runtime is installed on either lane
 · Raised: M1.5, in prose
