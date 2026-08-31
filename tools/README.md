@@ -250,12 +250,11 @@ all three only read the checkout, and the two small ones fit inside the slack of
 large one. So [a bare `run.py`](run.py) runs them as one command and one exit code, each
 member's own report printed whole under its own heading in the order the tool declares
 rather than the order the three finished in. What the wave buys in wall time is that the
-two small members fit inside the selftest's slack rather than adding their own; **no
-figure is quoted here**, because the three medians this paragraph used to state were
-taken at a checker of seventy-one rules and seventy-three mutants and this one seeds
-more than a third again as many over a larger corpus, and the only timings in this
-repository with a revision beside them are the ones [the plan](../docs/implementation-checklist.md)'s
-I8 recorded at its own gate. The saving is the smaller half of the point
+two small members fit inside the selftest's slack rather than adding their own, and
+**no figure is quoted for it here**: a median is a property of the checker it was taken
+at, the rule count and the mutant population both move on every rule landed, and the
+only timings in this repository with a revision beside them are the ones
+[the plan](../docs/implementation-checklist.md)'s I8 recorded at its own gate. The saving is the smaller half of the point
 and the single verdict is the larger. `--fix` is the one exception to the wave
 and a correctness one, the repair running alone and to completion before the rest,
 because the selftest opens by copying the working tree and a document rewritten
