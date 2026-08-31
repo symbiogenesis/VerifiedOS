@@ -206,7 +206,7 @@ CompCert and Vélus are the same form of instrument from the same licensor and a
 
 **§4 of the INRIA agreement is a reciprocal distribution clause**, obliging whoever distributes the Software or a derivative work of it to distribute "under the same terms and conditions as in this License" and to grant no other rights than it provides. It is conditioned on distribution and this repository distributes nothing under it, so what keeps it unengaged is the containment call rather than an absence in the instrument.
 
-**The decomposition is worse than the headline.** The verified backend passes and the RISC-V backend are not on the dual-licensed list, nor is SECOMP's own `cheririscV/` capability backend, which is exactly the material the compiler milestone would take. The permissive and LGPL arms cover the parts that milestone does not need.
+**The decomposition is worse than the headline.** The verified backend passes and the RISC-V backend are not on the dual-licensed list, nor is SECOMP's own `cheririscV/` capability backend. The RISC-V backend is exactly the material the compiler milestone takes after M1.1b, and `cheririscV/` is read rather than carried forward, so the term reaches a smaller tree and reaches it for the same reason. The permissive and LGPL arms cover the parts that milestone does not need.
 
 **A commercial arm probably requires two grants from two rightsholders.** The AbsInt Software Usage Agreement conveys rights in CompCert, while `cheririscV/` is SECOMP's own contribution, in which AbsInt has no standing to grant anything.
 
