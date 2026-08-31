@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 294 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -66,7 +66,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000p** owed-act: three commands the entry point's table declares host-capable cannot run on the host, the command's own dispatch preparing the guest environment before it reads which subcommand was asked for
 · Raised: S4
-· Disposition: open, reported and not closed, the table and the module being one lane's to reconcile
+· Disposition: closed at M1.4-prime, which needed a fourth such command and so paid for the reconciliation: the environment reader takes a host-lane arm and the dispatch asks the entry point's own table which subcommands it applies to, rather than restating them
 
 **F-000q** method: the merged register file makes an ABI integer name an authority destroyer, and the failure surfaces at the exit store millions of instructions after the write that caused it
 · Raised: S4
@@ -682,6 +682,63 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-128** upstream-defect: the pin's generated configuration puts an ABI flag on three tools and no cross toolchain is installed, and the assembly output reaches the non-capability backend
 · Raised: M1.2, in prose
 · Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two waiting on M1.4's toolchain
+
+**F-128a** method: a mapping applied twice in one clause needs its arguments in the key, a lookup by the mapping's name alone giving every application the first one's arm
+· Raised: M1.4′
+· Disposition: closed, the selector keyed on its argument positions as well as its name; caught by holding the generated constants against the transcription's own encoder over the rows both carry
+
+**F-128b** method: an operand's admitted range is stated in the model's execute clause and in neither the encoding, which fixes only the width, nor the printer, which says how a disassembler displays it
+· Raised: M1.4′
+· Disposition: closed, the reading taken from the execute clause's own `sign_extend` or `zero_extend`, which answers where the printer answers wrongly twice
+
+**F-128c** method: a name scan bounded on one side reads `unsigned(` as a signed reading and a name as its own prefix
+· Raised: M1.4′
+· Disposition: closed, the scan bounded on both sides and asked only of an immediate, a register number being an index rather than a value with a sign
+
+**F-128d** measurement: one assembly clause of the model resists generation, its `forwards ... when` body left unstructured by the emitter, so its mnemonic is a skeleton and its operand run is absent
+· Raised: M1.4′
+· Disposition: standing, `fence` staying the one authored row of 932 with the encoding it resolves to restated beside it rather than half generated
+
+**F-128e** owed-act: nothing decides whether the encoder table carries the model's whole admitted surface or a declared scope, generation having removed the transcription cost the scoping decision was against
+· Raised: M1.4′
+· Disposition: open, the whole surface carried and the reversal of M0.8b's vector scoping reported rather than performed silently
+
+**F-128f** owed-act: nothing fixes which composition the dialect's admission is taken at, the dialect being one ISA across five core classes where enablement is per-composition
+· Raised: M1.4′
+· Disposition: open, the union over the three shipped configurations taken with its ground stated, and the entry that would fix it not written
+
+**F-128g** measurement: twelve forms are refused for a reason that is not an extension being off, ten carrying a register-overlap guard over machine state and two printing an operand shape this assembler does not write
+· Raised: M1.4′
+· Disposition: standing, each refused with its own guard quoted rather than admitted on a reading nobody took
+
+**F-128h** owed-act: the sidecar stream has no producer, so the composer mints the site ids the join keys on and no artifact says whether they are the ids the backend will carry
+· Raised: M1.4′
+· Disposition: open, the ids minted as the unit's name and the site's ordinal and reported rather than declared a naming convention this item invented
+
+**F-128i** measurement: a link map's bundle and slot columns filled at the reference instantiation are not a geometry verdict, the contract declaring the candidate set and stating no default arm
+· Raised: M1.4′
+· Disposition: standing, the geometry a declared parameter of the run and named on the run's own line
+· Restates: F-138
+
+**F-128j** measurement: an empty dictionary makes every site a verbatim escape and the stratified hit rate zero, which is a true report about a machine no dictionary has been selected for
+· Raised: M1.4′
+· Disposition: standing, the selection being the freeze's own first decision and an instrument that took it would be grading its own homework
+
+**F-128k** upstream-defect: the build directory the freeze's producers write into was not ignored, and an untracked file under the checkout is green to the checker and red to the selftest's baseline
+· Raised: M1.4′
+· Disposition: closed, the directory ignored in the same edit on the generated reading view's exact precedent and anchored the same way
+
+**F-128l** method: the freeze report named all three of its producers in one clause because all three inputs were absent, which two of them landing turned into a claim about a state the run was no longer in
+· Raised: M1.4′
+· Disposition: closed, the clause derived from the contract's own input table over the absent streams alone
+
+**F-128m** method: a test pinning a report's verdict verbatim depends on untracked output the moment that output has a producer
+· Raised: M1.4′
+· Disposition: closed, the absent state forced by the case rather than assumed, and the end-to-end join it could not make added as a case of its own
+
+**F-128n** measurement: a host-lane generated artifact costs its generator once per selftest sandbox, so a fraction of a second is about a hundred times over
+· Raised: M1.4′
+· Disposition: standing, the wave moving from 35.6 s to 59 s warm, which is what buys byte identity decided outright rather than against the last commit
 
 **F-129** upstream-defect: the container recipe exists for the prover rather than for privilege, and no container runtime is installed on either lane
 · Raised: M1.5, in prose
