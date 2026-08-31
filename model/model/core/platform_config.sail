@@ -163,12 +163,19 @@ let plat_watchdog_size : physaddrbits = to_bits_checked(config platform.watchdog
 // the validator, which refuses a composition that places one wrong
 // (postlude/device_tree.sail, postlude/validate_config.sail).
 //
-// The cost of that is stated rather than absorbed: an IO address no device
-// claims falls through to the RAM path and reads as zero (sys/mem.sail), so
-// until the top lands an access inside one of these three is silence rather
-// than a refusal. That is the opposite disposition from the memory sequencer's
-// window and the RoT's four, and the reason is that their refusal is permanent
-// where these are doors whose device has not arrived.
+// The cost of that is stated rather than absorbed, and the enclosing region's
+// PMA decides how much of it there is: an IO address no device claims falls
+// through to the RAM path (sys/mem.sail), but `pmaCheck` runs ahead of that
+// fall-through, so what is silent is only what the region already permits. The
+// serial port and the block device sit in a readable and writable IO region, so
+// a load and a store inside either are the RAM path's until the top lands. The
+// boot ROM's region is readable and neither writable nor executable, so a load
+// there reads zero while a store or an instruction fetch is an access fault the
+// region raises today; the fetch is the one access an SoC boot ROM exists for,
+// and that region's `executable` is R1c-ii's to decide with the attested tree
+// sharing the region. Either way this is the opposite disposition from the
+// memory sequencer's window and the RoT's four, and the reason is that their
+// refusal is permanent where these are doors whose device has not arrived.
 let plat_have_boot_rom : bool = config platform.boot_rom.supported
 let plat_boot_rom_base : physaddrbits = to_bits_checked(config platform.boot_rom.base : int)
 let plat_boot_rom_size : physaddrbits = to_bits_checked(config platform.boot_rom.size : int)

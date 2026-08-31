@@ -157,14 +157,11 @@
       // the tree's half is sized for the four that have not. `model.py
       // devicetree` is what holds the blob against this number on every run.
       //
-      // **The region carries two things and now says where each is**, which is
-      // what R1c-i changed here: the boot ROM had no extent anywhere in the
-      // tree while `memory.dtb_address` was this region's own base, so a boot
-      // ROM image and the attested tree both began at 0x1000 and nothing
-      // refused it. The extent is `platform.boot_rom` below, the two are held
-      // disjoint at composition and again when the blob is written
-      // (model/postlude/validate_config.sail), and 16 KiB apiece is what the
-      // bump pays for.
+      // **The two halves are held apart rather than trusted to fit**, 16 KiB
+      // apiece: the boot ROM's extent and the tree's address are checked
+      // disjoint at composition, and the blob's own extent is checked against
+      // the same ROM when it is written, which is the only point its size is
+      // known (model/postlude/validate_config.sail).
       {
         "base": { "len": 64, "value": "0x1000" },
         "size": { "len": 64, "value": "0x8000" },
@@ -572,9 +569,16 @@
     // devices arrive as route-(c) references from `lowRISC/mocha` with the SoC
     // top written over this map (R1c-ii), and the block device's transfer
     // interface arrives with the storage stack. So no door of the model's opens
-    // at any of the three: `model/sys/platform.sail` claims no window here, and
-    // an address inside one reads as zero on this model until that top lands,
-    // which is silence rather than a refusal and is stated rather than absorbed.
+    // at any of the three: `model/sys/platform.sail` claims no window here, so
+    // an address inside one falls through to the RAM path, and what that costs
+    // is decided by the enclosing region's own PMA rather than by the aperture.
+    // The serial port and the block device are in the readable and writable IO
+    // region below, so a load and a store inside either are the RAM path's until
+    // that top lands. The boot ROM is in the ROM region above, which is readable
+    // and neither writable nor executable, so a load there reads zero while a
+    // store or an instruction fetch is an access fault; the fetch is the one
+    // access a boot ROM exists for, and that region's `executable` is R1c-ii's to
+    // decide with the attested tree sharing the region.
     // The memory sequencer's and the RoT's windows refuse instead, and the
     // difference is that their refusal is permanent: nothing on this die may ever
     // open them, where these three are doors whose device has not arrived.
