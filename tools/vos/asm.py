@@ -70,6 +70,31 @@ _ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "0": "\0", "\\": "\\",
             '"': '"', "'": "'"}
 
 
+@dataclass(frozen=True)
+class Site:
+    """One emitted instruction, as the freeze contract's §4 join keys on it.
+
+    **The composer mints the id, and that is a stopgap the contract does not authorize.**
+    §4 requires that every site join, and the join needs the sidecar stream's `site_id`
+    to be the id the link map carries. The sidecar's producer is M1.2's backend, which
+    does not exist, so nothing yet says whether an id minted here is the id that backend
+    will carry. What is minted is the narrowest thing that can be: the unit's own name
+    and the site's ordinal among the instructions that unit emits, in source order.
+    That is stable across runs and stable under any edit below it, which is the whole of
+    what "stable within a compilation unit" can mean with no backend to agree with.
+
+    `source` is the line the site came from, and it is here rather than in the link map
+    because the link map's fields are §4's and this is the assembler's own: a person
+    reading a per-site table wants to know which line of which program a site is.
+    """
+
+    site_id: str
+    address: int
+    opcode: str
+    source: int
+    section: str
+
+
 @dataclass
 class Item:
     """One assembled thing: an instruction, some bytes, or a gap."""
@@ -87,6 +112,10 @@ class Assembler:
     def __init__(self, source: str, name: str = "<source>") -> None:
         self.name = name
         self.items: list[Item] = []
+        # One record per emitted instruction, filled by `assemble` and read by the
+        # composer. Empty until then, and rebuilt from scratch by each `assemble`, so a
+        # second run over one assembler cannot leave two runs' sites in one list.
+        self.sites: list[Site] = []
         self.symbols: dict[str, int] = {}
         self.symbol_section: dict[str, str] = {}
         self.constants: dict[str, tuple[int, str]] = {}   # .equ, with its section
@@ -188,6 +217,7 @@ class Assembler:
             raise AsmError(f"{self.name}: layout did not settle in eight rounds")
 
         self.strict = True
+        self.sites = []
         text = image.Section(".text", TEXT_BASE, executable=True)
         data = image.Section(".data", DATA_BASE, writable=True)
         sections = {".text": text, ".data": data}
@@ -256,6 +286,14 @@ class Assembler:
                 out += dialect.encode(mnemonic, operands, pc).to_bytes(4, "little")
             except AsmError as exc:
                 raise self._error(item.line, f"{item.text}: {exc}") from None
+            # One site per *emitted* instruction rather than per source line, because
+            # that is what §4's record is one of: a `li` that materializes in three
+            # words is three sites, and an analyzer counting source lines would report a
+            # stratum smaller than the stream it is stratifying.
+            self.sites.append(Site(
+                site_id=f"{Path(self.name).stem}#{len(self.sites):05d}",
+                address=pc, opcode=mnemonic, source=item.line,
+                section=item.section))
             pc += 4
         return bytes(out)
 
@@ -751,9 +789,18 @@ PSEUDOS: Final[dict[str, Pseudo]] = {
 }
 
 
-def assemble_file(source: Path, elf: Path) -> int:
-    """Assemble one program and write its image. Returns the byte count."""
+def assemble_file(source: Path, elf: Path, sites: list[Site] | None = None) -> int:
+    """Assemble one program and write its image. Returns the byte count.
+
+    `sites` is filled with one record per emitted instruction where a caller supplies a
+    list, and left alone where it does not. An out-parameter rather than a second return
+    value, because every caller of this function today wants the byte count and only the
+    composer wants the sites: widening the return would make three callers unpack a
+    field they have no use for.
+    """
     asm = Assembler(source.read_text(encoding="utf-8"), source.name)
     sections, symbols, entry = asm.assemble()
     image.write_elf(elf, sections, symbols, entry)
+    if sites is not None:
+        sites += asm.sites
     return sum(len(s.data) for s in sections)
