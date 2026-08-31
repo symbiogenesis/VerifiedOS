@@ -1102,7 +1102,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 ## RTL track
 
-**F-168** measurement: the capability width identity collapses onto the register width across the imported core, one declaration that twenty-five files name
+**F-168** measurement: the capability width identity collapses onto the register width across the imported core, one declaration the delta books across twenty-five files
 · Raised: R1, in prose
 · Disposition: open, taken at R1b, and it takes a store rotate into an upper half that no longer exists with it
 
