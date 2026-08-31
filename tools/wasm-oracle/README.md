@@ -62,7 +62,7 @@ $ python tools/run.py model keepalive
 KEEPALIVE pid=... hours=8 pidfile=/tmp/vos-keepalive.pid
 ```
 
-It is idempotent, expires on its own, and stops early with `model.py keepalive --stop`; see the keepalive section of [tools/vos/env.py](../vos/env.py) for why it is a process and not a setting. Every model loop takes the same lease, so a build started with `model.py build` needs no separate call. The `certicoq-oracle` container carries `--restart unless-stopped` so it also comes back by itself after a teardown that happens anyway.
+It is idempotent, expires on its own, and stops early with `run.py model keepalive --stop`; see the keepalive section of [tools/vos/env.py](../vos/env.py) for why it is a process and not a setting. Every model loop takes the same lease, so a build started with `run.py model build` needs no separate call. The `certicoq-oracle` container carries `--restart unless-stopped` so it also comes back by itself after a teardown that happens anyway.
 
 ## Corporate-network note
 
