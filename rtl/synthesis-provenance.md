@@ -57,12 +57,11 @@ These are not absence-contract rows. An RTL implementing any of them fails ordin
 
 ## 4. What no parameter reaches, and what that costs
 
-**Four residues, and they arrive by two different doors.** **Two of the eighteen rows above carry `n/a` on the second of the three grounds §1 separates**, which is the one that is work rather than a fact about the imported core: A-09 and A-10, the two caches, which the first item below takes together. The other three items are rows a parameter *does* take, where the value removes the array and leaves the structure around it standing, so the row is bound and a residue sits beside it. All four are authoring work that no configuration reaches, and the count is over the items below rather than over the rows above.
+**Three residues, and they arrive by two different doors.** **Two of the eighteen rows above carry `n/a` on the second of the three grounds §1 separates**, which is the one that is work rather than a fact about the imported core: A-09 and A-10, the two caches, which the first item below takes together. The other two items are rows a parameter *does* take, where the value removes the array and leaves the structure around it standing, so the row is bound and a residue sits beside it. All three are authoring work that no configuration reaches, and the count is over the items below rather than over the rows above.
 
 - **The caches, A-09 and A-10.** They are the largest single item, and no configuration the imported core admits removes them. What replaces them is flat SRAM at fixed latency, which is authored rather than configured.
 - **The PMP shells.** Zeroing the entries removes the comparator array and leaves two wrapper modules standing.
 - **The capability-mode signals.** Setting the hybrid extension off makes the mode path unreachable, and the signals stay in the imported source until they are curated out.
-- **Static-only prediction.** This is the one row where zeroing a parameter and satisfying the requirement are different acts. `BHTEntries = 0`, `BTBEntries = 0` and `RASDepth = 0` discharge A-04, A-05 and A-06, which ask for zero mutable predictor state, and they leave the core predicting not-taken always. R-15-019 asks for prediction that is a fixed function of encoding and displacement sign, which is a different thing and is not a parameter. **No absence-contract row and no coverage cell audits that difference**, which is a register gap reported and not closed here.
 
 ## 4a. The tag fabric's route, recorded so it is not derived twice
 
