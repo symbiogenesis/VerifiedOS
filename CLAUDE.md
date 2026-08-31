@@ -64,6 +64,7 @@ $ python tools/run.py rtl provenance              # the absences, and what binds
 $ python tools/run.py oracle list                 # the oracle specs, and how large each is
 $ python tools/run.py seed list --file <source>   # the mutants one source yields
 
+$ python tools/run.py provision                   # is this machine the lane, and what is missing
 $ python tools/run.py evidence                    # the whole exit-evidence sweep, one block
 $ python tools/run.py model typecheck
 $ python tools/run.py model build
