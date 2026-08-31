@@ -342,11 +342,18 @@ def verdict_sentence(record: freeze.Record, inputs: freeze.Inputs,
     absent = inputs.absent_streams
     source = ("a fixture standing in for them" if inputs.from_fixture
               else "nothing standing in for them")
+    # The producers are read off §4's own input table rather than written out here.
+    # They were written out, back when all three were absent and the sentence could name
+    # all three at once; M1.4-prime landing two of them made that clause a claim about a
+    # state the run was no longer in, which is the shape of stale statement no rule
+    # reads and every reader believes.
+    owed = ", ".join(dict.fromkeys(
+        producer for _n, _p, _w, producer, stream in freeze.INPUTS
+        if stream in absent))
     return (
         f"ok: the instrument is wired and cannot be run. {len(absent)} of "
         f"{len(freeze.STREAMS)} inputs the §4 join takes are absent, with {source}: "
-        f"{', '.join(absent)}, of which the first is M1.2's backend and the other two "
-        f"are M1.4's linker and image composer. So {measured} of "
+        f"{', '.join(absent)}, owed by {owed}. So {measured} of "
         f"{len(record.decisions)} decisions carry a verdict, and of §9's "
         f"{len(verdicts)} predicates {passed} already decide, {deferred} defer on a "
         f"named symbol and {rejected} reject. This report is not a freeze."

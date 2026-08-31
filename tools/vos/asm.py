@@ -70,6 +70,31 @@ _ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "0": "\0", "\\": "\\",
             '"': '"', "'": "'"}
 
 
+@dataclass(frozen=True)
+class Site:
+    """One emitted instruction, as the freeze contract's §4 join keys on it.
+
+    **The composer mints the id, and that is a stopgap the contract does not authorize.**
+    §4 requires that every site join, and the join needs the sidecar stream's `site_id`
+    to be the id the link map carries. The sidecar's producer is M1.2's backend, which
+    does not exist, so nothing yet says whether an id minted here is the id that backend
+    will carry. What is minted is the narrowest thing that can be: the unit's own name
+    and the site's ordinal among the instructions that unit emits, in source order.
+    That is stable across runs and stable under any edit below it, which is the whole of
+    what "stable within a compilation unit" can mean with no backend to agree with.
+
+    `source` is the line the site came from, and it is here rather than in the link map
+    because the link map's fields are §4's and this is the assembler's own: a person
+    reading a per-site table wants to know which line of which program a site is.
+    """
+
+    site_id: str
+    address: int
+    opcode: str
+    source: int
+    section: str
+
+
 @dataclass
 class Item:
     """One assembled thing: an instruction, some bytes, or a gap."""
@@ -87,6 +112,10 @@ class Assembler:
     def __init__(self, source: str, name: str = "<source>") -> None:
         self.name = name
         self.items: list[Item] = []
+        # One record per emitted instruction, filled by `assemble` and read by the
+        # composer. Empty until then, and rebuilt from scratch by each `assemble`, so a
+        # second run over one assembler cannot leave two runs' sites in one list.
+        self.sites: list[Site] = []
         self.symbols: dict[str, int] = {}
         self.symbol_section: dict[str, str] = {}
         self.constants: dict[str, tuple[int, str]] = {}   # .equ, with its section
@@ -188,6 +217,7 @@ class Assembler:
             raise AsmError(f"{self.name}: layout did not settle in eight rounds")
 
         self.strict = True
+        self.sites = []
         text = image.Section(".text", TEXT_BASE, executable=True)
         data = image.Section(".data", DATA_BASE, writable=True)
         sections = {".text": text, ".data": data}
@@ -256,6 +286,14 @@ class Assembler:
                 out += dialect.encode(mnemonic, operands, pc).to_bytes(4, "little")
             except AsmError as exc:
                 raise self._error(item.line, f"{item.text}: {exc}") from None
+            # One site per *emitted* instruction rather than per source line, because
+            # that is what §4's record is one of: a `li` that materializes in three
+            # words is three sites, and an analyzer counting source lines would report a
+            # stratum smaller than the stream it is stratifying.
+            self.sites.append(Site(
+                site_id=f"{Path(self.name).stem}#{len(self.sites):05d}",
+                address=pc, opcode=mnemonic, source=item.line,
+                section=item.section))
             pc += 4
         return bytes(out)
 
@@ -317,6 +355,15 @@ class Assembler:
             return [0]
         if spec in ("imm", "sym"):
             return [self._eval(text, item, pc)]
+        if spec == "v0":
+            # The mask register spelled out. A form whose `vm` bit is a literal one in
+            # the encoding still prints `, v0` (extensions/V), so a program writes it
+            # and the encoding carries nothing: this contributes no value at all, which
+            # is what keeps the flat operand list aligned with the encoder's slots.
+            if text.lower() != "v0":
+                raise self._error(item.line, f"{item.text} takes the mask register "
+                                             f"spelled v0, given {text!r}")
+            return []
         if spec == "csr":
             key = text.lower()
             return [dialect.CSRS[key]] if key in dialect.CSRS \
@@ -558,7 +605,13 @@ def _materialize(rd: int, value: int, out: list[Instr]) -> None:
         hi20 = ((value + 0x800) >> 12) & 0xFFFFF
         lo12 = _sign12(value)
         if hi20:
-            out.append(("lui", [rd, hi20]))
+            # Handed over signed, because the model prints `lui`'s upper immediate
+            # `hex_bits_signed_20` and the encoder takes the field's reading from the
+            # model. The bits are the same either way, `lui` masking its operand into
+            # twenty bits; what changes is which values the encoder admits, and a
+            # materialization of an address at or above 2^31 lands above the unsigned
+            # half of that field every time.
+            out.append(("lui", [rd, hi20 - (1 << 20) if hi20 >> 19 else hi20]))
         if lo12 or not hi20:
             out.append(("addiw", [rd, rd if hi20 else 0, lo12]))
         return
@@ -595,7 +648,12 @@ def _p_la(asm: Assembler, item: Item, pc: int) -> list[Instr]:
         raise asm._error(item.line, "la takes a register and a symbol")
     cd = asm._register(item.args[0], item)
     delta = asm._eval(item.args[1], item, pc) - pc
-    return [("auipcc", [cd, ((delta + 0x800) >> 12) & 0xFFFFF]),
+    # Handed over signed, for `_materialize`'s reason: `auipcc`'s upper immediate is
+    # read `sign_extend(imm @ 0x000)` by the model's own execute clause, and a backward
+    # `la` is a negative displacement whose top twenty bits land above the unsigned half
+    # of that field every time.
+    hi20 = ((delta + 0x800) >> 12) & 0xFFFFF
+    return [("auipcc", [cd, hi20 - (1 << 20) if hi20 >> 19 else hi20]),
             ("cincoffsetimm", [cd, cd, _sign12(delta)])]
 
 
@@ -731,9 +789,18 @@ PSEUDOS: Final[dict[str, Pseudo]] = {
 }
 
 
-def assemble_file(source: Path, elf: Path) -> int:
-    """Assemble one program and write its image. Returns the byte count."""
+def assemble_file(source: Path, elf: Path, sites: list[Site] | None = None) -> int:
+    """Assemble one program and write its image. Returns the byte count.
+
+    `sites` is filled with one record per emitted instruction where a caller supplies a
+    list, and left alone where it does not. An out-parameter rather than a second return
+    value, because every caller of this function today wants the byte count and only the
+    composer wants the sites: widening the return would make three callers unpack a
+    field they have no use for.
+    """
     asm = Assembler(source.read_text(encoding="utf-8"), source.name)
     sections, symbols, entry = asm.assemble()
     image.write_elf(elf, sections, symbols, entry)
+    if sites is not None:
+        sites += asm.sites
     return sum(len(s.data) for s in sections)

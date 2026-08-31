@@ -24,11 +24,13 @@ import copy
 import json
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 
 from quarantine import freeze
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
+from vos import asm, compose, freezeschema
 
 # `TOOLS` is `tools/`, so the instruments this module runs are one directory below it.
 QUARANTINE = TOOLS / "quarantine"
@@ -610,7 +612,16 @@ def _run(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _live_run() -> None:
-    done = _run(_ROOT)
+    # **The inputs are pointed at a path that is not there, and that is the case rather
+    # than tidiness.** Two of §4's three now have a producer (M1.4-prime's composer), so
+    # a run against this checkout reports whichever of them the tree happens to carry:
+    # a developer who has run `run.py model freeze-emit` reads *one* of three absent and
+    # one who has not reads three, and both are correct reports about different trees.
+    # Pinning a sentence that depends on untracked output would make this case pass or
+    # fail on what somebody last emitted, so the state is forced instead.
+    missing = _ROOT / "build" / "freeze" / "this-path-is-not-there"
+    done = _run(_ROOT, "--sidecars", str(missing), "--link-map", str(missing),
+                "--image", str(missing), "--image-sites", str(missing))
     ensure(done.returncode == 0,
            f"the instrument agrees with its contract, got {done.returncode}: "
            f"{done.stderr!r}")
@@ -622,12 +633,66 @@ def _live_run() -> None:
     ensure(done.stdout.rstrip().endswith(
         "ok: the instrument is wired and cannot be run. 3 of 3 inputs the §4 join "
         "takes are absent, with a fixture standing in for them: the sidecar stream, "
-        "the link map, the encoded image, of which the first is M1.2's backend and the "
-        "other two are M1.4's linker and image composer. So 0 of 9 decisions carry a "
-        "verdict, and of §9's 12 predicates 4 already decide, 8 defer on a named "
-        "symbol and 0 reject. This report is not a freeze."),
+        "the link map, the encoded image, owed by M1.2's backend, M1.4-prime's "
+        "composer. So 0 of 9 decisions carry a verdict, and of §9's 12 predicates 4 "
+        "already decide, 8 defer on a named symbol and 0 reject. This report is not a "
+        "freeze."),
         f"the verdict sentence must close the report verbatim, got "
         f"{done.stdout[-600:]!r}")
+
+
+def _live_run_reads_what_the_composer_wrote() -> None:
+    """The two inputs M1.4-prime produces, read back by the instrument that waits on
+    them.
+
+    This is the join's own end-to-end case and it is the one thing the fixture cannot
+    stand in for: the fixture is written inside the analyzer, so it proves the wiring
+    and never that a *producer* and a *consumer* agree on §4's schema. What is held here
+    is that the composer's headers are the ones the analyzer requires, that every site
+    it emits joins, and that the residue is empty.
+    """
+    program = ".text\n_start:\n    li t0, 1\n    addi t0, t0, 1\n    ecall\n"
+    with tempfile.TemporaryDirectory() as scratch:
+        into = Path(scratch)
+        sites: list[asm.Site] = []
+        asm.assemble_file(_write(into / "one.s", program), into / "one.elf", sites)
+        composed = compose.compose(sites, (into / "one.elf").read_bytes())
+        joined = freeze.join(_fixture_sidecars(composed), compose.link_map(composed),
+                             composed.image, compose.image_sites(composed))
+    ensure(joined.residue == 0,
+           f"every site must join, and {joined.residue} did not: "
+           f"{joined.residue_sidecar_only + joined.residue_image_only}")
+    ensure(len(joined.sites) == len(sites),
+           f"the join carries {len(joined.sites)} of {len(sites)} emitted sites")
+    ensure(all(site.escape for site in joined.sites),
+           "under an empty dictionary every site is a verbatim escape")
+    ensure(joined.encoded_bytes == len(composed.image),
+           "the encoded image is read for its byte count")
+
+
+def _write(path: Path, text: str) -> Path:
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
+    return path
+
+
+def _fixture_sidecars(composed: compose.Composition) -> str:
+    """A sidecar stream for the composed sites, standing in for M1.2's backend.
+
+    Written here rather than by the composer, and that is the division §4 states: the
+    operand and region classes are the emitter's *intent*, so a producer that invented
+    them would be a label inferred over a measurement. What this supplies is the one
+    column the join needs from that stream, the site's id, with every label the analyzer
+    stratifies on set to the class that says nothing.
+    """
+    lines = [freezeschema.header(freezeschema.SIDECAR_FIELDS)]
+    lines += [freezeschema.row(freezeschema.SIDECAR_FIELDS, {
+        "site_id": row.site.site_id, "unit": "one.s", "compartment": "comp0",
+        "function": "_start", "opcode": row.site.opcode, "operand_class": "OC-1",
+        "producer": "the corpus assembler", "region_id": "-", "region_class": "-",
+        "ct_arm": "-", "knob": "-",
+    }) for row in composed.placed]
+    return "\n".join(lines) + "\n"
 
 
 def _renderings_agree() -> None:
@@ -673,7 +738,11 @@ def _membership_is_an_instrument_error() -> None:
     }
     for rel in ("__init__.py", "freeze.py"):
         files[f"tools/quarantine/{rel}"] = (QUARANTINE / rel).read_text(encoding="utf-8")
-    for rel in ("__init__.py", "jsonc.py", "corpus.py"):
+    # `freezeschema.py` is here because §4's field tuples and its four declared paths
+    # are owned in `vos/` and read from both ends since M1.4-prime: the analyzer streams
+    # them and the composer writes two of them, and a schema declared at both ends would
+    # be a transcription held together by nothing.
+    for rel in ("__init__.py", "jsonc.py", "corpus.py", "freezeschema.py"):
         files[f"tools/vos/{rel}"] = (TOOLS / "vos" / rel).read_text(encoding="utf-8")
     with sandbox_tree(files) as root:
         done = _run(root)
@@ -721,6 +790,8 @@ def cases() -> list[Case]:
         Case("break-even-is-the-registers", _break_even_is_the_registers, lane="host"),
         Case("relations-are-held", _relations_are_held, lane="host"),
         Case("live-run", _live_run, lane="host"),
+        Case("live-run-reads-what-the-composer-wrote",
+             _live_run_reads_what_the_composer_wrote, lane="host"),
         Case("renderings-agree", _renderings_agree, lane="host"),
         Case("no-fixture-leaves-the-join-pending", _no_fixture_leaves_the_join_pending,
              lane="host"),
