@@ -314,7 +314,7 @@ fish (a faster interactive POSIX shell) and Ion (Redox's shell, Rust, but POSIX-
 ### Servo: the contained browser engine
 
 The Rust browser engine is §14's browser made real. Its per-origin architecture, the constellation, per-origin script and layout, maps directly onto §14's **per-origin capability compartments**, so an origin RCE yields only that origin's authority.
-Three obstacles dominate.
+Four seams dominate.
 **(1) The JS engine is the gating sub-project.**
 Servo embeds SpiderMonkey (`mozjs`), C++, JIT, and a vast `unsafe` binding surface, and §14 forbids JIT on anything network-facing (interpreters run pure, obstacle 4).
 SpiderMonkey-in-interpreter-mode is still unverifiable C++ that cannot carry the Tier-2 safe-Rust certificate, so the spec-coherent target is a **pure-Rust, interpreter-only engine** (Boa-lineage), accepting its web-incompleteness as the honest cost; `mozjs` restricted to its C interpreter behind CHERI containment is the pragmatic, *non-conforming* interim.
@@ -325,6 +325,16 @@ None of the three is runtime codegen, none closes the gap to a JIT, and none of 
 **(2) WebRender is GPU-first** and falls back to software rendering on C/V-class cores under §12 (§14, obstacle 2).
 **(3) Content parsers stay contained, not verified.** html5ever, the CSS parser, and the JS front end all consume attacker-controlled input, but §14's stance is that the browser is *unverifiable, therefore maximally contained*, so these remain memory-safe Rust inside the origin compartment; the §5 Narcissus mandate binds the *network wire* (TLS/HTTP, §12), not the DOM.
 File and clipboard access is powerbox-only (§14).
+**(4) The engines size their sandboxes by virtual reservation, and there is no address space to reserve.**
+Both halves of a modern engine's memory discipline already assume a bounded region rather than an open heap: Wasm's linear memory is one flat array every access is masked or checked against, and the mainstream JavaScript engines have moved intra-heap isolation off the MMU entirely, giving their objects software-computed offsets inside one pre-reserved region because a page is the wrong granularity for a single heap's objects ([inspirations.md](inspirations.md) records that diagnosis as taken and its mechanism as declined, CHERI supplying in hardware what both emulate).
+What does not transfer is the *sizing*: those reservations are virtual and commit lazily under an MMU, so an engine names a region far larger than the machine holds and pays only for what it touches, while here `satp` is fixed to Bare and every resident byte is a capability-delegated byte with no swap, no overcommit, and no demand paging (§15, R-10-020, R-15-171).
+R-14-015's arena is therefore **sized, not reserved**: a composition-time count per object class against the §15 second-class budget, and the work this seam names is replacing a reservation with that declaration.
+The reservation takes two familiar mechanisms with it and only one of them is a loss.
+Guard pages are what let a 64-bit engine emit no bounds check at all on a linear-memory access, and they go with the address space that made them free; but the check they were eliding *is* the dereference on a purecap machine (§15), so the interpreter neither emits a check nor pays a mask, which is one of the few places the no-JIT arithmetic (R-14-008a) moves in this platform's favour.
+**The ceiling is answered differently on the two halves, which is a consequence of §14's one-engine rule rather than of porting taste.**
+A Wasm guest meeting the arena's edge gets a conforming in-language answer, a failed `memory.grow` being an outcome the module is already required to handle, so the platform engine (R-14-013a, R-14-013c) reports exhaustion where a growth request would have been served.
+JavaScript has no such arm, allocation failure not being a condition the language lets a program observe, so the edge there is the origin's restart under the declared eviction contract (R-14-010, R-14-014).
+Neither outcome is the whole-machine failure the static-allocation objection expects, and neither is paging: an evicted origin suspends to retained state and re-reads it from the §10 store, the owner moving its own bytes through capabilities it already holds rather than the platform making resident what the memory plan never placed (R-15-171).
 
 **Disposition:** Tier-2 per-origin compartments; adopt Servo's engine and compartment model, treat the pure-interpreter JS engine as the hard gating dependency, and reuse the shared software-render substrate.
 §18 places the whole program past the first release, so the gating engine question is sequenced rather than urgent: it is the one target whose deferral the specification states itself.

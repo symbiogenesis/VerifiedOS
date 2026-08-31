@@ -1607,6 +1607,23 @@ Reading "CHERI covers it" onto this class would leave it uncovered, and the entr
 
 ---
 
+## The V8 heap sandbox: a shipping browser giving up on the MMU for its own object graph
+
+Chrome's JavaScript engine reached this design's diagnosis of the MMU under production pressure rather than as an architectural argument, which is why it is recorded: it is the same conclusion arriving from the opposite direction.
+Having already put each site in its own process, V8 found the page the wrong granularity for the boundary that mattered next, the one *between the objects of a single heap*, where an attacker who has corrupted one object is already inside the process the MMU was drawing around it.
+Its heap sandbox therefore stops asking hardware for that boundary at all and confines the engine's own object graph to one pre-reserved region, replacing raw pointers with offsets a corrupted heap cannot make point outside it.
+§7 deletes the MMU on the argument that the page is the wrong shape for the boundaries this system draws; here is a browser vendor reaching that verdict about the boundaries *it* draws, while keeping the MMU for the ones it still fits.
+
+**The mechanism imports in no part, for the reason the entry above already gives.**
+An offset checked against a region is a bounded reference emulated in software, and CHERI supplies one in hardware on every pointer at byte granularity rather than once per heap, so the masking cost Segue borrows a segment base to recover and the reservation V8 sizes its region with are alike workarounds for what this substrate has architecturally.
+The threat models separate the two more sharply than the cost does: the sandbox takes arbitrary corruption *inside* its region as its starting assumption and defends only that region's edge, so every object in a heap shares one boundary and none has a boundary of its own, which is exactly the interior a per-pointer bound leaves nowhere to exist.
+
+**The reservation half does not import either, and there this platform is the one that pays.**
+The region is sized by reserving virtual address space and committing it lazily, the lever `satp` fixed to Bare removes (§15), so the platform interpreter's guest arena is a composition-time size rather than a reservation (§14) and what an engine treats as headroom is here a declared ceiling carrying a stated exhaustion arm.
+[userspace-porting.md](userspace-porting.md) states the consequence on the side that meets it, the browser's.
+
+---
+
 ## WasmCert, Iris-Wasm, and SpecTec: the platform interpreter's theorems bought by curation, with every agreement instrument kept untrusted
 
 The §14 platform interpreter (R-14-013a) is the one place the platform executes a guest language it did not define, and its assurance is bought the way the kernel's and the parsers' were: adopt the mechanized lineage whose theorems already exist, curate it into the one prover, and let nothing ecosystem-facing enter the trust base.
