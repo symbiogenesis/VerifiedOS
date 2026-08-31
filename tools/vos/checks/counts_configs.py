@@ -225,6 +225,123 @@ def vectorless_configurations(ctx: Context) -> None:
                f"and sit below all {len(rungs)} minimum-vector-length rungs")
 
 
+# The three model files the aperture rule below reads, and it reads all three because
+# what it holds is a *pairing across* them rather than a value in any one of them: the
+# composition declares an aperture, `platform_config.sail` gives it a name the model can
+# say, the emitter states its placement in the attested devicetree, and the validator
+# refuses a composition that places it wrong.
+APERTURE_CONFIG = "model/model/core/platform_config.sail"
+APERTURE_TREE = "model/model/postlude/device_tree.sail"
+APERTURE_VALIDATOR = "model/model/postlude/validate_config.sail"
+
+# The name the model gives an aperture's base, keyed by the configuration path it reads
+# it from. This is what makes the rule's two hops possible at all: nothing derives
+# `plat_monotonic_base` from `platform.monotonic_counters`, so the mapping is taken from
+# the one file that writes both halves on one line.
+APERTURE_BASE_RE = re.compile(r"let\s+(plat_\w+_base)\s*:\s*physaddrbits\s*=\s*"
+                              r"to_bits_checked\(config\s+(platform\.[\w.]+)\.base\s*:\s*int\)")
+DTS_REG_RE = re.compile(r"generate_dts_reg\(\s*(plat_\w+_base)\s*,")
+PMA_CALL_RE = re.compile(r'within_configured_pma_memory\("[^"]*",\s*(.*?)\);', re.DOTALL)
+PLAT_BASE_RE = re.compile(r"plat_\w+_base")
+
+
+def aperture_placements(ctx: Context) -> None:
+    """K-94: every aperture a composition declares is placed in the attested devicetree
+    and held in IO memory by the validator.
+
+    R-15-002b puts every MMIO aperture inside the 36-bit space and makes the placement
+    *a stated constraint on the attested devicetree*, which is the sentence a `reg`
+    answers to, and it is checked at composition so that an aperture that does not fit
+    is a composition failure rather than a runtime trap. Three artifacts have to agree
+    for that to be true and each of them can stop agreeing on its own: a composition can
+    declare a window the emitter says nothing about, an emitter can carry a node for a
+    window no composition declares, and a validator can pass a window nothing bounds.
+
+    **The two hops are separate because the failures are.** A missing node is an
+    attested artifact that under-describes the die, and the reader who is hurt is the
+    relying party appraising the part from it. A missing validator clause is a window
+    the composition may place in main memory, or outside every region, with nothing to
+    say so until something reaches the address. Neither implies the other, and both were
+    live when this rule was written: the interrupt file and the revocation sidecar were
+    declared apertures with `within_configured_pma_memory` clauses and no node at all,
+    in a file whose own comment says each node below it carries its window under
+    R-15-002b.
+
+    **The subject is what the shipped compositions declare and not what the model can
+    say.** An aperture the model reads a base for and no composition switches on is
+    outside this rule rather than passing it, on K-87's ground: what a composition
+    declares is what a die has, and a key set to false is a window that is not there.
+
+    Both readings are the artifacts' own. The aperture set is every `platform.<name>`
+    object of a shipped configuration carrying both `supported` and `base`, so a window
+    added to the composition joins the rule by being added; and the name the model gives
+    each one is parsed out of the file that reads the key, so a rename joins it too. The
+    devicetree side is located by the one function every node states its window through
+    and the validator side by the one function every clause bounds a window with, which
+    is what keeps each hop a pattern over a call rather than a list somebody maintains.
+
+    Fail-closed on the reading, on K-67's and K-75's ground: an absent file and a
+    `platform_config.sail` that yields no aperture at all are findings rather than a
+    comparison made against nothing, and the aperture count is a member of the floors
+    group's enumerations for the case where the compositions stop declaring one.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    texts: dict[str, str] = {}
+    for rel in (APERTURE_CONFIG, APERTURE_TREE, APERTURE_VALIDATOR):
+        path = ctx.root / rel
+        texts[rel] = path.read_text(encoding="utf-8") if path.is_file() else ""
+        if not texts[rel]:
+            findings.append(f"{rel} is not in the repository, so the pairing between a "
+                            f"declared aperture, its devicetree node and its validator "
+                            f"clause cannot be read")
+
+    bases = {key: ident
+             for ident, key in APERTURE_BASE_RE.findall(texts[APERTURE_CONFIG])}
+    if not bases:
+        findings.append(f"{APERTURE_CONFIG} declares no aperture base, so no declared "
+                        f"window has a name this rule could hold the other two files to")
+
+    placed = set(DTS_REG_RE.findall(texts[APERTURE_TREE]))
+    guarded: set[str] = set()
+    for args in PMA_CALL_RE.findall(texts[APERTURE_VALIDATOR]):
+        if "Some(IOMemory)" in args:
+            guarded |= set(PLAT_BASE_RE.findall(args))
+
+    declared = 0
+    for rel in SHIPPED_CONFIGS:
+        table = config.flat_of(ctx.root / rel)
+        for key, value in sorted(table.items()):
+            if not key.startswith("platform.") or not key.endswith(".supported"):
+                continue
+            name = key[: -len(".supported")]
+            if value is not True or f"{name}.base" not in table:
+                continue
+            declared += 1
+            ident = bases.get(name)
+            if ident is None:
+                findings.append(f"{rel} declares the aperture `{name}` and "
+                                f"{APERTURE_CONFIG} reads no base for it, so the model "
+                                f"has no name for where that window is")
+                continue
+            if ident not in placed:
+                findings.append(f"{rel} declares the aperture `{name}` and "
+                                f"{APERTURE_TREE} emits no node stating its window, so "
+                                f"the attested devicetree does not carry the placement "
+                                f"R-15-002b makes a constraint on it")
+            if ident not in guarded:
+                findings.append(f"{rel} declares the aperture `{name}` and "
+                                f"{APERTURE_VALIDATOR} holds it inside no IO memory "
+                                f"region, so a composition may place it in main memory "
+                                f"or outside every region and nothing says so")
+
+    ctx.shared["declared_apertures"] = declared
+    rep.report("K-94", "declared aperture(s) the model does not place:", findings,
+               f"each of the {declared} apertures the {len(SHIPPED_CONFIGS)} shipped "
+               f"configurations declare carries a `reg` in the attested devicetree and a "
+               f"validator clause holding it inside a configured IO memory region")
+
+
 # The exclusion row of the profile's §6 that names its extensions inline rather than one
 # per row: the names are the backticked tokens on the row whose text says the exclusion
 # is by name rather than by silence (R-15-048a).

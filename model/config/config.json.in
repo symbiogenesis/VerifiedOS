@@ -196,12 +196,14 @@
     // Zama16b, for e.g., the specified value should be 4. A value of
     // 0 indicates that the MAG attribute is not present.
     "regions": [
-      // ROM, 16 KiB at 0x1000, holding the boot ROM and the attested
-      // devicetree written at `memory.dtb_address`. The 4 KiB this was is
+      // ROM, 32 KiB at 0x1000, holding the attested devicetree written at
+      // `memory.dtb_address` in its lower half and the boot ROM declared at
+      // `platform.boot_rom` in its upper half. The 4 KiB this was is
       // upstream's default rather than this platform's budget: R-09-007 has
       // the tree declare core classes, islands, the NoC schedule, OPP tables,
       // and radio calibration and limit values, and the first of those five
-      // is what stopped fitting.
+      // is what stopped fitting. The second bump is the boot ROM's extent
+      // arriving beside the tree's, the two having previously shared a base.
       {
         "base": {
           "len": 64,
@@ -209,7 +211,7 @@
         },
         "size": {
           "len": 64,
-          "value": "0x4000"
+          "value": "0x8000"
         },
         "attributes": {
           "mem_type" : "IOMemory",
@@ -679,6 +681,38 @@
       // none modeled as fixed-latency (R-15-196).
       "early_ticks": 1024,
       "late_ticks": 65536
+    },
+    // The three devices beside the core: the SoC boot ROM, the serial port and
+    // the block device. What obliges them to exist is the implementation plan's
+    // R1; what obliges their placement to be stated here and in the attested
+    // devicetree is R-15-002b, which puts every MMIO aperture inside the 36-bit
+    // space and makes the placement a stated constraint on that tree.
+    //
+    // **These are placements and nothing else.** No register entry gives a
+    // serial port or a block device a register interface, so no door of the
+    // model's opens at any of the three and an address inside one reads as zero
+    // until the SoC top written over this map lands (R1c-ii). Every base and
+    // size is a placeholder; what the validator holds is the shape, that each is
+    // inside an IO memory region and that no two apertures overlap
+    // (model/postlude/validate_config.sail).
+    "boot_rom": {
+      // The upper half of the ROM region above, above the attested devicetree.
+      // R-09-003's metal-mask ROM is a different ROM and has no aperture in any
+      // composition: it is on the RoT's island and is reached by no requester on
+      // the fabric.
+      "supported": true,
+      "base": 20480,
+      "size": 16384
+    },
+    "uart": {
+      "supported": true,
+      "base": 41943040,
+      "size": 4096
+    },
+    "blkdev": {
+      "supported": true,
+      "base": 42991616,
+      "size": 4096
     },
     "clock_frequency": 1000000000,
     "instructions_per_tick": 2,

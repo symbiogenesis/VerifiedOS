@@ -170,6 +170,11 @@ def run(ctx: Context) -> None:
         "names the model's decode surface decodes to": sh.get("decoded_names", 0),
         "rows of the corpus assembler's encoder table": sh.get("encoder_rows", 0),
         "values the shipped configurations state": sh.get("shipped_config_values", 0),
+        # The apertures K-94 places. It is read out of the compositions themselves, one
+        # `platform` sub-object at a time, so a shipped file that stopped declaring any
+        # window would leave that rule reporting that every aperture of none carries a
+        # devicetree node and a validator clause.
+        "apertures the shipped configurations declare": sh.get("declared_apertures", 0),
         # The ladder K-78 holds a vectorless composition below. It is the one vector
         # rung reachable without a configuration key, so a registry this rule can no
         # longer read would leave it reporting that every geometry is below no rungs
