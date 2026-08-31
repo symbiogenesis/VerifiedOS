@@ -33,13 +33,13 @@ Neither package is verified and neither claims to be. What has been run is state
 
 The capability package carries the format, the permission lattice, the object-type space, encode and decode, the null transform across the memory interface, the bounds decode, the bounds construction `csetbounds` performs, the representable-limit comparison and the fast representability check, the address and offset setters that rest on it, the length, and the malformed predicate. What it does not carry is named here so that a reader does not have to discover a gap by looking for a function:
 
-- **No instruction and no datapath.** This is the format and its algebra; the unit that decodes an opcode into a call on one of these functions is the rest of R1's curation, along with the caches, the store buffer, the prediction rule and the platform devices.
+- **No instruction and no datapath.** This is the format and its algebra; the unit that decodes an opcode into a call on one of these functions is the rest of R1's curation, along with the caches, the store buffer and the platform devices.
 - **`CRAM`, `CRRL` and `CSetBoundsExact` are excluded at the architecture rather than owed here** (R-15-007k, R-08-011), so no representable-alignment mask is computed and none is returned. A reader looking for the rounding surface upstream returns should read that absence as a decision.
 - **`capToString` has no RTL reading.** It is the model's debug printer.
 - **`perms_count` has none either.** It is a helper inside the model's own narrowing search, and the search here counts with `$countones`.
 - **The model's three integer-valued accessors have no counterpart**, `getCapBounds`, `getCapTop` and `getCapOffset` being the unbounded-integer twins of `getCapBoundsBits`, `getCapTopBits` and `getCapOffsetBits`. Sail has an integer type and SystemVerilog does not, so the bits-valued form is the only one there is to write; a reader looking for the pair should read the singular as both.
 
-Beyond the format, four pieces of the curation are authoring work that no configuration parameter reaches, and [the provenance record's §4](synthesis-provenance.md#4-what-no-parameter-reaches-and-what-that-costs) is where they are booked: the flat-SRAM replacement for the two caches, the PMP wrapper shells, the capability-mode signals, and the static-only prediction rule.
+Beyond the format, three pieces of the curation are authoring work that no configuration parameter reaches, and [the provenance record's §4](synthesis-provenance.md#4-what-no-parameter-reaches-and-what-that-costs) is where they are booked: the flat-SRAM replacement for the two caches, the PMP wrapper shells, and the capability-mode signals.
 
 ## 5. Running it
 
