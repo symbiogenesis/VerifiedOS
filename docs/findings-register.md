@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 351 of them across 69 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 382 of them across 70 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1248,6 +1248,130 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Disposition: closed at the item by renaming all nine and instantiating the four genuinely inherited theorems by conversion, so the sharing a Require is taken for is checked rather than asserted; standing as the hazard any second Require will carry
 
 ## M6 · Userland spine
+
+**F-216** upstream-defect: the interface-definition start-from states its terms through a one-line pointer to a second file and the forge reports its licence as `NOASSERTION`, so a reading taken at the forge carries no instrument at all and one taken at the announcement misses that the pointer defers to subdirectory licences
+· Raised: M6.0b
+· Disposition: standing, the deferral resolving at the tree's own licence-file inventory, which carries two files and no subdirectory carve-out
+
+**F-216a** measurement: the wire-layer exemplar's own licence file is the two-clause BSD instrument and not the three-clause one the common characterization carries, there being no name-endorsement clause in it
+· Raised: M6.0b
+· Disposition: standing, taken twice on two independent renderings of the same file because the contradiction with the usual characterization is the inference from lineage the maturity rule forbids
+
+**F-216b** owed-act: no register entry pins the typed IDL profile or names its version, where the language document one artifact over is pinned by name and its bump made a review-gate event, so an amendment to the profile's constructor set or its wire-format mapping is not a register edit and the gate never reads it
+· Raised: M6.0b
+· Disposition: open, the profile declaring its own version and amendment rule as a declared parameter instead; F-190a's shape met a second time, on a document nothing pins rather than on enumerations a pinned document holds
+
+**F-216c** owed-act: the fork-and-frozen start-from is unnamed in the register, only the specification's prose and the prior-art document saying what the fork is a fork of, so naming it is a maturity claim with no register owner
+· Raised: M6.0b
+· Disposition: open, the profile naming it as a declared parameter over the register's silence
+
+**F-216d** owed-act: fork-and-frozen has no freeze act for this profile, no entry saying when it freezes, what its delta is, or what a post-freeze change costs beyond the general amendment rule, where the instruction-set profile has a two-act freeze with a closed delta and an instrument per row
+· Raised: M6.0b
+· Disposition: open, the profile declaring its own version and the amendment rule it asks for
+
+**F-216e** owed-act: no entry closes the type-constructor set, the restriction entry restricting without enumerating what constructors exist, so the profile's table is closed by that document and by nothing the gate audits
+· Raised: M6.0b
+· Disposition: open, the object-inventory closure at M4.2b being the precedent for the register act that would close it
+
+**F-216f** owed-act: whether a floating-point type is admitted is unstated, and it bears on canonicity rather than on taste, NaN payloads and signed zero giving one value several encodings where the no-slack rule forbids a second admissible encoding
+· Raised: M6.0b
+· Disposition: open, the profile deleting the former as a declared parameter carrying both arms and what each forfeits
+
+**F-216g** owed-act: the string former has no admitted encoding and no statement of what its bound counts, the restriction entry requiring an explicit bound and saying nothing about bytes against code points, which encoding is admitted, or whether an ill-formed sequence is a decode failure
+· Raised: M6.0b
+· Disposition: open, the profile fixing the encoding as a declared parameter, over-long sequences being exactly the one-admissible-form case
+
+**F-216h** owed-act: which result type carries the relevance grade is unstated, the closed list of graded result kinds naming IDL call outcomes as one member while a per-operation closed refinement variant is admitted beside the common status set, and nothing saying whether a refinement is graded at its own definition or inherits
+· Raised: M6.0b
+· Disposition: open, the profile grading every result type at its own definition as a declared parameter
+
+**F-216i** owed-act: the relevance grade has no stated wire consequence, its placement entry putting it at the definition and its content entry making it a typing property, so a mapping that encodes it and one that does not are both admissible
+· Raised: M6.0b
+· Disposition: open, the profile carrying no wire field for it, a grade on the wire being a field the no-slack rule would then have to admit no slack in
+
+**F-216j** owed-act: the flow-label lattice has an owner and no enumeration, the build-time composition entries fixing the lattice with the composed topology and forbidding either sanctioned transfer from adding a label, while no entry states the lattice's membership, its order, or its join and the security policy model that would enumerate one is unauthored
+· Raised: M6.0b
+· Disposition: open, the profile declaring the place the labels sit and stating its obligations over an arbitrary lattice rather than inventing one
+
+**F-216k** owed-act: whether the IDL's own wire format is a member of the wire-format inventory is unstated, translator content formats being placed in it and each descriptor there separately conferred, while the IDL mapping is a crown-jewel row of its own
+· Raised: M6.0b
+· Disposition: open, adding it being a crown-jewels and a register act
+
+**F-216l** owed-act: whether the wire-format mapping is on an identity-bearing path, and so owes a canonicity theorem, is undecided, one entry putting the interface descriptor inside the content-addressed manifest and another's enumerated site list not naming a live IDL call
+· Raised: M6.0b
+· Disposition: open, the profile taking the stronger reading as a declared parameter and admitting no slack anywhere
+
+**F-216m** owed-act: the receiver-validation declaration has no vocabulary, the entry requiring the IDL to declare which received values carry the index, length, offset or selector obligation and saying nothing about whether that is a per-field marker, a per-operation clause, or a type of its own
+· Raised: M6.0b
+· Disposition: open, the profile taking a per-field marker plus a per-operation claim for the empty case as a declared parameter
+
+**F-216n** owed-act: the resource former has a control-plane reading and a data-plane reading and no entry says whether that is one constructor or two, one entry mapping resources to capabilities and two others admitting only session-table indices on the data plane
+· Raised: M6.0b
+· Disposition: open, the profile carrying one constructor with two declared readings, the reading a property of the field
+
+**F-216o** owed-act: nothing bounds the size of a declaration, every bound in the register being a bound on a runtime value, so the number of operations, types, fields, or worlds a declaration carries is a composition magnitude with no owner
+· Raised: M6.0b
+· Disposition: open, stated as a field rather than a figure, which is the idiom the landed Gallina items already use
+
+**F-216p** owed-act: the Coq interface subset has no stated boundary, one entry's criterion requiring a Tier-1 proof to be stated against the matching skeleton and another requiring conformance among four generated artifacts, with no entry saying what a skeleton contains
+· Raised: M6.0b
+· Disposition: open, the profile fixing six contents and no seventh and recording the decision in its declared-parameters table rather than presenting it as a reading
+
+**F-216q** owed-act: two coverage cells read as though the interface profile existed, one at mode `proved` over the entries that fix the profile and its object references and one at `admission-rejected` over the restriction and the standing rules, and authoring the profile makes neither proved, no proof, checker or declaration following from a specification act
+· Raised: M6.0b
+· Disposition: open, reported against the matrix rather than repaired, no cell being owed by this item and a mode change being a register-first act
+
+**F-216r** owed-act: the crown-jewel row the wire-format mapping is conferred on reads `not authored` and is ready to flip at the mapping's own section
+· Raised: M6.0b
+· Disposition: open, the flip being a crown-jewels edit whose reading is the release gate's rather than the lane's
+
+**F-216s** owed-act: no entry gives an interface declaration an identity that moves when the declaration moves, the admission criterion deciding a proof against *the matching skeleton* and naming nothing a match is decided on, so a declaration edited in place leaves a proof stated against the superseded skeleton still matching
+· Raised: M6.0b
+· Disposition: open, the profile fixing a content address over the declaration's bytes as a declared parameter and deciding matching on it
+
+**F-216t** owed-act: the wire mapping's encoding shape has no register owner at three places, the byte order of multi-byte scalars, the width ladder every length, count and discriminant is drawn from, and what a descriptor variant shorter than its declared slot leaves in it, the no-slack rule requiring one admissible form and deciding which at none of them
+· Raised: M6.0b
+· Disposition: open, each taken as a declared parameter with its ground and its refutation rather than inside a sentence of the mapping
+
+**F-216u** method: an encoding table is not reachable from a mapping's obligations unless something states where each declared value rides, a mapping stated wholly over its descriptor leaving the aggregate and variable-length rows encoding nothing any obligation places while the table still reads as complete
+· Raised: M6.0b
+· Disposition: closed by the joining rule the profile now carries, an operation's declared values riding either as a descriptor member or as a delegated buffer payload
+
+**F-216v** measurement: the rule holding the plan's findings against this register read count words only to twenty, where the tool's own figure convention spells them to ninety-nine, so a note declaring more than twenty matched no block and read as recording none
+· Raised: M6.0b
+· Disposition: closed, the table now built from that figure convention rather than kept beside it, so the reading stops where the convention stops
+
+**F-216w** method: the convention for an identifier inserted between two others and the permanence of identifiers collide once an out-of-order block has landed, and permanence is the one that holds, so the repair belongs at the next insertion rather than at the landed one
+· Raised: M6.0b
+· Disposition: standing, the section carrying the order and the number carrying only the name, stated in place so a reader is not left looking for the missing run
+
+**F-217** owed-act: the entry fixing a ring's composition-time constants names an index width and no entry says what it counts, so the mapping that must hold a capacity against it has no unit to read
+· Raised: M6.4
+· Disposition: open, the declaration counting bytes because every other width in the wire-format mapping is a byte width
+
+**F-217a** owed-act: the ring-constant list is not the set a ring declaration must fix, four further constants being named by other entries and by no entry as ring constants: the maximum simultaneously accepted requests and the completion capacity, the maximum segment count and a segment's size, and the slot budget the joint proof is taken against
+· Raised: M6.4
+· Disposition: open, the declaration fixing all of them and the register naming six
+
+**F-217b** owed-act: nothing joins the six-state request lifecycle to the cancellation entry's deterministic answers, that entry deciding by where a target stands against its declared points and never saying which states are live to cancel
+· Raised: M6.4
+· Disposition: open, the mapping of the four situations onto the six states taken in the profile rather than read from the register
+
+**F-217c** owed-act: no entry says which members of the closed common status set are refusals, where the descriptor entry's criterion has a malformed descriptor produce one of *the defined refusal completions* that set names and the set is stated as one vocabulary with no subset marked
+· Raised: M6.4
+· Disposition: open, a checker reading a refusal having nothing enumerated to read
+
+**F-217d** owed-act: the per-variant accounting entry names the five quantities its joint bound is over and no relation among them, so the admission arithmetic a generated artifact decides is the profile's and the register audits none of it
+· Raised: M6.4
+· Disposition: open, the artifact stating each obligation as an equality against a declared margin so that a weakening moves a figure rather than consuming slack
+
+**F-217e** measurement: the guest lane refused every launch with `Wsl/Service/E_UNEXPECTED` for the length of one item, recovering only in brief windows, so a seeded population that fits one command had to be taken as a sample across the failure
+· Raised: M6.4
+· Disposition: standing, the failure being the machine's rather than the tree's and the proof gate's figures taken before it on the bytes the generator's own check holds the artifact to
+
+**F-217f** measurement: a campaign of inequalities over a table of composition constants does not constrain it, an incremented constant that still satisfies its bound being absorbed as slack; a composition that declares its margin so that every bound becomes an equality is what turns each into a figure a weakening moves
+· Raised: M6.4
+· Disposition: standing, taken from a first sample that survived fifteen of twenty-four and a second that survived four of thirty-two after the statements were added, the remaining survivors being the flow-label gap, the receiver-validation gap, and a derived count a checker rule reaches where a prover cannot
 
 **F-186g** owed-act: the extent of the authority a restart re-grants is stated three ways and they are not one statement, one entry fixing it at exactly the manifest's edges, another re-deriving at the manifest and the current revocation epoch, a third making user retraction a trigger beside restart, and a fourth carrying no epoch at all
 · Raised: M6.1a

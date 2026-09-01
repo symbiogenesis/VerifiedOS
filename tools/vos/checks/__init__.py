@@ -104,6 +104,7 @@ from . import (  # noqa: E402
     meta,
     names,
     pins,
+    ring,
     tables,
     traces,
     views,
@@ -111,6 +112,7 @@ from . import (  # noqa: E402
 
 GROUPS = [
     generated,
+    ring,
     traces,
     coread,
     extraction,
