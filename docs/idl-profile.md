@@ -243,9 +243,9 @@ Three things the register already fixes position this section, and it cites them
 · Accept: an unknown tag or a reserved flag produces one of R-12-093's defined refusal completions rather than a fallback interpretation (R-12-092).
 · Trace: §4.2, §1.3
 
-### 4.3 The ring schema is content of this mapping
+### 4.3 The ring schema and its lifecycle
 
-**IDL-027** IS: The common ring schema and lifecycle R-12-091 through R-12-101 state are **content of this mapping** and not a second normative ring-semantics artifact beside it. §4 is where that schema lands.
+**IDL-027** IS: The common ring schema and lifecycle R-12-091 through R-12-101 state are **content of this mapping** and not a second normative ring-semantics artifact beside it. §4.3 is where that schema lands.
 · Accept: this is R-12-091's own acceptance criterion; no artifact of this repository states ring semantics normatively outside this document.
 · Trace: §4.3
 
@@ -253,7 +253,95 @@ Three things the register already fixes position this section, and it cites them
 · Accept: an interface refines the statuses with a closed operation-specific result variant under `TC-8` and cannot alter their lifecycle meaning; no requirement here restates the status set, the figure being one entry's to state and every other site's to cite (R-05-152).
 · Trace: §4.3, §3.2
 
-**The schema itself is authored at M6.4** and is not written here. What §4 fixes is the encoding every ring descriptor and completion is carried by; what M6.4 adds is the header, the constants, and the lifecycle, into this section.
+**The register owns the membership of every enumeration below and this section owns the encoding and the declaration form.** Where a requirement here says *the members that entry enumerates*, that is deliberate: a list written twice is a list free to drift, and §9's closing paragraph states the rule this section keeps.
+
+#### 4.3.1 What a ring declaration declares
+
+**IDL-050** MUST: Every ring instance declares the composition-time constants R-12-091 enumerates, as fields of the declaration with no value fixed here.
+· Accept: the constants appear in the generated interface artifact; capacity is an admission parameter rather than a runtime negotiation (R-12-095), and no figure of this document states one.
+· Trace: §4.3.1, §3.5
+
+**IDL-051** MUST: A ring header is exactly the four words R-12-091 names, in a fixed order, and carries nothing else. The first three are R-12-008a atomics and the generation word is immutable between reinitializations.
+· Accept: a header carrying a fifth word, a counter, or a flags cell is not this schema's header; §4.2's packed rule does not apply to the header, whose cells are separately addressed atomics rather than fields of one encoding.
+· Trace: §4.3.1
+
+**IDL-052** MUST: Indices are interpreted modulo the declared capacity, with sequence information distinguishing full from empty, and **no implementation infers validity from descriptor contents**.
+· Accept: this is R-12-091's own criterion; a reader that decides occupancy by inspecting a slot rather than by reading the indices is refused.
+· Trace: §4.3.1
+
+#### 4.3.2 The descriptor and the completion
+
+**IDL-053** MUST: A descriptor carries exactly the members R-12-092 enumerates, each encoded by the row of §4.2 its kind names: the operation tag and the flag set by `WF-7` and `WF-10`, the request identifier and the operation-specific scalars by `WF-1`, each buffer reference by `WF-11`, and the deadline by `WF-8` over the interface's finite deadline classes.
+· Accept: no member is encoded by a row §4.2 does not carry, and IDL-025's refusal decides every field kind R-12-092 forbids.
+· Trace: §4.3.2, §4.2
+
+**IDL-054** MUST: The server validates bounds, permissions, direction, content type, and generation against the pre-delegated session table **before** the operation becomes eligible to execute, and a validation failure produces one of R-12-093's defined refusal completions rather than a fallback interpretation.
+· Accept: the obligation is the receiver's under §3.3 and is never inherited from a sender's compliance; the generated artifact carries the marked fields as the obligations IDL-042 states.
+· Trace: §4.3.2, §3.3
+
+**IDL-055** MUST: Every accepted request receives exactly one terminal completion carrying the members R-12-093 enumerates.
+· Accept: teardown is represented out of band by revocation plus a generation change and not by a status; no separate server-unavailable status exists.
+· Trace: §4.3.2
+
+#### 4.3.3 The lifecycle
+
+**IDL-056** MUST: A request slot advances the monotone lifecycle R-12-094 states, in that entry's own order, and the successor relation is a **function**: each state has at most one successor and the last has none.
+· Accept: the generated artifact carries the states and the successor relation emitted from R-12-094's own sentence rather than transcribed beside it, so a state added or reordered there moves the artifact.
+· Trace: §4.3.3, §4.3.6
+
+**IDL-057** MUST: A malformed request moves from the submitted state directly to the terminal one without acquiring device authority or beginning payload mutation, which is the one admitted step past a successor.
+· Accept: R-12-094 states that step; the generated artifact carries it as a second relation beside the successor function rather than as an exception inside it, so the successor function stays total in its own terms.
+· Trace: §4.3.3
+
+#### 4.3.4 Capacity, notification, and batching
+
+**IDL-058** MUST: Exhaustion is fail-closed on both sides. Submission against a full request ring has the sole typed result R-12-095 names, with no partial enqueue, and a server accepts a request only against completion capacity at least its maximum number of simultaneously accepted requests, established at composition.
+· Accept: no terminal completion is dropped or overwritten to recover space; the typed result is relevance-graded under §3.2 like every other fallible result.
+· Trace: §4.3.4, §3.2
+
+**IDL-059** MUST: The notification word is a **binary armed state with a defined reset** and no counter exists. The consumer drains within its admitted budget, arms the word, re-reads the producer index, and sleeps only if the recheck still shows no work.
+· Accept: spurious and coalesced notifications are admitted and cost one bounded empty drain; the indices are the source of truth and the notification is a hint (R-12-096).
+· Trace: §4.3.4
+
+**IDL-060** MUST: A batch is an amortization unit and never a transaction: every member validates, accepts, cancels, completes, and accounts independently, and **no descriptor names a predecessor or encodes cross-request control flow**.
+· Accept: no field of §4.2 admits a reference to another request, so the refusal is a property of the encoding rather than a rule a server enforces; publication and drain are bounded by the declared maximum batch size (R-12-098).
+· Trace: §4.3.4, §4.2
+
+#### 4.3.5 Cancellation, generation, and DMA
+
+**IDL-061** MUST: Cancellation is a typed control-plane request naming its target by generation and request identifier, and its race semantics are the four deterministic answers R-12-097 fixes, decided by where the target stands against its declared cancellation and commit points.
+· Accept: the four answers are that entry's and are generated into the artifact from it; an operation carrying no cancellation declaration under IDL-019 is non-cancellable and the request answers accordingly rather than being refused as malformed.
+· Trace: §4.3.5, §3.6
+
+**IDL-062** MUST: Every ring and descriptor is bound to a session generation that changes before any reuse across peer restart, device reset, or revocation, and no operation is replayed implicitly.
+· Accept: no old-generation descriptor is accepted, indices and the notification word are reinitialized before the new generation is live, and an interface claiming idempotence names the operation subset, the stable request identity, the deduplication retention bound, and the duplicate-effect proof (R-12-099).
+· Trace: §4.3.5
+
+**IDL-063** MUST: Zero-copy DMA executes only through a session-table capability whose permissions match the descriptor's declared direction, with the complete extent validated before the transfer starts and never reinterpreted after; scatter and gather exist only as a bounded list under `TC-5` with a declared maximum segment count.
+· Accept: no capability is retained past terminal completion, and the maximum segment count is a declared field of IDL-018's record rather than a figure of this document (R-12-100, R-12-101).
+· Trace: §4.3.5, §3.6
+
+#### 4.3.6 The generated interface artifact
+
+**IDL-064** IS: The **generated interface artifact** is what a ring-bearing declaration is compiled to. It carries three parts: §6.2's skeleton, the composition-time constants R-12-091 and R-12-101 name, and the conformance campaign R-18-037 requires.
+· Accept: IDL-045's refusal of a proof is a property of the skeleton part and not of the artifact, whose campaign part is exactly the generated obligations that entry's criterion names.
+· Trace: §4.3.6, §6.2
+
+**IDL-065** MUST: The two closed enumerations the artifact carries from the register, R-12-093's status set and R-12-094's lifecycle states, are **emitted from those entries** rather than transcribed into the generator or into the declaration.
+· Accept: the register is the enumeration's one owner and the artifact is its second statement, generated; a member added at either entry moves the artifact's bytes, and a generator carrying its own copy of either list is a defect rather than a convenience.
+· Trace: §4.3.6, §9
+
+**IDL-066** MUST: The conformance campaign is generated **from the artifact's own constants**, and every obligation it carries is decided by computation over those constants rather than by an authored proof.
+· Accept: the campaign covers the cases R-18-037's criterion enumerates; a declaration whose constants do not satisfy an obligation fails to compile the artifact, which is the fail-closed reading of *no interface world declaring rings is admitted before its campaign runs*.
+· Trace: §4.3.6
+
+**IDL-067** MUST: The declaration is the **one authored owner** of everything a composition fixes, and the artifact is a function of the declaration and of the register alone.
+· Accept: no hand edit of the artifact survives, the artifact being regenerated and compared byte for byte; a fact stated in both the declaration and the artifact is stated once and generated once.
+· Trace: §4.3.6, §9
+
+**IDL-068** IS: Two things this schema names cannot be emitted in this repository today, and each is a limit of a milestone rather than of the schema.
+· Accept: the reference bindings are Gallina rather than systems-language, the specification's §0 putting base components assigned to safe Rust in Gallina for the reference and no purecap backend existing yet; and the admission checker R-12-010 and R-18-037 both name is a separate milestone, of which only the composition-time half is landed, so a generated artifact has nothing to be admitted by. Neither limit is repaired by narrowing the schema.
+· Trace: §4.3.6, §7
 
 ---
 
