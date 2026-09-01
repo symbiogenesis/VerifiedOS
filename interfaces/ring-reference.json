@@ -30,7 +30,9 @@
     "content_type_bytes": 1,
     "generation_bytes": 4,
     "metadata_bytes": 8,
-    "byte_count_bytes": 4
+    "byte_count_bytes": 4,
+    "flag_set_bytes": 1,
+    "flag_spare_bits": 6
   },
 
   "label_levels": 4,
