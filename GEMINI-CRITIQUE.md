@@ -317,3 +317,27 @@ To transition VerifiedOS from an idealized formal exercise into a resilient, hig
 4. **Develop Verified Microarchitecture Synthesis**: Focus formal methods research on verified rule-scheduling and pipeline-compilation frameworks capable of emitting competitive, pipelined RTL directly from functional specifications.
 5. **Implement Adaptive Asynchronous Polling**: Allow hardware event latches to selectively wake dormant event-handling slots within bounded latency windows without breaking worst-case frame determinism.
 
+---
+
+## 6. Checked against the corpus and not carried
+
+*Added by the project after the review, on a read of [docs/requirements-register.md](docs/requirements-register.md) and the derived views. Nothing above is deleted. What is recorded here is which claims a reader may not cite back at the project as findings: a figure this document asserts that no artifact in the repository supports, or a residual it presents as unnoticed that the register already books. The claims not listed here stand, and five of them are answered by the edits this note accompanies.*
+
+### Figures with no source
+
+| Asserted here | What the corpus fixes |
+| --- | --- |
+| representability padding of 15% to 30% across fine-grained sub-objects | R-15-007c fixes the encoding's cost exactly and books it as a cost: bounds are byte-exact for objects up to 128 bytes at any base, and above that the representable region rounds outward at a granularity of at worst the length over 2^6, one part in 64 on each side. The rounding is absorbed by the composition-time memory plan (R-08-011), so no allocator pays it at run time and no whole-image padding percentage is derivable from the format. |
+| IPC of 0.25 to 0.50 on pointer-heavy work | No measurement supports the number, here or in the corpus, and a single scalar IPC figure is not the quantity [docs/performance-estimates.md](docs/performance-estimates.md) carries. That table prices the cacheless in-order cost per row against a named baseline, scores the pointer-chasing case, names the owners of each end of each range, and states which levers move which end. The direction of the criticism is the corpus's own; the number is not. |
+| an all-SRAM budget of 500 to 700 MB on a reticle-limited die | R-15-170 budgets the first class at roughly 4 to 8 GB phone-class across 8 to 16 memory tiers and 16 to 32 GB laptop-class, and R-15-173a states the single-planar-tier outcome at order 1 to 2 GB. The density wall is real, is the reason the second class exists, and is not at this figure. |
+| a bespoke capability format, presented as one | The field widths are right and the framing is not: R-15-007 re-parameterizes CHERI Concentrate, keeping the bounds algorithm, the capability algebra, and the sentry and instruction semantics and changing only the widths, which is what leaves the Cambridge results reusable and owes a representation-correctness proof rather than a re-proof. |
+
+### Already booked, and cited rather than re-argued
+
+- **The refresh side channel and the power-off remanence** (2.1) are R-17-058e and R-17-058f, both open, both stated as accepted costs of the capacity rather than as mitigated.
+- **The gain-cell evidence gap** (2.1) is work item 30 of [docs/critique.md](docs/critique.md), which holds the same numbers and books the adoption as a judgment call.
+- **Fail-closed denial by radiated EMI** (3.8) is in scope by name in the threat model and carried as a residual in [docs/critique.md](docs/critique.md); the emergency-call case is named there.
+- **The powerbox's human factor** (3.9) is two entries rather than none: R-17-013 is the comprehension half, irreducible, and R-17-013e is the abuse-resistance half, open, which is habituation and prompt shaping stated as this document states it, together with why the candidate mechanisms are refused. R-17-013c carries the machine-rate form.
+- **The Transputer and Occam precedent** (3.2) is disposed of in [docs/inspirations.md](docs/inspirations.md) and cited from [docs/critique.md](docs/critique.md), which also names what the precedent does not transfer: the planner deletes classic allocator external fragmentation, so the Swiss-cheese failure has no referent here and what remains is reservation fragmentation.
+- **Reintroducing a PMP backstop** (5.1) is not an unconsidered option but a rejected one, and R-03-005's criterion is written so that a defence-in-depth layer beneath the package boundary falsifies it rather than repairing it. R-17-059 states the exposure the rejection buys, in stronger terms than this document does, and R-17-039a sorts which hedges are hostage to the unbuilt arrow and which are not.
+
