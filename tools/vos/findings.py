@@ -33,6 +33,8 @@ here because this parse takes text rather than a `Document`.
 import re
 from dataclasses import dataclass, field
 
+from vos import figures
+
 REGISTER = "docs/findings-register.md"
 PLAN = "docs/implementation-checklist.md"
 
@@ -54,19 +56,21 @@ _RAISED_RE = re.compile(r"^(?P<item>[^,]+?)(?P<prose>, in prose)?$")
 _STATE_RE = re.compile(r"^(?P<state>[a-z-]+)")
 
 # The count words a note spells its blocks with, capitalized as a note writes them.
-# The alternation is built from this table so that a word added here joins the reading
-# rather than waiting to be copied into a pattern.
-_COUNTS = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5, "Six": 6,
-           "Seven": 7, "Eight": 8, "Nine": 9, "Ten": 10, "Eleven": 11, "Twelve": 12,
-           "Thirteen": 13, "Fourteen": 14, "Fifteen": 15, "Sixteen": 16,
-           "Seventeen": 17, "Eighteen": 18, "Nineteen": 19, "Twenty": 20}
+# The table is `vos.figures`'s own word form rather than a second list, because the two
+# are the same convention: a note states a count in words and this reads it back, so a
+# hand-kept table here is a copy free to stop where the convention does not. It stops
+# where that one stops, at ninety-nine, past which a document states digits.
+_COUNTS = {figures.words(n).capitalize(): n for n in range(1, 100)}
 
 # A checklist item, checked, unchecked, or struck. The label runs to the first middot,
 # which is where the plan separates an item's id from its name; an item with no middot
 # at all is its own label, `Initial check/emit/FAST tooling` being the one such.
 _ITEM_RE = re.compile(r"^[^\S\r\n]*\* (?:\[[ x]\] |~~)\*\*(?P<label>[^*\r\n]+?)\*\*")
+# Longest first, so `Twenty-three` is read as itself rather than as a `Twenty` whose
+# alternative then fails on the hyphen and takes the block out of the reading with it.
 _BLOCK_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}(?P<word>"
-                       + "|".join(_COUNTS) + r") findings\b")
+                       + "|".join(sorted(_COUNTS, key=len, reverse=True))
+                       + r") findings\b")
 _SINGLE_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}Finding[,:]")
 _BULLET_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* ")
 

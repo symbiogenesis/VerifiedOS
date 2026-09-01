@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 306 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 311 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1068,7 +1068,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M6.0b
 · Disposition: open, the profile carrying no wire field for it, a grade on the wire being a field the no-slack rule would then have to admit no slack in
 
-**F-197j** owed-act: the flow-label lattice is unstated, the entry requiring both labels on every type naming no label set, no order, no join, and no answer to whether a label is a wire field or a composition-time attribute, and the security policy model that would own one is unauthored
+**F-197j** owed-act: the flow-label lattice has an owner and no enumeration, the build-time composition entries fixing the lattice with the composed topology and forbidding either sanctioned transfer from adding a label, while no entry states the lattice's membership, its order, or its join and the security policy model that would enumerate one is unauthored
 · Raised: M6.0b
 · Disposition: open, the profile declaring the place the labels sit and stating its obligations over an arbitrary lattice rather than inventing one
 
@@ -1103,6 +1103,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-197r** owed-act: the crown-jewel row the wire-format mapping is conferred on reads `not authored` and is ready to flip at the mapping's own section
 · Raised: M6.0b
 · Disposition: open, the flip being a crown-jewels edit whose reading is the release gate's rather than the lane's
+
+**F-197s** owed-act: no entry gives an interface declaration an identity that moves when the declaration moves, the admission criterion deciding a proof against *the matching skeleton* and naming nothing a match is decided on, so a declaration edited in place leaves a proof stated against the superseded skeleton still matching
+· Raised: M6.0b
+· Disposition: open, the profile fixing a content address over the declaration's bytes as a declared parameter and deciding matching on it
+
+**F-197t** owed-act: the wire mapping's encoding shape has no register owner at three places, the byte order of multi-byte scalars, the width ladder every length, count and discriminant is drawn from, and what a descriptor variant shorter than its declared slot leaves in it, the no-slack rule requiring one admissible form and deciding which at none of them
+· Raised: M6.0b
+· Disposition: open, each taken as a declared parameter with its ground and its refutation rather than inside a sentence of the mapping
+
+**F-197u** method: an encoding table is not reachable from a mapping's obligations unless something states where each declared value rides, a mapping stated wholly over its descriptor leaving the aggregate and variable-length rows encoding nothing any obligation places while the table still reads as complete
+· Raised: M6.0b
+· Disposition: closed by the joining rule the profile now carries, an operation's declared values riding either as a descriptor member or as a delegated buffer payload
+
+**F-197v** measurement: the rule holding the plan's findings against this register read count words only to twenty, where the tool's own figure convention spells them to ninety-nine, so a note declaring more than twenty matched no block and read as recording none
+· Raised: M6.0b
+· Disposition: closed, the table now built from that figure convention rather than kept beside it, so the reading stops where the convention stops
+
+**F-197w** method: the convention for an identifier inserted between two others and the permanence of identifiers collide once an out-of-order block has landed, and permanence is the one that holds, so the repair belongs at the next insertion rather than at the landed one
+· Raised: M6.0b
+· Disposition: standing, the section carrying the order and the number carrying only the name, stated in place so a reader is not left looking for the missing run
 
 **F-198** owed-act: the entry fixing a ring's composition-time constants names an index width and no entry says what it counts, so the mapping that must hold a capacity against it has no unit to read
 · Raised: M6.4
