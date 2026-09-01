@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 292 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1095,6 +1095,54 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-191** measurement: a field no admission rule reads is a field a weakening moves in silence, which is the hazard the no-privileged-producer clause creates and which forty-six of one item's fifty-five seeded survivors were
 · Raised: M6.2a, in prose
 · Disposition: open, closed at the item by pinning every witness's pedigree and identity figures in a ledger rather than by narrowing the population, and standing as the shape any artifact carrying unread fields will meet
+
+**F-198a** owed-act: no entry closes a media template's stage set, the entry that names templates and pools naming no stage and the only list of four sitting in a parenthetical of the prose, which is not an enumeration the review gate audits
+· Raised: M6.3a
+· Disposition: open, the stage count and the stage kinds left as fields the composition instantiates
+
+**F-198b** owed-act: no entry says whether a graph may carry two edges matching one intent, deterministic typed routing holding of a selector over an ambiguous graph and of one over an unambiguous graph alike
+· Raised: M6.3a
+· Disposition: open, both disciplines exhibited and each proved to keep every obligation the other keeps, with the difference machine-checked on a graph carrying two edges that match one intent
+
+**F-198c** owed-act: no entry enumerates the intent variants the entry calling an intent a closed variant leaves closed, that entry excluding an executable name or command string and closing no variant set anywhere
+· Raised: M6.3a
+· Disposition: open, the intent count left a field and an intent a finite index below it
+
+**F-198d** owed-act: whether the handler graph may carry a node for the shared service compartment is unstated, that compartment being a package no roster names which the composer must emit and no entry saying whether an edge may name it as an endpoint
+· Raised: M6.3a
+· Disposition: open, the closure obligation refusing one because the roster is the only node set the register gives
+
+**F-198e** owed-act: whether the hand-transcribed parser exception reaches a graph node's content format is unstated, the hand-written attacker-facing set being empty except as one entry permits and that entry permitting exactly one named format on a differential-oracle result
+· Raised: M6.3a
+· Disposition: open, the per-format verified-parser flag left a field and the obligation stated over an arbitrary inventory
+
+**F-198f** owed-act: at what granularity the handler graph is re-signed is unstated, one entry rebuilding and re-signing it with the generation and calling it a configuration object carried by the generation root without fixing whether that is one signature or a second one over the graph
+· Raised: M6.3a
+· Disposition: open, the difference observable on the retained generation roots when a prior one is pinned, and the graph's identity left a field
+
+**F-198g** owed-act: whether binding a composition-time template consumes a schedule slot the composition reserved is unstated, the four quantities being admitted under the scheduling section before a node may be bound while the two standing reservations name neither a node pool nor a template
+· Raised: M6.3a
+· Disposition: open, the four-quantity obligation stated without deciding it
+
+**F-198h** owed-act: whether an edge's declared resource limit is compared against the caller's requested bound at selection or at binding is unstated, one entry declaring the transformation's limits and the prose making routing a selection under the caller's bound with neither putting the comparison on a side
+· Raised: M6.3a
+· Disposition: open, the item comparing at selection and recording that as a reading
+
+**F-198i** owed-act: whether a typed signed configuration object carries one of the three assurance tiers is unstated, every admitted artifact carrying exactly one tier and its required evidence while a configuration object is data rather than code
+· Raised: M6.3a
+· Disposition: open, the item assigning none; adjacent to F-190h and not a second sighting of it, that one being which tier a component carries where this is whether a non-code artifact carries one at all
+
+**F-198j** owed-act: every composition magnitude of the composer's emitted object is a field no entry fixes, the roster and each package's declared edges, script, manifest width, origin, admission time, admitted quantities and label among them, and so are the type, intent and world counts, the wire-format inventory, both pool capacities, the ring depth ceiling, the template's stages and end types, the declared inter-level channels, the ambiguity discipline and the graph's identity
+· Raised: M6.3a
+· Disposition: standing, the demo instantiating each with a witness value that carries no composition claim and the pedigree ledger pinning every one
+
+**F-198k** method: a witness built by a field setter carries one figure where a witness written out carries ten, and a seeded Gallina population is counted in figures, so the ledger a prior item's survivors require and the population that ledger creates are the same figures
+· Raised: M6.3a
+· Disposition: standing, measured at the item as a fall from 468 mutants to 351 with no obligation weakened
+
+**F-198l** method: a refuting construction's own comparisons need a witness on their boundary as much as the specification's do, and it is the specification's that get one by habit, so a refuter is refuted at a value far from its own cut and a weakening that moves that cut answers the same everywhere the artifact looks
+· Raised: M6.3a, in prose
+· Disposition: open, met at the item as the one survivor of the relational and connective operators and closed by adding the request whose bound sits exactly on the edge the refuter reaches
 
 **F-167** owed-act: the typed interface profile the ring contract is stated in is carried by no path in the tree and authored by no milestone here
 · Raised: M6.4, in prose
