@@ -20,7 +20,7 @@ In their place, VerifiedOS introduces pure 64+1-bit CHERI capability enforcement
 As documented in the repository's internal gap ledger in [docs/critique.md](docs/critique.md), the system's assurance argument rests on a foundational paradox:
 **Every classical defense-in-depth hedge has been deleted on the premise of a formally verified primary, yet virtually none of the primary specifications or proofs exist.**
 
-Twenty-six crown-jewel specifications are defined in [docs/crown-jewels.md](docs/crown-jewels.md); only two are authored. Ten theorem targets are scheduled; none have started because their formal premises do not yet exist. The system currently exists as an immaculate, self-consistent mathematical blueprint whose real-world physical and software execution faces profound structural tensions.
+The inventory in [docs/crown-jewels.md](docs/crown-jewels.md) defines over two dozen crown-jewel specifications; only two are authored. Ten theorem targets are scheduled; none have started because their formal premises do not yet exist. The system currently exists as an immaculate, self-consistent mathematical blueprint whose real-world physical and software execution faces profound structural tensions.
 
 ```mermaid
 flowchart TD
@@ -65,12 +65,12 @@ A single-tier, all-SRAM memory hierarchy composed of high-transistor-count cells
 However, semiconductor physics imposes an intractable density wall:
 - In leading-edge lithography ($3\text{nm}/2\text{nm}$ nodes), a high-density 6T SRAM bitcell measures $\sim 0.021\ \mu\text{m}^2$. A high-reliability 8T/10T dual-port cell consumes $0.035\text{–}0.045\ \mu\text{m}^2$.
 - Dedicating $200\ \text{mm}^2$ of a massive $300\ \text{mm}^2$ reticle-limit monolithic die exclusively to 8T SRAM yields at most $\sim 500\text{–}700\ \text{MB}$ of raw storage (before subtracting the $\sim 8\text{–}12\%$ overhead for DECTED capability tags, parity, and ECC).
-- Modern practical workloads—specifically quantized local Large Language Models (e.g., a 4-bit 8B parameter model requiring $4.5\text{–}6\ \text{GB}$ for weights and KV context cache)—are mathematically impossible to fit into an all-SRAM on-die budget.
+- Modern practical workloads (specifically quantized local Large Language Models, e.g., a 4-bit 8B parameter model requiring $4.5\text{–}6\ \text{GB}$ for weights and KV context cache) are mathematically impossible to fit into an all-SRAM on-die budget.
 
 #### The Gain-Cell Compromise and Its Latent Failures
 To circumvent off-die DRAM without forfeiting bulk capacity, [docs/spec.md](docs/spec.md#r-15-247) adopts a two-tier on-die architecture: fast SRAM alongside high-density BEOL oxide-channel (2T0C or 3T1C) gain cells. While structurally motivated in [docs/architectural-alternatives.md](docs/architectural-alternatives.md), this hybrid introduces critical vulnerabilities:
 
-1. **The Recurring Power/EM Side-Channel**: Gain cells store charge dynamically on parasitic gate capacitance and must undergo continuous periodic refresh sweeps. As documented in [docs/critique.md](docs/critique.md), this periodic whole-array read-and-rewrite emits a recurring, full-memory Hamming-weight signature across the power rails and near-field EM spectrum—enabling passive cryptographic key and plaintext leakage without requiring the adversary to execute any instructions.
+1. **The Recurring Power/EM Side-Channel**: Gain cells store charge dynamically on parasitic gate capacitance and must undergo continuous periodic refresh sweeps. As documented in [docs/critique.md](docs/critique.md), this periodic whole-array read-and-rewrite emits a recurring, full-memory Hamming-weight signature across the power rails and near-field EM spectrum, enabling passive cryptographic key and plaintext leakage without requiring the adversary to execute any instructions.
 2. **Cold-Boot Plaintext Remanence**: Oxide-channel FETs exhibit near-zero subthreshold leakage at room temperature. Consequently, unpowered gain cells retain state for hours, directly breaking the architectural premise that on-die volatile storage requires no memory encryption or cryptographic wipe-on-shutdown.
 3. **Severe Manufacturing and Feasibility Risk**: Gigabit-scale 2T0C gain-cell macros with integrated row repair, DECTED capability-tag planes, and per-access load filters do not exist in commercial silicon foundries. The largest published academic demonstration chips remain small kilobit-scale test arrays.
 
@@ -117,7 +117,7 @@ Standard Software World                    VerifiedOS Clean-Slate
 ```
 
 By discarding POSIX interfaces, the System V ABI, ELF dynamic loading, standard AXI/TileLink buses, and standard C/C++ runtimes, VerifiedOS achieves internal purity at the cost of complete isolation:
-- **Exorbitant Re-Authoring Cost**: Every software component—from basic string manipulation and tensor kernels to network protocols and device drivers—must be written in or compiled to CHERI-TAL with custom Narcissus parsers and pre-allocated SPSC communication rings.
+- **Exorbitant Re-Authoring Cost**: Every software component (from basic string manipulation and tensor kernels to network protocols and device drivers) must be written in or compiled to CHERI-TAL with custom Narcissus parsers and pre-allocated SPSC communication rings.
 - **Ecosystem Incompatibility**: Mainstream high-performance software libraries (e.g., OpenBLAS, PyTorch/GGML runtimes, SQLite, embedded WebAssembly runtimes) cannot be ported without completely redesigning their memory allocation, I/O dispatch, and threading architectures.
 
 ---
@@ -147,16 +147,40 @@ Because the base mantissa is constrained to 8 bits and the top mantissa to 6 bit
 
 ---
 
-### 3.2 The Static Allocation Fallacy: "Zero Waste" Induces Structural Waste
+### 3.2 The Static Allocation Fallacy: "Zero Waste" Induces Structural Waste (Fragmentation by Another Name)
 
 [docs/spec.md](docs/spec.md) claims that eliminating dynamic runtime allocation guarantees zero wasted memory:
 
 $$\text{Total Memory} = \sum_{i} \text{PeakStack}(C_i) + \sum_{j} \text{StaticBuffer}(B_j)$$
 
-While this completely prevents heap fragmentation and runtime out-of-memory (OOM) faults, it causes extreme **structural over-allocation**:
+While this completely prevents runtime heap fragmentation and runtime out-of-memory (OOM) faults, it induces severe **structural over-allocation and physical memory stranding**:
+
+```
+Virtual Memory (Fungible Global Free Pool / "Slush Fund")
+┌────────────────────────────────────────────────────────────────────────┐
+│ [Comp A: 4MB] [Comp B: 2MB] [     Global Shared Free Pool: 58MB      ] │
+│ • Unused capacity is fluid; dynamically backs whichever task surges.   │
+└────────────────────────────────────────────────────────────────────────┘
+
+VerifiedOS Static Partitioning (Inelastic Reservations / Stranded Memory)
+┌────────────────────┬────────────────────┬──────────────────────────────┐
+│ Compartment A (16M)│ Compartment B (16M)│ Compartment C (32M)          │
+│ [4MB Use | 12MB IDLE] [2MB Use | 14MB IDLE] [8MB Use | 24MB IDLE]          │
+│ • 50MB sits completely idle, but cannot be pooled or lent to peers.    │
+│ • If Compartment A needs 17MB, it FAILS CLOSED despite 50MB free RAM.  │
+└────────────────────┴────────────────────┴──────────────────────────────┘
+```
 
 1. **Peak-Worst-Case Over-Provisioning**: Workloads exhibit modal, bursty memory profiles. A network processing compartment that requires a $32\ \text{MB}$ decompression buffer once every $10\text{ minutes}$ must hold that $32\ \text{MB}$ permanently locked in fast memory. Across 50 compartments, the average memory utilization ($\text{Memory}_{\text{used}} / \text{Memory}_{\text{allocated}}$) often drops below $10\text{–}15\%$.
-2. **Combinatorial Allocation Sclerosis**: Modifying a single buffer size or patching one compartment requires re-solving an NP-hard global bin-packing and multi-bank layout problem across both memory tiers, necessitating a complete firmware rebuild, re-signing, and re-certification.
+2. **Compartment Memory Stranding (Fragmentation by Another Name)**: In traditional architectures with virtual memory and demand paging, all unallocated physical pages form a fungible, system-wide "slush fund." Memory unused by idle compartments automatically remains available in a shared pool to back whichever workload experiences a surge in demand. Under VerifiedOS's static physical partitioning, physical address space is rigidly carved into non-fungible, isolated reservations at composition time. Unused memory inside one compartment cannot be recycled, borrowed, or coalesced by another. Even if $80\%$ of total on-die memory sits completely unwritten, an active compartment that exhausts its static allocation will crash or fail closed, unable to claim a single byte of neighboring idle capacity. By abolishing dynamic heap allocation to eliminate internal fragmentation, VerifiedOS merely exchanges it for an un-compactable, system-wide macro-fragmentation.
+3. **Combinatorial Allocation Sclerosis**: Modifying a single buffer size or patching one compartment requires re-solving an NP-hard global bin-packing and multi-bank layout problem across both memory tiers, necessitating a complete firmware rebuild, re-signing, and re-certification.
+
+#### Historical Precedent: The Transputer and Occam Parallel
+The structural tension between formal static predictability and physical memory utilization has a direct historical precedent: the INMOS Transputer and its native language Occam (analyzed in [docs/inspirations.md](docs/inspirations.md#occam-and-the-transputer-and-xmos-xcore-static-channels-in-silicon-and-the-boundary-every-rendezvous-machine-stops-at)):
+
+- **The "Ideal" Static Model**: Occam eliminated dynamic heap allocation (`malloc`), recursion, and pointers, forcing all process workspaces and channel buffers to be bounded and fixed at compile time. Under pure Occam, runtime external fragmentation was mathematically $0\%$, but at the cost of extreme software rigidity and peak-case over-provisioning.
+- **The Compaction Impasse**: Transputer tasks were bound to hardware workspace pointers in microcode queues, preventing dynamic runtime compaction. Similarly, VerifiedOS binds physical addresses directly into 64+1-bit CHERI capabilities without an MMU page-table indirection layer, making dynamic relocation or defragmentation impossible without halting partitions and sweeping/re-authenticating all capabilities.
+- **The "Helios" Dilemma in Modern Porting**: When mainstream languages (C, Fortran) and operating systems (Helios) were ported to the Transputer, they reintroduced dynamic heaps onto flat physical memory, resulting in severe "Swiss-cheese" physical fragmentation. When VerifiedOS ports real-world software libraries ([docs/userspace-porting.md](docs/userspace-porting.md)), workloads requiring variable context must either be completely rewritten to worst-case static bounds or face unrecoverable fail-closed crashes when local partition arenas exhaust their pre-allocated bounds.
 
 ---
 
@@ -273,7 +297,7 @@ The architecture strictly enforces a "detect and fail-stop" policy across all ha
 | **Capability Format** | 64+1-bit purecap encoding fits merged 64-bit register file. | Mantissa constraints (8-bit base, 6-bit top) force outward rounding for all objects $>128\text{ B}$, adding $15\%\text{–}30\%$ padding overhead. |
 | **Golden Model & Toolchain** | Continuous proof from Sail/Coq specification down to binary and silicon. | No verification framework directly generates high-performance RTL or binaries; toolchain depends on unproved admits and FEV tools. |
 | **Ecosystem & Standards** | Clean-slate architecture eliminates legacy vulnerabilities and ambient authority. | Complete isolation from open-source libraries and standard runtimes; exorbitant re-engineering cost. |
-| **Static Memory Planning** | Offline static allocation prevents heap fragmentation and runtime OOM. | Peak-worst-case provisioning leaves average memory utilization below $15\%$; updates require full re-planning. |
+| **Static Memory Planning** | Offline static allocation prevents heap fragmentation and runtime OOM. | Peak-worst-case provisioning leaves average memory utilization below $15\%$; non-fungible reservations create structural macro-fragmentation (stranded memory) with no shared slush fund. |
 | **Hardware Protection** | Verified CHERI tags replace redundant MMUs, PMPs, and privilege rings. | Single point of failure: one physical glitch bypassing a tag check compromises the entire system. |
 | **I/O & Scheduling** | Polled MSIs and static cyclic executive eliminate preemption terms in WCET. | Bursty I/O suffers latency delays up to a full major frame ($10\text{–}50\text{ ms}$); causes buffer bloat or idle spinning. |
 | **Context Switching** | Eager zeroize of vector/matrix state avoids lazy save/restore proof complexity. | Burns massive on-die memory bandwidth zeroing $16\text{ KB}$ state on every fine-grained slot switch. |
@@ -289,7 +313,7 @@ To transition VerifiedOS from an idealized formal exercise into a resilient, hig
 
 1. **Reintroduce Defense-in-Depth**: Retain coarse-grained PMP or physical memory segmentation alongside CHERI to ensure physical fault injection at the tag layer cannot escalate to full system compromise.
 2. **Adopt Standard Interconnects with Capability Wrappers**: Encapsulate standard protocols (e.g., AXI4, PCIe, NVMe) within verified capability translators rather than reinventing all physical and wire protocols from scratch.
-3. **Incorporate Coarse Dynamic Allocation within Static Enclaves**: Support bounded, verified runtime heaps within statically bounded partition boundaries to mitigate peak-worst-case memory waste.
+3. **Incorporate Coarse Dynamic Allocation within Static Enclaves**: Support bounded, verified runtime heaps within statically bounded partition boundaries or inter-compartment lending pools to mitigate peak-worst-case memory waste and recover stranded memory.
 4. **Develop Verified Microarchitecture Synthesis**: Focus formal methods research on verified rule-scheduling and pipeline-compilation frameworks capable of emitting competitive, pipelined RTL directly from functional specifications.
 5. **Implement Adaptive Asynchronous Polling**: Allow hardware event latches to selectively wake dormant event-handling slots within bounded latency windows without breaking worst-case frame determinism.
 

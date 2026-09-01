@@ -64,6 +64,11 @@ The workload used to justify dense memory is thus also the workload whose modern
 **Static perfection spends utilization twice.**
 The offline memory plan does excellent work: it colors non-overlapping live ranges, charges a compartment on the peak of its aggregate live set rather than the sum of separate peaks, and makes exhaustion local and explicit.
 It cannot pool across an island boundary, and R-15-172 still sizes an island to its peak rather than the machine to the sum of averages.
+The [occam/transputer precedent](inspirations.md#occam-and-the-transputer-and-xmos-xcore-static-channels-in-silicon-and-the-boundary-every-rendezvous-machine-stops-at) sharpens the name: the planner really does delete classic allocator external fragmentation, so this is not the transputer's dynamic-heap "Swiss cheese" recurring under another spelling (R-08-012).
+What remains is **reservation fragmentation**: an empty pre-colored slot or pool member is physically idle yet unusable by a compartment the static plan did not assign it to, and a bank bound to another island cannot be borrowed at all (R-08-012c, R-08-047).
+The machine's aggregate idle capacity is therefore a sum of residues that need not be spendable by the workload peaking now.
+A conventional virtual-memory system combines address indirection with machine-wide physical-page allocation, allowing a page no longer backing one address space to back another; the advantage is statistical multiplexing across owners, not a better packing algorithm.
+This machine deliberately forgoes that general free-page pool (R-08-045).
 The cyclic executive makes the same trade in time: R-07-036 burns an idle slot across confidentiality labels rather than donating it.
 Population rungs, same-label rotation, suspension, and declared shedding soften the result, but no mechanism lends an idle bank, pool member, or slot across the boundary that made it safe.
 The product therefore pays for peak isolation in both bytes and cycles, so effective capacity and throughput can fall together on bursty interactive workloads.
