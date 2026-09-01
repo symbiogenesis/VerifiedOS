@@ -611,6 +611,7 @@ GEOMETRY = "docs/block-geometry-constraint.md"
 THIRD_PARTY = "THIRD-PARTY.md"
 DELTA = "docs/rtl-reparameterization-delta.md"
 FINDINGS = "docs/findings-register.md"
+RING_ARTIFACT = "proofs/RingContract.v"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1412,6 +1413,20 @@ CASES: list[Case] = [
     ("K-88", "a generated artifact edited by hand, one token off the bytes its "
              "generator wrote",
      _literal(BUNDLE, '"embedding":"plain"', '"embedding":"plane"')),
+
+    # The other generated artifact, and the seed is in its *boilerplate* rather than in
+    # a declared constant or a register token. Every constant the file carries is a
+    # value the declaration fixes and every enumeration member is the register's, so an
+    # anchor on either would rot the day a composition is re-priced or an entry gains a
+    # member, which is work that never touched this rule. The width rule is the one
+    # block the emitter writes identically whatever its owners say, it is what IDL-023
+    # fixes, and narrowing it is the silent defect: a generated file whose one
+    # admissible length form has quietly become two still compiles, still passes the
+    # proof gate, and is no longer what its generator writes.
+    ("K-89", "a generated interface artifact whose width rule was narrowed by hand",
+     _literal(RING_ARTIFACT,
+              "if Nat.leb cases 256 then 1 else if Nat.leb cases 65536 then 2 else 4.",
+              "if Nat.leb cases 255 then 1 else if Nat.leb cases 65536 then 2 else 4.")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

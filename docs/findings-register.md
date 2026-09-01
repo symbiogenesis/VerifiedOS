@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 299 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 306 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1103,6 +1103,34 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-197r** owed-act: the crown-jewel row the wire-format mapping is conferred on reads `not authored` and is ready to flip at the mapping's own section
 · Raised: M6.0b
 · Disposition: open, the flip being a crown-jewels edit whose reading is the release gate's rather than the lane's
+
+**F-198** owed-act: the entry fixing a ring's composition-time constants names an index width and no entry says what it counts, so the mapping that must hold a capacity against it has no unit to read
+· Raised: M6.4
+· Disposition: open, the declaration counting bytes because every other width in the wire-format mapping is a byte width
+
+**F-198a** owed-act: the ring-constant list is not the set a ring declaration must fix, four further constants being named by other entries and by no entry as ring constants: the maximum simultaneously accepted requests and the completion capacity, the maximum segment count and a segment's size, and the slot budget the joint proof is taken against
+· Raised: M6.4
+· Disposition: open, the declaration fixing all of them and the register naming six
+
+**F-198b** owed-act: nothing joins the six-state request lifecycle to the cancellation entry's deterministic answers, that entry deciding by where a target stands against its declared points and never saying which states are live to cancel
+· Raised: M6.4
+· Disposition: open, the mapping of the four situations onto the six states taken in the profile rather than read from the register
+
+**F-198c** owed-act: no entry says which members of the closed common status set are refusals, where the descriptor entry's criterion has a malformed descriptor produce one of *the defined refusal completions* that set names and the set is stated as one vocabulary with no subset marked
+· Raised: M6.4
+· Disposition: open, a checker reading a refusal having nothing enumerated to read
+
+**F-198d** owed-act: the per-variant accounting entry names the five quantities its joint bound is over and no relation among them, so the admission arithmetic a generated artifact decides is the profile's and the register audits none of it
+· Raised: M6.4
+· Disposition: open, the artifact stating each obligation as an equality against a declared margin so that a weakening moves a figure rather than consuming slack
+
+**F-198e** measurement: the guest lane refused every launch with `Wsl/Service/E_UNEXPECTED` for the length of one item, recovering only in brief windows, so a seeded population that fits one command had to be taken as a sample across the failure
+· Raised: M6.4
+· Disposition: standing, the failure being the machine's rather than the tree's and the proof gate's figures taken before it on the bytes the generator's own check holds the artifact to
+
+**F-198f** measurement: a campaign of inequalities over a table of composition constants does not constrain it, an incremented constant that still satisfies its bound being absorbed as slack; a composition that declares its margin so that every bound becomes an equality is what turns each into a figure a weakening moves
+· Raised: M6.4
+· Disposition: standing, taken from a first sample that survived fifteen of twenty-four and a second that survived four of thirty-two after the statements were added, the remaining survivors being the flow-label gap, the receiver-validation gap, and a derived count a checker rule reaches where a prover cannot
 
 **F-186g** owed-act: the extent of the authority a restart re-grants is stated three ways and they are not one statement, one entry fixing it at exactly the manifest's edges, another re-deriving at the manifest and the current revocation epoch, a third making user retraction a trigger beside restart, and a fourth carrying no epoch at all
 · Raised: M6.1a

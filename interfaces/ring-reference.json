@@ -1,0 +1,155 @@
+{
+  "schema": "vos.idl.ring/1",
+  "profile": "docs/idl-profile.md",
+  "profile_version": 1,
+  "world": "ring_reference",
+
+  "ring": {
+    "capacity": 64,
+    "index_width_bytes": 1,
+    "index_span": 256,
+    "descriptor_size_bytes": 64,
+    "descriptor_alignment_bytes": 8,
+    "completion_size_bytes": 32,
+    "completion_fill": 5,
+    "max_batch_size": 8,
+    "session_generation": 1,
+    "completion_capacity": 64,
+    "max_accepted": 64,
+    "max_segments": 4,
+    "segment_max_bytes": 1024,
+    "slot_budget": 20000
+  },
+
+  "encoding": {
+    "request_id_bytes": 4,
+    "session_index_bytes": 2,
+    "offset_bytes": 4,
+    "length_bytes": 4,
+    "direction_bytes": 1,
+    "content_type_bytes": 1,
+    "generation_bytes": 4,
+    "metadata_bytes": 8,
+    "byte_count_bytes": 4
+  },
+
+  "label_levels": 4,
+  "deadline_classes": ["immediate", "frame", "bulk"],
+  "flags": ["notify_on_completion", "fence_before"],
+  "directions": ["to_server", "to_client"],
+  "content_types": ["opaque_bytes", "frame_extent"],
+
+  "operation_record_fields": [
+    "validation_cost",
+    "max_payload_bytes",
+    "max_segment_count",
+    "device_service_bound",
+    "cancellation_cleanup_cost",
+    "completion_publication_cost",
+    "max_notifications",
+    "max_requests_drained"
+  ],
+
+  "operations": [
+    {
+      "name": "read_extent",
+      "scalars": [
+        { "name": "extent_index", "width_bytes": 4, "validated_at_use": true },
+        { "name": "extent_length", "width_bytes": 4, "validated_at_use": true }
+      ],
+      "buffer_refs": 2,
+      "deadline": true,
+      "empty_validation_claim": false,
+      "labels": { "confidentiality": 1, "integrity": 2 },
+      "record": [24, 4096, 4, 1200, 40, 16, 1, 8],
+      "fill": 24,
+      "activation_slack": 10080,
+      "payload_slack": 0,
+      "cancellation_slack": 344,
+      "cancellation": {
+        "points": 2,
+        "commit_index": 2,
+        "quiescence_bound": 200,
+        "max_to_terminal": 1800
+      },
+      "refinement": ["short_read"]
+    },
+    {
+      "name": "write_extent",
+      "scalars": [
+        { "name": "extent_index", "width_bytes": 4, "validated_at_use": true },
+        { "name": "extent_length", "width_bytes": 4, "validated_at_use": true }
+      ],
+      "buffer_refs": 2,
+      "deadline": true,
+      "empty_validation_claim": false,
+      "labels": { "confidentiality": 1, "integrity": 2 },
+      "record": [28, 4096, 4, 1600, 48, 16, 1, 8],
+      "fill": 24,
+      "activation_slack": 6848,
+      "payload_slack": 0,
+      "cancellation_slack": 136,
+      "cancellation": {
+        "points": 2,
+        "commit_index": 1,
+        "quiescence_bound": 200,
+        "max_to_terminal": 2000
+      },
+      "refinement": ["short_write"]
+    },
+    {
+      "name": "flush",
+      "scalars": [],
+      "buffer_refs": 0,
+      "deadline": true,
+      "empty_validation_claim": true,
+      "labels": { "confidentiality": 0, "integrity": 2 },
+      "record": [8, 0, 0, 900, 0, 16, 1, 8],
+      "fill": 56,
+      "activation_slack": 12608,
+      "payload_slack": 0,
+      "cancellation_slack": 184,
+      "cancellation": {
+        "points": 1,
+        "commit_index": 1,
+        "quiescence_bound": 100,
+        "max_to_terminal": 1200
+      },
+      "refinement": []
+    },
+    {
+      "name": "query_geometry",
+      "scalars": [
+        { "name": "geometry_selector", "width_bytes": 2, "validated_at_use": true }
+      ],
+      "buffer_refs": 1,
+      "deadline": false,
+      "empty_validation_claim": false,
+      "labels": { "confidentiality": 0, "integrity": 1 },
+      "record": [6, 64, 1, 120, 0, 16, 1, 8],
+      "fill": 44,
+      "activation_slack": 18864,
+      "payload_slack": 960,
+      "cancellation_slack": 0,
+      "cancellation": null,
+      "refinement": []
+    },
+    {
+      "name": "poll_status",
+      "scalars": [
+        { "name": "request_slot", "width_bytes": 2, "validated_at_use": true }
+      ],
+      "buffer_refs": 0,
+      "deadline": false,
+      "empty_validation_claim": false,
+      "labels": { "confidentiality": 0, "integrity": 1 },
+      "record": [4, 0, 0, 60, 0, 16, 1, 8],
+      "fill": 56,
+      "activation_slack": 19360,
+      "payload_slack": 0,
+      "cancellation_slack": 0,
+      "cancellation": null,
+      "refinement": []
+    }
+  ]
+}

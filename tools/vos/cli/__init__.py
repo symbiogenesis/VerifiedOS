@@ -125,6 +125,8 @@ COMMANDS: tuple[Command, ...] = (
     Command("seed", "vos.cli.seed",
             "the seeded-defect generator, pointed at an oracle that must notice",
             lane="guest", host_ok=frozenset({"list"})),
+    Command("ring", "vos.cli.ring",
+            "the ring contract's generated interface artifact, from its two owners"),
     Command("quickchick", "vos.cli.quickchick",
             "the Gallina front's input side", lane="guest"),
     Command("testrig", "vos.cli.testrig",
