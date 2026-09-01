@@ -131,6 +131,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the exclusion list is the topology table's fourth class (R-12-004).
 · Trace: CJ-CERISE
 
+**R-02-008** MUST NOT: The platform does not host its own toolchain: compilation and proving stay off-device (R-13-027), so the certifying compiler, the prover, and the package-construction pipeline are external infrastructure this design contains no path to internalizing, and self-hosting is an exclusion rather than a deferred milestone. What the device performs at install time is admission, a CHERI-TAL derivation type-checked and a source-correspondence theorem CIC-checked before capability wiring, which is a checking act and not a build.
+· Accept: no requirement, plan item, or goals-adjacent claim schedules an on-device compiler, prover, or package builder, and R-13-027's *build path, not an on-device service* is read as permanent rather than as a staging decision; the two product consequences are stated in the non-goals where a reader meets them and not only where the build path is specified, that developing software for the device on the device is structurally excluded, and that the device's software supply depends on an external pipeline with no degraded mode in which the machine rebuilds itself from itself.
+· Trace: CJ-COMPCERT, CJ-TAL-SOUND
+
 ---
 
 ## §3. Threat Model
@@ -1023,6 +1027,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-05-150** MUST: Independent specification review is a release gate.
 · Accept: no release proceeds without a completed independent review of the register.
+· Trace: CJ-T
+
+**R-05-150a** MUST: The gate's **supply side** is stated and answered rather than assumed: its binding input is neither engineering effort nor trust but the attention of a reviewer who is both Coq-literate and fluent in this repository's own machinery, and the second half of that is a cost paid per reviewer, in full, forever. R-05-011's single-prover rule caps the relief a second team could give, a constituent discharged in a second logic joining the union only across a semantics bridge nobody has built (R-05-011a), so the programme cannot buy its way out of the bottleneck by parallelizing across provers and must instead lower the entry cost of the one it has. The answer required is one artifact that teaches the machinery to the person this gate exists to convince: [reviewer-onramp.md](reviewer-onramp.md), covering what the gate audits and what it does not, how one entry is read, the conferral lines and the sets that collect them, the derived-trace and derived-figure rules, the co-read ledger and what blessing means, the conventions that otherwise read as errors, and where a finding goes.
+· Accept: the artifact exists and covers each of those seven; it states no obligation and defers to this register where the two disagree, being non-normative in R-15-001a's sense without being a derived view; and it is cited where a reviewer is first asked for, not only where the tools are documented. What it may not do is stand in for the review: no review record cites it as evidence, and no entry's criterion is discharged by it. The residual it does not close is booked rather than claimed away, the pool of reviewers competent in the subject being small, the onboarding cost being reduced rather than removed, and no estimate cell carrying the per-reviewer remainder.
 · Trace: CJ-T
 
 **R-05-151** MUST: A companion atomic-requirements register exists, in which each normative obligation is a numbered, individually-reviewable requirement with its acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale.
@@ -3362,6 +3370,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the address map is checked against the 36-bit bound at composition, so an aperture that does not fit is a composition failure rather than a runtime trap. A narrow space cannot absorb the scattering a 64-bit map tolerates, so the constraint is stated where the map is authored instead of being discovered when the first devicetree is composed.
 · Trace: CJ-DEVTREE, CJ-ISOL
 
+**R-15-002c** IS: The ceiling is the **product's** and not only the format's, and it is stated as a bet rather than left implicit. The 36 bits are the whole space, holding both R-15-247 classes, every MMIO aperture, and the revocation sidecar together, so the roster member whose footprint has grown fastest for as long as it has existed, local model serving, is bounded by that one number for the life of the design. The bet taken is that useful on-device inference plateaus inside what the ceiling leaves once the rest of the roster is placed. It is a bet and not a derivation: R-15-170's arithmetic bounds what a die can carry and predicts nothing about where model sizes stop, and the two alternative answers are unavailable rather than unattractive, the growth axis a second die would supply being declined outright (R-15-162) and a wider format being the one commitment that invalidates stored authority wholesale rather than costing a recompile (R-15-007d).
+· Accept: the ceiling is quoted as a product limit wherever the roster's capacity is claimed, so a reader meets it where the claim is made and not only at R-15-002a where the width is defined, and no goals-adjacent text claims a workload class the ceiling cannot hold; what the first release commits to is R-18-004a's enumerated members rather than an open-ended capability. What would falsify the bet is a roster member the design wants and the space cannot hold, and its consequence is fixed rather than open: refusal at admission with no swap and no overcommit (R-15-171), and a fallback that bends capacity and never mechanism (R-15-173). This entry adds no obligation to the address path; it fixes where the number must be repeated.
+· Trace: CJ-SAIL, CJ-DEVTREE
+
 **R-15-003** IS: There is a single privilege mode (Machine only). Privilege is a CHERI permission on the PCC (access-system-registers), not a ring.
 · Accept: the S/U CSR banks, trap delegation (`medeleg`/`mideleg`), `sret`, and `Sstc`'s `stimecmp` are absent from the decode, the CSR bank, and the kernel proof.
 · Trace: CJ-SAIL, CJ-KERNEL · [§15](spec.md#r-15-003), [§15](spec.md#r-15-003-2)
@@ -5289,6 +5301,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the statement appears in the goals-adjacent material, not only here.
 · Trace: CJ-WCET
 
+**R-17-008a** IS: **No figure in this section, or in any timing artifact this design produces, can be checked on a shipped part.** The two deletions that compose to it are separately correct and jointly leave no instrument: the architectural performance counters exist in no lifecycle state and the Debug Module and its trace are fuse-gated off in production (R-15-077, R-15-078), and the per-domain bandwidth-usage counters were removed with the allocation mechanism as cross-partition activity oracles (R-15-050, R-15-051). Every timing figure the freeze contract and the performance companion will ever carry is therefore taken on the timing-annotated Sail model, on generated code, or on simulated RTL, permanently, and whether a fielded unit meets the §11 scheduling constants is a question this design makes unaskable rather than one it answers. The residual is scoped to timing and capacity: the fault path is instrumented by R-16-013's schema-bounded crash record and reproduced by R-17-015's deterministic replay, so field *diagnosis* is answered and field *performance* is not.
+· Accept: no requirement, derived view, or estimate claims a figure measured on a production part, and every timing figure states the artifact it was taken from rather than being quoted bare, which is the freeze report's existing discipline read as a rule about where else it holds. The entry is not closed by adding a counter: a construction offered to close it passes R-15-050 and R-15-051's own test or is refused, and the two shapes that could pass are named so a later proposal is read against them rather than invented, a one-time bring-up instrument fused out at the production transition beside the Debug Module (R-15-078), and an RoT-attested aggregate published with a stated information budget. Neither is adopted by this entry, and no requirement elsewhere reads this residual as licensing an exception to those two exclusions.
+· Trace: CJ-WCET, CJ-NI
+
 ### 17.3 Consent
 
 **R-17-009** IS: For system-fixed flows the §8 theorem is absolute non-interference; for user-authorized flows it is non-interference *modulo* robust, delimited declassification, and that qualifier is where the ceiling sits.
@@ -5342,6 +5358,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 **R-17-013f** IS: *Attributable* means each live grant names its grantee, object, rights, scope, and issuing epoch in the R-08-043c projection, and *auditable* means the standing set is enumerable in bounded time at any moment; neither word asserts a history, and the platform keeps none.
 · Accept: the platform answers *what do I currently hold out* and cannot answer *what did I grant and later retract*, and that absence is a decision rather than an oversight: an append-only consent log would be unbounded growth, a new confidentiality-labeled observation surface, and a second origin of the grant record beside the grant table R-08-043c reads.
 · Trace: CJ-NI
+
+**R-17-013g** IS: The consent path has **one human and one device**, and the two product shapes that follow are named here rather than left for a reader to discover. There is no uid/gid and no account (R-02-001), so the unit of authority is the composition and the physical device rather than a named user, and the powerbox mediates one person's runtime declassification (R-06-016). A **shared device** therefore has one powerbox, one standing-grant set, and one consent surface, so a second person at the same unlocked unit inherits the first's standing grants (R-08-043c); separating two humans is a second device or a second composition, never a second account. A **fleet** wants policy applied once and attested rather than one ceremony per unit per grant, and what the design supplies is the composition itself: organizational authority is wired at composition time in the capability-wiring table (R-13-006) and needs no consent ceremony at all, the powerbox mediating only what composition did not already grant. What the design does not supply, in either case, is any way to change that policy short of a new composition and a fresh admission.
+· Accept: no requirement, goals-adjacent claim, or consent-path text implies a per-user identity, a per-user grant set, or a remote policy channel into the powerbox, and none is added to close this entry, an off-device path that could widen or retract a live grant being a second runtime declassifier beside the one R-06-016 makes sole and a consent record whose witness is not the person at the device. The two cases are stated with the price each pays, one grant set per device and one recomposition per policy change, rather than claimed as covered; this is a residual in R-17-001's product-shape sense and not an obligation on any mechanism.
+· Trace: CJ-NI, CJ-CERISE
 
 ### 17.4 Proof-gap residuals
 
@@ -6038,15 +6058,15 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1384 requirements. §19 is non-normative and yields none. Counts include the 432 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1389 requirements. §19 is non-normative and yields none. Counts include the 436 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
 | **§1 Goals** | **extracted** | **8** |
-| **§2 Non-Goals** | **extracted** | **7** |
+| **§2 Non-Goals** | **extracted** | **8** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **13** |
-| **§5 Languages & Verification** | **extracted** | **210** |
+| **§5 Languages & Verification** | **extracted** | **211** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **65** |
 | **§8 Authority Model** | **extracted** | **87** |
@@ -6056,9 +6076,9 @@ All eighteen normative sections are extracted, at 1384 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **126** |
 | **§13 Packaging & Supply Chain** | **extracted** | **39** |
 | **§14 Userland** | **extracted** | **29** |
-| **§15 Hardware Platform** | **extracted** | **409** |
+| **§15 Hardware Platform** | **extracted** | **410** |
 | **§16 Reliability** | **extracted** | **35** |
-| **§17 Residual Risks** | **extracted** | **128** |
+| **§17 Residual Risks** | **extracted** | **130** |
 | **§18 Realization** | **extracted** | **58** |
 
 §19 is non-normative and yields no requirements.
