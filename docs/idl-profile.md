@@ -252,7 +252,7 @@ Three things the register already fixes position this section, and it cites them
 ### 4.3 The ring schema and its lifecycle
 
 **IDL-027** IS: The common ring schema and lifecycle R-12-091 through R-12-101 state are **content of this mapping** and not a second normative ring-semantics artifact beside it. §4.3 is where that schema lands.
-· Accept: this is R-12-091's own acceptance criterion; no artifact of this repository states ring semantics normatively outside this document.
+· Accept: this is R-12-091's own acceptance criterion, which puts the schema inside the mapping rather than in a second normative ring-semantics artifact beside it; the entries R-12-091 through R-12-101 are what that criterion reads and no third artifact of this repository restates them normatively.
 · Trace: §4.3
 
 **IDL-028** MUST: A descriptor is a member of its interface's closed variant under `TC-8`, and a completion carries a status from R-12-093's closed common set, which that entry states and this document cites.
@@ -261,7 +261,7 @@ Three things the register already fixes position this section, and it cites them
 
 **The register owns the membership of every enumeration below and this section owns the encoding and the declaration form.** Where a requirement here says *the members that entry enumerates*, that is deliberate: a list written twice is a list free to drift, and §9's closing paragraph states the rule this section keeps.
 
-**§4.3's obligations are numbered IDL-050 through IDL-068 and the numbers are not in document order.** Identifiers are permanent under the normative form above and are never renumbered, so a block whose numbers were allocated apart from its position keeps them. The section is the order; the number is only a name.
+**§4.3's obligations are numbered IDL-050 through IDL-068 and the numbers are not in document order.** Identifiers are permanent under the normative form above and are never renumbered, so a block whose numbers sit apart from its position keeps them. The section is the order; the number is only a name.
 
 #### 4.3.1 What a ring declaration declares
 
@@ -312,7 +312,7 @@ Three things the register already fixes position this section, and it cites them
 · Trace: §4.3.4
 
 **IDL-060** MUST: A batch is an amortization unit and never a transaction: every member validates, accepts, cancels, completes, and accounts independently, and **no descriptor names a predecessor or encodes cross-request control flow**.
-· Accept: no field of §4.2 admits a reference to another request, so the refusal is a property of the encoding rather than a rule a server enforces; publication and drain are bounded by the declared maximum batch size (R-12-098).
+· Accept: no field of §4.2 carries a predecessor's identity or a condition on another request's outcome, so within a batch the refusal is a property of the encoding rather than a rule a server enforces; the one field naming another request is IDL-061's cancellation target, which is a control-plane request of its own and is what R-12-097 requires rather than what R-12-098 forbids; publication and drain are bounded by the declared maximum batch size (R-12-098).
 · Trace: §4.3.4, §4.2
 
 #### 4.3.5 Cancellation, generation, and DMA
