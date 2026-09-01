@@ -53,12 +53,16 @@ OWNED_ENTRIES: tuple[str, ...] = (STATUS_ENTRY, LIFECYCLE_ENTRY, FULL_RING_ENTRY
                                   CANCEL_ENTRY)
 
 # The register's own spellings, found where each entry states them. A backticked
-# lower-case identifier is how that document writes a wire token, and the arrow chain
-# is how it writes an ordered lifecycle; neither pattern is this file's invention and
-# both fail closed below rather than yielding an empty enumeration.
+# lower-case identifier is how that document writes a wire token, the arrow chain is
+# how it writes an ordered lifecycle, and each of the two steps the artifact carries
+# past that chain is named in the sentence of the entry that fixes it; no pattern here
+# is this file's invention and every one of them fails closed below rather than
+# yielding an empty enumeration or a state this file chose.
 _TOKEN_RE = re.compile(r"`([a-z][a-z_]*)`")
 _CLOSED_SET_RE = re.compile(r"closed common set \(([^)]*)\)")
 _CHAIN_RE = re.compile(r"([A-Z][a-z]+(?: → [A-Z][a-z]+)+)")
+_MALFORMED_RE = re.compile(r"moves from ([A-Z][a-z]+) directly to ([A-Z][a-z]+)")
+_UNSTARTED_RE = re.compile(r"a target still ([A-Z][a-z]+)")
 
 
 class RingError(Exception):
@@ -76,12 +80,16 @@ def _ordered(names: list[str]) -> list[str]:
 
 @dataclass(frozen=True)
 class Owned:
-    """The four enumerations the register owns, read from its own entry lines."""
+    """The four enumerations the register owns, read from its own entry lines, and the
+    three states its own sentences name inside two of them."""
 
     statuses: list[str]
     states: list[str]
     full_ring: str
     cancels: list[str]
+    malformed_from: str
+    malformed_to: str
+    unstarted: str
 
 
 def owned(register: Register) -> Owned:
@@ -111,9 +119,40 @@ def owned(register: Register) -> Owned:
                         f"full-ring result is one")
 
     cancels = _ordered(_TOKEN_RE.findall(body[CANCEL_ENTRY]))
-    if not statuses or len(states) < 2 or not cancels:
+    if not statuses or not cancels:
         raise RingError("an enumeration the register owns came back empty")
-    return Owned(statuses=statuses, states=states, full_ring=full[0], cancels=cancels)
+    if len(cancels) < 3:
+        raise RingError(f"{CANCEL_ENTRY} states {len(cancels)} cancellation answers "
+                        f"where the artifact reads three, one per situation that entry "
+                        f"decides")
+
+    step = _MALFORMED_RE.search(body[LIFECYCLE_ENTRY])
+    if step is None:
+        raise RingError(f"{LIFECYCLE_ENTRY} no longer states its malformed step as a "
+                        f"move from one named state directly to another, so the step "
+                        f"the artifact carries cannot be read")
+    unstarted_match = _UNSTARTED_RE.search(body[CANCEL_ENTRY])
+    if unstarted_match is None:
+        raise RingError(f"{CANCEL_ENTRY} no longer names the state a target is still "
+                        f"in when it is cancellable unstarted, so the situation the "
+                        f"artifact decides cannot be read")
+    malformed_from, malformed_to = step.group(1), step.group(2)
+    unstarted = unstarted_match.group(1)
+    for name in (malformed_from, malformed_to, unstarted):
+        if name not in states:
+            raise RingError(f"the register names `{name}` as a lifecycle state where "
+                            f"{LIFECYCLE_ENTRY}'s own chain does not carry it")
+    if states.index(malformed_to) - states.index(malformed_from) < 2:
+        raise RingError(f"{LIFECYCLE_ENTRY}'s malformed step from `{malformed_from}` to "
+                        f"`{malformed_to}` skips no state, where the step it states is "
+                        f"the one admitted past a successor")
+    if states.index(unstarted) + 1 >= len(states):
+        raise RingError(f"{CANCEL_ENTRY} names `{unstarted}` as cancellable unstarted "
+                        f"where {LIFECYCLE_ENTRY}'s chain gives it no successor for a "
+                        f"started target to stand in")
+    return Owned(statuses=statuses, states=states, full_ring=full[0], cancels=cancels,
+                 malformed_from=malformed_from, malformed_to=malformed_to,
+                 unstarted=unstarted)
 
 
 def declaration(root: Path) -> dict[str, Any]:
@@ -163,11 +202,22 @@ def _theorem(name: str, statement: str, proof: str) -> list[str]:
     return [f"Theorem {name} :", f"  {statement}", f"Proof. {proof} Qed.", ""]
 
 
-def _skip(states: list[str]) -> int:
-    """How many ranks the malformed step covers, from the register's own order: the
-    submitted state to the terminal one, which is a figure of that order rather than
-    one this file chooses."""
-    return states.index(states[4]) - states.index(states[2])
+def _skip(own: Owned) -> int:
+    """How many ranks the malformed step covers: the distance, in R-12-094's own chain,
+    between the two states that entry's own malformed-step sentence names. A state
+    inserted between them moves this figure, which is what makes it a reading of that
+    order rather than a constant read off two positions."""
+    return own.states.index(own.malformed_to) - own.states.index(own.malformed_from)
+
+
+def _live(own: Owned) -> str:
+    """The state a cancellation answer treats as live and started: the successor, in
+    R-12-094's own chain, of the state R-12-097 names a target as still in when it is
+    cancellable unstarted. Which states are live to cancel is joined to that entry by
+    nothing (F-217b), so the successor is this profile's reading of the join rather
+    than a sentence read out of either entry; what the register does fix is the two
+    ends, and both are read here."""
+    return own.states[own.states.index(own.unstarted) + 1]
 
 
 def _attains(ops: list[dict[str, Any]], names: list[str], field: int) -> str:
@@ -437,12 +487,13 @@ def emit(root: Path, register: Register | None = None) -> str:
                     [str(i) for i in range(len(own.states))])
 
     # The one admitted step past a successor, which R-12-094 states of a malformed
-    # request: submitted straight to terminal, acquiring no device authority.
-    submitted, terminal = own.states[2], own.states[4]
+    # request: the two states that entry's own sentence names, acquiring no device
+    # authority between them.
+    live = _live(own)
     lines += _match(
         "lifecycle_malformed", "slot_state", "state_", own.states,
         "option slot_state",
-        [f"Some state_{terminal}" if state == submitted else "None"
+        [f"Some state_{own.malformed_to}" if state == own.malformed_from else "None"
          for state in own.states])
 
     lines += [
@@ -461,7 +512,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "Definition lifecycle_malformed_ok (s : slot_state) : bool :=",
         "  match lifecycle_malformed s with",
         "  | None => true",
-        f"  | Some t => Nat.eqb (lifecycle_rank t) ({_skip(own.states)} + "
+        f"  | Some t => Nat.eqb (lifecycle_rank t) ({_skip(own)} + "
         "lifecycle_rank s)",
         "  end.",
         "",
@@ -495,8 +546,8 @@ def emit(root: Path, register: Register | None = None) -> str:
         "Definition cancel (o : op) (s : slot_state) (position : nat) : cancel_answer :=",
         "  if op_cancellable o then",
         "    match s with",
-        f"    | state_{submitted} => cancel_{own.cancels[0]}",
-        f"    | state_{own.states[3]} =>",
+        f"    | state_{own.unstarted} => cancel_{own.cancels[0]}",
+        f"    | state_{live} =>",
         f"        if Nat.ltb position (op_commit_index o) then cancel_{own.cancels[0]}",
         f"        else cancel_{own.cancels[1]}",
         f"    | _ => cancel_{own.cancels[2]}",
@@ -650,7 +701,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "intro s; destruct s; vm_compute; reflexivity.")
     lines += _theorem(
         "the_malformed_step_acquires_no_authority",
-        f"lifecycle_malformed state_{own.states[3]} = None.",
+        f"lifecycle_malformed state_{live} = None.",
         "vm_compute; reflexivity.")
     lines += _theorem(
         "a_stale_generation_is_refused",
@@ -675,7 +726,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "a_target_past_its_commit_point_is_too_late",
         "forall (o : op) (position : nat), op_cancellable o = true ->"
         " Nat.ltb position (op_commit_index o) = false ->"
-        f" cancel o state_{own.states[3]} position = cancel_{own.cancels[1]}.",
+        f" cancel o state_{live} position = cancel_{own.cancels[1]}.",
         "intros o position Hc Hp; unfold cancel; rewrite Hc, Hp; reflexivity.")
     lines += _theorem(
         "a_non_cancellable_operation_is_never_live_to_cancel",
