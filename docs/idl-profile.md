@@ -1,8 +1,8 @@
 # The Typed IDL Profile
 
 > **What this is.**
-> This document is the one typed interface-definition profile R-12-010 fixes: the type constructors every §12 server protocol and capability manifest is stated in, the wire-format mapping those types are carried by, the obligations each definition declares, and the subset a generated Coq interface skeleton is stated over.
-> It is the artifact row 3 of [the crown-jewel inventory](crown-jewels.md) names, `CJ-IDL`, conferred by R-12-013.
+> This document is the one typed interface-definition profile R-12-010 fixes: the type constructors every server protocol and capability manifest of the register's §12 is stated in, the wire-format mapping those types are carried by, the obligations each definition declares, and the subset a generated Coq interface skeleton is stated over.
+> Its §4 is the artifact row 3 of [the crown-jewel inventory](crown-jewels.md) names, `CJ-IDL`, conferred by R-12-013.
 >
 > **Normative for the profile; not a derived view.**
 > [The frozen instruction-set profile](isa-profile.md), [the absence contract](absence-contract.md), [the crown-jewel inventory](crown-jewels.md), and [the coverage matrix](coverage-matrix.md) are derived views of [requirements-register.md](requirements-register.md) and state no obligation of their own.
@@ -18,8 +18,8 @@
 > **The wire-format mapping is the crown jewel, and its row is not flipped here.**
 > §4 is the mapping R-12-013 confers crown-jewel status on. Flipping row 3's status is an edit to [the crown-jewel inventory](crown-jewels.md), which is an act R-05-150's review gate reads; this document reports the row as ready and does not take it.
 >
-> **Nothing here is built.**
-> No generator, no parser, no marshalling code, no Coq skeleton, and no interface declaration exists in this repository. This document is the specification those artifacts are written against, and authoring it relocates that work rather than reducing it.
+> **What is built against this profile, and what is not.**
+> One interface declaration exists, [the ring reference](../interfaces/ring-reference.json), and one generator compiles it to the §4.3.6 interface artifact, [RingContract.v](../proofs/RingContract.v). No marshalling code, no verified parser, no systems-language binding, and no admission checker exists in this repository, so most of what §4 and §6 oblige is a specification those artifacts are written against rather than a file, and stating it relocates that work rather than reducing it.
 
 ---
 
@@ -27,8 +27,8 @@
 
 R-12-010 says **fork-and-frozen** and names no artifact. The register is silent on what the fork is a fork of; the specification's §12 prose says *WIT-derived* and [inspirations.md](inspirations.md) splits the intent in two, a WIT-derived type layer over a FIDL/Zircon-channel wire layer. Neither is the artifact the review gate audits, so naming a start-from is a maturity claim under R-18-001a with no register owner, and it is taken here as a declared parameter (§8) rather than as a reading of the register.
 
-**IDL-001** IS: The type layer of this profile is a fork of **WIT**, the interface-definition syntax of `WebAssembly/component-model`, taken at its own `design/mvp/WIT.md`. The wire layer of this profile is **authored fresh** over the §12 ring data plane and is a fork of nothing.
-· Accept: every constructor row of §2 names WIT's own spelling or is marked as this profile's own; no row of §4 is attributed to an upstream.
+**IDL-001** IS: The type layer of this profile is a fork of **WIT**, the interface-definition syntax of `WebAssembly/component-model`, taken at its own `design/mvp/WIT.md`. The wire layer forks no artifact: its exemplar is **FIDL and the Zircon channel**, whose bytes-plus-out-of-band-handles discipline the register's §12 ring data plane already carries, and what §4 states over that data plane is authored here.
+· Accept: every constructor row of §2 names WIT's own spelling or is marked as this profile's own; no row of §4 is transcribed from an upstream's encoding.
 · Trace: §2, §4, §8
 
 ### 1.1 The terms, read at each upstream's own licence file
@@ -41,11 +41,13 @@ Both instruments are permissive, non-reciprocal, and carry no field-of-use restr
 · Accept: no tracked file of this repository is derived from an upstream interface-definition source, and [THIRD-PARTY.md](../THIRD-PARTY.md) carries neither upstream in its vendored, fetched, or submodule tables.
 · Trace: §1, §2
 
-### 1.2 Why the wire layer is authored rather than forked, and the ground is technical
+### 1.2 Why the wire layer is authored rather than forked, and the two grounds are technical
 
-WIT's own wire format is the Component Model's **Canonical ABI**, which is stated over Core WebAssembly linear memory: values flatten to `i32`, `i64`, `f32` and `f64`, and lifting and lowering run through a module's own memory with a realloc callback. This platform declines Wasm as an execution target anywhere (R-05-084 and the specification's §14), carries no linear-memory sandbox, and moves authority out of band as session-table indices rather than through memory (R-12-006, R-12-007). The Canonical ABI therefore has **no machine here to be stated over**, and forking it would carry a mapping whose every term names a substrate this design does not have.
+**The Canonical ABI is declined because it names a machine no interface of this profile runs on.** WIT's own wire format is the Component Model's **Canonical ABI**, which is stated over Core WebAssembly linear memory: values flatten to `i32`, `i64`, `f32` and `f64`, and lifting and lowering run through a module's own memory with a realloc callback. Wasm is not an execution target anywhere in this system (R-05-085, and R-14-013 for the specification's §14), no compartment whose interfaces are stated in this profile is a Wasm module, and authority moves out of band as session-table indices rather than through memory (R-12-006, R-12-007). The Canonical ABI therefore has **no machine here to be stated over**, and forking it would carry a mapping whose every term names a substrate this design does not have. The one Wasm machine the register does carry is a guest and not an endpoint: R-14-013a ships exactly one pure-interpreter engine as a library compartment an application may bind, its guest state inside the embedding's own CHERI-bounded memory plan and its reach into its host through the host functions that embedding's manifest names, so an interface of this profile is what the embedding is stated in and never what the guest speaks.
 
-That is also why `CJ-IDL` confers on the mapping and not on the type layer: the layer that is a fork is the one with an upstream to be read against, and the layer that must be authored is the one the review gate must read.
+**FIDL's wire model is declined on a different ground, because its discipline transfers and its artifact does not.** A FIDL message is bytes plus out-of-band handles over a Zircon channel, which is structurally what the register's §12 data plane is, so the exemplar reaches where the Canonical ABI does not: bounded schema formers, handles beside the bytes, and a decoder hardened at a trust boundary are the disciplines §2, §4 and §3.3 carry. What does not transfer is the encoder and the decoder themselves, which are unverified C++, where marshalling here is a Narcissus copy-once verified parser generated from the type source (R-05-042, R-05-046, IDL-022). Forking that encoding would fork the one part this design replaces.
+
+**Where `CJ-IDL` confers is this document's reading of that asymmetry rather than R-12-013's ground.** That entry confers crown-jewel status on the wire-format mapping and states no reason for it. The reading is that the layer that is a fork has an upstream to be read against, and the layer that must be authored is the one the review gate must read.
 
 ### 1.3 What the freeze is, as an act
 
@@ -57,7 +59,7 @@ That is also why `CJ-IDL` confers on the mapping and not on the type layer: the 
 · Accept: no row of §2 cites an upstream edition as its ground; every row cites a requirement of the register or a parameter of §8.
 · Trace: §2, §8
 
-**The version is this document's own and nothing in the register pins it.** R-05-135a pins [the typed assembly language](typed-assembly-language.md) by name and R-05-135b makes a version bump a review-gate event carrying a fresh reading; R-12-010 pins no artifact at all. So the amendment discipline IDL-003 declares of this document binds this document and nothing else until a register act names it. That is the headline finding of this item and it is reported rather than closed.
+**The version is this document's own and nothing in the register pins it.** R-05-135a pins [the typed assembly language](typed-assembly-language.md) by name and R-05-135b makes a version bump a review-gate event carrying a fresh reading; R-12-010 pins no artifact at all. So the amendment discipline IDL-003 declares of this document binds this document and nothing else until a register act names it. Nothing this document can state repairs that, a pin being a register act.
 
 ---
 
@@ -109,7 +111,7 @@ R-12-012 restricts the profile to closed variants, no recursion, and an explicit
 
 ## 3. What every definition carries
 
-Five obligations attach **at a type's or an operation's definition** rather than at a call site, and that placement is what R-18-016 buys: the net-new work sits at the interface definitions rather than at every call site, and the front end propagates from there.
+Every obligation below attaches **at a type's or an operation's definition** rather than at a call site, and that placement is what R-18-016 buys: the net-new work sits at the interface definitions rather than at every call site, and the front end propagates from there.
 
 ### 3.1 The flow labels
 
@@ -117,11 +119,11 @@ Five obligations attach **at a type's or an operation's definition** rather than
 · Accept: no type definition is admitted without both labels; the IDL-to-Coq generator emits the matching flow predicates and a cross-domain server's Tier-1 proof carries flow theorems against them (R-12-011).
 · Trace: §3.1, §6
 
-**The lattice the labels are drawn from is stated nowhere.** R-12-011 requires the labels and names no label set, no order, no join, and no answer to whether a label is a wire field or a composition-time attribute; the security policy model that would own such a lattice is row 2 of the crown-jewel inventory, `CJ-NI`, and reads `not authored`. This profile therefore declares the **place** the labels sit and states the obligations over an arbitrary lattice, and it invents no label set (§8).
+**The lattice has an owner and no enumeration.** R-07-025 fixes the confidentiality-label lattice at build time together with the composed topology, R-08-024 makes the fixed graph fix the lattice and the set of declassification points, and R-07-026 forbids either sanctioned runtime authority transfer from adding a label to that graph. So a label is a composition-time attribute of the composition rather than a datum a peer supplies, and R-12-011's silence is narrower than it looks. What no entry states is the lattice's **membership**: no label set, no order, and no join, and the security policy model that would enumerate one is row 2 of the crown-jewel inventory, `CJ-NI`, reading `not authored`. This profile therefore declares the **place** the labels sit and states the obligations over an arbitrary lattice, and it invents no label set (§8).
 
 **IDL-009** MUST NOT: No label of this profile is carried on the wire. A label is a property of the declaration and of the generated typing.
-· Accept: no row of §4 encodes a label; the labeling is what defines secret-labeled material for IDL-borne material and is one source of the label rather than the definition of the population (R-12-011).
-· Trace: §3.1, §4
+· Accept: no row of §4 encodes a label; a label is fixed by the composition R-07-025 and R-08-024 make the lattice's owner, so a field carrying one would have no peer entitled to set it, and the labeling is what defines secret-labeled material for IDL-borne material and is one source of the label rather than the definition of the population (R-12-011). Declining the field is a decision this document takes rather than a sentence of R-12-011 read out (§8).
+· Trace: §3.1, §4, §8
 
 ### 3.2 The relevance grade
 
@@ -148,7 +150,7 @@ Five obligations attach **at a type's or an operation's definition** rather than
 R-12-012a is the entry that keeps a declared type from being read as a statement about meaning: a declared type bounds what a value *is* and never what it *means to the receiver*, and capability bounds do not close the difference. The register requires the IDL to declare which received values carry the obligation and says nothing about the form that declaration takes, so the vocabulary below is this document's (§8).
 
 **IDL-014** MUST: Every field of every received type carries a **validated-at-use marker**, set where the receiver uses the value as an index, a length, an offset, or a selector into its own state.
-· Accept: the marker is per field rather than per operation, which is the granularity R-12-012a's own wording carries; the Tier-1 proof discharges the obligation at the receiver and never inherits it from a sender's compliance.
+· Accept: the marker is per field, which is this document's form (§8) over R-12-012a's *which received values*, a wording that rules a per-operation granularity out and fixes no finer one; the Tier-1 proof discharges the obligation at the receiver and never inherits it from a sender's compliance.
 · Trace: §3.3, §6
 
 **IDL-015** MUST: An operation whose received values carry **no** marker declares that emptiness as an explicit claim.
@@ -189,7 +191,7 @@ Three things the register already fixes position this section, and it cites them
 
 - **Parsing.** Every attacker-facing wire format is parsed by a verified copy-once Narcissus parser and the parser proof is against the descriptor rather than against any prose (R-05-042, R-05-046). A descriptor arriving from another compartment is attacker-facing by R-12-008a's Byzantine-peer posture, which assumes no protocol compliance beyond admission of the typed binary.
 - **Canonicity.** A descriptor whose encoding is ever an input to a signature, a hash used as a name, a content address, a cache key, or an equality test carries a machine-checked canonicity theorem and admits no encoding slack (R-05-051a, R-05-051b), and a format that cannot carry one is refused that role rather than used with a caveat (R-05-051c).
-- **Transport.** The transport is the §12 ring data plane, handles travel out of band, and ring pages are mapped without capability-store permission (R-12-005 through R-12-009, R-12-091, R-12-092).
+- **Transport.** The transport is the register's §12 ring data plane, handles travel out of band, and ring pages are mapped without capability-store permission (R-12-005 through R-12-009, R-12-091, R-12-092).
 
 ### 4.1 The standing position
 
@@ -201,7 +203,7 @@ Three things the register already fixes position this section, and it cites them
 · Accept: the theorem quantifies over the whole admissible language rather than a corpus, and the correctness pair alone is never cited for it, the two directions being separate theorems.
 · Trace: §4.1, §6
 
-**Whether the mapping is on an identity-bearing path is undecided by the register**, and IDL-020 takes the stronger reading rather than waiting for the answer. R-13-003 puts the capability manifest's §12 interface descriptor inside the content-addressed admitted artifact, which makes that descriptor's own encoding look identity-bearing; R-05-051c's enumerated site list names the pack reader, the typed manifest, the content address and the deterministic-reuse key and does not name a live IDL call. §8 carries the reading and what taking the weaker one would have bought.
+**Whether the mapping is on an identity-bearing path is undecided by the register**, and IDL-020 takes the stronger reading rather than waiting for the answer. R-13-003 puts the capability manifest's interface descriptor of the register's §12 inside the content-addressed admitted artifact, which makes that descriptor's own encoding look identity-bearing; R-05-051c's enumerated site list names the pack reader, the typed manifest, the content address and the deterministic-reuse key and does not name a live IDL call. §8 carries the reading and what taking the weaker one would have bought.
 
 **IDL-022** MUST: Every descriptor of this mapping is parsed by a verified copy-once Narcissus parser generated from the type source, and no parser for it is hand-written.
 · Accept: the descriptor is an output of §6's generator rather than an artifact authored beside it; the set of hand-written attacker-facing parsers over this mapping is empty.
@@ -209,7 +211,7 @@ Three things the register already fixes position this section, and it cites them
 
 ### 4.2 The encoding, per constructor
 
-**The encoding is packed and alignment is the destination buffer's rather than the wire's.** A copy-once parser writes its fixed destination buffer whole (R-05-124), so interior padding buys nothing on the wire and would be exactly the free padding R-05-051b forbids. Multi-byte scalars are little-endian, which is the machine's own order.
+**The encoding is packed and alignment is the destination buffer's rather than the wire's.** A copy-once parser writes its fixed destination buffer whole (R-05-124), so interior padding buys nothing on the wire and would be exactly the free padding R-05-051b forbids. Multi-byte scalars are little-endian, which is the machine's own order and a parameter of this document rather than a reading of any entry: R-05-051b requires one admissible form and either order satisfies it (§8).
 
 | Id | Constructor | Encoding |
 | --- | --- | --- |
@@ -228,20 +230,24 @@ Three things the register already fixes position this section, and it cites them
 | `WF-13` | `TC-14` `borrow<T>` | the data-plane reading of `WF-11`, valid for one operation, revoked with the session generation (R-12-099) |
 
 **IDL-023** MUST: A **length form is one form.** The width of every length and count field is the smallest of one, two, or four bytes that holds the declared bound, and the width of every discriminant is the smallest of one, two, or four bytes that holds the declared case count.
-· Accept: no declaration admits two spellings of one length; the width is a function of the declared bound alone and is recorded in the generated artifact.
-· Trace: §4.2
+· Accept: no declaration admits two spellings of one length; the width is a function of the declared bound alone and is recorded in the generated artifact. The ladder and its four-byte ceiling are this document's (§8): R-12-012 requires an explicit bound and fixes no width, so a declarable bound at or above 2^32 is outside this profile until an amendment adds a rung.
+· Trace: §4.2, §8
+
+**IDL-023a** MUST: An operation's declared parameter and result values ride the wire in exactly two places. A value R-12-092's enumeration admits as a descriptor member is encoded by the row of §4.2 IDL-053 names for its kind; **every other value is the payload of a delegated buffer** whose reference the descriptor carries, and a buffer payload is encoded by §4.2's rows exactly as a descriptor member is.
+· Accept: no declared parameter or result type of an admitted operation is without a place on the wire, and no row of §4.2 encodes nothing; an aggregate or a variable-length former is a buffer payload rather than a descriptor member, which is R-12-092's own enumeration read as a placement rather than as a deletion, and IDL-016's initialization state is the buffer's own declaration.
+· Trace: §4.2, §4.3.2, §3.4
 
 **IDL-024** MUST: Every descriptor variant of one interface encodes to **exactly** that interface's declared descriptor size, a variant shorter than the slot being followed by a declared zero fill.
-· Accept: a fill byte that is not zero is a decode failure, so the fill is not free padding and carries no value; the descriptor size and alignment are composition-time constants of the generated interface artifact (R-12-091).
-· Trace: §4.2, §4.3
+· Accept: a fill byte that is not zero is a decode failure, so the fill is not free padding and carries no value; the descriptor size and alignment are composition-time constants of the generated interface artifact (R-12-091). That a short variant is filled rather than length-prefixed, and that the fill byte is zero, are this document's (§8), R-12-091 fixing the slot size and saying nothing about what a short variant leaves in it.
+· Trace: §4.2, §4.3, §8
 
 **IDL-025** MUST NOT: No field of any encoding under §4 is a path, a raw address, a capability encoding, an executable name, a recursive value, or an unbounded collection.
 · Accept: no descriptor field is dereferenceable as an address (R-12-006), and rings carry indices and never capabilities (R-12-007); this is R-12-092's own refusal decided over §2's closed constructor set.
 · Trace: §4.2, §2
 
-**IDL-026** MUST NOT: There are **no reserved bits and no reserved fields**. A field a later interface version adds is an amendment under IDL-003 producing a new declared version, never a reserved bit spent.
-· Accept: an unknown tag or a reserved flag produces one of R-12-093's defined refusal completions rather than a fallback interpretation (R-12-092).
-· Trace: §4.2, §1.3
+**IDL-026** MUST NOT: There are **no reserved bits and no reserved fields**. A field a later interface version adds produces a **new declaration**, and so a new content address under IDL-036, never a reserved bit spent; a change to §4's own encoding is separately an amendment under IDL-003.
+· Accept: an unknown tag or a reserved flag produces one of R-12-093's defined refusal completions rather than a fallback interpretation (R-12-092); a skeleton generated from the old declaration does not match one generated from the new, IDL-046 deciding matching on the recorded content address.
+· Trace: §4.2, §1.3, §6
 
 ### 4.3 The ring schema and its lifecycle
 
@@ -255,13 +261,15 @@ Three things the register already fixes position this section, and it cites them
 
 **The register owns the membership of every enumeration below and this section owns the encoding and the declaration form.** Where a requirement here says *the members that entry enumerates*, that is deliberate: a list written twice is a list free to drift, and §9's closing paragraph states the rule this section keeps.
 
+**§4.3's obligations are numbered IDL-050 through IDL-068 and the numbers are not in document order.** Identifiers are permanent under the normative form above and are never renumbered, so a block whose numbers were allocated apart from its position keeps them. The section is the order; the number is only a name.
+
 #### 4.3.1 What a ring declaration declares
 
 **IDL-050** MUST: Every ring instance declares the composition-time constants R-12-091 enumerates, as fields of the declaration with no value fixed here.
 · Accept: the constants appear in the generated interface artifact; capacity is an admission parameter rather than a runtime negotiation (R-12-095), and no figure of this document states one.
 · Trace: §4.3.1, §3.5
 
-**IDL-051** MUST: A ring header is exactly the four words R-12-091 names, in a fixed order, and carries nothing else. The first three are R-12-008a atomics and the generation word is immutable between reinitializations.
+**IDL-051** MUST: A ring header is exactly the header words R-12-091 names, in that entry's own order, and carries nothing else. The producer, consumer and notification words are R-12-008a atomics and the generation word is immutable between reinitializations.
 · Accept: a header carrying a fifth word, a counter, or a flags cell is not this schema's header; §4.2's packed rule does not apply to the header, whose cells are separately addressed atomics rather than fields of one encoding.
 · Trace: §4.3.1
 
@@ -309,8 +317,8 @@ Three things the register already fixes position this section, and it cites them
 
 #### 4.3.5 Cancellation, generation, and DMA
 
-**IDL-061** MUST: Cancellation is a typed control-plane request naming its target by generation and request identifier, and its race semantics are the four deterministic answers R-12-097 fixes, decided by where the target stands against its declared cancellation and commit points.
-· Accept: the four answers are that entry's and are generated into the artifact from it; an operation carrying no cancellation declaration under IDL-019 is non-cancellable and the request answers accordingly rather than being refused as malformed.
+**IDL-061** MUST: Cancellation is a typed control-plane request naming its target by generation and request identifier, and its race semantics are the deterministic answers R-12-097 fixes, decided by where the target stands against its declared cancellation and commit points.
+· Accept: the answers are that entry's and are generated into the artifact from it; an operation carrying no cancellation declaration under IDL-019 is non-cancellable and the request answers accordingly rather than being refused as malformed.
 · Trace: §4.3.5, §3.6
 
 **IDL-062** MUST: Every ring and descriptor is bound to a session generation that changes before any reuse across peer restart, device reset, or revocation, and no operation is replayed implicitly.
@@ -339,15 +347,15 @@ Three things the register already fixes position this section, and it cites them
 · Accept: no hand edit of the artifact survives, the artifact being regenerated and compared byte for byte; a fact stated in both the declaration and the artifact is stated once and generated once.
 · Trace: §4.3.6, §9
 
-**IDL-068** IS: Two things this schema names cannot be emitted in this repository today, and each is a limit of a milestone rather than of the schema.
-· Accept: the reference bindings are Gallina rather than systems-language, the specification's §0 putting base components assigned to safe Rust in Gallina for the reference and no purecap backend existing yet; and the admission checker R-12-010 and R-18-037 both name is a separate milestone, of which only the composition-time half is landed, so a generated artifact has nothing to be admitted by. Neither limit is repaired by narrowing the schema.
+**IDL-068** IS: Two things this schema names are not emitted in this repository, and each is a limit of what exists rather than of the schema.
+· Accept: the reference bindings are Gallina rather than systems-language, the specification's §0 putting base components assigned to safe Rust in Gallina for the reference and no purecap backend existing; and the admission checker R-12-010 and R-18-037 both name does not exist here, so a generated artifact has an admission rule to satisfy and nothing to be admitted by. Neither limit is repaired by narrowing the schema.
 · Trace: §4.3.6, §7
 
 ---
 
 ## 5. Worlds, manifests, and resources
 
-**IDL-029** MUST: A `world` maps to a **capability manifest**, and its home in the admitted artifact is R-13-003's capability manifest with its §12 interface descriptor.
+**IDL-029** MUST: A `world` maps to a **capability manifest**, and its home in the admitted artifact is R-13-003's capability manifest with its interface descriptor of the register's §12.
 · Accept: the manifest is generated from the world declaration; no manifest is authored beside the world it is the image of.
 · Trace: §5, §6
 
@@ -379,9 +387,9 @@ Three things the register already fixes position this section, and it cites them
 · Accept: no artifact of the three is hand-written; a hand-written restatement held equal to a generated one by a rule is a finding rather than a repair, the fact having one owner.
 · Trace: §6, §4
 
-**IDL-036** MUST: Every generated artifact records the profile version it was generated against and the declaration it was generated from.
-· Accept: an artifact carrying neither is refused by the admission checker; a version bump is an amendment under IDL-003 rather than a transparent regeneration.
-· Trace: §6, §1.3
+**IDL-036** MUST: Every generated artifact records the profile version it was generated against and a **content address over the bytes of the declaration** it was generated from.
+· Accept: an artifact carrying one without the other is refused by the admission checker; an edit to a declaration moves its content address, so an artifact generated before the edit and one generated after it are two artifacts to every consumer, and a profile version bump is an amendment under IDL-003 rather than a transparent regeneration. That a declaration is identified by a content address is this document's (§8): R-12-010's criterion decides matching and gives a declaration no identity.
+· Trace: §6, §1.3, §8
 
 ### 6.1 What has a Gallina image and what does not
 
@@ -439,7 +447,7 @@ Three things the register already fixes position this section, and it cites them
 ### 6.3 The two consumers the subset must be adequate for
 
 **IDL-046** MUST: The subset is adequate for the **admission checker's** criterion, which verifies each Tier-1 proof is stated against the matching skeleton (R-12-010).
-· Accept: matching is decided on the recorded declaration and profile version of IDL-036 rather than on a structural comparison of two Gallina terms.
+· Accept: matching is decided on the recorded profile version and the recorded content address of IDL-036 rather than on a structural comparison of two Gallina terms, so a declaration edited in place is a different declaration to the checker and a proof stated against the superseded skeleton matches nothing.
 · Trace: §6, §1.3
 
 **IDL-047** MUST: The subset is adequate for **conformance among the generated client, server, parsers, and Coq interface skeleton**, which is R-18-037's campaign.
@@ -453,19 +461,18 @@ Three things the register already fixes position this section, and it cites them
 ## 7. What this profile does not carry
 
 **IDL-048** MUST NOT: This profile carries **no kernel ABI**. The kernel is not an IDL endpoint.
-· Accept: R-07-031b closes the invocation list and states the figure, R-07-031a fixes the surface, and R-07-031 puts rich interfaces one layer up in §12; this document cites those entries and restates neither the list nor the figure, an interface profile authored for servers being the wrong home for a syscall surface (R-12-013).
+· Accept: R-07-031b closes the invocation list and states the figure, R-07-031a fixes the surface, and R-07-031 puts rich interfaces one layer up, in the register's §12; this document cites those entries and restates neither the list nor the figure, an interface profile authored for servers being the wrong home for a syscall surface (R-12-013).
 · Trace: §7
 
 **IDL-049** IS: The types of this profile are **documentation of the contract and never the contract**. Enforcement remains kernel capabilities plus CHERI plus the Coq specifications.
 · Accept: no requirement of this document claims that a declared type enforces anything at run time; the wire-format mapping's obligations are discharged by the generated parser's proofs and by the Tier-1 proofs stated against §6's skeleton, not by the declaration.
 · Trace: §7, §4
 
-**Four further absences, each named so it reads as a boundary.**
+**Three further absences, each named so it reads as a boundary.**
 
 - **No value of any composition magnitude.** IDL-017 makes every one a field, so no figure here is a number a later composition could contradict.
-- **No ring schema.** §4.3 is where it lands and M6.4 is what authors it.
-- **No admission-checker behaviour.** IDL-046 states what the checker's criterion needs of this profile and nothing about how the checker decides it; that is M6.2's, of which the composition-time half is landed.
-- **No generator.** IDL-035 states what is generated and from what; no generator exists in this repository, so every generated artifact named above is an obligation rather than a file.
+- **No admission-checker behaviour.** IDL-046 states what the checker's criterion needs of this profile and nothing about how the checker decides it. R-12-010 and R-18-037 both name that checker, and no artifact of this repository is it.
+- **No marshalling, no parser, and no systems-language binding.** IDL-035 states what is generated and from what. One generator exists and reaches §4.3.6's interface artifact alone, emitting Gallina; the marshalling code, IDL-022's verified Narcissus parsers, and IDL-047's client and server bindings are obligations rather than files.
 
 ---
 
@@ -478,12 +485,17 @@ Three things the register already fixes position this section, and it cites them
 | this document's version and amendment rule | version 1; a change to §2, §3 or §4 is an amendment carrying a review-gate event | R-12-010 says fork-and-frozen and names no artifact, where R-05-135a pins the language document by name and R-05-135b makes its bump a gate event | a register act pinning this document by name, which is what would make IDL-003 bind anything but this document |
 | the start-from's name | WIT, at `design/mvp/WIT.md` of `WebAssembly/component-model` | the specification's §12 prose and [inspirations.md](inspirations.md) say WIT-derived; neither is the audited artifact, so naming it is a maturity claim under R-18-001a with no register owner | a register act naming the start-from, or a reading that finds the fork is of something else |
 | the edition the fork is cut from | the reading of 2026-08-31; the upstream publishes no release and the document states no version of itself | measured at the upstream rather than characterized: the release list is empty and the specification carries no version line | pinning the upstream as a submodule, which would fix the edition as an object id a rule could hold, at the cost of a gitlink and its pin row |
-| the constructor set of §2 | closed at `TC-1` through `TC-21` | R-12-012 restricts without enumerating, so nothing the gate audits closes the set | a register act enumerating it, in the shape R-07-027a used to close the object inventory before M4.2b could author against it |
+| the constructor set of §2 | closed at `TC-1` through `TC-21` | R-12-012 restricts without enumerating, so nothing the gate audits closes the set | a register act enumerating it, in the shape R-07-027a used to close the object inventory before an artifact could be authored against it |
 | floating point | `TC-20` deleted | IEEE-754 gives NaN a payload field and zero a sign, so one value has many encodings, which is exactly the slack R-05-051b forbids of any descriptor on an identity-bearing path; IDL-020 takes that rule whole | a register act admitting a float type together with the canonical subset it is restricted to, or a decision that bit-pattern equality is the equality on the identity-bearing path, at which point each encoding is a distinct value. The arm not taken forfeits a direct declaration of a measured quantity: an interface that needs one declares a scaled integer pair and states the scale |
 | the `string` encoding, and what its bound counts | UTF-8; the bound counts bytes of the encoded form; an over-long, ill-formed, surrogate-encoding or out-of-range sequence is a decode failure and is never replaced | R-12-012 requires an explicit bound and says nothing about the encoding, and UTF-8 admits over-long encodings of the same scalar, which R-05-051b's one-admissible-form rule reaches | a register act fixing the encoding, or a declaration that the bound counts scalar values, which would make the encoded length a computed rather than a declared quantity |
 | which result type carries the grade | every result type at its own definition, the common status set and each operation-specific refinement variant alike; a refinement inherits nothing | R-18-016 places the declaration at the definition and R-12-093 makes a refinement its own closed variant, hence its own definition | a register act stating that a refinement inherits the common set's grade, which would remove the declaration from every refinement and put it on one |
 | the grade's wire consequence | none: no field of §4 encodes the grade | R-18-016 places the grade at the definition and R-05-097 makes it a typing property; a grade on the wire would be a field IDL-020 then has to admit no slack in, bought for no decided reader | a register act making the grade observable to a peer, which is the only reading that would need it encoded |
-| the flow-label lattice | not invented here: the labels are declared per type and the obligations are stated over an arbitrary lattice | R-12-011 names no label set, no order and no join, and the security policy model that would own one is `CJ-NI`, row 2 of the crown-jewel inventory, reading `not authored` | authoring `CJ-NI`, or a register act naming the lattice; either would let IDL-041's predicates be stated over a fixed set rather than a parameter |
+| the flow-label lattice | not invented here: the labels are declared per type and the obligations are stated over an arbitrary lattice | R-07-025 and R-08-024 make the composed graph the lattice's owner and fix it at build, and neither they nor R-12-011 enumerate a label set, an order or a join; the security policy model that would is `CJ-NI`, row 2 of the crown-jewel inventory, reading `not authored` | authoring `CJ-NI`, or a register act enumerating the lattice; either would let IDL-041's predicates be stated over a fixed set rather than a parameter |
+| the label's wire consequence | none: no field of §4 encodes a label | R-07-025 fixes the lattice with the composed topology at build and R-08-024 makes the fixed graph fix it, so a label is a composition-time attribute and a wire field carrying one would have no peer entitled to set it; R-12-011 requires the labels and says nothing about the wire, so declining the field is a decision rather than a reading | a register act making a label observable to or settable by a peer, which is the only reading that would put one in §4 and oblige IDL-020's no-slack rule over it |
+| the byte order of multi-byte scalars | little-endian | no entry fixes a byte order, and R-05-051b requires one admissible form, which either order satisfies equally, so the choice is free and taking it is what makes the form one; little-endian is the machine's own, so a copy-once parser's destination buffer needs no swap | a register act fixing the order, or a peer that is not this machine, at which point the swap is stated once at the mapping rather than per field |
+| the width ladder of every length, count and discriminant | the smallest of one, two or four bytes that holds the declared bound; no eight-byte rung | R-12-012 requires an explicit bound and fixes no width, and IDL-020's one-form rule needs the width to be a function of the bound alone; the ceiling puts every declarable bound below 2^32 | a register act fixing the widths, or a declaration needing a bound at or above 2^32, which adds a rung and moves every generated width function |
+| what a short descriptor variant leaves in its slot | a declared zero fill to the interface's declared descriptor size, checked rather than ignored | R-12-091 makes the descriptor size a composition-time constant and says nothing about a variant shorter than it; a fill nobody reads is exactly the free padding R-05-051b forbids, so the fill is checked and a non-zero fill byte is a decode failure | a register act stating the slot discipline, or a variable-size slot, which removes the fill and puts a length in the ring's own header |
+| how a generated artifact names its declaration | a content address over the declaration's bytes, recorded beside the profile version | R-12-010's criterion decides matching between a Tier-1 proof and *the matching skeleton* and gives a declaration no identity; a name and a profile version do not move when a declaration is edited in place, so matching would admit a proof stated against a superseded skeleton | a register act naming the declaration's identity, or an admission checker comparing two Gallina terms structurally, which IDL-046 declines |
 | the mapping's membership in the R-05-042 wire-format inventory | stated here as attacker-facing and owing a Narcissus descriptor; the inventory row is not written | R-12-024f puts translator content formats in that inventory and R-05-046 makes each descriptor its own crown jewel; the mapping is crown-jewel row 3 under `CJ-IDL` rather than row 10 under `CJ-FORMAT` | a crown-jewels and register act adding the descriptor to row 10, which would confer separately on it |
 | whether the mapping is identity-bearing | the stronger reading: IDL-020 admits no slack anywhere, whether or not a given encoding feeds an identity | R-13-003 puts the interface descriptor inside the content-addressed manifest, which makes that descriptor look identity-bearing; R-05-051c's enumerated site list does not name a live IDL call | a register act deciding the reading. Taking the weaker one would have bought encoding slack on the call path and a second audit at every site that later became identity-bearing |
 | the receiver-validation vocabulary | a per-field marker, plus a per-operation claim where an operation marks none | R-12-012a says the IDL declares *which received values* carry the obligation, which is per value, and requires the empty case to be a claim the checker reads | a register act fixing the form as a per-operation clause or as a type of its own, either of which would move IDL-014's granularity |
@@ -495,7 +507,7 @@ Three things the register already fixes position this section, and it cites them
 
 ## 9. What holds this document, and what nothing holds
 
-`tools/check.py` reaches this document as it reaches every tracked Markdown file, and the rules that bear on it are named here so the reach is legible rather than assumed. Each is written plain: none of them is cited as the holder of a fact this document creates.
+`tools/check.py` reaches this document as it reaches every tracked Markdown file, and the rules that bear on it are named here so the reach is legible rather than assumed. Each is written plain: none of them is cited as the holder of a fact this document creates. The table is a reading of [the rule registry](../tools/check-rules.md) and nothing holds the two together, so a rule added there reaches this document whether or not a row here says so.
 
 | Predicate | Rule |
 | --- | --- |
@@ -506,7 +518,9 @@ Three things the register already fixes position this section, and it cites them
 | no em-dash, no mojibake, no replacement character | K-40, K-41 |
 | every entry this document names in another document is carried by a heading there | K-59 |
 | every finding the completion note counts has exactly one entry in the findings register | K-82 |
+| every tracked file kind is given a comment syntax or refused by name | K-53 |
+| the §4.3.6 interface artifact is byte-identical to what its emitter writes from the declaration and from the register entries that emitter reads | K-89 |
 
-**No rule holds §2's constructor table against anything, and none holds §4's encoding table.** That is not an omission in the tool: nothing else in this repository states a constructor set or a wire encoding for the IDL, so there is no second statement for a rule to hold the first against, and a rule invented to hold one artifact against itself would be the older discipline the plan's own conventions call a finding. What §2 and §4 are held by is R-05-150's independent review, which is what a crown jewel is for.
+**No rule holds §2's constructor table against anything, and none holds §4.1's or §4.2's rules.** That is not an omission in the tool: nothing else in this repository states a constructor set or a wire encoding for the IDL, so there is no second statement for a rule to hold the first against, and a rule invented to hold one artifact against itself would be the older discipline the plan's own conventions call a finding. **§4.3 is the one exception and it holds a file rather than a claim**: K-89 holds the §4.3.6 interface artifact byte-identical to what its emitter writes from the declaration and from the register entries that emitter reads, which decides that the artifact still agrees with its owners and decides nothing about whether §4.3 states the right obligations. What §2 and §4 are held by is R-05-150's independent review, which is what a crown jewel is for.
 
-**Three enumerations this document depends on are cited rather than restated**, and that is deliberate: R-12-093's status set, R-07-031b's closed invocation list, and R-12-101's per-variant field list are each one entry's to state and every other site's to cite. A figure written here would be an unheld restatement free to drift from the entry that owns it.
+**Every enumeration this document depends on is cited rather than restated**, and that is deliberate: R-12-091's ring constants and header words, R-12-092's descriptor members, R-12-093's status set, R-12-094's lifecycle states, R-12-095's typed result, R-12-097's cancellation answers, R-12-101's per-variant field list, and R-07-031b's closed invocation list are each one entry's to state and every other site's to cite. A figure written here would be an unheld restatement free to drift from the entry that owns it, and where the §4.3.6 artifact carries one of these sets it is generated out of the entry rather than transcribed beside it.
