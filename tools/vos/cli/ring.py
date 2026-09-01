@@ -52,6 +52,27 @@ CANCEL_ENTRY = "R-12-097"
 OWNED_ENTRIES: tuple[str, ...] = (STATUS_ENTRY, LIFECYCLE_ENTRY, FULL_RING_ENTRY,
                                   CANCEL_ENTRY)
 
+# Every key the emitter reads out of the declaration, written down where the reading
+# is checked rather than where it happens. K-89's fail-closed reading is that an owner
+# no longer carrying what the emitter reads out of it is that rule's finding and never
+# that rule's crash, and a key read here but named in no list below is exactly the
+# crash: these four are the emitter's own reach, and `declaration()` refuses on each.
+DECL_KEYS: tuple[str, ...] = ("ring", "encoding", "label_levels",
+                              "operation_record_fields", "operations",
+                              "deadline_classes", "flags", "directions",
+                              "content_types")
+ENCODING_KEYS: tuple[str, ...] = ("request_id_bytes", "session_index_bytes",
+                                  "offset_bytes", "length_bytes", "direction_bytes",
+                                  "content_type_bytes", "generation_bytes",
+                                  "metadata_bytes", "byte_count_bytes",
+                                  "flag_set_bytes", "flag_spare_bits")
+OP_KEYS: tuple[str, ...] = ("scalars", "buffer_refs", "deadline",
+                            "empty_validation_claim", "labels", "record",
+                            "cancellation", "refinement", "fill", "activation_slack",
+                            "payload_slack", "cancellation_slack")
+CANCEL_KEYS: tuple[str, ...] = ("points", "commit_index", "quiescence_bound",
+                                "max_to_terminal")
+
 # The register's own spellings, found where each entry states them. A backticked
 # lower-case identifier is how that document writes a wire token, the arrow chain is
 # how it writes an ordered lifecycle, and each of the two steps the artifact carries
@@ -167,19 +188,40 @@ def declaration(root: Path) -> dict[str, Any]:
     except json.JSONDecodeError as exc:
         raise RingError(f"{DECLARATION} is not JSON: {exc}") from exc
 
-    for key in ("ring", "encoding", "operation_record_fields", "operations",
-                "deadline_classes", "flags", "directions", "content_types"):
+    for key in DECL_KEYS:
         if key not in decl:
             raise RingError(f"{DECLARATION} declares no `{key}`")
+    for key in ENCODING_KEYS:
+        if key not in decl["encoding"]:
+            raise RingError(f"{DECLARATION} declares no encoding width `{key}`")
     if not decl["operations"]:
         raise RingError(f"{DECLARATION} declares no operation, so the artifact would "
                         f"carry an empty tag set and every obligation over it would "
                         f"hold vacuously")
     width = len(decl["operation_record_fields"])
-    for op in decl["operations"]:
+    for index, op in enumerate(decl["operations"]):
+        if "name" not in op:
+            raise RingError(f"the operation at position {index} of {DECLARATION} "
+                            f"declares no `name`")
+        for key in OP_KEYS:
+            if key not in op:
+                raise RingError(f"operation `{op['name']}` declares no `{key}`")
         if len(op["record"]) != width:
             raise RingError(f"operation `{op['name']}` supplies {len(op['record'])} "
                             f"record values where the declared field set has {width}")
+        for scalar in op["scalars"]:
+            for key in ("width_bytes", "validated_at_use"):
+                if key not in scalar:
+                    raise RingError(f"a scalar of operation `{op['name']}` declares no "
+                                    f"`{key}`")
+        for key in ("confidentiality", "integrity"):
+            if key not in op["labels"]:
+                raise RingError(f"operation `{op['name']}` declares no `{key}` label")
+        if op["cancellation"]:
+            for key in CANCEL_KEYS:
+                if key not in op["cancellation"]:
+                    raise RingError(f"operation `{op['name']}` is cancellable and its "
+                                    f"declaration carries no `{key}`")
     return decl
 
 
@@ -431,9 +473,6 @@ def emit(root: Path, register: Register | None = None) -> str:
     # inside an equality here: a margin nobody wrote down is a margin no reader can
     # audit and no statement can constrain.
     for slack in ("fill", "activation_slack", "payload_slack", "cancellation_slack"):
-        for op in ops:
-            if slack not in op:
-                raise RingError(f"operation `{op['name']}` declares no `{slack}`")
         lines += _match(f"op_{slack}", "op", "op_", names, "nat",
                         [str(op[slack]) for op in ops])
 
