@@ -52,13 +52,38 @@ CANCEL_ENTRY = "R-12-097"
 OWNED_ENTRIES: tuple[str, ...] = (STATUS_ENTRY, LIFECYCLE_ENTRY, FULL_RING_ENTRY,
                                   CANCEL_ENTRY)
 
+# Every key the emitter reads out of the declaration, written down where the reading
+# is checked rather than where it happens. K-89's fail-closed reading is that an owner
+# no longer carrying what the emitter reads out of it is that rule's finding and never
+# that rule's crash, and a key read here but named in no list below is exactly the
+# crash: these four are the emitter's own reach, and `declaration()` refuses on each.
+DECL_KEYS: tuple[str, ...] = ("ring", "encoding", "label_levels",
+                              "operation_record_fields", "operations",
+                              "deadline_classes", "flags", "directions",
+                              "content_types")
+ENCODING_KEYS: tuple[str, ...] = ("request_id_bytes", "session_index_bytes",
+                                  "offset_bytes", "length_bytes", "direction_bytes",
+                                  "content_type_bytes", "generation_bytes",
+                                  "metadata_bytes", "byte_count_bytes",
+                                  "flag_set_bytes", "flag_spare_bits")
+OP_KEYS: tuple[str, ...] = ("scalars", "buffer_refs", "deadline",
+                            "empty_validation_claim", "labels", "record",
+                            "cancellation", "refinement", "fill", "activation_slack",
+                            "payload_slack", "cancellation_slack")
+CANCEL_KEYS: tuple[str, ...] = ("points", "commit_index", "quiescence_bound",
+                                "max_to_terminal")
+
 # The register's own spellings, found where each entry states them. A backticked
-# lower-case identifier is how that document writes a wire token, and the arrow chain
-# is how it writes an ordered lifecycle; neither pattern is this file's invention and
-# both fail closed below rather than yielding an empty enumeration.
+# lower-case identifier is how that document writes a wire token, the arrow chain is
+# how it writes an ordered lifecycle, and each of the two steps the artifact carries
+# past that chain is named in the sentence of the entry that fixes it; no pattern here
+# is this file's invention and every one of them fails closed below rather than
+# yielding an empty enumeration or a state this file chose.
 _TOKEN_RE = re.compile(r"`([a-z][a-z_]*)`")
 _CLOSED_SET_RE = re.compile(r"closed common set \(([^)]*)\)")
 _CHAIN_RE = re.compile(r"([A-Z][a-z]+(?: → [A-Z][a-z]+)+)")
+_MALFORMED_RE = re.compile(r"moves from ([A-Z][a-z]+) directly to ([A-Z][a-z]+)")
+_UNSTARTED_RE = re.compile(r"a target still ([A-Z][a-z]+)")
 
 
 class RingError(Exception):
@@ -76,12 +101,16 @@ def _ordered(names: list[str]) -> list[str]:
 
 @dataclass(frozen=True)
 class Owned:
-    """The four enumerations the register owns, read from its own entry lines."""
+    """The four enumerations the register owns, read from its own entry lines, and the
+    three states its own sentences name inside two of them."""
 
     statuses: list[str]
     states: list[str]
     full_ring: str
     cancels: list[str]
+    malformed_from: str
+    malformed_to: str
+    unstarted: str
 
 
 def owned(register: Register) -> Owned:
@@ -111,9 +140,40 @@ def owned(register: Register) -> Owned:
                         f"full-ring result is one")
 
     cancels = _ordered(_TOKEN_RE.findall(body[CANCEL_ENTRY]))
-    if not statuses or len(states) < 2 or not cancels:
+    if not statuses or not cancels:
         raise RingError("an enumeration the register owns came back empty")
-    return Owned(statuses=statuses, states=states, full_ring=full[0], cancels=cancels)
+    if len(cancels) < 3:
+        raise RingError(f"{CANCEL_ENTRY} states {len(cancels)} cancellation answers "
+                        f"where the artifact reads three, one per situation that entry "
+                        f"decides")
+
+    step = _MALFORMED_RE.search(body[LIFECYCLE_ENTRY])
+    if step is None:
+        raise RingError(f"{LIFECYCLE_ENTRY} no longer states its malformed step as a "
+                        f"move from one named state directly to another, so the step "
+                        f"the artifact carries cannot be read")
+    unstarted_match = _UNSTARTED_RE.search(body[CANCEL_ENTRY])
+    if unstarted_match is None:
+        raise RingError(f"{CANCEL_ENTRY} no longer names the state a target is still "
+                        f"in when it is cancellable unstarted, so the situation the "
+                        f"artifact decides cannot be read")
+    malformed_from, malformed_to = step.group(1), step.group(2)
+    unstarted = unstarted_match.group(1)
+    for name in (malformed_from, malformed_to, unstarted):
+        if name not in states:
+            raise RingError(f"the register names `{name}` as a lifecycle state where "
+                            f"{LIFECYCLE_ENTRY}'s own chain does not carry it")
+    if states.index(malformed_to) - states.index(malformed_from) < 2:
+        raise RingError(f"{LIFECYCLE_ENTRY}'s malformed step from `{malformed_from}` to "
+                        f"`{malformed_to}` skips no state, where the step it states is "
+                        f"the one admitted past a successor")
+    if states.index(unstarted) + 1 >= len(states):
+        raise RingError(f"{CANCEL_ENTRY} names `{unstarted}` as cancellable unstarted "
+                        f"where {LIFECYCLE_ENTRY}'s chain gives it no successor for a "
+                        f"started target to stand in")
+    return Owned(statuses=statuses, states=states, full_ring=full[0], cancels=cancels,
+                 malformed_from=malformed_from, malformed_to=malformed_to,
+                 unstarted=unstarted)
 
 
 def declaration(root: Path) -> dict[str, Any]:
@@ -128,19 +188,40 @@ def declaration(root: Path) -> dict[str, Any]:
     except json.JSONDecodeError as exc:
         raise RingError(f"{DECLARATION} is not JSON: {exc}") from exc
 
-    for key in ("ring", "encoding", "operation_record_fields", "operations",
-                "deadline_classes", "flags", "directions", "content_types"):
+    for key in DECL_KEYS:
         if key not in decl:
             raise RingError(f"{DECLARATION} declares no `{key}`")
+    for key in ENCODING_KEYS:
+        if key not in decl["encoding"]:
+            raise RingError(f"{DECLARATION} declares no encoding width `{key}`")
     if not decl["operations"]:
         raise RingError(f"{DECLARATION} declares no operation, so the artifact would "
                         f"carry an empty tag set and every obligation over it would "
                         f"hold vacuously")
     width = len(decl["operation_record_fields"])
-    for op in decl["operations"]:
+    for index, op in enumerate(decl["operations"]):
+        if "name" not in op:
+            raise RingError(f"the operation at position {index} of {DECLARATION} "
+                            f"declares no `name`")
+        for key in OP_KEYS:
+            if key not in op:
+                raise RingError(f"operation `{op['name']}` declares no `{key}`")
         if len(op["record"]) != width:
             raise RingError(f"operation `{op['name']}` supplies {len(op['record'])} "
                             f"record values where the declared field set has {width}")
+        for scalar in op["scalars"]:
+            for key in ("width_bytes", "validated_at_use"):
+                if key not in scalar:
+                    raise RingError(f"a scalar of operation `{op['name']}` declares no "
+                                    f"`{key}`")
+        for key in ("confidentiality", "integrity"):
+            if key not in op["labels"]:
+                raise RingError(f"operation `{op['name']}` declares no `{key}` label")
+        if op["cancellation"]:
+            for key in CANCEL_KEYS:
+                if key not in op["cancellation"]:
+                    raise RingError(f"operation `{op['name']}` is cancellable and its "
+                                    f"declaration carries no `{key}`")
     return decl
 
 
@@ -163,11 +244,22 @@ def _theorem(name: str, statement: str, proof: str) -> list[str]:
     return [f"Theorem {name} :", f"  {statement}", f"Proof. {proof} Qed.", ""]
 
 
-def _skip(states: list[str]) -> int:
-    """How many ranks the malformed step covers, from the register's own order: the
-    submitted state to the terminal one, which is a figure of that order rather than
-    one this file chooses."""
-    return states.index(states[4]) - states.index(states[2])
+def _skip(own: Owned) -> int:
+    """How many ranks the malformed step covers: the distance, in R-12-094's own chain,
+    between the two states that entry's own malformed-step sentence names. A state
+    inserted between them moves this figure, which is what makes it a reading of that
+    order rather than a constant read off two positions."""
+    return own.states.index(own.malformed_to) - own.states.index(own.malformed_from)
+
+
+def _live(own: Owned) -> str:
+    """The state a cancellation answer treats as live and started: the successor, in
+    R-12-094's own chain, of the state R-12-097 names a target as still in when it is
+    cancellable unstarted. Which states are live to cancel is joined to that entry by
+    nothing (F-217b), so the successor is this profile's reading of the join rather
+    than a sentence read out of either entry; what the register does fix is the two
+    ends, and both are read here."""
+    return own.states[own.states.index(own.unstarted) + 1]
 
 
 def _attains(ops: list[dict[str, Any]], names: list[str], field: int) -> str:
@@ -258,15 +350,13 @@ def emit(root: Path, register: Register | None = None) -> str:
                             f"{STATUS_ENTRY} admits beside the common set")
 
     lines += [
-        "(* The widths IDL-023 fixes: the smallest admissible form for a case count,",
-        "   and for a flag set counted in bits. *)",
+        "(* The width IDL-023 fixes, and the only ladder this profile has: the",
+        "   smallest of one, two or four bytes that holds a declared case count. A",
+        "   flag set's width is not this rule's and no rung here is a flag set's:",
+        "   WF-10 makes it a declared width, and the declaration states it below as",
+        "   `enc_flag_set_bytes`. *)",
         "Definition disc_width (cases : nat) : nat :=",
         "  if Nat.leb cases 256 then 1 else if Nat.leb cases 65536 then 2 else 4.",
-        "",
-        "Definition flag_width (bits : nat) : nat :=",
-        "  if Nat.leb bits 8 then 1",
-        "  else if Nat.leb bits 16 then 2",
-        "  else if Nat.leb bits 32 then 4 else 8.",
         "",
         "Record labels : Set := mk_labels {",
         "  confidentiality : nat;",
@@ -343,7 +433,6 @@ def emit(root: Path, register: Register | None = None) -> str:
         "Definition deadline_width : nat := disc_width deadline_class_count.",
         "Definition status_width : nat := disc_width status_count.",
         "Definition refinement_width : nat := disc_width refinement_count.",
-        "Definition flag_set_bytes : nat := flag_width flag_count.",
         "",
     ]
 
@@ -384,9 +473,6 @@ def emit(root: Path, register: Register | None = None) -> str:
     # inside an equality here: a margin nobody wrote down is a margin no reader can
     # audit and no statement can constrain.
     for slack in ("fill", "activation_slack", "payload_slack", "cancellation_slack"):
-        for op in ops:
-            if slack not in op:
-                raise RingError(f"operation `{op['name']}` declares no `{slack}`")
         lines += _match(f"op_{slack}", "op", "op_", names, "nat",
                         [str(op[slack]) for op in ops])
 
@@ -399,7 +485,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "  tag_width + enc_request_id_bytes + op_scalar_bytes o",
         "  + op_buffer_refs o * buffer_ref_bytes",
         "  + (if op_has_deadline o then 1 + deadline_width else 0)",
-        "  + flag_set_bytes.",
+        "  + enc_flag_set_bytes.",
         "",
         "(* The encoded size of a terminal completion: its status, the request",
         "   identifier it carries back, the optional operation-specific refinement,",
@@ -440,12 +526,13 @@ def emit(root: Path, register: Register | None = None) -> str:
                     [str(i) for i in range(len(own.states))])
 
     # The one admitted step past a successor, which R-12-094 states of a malformed
-    # request: submitted straight to terminal, acquiring no device authority.
-    submitted, terminal = own.states[2], own.states[4]
+    # request: the two states that entry's own sentence names, acquiring no device
+    # authority between them.
+    live = _live(own)
     lines += _match(
         "lifecycle_malformed", "slot_state", "state_", own.states,
         "option slot_state",
-        [f"Some state_{terminal}" if state == submitted else "None"
+        [f"Some state_{own.malformed_to}" if state == own.malformed_from else "None"
          for state in own.states])
 
     lines += [
@@ -464,7 +551,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "Definition lifecycle_malformed_ok (s : slot_state) : bool :=",
         "  match lifecycle_malformed s with",
         "  | None => true",
-        f"  | Some t => Nat.eqb (lifecycle_rank t) ({_skip(own.states)} + "
+        f"  | Some t => Nat.eqb (lifecycle_rank t) ({_skip(own)} + "
         "lifecycle_rank s)",
         "  end.",
         "",
@@ -498,8 +585,8 @@ def emit(root: Path, register: Register | None = None) -> str:
         "Definition cancel (o : op) (s : slot_state) (position : nat) : cancel_answer :=",
         "  if op_cancellable o then",
         "    match s with",
-        f"    | state_{submitted} => cancel_{own.cancels[0]}",
-        f"    | state_{own.states[3]} =>",
+        f"    | state_{own.unstarted} => cancel_{own.cancels[0]}",
+        f"    | state_{live} =>",
         f"        if Nat.ltb position (op_commit_index o) then cancel_{own.cancels[0]}",
         f"        else cancel_{own.cancels[1]}",
         f"    | _ => cancel_{own.cancels[2]}",
@@ -522,11 +609,12 @@ def emit(root: Path, register: Register | None = None) -> str:
 
     lines += _theorem(
         "the_width_rule_admits_one_form",
-        "andb (andb (andb (Nat.eqb (disc_width 256) 1) (Nat.eqb (disc_width 257) 2))"
-        " (andb (Nat.eqb (disc_width 65536) 2) (Nat.eqb (disc_width 65537) 4)))"
-        " (andb (andb (Nat.eqb (flag_width 8) 1) (Nat.eqb (flag_width 9) 2))"
-        " (andb (andb (Nat.eqb (flag_width 16) 2) (Nat.eqb (flag_width 17) 4))"
-        " (andb (Nat.eqb (flag_width 32) 4) (Nat.eqb (flag_width 33) 8)))) = true.",
+        "andb (andb (Nat.eqb (disc_width 256) 1) (Nat.eqb (disc_width 257) 2))"
+        " (andb (Nat.eqb (disc_width 65536) 2) (Nat.eqb (disc_width 65537) 4)) = true.",
+        "vm_compute; reflexivity.")
+    lines += _theorem(
+        "the_flag_set_spends_its_declared_width",
+        "Nat.eqb (flag_count + enc_flag_spare_bits) (8 * enc_flag_set_bytes) = true.",
         "vm_compute; reflexivity.")
     lines += _theorem(
         "descriptor_fills_its_slot_exactly",
@@ -652,7 +740,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "intro s; destruct s; vm_compute; reflexivity.")
     lines += _theorem(
         "the_malformed_step_acquires_no_authority",
-        f"lifecycle_malformed state_{own.states[3]} = None.",
+        f"lifecycle_malformed state_{live} = None.",
         "vm_compute; reflexivity.")
     lines += _theorem(
         "a_stale_generation_is_refused",
@@ -677,7 +765,7 @@ def emit(root: Path, register: Register | None = None) -> str:
         "a_target_past_its_commit_point_is_too_late",
         "forall (o : op) (position : nat), op_cancellable o = true ->"
         " Nat.ltb position (op_commit_index o) = false ->"
-        f" cancel o state_{own.states[3]} position = cancel_{own.cancels[1]}.",
+        f" cancel o state_{live} position = cancel_{own.cancels[1]}.",
         "intros o position Hc Hp; unfold cancel; rewrite Hc, Hp; reflexivity.")
     lines += _theorem(
         "a_non_cancellable_operation_is_never_live_to_cancel",
@@ -689,6 +777,7 @@ def emit(root: Path, register: Register | None = None) -> str:
     printed = [
         "eqb_reflexive",
         "the_width_rule_admits_one_form",
+        "the_flag_set_spends_its_declared_width",
         "descriptor_fills_its_slot_exactly", "completion_fills_its_slot_exactly",
         "both_slots_are_aligned", "the_index_span_is_the_declared_width",
         "the_capacity_divides_the_index_span", "ring_fills_to_capacity",

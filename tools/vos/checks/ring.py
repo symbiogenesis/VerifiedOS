@@ -27,7 +27,11 @@ rather than between the artifact and its owners.
 index does not carry is outside the checker's corpus and every claim about it is
 vacuous; an artifact absent from the working tree has no bytes to read; and a generator
 that raises is an owner that no longer carries what the emitter reads out of it, which
-is this rule's finding rather than this rule's crash.
+is this rule's finding rather than this rule's crash. The third is caught on the
+emitter's own refusal *and* on every other exception, because those are one fact
+arriving twice: the emitter names in [vos/cli/ring.py](../cli/ring.py) every key it
+reads and refuses on each, and an owner shaped in a way none of those guards reaches
+would otherwise leave the whole run dead rather than one rule red.
 
 **`--fix` does not repair it**, deliberately, and the ground is the one the co-read
 ledger already states for blessing. The repair is `run.py ring emit`, which rewrites
@@ -61,6 +65,15 @@ def run(ctx: Context) -> None:
         owners = len(emitter.OWNED_ENTRIES)
     except emitter.RingError as exc:
         findings.append(f"{emitter.ARTIFACT} cannot be emitted: {exc}")
+        wanted = None
+    # The emitter's own refusal is above; this is the same fact arriving as any other
+    # exception, which is what an owner shaped in a way no guard names looks like from
+    # here. Both are this rule's finding, because a checker that dies on one owner
+    # decides nothing about the rest of the run.
+    except Exception as exc:
+        findings.append(f"{emitter.ARTIFACT} cannot be emitted: the emitter raised "
+                        f"{type(exc).__name__}: {exc}, so an owner no longer carries "
+                        f"what it reads out of it in a shape any guard names")
         wanted = None
 
     if wanted is not None:
