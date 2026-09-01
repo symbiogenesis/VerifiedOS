@@ -201,7 +201,7 @@ Three things the register already fixes position this section, and it cites them
 
 **IDL-021** MUST: Every descriptor generated from this mapping carries an R-05-051a **canonicity theorem** beside its Narcissus correctness pair.
 · Accept: the theorem quantifies over the whole admissible language rather than a corpus, and the correctness pair alone is never cited for it, the two directions being separate theorems.
-· Trace: §4.1, §6
+· Trace: §4.1, §6, §8
 
 **Whether the mapping is on an identity-bearing path is undecided by the register**, and IDL-020 takes the stronger reading rather than waiting for the answer. R-13-003 puts the capability manifest's interface descriptor of the register's §12 inside the content-addressed admitted artifact, which makes that descriptor's own encoding look identity-bearing; R-05-051c's enumerated site list names the pack reader, the typed manifest, the content address and the deterministic-reuse key and does not name a live IDL call. §8 carries the reading and what taking the weaker one would have bought.
 
