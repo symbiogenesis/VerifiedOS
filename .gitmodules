@@ -55,3 +55,12 @@
 [submodule "upstream/TestRIG"]
 	path = upstream/TestRIG
 	url = https://github.com/CTSRD-CHERI/TestRIG
+[submodule "upstream/fiat-crypto"]
+	path = upstream/fiat-crypto
+	url = https://github.com/mit-plv/fiat-crypto
+[submodule "upstream/hacl-star"]
+	path = upstream/hacl-star
+	url = https://github.com/hacl-star/hacl-star
+[submodule "upstream/libjade"]
+	path = upstream/libjade
+	url = https://github.com/formosa-crypto/libjade

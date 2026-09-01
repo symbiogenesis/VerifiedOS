@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 291 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -852,7 +852,52 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-187** method: an upstream's licence election is stated in this repository's own prose rather than read at the upstream's own file, which is the inference from lineage this page forbids and has already had to correct once
 · Raised: M3.4, in prose
-· Disposition: open, the arm recorded at the decision and the reading taken at the pin in M3.4a, which is where the rule that a licence is read at the incorporating milestone already puts it
+· Disposition: closed, the reading taken at the pin in M3.4a: the election is confirmed at the upstream's own `COPYRIGHT`, which is the file that states it, and the record now carries the file, the commit and the date beside the arm
+
+**F-205a** owed-act: the acquisition route chosen to avoid a non-commercial term neither avoids it nor delivers the two developments it was chosen for, its package declaring a dependency on the compiler and its build and install targets reaching neither of the two directories
+· Raised: M3.4a
+· Disposition: open, reported and not closed, the call belonging to the milestone cell that took it
+
+**F-205b** owed-act: no entry fixes the oracle pair for an authored hash, one entry naming the standard and the vector corpus for the *model's* unit and a milestone cell wanting two oracles of independent verification lineage with nothing choosing which two
+· Raised: M3.4a
+· Disposition: open, the pair pinned on this item's own stated ground and named as the item's choice rather than the register's
+
+**F-205c** owed-act: an item title named one classical signature and the frozen suite carries none, the split being hash-based at every ROM-verified object and lattice above it with every parameter set at Category 5
+· Raised: M3.4a
+· Disposition: open, the title retaken to what the item delivers and the scheme the plan's sentence meant left undecided
+
+**F-205d** owed-act: which AEAD a Gallina module owes is unfixed between two documents, one having both authored and the register freezing one cipher and naming the other the frozen-out alternative
+· Raised: M3.4a
+· Disposition: open, the residue item naming what the register freezes and reporting the disagreement rather than resolving it
+
+**F-205e** owed-act: an acceptance criterion audits a crypto inventory no artifact carries, wanting three evidence entries per primitive where nothing enumerates the primitives at all
+· Raised: M3.4a
+· Disposition: open, one entry over the shape F-157 already carries and closing the way that one closes
+
+**F-205f** owed-act: a mandate's acceptance has nothing to audit, every field-arithmetic implementation being required to trace to a derivation while no generator run exists and no emission is tracked, so pinning the generator is not the trace
+· Raised: M3.4a
+· Disposition: open, residue named to M3.4c, which is the item that would run the generator
+
+**F-205g** owed-act: a firmware machine declares a hash field no hash function realizes, asking for total separation of distinct inputs where collisions exist and the register's own assumption is computational
+· Raised: M3.4a
+· Disposition: open, the function supplied and the field left a declared assumption
+
+**F-205h** owed-act: one of the five step mappings is not shown invertible, so the acceptance clause calling the permutation a permutation is stated and not closed, that step being a linear map on the column-parity space whose inverse is dense
+· Raised: M3.4a
+· Disposition: open, the other four discharged on arbitrary inputs and the composite left as an obligation the artifact states
+
+**F-205i** method: no rule in the checker reads a Gallina source, so nothing holds the two transcriptions of one standard together, the pair being a discipline that each artifact's own gate executes rather than a mechanism
+· Raised: M3.4a
+· Disposition: standing, a rule reaching into the proofs directory needing a corpus-window change that leaves the host checker green and every sandbox baseline red
+
+**F-205j** measurement: the Gallina vector harness reaches no artifact of this item either, so the whole mutation score is the prover's and the validation half is not the generated one the label prices
+· Raised: M3.4a
+· Disposition: open, the note pricing the half as authored statements rather than as generated inputs
+· Restates: F-189
+
+**F-205k** upstream-defect: the vector corpus states its terms in a README because it carries no licence file at any name, and the conditions are three rather than the two this plan counted, notice retention, a change notice, and explicit acknowledgement of the source
+· Raised: M3.4a
+· Disposition: standing, the terms recorded at the instrument and no row added to the fetched table, which wants a tracked licence file this component has none of
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
