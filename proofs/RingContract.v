@@ -95,15 +95,13 @@ Inductive refinement : Set :=
   | refine_read_extent__short_read
   | refine_write_extent__short_write.
 
-(* The widths IDL-023 fixes: the smallest admissible form for a case count,
-   and for a flag set counted in bits. *)
+(* The width IDL-023 fixes, and the only ladder this profile has: the
+   smallest of one, two or four bytes that holds a declared case count. A
+   flag set's width is not this rule's and no rung here is a flag set's:
+   WF-10 makes it a declared width, and the declaration states it below as
+   `enc_flag_set_bytes`. *)
 Definition disc_width (cases : nat) : nat :=
   if Nat.leb cases 256 then 1 else if Nat.leb cases 65536 then 2 else 4.
-
-Definition flag_width (bits : nat) : nat :=
-  if Nat.leb bits 8 then 1
-  else if Nat.leb bits 16 then 2
-  else if Nat.leb bits 32 then 4 else 8.
 
 Record labels : Set := mk_labels {
   confidentiality : nat;
@@ -171,6 +169,8 @@ Definition ring_slot_budget : nat := 20000.
 Definition enc_byte_count_bytes : nat := 4.
 Definition enc_content_type_bytes : nat := 1.
 Definition enc_direction_bytes : nat := 1.
+Definition enc_flag_set_bytes : nat := 1.
+Definition enc_flag_spare_bits : nat := 6.
 Definition enc_generation_bytes : nat := 4.
 Definition enc_length_bytes : nat := 4.
 Definition enc_metadata_bytes : nat := 8.
@@ -194,7 +194,6 @@ Definition tag_width : nat := disc_width op_count.
 Definition deadline_width : nat := disc_width deadline_class_count.
 Definition status_width : nat := disc_width status_count.
 Definition refinement_width : nat := disc_width refinement_count.
-Definition flag_set_bytes : nat := flag_width flag_count.
 
 Definition op_scalar_bytes (o : op) : nat :=
   match o with
@@ -348,7 +347,7 @@ Definition descriptor_bytes (o : op) : nat :=
   tag_width + enc_request_id_bytes + op_scalar_bytes o
   + op_buffer_refs o * buffer_ref_bytes
   + (if op_has_deadline o then 1 + deadline_width else 0)
-  + flag_set_bytes.
+  + enc_flag_set_bytes.
 
 (* The encoded size of a terminal completion: its status, the request
    identifier it carries back, the optional operation-specific refinement,
@@ -478,7 +477,11 @@ Lemma eqb_reflexive : forall n : nat, Nat.eqb n n = true.
 Proof. induction n as [| m IH]; simpl; [ reflexivity | exact IH ]. Qed.
 
 Theorem the_width_rule_admits_one_form :
-  andb (andb (andb (Nat.eqb (disc_width 256) 1) (Nat.eqb (disc_width 257) 2)) (andb (Nat.eqb (disc_width 65536) 2) (Nat.eqb (disc_width 65537) 4))) (andb (andb (Nat.eqb (flag_width 8) 1) (Nat.eqb (flag_width 9) 2)) (andb (andb (Nat.eqb (flag_width 16) 2) (Nat.eqb (flag_width 17) 4)) (andb (Nat.eqb (flag_width 32) 4) (Nat.eqb (flag_width 33) 8)))) = true.
+  andb (andb (Nat.eqb (disc_width 256) 1) (Nat.eqb (disc_width 257) 2)) (andb (Nat.eqb (disc_width 65536) 2) (Nat.eqb (disc_width 65537) 4)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem the_flag_set_spends_its_declared_width :
+  Nat.eqb (flag_count + enc_flag_spare_bits) (8 * enc_flag_set_bytes) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem descriptor_fills_its_slot_exactly :
@@ -607,6 +610,7 @@ Proof. intros o s position H; unfold cancel; rewrite H; reflexivity. Qed.
 
 Print Assumptions eqb_reflexive.
 Print Assumptions the_width_rule_admits_one_form.
+Print Assumptions the_flag_set_spends_its_declared_width.
 Print Assumptions descriptor_fills_its_slot_exactly.
 Print Assumptions completion_fills_its_slot_exactly.
 Print Assumptions both_slots_are_aligned.
