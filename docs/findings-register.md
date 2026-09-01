@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 280 of them across 62 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 291 of them across 63 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -738,6 +738,51 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-142** owed-act: the contract says its gate makes an omission a rejection and no predicate of that gate does, the rule in question being the one it calls its most consequential
 · Raised: M1.8a
 · Disposition: open, the missing predicate being the contract's to add rather than the instrument's to invent; the record carries the rule per variant meanwhile
+
+**F-142a** owed-act: no entry closes the enumeration of region kinds a composition may place, two lists naming twenty and a third entry a twenty-first while the charge's tenth term is answered by criterion rather than by name
+· Raised: M1.9
+· Disposition: open, the inductive being the register's own names plus the by-criterion arm and carrying no count; owed at the entry whose closure criterion is stated over the charge's terms rather than over the kinds
+
+**F-142b** owed-act: whether the placement delta is charged per region or per task is unstated, one entry pricing second-class code placement and another charging a task's real cost, so a task whose code spans two regions is addressed by neither
+· Raised: M1.9
+· Disposition: open, the artifact charging per region and summing nothing
+
+**F-142c** owed-act: whether a hard task may hold any code on the second class at all is unstated, the placement rule putting all hard-task code on the first class and saying nothing about a hard task calling a cold second-class routine
+· Raised: M1.9
+· Disposition: open, the artifact stating the placement rule over region kinds and stating no reachability relation
+
+**F-142d** owed-act: which regions an origin-pool member owns is unstated, one entry booking the ceiling raise as a consequence and another fixing the pool at identical compartments with one manifest and one static memory plan, and neither enumerating a member's regions
+· Raised: M1.9
+· Disposition: open, the roster being a field and the ceiling stated over an arbitrary roster and an arbitrary population bound
+
+**F-142e** owed-act: what a statically planned object's live range is measured in is unstated, one entry fixing the range at compile time and another making the side condition an interference test over it, with no entry naming the ordering it is an interval of
+· Raised: M1.9
+· Disposition: open, two fields carrying an interval over nat and no unit claimed
+
+**F-142f** owed-act: the interference side condition's own quantifier refuses the mechanism it is a side condition for, slot disjointness over *disjoint* live ranges demanding separate slots of exactly the pair the collapse onto the proven simultaneous peak exists to colour together
+· Raised: M1.9
+· Disposition: open, the inversion machine-checked rather than argued, the literal reading refusing the shared-slot plan and admitting the overlapping-live one where the reading taken answers the other way on both
+
+**F-142g** owed-act: every composition magnitude of the two-class plan is a field no entry fixes, the roster, the kinds, the cycle-criticality judgment, the assignment, the geometry, both class constants, the fetch counts, the charged slots and the budgets among them
+· Raised: M1.9
+· Disposition: open, the demo plan instantiating them with arbitrary witness values that carry no composition claim
+
+**F-142h** measurement: every kill in the memory-plan population is the prover's, the enumerative Gallina harness computing over three other artifacts so that no mutation of this one can move a vector and the second oracle could not have contributed a kill
+· Raised: M1.9
+· Disposition: open, falsifying nothing this item claimed and closed by a tools act rather than a proof one, the harness already staging the proofs tree
+· Restates: F-189
+
+**F-142i** owed-act: a mutant costs a recompile of every shipped proof where only the mutated source and its dependents can move, and nothing in the tree requires this one, so most of each mutant is spent where the mutation cannot reach and the share grows with every artifact a lane lands
+· Raised: M1.9
+· Disposition: open, narrowing the recompile to the mutated source and its dependents being a tools act
+
+**F-142j** owed-act: a whole-population Coq mutation run does not survive a fan-out, the guest distribution being torn down under it or wedged against launching it at all with three and four lanes running the same loop beside it, and the loop takes none of the keepalive lease every model loop takes while printing its report once at the end
+· Raised: M1.9
+· Disposition: open, both halves being tools acts; the population was decided instead by runs partitioned by operator whose union is the whole of it, detached in the guest so no host-side lifetime reaches them
+
+**F-142k** measurement: no rule computes a proof artifact's line count, and the figure a cell carried for one had drifted off the file by a line while the file itself was unmoved
+· Raised: M1.9
+· Disposition: closed, the figure re-measured at this gate with every other figure that cell states
 
 ## M2 · Fast emulator
 
