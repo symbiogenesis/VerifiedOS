@@ -166,8 +166,11 @@ def _the_rule_reports_rather_than_crashes() -> None:
         said = "\n".join(ctx.rep.out)
     ensure("FAIL K-89" in said,
            f"a generator that raises must be this rule's finding; the rule said:\n{said}")
-    ensure("cannot be emitted" in said,
-           f"the finding must name the emitter's failure, got:\n{said}")
+    # Named, so the case decides the arm it exists for: catching the emitter's own
+    # RingError would satisfy the line above and leave the new arm untested.
+    ensure("TypeError" in said,
+           f"the finding must name the exception no guard is written against, and so "
+           f"must come from the arm past RingError; got:\n{said}")
 
 
 def cases() -> list[Case]:
