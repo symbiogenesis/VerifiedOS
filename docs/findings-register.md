@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 382 of them across 70 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 389 of them across 70 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1349,9 +1349,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M6.4
 · Disposition: open, the declaration counting bytes because every other width in the wire-format mapping is a byte width
 
-**F-217a** owed-act: the ring-constant list is not the set a ring declaration must fix, four further constants being named by other entries and by no entry as ring constants: the maximum simultaneously accepted requests and the completion capacity, the maximum segment count and a segment's size, and the slot budget the joint proof is taken against
+**F-217a** owed-act: the ring-constant list is not the set a ring declaration must fix, this declaration fixing fourteen where that entry names six; four of the other eight are named by some other entry and by none as ring constants, the maximum simultaneously accepted requests and the completion capacity, the maximum segment count, and the slot budget the joint proof is taken against, and the remaining four are named by no entry at all, a segment's maximum size, the index span, the completion slot's size, and its declared fill
 · Raised: M6.4
-· Disposition: open, the declaration fixing all of them and the register naming six
+· Disposition: open, the declaration fixing all fourteen and the register naming six
 
 **F-217b** owed-act: nothing joins the six-state request lifecycle to the cancellation entry's deterministic answers, that entry deciding by where a target stands against its declared points and never saying which states are live to cancel
 · Raised: M6.4
@@ -1371,7 +1371,35 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-217f** measurement: a campaign of inequalities over a table of composition constants does not constrain it, an incremented constant that still satisfies its bound being absorbed as slack; a composition that declares its margin so that every bound becomes an equality is what turns each into a figure a weakening moves
 · Raised: M6.4
-· Disposition: standing, taken from a first sample that survived fifteen of twenty-four and a second that survived four of thirty-two after the statements were added, the remaining survivors being the flow-label gap, the receiver-validation gap, and a derived count a checker rule reaches where a prover cannot
+· Disposition: standing, taken from a first sample that survived fifteen of twenty-four and a later one that survives four of thirty-two over the artifact as it now stands, the remaining survivors being the flow-label gap, the receiver-validation gap, the unbounded count of a cancellable operation's declared cancellation points, and a derived count a checker rule reaches where a prover cannot
+
+**F-218** measurement: a generated artifact shipped a width rung its own profile's declared-parameter table says that profile does not have, under a comment attributing the ladder to the requirement whose ceiling forbids it, and that requirement fixes no width for the kind of field the rung was reached for at all
+· Raised: M6.4
+· Disposition: closed, the flag set's width moved to the declaration the wire-format row already calls its owner, the second ladder deleted, and the artifact left with the one ladder the requirement states
+
+**F-218a** method: a figure computed as the difference of two ordinal positions in a list is true of the order it was written against and stays true of every reordering of that order, so a docstring claiming it reads the order is unfalsifiable by construction and the reach a requirement claims for it is narrower than stated
+· Raised: M6.4
+· Disposition: closed, the two ends read by name out of the two entry sentences that name them and the distance measured between those, so a state inserted between them moves the artifact
+
+**F-218b** owed-act: nothing holds the emitter's own statement of the wire encoding against the section that states it, the rule over the generated artifact holding it against the emitter and the declaration rather than against the mapping, so a row edited in the profile moves neither and the drift is silent in both directions
+· Raised: M6.4
+· Disposition: open, stated as an absence in the profile's own holders section rather than repaired by a rule, the binding being the tools' act and not this document's
+
+**F-218c** measurement: an exit line quoted a seeded population measured against a working copy that is not the artifact that landed, and no rule reads a population figure, so the sample fraction it reports was wrong by a fifth with every gate green
+· Raised: M6.4
+· Disposition: closed, re-measured against the tracked artifact at the repair and the fraction restated with it
+
+**F-218d** method: a rule claiming to be fail-closed in three places was fail-closed in two, its third arm catching only the generator's own refusal, so an owner shaped in a way no guard names ended the whole checker run instead of reddening one rule
+· Raised: M6.4
+· Disposition: closed, every key the emitter reads named where the reading is refused and the rule catching what no guard reaches beside the refusal it already caught
+
+**F-218e** owed-act: where an operation's declared values that the descriptor entry's enumeration does not admit ride is undecided, that entry enumerating what a descriptor carries and saying nothing about a value outside the enumeration or about how a delegated buffer's payload is encoded
+· Raised: M6.4
+· Disposition: open, the enumeration read as a placement rather than as a deletion and the reading collected as a declared parameter, the deletion reading refusing most operations outright
+
+**F-218f** owed-act: two entries disagree about whether a descriptor carries a session generation, one enumerating exactly six members with no generation among them and the other binding every descriptor to a generation and refusing every old-generation one, which a server cannot decide without reading the descriptor's own
+· Raised: M6.4
+· Disposition: open, the generated record carrying the field where the enumeration entry has no row for it and the encoded size not spending it, so the field is inert until one of the two entries moves
 
 **F-186g** owed-act: the extent of the authority a restart re-grants is stated three ways and they are not one statement, one entry fixing it at exactly the manifest's edges, another re-deriving at the manifest and the current revocation epoch, a third making user retraction a trigger beside restart, and a fourth carrying no epoch at all
 · Raised: M6.1a
