@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from . import Context
 
 SPEC = "docs/spec.md"
+CONTRACT = "docs/bank-count-dse-contract.md"
 
 # K-69: a figure one entry fixes and other sites restate verbatim, with no arithmetic
 # between them: the K-54 shape without the ratio. Each row is the figure's key, the
@@ -48,6 +49,26 @@ OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
     ]),
     ("rvc-break-even", "R-15-036k", r"fails below \*p\* = ([\d.]+)", [
         (SPEC, r"(?<=reached at \*p\* = \*\*)[\d.]+(?=\*\*)"),
+    ]),
+    # The tag plane's share of the codeword with its own code, at the normative width
+    # and at the fallback: the two ends of the band every site pricing the plane
+    # states, each read from the entry that fixes the code and K-54 holds against its
+    # bit counts. The sites write the band with an en dash in running prose and with
+    # "to" in the contract, so each end is its own figure and its own pattern.
+    ("tag-plane-share", "R-15-181a",
+     r"tag plane with its own code is \d+, some ([\d.]+)% of the payload", [
+        (REGISTER, r"(?<=plus that code, some )[\d.]+(?=–[\d.]+% of the bulk array)"),
+        (SPEC, r"(?<=plus that code, some )[\d.]+(?=–[\d.]+% of the bulk array)"),
+        (SPEC, r"(?<=at 128, some )[\d.]+(?=% and [\d.]+% of the payload)"),
+        (CONTRACT, r"(?<=plus its own DECTED code, some )[\d.]+"
+                   r"(?= to [\d.]+% of the bulk array)"),
+    ]),
+    ("tag-plane-share-fallback", "R-15-181a",
+     r"the tag plane with its code \d+ of them at ([\d.]+)%", [
+        (REGISTER, r"(?<=–)[\d.]+(?=% of the bulk array)"),
+        (SPEC, r"(?<=–)[\d.]+(?=% of the bulk array)"),
+        (SPEC, r"(?<=% and )[\d.]+(?=% of the payload)"),
+        (CONTRACT, r"(?<= to )[\d.]+(?=% of the bulk array)"),
     ]),
 ]
 
