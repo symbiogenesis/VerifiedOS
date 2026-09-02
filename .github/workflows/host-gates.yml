@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# The host gate wave, run on a clone at every push and pull request to main.
+#
+# `python tools/run.py` is the three host gates (check, selftest, typecheck) as one
+# run and one exit code, and `python tools/run.py test` is the tools' own tests. All
+# of it is pure Python over the checkout, so it runs on a stock Ubuntu runner with no
+# toolchain: what needs Sail, Rocq or Verilator is the guest lane, which run.py
+# re-launches inside WSL on a developer's machine and which nothing here reaches. A
+# green run here is a witness that the host gates passed on this commit, never a
+# substitute for the guest evidence a completion note quotes.
+#
+# The checker's corpus is the git index, and the upstream/ entries it reads are
+# gitlinks, so the checkout deliberately initializes no submodule: an empty upstream/
+# directory is the tree the checker is written for. The interpreter floor is the
+# 3.14 tools/README.md states, and the two checker pins below are the ones the same
+# document states in its pin table and rule K-67 holds against tools/vos/cli/typecheck.py;
+# a bump there is a bump here. jsonschema is the one third-party import the tools
+# make, installed the way tools/README.md spells it for the host. On Linux, run.py
+# makes no WSL hop: the hop is taken only on win32, and the wave's members are host
+# commands regardless. PYTHONUTF8 is set so that a redirected stream on the runner
+# reads and writes the corpus's encoding, which is what run.py reconfigures on its
+# own streams and cannot reach in a member's.
+
+name: host-gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  host-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the tree, gitlinks and no submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Python at the floor tools/README.md states
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install the pinned checkers as uv tools
+        run: |
+          uv tool install ty==0.0.75
+          uv tool install ruff==0.16.5
+
+      - name: Install jsonschema
+        run: uv pip install --system jsonschema
+
+      - name: Host gate wave
+        run: python tools/run.py
+
+      - name: Tools' own tests
+        run: python tools/run.py test
