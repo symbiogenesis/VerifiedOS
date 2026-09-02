@@ -148,8 +148,60 @@ def _an_authored_case_satisfies_the_protocol() -> None:
            f"the finding does not name the case it is about: {out}")
 
 
+def _a_partial_run_says_so_on_the_line_that_gets_quoted() -> None:
+    """The closing `ok` line is what a completion note copies, so a run over part of a
+    population has to carry its scope there and not only in the block above it. This is
+    the defect the scope exists for: a green line quoted out of a narrowed run reads as
+    a whole-population result at every later citation."""
+    out: list[str] = []
+    code = seeded.summarize(
+        out, [seeded.Verdict(_mutant(), seeded.KILLED, "moved")], "f.sail", "test",
+        seeded.Scope(whole=382, ran=16, left=("const-inc",)))
+    ensure(code == 0, "a killed mutant failed the run")
+    closing = out[-1]
+    ensure(closing.startswith("ok "), f"the closing line was {closing!r}")
+    ensure("16 of 382" in closing and "not the population" in closing,
+           f"the closing line does not carry the scope: {closing!r}")
+    ensure(any("const-inc" in line for line in out),
+           f"an operator nothing asked about went unnamed: {out}")
+
+
+def _a_whole_run_says_that_too() -> None:
+    """Stated rather than left to silence. An absent scope line and a whole-population
+    scope line would otherwise read the same, which puts the reader back to guessing
+    which kind of run produced the number."""
+    out: list[str] = []
+    seeded.summarize(out, [seeded.Verdict(_mutant(), seeded.KILLED, "moved")],
+                     "f.sail", "test", seeded.Scope(whole=1, ran=1))
+    ensure("whole population" in out[-1], f"the closing line was {out[-1]!r}")
+
+
+def _a_loop_that_passes_no_scope_reports_what_it_did_before() -> None:
+    """The scope is an addition to this report and never a silent change to one: the
+    checker's authored oracle passes none and its output must not move."""
+    out: list[str] = []
+    seeded.summarize(out, [seeded.Verdict(_mutant(), seeded.KILLED, "moved")],
+                     "f.sail", "test")
+    ensure(out[-1] == "ok all 1 live mutant(s) were killed by the test oracle",
+           f"a scopeless run's closing line moved: {out[-1]!r}")
+    ensure(not any("scope" in line for line in out),
+           f"a scopeless run printed a scope: {out}")
+
+
+def _a_scope_is_partial_only_when_it_ran_less() -> None:
+    ensure(not seeded.Scope(whole=8, ran=8).partial, "a whole scope read as partial")
+    ensure(seeded.Scope(whole=8, ran=7).partial, "a partial scope read as whole")
+
+
 def cases() -> list[Case]:
     return [
+        Case("a partial run says so on the quoted line",
+             _a_partial_run_says_so_on_the_line_that_gets_quoted),
+        Case("a whole run says that too", _a_whole_run_says_that_too),
+        Case("a loop passing no scope is unmoved",
+             _a_loop_that_passes_no_scope_reports_what_it_did_before),
+        Case("a scope is partial only when it ran less",
+             _a_scope_is_partial_only_when_it_ran_less),
         Case("a survivor fails the run", _a_survivor_fails_the_run),
         Case("a stillborn mutant does not", _a_stillborn_mutant_does_not_fail_the_run),
         Case("an unseeded mutant is a finding", _an_unseeded_mutant_is_a_finding),
