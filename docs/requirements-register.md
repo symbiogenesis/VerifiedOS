@@ -46,7 +46,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 | `CJ-WCET` | The timing-annotated Sail model and the derived per-(class, operating-point) bounds (§5, §11, §15) |
 | `CJ-COMPCERT` | CHERI-CompCert correctness (§5, §6) |
 | `CJ-SECOMP` | Robust preservation of compartment isolation by the verified compiler (§5) |
-| `CJ-KERNEL` | Kernel functional refinement: seL4's design re-proved in Coq (§7) |
+| `CJ-KERNEL` | Kernel functional refinement: the authored static separation kernel proved in Coq (§7) |
 | `CJ-NI` | Explicit-flow non-interference over the capability topology (§8) |
 | `CJ-CERISE` | The Cerise universal contract (§13) |
 | `CJ-MEMPLAN` | §7's static whole-program slot plan and its live-range colouring |
@@ -300,8 +300,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the admission axiom inventory names two checkers and the metatheorem relating them, and no entry reads this section as a bound on the number of programs that check.
 · Trace: CJ-TAL-SOUND
 
-**R-05-012** MUST: The kernel is seL4's design re-proved end-to-end in Coq, not seL4's Isabelle proof adopted.
-· Accept: no Isabelle artifact appears in the trust base; the kernel refinement proof is a Coq development.
+**R-05-012** MUST: The kernel's proof is a fresh Coq development over a Gallina specification authored in this repository, taking from seL4 the endpoint model and the non-interference statement as design and nothing as artifact: seL4's Isabelle proof is not adopted and its executable model is not transcribed.
+· Accept: no Isabelle artifact appears in the trust base; the kernel refinement proof is a Coq development; no object of seL4's `spec/` or `proof/` trees is a source of any Gallina object, which [THIRD-PARTY.md](../THIRD-PARTY.md) records as the kernel-specification provenance fork.
 · Trace: CJ-KERNEL · [§5](spec.md#r-05-012), [§5](spec.md#r-05-012-2)
 
 **R-05-013** MUST: The kernel is compiled through CompCert/SECOMP.
@@ -1274,7 +1274,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 7.1 Object model and allocation
 
-**R-07-001** MUST: The kernel is a verified capability microkernel taking seL4's endpoint model and non-interference statement, re-proved end-to-end in Coq, targeting ≤10k lines; the remainder of seL4's object model is deleted by R-07-002, R-07-002b, and R-08-004.
+**R-07-001** MUST: The kernel is a verified capability microkernel, a CHERIoT-class static separation kernel whose specification is authored in whole and proved end-to-end in Coq, taking seL4's endpoint model and non-interference statement as its design, targeting ≤10k lines; the remainder of seL4's object model is deleted by R-07-002, R-07-002b, and R-08-004.
 · Accept: the line count is measured against the shipped source; CertiKOS supplies the proof method, not the kernel.
 · Trace: CJ-KERNEL
 

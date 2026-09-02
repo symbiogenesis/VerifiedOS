@@ -67,7 +67,7 @@ The remaining ten `CJ-` targets name **theorems, not specifications**, things pr
 | --- | --- | --- |
 | `CJ-COMPCERT` | CHERI-CompCert correctness | CompCert C semantics ⋈ the frozen ISA profile (row 4) |
 | `CJ-SECOMP` | Robust preservation of compartment isolation by the verified compiler | the policy model (row 2) |
-| `CJ-KERNEL` | Kernel functional refinement: seL4's endpoint model and non-interference statement re-proved in Coq, the rest of the object model deleted (R-07-001) | the kernel's abstract specification ⋈ the slot plan (row 17) |
+| `CJ-KERNEL` | Kernel functional refinement: the authored static separation kernel proved in Coq, seL4's endpoint model and non-interference statement taken as its design and the rest of seL4's object model deleted (R-07-001) | the kernel's abstract specification ⋈ the slot plan (row 17) |
 | `CJ-RTL-SAIL` | RTL ⊑ Sail, functional and hyperproperty halves: a theorem rung of the refinement tower, *"the last an axiom and the rest theorems"* (R-05-158) | the ISA profile and its Sail semantics (rows 4, 6) |
 | `CJ-CERISE` | The Cerise universal contract | the ISA profile and its Sail semantics (rows 4, 6) |
 | `CJ-TAL-SOUND` | CHERI-TAL soundness: well-typed ⇒ safe over the Sail model | the ISA profile and its Sail semantics (rows 4, 6) |
