@@ -93,7 +93,7 @@ Four rules bind the recipe, and each closes a way the measurement could be true 
 - **S6 runs inside every variant.** A candidate instrument changes the histogram S6 selects against, so a variant that inherits the baseline's dictionary has measured the instrument against a dictionary chosen for its absence. This is the contract's single most consequential methodological rule and the easiest one to skip, since skipping it makes every variant cheaper to build.
 - **A closing pass fixes the realized dictionary.** After every decision in §6 is taken, the recipe runs once more at the admitted configuration, and *that* pass's S6 output is the realized dictionary the freeze records and the proof is taken with. The report's frozen-dictionary block cites the closing pass's configuration hash, and §9 checks it equals the admitted configuration.
 
-**Reproducibility is part of the measurement, not part of the build system's hygiene.** Every artifact the report cites is rebuilt from its recorded pins by the CI gate and re-hashed; a hash that does not reproduce invalidates the report rather than the build, because a corpus nobody can rebuild is a corpus nobody can re-measure at the next amendment. This is the same reproducible-build property the checkers' bootstrap-root story already rests on (main-spec §9).
+**Reproducibility is part of the measurement, not part of the build system's hygiene.** Every artifact the report cites is rebuilt from its recorded pins by the freeze gate of §9 and re-hashed; a hash that does not reproduce invalidates the report rather than the build, because a corpus nobody can rebuild is a corpus nobody can re-measure at the next amendment. This is the same reproducible-build property the checkers' bootstrap-root story already rests on (main-spec §9).
 
 **Images built under the provisional profile are measurement artifacts and are neither deployed nor stored** (R-18-003c). The dictionary is a permanent freeze-time commitment of the same class as the capability format (R-15-036i, R-15-007d), and permanence attaches to the second act alone; the recipe therefore emits into a build tree that no signing or storage path reads.
 
@@ -177,6 +177,8 @@ Each decision states its question, its corpus, its unit, its procedure, its thre
 **Procedure.** Run S6 and S7 at each candidate N in the declared candidate set, under each of the two site-varying policies, at the FD-2 configuration under test. Report the full curve, not the chosen point: the freeze records a size, and a size recorded without the curve beside it cannot be re-judged at an amendment.
 
 **Threshold, derived.** The density claim is that the encoding recovers what excluding `C` costs, so acceptance is against the *optimistic* `C` counterfactual: R-15-036 sets it at 70% of the canonical stream, and the canonical stream is 32 bits per instruction, so the bar is **22.4 encoded bits per instruction** measured on `FM-1`. The pessimistic counterfactual, 75% and 24 bits, is reported beside it and is not the bar. A configuration failing the bar fails the density claim R-15-036 rests the `C` exclusion on, which is a finding against the profile and not a number to round.
+
+**The bar is met or missed on `FM-1`, and `FM-1` is never a deployed image** (§3, R-18-003c). The density figure the report carries is therefore a property of the corpus and not of what ships: a shipped image is encoded at the second act under the same realized dictionary but over its own histogram, and its bits per instruction are a fact about that image that this report does not state and no threshold here reads.
 
 The register's break-even in *p*, 0.804 against the optimistic figure and 0.728 against the pessimistic one, is the same bar expressed through R-15-036h's slot model and R-15-036j's packing term. It is a **diagnostic here and not the acceptance test**, because the bytes are observed and the model is not: the report carries measured bits per instruction against the bar, and carries modelled bits per instruction beside it as the residual check of §8.
 
@@ -366,9 +368,11 @@ These are the numbers this document chooses. Each has a ground and a stated way 
 
 ---
 
-## 9. The CI gate
+## 9. The freeze gate
 
-CI rejects a freeze whose report omits a required corpus member, provenance stratum, region class, byte column, or worst-case-cycle column (§0). Stated as predicates over the record of §7, so that the rejection is mechanical and its reason is nameable.
+The freeze gate rejects a freeze whose report omits a required corpus member, provenance stratum, region class, byte column, or worst-case-cycle column (§0). Stated as predicates over the record of §7, so that the rejection is mechanical and its reason is nameable.
+
+**It is a gate a person runs, not a continuous-integration gate.** The predicates are [the quarantined instrument's](../tools/quarantine/README.md), run by hand against a report until M1.2's backend exists and M1.8b returns the instrument to the landing loop, where a person runs it still. A continuous integration over the three host gates `tools/run.py` runs does not run this one, because none of those three reads a freeze report; a freeze whose report was never put through these predicates is a freeze nobody gated.
 
 | Id | The gate rejects when | Governing |
 | --- | --- | --- |
