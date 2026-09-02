@@ -137,6 +137,14 @@ CLAIMS = [
     ("docs/critique.md", "cj-specs", "words", r"[\w-]+(?= crown jewels, each a small oracle)"),
     ("docs/critique.md", "requirements", "digits", r"(?<=of )[\d,]+(?= acceptance criteria)"),
     ("docs/critique.md", "requirements", "digits", r"(?<=of the )[\d,]+(?= requirements has yet been booked)"),
+    ("docs/critique.md", "lettered", "digits", r"[\d,]+(?= of [\d,]+ entries are post-hoc insertions)"),
+    ("docs/critique.md", "requirements", "digits", r"(?<= of )[\d,]+(?= entries are post-hoc insertions)"),
+
+    # the reviewer's onramp restates the register's shape to the person it teaches
+    ("docs/reviewer-onramp.md", "lettered", "digits",
+     r"[\d,]+(?= of the register's [\d,]+ entries are post-hoc insertions)"),
+    ("docs/reviewer-onramp.md", "requirements", "digits",
+     r"(?<=of the register's )[\d,]+(?= entries are post-hoc insertions)"),
 
     # the type-obligation menu: owned by R-05-029's enumeration, its count restated
     # across both documents and the assembly language's own account
