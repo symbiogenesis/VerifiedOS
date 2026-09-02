@@ -41,6 +41,44 @@ def _waves_follow_requires() -> None:
     ensure(order == [["A"], ["B"], ["C"]], f"the waves came out {order}")
 
 
+def _dependents_are_the_require_closure() -> None:
+    """C requires B requires A. A mutation in A is readable by all three; one in C is
+    readable by C alone, which is the whole saving: the population loop compiles the
+    closure and leaves the rest standing on the baseline's `.vo`."""
+    with _tree({"C.v": _C, "B.v": _B, "A.v": _A}) as td:
+        sources = sorted(Path(td).glob("*.v"))
+        low = [[p.stem for p in wave] for wave in proofs.dependents(sources, "A")]
+        high = [[p.stem for p in wave] for wave in proofs.dependents(sources, "C")]
+        mid = [[p.stem for p in wave] for wave in proofs.dependents(sources, "B")]
+    ensure(low == [["A"], ["B"], ["C"]], f"A's closure came out {low}")
+    ensure(mid == [["B"], ["C"]], f"B's closure came out {mid}")
+    ensure(high == [["C"]], f"C's closure came out {high}")
+
+
+def _a_dependent_closure_keeps_the_compile_order() -> None:
+    """The closure is still a dependency order and not a filtered name order, so a
+    proof in it is never handed to the prover before the proof it Requires."""
+    with _tree({"C.v": _C, "B.v": _B, "A.v": _A}) as td:
+        sources = sorted(Path(td).glob("*.v"))
+        order = [[p.stem for p in wave] for wave in proofs.dependents(sources, "A")]
+    seen: set[str] = set()
+    for wave in order:
+        for stem in wave:
+            need = {"A": set(), "B": {"A"}, "C": {"B"}}[stem]
+            ensure(need <= seen, f"{stem} was compiled before {need - seen}")
+        seen |= set(wave)
+
+
+def _a_stem_no_source_carries_has_no_closure() -> None:
+    """And the caller decides what that means. `compile_dependents` reads the empty
+    list as "narrow nothing" and compiles the whole directory, because an empty compile
+    would report a green baseline for a tree nobody built."""
+    with _tree({"A.v": _A}) as td:
+        sources = sorted(Path(td).glob("*.v"))
+        got = proofs.dependents(sources, "Absent")
+    ensure(got == [], f"a stem outside the directory produced {got}")
+
+
 def _a_require_cycle_is_refused() -> None:
     with _tree({"A.v": "Require Import B.\n", "B.v": "Require Import A.\n"}) as td:
         root = Path(td)
@@ -123,6 +161,12 @@ def _the_two_switches_are_named_apart() -> None:
 def cases() -> list[Case]:
     return [
         Case("the waves follow the Requires", _waves_follow_requires),
+        Case("the dependents are the Require closure",
+             _dependents_are_the_require_closure),
+        Case("a dependent closure keeps the compile order",
+             _a_dependent_closure_keeps_the_compile_order),
+        Case("a stem no source carries has no closure",
+             _a_stem_no_source_carries_has_no_closure),
         Case("a Require cycle is refused", _a_require_cycle_is_refused),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
