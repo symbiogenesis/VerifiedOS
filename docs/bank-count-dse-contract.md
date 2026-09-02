@@ -16,7 +16,7 @@ The count is item (viii) of R-15-014a's closed final-freeze delta, so this docum
 
 The second class is divided into banks whole-bound to islands: no address interleaving crosses an island boundary, no bank is dynamically allocated, stolen, or donated, and no bank count varies with occupancy or load (R-15-247p). So the count is a composition-time constant with three consumers and no runtime reader at all, which is what makes it searchable off-model.
 
-The configuration declares **4096 banks** over an 8 GiB second-class region, and it says on its own face that this and every figure beside it is a placeholder: `qualified` is `false` on both classes, and R-15-247m admits no density figure as an architectural input ahead of the measurement it names. The candidate set is **64 through 65536** banks, the range the model's own `memory_class_banks` type admits intersected with the powers of two an island binding can divide a region into.
+The configuration declares **4096 banks** over an 8 GiB second-class region, and it says on its own face that this and every figure beside it is a placeholder: `qualified` is `false` on both classes, and R-15-247m admits no density figure as an architectural input ahead of the measurement it names. **That figure is restated here as an illustration and not as an input.** It is the point the emulator starts from, carried in this document so that [the quarantine's](../tools/quarantine/README.md) K-58 can hold the two copies of one undecided number together; no column of §2 reads it, no coefficient is filled from it, and the shape arithmetic of §3 scores it as one candidate among the set with no standing the others lack. A report that took it for the answer is BD-1's refusal, and one that filled a coefficient from it is BD-3's. The candidate set is **64 through 65536** banks, the range the model's own `memory_class_banks` type admits intersected with the powers of two an island binding can divide a region into.
 
 ## 2. What prunes, and what ranks
 
@@ -71,7 +71,7 @@ The report carries a residuals block naming every pending symbol and what owes i
 | --- | --- |
 | BD-1 | a bank count reported as decided while any symbol above is pending |
 | BD-2 | a bank count reported as decided while the second class's `qualified` flag is false, which is R-15-247m's own gate applied to this axis |
-| BD-3 | a pending coefficient filled from an order-of-magnitude estimate, the estimate document's own closing sentence disclaiming its figures as freeze inputs |
+| BD-3 | a pending coefficient filled from an order-of-magnitude estimate, the estimate document's own closing sentence disclaiming its figures as freeze inputs, or from the composition's placeholder point, which §1 carries as an illustration and not as an input |
 | BD-4 | droop traded against bandwidth or energy, which inverts R-15-247p's stated asymmetry and admits a point the envelope excludes |
 | BD-5 | a candidate outside the declared set, which is a search defect rather than a choice |
 | BD-6 | a freeze report reaching this item from the freeze-measurement instrument, which that contract's §10 already makes a finding against itself |
