@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 400 of them across 71 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 401 of them across 71 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1119,6 +1119,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-205k** upstream-defect: the vector corpus states its terms in a README because it carries no licence file at any name, and the conditions are three rather than the two this plan counted, notice retention, a change notice, and explicit acknowledgement of the source
 · Raised: M3.4a
 · Disposition: standing, the terms recorded at the instrument and no row added to the fetched table, which wants a tracked licence file this component has none of
+
+**F-205l** owed-act: an item shed four of its parent cell's deliverables into a new sibling at exit rather than at entry, so its recorded actual is not an outturn against the scope the estimate was taken over, and no clause anywhere says an actual may be incomparable to its estimate while the calibration re-fits every such pair whatever it means
+· Raised: M3.4a
+· Disposition: open, the datum named unusable for calibration at the item's own cell, a convention for an exit-time residue split being the plan's to state at the calibration paragraph and this being its first
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
