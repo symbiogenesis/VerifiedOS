@@ -100,4 +100,20 @@ The README prices trust as the scarce resource and engineering effort as free. T
 3. The third-party objection is mis-aimed at code and correct at ratchets: the design deletes every degrade-to-boring path, which puts the entire certificate pipeline on the critical path to any demonstration, and that exposure is mostly unbooked.
 4. Worth a register home: F1 (ceiling against growth), F2 (dynamic workload against static plan), F2a (the missing slush fund, with the Transputer as the uncited precedent), F5 (attention economics). Worth one honest sentence each: F4 and the instrument hole of F3.
 
+## What the project did with this, and what it left standing
+
+*Added by the project. Five of the entries above have landed as amendments, so a later reader does not raise them twice; four stand.*
+
+| Finding | Disposition |
+| --- | --- |
+| F1, the address ceiling | **Landed**, at R-15-002c: the ceiling is stated as a bet in the third of the three shapes this review named, the other two having been unavailable rather than unattractive, and the criterion fixes where the number must be repeated. The README and the profile carry it. |
+| F2a, the missing slush fund | **Landed before this review**, in the fragmentation passage of [docs/critique.md](docs/critique.md), which took the naming and sharpened it to *reservation fragmentation* and cites the Transputer precedent. The precedent was not uncited; that half of the finding was wrong. |
+| F3, the deleted instruments | **Landed in half**, at R-17-008a. The timing half is booked as this review states it, including that the performance companion is unfalsifiable on the hardware it describes, and the two constructions that could close it are named so a later proposal is read against them. The fleet half is withdrawn: the crash record and deterministic replay answer field diagnosis, so what is blind is field *performance* and not field *failure*. |
+| F4, the two-machine world | **Landed**, at R-02-008, as a non-goal rather than a sentence: self-hosting is an exclusion and not a deferred milestone, with both consequences this review names stated where a reader meets the non-goals. |
+| F5, the unpriced resource | **Landed**, at R-05-150a, together with the artifact it asks for, [docs/reviewer-onramp.md](docs/reviewer-onramp.md). The residual it does not close is booked and not claimed away: the pool stays small and no estimate cell carries the per-reviewer remainder. |
+| Objection 3, the missing ratchets | **Stands.** Nothing here reverses R-18-002, and the critical-path exposure is the sharpest thing in this review that no entry books. |
+| F2, the dynamic workload against the static plan | **Stands.** The joint choice this review asks to see named in one passage is still stated in two documents that do not meet. |
+| The correlation bet | **Stands** as work item 30 of [docs/critique.md](docs/critique.md) had it, now with the README saying the capacity claims rest on the least-proven component. |
+| The update-cadence and model-swap questions | **Stand**, unanswered. |
+
 *The mechanism-level architecture is settled, internally consistent, and in several places (the seam registers, the absence contract, the disposition records) genuinely excellent. Nothing above disputes the design's logic on its own terms; the charges are that the pitch is conditional where it reads as categorical, that two honest documents decline to meet, and that the machine's answer to "is it working as modeled" is deleted along with the channels.*
