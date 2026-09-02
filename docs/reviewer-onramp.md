@@ -6,10 +6,11 @@
 
 ## 1. What is being reviewed, and what is not
 
-The gate audits **the register**, entry by entry (R-05-150, R-05-152). Three consequences follow, and each is a habit to acquire before starting.
+The gate audits **the register**, entry by entry (R-05-150, R-05-152). Four consequences follow, and each is a habit to acquire before starting.
 
 - **[spec.md](spec.md) is commentary.** It carries the worked derivations, the alternatives weighed, and the development of arguments the register states in one clause. It is where you go to *understand* an entry and never the thing you sign off. A review record cites requirement IDs, not prose sections.
 - **The derived views state nothing of their own.** [coverage-matrix.md](coverage-matrix.md), [crown-jewels.md](crown-jewels.md), [absence-contract.md](absence-contract.md), [isa-profile.md](isa-profile.md), and the contracts under §15 are computed from the register and are defective, never authoritative, where they disagree with it (R-15-001a). A finding against a view is a finding against the entry it derives from.
+- **A feature present in Sail is specified, not thereby verified.** Sail gives it executable formal semantics; that fact alone proves neither a property of those semantics nor that hardware implements them. The former needs a named theorem over Sail, and the latter the `RTL ⊑ Sail` artifact; [crown-jewels.md](crown-jewels.md) and [implementation-checklist.md](implementation-checklist.md) carry their status.
 - **The register is not complete because it is finished.** Whether every obligation inside a normative section was captured at all is the first question this gate asks (R-05-151), and a claim that could not be captured is booked as an extraction defect rather than dropped.
 
 ## 2. How to read one entry
