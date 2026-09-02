@@ -167,15 +167,16 @@ def compile_one(found: Prover, work: Path, source: Path,
         env={**os.environ, **switch_env(found.switch)})
 
 
-def _compile_all(found: Prover, work: Path, sources: list[Path]) -> list[Failure]:
-    """One directory's sources in Require order, every failure kept.
+def _compile_waves(found: Prover, work: Path,
+                   ordered: list[list[Path]]) -> list[Failure]:
+    """Sources already put in dependency order, every failure kept.
 
     Failures accumulate rather than stopping the run, because a mutation inside a
     definition several proofs read is refused by each of them and the reader wants to
     know which.
     """
     out: list[Failure] = []
-    for wave in proofs.waves(sources):
+    for wave in ordered:
         for source in wave:
             done = compile_one(found, work, source)
             if done.returncode != 0:
@@ -184,9 +185,38 @@ def _compile_all(found: Prover, work: Path, sources: list[Path]) -> list[Failure
     return out
 
 
+def _compile_all(found: Prover, work: Path, sources: list[Path]) -> list[Failure]:
+    """One directory's sources in Require order."""
+    return _compile_waves(found, work, proofs.waves(sources))
+
+
 def compile_proofs(found: Prover, work: Path) -> list[Failure]:
     """Every shipped proof in the staged tree, in Require order."""
     return _compile_all(found, work, sorted((work / PROOFS).glob("*.v")))
+
+
+def compile_dependents(found: Prover, work: Path, rel: str) -> list[Failure]:
+    """The one mutated proof and whatever Requires it, which is what a mutant moves.
+
+    `compile_proofs` is the right shape for a baseline, where nothing on disk is
+    trusted yet. Inside the population loop it recompiles the whole directory once per
+    member, and all but the mutated file's closure is work whose answer cannot have
+    changed: [proofs.dependents](proofs.py) states why the narrowing keeps the whole
+    failure set. Most proofs here are Required by nothing, so for most subjects the
+    closure is the subject alone and the directory was being rebuilt around it once per
+    member of the population. That price is one a proof has already been written
+    against: a source in this tree declines a `Require` it would otherwise carry, and
+    says in its own prose that the reason is what the mutation loop would charge for it.
+
+    A subject the proofs directory does not hold falls back to the whole directory,
+    because the closure of a name that is not there is empty and an empty compile would
+    report a green baseline for a tree nobody built.
+    """
+    sources = sorted((work / PROOFS).glob("*.v"))
+    stem = Path(rel).stem
+    if stem not in {source.stem for source in sources}:
+        return _compile_all(found, work, sources)
+    return _compile_waves(found, work, proofs.dependents(sources, stem))
 
 
 def compile_support(found: Prover, work: Path) -> list[Failure]:
