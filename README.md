@@ -224,14 +224,14 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Type confusion and ABI mismatch | Type and ABI conformance are checked on the final binary | **✋&nbsp;Rejected** |
 | Malformed control flow and calls to undeclared callees | Both halves of CFI and the manifest callee set are checked on the final binary | **✋&nbsp;Rejected** |
 | Implicit integer wrap | An unannotated operation cannot silently trap, because no exception or unwinding path exists, and cannot silently wrap: modular and saturating arithmetic survive only as explicitly named operations | **✋&nbsp;Rejected** |
-| Overflow or underflow over static bounds | Range side conditions ride on the arithmetic rules: the on-device checker decides them where operand bounds are closed numerals, and a release-time proof term covers bounds that depend on runtime values | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
+| Overflow or underflow over static bounds | Range side conditions ride on the arithmetic rules: the on-device checker decides them over closed numerals, and a bound that depends on a runtime value enters as a declared premise the checker reads as given and a release-time proof term discharges | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
 | Overflow in code admitted at Tier 2 | Tier 2 scopes the range obligation out, a recorded residual; in-range but wrong remains functional correctness at every tier | **🚩&nbsp;Residual** |
 | Silently dropped security-bearing verdicts | Relevance typing denies weakening an integrity, freshness, admission, or transaction verdict, so a binary cannot eliminate one without examining it | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
 | A wrong response to an examined verdict | The grade bounds the *drop*, never the *response*: proceeding after an examined failure remains functional correctness, a recorded residual | **🚩&nbsp;Residual** |
 | Ambient mutable state escaping the authority graph | The image is inspected for hidden mutable state (globals, lazy statics, thread-locals, singletons) and capabilities outside its declared initial set | **✋&nbsp;Rejected** |
 | Secret-dependent timing in admitted code | The constant-time type discipline rejects secret taint at branches, addresses, and variable-latency operations; unstructured residuals carry a relational proof over the leakage model | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
 | Nonce and initialization-vector reuse | A linear nonce is consumed by sealing and cannot be duplicated, stored, or reached twice, even across a restored checkpoint or a re-derived key | **✋&nbsp;Rejected** |
-| Secret residue in scalar registers and compiler-introduced spill slots | Final-binary checking requires every secret-typed value, including unseen spills, to reach an erasing operation | **✋&nbsp;Rejected** |
+| Secret residue in scalar registers and compiler-introduced spill slots | A must-erase grade, checked on the final binary, lets no secret-typed value or spilled copy of one be dropped by anything but an erasing operation | **✋&nbsp;Rejected** |
 | Power and near-field electromagnetic analysis of the crypto core | The secret-handling datapath is masked, and its *d*-probing and composition theorems are verified on the artifact against a stated probing model; the model is an axiom about the silicon, its faithfulness the recorded residual | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
 | Secret residue in the frames of a compartment that returns | Restart erases the compartment's whole footprint before any reuse | **🕳️&nbsp;Absent** |
 | Secret-dependent traps and the restart they cause | Constant-time typing makes trap choice a function of public inputs, and restart consumes only the offender's slots | **✋&nbsp;Rejected**<br>**🕳️&nbsp;Absent** |
@@ -241,7 +241,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Stack exhaustion and unbounded recursion | The enumerated callee set proves call-graph acyclicity and recursion depth, so worst-case stack use is static; unbounded depth is refused | **✋&nbsp;Rejected** |
 | Stack-clash writes into adjacent objects | A bounds-checked stack capability makes overrun fault rather than reach a neighboring object, with no guard page to bypass | **🛡️&nbsp;Enforced** |
 | Compiler-created memory-safety regressions | Safety is checked from the final machine code and its derivation; compiler pedigree is not an admission input | **✋&nbsp;Rejected** |
-| Compiler or build-farm output that does not implement its included source | Every package carries its exact content-addressed source closure and a kernel-checked theorem from that closure through assembly, linking, and the final image | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
+| Compiler or build-farm output that does not implement its included source | Every package carries its exact content-addressed source closure and a theorem from that closure through assembly, linking, and the final image, which the proof kernel checks on the device at install beside the type check | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
 
 
 ### Verified OS, I/O, storage, and supply-chain construction
