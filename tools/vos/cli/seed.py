@@ -58,7 +58,7 @@ from pathlib import Path
 from vos import cli, env, gallina, mutate, sailrig
 from vos import oracle as oracle_spec
 from vos.corpus import find_root
-from vos.seeded import KILLED, STILLBORN, SURVIVED, Verdict, chosen, summarize
+from vos.seeded import KILLED, STILLBORN, SURVIVED, Scope, Verdict, chosen, summarize
 
 # This lane's working directories under the lane root, one per oracle, because two of
 # them are running compilers over trees that must not be the same tree.
@@ -99,6 +99,28 @@ def population(root: Path, rel: str, named: tuple[str, ...] = (),
     lane = mutate.lane_of(rel)
     found = mutate.mutants(read_source(root / rel), lane, rel, named=named)
     return [m for m in found if m.operator in only] if only else found
+
+
+def picked_with_scope(root: Path, rel: str,
+                      args: argparse.Namespace) -> tuple[list[mutate.Mutant], Scope]:
+    """The mutants a run puts to its oracle, and what they are of the whole population.
+
+    The whole is taken here, from the source with nothing narrowed, rather than
+    inferred from what ran. Every narrowing this tool offers is applied before any
+    verdict exists, so a count taken afterwards cannot see what it removed, and a run
+    that reports only its own total is the shape that reads as a whole-population run
+    at the next citation.
+
+    The axis reported is the operator, because that is what a narrowed run is usually
+    narrowed on and what a reader can act on: an operator no picked mutant carries is a
+    whole kind of defect the oracle was never asked about, which is a different thing
+    from a thin sample of every kind.
+    """
+    whole = population(root, rel)
+    picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
+                    args.limit, args.sample)
+    left = tuple(sorted({m.operator for m in whole} - {m.operator for m in picked}))
+    return picked, Scope(whole=len(whole), ran=len(picked), left=left)
 
 
 # =====================================================================================
@@ -183,8 +205,7 @@ def cmd_sail(args: argparse.Namespace) -> int:
     out.append(f"== baseline: {total} vector(s) from {spec.name}")
 
     verdicts: list[Verdict] = []
-    picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
-                    args.limit, args.sample)
+    picked, scope = picked_with_scope(root, rel, args)
     for mutant in picked:
         write_source(tree / rel, mutant.apply(original))
         try:
@@ -204,7 +225,7 @@ def cmd_sail(args: argparse.Namespace) -> int:
         finally:
             write_source(tree / rel, original)
 
-    code = summarize(out, verdicts, rel, f"{spec.name} vector")
+    code = summarize(out, verdicts, rel, f"{spec.name} vector", scope)
     print("\n".join(out))
     return code
 
@@ -274,8 +295,7 @@ def cmd_coq(args: argparse.Namespace) -> int:
                    f"{gallina.version(found)} in {switch}")
 
     verdicts: list[Verdict] = []
-    picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
-                    args.limit, args.sample)
+    picked, scope = picked_with_scope(root, rel, args)
     for mutant in picked:
         write_source(staged, mutant.apply(original))
         try:
@@ -328,7 +348,7 @@ def cmd_coq(args: argparse.Namespace) -> int:
 
     code = summarize(out, verdicts, rel,
                      "prover-then-QuickChick" if args.quickchick
-                     else "prover-then-vector")
+                     else "prover-then-vector", scope)
     print("\n".join(out))
     return code
 
@@ -419,9 +439,8 @@ def cmd_properties(args: argparse.Namespace) -> int:
     out.append(f"== baseline: {base_said}")
 
     verdicts: list[Verdict] = []
+    picked, scope = picked_with_scope(root, rel, args)
     try:
-        picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
-                        args.limit, args.sample)
         for mutant in picked:
             write_source(path, mutant.apply(original))
             built = _build_harness(e)
@@ -447,7 +466,7 @@ def cmd_properties(args: argparse.Namespace) -> int:
     rebuilt = _build_harness(e)
     ok, said = _properties_run(harness) if rebuilt else (False, "the rebuild failed")
     out.append(f"== the lane's build tree, rebuilt from the restored source: {said}")
-    code = summarize(out, verdicts, rel, "$[test] harness")
+    code = summarize(out, verdicts, rel, "$[test] harness", scope)
     if not (rebuilt and ok):
         out.append(f"FAIL the lane's build tree does not hold the unmutated model; "
                    f"run `run.py model build` before anything reads {e.simulator}")
