@@ -613,6 +613,7 @@ THIRD_PARTY = "THIRD-PARTY.md"
 DELTA = "docs/rtl-reparameterization-delta.md"
 FINDINGS = "docs/findings-register.md"
 RING_ARTIFACT = "proofs/RingContract.v"
+KECCAK_GALLINA = "proofs/Keccak.v"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1452,6 +1453,15 @@ CASES: list[Case] = [
     # fixes, and narrowing it is the silent defect: a generated file whose one
     # admissible length form has quietly become two still compiles, still passes the
     # proof gate, and is no longer what its generator writes.
+    # The *Gallina* side is seeded rather than the Sail one, because that is the side
+    # this repository authored second and the side whose gate says least about the pair:
+    # a byte moved here still compiles, still proves its own `Example` against itself,
+    # and still passes every proof gate, where the Sail literal at least sits beside a
+    # harness a model build runs. One byte of one lane, so what the case exercises is the
+    # lane-by-lane comparison rather than a length or a parse.
+    ("K-91", "a known answer one byte off in the Gallina transcription of FIPS 202",
+     _literal(KECCAK_GALLINA, "0x17 :: 0x86 :: 0xA7 :: 0xB9", "0x17 :: 0x86 :: 0xA7 :: 0xBA")),
+
     ("K-89", "a generated interface artifact whose width rule was narrowed by hand",
      _literal(RING_ARTIFACT,
               "if Nat.leb cases 256 then 1 else if Nat.leb cases 65536 then 2 else 4.",
