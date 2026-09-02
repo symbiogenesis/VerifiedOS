@@ -50,6 +50,7 @@ about any run. Its third verdict is `unseeded` rather than `stillborn`, and
 """
 
 import argparse
+import concurrent.futures
 import shutil
 import subprocess
 from collections.abc import Iterable
@@ -58,7 +59,17 @@ from pathlib import Path
 from vos import cli, env, gallina, mutate, sailrig
 from vos import oracle as oracle_spec
 from vos.corpus import find_root
-from vos.seeded import KILLED, STILLBORN, SURVIVED, Verdict, chosen, summarize
+from vos.seeded import (
+    KILLED,
+    STILLBORN,
+    SURVIVED,
+    Scope,
+    Verdict,
+    chosen,
+    shard,
+    summarize,
+    unshard,
+)
 
 # This lane's working directories under the lane root, one per oracle, because two of
 # them are running compilers over trees that must not be the same tree.
@@ -99,6 +110,28 @@ def population(root: Path, rel: str, named: tuple[str, ...] = (),
     lane = mutate.lane_of(rel)
     found = mutate.mutants(read_source(root / rel), lane, rel, named=named)
     return [m for m in found if m.operator in only] if only else found
+
+
+def picked_with_scope(root: Path, rel: str,
+                      args: argparse.Namespace) -> tuple[list[mutate.Mutant], Scope]:
+    """The mutants a run puts to its oracle, and what they are of the whole population.
+
+    The whole is taken here, from the source with nothing narrowed, rather than
+    inferred from what ran. Every narrowing this tool offers is applied before any
+    verdict exists, so a count taken afterwards cannot see what it removed, and a run
+    that reports only its own total is the shape that reads as a whole-population run
+    at the next citation.
+
+    The axis reported is the operator, because that is what a narrowed run is usually
+    narrowed on and what a reader can act on: an operator no picked mutant carries is a
+    whole kind of defect the oracle was never asked about, which is a different thing
+    from a thin sample of every kind.
+    """
+    whole = population(root, rel)
+    picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
+                    args.limit, args.sample)
+    left = tuple(sorted({m.operator for m in whole} - {m.operator for m in picked}))
+    return picked, Scope(whole=len(whole), ran=len(picked), left=left)
 
 
 # =====================================================================================
@@ -183,8 +216,7 @@ def cmd_sail(args: argparse.Namespace) -> int:
     out.append(f"== baseline: {total} vector(s) from {spec.name}")
 
     verdicts: list[Verdict] = []
-    picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
-                    args.limit, args.sample)
+    picked, scope = picked_with_scope(root, rel, args)
     for mutant in picked:
         write_source(tree / rel, mutant.apply(original))
         try:
@@ -204,7 +236,7 @@ def cmd_sail(args: argparse.Namespace) -> int:
         finally:
             write_source(tree / rel, original)
 
-    code = summarize(out, verdicts, rel, f"{spec.name} vector")
+    code = summarize(out, verdicts, rel, f"{spec.name} vector", scope)
     print("\n".join(out))
     return code
 
@@ -212,6 +244,149 @@ def cmd_sail(args: argparse.Namespace) -> int:
 # =====================================================================================
 # coq: the prover first, and then the Gallina vectors
 # =====================================================================================
+
+
+def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
+                 mutant: mutate.Mutant, baseline: list[str],
+                 quickchick: bool) -> Verdict:
+    """One mutant already written into one staged tree, put to the two oracles.
+
+    Reads nothing outside the tree it is handed, which is what lets several of these
+    run beside each other: the mutated source, the `.vo` it compiles to and the harness
+    that reads them are all under `work`, so two shards racing on one population never
+    share a file.
+    """
+    failures = gallina.compile_dependents(found, work, rel)
+    if failures:
+        return Verdict(mutant, KILLED,
+                       "the prover refused " + ", ".join(f.source for f in failures),
+                       len(failures))
+    # The harness's own shared sources come after the proofs and their failure is a
+    # different verdict: a mutation the shipped statements accept and the harness
+    # cannot be built over is a mutant no oracle ran against.
+    if gallina.compile_support(found, work):
+        return Verdict(mutant, STILLBORN,
+                       "the harness would not build over the mutant")
+    if quickchick:
+        passed, failed, why = gallina.properties(found, work, harness)
+        if failed:
+            return Verdict(mutant, KILLED,
+                           f"the proofs accepted it and QuickChick refuted {failed} of "
+                           f"{failed + passed} property set(s): {why}", failed)
+        if not passed:
+            return Verdict(mutant, STILLBORN,
+                           "the harness did not run over the mutant")
+        return Verdict(mutant, SURVIVED,
+                       f"the proofs accepted it and {passed} property set(s) held")
+    lines, said = gallina.vectors(found, work, harness)
+    if said:
+        return Verdict(mutant, STILLBORN, "the harness did not run over the mutant")
+    moved = _moved(baseline, lines)
+    if moved:
+        return Verdict(mutant, KILLED,
+                       f"the proofs accepted it and {moved} of {len(baseline)} "
+                       "vector(s) moved", moved)
+    return Verdict(mutant, SURVIVED,
+                   "the proofs accepted it and every vector reproduced")
+
+
+def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
+               mutants: list[mutate.Mutant], original: str, baseline: list[str],
+               quickchick: bool) -> list[Verdict]:
+    """One shard of the population, run serially in the one tree that shard owns.
+
+    The source is restored after every mutant rather than at the end, because the next
+    mutant in this shard is applied to the original text and a tree left mutated would
+    compound two seeds into a defect nobody generated.
+    """
+    staged = work / rel
+    harness = work / "harness" / harness_name
+    verdicts: list[Verdict] = []
+    for mutant in mutants:
+        write_source(staged, mutant.apply(original))
+        try:
+            verdicts.append(_coq_verdict(found, work, rel, harness, mutant,
+                                         baseline, quickchick))
+        finally:
+            write_source(staged, original)
+    return verdicts
+
+
+def _run_shards(found: gallina.Prover, trees: list[Path], rel: str, harness_name: str,
+                picked: list[mutate.Mutant], original: str, baseline: list[str],
+                quickchick: bool) -> list[Verdict]:
+    """The population across the staged trees, one shard each, all at once.
+
+    **The partition is round-robin and therefore exhaustive by construction.** Taking
+    `picked[i::n]` for each tree puts every mutant in exactly one shard whatever the
+    counts are, which is the property a hand-assembled partition does not have: an
+    operator list written out by hand is where a whole operator goes unrun and nothing
+    says so.
+
+    It also balances without measuring. The population is generated in operator order,
+    so a contiguous split would hand one shard every mutant of the slowest operator;
+    striding interleaves the operators across the shards instead, and they finish
+    together without anyone having priced a mutant.
+
+    Threads rather than processes because every mutant is a `subprocess.run` on the
+    prover, which releases the interpreter lock for its whole duration: the work is in
+    the prover and the thread only waits on it. Verdicts come back in population order
+    rather than completion order, so what a run reports does not depend on which shard
+    happened to finish first.
+    """
+    if len(trees) == 1:
+        return _coq_shard(found, trees[0], rel, harness_name, picked, original,
+                          baseline, quickchick)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(trees)) as pool:
+        done = [pool.submit(_coq_shard, found, tree, rel, harness_name, part,
+                            original, baseline, quickchick)
+                for tree, part in zip(trees, shard(picked, len(trees)), strict=True)]
+        got = [future.result() for future in done]
+    # Undone the same way it was done, rather than by sorting on anything read off a
+    # mutant: `Seeded` carries one line of prose and deliberately nothing to key on.
+    return unshard(got)
+
+
+def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
+                         harness_name: str) -> tuple[list[str] | None, str]:
+    """One tree stood up for the randomized harness, whose baseline is a count of green
+    property sets rather than a vector file, so the list it hands back is empty."""
+    gallina.stage(root, work)
+    if gallina.compile_proofs(found, work) + gallina.compile_support(found, work):
+        return None, "the unmutated tree did not compile, so there is no baseline"
+    passed, failed, _ = gallina.properties(found, work,
+                                           work / "harness" / harness_name)
+    if failed or not passed:
+        return None, (f"the unmutated tree's {harness_name} is not green: {failed} "
+                      f"property set(s) failed and {passed} passed")
+    return [], ""
+
+
+def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name: str,
+              quickchick: bool) -> tuple[list[str] | None, str]:
+    """Stage and compile every tree, and take the baseline they are all held to.
+
+    They are stood up together for the same reason the shards run together, and then
+    **their baselines are required to agree**: one baseline is what every shard's
+    mutants are compared against, so trees that differed unmutated would make a verdict
+    depend on which shard happened to draw the mutant. That is a defect this rig has no
+    other way of seeing, and it is cheap to refuse here.
+    """
+    def one(work: Path) -> tuple[list[str] | None, str]:
+        if quickchick:
+            return _quickchick_baseline(root, found, work, harness_name)
+        return gallina.emit(root, work, []), ""
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(trees)) as pool:
+        got = list(pool.map(one, trees))
+    for baseline, why in got:
+        if baseline is None:
+            return None, why or "the unmutated tree did not run, so there is no baseline"
+    first = got[0][0]
+    if any(other != first for other, _ in got[1:]):
+        return None, ("the staged trees disagree unmutated, so a verdict would depend "
+                      "on which shard drew the mutant")
+    return first, ""
 
 
 def cmd_coq(args: argparse.Namespace) -> int:
@@ -246,89 +421,29 @@ def cmd_coq(args: argparse.Namespace) -> int:
     work = e.lane_root / WORK / ("quickchick" if args.quickchick else "coq")
     out: list[str] = []
     harness_name = gallina.RANDOMIZED if args.quickchick else gallina.ENUMERATIVE
-    staged = work / rel
     original = read_source(root / rel)
-    harness = work / "harness" / harness_name
 
-    if args.quickchick:
-        gallina.stage(root, work)
-        if gallina.compile_proofs(found, work) + gallina.compile_support(found, work):
-            print("FAIL the unmutated tree did not compile, so there is no baseline")
-            return 1
-        passed, failed, _ = gallina.properties(found, work, harness)
-        if failed or not passed:
-            print(f"FAIL the unmutated tree's {harness_name} is not green: {failed} "
-                  f"property set(s) failed and {passed} passed")
-            return 1
-        baseline: list[str] = []
-        out.append(f"== baseline: {passed} property set(s) green under QuickChick, "
-                   f"{gallina.version(found)} in {switch}")
-    else:
-        got = gallina.emit(root, work, out)
-        if got is None:
-            out.append("FAIL the unmutated tree did not run, so there is no baseline")
-            print("\n".join(out))
-            return 1
-        baseline = got
-        out.append(f"== baseline: {len(baseline)} vector(s) from the Gallina front, "
-                   f"{gallina.version(found)} in {switch}")
+    # One tree per job, and the single-job path keeps the directory it always used, so
+    # a run that asked for no concurrency stages exactly where it staged before.
+    jobs = max(1, args.jobs)
+    trees = [work] if jobs == 1 else [work / f"j{n}" for n in range(jobs)]
+    baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick)
+    if baseline is None:
+        print(f"FAIL {why}")
+        return 1
+    said = (f"{len(baseline)} vector(s) from the Gallina front"
+            if not args.quickchick else "green under QuickChick")
+    out.append(f"== baseline: {said}, {gallina.version(found)} in {switch}"
+               + (f", over {len(trees)} staged tree(s) agreeing unmutated"
+                  if len(trees) > 1 else ""))
 
-    verdicts: list[Verdict] = []
-    picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
-                    args.limit, args.sample)
-    for mutant in picked:
-        write_source(staged, mutant.apply(original))
-        try:
-            failures = gallina.compile_dependents(found, work, rel)
-            if failures:
-                verdicts.append(Verdict(
-                    mutant, KILLED,
-                    "the prover refused " + ", ".join(f.source for f in failures),
-                    len(failures)))
-                continue
-            # The harness's own shared sources come after the proofs and their failure
-            # is a different verdict: a mutation the shipped statements accept and the
-            # harness cannot be built over is a mutant no oracle ran against.
-            if gallina.compile_support(found, work):
-                verdicts.append(Verdict(mutant, STILLBORN,
-                                        "the harness would not build over the mutant"))
-                continue
-            if args.quickchick:
-                passed, failed, why = gallina.properties(found, work, harness)
-                if failed:
-                    verdicts.append(Verdict(
-                        mutant, KILLED,
-                        f"the proofs accepted it and QuickChick refuted {failed} of "
-                        f"{failed + passed} property set(s): {why}", failed))
-                elif not passed:
-                    verdicts.append(Verdict(mutant, STILLBORN,
-                                            "the harness did not run over the mutant"))
-                else:
-                    verdicts.append(Verdict(
-                        mutant, SURVIVED,
-                        f"the proofs accepted it and {passed} property set(s) held"))
-                continue
-            lines, said = gallina.vectors(found, work, harness)
-            if said:
-                verdicts.append(Verdict(mutant, STILLBORN,
-                                        "the harness did not run over the mutant"))
-                continue
-            moved = _moved(baseline, lines)
-            if moved:
-                verdicts.append(Verdict(
-                    mutant, KILLED,
-                    f"the proofs accepted it and {moved} of {len(baseline)} vector(s) "
-                    "moved", moved))
-            else:
-                verdicts.append(Verdict(mutant, SURVIVED,
-                                        "the proofs accepted it and every vector "
-                                        "reproduced"))
-        finally:
-            write_source(staged, original)
+    picked, scope = picked_with_scope(root, rel, args)
+    verdicts = _run_shards(found, trees, rel, harness_name, picked, original,
+                           baseline, args.quickchick)
 
     code = summarize(out, verdicts, rel,
                      "prover-then-QuickChick" if args.quickchick
-                     else "prover-then-vector")
+                     else "prover-then-vector", scope)
     print("\n".join(out))
     return code
 
@@ -419,9 +534,8 @@ def cmd_properties(args: argparse.Namespace) -> int:
     out.append(f"== baseline: {base_said}")
 
     verdicts: list[Verdict] = []
+    picked, scope = picked_with_scope(root, rel, args)
     try:
-        picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
-                        args.limit, args.sample)
         for mutant in picked:
             write_source(path, mutant.apply(original))
             built = _build_harness(e)
@@ -447,7 +561,7 @@ def cmd_properties(args: argparse.Namespace) -> int:
     rebuilt = _build_harness(e)
     ok, said = _properties_run(harness) if rebuilt else (False, "the rebuild failed")
     out.append(f"== the lane's build tree, rebuilt from the restored source: {said}")
-    code = summarize(out, verdicts, rel, "$[test] harness")
+    code = summarize(out, verdicts, rel, "$[test] harness", scope)
     if not (rebuilt and ok):
         out.append(f"FAIL the lane's build tree does not hold the unmutated model; "
                    f"run `run.py model build` before anything reads {e.simulator}")
@@ -514,6 +628,15 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--quickchick", action="store_true",
                          help="let QuickChick's draws and shrinking decide instead "
                               "of the enumerative harness's vectors")
+        sub.add_argument("--jobs", type=int, default=1, metavar="N",
+                         help="stage N trees and run the population across them at "
+                              "once. Every mutant is one prover run and the trees "
+                              "share no file, so a machine with idle cores finishes "
+                              "in roughly an Nth of the wall clock; the partition is "
+                              "the tool's and is exhaustive whatever N is, which a "
+                              "hand-written one is not. Only this oracle takes it: "
+                              "`properties` writes into the checkout and so cannot "
+                              "have two of itself running")
     if name in ("list", "properties"):
         sub.add_argument("--file", required=True, help="the source to mutate")
     sub.add_argument("--region", action="append", default=[], metavar="NAME",
