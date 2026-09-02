@@ -17,13 +17,23 @@ cell states how a pair is carried in one column and by what in the next, and whe
 the cited entry carries what the column claims is a reading. One mode is the exception
 and K-74 takes it: R-17-001a fixes the answer for `residual` by naming the section that
 books it, so that column's claim has a membership question behind it.
+
+The mode column says what the construction claims and nothing about whether anything
+discharges it yet, and K-95 is the column that does. A cell's requirements each trace
+to the crown-jewel targets they constrain, the inventory gives each of those targets
+its rows and each row a status, and the cell's standing is that status lifted over the
+rows it reaches: `authored` where every one exists, `not authored` where none does,
+`partial` between. It is written into the matrix by `--fix` and never by hand, so a
+cell reading `proved` over specifications nobody has authored says so in the next
+column, in the inventory's own vocabulary rather than in a fourth mode.
 """
 
 import re
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from vos import provenance
-from vos.register import REQ_TOKEN_RE
+from vos.register import COVERAGE_MATRIX, REQ_TOKEN_RE, Artifacts, Register, cj_class
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -135,8 +145,8 @@ def _discharge(lines: list[str], cells: dict[str, str]) -> tuple[list[str], int,
     gaps: list[str] = []
     for pair, row in cells.items():
         cols = [c.strip() for c in row.strip().strip("|").split("|")]
-        if len(cols) != 5:
-            gaps.append(f"{pair} is not the five columns the matrix's header declares, "
+        if len(cols) != 6:
+            gaps.append(f"{pair} is not the six columns the matrix's header declares, "
                         "so its mode and its citations are not read")
             continue
         modes = [m.strip() for m in cols[3].split("/")]
@@ -150,6 +160,153 @@ def _discharge(lines: list[str], cells: dict[str, str]) -> tuple[list[str], int,
                 gaps.append(f"{pair} declares a residual and cites no §17 entry booking "
                             "it, so what the mode names as booked is booked nowhere")
     return vocab, residual, gaps
+
+
+# A matrix row with its standing as the sixth column. The head is the five columns the
+# other rules read and the standing is the one this rule writes; a row short of the
+# sixth does not match, and is reported rather than widened, because the column is
+# the header's to declare and K-38 already holds a row against its header.
+_CM_ROW_RE = re.compile(
+    r"^(?P<head>\| `B-\d\d` \| `P-\d` \|(?:[^|\r\n]*\|){3}) (?P<standing>[^|\r\n]*?) "
+    r"\|(?P<tail>[ \t]*)$")
+_CJ_TOKEN_RE = re.compile(r"CJ-[A-Z][A-Z-]*")
+# The inventory's two tables, read by the shape each row opens with: a specification
+# row by its number, a theorem row by its target, and a theorem's premises by the
+# inventory rows its own last column names.
+_CJ_SPEC_ROW_RE = re.compile(r"^\| (\d+) \|")
+_CJ_THEOREM_ROW_RE = re.compile(r"^\| `(CJ-[A-Z][A-Z-]*)` \|")
+_CJ_PREMISE_RE = re.compile(r"\brows? ((?:\d+(?:, )?)+)")
+# The inventory's three classes, spelled as its status column spells them.
+_STANDING_OF = {"authored": "authored", "partial": "partial", "unauthored": "not authored"}
+
+
+@dataclass
+class Standing:
+    """What K-95 decided about the matrix, and what it rewrote."""
+
+    classes: dict[str, int] = field(default_factory=dict)   # standing class -> cells
+    rows_reached: int = 0                                     # inventory rows some cell reaches
+    premises: int = 0                                         # theorem targets resolved to rows
+    gaps: list[str] = field(default_factory=list)
+    fixed: list[str] = field(default_factory=list)
+    text: str | None = None                                   # the matrix, rewritten
+
+
+def _inventory(art: Artifacts) -> tuple[dict[str, list[int]], dict[int, str | None], int]:
+    """Every CJ- target's inventory rows, and every row's status class.
+
+    A specification target reaches its rows through the inventory's own target
+    column, and a theorem target through the premises its row names, because a theorem
+    is proven against a specification and its standing is that specification's. The
+    third value is how many theorem targets resolved to any row at all, which is the
+    floor under the second reading: `CJ-ADMIT-IMPL` names no inventory row by design,
+    so an empty premise set is not a finding per target, and a theorem table this rule
+    can no longer read would leave every theorem-only cell reaching nothing.
+    """
+    rows_of: dict[str, list[int]] = {}
+    status: dict[int, str | None] = {}
+    for row in art.cj_rows:
+        cols = [c.strip() for c in row.strip().strip("|").split("|")]
+        m = _CJ_SPEC_ROW_RE.match(row)
+        if m is None or len(cols) < 3:
+            continue
+        number = int(m.group(1))
+        status[number] = cj_class(row)
+        for target in _CJ_TOKEN_RE.findall(cols[2]):
+            rows_of.setdefault(target, []).append(number)
+
+    premises = 0
+    for line in art.cj_lines:
+        m = _CJ_THEOREM_ROW_RE.match(line)
+        if m is None:
+            continue
+        cols = [c.strip() for c in line.strip().strip("|").split("|")]
+        named = [int(n) for hit in _CJ_PREMISE_RE.findall(cols[-1])
+                 for n in re.findall(r"\d+", hit)] if len(cols) >= 3 else []
+        if named:
+            premises += 1
+        rows_of.setdefault(m.group(1), []).extend(n for n in named if n in status)
+    return rows_of, status, premises
+
+
+def _standing(ctx: Context, reg: Register, art: Artifacts) -> Standing:
+    """K-95: every cell's standing is the inventory's, and `--fix` writes it.
+
+    The mode column says how the pair is carried and the citations say by what, and
+    neither says whether any of it exists: a cell reading `proved` over a theorem whose
+    specification is `not authored` in the inventory is a pair discharged by nothing,
+    and the matrix had no column in which to say so. This is that column, and it is
+    computed rather than authored, because a standing somebody wrote is a claim that
+    stops being true the day a row of the inventory moves.
+
+    The reading is a join of three artifacts, each by name: a cell's citations resolve
+    to entries, each entry's trace names the targets it constrains, and the inventory
+    gives each target its rows and each row a status. What is lifted from a row to a
+    cell is the inventory's own vocabulary: a cell whose rows are all authored stands
+    `authored`, one whose rows are none of them authored or partial stands
+    `not authored`, and everything between stands `partial`. A cell reaching no row is
+    a finding rather than a cell with nothing to say, and a cell reaching a row whose
+    status is in no class is left to K-25, which already reports that row, and is not
+    written from a class this rule cannot place.
+
+    Repaired rather than reported, on the counts group's ground: the value is
+    arithmetic over three enumerations the tool already reads, so a person retyping it
+    would be copying a derived fact. The shape is not repaired: a row short of the
+    sixth column is reported, the column being the header's to declare.
+    """
+    result = Standing()
+    rows_of, status, result.premises = _inventory(art)
+    if not status:
+        result.gaps.append("the crown-jewel inventory yields no specification row this "
+                           "rule can read, so no cell's standing is decided")
+        return result
+
+    counts = {"authored": 0, "partial": 0, "unauthored": 0}
+    reached_any: set[int] = set()
+    lines = ctx.text(COVERAGE_MATRIX).split("\n")
+    for i, line in enumerate(lines):
+        m = _CM_ROW_RE.match(line)
+        if m is None:
+            continue
+        cols = [c.strip() for c in m.group("head").strip().strip("|").split("|")]
+        pair = f"{cols[0].strip('`')} by {cols[1].strip('`')}"
+        reached = {n for ident in REQ_TOKEN_RE.findall(cols[4])
+                   for target in _CJ_TOKEN_RE.findall(reg.trace_of.get(ident, ""))
+                   for n in rows_of.get(target, [])}
+        if not reached:
+            result.gaps.append(f"{pair} cites requirements constraining no inventory "
+                               "row, so its standing is decided by nothing")
+            continue
+        reached_any |= reached
+        classes = {status[n] for n in reached}
+        if None in classes:
+            # K-25's finding, at the row; a standing lifted over it would be a class
+            # this rule invented
+            continue
+        if classes == {"authored"}:
+            cls = "authored"
+        elif "authored" not in classes and "partial" not in classes:
+            cls = "unauthored"
+        else:
+            cls = "partial"
+        counts[cls] += 1
+        want = _STANDING_OF[cls]
+        found = m.group("standing")
+        if found == want:
+            continue
+        if ctx.fix:
+            lines[i] = f"{m.group('head')} {want} |{m.group('tail')}"
+            result.fixed.append(f"fixed: {COVERAGE_MATRIX}: {pair}'s standing "
+                                f"{found} -> {want}")
+        else:
+            result.gaps.append(f"{pair} stands {found}, and the inventory's rows its "
+                               f"requirements constrain make it {want}")
+
+    result.classes = counts
+    result.rows_reached = len(reached_any)
+    if result.fixed:
+        result.text = "\n".join(lines)
+    return result
 
 
 ABSENCE_CONTRACT = "docs/absence-contract.md"
@@ -281,6 +438,23 @@ def run(ctx: Context) -> None:
                        f"every cell's discharge mode names one of the {len(modes)} the "
                        f"matrix declares, and each of the {residual} booking a residual "
                        "cites the §17 entry that books it", "  ")
+
+            standing = _standing(ctx, reg, art)
+            ctx.shared["cm_standing"] = standing.classes
+            ctx.shared["cm_standing_rows"] = standing.rows_reached
+            ctx.shared["cm_theorem_premises"] = standing.premises
+            if standing.text is not None:
+                ctx.fixed[COVERAGE_MATRIX] = standing.text
+            for line in standing.fixed:
+                rep.line(line)
+            n = standing.classes
+            rep.report("K-95", "cell(s) whose standing is not the inventory's:",
+                       standing.gaps,
+                       f"every cell stands as the inventory's rows its requirements "
+                       f"constrain make it, {n.get('authored', 0)} authored, "
+                       f"{n.get('partial', 0)} partial, {n.get('unauthored', 0)} not "
+                       f"authored, over the {standing.rows_reached} rows the cells reach",
+                       "  ")
 
         # the profile's CSR bank is the one table in a derived view whose rows are
         # decided one at a time rather than carried wholesale from a subsection, so
