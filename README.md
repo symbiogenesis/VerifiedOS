@@ -118,7 +118,7 @@ Three claim something weaker:
 | Transient-execution attacks, from Spectre and Meltdown to microarchitectural data sampling | No speculative execution, transient state, reorder buffer, or reservation stations exist | **🕳️&nbsp;Absent** |
 | Cross-thread SMT leakage and sibling-thread state corruption | One hardware thread per core; there is no second thread context | **🕳️&nbsp;Absent** |
 | Poisoning or aliasing of any dynamic predictor state | Prediction is static-only; BHT/PHT, BTB, and RAS state do not exist | **🕳️&nbsp;Absent** |
-| Cache timing and cache-eviction side channels | Two fixed-speed memory classes replace the cache hierarchy, leaving no hit/miss latency or eviction pattern to modulate; which class an address sits in is fixed when the image is composed, not by what ran recently | **🕳️&nbsp;Absent** |
+| Cache timing and cache-eviction side channels | Two fixed-speed memory classes replace the cache hierarchy, leaving no hit/miss latency or eviction pattern to modulate; which class an address sits in is fixed when the image is composed, not by what ran recently, and the address term that survives, which SRAM bank an access selects, is refused at the address in admitted secret-typed code | **🕳️&nbsp;Absent**<br>**✋&nbsp;Rejected** |
 | Cache-coherence protocol and stale-cache bugs | With no cached copies there is no coherence protocol to get wrong and no stale line to serve | **🕳️&nbsp;Absent** |
 | Address-translation and paging bugs | Virtual memory, the MMU, page tables, TLBs, walk caches, and the shootdown protocol are deleted | **🕳️&nbsp;Absent** |
 | Privilege-ring confusion and S/U transition bugs | Machine mode is the only mode; privileged operations require an unforgeable CHERI permission on PCC | **🕳️&nbsp;Absent**<br>**🛡️&nbsp;Enforced** |
@@ -134,11 +134,11 @@ Three claim something weaker:
 | DVFS and reactive power-control channels | Frequency control and activity-driven control loops are absent | **🕳️&nbsp;Absent** |
 | Refresh-timing channels | DRAM refresh and PRAC activity do not exist to observe | **🕳️&nbsp;Absent** |
 | Interconnect and quality-of-service contention channels | The admission proof emits a static time-division fabric schedule; best-effort arbitration does not exist. The NoC model is unauthored, so this absence is structural, not yet proved | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
-| Contention between high-assurance memory islands | A high-assurance island takes a whole SRAM macro or tier, sharing no path or arbiter with any peer; the unauthored-model residual above applies | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
-| Contention between low-sensitivity islands sharing an SRAM macro | Static per-island arbitration schedules the contention away, leaving only periphery, power delivery, and thermal mass shared; the same residual applies | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
+| Contention between high-assurance memory islands | A high-assurance island takes a whole SRAM macro or tier and hosts one domain, sharing no path, arbiter, or revocation array with any peer; the unauthored-model residual above applies | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
+| Contention between low-sensitivity islands sharing an SRAM macro, or domains sharing an island | Static per-island arbitration, sub-slotted per core inside a shared island, schedules the contention away; the macro's periphery, power delivery, and thermal mass, and inside a shared island the bank ports and the atomic stage, stay shared under a schedule rather than deleted, and the same residual applies | **🚩&nbsp;Residual** |
 | Variable latency on a secret operand | Every secret-reachable operation is fixed-latency (integer divide, the vector FPU including subnormals, atomics), and misaligned accesses trap rather than split | **🛡️&nbsp;Enforced** |
 | Variable-latency `vfdiv`/`vfsqrt` reached by a secret | The one exception to fixed latency is flow-rejected: no admitted crypto kernel uses either instruction | **✋&nbsp;Rejected** |
-| Secret-dependent address timing across SRAM banks | The flow discipline rejects secret-labeled element addresses, and the non-work-conserving schedule confines what remains to the issuing partition's slot | **✋&nbsp;Rejected** |
+| Secret-dependent address timing across SRAM banks | The flow discipline rejects a secret-labeled address, scalar or vector element, in admitted secret-typed code, and the non-work-conserving schedule confines the term to the issuing partition's own slot; no constant-time claim is made outside that code | **✋&nbsp;Rejected** |
 
 The timing rows claim architectural timing only: power and near-field electromagnetic leakage are outside that model, answered by the crypto core's masked datapath, whose row in [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission) carries the probing-model residual.
 
@@ -155,7 +155,7 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 | Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **🛡️&nbsp;Enforced** |
 | Corruption reaching across any isolation boundary | Each object, compartment, and kernel partition is reachable only through bounded capabilities rooted in the static distribution | **🛡️&nbsp;Enforced** |
 | Unsafe-language or compiler-emitted code bypassing spatial checks | Capability checks apply to emitted machine accesses regardless of source language | **🛡️&nbsp;Enforced** |
-| DMA bypassing spatial checks | Device transfers carry explicit capability operands, checked like CPU accesses | **🛡️&nbsp;Enforced** |
+| DMA bypassing spatial or revocation checks | Device transfers carry explicit capability operands, checked like CPU accesses; a window held by a running transfer is re-authorized against the revocation bitmap at each of its fabric grants, an obligation on the fabric the residual-risk register carries | **🛡️&nbsp;Enforced**<br>**🚩&nbsp;Residual** |
 | Writable-code injection and executable-data promotion | The initial capability forest contains no Store-and-Execute authority, and monotonicity preserves that W^X invariant | **🛡️&nbsp;Enforced**<br>**✅&nbsp;Proved** |
 | Corrupted pointers accidentally becoming live authority | A modified capability loses its validity tag or fails its bounds and permission checks | **🛡️&nbsp;Enforced** |
 
@@ -177,7 +177,7 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 | Forged entry points and calls into the middle of a component | Sealed forward-edge sentries constrain entry to declared sites | **🛡️&nbsp;Enforced** |
 | Forged or replayed return addresses | Sealed backward-edge sentries constrain return sites | **🛡️&nbsp;Enforced** |
 | Unprivileged code accessing system registers or switch machinery | Access-system-register authority is a permission on PCC, held only by the kernel | **🛡️&nbsp;Enforced** |
-| Stale capabilities surviving object reuse | Linear lifetime typing, revocation epochs, a budgeted sweep, quarantine, and the per-access load filter invalidate the old tenant before reuse | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
+| Stale capabilities surviving object reuse | Linear lifetime typing, revocation epochs, a budgeted sweep, quarantine, and the per-load filter over the loading island's own revocation array invalidate the old tenant before reuse; a device-held copy dies at its window's next fabric grant | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
 | Runtime creation of unreviewed protection domains or authority edges | Compartments, imports, exports, shared windows, and schedule slots are fixed and checked at composition or package admission | **🕳️&nbsp;Absent**<br>**✋&nbsp;Rejected** |
 | Kernel memory exhaustion and allocation-failure paths | The kernel neither allocates after boot nor exposes an allocation primitive; the composition-time memory plan places every kernel object | **🕳️&nbsp;Absent** |
 | Out-of-memory kills and cross-compartment memory pressure | Compartments can exhaust only their own pre-composed allotments; there is no shared kernel heap or reclaim policy | **🕳️&nbsp;Absent** |
@@ -335,7 +335,7 @@ The [typed assembly language](docs/typed-assembly-language.md), the typed machin
 
 ### The atomic-requirements register
 
-The [atomic-requirements register](docs/requirements-register.md) is the artifact that the specification's [independent-review release gate](docs/spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1389 numbered requirements.
+The [atomic-requirements register](docs/requirements-register.md) is the artifact that the specification's [independent-review release gate](docs/spec.md#r-05-150) audits: every normative obligation as a numbered requirement with an acceptance criterion, traced to the crown-jewel spec it constrains and to the prose as rationale. It covers all eighteen normative sections as 1392 numbered requirements.
 
 Its standing output is the extraction-defect list: normative claims that resist atomic restatement, which that gate treats as prose defects to repair rather than register omissions to work around. That list is empty, but the register declines to read emptiness as a clean bill: the sweep for such claims has not been asked exhaustively, so further instances are assumed present rather than absent.
 
