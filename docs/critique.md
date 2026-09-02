@@ -8,6 +8,116 @@ The review machinery makes the project's real position **countable**, and it is 
 
 **Not one of the numbered findings below is a legibility problem.** A legibility gap closes by writing a paragraph, and no finding does. What does close by writing, or by a call somebody has to make, is not charged as a finding; it stands on the work list, priced by what closing it costs.
 
+## The architecture's irreducible compromises
+
+*This section is judgment rather than a second findings ledger. Not every unattractive trade is a defect, and a project may remain the wrong product even if every theorem it names is proved. The point is to separate necessary ugliness, limitations of the present verification toolchain, and risks the design's own accounting underweights.*
+
+### The three objections
+
+**The two-class memory system is a rational defeat, and still a defeat.**
+The conceptually clean machine has one uniform latch-based memory, with 6T cells where density matters and higher-transistor-count cells wherever stability, voltage margin, or read isolation matters more.
+That machine has one access contract, one retention story, one power-off story, and no placement decision whose meaning depends on which kind of cell holds an address.
+It also cannot supply the capacity this project's workload floor asks for, local models above all, inside a reticle-limited device.
+
+R-15-247 answers with oxide-semiconductor 2T0C gain-cell decks for bulk storage.
+The answer is defensible, but it gives back much of the conceptual compression the all-SRAM design bought: a second fixed latency, a retention deadline, scheduled refresh and discharge, bank-current and power-delivery constraints, a second power-off confidentiality story, and a placement rule with no promotion or migration escape hatch.
+Worse, the second class is normative before R-15-247m's repaired-macro qualification exists and before the [bank-count exploration](bank-count-dse-contract.md) has the physical coefficients that prune or rank a candidate.
+The higher-transistor-count all-SRAM machine remains the prettier architecture; the gain-cell machine is the capacity compromise, not an equally elegant refinement.
+
+**The executable golden model does not become the product merely because it runs.**
+On the hardware side the golden artifact is a C emulator generated from Sail, while the product is synthesized RTL that must be shown to refine the Sail term.
+On the software side the host oracle is Gallina lowered through CertiCoq to Wasm, while the device artifact is GC-free purecap machine code produced through CompCert-C, Fiat/Bedrock synthesis, Vélus, or the arena route.
+The [implementation plan](implementation-checklist.md) does preserve one important identity: once produced, the same purecap device binary runs on the emulator, the RTL in co-simulation, and the FPGA.
+But that binary is not the host oracle, and the Sail emulator is not the RTL.
+
+This is less a bad local decision than an honest limit of the field.
+No verification language in this stack is simultaneously the most convenient specification notation, a directly synthesizable whole-machine implementation, and a producer of excellent optimized production binaries.
+The project therefore pays for compiler correctness, lowering, assembly, linking, image construction, RTL refinement, and the semantic bridges between them.
+Calling the sources singular does not make those correspondence obligations disappear.
+
+**Reuse is broad in the bibliography and narrow in the shipped artifact.**
+The project does pull in many third-party projects, but predominantly as pinned readings, executable references, differential oracles, proof lineages, or designs to re-home in Coq.
+Very little can be lifted unchanged into the final machine because the platform rejects the POSIX/Linux contract, standard privilege and memory machinery, ordinary executable loading, runtime allocation, firmware controllers, and any load-bearing proof checked outside the selected kernel.
+The custom capability dialect, typed IDL profile, package format, kernel, memory system, and admission language then narrow the reusable set again.
+
+Most individual refusals are defensible.
+Their compound cost is still an ecosystem island: less hardware choice, fewer mature drivers and libraries, less upstream testing on the exact configuration, and more code for which this project is the first serious integrator.
+Standards buy more than compatibility.
+They buy independent implementers, adversarial interoperability, accumulated failure knowledge, test corpora, replacement suppliers, and a second interpretation of prose that can disagree with the first.
+The design is right to reject a standard whose mechanism violates a security invariant, but it should count the loss of that epistemic diversity every time, not only the loss of applications that happen to speak the interface.
+
+### Unknown unknowns and underweighted consequences
+
+**A model that fits in memory may still be unusable for inference.**
+The dense class is justified most visibly by local language models, but capacity is not their binding performance quantity here.
+R-15-247p and R-12-085 make the second-class bank grant set the admitted token rate, and the performance account states that inference is bandwidth-bound while the matrix array's compute multiple acts on a term that is already slack.
+At low batch size, generation repeatedly streams much of the resident weight set; fitting the weights proves neither useful tokens per second nor acceptable joules per token.
+Until the qualified macro supplies sustained bandwidth, bank activation current, bitline energy, retention work, and thermal behavior together, the flagship justification for the second class remains a capacity result in search of a product result.
+
+**Private inference and efficient sparse inference pull in opposite directions.**
+R-15-171 admits a mixture-of-experts model only with every expert resident and fixed top-k, making the amount of work per token constant while routing still selects expert addresses.
+R-05-070 rejects any secret-labeled value that reaches a memory address.
+For a secret prompt, ordinary token-dependent expert routing therefore cannot pass admission merely because top-k is fixed: it must become address-oblivious, touch a fixed public schedule, or be refused for that secrecy class.
+The same pressure reaches variable context lengths, token-dependent sampling, early exits, sparse attention, and paged KV-cache techniques.
+The workload used to justify dense memory is thus also the workload whose modern efficiency tricks most often collide with the constant-time policy.
+
+**Static perfection spends utilization twice.**
+The offline memory plan does excellent work: it colors non-overlapping live ranges, charges a compartment on the peak of its aggregate live set rather than the sum of separate peaks, and makes exhaustion local and explicit.
+It cannot pool across an island boundary, and R-15-172 still sizes an island to its peak rather than the machine to the sum of averages.
+The [occam/transputer precedent](inspirations.md#occam-perihelion-helios-the-transputer-and-xmos-xcore-static-channels-in-silicon-and-the-boundary-every-rendezvous-machine-stops-at) sharpens the name: the planner really does delete classic allocator external fragmentation, so this is not the transputer's dynamic-heap "Swiss cheese" recurring under another spelling (R-08-012).
+What remains is **reservation fragmentation**: an empty pre-colored slot or pool member is physically idle yet unusable by a compartment the static plan did not assign it to, and a bank bound to another island cannot be borrowed at all (R-08-012c, R-08-047).
+The machine's aggregate idle capacity is therefore a sum of residues that need not be spendable by the workload peaking now.
+A conventional virtual-memory system combines address indirection with machine-wide physical-page allocation, allowing a page no longer backing one address space to back another; the advantage is statistical multiplexing across owners, not a better packing algorithm.
+This machine deliberately forgoes that general free-page pool (R-08-045).
+The cyclic executive makes the same trade in time: R-07-036 burns an idle slot across confidentiality labels rather than donating it.
+Population rungs, same-label rotation, suspension, and declared shedding soften the result, but no mechanism lends an idle bank, pool member, or slot across the boundary that made it safe.
+The product therefore pays for peak isolation in both bytes and cycles, so effective capacity and throughput can fall together on bursty interactive workloads.
+
+**Proof simplicity can become a proxy for physical truth.**
+R-15-108 correctly makes proof simplicity an objective of design-space exploration, because a smaller state machine is cheaper to refine and easier to audit.
+The Goodhart risk is that a compact formal model can be obtained by pushing difficult behavior below the model boundary: a memory access becomes one fixed constant, while process variation, retention, droop, yield, and temperature become qualification assumptions.
+The second memory class is the clearest instance, adopted partly because carrying one architecture with two constants is formally smaller than carrying a branch over whether the class exists.
+A design that is easy to state is not thereby easy to fabricate, and a constant in Sail can be the name of an unsolved analog system rather than a simplification of one.
+
+**A small implementation trust base can still have a large conceptual trust base.**
+One Coq kernel and one Sail anchor minimize the code that may grant a theorem, which is a real strength.
+They also concentrate common-mode error: an omitted observation, a wrong capability rule, a weak non-interference statement, or a mistaken physical abstraction can be shared by every proof above it.
+The review gate and the independent QEMU, RTL, parser, and protocol oracles are the right responses, but those oracles are deliberately evidence rather than authority.
+They can reveal disagreement and cannot make agreement evidence that the shared abstraction is the right one.
+The project's smallest trusted *implementation* therefore depends on a much larger trusted act of judgment: choosing the right semantics and leakage model in the first place.
+
+**Energy is a weaker gate than correctness, despite being existential for the reference product.**
+The architecture moves codec, graphics, radio, sensor, and inference work onto general-purpose verified cores to delete firmware trust bases.
+It also burns schedule slack, keeps large memory populations at declared retention states, performs background refresh, ECC scrub, and revocation reclamation, and gives up the energy efficiency of mature fixed-function media blocks.
+Some of those costs are individually small and several are offset by static power states, but they compose inside a mobile or laptop thermal envelope.
+The critique below already observes that no scheduled artifact can falsify the design in joules.
+A system can close every logical theorem and still fail as a portable computer because the battery, skin temperature, acoustic cooling budget, or sustained clock cannot carry the proof-friendly realization.
+
+**The memory bet is a yield and economics bet as well as a device-physics bet.**
+A repaired test macro can establish cell behavior and still say little about the yield of a reticle-scale logic die carrying many memory decks, native capability tags, stronger tag ECC, repair structures, power delivery, and tight cross-tier alignment.
+Repair must preserve the fixed-latency contract and the island binding rather than merely return the nominal bit count.
+If usable yield or test time is poor, the architecture can be functionally correct and commercially impossible, with no external module or commodity memory vendor available to absorb that risk.
+
+**Evolution remains proof-gated even where initial construction is modular.**
+A component whose implementation changes under a stable contract can often be re-certified locally, and the design has a fast containment path while the full fix is proved.
+A change to a semantic anchor, capability encoding, protocol grammar, memory map, leakage model, or shared interface reopens the seams above it; support for a new radio generation or memory technology may also require new silicon.
+This is the security benefit of freezing the machine and the operational cost of doing so.
+The risk is not merely slow feature delivery: it is a long degraded interval after the outside world changes in a way the frozen assumptions did not anticipate.
+
+**The largest unknown unknown is correlation.**
+The bespoke memory, capability dialect, compiler path, static kernel, scheduling model, package format, and server ecosystem are often justified independently.
+They are not independent bets.
+Most depend on the same premises: workloads can be bounded ahead of time, fixed latency is affordable, offline composition can replace adaptation, and enough optimized code can be recovered without dynamic machinery.
+If one premise fails at product scale, several layers can fail together: the memory plan no longer fits, the schedule no longer admits, the compiler cannot hide the latency, and compatibility offers no substitute implementation.
+The project is strongest when it deletes one mechanism after another from a proven base; it is weakest where several novel mechanisms lean on the same unmeasured physical or workload assumption.
+
+### Overall assessment
+
+The architecture is unusually coherent, and many of its bespoke choices are defensible when judged one at a time against the stated goal of minimizing trust.
+The criticism is that local defensibility does not establish global practicality.
+The programme most needs early falsifiers rather than further obligations: a qualified dense-memory macro exercised at the bandwidth and energy point local inference needs, a production-path vertical slice connecting the executable specifications to real device binaries and RTL, and independent implementations that attack the semantic anchors rather than merely agree with them.
+Until those exist, the design's conceptual beauty is real, but it is the beauty of a conditional construction whose hardest conditions are physical, economic, and ecological rather than logical.
+
 ## The dominant fact, which is not a finding
 
 **Every hedge is spent, no primary is verified, and the interval between is claimed at the tier it holds.** This is stated where it belongs, so it is not a defect and not an entry. It sits ahead of the findings because it is the single most important true thing about the project's assurance position, and because several of the findings below are read against it.
@@ -34,11 +144,11 @@ The project's only demonstrated velocity is in producing obligations. That is a 
 
 **The instrument is strong and the wrong shape.** `check.py` checks **referential integrity**: cited bookmarks resolve, requirements carry traces, no view drops a requirement in its bearing subsections, no asserted count disagrees with its artifact, no document carries encoding damage. Its reach includes this document: every count asserted here is anchored in the checker's registry and recomputed, so an edition of this critique cannot quietly disagree with the artifacts about a number. A requirement can nonetheless resolve perfectly, trace perfectly, appear in every view, count correctly, and state the wrong thing.
 
-**Face one: part of the review budget is spent on the document rather than the machine, and the class wants a tag.** A class of acceptance criteria is discharged by inspecting the prose rather than the artifact: *"the axiom is stated in §6 and §17, not implied"* (R-06-014); *"the consent TCB is named in §6 rather than hidden in userland"* (R-06-018); *"the cost is booked rather than omitted"* (R-12-020). How large the class is depends on where the line is drawn, so the honest figure is a band with its rule attached: counting every criterion whose test uses *stated*, *booked*, *named*, *recorded*, or *declared* while citing neither `check.py` nor a companion artifact yields **157 of 1384 acceptance criteria**; requiring the criterion to cite a `§` as the thing a reviewer opens narrows it to **31**. Both are snapshots and lower bounds, since amendments keep adding entries of exactly this class. These entries are **not** defects under R-05-153: that rule catches a claim that cannot be restated as an atomic, testable requirement, and "the consent TCB is named in §6" is atomic and testable by inspection, which is a test. The defect is one layer over, in R-05-152 making the register the audited object: a criterion that is a fact about the commentary spends the gate's scarcest resource, a reviewer's attention on the one pass that decides whether the specification says the right thing, on editorial hygiene. The repair is a **tag rather than a defect entry**: mark the spec-hygiene entries as such, so the review can price them instead of discovering them one at a time.
+**Face one: part of the review budget is spent on the document rather than the machine, and the class wants a tag.** A class of acceptance criteria is discharged by inspecting the prose rather than the artifact: *"the axiom is stated in §6 and §17, not implied"* (R-06-014); *"the consent TCB is named in §6 rather than hidden in userland"* (R-06-018); *"the cost is booked rather than omitted"* (R-12-020). How large the class is depends on where the line is drawn, so the honest figure is a band with its rule attached: counting every criterion whose test uses *stated*, *booked*, *named*, *recorded*, or *declared* while citing neither `check.py` nor a companion artifact yields **157 of 1389 acceptance criteria**; requiring the criterion to cite a `§` as the thing a reviewer opens narrows it to **31**. Both are snapshots and lower bounds, since amendments keep adding entries of exactly this class. These entries are **not** defects under R-05-153: that rule catches a claim that cannot be restated as an atomic, testable requirement, and "the consent TCB is named in §6" is atomic and testable by inspection, which is a test. The defect is one layer over, in R-05-152 making the register the audited object: a criterion that is a fact about the commentary spends the gate's scarcest resource, a reviewer's attention on the one pass that decides whether the specification says the right thing, on editorial hygiene. The repair is a **tag rather than a defect entry**: mark the spec-hygiene entries as such, so the review can price them instead of discovering them one at a time.
 
 **The amendment rate is the same finding from the other side.** The git log is the measure: repairs routinely land within a day of the finding that names them. That velocity is the strongest evidence in the repository that the specification workstream is real, and it is the problem: a corpus amended faster than anyone re-reads it is a corpus whose review is always of a previous edition.
 
-**Face two: the extraction-defect list opens on the wrong axis, and its own stated class is empty.** The list is empty, and the register is right that "an empty list is not the same as a swept one." But look at what the list is instrumented to catch. Its findings arrive from building a derived view and machine-checking it, which reports an enumeration two documents disagree about, never a passage that would not decompose, because nothing re-reads the prose against that question. **R-05-153's actual class, a normative claim that would not decompose, has zero entries**: not one of the 1384 requirements has yet been booked as standing for a passage that resisted restatement, and face one's entries are not the missing ones, because they decomposed fine, into requirements about the document. So two readings stand. Either the prose was atomic throughout, implausible for a document whose §17 entries routinely run five clauses deep with three parenthetical qualifications, or the extraction **accommodated** the prose where it should have confronted it. The register does not claim otherwise: its standing instruction is that sweep 2's question "has not been asked exhaustively, so further instances should be assumed present rather than absent." The channel that reports what the *prose* refused to decompose is not running, and an agenda drawn from enumerations alone means the meeting R-18-035 calls the review gate's agenda has barely started.
+**Face two: the extraction-defect list opens on the wrong axis, and its own stated class is empty.** The list is empty, and the register is right that "an empty list is not the same as a swept one." But look at what the list is instrumented to catch. Its findings arrive from building a derived view and machine-checking it, which reports an enumeration two documents disagree about, never a passage that would not decompose, because nothing re-reads the prose against that question. **R-05-153's actual class, a normative claim that would not decompose, has zero entries**: not one of the 1389 requirements has yet been booked as standing for a passage that resisted restatement, and face one's entries are not the missing ones, because they decomposed fine, into requirements about the document. So two readings stand. Either the prose was atomic throughout, implausible for a document whose §17 entries routinely run five clauses deep with three parenthetical qualifications, or the extraction **accommodated** the prose where it should have confronted it. The register does not claim otherwise: its standing instruction is that sweep 2's question "has not been asked exhaustively, so further instances should be assumed present rather than absent." The channel that reports what the *prose* refused to decompose is not running, and an agenda drawn from enumerations alone means the meeting R-18-035 calls the review gate's agenda has barely started.
 
 **Face three: the derived views can be wrong in the half nothing checks, and there are more of them every month.** [crown-jewels.md](crown-jewels.md) is declared "Normative as a **view**." The *quantitative* half of that class is closed the only way such things close: `check.py` parses the status column into its three classes, recomputes the ratio, and fails where a document asserts a figure the artifact does not bear. The *qualitative* half, which is most of it, is untouched: whether a row's `partial` is doing work `not authored` should do, whether a cited requirement is the *right* ground, whether a discharge mode in [coverage-matrix.md](coverage-matrix.md) reports what its cited requirements actually carry, invisible by construction wherever the claim names no place. Every artifact that arrives widens that surface, machine-checked for **presence** and none for **truth**, and a view is normative whether or not it has been read. The only lever this finding has is substitution: *whether R-17-030a's seams are the right ones* is not answerable, but it is **replaced** by a mechanical question it implies, whether every requirement using the vocabulary of refusal is conferred or dispositioned (finding 3). The matrix is where that lever's reach is easiest to read and hardest to extend: one of its discharge modes, `residual`, names §17 rather than a construction, so a cell reporting its remainder as booked there is decidable against the section it names, while the rest of the vocabulary names constructions and stays a reading. That substitution is available wherever a qualitative claim has a lexical shadow it can be held against, and most of the list above has none.
 
