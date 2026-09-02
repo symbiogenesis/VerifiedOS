@@ -61,7 +61,7 @@ The declared 64 bytes is interior to that set, which is the useful shape of the 
 
 ## 4. Why one parameter answers to two geometries
 
-The block is a first-class unit and a second-class unit at once, and the coupling is not a symmetry anybody chose. `cbo.zero` and `cbo.scrub` are the first class's allocation and verify units, sized against an SRAM macro row. But R-15-247h puts second-class **refresh** on `cbo.scrub` as well, rather than on a mechanism of its own, in the composition where the schedule prefers software to the register slave. So the same block that must be a whole number of SRAM macro rows must also be a whole number of oxide-deck rows inside one page, and the two geometries have no reason to admit a common multiple that is also a power of two inside the C1 to C6 set.
+The block is a first-class unit and a second-class unit at once, and the coupling is not a symmetry anybody chose. `cbo.zero` and `cbo.scrub` are the first class's allocation and verify units, sized against an SRAM macro row. But `cbo.zero`, `cbo.scrub`, `cloadtags` and `creclaim` reach the second class on the same terms as the first (R-15-247s), which makes the allocation and verify units second-class units too. So the same block that must be a whole number of SRAM macro rows must also be a whole number of oxide-deck rows inside one page, and the two geometries have no reason to admit a common multiple that is also a power of two inside the C1 to C6 set.
 
 That is the failure R-15-014a (vii) is written against, and it is why C7 and C8 are separate rows rather than one. A search that evaluated C7 alone would return a healthy-looking interval; the point at which C8 turned out to admit nothing inside it would be R5, long after the freeze.
 
