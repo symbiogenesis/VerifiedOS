@@ -56,6 +56,12 @@ from vos.register import read_artifacts, read_register
 from vos.report import Reporter
 
 
+def _utf8_output() -> None:
+    """Make redirected output obey the corpus's UTF-8 encoding, on either lane."""
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 def run(root: Path, fix: bool = False) -> Reporter:
     """One whole run, as data. The caller decides what to do with the verdict, which
     is what lets the mutation selftest read a run back instead of parsing its
@@ -88,6 +94,7 @@ def run(root: Path, fix: bool = False) -> Reporter:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _utf8_output()
     parser = argparse.ArgumentParser(
         description="Check every derived fact against the artifact that owns it.")
     parser.add_argument("--fix", action="store_true",

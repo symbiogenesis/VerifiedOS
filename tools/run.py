@@ -57,6 +57,12 @@ type Main = Callable[[list[str]], int]
 GUEST = ("wsl", "-u", "root", "-e", "python3", "tools/run.py")
 
 
+def _utf8_output() -> None:
+    """Make redirected output obey the corpus's UTF-8 encoding, on either lane."""
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 def _usage() -> str:
     """Every command, what it decides, and the lane it decides it in."""
     width = max(len(command.name) for command in COMMANDS)
@@ -91,6 +97,7 @@ def _in_guest(root: Path, command: Command, argv: list[str]) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _utf8_output()
     args = list(sys.argv[1:] if argv is None else argv)
 
     if args and args[0] in ("help", "--help", "-h"):
