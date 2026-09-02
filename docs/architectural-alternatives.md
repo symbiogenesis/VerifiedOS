@@ -742,6 +742,52 @@ Non-normative; no spec-body change.
 
 ---
 
+## POSIX `fork()` on a statically composed machine: newly tractable on CHERI, declined anyway, and buying no performance even if it were admitted
+
+Where the entry above declines the *hardware* indirection that would reinstate the deleted MMU, this one declines the *software* primitive that is the usual reason to want it back.
+The proposal is to admit `fork()`: duplicate a running compartment, give the copy its own view of the parent's memory, and let the two diverge under copy-on-write.
+It earns a full entry rather than a pointer at R-02-001 because the record as it stood did not decide it. [The register](requirements-register.md) bans `fork()` twice, at R-02-001 and R-08-001, and both times on the ground of **ambient authority**, while [Inspirations & Prior Art](inspirations.md) simultaneously records **µFork (SOSP 2025)** as live evidence that CHERI tags make `fork` "newly tractable" by relocating references.
+*Banned for ambient authority* beside *tractable on CHERI* is a reader's invitation to conclude the ban is a legacy of the pre-CHERI reasoning. It is not, and the grounds that actually decide are below.
+
+**The steelman.**
+Opal's own proponents concluded that Unix could not be built above a native Opal kernel, naming the impossibility of `fork` and the loss of copy-on-write where pointers would need relocating; µFork answers exactly the pointer-relocation half of that, using validity tags to find and rewrite the references a duplicated object graph invalidates.
+So the historical impossibility argument is genuinely retired, and `fork` is a primitive with four real uses: cheap process creation that skips image load and initialization, fault isolation of a risky operation behind a process boundary, inherited channels, and a lazy consistent point-in-time view of a still-mutating heap.
+
+**Four grounds, none of them ambient authority.**
+- **No compartment is minted at runtime.** `fork`'s product is a new compartment with its own memory and its own schedule entitlement, and R-14-009 states the reason the origin pool exists at all: static composition admits no compartment minted at runtime. There is no admission-time object for a compartment that did not exist when the generation was signed, so the primitive has nothing to produce into. This is the ground R-02-001's criterion now carries.
+- **There is nothing to hang the copy-on-write on.** Detecting the parent's first write to a shared granule needs page protection, which §15 deletes, or a conditional in the store path, which R-15-181 will not take: the granule is the atomic write unit and data, both ECC planes and the validity tag bits commit together at fixed latency, so a data-dependent branch there is admission test 2 and the fault handler it would branch to is hidden state surviving a partition switch, admission test 3.
+- **The relocation µFork's tractability rests on is banned outright.** R-08-020 states that compaction and relocation never arise because the packing already happened at compile time, and a tag-directed rewrite of the reference population is an autonomous memory-touching walker, admission test 5. It is also not the lazy thing `fork` is prized for: its cost scales with the live capability population, not with the granules the parent goes on to write.
+- **The copies have no slot.** R-08-045 charges every physical byte to the signed composition, with no overcommit, no swap, and no runtime path that requests unplanned storage from a global pool. `fork`'s share-until-written economy *is* an overcommit economy; without one the worst case is reserved up front, so the parent's copies are not merely expensive, they are unplannable.
+
+**And admitting it against all four would buy no performance, because each of its speed advantages is measured against a baseline absent here.**
+Cheap creation is fast relative to `exec`, and §14 binds an already-resident, already-colored compartment out of a composition-fixed pool: no page tables to duplicate, there being none; no image to load, relocate, or dynamically link (the Oberon entry above declines the last).
+Lazy copying is fast relative to copying eagerly, but a copy-on-write fault is a trap, an allocation, a copy and a shootdown, which on a machine whose data path takes no traps at all would be the largest single latency event in the system, imported into a design that currently has none.
+Zero-copy sharing of read-only state is fast relative to per-process address spaces, and in one physical address space that sharing is already total and already free, sharing being the default rather than the achievement.
+Inherited channels are the component graph §7 wires at build time.
+`fork` is therefore a *compression* of costs this machine does not pay: deleting the MMU deletes its savings along with the mechanism that made them savings, and only its additions survive.
+
+**Where the four uses go instead.**
+Running a new program is the composition graph (§7), or, where a bounded runtime multiplicity is genuinely required, the §14 origin pool with its hard ceiling and crash-only eviction (R-14-009, R-14-010).
+Fault isolation of a risky operation is a compartment plus crash-only restart (§16), which is the property the process boundary was approximating.
+Inherited channels are wired at compose time.
+The fourth use is the one that deserves its own answer.
+
+**The copy-on-write database case, which is `fork`'s strongest remaining use.**
+The `BGSAVE` shape (fork the server, let the child serialize a frozen heap while the parent keeps taking writes) buys not the snapshot but the *non-blocking* snapshot, and three mechanisms already carry the property, depending on where the state lives.
+The authoritative state belongs in the §10 L1 copy-on-write B^ε-tree, where snapshots are retained roots keyed by snapshot-version and subvolumes snapshot and reflink in O(1), so a snapshot is taken by taking a version, and it is durable, per-extent authenticated and crash-refined where `fork`'s is none of the three: the LMDB shape rather than the Redis one.
+The ordinary case needs no application code at all, R-10-035 declaring durable state as typed regions the platform checkpoints and R-10-036 committing them at a declared quiescent point as one L0 journal transaction, so the atomicity that `fork` was being used to manufacture is inherited from the stack's crash-refinement theorem instead of being another unproved crash surface.
+An in-memory view that must be frozen while work continues freezes as a **typestate**, not as a page trick: R-05-096b's exclusive-access discipline makes publication a transition that consumes exclusive writable ownership to produce immutable published ownership, returning writable ownership only once every published reader is consumed, decided in the derivation at admission rather than by a fault handler at run time.
+What genuinely goes is the non-blocking part, and it is booked rather than argued away: a compartment that cannot tolerate the quiescent-point pause double-buffers explicitly, at the same doubled reservation the no-overcommit rule would have charged `fork` anyway but visible in the static memory plan and to §11, and R-17-043a already carries the rollback window between checkpoints as declarative durable state's own residual.
+
+**The non-deciding observation, kept because a reader supplies it first.**
+`fork` does also inherit descriptors and identity, which is the ambient authority R-02-001 and R-08-001 name, and that reading is true and decides nothing: Capsicum's `pdfork` and Fuchsia's handle model (both in [Inspirations & Prior Art](inspirations.md)) show the inheritance can be made explicit without the primitive changing shape, so a `fork` whose child received only manifest-declared capabilities would clear that objection and still fail all four grounds above.
+
+**Disposition:** declined, and the reason is re-based. µFork retires the historical impossibility argument and tractability was never the binding constraint: static composition mints no compartment at runtime (R-14-009), there is no write barrier to build copy-on-write on (§15, R-15-181, admission tests 2 and 3), the reference relocation it needs is banned (R-08-020, admission test 5), and the copies are uncharged in a closed capacity equation (R-08-045).
+Its four uses land on the composition graph and the origin pool, crash-only restart, compose-time wiring, and the versioned storage stack respectively, and on the performance axis it is a compression of costs this machine does not pay, so admitting it against the grounds would cost the store path its fixed latency and return nothing.
+Non-normative; the only spec-body touch is R-02-001's criterion, sharpened so the `fork()` clause is decided by static composition rather than by ambient authority.
+
+---
+
 ## Enclave architectures: Sanctum, MI6, Keystone; defending against the speculation and sharing this design already deleted
 
 The proposal is hardware **enclaves**: a privileged security monitor carving isolated, attested execution environments out of a shared machine: MIT's **Sanctum** (SGX-class isolation with a small monitor; Costan/Lebedev/Devadas, USENIX Security '16), **MI6** (enclaves on a *speculative, out-of-order* core; Bourgeat et al., MICRO '19: from the same MIT group as Kôika), and **Keystone** (a RISC-V enclave framework built on **PMP**; EuroSys '20).
