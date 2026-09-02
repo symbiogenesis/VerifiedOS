@@ -98,23 +98,47 @@
       so `round_indices` is a suffix of the round-index list and the twelve-
       round form is rounds 12 through 23 of the same constant table. That is
       stated here as a theorem over an arbitrary state and an arbitrary round
-      count rather than as a known-answer check, because it is the one thing
-      about R-15-056a a round-count argument cannot show and the one thing a
-      published answer for the short form would show only at one input.
-   6. **What "permutation" means in R-15-056, and how much of it is
-      discharged.** The entry's acceptance calls Keccak-f a permutation, which
-      is a bijection on the 1600-bit state. This file discharges three
-      quarters of that and says so: pi is a bijection on the twenty-five
-      lanes, and its inverse recovers an arbitrary state; every rotation the
-      rho table actually uses is invertible on an arbitrary sixty-four-bit
-      word; iota is an involution over an arbitrary constant and an arbitrary
-      lane; and chi is a bijection on an arbitrary row of five bits, checked
-      over all thirty-two rows. **Theta's invertibility is not stated here.**
-      It is a linear map on the 320-bit column-parity space whose inverse is
-      dense, and no prelude-only argument for it fits in this item; the gap is
-      named rather than papered over, and the composite claim that Keccak-p is
-      a bijection is therefore an obligation this file states and does not
-      close.
+      count, because it is the one thing about R-15-056a a round-count
+      argument cannot show and a known-answer check would show at one input.
+      The short form carries that one input too, and it is the weakest answer
+      in the file: the intermediate-value file read below publishes the
+      twenty-four-round state and not this one, so what the twelve-round form
+      is checked against is the constant the Sail unit's harness carries,
+      whose warrant is that file's own record of an independent
+      implementation rather than a source a reader can open. That is an
+      answer from outside both transcriptions and not a copy of either, which
+      is what admits it; it is not a published answer and nothing here calls
+      it one.
+   6. **How much of the word "permutation" is discharged, and whose
+      obligation that is.** R-15-056's *acceptance* carries no bijection
+      clause. It reads, whole, and with the refinement symbol the register
+      writes there spelled out as this tree's prose spells it, "it clears all
+      five admission tests; its correctness is a Sail invariant (fixed
+      theta/rho/pi/chi/iota rounds, no tables, no secret-dependent control
+      flow) riding RTL-refines-Sail", whose subject is the Sail unit and not
+      this file, by the same test reading 1 applies to R-15-058. Nothing in
+      it says bijection, injective, invertible or permutation at all. The
+      word *permutation* is in the entry's IS line,
+      describing what the fork adopts, so the obligation to show it of the
+      transcription here is one **this file states of itself** and not a
+      clause of that entry left open. Four of the five steps carry it: pi is a
+      bijection on the twenty-five lanes, and its inverse recovers an
+      arbitrary state; every rotation the rho table actually uses is
+      invertible on an arbitrary sixty-four-bit word; iota is an involution
+      over an arbitrary constant and an arbitrary lane; and chi is a bijection
+      on an arbitrary row of five bits, checked over all thirty-two rows.
+      **Theta's invertibility is not stated here, and nothing below moves
+      it.** It is a linear map on the 320-bit column-parity space whose
+      inverse is dense, no prelude-only argument for it fits in this item,
+      and the composite claim that Keccak-p is a bijection is an obligation
+      this file states of itself and does not close. What theta carries
+      instead is the other half of a step map's account, its index structure
+      over arbitrary lane contents and arbitrary column parities: which five
+      lanes a column parity reads, decided by the statement itself, and which
+      of the two neighbouring columns is the rotated one, refuted of the
+      exchange. Neither of those is an invertibility statement and neither is
+      offered as a part of one, so the four-of-five figure above is what it
+      was before theta acquired an obligation at all.
    7. **The domain separators decide, and no known answer says so.** SHA3-256
       and SHAKE256 have the same rate and the same capacity and differ only in
       the suffix appended before the padding, so the property that separates
@@ -174,26 +198,53 @@
    rather than 25 or 5 written again.
 
    Non-vacuity (R-05-165, R-05-166). Every structural obligation below is
-   stated of an arbitrary table, word, state or construction and refuted of an
-   alternative that the standard's own sentence excludes: a mod-5 arm written
-   one row early, a rho recurrence started one step early, a constant table
-   read in reverse, a first-twelve-rounds short form, a chi missing its own
-   term, a pad that admits an empty block, a pad without its final one, and a
-   sponge with no domain separator. Inhabitation is the published answers
-   themselves, so no check below holds of everything and none holds of
-   nothing.
+   stated of an arbitrary table, word, state or construction, and nine
+   constructions the standard's own sentences exclude are built here and
+   refuted: a mod-5 arm written one row early, a rho recurrence started one
+   step early, a constant table read in reverse, a first-twelve-rounds short
+   form, a theta whose two neighbouring columns are exchanged, a chi missing
+   its own term, a pad that admits an empty block, a pad without its final
+   one, and a sponge with no domain separator. **Three obligations stated
+   over arbitrary arguments carry no such construction, and are named rather
+   than folded into that list**: iota's involution, rho's rotations being
+   undone by their complements, and theta's column reading. For the first two
+   a near alternative to an involution, or to a rotation and its complement,
+   is a different function rather than a transcription defect, so a
+   construction would have nothing to exhibit. For the third it would be a
+   transcription defect and would be worth building, except that the
+   statement already refuses it: the twenty-five lane contents are distinct
+   named variables and the right-hand side names which five of them each
+   column reads, so a flattening transposed to y + 5x makes that theorem
+   false rather than leaving it silent. The fixed values nothing above
+   reaches are pinned in a section of their own and say there why.
+   Inhabitation is the published answers themselves, so no check below holds
+   of everything and none holds of nothing.
 
-   Where each published answer came from, which also discharges the
-   acknowledgement condition the NIST terms state. The round-constant table,
-   the rho offsets and both all-zero permutation states are read from
-   `tests/TestVectors/KeccakF-1600-IntermediateValues.txt` in `XKCP/XKCP` at
-   commit `eb5244d6`, on 2026-08-31. The digests and squeezed outputs are read
-   from `tests/TestVectors/ShortMsgKAT_SHA3-224.txt` and its five siblings in
-   the same tree at the same commit on the same date, which are the known-
-   answer files NIST's own genKAT harness emits. The empty-message SHA3-256
-   answer is the same one the NIST ACVP SHA3-256 sets carry for the same
-   input, and it is the answer the Sail unit's own harness checks, which is
-   where the two transcriptions meet.
+   Where each published answer came from, and under which instrument. The
+   round-constant table, the rho offsets and both all-zero permutation states
+   are read from `tests/TestVectors/KeccakF-1600-IntermediateValues.txt` in
+   `XKCP/XKCP` at commit `eb5244d6`, on 2026-08-31. The digests and squeezed
+   outputs are read from `tests/TestVectors/ShortMsgKAT_SHA3-224.txt` and its
+   five siblings in the same tree at the same commit on the same date, which
+   are the known-answer files NIST's own genKAT harness emits. **The arm is
+   XKCP's own and not the NIST notice**, terms being read at the instrument
+   the bytes came out of rather than at the lineage of the program that wrote
+   them. XKCP's `LICENSE` is a decomposition of a CC0 default across six named
+   exceptions, and `tests/TestVectors/` is in none of them: the fourth
+   exception is the NIST notice over `tests/UnitTests/genKAT.c/h` and the
+   Standalone harness, which are the emitter's sources rather than the emitted
+   files. What that leaves is one residue, named rather than closed: the
+   default sentence is stated over the tree's *source and header files*, and
+   a vector text file is not squarely inside its subject either, so the file
+   states no arm that reaches these bytes by name. Under every arm it does
+   state, nothing reaches them carrying a notice, change-notice or
+   acknowledgement condition. The NIST terms are `usnistgov/ACVP-Server`'s and
+   reach the ACVP sets, which this file does not quote at all. The
+   twelve-round answer is neither tree's: it is the Sail
+   unit's own harness constant, recorded there as produced by an independent
+   implementation. The empty-message SHA3-256 answer is the same one the NIST
+   ACVP SHA3-256 sets carry for the same input, and it is the answer the Sail
+   unit's harness checks, which is where the two transcriptions meet.
    ========================================================================= *)
 
 Open Scope list_scope.
@@ -354,12 +405,32 @@ Fixpoint set_lane (i : nat) (w : word) (a : state) : state :=
 Definition theta_C (a : state) (x : nat) : word :=
   fold_over (fun acc y => wxor acc (lane a (idx x y))) zero_word (upto side).
 
-Definition theta (a : state) : state :=
+(* D[x] = C[x-1] xor rot(C[x+1], 1). The column below is taken unrotated and the
+   column above rotated, and that asymmetry is the whole of the step: exchange
+   the two reads and every other clause about theta still holds. It is written
+   as its own definition so that the exchange has something to be an
+   alternative *to*, and the step is parameterized over it for the same reason
+   the round is parameterized over the step. *)
+Definition theta_D (c : list word) (x : nat) : word :=
+  wxor (nth_of (prev5 x) c zero_word) (rotl 1 (nth_of (next5 x) c zero_word)).
+
+Definition theta_over (dstep : list word -> nat -> word) (a : state) : state :=
   let c := map_over (theta_C a) (upto side) in
-  let d := map_over (fun x => wxor (nth_of (prev5 x) c zero_word)
-                                   (rotl 1 (nth_of (next5 x) c zero_word)))
-                    (upto side) in
+  let d := map_over (dstep c) (upto side) in
   map_over (fun i => wxor (lane a i) (nth_of (col_of i) d zero_word)) (upto lanes).
+
+Definition theta (a : state) : state := theta_over theta_D a.
+
+(* The transcription defect a table of five columns invites, and the one FIPS
+   202's own sentence excludes: the two neighbouring columns exchanged, so the
+   column above is taken unrotated and the column below rotated. It is a theta
+   in every other respect, it moves no lane, and it agrees with the standard's
+   wherever the two neighbours carry the same parity, which is what holds it to
+   the single difference it exists to exhibit. *)
+Definition theta_D_swapped (c : list word) (x : nat) : word :=
+  wxor (nth_of (next5 x) c zero_word) (rotl 1 (nth_of (prev5 x) c zero_word)).
+
+Definition theta_swapped (a : state) : state := theta_over theta_D_swapped a.
 
 (* -------------------------------------------------------------------------
    rho, FIPS 202 Algorithm 2. The offsets are **derived** from the standard's
@@ -538,8 +609,13 @@ Definition iota (rc : word) (a : state) : state :=
    same constant table rather than at a second table.
    ------------------------------------------------------------------------- *)
 
-Definition keccak_round (rc : word) (a : state) : state :=
-  iota rc (chi (pi (rho (theta a)))).
+Definition keccak_round_over (th : state -> state) (rc : word) (a : state) : state :=
+  iota rc (chi (pi (rho (th a)))).
+
+Definition keccak_round (rc : word) (a : state) : state := keccak_round_over theta rc a.
+
+Definition keccak_step_over (th : state -> state) (a : state) (ir : nat) : state :=
+  keccak_round_over th (round_constant_at ir) a.
 
 Definition keccak_step (a : state) (ir : nat) : state :=
   keccak_round (round_constant_at ir) a.
@@ -561,6 +637,12 @@ Definition keccak_prefix (n : nat) (a : state) : state :=
 Definition keccak_f1600 (a : state) : state := keccak_p rounds_total a.
 
 Definition keccak_p1600_12 (a : state) : state := keccak_p rounds_short a.
+
+(* The whole permutation with the exchanged theta and nothing else changed,
+   which is what makes the published answer decide against that exchange rather
+   than against a construction that differs everywhere. *)
+Definition keccak_f1600_theta_swapped (a : state) : state :=
+  fold_over (keccak_step_over theta_swapped) a (round_indices rounds_total).
 
 (* -------------------------------------------------------------------------
    The state as a bit string and as bytes, FIPS 202 s3.1.2 and sB.1.
@@ -969,6 +1051,81 @@ Proof. vm_compute. reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
+   theta, over arbitrary lane contents. Two things a theta transcription gets
+   wrong, and neither is visible in a round count or an offset table: which
+   five lanes a column parity reads, and which of the two neighbouring columns
+   is the rotated one. Both are stated here over arbitrary words rather than at
+   a chosen state, and the second is refuted of the exchange that is its only
+   near alternative.
+   ------------------------------------------------------------------------- *)
+
+(* The parity of column x is the fold over the five lanes x, x+5, x+10, x+15
+   and x+20 and reaches no lane outside that column, stated over twenty-five
+   arbitrary words. The lanes are named on the right rather than read back
+   through `lane`, so a flattening transposed to y + 5x names five different
+   variables and the statement fails. *)
+Theorem theta_C_reads_the_five_lanes_of_its_own_column :
+  forall w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 : word,
+    map_over (theta_C (
+      w0 :: w1 :: w2 :: w3 :: w4 ::
+      w5 :: w6 :: w7 :: w8 :: w9 ::
+      w10 :: w11 :: w12 :: w13 :: w14 ::
+      w15 :: w16 :: w17 :: w18 :: w19 ::
+      w20 :: w21 :: w22 :: w23 :: w24 :: nil)) (upto side) =
+    wxor (wxor (wxor (wxor (wxor zero_word w0) w5) w10) w15) w20 ::
+    wxor (wxor (wxor (wxor (wxor zero_word w1) w6) w11) w16) w21 ::
+    wxor (wxor (wxor (wxor (wxor zero_word w2) w7) w12) w17) w22 ::
+    wxor (wxor (wxor (wxor (wxor zero_word w3) w8) w13) w18) w23 ::
+    wxor (wxor (wxor (wxor (wxor zero_word w4) w9) w14) w19) w24 :: nil.
+Proof. intros. reflexivity. Qed.
+
+(* And D[x] takes the column below unrotated and the column above rotated by
+   one, over five arbitrary column parities. This is the clause the exchange
+   below negates and the only clause that separates the two. *)
+Theorem theta_D_takes_the_column_below_unrotated_and_the_one_above_rotated :
+  forall c0 c1 c2 c3 c4 : word,
+    map_over (theta_D (c0 :: c1 :: c2 :: c3 :: c4 :: nil)) (upto side) =
+    wxor c4 (rotl 1 c1) ::
+    wxor c0 (rotl 1 c2) ::
+    wxor c1 (rotl 1 c3) ::
+    wxor c2 (rotl 1 c4) ::
+    wxor c3 (rotl 1 c0) :: nil.
+Proof. intros. reflexivity. Qed.
+
+Theorem the_exchanged_theta_takes_the_other_neighbour :
+  forall c0 c1 c2 c3 c4 : word,
+    map_over (theta_D_swapped (c0 :: c1 :: c2 :: c3 :: c4 :: nil)) (upto side) =
+    wxor c1 (rotl 1 c4) ::
+    wxor c2 (rotl 1 c0) ::
+    wxor c3 (rotl 1 c1) ::
+    wxor c4 (rotl 1 c2) ::
+    wxor c0 (rotl 1 c3) :: nil.
+Proof. intros. reflexivity. Qed.
+
+(* The exchange is held to that single difference: where the five column
+   parities are one arbitrary word the two neighbours coincide and the two
+   steps agree at every column, so what separates them below is the asymmetry
+   and not a second defect that drifted in beside it. *)
+Theorem the_exchange_is_invisible_where_the_column_parities_agree :
+  forall c : word,
+    map_over (theta_D (c :: c :: c :: c :: c :: nil)) (upto side) =
+    map_over (theta_D_swapped (c :: c :: c :: c :: c :: nil)) (upto side).
+Proof. intros. reflexivity. Qed.
+
+(* On a state with structure in it the two steps part, and the published answer
+   is what decides between them: the whole permutation with the exchanged theta
+   and nothing else changed does not reach the Keccak team's published state. *)
+Example the_exchanged_theta_is_a_different_step :
+  let a := keccak_f1600 zero_state in
+  bits_eqb (bits_of_state (theta a)) (bits_of_state (theta_swapped a)) = false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example a_permutation_on_the_exchanged_theta_misses_the_published_state :
+  bits_eqb (bits_of_state (keccak_f1600_theta_swapped zero_state))
+           (bits_of_state (keccak_f1600 zero_state)) = false.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -------------------------------------------------------------------------
    pi. The step is a permutation of the twenty-five lanes and nothing else,
    which is the one clause of R-15-056's "permutation" a table can be wrong
    about silently: a mod-5 arm transcribed one row early makes pi drop one
@@ -1126,6 +1283,46 @@ Example the_short_form_starts_at_round_twelve :
 
 Example the_long_form_starts_at_round_zero :
   nth_of 0 (round_indices rounds_total) 0 = 0 := eq_refl.
+
+(* The twelve-round form against an answer produced outside both
+   transcriptions. The Keccak team publishes the 24-round all-zero state and
+   not the 12-round one, so this constant is the one the Sail unit's harness
+   carries at `keccak_kat_zero_12`, which that file's own header records as
+   produced by an independent FIPS 202 implementation cross-checked against a
+   standard library's SHA-3. It is therefore a third route and not a copy of
+   either transcription, and it is the only thing here that decides the short
+   form at a value rather than only against the long one. Its lane order is the
+   Sail literal's read through `keccak_state_of_literal`, which is this file's
+   lane order, and each lane's eight bytes are least significant first. *)
+Example keccak_p1600_12_of_the_all_zero_state :
+  bytes_of (bits_of_state (keccak_p1600_12 zero_state)) =
+  0x17 :: 0x86 :: 0xA7 :: 0xB9 :: 0x38 :: 0x54 :: 0x5E :: 0x8E ::
+  0x1E :: 0xD0 :: 0x59 :: 0xF2 :: 0x50 :: 0x6A :: 0xCD :: 0xD9 ::
+  0x35 :: 0x1F :: 0xA9 :: 0x52 :: 0xC6 :: 0xE7 :: 0xB8 :: 0x87 ::
+  0xC5 :: 0xE0 :: 0xE4 :: 0xCD :: 0x67 :: 0xE0 :: 0x93 :: 0x10 ::
+  0x45 :: 0x5A :: 0xD9 :: 0xF2 :: 0x90 :: 0xAB :: 0x33 :: 0xB0 ::
+  0x45 :: 0x1A :: 0xDD :: 0xA8 :: 0x72 :: 0x2F :: 0xA7 :: 0xE0 ::
+  0x9C :: 0x2F :: 0x67 :: 0x14 :: 0xAA :: 0x80 :: 0x37 :: 0xC5 ::
+  0x1D :: 0x07 :: 0x51 :: 0x00 :: 0xF5 :: 0x47 :: 0xDD :: 0x3E ::
+  0xCC :: 0x8A :: 0x17 :: 0x0C :: 0x31 :: 0x1D :: 0xA3 :: 0xB3 ::
+  0xA0 :: 0xAA :: 0x57 :: 0x92 :: 0xA5 :: 0x86 :: 0xB5 :: 0x79 ::
+  0x9B :: 0xF9 :: 0xB1 :: 0xB3 :: 0x3D :: 0x7C :: 0x4A :: 0xBC ::
+  0x93 :: 0x67 :: 0x8A :: 0xE6 :: 0x63 :: 0x40 :: 0x87 :: 0x68 ::
+  0x66 :: 0x25 :: 0x0E :: 0x2E :: 0x33 :: 0x03 :: 0x6C :: 0x5C ::
+  0xDA :: 0x30 :: 0xF0 :: 0xB9 :: 0x02 :: 0x12 :: 0xAA :: 0x9C ::
+  0x9F :: 0x7A :: 0xCF :: 0x2B :: 0x78 :: 0x9A :: 0x3B :: 0x5F ::
+  0x23 :: 0x79 :: 0xAE :: 0x61 :: 0xE0 :: 0xC1 :: 0x36 :: 0xE5 ::
+  0xEC :: 0x87 :: 0x3C :: 0xB7 :: 0x18 :: 0xB6 :: 0xE9 :: 0x6D ::
+  0xC2 :: 0x8A :: 0x91 :: 0x70 :: 0xF1 :: 0xD1 :: 0xBE :: 0x2A ::
+  0xB7 :: 0x24 :: 0xED :: 0xDA :: 0x53 :: 0xBD :: 0xAB :: 0x6A ::
+  0x5A :: 0xE1 :: 0x2E :: 0x2C :: 0x6A :: 0x41 :: 0xC1 :: 0xBF ::
+  0xAF :: 0x52 :: 0x09 :: 0xB9 :: 0x36 :: 0xE0 :: 0xCF :: 0xC6 ::
+  0xD7 :: 0x60 :: 0x70 :: 0xDC :: 0x17 :: 0x36 :: 0x50 :: 0x45 ::
+  0xE4 :: 0x7A :: 0x9F :: 0xC2 :: 0xB2 :: 0x11 :: 0x56 :: 0x62 ::
+  0x7A :: 0x64 :: 0x30 :: 0x2C :: 0xDB :: 0x71 :: 0x36 :: 0xD4 ::
+  0x1C :: 0xA0 :: 0x2C :: 0x22 :: 0x76 :: 0x0D :: 0xFD :: 0xCF :: nil
+.
+Proof. vm_compute. reflexivity. Qed.
 
 Example the_first_twelve_rounds_are_not_the_last_twelve :
   bits_eqb (bits_of_state (keccak_prefix rounds_short zero_state))
@@ -1449,7 +1646,11 @@ Print Assumptions set_bit.
 Print Assumptions xor_at.
 Print Assumptions set_lane.
 Print Assumptions theta_C.
+Print Assumptions theta_D.
+Print Assumptions theta_over.
 Print Assumptions theta.
+Print Assumptions theta_D_swapped.
+Print Assumptions theta_swapped.
 Print Assumptions rho_step.
 Print Assumptions triangular.
 Print Assumptions rho_walk.
@@ -1482,7 +1683,9 @@ Print Assumptions rounds_short.
 Print Assumptions round_constants.
 Print Assumptions round_constant_at.
 Print Assumptions iota.
+Print Assumptions keccak_round_over.
 Print Assumptions keccak_round.
+Print Assumptions keccak_step_over.
 Print Assumptions keccak_step.
 Print Assumptions round_indices.
 Print Assumptions prefix_indices.
@@ -1490,6 +1693,7 @@ Print Assumptions keccak_p.
 Print Assumptions keccak_prefix.
 Print Assumptions keccak_f1600.
 Print Assumptions keccak_p1600_12.
+Print Assumptions keccak_f1600_theta_swapped.
 Print Assumptions bits_of_state.
 Print Assumptions state_of_bits.
 Print Assumptions byte_of_bits.
@@ -1533,6 +1737,12 @@ Print Assumptions sha3_512_of_a_message_spanning_two_blocks.
 Print Assumptions shake128_of_the_empty_message_at_256_bits.
 Print Assumptions shake256_of_the_empty_message_at_512_bits.
 Print Assumptions shake128_of_the_empty_message_across_two_squeezes.
+Print Assumptions theta_C_reads_the_five_lanes_of_its_own_column.
+Print Assumptions theta_D_takes_the_column_below_unrotated_and_the_one_above_rotated.
+Print Assumptions the_exchanged_theta_takes_the_other_neighbour.
+Print Assumptions the_exchange_is_invisible_where_the_column_parities_agree.
+Print Assumptions the_exchanged_theta_is_a_different_step.
+Print Assumptions a_permutation_on_the_exchanged_theta_misses_the_published_state.
 Print Assumptions covers_each_index_once.
 Print Assumptions pi_is_a_bijection_on_the_twenty_five_lanes.
 Print Assumptions the_destination_form_is_a_bijection_too.
@@ -1556,6 +1766,7 @@ Print Assumptions drop_of_zero.
 Print Assumptions the_short_form_is_the_last_rounds_and_not_the_first.
 Print Assumptions the_short_form_starts_at_round_twelve.
 Print Assumptions the_long_form_starts_at_round_zero.
+Print Assumptions keccak_p1600_12_of_the_all_zero_state.
 Print Assumptions the_first_twelve_rounds_are_not_the_last_twelve.
 Print Assumptions the_two_frozen_round_counts_are_two_permutations.
 Print Assumptions the_constant_table_read_in_reverse_is_a_different_table.
