@@ -38,7 +38,7 @@ Six things about that shape are not guessable and cost a first-time reviewer the
 - **Derived facts are computed, not copied.** Every count, table, list, and cross-artifact figure the documents assert is recomputed from the artifact that owns it by `tools/check.py`, which reports drift and rewrites it under `--fix`. Do not audit arithmetic by hand: run the tool, and treat a figure it does not own as the finding.
 - **A set stated in one place is cited from elsewhere, never repeated.** Where an entry needs a set another entry states, it cites that entry. Two statements of one membership are free to drift, which is the failure the conferral machinery exists to foreclose.
 - **`§n` is resolved by hand.** The checker holds only that *some* document numbers that section, because the numbering is shared. A bare `§n` names the register's section; the profile's where the sentence says the profile states it.
-- **The letter-suffix density is high, and that is a signal rather than a defect.** 436 of the register's 1389 entries are post-hoc insertions, which is evidence about edit rate against review stability. [critique.md](critique.md) reads it that way and does not charge it as an error.
+- **The letter-suffix density is high, and that is a signal rather than a defect.** 439 of the register's 1392 entries are post-hoc insertions, which is evidence about edit rate against review stability. [critique.md](critique.md) reads it that way and does not charge it as an error.
 
 ## 4. The co-read ledger, and what blessing means
 
