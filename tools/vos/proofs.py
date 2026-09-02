@@ -44,3 +44,30 @@ def waves(sources: list[Path]) -> list[list[Path]]:
         done |= {source.stem for source in ready}
         remaining = [source for source in remaining if source not in ready]
     return out
+
+
+def dependents(sources: list[Path], stem: str) -> list[list[Path]]:
+    """One source and every source that reaches it through a `Require`, in that same
+    dependency order, with the waves nothing in them dropped.
+
+    What a mutation loop has to recompile, and the argument for why the rest may be
+    left alone: a source outside this closure Requires the mutated one nowhere, so
+    neither its own text nor any `.vo` it is built against has moved, and compiling it
+    again can only reproduce the answer already on disk. The closure therefore holds
+    the whole failure set rather than a prefix of it, which is what lets the loop go on
+    reporting *which* proofs refused a mutant and not merely that one did.
+
+    A stem no source carries returns nothing, and the caller is the one that decides
+    what that means; this function will not guess a closure for a name it cannot find.
+    """
+    stems = {source.stem for source in sources}
+    needs = {source: local_requires(source, stems) for source in sources}
+    reach = {stem}
+    while True:
+        grown = reach | {source.stem for source in sources if needs[source] & reach}
+        if grown == reach:
+            break
+        reach = grown
+    narrowed = ([source for source in wave if source.stem in reach]
+                for wave in waves(sources))
+    return [wave for wave in narrowed if wave]
