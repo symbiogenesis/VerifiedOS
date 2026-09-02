@@ -3280,8 +3280,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the differential runs are off-device and no admission decision cites them; the residual is reliability rather than confidentiality, nothing on the device deciding Tier-2 functional correctness (R-14-005).
 · Trace: CJ-TAL-SOUND
 
-**R-14-008e** MUST: The browser's own chrome, built-in libraries, and privileged JS are not downloaded content and are compiled natively through the §13 admission path rather than interpreted.
-· Accept: no image-resident browser code runs on the interpreter, so the no-JIT cost falls only on network-delivered content.
+**R-14-008e** MUST: The browser's own chrome and built-in libraries are not downloaded content and are native image code admitted through the §13 path rather than interpreted; the certifying toolchain (R-05-021, §18) carries no JavaScript compiler, so what an upstream engine writes as privileged or self-hosted JS is authored natively here and never compiled from JS.
+· Accept: no image-resident browser code runs on the interpreter and no image-resident JavaScript exists for it to run, so the no-JIT cost falls only on network-delivered content.
 · Trace: CJ-CERISE
 
 **R-14-008f** IS: There is no AOT route for web-delivered JS and Wasm, which are dynamic content and for which Wasm is no system execution target (R-14-013), so a faster interpreter narrows the no-JIT gap and no interpreter closes it; a web application shipped through the §13 install path is instead an ordinary native Tier-2 citizen paying none of that cost.
