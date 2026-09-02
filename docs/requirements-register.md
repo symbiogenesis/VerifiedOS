@@ -104,7 +104,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ## §2. Non-Goals
 
 **R-02-001** MUST NOT: There is no POSIX or Linux compatibility in any form: no `fork()`, no uid/gid, no ambient authority, no Linux-personality shim, and no legacy VM.
-· Accept: software runs natively against the capability substrate or it does not run; there is no ambient-authority pocket universe anywhere on the machine.
+· Accept: software runs natively against the capability substrate or it does not run; there is no ambient-authority pocket universe anywhere on the machine. The `fork()` clause is decided by static composition and not by the ambient authority beside it: a conforming machine mints no compartment at runtime (R-14-009), so no address-space duplication primitive is expressible however tractable CHERI tag relocation makes one, and a `fork` handing its child only manifest-declared capabilities is refused on the same ground.
 · Trace: CJ-CERISE
 
 **R-02-002** IS: There is no broad hardware support: a curated allowlist only.
