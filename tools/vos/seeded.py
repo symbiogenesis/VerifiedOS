@@ -69,6 +69,40 @@ class Seeded(Protocol):
 
 
 @dataclass(frozen=True)
+class Scope:
+    """How much of a population a run covered, and what it left behind.
+
+    A narrowed run is evidence about the mutants it ran and about nothing else, and the
+    way that goes wrong is silence rather than error: a report stating its verdicts and
+    not its scope reads as a whole-population run at every later citation, and the
+    citation is what a completion note quotes. So the scope travels with the verdicts,
+    is printed whether or not it is whole, and is repeated on the closing line, because
+    the closing line is the one that gets copied.
+
+    `left` names the axis a reader can act on rather than listing the absent mutants; a
+    caller that knows its population's axes fills it and one that does not leaves it
+    empty. Being partial is not a finding and does not fail a run: `--limit` and
+    `--sample` are legitimate and the point here is that their result cannot be quoted
+    as something it is not.
+    """
+
+    whole: int
+    ran: int
+    left: tuple[str, ...] = ()
+
+    @property
+    def partial(self) -> bool:
+        return self.ran < self.whole
+
+    def stated(self) -> str:
+        """The scope as one clause, for the closing line to carry."""
+        if not self.partial:
+            return f"over the whole population of {self.whole} mutant(s)"
+        return (f"over {self.ran} of {self.whole} mutant(s), which is a sample and "
+                "not the population")
+
+
+@dataclass(frozen=True)
 class Verdict:
     """One mutant, run: what the oracle decided and on how much.
 
@@ -101,8 +135,37 @@ def chosen[T](population: list[T], limit: int, sample: int) -> list[T]:
     return population[:limit] if limit else population
 
 
+def shard[T](population: list[T], parts: int) -> list[list[T]]:
+    """A population split `parts` ways, for that many workers to run at once.
+
+    **Exhaustive by construction, whatever the counts are.** Every member lands in
+    exactly one part because the strides `i`, `i + n`, `i + 2n` partition the indices,
+    so there is no arithmetic here that could leave a member out and no list anybody
+    has to keep in step with the population. That is the property a hand-assembled
+    partition lacks: an operator list written out by hand is where a whole kind of
+    defect goes unrun and nothing says so.
+
+    Striding rather than slicing into contiguous blocks, because a generated population
+    is in operator order and the operators do not cost the same. A contiguous split
+    hands one worker every member of the slowest operator; a stride interleaves them,
+    and the parts finish together without anyone having measured a member.
+    """
+    return [population[i::parts] for i in range(parts)]
+
+
+def unshard[T](parts: list[list[T]]) -> list[T]:
+    """`shard` undone: the members back in population order.
+
+    Read round-robin by position, which is exactly the inverse of the stride. What it
+    is for is that a run's report should not depend on which worker finished first,
+    the population order being the order a reader compares two runs in.
+    """
+    return [part[k] for k in range(max((len(p) for p in parts), default=0))
+            for part in parts if k < len(part)]
+
+
 def summarize(out: list[str], verdicts: list[Verdict], subject: str,
-              oracle_name: str) -> int:
+              oracle_name: str, scope: Scope | None = None) -> int:
     """The one report shape every loop shares, and the exit code it implies.
 
     Three of the four verdicts decide the code and they decide it for the reasons
@@ -113,6 +176,12 @@ def summarize(out: list[str], verdicts: list[Verdict], subject: str,
     The unseeded count is printed only where there is one, so a loop that cannot
     produce the verdict reports exactly what it reported before this module carried
     it, and a loop that can makes it conspicuous the moment it does.
+
+    `scope` says how much of the population those verdicts are about, and it is stated
+    twice on purpose: once in the header block a reader skims and once on the closing
+    line, which is the line a completion note copies. A loop that passes none reports
+    what it reported before, so the scope is an addition to this report and never a
+    silent change to one.
     """
     killed = [v for v in verdicts if v.outcome == KILLED]
     survived = [v for v in verdicts if v.outcome == SURVIVED]
@@ -126,6 +195,10 @@ def summarize(out: list[str], verdicts: list[Verdict], subject: str,
                f"{len(still)} stillborn")
     out.append(f"   {len(verdicts)} mutant(s) run: {counted}"
                + (f", {len(unseeded)} unseeded" if unseeded else ""))
+    if scope is not None:
+        out.append(f"   scope: {scope.stated()}")
+        if scope.left:
+            out.append("   not asked about at all: " + ", ".join(scope.left))
     if killed:
         moved = [v.moved for v in killed if v.moved]
         span = (f", on between {min(moved)} and {max(moved)} lines"
@@ -163,5 +236,6 @@ def summarize(out: list[str], verdicts: list[Verdict], subject: str,
                    f"{oracle_name} oracle decided nothing")
     if found:
         return 1
-    out.append(f"ok all {live} live mutant(s) were killed by the {oracle_name} oracle")
+    said = f"ok all {live} live mutant(s) were killed by the {oracle_name} oracle"
+    out.append(said if scope is None else f"{said}, {scope.stated()}")
     return 0
