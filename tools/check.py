@@ -43,6 +43,7 @@ found from this file, never from the working directory.
 """
 
 import argparse
+import io
 import sys
 from pathlib import Path
 
@@ -57,9 +58,14 @@ from vos.report import Reporter
 
 
 def _utf8_output() -> None:
-    """Make redirected output obey the corpus's UTF-8 encoding, on either lane."""
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
+    """Make redirected output obey the corpus's UTF-8 encoding, on either lane.
+
+    `reconfigure` belongs to `io.TextIOWrapper` and not to the `TextIO` protocol the
+    streams are typed as, so the guard is the type checker's, and a stream that is not
+    a wrapper (a harness's capture, say) keeps the encoding its owner gave it."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
 
 
 def run(root: Path, fix: bool = False) -> Reporter:
