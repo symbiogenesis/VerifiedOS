@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 401 of them across 71 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 402 of them across 71 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1652,6 +1652,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-180** method: an undeclared per-agent workaround reaches neither the log nor the shared cache, where a derivation reaches all three
 · Raised: I7
 · Disposition: closed, the lane derived from the checkout rather than declared, so it is unique by construction
+
+**F-180a** method: splitting shared state per lane closes the sharing and leaves owed the copy that makes a new lane warm, and a seeder warms only the paths that call it, two of which called none
+· Raised: I7
+· Disposition: closed, every command that can stand a tree up seeding it before it configures one, and both memo caches seeding through one function whose donor is allowed to be its own target
 
 **F-181** upstream-defect: this tree carries workflow files and their being inert is what keeps them green, two of their own lines naming a target and an option the curation has since removed
 · Raised: I8
