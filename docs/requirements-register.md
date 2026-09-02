@@ -883,16 +883,16 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: no admitted path reaches a nonce that a checkpoint restore or a key re-derivation reinstated.
 · Trace: CJ-TAL-SOUND, CJ-CRYPTO-SPEC
 
-**R-05-126d** MUST: A secret-typed value carries the relevance grade: it must be consumed by an erasing operation, and the obligation is checked on the final binary so that it reaches scalar registers and compiler-introduced spill slots the partition switch does not clear.
-· Accept: weakening is denied on secret-typed values; the check is stated over the emitted binary, not the source.
+**R-05-126d** MUST: A secret-typed value carries the must-erase grade, a grade of its own on the axis relevance occupies: weakening is denied as under relevance, but only an erasing operation consumes the value, every other use leaving the obligation on it and on each copy, and the obligation is checked on the final binary so that it reaches scalar registers and compiler-introduced spill slots the partition switch does not clear.
+· Accept: weakening is denied on secret-typed values and no use but an erasing operation discharges one, a spilled copy included; the check is stated over the emitted binary, not the source.
 · Trace: CJ-TAL-SOUND, CJ-CT-SOUND
 
 **R-05-126e** IS: Restart discharges the erasure obligation wholesale, a crash-only compartment erasing its whole footprint, so the rule binds the path that returns while holding a secret.
 · Accept: the obligation is stated over returning paths; a restarting compartment carries no separate scrub proof.
 · Trace: CJ-TAL-SOUND
 
-**R-05-126f** MUST: Physical quantities carry their dimension as a phantom parameter on the existing type formers, decided by syntactic type equality and erased before code generation.
-· Accept: the parameter is inhabited by no term, adds no runtime representation, and is decided by the same structural comparison R-05-129 fixes.
+**R-05-126f** MUST: Physical quantities carry their dimension as a phantom parameter, the dimension slot the language grammar gives its integer former ([typed-assembly-language.md](typed-assembly-language.md)), decided by syntactic type equality and erased before code generation.
+· Accept: the parameter is inhabited by no term, adds no runtime representation, is a name the certificate declares and defines nothing by, and is decided by the same structural comparison R-05-129 fixes.
 · Trace: CJ-TAL-SOUND
 
 **R-05-126g** MUST: The monotonic scheduler counter and the disciplined wall-clock view are distinct dimensions, as are cycles and microseconds, bytes and elements, and a slot index and a slot width; the §11 admission arithmetic consumes the dimensioned types.
@@ -1079,8 +1079,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the tower is exactly source ⊑ spec ⋈ binary ⊑ source robustly ⋈ binary-against-Sail ⋈ RTL ⊑ Sail ⋈ die-matches-RTL, the last an axiom and the rest theorems.
 · Trace: CJ-T, CJ-RTL-SAIL
 
-**R-05-159** IS: Four unary invariants form the substrate every seam assumes: spatial safety (the Cerise universal contract), temporal safety (revocation ⋈ the CHERI-TAL linear-capability discipline), W^X (no write-and-execute capability in the derivation forest), and write-before-read (the definite-initialization attribute over eager-zeroized memory).
-· Accept: each is separately stated and proved; the first three are carried by the substrate, the fourth by the admission type-check.
+**R-05-159** IS: Four unary invariants form the substrate every seam assumes: spatial safety (the Cerise universal contract), temporal safety (revocation, the R-08-005 per-load filter and its epoch, ⋈ the CHERI-TAL linear-capability discipline), W^X (no write-and-execute capability in the derivation forest), and write-before-read (the definite-initialization attribute over eager-zeroized memory).
+· Accept: each is separately stated and proved; the first three are carried by the substrate, the fourth by the admission type-check, and the second's soundness lemma consumes the load filter as a machine theorem of the pinned profile.
 · Trace: CJ-CERISE, CJ-TAL-SOUND
 
 **R-05-160** IS: The seam lemmas are exactly nine: NI ⋈ timing; WCET ⋈ isolation; CT ⋈ RTL ⊑ Sail; CHERI-TAL ⋈ Sail; AE ⋈ non-interference; liveness ⋈ schedulability; consent ⋈ declassification; crypto ⋈ hardness; attestation ⋈ capability safety.
