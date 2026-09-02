@@ -6,9 +6,11 @@ kind. The tag plane's cost is not a count of anything: it is one register field,
 granule width, read as a ratio, and four documents state that ratio in four spellings
 between them. Nothing about it is anybody's measurement, so a granule that moves has
 to move every one of them in the same edit, which is exactly what a claim is. The
-band beside it is the other half and is not arithmetic at all, the DECTED code over
-the plane being fixed at no width; that half is held by inequality against the bare
-figure and never rewritten.
+band beside it is the other half: the DECTED code over the plane is a width
+R-15-181a states as a judgment, and everything built on that width is arithmetic
+again, the plane's share of the codeword with its code and the megabytes a gigabyte
+of data then carries, so the share is held against the entry's own bit counts and
+the band against the share, and only the code's width itself is never rewritten.
 """
 
 import re
@@ -51,14 +53,21 @@ TAG_PLANE: list[tuple[str, str, str]] = [
     (ESTIMATES, "tags-per-codeword", r"(?<=data bits carrying )[\w-]+(?= tag bits)"),
 ]
 
-# The DECTED-inclusive bands beside the bare figures. These are judgment: the code over
-# the plane is "about one check bit per codeword" and the register fixes no width for
-# it, so the band is nobody's arithmetic and is never rewritten. What is machine-held is
-# that it stands above the plane it includes, which is the one thing a band that had
-# drifted off its own figure would stop doing.
+# The plane's share of the codeword, read from the entry that fixes the code over it:
+# the DECTED check bits it states as a judgment, the bit count it gives the plane with
+# that code, and the share of the payload it states for the two together. The last two
+# are arithmetic over the first and the fields above, so both are held.
+SHARE_RE = re.compile(r"DECTED code of about (\d+) bits.*?tag plane with its own code "
+                      r"is (\d+), some ([\d.]+)% of the payload")
+
+# The DECTED-inclusive bands beside the bare figures. The code's width is R-15-181a's
+# judgment and is never rewritten; what is machine-held is that each band opens at
+# the arithmetic of that width, above the bare plane it includes, and that the sidecar
+# figure beside them is the product it claims to be. The bands' upper ends are the
+# fallback codeword's and are held by K-69 against the entry stating them.
 BAND_MB_RE = re.compile(r"about (\d+)–(\d+) MB of SRAM per GB")
 BAND_PCT_RE = re.compile(r"some ([\d.]+)–([\d.]+)% of the bulk array")
-SIDECAR_RE = re.compile(r"consume (\d+)–\d+% of a \d+–(\d+) GB first class")
+SIDECAR_RE = re.compile(r"consume (\d+)–\d+% of a [\d.]+–([\d.]+) GB first class")
 TIER_RE = re.compile(r"a (\d+) GB bulk tier")
 
 
@@ -118,10 +127,29 @@ def tag_plane(ctx: Context) -> None:
         if r.finding:
             missed.append(r.finding)
 
-    # The bands are read from the entry that states them and compared by inequality
-    # alone. A band that includes the plane's own code must exceed the bare plane; the
-    # sidecar's low end is the one figure in the sentence that is a product of the
-    # others and so has an answer.
+    # The plane's share with its code, held against the entry's own bit counts: the
+    # plane is the codeword's tag bits plus the check bits over them, and the share is
+    # that over the payload.
+    share = SHARE_RE.search(reg.body.get("R-15-181a", ""))
+    plane_bits: int | None = None
+    if not share:
+        missed.append("R-15-181a no longer states the tag plane's share of the codeword "
+                      "in a form this rule reads")
+    else:
+        code, plane_bits, stated = int(share.group(1)), int(share.group(2)), share.group(3)
+        if plane_bits != p // g + code:
+            missed.append(f"R-15-181a puts the tag plane with its code at {plane_bits} "
+                          f"bits, where its {p // g} tag bits under {code} check bits give "
+                          f"{p // g + code}")
+        want_share = figures.quantize(100 * plane_bits / p, 1)
+        if stated != want_share:
+            missed.append(f"R-15-181a states the tag plane's share as {stated}% of the "
+                          f"payload, where {plane_bits} bits per {p} give {want_share}%")
+
+    # The bands are read from the entry that states them. Each opens at the plane's
+    # share with its code, so the low ends are arithmetic over R-15-181a's bits and
+    # must exceed the bare plane; the sidecar's low end is the one figure in the
+    # sentence that is a product of the others and so has an answer.
     accept = reg.accept_text.get("R-15-247a", "")
     band_mb, band_pct = BAND_MB_RE.search(accept), BAND_PCT_RE.search(accept)
     sidecar, tier = SIDECAR_RE.search(accept), TIER_RE.search(accept)
@@ -135,9 +163,17 @@ def tag_plane(ctx: Context) -> None:
         if float(band_pct.group(1)) <= 100 / g:
             missed.append(f"R-15-247a's DECTED band opens at {band_pct.group(1)}% of the "
                           f"array, at or below the bare plane's {expected['plane-exact']}")
+        if plane_bits is not None:
+            # the bare plane's megabytes per gigabyte, scaled by the plane with its
+            # code over the tag bits alone
+            want_mb = round(1000 / g * plane_bits / (p // g))
+            if int(band_mb.group(1)) != want_mb:
+                missed.append(f"R-15-247a's DECTED band opens at {band_mb.group(1)} MB "
+                              f"per GB, where R-15-181a's {plane_bits} bits over "
+                              f"{p // g} tag bits give {want_mb}")
         # low band MB per GB over the whole tier, against the largest first class
         want = round(float(band_mb.group(1)) * int(tier.group(1))
-                     / (int(sidecar.group(2)) * 1000) * 100)
+                     / (float(sidecar.group(2)) * 1000) * 100)
         if int(sidecar.group(1)) != want:
             missed.append(f"R-15-247a says a sidecar consumes {sidecar.group(1)}% of the "
                           f"largest first class at the band's low end, the figures "
