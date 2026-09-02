@@ -2822,6 +2822,7 @@ The residuals group by trust source, indexed below and developed in the entries 
 - **The matrix is a derived view, computed and checked like the frozen profile, the absence contract, and the crown-jewel inventory.** <a id="r-17-001b"></a>
   Every requirement already carries a trace, so the coverage matrix is derived rather than authored beside the register: it states no obligation of its own, cites the requirements carrying every cell, and is defective rather than authoritative where the two disagree.
   What the tooling decides is what a reader cannot: that both enumerations are stated once, that every pair of them appears exactly once, and that no cell rests on nothing.
+  What it computes is what no cell may claim for itself: whether the crown-jewel specifications a cell's requirements constrain exist yet, read from the inventory's status column and written into the cell as its standing, so a mode says what the construction claims and the standing says whether anything discharges it.
   An empty cell is therefore a failing check rather than a gap somebody has to notice, which is the entire reason the argument takes this shape.
   The reader-facing inventory of removed bug classes stays what it is good at being, a summary, and is not the coverage claim.
 - **Timing channels.** <a id="r-17-002"></a>

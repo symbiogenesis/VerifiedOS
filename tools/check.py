@@ -34,9 +34,10 @@ Last, the tool checks itself the same way: every check carries a K-nn rule id,
 tools/check-rules.md registers each id with its claim and its ground, and the floors
 and meta groups hold the reach and the registry in agreement in both directions.
 
-Run with --fix to rewrite the asserted counts, the compounded product, and the
-checklist's totals and shares from their artifacts. Every other finding has no
-mechanical repair: it is a person's edit, reported not guessed.
+Run with --fix to rewrite the asserted counts, the compounded product, the coverage
+matrix's standing column, and the checklist's totals and shares from their artifacts.
+Every other finding has no mechanical repair: it is a person's edit, reported not
+guessed.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
