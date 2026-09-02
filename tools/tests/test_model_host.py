@@ -186,6 +186,41 @@ def _seed_smt_cache() -> None:
                "a tree that has a cache keeps it")
 
 
+def _seed_cache_file() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        bare, warm = root / "bare-cache", root / "warm-cache"
+        warm.write_bytes(b"warm-records")
+
+        # the first donor holding one wins, and the lane directory is created for it
+        target = root / "lane-x" / "cache"
+        _MODEL._seed_cache_file([bare, warm], target)
+        ensure(target.read_bytes() == b"warm-records",
+               "the cache is copied from the first donor holding one")
+
+        # an existing cache is never overwritten: it is a copy, not a share
+        target.write_bytes(b"already-here")
+        _MODEL._seed_cache_file([warm], target)
+        ensure(target.read_bytes() == b"already-here",
+               "a lane holding a cache keeps its own learning")
+
+        # the primary worktree's case, where every donor is its own target, in both
+        # states: this is what lets the callers name a donor without asking which
+        # worktree they are in
+        _MODEL._seed_cache_file([target], target)
+        ensure(target.read_bytes() == b"already-here",
+               "a donor that is the target leaves it as it is")
+        absent = root / "lane-y" / "cache"
+        _MODEL._seed_cache_file([absent], absent)
+        ensure(not absent.exists(),
+               "a donor that is the target and absent creates nothing")
+
+        # no donor holding one is a machine with no warm state to give, not a failure
+        cold = root / "lane-z" / "cache"
+        _MODEL._seed_cache_file([bare], cold)
+        ensure(not cold.exists(), "an absent donor leaves the target cold")
+
+
 def _seed_test_data() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
@@ -218,5 +253,6 @@ def cases() -> list[Case]:
         Case("check-trace", _check_trace),
         Case("sync-oracle-tree", _sync_oracle_tree),
         Case("seed-smt-cache", _seed_smt_cache),
+        Case("seed-cache-file", _seed_cache_file),
         Case("seed-test-data", _seed_test_data),
     ]

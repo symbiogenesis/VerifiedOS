@@ -259,6 +259,15 @@ class Environment:
         return self.lane_root / TYPECHECK_CACHE
 
     @property
+    def primary_typecheck_cache(self) -> Path:
+        """The primary worktree's typecheck cache, which is where a lane standing up
+        copies its own from. Equal to `typecheck_cache` on the primary worktree, which
+        is what makes a donor list that names it safe to write: a donor that is the
+        target copies nothing, on the same reading that makes `primary_build_dir` safe
+        for the build trees."""
+        return self.build_root / TYPECHECK_CACHE
+
+    @property
     def simulator(self) -> Path:
         return self.build_dir / "c_emulator" / "sail_riscv_sim"
 

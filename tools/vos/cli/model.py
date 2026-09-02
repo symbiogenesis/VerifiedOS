@@ -157,6 +157,12 @@ def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
     # typecheck over a live one is refused rather than left to interleave two
     # whole-file rewrites of the one cache.
     with env.hold_lock(e.typecheck_cache, "a typecheck"):
+        # Under the lock, and after it, because the lock creates the lane directory the
+        # copy writes into. This cache is per lane for the reason the build trees' are,
+        # and I7 made it so after finding one file live across four lanes; what that
+        # left owed is this copy, I2 declining to *share* a cache rather than to warm
+        # one. Cold, the run below re-discharges every obligation it already knows.
+        _seed_cache_file([e.primary_typecheck_cache], e.typecheck_cache)
         return subprocess.run(
             ["sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",
              "--memo-z3", "--memo-z3-path", str(e.typecheck_cache),
@@ -266,12 +272,19 @@ def _bundle_verdict(written: Path, held: bytes | None, *, check: bool) -> int:
 
 def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
     """Run the full C++ emission, which regenerates the config schema, then hand the
-    fresh schema and the frozen profile to the validator. No C++ is compiled."""
+    fresh schema and the frozen profile to the validator. No C++ is compiled.
+
+    The tree is seeded first, and this is the loop that most wants it: the line below
+    configures a tree that does not exist yet, and the emission it then runs is exactly
+    the stage a cold memo cache turns from ~36 s into ~3.6 min (I3). A lane whose first
+    command was `emit` rather than `build` paid that until this call was here.
+    """
     build_dir = e.build_dir
     # The same tree `build` locks, held the same way: an emit over a live build, or a
     # second emit, would drive one cmake state in one tree from two runs.
     lock = env.build_lock(build_dir)
     try:
+        _seed_tree(e, build_dir)
         if not (build_dir / "build.ninja").exists() and _configure(e, build_dir):
             return 1
         # a single-threaded stage; -j is passed for uniformity, not for speed
@@ -443,15 +456,38 @@ def _seed_smt_cache(donors: list[Path], target: Path) -> None:
     while a donor's own build is at `save_digests` copies whatever that rewrite has
     reached. What that costs stays on the copy, a lane starting from a prefix or a torn
     record paying the cold cache this seed exists to avoid and no donor paying anything.
+
+    The copy itself is `_seed_cache_file`'s, because a lane keeps two of these caches
+    and only one of them is inside a build tree.
     """
-    cache = target / "model" / "sail_smt_cache"
-    if cache.exists():
+    _seed_cache_file([d / "model" / "sail_smt_cache" for d in donors],
+                     target / "model" / "sail_smt_cache")
+
+
+def _seed_cache_file(donors: list[Path], target: Path) -> None:
+    """Copy the first donor memo cache that exists, and never over one already there.
+
+    The file-level half of `_seed_smt_cache`, which states the ground this obeys. It is
+    stated once because a lane keeps **two** memo caches and neither may be shared: the
+    build tree's, at `<tree>/model/sail_smt_cache`, and the typecheck loop's, which sits
+    beside the build trees rather than inside one and so is reached by no `_seed_tree`.
+
+    Two properties are what make this safe to call unconditionally, which is the point
+    of it: a target that exists is kept, because a warm cache is this lane's own
+    learning and a donor's is older; and a donor that *is* the target copies nothing,
+    since it either exists and is kept or does not exist and is passed over. So the
+    primary worktree, where every donor is its own target, seeds nothing and needs no
+    caller to know that it is the primary.
+
+    A donor that is absent is a machine with no warm state to give, which is the first
+    build on a fresh toolchain and is not a failure.
+    """
+    if target.exists():
         return
-    for donor in donors:
-        source = donor / "model" / "sail_smt_cache"
+    for source in donors:
         if source.exists():
-            cache.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, cache)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
             return
 
 
