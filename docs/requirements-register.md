@@ -4172,7 +4172,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: an RTL implementing any of them fails ordinary refinement.
 · Trace: CJ-SAIL
 
-**R-15-100** IS: The microarchitectural removals owed the absence contract are speculation, out-of-order issue, every dynamic direction/target/return predictor, prefetchers, SMT, the I- and D-caches and the tag cache, and DVFS/frequency control.
+**R-15-100** IS: The microarchitectural removals owed the absence contract are speculation, out-of-order issue, every dynamic direction/target/return predictor, prefetchers, SMT, the I- and D-caches and the tag cache, and reactive frequency control (DVFS: any load-, activity- or temperature-driven control of a clock or rail).
 · Accept: each appears in the absence-contract register (the artifact required by R-15-100a) with a discharge.
 · Trace: CJ-RTL-SAIL
 
@@ -4193,7 +4193,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-RTL-SAIL
 
 **R-15-103** MUST: For imported SystemVerilog cores, absence is a state-enumeration and structural check over the elaborated netlist plus synthesis-configuration provenance, and is stated honestly as a structural audit, not a theorem.
-· Accept: the check covers predictor arrays, reorder buffer and reservation stations, prefetch engine, cache data/tag/valid arrays, a second hardware thread context, and PLL/DVFS control paths.
+· Accept: the check covers predictor arrays, reorder buffer and reservation stations, prefetch engine, cache data/tag/valid arrays, a second hardware thread context, and load-, activity- or temperature-driven frequency control paths, the divider and PLL inputs read for any source other than the composed schedule.
 · Trace: CJ-RTL-SAIL
 
 **R-15-104** MUST: The prefetcher/fetch-buffer boundary is decided by table-freeness, not by size or run-ahead depth: a state element in the fetch path whose write data depends on a prior *execution* is a prefetcher and fails the contract; one whose contents are a function of the fetched stream is fetch pipelining and passes.
@@ -4686,8 +4686,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: slot boundaries do not move; an idle core emits no shared-fabric traffic, so gating is cross-partition invisible.
 · Trace: CJ-WCET, CJ-ISOL
 
-**R-15-188** MUST: Each partition's operating point is selected by the §11 admission proof and is a composition-time constant, switched only at partition boundaries; shared resources (NoC, memory controller, main memory) never scale.
-· Accept: data-independent, so Hertzbleed has no carrier; expect 2–3 coarse OPPs per class, floored by ECC/CHERI-tag integrity margin at low voltage.
+**R-15-188** MUST: Each partition's operating point is selected by the §11 admission proof and is a composition-time constant, switched only at partition boundaries and there by reprogramming the island's divider ratio and rail set-point from the composed assignment (R-15-195), never by retuning a PLL; shared resources (NoC, memory controller, main memory) never scale.
+· Accept: data-independent, so Hertzbleed has no carrier: the divider and rail inputs are the composed OPP assignment alone, and no load, activity, or temperature reading reaches them (A-12 of the absence contract); expect 2–3 coarse OPPs per class, floored by ECC/CHERI-tag integrity margin at low voltage.
 · Trace: CJ-WCET, CJ-LEAK
 
 **R-15-189** MUST: Global mode schedules are pre-proved and switched as rare RoT-attested global transitions on explicit authority, never load-following.
@@ -4775,8 +4775,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 15.24 Clocking, reset, and domain crossings
 
-**R-15-195** MUST: All modeled islands run mesochronous from one clock spine: every core, fabric, memory, and device-block clock is an integer division of a common PLL hierarchy, so crossings inside the modeled machine are deterministic ratio synchronizers with fixed, Sail-modeled latency.
-· Accept: the TDM NoC schedule is stated in spine cycles; an OPP change is a divider reprogram at a partition boundary whose relock is a fixed constant in the switch budget; no modeled path crosses between unrelated clocks.
+**R-15-195** MUST: All modeled islands run mesochronous from one clock spine: every core, fabric, memory, and device-block clock is an integer division of a common PLL hierarchy, so crossings inside the modeled machine are deterministic ratio synchronizers with fixed, Sail-modeled latency. The PLL hierarchy locks under the reset table alone (R-15-198) and holds across every partition switch, so nothing at a partition boundary retunes a PLL.
+· Accept: the TDM NoC schedule is stated in spine cycles; an OPP change at a partition boundary is the island's divider ratio and rail set-point reprogrammed from the composed assignment (R-15-188), and the switch budget's OPP term (the one R-15-220 carries as OPP relock, in which the rail re-settles and no PLL does) is the divider's ratio switch, a fixed count of spine cycles, plus the rail's step between two enumerated set-points dwelt to its worst-case bound rather than to a settled indication, so it is the composition-time constant the R-11-017 artifact states; no PLL lock time, which varies with process and temperature and is waited out on a lock indication only under the reset table, enters any switch bound; no modeled path crosses between unrelated clocks.
 · Trace: CJ-WCET, CJ-SAIL
 
 **R-15-196** IS: The genuinely asynchronous boundaries are exactly three, each terminated and none modeled as fixed-latency: the RoT's independent slow clock, the external interface clocks, and reset itself.
