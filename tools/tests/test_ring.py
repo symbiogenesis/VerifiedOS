@@ -173,8 +173,28 @@ def _the_rule_reports_rather_than_crashes() -> None:
            f"must come from the arm past RingError; got:\n{said}")
 
 
+def _the_lost_wakeup_exclusion_is_a_property_a_rule_can_fail() -> None:
+    # The defect this case exists for: an exclusion stated as `implb (sleeps ..)
+    # (negb (work_pending ..))` with `sleeps` defined as that very conjunction is true
+    # of every input by construction, and a theorem over it labelled as the lost-wakeup
+    # property decides nothing. What makes the exclusion a property is that it is stated
+    # of a decision rule, one rule is proved to satisfy it, and a rule that sleeps on the
+    # drain's read instead of the recheck is proved to fail it.
+    root = corpus_mod.find_root()
+    text = ring.emit(root)
+    ensure("no_lost_wakeup (decide : nat -> nat -> nat -> bool -> bool) : Prop" in text,
+           "the exclusion must be stated of a decision rule, not of one rule's body")
+    ensure("~ no_lost_wakeup sleeps_without_recheck." in text,
+           "the artifact must carry the refutation, a consumer that skips the recheck")
+    ensure("implb (sleeps" not in text,
+           "the exclusion must not be one rule's own conjunction implying its own "
+           "conjunct, which is true of every input by construction")
+
+
 def cases() -> list[Case]:
     return [
+        Case("the-lost-wakeup-exclusion-is-a-property-a-rule-can-fail",
+             _the_lost_wakeup_exclusion_is_a_property_a_rule_can_fail),
         Case("a-state-inserted-moves-the-skip", _a_state_inserted_moves_the_skip),
         Case("the-named-states-are-read-not-counted",
              _the_named_states_are_read_not_counted),
