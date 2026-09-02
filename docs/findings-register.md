@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 402 of them across 71 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 418 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1517,6 +1517,70 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-191** measurement: a field no admission rule reads is a field a weakening moves in silence, which is the hazard the no-privileged-producer clause creates and which forty-six of one item's fifty-five seeded survivors were
 · Raised: M6.2a, in prose
 · Disposition: open, closed at the item by pinning every witness's pedigree and identity figures in a ledger rather than by narrowing the population, and standing as the shape any artifact carrying unread fields will meet
+
+**F-219a** owed-act: no entry closes a media template's stage set, the entry that names templates and pools naming no stage and the only list of four sitting in a parenthetical of the prose, which is not an enumeration the review gate audits
+· Raised: M6.3a
+· Disposition: open, the stage count and the stage kinds left as fields the composition instantiates
+
+**F-219b** owed-act: no entry says whether a graph may carry two edges matching one intent, deterministic typed routing holding of a selector over an ambiguous graph and of one over an unambiguous graph alike
+· Raised: M6.3a
+· Disposition: open, both disciplines exhibited and each proved to keep every obligation the other keeps, with the difference machine-checked on a graph carrying two edges that match one intent
+
+**F-219c** owed-act: no entry enumerates the intent variants the entry calling an intent a closed variant leaves closed, that entry excluding an executable name or command string and closing no variant set anywhere
+· Raised: M6.3a
+· Disposition: open, the intent count left a field and an intent a finite index below it
+
+**F-219d** owed-act: whether the handler graph may carry a node for the shared service compartment is unstated, that compartment being one the duplication pass emits into the composed image and no package the composer's roster names, with no entry saying whether an edge may name it as an endpoint
+· Raised: M6.3a
+· Disposition: open, the closure obligation refusing one because the entry that fixes the graph gives the composer no node set but the installed packages whose descriptors it compiled, where the prose at that entry's anchor gives the wider set that would admit it
+
+**F-219e** measurement: whether the hand-transcribed parser exception reaches a graph node's content format is decided rather than open, the entry that puts every format a translator or media node parses under the verified-parser discipline carrying no exception clause and the entry that permits one naming a single cellular grammar that is none of the five families the graph admits
+· Raised: M6.3a
+· Disposition: standing, nothing owed and the obligation stated unconditionally at the admissibility conjunct, with the same entry's five named families closed as an enumeration and no class of them exempt; the lesson beside it is that a gap is a gap only once every entry that could decide it has been read
+
+**F-219f** owed-act: at what granularity the handler graph is re-signed is unstated, one entry rebuilding and re-signing it with the generation and calling it a configuration object carried by the generation root without fixing whether that is one signature or a second one over the graph
+· Raised: M6.3a
+· Disposition: open, the difference observable on the retained generation roots when a prior one is pinned, and the graph's identity left a field
+
+**F-219g** owed-act: whether binding a composition-time template consumes a schedule slot the composition reserved is unstated, the four quantities being admitted under the scheduling section before a node may be bound while the two standing reservations name neither a node pool nor a template
+· Raised: M6.3a
+· Disposition: open, the four-quantity obligation stated without deciding it
+
+**F-219h** owed-act: whether an edge's declared resource limit is compared against the caller's requested bound at selection or at binding is unstated, one entry declaring the transformation's limits and the prose making routing a selection under the caller's bound with neither putting the comparison on a side
+· Raised: M6.3a
+· Disposition: open, the item comparing at selection and recording that as a reading
+
+**F-219i** owed-act: whether a typed signed configuration object carries one of the three assurance tiers is unstated, every admitted artifact carrying exactly one tier and its required evidence while a configuration object is data rather than code
+· Raised: M6.3a
+· Disposition: open, the item assigning none; adjacent to F-190h and not a second sighting of it, that one being which tier a component carries where this is whether a non-code artifact carries one at all
+
+**F-219j** owed-act: every composition magnitude of the composer's emitted object is a field no entry fixes, the roster and each package's declared edges, script, manifest width, origin, admission time, admitted quantities and label among them, and so are the type, intent and world counts, the wire-format inventory, both pool capacities, the ring depth ceiling, the template's stages and end types, the declared inter-level channels, the ambiguity discipline and the graph's identity
+· Raised: M6.3a
+· Disposition: open, the demo instantiating each with a witness value that carries no composition claim and the pedigree ledger pinning every one; the same shape as F-195i at the two upper layers and not a second sighting of it, that one being over a keyspace and a snapshot where this is over a graph, a template and two pools
+
+**F-219k** method: a witness built by a field setter carries one figure where a witness written out carries ten, and a seeded Gallina population is counted in figures, so the ledger a prior item's survivors require and the population that ledger creates are the same figures
+· Raised: M6.3a
+· Disposition: standing, the item's note carrying the arithmetic and the population figure it is derived from
+
+**F-219l** method: a refuting construction's own comparisons need a witness on their boundary as much as the specification's do, and it is the specification's that get one by habit, so a refuter is refuted at a value far from its own cut and a weakening that moves that cut answers the same everywhere the artifact looks
+· Raised: M6.3a, in prose
+· Disposition: open, met at the item as a survivor of the relational and connective operators and closed by adding the request whose bound sits exactly on the edge the refuter reaches
+
+**F-219m** method: a scope a completion cell cites no id for is derived, and the derivation is the one sentence a reviewer can check, so it separates the ids the entries it starts from actually spell out, the entries that cite one of those back by name, and the ones a judgment reaches by a noun an entry uses and does not define
+· Raised: M6.3a
+· Disposition: standing, the artifact's header stating the three steps apart and naming which is a reading and which a judgment
+
+**F-219n** method: an entry's sentence is read for the clause it leads with as well as for the prohibitions after its colon, a grading or qualifying clause being an obligation the list after the colon does not repeat and a count taken off that list alone therefore being short by one
+· Raised: M6.3a
+· Disposition: open, the qualifying clause of the pool-verdict entry deferred by name to the artifacts its own acceptance clause puts it in rather than stated at the composer
+
+**F-219o** method: an alternative construction refutes one obligation only once every obligation it does not break is stated of it, and a comment saying it keeps them is not the statement, a refuter shown only to be well formed leaving the reader unable to tell which of several defects the refutation isolated
+· Raised: M6.3a
+· Disposition: closed at the item by stating each composer refuter's other two obligations as theorems over an arbitrary machine, which is the discipline every other refuting family in the artifact already met
+
+**F-219p** method: a seeded-population figure is read by no checker rule and is stated twice in a completion note, at its findings block and at its exit evidence, so a figure taken before the last statement landed survives an edit with every gate green and the two halves of one note disagreeing
+· Raised: M6.3a
+· Disposition: open, held only by re-measuring at the gate rather than carrying a figure forward, which the exit-evidence convention states and no `Landed:` line enforces
 
 **F-167** owed-act: the typed interface profile the ring contract is stated in is carried by no path in the tree and authored by no milestone here
 · Raised: M6.4, in prose
