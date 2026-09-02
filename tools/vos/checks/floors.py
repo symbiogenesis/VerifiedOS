@@ -77,9 +77,14 @@ HEADING = "=== floors: every enumeration this tool reads has members ==="
 # by none is the figure nothing owns.
 CAPACITY: list[tuple[str, str, str]] = [
     ("R-15-247", "the two classes the plan places against", "two static latency classes"),
-    ("R-15-173a", "the first class's single planar tier", "order 1–2 GB"),
+    # the two ceilings the 36-bit space is divided into, which every budget below
+    # is stated under; the residue between their sum and the space is the apertures'
+    # and the sidecar's
+    ("R-15-002c", "the first-class ceiling", "the first class is capped at 16 GB"),
+    ("R-15-002c", "the second-class ceiling", "the second at 40 GB"),
+    ("R-15-173a", "the first class's single planar tier", "order 0.5–1 GB"),
     ("R-15-170", "the phone-class first-class budget", "4–8 GB"),
-    ("R-15-170", "the laptop and desktop first-class budget", "16–32 GB"),
+    ("R-15-170", "the laptop and desktop first-class budget", "8–16 GB"),
     ("R-15-247a", "the bulk tier the sidecar is priced against", "40 GB bulk tier"),
 ]
 
