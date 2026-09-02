@@ -92,7 +92,7 @@ stateDiagram-v2
 - No performance parity: in-order cores, no SMT, no JIT, no dynamic speculation, **no dynamic branch prediction (§15)**. <a id="r-02-004"></a>
   **Rendering, AI, and radio signal processing run on general-purpose vector/matrix cores under the same ISA and proofs (§15)**: no fixed-function GPU, no discrete accelerators, no opaque coprocessors.
   Throughput lands in 2010s-iGPU / early-NPU / LTE-class-modem territory by design; that is the accepted price, and the product floor (§18) is where that half stops being a description and becomes a set of absolute quantities the first release must reach.
-  **Instruction-level parallelism is bought only from static, exposed mechanisms (wide in-order issue, decoder-stage macro-op fusion, RVV), never from mechanisms that create hidden speculative microarchitectural state (§15 profile).** <a id="r-02-005"></a>
+  **Instruction-level parallelism is bought only from static, exposed mechanisms (in-order issue at the width the §15 parameter search selects, decoder-stage macro-op fusion, RVV), never from mechanisms that create hidden speculative microarchitectural state (§15 profile).** <a id="r-02-005"></a>
 - No legacy: no BIOS/MBR, UEFI, ACPI, IPv4, 32-bit modes, or compressed-instruction ambiguity (no C extension, §15). <a id="r-02-006"></a>
 - No proprietary firmware black boxes (named exhaustively in the §12 topology table) excluded by platform mandate, not mitigated. <a id="r-02-007"></a>
 - No self-hosting: the machine runs software and does not build it. <a id="r-02-008"></a>

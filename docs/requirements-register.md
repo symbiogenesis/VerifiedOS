@@ -119,8 +119,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: rendering, AI, and radio signal processing run on general-purpose vector and matrix cores under the same ISA and proofs; there is no fixed-function GPU, no discrete accelerator, and no opaque coprocessor. The throughput half acquires a test in R-18-004a(ii), (v), and (vii), which state absolute quantities the first release must reach rather than a parity this entry denies.
 · Trace: CJ-SAIL
 
-**R-02-005** MUST: Instruction-level parallelism is bought only from static, exposed mechanisms (wide in-order issue, decoder-stage macro-op fusion, RVV), never from mechanisms creating hidden speculative microarchitectural state.
-· Accept: consistent with R-15-010 and R-15-031.
+**R-02-005** MUST: Instruction-level parallelism is bought only from static, exposed mechanisms (in-order issue at the width the §15 parameter search selects, decoder-stage macro-op fusion, RVV), never from mechanisms creating hidden speculative microarchitectural state.
+· Accept: consistent with R-15-010 and R-15-031; the issue width is R-15-108's searched parameter and no promise of width is made here.
 · Trace: CJ-SAIL
 
 **R-02-006** MUST NOT: There is no legacy: no BIOS/MBR, UEFI, ACPI, IPv4, 32-bit modes, or compressed-instruction ambiguity.
