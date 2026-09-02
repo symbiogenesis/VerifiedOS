@@ -27,13 +27,35 @@
    template's chain.
 
    Which entries this file is stated over is a judgment and not a reading of
-   its own cell. M6.3a's cell cites no requirement id: it carries the class-X
-   ground and points at the inspirations note. The entries above are read off
-   the milestone's own sentence, that the package composer emits the finite
-   typed handler and translator graph and pre-admitted media templates, and
-   they land on R-12-024b, R-12-024c, R-12-024f and R-12-013a with the
-   neighbours those four cite. A reviewer who disagrees with the scope
-   disagrees with this paragraph rather than with a statement below.
+   its own cell, and the judgment is taken in three steps a reviewer can check
+   one at a time. M6.3a's cell cites no requirement id: it carries the class-X
+   ground and points at the inspirations note. **Step one** reads the four
+   core entries off the milestone's own sentence, that the package composer
+   emits the finite typed handler and translator graph and pre-admitted media
+   templates: R-12-024b is the graph, R-12-024c the template, R-12-024f the
+   formats it parses, R-12-013a the transformation type an edge is.
+   **Step two** takes the ids those four spell out, which is a reading and not
+   a judgment: R-12-024b's sentence cites R-13-001a and its acceptance clause
+   R-13-001 and R-13-002, and R-12-024f's acceptance clause cites R-05-042.
+   Those four and no others. One entry cites back the other way and is
+   therefore also a reading: R-13-001b's acceptance clause names R-12-024c by
+   id, to say that a composition-time template is not the pre-proved empty
+   slot it forbids. Of the five step two reaches, four carry a statement
+   below and R-13-001 carries none: it is the ordinary install path the graph
+   is admitted on, which is the act M6.2a states in AdmissionPath.v, and this
+   file says that the graph is emitted and never how it is admitted. A
+   derived scope that named it and stated nothing over it would be a scope
+   a reviewer cannot check, so it is named here with what it is owed by.
+   **Step three** is the judgment, and it reaches five
+   entries by a noun one of the four uses and does not itself define:
+   R-12-024c's "pools" reaches R-08-046, which says what a declared bounded
+   pool is, and R-08-047, which says what a full one answers; its
+   "bounded-ring" reaches R-12-005; its acceptance clause's "confidentiality
+   domain" reaches R-08-021, which is where a flow condition over levels
+   lives; and R-12-024b's "routing" reaches R-12-024e, which is the entry
+   that says what routing may and may not carry. A reviewer who disagrees
+   with the scope disagrees with step three rather than with a statement
+   below; steps one and two are checkable against the register's own text.
 
    What this file is. A statement artifact in ApexTheorem.v's idiom, not a
    proof development and not an implementation. Every quantity a composition
@@ -64,6 +86,24 @@
    only that entry's composition-side half, that no composed edge's declared
    bounds exceed the declaring package's manifest, and states nothing about
    how an object capability is derived or what a session delegates.
+
+   One clause of a cited entry is deferred rather than stated, and it is
+   named here rather than left to a reader to notice. R-08-047's sentence
+   names four obligations of the typed `CapacityExhausted(pool)` verdict: it
+   cannot be dropped, it cannot be converted into an implicit wait, it cannot
+   be answered by borrowing from another pool, and it is relevance-graded
+   under R-05-097's discipline. Three of the four are stated at O14 below,
+   where the entry's own fail-closed line adds a further predicate beside
+   them. The relevance grade is not, and it is not a
+   gap either: R-05-098 puts "bounded-pool binding outcomes (R-08-047)" on
+   its closed list of results that carry the grade, and its acceptance clause
+   puts the grade *in the IDL or ABI declaration*, which M6.0b's typed IDL
+   profile authors and M6.4 generates bindings from. R-05-097's own
+   acceptance clause puts the enforcement in a derivation that fails to
+   type-check when a graded value is dropped, which is the CHERI-TAL track's.
+   Neither is a composer's act, and a Gallina function cannot exhibit the
+   denial of weakening in any case, its own metatheory admitting it. So
+   `Verdict` below carries no grade marker and nothing below claims one.
 
    Three landed artifacts state neighbouring facts, and the lines between
    them are drawn here rather than left for a reviewer to find. AdmissionPath.v
@@ -98,12 +138,17 @@
       `Ambient` below carries a probe and a clock, standing for whatever a
       composer could read, and the obligation quantifies over two of them.
    2. A node is a package on the composed roster and an edge is a
-      transformation one package declares. R-12-024b has nodes that are
-      already-admitted compartments and an edge that is the section 12 IDL
-      transformation type, so a node is an index below the package count and
-      an edge names its declaring package and the node it routes to. That is
+      transformation one package declares. R-12-024b's own sentence gives no
+      node set beyond "compiled from installed packages' interface
+      descriptors", and it is the spec's prose at that entry's anchor that
+      says nodes are already-admitted compartments and an edge is the
+      section 12 IDL transformation type. This file takes the register's
+      narrower reading: a node is an index below the package count and an
+      edge names its declaring package and the node it routes to. That is
       the finite-index choice SupervisionTree.v took at the roster, taken
-      here at the package set.
+      here at the package set, and the distance between the two readings is
+      exactly what gap d is about, the prose's compartment set being wider
+      than the roster the entry gives.
    3. Executing package-supplied code is modelled refutably rather than as an
       absence. R-13-002 forbids maintainer scripts, post-install execution
       and runtime code fetching, and an absence cannot be refuted, so the
@@ -161,9 +206,11 @@
       checked by conversion in the silent Example form rather than by a proof
       per member.
 
-   The literals taken from the design, and there are five. Each is one
-   sentence of one entry closing one enumeration, and the count sits beside
-   the sentence rather than in prose:
+   The literals taken from the design, and there are seven. The criterion is
+   the same at each: one sentence of one entry names its members and closes
+   the set, and the count sits beside the sentence rather than in prose. A
+   sentence that names no member closes nothing, which is why the stage set
+   (gap a) and the intent variants (gap c) are fields and not enumerations:
 
    - R-12-024b's "no runtime registration, executable lookup, shell command,
      plugin load, or content sniffing" is five, so `all_banned_mechanisms` is
@@ -183,14 +230,30 @@
      one type rather than a correspondence between two types.
    - R-12-024c's "pre-composed node and bounded-ring pools" is two, so `Pool`
      has two constructors and `there_are_two_pools` is its count. R-08-047's
-     `CapacityExhausted(pool)` is a verdict over that type rather than a
-     sixth enumeration.
+     `CapacityExhausted(pool)` is a verdict over that type rather than an
+     enumeration of its own.
+   - R-12-024f's acceptance clause, "the image, media, font, archive, and
+     document formats the graph admits appear in the R-05-042 inventory on
+     the same terms as the radio and USB grammars", is five, so `FormatClass`
+     has five constructors and `there_are_five_format_classes` is its count.
+     What "on the same terms" is made to decide is that no class of the five
+     is exempt: the obligation is quantified over the closed list, so
+     dropping a constructor drops an obligation, and one exempting composer
+     per class is refuted.
+   - R-12-013a's acceptance clause, "no desktop-specific wire protocol,
+     open-ended intent string, or authority-bearing path is introduced", is
+     three, so `ForbiddenIntroduction` has three constructors and
+     `there_are_three_forbidden_introductions` is its count. Each of the
+     three is read at a quantity the composition already fixes, so the
+     enumeration collects three obligations rather than inventing a fourth,
+     and each is refuted by a construction this file already carries.
 
    Every other magnitude is a field: the package count and the composed
    roster, each package's declared edges, script, manifest width, origin,
    admission time, admitted quantities and confidentiality label, the type
-   count, the intent count, the world count, the wire-format inventory and
-   its per-format verified-parser flag, the node and ring pool capacities,
+   count, the intent count, the world count, the wire-format inventory with
+   its per-format verified-parser flag and its per-format class, the node and
+   ring pool capacities,
    the ring depth ceiling, the template's stage list and its declared end
    types, the declared inter-level channels, whether an ambiguous graph is
    admitted, and the graph's own identity.
@@ -207,15 +270,18 @@
    field of the composed edge to the value on that conjunct's own boundary
    and `compose_without` drops one conjunct from the composer's own filter,
    so the twelve conjuncts are decided twice, once
-   from the edge side and once from the composer side. Over the three closed
+   from the edge side and once from the composer side. Over the four closed
    enumerations that name a defect: five amenders, one per banned mechanism;
    four partial binders, one per admitted quantity dropped; four creating
-   binders, one per forbidden creation. The hand-authored refutations are the
-   ones no index generates, being alternative constructions rather than
-   mutations of a list.
+   binders, one per forbidden creation; and five exempting composers with an
+   uninventoried edge apiece, one per format class. The hand-authored
+   refutations are the ones no index generates, being alternative
+   constructions rather than mutations of a list.
 
    What this file deliberately does not author, with the entry that owes each
-   decision. A register gap is reported, not closed:
+   decision. A register gap is reported, not closed. One lettered item, e, is
+   not a gap and keeps its letter, so that the letters below it do not move
+   and the finding indexed at it goes on naming the question it answers:
 
    a. What stages a media template may carry. R-12-024c names templates,
       pools and the four admitted quantities and names no stage; the spec's
@@ -239,21 +305,33 @@
       string and closes no variant set anywhere, so `intent_count` is a field
       and an intent is a finite index below it. Owed at R-12-013a.
    d. Whether the graph may carry a node for R-13-010b's shared service
-      compartment. That entry puts one shared service compartment into the
-      composed image in place of a library statically linked into each
-      consumer, and it is a package no roster names which the composer must
-      emit; nothing says whether a handler-graph edge may name it as an
-      endpoint, and the closure obligation below refuses one because the
-      roster is the only node set the register gives. Owed at R-13-010b or
-      R-12-024b.
-   e. Whether R-05-050's hand-transcribed exception reaches a graph node's
-      format. R-05-042's acceptance clause makes the hand-written
-      attacker-facing set empty except as permitted by R-05-050, and R-05-050
-      permits exactly one named format on the strength of a differential-oracle
-      corpus result. Whether an image, media, font, archive or document format
-      the graph admits may take the same exception is nowhere said, so
-      `verified_parser` is a per-format field and the obligation is stated
-      over an arbitrary inventory. Owed at R-12-024f or R-05-050.
+      compartment. That entry's duplication pass emits one shared service
+      compartment into the composed image in place of a library statically
+      linked into each consumer: a compartment, and no package on the roster
+      the composer was handed. Nothing says whether a handler-graph edge may
+      name it as an endpoint. The closure obligation below refuses one,
+      because R-12-024b's own sentence gives the composer no node set but the
+      installed packages it compiled the descriptors from; the spec's prose
+      at that anchor says nodes are already-admitted compartments, which is
+      the wider set that would admit it, and the two readings differ exactly
+      here (reading 2). Owed at R-13-010b or R-12-024b.
+   e. Not a gap, and named here because it reads like one. The question is
+      whether R-05-050's hand-transcribed exception reaches a graph node's
+      format, and three entries answer it. R-12-024f's own sentence: every
+      content format a translator or media node parses "carries a section 5
+      Narcissus copy-once verified parser and is enumerated in the wire-format
+      inventory", with no exception clause; R-05-042 makes the hand-written
+      attacker-facing set empty except as R-05-050 permits, and R-05-050
+      permits exactly one format, 5G-core NAS, which is neither an image,
+      media, font, archive nor document format the graph admits. R-12-084a
+      decides the media case a third time by name. So the exception does not
+      reach a graph node's format, conjunct 8 below requires the verified
+      parser of every admitted edge unconditionally, and `verified_parser`
+      stays a per-format field only because *which* formats an inventory
+      carries is a composition (gap j), not because the obligation over them
+      is open. What R-12-024f does leave to this file is the "same terms"
+      clause over the five families it names, which is O20 and the sixth
+      closed enumeration.
    f. At what granularity the graph is re-signed. R-12-024b has it rebuilt
       and re-signed with the generation an install composes and its
       acceptance clause calls it a typed signed configuration object carried
@@ -289,7 +367,8 @@
    j. Every composition magnitude. The package count, the roster, each
       package's declared edges, script, manifest width, origin, admission
       time, admitted quantities and label, the type, intent and world counts,
-      the inventory and its per-format parser flag, the two pool capacities,
+      the inventory with its per-format parser flag and its per-format class,
+      the two pool capacities,
       the ring depth ceiling, the template's stages and end types, the
       declared channels, the ambiguity discipline and the graph identity are
       fields; the demo machine at the end instantiates each with a witness
@@ -304,8 +383,9 @@
    declare sixteen edges of which four are admissible and twelve break one
    conjunct each, a composed graph, intents that route and an intent that
    fails closed, a media template that binds and sixteen generated weakenings
-   of it that do not, both pools with an occupancy sitting exactly on the
-   capacity boundary, and a value on the boundary of every comparison the
+   of it that do not, one edge per format class carrying a format the
+   inventory does not hold, both pools with an occupancy sitting exactly on
+   the capacity boundary, and a value on the boundary of every comparison the
    file makes. The ledger at the end pins every field of every witness no
    obligation reads, which is the hazard M6.2a measured: a field nothing
    reads is a field a weakening moves in silence.
@@ -685,14 +765,16 @@ Example something_is_present_and_nothing_is_absent :
   conj eq_refl eq_refl.
 
 (* =========================================================================
-   The five closed enumerations, and only these five, with R-08-047's typed
-   verdict beside them as a variant over the second of the two pools rather
-   than a sixth enumeration of its own. Each is closed because the register
-   itself closes it in one sentence of one entry, quoted at the enumeration;
-   a sixth enumeration here would be this file inventing one where the
-   register leaves a composition, which is exactly the line a statement
-   artifact does not cross. The two the reader will look for and not find are
-   the media template's stage set (gap a) and the intent variants (gap c).
+   The seven closed enumerations, and only these seven, with R-08-047's typed
+   verdict beside them as a variant carrying a member of the fifth of them
+   rather than an enumeration of its own. Each is closed because one sentence
+   of one entry names its members and closes the set, and that sentence is
+   quoted at the enumeration; an eighth here would be this file inventing one
+   where the register leaves a composition, which is exactly the line a
+   statement artifact does not cross. The two the reader looks for and does
+   not find are the media template's stage set (gap a) and the intent
+   variants (gap c), and each is absent for the same reason: the entry that
+   would close it names no member.
    ========================================================================= *)
 
 (* R-12-024b: "no runtime registration, executable lookup, shell command,
@@ -732,14 +814,41 @@ Inductive NodeOrigin : Type :=
 | PackageSupplied.
 
 (* R-12-024c: "pre-composed node and bounded-ring pools". Two pools, and
-   R-08-047's typed verdict is over this type rather than a sixth
-   enumeration. *)
+   R-08-047's typed verdict carries a member of this type rather than being
+   an eighth enumeration. *)
 Inductive Pool : Type :=
 | NodePool
 | RingPool.
 
+(* R-12-024f's acceptance clause: "the image, media, font, archive, and
+   document formats the graph admits appear in the R-05-042 inventory on the
+   same terms as the radio and USB grammars". Five classes, the entry's own
+   order. What the class is for is the "same terms" clause: the obligation
+   below is quantified over this list, so a class exempted from the inventory
+   is a refutation and dropping a constructor drops an obligation. *)
+Inductive FormatClass : Type :=
+| ImageFormat
+| MediaFormat
+| FontFormat
+| ArchiveFormat
+| DocumentFormat.
+
+(* R-12-013a's acceptance clause: "no desktop-specific wire protocol,
+   open-ended intent string, or authority-bearing path is introduced". Three
+   introductions, the entry's own order. Each is read at a quantity the
+   composition already fixes: the declared interface world, the
+   caller-supplied intent name the selection ignores, and the declaring
+   package's manifest an edge's bounds sit inside. *)
+Inductive ForbiddenIntroduction : Type :=
+| DesktopWireProtocol
+| OpenEndedIntentString
+| AuthorityBearingPath.
+
 (* R-08-047: "A request to bind a member of a full pool returns a typed
-   `CapacityExhausted(pool)` verdict". *)
+   `CapacityExhausted(pool)` verdict". The pool is the argument, which is
+   what makes the verdict name the pool that is actually full rather than
+   merely report a shortfall. The same sentence's relevance-grading clause is
+   deferred and the header says to whom. *)
 Inductive Verdict : Type :=
 | Bound
 | CapacityExhausted (p : Pool).
@@ -761,7 +870,15 @@ Definition all_node_origins : list NodeOrigin :=
 
 Definition all_pools : list Pool := cons NodePool (cons RingPool nil).
 
-(* The five counts, checked by conversion rather than claimed. The day an
+Definition all_format_classes : list FormatClass :=
+  cons ImageFormat (cons MediaFormat (cons FontFormat
+  (cons ArchiveFormat (cons DocumentFormat nil)))).
+
+Definition all_forbidden_introductions : list ForbiddenIntroduction :=
+  cons DesktopWireProtocol (cons OpenEndedIntentString
+  (cons AuthorityBearingPath nil)).
+
+(* The seven counts, checked by conversion rather than claimed. The day an
    entry admits a sixth banned mechanism is the day one of them stops
    holding. *)
 Example there_are_five_banned_mechanisms :
@@ -776,6 +893,12 @@ Example there_are_four_forbidden_creations :
 Example there_are_two_node_origins : count_of all_node_origins = 2 := eq_refl.
 
 Example there_are_two_pools : count_of all_pools = 2 := eq_refl.
+
+Example there_are_five_format_classes :
+  count_of all_format_classes = 5 := eq_refl.
+
+Example there_are_three_forbidden_introductions :
+  count_of all_forbidden_introductions = 3 := eq_refl.
 
 Definition mechanism_eqb (a b : BannedMechanism) : bool :=
   match a, b with
@@ -868,7 +991,45 @@ Proof.
     try discriminate H; reflexivity.
 Qed.
 
-(* The five tables read across their own enumerations, so an equality that
+Definition class_eqb (a b : FormatClass) : bool :=
+  match a, b with
+  | ImageFormat, ImageFormat => true
+  | MediaFormat, MediaFormat => true
+  | FontFormat, FontFormat => true
+  | ArchiveFormat, ArchiveFormat => true
+  | DocumentFormat, DocumentFormat => true
+  | _, _ => false
+  end.
+
+Lemma class_eqb_refl : forall a : FormatClass, class_eqb a a = true.
+Proof. intros a. destruct a; reflexivity. Qed.
+
+Lemma class_eqb_true : forall a b : FormatClass, class_eqb a b = true -> a = b.
+Proof.
+  intros a b. destruct a; destruct b; simpl; intros H;
+    try discriminate H; reflexivity.
+Qed.
+
+Definition introduction_eqb (a b : ForbiddenIntroduction) : bool :=
+  match a, b with
+  | DesktopWireProtocol, DesktopWireProtocol => true
+  | OpenEndedIntentString, OpenEndedIntentString => true
+  | AuthorityBearingPath, AuthorityBearingPath => true
+  | _, _ => false
+  end.
+
+Lemma introduction_eqb_refl :
+  forall a : ForbiddenIntroduction, introduction_eqb a a = true.
+Proof. intros a. destruct a; reflexivity. Qed.
+
+Lemma introduction_eqb_true :
+  forall a b : ForbiddenIntroduction, introduction_eqb a b = true -> a = b.
+Proof.
+  intros a b. destruct a; destruct b; simpl; intros H;
+    try discriminate H; reflexivity.
+Qed.
+
+(* The seven tables read across their own enumerations, so an equality that
    stopped separating two constructors says so here rather than in a theorem
    that happens to quantify over it. *)
 Example the_mechanisms_are_pairwise_distinct :
@@ -901,6 +1062,19 @@ Example the_pools_are_distinct :
   map_over (pool_eqb NodePool) all_pools = cons true (cons false nil)
   /\ map_over (pool_eqb RingPool) all_pools = cons false (cons true nil) :=
   conj eq_refl eq_refl.
+
+Example the_format_classes_are_pairwise_distinct :
+  map_over (class_eqb ImageFormat) all_format_classes
+  = cons true (cons false (cons false (cons false (cons false nil))))
+  /\ map_over (class_eqb DocumentFormat) all_format_classes
+  = cons false (cons false (cons false (cons false (cons true nil)))) :=
+  conj eq_refl eq_refl.
+
+Example the_forbidden_introductions_are_pairwise_distinct :
+  map_over (introduction_eqb DesktopWireProtocol) all_forbidden_introductions
+  = cons true (cons false (cons false nil))
+  /\ map_over (introduction_eqb AuthorityBearingPath) all_forbidden_introductions
+  = cons false (cons false (cons true nil)) := conj eq_refl eq_refl.
 
 (* =========================================================================
    The composed object: an edge, a stage, a descriptor, a graph.
@@ -1016,11 +1190,15 @@ Record Machine : Type := {
   intent_count : nat;
   world_count : nat;
 
-  (* --- R-05-042's wire-format inventory and its per-format verified-parser
-         flag, which crown jewel 10 records as not authored (gap e) -------- *)
+  (* --- R-05-042's wire-format inventory, its per-format verified-parser
+         flag, and R-12-024f's five format classes read over the same
+         inventory. Which formats an inventory carries is a composition
+         (gap j); that each of the five classes is on the same terms is
+         not, and O20 states it ------------------------------------------- *)
 
   in_inventory : nat -> bool;
   verified_parser : nat -> bool;
+  format_class : nat -> FormatClass;
 
   (* --- R-08-046's two declared bounded pools and R-12-005's ring depth --- *)
 
@@ -1060,6 +1238,7 @@ Definition with_script (m : Machine) (s : nat -> list Edge) : Machine := {|
   world_count := m.(world_count);
   in_inventory := m.(in_inventory);
   verified_parser := m.(verified_parser);
+  format_class := m.(format_class);
   node_pool_capacity := m.(node_pool_capacity);
   ring_pool_capacity := m.(ring_pool_capacity);
   ring_depth_ceiling := m.(ring_depth_ceiling);
@@ -1089,8 +1268,8 @@ Proof. intros m s. split; [ reflexivity | split; reflexivity ]. Qed.
 Definition edge_conjuncts (m : Machine) (r : list nat) : list (Edge -> bool) :=
   (* 0, 1: R-12-024b's finite closed graph. Both endpoints are nodes, and the
      node set is the composed roster and nothing else. Gap d is what conjunct
-     1 refuses: the shared service compartment R-13-010b makes the composer
-     emit is a package no roster names. *)
+     1 refuses: the shared service compartment R-13-010b's duplication pass
+     emits is a compartment and no package the roster names. *)
   cons (fun e => mem_nat e.(edge_owner) r)
   (cons (fun e => mem_nat e.(edge_target) r)
   (* 2: R-12-013a's declared resource limit. A transformation declaring none
@@ -1162,6 +1341,21 @@ Proof.
   destruct (andb_split _ _ H) as [ _ H1 ].
   destruct (andb_split _ _ H1) as [ _ H2 ].
   destruct (andb_split _ _ H2) as [ H3 _ ]. exact H3.
+Qed.
+
+Lemma admissible_world_is_declared :
+  forall (m : Machine) (r : list nat) (e : Edge),
+    admissible_edge m r e = true ->
+    Nat.ltb e.(edge_world) m.(world_count) = true.
+Proof.
+  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
+  destruct (andb_split _ _ H) as [ _ H1 ].
+  destruct (andb_split _ _ H1) as [ _ H2 ].
+  destruct (andb_split _ _ H2) as [ _ H3 ].
+  destruct (andb_split _ _ H3) as [ _ H4 ].
+  destruct (andb_split _ _ H4) as [ _ H5 ].
+  destruct (andb_split _ _ H5) as [ _ H6 ].
+  destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
 Qed.
 
 Lemma admissible_format_is_inventoried :
@@ -1332,6 +1526,17 @@ Proof.
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
+Theorem every_composed_edge_declares_an_interface_world :
+  forall (m : Machine) (a : Ambient) (r : list nat),
+    all_of (fun e => Nat.ltb e.(edge_world) m.(world_count))
+           (spec_compose m a r).(graph_edges) = true.
+Proof.
+  intros m a r. simpl.
+  apply (all_of_mono Edge (admissible_edge m r)).
+  - intros e He. exact (admissible_world_is_declared m r e He).
+  - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
+Qed.
+
 Theorem the_specification_never_widens_a_manifest :
   forall (m : Machine) (a : Ambient) (r : list nat),
     all_of (fun e => Nat.leb e.(edge_bounds)
@@ -1371,6 +1576,32 @@ Proof.
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
+(* O20 (R-12-024f's acceptance clause): the five format classes are admitted
+   on the same terms, so no class is exempt from the inventory or from the
+   verified parser. Quantified over the closed enumeration rather than stated
+   once, which is what makes the enumeration load-bearing: drop a constructor
+   and an obligation goes with it. The class of a format is a field, because
+   which formats an inventory carries is a composition; that none of the five
+   is exempt is not. *)
+Definition ExemptsNoFormatClass (c : Composer) : Prop :=
+  forall (m : Machine) (a : Ambient) (r : list nat) (k : FormatClass),
+    all_of (fun e => orb (negb (class_eqb (m.(format_class) e.(edge_format)) k))
+                         (andb (m.(in_inventory) e.(edge_format))
+                               (m.(verified_parser) e.(edge_format))))
+           (c m a r).(graph_edges) = true.
+
+Theorem the_specification_exempts_no_format_class :
+  ExemptsNoFormatClass spec_compose.
+Proof.
+  intros m a r k. simpl.
+  apply (all_of_mono Edge (admissible_edge m r)).
+  - intros e He.
+    rewrite (admissible_format_is_inventoried m r e He).
+    rewrite (admissible_format_has_a_verified_parser m r e He).
+    destruct (class_eqb (m.(format_class) e.(edge_format)) k); reflexivity.
+  - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
+Qed.
+
 (* =========================================================================
    The refuting composers (R-05-166).
 
@@ -1393,11 +1624,84 @@ Definition compose_without (k : nat) : Composer := fun m _ r => {|
    name is a citation and not a second construction. *)
 Definition trusting_compose : Composer := compose_without 1.
 Definition limitless_compose : Composer := compose_without 2.
+Definition worldless_compose : Composer := compose_without 6.
 Definition widening_compose : Composer := compose_without 9.
 Definition uninventoried_compose : Composer := compose_without 7.
 Definition unverified_compose : Composer := compose_without 8.
 Definition ringless_compose : Composer := compose_without 10.
 Definition deep_ring_compose : Composer := compose_without 11.
+
+(* O20's refuters, one per class, generated over the closed enumeration
+   rather than authored: the two format conjuncts are dropped for edges whose
+   format is of the named class and kept for every other edge, which is
+   exactly the "on the same terms" clause failing at one family. Conjuncts 0
+   and 1 survive the drop, so each of the five still emits a closed graph and
+   what refutes it is the exemption. *)
+Definition admits_class_exempt (m : Machine) (r : list nat) (k : FormatClass)
+                               (e : Edge) : bool :=
+  if class_eqb (m.(format_class) e.(edge_format)) k
+  then all_of (fun p => p e) (drop_at 7 (drop_at 8 (edge_conjuncts m r)))
+  else admissible_edge m r e.
+
+Definition exempting_compose (k : FormatClass) : Composer := fun m _ r => {|
+  graph_nodes := r;
+  graph_edges := filter_of (admits_class_exempt m r k) (declared_edges m r)
+|}.
+
+(* The family as a list, with the specification's own filter as the fallback
+   past the last class (reading 9): a bound raised by one reaches a predicate
+   that refuses the exempted edge, so the theorem below fails rather than
+   holding vacuously wider. *)
+Definition all_class_exemptions (m : Machine) (r : list nat)
+  : list (Edge -> bool) :=
+  map_over (admits_class_exempt m r) all_format_classes.
+
+Definition exemption_at (m : Machine) (r : list nat) (n : nat) : Edge -> bool :=
+  at_member (all_class_exemptions m r) n (admissible_edge m r).
+
+Example the_class_exemptions_are_five :
+  forall (m : Machine) (r : list nat),
+    count_of (all_class_exemptions m r) = 5.
+Proof. intros m r. reflexivity. Qed.
+
+Lemma class_exempt_owner_on_roster :
+  forall (m : Machine) (r : list nat) (k : FormatClass) (e : Edge),
+    admits_class_exempt m r k e = true -> mem_nat e.(edge_owner) r = true.
+Proof.
+  intros m r k e H. unfold admits_class_exempt in H.
+  destruct (class_eqb (m.(format_class) e.(edge_format)) k).
+  - unfold edge_conjuncts in H. simpl in H.
+    destruct (andb_split _ _ H) as [ H0 _ ]. exact H0.
+  - exact (admissible_owner_on_roster m r e H).
+Qed.
+
+Lemma class_exempt_target_on_roster :
+  forall (m : Machine) (r : list nat) (k : FormatClass) (e : Edge),
+    admits_class_exempt m r k e = true -> mem_nat e.(edge_target) r = true.
+Proof.
+  intros m r k e H. unfold admits_class_exempt in H.
+  destruct (class_eqb (m.(format_class) e.(edge_format)) k).
+  - unfold edge_conjuncts in H. simpl in H.
+    destruct (andb_split _ _ H) as [ _ H1 ].
+    destruct (andb_split _ _ H1) as [ H2 _ ]. exact H2.
+  - exact (admissible_target_on_roster m r e H).
+Qed.
+
+Theorem every_exempting_composer_still_emits_a_closed_graph :
+  forall (k : FormatClass) (m : Machine) (a : Ambient) (r : list nat),
+    IsFiniteAndClosed r (exempting_compose k m a r).
+Proof.
+  intros k m a r. split.
+  - unfold endpoints_inside. simpl.
+    apply (all_of_mono Edge (admits_class_exempt m r k)
+             (fun e => andb (mem_nat e.(edge_owner) r) (mem_nat e.(edge_target) r))).
+    + intros e He. apply andb_join.
+      * exact (class_exempt_owner_on_roster m r k e He).
+      * exact (class_exempt_target_on_roster m r k e He).
+    + exact (all_of_filter_self Edge (admits_class_exempt m r k)
+               (declared_edges m r)).
+  - simpl. exact (all_of_mem_self r).
+Qed.
 
 (* A composer that reads what it observed: under a probe it emits the empty
    graph, which R-12-024b's compilation from interface descriptors excludes.
@@ -1419,10 +1723,13 @@ Definition executing_compose : Composer := fun m a r => {|
         (filter_of (admissible_edge m r) (scripted_edges m r))
 |}.
 
-(* Both alternative composers keep the closure obligation, stated of an
-   arbitrary machine and roster rather than computed on the demo, so what
-   refutes each below is the named defect and not the shape of the
-   construction. *)
+(* Both alternative composers keep the two obligations they are not aimed at
+   as well as the closure obligation, each stated of an arbitrary machine and
+   roster rather than computed on the demo, so what refutes each below is the
+   named defect and not the shape of the construction. Three theorems apiece
+   rather than one: a composer shown only to be closed could also be reading
+   the ambient or running the script, and then the refutation below would not
+   isolate anything. *)
 Theorem the_discovering_composer_still_emits_a_closed_graph :
   forall (m : Machine) (a : Ambient) (r : list nat),
     IsFiniteAndClosed r (discovering_compose m a r).
@@ -1447,6 +1754,23 @@ Proof.
        | apply all_of_filter_self ]).
   - simpl. exact (all_of_mem_self r).
 Qed.
+
+(* The discovering composer runs no package code: its two arms are the empty
+   graph and the specification's own, and neither reads the script. So what
+   refutes it is the ambient alone. *)
+Theorem the_discovering_composer_executes_no_package_code :
+  ExecutesNoPackageCode discovering_compose.
+Proof.
+  intros m s a r. unfold discovering_compose.
+  destruct (Nat.ltb 0 a.(amb_probe)); reflexivity.
+Qed.
+
+(* And the executing composer composes from the descriptors alone: it ignores
+   the ambient exactly as the specification does, so what refutes it is the
+   script alone. *)
+Theorem the_executing_composer_composes_from_descriptors_alone :
+  ComposesFromDescriptorsAlone executing_compose.
+Proof. intros m a1 a2 r. reflexivity. Qed.
 
 (* And the discovering composer agrees with the specification wherever it
    observes nothing, so what refutes it is the runtime dependence rather than
@@ -1608,9 +1932,12 @@ Definition edges_into (g : Graph) (p : nat) : nat :=
   count_of (filter_of (fun e => Nat.eqb e.(edge_target) p) g.(graph_edges)).
 
 (* =========================================================================
-   O6, O7, O8, O9: deterministic typed routing over a finite closed graph
-   under the caller's requested intent and resource bound (R-12-024b with
-   R-12-013a), and an intent naming no admitted edge failing closed.
+   O6, O7, O8, O9a, O9b and O9c: deterministic typed routing over a finite
+   closed graph under the caller's requested intent and resource bound
+   (R-12-024b with R-12-013a), and an intent naming no admitted edge failing
+   closed. There is no bare O9: the ninth obligation is three, the intent the
+   selection answers, the bound it respects, and the graph it may not leave,
+   and each is refuted by a different selector.
 
    Reading 5 puts the comparison of the edge's declared limit against the
    caller's bound at selection; gap h records that the register does not
@@ -1758,6 +2085,109 @@ Theorem the_specification_fails_closed :
   FailsClosed spec_select.
 Proof.
   intros g q H. exact (find_of_none Edge (matches q) g.(graph_edges) H).
+Qed.
+
+(* =========================================================================
+   O21: the three introductions R-12-013a's acceptance clause forbids, as a
+   Prop over the closed enumeration rather than as three separate statements.
+   It carries the number after the last one taken and sits where its
+   obligation belongs, which is beside the selection half it reads, rather
+   than taking a number between two that are already spoken for. That is the
+   register's own convention for an id inserted between two others, kept here
+   so that an obligation number in a note goes on naming what it named.
+
+   Each of the three is read at a quantity the composition already fixes,
+   which is what stops the enumeration from being decorative: a desktop-
+   specific wire protocol is an edge declaring a world the composition did
+   not, an open-ended intent string is a selection that moves with the
+   caller-supplied name, and an authority-bearing path is an edge whose
+   declared bounds exceed the declaring package's own manifest. Two are the
+   composer's and one is the selector's, so the obligation is over the pair
+   and each is refuted by a construction this file already carries. Dropping
+   a constructor here drops one of the three.
+   ========================================================================= *)
+
+Definition IntroducesNothing (c : Composer) (sel : Selector) : Prop :=
+  forall (m : Machine) (a : Ambient) (r : list nat) (k : ForbiddenIntroduction),
+    match k with
+    | DesktopWireProtocol =>
+        all_of (fun e => Nat.ltb e.(edge_world) m.(world_count))
+               (c m a r).(graph_edges) = true
+    | OpenEndedIntentString => DoesNotReadTheName sel
+    | AuthorityBearingPath =>
+        all_of (fun e => Nat.leb e.(edge_bounds)
+                                 (m.(descriptor) e.(edge_owner)).(desc_manifest))
+               (c m a r).(graph_edges) = true
+    end.
+
+Theorem the_specification_introduces_nothing :
+  IntroducesNothing spec_compose spec_select.
+Proof.
+  intros m a r k. destruct k.
+  - exact (every_composed_edge_declares_an_interface_world m a r).
+  - exact the_specification_selection_does_not_read_the_name.
+  - exact (the_specification_never_widens_a_manifest m a r).
+Qed.
+
+(* The two dropped-conjunct composers keep the other member of the pair they
+   do not break, read out of the weakened filter rather than computed on the
+   demo: dropping conjunct 6 leaves conjunct 9 at index 8, and dropping
+   conjunct 9 leaves conjunct 6 where it was. *)
+Lemma dropping_the_world_keeps_the_manifest :
+  forall (m : Machine) (r : list nat) (e : Edge),
+    all_of (fun p => p e) (drop_at 6 (edge_conjuncts m r)) = true ->
+    Nat.leb e.(edge_bounds) (m.(descriptor) e.(edge_owner)).(desc_manifest) = true.
+Proof.
+  intros m r e H. unfold edge_conjuncts in H. simpl in H.
+  destruct (andb_split _ _ H) as [ _ H1 ].
+  destruct (andb_split _ _ H1) as [ _ H2 ].
+  destruct (andb_split _ _ H2) as [ _ H3 ].
+  destruct (andb_split _ _ H3) as [ _ H4 ].
+  destruct (andb_split _ _ H4) as [ _ H5 ].
+  destruct (andb_split _ _ H5) as [ _ H6 ].
+  destruct (andb_split _ _ H6) as [ _ H7 ].
+  destruct (andb_split _ _ H7) as [ _ H8 ].
+  destruct (andb_split _ _ H8) as [ H9 _ ]. exact H9.
+Qed.
+
+Lemma dropping_the_manifest_keeps_the_world :
+  forall (m : Machine) (r : list nat) (e : Edge),
+    all_of (fun p => p e) (drop_at 9 (edge_conjuncts m r)) = true ->
+    Nat.ltb e.(edge_world) m.(world_count) = true.
+Proof.
+  intros m r e H. unfold edge_conjuncts in H. simpl in H.
+  destruct (andb_split _ _ H) as [ _ H1 ].
+  destruct (andb_split _ _ H1) as [ _ H2 ].
+  destruct (andb_split _ _ H2) as [ _ H3 ].
+  destruct (andb_split _ _ H3) as [ _ H4 ].
+  destruct (andb_split _ _ H4) as [ _ H5 ].
+  destruct (andb_split _ _ H5) as [ _ H6 ].
+  destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
+Qed.
+
+Theorem the_worldless_composer_keeps_the_manifest_clause :
+  forall (m : Machine) (a : Ambient) (r : list nat),
+    all_of (fun e => Nat.leb e.(edge_bounds)
+                             (m.(descriptor) e.(edge_owner)).(desc_manifest))
+           (worldless_compose m a r).(graph_edges) = true.
+Proof.
+  intros m a r. unfold worldless_compose, compose_without. simpl.
+  apply (all_of_mono Edge
+           (fun e => all_of (fun p => p e) (drop_at 6 (edge_conjuncts m r)))).
+  - intros e He. exact (dropping_the_world_keeps_the_manifest m r e He).
+  - apply all_of_filter_self.
+Qed.
+
+Theorem the_widening_composer_keeps_the_world_clause :
+  forall (m : Machine) (a : Ambient) (r : list nat),
+    all_of (fun e => Nat.ltb e.(edge_world) m.(world_count))
+           (widening_compose m a r).(graph_edges) = true.
+Proof.
+  intros m a r. unfold widening_compose, compose_without. simpl.
+  apply (all_of_mono Edge
+           (fun e => all_of (fun p => p e) (drop_at 9 (edge_conjuncts m r)))).
+  - intros e He. exact (dropping_the_manifest_keeps_the_world m r e He).
+  - apply all_of_filter_self.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -2096,10 +2526,26 @@ Example the_creating_binders_are_four :
    O14: a template binds from bounded pools and a full pool answers with a
    typed verdict (R-12-024c with R-08-046 and R-08-047).
 
-   Three clauses, because R-08-047 names three prohibitions: the request is
-   not dropped, it is not converted into an implicit wait, and it is not
-   answered by borrowing from another pool. Three refuting binders, each
-   breaking exactly one and keeping the other two.
+   R-08-047's sentence names four obligations of the verdict and this file
+   states three. It cannot be dropped and it cannot be converted into an
+   implicit wait, which `AlwaysAnswers` states as one predicate because a
+   binder that answers at every occupancy does neither. It cannot be answered
+   by borrowing from another pool, which `BorrowsNothing` states in both
+   directions rather than one, since a shortfall charged to the node pool is
+   the same defect as one charged to the ring pool; stating it both ways is
+   also what makes the typed verdict name the pool that is actually full
+   rather than merely report a shortfall. The fourth is the relevance grade,
+   and it is the one not stated here: the header defers it to R-05-098's IDL
+   or ABI declaration and R-05-097's derivation type-check, neither being a
+   composer's act.
+
+   A third predicate comes from outside that sentence and is marked as such:
+   the entry's own fail-closed line adds that a full pool declines rather
+   than blocking, borrowing or overcommitting, which is `DeclinesWhenFull`.
+
+   Four refuting binders, each breaking exactly one predicate and keeping the
+   other two: one drops the request, one overcommits, and two borrow, one in
+   each direction.
    ========================================================================= *)
 
 Definition Binder : Type := Machine -> Occupancy -> list Stage -> option Verdict.
@@ -2131,10 +2577,13 @@ Definition DeclinesWhenFull (b : Binder) : Prop :=
     node_full m occ t = true -> is_bound (b m occ t) = false.
 
 (* R-08-047's borrowing clause: a decline names the pool that is actually
-   full, so the shortfall is not charged to the other one. *)
+   full, so the shortfall is not charged to the other one. Both directions,
+   because a clause stated at one pool alone leaves a binder free to charge
+   the node pool for a ring shortfall and call it typed. *)
 Definition BorrowsNothing (b : Binder) : Prop :=
   forall (m : Machine) (occ : Occupancy) (t : list Stage),
-    b m occ t = Some (CapacityExhausted RingPool) -> ring_full m occ t = true.
+    (b m occ t = Some (CapacityExhausted RingPool) -> ring_full m occ t = true)
+    /\ (b m occ t = Some (CapacityExhausted NodePool) -> node_full m occ t = true).
 
 Theorem the_specification_binder_always_answers : AlwaysAnswers spec_bind.
 Proof.
@@ -2148,14 +2597,19 @@ Proof. intros m occ t H. unfold spec_bind. rewrite H. reflexivity. Qed.
 
 Theorem the_specification_binder_borrows_nothing : BorrowsNothing spec_bind.
 Proof.
-  intros m occ t H. unfold spec_bind in H.
-  destruct (node_full m occ t); [ discriminate H | ].
-  destruct (ring_full m occ t) eqn:Hr; [ reflexivity | discriminate H ].
+  intros m occ t. split.
+  - intros H. unfold spec_bind in H.
+    destruct (node_full m occ t); [ discriminate H | ].
+    destruct (ring_full m occ t) eqn:Hr; [ reflexivity | discriminate H ].
+  - intros H. unfold spec_bind in H.
+    destruct (node_full m occ t) eqn:Hn; [ reflexivity | ].
+    destruct (ring_full m occ t); discriminate H.
 Qed.
 
-(* The three refuters. Each answers exactly as the specification does wherever
-   the node pool has room, so what refutes each is the arm it took when the
-   pool was full. *)
+(* Three of the four refuters, the fourth being the reverse borrower stated
+   beside its refutation below. Each answers exactly as the specification
+   does wherever the node pool has room, so what refutes each is the arm it
+   took when the pool was full. *)
 Definition blocking_bind : Binder := fun m occ t =>
   if node_full m occ t then None else spec_bind m occ t.
 
@@ -2171,9 +2625,13 @@ Theorem the_blocking_binder_keeps_the_decline_and_the_borrowing_clause :
 Proof.
   split.
   - intros m occ t H. unfold blocking_bind. rewrite H. reflexivity.
-  - intros m occ t H. unfold blocking_bind in H.
-    destruct (node_full m occ t) eqn:Hn; [ discriminate H | ].
-    exact (the_specification_binder_borrows_nothing m occ t H).
+  - intros m occ t. split; intros H.
+    + apply (proj1 (the_specification_binder_borrows_nothing m occ t)).
+      unfold blocking_bind in H.
+      destruct (node_full m occ t); [ discriminate H | exact H ].
+    + apply (proj2 (the_specification_binder_borrows_nothing m occ t)).
+      unfold blocking_bind in H.
+      destruct (node_full m occ t); [ discriminate H | exact H ].
 Qed.
 
 Theorem the_growing_binder_keeps_the_answer_and_the_borrowing_clause :
@@ -2183,9 +2641,13 @@ Proof.
   - intros m occ t. unfold growing_bind.
     destruct (node_full m occ t); [ reflexivity | ].
     exact (the_specification_binder_always_answers m occ t).
-  - intros m occ t H. unfold growing_bind in H.
-    destruct (node_full m occ t) eqn:Hn; [ discriminate H | ].
-    exact (the_specification_binder_borrows_nothing m occ t H).
+  - intros m occ t. split; intros H.
+    + apply (proj1 (the_specification_binder_borrows_nothing m occ t)).
+      unfold growing_bind in H.
+      destruct (node_full m occ t); [ discriminate H | exact H ].
+    + apply (proj2 (the_specification_binder_borrows_nothing m occ t)).
+      unfold growing_bind in H.
+      destruct (node_full m occ t); [ discriminate H | exact H ].
 Qed.
 
 Theorem the_borrowing_binder_keeps_the_answer_and_the_decline :
@@ -2524,6 +2986,34 @@ Definition spoiled_at (n : nat) : Edge := at_member spoiled_edges n e_decode.
 
 Example the_spoiled_edges_are_twelve : count_of spoiled_edges = 12 := eq_refl.
 
+(* One edge per format class whose format the inventory does not carry, the
+   decode with only its format moved, generated over the closed enumeration
+   rather than authored. Each breaks conjunct 7 and nothing else, so what the
+   exemption family below admits is exactly the inventory clause failing at
+   one class. The family's fallback past the last class is the composed
+   decode itself (reading 9), which is admissible, so a bound raised by one
+   makes the theorem fail rather than hold wider. *)
+Definition class_index (k : FormatClass) : nat :=
+  match k with
+  | ImageFormat => 0
+  | MediaFormat => 1
+  | FontFormat => 2
+  | ArchiveFormat => 3
+  | DocumentFormat => 4
+  end.
+
+Definition uninventoried_edge (k : FormatClass) : Edge :=
+  set_format (5 + class_index k) e_decode.
+
+Definition all_uninventoried_edges : list Edge :=
+  map_over uninventoried_edge all_format_classes.
+
+Definition uninventoried_at (n : nat) : Edge :=
+  at_member all_uninventoried_edges n e_decode.
+
+Example the_uninventoried_edges_are_five :
+  count_of all_uninventoried_edges = 5 := eq_refl.
+
 (* The four stages of the demo media template. Which stages a template may
    carry is gap a: the register names none, so these four are witness values
    and not an enumeration. The conversion's ring depth sits exactly on the
@@ -2612,6 +3102,17 @@ Definition no_script (_ : nat) : list Edge := nil.
 Definition demo_channel (a b : nat) : bool :=
   andb (Nat.eqb a 0) (Nat.eqb b 1).
 
+(* R-12-024f's five classes over the demo's format space, assigned so that
+   every class has a format on the inventory and a format off it: the
+   inventory carries 0, 1 and 2, and the class cycles with period five, so
+   the five formats at 5 through 9 are one per class and none of them is
+   inventoried. That is what lets the exemption family below be decided at
+   all five classes rather than at the two the spoiled edges happen to
+   carry. Which formats an inventory holds is a composition (gap j); the
+   cycle is a witness and carries no claim about a real inventory. *)
+Definition demo_format_class (f : nat) : FormatClass :=
+  at_member all_format_classes (Nat.modulo f 5) DocumentFormat.
+
 Definition demo : Machine := {|
   package_count := 6;
   roster := demo_roster;
@@ -2622,6 +3123,7 @@ Definition demo : Machine := {|
   world_count := 2;
   in_inventory := fun f => Nat.ltb f 3;
   verified_parser := fun f => negb (Nat.eqb f 2);
+  format_class := demo_format_class;
   node_pool_capacity := 4;
   ring_pool_capacity := 5;
   ring_depth_ceiling := 3;
@@ -2809,10 +3311,19 @@ Theorem the_deep_ring_composer_is_refuted :
               (deep_ring_compose m a r).(graph_edges) = true).
 Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
 
-(* Each of the six keeps the closure obligation except the one that drops it,
-   so what refutes each is its own conjunct. *)
-Example the_five_other_dropped_conjuncts_keep_the_graph_closed :
+Theorem the_worldless_composer_is_refuted :
+  ~ (forall (m : Machine) (a : Ambient) (r : list nat),
+       all_of (fun e => Nat.ltb e.(edge_world) m.(world_count))
+              (worldless_compose m a r).(graph_edges) = true).
+Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+
+(* Each of the seven keeps the closure obligation except the one that drops
+   it, so what refutes each is its own conjunct. The count in the name is the
+   named members of `compose_without` other than the trusting one, and it
+   moves when that list does. *)
+Example the_seven_other_dropped_conjuncts_keep_the_graph_closed :
   endpoints_inside (limitless_compose demo demo_ambient demo_roster) = true
+  /\ endpoints_inside (worldless_compose demo demo_ambient demo_roster) = true
   /\ endpoints_inside (widening_compose demo demo_ambient demo_roster) = true
   /\ endpoints_inside (uninventoried_compose demo demo_ambient demo_roster) = true
   /\ endpoints_inside (unverified_compose demo demo_ambient demo_roster) = true
@@ -2820,7 +3331,72 @@ Example the_five_other_dropped_conjuncts_keep_the_graph_closed :
   /\ endpoints_inside (deep_ring_compose demo demo_ambient demo_roster) = true
   /\ endpoints_inside (trusting_compose demo demo_ambient demo_roster) = false :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
-    (conj eq_refl eq_refl))))).
+    (conj eq_refl (conj eq_refl eq_refl)))))).
+
+(* -------------------------------------------------------------------------
+   O20: the five format classes, and the exemption refuted at each.
+   ------------------------------------------------------------------------- *)
+
+(* Each of the five edges carries the class the family names it for and a
+   format the inventory does not hold, so the class assignment is read rather
+   than assumed. *)
+Example every_uninventoried_edge_carries_its_own_class :
+  map_over (fun k => class_eqb (demo.(format_class) (uninventoried_edge k).(edge_format)) k)
+           all_format_classes
+  = cons true (cons true (cons true (cons true (cons true nil))))
+  /\ map_over (fun e => demo.(in_inventory) e.(edge_format)) all_uninventoried_edges
+     = cons false (cons false (cons false (cons false (cons false nil))))
+  /\ map_over (fun e => demo.(verified_parser) e.(edge_format)) all_uninventoried_edges
+     = cons true (cons true (cons true (cons true (cons true nil)))) :=
+  conj eq_refl (conj eq_refl eq_refl).
+
+(* Each breaks exactly the inventory conjunct, and the exemption at its own
+   class admits it. Decided as one conversion across the whole family. *)
+Example every_class_exemption_admits_the_edge_the_inventory_refuses :
+  all_of (fun e => negb (admissible_edge demo demo_roster e))
+         all_uninventoried_edges = true
+  /\ map_over (conjuncts_broken demo demo_roster) all_uninventoried_edges
+     = cons 1 (cons 1 (cons 1 (cons 1 (cons 1 nil))))
+  /\ all_of (fun k => admits_class_exempt demo demo_roster k (uninventoried_edge k))
+            all_format_classes = true := conj eq_refl (conj eq_refl eq_refl).
+
+(* And the same content as a theorem quantified over the index, whose bound
+   raised by one reaches the composed decode, which is admissible, so the
+   first half fails there rather than holding wider. *)
+Theorem no_format_class_may_be_exempted :
+  forall n : nat, Nat.ltb n 5 = true ->
+    admissible_edge demo demo_roster (uninventoried_at n) = false
+    /\ exemption_at demo demo_roster n (uninventoried_at n) = true.
+Proof.
+  intros n. destruct n as [ | [ | [ | [ | [ | n ] ] ] ] ];
+    intros H; first [ split; reflexivity | discriminate H ].
+Qed.
+
+(* The obligation itself, refuted at two classes the demo's own declared
+   edges reach: the archive-class format the inventory does not carry, and
+   the font-class format that carries no verified parser. Each exempting
+   composer still emits a closed graph, which is stated of an arbitrary
+   machine above. *)
+Theorem the_archive_exempting_composer_is_refuted :
+  ~ ExemptsNoFormatClass (exempting_compose ArchiveFormat).
+Proof.
+  intros H. specialize (H demo demo_ambient demo_roster ArchiveFormat).
+  discriminate H.
+Qed.
+
+Theorem the_font_exempting_composer_is_refuted :
+  ~ ExemptsNoFormatClass (exempting_compose FontFormat).
+Proof.
+  intros H. specialize (H demo demo_ambient demo_roster FontFormat).
+  discriminate H.
+Qed.
+
+Example each_exempting_composer_admits_what_its_class_carries :
+  map_over (fun k => count_of (exempting_compose k demo demo_ambient
+                                                 demo_roster).(graph_edges))
+           all_format_classes
+  = cons 4 (cons 4 (cons 5 (cons 5 (cons 4 nil))))
+  /\ count_of demo_graph.(graph_edges) = 4 := conj eq_refl eq_refl.
 
 (* -------------------------------------------------------------------------
    O4: the five amenders.
@@ -2868,6 +3444,18 @@ Proof.
   apply (f_equal (fun g => count_of g.(graph_edges))) in H. discriminate H.
 Qed.
 
+(* And it emits the node set the recomposition emits, so what refutes it is
+   the edge it missed and not a different roster. The uninstall side states
+   the same thing below, and neither is a fact about the construction's
+   shape: both installers write the resulting roster into the graph and the
+   difference is entirely in the edge list. *)
+Example the_amending_install_keeps_the_roster :
+  (amending_install demo roster_before 3).(graph_nodes) = cons 3 roster_before
+  /\ (spec_install demo roster_before 3).(graph_nodes) = cons 3 roster_before
+  /\ count_of (amending_install demo roster_before 3).(graph_nodes) = 4
+  /\ edges_into (spec_install demo roster_before 3) 3 = 1 :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+
 (* The uninstall difference, machine-checked rather than argued: the
    amendment that deletes only the departing package's own edges leaves an
    edge routing into a node the roster no longer carries, and the
@@ -2896,7 +3484,7 @@ Example the_amending_uninstall_keeps_the_roster :
   conj eq_refl eq_refl.
 
 (* -------------------------------------------------------------------------
-   O6, O7, O8, O9: the selection, and gap b exhibited.
+   O6, O7, O8, O9a, O9b and O9c: the selection, and gap b exhibited.
    ------------------------------------------------------------------------- *)
 
 Definition selected_owner (o : option Edge) : nat :=
@@ -3013,6 +3601,48 @@ Example the_overrunning_selector_leaves_the_bound :
   selects_inside overrunning_select demo_graph q_tight 2 = false
   /\ selected_owner (overrunning_select demo_graph q_tight) = 1 :=
   conj eq_refl eq_refl.
+
+(* -------------------------------------------------------------------------
+   O21: the three forbidden introductions, refuted one per member.
+   ------------------------------------------------------------------------- *)
+
+Theorem the_worldless_composer_introduces_a_wire_protocol :
+  ~ IntroducesNothing worldless_compose spec_select.
+Proof.
+  intros H. specialize (H demo demo_ambient demo_roster DesktopWireProtocol).
+  simpl in H. discriminate H.
+Qed.
+
+Theorem the_name_reading_selector_introduces_an_open_ended_intent_string :
+  ~ IntroducesNothing spec_compose name_reading_select.
+Proof.
+  intros H. specialize (H demo demo_ambient demo_roster OpenEndedIntentString).
+  exact (the_name_reading_selector_is_refuted H).
+Qed.
+
+Theorem the_widening_composer_introduces_an_authority_bearing_path :
+  ~ IntroducesNothing widening_compose spec_select.
+Proof.
+  intros H. specialize (H demo demo_ambient demo_roster AuthorityBearingPath).
+  simpl in H. discriminate H.
+Qed.
+
+(* Each of the three keeps the other two, so what refutes each is the member
+   it introduces. The two composer members are kept of an arbitrary machine
+   above; the selector member is kept because the specification's own
+   selector is the one the other two are stated with. *)
+Example the_three_introducers_keep_the_two_they_do_not_break :
+  all_of (fun e => Nat.leb e.(edge_bounds)
+                           (demo.(descriptor) e.(edge_owner)).(desc_manifest))
+         (worldless_compose demo demo_ambient demo_roster).(graph_edges) = true
+  /\ all_of (fun e => Nat.ltb e.(edge_world) demo.(world_count))
+            (widening_compose demo demo_ambient demo_roster).(graph_edges) = true
+  /\ all_of (fun e => Nat.ltb e.(edge_world) demo.(world_count))
+            demo_graph.(graph_edges) = true
+  /\ all_of (fun e => Nat.leb e.(edge_bounds)
+                              (demo.(descriptor) e.(edge_owner)).(desc_manifest))
+            demo_graph.(graph_edges) = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
 (* -------------------------------------------------------------------------
    O11: the four quantities, and the four partial binders.
@@ -3137,21 +3767,52 @@ Qed.
 
 Theorem the_borrowing_binder_borrows : ~ BorrowsNothing borrowing_bind.
 Proof.
-  intros H. specialize (H demo occ_node_full demo_template eq_refl).
-  discriminate H.
+  intros H. destruct (H demo occ_node_full demo_template) as [ H1 _ ].
+  specialize (H1 eq_refl). discriminate H1.
 Qed.
 
-Example the_three_binders_differ_only_where_the_node_pool_is_full :
+(* The other direction of the same clause, refuted at the other pool: a
+   binder that charges the node pool for a ring shortfall is the borrowing
+   defect with the two pools exchanged, and the clause stated at one pool
+   alone would admit it. It keeps the answer and the decline, exactly as its
+   twin does. *)
+Definition reverse_borrowing_bind : Binder := fun m occ t =>
+  if node_full m occ t then Some (CapacityExhausted NodePool)
+  else if ring_full m occ t then Some (CapacityExhausted NodePool)
+  else Some Bound.
+
+Theorem the_reverse_borrowing_binder_keeps_the_answer_and_the_decline :
+  AlwaysAnswers reverse_borrowing_bind /\ DeclinesWhenFull reverse_borrowing_bind.
+Proof.
+  split.
+  - intros m occ t. unfold reverse_borrowing_bind.
+    destruct (node_full m occ t); [ reflexivity | ].
+    destruct (ring_full m occ t); reflexivity.
+  - intros m occ t H. unfold reverse_borrowing_bind. rewrite H. reflexivity.
+Qed.
+
+Theorem the_reverse_borrowing_binder_borrows :
+  ~ BorrowsNothing reverse_borrowing_bind.
+Proof.
+  intros H. destruct (H demo occ_ring_full demo_template) as [ _ H2 ].
+  specialize (H2 eq_refl). discriminate H2.
+Qed.
+
+Example the_four_binders_differ_only_where_a_pool_is_full :
   blocking_bind demo occ_node_full demo_template = None
   /\ growing_bind demo occ_node_full demo_template = Some Bound
   /\ borrowing_bind demo occ_node_full demo_template
      = Some (CapacityExhausted RingPool)
+  /\ reverse_borrowing_bind demo occ_ring_full demo_template
+     = Some (CapacityExhausted NodePool)
   /\ blocking_bind demo occ_empty demo_template = Some Bound
   /\ growing_bind demo occ_ring_full demo_template
      = Some (CapacityExhausted RingPool)
   /\ borrowing_bind demo occ_ring_full demo_template
-     = Some (CapacityExhausted RingPool) :=
-  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
+     = Some (CapacityExhausted RingPool)
+  /\ reverse_borrowing_bind demo occ_empty demo_template = Some Bound :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl eq_refl)))))).
 
 (* -------------------------------------------------------------------------
    O15, O17, O18, O19: the template and its generated weakenings.
@@ -3503,16 +4164,37 @@ Example the_short_nodes_and_the_fallback_past_them :
   map_over short_node (upto 5) = cons 5 (cons 6 (cons 7 (cons 8 (cons 0 nil))))
   /\ spec_may_bind demo 0 = true := conj eq_refl eq_refl.
 
-(* The wire-format inventory and its per-format verified-parser flag, at
-   every format the file names and one past the last of them. Gap e is what
-   the second list is: whether a hand-transcribed exception reaches a graph
-   node's format is unstated, so this is a field. *)
-Example the_inventory_and_the_parser_flag :
-  map_over demo.(in_inventory) (upto 5)
-  = cons true (cons true (cons true (cons false (cons false nil))))
-  /\ map_over demo.(verified_parser) (upto 5)
-     = cons true (cons true (cons false (cons true (cons true nil)))) :=
-  conj eq_refl eq_refl.
+(* The wire-format inventory, its per-format verified-parser flag and its
+   per-format class, at every format the file names and past the last of
+   them. Which formats an inventory holds is a composition (gap j); that no
+   class of the five is exempt from either flag is R-12-024f's, and O20 is
+   where it is stated. *)
+Example the_inventory_the_parser_flag_and_the_classes :
+  map_over demo.(in_inventory) (upto 10)
+  = cons true (cons true (cons true (cons false (cons false (cons false
+    (cons false (cons false (cons false (cons false nil)))))))))
+  /\ map_over demo.(verified_parser) (upto 10)
+     = cons true (cons true (cons false (cons true (cons true (cons true
+       (cons true (cons true (cons true (cons true nil)))))))))
+  /\ map_over demo.(format_class) (upto 10)
+     = cons ImageFormat (cons MediaFormat (cons FontFormat (cons ArchiveFormat
+       (cons DocumentFormat (cons ImageFormat (cons MediaFormat (cons FontFormat
+       (cons ArchiveFormat (cons DocumentFormat nil))))))))) :=
+  conj eq_refl (conj eq_refl eq_refl).
+
+(* The five edges the exemption family is decided at, each carrying one
+   figure of its own: the format its class puts it at, and the decode's
+   values everywhere else. *)
+Example every_uninventoried_edge_moves_only_its_format :
+  map_over (fun e => e.(edge_format)) all_uninventoried_edges
+  = cons 5 (cons 6 (cons 7 (cons 8 (cons 9 nil))))
+  /\ map_over class_index all_format_classes
+     = cons 0 (cons 1 (cons 2 (cons 3 (cons 4 nil))))
+  /\ all_of (fun e => Nat.eqb e.(edge_owner) e_decode.(edge_owner))
+            all_uninventoried_edges = true
+  /\ all_of (fun e => Nat.eqb e.(edge_ring) e_decode.(edge_ring))
+            all_uninventoried_edges = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
 (* Every magnitude the demo machine fixes, computed rather than described, so
    that a figure edited on one side of the file and read on the other is a
@@ -3650,11 +4332,15 @@ Print Assumptions all_admitted_quantities.
 Print Assumptions all_forbidden_creations.
 Print Assumptions all_node_origins.
 Print Assumptions all_pools.
+Print Assumptions all_format_classes.
+Print Assumptions all_forbidden_introductions.
 Print Assumptions there_are_five_banned_mechanisms.
 Print Assumptions there_are_four_admitted_quantities.
 Print Assumptions there_are_four_forbidden_creations.
 Print Assumptions there_are_two_node_origins.
 Print Assumptions there_are_two_pools.
+Print Assumptions there_are_five_format_classes.
+Print Assumptions there_are_three_forbidden_introductions.
 Print Assumptions mechanism_eqb.
 Print Assumptions mechanism_eqb_refl.
 Print Assumptions mechanism_eqb_true.
@@ -3670,11 +4356,19 @@ Print Assumptions origin_eqb_true.
 Print Assumptions pool_eqb.
 Print Assumptions pool_eqb_refl.
 Print Assumptions pool_eqb_true.
+Print Assumptions class_eqb.
+Print Assumptions class_eqb_refl.
+Print Assumptions class_eqb_true.
+Print Assumptions introduction_eqb.
+Print Assumptions introduction_eqb_refl.
+Print Assumptions introduction_eqb_true.
 Print Assumptions the_mechanisms_are_pairwise_distinct.
 Print Assumptions the_quantities_are_pairwise_distinct.
 Print Assumptions the_creations_are_pairwise_distinct.
 Print Assumptions the_origins_are_distinct.
 Print Assumptions the_pools_are_distinct.
+Print Assumptions the_format_classes_are_pairwise_distinct.
+Print Assumptions the_forbidden_introductions_are_pairwise_distinct.
 Print Assumptions with_script.
 Print Assumptions with_script_changes_nothing_else.
 Print Assumptions edge_conjuncts.
@@ -3684,6 +4378,7 @@ Print Assumptions there_are_twelve_conjuncts.
 Print Assumptions admissible_owner_on_roster.
 Print Assumptions admissible_target_on_roster.
 Print Assumptions admissible_declares_a_limit.
+Print Assumptions admissible_world_is_declared.
 Print Assumptions admissible_format_is_inventoried.
 Print Assumptions admissible_format_has_a_verified_parser.
 Print Assumptions admissible_bounds_inside_the_manifest.
@@ -3701,21 +4396,35 @@ Print Assumptions IsFiniteAndClosed.
 Print Assumptions the_specification_emits_a_finite_closed_graph.
 Print Assumptions the_specification_emits_admissible_edges_only.
 Print Assumptions every_composed_edge_declares_a_resource_limit.
+Print Assumptions every_composed_edge_declares_an_interface_world.
 Print Assumptions the_specification_never_widens_a_manifest.
 Print Assumptions every_parsed_format_is_inventoried_and_verified.
 Print Assumptions every_composed_ring_is_inside_the_ceiling.
+Print Assumptions ExemptsNoFormatClass.
+Print Assumptions the_specification_exempts_no_format_class.
 Print Assumptions compose_without.
 Print Assumptions trusting_compose.
 Print Assumptions limitless_compose.
+Print Assumptions worldless_compose.
 Print Assumptions widening_compose.
 Print Assumptions uninventoried_compose.
 Print Assumptions unverified_compose.
 Print Assumptions ringless_compose.
 Print Assumptions deep_ring_compose.
+Print Assumptions admits_class_exempt.
+Print Assumptions exempting_compose.
+Print Assumptions all_class_exemptions.
+Print Assumptions exemption_at.
+Print Assumptions the_class_exemptions_are_five.
+Print Assumptions class_exempt_owner_on_roster.
+Print Assumptions class_exempt_target_on_roster.
+Print Assumptions every_exempting_composer_still_emits_a_closed_graph.
 Print Assumptions discovering_compose.
 Print Assumptions executing_compose.
 Print Assumptions the_discovering_composer_still_emits_a_closed_graph.
 Print Assumptions the_executing_composer_still_emits_a_closed_graph.
+Print Assumptions the_discovering_composer_executes_no_package_code.
+Print Assumptions the_executing_composer_composes_from_descriptors_alone.
 Print Assumptions the_discovering_composer_agrees_where_it_observes_nothing.
 Print Assumptions Amender.
 Print Assumptions no_amendment.
@@ -3763,6 +4472,12 @@ Print Assumptions the_specification_returns_only_admitted_edges.
 Print Assumptions an_edge_inside_a_bound_is_inside_every_wider_one.
 Print Assumptions FailsClosed.
 Print Assumptions the_specification_fails_closed.
+Print Assumptions IntroducesNothing.
+Print Assumptions the_specification_introduces_nothing.
+Print Assumptions dropping_the_world_keeps_the_manifest.
+Print Assumptions dropping_the_manifest_keeps_the_world.
+Print Assumptions the_worldless_composer_keeps_the_manifest_clause.
+Print Assumptions the_widening_composer_keeps_the_world_clause.
 Print Assumptions last_match_select.
 Print Assumptions round_robin_select.
 Print Assumptions name_reading_select.
@@ -3871,6 +4586,11 @@ Print Assumptions set_ring.
 Print Assumptions spoiled_edges.
 Print Assumptions spoiled_at.
 Print Assumptions the_spoiled_edges_are_twelve.
+Print Assumptions class_index.
+Print Assumptions uninventoried_edge.
+Print Assumptions all_uninventoried_edges.
+Print Assumptions uninventoried_at.
+Print Assumptions the_uninventoried_edges_are_five.
 Print Assumptions s_decode.
 Print Assumptions s_convert.
 Print Assumptions s_mix.
@@ -3893,6 +4613,7 @@ Print Assumptions short_node.
 Print Assumptions demo_script.
 Print Assumptions no_script.
 Print Assumptions demo_channel.
+Print Assumptions demo_format_class.
 Print Assumptions demo.
 Print Assumptions demo_ambient.
 Print Assumptions probing_ambient.
@@ -3930,7 +4651,14 @@ Print Assumptions the_uninventoried_composer_is_refuted.
 Print Assumptions the_unverified_composer_is_refuted.
 Print Assumptions the_ringless_composer_is_refuted.
 Print Assumptions the_deep_ring_composer_is_refuted.
-Print Assumptions the_five_other_dropped_conjuncts_keep_the_graph_closed.
+Print Assumptions the_worldless_composer_is_refuted.
+Print Assumptions the_seven_other_dropped_conjuncts_keep_the_graph_closed.
+Print Assumptions every_uninventoried_edge_carries_its_own_class.
+Print Assumptions every_class_exemption_admits_the_edge_the_inventory_refuses.
+Print Assumptions no_format_class_may_be_exempted.
+Print Assumptions the_archive_exempting_composer_is_refuted.
+Print Assumptions the_font_exempting_composer_is_refuted.
+Print Assumptions each_exempting_composer_admits_what_its_class_carries.
 Print Assumptions the_amenders_are_five.
 Print Assumptions every_banned_mechanism_amends_the_running_graph.
 Print Assumptions no_amender_in_the_family_leaves_the_graph_unamended.
@@ -3939,6 +4667,7 @@ Print Assumptions roster_before.
 Print Assumptions the_roster_before_the_install_composes_two_edges.
 Print Assumptions the_install_recomposes_and_the_amendment_misses_an_edge.
 Print Assumptions the_amending_install_is_not_a_recomposition.
+Print Assumptions the_amending_install_keeps_the_roster.
 Print Assumptions the_uninstall_extent_is_observable.
 Print Assumptions the_amending_uninstall_is_not_a_recomposition.
 Print Assumptions the_amending_uninstall_keeps_the_roster.
@@ -3959,6 +4688,10 @@ Print Assumptions the_widening_selector_is_refuted.
 Print Assumptions the_specification_stays_inside_every_bound.
 Print Assumptions the_widening_selector_leaves_the_graph.
 Print Assumptions the_overrunning_selector_leaves_the_bound.
+Print Assumptions the_worldless_composer_introduces_a_wire_protocol.
+Print Assumptions the_name_reading_selector_introduces_an_open_ended_intent_string.
+Print Assumptions the_widening_composer_introduces_an_authority_bearing_path.
+Print Assumptions the_three_introducers_keep_the_two_they_do_not_break.
 Print Assumptions the_composed_nodes_are_admitted_and_the_short_ones_are_not.
 Print Assumptions no_partial_binder_requires_every_quantity.
 Print Assumptions each_partial_binder_admits_the_node_it_stopped_checking.
@@ -3974,7 +4707,10 @@ Print Assumptions the_pool_occupancies_at_the_boundary.
 Print Assumptions the_blocking_binder_drops_the_request.
 Print Assumptions the_growing_binder_overcommits.
 Print Assumptions the_borrowing_binder_borrows.
-Print Assumptions the_three_binders_differ_only_where_the_node_pool_is_full.
+Print Assumptions reverse_borrowing_bind.
+Print Assumptions the_reverse_borrowing_binder_keeps_the_answer_and_the_decline.
+Print Assumptions the_reverse_borrowing_binder_borrows.
+Print Assumptions the_four_binders_differ_only_where_a_pool_is_full.
 Print Assumptions the_composed_template_is_well_formed.
 Print Assumptions the_empty_chain_declares_no_ends.
 Print Assumptions the_four_refuting_templates_break_what_they_name.
@@ -4011,7 +4747,8 @@ Print Assumptions every_descriptor_declares_its_edges_and_its_script.
 Print Assumptions every_descriptor_declares_its_origin_and_its_admission_time.
 Print Assumptions every_descriptor_declares_which_quantities_are_admitted.
 Print Assumptions the_short_nodes_and_the_fallback_past_them.
-Print Assumptions the_inventory_and_the_parser_flag.
+Print Assumptions the_inventory_the_parser_flag_and_the_classes.
+Print Assumptions every_uninventoried_edge_moves_only_its_format.
 Print Assumptions the_demo_machine_declares.
 Print Assumptions the_demo_machine_carries_the_composed_template.
 Print Assumptions the_three_ambients.
