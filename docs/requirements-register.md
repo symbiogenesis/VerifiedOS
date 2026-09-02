@@ -84,7 +84,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T, CJ-RTL-SAIL
 
 **R-01-003** IS: G3: end-to-end formal verification from abstract spec through source, binary, ISA, and modeled hardware to RTL, with RTL ⊑ Sail a named in-scope mechanization workstream rather than a bare trust assumption.
-· Accept: the workstream this goal calls in-scope is R-18-010's, which stages it with its vehicles and its closing goal, and the seam it crosses is R-17-039's; this entry cites both rather than carrying a second copy of the staging. Below that arrow, fabricated silicon versus verified RTL is the irreducible fab residual.
+· Accept: the workstream this goal calls in-scope is R-18-010's, which stages it with its vehicles and its closing goal, and the seam it crosses is R-17-039's; this entry cites both rather than carrying a second copy of the staging. The arrow closes per block rather than once, and which entry answers each block is R-15-092 for the net-new blocks authored in Kôika/Kami and R-15-090 for the imported cores, at the tier R-01-002b holds them to; a G3 claim stated at theorem tier over an imported core is the finding. Below that arrow, fabricated silicon versus verified RTL is the irreducible fab residual.
 · Trace: CJ-RTL-SAIL
 
 **R-01-004** IS: G4: stateless, atomic, transactional, rollback-friendly.
@@ -5806,7 +5806,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 18.1 Constraints and priority
 
 **R-18-001** IS: Silicon is the binding constraint: RV64 application-class CHERI exists only as licensable IP and FPGA soft cores. Codasip's X730 is shipping evidence that application-class purecap silicon is real at sub-5% area cost, but its proprietary RTL enters as a reference and bring-up vehicle, never the trusted base.
-· Accept: the RTL of record is authored in a formal-semantics HDL, so even open CVA6-CHERI enters as a functional reference.
+· Accept: the RTL of record is read per block rather than once: the net-new blocks R-15-092 names are authored in Kôika/Kami and close as a Coq theorem, and an imported core's RTL of record is the SystemVerilog it ships, curated rather than authored, standing on R-15-090's FEV evidence rung at the tier R-01-002b holds it to until R-15-093's rung is admitted. No proprietary RTL is either, so X730 enters as a reference and bring-up vehicle only, and open CVA6-CHERI enters as an imported core on that rung and not as the trusted base.
 · Trace: CJ-RTL-SAIL
 
 **R-18-001a** MUST: Every maturity claim this specification makes about an upstream is a reading with a date, taken from that upstream's own repository, release page, licence file, or specification build, re-taken at the milestone that would spend it on exactly the rule a licence is read under, and never inherited from the reading before it or inferred from a project's lineage or reputation. The substrate this design starts from is accordingly a set of start-froms of unequal maturity and not an ecosystem: a vendored model and its capability oracle at one end, an unverified backend prototype and an unratified standardization draft in the middle, and an unauthored soundness metatheorem at the other.
