@@ -31,6 +31,7 @@ be run from anywhere: the repository root is found from this file, never from th
 working directory.
 """
 
+import io
 import subprocess
 import sys
 from collections.abc import Callable
@@ -58,9 +59,14 @@ GUEST = ("wsl", "-u", "root", "-e", "python3", "tools/run.py")
 
 
 def _utf8_output() -> None:
-    """Make redirected output obey the corpus's UTF-8 encoding, on either lane."""
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
+    """Make redirected output obey the corpus's UTF-8 encoding, on either lane.
+
+    `reconfigure` belongs to `io.TextIOWrapper` and not to the `TextIO` protocol the
+    streams are typed as, so the guard is the type checker's, and a stream that is not
+    a wrapper (a harness's capture, say) keeps the encoding its owner gave it."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
 
 
 def _usage() -> str:
