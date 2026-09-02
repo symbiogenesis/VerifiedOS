@@ -34,7 +34,12 @@ path. It was seventeen executables, and using them meant knowing which file answ
 which question and which of the two lanes it ran in; both of those are now the tool's
 to know. `python tools/run.py` with no command runs the host gate wave, which is what
 has to be green before anything lands, and `run.py <command> --help` is that command's
-own help.
+own help. The wave and `run.py test` also run in CI, in
+[.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on an Ubuntu
+runner at every push and pull request to `main`, over a clone with no submodule
+checked out; the guest lane's loops run only by hand, on a machine that holds the
+toolchain. CI green is a witness that the host gates passed on that commit and never a
+substitute for the guest lane's evidence.
 
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
