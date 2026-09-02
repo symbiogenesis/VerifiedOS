@@ -279,7 +279,7 @@ def cmd_coq(args: argparse.Namespace) -> int:
     for mutant in picked:
         write_source(staged, mutant.apply(original))
         try:
-            failures = gallina.compile_proofs(found, work)
+            failures = gallina.compile_dependents(found, work, rel)
             if failures:
                 verdicts.append(Verdict(
                     mutant, KILLED,
