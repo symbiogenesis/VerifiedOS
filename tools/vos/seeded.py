@@ -135,6 +135,35 @@ def chosen[T](population: list[T], limit: int, sample: int) -> list[T]:
     return population[:limit] if limit else population
 
 
+def shard[T](population: list[T], parts: int) -> list[list[T]]:
+    """A population split `parts` ways, for that many workers to run at once.
+
+    **Exhaustive by construction, whatever the counts are.** Every member lands in
+    exactly one part because the strides `i`, `i + n`, `i + 2n` partition the indices,
+    so there is no arithmetic here that could leave a member out and no list anybody
+    has to keep in step with the population. That is the property a hand-assembled
+    partition lacks: an operator list written out by hand is where a whole kind of
+    defect goes unrun and nothing says so.
+
+    Striding rather than slicing into contiguous blocks, because a generated population
+    is in operator order and the operators do not cost the same. A contiguous split
+    hands one worker every member of the slowest operator; a stride interleaves them,
+    and the parts finish together without anyone having measured a member.
+    """
+    return [population[i::parts] for i in range(parts)]
+
+
+def unshard[T](parts: list[list[T]]) -> list[T]:
+    """`shard` undone: the members back in population order.
+
+    Read round-robin by position, which is exactly the inverse of the stride. What it
+    is for is that a run's report should not depend on which worker finished first,
+    the population order being the order a reader compares two runs in.
+    """
+    return [part[k] for k in range(max((len(p) for p in parts), default=0))
+            for part in parts if k < len(part)]
+
+
 def summarize(out: list[str], verdicts: list[Verdict], subject: str,
               oracle_name: str, scope: Scope | None = None) -> int:
     """The one report shape every loop shares, and the exit code it implies.

@@ -148,6 +148,37 @@ def _an_authored_case_satisfies_the_protocol() -> None:
            f"the finding does not name the case it is about: {out}")
 
 
+def _a_shard_partition_loses_nobody() -> None:
+    """The property the whole concurrent path rests on, held at every awkward ratio:
+    more parts than members, one part, a count that divides and a count that does not.
+    A hand-assembled partition is exactly what this replaces, and the way that one
+    failed was a whole operator in no part with nothing saying so."""
+    for size in (0, 1, 5, 16, 17, 382):
+        population = list(range(size))
+        for parts in (1, 2, 3, 4, 7, 20):
+            got = seeded.shard(population, parts)
+            ensure(len(got) == parts, f"{size} into {parts} gave {len(got)} part(s)")
+            flat = [m for part in got for m in part]
+            ensure(sorted(flat) == population,
+                   f"{size} into {parts} lost or duplicated: {sorted(flat)}")
+            ensure(seeded.unshard(got) == population,
+                   f"{size} into {parts} did not come back in order: "
+                   f"{seeded.unshard(got)}")
+
+
+def _a_stride_spreads_the_operators_across_the_parts() -> None:
+    """Why the stride rather than contiguous blocks. A generated population is in
+    operator order and the operators do not cost the same, so a contiguous split hands
+    one part every member of the slowest one and the run waits on that part alone."""
+    population = ["a"] * 8 + ["b"] * 8
+    striped = seeded.shard(population, 4)
+    ensure(all(set(part) == {"a", "b"} for part in striped),
+           f"an operator did not reach every part: {striped}")
+    blocked = [population[i * 4:(i + 1) * 4] for i in range(4)]
+    ensure(any(len(set(part)) == 1 for part in blocked),
+           "the contiguous split this avoids did not actually concentrate an operator")
+
+
 def _a_partial_run_says_so_on_the_line_that_gets_quoted() -> None:
     """The closing `ok` line is what a completion note copies, so a run over part of a
     population has to carry its scope there and not only in the block above it. This is
@@ -195,6 +226,9 @@ def _a_scope_is_partial_only_when_it_ran_less() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("a shard partition loses nobody", _a_shard_partition_loses_nobody),
+        Case("a stride spreads the operators across the parts",
+             _a_stride_spreads_the_operators_across_the_parts),
         Case("a partial run says so on the quoted line",
              _a_partial_run_says_so_on_the_line_that_gets_quoted),
         Case("a whole run says that too", _a_whole_run_says_that_too),
