@@ -24,7 +24,7 @@ It matters beyond review hygiene. R-18-003a makes the profile freeze the **root 
 | `C` extension | **excluded**: no variable-length, ambiguously-aligned encoding | R-15-001, R-15-036 |
 | Instruction encoding | **fixed-rate dictionary format** (§1.1), the platform's only fetch format; decode is a function of bundle contents and slot index | R-15-036a, R-15-036b |
 | Privilege | **Machine mode only**; privilege is the CHERI access-system-registers permission on the PCC, not a ring | R-15-003 |
-| Address space | **single physical, 36 bits wide**; no MMU, `satp` fixed Bare; the map is dense by obligation | R-15-002, R-15-002a, R-15-002b |
+| Address space | **single physical, 36 bits wide**; no MMU, `satp` fixed Bare; the map is dense by obligation, and the 64 GB it bounds is the machine's whole capacity ceiling rather than one class's budget | R-15-002, R-15-002a, R-15-002b, R-15-002c |
 | Memory model | **Ztso** (RVTSO), normatively in place of RVWMO | R-15-004, R-15-015 |
 | `misa` | **read-only**: no runtime ISA morphing, and therefore no runtime CHERI disable | R-15-052 |
 | Unallocated encodings | **trap**; no encoding is a no-op by default | R-15-014 |

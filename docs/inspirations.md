@@ -313,6 +313,22 @@ What the spec does **not** take is Barrelfish's dynamic, discovery-driven System
 
 ---
 
+## Microsoft Research Helios: satellite kernels across heterogeneous processors, with a weaker boundary than the share-nothing multikernel
+
+Microsoft Research's [Helios](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/helios.pdf) (Nightingale, Hodson, McIlroy, Hawblitzel and Hunt, SOSP 2009) introduced **satellite kernels** to present one set of OS abstractions across processors with different ISAs and performance characteristics.
+The coordinator kernel discovers programmable devices and starts a satellite microkernel on each eligible platform; the paper realizes one on an XScale programmable PCIe I/O card and one per cache-coherent NUMA domain, with local schedulers and memory managers, processes confined to one domain, and remote services reached by message passing through a uniform namespace.
+That is direct prior art for making hardware locality an OS boundary rather than hiding it behind one machine-wide SMP kernel, and for putting a service beside the processor or memory it uses.
+
+**It is often grouped with multikernels, but the paper's own term and its weaker boundary matter.**
+A satellite kernel may itself span several processors, the coordinator owns the centralized namespace, and the NUMA realization maps the machine's memory into every kernel's page tables to implement remote messaging; Helios therefore does not impose Barrelfish's stronger rule of one sequential instance per core with **zero shared mutable kernel state**.
+Its placement policy is also dynamic: applications supply affinity metadata and the OS chooses a satellite kernel, whereas §7 fixes class, core, service placement and every cross-core edge at composition.
+
+The import is the heterogeneous-kernel observation, narrowed until it becomes cheaper to prove: one scalar kernel binary over one RV64+CHERI ISA runs on every core class, whose differences stay below the ISA waterline; each core gets its own disjoint instance; and remote service access is an explicit capability edge over the verified ring rather than a transparent namespace bind (§7, §12, §15).
+The XScale result is evidence that moving software toward a specialized processor can pay, but its programmable-I/O-card realization is the foreign-computer shape §4 rejects: devices here are fixed-function blocks or are driven by ordinary software on a disciplined core, never by another device-side kernel.
+The name is overloaded: Perihelion's 1988 Helios is treated with the transputer below; Oxide's illumos-derived Helios is not this system and supplies no multikernel lineage, while the Oxide system imported here is Hubris/Humility.
+
+---
+
 ## SemperOS: distributed capabilities across non-coherent cores; the multikernel revocation the proof must still discharge
 
 SemperOS (Hille, Asmussen, Bhatotia, Härtig; TU Dresden / Barkhausen Institut, USENIX ATC '19) carries the *Barrelfish → seL4* capability-multikernel one step past where §7 rests: it manages **capabilities distributed across many non-coherent, heterogeneous cores**, coordinated by multiple microkernel instances over a hardware/software co-designed capability system (the M³ lineage, cores reached through a per-tile communication unit rather than by cache coherence).
@@ -1713,9 +1729,14 @@ They are recorded here rather than imported because §15's TDM fabric already *i
 
 ---
 
-## occam and the transputer, and XMOS xCORE: static channels in silicon, and the boundary every rendezvous machine stops at
+## occam, Perihelion Helios, the transputer, and XMOS xCORE: static channels in silicon, and the boundary every rendezvous machine stops at
 
-The share-nothing multikernel over a static channel graph had a commercial machine forty years ago, and both its achievement and its limit are precisely documented.
+The two halves of this platform's multikernel had a commercial conjunction forty years ago: the INMOS transputer and occam supplied processors joined by explicit channels, while Perihelion Helios supplied a kernel on every participating processor node and a distributed client-server OS above those links.
+Their achievement and limit are precisely documented.
+**Perihelion's [Helios](https://www.transputer.net/hbooks/02/hn02.html)** (King, 1988) put a kernel handling local memory and message passing on every Helios node, with processor-manager and loader servers beside it; the same client call reached a local server by memory copy or a remote one over any number of transputer links, hiding both location and route.
+Its blueprint and Component Distribution Language declared processors, links, program components and resource requirements, direct predecessors of a composed machine graph.
+The declaration did not make execution static: a network manager performed distributed name searches and route recovery, the Task Force Manager placed jobs according to current load, modules and resident libraries loaded on demand, and an I/O server made a foreign host OS appear as another node.
+The import is therefore the per-node kernel, explicit-message fabric and language-neutral component graph, not transparent nearest-service discovery, dynamic placement or loading, route repair, or the host bridge: §7 and §12 freeze those decisions at composition and admit no foreign host computer (§4).
 **occam** on the **INMOS transputer** put Hoare's CSP into an ISA: processes, `PAR`, `ALT`, and channels as first-class objects with hardware links between chips, with the scheduler itself in microcode.
 Its compile-time discipline is the part worth reading closely, because it is the ancestor of three later answers to one question.
 occam enforced a **single-name rule** (one name per datum per scope), **abbreviation validity**, **procedure parameter distinctness checked at every call site** (which is what made per-procedure checking modular and sound), **parallel disjointness** (a variable written in one `PAR` branch is untouchable by the others, channels single-reader single-writer), and no pointers and no dynamic allocation at all.
