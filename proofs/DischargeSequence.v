@@ -1049,6 +1049,34 @@ Definition phase_shape_ok (ks : list nat) (l : list Step) : bool :=
   all_of (fun k => andb (precedes (PhaseDischarge k) (PhaseDwell k) l)
                         (precedes (PhaseDwell k) (PhaseRead k) l)) ks.
 
+Lemma all_of_by_mem :
+  forall (p : nat -> bool) (ks : list nat),
+    (forall k : nat, mem_nat k ks = true -> p k = true) -> all_of p ks = true.
+Proof.
+  intros p ks. induction ks as [ | k rest IH ]; intros H.
+  - reflexivity.
+  - simpl. apply andb_join.
+    + apply H. simpl. rewrite nat_eqb_refl. reflexivity.
+    + apply IH. intros j Hj. apply H. simpl. rewrite Hj.
+      destruct (Nat.eqb j k); reflexivity.
+Qed.
+
+(* The specification is a single read at every phase count, which is what
+   makes the extra-read family below a refusal of the weakening rather
+   than of the check: a comparison against any count but one would refuse
+   the specification too. *)
+Theorem specification_is_a_single_read :
+  forall n : nat,
+    single_read_ok (upto n) (admission_sequence (upto n) all_positive) = true.
+Proof.
+  intros n. unfold single_read_ok. rewrite admission_sequence_positive.
+  apply all_of_by_mem. intros k Hk. cbv beta.
+  rewrite (nodup_once (success_path (upto n)) (PhaseRead k) (nodup_success_path n)).
+  - reflexivity.
+  - destruct (occurs_phase_step_chain k (upto n) entry_path Hk) as [ _ [ _ H3 ] ].
+    unfold success_path. simpl. exact H3.
+Qed.
+
 Definition transpositions (l : list Step) : list (list Step) :=
   map_over (fun n => swap_at n l) (upto (before_last (count_of l))).
 
@@ -1076,6 +1104,14 @@ Definition demo_sequence : list Step := admission_sequence demo_phases all_posit
    two phases. *)
 Example generated_family_size :
   count_of (generated_weakenings demo_phases demo_sequence) = 51 := eq_refl.
+
+(* And a family is empty where the sequence has nothing for it to weaken:
+   a sequence of no steps or of one has no adjacent pair, so the
+   transposition family over it is empty rather than a list carrying the
+   sequence itself, which is what keeps every member a weakening. *)
+Example no_transposition_of_a_sequence_with_no_adjacent_pair :
+  transpositions nil = nil
+  /\ transpositions (cons RequestersInReset nil) = nil := conj eq_refl eq_refl.
 
 (* D2: every generated weakening fails the order or the single read. One
    conversion over the whole family. *)
@@ -1304,6 +1340,17 @@ Theorem eager_read_still_reads_once_and_stops :
 Proof.
   intros r. simpl. destruct (r 0); destruct (r 1); split; reflexivity.
 Qed.
+
+(* The same refutation in the boolean form the keeps-facts are checked
+   against, and it is what makes `phase_shape_ok` a conjunction rather
+   than a disjunction: the eager read keeps the discharge before the dwell
+   and breaks the dwell before the read, so a check answering on either
+   conjunct alone would admit it. *)
+Example eager_read_breaks_the_phase_shape :
+  precedes (PhaseDischarge 0) (PhaseDwell 0)
+           (eager_read_sequencer demo_phases all_positive) = true
+  /\ phase_shape_ok demo_phases (eager_read_sequencer demo_phases all_positive) = false
+  := conj eq_refl eq_refl.
 
 (* A sequence that polls rather than reading once. R-15-247f admits no
    poll-until-done loop; its Accept clause says why, a poll making
@@ -1789,7 +1836,7 @@ Example the_demo_paths_are_the_readings :
    nothing. *)
 Definition per_domain_reader (m : Machine) : Reader m := fun sw =>
   match phases m with
-  | nil => false
+  | nil => true
   | cons k _ => phase_drained m sw k
   end.
 
@@ -1810,8 +1857,35 @@ Proof.
 Qed.
 
 (* And the per-transition sequencer above is that reader run as a
-   sequence: on the sweep that reached one phase and not the other, its
-   path makes the domain addressable over an undrained bank, where the
+   sequence, at every machine and every sweep: its path makes the domain
+   addressable exactly where the per-domain reader confirms, a schedule
+   with no phase admitting on both sides, so the two are one construction
+   stated twice rather than two constructions that happen to agree on the
+   demo. *)
+Lemma occurs_entry_discharges :
+  forall (s : Step) (ks : list nat),
+    is_entry_step s = true -> occurs s (map_over PhaseDischarge ks) = false.
+Proof.
+  intros s ks Hs. induction ks as [ | k rest IH ]; simpl.
+  - reflexivity.
+  - destruct s; try discriminate Hs; simpl; exact IH.
+Qed.
+
+Theorem the_per_transition_path_is_the_per_domain_reader :
+  forall (m : Machine) (sw : Sweep m),
+    occurs DomainAddressable (path m per_transition_sequencer sw)
+    = per_domain_reader m sw.
+Proof.
+  intros m sw. unfold path, per_transition_sequencer, per_domain_reader, phase_read.
+  destruct (phases m) as [ | k rest ].
+  - reflexivity.
+  - simpl. rewrite occurs_app.
+    rewrite (occurs_entry_discharges DomainAddressable rest eq_refl).
+    destruct (phase_drained m sw k); reflexivity.
+Qed.
+
+(* On the sweep that reached one phase and not the other, that path makes
+   the domain addressable over an undrained bank, where the
    specification's path latches. This is the meeting theorem's refutation
    side. *)
 Theorem the_per_transition_path_admits_an_undrained_bank :
@@ -1961,6 +2035,12 @@ Theorem class_exempt_hold_is_refuted :
   ~ HoldsEveryRequester demo class_exempt_hold.
 Proof. intros H. discriminate H. Qed.
 
+(* And it does reach one: the exempting hold holds some requester the
+   roster names and not every one, so what refutes it is the class it
+   exempts and not a hold that holds nothing. *)
+Example the_class_exempt_hold_reaches_one_class :
+  any_of class_exempt_hold demo.(requesters) = true := eq_refl.
+
 (* Release, stated against the specification's own order: no requester is
    released at a step the success path puts before addressability. This is
    R-15-247d's "before any requester may name the domain" read as a
@@ -2033,6 +2113,8 @@ Print Assumptions occurs.
 Print Assumptions occurrences.
 Print Assumptions single_read_ok.
 Print Assumptions phase_shape_ok.
+Print Assumptions all_of_by_mem.
+Print Assumptions specification_is_a_single_read.
 Print Assumptions generated_weakenings.
 Print Assumptions failing_conjuncts.
 Print Assumptions Sweep.
@@ -2100,6 +2182,7 @@ Print Assumptions specification_is_ordered.
 Print Assumptions authority_invalidation_is_independent_of_residue_sanitization.
 Print Assumptions the_success_path_carries_no_second_pass.
 Print Assumptions generated_family_size.
+Print Assumptions no_transposition_of_a_sequence_with_no_adjacent_pair.
 Print Assumptions every_generated_weakening_is_refused.
 Print Assumptions every_transposition_is_out_of_order.
 Print Assumptions every_deletion_is_out_of_order.
@@ -2119,6 +2202,7 @@ Print Assumptions specification_stands_each_phase_step_once.
 Print Assumptions specification_reads_after_the_dwell.
 Print Assumptions eager_read_refutes_the_dwell_order.
 Print Assumptions eager_read_still_reads_once_and_stops.
+Print Assumptions eager_read_breaks_the_phase_shape.
 Print Assumptions polling_refutes_the_single_read.
 Print Assumptions polling_still_keeps_the_order_and_reads_after_the_dwell.
 Print Assumptions retrying_refutes_the_no_retry_rule.
@@ -2147,6 +2231,8 @@ Print Assumptions the_specification_reader_confirms_and_refuses.
 Print Assumptions the_demo_paths_are_the_readings.
 Print Assumptions per_domain_reader_admits_an_undrained_bank.
 Print Assumptions per_domain_reader_admits_a_partially_sanitized_bank.
+Print Assumptions occurs_entry_discharges.
+Print Assumptions the_per_transition_path_is_the_per_domain_reader.
 Print Assumptions the_per_transition_path_admits_an_undrained_bank.
 Print Assumptions touch_reader_admits_a_partially_sanitized_bank.
 Print Assumptions the_touch_reader_still_refuses_an_unreached_bank.
@@ -2157,6 +2243,7 @@ Print Assumptions charge_dependent_dwell_is_refuted.
 Print Assumptions arm_dependent_dwell_is_refuted.
 Print Assumptions specification_holds_every_requester.
 Print Assumptions class_exempt_hold_is_refuted.
+Print Assumptions the_class_exempt_hold_reaches_one_class.
 Print Assumptions specification_releases_no_requester_early.
 Print Assumptions the_steps_that_would_release_early_are_the_seven_before_addressability.
 Print Assumptions every_early_release_schedule_is_refused.
