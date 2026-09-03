@@ -3253,7 +3253,7 @@ The residuals group by trust source, indexed below and developed in the entries 
 
 ---
 
-## 18. Realization (mid-2026)
+## 18. Realization
 
 The normative workstream definitions and acceptance criteria live in [requirements-register.md](requirements-register.md); the executable golden-model sequence, toolchain contracts, and per-component milestones live in [implementation-checklist.md](implementation-checklist.md). This section keeps the ordering rationale, maturity distinctions, and unresolved branches.
 

@@ -15,16 +15,23 @@ grand total, and every subtotal, the grand range, and the progress pair are sums
 the items beneath them. All of it is arithmetic, so a repair rewrites all of it;
 unlike the compounded product, there is no judgment layer here to leave standing.
 
-What the group does not compute is what the sums cannot give: the critical chain is the
-author's, stated beside the derived gate figures rather than folded into them, so the two
-kinds of figure stay separable.
+Two figures the plan derives over sets it names by judgment land here too, under K-96.
+The critical chain is the author's to name and the tool's to sum: its members are a
+list held here beside the two gate partitions, and its range, its midpoint, and the
+horizon they give at the attended rate the plan states are arithmetic over those
+cells. The calibration is the author's to pool and the tool's to fit: the plan's
+calibration record carries each completed attended item's pool and the earliest
+estimate its cell recorded, the actual is read from the item's own cell, and every
+ratio and count the calibration states is the quotient over that record, which is held
+total over the completed attended items in both directions so that a landing which
+adds no row is loud rather than a fit taken over fewer items.
 
 A third authored token joins the range: an open item's **authority class**, `I` where what
 the item realizes is fixed inside this repository and `X` where it is not. It is a judgment
 and stays one, but everything resting on it is arithmetic and lands here: the two class
-sums, and the calibrated total, which re-weights each class's open hours by the ratio that
-class of completed item actually ran at. A completed item carries no class, having an actual
-where the class would have widened a range.
+sums, and the calibrated total, which re-weights each class's open hours by the ratio the
+calibration record gives for it. A completed item carries no class, having an actual
+where the class would have widened a range, which is why the record carries its pool.
 
 An item carrying no cell at all is legal in one place, a parent whose children carry
 the estimates, which is why the check reads the indent rather than demanding a figure
@@ -34,10 +41,11 @@ counted. Anything else missing a cell is counted by nothing and is the finding.
 
 import re
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, cast
 
 from vos import figures
-from vos.figures import format_hours, percent
+from vos.figures import format_hours, percent, quantize, words
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -79,16 +87,47 @@ AFTER_M8B = ["R4", "R5", "M9", "M9a", "M10", "Post-M10",
              "M6.6", "M6.7", "M6.8", "S5", "S6"]
 AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
-# the outturn ratios the plan's own §12 measures over the completed items, one per authority
-# class. They multiply the open hours of their class and nothing else: a completed item's
-# actual is what it cost, so the calibrated figure is the done hours plus the open ones
-# re-weighted, and the ratios are stated here rather than in the document because the
-# document restates the figure they produce
-CLASS_RATIO = {"I": 0.66, "X": 1.68}
+# the critical chain through the software gate, in the order the summary names it. A
+# member is the open item carrying that label, or every open child of one that carries no
+# cell of its own, which is how M1.2 enters as its six children. The membership is the
+# author's, as the two partitions above are; what is held is that each member is occupied
+# and that the range, the midpoint and the horizon the plan states are the arithmetic over
+# those cells
+CHAIN_M8A = ["M1.2", "M1.7", "M3.5", "M4.4", "M5.3", "M6.5a", "M7.1", "M8a"]
+
+# the calibration record: one row per completed attended item, the pool its authority fell
+# in and the earliest estimate its cell recorded. The pools are the three the plan's basis
+# fits over, and `n/a` in both columns is an item that never carried an estimate, which is
+# inside the record's totality and outside the fit
+RECORD_HEADING = "### Calibration record"
+RECORD_ROW_RE = re.compile(
+    r"(?m)^\| (?P<item>[^|\r\n]+?) \| (?P<pool>[^|\r\n]+?) \| (?P<est>[^|\r\n]+?) \|[ \t]*\r?$")
+POOLS = ("I", "X-read", "X-authored")
+NOT_APPLICABLE = "n/a"
+AGENT_PARALLEL = "agent-parallel"
+HOURS_RE = re.compile(r"^[\d.,]+$")
+
+# the attended rate is the plan's to state and the horizon is this group's to derive from
+# it, so the sentence is read for its rate before it is held for its quotients
+RATE_RE = re.compile(r"(?m)^\* Horizon: at (?P<lo>\d+)–(?P<hi>\d+) attended hours per week")
 
 
 def _hours(text: str) -> float:
     return float(text.replace(",", ""))
+
+
+def _head(label: str) -> str:
+    return label.partition(" · ")[0].strip()
+
+
+def _count(n: int) -> str:
+    """A count as the plan writes one: in words where a word form exists, else digits."""
+    return words(n) if n < 100 else str(n)
+
+
+def _weeks(hours: float, rate: int) -> str:
+    """Attended weeks at a rate, to the whole week, rounded the way a share is."""
+    return str(int(Decimal(hours / rate).quantize(Decimal(1), rounding=ROUND_HALF_UP)))
 
 
 @dataclass
@@ -103,6 +142,9 @@ class Item:
     hi: float
     tail: str
     cls: str | None
+    # the label head of the cell-less parent this item is nested under, where it is; a
+    # chain member that carries no cell enters as its children through this
+    parent: str | None = None
 
 
 @dataclass
@@ -120,12 +162,17 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
     bucket: list[Item] = []
     malformed: list[str] = []
     pending: tuple[str, int] | None = None
+    # the cell-less parent whose children are still arriving: it outlives `pending`,
+    # which is cleared by the first child, and is closed by the next item at its own
+    # depth or shallower, or by the subtotal that closes its section
+    parent: tuple[str, int] | None = None
 
     for m in SCAN_RE.finditer(raw):
         if m.group("sec") is not None:
             if pending:
                 malformed.append(f"{pending[0]}: no estimate cell, and no nested item to carry one")
                 pending = None
+            parent = None
             tail = m.group("tail")
             sections.append(Section(name=m.group("sec"), line=m.group(),
                                     head=m.group()[:len(m.group()) - len(tail)],
@@ -146,6 +193,8 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
             if indent <= pending[1]:
                 malformed.append(f"{pending[0]}: no estimate cell, and no nested item to carry one")
             pending = None
+        if parent and indent <= parent[1]:
+            parent = None
 
         done = DONE_RE.match(rest)
         opened = OPEN_RE.match(rest)
@@ -159,6 +208,7 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
                 malformed.append(f"{label}: '{rest.strip()}' is not an estimate cell")
             else:
                 pending = (label, indent)
+                parent = (_head(label), indent)
             continue
 
         lo = _hours(opened.group("lo")) if opened else 0.0
@@ -177,7 +227,8 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
             stated=_hours(cell.group("h")),
             hours=round((lo + hi) / 2, 1) if opened else _hours(cell.group("h")),
             lo=lo, hi=hi, tail=cell.group("tail"),
-            cls=klass.group("cls") if klass else None)
+            cls=klass.group("cls") if klass else None,
+            parent=parent[0] if parent else None)
         items.append(item)
         bucket.append(item)
 
@@ -189,13 +240,42 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
     return items, sections, malformed
 
 
+def _record(raw: str) -> tuple[list[tuple[str, str, str]], list[str]]:
+    """The calibration record's rows, and what stops them being read.
+
+    The record is the run of table rows under its own heading, up to the next heading
+    of any depth. The header row and its rule are the table's and not rows of the record,
+    and a record with no rows at all is a finding rather than a fit over nothing.
+    """
+    at = raw.find(f"\n{RECORD_HEADING}")
+    if at < 0:
+        return [], [f"{PLAN} carries no '{RECORD_HEADING}' heading, so no pool and no "
+                    "estimate is recorded for any completed item"]
+    body = raw[at + 1 + len(RECORD_HEADING):]
+    end = re.search(r"(?m)^#{1,6} ", body)
+    if end:
+        body = body[:end.start()]
+    # `Match.group` answers `str | Any` for a group the pattern makes mandatory, so the
+    # three cells are narrowed here, once, the way `_parse` narrows a label
+    rows: list[tuple[str, str, str]] = []
+    for m in RECORD_ROW_RE.finditer(body):
+        item = cast("str", m.group("item")).strip()
+        if item == "Item" or set(item) <= {"-", ":"}:
+            continue
+        rows.append((item, cast("str", m.group("pool")).strip(),
+                     cast("str", m.group("est")).strip()))
+    if not rows:
+        return [], [f"the calibration record under '{RECORD_HEADING}' carries no row"]
+    return rows, []
+
+
 def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
 
     if PLAN not in ctx.corpus:
         rep.report("K-34", "missing artifact:", [f"{PLAN} is not in the repository"])
-        ctx.shared.update(items=[], sections=[])
+        ctx.shared.update(items=[], sections=[], calibration_rows=0)
         rep.line()
         return
 
@@ -225,11 +305,12 @@ def run(ctx: Context) -> None:
     # one class whose outturn says it is not decoration. Class I carries no floor, having run
     # under estimate; a completed item carries no range for a floor to reach.
     #
-    # The threshold the 1.68 ratio actually motivates, that the calibrated value lie inside the
-    # range, is arithmetically unavailable beside K-35 and the conventions say so: a midpoint is
-    # the mean of the range ends, so `hi >= 1.68 * mid` is `lo <= 0.32 * mid` and forces every
-    # class-X span above five. Reported and never repaired, because which end of a range moves
-    # is the estimate itself and not arithmetic over one.
+    # The threshold the calibrated ratio actually motivates, that the calibrated value lie
+    # inside the range, is arithmetically unavailable beside K-35 and the conventions say so:
+    # a midpoint is the mean of the range ends, so `hi >= r * mid` is `lo <= (2 - r) * mid`
+    # and forces every class-X span above five at the ratio the record gives. Reported and
+    # never repaired, because which end of a range moves is the estimate itself and not
+    # arithmetic over one.
     narrow = [i for i in items
               if not i.done and i.cls == "X" and i.lo > 0 and i.hi < 2 * i.lo]
     rep.report("K-86", "open class-X item(s) whose range spans under a factor of two:",
@@ -245,14 +326,14 @@ def run(ctx: Context) -> None:
     open_hi = round(sum(i.hi for i in open_items), 1)
 
     stated: list[str] = []
-    carried = {i.label.split(" · ")[0] for i in items}
+    carried = {_head(i.label) for i in items}
     for name, partition in (("M8a", AFTER_M8A), ("M8b", AFTER_M8B)):
         if empty := [label for label in partition if label not in carried]:
             stated.append(f"the {name} partition names work the document carries no item "
                           f"under: {', '.join(empty)}")
 
     def _at_or_before(partition: list[str]) -> list[Item]:
-        return [i for i in open_items if i.label.split(" · ")[0] not in partition]
+        return [i for i in open_items if _head(i.label) not in partition]
 
     # the software gate is what open work falls at or before it, where the old single gate
     # was the whole midpoint less the deferred tail; the two differ by the completed hours,
@@ -263,12 +344,72 @@ def run(ctx: Context) -> None:
     # the RTL chain is what the two partitions differ by: after the software gate, and not
     # deferred past the co-simulation one, so it runs beside rather than behind
     chain_b = round(sum(i.hours for i in open_items
-                        if i.label.split(" · ")[0] in AFTER_M8A
-                        and i.label.split(" · ")[0] not in AFTER_M8B), 1)
+                        if _head(i.label) in AFTER_M8A
+                        and _head(i.label) not in AFTER_M8B), 1)
 
+    # ---- K-96, first half: the critical chain, summed over the cells its list names ----
+    derived: list[str] = []
+    chain = [i for i in open_items
+             if _head(i.label) in CHAIN_M8A or (i.parent in CHAIN_M8A)]
+    occupied = {_head(i.label) for i in chain} | {i.parent for i in chain if i.parent}
+    derived.extend(f"the critical chain names {label} and the document carries no open "
+                   "item under it" for label in CHAIN_M8A if label not in occupied)
+    chain_lo = round(sum(i.lo for i in chain), 1)
+    chain_hi = round(sum(i.hi for i in chain), 1)
+    chain_mid = round(sum(i.hours for i in chain), 1)
+
+    # ---- K-96, second half: the calibration, fitted over the record and the actuals ----
+    record, unreadable = _record(raw)
+    derived.extend(unreadable)
+    ctx.shared["calibration_rows"] = len(record)
+    attended = {_head(i.label): i for i in items
+                if i.done and AGENT_PARALLEL not in i.tail}
+    parallel = [_head(i.label) for i in items if i.done and AGENT_PARALLEL in i.tail]
+    seen: set[str] = set()
+    fit: dict[str, list[tuple[str, float, float]]] = {pool: [] for pool in POOLS}
+    for item, pool, est in record:
+        if item in seen:
+            derived.append(f"the calibration record carries {item} twice")
+            continue
+        seen.add(item)
+        if item not in attended:
+            derived.append(f"the calibration record carries {item}, which is not a "
+                           "completed attended item of the plan")
+            continue
+        if pool == NOT_APPLICABLE and est == NOT_APPLICABLE:
+            continue
+        if pool not in POOLS or not HOURS_RE.match(est):
+            derived.append(f"{item}: pool '{pool}' and estimate '{est}' are not one of "
+                           f"{', '.join(POOLS)} beside an hours figure, or n/a in both")
+            continue
+        fit[pool].append((item, _hours(est), attended[item].hours))
+    derived.extend(f"{item} is a completed attended item the calibration record carries no "
+                   "row for" for item in attended if item not in seen)
+
+    def _ratio(pairs: list[tuple[str, float, float]]) -> float | None:
+        estimated = sum(e for _, e, _ in pairs)
+        return sum(a for _, _, a in pairs) / estimated if estimated else None
+
+    ratios = {pool: _ratio(pairs) for pool, pairs in fit.items()}
+    derived.extend(f"the {pool} pool of the calibration record is empty, so the ratio "
+                   "the basis states for it exists over nothing"
+                   for pool, ratio in ratios.items() if ratio is None)
+    all_pairs = [pair for pairs in fit.values() for pair in pairs]
+    fit_est = round(sum(e for _, e, _ in all_pairs), 1)
+    fit_act = round(sum(a for _, _, a in all_pairs), 1)
+    lowest = sorted((a / e, item) for item, e, a in all_pairs if e)[:2]
+
+    # the calibrated total re-weights each class's open hours by its pool's ratio: class I
+    # by the I pool's, and class X by the authored pool's alone, which the conventions state
+    # is the pool every open class-X cell is priced against and not the class
     by_class = {c: round(sum(i.hours for i in open_items if i.cls == c), 1)
-                for c in CLASS_RATIO}
-    calibrated = round(done_h + sum(CLASS_RATIO[c] * h for c, h in by_class.items()), 1)
+                for c in ("I", "X")}
+    class_ratio: dict[str, str] | None = None
+    if ratios["I"] is not None and ratios["X-authored"] is not None:
+        class_ratio = {"I": quantize(ratios["I"], 2), "X": quantize(ratios["X-authored"], 2)}
+    else:
+        derived.append("the calibrated total cannot be decided, its ratios resting on a "
+                       "pool the record leaves empty")
 
     # every derived token, old against new; nothing here is a judgment, so a repair
     # takes all of it
@@ -335,10 +476,6 @@ def run(ctx: Context) -> None:
          r"and class X (?P<cx>[\d.,]+) h over the open items",
          {"mid": grand_t, "ci": format_hours(by_class["I"]),
           "cx": format_hours(by_class["X"])}),
-        ("the calibrated total",
-         r"(?m)^\* Calibrated against completed-item outturn \(class I 0\.66, class X "
-         r"1\.68\): approximately (?P<cal>[\d.,]+) h",
-         {"cal": format_hours(calibrated)}),
         ("the progress pair",
          r"(?m)^\* Progress by estimate: (?P<done>[\d.,]+) of (?P<total>[\d.,]+) h complete "
          r"\((?P<donePct>[\d.]+)%\); (?P<left>[\d.,]+) h remaining \((?P<leftPct>[\d.]+)%\)",
@@ -358,6 +495,15 @@ def run(ctx: Context) -> None:
          r"a (?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h range",
          {"mid": grand_t, "lo": lo_t, "hi": hi_t}),
     ]
+    if class_ratio is not None:
+        calibrated = round(done_h + sum(float(class_ratio[c]) * h
+                                        for c, h in by_class.items()), 1)
+        derived_lines.insert(1, (
+            "the calibrated total",
+            r"(?m)^\* Calibrated against completed-item outturn \(class I (?P<ri>[\d.]+), "
+            r"class X (?P<rx>[\d.]+)\): approximately (?P<cal>[\d.,]+) h",
+            {"ri": class_ratio["I"], "rx": class_ratio["X"],
+             "cal": format_hours(calibrated)}))
 
     restated = 0
     for what, pattern, expected in derived_lines:
@@ -369,4 +515,103 @@ def run(ctx: Context) -> None:
     rep.report("K-37", "restated total(s) disagreeing with the items beneath them:", stated,
                f"all {restated} restated totals agree with the items, over "
                f"{len(derived_lines)} sentences")
+
+    # ---- K-96: the sentences that state the chain and the calibration ----
+    counts = {pool: _count(len(pairs)) for pool, pairs in fit.items()}
+    ratio_t = {pool: quantize(ratio, 2) if ratio is not None else "n/a"
+               for pool, ratio in ratios.items()}
+    outside = _count(len(fit["X-read"]) + len(fit["X-authored"]))
+    judged_lines = [
+        ("the critical chain",
+         r"(?m)^\* Critical chain through M8a:.*?Over those items the chain sums to "
+         r"(?P<lo>[\d.,]+)–(?P<hi>[\d.,]+) h at a (?P<mid>[\d.,]+) h midpoint",
+         {"lo": format_hours(chain_lo), "hi": format_hours(chain_hi),
+          "mid": format_hours(chain_mid)}),
+        ("the calibration convention",
+         r"(?m)^\* \*\*Every open item carries an authority class beside its estimate\*\*"
+         r".*?over the (?P<n>[a-z-]+) completed items carrying both an estimate and an "
+         r"actual, the (?P<ni>[a-z-]+) whose authority is inside this repository ran at "
+         r"(?P<ri>[\d.]+), and the (?P<nx>[a-z-]+) whose authority is outside it split, "
+         r"the (?P<nr>[a-z-]+) that read, pin, install or measure an external thing "
+         r"running at (?P<rr>[\d.]+) and the (?P<na>[a-z-]+) that authored against an "
+         r"external authority at (?P<ra>[\d.]+)\. \*\*The (?P<ra2>[\d.]+) every open "
+         r"class-X cell is priced against is that second pool and not the class\*\*, which "
+         r"is the whole of what makes n = (?P<na2>\d+) the weakness",
+         {"n": _count(len(all_pairs)), "ni": counts["I"], "ri": ratio_t["I"],
+          "nx": outside, "nr": counts["X-read"], "rr": ratio_t["X-read"],
+          "na": counts["X-authored"], "ra": ratio_t["X-authored"],
+          "ra2": ratio_t["X-authored"], "na2": str(len(fit["X-authored"]))}),
+        ("the agent-parallel series",
+         r"(?m)^\* \*\*A completed item marked `agent-parallel`.*?\*\*The series is "
+         r"(?P<n>[a-z-]+) items\*\* \((?P<list>[^)]*)\)",
+         {"n": _count(len(parallel)), "list": ", ".join(parallel)}),
+        ("the class-X pool size",
+         r"the (?P<ra>[\d.]+) the whole convention rests on is fitted over "
+         r"(?P<na>[a-z-]+) completed items",
+         {"ra": ratio_t["X-authored"], "na": counts["X-authored"]}),
+        ("the fan-out count",
+         r"the fan-out having already run (?P<n>[a-z-]+) agent-parallel landings",
+         {"n": _count(len(parallel))}),
+        ("the fan-out ceiling count",
+         r"The fan-out has run against that ceiling (?P<n>[a-z-]+) times",
+         {"n": _count(len(parallel))}),
+        ("the class-I outturn an open item prices against",
+         r"Class I has run at (?P<ri>[\d.]+) over (?P<ni>[a-z-]+) completed items",
+         {"ri": ratio_t["I"], "ni": counts["I"]}),
+        ("the calibration risk",
+         r"rests on (?P<na>[a-z-]+) completed items in the class that matters",
+         {"na": counts["X-authored"]}),
+        ("the calibration basis",
+         r"(?m)^\* \*\*The authority class is the calibration, and it is measured rather "
+         r"than assumed\.\*\*.*?across the (?P<n>[a-z-]+) items carrying both, gives "
+         r"(?P<act>[\d.,]+) h actual against (?P<est>[\d.,]+) h estimated, a ratio of "
+         r"(?P<r>[\d.]+)\..*?: (?P<ni>[a-z-]+) items whose authority is in this repository "
+         r"ran at \*\*(?P<ri>[\d.]+)\*\*, (?P<nr>[a-z-]+) that read, pin, install or "
+         r"measure an external thing ran at \*\*(?P<rr>[\d.]+)\*\*, and the "
+         r"(?P<na>[a-z-]+) that authored against an external authority ran at "
+         r"\*\*(?P<ra>[\d.]+)\*\*\..*?the two lowest ratios in the record being "
+         r"(?P<u1>\S+) at (?P<r1>[\d.]+) and (?P<u2>\S+) at (?P<r2>[\d.]+)\.",
+         {"n": _count(len(all_pairs)), "act": format_hours(fit_act),
+          "est": format_hours(fit_est),
+          "r": quantize(fit_act / fit_est, 2) if fit_est else "n/a",
+          "ni": counts["I"], "ri": ratio_t["I"], "nr": counts["X-read"],
+          "rr": ratio_t["X-read"], "na": counts["X-authored"], "ra": ratio_t["X-authored"],
+          **({"u1": lowest[0][1], "r1": quantize(lowest[0][0], 2),
+              "u2": lowest[1][1], "r2": quantize(lowest[1][0], 2)}
+             if len(lowest) == 2 else {})}),
+        ("the pool weakness",
+         r"n = (?P<na>\d+) in the pool that matters",
+         {"na": str(len(fit["X-authored"]))}),
+    ]
+
+    # the horizon is the one sentence read before it is held: the rate is the plan's, and
+    # the weeks are the remaining hours and the chain's midpoint over it
+    rate = RATE_RE.search(raw)
+    if rate is None:
+        derived.append(f"{PLAN} states no attended rate in a '* Horizon: at N–N attended "
+                       "hours per week' sentence, so no horizon can be derived")
+    else:
+        lo_rate, hi_rate = int(rate.group("lo")), int(rate.group("hi"))
+        left = grand - done_h
+        judged_lines.append((
+            "the horizon",
+            r"(?m)^\* Horizon: at \d+–\d+ attended hours per week, the (?P<left>[\d.,]+) h "
+            r"remaining is (?P<wlo>\d+)–(?P<whi>\d+) attended weeks and the critical "
+            r"chain's (?P<cmid>[\d.,]+) h midpoint (?P<clo>\d+)–(?P<chi>\d+) of them",
+            {"left": format_hours(left), "wlo": _weeks(left, hi_rate),
+             "whi": _weeks(left, lo_rate), "cmid": format_hours(chain_mid),
+             "clo": _weeks(chain_mid, hi_rate), "chi": _weeks(chain_mid, lo_rate)}))
+
+    held = 0
+    for what, pattern, expected in judged_lines:
+        held += len(expected)
+        r = figures.resolve_line(ctx, PLAN, pattern, expected, what)
+        for line in r.fixed:
+            rep.line(line)
+        derived.extend(r.findings)
+    rep.report("K-96", "chain or calibration figure(s) the cells beneath them do not give:",
+               derived,
+               f"the critical chain sums over {len(chain)} open cells and the calibration "
+               f"fits over {len(all_pairs)} of the record's {len(record)} rows, and all "
+               f"{held} figures stated over them agree, across {len(judged_lines)} sentences")
     rep.line()
