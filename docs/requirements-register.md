@@ -308,7 +308,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the kernel image's build manifest names the SECOMP-criterion CHERI backend.
 · Trace: CJ-COMPCERT, CJ-SECOMP
 
-**R-05-014** MUST: The non-interference theorem is a fresh Coq re-proof, and no part of it is inherited from seL4's existing NI proof.
+**R-05-014** MUST: The non-interference theorem is a fresh Coq proof, and no part of it is inherited from seL4's existing NI proof.
 · Accept: the NI development cites no l4v proof obligation as discharged elsewhere.
 · Trace: CJ-NI
 

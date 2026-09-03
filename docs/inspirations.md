@@ -24,7 +24,7 @@ Inheriting that proof costs twice.
 (1) **Trust-base fragmentation:** adopting it puts **Isabelle *and* Coq**, two proof checkers, permanently in a TCB whose §6 story is one self-verifying checker, a first-order regression.
 (2) **Compilation seam:** seL4's shipped binary-correctness is a *different* toolchain (decompilation + SMT translation validation), not the §5–§6 CompCert/SECOMP/Islaris/Cerise path.
 Both are artifacts of *inheriting seL4's existing proof*, and **redoing the proof in Coq on CompCert/SECOMP erases the first and inverts the second into native composition**.
-So the spec re-proves seL4's design **end-to-end in Coq** via CompCert/SECOMP, as a **bespoke minimal capability core**, and importing seL4's Isabelle proof wholesale stays rejected.
+So the spec authors a **bespoke minimal capability core** from seL4's design and proves it **end-to-end in Coq** via CompCert/SECOMP, and importing seL4's Isabelle proof wholesale stays rejected.
 
 **The design lineage is live, and its direction is the share-nothing multikernel.**
 seL4's own 2024 direction is the **share-nothing multikernel** (RFC-0170) and **CHERI-seL4**, so the import is of a *live* design, not a frozen one.
@@ -558,7 +558,7 @@ This is distinct from the rejected PMP-only descent: that design deletes CHERI a
 
 - **The kernel is verified, not de-privileged.**
   CheriOS's signature move is a **nanokernel**: a tiny trusted layer beneath the OS exposing integrity, confidentiality, and attestation primitives so that *"processes exist in mutual distrust with the OS they run on"*: an application need not trust the kernel with its secrets.
-  This platform takes the opposite route to the same end; it **verifies** the kernel (seL4's design re-proved in Coq, §7) so it *can* be trusted, rather than architecting around distrusting it.
+  This platform takes the opposite route to the same end; it **verifies** the kernel (a kernel authored from seL4's design and proved in Coq, §7) so it *can* be trusted, rather than architecting around distrusting it.
   CheriOS's de-privileging survives only as **defense-in-depth**, and scoped: the crypto core holds key material a compromised kernel *"can still only invoke… never exfiltrate"* (§15), fenced from the kernel by the crypto core's own hardware boundary and the seal/switch primitives (§7, §12, no PMP); the nanokernel's confidentiality applied to the crown jewels, not generalized, because the platform's primary lever is proof, not distrust.
 - **Attestation is the RoT, not per-enclave foundations.**
   CheriOS's **foundations** are measured, hash-identified code enclaves carrying nanokernel-issued sealing/signing keys: *local* attestation among mutually-distrusting compartments with no central authority.
