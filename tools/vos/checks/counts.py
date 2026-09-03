@@ -106,10 +106,17 @@ CLAIMS = [
     (REGISTER, "fc-seams", "words", r"(?<=and )[\w-]+(?= seams collect them)"),
     (REGISTER, "rot-fresh", "words", r"[\w-]+(?= requirements confer freshness)"),
 
-    # the coverage matrix states the shape of its own product
+    # the coverage matrix states the shape of its own product, and the partition of
+    # its cells by the standing K-95 computes for each
     ("docs/coverage-matrix.md", "boundaries", "words", r"(?<=below are )[\w-]+(?= boundaries)"),
     ("docs/coverage-matrix.md", "properties", "words", r"(?<=boundaries and )[\w-]+(?= properties)"),
     ("docs/coverage-matrix.md", "cells", "words", r"(?<=carries all )[\w-]+(?= of their pairs)"),
+    ("docs/coverage-matrix.md", "cells-authored", "digits",
+     r"(?<=partitions the cells into )\d+(?= authored)"),
+    ("docs/coverage-matrix.md", "cells-partial", "digits",
+     r"(?<=partitions the cells into \d authored, )\d+(?= partial)"),
+    ("docs/coverage-matrix.md", "cells-unauthored", "digits",
+     r"(?<=partial, and )\d+(?= not authored)"),
 
     # the README summarizes them
     ("README.md", "views", "words", r"[\w-]+(?= \*\*derived views\*\* collect)"),
@@ -482,6 +489,11 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "boundaries": len(art.cm_bounds),
         "properties": len(art.cm_props),
         "cells": len(art.cm_cells),
+        # the cells by the standing the views group computed for each, the inventory's
+        # three classes lifted over the rows a cell's requirements constrain
+        "cells-authored": sh.get("cm_standing", {}).get("authored", 0),
+        "cells-partial": sh.get("cm_standing", {}).get("partial", 0),
+        "cells-unauthored": sh.get("cm_standing", {}).get("unauthored", 0),
         "absences": len(art.absence_ids),
         "model-facts": len(corpus_mod.MODEL_FACTS),
         # the counts the co-statement survey found restated across K-61 pairs, each
