@@ -85,6 +85,8 @@ MARKABLE: dict[str, tuple[str, str]] = {
     ".sail": ("// ", ""),
     ".sv": ("// ", ""),
     ".toml": ("# ", ""),
+    # The host-gate workflow under .github/, which is authored here like any tool.
+    ".yml": ("# ", ""),
     "Dockerfile": ("# ", ""),
 }
 
