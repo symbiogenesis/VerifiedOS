@@ -12,10 +12,13 @@
 #
 # The checker's corpus is the git index, and the upstream/ entries it reads are
 # gitlinks, so the checkout deliberately initializes no submodule: an empty upstream/
-# directory is the tree the checker is written for. The interpreter floor is the
-# 3.14 tools/README.md states, and the two checker pins below are the ones the same
-# document states in its pin table and rule K-67 holds against tools/vos/cli/typecheck.py;
-# a bump there is a bump here. jsonschema is the one third-party import the tools
+# directory is the tree the checker is written for. The interpreter floor and the two
+# checker pins below are not copies anybody has to remember: K-75 reads the
+# python-version here against tools/ty.toml and K-67 reads each install line against
+# tools/vos/cli/typecheck.py, so a bump taken in one place and not the other is a
+# finding on the next run. The runner label, the action references and the bootstrap
+# route are the three classes this file states that no rule owns, which finding F-198b
+# carries. jsonschema is the one third-party import the tools
 # make, installed the way tools/README.md spells it for the host. On Linux, run.py
 # makes no WSL hop: the hop is taken only on win32, and the wave's members are host
 # commands regardless. PYTHONUTF8 is set so that a redirected stream on the runner

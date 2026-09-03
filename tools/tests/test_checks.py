@@ -145,9 +145,14 @@ def _counts_overflow_is_a_finding() -> None:
                f"{_findings_under(ctx, 'K-24')!r}")
 
 
-# K-67's fixture pin sites: the constants as typecheck.py spells them, and the
-# four README sites the rule holds against them.
+# K-67's fixture pin sites: the constants as typecheck.py spells them, the four
+# README sites the rule holds against them, and the workflow's two install lines,
+# which are the copy a hosted runner resolves rather than one a reader opens.
 _TYPECHECK_PINNED = 'TY_VERSION = "1.2.3"\nRUFF_VERSION = "4.5.6"\n'
+_WORKFLOW_PINNED = ("name: host gates\njobs:\n  gates:\n    steps:\n"
+                    "      - run: |\n"
+                    "          uv tool install ty==1.2.3\n"
+                    "          uv tool install ruff==4.5.6\n")
 _README_PINNED = ("# Tools\n\n"
                   "| Checker | Pin | What |\n| --- | --- | --- |\n"
                   "| [ty](https://x) | 1.2.3 | types |\n"
@@ -156,9 +161,11 @@ _README_PINNED = ("# Tools\n\n"
                   "`uv tool install ruff==4.5.6`.\n")
 
 
-def _k67(readme: str, typecheck: str | None) -> Context:
+def _k67(readme: str, typecheck: str | None,
+         workflow: str = _WORKFLOW_PINNED) -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
-             "tools/README.md": readme}
+             "tools/README.md": readme,
+             ".github/workflows/host-gates.yml": workflow}
     if typecheck is not None:
         files["tools/vos/cli/typecheck.py"] = typecheck
     with sandbox_tree(files) as root:
@@ -169,9 +176,22 @@ def _k67(readme: str, typecheck: str | None) -> Context:
 
 def _k67_agreement_is_ok() -> None:
     ctx = _k67(_README_PINNED, _TYPECHECK_PINNED)
-    ensure("ok K-67: tools/README.md's four pin sites state ty 1.2.3 and "
+    ensure("ok K-67: the six pin sites state ty 1.2.3 and "
            "ruff 4.5.6, the versions tools/vos/cli/typecheck.py fixes" in ctx.rep.out,
-           f"four agreeing sites are one ok line naming both pins: {ctx.rep.out!r}")
+           f"six agreeing sites are one ok line naming both pins: {ctx.rep.out!r}")
+
+
+def _k67_workflow_drift_is_a_finding() -> None:
+    # the copy a runner resolves rather than one a reader opens: a pin stale here
+    # runs the gate under a checker the tools do not fix, with every readable site
+    # still agreeing
+    ctx = _k67(_README_PINNED, _TYPECHECK_PINNED,
+               _WORKFLOW_PINNED.replace("ruff==4.5.6", "ruff==4.5.5"))
+    ensure(".github/workflows/host-gates.yml's ruff workflow install line states "
+           "4.5.5, tools/vos/cli/typecheck.py pins 4.5.6"
+           in _findings_under(ctx, "K-67"),
+           f"a drifted workflow pin names the two figures: "
+           f"{_findings_under(ctx, 'K-67')!r}")
 
 
 def _k67_disagreement_names_both_figures() -> None:
@@ -249,6 +269,7 @@ def cases() -> list[Case]:
         Case("k67-agreement-is-ok", _k67_agreement_is_ok),
         Case("k67-disagreement-names-both-figures",
              _k67_disagreement_names_both_figures),
+        Case("k67-workflow-drift-is-a-finding", _k67_workflow_drift_is_a_finding),
         Case("k67-unreadable-source-fails-closed", _k67_unreadable_source_fails_closed),
         Case("k75-provisioned-floor-at-the-pin-is-not-a-finding",
              _k75_provisioned_floor_at_the_pin_is_not_a_finding),

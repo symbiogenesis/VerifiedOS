@@ -62,6 +62,13 @@ Theorem nothing_haunts : forall (g : Ghost) (s : Seen), haunt g (glimpse s) = tr
 Proof. intros. exact I. Qed.
 """
 
+_COMMENTED_BUILD = """
+Record Ghost : Type := { haunt : nat -> bool }.
+(* Build_Ghost, and a literal {| haunt := fun _ => true |}, both commented out. *)
+Theorem nothing_haunts : forall g : Ghost, haunt g 0 = true -> True.
+Proof. intros. exact I. Qed.
+"""
+
 _SECTIONED = """
 Record Plan : Type := { region_count : nat }.
 Section Over.
@@ -128,6 +135,12 @@ def _a_quantified_record_nobody_builds_is_the_finding() -> None:
            f"Ghost is quantified and never built, Seen is built, got {found.unbuilt!r}")
 
 
+def _a_construction_inside_a_comment_builds_nothing() -> None:
+    found = gate.scan_witnesses(_COMMENTED_BUILD)
+    ensure(found.unbuilt == ["Ghost"],
+           f"a commented Build_Ghost and record literal construct nothing, got {found.unbuilt!r}")
+
+
 def _a_section_variable_quantifies() -> None:
     found = gate.scan_witnesses(_SECTIONED)
     ensure(found.quantified == {"Plan": 1},
@@ -187,6 +200,8 @@ def cases() -> list[Case]:
         Case("section-variable-quantifies", _a_section_variable_quantifies),
         Case("companion-witness-inhabits", _a_companion_witness_inhabits_an_imported_record),
         Case("comment-is-not-read", _a_comment_is_not_read),
+        Case("commented-construction-builds-nothing",
+             _a_construction_inside_a_comment_builds_nothing),
         Case("shipped-artifacts-build-what-they-quantify",
              _every_shipped_artifact_constructs_what_it_quantifies),
         Case("imports-follow-require-closure", _imports_follow_the_require_closure),
