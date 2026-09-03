@@ -24,8 +24,12 @@ list the register states is the defect this arrangement exists to prevent.
 a set of obligations decided by computation over the declared constants, which is the
 fail-closed reading of R-18-037's *no interface world declaring rings is admitted
 before its campaign runs*. A declaration whose constants break an obligation fails to
-compile the artifact. The canonical SPSC, lost-wakeup and typestate proofs that entry
-also names are not here and are not claimed.
+compile the artifact. The canonical SPSC and typestate proofs that entry also names are
+not here and are not claimed, and neither is its lost-wakeup exclusion over the ring's
+memory: the artifact carries R-12-096's decision rule over two reads of the producer
+index, held to the exclusion beside a consumer that skips the recheck and fails it, so
+the exclusion is a property one rule satisfies and another does not rather than one
+rule's body unfolded.
 """
 
 import argparse
@@ -313,8 +317,11 @@ def emit(root: Path, register: Register | None = None) -> str:
         "   constants, and the conformance campaign R-18-037 requires. The campaign",
         "   is decided by computation over the declared constants, so a declaration",
         "   whose constants break an obligation fails to compile this file. The",
-        "   canonical SPSC, lost-wakeup and typestate proofs that entry also names",
-        "   are not here and are not claimed.",
+        "   canonical SPSC and typestate proofs that entry also names are not here",
+        "   and are not claimed, and neither is its lost-wakeup exclusion over the",
+        "   ring's memory: what part 3 carries of R-12-096 is its decision rule",
+        "   over two reads of the producer index, held to the exclusion beside a",
+        "   consumer that skips the recheck and fails it.",
         "",
         "   Nothing here is a proof about an implementation: the profile's own rule",
         "   is that its types document the contract and never are it.",
@@ -567,17 +574,36 @@ def emit(root: Path, register: Register | None = None) -> str:
         "                  (duplicate_live : bool) : bool :=",
         "  andb (Nat.eqb session_generation descriptor_generation) (negb duplicate_live).",
         "",
-        "(* The notification discipline: work is pending when the consumer index",
-        "   trails the producer's, and the consumer sleeps only on a recheck that",
-        "   shows none. *)",
+        "(* The notification discipline R-12-096 states, over the two indices at",
+        "   the width the declaration gives them: the producer and consumer indices",
+        "   are free-running counters below `ring_index_span`, so work is pending",
+        "   when their modular difference is not zero, and it is",
+        "   `the_capacity_divides_the_index_span` below, bounding the capacity by",
+        "   half the span, that makes that difference the occupancy. *)",
         "Definition work_pending (produced consumed : nat) : bool :=",
-        "  Nat.ltb consumed produced.",
+        "  negb (Nat.eqb (Nat.modulo (produced + ring_index_span - consumed)",
+        "                            ring_index_span) 0).",
         "",
-        "Definition sleeps (produced consumed : nat) (armed : bool) : bool :=",
-        "  andb armed (negb (work_pending produced consumed)).",
+        "(* A consumer's sleep decision sees two reads of the producer index:",
+        "   `drained`, the one its drain ended on, and `recheck`, the one it takes",
+        "   after arming its notification word. The discipline sleeps on an armed",
+        "   word and an empty recheck; the drain's index decides nothing. *)",
+        "Definition sleeps (drained recheck consumed : nat) (armed : bool) : bool :=",
+        "  andb armed (negb (work_pending recheck consumed)).",
         "",
-        "Definition no_lost_wakeup (produced consumed : nat) (armed : bool) : bool :=",
-        "  implb (sleeps produced consumed armed) (negb (work_pending produced consumed)).",
+        "(* The consumer the discipline excludes: one that arms and then sleeps on",
+        "   the index its drain ended on, never re-reading the producer's. *)",
+        "Definition sleeps_without_recheck (drained recheck consumed : nat)",
+        "                                  (armed : bool) : bool :=",
+        "  andb armed (negb (work_pending drained consumed)).",
+        "",
+        "(* The lost-wakeup exclusion, stated of a decision rule and not of either",
+        "   rule's body: whatever the drain saw, work pending at the recheck is never",
+        "   slept over. Both consumers above are held to it, and one of them fails. *)",
+        "Definition no_lost_wakeup (decide : nat -> nat -> nat -> bool -> bool) : Prop :=",
+        "  forall drained recheck consumed : nat, forall armed : bool,",
+        "    work_pending recheck consumed = true ->",
+        "    decide drained recheck consumed armed = false.",
         "",
         "(* Cancellation's deterministic race, as the answers depend on where the",
         "   target stands: live and unstarted, live and past a declared point, past",
@@ -757,10 +783,32 @@ def emit(root: Path, register: Register | None = None) -> str:
         "intro g; unfold accept; rewrite eqb_reflexive; reflexivity.")
     lines += _theorem(
         "no_published_work_stays_behind_a_sleep",
-        "forall produced consumed : nat, forall armed : bool,"
-        " no_lost_wakeup produced consumed armed = true.",
-        "intros produced consumed armed; unfold no_lost_wakeup, sleeps;"
-        " destruct armed; destruct (work_pending produced consumed); reflexivity.")
+        "no_lost_wakeup sleeps.",
+        "intros drained recheck consumed armed H; unfold sleeps; rewrite H;"
+        " destruct armed; reflexivity.")
+    # The refutation that makes the exclusion a property rather than a restatement:
+    # the drain saw an empty ring, one descriptor was published before the sleep, and
+    # the consumer that never re-read the producer index sleeps over it.
+    lines += _theorem(
+        "a_consumer_that_skips_the_recheck_loses_a_wakeup",
+        "~ no_lost_wakeup sleeps_without_recheck.",
+        "intro H; unfold no_lost_wakeup in H; specialize (H 0 1 0 true);"
+        " vm_compute in H; discriminate (H eq_refl).")
+    # The refuter's keeps-theorem, so the refutation isolates the recheck and nothing
+    # else: wherever the producer index did not move between the drain and the recheck
+    # the two consumers decide alike, so the failure above turns on that one read.
+    lines += _theorem(
+        "the_two_consumers_differ_only_where_the_producer_moved",
+        "forall drained consumed : nat, forall armed : bool,"
+        " sleeps drained drained consumed armed"
+        " = sleeps_without_recheck drained drained consumed armed.",
+        "intros; reflexivity.")
+    lines += _theorem(
+        "a_sleep_needs_the_armed_word_and_an_empty_recheck",
+        "(forall drained recheck consumed : nat,"
+        " sleeps drained recheck consumed false = false)"
+        " /\\ sleeps 0 0 0 true = true.",
+        "split; [ intros; reflexivity | vm_compute; reflexivity ].")
     lines += _theorem(
         "a_target_past_its_commit_point_is_too_late",
         "forall (o : op) (position : nat), op_cancellable o = true ->"
@@ -799,6 +847,9 @@ def emit(root: Path, register: Register | None = None) -> str:
         "a_stale_generation_is_refused", "a_duplicate_live_identifier_is_refused",
         "a_fresh_unique_request_is_accepted",
         "no_published_work_stays_behind_a_sleep",
+        "a_consumer_that_skips_the_recheck_loses_a_wakeup",
+        "the_two_consumers_differ_only_where_the_producer_moved",
+        "a_sleep_needs_the_armed_word_and_an_empty_recheck",
         "a_target_past_its_commit_point_is_too_late",
         "a_non_cancellable_operation_is_never_live_to_cancel",
     ]
