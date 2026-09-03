@@ -314,8 +314,8 @@ Each row names the owner of a real obligation met outside the platform; an unnam
 | Potential bug class | Construction | Mode |
 | --- | --- | --- |
 | A shipped theorem resting on more than its declared assumptions | The proof term enumerates each theorem's axioms and assumptions for exact comparison with the requirements-register declaration; any extra or missing member fails the build | **✅&nbsp;Proved** |
-| A theorem that is true and empty: a premise nothing satisfies or a quantifier ranging over nothing | Each theorem carries a machine-checked satisfiability witness; because general vacuity is undecidable, this is a per-theorem obligation | **✅&nbsp;Proved** |
-| A specification so weak that anything refines it | Every refinement and policy claim must exhibit an instance the specification rejects | **✅&nbsp;Proved** |
+| A theorem that is true and empty: a premise nothing satisfies or a quantifier ranging over nothing | The build gate refuses a proof artifact whose theorems quantify over a record the artifact never constructs, and reports each artifact's constructed witnesses beside its constants; because general vacuity is undecidable, that a witness satisfies its theorem's hypotheses stays a per-theorem obligation read at review, and its residue is booked in the [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
+| A specification so weak that anything refines it | Every refinement and policy claim exhibits an instance the specification rejects, a construction the proof artifact carries and the review gate reads; no build check decides that the rejected instance is a telling one, and that judgement is booked in the [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
 
 
 ### What this inventory does not claim
