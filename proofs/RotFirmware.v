@@ -3497,7 +3497,9 @@ Example the_demo_chain_extends_from_these_digests :
    same digest, and it fails at the seed. A late-colliding one separates the
    seven codes at the seed and collides at the second digest the chain
    reaches, which is what shows the declaration reads every digest the chain
-   extends from and not the seed alone. *)
+   extends from and not the seed alone. Away from that digest it is the
+   demo's own extension, which is pinned so that what refutes it is the
+   one collision and not a different fold. *)
 Definition counting_extend : nat -> nat -> nat := fun d _ => S d.
 
 Definition late_colliding_extend : nat -> nat -> nat := fun d a =>
@@ -3513,6 +3515,13 @@ Example the_late_collision_passes_the_seed_and_fails_the_chain :
   /\ separates_at late_colliding_extend demo_item_code 3 = false
   /\ separates_along late_colliding_extend demo_item_code 0 = false
   := conj eq_refl (conj eq_refl eq_refl).
+
+Example the_late_collision_is_the_demo_extension_elsewhere :
+  late_colliding_extend 0 1 = demo.(extend) 0 1
+  /\ late_colliding_extend 10 3 = demo.(extend) 10 3
+  /\ late_colliding_extend 3 1 = 3
+  /\ Nat.eqb (late_colliding_extend 3 1) (demo.(extend) 3 1) = false
+  := conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
 (* -------------------------------------------------------------------------
    The chain, at a machine (R-09-027, and gap a made observable).
@@ -4333,6 +4342,7 @@ Print Assumptions counting_extend.
 Print Assumptions late_colliding_extend.
 Print Assumptions the_counting_extension_separates_nothing.
 Print Assumptions the_late_collision_passes_the_seed_and_fails_the_chain.
+Print Assumptions the_late_collision_is_the_demo_extension_elsewhere.
 Print Assumptions the_attempt_folding_digest_is_refuted.
 Print Assumptions the_attempt_folding_digest_agrees_at_the_first_attempt.
 Print Assumptions the_two_prologue_orders_measure_differently.
