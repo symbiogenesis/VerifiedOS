@@ -48,7 +48,7 @@
 
 ## Running the tools
 
-There is no CI in this repository. Nothing runs these but you, by hand, before anything lands.
+The three host gates run in CI as well as by hand: [.github/workflows/host-gates.yml](.github/workflows/host-gates.yml) runs `python tools/run.py` and `python tools/run.py test` on an Ubuntu runner at every push and pull request to `main`, over a clone with no submodule checked out, which is the tree the checker reads. The guest lane, everything `run.py` re-launches inside WSL for Sail, Rocq and Verilator, runs only by hand, before anything lands. A green run in CI is a witness that the host gates passed on that commit and never a substitute for the guest evidence a completion note quotes.
 
 **There is one entry point, [tools/run.py](tools/run.py), and a command is a name rather than a path.** `run.py help` lists every command and the lane it runs in; `run.py <command> --help` is that command's own help. A command that needs the toolchain is re-launched inside WSL by `run.py` itself, so there is no `wsl -u root -e python3` to spell and no wrong lane to be in.
 
