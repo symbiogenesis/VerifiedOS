@@ -13,7 +13,7 @@ A finding is something the build learned that the plan would otherwise learn aga
 · Restates: (where the plan records one fact twice) the entry this one is the second sighting of
 ```
 
-**One fact, one owner.** The plan's note is the finding and this register is the index over it, so an entry names what was found as far as a reader needs to recognize it and then stops. It carries no figure the note carries, and it never argues the note's case a second time. Where the two disagree the note wins, being the record of the act where this is a pointer at it.
+**One fact, one owner.** The plan's note is the finding and this register is the index over it, so an entry names what was found as far as a reader needs to recognize it and then stops: a figure it quotes is there to name the finding and belongs to the note, and it never argues the note's case a second time. Where the two disagree the note wins, being the record of the act where this is a pointer at it.
 
 **Ids are permanent and order is the plan's.** A retired finding keeps its number and is struck, never reused, because a number is what a later item cites when it meets the same fact. Entries sit in the order the plan records them, so a finding added to a note that already has others takes a letter suffix and sits where the note puts it, not where its number would.
 
@@ -191,7 +191,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000u** measurement: a four-megabyte machine-written file entered the tracked corpus and a total-class rule read 2,809 pin restatements out of its bit literals, every one of them an object id on a line that had already named an upstream
 · Raised: S15
-· Disposition: closed on its own subject, the generated artifacts taken out of that rule's window because a machine-written file restates nothing; standing as a coupling for every other total-class rule, one of which is now reachable from an anchored comment in the model
+· Disposition: closed on its own subject, the generated artifacts taken out of that rule's window because a machine-written file restates nothing; the coupling it names holds of every other total-class rule, one of which is reachable from an anchored comment in the model
 
 **F-000v** method: repointing a parse at the generated artifact moved a selftest case's subject out from under it, the seeded model source no longer being what the reading opens, so the case reported the artifact stale and the rule it was written to prove survived
 · Raised: S15
@@ -1216,7 +1216,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-193** measurement: the Wasm oracle cannot report a defect in the artifact's own deciders that the proof gate would not report first, twelve one-token decider mutations being twelve stillborn, so what it uniquely tests is the compiled pipeline rather than the deciders
 · Raised: M4.3, in prose
-· Disposition: open as a standing reading of what staging a statement artifact into that loop buys, the loop's value being kernel conversion against the erasure and Wasm backend on a real artifact rather than a regression net
+· Disposition: standing, a reading of what staging a statement artifact into that loop buys, the loop's value being kernel conversion against the erasure and Wasm backend on a real artifact rather than a regression net
 
 **F-165** owed-act: the emulator runs one hart and every shipped configuration composes one, so the multikernel's defining property is first exercisable on the RTL track
 · Raised: M4.4, in prose
@@ -1294,7 +1294,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-196** method: a name a file declares beside one it imports shadows silently and no gate reads it, so a file claiming to restate no imported theorem can restate nine of them while every count stays correct
 · Raised: M5.2, in prose
-· Disposition: closed at the item by renaming all nine and instantiating the four genuinely inherited theorems by conversion, so the sharing a Require is taken for is checked rather than asserted; standing as the hazard any second Require will carry
+· Disposition: closed at the item by renaming all nine and instantiating the four genuinely inherited theorems by conversion, so the sharing a Require is taken for is checked rather than asserted; the hazard is one any second Require will carry
 
 ## M6 · Userland spine
 
