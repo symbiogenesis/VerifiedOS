@@ -260,9 +260,10 @@ def scan_witnesses(text: str, imported: tuple[str, ...] = ()) -> Witnesses:
             head = _instance_head(typ)
             if head is not None:
                 witnesses.setdefault(head, []).append(name)
-        built |= {hit.group(1) for hit in _BUILD.finditer(source)}
+        live = _strip_comments(source)
+        built |= {hit.group(1) for hit in _BUILD.finditer(live)}
         by_field = {name: record for record, names in records.items() for name in names}
-        built |= {by_field[hit.group(1)] for hit in _LITERAL.finditer(source)
+        built |= {by_field[hit.group(1)] for hit in _LITERAL.finditer(live)
                   if hit.group(1) in by_field}
 
     ranged = {record: count for record, count in quantified.items() if record in records}
