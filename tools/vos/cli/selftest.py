@@ -1269,6 +1269,17 @@ CASES: list[Case] = [
     # untouched, so K-15 never looks. K-74 is the one rule that can.
     ("K-74", "a residual cell whose citation of the section booking it has gone",
      _literal(MATRIX, "R-08-006, R-15-208, R-17-037", "R-08-006, R-15-208")),
+    # The standing column is the one column of the matrix no hand writes: the
+    # inventory's status lifted over the rows a cell's requirements constrain. A cell
+    # promoted by hand is the defect, a pair reading as discharged by specifications
+    # that do not exist, and every other rule reads it as sound: the mode still places,
+    # the citations still resolve, the row is still its header's width. The cell is
+    # found by its standing rather than named, so the case survives the column moving
+    # as rows of the inventory are authored.
+    ("K-95", "a coverage cell standing authored over specifications the inventory does "
+             "not carry",
+     _first_match(MATRIX, r"(?m)^\| `B-\d\d` \| `P-\d` \|[^\r\n]*\| not authored \|",
+                  lambda m: m.group().replace("| not authored |", "| authored |"))),
 
     # One of the two settings rather than one of the five sentences, because the pair of
     # settings is where the figure is hardest to see moving: `py314` and `3.14` are one
@@ -1483,7 +1494,7 @@ def _case_mutation(rule: str) -> Mutation:
 # Every rule with a --fix branch: the substring its rewrite's `fixed:` line must carry,
 # and the defect the repair lane seeds. The repair path is never exercised by a
 # green tree, so a branch missing here ships untested unless something breaks it on
-# purpose. Six seeds are the rules' own case mutants, each an arithmetic figure whose
+# purpose. Seven seeds are the rules' own case mutants, each an arithmetic figure whose
 # repair writes the pristine bytes back. Two rules cannot ride their own case. K-54's
 # moves the granule owner, and repairing from a moved owner rewrites every derived
 # figure to the new granule and dirties co-read pairs no --fix may bless, so the
@@ -1505,6 +1516,9 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
         GEOMETRY, "that is a ceiling of **512 bytes**",
         "that is a ceiling of **256 bytes**")),
     "K-69": ("kernel-line-budget", _case_mutation("K-69")),
+    # A standing rather than a figure, and it rides its own case: the repair writes the
+    # inventory's class back over the cell a hand promoted.
+    "K-95": ("standing", _case_mutation("K-95")),
     # A third that cannot ride its own case, and for the plainest reason: neither of
     # K-82's cases is an arithmetic figure. One moves a count word in the plan and the
     # other an item id in the register, and repairing either would mean writing a

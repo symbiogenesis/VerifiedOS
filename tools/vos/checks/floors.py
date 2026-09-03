@@ -195,6 +195,14 @@ def run(ctx: Context) -> None:
         # deciding nothing while every mode still places.
         "discharge modes the coverage matrix declares": sh.get("cm_modes", 0),
         "coverage cells booking a residual": sh.get("cm_residual", 0),
+        # Two rather than one, because K-95 reaches the inventory by two tables: a
+        # specification row by its target column and a theorem row by the premises it
+        # names. Either reading emptying leaves the cells that reach the inventory
+        # only through it deciding nothing, and the second is the quieter of the two,
+        # a theorem target with no premise being the shape one target takes by design.
+        "inventory rows the coverage cells reach": sh.get("cm_standing_rows", 0),
+        "theorem targets the inventory resolves to premise rows":
+            sh.get("cm_theorem_premises", 0),
         # Two rather than one, because K-76 pairs a contract's enumeration against a
         # record of bindings: a contract whose identifiers have been respelled leaves
         # the rule holding an empty set against a full one and reporting that every
