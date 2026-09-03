@@ -21,6 +21,11 @@
 # commands regardless. PYTHONUTF8 is set so that a redirected stream on the runner
 # reads and writes the corpus's encoding, which is what run.py reconfigures on its
 # own streams and cannot reach in a member's.
+#
+# What the test step witnesses is narrower than its name: tools/vos/cli/test.py
+# reads the lane off sys.platform, so on this runner the cases marked host are
+# skipped and the lane-neutral cases run beside the guest slice, whose one case
+# holds provision --check to answering the same twice over an unmoved tree.
 
 name: host-gates
 
