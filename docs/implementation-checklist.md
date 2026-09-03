@@ -392,11 +392,11 @@ The other four off-clock rows are the radio reference state machines (inventory 
 * **A proofs-lane item reports its own file's constant count and not the proof gate's global total.** The global figure is derived over the whole of [proofs/](../proofs/), so any lane that adds a `.v` moves it, which makes it the one exit-evidence figure a sibling landing invalidates rather than a property of the item that quoted it. The landed Gallina items already split on this without saying so, the earlier ones quoting the global and the later ones their own file's share; the later reading is the one this convention adopts.
 * **Every item carries one estimate cell, and only what is inside it is authored.** An open item reads `· 6 h, range 4–8 · 0.7%`, a completed one `· 1.9 h actual · 0.2%`; the range and the actual are the estimates, in attended agent-session hours, and are re-priced when split. The rest is arithmetic: the midpoint is the mean of the range ends, and the percentage is that midpoint's share of the grand total. An item whose children carry the estimates carries none of its own.
 * **Every subtotal, the grand total, its range, and the progress figures are sums over those cells**, recomputed by `tools/check.py` (`--fix` rewrites them), so a re-priced item moves everything resting on it in the same edit.
-* **Every open item carries an authority class beside its estimate**, `I` where the authority it realizes is inside this repository and `X` where it is outside. The classes are priced differently because they have measured differently: over the thirty completed items carrying both an estimate and an actual, the eighteen whose authority is inside this repository ran at 0.66, and the twelve whose authority is outside it split, the ten that read, pin, install or measure an external thing running at 0.60 and the two that authored against an external authority at 1.68. **The 1.68 every open class-X cell is priced against is that second pool and not the class**, which is the whole of what makes n = 2 the weakness the risks table states, and the fit's pools are named here because they are not recoverable from the document: a completed item carries its actual instead of its class, the class having done its work at the estimate, so no rule computes any of the three ratios or any of the three counts.
-* **A completed item marked `agent-parallel` ran under fan-out rather than at one attention, and its actual is measured on a different clock.** Its figure is the summed agent-session wall-clock of the authoring, verification and repair passes the item took, which is not the attended figure the completed items before it were priced in. **The two series are not pooled**, and the ratio above is over the attended one alone. What the label marks is the execution mode and never the quality bar: an agent-parallel item clears the same gates, declares the same tier, and is read the same way. **The series is six items now** (M3.2, M4.2b, M4.3, M5.1, M5.2, M6.2a) and **no item owns the re-fit across both modes**: it was read onto S7, S7 landed at four reconnaissance passes none of which was a calibration pass, and nothing has taken it since, so the ratio the whole convention rests on is owned by nobody.
+* **Every open item carries an authority class beside its estimate**, `I` where the authority it realizes is inside this repository and `X` where it is outside. The classes are priced differently because they have measured differently: over the fifty-nine completed items carrying both an estimate and an actual, the forty-five whose authority is inside this repository ran at 0.72, and the fourteen whose authority is outside it split, the twelve that read, pin, install or measure an external thing running at 0.76 and the two that authored against an external authority at 1.68. **The 1.68 every open class-X cell is priced against is that second pool and not the class**, which is the whole of what makes n = 2 the weakness the risks table states. The fit's pools are recorded rather than recoverable, because a completed item carries its actual instead of its class, the class having done its work at the estimate: [the calibration record](#calibration-record) carries every completed attended item with its pool and the earliest estimate its cell recorded, and `tools/check.py` recomputes each ratio and count above from that record and the actuals beside it, rewriting them under `--fix`.
+* **A completed item marked `agent-parallel` ran under fan-out rather than at one attention, and its actual is measured on a different clock.** Its figure is the summed agent-session wall-clock of the authoring, verification and repair passes the item took, which is not the attended figure the completed items before it were priced in. **The two series are not pooled**, and the ratio above is over the attended one alone. What the label marks is the execution mode and never the quality bar: an agent-parallel item clears the same gates, declares the same tier, and is read the same way. **The series is eleven items** (M1.6, M3.2, M3.4a, M4.2b, M4.3, M5.1, M5.2, M6.0b, M6.2a, M6.3a, M6.4), the count and the list being the tool's, and **no item owns the re-fit across both modes**: it was read onto S7, S7 landed at four reconnaissance passes none of which was a calibration pass, and nothing has taken it since, so the attended ratio is re-derived on every run and the reading that would pool the two modes is owned by nobody.
 * **The width test is set and it is a span floor: a class-X range's upper end is at least twice its lower end.** That is the *roughly a factor of two* this document already claims of every range, made a gate for the one class whose outturn says it is not decoration, and `tools/check.py` holds it. Class I carries no floor, having run under estimate.
   **The obvious threshold was tried first and is arithmetically unavailable, which is why this one is a span rather than a multiple of the midpoint.** *The calibrated value lies inside the range*, upper ≥ 1.68 × midpoint, is the test the ratio actually motivates; but a midpoint is the mean of the range ends, so that test is equivalent to lower ≤ 0.32 × midpoint and forces every class-X range to a span above five. Applied to the cells as they stand it would either drive the lower ends to a third of their midpoints or, holding the lower ends, re-price the midpoints upward by more than a factor of two, which is exactly the re-price the ratio is stated **not** to be. The two rules collide, and the span floor is what survives the collision: it is tied to the convention this document already states, it discriminates the class the measurement discriminates, and it leaves the calibrated total where it belongs, stated separately rather than folded in.
-  **What the floor does not do is make the calibration a gate.** A cell can clear the span and still have a midpoint the ratio says is low, and nothing here reports that; the calibrated total is where it shows, and the 1.68 the whole convention rests on is still fitted over two completed items and is owed a re-fit no item carries.
+  **What the floor does not do is make the calibration a gate.** A cell can clear the span and still have a midpoint the ratio says is low, and nothing here reports that; the calibrated total is where it shows, and the 1.68 the whole convention rests on is fitted over two completed items, a count the record carries and no span widens.
 * **`Wasm-parallel`** means the item's deliverable is Gallina logic needing no toolchain, no image and no machine model (§0), so its gate is the register rather than M1 and it may run in any lane from today. **The label names a validator the entry point does not carry, and the landed items say which one they used instead.** M1.5 closed the CertiCoq→Wasm loop on `demo.v` alone in a switch of its own, [tools/wasm-oracle/](../tools/wasm-oracle/) carries that file and [ipc_oracle.v](../tools/wasm-oracle/ipc_oracle.v) beside it plus a Dockerfile, a runner and a hand-run recipe, and no `run.py` command reaches any of it. Nine landings validated at the prover level alone, through `run.py proofs` and `run.py seed coq`: M3.2, M3.3, M3.6a, M4.2a, M4.2b, M5.1, M5.2, M6.1a and M6.2a. **Staging a repository Gallina source into the Wasm oracle is priced once and it is M4.3's**, which staged `ipc_oracle.v` at 4 h actual and is the only cell that has met the label's verb at the execution level; every other cell carrying the label leaves it uncosted.
 * **Landing is two-tier.** Tier A is a full attended read: any register, profile, crown-jewel, absence-contract or coverage-matrix edit; any moved co-read pair; any new normative claim; every decision item. Tier B is a spot read of the item's findings, admitted on four mechanical conditions: checker green with every mutant killed, no Tier-A edit, the co-read ledger unmoved, and a rule holding whatever fact the item created.
 * **A landing declares its tier, and a Tier-B landing names what holds it.** A landed item carries one `Landed: Tier A` or `Landed: Tier B under` line among its notes, the second naming in bold every rule that holds a fact the landing created. **A bolded rule id is a holder citation and a plain one is not**: a rule relied on is written in bold beside what it holds, which is the form the landed items that created one already use, and a rule merely discussed stays plain, so the document tells the two apart instead of leaving it to the reader. A holder need not be new, an existing rule whose subject a landing extends holding the new member and being named the same way. K-84 holds every holder citation to naming a rule [the registry](../tools/check-rules.md) carries and every Tier-B declaration to naming one, and it reads a declaration where it is made rather than demanding one where it is absent, a tier being a property of the reading a landing was given and not something a later hand assigns to it. What no rule decides is whether the named rule holds *that* fact, which is the residue every conferral here declares.
@@ -422,15 +422,15 @@ The other four off-clock rows are the radio reference state machines (inventory 
   **M1.8's second gate is M1.4′ rather than M1.2**: [the measurement contract](freeze-measurement-contract.md) joins three inputs into the analyzer's one table, and two of them, the link map and the encoded image, are the composer's rather than the backend's. The analyzer needed neither milestone, the contract fixing every enumeration and every declared value, so what M1.8b waits on is a transport against a declared schema, and it waits behind the M8a gate with the freeze it serves.
   **Ungated is not unblocked, and M4.2 is where the two part**: no fork holds it, and its second half is held by the register acts M4.2b enumerates, each an obligation with no mechanism under it, which is a gap a milestone cannot close and which S1 is the act that closes. I1 was open the same way, its two standing clauses being settings on the human's box rather than in this tree, which is why it is struck rather than scheduled; S9 no longer closes them, the lane staying on WSL by choice, so they stand as an accepted cost rather than as an item.
 * Total estimate: 1,086 h midpoint, class I 213.5 h and class X 488.5 h over the open items.
-* Calibrated against completed-item outturn (class I 0.66, class X 1.68): approximately 1,345.6 h.
+* Calibrated against completed-item outturn (class I 0.72, class X 1.68): approximately 1,358.4 h.
 * Progress by estimate: 384 of 1,086 h complete (35.4%); 702 h remaining (64.6%).
 * M8a gate: 152 h of open work falls at or before it, of which 84 h is class X.
 * M8b gate: a 90.5 h chain of open work running beside the software one, R1b through M8b.
-* Critical chain through M8a: **its head is discharged**, S1 and every provenance decision being landed, and M1.9 with them, its memory plan closed on a population that decided every site, so what remains of it runs M1.2, M1.7, M3.5, M4.4, M5.3, M6.5a, M7.1 and M8a; every Gallina item beside it is `Wasm-parallel` and adds none. Over those items the chain sums to 77–168 h at a 122.5 h midpoint, M1.2 entering as its six children because it carries no estimate cell of its own. **That figure is a hand-taken sum and no rule recomputes it**, unlike the two gate figures above, so it goes stale at the next re-price of anything on the chain and is read as a serial-path ceiling rather than as arithmetic the tool holds.
+* Critical chain through M8a: **its head is discharged**, S1 and every provenance decision being landed, and M1.9 with them, its memory plan closed on a population that decided every site, so what remains of it runs M1.2, M1.7, M3.5, M4.4, M5.3, M6.5a, M7.1 and M8a; every Gallina item beside it is `Wasm-parallel` and adds none. Over those items the chain sums to 77–168 h at a 122.5 h midpoint, M1.2 entering as its six children because it carries no estimate cell of its own. The membership is the author's and the sum is arithmetic `tools/check.py` recomputes over those cells like the two gate figures above, so a re-price of anything on the chain moves it in the same edit, and it is read as a serial-path ceiling rather than as a bill.
 
 ### Sequencing
 
-The order the lanes open in, which is not the order the sections are written in. What governs it is that an hour spent on a decision or an instrument is worth more the earlier it is spent. **The opening premise is spent**: lane 1 is no longer the only lane open, its named content having been discharged and the fan-out having already run six agent-parallel landings, so the phases below are read as an order rather than as a calendar with the first week still ahead of it.
+The order the lanes open in, which is not the order the sections are written in. What governs it is that an hour spent on a decision or an instrument is worth more the earlier it is spent. **The opening premise is spent**: lane 1 is no longer the only lane open, its named content having been discharged and the fan-out having already run eleven agent-parallel landings, so the phases below are read as an order rather than as a calendar with the first week still ahead of it.
 
 | Phase | Work | Why then |
 | --- | --- | --- |
@@ -457,7 +457,7 @@ What would falsify the order above, and what each risk is answered by. Nothing h
 | **Generation makes a wrong fact consistent everywhere**, where a transcription would have shown a visible disagreement. | Medium | The tree's own evidence runs the other way. K-79's sites were held by nothing at all until the rule was written, and K-54's first run found a live disagreement in a document nobody had noticed. Consistency was never a property the transcriptions had; it was the property the rules were bolted on to create. |
 | **The generator dividend does not materialize** across the Gallina front. | Measured, and adverse | The row named its own falsification condition and the condition was met: at M3.2, the first Gallina item to land with S13a and S13b in place, the QuickChick harness killed nothing and the enumerative vector grid killed nothing, all 244 kills being the prover's and the whole mutation score being the assumption gate refusing to compile. So the dividend is unrealized for a statement artifact, and what would change it is the widening M3.2 names and M4.3 has since performed once for the kernel surface: a `Require`, generator instances over the file's own types, and computable shadows of its deciders. It stays a small share of the reduction and is named per cell rather than asserted over the total. |
 | **M6.2's offline-admission reading is wrong.** | Medium to high, and now only over M6.2b | S1 took the ruling: measured boot covers a statically composed image, which is what splits M6.2. The split is executed, M6.2a having landed the composition-time admission path at 12.4 h, so the residual risk stands over M6.2b alone, the on-device CIC kernel deferred behind the M8a gate, and a wrong reading costs that deferral rather than the work already done. |
-| **The lanes exceed what one author can adjudicate**, Tier A being irreducible. | High for the calendar | Lane 1's queue is discharged, so the ceiling has moved off its serial content and onto the Tier-A read every landing still wants, which no instrument removes. The fan-out has run against that ceiling six times and the landings held. If the lanes are too many, the binding figure is the critical chain rather than the gate total, and the chain wants three lanes rather than nine. |
+| **The lanes exceed what one author can adjudicate**, Tier A being irreducible. | High for the calendar | Lane 1's queue is discharged, so the ceiling has moved off its serial content and onto the Tier-A read every landing still wants, which no instrument removes. The fan-out has run against that ceiling eleven times and the landings held. If the lanes are too many, the binding figure is the critical chain rather than the gate total, and the chain wants three lanes rather than nine. |
 | **Rupicola's target does not exist**, which is the harder half of what this row covers. | Answered, and the answer forks the route | Both halves are now measured at the artifact rather than read from the paper, and both readings moved. The **subset** blockers are not inductive datatypes and general recursion, which are at zero sites and three nullary enumerations respectively, but higher-order code, at 73 of M6.1a's 100 definitional commands. The **target** is a fork rather than an absence: the route stands up whole and has two exits, and neither carries both properties this plan claims for it. The verified exit emits 39 words of RV32I with no capability instruction, which is the plain-RISC-V target R-18-002 forbids by name; the reaching exit runs through a pretty-printer carrying no theorem, so its admissibility rides M1.2 completing the backend. The CompCert-C/VST route stays the default. |
 | **The Sail-to-µSail translator carries no licence at all**, which is a harder exposure than the hand translation the answer falls back on. | Medium | S12 read it at its own files: no `LICENSE`, `LICENCE`, `COPYING` or `COPYRIGHT`, no forge-detected licence, and no `license:` field in either opam package, so it is pinned and read and may not be copied, vendored or extracted from. The call is taken: ask the licensor, and author the translation by hand if no terms arrive before R-13-016 is scheduled. Nothing before the co-simulation gate depends on it, and a register gap rides it: R-13-016 books the seam's faithfulness obligation and no terms obligation beside it. |
 | **Quarantine rots the instruments S16 sets aside.** | Low to medium | They move whole, with their selftest cases, and K-83 holds that nothing outside the quarantine imports or launches one of the sources it carries. **The two contract documents did not move**: they stay in `docs/`, what was quarantined being the machinery and never the obligation, with K-70 and K-55 still reading both from the landing loop. |
@@ -582,7 +582,7 @@ The work that is undelegatable, the work that unblocks a lane, and the instrumen
 
   * [ ] **S10b · Move the per-item completion notes to `docs/items/`** · 6.5 h, range 5–8 · 0.6% · I · in the opening phase, ahead of the lanes still to open
     * The per-item completion notes moved out of the checklist and cited from a small cell, which is the other half of the same conflict: the notes are the bulk of the file and every landing writes one.
-    * **Re-priced from 2 h on a reading of the work, and the item's own argument survives the re-price.** The move is not a cut and paste: sixty-odd notes leave the cells that cite them, every cell keeps a citation the checker resolves, and every derived figure a note states has to land where `--fix` still recomputes it. What the re-price does not move is *when*, and a larger figure argues the same way the smaller one did: the conflict this item exists to remove is the one that happens during the fan-out, so cost is a reason to take it early rather than a reason to defer it behind the lanes it is for. Class I has run at 0.66 over eighteen completed items, so this range is the reading before that discount rather than after it.
+    * **Re-priced from 2 h on a reading of the work, and the item's own argument survives the re-price.** The move is not a cut and paste: sixty-odd notes leave the cells that cite them, every cell keeps a citation the checker resolves, and every derived figure a note states has to land where `--fix` still recomputes it. What the re-price does not move is *when*, and a larger figure argues the same way the smaller one did: the conflict this item exists to remove is the one that happens during the fan-out, so cost is a reason to take it early rather than a reason to defer it behind the lanes it is for. Class I has run at 0.72 over forty-five completed items, so this range is the reading before that discount rather than after it.
     * **The fan-out this item was to precede has already run, and that is the ground the cell stands on.** Six items have landed agent-parallel and more beside them, each writing another note into this file, which is exactly the conflict the item exists to remove and which it was not there to remove. **The cheapest moment is spent and the argument does not rest on it**: what makes the move worth taking is that the file goes on absorbing a note per landing and every remaining lane is still going to write one. The instruments are front-loaded on the ground that they pay back on every item after them and on nothing before them, and by that test this is still an instrument, priced against the landings ahead of it rather than the ones behind.
 * [x] **S11 · Join the TestRIG ecosystem over RVFI-DII** · 6.5 h actual · 0.6%
   * The rig is [tools/run.py testrig](../tools/vos/cli/testrig.py) over two new modules and one old one: [vos/rvfi.py](../tools/vos/rvfi.py) is the wire format and the projection from one of its packets onto the commit trace's records, [vos/vengine.py](../tools/vos/vengine.py) is the stream generator over the frozen dialect, the socket, four seeded defects and delta debugging, and adjudication stays [vos/trace.py](../tools/vos/trace.py)'s, so the rig and the corpus decide what a divergence is through one function. Four commands: `protocol` reads the wire off the codec on the host, `handshake`, `run` and `bridge` drive the emulator in the guest. [differential-corpus.md](differential-corpus.md) §9 is the contract, and §8 carries the four predicates CI holds.
@@ -2088,7 +2088,97 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
 * Grand total: the sum of the item cells, 1,086 h midpoint over a 824–1,348 h range.
-* **The authority class is the calibration, and it is measured rather than assumed.** Taking each completed item's earliest recorded estimate from `git log` against its recorded actual, across the thirty items carrying both, gives 107.8 h actual against 161.5 h estimated, a ratio of 0.67. The error is not uniform and in one class it runs the other way: eighteen items whose authority is in this repository ran at **0.66**, ten that read, pin, install or measure an external thing ran at **0.60**, and the two that authored against an external authority ran at **1.68**. Neither overrun is random. M0.8d authored FEC decoders and Keccak against FIPS 202, the ACVP vectors and TS 38.212, and its own finding is that the two defects the known-answer vectors found were both transcriptions; M0.12 authored a corpus, an assembler, a dialect table and an ELF composer from nothing, because no toolchain has one. The deepest under-runs are equally consistent, M0.6g at 0.27 adding six profile rows the register already enumerated and M1.1 at 0.25 reading a licence and pinning a commit.
-* **The ratio is a prior on range width and not a re-price of midpoints**, which is what the conventions above already require of a class-X cell, and which is what the calibrated figure states separately rather than folding in. Its own weakness is stated: n = 2 in the pool that matters. It is every completed item that authored against an external authority, both overran, both for the same reason, and the consequence is asymmetric, so it is treated as a widening rather than a multiplier. **Turning the prior into a measurement is owned by no item.**
+* **The authority class is the calibration, and it is measured rather than assumed.** Taking each completed attended item's earliest recorded estimate, which [the calibration record](#calibration-record) carries beside the item's pool, against its recorded actual, across the fifty-nine items carrying both, gives 228.1 h actual against 301.4 h estimated, a ratio of 0.76. The error is not uniform and in one pool it runs the other way: forty-five items whose authority is in this repository ran at **0.72**, twelve that read, pin, install or measure an external thing ran at **0.76**, and the two that authored against an external authority ran at **1.68**. Neither overrun is random. M0.8d authored FEC decoders and Keccak against FIPS 202, the ACVP vectors and TS 38.212, and its own finding is that the two defects the known-answer vectors found were both transcriptions; M0.12 authored a corpus, an assembler, a dialect table and an ELF composer from nothing, because no toolchain has one. The deepest under-runs are equally consistent, the two lowest ratios in the record being e3 at 0.13 and e4 at 0.14.
+* **The ratio is a prior on range width and not a re-price of midpoints**, which is what the conventions above already require of a class-X cell, and which is what the calibrated figure states separately rather than folding in. Its own weakness is stated: n = 2 in the pool that matters. It is every completed item that authored against an external authority, every one of them overran, all for the same reason, and the consequence is asymmetric, so it is treated as a widening rather than a multiplier. **Turning the prior into a measurement is owned by no item.**
 * **The strategy the classes imply is one sentence: move work across the authority line, and generate what is currently authored.** What has not moved is the class-X residue before the M8a gate, which is twelve open cells, six of them M1.2's children, and which the gate figures above put at more than half that gate's hours.
-* At 10–20 attended hours per week, the M8a gate is set by the critical chain rather than by the bill, and the chain is lane 1's to release. Review capacity was the constraint beyond three lanes; the two-tier landing rule and the unattended runner are what move it, so lane count is bounded by the register acts that gate a lane rather than by attention at the end of one.
+* Horizon: at 10–20 attended hours per week, the 702 h remaining is 35–70 attended weeks and the critical chain's 122.5 h midpoint 6–12 of them, both arithmetic `tools/check.py` recomputes over the cells and the stated rate, and neither a promise.
+* At that rate the M8a gate is set by the critical chain rather than by the bill, and the chain is lane 1's to release. Review capacity was the constraint beyond three lanes; the two-tier landing rule and the unattended runner are what move it, so lane count is bounded by the register acts that gate a lane rather than by attention at the end of one.
+
+### Calibration record
+
+One row per completed attended item, in document order: the pool its authority fell in, `I` for authority inside this repository, `X-read` for an item that read, pinned, installed or measured an external thing, and `X-authored` for one that authored against an external authority, beside the earliest estimate its cell recorded, read from the plan's own history at the item's first pricing. The actual stays in the item's cell and is read from there rather than restated here; an item that never carried an estimate reads `n/a` in both columns and is outside the fit, and an agent-parallel item carries no row, its actual being on the other clock. `tools/check.py` holds the record total over the completed attended items in both directions and derives every ratio and count the calibration states from it.
+
+| Item | Pool | Estimate |
+| --- | --- | --- |
+| S1 | I | 12 |
+| S2 | I | 3 |
+| S3 | I | 2 |
+| S4 | I | 1 |
+| S7 | X-read | 6 |
+| S8 | I | 5 |
+| S9 | I | 3 |
+| S10a | n/a | n/a |
+| S11 | X-read | 6.5 |
+| S12 | I | 3.5 |
+| S13a | n/a | n/a |
+| S13b | I | 2 |
+| S14 | I | 3.5 |
+| S15 | I | 5.5 |
+| S16 | I | 2 |
+| S17 | X-read | 1.5 |
+| M0.1 | n/a | n/a |
+| M0.2 | n/a | n/a |
+| M0.3 | n/a | n/a |
+| M0.4 | n/a | n/a |
+| M0.5 | n/a | n/a |
+| M0.6a | n/a | n/a |
+| M0.6b | n/a | n/a |
+| c1 | n/a | n/a |
+| c2 | I | 3 |
+| c3 | I | 6 |
+| c4 | I | 3 |
+| M0.6d | I | 3 |
+| e1 | n/a | n/a |
+| e2 | n/a | n/a |
+| e3 | I | 4 |
+| e4 | I | 5 |
+| e5 | I | 7 |
+| M0.6f | I | 12 |
+| M0.6g | I | 15 |
+| M0.6h | I | 6 |
+| M0.7 | I | 3 |
+| M0.8a | n/a | n/a |
+| M0.8b | I | 11 |
+| M0.8d | X-authored | 6.5 |
+| M0.9 | I | 4.5 |
+| M0.10 | I | 2 |
+| M0.11 | I | 6 |
+| M0.12 | X-authored | 4.5 |
+| M0.13 | I | 5 |
+| M0.14 | I | 12 |
+| M0.15 | I | 5 |
+| M0.16 | I | 12 |
+| M0.17 | I | 10.5 |
+| M0.18 | n/a | n/a |
+| M0.19 | I | 2.5 |
+| M1.1 | X-read | 2 |
+| M1.1a | X-read | 2 |
+| M1.1b | I | 1.2 |
+| M1.4′ | I | 6 |
+| M1.5 | X-read | 3.5 |
+| M1.8a | n/a | n/a |
+| M1.9 | I | 12.5 |
+| M3.1 | I | 18 |
+| M3.3 | I | 18 |
+| M3.6a | I | 5 |
+| M4.1 | X-read | 1.5 |
+| M4.1a | X-read | 2 |
+| M4.1b | I | 1.2 |
+| M4.2a | n/a | n/a |
+| M6.0a | X-read | 2 |
+| M6.1a | I | 6 |
+| R1a | n/a | n/a |
+| R1c-i | I | 3 |
+| Initial check/emit/FAST tooling | n/a | n/a |
+| I0 | n/a | n/a |
+| I2 | I | 2.5 |
+| I3 | X-read | 1.5 |
+| I4 | I | 2 |
+| I5 | X-read | 2 |
+| I6 | X-read | 1.5 |
+| I7 | I | 1.5 |
+| I8 | I | 1.5 |
+| I9 | n/a | n/a |
+| I10 | n/a | n/a |
+| I11 | n/a | n/a |
+| I12 | n/a | n/a |
