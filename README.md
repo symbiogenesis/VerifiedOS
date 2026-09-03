@@ -78,7 +78,7 @@ CHERI's bounds are spatial; a mandatory typed assembly language (TAL) checks two
 
 ### No speculative or out-of-order execution
 
-Cores issue in order with static-only branch prediction, so the entire transient-execution attack surface (Spectre, Meltdown, and the microarchitectural data-sampling family) is absent by construction rather than mitigated. Instruction-level parallelism comes only from static, software-visible mechanisms, and which of them a core has is fixed by its class: in-order issue at the class's width, single or dual on the control cores, decoder-stage macro-op fusion, and vector (RVV) or matrix execution on the classes that carry a unit for it.
+Cores issue in order with static-only branch prediction, so the entire transient-execution attack surface (Spectre, Meltdown, and the microarchitectural data-sampling family) is absent by construction rather than mitigated. Instruction-level parallelism comes only from static, software-visible mechanisms: in-order issue, single or dual on the one scalar front end every class shares, decoder-stage macro-op fusion, and vector (RVV) or matrix execution on the classes that carry a unit for it.
 
 ### No simultaneous multithreading (SMT)
 
