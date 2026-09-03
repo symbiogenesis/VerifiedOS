@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 418 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 419 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -186,7 +186,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
-· Disposition: closed, the emitter's git question pointed at a path that is not there so it fails rather than answers, which leaves the artifact a function of the Sail sources alone
+· Disposition: open, the fact met twice carrying the first site's disposition: this site's emitter no longer answers the git question, and the configure child F-000o names is still owed its work tree
 · Restates: F-000o
 
 **F-000u** measurement: a four-megabyte machine-written file entered the tracked corpus and a total-class rule read 2,809 pin restatements out of its bit literals, every one of them an object id on a line that had already named an upstream
@@ -945,7 +945,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-142h** measurement: every kill in the memory-plan population is the prover's, the enumerative Gallina harness computing over three other artifacts so that no mutation of this one can move a vector and the second oracle could not have contributed a kill
 · Raised: M1.9
-· Disposition: open, falsifying nothing this item claimed and closed by a tools act rather than a proof one, the harness already staging the proofs tree
+· Disposition: open, as F-189 is, the measurement falsifying nothing this item claimed and the act that would move it being the tools one F-189 names
 · Restates: F-189
 
 **F-142i** owed-act: a mutant costs a recompile of every shipped proof where only the mutated source and its dependents can move, and nothing in the tree requires this one, so most of each mutant is spent where the mutation cannot reach and the share grows with every artifact a lane lands
@@ -1044,7 +1044,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-189** measurement: neither differential instrument reaches the root-of-trust firmware artifact, the whole mutation score being the assumption gate refusing to compile, because the QuickChick harness requires two unrelated proof artifacts and nothing stages this one
 · Raised: M3.2, in prose
-· Disposition: open, falsifying that item's own pricing of its validation half as generated, and closed by a tools act rather than a proof one, the harness already staging the proofs tree
+· Disposition: open, reported and not closed, falsifying that item's own pricing of its validation half as generated; the act owed is a tools one rather than a proof one, of the shape M4.3 performed for the kernel surface
 
 **F-186a** owed-act: which codepoint names which permission set is unfixed, the lattice being enumerated at freeze time and no artifact here carrying the enumeration
 · Raised: M3.3
@@ -1516,7 +1516,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-191** measurement: a field no admission rule reads is a field a weakening moves in silence, which is the hazard the no-privileged-producer clause creates and which forty-six of one item's fifty-five seeded survivors were
 · Raised: M6.2a, in prose
-· Disposition: open, closed at the item by pinning every witness's pedigree and identity figures in a ledger rather than by narrowing the population, and standing as the shape any artifact carrying unread fields will meet
+· Disposition: closed at the item by pinning every witness's pedigree and identity figures in a ledger rather than by narrowing the population; the hazard is the shape any artifact carrying unread fields will meet
 
 **F-219a** owed-act: no entry closes a media template's stage set, the entry that names templates and pools naming no stage and the only list of four sitting in a parenthetical of the prose, which is not an enumeration the review gate audits
 · Raised: M6.3a
@@ -1564,7 +1564,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-219l** method: a refuting construction's own comparisons need a witness on their boundary as much as the specification's do, and it is the specification's that get one by habit, so a refuter is refuted at a value far from its own cut and a weakening that moves that cut answers the same everywhere the artifact looks
 · Raised: M6.3a, in prose
-· Disposition: open, met at the item as a survivor of the relational and connective operators and closed by adding the request whose bound sits exactly on the edge the refuter reaches
+· Disposition: closed at the item by adding the request whose bound sits exactly on the edge the refuter reaches, the survivor that exposed it being one of the relational and connective operators' and real
 
 **F-219m** method: a scope a completion cell cites no id for is derived, and the derivation is the one sentence a reviewer can check, so it separates the ids the entries it starts from actually spell out, the entries that cite one of those back by name, and the ones a judgment reaches by a noun an entry uses and does not define
 · Raised: M6.3a
@@ -1595,6 +1595,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-169** measurement: the bounds encoding is not a narrowing of the imported one, the frozen format having no internal-exponent flag and stealing no mantissa bits
 · Raised: R1, in prose
 · Disposition: closed at R1a, the whole algebra authored against the model rather than edited, five required behaviours having no imported counterpart at all
+
+**F-169a** measurement: the curated configuration's first elaboration is not warning-free and never was, the figure the item first recorded having measured the absence of output, because the elaboration loop prints the elaborator's output only on a non-zero exit that `-Wno-fatal` keeps warnings out of
+· Raised: R1, in prose
+· Disposition: open, the note carrying both arms' warning counts beside the zero-error figure and the loop still printing nothing on a clean exit, so what is owed is a tools act that reports the count the note took by hand
 
 **F-170** owed-act: whether curating the pinned tag controller is the act R-15-092 forbids is a question this plan answers nowhere, the interconnect being a net-new block that requirement wants authored and proven
 · Raised: R1, in prose
