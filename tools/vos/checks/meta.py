@@ -15,12 +15,13 @@ would make this agreement trivially true and stop deciding anything. What no sca
 decides is whether a registered claim is the right claim, which is the same residue
 every conferral declares.
 
-K-67 is the same discipline pointed at the tools' own documentation. typecheck.py
-fixes the ty and ruff pins, tools/README.md restates them in its checker table's two
-rows and in the `uv tool install` line each checker carries, and nothing owned the
+K-67 is the same discipline pointed at the tools' own documentation and at the push
+workflow that installs them. typecheck.py fixes the ty and ruff pins, tools/README.md
+restates them in its checker table's two rows and in the `uv tool install` line each
+checker carries, the workflow installs each by version again, and nothing owned the
 copy. The rule holds every site against the source and is fail-closed in the reading:
 a side it cannot find is a finding, never a pass over nothing. The sites are
-enumerated rather than counted here, because the count is `_README_SITES`' to state.
+enumerated rather than counted here, because the count is `_PIN_SITES`' to state.
 
 K-75 is that rule one figure over, on the version the tools are *written* to rather
 than the versions they run. The interpreter floor decides what the two checkers admit
@@ -146,11 +147,18 @@ _README_RUFF_INSTALL_RE = re.compile(r"`uv tool install ruff==([^\s`=]+)`")
 # a pin cannot be paired wrongly and a site added here moves the ok line's count with
 # it: the derived-fact discipline this rule enforces on the README, applied to the
 # rule's own prose, which is where a hand-copied count last went stale.
-_README_SITES: list[tuple[str, re.Pattern[str], str]] = [
-    ("checker-table row", _README_TY_ROW_RE, "TY"),
-    ("checker-table row", _README_RUFF_ROW_RE, "RUFF"),
-    ("install line", _README_TY_INSTALL_RE, "TY"),
-    ("install line", _README_RUFF_INSTALL_RE, "RUFF"),
+_WORKFLOW = ".github/workflows/host-gates.yml"
+
+_WF_TY_INSTALL_RE = re.compile(r"(?m)^\s*uv tool install ty==([^\s]+)\s*$")
+_WF_RUFF_INSTALL_RE = re.compile(r"(?m)^\s*uv tool install ruff==([^\s]+)\s*$")
+
+_PIN_SITES: list[tuple[str, str, re.Pattern[str], str]] = [
+    ("checker-table row", README, _README_TY_ROW_RE, "TY"),
+    ("checker-table row", README, _README_RUFF_ROW_RE, "RUFF"),
+    ("install line", README, _README_TY_INSTALL_RE, "TY"),
+    ("install line", README, _README_RUFF_INSTALL_RE, "RUFF"),
+    ("workflow install line", _WORKFLOW, _WF_TY_INSTALL_RE, "TY"),
+    ("workflow install line", _WORKFLOW, _WF_RUFF_INSTALL_RE, "RUFF"),
 ]
 
 TY_CONF = "tools/ty.toml"
@@ -237,6 +245,8 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
      re.compile(r"`py -([^`\s]+)`"), _plain),
     ("provisioned floor", PROVISION,
      re.compile(r'(?m)^INTERPRETER_FLOOR = "([^"\r\n]*)"'), _plain),
+    ("workflow interpreter", _WORKFLOW,
+     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
 ]
 
 
@@ -308,11 +318,16 @@ def _source(ctx: Context, rel: str) -> str:
 
 
 def _pins(ctx: Context) -> None:
-    """K-67: tools/README.md's checker pins are the versions typecheck.py fixes.
+    """K-67: every site stating a checker pin states the version typecheck.py fixes.
 
     Fail-closed on the reading itself: the source constants and every site in
-    `_README_SITES` either parse in the form written today or are findings, so a
+    `_PIN_SITES` either parse in the form written today or are findings, so a
     reworded README cannot take the comparison down with it and leave the rule green.
+
+    The window is the sites rather than a directory. The push workflow installs the two
+    checkers by version, so its install lines restate the pins as surely as the README's
+    do, and a bump that moved one and not the other would run the gate under a checker
+    the tools do not fix.
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -331,24 +346,31 @@ def _pins(ctx: Context) -> None:
     # An empty findings list here already means both pins parsed, so each row's own
     # key indexes them rather than a fourth pair of locals threaded through the loop.
     if not findings and doc is not None:
-        for label, pattern, key in _README_SITES:
+        # one read per file the table names, the README's coming from the corpus the
+        # run already holds rather than from a second trip to disk
+        text: dict[str, str] = {README: doc.raw}
+        for _, file, _, _ in _PIN_SITES:
+            if file not in text:
+                text[file] = _source(ctx, file)
+
+        for label, file, pattern, key in _PIN_SITES:
             checker, want = key.lower(), pins[key]
-            m = pattern.search(doc.raw)
+            m = pattern.search(text[file])
             if m is None:
-                findings.append(f"{README} no longer states {checker}'s pin in its "
+                findings.append(f"{file} no longer states {checker}'s pin in its "
                                 f"{label}, in a form this rule reads")
             elif m.group(1) != want:
-                findings.append(f"{README}'s {checker} {label} states {m.group(1)}, "
+                findings.append(f"{file}'s {checker} {label} states {m.group(1)}, "
                                 f"{TYPECHECK} pins {want}")
 
-    rep.report("K-67", "README pin site(s) disagreeing with the versions typecheck.py "
+    rep.report("K-67", "pin site(s) disagreeing with the versions typecheck.py "
                "fixes:", findings,
-               f"tools/README.md's {figures.words(len(_README_SITES))} pin sites state "
+               f"the {figures.words(len(_PIN_SITES))} pin sites state "
                f"ty {ty} and ruff {ruff}, the versions {TYPECHECK} fixes")
 
 
 def _floor(ctx: Context) -> None:
-    """K-75: every site under `tools/` states the interpreter floor ty.toml fixes.
+    """K-75: every site stating the interpreter floor states the one ty.toml fixes.
 
     Fail-closed in the same two places K-67 is. The source either parses in the form it
     is written in today or is a finding, so a reworded setting cannot take the
@@ -396,7 +418,7 @@ def _floor(ctx: Context) -> None:
 
     rep.report("K-75", "interpreter floor site(s) disagreeing with the version ty.toml "
                "fixes:", findings,
-               f"the {figures.words(len(_FLOOR_SITES))} sites under tools/ that restate "
+               f"the {figures.words(len(_FLOOR_SITES))} sites that restate "
                f"the interpreter floor spell ty.toml's {floor}")
 
 

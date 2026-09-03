@@ -1193,6 +1193,12 @@ CASES: list[Case] = [
     ("K-67", "a README pin drifted from the version typecheck.py fixes",
      _literal("tools/README.md", "uv tool install ty==0.0.75",
               "uv tool install ty==0.0.74")),
+    # The same drift one file over, where it is worse: the workflow's install line is
+    # what a hosted runner actually resolves, so a pin stale here runs the gate under a
+    # checker the tools do not fix while every site a reader opens still agrees.
+    ("K-67", "a workflow pin drifted from the version typecheck.py fixes",
+     _literal(".github/workflows/host-gates.yml", "uv tool install ruff==0.16.5",
+              "uv tool install ruff==0.16.4")),
 
     # One site of a fact two pairs state is reworded while its siblings stand, which
     # is the drift K-61 cannot see: the edited pair blesses on its own two sides and
@@ -1289,6 +1295,12 @@ CASES: list[Case] = [
     ("K-75", "a checker settings file at an interpreter floor the other does not fix",
      _literal("tools/ruff.toml", 'target-version = "py314"',
               'target-version = "py313"')),
+    # The floor the gate actually runs on, which is the copy that decides whether a
+    # green run says anything: a workflow an interpreter below the floor would admit
+    # constructs the tools are written to refuse.
+    ("K-75", "a workflow interpreter below the floor ty.toml fixes",
+     _literal(".github/workflows/host-gates.yml", 'python-version: "3.14"',
+              'python-version: "3.13"')),
 
     # The configuration is moved rather than the record, because that is the direction
     # no reader of one file can see: the record goes on naming the parameter that takes
