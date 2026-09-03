@@ -47,9 +47,9 @@
    nothing.
 
    What is deferred, and to which item. The primitives are M3.4's and are
-   not here: the hash is an arbitrary two-argument extension carrying the
-   one algebraic property R-05-058c already puts in measured boot's trust
-   base, declared by the Machine rather than assumed by this file; no AEAD,
+   not here: the hash is an arbitrary two-argument extension, and what a
+   Machine declares of it is R-05-058c's hash-only assumption cut to the
+   finite instance the chain draws on, which reading 7 states; no AEAD,
    no signature verifier and no DRBG appears below, R-15-241d's seeding
    discipline being the crypto core's. The boot chain reaching the M-mode
    kernel on the golden emulator is M3.5's: nothing below is an image, an
@@ -123,11 +123,19 @@
       and R-12-015a deletes raw key export, so the answer type carries a
       cleartext constructor whose only role is to be excluded, and the
       exporting construction is refuted while satisfying all four gates.
-   7. The hash is arbitrary and its one algebraic property is declared by
-      the Machine rather than assumed by this file. R-05-058c names the
-      hash-only assumption as already in measured boot's trust base, so a
-      Machine declares that two different measurements extend a digest to
-      two different digests; realizing it is M3.4's.
+   7. The hash is arbitrary, and what a Machine declares of it is
+      R-05-058c's hash-only assumption at the scale this file uses it and
+      not a total one. Collisions exist for every hash function, so a field
+      separating every pair of distinct inputs is met by no realizable
+      machine and a theorem over such a Machine is true of nothing. What a
+      Machine declares instead is that at each of the seven digests the
+      specification chain extends from, the seven item codes extend to
+      seven different digests: a decidable statement over a finite set,
+      which the demo machine discharges by conversion and which a counting
+      extension and a late-colliding one are computed to fail. The
+      assumption the register puts in the trust base is computational, this
+      is the finite instance of it the chain draws on, and realizing the
+      extension is M3.4's.
    8. Anti-rollback is three mechanisms and not one: the monotone floor
       (R-09-028, R-09-030), the four monotonic counters with the events
       R-10-013 and R-09-023 pair them with, and the boot-attempt count with
@@ -294,8 +302,10 @@
    admitted because the vector is a set, a lifecycle table that R-09-034
    closes beside three machines that break a clause of it apiece, one of
    them breaking two at once because the third clause carries the first, and
-   an appraisal that holds beside two that fail, so no theorem is proved
-   from a premise nothing satisfies and none from one everything satisfies.
+   an appraisal that holds beside two that fail, and a hash-separation
+   declaration the demo extension meets by conversion beside two extensions
+   computed to fail it, so no theorem is proved from a premise nothing
+   satisfies and none from one everything satisfies.
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------
@@ -378,6 +388,15 @@ Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+
+Lemma nat_eqb_sym : forall a b : nat, Nat.eqb a b = Nat.eqb b a.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b; destruct b as [ | y ];
+    try reflexivity. simpl. exact (IH y).
+Qed.
+
+Lemma negb_true : forall b : bool, negb b = true -> b = false.
+Proof. intros b H. destruct b; [ discriminate H | reflexivity ]. Qed.
 
 (* The helpers' own floors, so that the day one of them stops deciding is
    the day it says so. Each is a base case no check below reaches. *)
@@ -488,6 +507,88 @@ Theorem an_absent_member_precedes_nothing :
 Proof.
   intros A eqb x y l H. unfold precedes, pos.
   rewrite (pos_from_none A eqb x l 0 H). reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------
+   Distinctness of a list of numbers, decided, and what it says of two
+   members: the shape R-05-058c's hash-only assumption takes below, where
+   the list is the seven digests the item codes extend one digest to.
+   ------------------------------------------------------------------------- *)
+
+Fixpoint distinct (l : list nat) : bool :=
+  match l with
+  | nil => true
+  | cons x r => andb (negb (member Nat.eqb x r)) (distinct r)
+  end.
+
+Example the_empty_list_is_distinct : distinct nil = true := eq_refl.
+
+Example a_repeated_number_is_not_distinct :
+  distinct (cons 1 (cons 2 (cons 1 nil))) = false
+  /\ distinct (cons 1 (cons 2 (cons 3 nil))) = true := conj eq_refl eq_refl.
+
+Lemma member_here_or_there :
+  forall (A : Type) (eqb : A -> A -> bool) (x y : A) (r : list A),
+    member eqb x (cons y r) = orb (eqb x y) (member eqb x r).
+Proof. intros A eqb x y r. reflexivity. Qed.
+
+Lemma member_nat_absent :
+  forall (x y : nat) (l : list nat),
+    member Nat.eqb x l = false -> member Nat.eqb y l = true ->
+    Nat.eqb x y = false.
+Proof.
+  intros x y l Hx Hy. destruct (Nat.eqb x y) eqn:E; [ | reflexivity ].
+  rewrite (nat_eqb_sound x y E) in Hx. rewrite Hy in Hx. discriminate Hx.
+Qed.
+
+Lemma member_map :
+  forall (A : Type) (eqb : A -> A -> bool) (f : A -> nat) (x : A) (l : list A),
+    (forall a b : A, eqb a b = true -> a = b) ->
+    member eqb x l = true -> member Nat.eqb (f x) (map_over f l) = true.
+Proof.
+  intros A eqb f x l sound. induction l as [ | y r IH ]; intros H.
+  - discriminate H.
+  - rewrite member_here_or_there in H.
+    change (member Nat.eqb (f x) (cons (f y) (map_over f r)) = true).
+    rewrite member_here_or_there.
+    destruct (eqb x y) eqn:E.
+    + rewrite (sound x y E). rewrite nat_eqb_refl. reflexivity.
+    + change (member eqb x r = true) in H. rewrite (IH H).
+      destruct (Nat.eqb (f x) (f y)); reflexivity.
+Qed.
+
+(* Two different members of a list whose image is distinct have different
+   images: the one direction the obligation below reads, stated over an
+   arbitrary carrier so that it is a theorem and not a computation over the
+   seven items it is used at. *)
+Lemma distinct_separates :
+  forall (A : Type) (eqb : A -> A -> bool),
+    (forall a b : A, eqb a b = true -> a = b) ->
+    (forall a : A, eqb a a = true) ->
+    forall (f : A -> nat) (l : list A) (a b : A),
+      distinct (map_over f l) = true ->
+      member eqb a l = true -> member eqb b l = true ->
+      eqb a b = false -> Nat.eqb (f a) (f b) = false.
+Proof.
+  intros A eqb sound refl f l.
+  induction l as [ | y r IH ]; intros a b Hd Ha Hb Hne.
+  - discriminate Ha.
+  - change (andb (negb (member Nat.eqb (f y) (map_over f r)))
+                 (distinct (map_over f r)) = true) in Hd.
+    destruct (andb_split _ _ Hd) as [ Hy Hr ].
+    rewrite member_here_or_there in Ha. rewrite member_here_or_there in Hb.
+    destruct (eqb a y) eqn:Ea; destruct (eqb b y) eqn:Eb.
+    + rewrite (sound a y Ea) in Hne. rewrite (sound b y Eb) in Hne.
+      rewrite refl in Hne. discriminate Hne.
+    + change (member eqb b r = true) in Hb. rewrite (sound a y Ea).
+      exact (member_nat_absent _ _ _ (negb_true _ Hy)
+               (member_map A eqb f b r sound Hb)).
+    + change (member eqb a r = true) in Ha. rewrite (sound b y Eb).
+      rewrite nat_eqb_sym.
+      exact (member_nat_absent _ _ _ (negb_true _ Hy)
+               (member_map A eqb f a r sound Ha)).
+    + change (member eqb a r = true) in Ha. change (member eqb b r = true) in Hb.
+      exact (IH a b Hr Ha Hb Hne).
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -913,6 +1014,38 @@ Proof.
 Qed.
 
 (* =========================================================================
+   R-05-058c's hash-only assumption at the scale this file uses it (reading
+   7). An extension is applied at seven digests on one pass, the seed and
+   the six the items before each stage reach, and at each of them to seven
+   item codes; what a Machine declares is that at every one of those seven
+   digests the seven codes extend to seven different digests. Stated over
+   the extension, the encoding and the seed rather than over a Machine,
+   because the record that declares it is not yet defined and because the
+   two extensions computed to fail it below are not Machines at all.
+   ========================================================================= *)
+
+(* The digest each extension is applied at when the items are extended in
+   the roster's order from d: one per item, the seed first, and never the
+   digest the last extension reaches, which nothing extends from. *)
+Fixpoint extension_points (ext : nat -> nat -> nat) (code : Item -> nat)
+                          (d : nat) (is : list Item) : list nat :=
+  match is with
+  | nil => nil
+  | cons i r => cons d (extension_points ext code (ext d (code i)) r)
+  end.
+
+Definition separates_at (ext : nat -> nat -> nat) (code : Item -> nat)
+                        (d : nat) : bool :=
+  distinct (map_over (fun i => ext d (code i)) all_items).
+
+Definition separates_along (ext : nat -> nat -> nat) (code : Item -> nat)
+                           (seed : nat) : bool :=
+  all_of (separates_at ext code) (extension_points ext code seed all_items).
+
+Example nothing_is_extended_from_no_item :
+  extension_points (fun d a => d + a) (fun _ => 1) 5 nil = nil := eq_refl.
+
+(* =========================================================================
    The machine: everything the register leaves to composition, to a
    measurement, or to another item. Fields rather than Parameters, because a
    top-level Parameter prints as an assumption and fails the R-05-163 gate.
@@ -929,12 +1062,14 @@ Record Machine : Type := {
   item_code : Item -> nat;
 
   (* --- R-05-058c's hash-only assumption, which measured boot already puts
-         in the trust base, declared by the machine rather than assumed by
-         this file: two different measurements extend a digest to two
-         different digests -------------------------------------------------- *)
+         in the trust base, declared by the machine at the scale the chain
+         uses it rather than assumed totally by this file: at each of the
+         seven digests the specification chain extends from, the seven item
+         codes extend to seven different digests. Decidable, so a machine
+         discharges it by conversion or is not a Machine (reading 7) ------ *)
 
-  extend_separates : forall d a b : nat,
-    Nat.eqb a b = false -> Nat.eqb (extend d a) (extend d b) = false;
+  extend_separates_on_the_chain :
+    separates_along extend item_code rom_seed = true;
 
   (* --- R-09-032's fuse-held lifecycle state, and the machine's own Debug
          Module liveness table beside it. The table is a field because the
@@ -1265,14 +1400,74 @@ Theorem the_specification_digest_is_reproducible :
   forall m : Machine, IsReproducible m (spec_digest m).
 Proof. intros m o1 o2 l. reflexivity. Qed.
 
+(* The digests the chain applies its extension at, read off the chain
+   itself rather than off the roster: one per Extend step, and the Run steps
+   contribute nothing, as above. *)
+Fixpoint chain_extension_points (m : Machine) (d : nat) (l : list Step)
+  : list nat :=
+  match l with
+  | nil => nil
+  | cons (Extend i) r =>
+      cons d (chain_extension_points m (m.(extend) d (m.(item_code) i)) r)
+  | cons (Run _) r => chain_extension_points m d r
+  end.
+
+(* The specification chain extends from exactly the digests the Machine's
+   declaration ranges over, at every machine: the chain extends the roster
+   in the roster's order, so the two folds are one list. The declaration
+   is stated over the roster because the record cannot name a chain defined
+   after it, and this is what makes that a statement about the chain. *)
+Theorem the_specification_chain_extends_from_the_declared_digests :
+  forall m : Machine,
+    chain_extension_points m m.(rom_seed) boot_steps
+    = extension_points m.(extend) m.(item_code) m.(rom_seed) all_items.
+Proof. intros m. reflexivity. Qed.
+
+Theorem the_specification_chain_extends_from_seven_digests :
+  forall m : Machine,
+    count_of (chain_extension_points m m.(rom_seed) boot_steps) = 7.
+Proof. intros m. reflexivity. Qed.
+
+(* At any digest the declaration ranges over, two different items extend it
+   to two different digests: the declaration read back at one digest and
+   one pair, through the distinctness lemma. *)
+Lemma a_declared_digest_separates_the_items :
+  forall (m : Machine) (d : nat) (a b : Item),
+    member Nat.eqb d (extension_points m.(extend) m.(item_code) m.(rom_seed)
+                                       all_items) = true ->
+    item_eqb a b = false ->
+    Nat.eqb (m.(extend) d (m.(item_code) a)) (m.(extend) d (m.(item_code) b))
+    = false.
+Proof.
+  intros m d a b Hd Hne.
+  assert (Hat : separates_at m.(extend) m.(item_code) d = true)
+    by exact (all_of_member nat Nat.eqb nat_eqb_sound
+                (separates_at m.(extend) m.(item_code))
+                (extension_points m.(extend) m.(item_code) m.(rom_seed) all_items)
+                d m.(extend_separates_on_the_chain) Hd).
+  exact (distinct_separates Item item_eqb item_eqb_sound item_eqb_refl
+           (fun i => m.(extend) d (m.(item_code) i)) all_items a b Hat
+           (every_item_is_in_the_roster a) (every_item_is_in_the_roster b)
+           Hne).
+Qed.
+
 (* C8 (R-05-058c): the hash-only assumption the machine declares, used
    rather than merely carried, so that a machine declaring nothing about its
-   extension would fail to be a Machine at all. *)
+   extension would fail to be a Machine at all. At any digest the
+   specification chain extends from, substituting one item's measurement
+   for another's moves the digest; the property is finite where the field
+   is, so a real hash meets it (reading 7). *)
 Theorem a_different_measurement_moves_the_digest :
-  forall (m : Machine) (d a b : nat),
-    Nat.eqb a b = false ->
-    Nat.eqb (m.(extend) d a) (m.(extend) d b) = false.
-Proof. intros m d a b H. exact (m.(extend_separates) d a b H). Qed.
+  forall (m : Machine) (d : nat) (a b : Item),
+    member Nat.eqb d (chain_extension_points m m.(rom_seed) boot_steps) = true ->
+    item_eqb a b = false ->
+    Nat.eqb (m.(extend) d (m.(item_code) a)) (m.(extend) d (m.(item_code) b))
+    = false.
+Proof.
+  intros m d a b Hd Hne.
+  rewrite (the_specification_chain_extends_from_the_declared_digests m) in Hd.
+  exact (a_declared_digest_separates_the_items m d a b Hd Hne).
+Qed.
 
 (* A digest that folds in what the boot observed, which is what makes a
    reference value un-reproducible: the relying party regenerating the
@@ -3176,29 +3371,20 @@ Example the_three_witness_sets :
   = cons 11 (cons 12 (cons 13 (cons 99 (cons 15 (cons 16 nil)))))
   := conj eq_refl (conj eq_refl eq_refl).
 
-Lemma add_left_eqb :
-  forall d a b : nat, Nat.eqb (d + a) (d + b) = Nat.eqb a b.
-Proof.
-  intros d. induction d as [ | k IH ]; intros a b.
-  - reflexivity.
-  - simpl. exact (IH a b).
-Qed.
-
-(* The demo machine's declaration of R-05-058c's hash-only assumption, which
-   is a proof about the witness extension and not an axiom: a machine that
-   could not discharge it would not be a Machine. *)
-Lemma demo_extend_separates :
-  forall d a b : nat,
-    Nat.eqb a b = false ->
-    Nat.eqb (S (S (d + d + a))) (S (S (d + d + b))) = false.
-Proof. intros d a b H. simpl. rewrite add_left_eqb. exact H. Qed.
+(* The demo machine's declaration of R-05-058c's hash-only assumption at
+   the chain's scale, discharged by conversion over the seven digests its
+   extension reaches from its seed and not by an axiom: a machine that
+   could not discharge it would not be a Machine (reading 7). *)
+Lemma demo_extend_separates_on_the_chain :
+  separates_along (fun d a => S (S (d + d + a))) demo_item_code 0 = true.
+Proof. reflexivity. Qed.
 
 Definition demo_with (st : Lifecycle) (ent : bool) (dl : Lifecycle -> bool)
                      (ctr : Counter -> nat) (wit : Field -> nat) : Machine := {|
   rom_seed := 0;
   extend := fun d a => S (S (d + d + a));
   item_code := demo_item_code;
-  extend_separates := demo_extend_separates;
+  extend_separates_on_the_chain := demo_extend_separates_on_the_chain;
   state := st;
   debug_live := dl;
   debug_response := demo_debug_response;
@@ -3295,6 +3481,37 @@ Example the_debug_table_at_every_demo_machine :
 
 Example the_demo_extension_is_order_sensitive :
   demo.(extend) 0 1 = 3 /\ demo.(extend) 3 2 = 10 /\ demo.(extend) 0 2 = 4
+  := conj eq_refl (conj eq_refl eq_refl).
+
+(* The seven digests the demo chain extends from, computed, so the
+   declaration above is seen to range over the chain's own digests and
+   over nothing outside it. *)
+Example the_demo_chain_extends_from_these_digests :
+  chain_extension_points demo 0 boot_steps
+  = cons 0 (cons 3 (cons 10 (cons 25 (cons 56 (cons 119 (cons 246 nil))))))
+  := eq_refl.
+
+(* The two extensions refused by the declaration, and neither is a Machine,
+   which is the refusal: the record cannot be built over either. A counting
+   extension ignores the measurement, so every item extends a digest to the
+   same digest, and it fails at the seed. A late-colliding one separates the
+   seven codes at the seed and collides at the second digest the chain
+   reaches, which is what shows the declaration reads every digest the chain
+   extends from and not the seed alone. *)
+Definition counting_extend : nat -> nat -> nat := fun d _ => S d.
+
+Definition late_colliding_extend : nat -> nat -> nat := fun d a =>
+  if Nat.eqb d 3 then d else S (S (d + d + a)).
+
+Example the_counting_extension_separates_nothing :
+  separates_at counting_extend demo_item_code 0 = false
+  /\ separates_along counting_extend demo_item_code 0 = false
+  := conj eq_refl eq_refl.
+
+Example the_late_collision_passes_the_seed_and_fails_the_chain :
+  separates_at late_colliding_extend demo_item_code 0 = true
+  /\ separates_at late_colliding_extend demo_item_code 3 = false
+  /\ separates_along late_colliding_extend demo_item_code 0 = false
   := conj eq_refl (conj eq_refl eq_refl).
 
 (* -------------------------------------------------------------------------
@@ -3687,6 +3904,8 @@ Print Assumptions bool_eqb_sound.
 Print Assumptions nat_eqb_refl.
 Print Assumptions nat_eqb_sound.
 Print Assumptions nat_leb_refl.
+Print Assumptions nat_eqb_sym.
+Print Assumptions negb_true.
 Print Assumptions the_empty_conjunction_holds.
 Print Assumptions the_empty_disjunction_fails.
 Print Assumptions nothing_has_length_zero.
@@ -3704,6 +3923,13 @@ Print Assumptions nat_ltb_irrefl.
 Print Assumptions pos_from_none.
 Print Assumptions precedence_is_strict.
 Print Assumptions an_absent_member_precedes_nothing.
+Print Assumptions distinct.
+Print Assumptions the_empty_list_is_distinct.
+Print Assumptions a_repeated_number_is_not_distinct.
+Print Assumptions member_here_or_there.
+Print Assumptions member_nat_absent.
+Print Assumptions member_map.
+Print Assumptions distinct_separates.
 Print Assumptions swap_at.
 Print Assumptions drop_at.
 Print Assumptions suffix_at.
@@ -3776,6 +4002,10 @@ Print Assumptions all_of_stages.
 Print Assumptions all_of_items.
 Print Assumptions all_of_fields.
 Print Assumptions all_of_counters.
+Print Assumptions extension_points.
+Print Assumptions separates_at.
+Print Assumptions separates_along.
+Print Assumptions nothing_is_extended_from_no_item.
 Print Assumptions Machine.
 Print Assumptions input_prologue.
 Print Assumptions stage_chain.
@@ -3814,6 +4044,10 @@ Print Assumptions Digest.
 Print Assumptions spec_digest.
 Print Assumptions IsReproducible.
 Print Assumptions the_specification_digest_is_reproducible.
+Print Assumptions chain_extension_points.
+Print Assumptions the_specification_chain_extends_from_the_declared_digests.
+Print Assumptions the_specification_chain_extends_from_seven_digests.
+Print Assumptions a_declared_digest_separates_the_items.
 Print Assumptions a_different_measurement_moves_the_digest.
 Print Assumptions attempt_folding_digest.
 Print Assumptions the_attempt_folding_digest_agrees_where_nothing_was_observed.
@@ -4078,8 +4312,7 @@ Print Assumptions demo_witness.
 Print Assumptions forked_witness.
 Print Assumptions stale_witness.
 Print Assumptions the_three_witness_sets.
-Print Assumptions add_left_eqb.
-Print Assumptions demo_extend_separates.
+Print Assumptions demo_extend_separates_on_the_chain.
 Print Assumptions demo_with.
 Print Assumptions demo.
 Print Assumptions demo_debug.
@@ -4095,6 +4328,11 @@ Print Assumptions the_entropy_verdict_at_every_demo_machine.
 Print Assumptions the_lifecycle_state_at_every_demo_machine.
 Print Assumptions the_debug_table_at_every_demo_machine.
 Print Assumptions the_demo_extension_is_order_sensitive.
+Print Assumptions the_demo_chain_extends_from_these_digests.
+Print Assumptions counting_extend.
+Print Assumptions late_colliding_extend.
+Print Assumptions the_counting_extension_separates_nothing.
+Print Assumptions the_late_collision_passes_the_seed_and_fails_the_chain.
 Print Assumptions the_attempt_folding_digest_is_refuted.
 Print Assumptions the_attempt_folding_digest_agrees_at_the_first_attempt.
 Print Assumptions the_two_prologue_orders_measure_differently.
