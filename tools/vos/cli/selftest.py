@@ -989,6 +989,27 @@ CASES: list[Case] = [
     ("K-37", "a gate figure the partition beneath it does not give",
      _renumber(PLAN, r"(?m)^\* M8a gate: ([\d.,]+) h of open work", 1, "999")),
 
+    # the chain's lower end alone is moved, so the midpoint the same sentence states still
+    # agrees with the cells and what the case asks is that the range is summed and not
+    # only the midpoint; the first case is the one the repair lane rides
+    ("K-96", "a critical-chain range the cells on the chain do not give",
+     _renumber(PLAN, r"(?m)^\* Critical chain through M8a:.*?the chain sums to ([\d.,]+)–",
+               1, "999")),
+
+    # one recorded estimate is moved in the pool the calibrated total rests on, so the
+    # ratio every open class-X cell is priced against moves with it while every actual
+    # stays in its cell; K-37 reports the calibrated total beside this, and what the case
+    # asks is that the ratio itself is a quotient over the record rather than a figure
+    # read out of the sentence stating it
+    ("K-96", "a calibration ratio the record's estimates and the actuals do not give",
+     _renumber(PLAN, r"(?m)^\| M0\.8d \| X-authored \| ([\d.,]+) \|", 1, "999")),
+
+    # a completed attended item's row is deleted whole, so every figure still adds up over
+    # one item fewer and only the record's totality can see it; the row is found by shape
+    # rather than by its estimate so the case survives the item being re-fitted
+    ("K-96", "a completed attended item the calibration record no longer carries",
+     _first_match(PLAN, r"(?m)^\| S1 \| I \| [\d.,]+ \|[^\r\n]*\r?\n", lambda _m: "")),
+
     ("K-38", "a table row of the wrong width",
      _literal(MATRIX, "| `B-01` | `P-1` |", "| seeded | `B-01` | `P-1` |")),
 
@@ -1498,6 +1519,7 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-32": ("product:", _case_mutation("K-32")),
     "K-36": (" subtotal:", _case_mutation("K-36")),
     "K-37": ("the total estimate", _case_mutation("K-37")),
+    "K-96": ("the critical chain", _case_mutation("K-96")),
     "K-54": ("the tag plane's", _literal(
         REGISTER, "granule is 15.6 MB per GB of data",
         "granule is 99.9 MB per GB of data")),

@@ -212,6 +212,11 @@ def run(ctx: Context) -> None:
         "rows of the field-bindings view": len(sh.get("row_order", [])),
         "checklist items": len(sh.get("items", [])),
         "checklist subtotals": len(sh.get("sections", [])),
+        # The record K-96 fits the calibration over. It is held total against the
+        # completed attended items, so a record that has emptied is reported there row
+        # by row; the floor is for the reading itself, a heading this rule can no longer
+        # find leaving it holding no rows against every item at once.
+        "rows of the plan's calibration record": sh.get("calibration_rows", 0),
         "dominant terms read from the big table": len(sh.get("ends", [])),
         "differential corpus members": len(sh.get("corpus_members", [])),
         # One rather than three, and the two §9 tables are the ones left out. Either of

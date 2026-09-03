@@ -97,6 +97,33 @@ def _estimates_repair_reaches_fixpoint() -> None:
                f"and report no rewrite: {again.rep.out!r}")
 
 
+def _k96_record_is_held_total_in_both_directions() -> None:
+    # one completed attended item with no row, one row naming no such item, and one
+    # agent-parallel item that owes no row: the record is a totality claim, so each of
+    # the first two is its own finding and the third is none
+    plan = ("# Plan\n\n"
+            "* [x] **A · Done** · 3 h actual · 50.0%\n"
+            "* [x] **P · Fanned out** · 3 h actual · 50.0% · agent-parallel\n\n"
+            "**S subtotal:** 6 h · 100% · 6 h complete.\n\n"
+            "### Calibration record\n\n"
+            "| Item | Pool | Estimate |\n"
+            "| --- | --- | --- |\n"
+            "| B | I | 4 |\n")
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       PLAN: plan}) as root:
+        ctx = _context(root)
+        estimates.run(ctx)
+        found = _findings_under(ctx, "K-96")
+        ensure("A is a completed attended item the calibration record carries no row for"
+               in found, f"the missing row is a finding: {found!r}")
+        ensure("the calibration record carries B, which is not a completed attended item "
+               "of the plan" in found, f"the stray row is a finding: {found!r}")
+        ensure(not any("P " in f or " P," in f for f in found),
+               f"an agent-parallel item owes no row: {found!r}")
+        ensure(ctx.shared.get("calibration_rows") == 1,
+               f"the floor counts the record's rows: {ctx.shared.get('calibration_rows')!r}")
+
+
 def _bindings_truncated_row_is_a_finding() -> None:
     # a row too narrow for the view's cells was an IndexError that aborted the
     # whole run before wave 1; it is K-42's finding now, and the group must still
@@ -243,6 +270,8 @@ def cases() -> list[Case]:
         Case("estimates-refused-edit-writes-nothing",
              _estimates_refused_edit_writes_nothing),
         Case("estimates-repair-reaches-fixpoint", _estimates_repair_reaches_fixpoint),
+        Case("k96-record-is-held-total-in-both-directions",
+             _k96_record_is_held_total_in_both_directions),
         Case("bindings-truncated-row-is-a-finding",
              _bindings_truncated_row_is_a_finding),
         Case("counts-overflow-is-a-finding", _counts_overflow_is_a_finding),
