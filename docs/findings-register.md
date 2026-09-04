@@ -82,11 +82,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-197b** owed-act: the simulator's version pin is restated in a document twice and in code once and no rule holds the three together, the commit-pin rule reading object ids alone and the checker-pin rule reading the two checkers alone
 · Raised: S9
-· Disposition: open, recorded as a candidate rule and none added here; the provisioner adds no fourth copy, importing the constant instead
+· Disposition: closed at I15, the constant read as the owner and each of the three sites held against it, reported and never repaired because each states the version beside what was done at it
 
 **F-197c** owed-act: no artifact declared the distribution-package set the model build needs, so the provisioner becomes its owner and no rule holds the list
 · Raised: S9
-· Disposition: open, recorded as a candidate rule; what stands in for it is that every row names a consumer already in this tree and a row that cannot name one is not written
+· Disposition: open, and narrowed rather than closed: I15 made the discipline a gate, so every row now names an artifact this tree carries and a symbol it still spells, which is what the rule can decide; whether the set is complete is a question no artifact here answers and stays a register act's
 
 **F-197d** owed-act: three provisioning routes have owners that state them as prose for a person rather than as a command a tool can run, two of them being rows that probe and report and plan nothing and the third a route no row probes at all
 · Raised: S9
@@ -215,7 +215,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000x** owed-act: the encoder table is a proper subset of the surface the model spells and no rule reads the gap, 593 of the enumerated mnemonics having no row in it
 · Raised: S15
-· Disposition: open, recorded as a candidate rule and none added here; the converse holds today, every encoder row but the one unstructured clause appearing in the enumeration
+· Disposition: closed at I15 by generation rather than by a rule, the table having become a function of the same bundle and the residue standing at 14 names the artifact itself accounts for; the candidate rule is declined there and its id stays unspent
 
 **F-000y** measurement: a count went stale where its own list shrank, a sentence naming five readers standing above a list of four after the quarantine took one out
 · Raised: S15
@@ -1540,7 +1540,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-218b** owed-act: nothing holds the emitter's own statement of the wire encoding against the section that states it, the rule over the generated artifact holding it against the emitter and the declaration rather than against the mapping, so a row edited in the profile moves neither and the drift is silent in both directions
 · Raised: M6.4
-· Disposition: open, stated as an absence in the profile's own holders section rather than repaired by a rule, the binding being the tools' act and not this document's
+· Disposition: closed at I15, which supplied the binding as a rule of the tools: the ladder is recomputed from the entry's own rungs and the two encoded sizes are held against the rows that place their members, with the rows it does not reach named in the profile's holders section rather than left to be discovered
 
 **F-218c** measurement: an exit line quoted a seeded population measured against a working copy that is not the artifact that landed, and no rule reads a population figure, so the sample fraction it reports was wrong by a fifth with every gate green
 · Raised: M6.4
@@ -1925,3 +1925,33 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-232d** measurement: a baseline that would not stand up discarded the prover's own account of why, the emitter's findings being appended to a list nobody read, so the one moment in the loop where a reader has nothing else to go on cost a second whole run to locate
 · Raised: I14
 · Disposition: closed, the emitter's text carried out of the baseline and printed as the refusal's reason
+
+**F-233a** measurement: the lane's fact table named its second owner by a bare file name where the index carries a path, so a row of the machine's own description pointed at nothing a reader or a tool could open
+· Raised: I15
+· Disposition: closed, the row rewritten to the path, and it is the finding the rule made on the run that landed it
+
+**F-233b** method: an entry states its width ladder twice, once of a length or count field and once of a discriminant, and the second is the one the emitter implements, so a rule reading the first occurrence leaves the second free to move
+· Raised: I15
+· Disposition: closed, both statements read and required to agree, with the criterion's own restatement of the ceiling held against the top rung beside them
+
+**F-233c** measurement: the encoder table's gap against the surface the model spells fell from 593 mnemonics to 14 when the table became generated, and every one of the 14 is named by the artifact itself, ten by the guard that refused them, two by a printed shape the assembler does not write, and two by the one unread clause the residue reaches
+· Raised: I15
+· Disposition: closed, and it is the ground of a decline rather than a defect: the accounting and the artifact are one act, so a rule over the residue would hold a run's output against the same run's account of itself
+· Restates: F-000x
+
+**F-233d** method: a landing falsified a section written to report what nothing holds, the binding it supplied having been recorded there as owed and not written
+· Raised: I15
+· Disposition: closed, the section repaired to name which rows the new rule reaches and which stay unheld, a claim that no rule holds a whole section being wider than any rule that replaces it
+
+**F-233e** owed-act: the elaborator's other version is restated in two places and owned by no constant, the imported core's own flow pinning the same tool at a different version through a build system nothing here runs
+· Raised: I15
+· Disposition: open, reported and not closed; the version-pin rule does not reach it and would be inventing an owner for another project's flow if it did
+
+**F-233f** method: a rule declaring itself fail-closed at each of its readings was fail-closed at one of three, the two readings a row is under no obligation to satisfy being unrefusable per row and floored nowhere, so either could narrow to nothing while every path still resolved and the rule went on reporting a figure it no longer took
+· Raised: I15
+· Disposition: closed, a floor for each of the two put inside the rule rather than into the floors group, on the ground that a group reporting after that group has no count to hand it
+· Restates: F-218d
+
+**F-233g** method: a rule's declared residue gave a ground that did not describe the tree, the two files a window leaves out being said to compose the figure from the constant where each also spells it as a literal, inside a parser's own sample of the tool's greeting
+· Raised: I15
+· Disposition: closed, the ground restated at both sites to the one that holds: a banner sample is fixed by the shape a dotted version takes in a greeting and stays true the day the pin moves, so neither file is a site on either count

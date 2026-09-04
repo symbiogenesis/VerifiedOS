@@ -399,7 +399,8 @@ FACTS: tuple[Fact, ...] = (
          partial(_switch_has, gallina.ORACLE_SWITCH, "rocq-certirocq")),
     Fact("the QuickChick switch", TOOLCHAIN,
          "run.py quickchick properties",
-         "tools/vos/gallina.py's QUICKCHICK_SWITCH and quickchick.py's PACKAGE",
+         "tools/vos/gallina.py's QUICKCHICK_SWITCH and "
+         "tools/vos/cli/quickchick.py's PACKAGE",
          partial(_switch_has, gallina.QUICKCHICK_SWITCH, quickchick.PACKAGE),
          quickchick.INSTALL),
     Fact("verilator", TOOLCHAIN,
