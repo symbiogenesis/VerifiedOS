@@ -509,18 +509,23 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
 class FileList:
     """One arm's composed file list, and what became of every substitution in it.
 
-    `taken` is the substitutions every one of whose imported sources matched a line, and
-    it is the set the diff attributes by. `unmatched` and `missing` are the two ways a
-    declaration can fail to mean anything, and both are refusals rather than warnings:
-    a declared substitution that reaches no line of the manifest leaves the imported
-    source in the build and the authored one out of it, which elaborates cleanly and
-    measures the wrong design.
+    `taken` is the substitutions every one of whose imported sources matched a line and
+    is on disk, and it is the set the diff attributes by. `unmatched`, `missing` and
+    `absent` are the three ways a declaration can fail to mean anything, and all three
+    are refusals rather than warnings: a declared substitution that reaches no line of
+    the manifest leaves the imported source in the build and the authored one out of it,
+    which elaborates cleanly and measures the wrong design; an authored path not in the
+    checkout does the same; and an imported path this checkout does not carry drops its
+    line from the build with nothing able to read the module kinds it declared, so the
+    substitution's own displacements would read as the parameters' removals, which is
+    the one mis-attribution the partition exists to prevent.
     """
 
     lines: tuple[str, ...]
     taken: tuple[Substitution, ...]
     unmatched: tuple[tuple[str, str], ...]
     missing: tuple[str, ...]
+    absent: tuple[tuple[str, str], ...]
 
     @property
     def refusals(self) -> list[str]:
@@ -529,7 +534,11 @@ class FileList:
                  "imported manifest names no such line" for authored, imported in
                  self.unmatched]
                 + [f"FAIL {authored} is declared to stand in the imported build and is "
-                   "not in this checkout" for authored in self.missing])
+                   "not in this checkout" for authored in self.missing]
+                + [f"FAIL {authored} is declared to stand at {CORE}/{imported}, which "
+                   "the imported manifest names and this checkout does not carry, so "
+                   "nothing can read the module kinds it declared" for authored,
+                   imported in self.absent])
 
 
 def _file_list(root: Path, config: Path,
@@ -575,20 +584,41 @@ def _file_list(root: Path, config: Path,
             continue
         lines.append(line.replace(CORE_VAR, str(core)))
     prim = root / PRIM
+    # A matched line whose file this checkout does not carry is the third refusal, and
+    # it is the quiet one: the line is gone from the build either way, so the arm still
+    # elaborates, and the kinds that file declared are unreadable, so the substitution's
+    # displacements would be reported as the parameters' removals.
+    gone = {sub: {rel for rel in hit.get(sub, set())
+                  if not (root / CORE / rel).is_file()} for sub in subs}
     return FileList(
         lines=tuple([str(prim / p) for p in PRIM_PACKAGES] + lines),
         taken=tuple(sub for sub in subs
-                    if hit.get(sub, set()).issuperset(sub.imported)),
+                    if hit.get(sub, set()).issuperset(sub.imported) and not gone[sub]),
         unmatched=tuple((sub.authored, rel) for sub in subs for rel in sub.imported
                         if rel not in hit.get(sub, set())),
         missing=tuple(sub.authored for sub in subs
-                      if not (root / sub.authored).is_file()))
+                      if not (root / sub.authored).is_file()),
+        absent=tuple((sub.authored, rel) for sub in subs for rel in sub.imported
+                     if rel in gone[sub]))
+
+
+def _kind(name: str) -> str:
+    """A module name reduced to the structure it names, its parameter hash dropped.
+
+    Verilator appends `__` and a parameter hash to a module elaborated at parameters,
+    and two elaborations of one module are one structure. The same reduction is applied
+    to a *declared* name because the two name spaces are joined: a module whose own name
+    carries a double underscore would otherwise be keyed one way in the netlist and
+    another in the attribution maps, join to nothing, and be reported at once as inert
+    and as unexplained, which is two false findings out of one module.
+    """
+    return name.split("__", maxsplit=1)[0]
 
 
 def _declared_modules(text: str) -> frozenset[str]:
     """The module kinds one SystemVerilog source declares, comments removed first."""
     bare = LINE_COMMENT_RE.sub("", BLOCK_COMMENT_RE.sub("", text))
-    return frozenset(str(name) for name in MODULE_DECL_RE.findall(bare))
+    return frozenset(_kind(str(name)) for name in MODULE_DECL_RE.findall(bare))
 
 
 def _substitution_modules(root: Path, subs: tuple[Substitution, ...]
@@ -699,10 +729,11 @@ def _inventory(xml: Path) -> tuple[set[str], int, int]:
 
     The module *kind* is the name with its parameter hash removed, because two
     elaborations of one module at different parameters are one structure and the
-    question this answers is which structures exist.
+    question this answers is which structures exist. It is `_kind` that removes it, the
+    same reduction the attribution maps are keyed by, so the two sets join.
     """
     text = xml.read_text(encoding="utf-8", errors="replace")
-    kinds: set[str] = {str(name).split("__")[0] for name in MODULE_RE.findall(text)}
+    kinds: set[str] = {_kind(str(name)) for name in MODULE_RE.findall(text)}
     return kinds, len(CELL_RE.findall(text)), len(VAR_RE.findall(text))
 
 
@@ -739,7 +770,10 @@ def cmd_filelist(args: argparse.Namespace) -> int:
                "of them standing in the imported manifest's place")
     out.extend(f"   {'ok  ' if sub in files.taken else 'FAIL'} {sub.authored} "
                f"<- {', '.join(sub.imported)}" for sub in SUBSTITUTIONS)
-    if introduced_by or displaced_by:
+    if files.taken:
+        # Printed whether or not either count is zero: a row whose two sides are both
+        # packages attributes nothing, and a lane that declared it needs to be told
+        # that rather than left reading silence as an unprinted line.
         out.append(f"   {len(introduced_by)} module kind(s) the authored sources "
                    f"declare, against {len(displaced_by)} the imported ones did")
     if not (root / PRIM).exists():
