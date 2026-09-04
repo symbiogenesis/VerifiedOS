@@ -18,8 +18,10 @@
 // under the generated *max* configuration, which composes hart 0 on the C class,
 // so a property about what the RoT sees is a property about a structure no
 // configuration this harness runs has. They drop the head they prepended rather
-// than assigning the saved binding back, which is M0.8d's own finding about the
-// idiom read from the side where it matters.
+// than assigning a binding saved beforehand, which is the one of the two shapes
+// that is correct whatever the list representation is: both restore here, and
+// the other one does so because the emitted list is reference-counted
+// (M0.20, unit_tests/test_matrix_scratchpad.sail).
 
 // *****************************************************************
 // The lifecycle.
@@ -400,8 +402,9 @@ function test_the_rot_windows_refuse_every_other_class() -> unit = {
 // the roster entry for the composed identity is prepended, the doors are read,
 // and the head is dropped again. That is M0.8c's *a property about a structure no
 // shipped configuration has is a property that must supply it*, and the restore
-// drops the head it prepended rather than assigning the saved binding back,
-// which is M0.8d's finding about that idiom read from the side where it matters.
+// drops the head it prepended rather than assigning a binding saved beforehand,
+// which is the shape that reads what it is restoring from the register itself
+// (M0.20, unit_tests/test_matrix_scratchpad.sail).
 $[test]
 function test_the_rot_windows_answer_the_rot() -> unit = {
   core_roster = struct {

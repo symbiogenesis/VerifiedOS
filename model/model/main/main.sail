@@ -29,26 +29,24 @@ $ifdef SYMBOLIC
 
 $include <isla.sail>
 
-val isla_footprint_no_init : forall 'n, 'n in {16, 32}. bits('n) -> bool
+// One width, because there is one instruction length: `C` is excluded and ILEN
+// is fixed at 32 (R-15-036), so the 16-bit arm this took had no decode to reach
+// (postlude/decode_ext.sail).
+val isla_footprint_no_init : forall 'n, 'n in {32}. bits('n) -> bool
 
 function isla_footprint_no_init(opcode) = {
   try {
     isla_reset_registers();
     sail_end_cycle();
 
-    let instr = if length(opcode) == 16 then {
-      ext_decode_compressed(opcode)
-    } else {
-      ext_decode(opcode)
-    };
-    let _ = execute(instr);
+    let _ = execute(ext_decode(opcode));
     true
   } catch {
     _ => false
   }
 }
 
-val isla_footprint : forall 'n, 'n in {16, 32}. bits('n) -> bool
+val isla_footprint : forall 'n, 'n in {32}. bits('n) -> bool
 
 function isla_footprint(opcode) = {
   try {

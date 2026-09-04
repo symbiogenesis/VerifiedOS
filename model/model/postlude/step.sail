@@ -61,19 +61,10 @@ private function run_hart_active(step_no: nat) -> Step = {
     F_Ext_Error(e)   => Step_Ext_Fetch_Failure(e),
     // standard error
     F_Error(e, addr) => Step_Fetch_Failure(Virtaddr(addr), e),
-    // non-error cases:
-    F_RVC(h) => {
-      sail_instr_announce(h);
-      fetch_callback(h);
-      let instbits : instbits = zero_extend(h);
-      if   get_config_print_instr()
-      then {
-        print_log_instr("[" ^ dec_str(step_no) ^ "]: " ^ bits_str(PC) ^ " (" ^ bits_str(h) ^ ") " ^ to_str(ext_decode_compressed(h)), zero_extend(PC));
-      };
-      // ILEN is fixed at 32 bits: no compressed instruction exists, so a
-      // 16-bit parcel always decodes to C_ILLEGAL and traps.
-      Step_Execute(Illegal_Instruction(), instbits)
-    },
+    // non-error case: one word, whatever its low two bits are. A word this
+    // machine allocates no encoding to reaches `ILLEGAL` through the wildcard
+    // `encdec` clause and traps with the whole word in `mtval`, which is the
+    // route every unallocated point takes (R-15-014, postlude/insts_end.sail).
     F_Base(w) => {
       sail_instr_announce(w);
       fetch_callback(w);

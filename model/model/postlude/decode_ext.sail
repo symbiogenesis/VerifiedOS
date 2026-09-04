@@ -10,9 +10,9 @@
 // based on other machine state. This is supported via decode instruction
 // hooks, the default implementation of which is provided below.
 
-// ILEN is fixed at 32 bits and `C` is excluded, so a 16-bit parcel is an
-// illegal instruction whatever mode PCC is in (R-15-036).
-function ext_decode_compressed(bv : bits(16)) -> instruction = encdec_compressed(bv)
+// One length, one decode. ILEN is fixed at 32 bits and `C` is excluded, so the
+// fetch never produces a 16-bit parcel for a second decode hook to interpose on
+// (R-15-036, R-15-014, postlude/fetch.sail).
 
 // One mode, one decode. Upstream reads `auipc`, `jal` and `jalr` through a
 // second mapping when PCC is in capability mode; here those encodings have only
