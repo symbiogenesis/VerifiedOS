@@ -17,7 +17,7 @@ So this module owns those, and a **spec** owns the dozen. A spec is a JSON file 
 or more *probes*: a line kind, the parameters a probe takes and how the domain walks
 them, the Sail that calls the model with them, and the expressions to print. What
 comes out is a Sail harness that prints one line per vector, which
-[tools/run.py oracle](../oracle.py) compiles against those sources and runs. **The vectors
+[run.py oracle](cli/oracle.py) compiles against those sources and runs. **The vectors
 cross as text**, which is M2.1's discipline and R1a's: no adapter sits between the two
 implementations, neither is compiled against the other's types, and a disagreement
 names a line a person reads on both sides.
@@ -27,7 +27,7 @@ encoding defect the `$[test]` harness structurally cannot, a `$[test]` calling
 `execute` on an already-decoded instruction and so never seeing a mis-encoded word. A
 probe here calls a Sail function at a domain this file walks, so what it reaches is
 decided by the domain and not by what a property happens to be written about. The
-other finding, M0.8d's, belongs to [seed.py](../seed.py) and is answered there.
+other finding, M0.8d's, belongs to [run.py seed](cli/seed.py) and is answered there.
 
 **Nothing here decides anything.** It picks inputs and formats answers; every value
 right of an arrow is the model's, and a line the spec cannot print is a line the
@@ -617,7 +617,7 @@ def generate(root: Path, spec: Spec, work: Path, out: list[str], *,
 
     `model_root` is where the spec's sources are read from, defaulting to the checkout.
     A caller holding a mutated copy of the model passes its own tree, which is what
-    lets [seed.py](../seed.py) point this at a defect without writing into `model/`.
+    lets [run.py seed](cli/seed.py) point this at a defect without writing into `model/`.
     """
     base = root if model_root is None else model_root
     work.mkdir(parents=True, exist_ok=True)
