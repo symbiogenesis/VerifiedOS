@@ -8,7 +8,8 @@
 
 // Basic type and function definitions used pervasively in the model.
 
-type half = bits(16)
+// `half` went with the fetch's length decision: it named an instruction parcel,
+// and there is one instruction length here (R-15-036, postlude/fetch.sail).
 type word = bits(32)
 
 // Bit-vector of an uncompressed instruction.

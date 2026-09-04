@@ -16,13 +16,10 @@ function clause execute ILLEGAL(_s) = Illegal_Instruction()
 
 mapping clause assembly = ILLEGAL(s) <-> "illegal" ^ spc() ^ hex_bits_32(s)
 
-// *****************************************************************
-
-mapping clause encdec_compressed = C_ILLEGAL(s) <-> s
-
-function clause execute C_ILLEGAL(_s) = Illegal_Instruction()
-
-mapping clause assembly = C_ILLEGAL(s) <-> "c.illegal" ^ spc() ^ hex_bits_16(s)
+// The 16-bit companion of the clause above is gone with the fetch's length
+// decision: `C` is excluded and ILEN is fixed at 32, so no parcel reaches a
+// decode and `ILLEGAL` above carries every word this machine allocates no
+// encoding to, whole (R-15-036, R-15-014, postlude/fetch.sail).
 
 // *****************************************************************
 
@@ -35,7 +32,6 @@ end instruction
 end execute
 end assembly
 end encdec
-end encdec_compressed
 
 // Some legal instructions do not have any corresponding assembly, e.g. a `fence`
 // carrying a non-zero `rs1` or `rd`. A reserved `fence` is no longer an example:

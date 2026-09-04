@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# The trap path, taken seven times: a capability violation raises one cause
+# The trap path, taken nine times: a capability violation raises one cause
 # code and reports its detail in `mtval`, the interrupted PCC is saved whole in
 # MEPCC, and `mret` returns to it (R-15-073, R-15-073a).
 #
@@ -8,7 +8,7 @@
 # privilege mechanism here rather than a ring (R-15-003).
 #
 # Each check leaves the cause it expects in `t5` and the trap value it expects
-# in `t6`, so the handler is one comparison rather than seven, and a wrong cause
+# in `t6`, so the handler is one comparison rather than nine, and a wrong cause
 # fails where the fault was raised rather than three checks later. The `mtval`
 # payload of a capability violation is the register that raised it above the
 # five-bit violation code (core/cap_causes.sail).
@@ -98,6 +98,20 @@ _start:
         li      t5, 2
         li      t6, 0x3b0022f3
         .word   0x3b0022f3
+
+        # And the other half of that sentence, which is what fixes the length of
+        # an instruction on this machine. `C` is excluded and ILEN is 32
+        # (R-15-036, R-15-014), so a word whose two low bits are not `11` is an
+        # unallocated 32-bit encoding and not a shorter instruction: it traps as
+        # an illegal instruction and `mtval` carries the **whole word**. This is
+        # `addi t0, zero, 1` with those two bits cleared, so the expected value
+        # is one the low halfword on its own could not produce, and the check
+        # therefore decides between the whole word and a sixteen-bit parcel
+        # rather than agreeing with both.
+        li      gp, 9
+        li      t5, 2
+        li      t6, 0x00100290
+        .word   0x00100290
 
         li      gp, 0
         j       pass

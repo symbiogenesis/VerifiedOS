@@ -40,11 +40,20 @@ _ROOT: Final[Path] = corpus.find_root(Path(__file__).resolve())
 # current encoder produces and could not show that anything had not moved. It was taken
 # by exporting `8189229`, the commit before generation landed, to a tree outside every
 # checkout and running this function's own body there against that tree's `vos.asm`:
-# 26 members, the digest below, 55,992 bytes. A reader who doubts it repeats exactly
-# that.
+# 26 members, `03f88f69731aabf59047dbc57b0a3778c908de727278e4e693d52addbf0c0d89`,
+# 55,992 bytes. A reader who doubts it repeats exactly that.
+#
+# **Its subject is the encoder and its input is the corpus, so a member that gains an
+# instruction moves it for a reason it cannot itself tell apart from a moved encoding.**
+# That is why a rerecord is admitted only by *measuring the old figure back*: assemble
+# the corpus with the changed member's pre-change source in place of its current one,
+# under the current encoder, and require the transcribed figure above. Only then is the
+# delta the member's. M0.20 is the first rerecord and took that measurement, adding four
+# instructions to `cap-trap` for sixteen bytes; the reading below is the corpus as it now
+# stands. A red run is still never repaired by rerecording alone.
 _CORPUS_IMAGES: Final[str] = \
-    "03f88f69731aabf59047dbc57b0a3778c908de727278e4e693d52addbf0c0d89"
-_CORPUS_BYTES: Final[int] = 55_992
+    "a287542f3c5385b6f5b2074a42ac068897738a4cc42fdce88e3fb49d2116689f"
+_CORPUS_BYTES: Final[int] = 56_008
 
 
 def _program(rows: int) -> str:

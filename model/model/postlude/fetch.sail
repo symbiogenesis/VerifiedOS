@@ -9,7 +9,16 @@
 // Current fetch hooks for RISC-V extensions call extensions
 // to check PC validity *before* standard fetch processing checks.
 
-private function isRVC(h : half) -> bool = not(h[1 .. 0] == 0b11)
+// **There is one instruction length, so the fetch decodes none.** `C` is
+// excluded and ILEN is fixed at 32 (R-15-036, R-15-014), which is why the two
+// checks below ask PCC for four bytes and refuse a PC that is not four-byte
+// aligned; reading the low two bits of the first granule to choose a *shorter*
+// instruction would be the instruction-length encoding of the extension this
+// profile does not have, and it would contradict both of those checks in the
+// same function. So a word whose low two bits are not `11` is an unallocated
+// 32-bit encoding rather than a parcel: it reaches the illegal-instruction path
+// through `ILLEGAL`, the wildcard `encdec` clause every unallocated point
+// reaches (postlude/insts_end.sail), and `mtval` carries the whole word.
 
 // This instruction byte fetcher is used for partial fetches, and
 // hence doesn't return the FetchResult type that a full fetcher does.
@@ -64,7 +73,9 @@ private function fetch() -> FetchResult = {
   if   PC[1 .. 0] != 0b00
   then return F_Error(E_Fetch_Addr_Align(), PC);
 
-  // For a PC aligned at ILEN=32, perform an atomic fetch for Ziccif.
+  // The PC is four-byte aligned by the refusal above, so `Ziccif` alone decides
+  // between the two sequences below and the alignment conjunct upstream carries
+  // beside it is a condition no run can fail.
   //
   // NOTE: The atomicity requirements for the fetch can be implemented
   // in the memory model in two ways: (i) A single memory transaction
@@ -77,29 +88,23 @@ private function fetch() -> FetchResult = {
   // the complexities around memory protection could be addressed using
   // smaller fetches and augmenting the memory model with these additional
   // rules for intra-instruction split fetches.
-  if is_aligned_addr(Virtaddr(PC), 4) & currentlyEnabled(Ext_Ziccif) then {
+  if currentlyEnabled(Ext_Ziccif) then {
     match fetch_bytes(PC, PC, 4) {
       FetchBytes_Ext_Error(e)   => F_Ext_Error(e),
-      // If an exception is raised for the upper two bytes but the
-      // instruction is only 16 bits then the exception should be
-      // ignored. In this implementation we avoid situations where
-      // this can happen - PMA granularity is restricted to 4096
-      // bytes. This situation may still occur if MMIO devices are
-      // incorrectly configured, but this is not checked currently.
       FetchBytes_Exception(e)   => F_Error(e, PC),
-      FetchBytes_Success(bytes) => if isRVC(bytes[15 .. 0]) then F_RVC(bytes[15 .. 0]) else F_Base(bytes),
+      FetchBytes_Success(bytes) => F_Base(bytes),
     }
   } else {
-    // Split instruction fetch into 16-bit granules to handle RVC, as
-    // well as to generate precise fault addresses in any fetch
-    // exceptions.
+    // Split the fetch into 16-bit granules to generate precise fault
+    // addresses in any fetch exception, which is the whole of what the split
+    // is for once there is no second instruction length to discover: both
+    // granules are read on every fetch, and the second one's fault names the
+    // address it was raised at (core/addr_checks.sail).
     match fetch_bytes(PC, PC, 2) {
       FetchBytes_Ext_Error(e) => F_Ext_Error(e),
       FetchBytes_Exception(e) => F_Error(e, PC),
       FetchBytes_Success(ilo) =>
-        if   isRVC(ilo)
-        then F_RVC(ilo)
-        else match fetch_bytes(PC, PC + 2, 2) {
+        match fetch_bytes(PC, PC + 2, 2) {
           FetchBytes_Ext_Error(e) => F_Ext_Error(e),
           FetchBytes_Exception(e) => F_Error(e, PC + 2),
           FetchBytes_Success(ihi) => F_Base(append(ihi, ilo)),

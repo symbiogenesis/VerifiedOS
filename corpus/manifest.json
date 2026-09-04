@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "trace_schema": 1,
   "members": [
     {
@@ -47,9 +47,9 @@
     {
       "name": "cap-trap",
       "source": "cap-trap.s",
-      "checks": 8,
-      "records": 291,
-      "digest": "e27390aa9d390240"
+      "checks": 9,
+      "records": 321,
+      "digest": "5572f6c0a74e8b50"
     },
     {
       "name": "cap-control",
