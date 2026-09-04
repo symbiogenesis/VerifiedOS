@@ -1738,7 +1738,8 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-229h** method: a host row of the generated table is priced by its generator's own runtime times the sandbox count, and a wave figure confirms that only where the two are the same size
 · Raised: R1c-ii
-· Disposition: closed, the relation stated where a wall-clock pair stood; this row's generator runs two orders of magnitude below the checker's own run-to-run spread, so no wave measurement here can see it, and two figures that had stopped describing the wave went with the repair
+· Disposition: closed, the relation stated where a wall-clock pair stood; this row's generator runs two orders of magnitude below the wave's own run-to-run spread, so no wave measurement here can see it, and two figures that had stopped describing the wave went with the repair
+· Restates: F-128n
 
 **F-229i** measurement: the licence page enumerated nine of the bring-up SoC's thirteen vendored subtrees, and one it left out is where the two devices that do exist live
 · Raised: R1c-ii
