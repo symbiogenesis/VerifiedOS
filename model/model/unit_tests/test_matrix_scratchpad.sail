@@ -86,11 +86,12 @@ function test_scratchpad_pma(c : CoreClass) -> PMA_Region = struct {
 // Installing the region and taking it out again are two functions rather than
 // an idiom written at each property, and the removal reads the register it is
 // restoring rather than a binding taken before the change. Both shapes restore
-// (M0.20 measured it, against the property below), but only this one is correct
-// *whatever the list representation is*: assigning a saved binding back is
-// correct here because the emitted list is reference-counted, so the binding
-// aliases the register instead of being a copy of it, which is a property of
-// the backend rather than of the property that relies on it.
+// and the two properties at the foot of this file are what say so, one written
+// on each; only this one is correct *whatever the list representation is*,
+// because assigning a saved binding back is correct here on a property of the
+// backend rather than of the property that relies on it: the emitted list is
+// reference-counted, so the binding aliases the register instead of being a
+// copy of it (M0.20).
 function test_install_scratchpad(c : CoreClass) -> unit =
   pma_regions = test_scratchpad_pma(c) :: pma_regions
 
@@ -222,8 +223,9 @@ function test_vmclear_covers_the_declared_scratchpad_and_nothing_else() -> unit 
 // register between properties, so a restore that did nothing is
 // indistinguishable from one that worked at every point outside the property
 // body that made it. The question can therefore only be put *inside* one body,
-// which is what this property is, and it is what decides the idiom above rather
-// than asserting it.
+// which is what this property and the one after it are, one on each of the two
+// restore shapes, and they are what decide the idiom above rather than asserting
+// it.
 $[test]
 function test_a_scratchpad_install_is_undone_by_its_own_restore() -> unit = {
   let inside = Physaddr(test_scratchpad_base);
@@ -245,4 +247,35 @@ function test_a_scratchpad_install_is_undone_by_its_own_restore() -> unit = {
          "and it is gone from the class's end of the map as well");
   assert(memory_class_at(ram) == Some(FirstClass),
          "the restore puts back the map it found rather than some other one");
+}
+
+// **The other restore shape, measured here rather than argued about.** F-081
+// held that a property saving this register into a binding and restoring it by
+// assigning that binding back does not restore it. It does, and this property is
+// the one that says so: it is written on that idiom rather than on the two
+// functions above, so each shape is decided by a property of its own and neither
+// is taken on the other's evidence. What makes it exact is the backend and not
+// the idiom, the emitted list being reference-counted with `COPY` incrementing
+// before it kills, so the saved binding aliases the register instead of copying
+// it; that is why the sites above take the shape that reads what it restores
+// from the register itself (M0.20).
+$[test]
+function test_a_saved_map_restores_by_assignment() -> unit = {
+  let inside = Physaddr(test_scratchpad_base);
+  let ram    = Physaddr(0x0000000080000000);
+
+  let saved = pma_regions;
+  assert(scratchpad_class_at(inside) == None(), "the shipped map places no scratchpad");
+
+  pma_regions = test_scratchpad_pma(CoreClass_V) :: saved;
+  assert(scratchpad_class_at(inside) == Some(CoreClass_V), "the install is visible");
+
+  pma_regions = saved;
+
+  assert(scratchpad_class_at(inside) == None(),
+         "assigning the saved binding back takes the installed region out");
+  assert(scratchpad_region_of(pma_regions, CoreClass_V) == None(),
+         "and it is gone from the class's end of the map as well");
+  assert(memory_class_at(ram) == Some(FirstClass),
+         "the map the binding held is the map that comes back");
 }

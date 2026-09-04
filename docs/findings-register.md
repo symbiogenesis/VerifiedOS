@@ -217,7 +217,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-002** measurement: fixed-width fetch deletes the gating and not the 16-bit path, so the parcel check, the illegal-parcel cause and the compressed decode mapping stay load-bearing with no real clauses behind them
 · Raised: c2
-· Disposition: standing, the fixed instruction length making a short parcel an illegal instruction rather than a misaligned fetch
+· Disposition: closed at M0.20, which deleted the 16-bit path as well: the three named here lost their last user when the fetch's length decision went, and what carries a word whose low two bits are not `11` is `ILLEGAL`, whole
 
 **F-003** upstream-defect: the alignment relaxation lives in four places rather than one, and only two of them are visible from the extension registry
 · Raised: c2
@@ -745,7 +745,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-228d** measurement: the claim that a property restoring a list register by assigning the saved binding does not restore it is false, the emitted list being reference-counted and the copy incrementing before it kills, so the binding and the register are one chain
 · Raised: M0.20
-· Disposition: closed, a property that observes its own restore passing under both shapes; what is true of the idiom is the weaker sentence the repaired comments now carry
+· Disposition: closed, one property written on each shape and both observing their own restore and passing; what is true of the idiom is the weaker sentence the repaired comments now carry
 · Restates: F-081
 
 **F-228e** upstream-defect: the emitted list constructor overwrites its destination without releasing what it overwrote, so a cons whose tail is not the destination's current value leaks the old list
@@ -763,6 +763,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-228h** method: the corpus-image acceptance criterion cannot tell a member that grew from an encoding that moved, its subject being the encoder and its input being the corpus, so the first edit to any member reds a test whose own instruction is never to repair a red run by rerecording
 · Raised: M0.20
 · Disposition: closed, the rerecord admitted by measuring the old figure back under the current encoder and that procedure recorded beside the figure rather than left to the next lane to invent
+
+**F-228i** method: a lane that leaves its derived arithmetic to an integrator cannot run the mutation selftest at all, the selftest's baseline being the checker that every landing reds, so it reports an unmutated sandbox that does not pass rather than a killed population
+· Raised: M0.20
+· Disposition: standing, the figure owed to the integrator's own run after the merge rather than to a lane, which quotes none
+
 ## M1 · Toolchain spine
 
 **F-125** upstream-defect: the pinned compiler's dual-licensed subset does not reach the verified backend passes, the target backend, or the capability backend, which are precisely what the re-homing takes
