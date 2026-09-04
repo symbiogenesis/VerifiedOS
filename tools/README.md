@@ -100,7 +100,7 @@ Those four and K-63's citation scan are where the checker reaches past its own c
 
 Five are the generators' and none of them holds a question: [run.py oracle](vos/oracle.py) parses a spec and emits the Sail harness a domain description implies, [sailrig.py](vos/sailrig.py) compiles a Sail source set with a harness and runs it, which is the rig M2.1 and R1a each built inside one item, [mutate.py](vos/mutate.py) walks a Sail or Gallina source and produces the mutant population, [proofs.py](vos/proofs.py) reads what a Rocq source Requires and orders a directory by it, and [gallina.py](vos/gallina.py) stages a scratch copy of the proofs, compiles it, and reads back what a harness printed. What decides is the spec, the operator table, and the oracle a run points them at.
 
-One is a compiler rather than a generator, and the difference is which way the artifact is held. [run.py ring](vos/cli/ring.py) emits [proofs/RingContract.v](../proofs/RingContract.v) from two owners, [the ring declaration](../interfaces/ring-reference.json) and the register's own entry lines, and K-89 holds the tracked file against what it writes; where the generators above produce evidence a run consumes and throws away, this produces a tracked artifact, so the rule is the point and the emitter is what gives it something to say. It runs on the host because its inputs are a JSON file and the register parse the checker already makes, which is why its rule can re-run the generator where K-88's cannot.
+Two are compilers rather than generators, and the difference is which way the artifact is held: where the generators above produce evidence a run consumes and throws away, these produce tracked artifacts, so the rule is the point and the emitter is what gives it something to say. [run.py ring](vos/cli/ring.py) emits [proofs/RingContract.v](../proofs/RingContract.v) from two owners, [the ring declaration](../interfaces/ring-reference.json) and the register's own entry lines, and K-89 holds the tracked file against what it writes. It runs on the host because its inputs are a JSON file and the register parse the checker already makes, which is why its rule can re-run the generator where K-88's cannot. [socmap.py](vos/socmap.py) emits [rtl/vos_soc_map_pkg.sv](../rtl/vos_soc_map_pkg.sv), the SoC address map in the language the RTL is written in, from the frozen profile's composition; that one is held by **K-88** rather than by a rule of its own, its row of the generated table being a host row whose generator the checker runs. It is worth reading beside the ring's for the one thing it does differently: its subject is an enumeration rather than a fixed set of fields, so it finds the windows it emits by shape rather than by name and a window a composition gains arrives in the package with no edit to the emitter.
 
 Five more modules are the differential corpus's, and they are named for what they are rather than for where they sit: [dialect.py](vos/dialect.py) is one row per mnemonic the curated model decodes, [asm.py](vos/asm.py) the parser and layout over it, [image.py](vos/image.py) the ELF the emulator loads, [compose.py](vos/compose.py) the packer that turns an assembled image into the link map and per-site table the freeze's §4 joins, and [differential.py](vos/differential.py) the corpus manifest. `dialect.py` is the one of them that holds no table of its own any more: [dialectgen.py](vos/dialectgen.py) writes it out of the bundle, which is the one decision in that pair and states it, and `dialect.py` loads what it wrote. The one name that has to be read carefully is `corpus`: [vos/corpus.py](vos/corpus.py) reads the *documents* this repository checks, and [vos/differential.py](vos/differential.py) reads the *programs* the model runs. They share a word and nothing else.
 
@@ -163,7 +163,7 @@ $ python tools/run.py model corpus --refresh
 $ python tools/run.py model devicetree
 $ python tools/run.py model reference
 $ python tools/run.py model trace-diff --corpus --floor 67
-$ python tools/run.py rtl lint                   # the authored RTL, alone
+$ python tools/run.py rtl lint                   # this repository's own RTL, alone
 $ python tools/run.py rtl vectors                # the model's own answers, as text
 $ python tools/run.py rtl crosscheck             # and the RTL reproducing them
 $ python tools/run.py rtl elaborate --background
@@ -281,12 +281,18 @@ and the single verdict is the larger.
 
 **The wave's cost is the selftest's, multiplied**, and what multiplies it is a host row
 of the generated table: a sandbox runs the checker whole, and every host row's generator
-runs with it, so a generator that takes a fraction of a second costs that fraction about
-a hundred times over. Measured warm on this twelve-core host with one such row, the wave
-takes 52 s against the 35.6 s it took with none, and the generator's own run is 0.15 s.
-That is a price worth naming twice over: it is what buys K-88 deciding byte identity
-outright rather than against the last commit, and it is the number a second host row
-would move again. `--fix` is the one exception to the wave
+runs with it, so a row's price is its generator's own runtime times the sandbox count and
+a generator that takes a fraction of a second costs that fraction about a hundred times
+over. The relation is what is worth stating, because it prices a row before anyone adds
+one and a wall-clock figure for the wave does not: the first host row's generator runs in
+0.15 s and, measured warm on this twelve-core host when it was added, took the wave from
+35.6 s to 52 s, which is that product. The second row's generator is the SoC address map's
+and runs in 3.95 ms, measured in-process over fifty runs, so the relation prices it under
+half a second and no wave measurement here can see it: five runs of the checker alone on
+this host averaged 54.4 s against a fastest of 42.5 s, which is a spread two orders of
+magnitude above what the row costs. **A host row is priced by its generator and confirmed
+by the wave only where the two are the same size.** What the price buys is K-88 deciding
+byte identity outright rather than against the last commit. `--fix` is the one exception to the wave
 and a correctness one, the repair running alone and to completion before the rest,
 because the selftest opens by copying the working tree and a document rewritten
 mid-copy seeds a torn sandbox that reports as a baseline failure about nothing.
