@@ -310,7 +310,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-236g** measurement: a landing repaired one of two sites in one document that state the same fact, rewriting the section that says the encoder table is generated and carries the vector arithmetic while the absence table went on giving *encoded by neither the assembler nor a member* as its ground
 · Raised: S22
-· Disposition: closed by narrowing the ground to the member half, which is the half that holds and the half the row's own closing cell already names
+· Disposition: closed by narrowing the ground to the member half, which is the half that holds and the half the row's own closing cell already names, and by qualifying the section preamble, whose blanket claim that no row is a corpus-side gap the narrowed row would otherwise contradict
 
 ## M0 · Hardware reference
 
