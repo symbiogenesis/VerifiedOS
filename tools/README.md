@@ -45,7 +45,7 @@ substitute for the guest lane's evidence.
 asked for on the host is re-launched in the guest and says so, so there is no
 `wsl -u root -e python3` to remember and no wrong lane to be in. A guest command has
 to *drive* the toolchain to need the hop: `model config-keys`, `model asm`,
-`model freeze-emit`, `rtl provenance`,
+`model freeze-emit`, `rtl provenance`, `rtl filelist`,
 `oracle list`, `seed list` and `testrig protocol` read this checkout and answer on
 either lane.
 
@@ -62,7 +62,7 @@ either lane.
 | `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` installs what is absent and re-probes; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. |
 | `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `build`, `wait`, `lane`, `oracle`, `sweep`, `corpus`, `asm`, `freeze-emit`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. |
 | `evidence` | wsl | The exit-evidence sweep as one run, six members in the order it runs them: the build and its bundled suite, the reference, the profile sweep, the differential corpus, the devicetree and the proof gate, with the block of figures a completion note quotes. The `$[test]` property harness is one of those figures rather than a seventh member, read back out of what `reference` printed. |
-| `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record on either lane; `lint`, `vectors`, `crosscheck`, `elaborate` and `wait` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove, and `wait` reports the verdict of a backgrounded one; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. |
+| `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record and `filelist` composes the curated arm's elaboration file list, both on either lane; `lint`, `vectors`, `crosscheck`, `elaborate` and `wait` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove, and `wait` reports the verdict of a backgrounded one; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. **A curation replaces imported sources as well as re-valuing parameters**, so `rtl.py`'s `SUBSTITUTIONS` declares which authored source stands where the imported manifest names imported ones, that declaration reaches the curated arm alone, and the diff is partitioned rather than signed: a kind the curated arm instantiates and the baseline does not is an introduction where an authored source in its file list declares that module and a finding where none does, and a kind the baseline instantiates and the curated arm does not is the parameters' own only where no replaced source declared it. |
 | `oracle` | wsl | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on either lane; `vectors` needs Sail. |
 | `seed` | wsl | The seeded-defect generator: mutation operators walked over a Sail or Gallina source, pointed at an oracle that must notice. `list` answers on either lane; `sail`, `coq` and `properties` each need their oracle's toolchain. |
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
@@ -133,6 +133,7 @@ $ python tools/run.py coread --where R-15-073c   # both sides as file:line sites
 $ python tools/run.py coread --bless R-15-073c   # the reading recorded
 $ python tools/run.py view                       # the two documents woven, for reading
 $ python tools/run.py rtl provenance             # the absences, and what binds each
+$ python tools/run.py rtl filelist               # the curated arm's file list, and its substitutions
 $ python tools/run.py testrig protocol           # the RVFI-DII wire, against the commit trace
 $ python tools/run.py oracle list                # the oracle specs, and how large each is
 $ python tools/run.py oracle emit --spec keccak  # the Sail harness one spec implies

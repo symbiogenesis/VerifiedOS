@@ -3,9 +3,11 @@
 """The RTL lane: the authored sources, the cross-check against the model, and the
 elaboration the absence contract wants.
 
-Five loops, and the first answers on the host:
+Six loops, and the first two answer on the host:
 
     provenance  instant  the synthesis-configuration record, parsed and printed
+    filelist    instant  the curated arm's elaboration file list, and the verdict on
+                         every authored source substituted into it
     lint        ~1 s     Verilator over the authored sources in rtl/, alone
     vectors     ~2 min   the model's own answers about the capability format, as text
     crosscheck  ~2 min   and the authored package required to reproduce every line
@@ -19,6 +21,23 @@ structure the disabling parameters remove is named rather than asserted. What it
 is what the elaborator reports; what removes each structure is
 [rtl/synthesis-provenance.md](../rtl/synthesis-provenance.md)'s to say, and rule K-76
 holds the record against the configuration package so the two cannot drift.
+
+**A curation replaces imported sources as well as re-valuing parameters, and the two
+are told apart rather than summed.** `SUBSTITUTIONS` is the declaration that one
+authored source stands where the imported manifest names one or more imported ones, and
+it reaches the curated arm alone: the baseline stays the imported tree at its own stock
+configuration, because a baseline carrying authored sources would make the difference a
+statement about two curations rather than about the parameters. The diff that follows is
+therefore partitioned rather than signed. A kind the curated arm instantiates and the
+baseline does not is an **introduction** where an authored source in the file list
+declares that module and a **finding** where none does, which is the distinction an
+unpartitioned diff cannot make and the reason it failed on every authored replacement.
+A kind the baseline instantiates and the curated arm does not is the parameters' own
+only where no replaced imported source declared it; where one did, it is the
+substitution's and is reported apart, so the record's *Elaborated result* column keeps
+meaning what it says. The attribution is by **direct declaration**: a module a replaced
+file instantiated but a third imported file declares still reads as parameter-removed,
+and the answer to that is a row naming that file too rather than a cleverer reader.
 
 `crosscheck` is the other half of the same discipline pointed at the authored package
 rather than at the imported core, and its method is M2.1's rather than a new one: the
@@ -55,6 +74,7 @@ import argparse
 import re
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 from vos import cli, env, provenance, sailrig
@@ -71,10 +91,49 @@ VERILATOR_PIN = "5.032"
 VERILATOR_HOW = "apt-get install verilator on Ubuntu 26.04"
 
 # The authored sources, in the order a compiler must see them: the format package
-# declares the types the rest use.
+# declares the types the rest use. This is the set `lint` compiles **alone**, which is
+# what makes it the standalone-lintable set rather than the authored one: a source
+# written to stand in the imported datapath is compiled against the imported packages,
+# so it cannot lint by itself and does not belong here. `SUBSTITUTIONS` below is the
+# other declaration, and the two are deliberately not one list.
 AUTHORED: tuple[str, ...] = (
     "rtl/vos_cheri_pkg.sv",
 )
+
+
+@dataclass(frozen=True)
+class Substitution:
+    """One authored source standing where the imported manifest names imported ones.
+
+    `imported` is one or more paths relative to the imported core, spelled as the
+    manifest spells them after its own repository variable, and `authored` is one path
+    relative to this repository's root. The authored source is placed at the first of
+    those lines and the rest are dropped, so the manifest's compile order decides where
+    a replacement sits rather than a second ordering nobody maintains.
+
+    Several imported sources to one authored source is the shape the real replacements
+    take, the flat-SRAM subsystem standing where a whole cache tree did, and it is also
+    what makes the elaboration diff able to attribute: every module kind a named
+    imported file declares is one the substitution displaced rather than one a parameter
+    removed.
+
+    **Nothing is copied out of the imported tree by any of this.** The authored file
+    lives in `rtl/`, the imported one stays behind its gitlink, and what this composes
+    is a list of paths across the two.
+    """
+
+    imported: tuple[str, ...]
+    authored: str
+
+
+# The declared substitutions, and today there are none. R1a authored the capability
+# format's algebra as `vos_cheri_pkg`, which exports neither the package name nor the
+# type names the imported datapath reaches its format through, so a row pointing it at
+# `core/include/cva6_cheri_pkg.sv` would name a file the imported sources cannot compile
+# against: re-pointing the datapath is R1b's first seam and the row is that item's to
+# declare. What is here is the mechanism the row needs, held by this module's own tests
+# against a synthetic manifest rather than by a run nothing can take yet.
+SUBSTITUTIONS: tuple[Substitution, ...] = ()
 
 # The cross-check's two halves. The generator is Sail because it has to call the
 # model's own functions, and the harness is SystemVerilog because it has to call the
@@ -116,6 +175,7 @@ UNHANDLED_RE = re.compile(r"(\d+) of an unknown kind")
 # The imported core, reached through its gitlink and never copied.
 CORE = "upstream/cva6-cheri"
 CORE_FLIST = "core/Flist.cva6"
+CORE_VAR = "${CVA6_REPO_DIR}"
 PRIM = "upstream/opentitan/hw/ip"
 
 # Three OpenTitan primitives the imported core instantiates that its own manifest does
@@ -158,6 +218,16 @@ BASELINE_EDITS: tuple[tuple[str, str], ...] = (
 MODULE_RE = re.compile(r'<module [^>]*name="([^"]*)"')
 CELL_RE = re.compile(r"<cell ")
 VAR_RE = re.compile(r"<var ")
+
+# What a SystemVerilog source declares, read so that the diff's attribution is computed
+# from the files rather than copied into a table beside them. A `package` declaration is
+# deliberately not read: the elaborator's own inventory above counts `<module>` elements
+# and a package is not one, so a substituted package introduces no kind and is owed no
+# appearance in the netlist. Comments go first, both kinds, because a commented-out
+# module declaration is the one shape that would otherwise be read as a declaration.
+LINE_COMMENT_RE = re.compile(r"//[^\n]*")
+BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+MODULE_DECL_RE = re.compile(r"^[ \t]*module[ \t]+([A-Za-z_]\w*)", re.MULTILINE)
 
 MARKER = "ALL_DONE"
 
@@ -435,16 +505,67 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
     return 1 if (bad or n_want != n_got or unhandled != 0) else 0
 
 
-def _file_list(root: Path, config: Path) -> list[str]:
-    """The imported core's own manifest, with one configuration substituted into it.
+@dataclass(frozen=True)
+class FileList:
+    """One arm's composed file list, and what became of every substitution in it.
+
+    `taken` is the substitutions every one of whose imported sources matched a line and
+    is on disk, and it is the set the diff attributes by. `unmatched`, `missing` and
+    `absent` are the three ways a declaration can fail to mean anything, and all three
+    are refusals rather than warnings: a declared substitution that reaches no line of
+    the manifest leaves the imported source in the build and the authored one out of it,
+    which elaborates cleanly and measures the wrong design; an authored path not in the
+    checkout does the same; and an imported path this checkout does not carry drops its
+    line from the build with nothing able to read the module kinds it declared, so the
+    substitution's own displacements would read as the parameters' removals, which is
+    the one mis-attribution the partition exists to prevent.
+    """
+
+    lines: tuple[str, ...]
+    taken: tuple[Substitution, ...]
+    unmatched: tuple[tuple[str, str], ...]
+    missing: tuple[str, ...]
+    absent: tuple[tuple[str, str], ...]
+
+    @property
+    def refusals(self) -> list[str]:
+        """Every reason this list is not the one its declarations describe."""
+        return ([f"FAIL {authored} is declared to stand at {CORE}/{imported} and the "
+                 "imported manifest names no such line" for authored, imported in
+                 self.unmatched]
+                + [f"FAIL {authored} is declared to stand in the imported build and is "
+                   "not in this checkout" for authored in self.missing]
+                + [f"FAIL {authored} is declared to stand at {CORE}/{imported}, which "
+                   "the imported manifest names and this checkout does not carry, so "
+                   "nothing can read the module kinds it declared" for authored,
+                   imported in self.absent])
+
+
+def _file_list(root: Path, config: Path,
+               subs: tuple[Substitution, ...] = ()) -> FileList:
+    """The imported core's own manifest, with the substitutions this arm declares.
 
     The manifest is read rather than transcribed, so a source the imported tree adds
-    arrives here without an edit. Three substitutions are made and each is named: the
+    arrives here without an edit. Four substitutions are made and each is named: the
     repository variable it is written against, the configuration package it leaves to
-    the caller, and the two trees this configuration does not reach.
+    the caller, the two trees this configuration does not reach, and the authored
+    sources `subs` puts in place of imported ones.
+
+    An authored source is placed at the first imported line it replaces and the rest of
+    its lines are dropped, so one authored file standing for a tree of imported ones is
+    one entry where the tree was. A line this drops as unreached is not then available
+    to be substituted, which is why an unmatched declaration has to be a refusal: the
+    two ways of losing a line are indistinguishable in the result and opposite in
+    meaning.
     """
     core = root / CORE
     text = (core / CORE_FLIST).read_text(encoding="utf-8")
+    # Keyed by the substitution and not by its authored path, so that two rows naming
+    # one authored file are still two verdicts; `placed` is keyed by the path, one
+    # authored file being one entry however many rows reach it.
+    wanted = {f"{CORE_VAR}/{rel}": (sub, rel) for sub in subs for rel in sub.imported}
+    hit: dict[Substitution, set[str]] = {}
+    placed: set[str] = set()
     lines: list[str] = []
     for raw in text.replace("\r\n", "\n").split("\n"):
         line = raw.strip()
@@ -453,9 +574,113 @@ def _file_list(root: Path, config: Path) -> list[str]:
         if "${TARGET_CFG}_config_pkg.sv" in line:
             lines.append(str(config))
             continue
-        lines.append(line.replace("${CVA6_REPO_DIR}", str(core)))
+        found = wanted.get(line)
+        if found is not None:
+            sub, rel = found
+            hit.setdefault(sub, set()).add(rel)
+            if sub.authored not in placed:
+                lines.append(str(root / sub.authored))
+                placed.add(sub.authored)
+            continue
+        lines.append(line.replace(CORE_VAR, str(core)))
     prim = root / PRIM
-    return [str(prim / p) for p in PRIM_PACKAGES] + lines
+    # A matched line whose file this checkout does not carry is the third refusal, and
+    # it is the quiet one: the line is gone from the build either way, so the arm still
+    # elaborates, and the kinds that file declared are unreadable, so the substitution's
+    # displacements would be reported as the parameters' removals.
+    gone = {sub: {rel for rel in hit.get(sub, set())
+                  if not (root / CORE / rel).is_file()} for sub in subs}
+    return FileList(
+        lines=tuple([str(prim / p) for p in PRIM_PACKAGES] + lines),
+        taken=tuple(sub for sub in subs
+                    if hit.get(sub, set()).issuperset(sub.imported) and not gone[sub]),
+        unmatched=tuple((sub.authored, rel) for sub in subs for rel in sub.imported
+                        if rel not in hit.get(sub, set())),
+        missing=tuple(sub.authored for sub in subs
+                      if not (root / sub.authored).is_file()),
+        absent=tuple((sub.authored, rel) for sub in subs for rel in sub.imported
+                     if rel in gone[sub]))
+
+
+def _kind(name: str) -> str:
+    """A module name reduced to the structure it names, its parameter hash dropped.
+
+    Verilator appends `__` and a parameter hash to a module elaborated at parameters,
+    and two elaborations of one module are one structure. The same reduction is applied
+    to a *declared* name because the two name spaces are joined: a module whose own name
+    carries a double underscore would otherwise be keyed one way in the netlist and
+    another in the attribution maps, join to nothing, and be reported at once as inert
+    and as unexplained, which is two false findings out of one module.
+    """
+    return name.split("__", maxsplit=1)[0]
+
+
+def _declared_modules(text: str) -> frozenset[str]:
+    """The module kinds one SystemVerilog source declares, comments removed first."""
+    bare = LINE_COMMENT_RE.sub("", BLOCK_COMMENT_RE.sub("", text))
+    return frozenset(_kind(str(name)) for name in MODULE_DECL_RE.findall(bare))
+
+
+def _substitution_modules(root: Path, subs: tuple[Substitution, ...]
+                          ) -> tuple[dict[str, str], dict[str, str]]:
+    """Which module kinds the substitutions introduce, and which they displace.
+
+    Two maps from a module kind to the path that accounts for it: the authored source
+    that declares it, and the imported source that declared it before the substitution
+    stood where it was. Both are read out of the SystemVerilog, so a module renamed on
+    either side moves the map rather than leaving a table beside the files to go stale.
+    """
+    introduced: dict[str, str] = {}
+    displaced: dict[str, str] = {}
+    for sub in subs:
+        authored = root / sub.authored
+        if authored.is_file():
+            for name in _declared_modules(authored.read_text(encoding="utf-8",
+                                                             errors="replace")):
+                introduced[name] = sub.authored
+        for rel in sub.imported:
+            imported = root / CORE / rel
+            if imported.is_file():
+                for name in _declared_modules(imported.read_text(encoding="utf-8",
+                                                                 errors="replace")):
+                    displaced[name] = rel
+    return introduced, displaced
+
+
+@dataclass(frozen=True)
+class Diff:
+    """The two inventories partitioned, one member per thing a reader does with it.
+
+    `removed` is the column [the provenance record](../rtl/synthesis-provenance.md)
+    speaks about and stays exactly that, every kind a substitution can account for
+    having been taken out of it into `displaced`. `unexplained` and `inert` are the two
+    findings, and they are opposite failures of one declaration: a module the curated
+    build instantiates that no authored source in its file list declares, and an
+    authored module that reached the file list and never reached the netlist.
+    """
+
+    removed: tuple[str, ...]
+    displaced: tuple[str, ...]
+    introduced: tuple[str, ...]
+    unexplained: tuple[str, ...]
+    inert: tuple[str, ...]
+
+    @property
+    def findings(self) -> int:
+        return len(self.unexplained) + len(self.inert)
+
+
+def _diff(curated: set[str], stock: set[str], introduced_by: dict[str, str],
+          displaced_by: dict[str, str]) -> Diff:
+    """The partition, over the two module-kind sets and the two attribution maps."""
+    gone = stock - curated
+    new = curated - stock
+    return Diff(
+        removed=tuple(sorted(kind for kind in gone if kind not in displaced_by)),
+        displaced=tuple(sorted(kind for kind in gone if kind in displaced_by)),
+        introduced=tuple(sorted(kind for kind in new if kind in introduced_by)),
+        unexplained=tuple(sorted(kind for kind in new if kind not in introduced_by)),
+        inert=tuple(sorted(kind for kind in introduced_by if kind not in curated)))
 
 
 def _baseline_config(root: Path, work: Path) -> Path:
@@ -475,7 +700,7 @@ def _baseline_config(root: Path, work: Path) -> Path:
     return path
 
 
-def _elaborate(binary: str, root: Path, config: Path, xml: Path) -> tuple[int, str]:
+def _elaborate(binary: str, root: Path, files: FileList, xml: Path) -> tuple[int, str]:
     """One elaboration of the imported core, its AST written where the caller says.
 
     Run from the lane's own working directory rather than from the checkout, for two
@@ -487,7 +712,7 @@ def _elaborate(binary: str, root: Path, config: Path, xml: Path) -> tuple[int, s
     """
     prim = root / PRIM
     listing = xml.with_suffix(".f")
-    listing.write_text("\n".join(_file_list(root, config)) + "\n", encoding="utf-8")
+    listing.write_text("\n".join(files.lines) + "\n", encoding="utf-8")
     argv = [binary, "--xml-only", "--timescale", "1ns/1ps", "-Wno-fatal",
             "-y", str(prim / "prim/rtl"), "-y", str(prim / "prim_generic/rtl"),
             f"+incdir+{prim / 'prim/rtl'}",
@@ -504,11 +729,63 @@ def _inventory(xml: Path) -> tuple[set[str], int, int]:
 
     The module *kind* is the name with its parameter hash removed, because two
     elaborations of one module at different parameters are one structure and the
-    question this answers is which structures exist.
+    question this answers is which structures exist. It is `_kind` that removes it, the
+    same reduction the attribution maps are keyed by, so the two sets join.
     """
     text = xml.read_text(encoding="utf-8", errors="replace")
-    kinds: set[str] = {str(name).split("__")[0] for name in MODULE_RE.findall(text)}
+    kinds: set[str] = {_kind(str(name)) for name in MODULE_RE.findall(text)}
     return kinds, len(CELL_RE.findall(text)), len(VAR_RE.findall(text))
+
+
+def cmd_filelist(args: argparse.Namespace) -> int:
+    """The curated arm's file list, and the verdict on every substitution in it.
+
+    The elaboration's composition without the elaboration, so that a lane declaring a
+    substitution learns whether it reached a line of the imported manifest before it
+    pays two minutes for an elaborator to tell it the same thing in a harder-to-read
+    way. It reads the checkout and drives no toolchain, so it answers on either lane.
+
+    Only the curated arm is composed, because the baseline carries no substitution by
+    construction and composing it would decide nothing this does not already say.
+    """
+    root = find_root()
+    out: list[str] = []
+    manifest = f"{CORE}/{CORE_FLIST}"
+    if not (root / manifest).exists():
+        out.append(f"FAIL {manifest} is not in this checkout")
+        out.append("     the imported core is a gitlink and this reads its manifest: "
+                   "`git submodule update --init upstream/cva6-cheri`")
+        print("\n".join(out))
+        return 1
+    config = root / provenance.CONFIG
+    if not config.is_file():
+        out.append(f"FAIL the curated configuration is not at {config}")
+        print("\n".join(out))
+        return 1
+
+    files = _file_list(root, config, SUBSTITUTIONS)
+    introduced_by, displaced_by = _substitution_modules(root, files.taken)
+    out.append(f"== the curated arm's file list, {len(files.lines)} entries")
+    out.append(f"   {len(SUBSTITUTIONS)} declared substitution(s), {len(files.taken)} "
+               "of them standing in the imported manifest's place")
+    out.extend(f"   {'ok  ' if sub in files.taken else 'FAIL'} {sub.authored} "
+               f"<- {', '.join(sub.imported)}" for sub in SUBSTITUTIONS)
+    if files.taken:
+        # Printed whether or not either count is zero: a row whose two sides are both
+        # packages attributes nothing, and a lane that declared it needs to be told
+        # that rather than left reading silence as an unprinted line.
+        out.append(f"   {len(introduced_by)} module kind(s) the authored sources "
+                   f"declare, against {len(displaced_by)} the imported ones did")
+    if not (root / PRIM).exists():
+        out.append(f"   {PRIM} is not in this checkout, so the entries this composes "
+                   "for its primitive packages name files an elaboration would refuse "
+                   "by name")
+    if args.show:
+        out.append("")
+        out.extend(f"   {line}" for line in files.lines)
+    out.extend(files.refusals)
+    print("\n".join(out))
+    return 1 if files.refusals else 0
 
 
 def cmd_elaborate(args: argparse.Namespace) -> int:
@@ -521,9 +798,13 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
     is *right*: an absence is claimed by the contract and bound by the record, and this
     says what the elaborator built.
 
-    Every row of the difference is a deletion. A module the curated configuration
-    instantiates and the stock one does not would be a finding, because every row of the
-    profile and the contract is less hardware than the stock core and never more.
+    Every row of the difference is a deletion **or an authored replacement**, and the
+    report is partitioned so that the two are never one figure. A module the curated
+    configuration instantiates and the stock one does not is a finding where no authored
+    source in the curated file list declares it, because every row of the profile and the
+    contract is less hardware than the stock core and never more; where one does declare
+    it, it is that substitution's introduction and is reported as such rather than as a
+    contradiction of the contract.
     """
     e = env.load()
     log = e.log("rtl-elaborate")
@@ -554,15 +835,29 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
     work = e.lane_root / "rtl-elaborate"
     work.mkdir(parents=True, exist_ok=True)
 
-    configs = {"curated": root / provenance.CONFIG,
-               "baseline": _baseline_config(root, work)}
+    curated_config = root / provenance.CONFIG
+    if not curated_config.is_file():
+        out.append(f"FAIL the curated configuration is not at {curated_config}")
+        print("\n".join(out))
+        return 1
+
+    # The substitutions reach the curated arm and never the baseline, which is what
+    # keeps the difference a statement about the parameters: a baseline carrying
+    # authored sources would be a second curation rather than the tree the record's
+    # rows are read against.
+    arms = {"curated": _file_list(root, curated_config, SUBSTITUTIONS),
+            "baseline": _file_list(root, _baseline_config(root, work))}
+    refusals = arms["curated"].refusals
+    if refusals:
+        out.extend(refusals)
+        out.append("     a declaration that reaches no line leaves the imported source "
+                   "in the build and the authored one out of it, which elaborates")
+        print("\n".join(out))
+        return 1
+
     inventories: dict[str, tuple[set[str], int, int]] = {}
-    for name, config in configs.items():
-        if not config.is_file():
-            out.append(f"FAIL the {name} configuration is not at {config}")
-            print("\n".join(out))
-            return 1
-        code, text = _elaborate(binary, root, config, work / f"{name}.xml")
+    for name, files in arms.items():
+        code, text = _elaborate(binary, root, files, work / f"{name}.xml")
         if code != 0:
             print(text)
             out.append(f"FAIL the {name} configuration did not elaborate")
@@ -572,8 +867,8 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
 
     curated_kinds, curated_cells, curated_vars = inventories["curated"]
     stock_kinds, stock_cells, stock_vars = inventories["baseline"]
-    removed = sorted(stock_kinds - curated_kinds)
-    added = sorted(curated_kinds - stock_kinds)
+    introduced_by, displaced_by = _substitution_modules(root, arms["curated"].taken)
+    diff = _diff(curated_kinds, stock_kinds, introduced_by, displaced_by)
 
     out.append(f"== elaborated under verilator {VERILATOR_PIN}, lane "
                f"{e.lane or 'primary'}")
@@ -581,20 +876,39 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
                "the floating-point")
     out.append("   extension off, so A-15 is evidenced by its parameter and not by "
                "this difference")
+    if arms["curated"].taken:
+        out.append(f"   the curated arm stands {len(arms['curated'].taken)} authored "
+                   "source(s) in the imported manifest's place and the baseline "
+                   "stands none")
     out.append(f"   baseline: {len(stock_kinds)} module kinds, {stock_cells} cells, "
                f"{stock_vars} declared variables")
     out.append(f"   curated: {len(curated_kinds)} module kinds, {curated_cells} cells, "
                f"{curated_vars} declared variables")
     out.append("")
-    out.append(f"   {len(removed)} structure(s) the disabling parameters remove:")
-    out.extend(f"     {kind}" for kind in removed)
-    if added:
+    out.append(f"   {len(diff.removed)} structure(s) the disabling parameters remove:")
+    out.extend(f"     {kind}" for kind in diff.removed)
+    if diff.displaced:
         out.append("")
-        out.append(f"FAIL {len(added)} structure(s) the curated configuration "
-                   "instantiates and the stock one does not:")
-        out.extend(f"     {kind}" for kind in added)
+        out.append(f"   {len(diff.displaced)} structure(s) an authored source replaces "
+                   "rather than a parameter removes:")
+        out.extend(f"     {kind:<28} {displaced_by[kind]}" for kind in diff.displaced)
+    if diff.introduced:
+        out.append("")
+        out.append(f"   {len(diff.introduced)} structure(s) an authored source "
+                   "introduces:")
+        out.extend(f"     {kind:<28} {introduced_by[kind]}" for kind in diff.introduced)
+    if diff.unexplained:
+        out.append("")
+        out.append(f"FAIL {len(diff.unexplained)} structure(s) the curated configuration "
+                   "instantiates that no authored source in its file list declares:")
+        out.extend(f"     {kind}" for kind in diff.unexplained)
+    if diff.inert:
+        out.append("")
+        out.append(f"FAIL {len(diff.inert)} authored module(s) reached the file list and "
+                   "not the netlist:")
+        out.extend(f"     {kind:<28} {introduced_by[kind]}" for kind in diff.inert)
     print("\n".join(out))
-    return 1 if added else 0
+    return 1 if diff.findings else 0
 
 
 def _detach(log: Path) -> int:
@@ -641,6 +955,8 @@ def cmd_wait(args: argparse.Namespace) -> int:
 
 COMMANDS: cli.Table = {
     "provenance": (cmd_provenance, "parse and print the synthesis-provenance record"),
+    "filelist": (cmd_filelist,
+                 "the curated arm's file list, and every substitution's verdict"),
     "lint": (cmd_lint, "Verilator over the authored sources in rtl/"),
     "vectors": (cmd_vectors,
                 "the model's own answers about the capability format, as text"),
@@ -653,6 +969,9 @@ COMMANDS: cli.Table = {
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
+    if name == "filelist":
+        sub.add_argument("--show", action="store_true",
+                         help="print the composed list itself, entry by entry")
     if name == "elaborate":
         sub.add_argument("--background", action="store_true",
                          help="detach, writing the whole run to this lane's log")
