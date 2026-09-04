@@ -284,15 +284,15 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S19
 · Disposition: open, reported and not closed; recording it changes what every future agent-parallel cell carries, which is the plan's to state and not one item's to impose on the cells already landed
 
-**F-236a** measurement: the document written for an independent reviewer told them this repository has no continuous integration and that a person runs every gate by hand, over a tree that had carried a push workflow since the day before, the workflow's own landing having repaired the two statements inside the tools lane and not the one outside it
+**F-236a** measurement: the document written for an independent reviewer told them this repository has no continuous integration and that a person runs every gate by hand, and the push workflow landed fourteen hours later and repaired the two statements inside the tools lane and not the one outside it
 · Raised: S22
 · Disposition: closed, the sentence rewritten to say which of the six commands runs unattended and which do not
 
-**F-236b** measurement: a unit-test header called its properties the only programs exercising the capability instruction surface until a purecap corpus that had landed the day before it was written, so the claim was false when authored rather than drifted into falsity and no later act was owed a re-reading of it
+**F-236b** measurement: a unit-test header called its properties the only programs exercising the capability instruction surface until a purecap corpus that landed six and a half hours after the sentence was written, and the file was edited three further times over the two days after that landing without the sentence being re-read
 · Raised: S22
 · Disposition: closed, the clause deleted and the header stopped at the half that holds
 
-**F-236c** measurement: a second unit-test header called its properties the whole of the machine's own regression corpus and its own last commit is what falsified it, that commit creating five corpus programs while editing the file by fifteen lines and leaving the sentence standing
+**F-236c** measurement: a second unit-test header called its properties the whole of the machine's own regression corpus and the commit that falsified it is the commit that last edited the file, creating eleven purecap programs while it had the sentence open
 · Raised: S22
 · Disposition: closed, the sentence deleted, the `riscv-tests` explanation beneath it still true and kept
 
