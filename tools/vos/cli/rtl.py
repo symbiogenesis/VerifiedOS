@@ -19,7 +19,7 @@ elaborate the core at its intended synthesis configuration, enumerate what the
 elaborator instantiated, and hold that against the stock configuration so that every
 structure the disabling parameters remove is named rather than asserted. What it prints
 is what the elaborator reports; what removes each structure is
-[rtl/synthesis-provenance.md](../rtl/synthesis-provenance.md)'s to say, and rule K-76
+[rtl/synthesis-provenance.md](../../../rtl/synthesis-provenance.md)'s to say, and rule K-76
 holds the record against the configuration package so the two cannot drift.
 
 **A curation replaces imported sources as well as re-valuing parameters, and the two

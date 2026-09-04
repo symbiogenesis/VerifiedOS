@@ -3,8 +3,8 @@
 
 Name order is not a dependency order, and a `Require` compiled ahead of its dependency
 is satisfied by whatever stale `.vo` a previous run left behind, which is a green run
-about a proof nobody rebuilt. [proof-gate.py](../proof-gate.py) has always derived the
-order rather than assuming it; the parse moved here when [seed.py](../seed.py) needed
+about a proof nobody rebuilt. [run.py proofs](cli/proofs.py) has always derived the
+order rather than assuming it; the parse moved here when [run.py seed](cli/seed.py) needed
 the same order for a mutated copy of the same tree, on the convention that a parse two
 tools make is written once.
 """

@@ -2,8 +2,8 @@
 """The Gallina front's rig: a scratch copy of the proofs, a prover, and a vector file.
 
 Three loops need the same three things, so they are here rather than in any one of
-them. [seed.py](../seed.py) mutates a definition and asks whether the prover still
-closes the artifact. [quickchick.py](../quickchick.py) compiles a harness that
+them. [run.py seed](cli/seed.py) mutates a definition and asks whether the prover still
+closes the artifact. [run.py quickchick](cli/quickchick.py) compiles a harness that
 enumerates inputs and prints what the definitions answer. And a mutant that survives
 the prover is handed straight to the second, which is the whole point of running them
 together: what a seeded weakening survives is what the theorems do not constrain, and
