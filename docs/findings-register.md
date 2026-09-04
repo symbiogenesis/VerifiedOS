@@ -768,6 +768,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M0.20
 · Disposition: standing, the figure owed to the integrator's own run after the merge rather than to a lane, which quotes none
 
+**F-228j** measurement: the model's revision stamp carries `-dirty` over a committed tree the host reads clean, with no build tree inside the checkout and no working-tree change to account for it, so the marker beside a revision figure does not decide whether the tree it was built from was edited
+· Raised: M0.20
+· Disposition: open, which side is right about the tree undetermined here and no cause asserted; the act is a reading of the two gits against each other, and until it is taken every revision figure in the plan carrying the marker is uninformative rather than wrong
+
 ## M1 · Toolchain spine
 
 **F-125** upstream-defect: the pinned compiler's dual-licensed subset does not reach the verified backend passes, the target backend, or the capability backend, which are precisely what the re-homing takes
