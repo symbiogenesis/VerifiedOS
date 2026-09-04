@@ -19,9 +19,9 @@ changes what four rules downstream decide.
 what its generator emits from its owners.** Neither lane can decide the whole of it, and
 the split is a property of the machine rather than a weakening of the claim.
 
-`check.py` runs on the Windows host, where there is no Sail, so the emitter for the one
-row here **cannot run at this gate at all**. What the host can decide, it decides, and
-what it cannot it names in its own `ok` line rather than passing over:
+`check.py` runs on the Windows host, where there is no Sail, so the emitter for the
+model's own bundle **cannot run at this gate at all**. What the host can decide, it
+decides, and what it cannot it names in its own `ok` line rather than passing over:
 
 - **the artifact against the index.** The index is what this repository has been told
   the generator last emitted, and what review last saw, so a working tree that has
@@ -46,7 +46,7 @@ half it decided and never claims the other.
 disqualifying on their own. The host has no Sail, so a rule that ran the generator would
 be red on the machine this repository is edited from, which is a rule that gets turned
 off rather than a rule that bites. And re-launching into the guest would put a 40-second
-Sail run and a WSL dependency inside a three-gate wave that answers in 24 seconds, for a
+Sail run and a WSL dependency inside a wave whose cost is otherwise host-local, for a
 question that changes only when the model does. What makes the split honest is that the
 host's half is not vacuous: it catches the hand edit and it catches the stale artifact,
 which are the two ways a generated file goes wrong in practice.
@@ -77,10 +77,10 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from vos import corpus as corpus_mod
-from vos import dialectgen, sailbundle
+from vos import dialectgen, sailbundle, socmap
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -91,6 +91,34 @@ if TYPE_CHECKING:
 HEADING = "=== generated: every generated artifact against its generator and its owner ==="
 
 
+class Emitter(Protocol):
+    """What a host row's generator is, as this group has to be able to call it.
+
+    One signature over two generators that read different things, which is what makes
+    the host lane a property of the *table* rather than a branch in the reading below.
+    The bundle is passed to every emitter and used by the ones that need it; an
+    emitter handed `None` where it needs one raises, and that raise is this rule's
+    finding on the same fail-closed ground every other input here stands on.
+    """
+
+    def __call__(self, root: Path, bundle: sailbundle.Bundle | None) -> str: ...
+
+
+def _dialect_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    """The encoder table, which is a function of the bundle and the configurations."""
+    if bundle is None:
+        raise RuntimeError(f"this run has no readable {sailbundle.BUNDLE}, so what "
+                           "the encoder table's generator would write cannot be "
+                           "decided")
+    return dialectgen.emit(bundle, root)
+
+
+def _socmap_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    """The SoC address map, which is a function of the frozen composition alone."""
+    del bundle
+    return socmap.emit(root)
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -99,6 +127,9 @@ class Row:
     generator can be run at this gate and its byte identity is decided here outright; a
     `guest` row's cannot, so this gate decides the index and the owners and names the
     command that decides the rest. A row is never silently skipped for its lane.
+
+    `emit` is that generator, and it is `None` on a guest row for the reason the lane
+    column exists: there is no host-side function to call.
     """
 
     path: str
@@ -106,6 +137,7 @@ class Row:
     lane: str
     owners: str
     checker: str
+    emit: Emitter | None = None
 
 
 # The generated artifacts, one row each. Adding one is a row here and nothing else: the
@@ -123,7 +155,19 @@ GENERATED: tuple[Row, ...] = (
         generator="run.py check --fix",
         lane="host",
         owners="the model's generated bundle and the shipped configurations",
-        checker="this gate"),
+        checker="this gate",
+        emit=_dialect_emit),
+    # The SoC address map, in the language the RTL is written in. It reads the frozen
+    # composition and nothing else, so it needs neither the bundle nor Sail and its
+    # whole claim is decided here; K-65 is what makes reading the primary alone enough,
+    # holding the other two shipped files against it on every key outside their own
+    # declared divergence sets, of which no aperture and no region is a member.
+    Row(path=socmap.ARTIFACT,
+        generator="run.py check --fix",
+        lane="host",
+        owners="the frozen profile's composition",
+        checker="this gate",
+        emit=_socmap_emit),
 )
 
 
@@ -195,9 +239,11 @@ def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None) -> Readi
     the bytes in the working tree are the bytes the generator writes, or they are a
     finding and `--fix` replaces them.
 
-    Fail-closed on the input, on K-67's and K-75's ground: this artifact is a function of
-    the bundle, so a run whose bundle would not parse decides nothing about it and says
-    so here rather than passing over it.
+    Fail-closed on the input, on K-67's and K-75's ground: a row whose generator cannot
+    read what it is a function of decides nothing about the artifact and says so here
+    rather than passing over it. The emitter raising is what says that, so a row that
+    needs the bundle and a row that needs only a configuration fail the same way and
+    the reading below carries no branch about which is which.
     """
     out = Reading(findings=[], fixed=[])
     on_disk = ctx.root / row.path
@@ -207,13 +253,13 @@ def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None) -> Readi
             f"{row.path} is generated by `{row.generator}` and the git index does not "
             f"carry it, so nothing this checker decides about it means anything")
         return out
-    if bundle is None:
+    if row.emit is None:
         out.findings.append(
-            f"{row.path} is generated from {sailbundle.BUNDLE}, of which this run has "
-            f"no readable copy, so what its generator would write cannot be decided")
+            f"{row.path} is a host row and names no generator to run, so this gate "
+            f"decides nothing about it")
         return out
     try:
-        expected = dialectgen.emit(bundle, ctx.root).encode("utf-8")
+        expected = row.emit(ctx.root, bundle).encode("utf-8")
     except (RuntimeError, ValueError, KeyError) as exc:
         out.findings.append(f"the generator for {row.path} raised: {exc}")
         return out
