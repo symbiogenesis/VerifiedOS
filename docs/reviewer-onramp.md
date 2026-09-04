@@ -74,7 +74,7 @@ $ python tools/run.py rtl provenance              # each claimed absence, and th
 $ python tools/run.py oracle list                 # the differential oracles, and how large each is
 ```
 
-There is no continuous integration in this repository. Nothing runs these but a person, by hand, before anything lands, which is a fact about the assurance position and not only about the workflow. [tools/README.md](../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
+Only the host gate wave runs unattended: [host-gates.yml](../.github/workflows/host-gates.yml) runs `python tools/run.py` and `python tools/run.py test` on an Ubuntu runner at every push and pull request to `main`. Everything else here runs only when a person runs it, before anything lands, which is a fact about the assurance position and not only about the workflow. [tools/README.md](../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
 
 ## 7. Where a finding goes
 

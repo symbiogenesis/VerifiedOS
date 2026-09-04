@@ -9,7 +9,7 @@
 # (R-15-007b). Bit order, least significant first: global, R, W, LC, SC, SL,
 # LG, LM, X, SE, US, ASR.
 #
-# Capabilities live in c10 upward here and in every corpus program, so that no
+# Capabilities live in c8 upward here and in every corpus program, so that no
 # capability register is also a `t` register the checks around it are using.
 
         .text
