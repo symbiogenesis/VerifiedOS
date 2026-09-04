@@ -609,6 +609,7 @@ ABSENCE = "docs/absence-contract.md"
 CORPUS_DOC = "docs/differential-corpus.md"
 CONTRACT = "docs/freeze-measurement-contract.md"
 GEOMETRY = "docs/block-geometry-constraint.md"
+IDL_PROFILE = "docs/idl-profile.md"
 THIRD_PARTY = "THIRD-PARTY.md"
 DELTA = "docs/rtl-reparameterization-delta.md"
 FINDINGS = "docs/findings-register.md"
@@ -727,6 +728,21 @@ def _k29(box: Sandbox) -> bool:
     row = re.sub(r"R-\d\d-\d+[a-z]?", "the profile", m.group())
     at = start + m.start()
     return box.write(PROFILE, text[:at] + row + text[at + len(m.group()):])
+
+
+def _k100(box: Sandbox) -> bool:
+    """A module renaming the function a row of the lane's fact table points at.
+
+    Every occurrence moves rather than the definition alone, which is what makes this a
+    refactor and not a broken file: the module is internally consistent, imports, and
+    stops spelling the name a table two directories away names as its consumer. One
+    occurrence would leave the call site spelling it and the rule rightly quiet.
+    """
+    rel = "tools/vos/env.py"
+    text = box.read(rel)
+    if "_ccache_args" not in text:
+        return False
+    return box.write(rel, text.replace("_ccache_args", "_ccache_launchers"))
 
 
 def _k84(box: Sandbox) -> bool:
@@ -1332,6 +1348,14 @@ CASES: list[Case] = [
      _literal("rtl/vos_c_class_config_pkg.sv", "BHTEntries: unsigned'(0),",
               "BHTEntries: unsigned'(1),")),
 
+    # The elaborator's pin moved in the record's own paragraph and left in the row four
+    # lines above it, which is the shape a version bump takes when it is applied where a
+    # reader is looking and not where the lane enforces it. Nothing else reads the edit:
+    # the paragraph carries no link, no id and no count, and K-81 reads object ids alone,
+    # so a dotted version is not a restatement it can see.
+    ("K-97", "an elaborator pin the record states and the lane's own constant refuses",
+     _literal(THIRD_PARTY, "The pin is **5.032**", "The pin is **5.036**")),
+
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
     # still renders, the table is still the width its header declares, no id and no
@@ -1510,6 +1534,39 @@ CASES: list[Case] = [
      _literal(RING_ARTIFACT,
               "if Nat.leb cases 256 then 1 else if Nat.leb cases 65536 then 2 else 4.",
               "if Nat.leb cases 255 then 1 else if Nat.leb cases 65536 then 2 else 4.")),
+
+    # The same file from the other side, and the seed is in the *profile* rather than in
+    # the artifact, because that is the whole of what separates this rule from the one
+    # above: K-89 re-emits and compares bytes, so it is satisfied by an artifact that
+    # agrees with the declaration and the register whatever §4.2 has come to say. One
+    # member leaves the row that places it, the encoder goes on spending a declared width
+    # on it, and the row still renders, keeps its width, cites the same requirement and
+    # moves no count, so no table, link, citation or count rule reads the edit.
+    ("K-99", "a wire-format row that stopped carrying a member the emitter encodes",
+     _literal(IDL_PROFILE,
+              "plus offset, length, direction, and declared content type",
+              "plus offset, length, and declared content type")),
+
+    # One rule gets one case and this one gets two, because the reading above is a
+    # membership and the reading here is the recomputation: with the ladder half deleted
+    # the case above is still killed, so a rule narrowed to the pairings would pass its
+    # own selftest while the width rule the emitter writes as a literal drifted from the
+    # entry that fixes it. The seed moves the *criterion's* restatement of the ceiling and
+    # leaves the two statements of the rungs standing, which is the drift that reads as
+    # an editorial change: the entry goes on stating one ladder, and it now names a top
+    # rung its own rungs do not reach.
+    ("K-99", "a width ladder whose stated ceiling is not the top rung it states",
+     _literal(IDL_PROFILE, "its four-byte ceiling", "its two-byte ceiling")),
+
+    # The lane's fact table names a function of `env.py` as what wants ccache, and the
+    # seed renames that function where it is defined. That is the direction the drift
+    # arrives from and the reason it is silent: nobody edits a table of facts to follow a
+    # refactor of the module it points at, the rename is local, every caller moves with
+    # it, both type checkers stay clean, and the row goes on naming a consumer this tree
+    # no longer has. The provisioner is not seeded, being imported here rather than read
+    # off the sandbox, which is what makes the artifact side the one a case can move.
+    ("K-100", "a lane fact naming a consumer the module it points at has renamed",
+     _k100),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
