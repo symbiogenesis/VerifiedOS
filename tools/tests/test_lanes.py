@@ -82,6 +82,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("model", "freeze-emit"): lambda scratch: [
         "base-integer", "--out", str(scratch / "freeze")],
     ("rtl", "provenance"): lambda _: [],
+    ("rtl", "filelist"): lambda _: [],
     ("oracle", "list"): lambda _: [],
     ("oracle", "emit"): lambda _: ["--spec", "capformat"],
     # `seed list` resolves its file against the root it finds for itself, so this one
