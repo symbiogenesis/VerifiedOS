@@ -1230,6 +1230,22 @@ Theorem the_consumer_order_is_strict_at_the_same_place :
                         (cons act_drain nil))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(* The other two order conjuncts are strict for the same reason, and each is
+   decided on the chain where the two acts it orders are both absent: a reading
+   at or before would let two absent acts satisfy the order by sitting at one
+   index, which is the index past the chain's own end. *)
+Theorem the_drain_order_is_strict_at_its_own_boundary :
+  andb (Nat.eqb (consumer_broken (suffix_at 2 spec_consumer_chain)) 4)
+       (negb (at_member consumer_conjuncts 0 (fun _ => true)
+                        (suffix_at 2 spec_consumer_chain))) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem the_release_order_is_strict_at_its_own_boundary :
+  andb (Nat.eqb (producer_broken (suffix_at 2 spec_producer_chain)) 4)
+       (negb (at_member producer_conjuncts 0 (fun _ => true)
+                        (suffix_at 2 spec_producer_chain))) = true.
+Proof. vm_compute; reflexivity. Qed.
+
 Theorem each_producer_transposition_breaks_exactly_one :
   all_of (fun c => Nat.eqb (producer_broken c) 1)
          (transpositions spec_producer_chain) = true.
@@ -2029,7 +2045,17 @@ Proof. vm_compute; reflexivity. Qed.
 Example the_copy_once_run_is_the_one_the_specification_answers :
   match copy_once declared_extent first_image second_image with
   | Some r => andb (Nat.eqb (cr_reads r) (cr_reads staged_run))
-                   (Nat.eqb (cr_bytes r) (cr_bytes staged_run))
+                   (andb (Nat.eqb (cr_bytes r) (cr_bytes staged_run))
+                         (Nat.eqb (cr_staged r) (cr_staged staged_run)))
+  | None => false
+  end = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Example the_revalidated_run_is_the_one_the_refuter_answers :
+  match copy_revalidating declared_extent first_image second_image with
+  | Some r => andb (Nat.eqb (cr_reads r) (cr_reads revalidated_run))
+                   (andb (Nat.eqb (cr_bytes r) (cr_bytes revalidated_run))
+                         (Nat.eqb (cr_staged r) (cr_staged revalidated_run)))
   | None => false
   end = true.
 Proof. vm_compute; reflexivity. Qed.
@@ -2852,18 +2878,34 @@ Example the_four_worlds :
      nil))))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(* The three slot witnesses are one request seen three ways, so their
+   identifiers agree and what separates them is the reader count and the
+   validation flag. *)
 Example the_slot_witnesses_carry_their_readers_and_their_validation :
-  andb (Nat.eqb (count_of all_slots) 18)
-       (andb (Nat.eqb (sl_readers held_terminal_slot) 1)
-             (andb (negb (sl_validated unvalidated_submitted_slot))
-                   (andb (Nat.eqb (sl_request demo_slot) 7)
-                         (Nat.eqb (sl_readers demo_slot) 0)))) = true.
+  all_of (fun b => b)
+    (cons (Nat.eqb (count_of all_slots) 18)
+    (cons (Nat.eqb (sl_readers held_terminal_slot) 1)
+    (cons (negb (sl_validated unvalidated_submitted_slot))
+    (cons (Nat.eqb (sl_readers demo_slot) 0)
+    (cons (sl_validated demo_slot)
+    (cons (Nat.eqb (sl_request demo_slot) (sl_request held_terminal_slot))
+    (cons (Nat.eqb (sl_request demo_slot) (sl_request unvalidated_submitted_slot))
+    (cons (Nat.eqb (sl_request demo_slot) 7)
+    (cons (Nat.eqb (sl_readers unvalidated_submitted_slot) 0)
+    (cons (sl_validated held_terminal_slot)
+     nil)))))))))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Example the_copy_witnesses_carry_their_lengths_and_their_extent :
-  andb (Nat.eqb (buf_length first_image) declared_extent)
-       (andb (Nat.eqb (cr_reads staged_run) 1)
-             (Nat.eqb (cr_reads revalidated_run) 2)) = true.
+  all_of (fun b => b)
+    (cons (Nat.eqb (buf_length first_image) declared_extent)
+    (cons (Nat.eqb (cr_reads staged_run) 1)
+    (cons (Nat.eqb (cr_reads revalidated_run) 2)
+    (cons (Nat.eqb (cr_staged staged_run) (buf_datum first_image))
+    (cons (Nat.eqb (cr_staged revalidated_run) (buf_datum second_image))
+    (cons (Nat.eqb (cr_bytes staged_run) (buf_length first_image))
+    (cons (Nat.eqb (cr_bytes revalidated_run) (buf_length second_image))
+     nil))))))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Example the_two_busy_slots :
@@ -3032,6 +3074,8 @@ Print Assumptions every_producer_weakening_is_refused_by_index.
 Print Assumptions the_producer_index_bound_is_exact.
 Print Assumptions a_producer_that_only_stages_breaks_the_order_and_both_counts.
 Print Assumptions the_consumer_order_is_strict_at_the_same_place.
+Print Assumptions the_drain_order_is_strict_at_its_own_boundary.
+Print Assumptions the_release_order_is_strict_at_its_own_boundary.
 Print Assumptions each_consumer_transposition_breaks_exactly_one.
 Print Assumptions each_duplicated_consumer_act_breaks_exactly_one.
 Print Assumptions each_producer_transposition_breaks_exactly_one.
@@ -3086,6 +3130,7 @@ Print Assumptions the_revalidating_copier_varies_with_the_second_image.
 Print Assumptions the_revalidating_copier_still_refuses_an_overlong_length.
 Print Assumptions the_two_buffer_images_differ_only_in_their_length.
 Print Assumptions the_copy_once_run_is_the_one_the_specification_answers.
+Print Assumptions the_revalidated_run_is_the_one_the_refuter_answers.
 Print Assumptions charging_at_the_maximum_is_independent_of_the_arrival.
 Print Assumptions charging_at_the_arrival_is_refuted.
 Print Assumptions charging_at_the_arrival_still_bounds_a_run_inside_its_extent.
