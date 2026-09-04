@@ -482,21 +482,26 @@ def cmd_coq(args: argparse.Namespace) -> int:
                    else "prover-then-vector")
     picked, scope = picked_with_scope(root, rel, args)
 
+    # Opened before the trees are stood up, because a return taken before the head is
+    # written leaves the *previous* run's journal on disk with its closing line intact,
+    # and the closing line's absence is the whole record: a stale finished file and this
+    # run's would then read the same. The two loops beside this one journal a baseline
+    # that will not stand up, and this one does now as well.
+    book = journal_at(e, name)
+    out.append(book.start(rel, oracle_name, scope))
+
     # One tree per job, and the single-job path keeps the directory it always used, so
     # a run that asked for no concurrency stages exactly where it staged before.
     jobs = max(1, args.jobs)
     trees = [work] if jobs == 1 else [work / f"j{n}" for n in range(jobs)]
     baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick)
     if baseline is None:
-        print(f"FAIL {why}")
+        out.append(f"FAIL {why}")
+        book.close(1)
+        print("\n".join(out))
         return 1
     said = (f"{len(baseline)} vector(s) from the Gallina front"
             if not args.quickchick else "green under QuickChick")
-    # The journal is opened after the trees are stood up rather than before, because
-    # standing one up rebuilds it from scratch and the single-job path stages into this
-    # lane's own working directory.
-    book = journal_at(e, name)
-    out.append(book.start(rel, oracle_name, scope))
     out.append(f"== baseline: {said}, {gallina.version(found)} in {switch}"
                + (f", over {len(trees)} staged tree(s) agreeing unmutated"
                   if len(trees) > 1 else ""))

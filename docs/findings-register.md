@@ -156,7 +156,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S13a
 · Disposition: closed, a prover child given its own switch's variables laid over the inherited ones; what it printed named neither switch
 
-**F-000r** owed-act: a fourth mutation loop carries its own table, its own seeding and its own accounting, and merges the case whose seed no longer applies with the mutant that survived into one list under one label
+**F-000r** owed-act: a fifth mutation loop carries its own table, its own seeding and its own accounting, and merges the case whose seed no longer applies with the mutant that survived into one list under one label
 · Raised: S13b
 · Disposition: closed by I14, the loop reading the shared verdicts and reporting through the one summary, so a mutation that no longer applies and one the rule read and said nothing about are two verdicts counted and named apart; the boundary rule is unmoved, forbidding only the landing loop reaching into the quarantine and not the reverse
 
@@ -1749,18 +1749,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: I12
 · Disposition: standing, which is what puts the lever on S15's generation rather than on a search for dead code
 
-**F-221a** measurement: a disposition read open over an act the tree already carried, nothing holding a register disposition against the code it describes, so the entry went on asking for work that was done with every gate green
+**F-232a** measurement: a disposition read open over an act the tree already carried, nothing holding a register disposition against the code it describes, so the entry went on asking for work that was done with every gate green
 · Raised: I14
 · Disposition: closed, the entry re-dispositioned against what the loop does now; the class is standing and is the one a re-reading catches, a disposition being a judgment no rule computes
 
-**F-221b** measurement: a seeded run's stated scope counted the mutants it picked and not the verdicts it reached, and the one oracle that writes into the checkout stops the moment it cannot verify its own restore, so a stopped run would close on a line stating a run larger than the verdicts printed under it
+**F-232b** measurement: a seeded run's stated scope counted the mutants it picked and not the verdicts it reached, and the one oracle that writes into the checkout stops the moment it cannot verify its own restore, so a stopped run would close on a line stating a run larger than the verdicts printed under it
 · Raised: I14
 · Disposition: closed, the scope narrowed to the verdicts at the point the report is made, which leaves the two oracles that always finish reporting exactly what they reported before
 
-**F-221c** measurement: eight relative links inside the tools' own docstrings resolve to nothing, six of them naming an executable the one-entry-point move retired, and no rule reads a link written in Python prose
+**F-232c** owed-act: eight relative links inside the tools' own docstrings resolve to nothing, seven of them naming an executable the one-entry-point move retired, and no rule reads a link written in Python prose
 · Raised: I14
-· Disposition: closed under `tools/`, every one repointed at the module the command now dispatches; standing in three shipped proof headers naming the same retired tool, a comment edit there costing a guest run of the proof gate this item does not take
+· Disposition: open, the eight under `tools/` repointed at the module the command now dispatches and the same retired tool left named in three shipped proof headers, reported and not closed: a comment edit there costs a guest run of the proof gate this item does not take
 
-**F-221d** measurement: a baseline that would not stand up discarded the prover's own account of why, the emitter's findings being appended to a list nobody read, so the one moment in the loop where a reader has nothing else to go on cost a second whole run to locate
+**F-232d** measurement: a baseline that would not stand up discarded the prover's own account of why, the emitter's findings being appended to a list nobody read, so the one moment in the loop where a reader has nothing else to go on cost a second whole run to locate
 · Raised: I14
 · Disposition: closed, the emitter's text carried out of the baseline and printed as the refusal's reason
