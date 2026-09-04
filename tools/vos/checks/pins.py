@@ -133,9 +133,13 @@ quietly gone to zero one group later. The window is the enumeration and not a sc
 what that leaves out is declared rather than discovered. The plan's own completion notes
 state the elaborator's version beside an elaboration run at it, which is a measurement
 recorded at a gate and not a restatement of the pin, exactly as K-81 leaves a commit
-written beside what was done at it to the sentence that did it; the provisioner and its
-test compose the figure from the constant rather than restating it, so neither is a site;
-and the *upstream's own* version of the same tool, the one the imported core's own flow
+written beside what was done at it to the sentence that did it; the provisioner's Verilator
+row and its test's pin loop compose the figure from the constant rather than restating it,
+and the two places those same files do spell the version as a literal, `_number`'s
+docstring and the case pinning what `_number` parses, are a sample of the elaborator's own
+banner rather than a statement of the pin, fixed by the shape a dotted number takes inside
+a greeting and still true the day the pin moves, so neither file is a site on either
+count; and the *upstream's own* version of the same tool, the one the imported core's own flow
 pins through nix, is a fact about that upstream rather than a pin taken here, so no rule
 holds it and this one says so rather than reaching for it.
 

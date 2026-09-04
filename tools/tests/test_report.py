@@ -14,18 +14,24 @@ from vos.report import Reporter, sites
 def _falsy_items_dropped() -> None:
     # a check building findings in a comprehension yields None or "" for every
     # member it cleared; only the survivors are findings
+    #
+    # The label is deliberately unspellable as a rule id. `Reporter` takes any string,
+    # so a fixture naming a free K-number spends it: the id then reads as named
+    # somewhere for anyone searching the tree before allocating one, and an id a
+    # landing *declined* stops being unspent on the strength of a test fixture. The
+    # other cases here name rules that exist, which costs nothing.
     rep = Reporter()
-    rep.report("K-99", "thing(s):", ["", None, "real"])
+    rep.report("K-XX", "thing(s):", ["", None, "real"])
     ensure(rep.findings == 1, f"findings is {rep.findings}, not the 1 non-falsy item")
-    ensure(rep.out == ["FAIL K-99: 1 thing(s):", "       real"],
+    ensure(rep.out == ["FAIL K-XX: 1 thing(s):", "       real"],
            f"the FAIL shape moved: {rep.out!r}")
 
 
 def _all_falsy_reads_ok() -> None:
     rep = Reporter()
-    rep.report("K-98", "label:", [None, ""])
+    rep.report("K-YY", "label:", [None, ""])
     ensure(rep.findings == 0, "all-falsy items must decide clean")
-    ensure(rep.out == ["ok K-98: label:"],
+    ensure(rep.out == ["ok K-YY: label:"],
            f"with no ok text the label is the ok line's text: {rep.out!r}")
 
 

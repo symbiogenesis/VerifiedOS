@@ -144,10 +144,20 @@ owner cell only where the sentence names the loop that configures a tree; exclud
 shape instead would mean refusing a file name with no directory in it, which is what
 `THIRD-PARTY.md` is.
 
-Fail-closed on the reading, on K-67's and K-75's ground and for the same reason those two
-carry their floors inside them: an empty fact table, a row naming no artifact at all, and
-a row naming a `run.py` command where the entry point declares none are each a finding
-rather than a pass over nothing.
+**Fail-closed on all three readings, and the three are not closed the same way**, which
+is the part worth writing down. The path reading is refused per row: an empty fact table,
+a row naming no artifact at all, and a path the index does not carry are each a finding
+rather than a pass over nothing. The symbol and command readings cannot be, a row being
+under no obligation to name either, so what closes them is a floor across the populated
+table: an owner column that has stopped taking the `path's SYMBOL` form and a `needs`
+column that has stopped naming `run.py` each report here, because a reading that has
+narrowed to nothing while the paths still resolve is exactly the vacuous pass the floors
+group exists for and is the one this rule could otherwise take silently. Both floors are
+inside the rule for the reason K-84's is, the meta group reporting after the floors group
+and so having no count to hand it. What none of the three reaches is the reading that
+narrows *without* emptying, a single owner cell reworded off the `path's SYMBOL` form
+dropping its symbol with the gate green, which is the residue `tools/check-rules.md`
+declares of every pattern here.
 """
 
 import re
@@ -379,9 +389,16 @@ def _lane(ctx: Context) -> None:
     day. What a row must name is an artifact the index carries; where it goes further
     and names that artifact's own constant or function, the token has to still be there.
 
-    Fail-closed at each reading: an empty table, a row naming no artifact at all, and a
-    path the index does not carry each stop the comparison for that row rather than
-    passing over it, which is why this rule owes the floors group no member of its own.
+    Fail-closed at each of the three readings, and the last two need a floor of their
+    own rather than a per-row refusal. An empty table, a row naming no artifact at all,
+    and a path the index does not carry each stop that row's comparison rather than
+    passing over it. A row is not obliged to name a symbol or a command, so neither of
+    those can be refused per row; what is refused is the reading going to zero across a
+    populated table, an owner column that has stopped taking the `path's SYMBOL` form or
+    a `needs` column that has stopped naming `run.py` being a reading that has moved and
+    not a table with nothing left to check. Those two floors are inside the rule for the
+    reason K-84's is, the meta group reporting after the floors group and so having no
+    count to hand it.
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -426,6 +443,15 @@ def _lane(ctx: Context) -> None:
             if command not in commands:
                 findings.append(f"the row for `{fact.name}` names `run.py {command}` as what "
                                 "wants it, and the entry point carries no such command")
+
+    if facts and not symbols:
+        findings.append("no row of the lane's fact table names a symbol as an artifact's "
+                        "own, so the reading that holds a consumer's name against the "
+                        "file spelling it decides nothing")
+    if facts and not named:
+        findings.append("no row of the lane's fact table names a `run.py` command, so "
+                        "the reading that holds a row's consumer against the entry "
+                        "point's table decides nothing")
 
     rep.report("K-100", "row(s) of the lane's fact table naming what this tree does not "
                "carry:", findings,

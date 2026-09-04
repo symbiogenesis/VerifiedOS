@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 424 of them across 73 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 426 of them across 73 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1749,23 +1749,32 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: I12
 · Disposition: standing, which is what puts the lever on S15's generation rather than on a search for dead code
 
-**F-222a** measurement: the lane's fact table named its second owner by a bare file name where the index carries a path, so a row of the machine's own description pointed at nothing a reader or a tool could open
+**F-233a** measurement: the lane's fact table named its second owner by a bare file name where the index carries a path, so a row of the machine's own description pointed at nothing a reader or a tool could open
 · Raised: I15
 · Disposition: closed, the row rewritten to the path, and it is the finding the rule made on the run that landed it
 
-**F-222b** method: an entry states its width ladder twice, once of a length or count field and once of a discriminant, and the second is the one the emitter implements, so a rule reading the first occurrence leaves the second free to move
+**F-233b** method: an entry states its width ladder twice, once of a length or count field and once of a discriminant, and the second is the one the emitter implements, so a rule reading the first occurrence leaves the second free to move
 · Raised: I15
 · Disposition: closed, both statements read and required to agree, with the criterion's own restatement of the ceiling held against the top rung beside them
 
-**F-222c** measurement: the encoder table's gap against the surface the model spells fell from 593 mnemonics to 14 when the table became generated, and every one of the 14 is named by the artifact itself with the guard or the unread clause accounting for it
+**F-233c** measurement: the encoder table's gap against the surface the model spells fell from 593 mnemonics to 14 when the table became generated, and every one of the 14 is named by the artifact itself, ten by the guard that refused them, two by a printed shape the assembler does not write, and two by the one unread clause the residue reaches
 · Raised: I15
 · Disposition: closed, and it is the ground of a decline rather than a defect: the accounting and the artifact are one act, so a rule over the residue would hold a run's output against the same run's account of itself
 · Restates: F-000x
 
-**F-222d** method: a landing falsified a section written to report what nothing holds, the binding it supplied having been recorded there as owed and not written
+**F-233d** method: a landing falsified a section written to report what nothing holds, the binding it supplied having been recorded there as owed and not written
 · Raised: I15
 · Disposition: closed, the section repaired to name which rows the new rule reaches and which stay unheld, a claim that no rule holds a whole section being wider than any rule that replaces it
 
-**F-222e** owed-act: the elaborator's other version is restated in two places and owned by no constant, the imported core's own flow pinning the same tool at a different version through a build system nothing here runs
+**F-233e** owed-act: the elaborator's other version is restated in two places and owned by no constant, the imported core's own flow pinning the same tool at a different version through a build system nothing here runs
 · Raised: I15
 · Disposition: open, reported and not closed; the version-pin rule does not reach it and would be inventing an owner for another project's flow if it did
+
+**F-233f** method: a rule declaring itself fail-closed at each of its readings was fail-closed at one of three, the two readings a row is under no obligation to satisfy being unrefusable per row and floored nowhere, so either could narrow to nothing while every path still resolved and the rule went on reporting a figure it no longer took
+· Raised: I15
+· Disposition: closed, a floor for each of the two put inside the rule rather than into the floors group, on the ground that a group reporting after that group has no count to hand it
+· Restates: F-218d
+
+**F-233g** method: a rule's declared residue gave a ground that did not describe the tree, the two files a window leaves out being said to compose the figure from the constant where each also spells it as a literal, inside a parser's own sample of the tool's greeting
+· Raised: I15
+· Disposition: closed, the ground restated at both sites to the one that holds: a banner sample is fixed by the shape a dotted version takes in a greeting and stays true the day the pin moves, so neither file is a site on either count
