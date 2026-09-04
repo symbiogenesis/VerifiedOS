@@ -55,9 +55,16 @@
    discipline refuses. So every constant below is instantiated and none is
    transcribed, and nothing declared here shadows a name that file exports:
    the ring constants, `submit`, `accept`, `may_reserve`, `work_pending`,
-   `sleeps`, `cancel`, `agree`, `eqb_reflexive`, the four record types and
-   every `op_`, `enc_`, `rec_` and `lifecycle_` name are used at the spelling
-   RingContract gives them. A mutant of this file costs its own compile and
+   `sleeps`, `agree`, `eqb_reflexive`, `activation_cost`,
+   `cancellation_interval`, the four record types and every `op_`, `enc_`,
+   `rec_` and `lifecycle_` name are used at the spelling RingContract gives
+   them. `cancel` is the one exported name this file deliberately does not
+   reach, R-12-097's four answers being M6.5b's family and this file stating
+   only the cleanup accounting beside them. `work_pending` and `sleeps` are
+   reached at the two bridge theorems and nowhere else, because this file's
+   algebra is sequence numbers where the contract's is wire indices, and the
+   bridge is what makes those one algebra rather than two that agree in a
+   comment. A mutant of this file costs its own compile and
    RingContract's is already on disk from the baseline, so the Require is paid
    once per run rather than once per member of the seeded population.
 
@@ -163,6 +170,14 @@
       the chain conjuncts, the service conjuncts, the interleaved run and the
       accounting arithmetic are all decidable, so the generated families are
       checked by conversion rather than by a proof per member.
+  11. A lifecycle step is lawful by the contract's own two *relations* and never
+      by the rank arithmetic that agrees with them. R-12-094 puts one malformed
+      step, from Submitted to Terminal, and `lifecycle_malformed` answers
+      `None` at the other five states; a conjunct reading "one rank more or two
+      ranks more" licenses a skip at *every* state, which is a second malformed
+      step the entry does not license. The two readings are both carried below
+      and the construction that separates them is the skipping advancer, so
+      what the reading buys is machine-checked rather than asserted.
 
    The literals taken from the register, and there are five. The criterion is
    the same at each: one sentence of one entry names its members and closes
@@ -219,10 +234,13 @@
    and once from the filter side. The hand-authored refutations are the ones
    no index generates, being alternative constructions rather than mutations
    of a list: the dual producer, the dual consumer, the untested producer and
-   consumer, the reordering publisher, the never-signalling publisher, the
-   counting consumer, the transactional batch, the partial enqueue, the
-   backward and skipping advancers, the reclaimer under a reader, the acceptor
-   before validation, and the revalidating copy.
+   consumer, the staging-only producer, the reordering consumer read at the
+   interleaving rather than at the chain, the never-signalling publisher, the
+   counting consumer, the greedy consumer, the transactional batch, the
+   backward, skipping and reader-holding advancers, the acceptor before
+   validation, the revalidating copy and the arrival-charged accounting. The
+   partial enqueue is the untested producer met at the other obligation and not
+   a fourteenth construction.
 
    What this file deliberately does not author, with the entry that owes each
    decision. A register gap is reported, not closed:
@@ -651,8 +669,22 @@ Example the_state_list_is_the_contracts_lifecycle :
   Nat.eqb (count_of all_slot_states) (S (lifecycle_rank state_Reclaimed)) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(* One event per step the contract states, which is what makes the count six:
+   five states carry a successor and one carries the malformed step. Checking
+   it against the number of *states* would be a coincidence, six states and six
+   events agreeing for unrelated reasons. *)
 Example there_are_six_service_events :
-  Nat.eqb (count_of all_events) (count_of all_slot_states) = true.
+  Nat.eqb (count_of all_events)
+          (count_of (filter_of (fun t => match lifecycle_next t with
+                                         | Some _ => true
+                                         | None => false
+                                         end)
+                               all_slot_states)
+           + count_of (filter_of (fun t => match lifecycle_malformed t with
+                                           | Some _ => true
+                                           | None => false
+                                           end)
+                                 all_slot_states)) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Definition consumer_act_eqb (a b : consumer_act) : bool :=
@@ -751,6 +783,23 @@ Proof. vm_compute; reflexivity. Qed.
 Theorem the_slot_is_reused_exactly_a_capacity_later :
   all_of (fun base => Nat.eqb (rv_slot (base + ring_capacity)) (rv_slot base))
          (upto ring_capacity) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+(* And the two algebras are joined rather than asserted to be joined: over every
+   occupancy the capacity admits and from every base the span carries, the
+   contract's own `work_pending` on the two *wire* indices answers exactly
+   whether this file's sequence-number occupancy is non-zero. Reading 1 rests
+   on that identity, and until this it was a comment. A file that computes its
+   occupancy by subtraction while the contract computes it modulo the span owes
+   the bridge as a statement, because the two agree only inside a window the
+   declared constants make. *)
+Theorem the_occupancy_is_the_contracts_modular_difference :
+  all_of (fun base =>
+            all_of (fun occ => agree (work_pending (rv_wire (base + occ))
+                                                   (rv_wire base))
+                                     (Nat.ltb 0 occ))
+                   (upto (S ring_capacity)))
+         (upto ring_index_span) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 (* The specification's two steps. Each writes one index and reads the other,
@@ -991,6 +1040,32 @@ Proof.
   unfold KeepsTheCapacity. intros v H. unfold rv_ok in H.
   destruct (andb_split _ _ H) as [ _ Hbd ].
   exact (leb_pred_sub (rv_produced v) (rv_consumed v) ring_capacity Hbd).
+Qed.
+
+(* R-12-095's *no partial enqueue* refuted, which the four theorems above do
+   not reach: they are about the invariant and this is about what a *refused*
+   submission leaves behind. The untested producer is the construction, because
+   the only thing a refused submission can partially do in this algebra is move
+   an index, and moving the producer index past a `would_block` answer is
+   exactly the half-enqueue the clause forbids. *)
+Theorem the_untested_producer_partially_enqueues :
+  ~ NoPartialEnqueue rv_publish_untested.
+Proof.
+  unfold NoPartialEnqueue. intro H. specialize (H full_view).
+  vm_compute in H. discriminate H.
+Qed.
+
+(* And the dual producer keeps that obligation, which is what makes the
+   refutation the missing capacity test and not the extra reservation: a
+   construction that over-reserves still leaves a refused submission alone. *)
+Theorem the_dual_producer_never_partially_enqueues :
+  NoPartialEnqueue rv_publish_dual.
+Proof.
+  unfold NoPartialEnqueue. intro v.
+  unfold service_submit, submit, may_reserve, rv_publish_dual.
+  destruct (Nat.ltb (rv_occupancy v) ring_capacity).
+  - exact I.
+  - apply andb_join; apply eqb_reflexive.
 Qed.
 
 (* The two boundaries the four refutations sit on, pinned so that a reader can
@@ -1361,8 +1436,13 @@ Definition loses_a_wakeup (r : reset_owner) (b : nat) (l : list consumer_act)
        (andb (Nat.ltb (rv_consumed (w_view z)) (rv_produced (w_view z)))
              (Nat.eqb (w_signals z) 0)).
 
+(* The budget is the contract's own `ring_max_batch_size` instantiated and never
+   a figure of this file: R-12-096's *admitted budget* is what R-12-098's batch
+   declares and RingContract's `drain_is_bounded_by_the_batch` holds every
+   variant's drain to. Writing the number here would be a second copy of a
+   generated constant. *)
 Definition ExcludesEveryLostWakeup (r : reset_owner) (l : list consumer_act) : Prop :=
-  forall p : nat, loses_a_wakeup r 8 l p = false.
+  forall p : nat, loses_a_wakeup r ring_max_batch_size l p = false.
 
 Theorem the_specification_chain_excludes_every_lost_wakeup :
   ExcludesEveryLostWakeup reset_at_the_signal spec_consumer_chain.
@@ -1395,28 +1475,35 @@ Qed.
 
 (* And it keeps the obligations it does not break: it never consumes past what
    the producer published, and it takes no more than its budget. What refuses
-   it is the order of its arm against its recheck and nothing else. *)
+   it is the order of its arm against its recheck and nothing else.
+
+   Each is stated over an *arbitrary* publication step and not over a bounded
+   index. `pub_step` clamps every step past the chain's last act onto that
+   last act, so the schedules are finitely many, but a bounded index would be a
+   bound no theorem decides anything at: unlike the weakening families, whose
+   bound one wider reaches the specification and fails, a bound here could be
+   raised without limit and still hold. *)
 Theorem the_transposed_consumer_never_consumes_past_the_producer :
-  all_of (fun p => Nat.leb (rv_consumed (w_view (activation reset_at_the_signal 8
-                                                   arm_after_recheck p quiet_world)))
-                           (rv_produced (w_view (activation reset_at_the_signal 8
-                                                   arm_after_recheck p quiet_world))))
-         (upto 6) = true.
-Proof. vm_compute; reflexivity. Qed.
+  forall p : nat,
+    Nat.leb (rv_consumed (w_view (activation reset_at_the_signal ring_max_batch_size
+                                    arm_after_recheck p quiet_world)))
+            (rv_produced (w_view (activation reset_at_the_signal ring_max_batch_size
+                                    arm_after_recheck p quiet_world))) = true.
+Proof. intro p. destruct p as [| [| [| [| k]]]]; vm_compute; reflexivity. Qed.
 
 Theorem the_transposed_consumer_stays_inside_its_budget :
-  all_of (fun p => Nat.leb (w_drained (activation reset_at_the_signal 8
-                                                  arm_after_recheck p quiet_world)) 8)
-         (upto 6) = true.
-Proof. vm_compute; reflexivity. Qed.
+  forall p : nat,
+    Nat.leb (w_drained (activation reset_at_the_signal ring_max_batch_size
+                          arm_after_recheck p quiet_world)) ring_max_batch_size = true.
+Proof. intro p. destruct p as [| [| [| [| k]]]]; vm_compute; reflexivity. Qed.
 
 (* The specification stays inside its budget too, which is the obligation the
    refutation above is *not* about. *)
 Theorem the_specification_consumer_stays_inside_its_budget :
-  all_of (fun p => Nat.leb (w_drained (activation reset_at_the_signal 8
-                                                  spec_consumer_chain p quiet_world)) 8)
-         (upto 6) = true.
-Proof. vm_compute; reflexivity. Qed.
+  forall p : nat,
+    Nat.leb (w_drained (activation reset_at_the_signal ring_max_batch_size
+                          spec_consumer_chain p quiet_world)) ring_max_batch_size = true.
+Proof. intro p. destruct p as [| [| [| [| k]]]]; vm_compute; reflexivity. Qed.
 
 (* A producer chain with the signal deleted, met from the semantic side: the
    consumer arms, rechecks an empty ring, sleeps, and nothing wakes it. *)
@@ -1431,7 +1518,7 @@ Definition silent_activation (b : nat) (l : list consumer_act) (w : world) : wor
     (run_with reset_at_the_signal b l 0 (S (count_of l)) w).
 
 Theorem a_producer_that_never_signals_leaves_work_behind_a_sleep :
-  let z := silent_activation 8 spec_consumer_chain quiet_world in
+  let z := silent_activation ring_max_batch_size spec_consumer_chain quiet_world in
   andb (w_asleep z) (andb (Nat.ltb (rv_consumed (w_view z)) (rv_produced (w_view z)))
                           (Nat.eqb (w_signals z) 0)) = true.
 Proof. vm_compute; reflexivity. Qed.
@@ -1440,9 +1527,38 @@ Proof. vm_compute; reflexivity. Qed.
    makes the refutation the missing signal and not the schedule. *)
 Theorem the_same_schedule_with_a_signal_wakes_the_consumer :
   let z := producer_publishes reset_at_the_signal
-             (run_with reset_at_the_signal 8 spec_consumer_chain 0
+             (run_with reset_at_the_signal ring_max_batch_size spec_consumer_chain 0
                        (S (count_of spec_consumer_chain)) quiet_world) in
   andb (w_asleep z) (Nat.ltb 0 (w_signals z)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+(* And the silent producer keeps the obligation it does not break, stated of an
+   arbitrary world rather than of the schedule above: its view moves exactly as
+   the specification's does, so it still tests the capacity before reserving
+   and R-12-095's overwrite is not what refuses it. What refuses it is the
+   signal it never sends. *)
+Lemma the_silent_publisher_moves_the_view_like_the_specification :
+  forall w : world, w_view (producer_publishes_silently w) = rv_publish (w_view w).
+Proof.
+  intro w. unfold producer_publishes_silently, rv_publish, w_pending.
+  destruct (Nat.ltb (rv_occupancy (w_view w)) ring_capacity); reflexivity.
+Qed.
+
+Theorem the_silent_publisher_keeps_the_capacity_bound :
+  forall w : world,
+    rv_ok (w_view w) = true -> rv_ok (w_view (producer_publishes_silently w)) = true.
+Proof.
+  intros w H.
+  rewrite (the_silent_publisher_moves_the_view_like_the_specification w).
+  exact (publish_keeps_the_invariant (w_view w) H).
+Qed.
+
+(* And it never overwrites at the boundary the bound is decided at: on a full
+   ring it leaves the producer index exactly where it was. *)
+Theorem the_silent_publisher_refuses_a_full_ring :
+  Nat.eqb (rv_produced (w_view (producer_publishes_silently
+                                  (mk_world full_view false 0 0 0 false))))
+          ring_capacity = true.
 Proof. vm_compute; reflexivity. Qed.
 
 (* R-12-096's coalescing, and where the two reset arms differ. A burst is two
@@ -1507,6 +1623,26 @@ Proof.
   destruct (andb_split _ _ H) as [ _ Hs ]. exact Hs.
 Qed.
 
+(* And this rule is the contract's own `sleeps` read at the wire, which is the
+   other half of the same bridge: RingContract states R-12-096's decision rule
+   over two reads of the producer index and this file states the interleaving,
+   so the two must be the one rule. Over every base the span carries and every
+   gap the capacity admits, an armed word with an empty recheck is the
+   contract's answer and this file's alike. `sleeps` ignores the index the
+   drain ended on, so the drained argument is passed the consumed index and
+   decides nothing, which is the entry's own sentence. *)
+Theorem the_specification_sleep_rule_is_the_contracts :
+  all_of (fun c =>
+            all_of (fun d =>
+                      all_of (fun a =>
+                                agree (andb a (Nat.eqb d 0))
+                                      (sleeps (rv_wire c) (rv_wire (c + d))
+                                              (rv_wire c) a))
+                             (cons true (cons false nil)))
+                   (upto (S ring_capacity)))
+         (upto ring_index_span) = true.
+Proof. vm_compute; reflexivity. Qed.
+
 Theorem the_counting_sleep_rule_is_refuted :
   ~ NeverSleepsOverASeenGap counting_sleep_rule.
 Proof.
@@ -1542,7 +1678,7 @@ Definition ActivationIsBounded (b : nat) (l : list consumer_act) : Prop :=
     Nat.leb (w_drained (activation reset_at_the_signal b l p quiet_world)) b = true.
 
 Theorem the_specification_activation_is_bounded :
-  ActivationIsBounded 8 spec_consumer_chain.
+  ActivationIsBounded ring_max_batch_size spec_consumer_chain.
 Proof.
   unfold ActivationIsBounded. intro p.
   destruct p as [| [| [| [| k]]]]; vm_compute; reflexivity.
@@ -1589,25 +1725,30 @@ Definition backlogged_world : world :=
   mk_world (mk_ring_view 20 0) false 0 0 0 false.
 
 Theorem the_greedy_consumer_leaves_its_budget :
-  Nat.leb (w_drained (greedy_consumer_steps 8 act_drain backlogged_world)) 8 = false.
+  Nat.leb (w_drained (greedy_consumer_steps ring_max_batch_size act_drain
+                                            backlogged_world)) ring_max_batch_size
+  = false.
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem the_specification_consumer_stops_at_its_budget :
-  Nat.eqb (w_drained (consumer_steps reset_at_the_signal 8 act_drain
-                                     backlogged_world)) 8 = true.
+  Nat.eqb (w_drained (consumer_steps reset_at_the_signal ring_max_batch_size act_drain
+                                     backlogged_world)) ring_max_batch_size = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Theorem the_greedy_consumer_still_drains_what_it_saw :
-  Nat.eqb (rv_consumed (w_view (greedy_consumer_steps 8 act_drain backlogged_world)))
-          20 = true.
+  Nat.eqb (rv_consumed (w_view (greedy_consumer_steps ring_max_batch_size act_drain
+                                                      backlogged_world)))
+          (rv_produced (w_view backlogged_world)) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 (* And the two consumers agree at every act but the drain, so what refuses the
    greedy one is the budget it does not read and not a second difference. *)
 Theorem the_two_consumers_differ_only_at_the_drain :
   all_of (fun a => agree (negb (consumer_act_eqb a act_drain))
-                         (world_eqb (greedy_consumer_steps 8 a backlogged_world)
-                                    (consumer_steps reset_at_the_signal 8 a
+                         (world_eqb (greedy_consumer_steps ring_max_batch_size a
+                                                           backlogged_world)
+                                    (consumer_steps reset_at_the_signal
+                                                    ring_max_batch_size a
                                                     backlogged_world)))
          all_consumer_acts = true.
 Proof. vm_compute; reflexivity. Qed.
@@ -1773,9 +1914,51 @@ Definition all_slots : list slot :=
       (app (map_over held_slot all_slot_states)
            (map_over unvalidated_slot all_slot_states)).
 
+(* The rank is injective over the six states, so comparing two ranks is
+   comparing two states and the readings below decide state equality rather
+   than an arithmetic coincidence. *)
+Definition state_eqb (a b : slot_state) : bool :=
+  Nat.eqb (lifecycle_rank a) (lifecycle_rank b).
+
+Example the_lifecycle_rank_separates_the_six_states :
+  all_of (fun t => Nat.eqb (count_of (filter_of (state_eqb t) all_slot_states)) 1)
+         all_slot_states = true.
+Proof. vm_compute; reflexivity. Qed.
+
+(* A step is the contract's own successor or the contract's own malformed step
+   *at the state that licenses it*. R-12-094 puts the malformed step from
+   Submitted to Terminal and nowhere else, and `lifecycle_malformed` answers
+   `None` at the other five, so the reading is the contract's two relations
+   read as relations and never a rank arithmetic that happens to agree with
+   them at one state. *)
+Definition contract_step_ok (s z : slot_state) : bool :=
+  orb (match lifecycle_next s with
+       | Some t => state_eqb z t
+       | None => false
+       end)
+      (match lifecycle_malformed s with
+       | Some t => state_eqb z t
+       | None => false
+       end).
+
 (* Every step an advancer takes is the contract's successor or its one
    malformed step, decided over every event and every slot. *)
 Definition step_is_lawful (f : Advancer) : bool :=
+  all_of (fun e =>
+            all_of (fun s =>
+                      match f e s with
+                      | None => true
+                      | Some z => contract_step_ok (sl_state s) (sl_state z)
+                      end)
+                   all_slots)
+         all_events.
+
+(* The reading this replaced, kept as a construction so that what the repair
+   buys is machine-checked rather than asserted: a step whose rank is its
+   predecessor's plus one or plus two, which is `lifecycle_malformed_ok`'s
+   arithmetic read as a licence at every state instead of at the one state
+   that carries the relation. *)
+Definition rank_only_step_is_lawful (f : Advancer) : bool :=
   all_of (fun e =>
             all_of (fun s =>
                       match f e s with
@@ -1854,9 +2037,21 @@ Definition advance_under_a_reader : Advancer := fun e s =>
   | _, _ => spec_advance e s
   end.
 
+(* The advancer that takes the malformed step's *shape* at a state the contract
+   does not license it at: reservation carries a Free slot straight to
+   Submitted, skipping Writing. R-12-094 puts the one malformed step from
+   Submitted to Terminal, so this is a second skip and not that one, and it is
+   the construction a rank-only reading of lawfulness admits. *)
+Definition advance_skipping : Advancer := fun e s =>
+  match e, sl_state s with
+  | ev_reserve, state_Free => Some (with_state s state_Submitted)
+  | _, _ => spec_advance e s
+  end.
+
 Definition all_refuting_advancers : list Advancer :=
   cons advance_backwards
-  (cons advance_unvalidated (cons advance_under_a_reader nil)).
+  (cons advance_unvalidated
+  (cons advance_under_a_reader (cons advance_skipping nil))).
 
 Theorem no_refuting_advancer_keeps_every_obligation :
   all_of (fun f => negb (advancer_ok f)) all_refuting_advancers = true.
@@ -1884,6 +2079,39 @@ Theorem the_reader_advancer_breaks_the_reclamation_alone :
   andb (negb (never_reclaims_under_a_reader advance_under_a_reader))
        (andb (step_is_lawful advance_under_a_reader)
              (never_accepts_before_validation advance_under_a_reader)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+Theorem the_skipping_advancer_breaks_the_lifecycle_alone :
+  andb (negb (step_is_lawful advance_skipping))
+       (andb (never_reclaims_under_a_reader advance_skipping)
+             (never_accepts_before_validation advance_skipping)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+(* And this is what the repaired reading buys, stated rather than asserted: the
+   rank-only reading admits the skipping advancer and the contract's own two
+   relations refuse it. A lawfulness conjunct written as *one more or two more*
+   licenses a skip at every state, where R-12-094 licenses exactly one, from
+   Submitted. *)
+Theorem the_rank_only_reading_admits_the_skipping_advancer :
+  andb (rank_only_step_is_lawful advance_skipping)
+       (negb (step_is_lawful advance_skipping)) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+(* The two readings agree on the specification and on the other three
+   refuters, so what separates them is the skip alone. *)
+Theorem the_two_lawfulness_readings_agree_on_everything_else :
+  all_of (fun f => agree (rank_only_step_is_lawful f) (step_is_lawful f))
+         (cons spec_advance
+         (cons advance_backwards
+         (cons advance_unvalidated (cons advance_under_a_reader nil)))) = true.
+Proof. vm_compute; reflexivity. Qed.
+
+(* And the licensed skip is still licensed: the contract's own malformed step
+   is lawful under the repaired reading, so the repair excludes the second skip
+   and not the first. *)
+Theorem the_licensed_malformed_step_is_still_lawful :
+  andb (contract_step_ok state_Submitted state_Terminal)
+       (negb (contract_step_ok state_Free state_Submitted)) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 (* The malformed step is the one admitted step past a successor, and it
@@ -2299,11 +2527,16 @@ Definition service_conjuncts : list (Service -> bool) :=
                              (negb (svc_live s state_Reclaimed))))
   (* 11: R-12-096 with R-12-101 (gap a). The notification word is binary, so no
          counter exists, and the declared reset meets the declared maximum
-         notifications. *)
+         notifications. The maximum is a field of the *per-variant* record, so
+         the reset is held to every variant's and not to one variant's read as
+         the ring's: one word serves every operation, so a bound read at one
+         operation is a bound the declaration did not state. *)
   (cons (fun s => andb (negb (svc_counter s))
-                       (Nat.leb (signals_in_a_burst (svc_reset s))
-                                (rec_max_notifications
-                                   (op_declared_record op_read_extent))))
+                       (all_of (fun o =>
+                                  Nat.leb (signals_in_a_burst (svc_reset s))
+                                          (rec_max_notifications
+                                             (op_declared_record o)))
+                               all_ops))
   (* 12: R-11-006 with R-12-100. The copy is charged at the declared maximum,
          so the admitted binary's cost does not move with its input. *)
   (cons (fun s => svc_charges_at_the_maximum s)
@@ -2593,6 +2826,15 @@ Theorem the_drain_reset_service_keeps_every_other_conjunct :
   declared_without 11 (with_reset demo_service reset_at_the_drain) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(* And the conjunct's quantifier is decided at every variant rather than at
+   one: the drain reset's second signal exceeds the declared maximum at each of
+   the five, so no operation carries the bound for the others. *)
+Theorem the_notification_bound_is_exceeded_at_every_variant :
+  all_of (fun o => Nat.ltb (rec_max_notifications (op_declared_record o))
+                           (signals_in_a_burst reset_at_the_drain))
+         all_ops = true.
+Proof. vm_compute; reflexivity. Qed.
+
 (* The other live-state arm is admitted, so gap d is exhibited rather than
    decided, and the difference is observable on a slot being written. *)
 Theorem the_other_live_state_arm_is_admitted_too :
@@ -2784,16 +3026,31 @@ Example the_declared_capacities :
                    (Nat.eqb (cap_batch_slack demo_capacities) 0))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(* Pinned as sums over the five records rather than as bounds. A bound admits
+   every value below it, so a field moved downward is a field the ledger did
+   not read; a sum moves whenever any one of the five does. *)
 Example every_declared_record_states_its_segments_and_its_staging :
-  all_of (fun o => andb (Nat.ltb (so_segments (demo_op_record o)) 5)
-                        (Nat.leb (so_staging (demo_op_record o)) 4352))
-         all_ops = true.
+  all_of (fun b => b)
+    (cons (Nat.eqb (sum_of (map_over (fun o => so_segments (demo_op_record o))
+                                     all_ops)) 7)
+    (cons (Nat.eqb (sum_of (map_over (fun o => so_segment_slack (demo_op_record o))
+                                     all_ops)) 2)
+    (cons (Nat.eqb (sum_of (map_over (fun o => so_staging (demo_op_record o))
+                                     all_ops)) 8768)
+    (cons (Nat.eqb (sum_of (map_over (fun o => so_staging_slack (demo_op_record o))
+                                     all_ops)) 512)
+     nil)))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Example every_declared_record_states_its_cleanup_and_its_releases :
-  all_of (fun o => andb (Nat.leb (so_cleanup (demo_op_record o)) 40)
-                        (Nat.leb (so_released (demo_op_record o)) 2))
-         all_ops = true.
+  all_of (fun b => b)
+    (cons (Nat.eqb (sum_of (map_over (fun o => so_cleanup (demo_op_record o))
+                                     all_ops)) 72)
+    (cons (Nat.eqb (sum_of (map_over (fun o => so_cleanup_slack (demo_op_record o))
+                                     all_ops)) 16)
+    (cons (Nat.eqb (sum_of (map_over (fun o => so_released (demo_op_record o))
+                                     all_ops)) 5)
+     nil))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
 Example every_declared_record_states_its_three_costs :
@@ -3034,6 +3291,7 @@ Print Assumptions the_operations_are_pairwise_distinct.
 Print Assumptions the_wire_index_separates_a_live_window.
 Print Assumptions the_producer_never_writes_a_live_slot.
 Print Assumptions the_slot_is_reused_exactly_a_capacity_later.
+Print Assumptions the_occupancy_is_the_contracts_modular_difference.
 Print Assumptions the_publisher_writes_only_the_producer_index.
 Print Assumptions the_consumer_writes_only_the_consumer_index.
 Print Assumptions publish_keeps_the_invariant.
@@ -3051,6 +3309,8 @@ Print Assumptions the_untested_producer_is_refuted.
 Print Assumptions the_untested_producer_keeps_the_ordering.
 Print Assumptions the_untested_consumer_is_refuted.
 Print Assumptions the_untested_consumer_keeps_the_capacity.
+Print Assumptions the_untested_producer_partially_enqueues.
+Print Assumptions the_dual_producer_never_partially_enqueues.
 Print Assumptions the_refuting_views_sit_on_the_two_boundaries.
 Print Assumptions there_are_seven_consumer_conjuncts.
 Print Assumptions there_are_five_producer_conjuncts.
@@ -3090,11 +3350,15 @@ Print Assumptions the_transposed_consumer_stays_inside_its_budget.
 Print Assumptions the_specification_consumer_stays_inside_its_budget.
 Print Assumptions a_producer_that_never_signals_leaves_work_behind_a_sleep.
 Print Assumptions the_same_schedule_with_a_signal_wakes_the_consumer.
+Print Assumptions the_silent_publisher_moves_the_view_like_the_specification.
+Print Assumptions the_silent_publisher_keeps_the_capacity_bound.
+Print Assumptions the_silent_publisher_refuses_a_full_ring.
 Print Assumptions the_signal_reset_coalesces_a_burst_to_one.
 Print Assumptions the_drain_reset_sends_two_signals_for_one_arming.
 Print Assumptions the_two_reset_arms_differ_only_on_the_second_publication.
 Print Assumptions the_two_bursts_publish_the_same_two_items.
 Print Assumptions the_specification_sleep_rule_reads_the_indices.
+Print Assumptions the_specification_sleep_rule_is_the_contracts.
 Print Assumptions the_counting_sleep_rule_is_refuted.
 Print Assumptions the_counting_sleep_rule_declines_after_a_signal.
 Print Assumptions the_counting_rule_and_the_index_rule_differ_on_a_coalesced_burst.
@@ -3110,6 +3374,7 @@ Print Assumptions the_publication_consumes_writable_ownership.
 Print Assumptions each_rejected_path_is_broken_somewhere.
 Print Assumptions each_rejected_path_is_at_the_phase_that_names_it.
 Print Assumptions the_state_setter_moves_only_the_state.
+Print Assumptions the_lifecycle_rank_separates_the_six_states.
 Print Assumptions there_are_three_advancer_obligations.
 Print Assumptions the_specification_advancer_keeps_every_obligation.
 Print Assumptions no_refuting_advancer_keeps_every_obligation.
@@ -3117,6 +3382,10 @@ Print Assumptions each_refuting_advancer_breaks_exactly_one.
 Print Assumptions the_backward_advancer_breaks_the_lifecycle_alone.
 Print Assumptions the_unvalidated_advancer_breaks_the_validation_alone.
 Print Assumptions the_reader_advancer_breaks_the_reclamation_alone.
+Print Assumptions the_skipping_advancer_breaks_the_lifecycle_alone.
+Print Assumptions the_rank_only_reading_admits_the_skipping_advancer.
+Print Assumptions the_two_lawfulness_readings_agree_on_everything_else.
+Print Assumptions the_licensed_malformed_step_is_still_lawful.
 Print Assumptions the_malformed_event_takes_the_contracts_own_step.
 Print Assumptions the_malformed_event_is_admitted_at_one_state_only.
 Print Assumptions the_copy_once_service_stays_inside_the_validated_extent.
@@ -3151,6 +3420,7 @@ Print Assumptions the_cost_conjunct_reads_all_three_costs.
 Print Assumptions the_declared_service_keeps_the_cost_conjunct.
 Print Assumptions the_drain_reset_service_is_refused_at_the_notification_bound.
 Print Assumptions the_drain_reset_service_keeps_every_other_conjunct.
+Print Assumptions the_notification_bound_is_exceeded_at_every_variant.
 Print Assumptions the_other_live_state_arm_is_admitted_too.
 Print Assumptions the_two_live_state_arms_differ_on_a_slot_being_written.
 Print Assumptions a_duplicate_live_identifier_is_refused_at_this_service.
