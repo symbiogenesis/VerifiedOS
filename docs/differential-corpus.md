@@ -139,7 +139,7 @@ Against a second executor the same records are compared instruction by instructi
 
 ## 7. What the corpus cannot exercise yet, and why
 
-Each of these is an absence in the machine or in the model, not a gap in the corpus, and each closes with the milestone that supplies it.
+All but one of these is an absence in the machine or in the model, not a gap in the corpus, and each closes with the milestone that supplies it. The exception is the vector arithmetic and the segment forms: the model carries them and [the generated encoder table](../tools/generated/dialect-table.json) spells them, so what is absent there is the member that writes one, which is what its own closing cell names.
 
 | Absent | Why | Closes at |
 | --- | --- | --- |
@@ -150,7 +150,7 @@ Each of these is an absence in the machine or in the model, not a gap in the cor
 | A revocation sweep with more than one covered interval | The covered union is a predicate over one composition-fixed interval, because one composed image has one revocable region; a second interval is a clause in that predicate rather than a mechanism. | the composed initial distribution, the plan's §3 |
 | The matrix datapath | The class is declared and its geometry is, and the instruction surface is a second-act item: R-15-116 admits the unit only against a sustained dense-GEMM margin, which is a measurement against generated output, so R-15-014a carries the surface at (ix) rather than a milestone carrying it now. The vector datapath is no longer absent here: `vector-memory` and `vector-geometry` run it. | the freeze's second act, R-15-014a (ix) |
 | An FEC decode that retires | The surface is in the model and [`fec-surface`](../corpus/fec-surface.s) runs it, but only as far as the refusal: the gate is the composed roster entry's FEC attachment, the golden emulator is the C class, and the reference composition attaches the decoders to the pinned radio V pair, so no program this rig runs is on a hart that carries one. What a program reaches is the encoding and the trap; the pass, its two authorities, and the descriptor's refusals are asserted as properties over the model instead. | a composed image on a decoder-bearing hart, the plan's §3 |
-| The vector arithmetic, and the segment forms of the vector memory surface | Encoded by neither the assembler nor a member, because M0.8b's subject is what a vector access owes its authority and a segment access owes it exactly what a one-field access does, once per field. | the member that needs one |
+| The vector arithmetic, and the segment forms of the vector memory surface | Written by no member, because M0.8b's subject is what a vector access owes its authority and a segment access owes it exactly what a one-field access does, once per field. | the member that needs one |
 | The dictionary bundle format | A fetch container the model does not implement. | the freeze, the profile's §1.1 |
 
 ## 8. What CI holds
