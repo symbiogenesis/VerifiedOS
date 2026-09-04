@@ -1634,6 +1634,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M6.5a
 · Disposition: closed at the item by adding three chains outside the generated family, one per strict ordering conjunct, each carrying a broken count that moves when the comparison does; the seeded population found the same shape twice, once per act chain, and neither reordering family reaches it
 
+**F-230m** method: an obligation stated as arithmetic over a contract's ranks licenses every construction that arithmetic admits rather than the ones the contract's own relation names, a step read as one rank more or two ranks more admitting a skip at every state where the relation answers at one, and the two readings agreeing everywhere a construction does not sit on the difference
+· Raised: M6.5a
+· Disposition: closed at the item by reading the contract's two relations directly, keeping the superseded arithmetic beside them as a construction, and adding the advancer that separates them, refuted at that conjunct alone and shown to keep the other two
+
+**F-230n** method: a header's roster of the refutations a statement artifact carries is prose no gate reads, so it drifts from the file under it, this one naming three constructions the file did not carry and omitting three it did
+· Raised: M6.5a
+· Disposition: closed at the item by checking the roster against the file name by name and by giving the one obligation whose named refuter did not exist a refuting construction and a keeper
+
 ## RTL track
 
 **F-168** measurement: the capability width identity collapses onto the register width across the imported core, one declaration the delta books across twenty-five files
