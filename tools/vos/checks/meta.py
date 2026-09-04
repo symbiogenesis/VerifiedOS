@@ -105,6 +105,59 @@ less rather than more.
 What K-83 does not decide is whether the quarantine should still be one. That is the
 condition `tools/quarantine/README.md` states per instrument and a person's to read at
 the milestone that meets it.
+
+K-100 is the fifth and its subject is the lane this repository builds in, written down.
+`run.py provision` is that lane as a table: one row per switch, pin, checker,
+distribution package and layout invariant, each naming the loop that wants the fact and
+the artifact that owns it. **No artifact declared that set before the table did**, so the
+provisioner became its owner, and what stands in for the entry nobody wrote is the
+discipline the rows are written under: every row names a consumer already in this tree,
+`find_package(GMP)` for libgmp-dev, `_compiler_args` for clang, `_ccache_args` for
+ccache, cmake's `git describe` for git, and a row that cannot name one is not written.
+That discipline was a sentence in a completion note, which is prose no rule reads.
+
+**This is that discipline as a gate, and it decides two things.** Every path a row names
+is one the git index carries, and every symbol a row names as that artifact's own is a
+token that artifact still spells; and every `run.py` command a row names is one the entry
+point's table carries. Neither is hypothetical: the tools here are refactored by whole
+directories, seventeen entry points having become one package in a single item, so a row
+naming a module by a path it has left, or a function by a name a shard renamed, is a lane
+description that has stopped describing anything with every gate green.
+
+**Read by import on one side and off the tree on the other**, which is what makes it a
+comparison rather than a restatement. The table is `provision.FACTS` itself, so nothing
+here transcribes a row and a row added tomorrow is inside the rule the day it is written;
+what each row is held against is the index and the file, read at the root this run was
+pointed at.
+
+**What it does not decide is the half F-197c is actually about.** Whether the package set
+is *complete* is a question no artifact in this repository can answer, because none
+declares one; this holds that every row points at something real and says nothing about
+the rows that are missing. That gap stays open and belongs to a register act.
+
+**Two carve-outs, both declared.** A symbol is looked for only in a file this checker may
+open, so `model/CMakeLists.txt`'s `find_package(GMP)` is held at the path alone: `model/`
+is outside the document corpus by name and stood up as empty files in the mutation
+sandbox, so reading it would need a declaration in `corpus.py`'s value window for one
+token. And `run.py` is read as a command and never as a path, that name standing in an
+owner cell only where the sentence names the loop that configures a tree; excluding it by
+shape instead would mean refusing a file name with no directory in it, which is what
+`THIRD-PARTY.md` is.
+
+**Fail-closed on all three readings, and the three are not closed the same way**, which
+is the part worth writing down. The path reading is refused per row: an empty fact table,
+a row naming no artifact at all, and a path the index does not carry are each a finding
+rather than a pass over nothing. The symbol and command readings cannot be, a row being
+under no obligation to name either, so what closes them is a floor across the populated
+table: an owner column that has stopped taking the `path's SYMBOL` form and a `needs`
+column that has stopped naming `run.py` each report here, because a reading that has
+narrowed to nothing while the paths still resolve is exactly the vacuous pass the floors
+group exists for and is the one this rule could otherwise take silently. Both floors are
+inside the rule for the reason K-84's is, the meta group reporting after the floors group
+and so having no count to hand it. What none of the three reaches is the reading that
+narrows *without* emptying, a single owner cell reworded off the `path's SYMBOL` form
+dropping its symbol with the gate green, which is the residue `tools/check-rules.md`
+declares of every pattern here.
 """
 
 import re
@@ -112,7 +165,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from vos import figures
+from vos import cli, figures
+from vos.cli import provision
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -212,6 +266,28 @@ _Q_PATH_EXEMPT = ("tools/vos/checks/meta.py", "tools/vos/cli/selftest.py")
 # The interpreter floor, as the type checker's own environment fixes it.
 _FLOOR_SRC_RE = re.compile(r'(?m)^python-version = "([^"\r\n]*)"')
 
+# A repository path an owner cell names, and the same path with the symbol that cell
+# calls that artifact's own. The symbol run admits an `and` chain because a row names two
+# constants of one module that way, and the continuation has to look like a symbol,
+# upper-cased or underscored, so that `VERILATOR_PIN, which is ... and arrives by` stops
+# at the constant instead of reading the sentence after it.
+_OWNER_PATH_RE = re.compile(r"((?:[\w.-]+/)*[\w.-]+\.(?:py|toml|md|txt))")
+_OWNER_SYM_RE = re.compile(
+    r"((?:[\w.-]+/)*[\w.-]+\.(?:py|toml|md|txt))'s "
+    r"([A-Za-z_]\w*(?:\(\w*\))?(?: and [A-Za-z_]*[A-Z_]\w*)*)")
+
+# The entry point, named in an owner cell as the command that drives a stage rather than
+# as a path. It is excluded by name because the alternative is a shape that refuses a
+# file name carrying no directory, which is what THIRD-PARTY.md is.
+_ENTRY_POINT = "run.py"
+_OWNER_CMD_RE = re.compile(r"run\.py ([a-z][\w-]*)")
+
+# Where a symbol may be looked for: this directory, and any document the corpus already
+# carries. `model/` is neither, being outside the corpus by name and stood up as empty
+# files in the mutation sandbox, so a token read there would pass on the host and fail
+# every baseline; those rows are held at the path alone.
+_SYMBOL_TREE = "tools/"
+
 
 def _plain(floor: str) -> str:
     """The floor as ty.toml writes it, which is how the prose writes it too."""
@@ -301,7 +377,88 @@ def run(ctx: Context) -> None:
     # against the landing for an act taken two items away from it.
     _landings(ctx, seen | _quarantined_rules(ctx))
     _quarantine(ctx)
+    _lane(ctx)
     rep.line()
+
+
+def _lane(ctx: Context) -> None:
+    """K-100: every row of the lane's fact table names something this tree carries.
+
+    The table is imported and each row is held against the index and the tree, so this
+    adds no second copy of the lane and a row written tomorrow is inside the rule that
+    day. What a row must name is an artifact the index carries; where it goes further
+    and names that artifact's own constant or function, the token has to still be there.
+
+    Fail-closed at each of the three readings, and the last two need a floor of their
+    own rather than a per-row refusal. An empty table, a row naming no artifact at all,
+    and a path the index does not carry each stop that row's comparison rather than
+    passing over it. A row is not obliged to name a symbol or a command, so neither of
+    those can be refused per row; what is refused is the reading going to zero across a
+    populated table, an owner column that has stopped taking the `path's SYMBOL` form or
+    a `needs` column that has stopped naming `run.py` being a reading that has moved and
+    not a table with nothing left to check. Those two floors are inside the rule for the
+    reason K-84's is, the meta group reporting after the floors group and so having no
+    count to hand it.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    facts = provision.FACTS
+    if not facts:
+        findings.append(f"{PROVISION} declares no fact at all, so this lane is described "
+                        "by nothing and there is no row to hold")
+
+    commands = {command.name for command in cli.COMMANDS}
+    paths = symbols = named = 0
+    for fact in facts:
+        found = [path for path in _OWNER_PATH_RE.findall(fact.owner)
+                 if path != _ENTRY_POINT]
+        if not found:
+            findings.append(f"the row for `{fact.name}` names no artifact this rule can "
+                            f"read as a path, so what owns that fact is unresolvable")
+        carried = set()
+        for path in found:
+            paths += 1
+            if path in ctx.corpus.tracked:
+                carried.add(path)
+            else:
+                findings.append(f"the row for `{fact.name}` names {path} as what owns it, "
+                                "and the git index carries no such path")
+
+        for path, group in _OWNER_SYM_RE.findall(fact.owner):
+            if path not in carried:
+                continue
+            if not (path.startswith(_SYMBOL_TREE) or path in ctx.corpus):
+                continue
+            text = _source(ctx, path) if path.startswith(_SYMBOL_TREE) else ctx.text(path)
+            for symbol in group.split(" and "):
+                symbols += 1
+                if symbol not in text:
+                    findings.append(
+                        f"the row for `{fact.name}` names `{symbol}` as {path}'s, and that "
+                        "file no longer spells it, so the fact names a consumer this "
+                        "tree does not have")
+
+        for command in _OWNER_CMD_RE.findall(f"{fact.needs} {fact.owner}"):
+            named += 1
+            if command not in commands:
+                findings.append(f"the row for `{fact.name}` names `run.py {command}` as what "
+                                "wants it, and the entry point carries no such command")
+
+    if facts and not symbols:
+        findings.append("no row of the lane's fact table names a symbol as an artifact's "
+                        "own, so the reading that holds a consumer's name against the "
+                        "file spelling it decides nothing")
+    if facts and not named:
+        findings.append("no row of the lane's fact table names a `run.py` command, so "
+                        "the reading that holds a row's consumer against the entry "
+                        "point's table decides nothing")
+
+    rep.report("K-100", "row(s) of the lane's fact table naming what this tree does not "
+               "carry:", findings,
+               f"the {paths} artifacts {PROVISION}'s {len(facts)} rows name are paths the "
+               f"index carries, the {symbols} symbols they name are ones those files "
+               f"still spell, and the {named} run.py commands they name are the entry "
+               "point's")
 
 
 def _source(ctx: Context, rel: str) -> str:

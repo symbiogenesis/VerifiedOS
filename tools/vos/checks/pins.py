@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""pins: every upstream pin this repository states, against the gitlink that owns it.
+"""pins: every upstream pin this repository states, against the artifact that owns it.
 
 An upstream arrives here as a gitlink: the index carries a path and a commit id and
 none of the code, and [THIRD-PARTY.md](../../../THIRD-PARTY.md) carries the licence
@@ -104,11 +104,56 @@ them and grow one per completion note. So the residue is stated rather than clos
 read at all. That is the same residue every group here declares: the id is checked
 for agreement, and what somebody found when they opened the licence file at it is a
 person's to know.
+
+K-97 is this group's other kind of pin, and it is here rather than beside K-81 for one
+reason and separated from it for another. **An upstream pins by version as well as by
+commit**, and the licence record carries both kinds in one page: a submodule's terms are
+read at an object id, and a development tool arrives from a distribution at a version
+number, which is the edition its own row's terms were read at exactly as a commit is.
+**What owns the two is not the same artifact.** A commit pin is owned by the git index,
+which is a fact about the checkout; a version pin is owned by the constant the lane
+actually enforces it at, `VERILATOR_PIN` in [vos/cli/rtl.py](../cli/rtl.py), which every
+`rtl` loop compares an installed elaborator against and refuses on. So the record is a
+restatement here where it is the owner there, and the direction of the reading flips
+with it.
+
+**Nothing held that constant's restatements**, and the two neighbouring rules each miss
+it by their own subject: K-81 reads abbreviated object ids and a dotted version is not
+one, and K-67 reads the two checkers `run.py typecheck` installs and no third pin. What
+was left is a figure restated in the record's development-tools row, in the record's own
+Verilator paragraph, and in the plan's RTL-track cell, with the constant that enforces it
+free to move under all three. A pin stale in the record is the same defect K-81 exists
+for one column over: the row's terms were read at an edition, and a reader installing
+what the row states runs a lane the tools refuse.
+
+**The sites are enumerated in code and read fail-closed**, on K-67's and K-75's ground,
+which is why this rule owes the floors group no member: a site whose pattern no longer
+matches is a finding here, on the day it stops matching, rather than a set that has
+quietly gone to zero one group later. The window is the enumeration and not a scan, and
+what that leaves out is declared rather than discovered. The plan's own completion notes
+state the elaborator's version beside an elaboration run at it, which is a measurement
+recorded at a gate and not a restatement of the pin, exactly as K-81 leaves a commit
+written beside what was done at it to the sentence that did it; the provisioner's Verilator
+row and its test's pin loop compose the figure from the constant rather than restating it,
+and the two places those same files do spell the version as a literal, `_number`'s
+docstring and the case pinning what `_number` parses, are a sample of the elaborator's own
+banner rather than a statement of the pin, fixed by the shape a dotted number takes inside
+a greeting and still true the day the pin moves, so neither file is a site on either
+count; and the *upstream's own* version of the same tool, the one the imported core's own flow
+pins through nix, is a fact about that upstream rather than a pin taken here, so no rule
+holds it and this one says so rather than reaching for it.
+
+**Reported and never repaired**, on this group's own ground. The record's row states the
+version beside the terms read at it and the plan's cell states it beside a lane, so a
+token substitution would leave both sentences describing work done at a version they no
+longer name.
 """
 
+import re
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
+from vos import figures
 from vos import pins as pins_mod
 from vos.checks import generated
 
@@ -118,7 +163,28 @@ from vos.checks import generated
 if TYPE_CHECKING:
     from . import Context
 
-HEADING = "=== pins: every upstream pin against the gitlink that owns it ==="
+HEADING = "=== pins: every upstream pin against the artifact that owns it ==="
+
+# The version pin K-97 holds, and the three sites that restate it. The constant is read
+# out of the source as text rather than imported, for the reason K-67 reads typecheck.py
+# the same way: the rule is about what the file *states*, and a value taken by import
+# would be the checker's own module rather than the one under the root it was pointed at.
+VERILATOR_SRC = "tools/vos/cli/rtl.py"
+_VERILATOR_SRC_RE = re.compile(r'(?m)^VERILATOR_PIN = "([^"\r\n]*)"')
+
+PLAN = "docs/implementation-checklist.md"
+
+# Each row is a site, the file carrying it, and the pattern that reads the figure out of
+# it. Every pattern is anchored on the sentence's own words rather than on the number, so
+# a reworded site is a finding and never a site that quietly stopped being read.
+_VERILATOR_SITES: list[tuple[str, str, re.Pattern[str]]] = [
+    ("development-tools row", pins_mod.RECORD,
+     re.compile(r"(?m)^\| Verilator \|[^|]*\|[^|]*pinned at \*\*([^*]+)\*\*")),
+    ("pin paragraph", pins_mod.RECORD,
+     re.compile(r"\*\*Verilator is pinned[^*]*\*\* The pin is \*\*([^*]+)\*\*")),
+    ("RTL-track cell", PLAN,
+     re.compile(r"Verilator is pinned at (\S+) with its own")),
+]
 
 # Every id this repository writes beside an upstream's name that is not that
 # upstream's pin, with what it actually is. Each one is a reading trap on its face:
@@ -148,7 +214,55 @@ def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
     _pins(ctx)
+    _version_pin(ctx)
     rep.line()
+
+
+def _version_pin(ctx: Context) -> None:
+    """K-97: every site stating the elaborator's version states the one rtl.py fixes.
+
+    Fail-closed at every reading, on K-67's and K-75's ground. The constant either
+    parses in the form it is written in today or there is no owner to hold anything
+    against; a document the corpus does not carry is a finding rather than a site
+    silently dropped; and a site whose pattern no longer matches, or has come to match
+    a sentence that no longer states the pin, is a finding rather than a pass over
+    nothing. That is what makes this rule owe the floors group no member of its own.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+
+    try:
+        source = (ctx.root / VERILATOR_SRC).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        source = ""
+    stated = _VERILATOR_SRC_RE.search(source)
+    if stated is None:
+        findings.append(f"{VERILATOR_SRC} no longer states VERILATOR_PIN in a form this "
+                        "rule reads, so there is no owner to hold the sites against")
+
+    pin = stated.group(1) if stated else ""
+    if stated is not None:
+        for label, file, pattern in _VERILATOR_SITES:
+            text = ctx.text(file)
+            if not text:
+                findings.append(f"{file} is not in the repository, so its {label} cannot "
+                                "be read")
+                continue
+            hit = pattern.search(text)
+            if hit is None:
+                findings.append(f"{file} no longer states the elaborator's pin in its "
+                                f"{label}, in a form this rule reads")
+            elif hit.group(1) != pin:
+                findings.append(
+                    f"{file}'s {label} states {hit.group(1)}, {VERILATOR_SRC} pins "
+                    f"{pin}; that row's terms were read at the version it states and "
+                    "the lane refuses any other, so the edit is a person's")
+
+    rep.report("K-97", "site(s) restating a version pin the lane's own constant does "
+               "not fix:", findings,
+               f"the {figures.words(len(_VERILATOR_SITES))} sites restating the "
+               f"elaborator's version state {pin or 'no version'}, which "
+               f"{VERILATOR_SRC} fixes and every rtl loop refuses another of")
 
 
 def _sources(ctx: Context) -> list[tuple[str, list[str], list[bool]]]:
