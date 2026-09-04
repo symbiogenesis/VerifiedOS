@@ -284,6 +284,48 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S19
 · Disposition: open, reported and not closed; recording it changes what every future agent-parallel cell carries, which is the plan's to state and not one item's to impose on the cells already landed
 
+**F-235a** measurement: the tools' own page enumerates the commands under one entry point in a table transcribed from the entry point's order, and it stopped at seventeen where the entry point carries eighteen, the command that landed after it writing its prose and its console lines and no row
+· Raised: S21
+· Disposition: closed, the row written where the entry point's order puts it; nothing under `tools/vos/checks/` reads that table, so the drift is a person's to catch and the page's own prose is what caught it
+
+**F-235b** measurement: a sentence describing the one input directory this repository does not author describes one artifact where the directory now carries two, and sends the byte-identity claim to the artifact whose generator this gate cannot run
+· Raised: S21
+· Disposition: closed, both artifacts named and the claim split the way the rule's own table splits it, outright for the encoder table's generator and against the index and the owner record for the bundle's
+
+**F-235c** measurement: the capability-format reader names five documents outside the model and the page describing it says four, the fifth having landed in the same commit that wrote the sentence
+· Raised: S21
+· Disposition: closed, the figure re-measured against the reader's own file constants and the sites they carry
+
+**F-235d** measurement: the rule registry's closing section declares every rule named under exactly one of four classes, on the stated ground that a class list which stopped growing would be that document's own defect, and one rule was named under none
+· Raised: S21
+· Disposition: closed, the rule added to the total class with the ground its own membership takes, an enumeration the tool holds itself rather than one a sentence locates
+
+**F-235e** measurement: a rule row locates its window by a directory in the cell that says what passing means and by the enumerated sites in the cell that says on what ground, so the row contradicts itself and only the ground was carried when the window last widened
+· Raised: S21
+· Disposition: closed, the locator deleted from the passing-means cell, which is this document's own repair for a claim that has drifted from what its check decides
+
+**F-235f** measurement: the checker's own module map closes its enumeration at eighteen groups, with the words *three further* and *last*, where the tool runs twenty-three, and five groups landed under a map nothing holds
+· Raised: S21
+· Disposition: closed, the five written into the map's own column form rather than the two closures being dropped, a map that names some of a tool being weaker than one that names all of it
+
+**F-235g** measurement: a lane split written when the generated table held one row says the emitter cannot run at this gate at all, and the table has since gained a host row whose generator is Python over this checkout and is re-run at every landing
+· Raised: S21
+· Disposition: closed, the split restated per lane in the docstring and in the paragraph refusing to run the generator, the registry row for the same rule having carried the host row a landing earlier and the module's prose not
+
+**F-235h** measurement: a docstring counts the sites restating the interpreter floor by hand at seven where the table holds nine, and states the window as a directory the ninth sits outside, the neighbouring docstring in the same module having been carried at the act that added it
+· Raised: S21
+· Disposition: closed, the hand counts replaced by the enumeration's own name on the precedent the module already sets one rule up, and the window restated as the sites
+
+**F-235i** measurement: three wall-clock figures for the host gate wave stand in the wave's own docstring, and a fourth beside a rule's cost, at a tool whose README declines to quote one and over a mutant population that has since grown by half
+· Raised: S21
+· Disposition: closed, the figures deleted rather than re-measured, on the ground the register already carries: a median is a property of the checker it was taken at and this host does not reproduce a wave figure within a factor of two
+· Restates: F-128n
+
+**F-235j** measurement: the wave's own docstring says nothing runs the gates but a person, by hand, before anything lands, over a workflow that has run the wave and the tools' tests at every push and pull request since it landed
+· Raised: S21
+· Disposition: closed, the sentence repaired where it stands and the workflow named beside it; the page and the working rules were carried at the landing and this docstring was not
+· Restates: F-198d
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
@@ -1920,7 +1962,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-232c** owed-act: eight relative links inside the tools' own docstrings resolve to nothing, seven of them naming an executable the one-entry-point move retired, and no rule reads a link written in Python prose
 · Raised: I14
-· Disposition: open, the eight under `tools/` repointed at the module the command now dispatches and the same retired tool left named in three shipped proof headers, reported and not closed: a comment edit there costs a guest run of the proof gate this item does not take
+· Disposition: closed, the eight under `tools/` repointed at the module the command now dispatches at the item that found them, and the same retired tool struck from the three shipped proof headers at S21, where ten sibling headers already spelled the gate as `run.py proofs`
 
 **F-232d** measurement: a baseline that would not stand up discarded the prover's own account of why, the emitter's findings being appended to a list nobody read, so the one moment in the loop where a reader has nothing else to go on cost a second whole run to locate
 · Raised: I14
