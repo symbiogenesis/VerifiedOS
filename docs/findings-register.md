@@ -1894,7 +1894,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-207** owed-act: the boot ROM's extent is declared inside a region that is not executable, which refuses the one access an SoC boot ROM exists for
 · Raised: R1c-i
-· Disposition: open, a composition act at the region's attributes, taken with the top that fetches from the ROM; the attested devicetree shares the region, so turning it on makes the tree's own bytes executable
+· Disposition: closed at R1c-ii, by declining it: the boot chain releases the application core into an image the root of trust has already placed in main memory, so nothing on this die fetches from that ROM and the region's attributes state the machine the register describes
 
 **F-208** measurement: a finding stated what a search of the register returns for the boot ROM and stated a smaller set than it returns, a third entry's acceptance naming the same metal-mask ROM
 · Raised: R1c-i
@@ -1920,6 +1920,48 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-213** method: the exit-evidence sweep's model revision is a stamp taken once at cmake configure and carried in the emulator, so its dirty marker names the tree that generated the reference rather than the tree the sweep prints from
 · Raised: R1c-i
 · Disposition: standing, the marker read as the configure-time state it is, and a completion note quoting a revision says which build it came from; the suffix that prompted this was the missing work tree rather than that state, which I13 measured and F-231a carries
+
+**F-229a** upstream-defect: the bring-up SoC supplies no block device, so one of the three devices the item takes from it does not exist at the pin; its nearest are a host controller a card hangs off and a card model in the vendored verification tree
+· Raised: R1c-ii
+· Disposition: open, reported and not closed; the boot ROM and the serial port are there and the third device comes from the storage stack or from an upstream nothing has chosen
+
+**F-229b** measurement: nothing on this die fetches from the platform boot ROM, the boot chain placing the verified image in main memory and releasing the application core into it, so the region's refusal of an instruction fetch states the machine rather than a gap in it
+· Raised: R1c-ii
+· Disposition: closed, the composition decision taken by declining it, which leaves the attested devicetree sharing that region non-executable too
+· Restates: F-207
+
+**F-229c** owed-act: the console arm handed to this item was indexed by no entry at all, the note that handed it naming an id that belongs to another item's provisioning finding, and the arm itself stays owed
+· Raised: R1c-ii
+· Disposition: open, this entry being where the gap now lives and the handing note repointed at it; half its ground is discharged, the door's shape being the imported device's own register map, and the half that stands is that no entry obliges a console and the arm is one act across a model door and an RTL device this landing carries neither of
+
+**F-229d** owed-act: the top's core-facing half cannot be authored ahead of the datapath curation, every signal it would bind being a site the width collapse and the mode deletion move
+· Raised: R1c-ii
+· Disposition: open, closed by R1b landing a curated core with a port list to bind; what is authored here is the half that faces a map already frozen
+
+**F-229e** owed-act: the elaboration this item owes is unreachable in any checkout here, and the act that would take it also moves the boundary two rows of the provenance record ground their `n/a` on
+· Raised: R1c-ii
+· Disposition: open, the elaboration refusing by name on an uninitialized gitlink, and the tag-cache and power-gating grounds left as they stand because a ground rewritten against a netlist nobody has enumerated is the state the record exists to prevent
+
+**F-229f** measurement: the attested devicetree lands in the one case the decode refuses to resolve, occupying half a device region while being a blob and not a device, so an access no aperture claims is reached on every composed die
+· Raised: R1c-ii
+· Disposition: standing, the case reported rather than defaulted; declaring a window for the tree would not answer it, what backs those bytes being the same ROM at another sub-range
+
+**F-229g** owed-act: one declared aperture has an extent no composition states, its size being a model constant rather than a configuration key, so a generated map is total over ten of the eleven windows
+· Raised: R1c-ii
+· Disposition: open, the window emitted as a base with no extent and named as such rather than given an invented size; closing it is a configuration key or a second owner for the emitter to read
+
+**F-229h** method: a host row of the generated table is priced by its generator's own runtime times the sandbox count, and a wave figure confirms that only where the two are the same size
+· Raised: R1c-ii
+· Disposition: closed, the relation stated where a wall-clock pair stood; this row's generator runs two orders of magnitude below the wave's own run-to-run spread, so no wave measurement here can see it, and two figures that had stopped describing the wave went with the repair
+· Restates: F-128n
+
+**F-229i** measurement: the licence page enumerated nine of the bring-up SoC's thirteen vendored subtrees, and one it left out is where the two devices that do exist live
+· Raised: R1c-ii
+· Disposition: closed, the enumeration completed and the two subtrees the manifest annotates not at all read at their own file headers; no term moves, every one of the four being the instrument the row's headline already names
+
+**F-229j** method: one list was both what the RTL lane lints and what the capability cross-check compiles, so a second authored source would have broken a loop that is not about it
+· Raised: R1c-ii
+· Disposition: closed, the format package named apart and the cross-check taking it alone, which is the same narrowness that loop's model-source list already states its ground for
 
 ## Build-loop instruments
 

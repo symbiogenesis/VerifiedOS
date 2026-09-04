@@ -68,7 +68,7 @@ $ python tools/run.py provision                   # is this machine the lane, an
 $ python tools/run.py evidence                    # the whole exit-evidence sweep, one block
 $ python tools/run.py model typecheck
 $ python tools/run.py model build
-$ python tools/run.py rtl lint                    # the authored RTL, alone
+$ python tools/run.py rtl lint                    # this repository's own RTL, alone
 $ python tools/run.py rtl elaborate --background
 $ python tools/run.py rtl wait                    # and the module set it removed
 $ python tools/run.py oracle vectors --spec capformat

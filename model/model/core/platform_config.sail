@@ -171,9 +171,12 @@ let plat_watchdog_size : physaddrbits = to_bits_checked(config platform.watchdog
 // a load and a store inside either are the RAM path's until the top lands. The
 // boot ROM's region is readable and neither writable nor executable, so a load
 // there reads zero while a store or an instruction fetch is an access fault the
-// region raises today; the fetch is the one access an SoC boot ROM exists for,
-// and that region's `executable` is R1c-ii's to decide with the attested tree
-// sharing the region. Either way this is the opposite disposition from the
+// region raises. No fetch on this fabric reaches it: R-09-006 fixes the root of
+// trust's sequence at placing the verified M-mode image in main SRAM and
+// releasing the boot core into the measured chain, so `executable` is false on
+// that region because that is the machine and not because a decision is
+// outstanding, and the attested tree sharing the region is non-executable with
+// it. This is the opposite disposition from the
 // memory sequencer's window and the RoT's four, and the reason is that their
 // refusal is permanent where these are doors whose device has not arrived.
 let plat_have_boot_rom : bool = config platform.boot_rom.supported
