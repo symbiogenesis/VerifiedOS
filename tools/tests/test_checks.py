@@ -98,9 +98,11 @@ def _estimates_repair_reaches_fixpoint() -> None:
 
 
 def _k96_record_is_held_total_in_both_directions() -> None:
-    # one completed attended item with no row, one row naming no such item, and one
-    # agent-parallel item that owes no row: the record is a totality claim, so each of
-    # the first two is its own finding and the third is none
+    # There are two records and each is a totality claim over its own series, so the
+    # fixture crosses them: the attended record carries a row naming no item and misses
+    # the attended item, and the agent-parallel record carries the attended item and
+    # misses the agent-parallel one. Four findings, and the pair of them is what says
+    # the two records are read apart rather than as one table with a heading in it.
     plan = ("# Plan\n\n"
             "* [x] **A · Done** · 3 h actual · 50.0%\n"
             "* [x] **P · Fanned out** · 3 h actual · 50.0% · agent-parallel\n\n"
@@ -108,7 +110,11 @@ def _k96_record_is_held_total_in_both_directions() -> None:
             "### Calibration record\n\n"
             "| Item | Pool | Estimate |\n"
             "| --- | --- | --- |\n"
-            "| B | I | 4 |\n")
+            "| B | I | 4 |\n\n"
+            "#### The agent-parallel series\n\n"
+            "| Item | Pool | Estimate |\n"
+            "| --- | --- | --- |\n"
+            "| A | I | 4 |\n")
     with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
                        PLAN: plan}) as root:
         ctx = _context(root)
@@ -118,10 +124,16 @@ def _k96_record_is_held_total_in_both_directions() -> None:
                in found, f"the missing row is a finding: {found!r}")
         ensure("the calibration record carries B, which is not a completed attended item "
                "of the plan" in found, f"the stray row is a finding: {found!r}")
-        ensure(not any("P " in f or " P," in f for f in found),
-               f"an agent-parallel item owes no row: {found!r}")
-        ensure(ctx.shared.get("calibration_rows") == 1,
-               f"the floor counts the record's rows: {ctx.shared.get('calibration_rows')!r}")
+        ensure("P is a completed agent-parallel item the agent-parallel record carries "
+               "no row for" in found, f"the missing parallel row is a finding: {found!r}")
+        ensure("the agent-parallel record carries A, which is not a completed "
+               "agent-parallel item of the plan" in found,
+               f"an attended item is a stray row in the parallel record: {found!r}")
+        ensure(ctx.shared.get("calibration_rows") == 1
+               and ctx.shared.get("parallel_rows") == 1,
+               f"each floor counts its own record's rows: "
+               f"{ctx.shared.get('calibration_rows')!r} and "
+               f"{ctx.shared.get('parallel_rows')!r}")
 
 
 def _bindings_truncated_row_is_a_finding() -> None:
