@@ -1232,6 +1232,55 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M3.4a
 · Disposition: open, the datum named unusable for calibration at the item's own cell, a convention for an exit-time residue split being the plan's to state at the calibration paragraph and this being its first
 
+**F-227a** owed-act: no entry fixes the symmetric key length the frozen cipher takes, the cipher entry naming the cipher and stopping and the parameter-set entry freezing three asymmetric or hash-based schemes at a category whose own definition is stated by reference to a symmetric key search
+· Raised: M3.4d
+· Disposition: open, the length left a parameter with all three of the standard's own key lengths carrying a published answer
+
+**F-227b** owed-act: no entry fixes the authentication tag's length, the standard admitting five lengths generally and two more for named applications only where the entry that makes the tag the stored checksum fixes none
+· Raised: M3.4d
+· Disposition: open, the length left a parameter and both of the standard's lists written as what it admits rather than as what the platform takes
+
+**F-227c** owed-act: no entry fixes the nonce length or which of the two initial-counter constructions is taken, the standard splitting them at a ninety-six-bit nonce where the two entries reaching the nonce fix that it is per-extent and random and not how long it is
+· Raised: M3.4d
+· Disposition: open, both arms authored and each carrying a published answer
+
+**F-227d** owed-act: the standard bounds one key's invocations of the authenticated encryption function and no entry carries a bound of any kind, the linear nonce grade forcing freshness rather than a count
+· Raised: M3.4d
+· Disposition: open, the bound carried as a record field the artifact proves nothing computes from, which states the gap rather than filling it
+
+**F-227e** owed-act: what a per-extent AEAD authenticates besides the extent is unstated, two entries saying where the nonce and the tag live and neither saying what the associated data is, where an extent sealed with none and one sealed with its own address open differently against a layer left free to move a block
+· Raised: M3.4d
+· Disposition: open, the associated data left a record field
+
+**F-227f** owed-act: one entry names two tag constructions where another freezes one of them out, the per-extent AEAD entry writing *the Poly1305/GHASH tag* and the cipher entry naming ChaCha20/Poly1305 the frozen-out alternative
+· Raised: M3.4d
+· Disposition: open, only the frozen construction authored and the entry left to the review gate
+
+**F-227g** owed-act: the constant-time entry's enumeration of control-flow-heavy primitives names a cipher the frozen suite does not carry, that cipher being the one the filesystem-cipher entry freezes out, so an artifact-level obligation is stated over a primitive no artifact will exist for
+· Raised: M3.4d
+· Disposition: open, reported and not closed, an entry being the review gate's to move
+
+**F-227h** owed-act: no entry fixes the oracle pair for an authored AEAD, exactly as none fixes it for an authored hash, and the milestone cell wanting two oracles of independent verification lineage decides neither
+· Raised: M3.4d
+· Disposition: open, the answers recomputed by one independent implementation named in the artifact's own header and pinned nowhere
+· Restates: F-205b
+
+**F-227i** method: the differential pair this artifact claims is held by no rule, one file deriving the tables the curated model transcribes while each gate decides its own side, which is the shape the rule for the hash pair already closed one primitive over
+· Raised: M3.4d
+· Disposition: open, the rule that would close it needing a checker id this lane was not allotted, with its two sides named in the item's note
+
+**F-227j** owed-act: one of the four step maps is not shown a bijection, so the composite claim that the cipher is one is stated by the artifact of itself and left open, that step being multiplication by a unit in a polynomial ring whose bijectivity needs a linearity argument the artifact does not make
+· Raised: M3.4d
+· Disposition: open, the other three discharged over arbitrary or exhaustive inputs and the algebraic unit with a spanning-set round trip standing in for the fourth
+
+**F-227k** method: a published literal is recomputed by a second implementation before it is written down, or the check that quotes it is a check against the transcriber's memory rather than a known answer
+· Raised: M3.4d
+· Disposition: standing, taken here over both standards and recorded in the artifact's header with the instrument and the date
+
+**F-227l** measurement: three seeded weakenings survived across two forty-mutant samples, each at a site nothing above it decided, a key-expansion guard only a key length the standard does not carry can part, a length list no computation visited, and a word rotation whose result the truncating exclusive-or that consumes it silently cuts back to four bytes
+· Raised: M3.4d
+· Disposition: closed, one statement added for each, the guard made a parameter with its raised alternative beside it, both length lists held to the standard's own shape and to its own count, the count being what the shape alone leaves free, and the rotation stated over four arbitrary bytes, each mutant then refused
+
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
 · Disposition: closed, taken at R-15-247d: the disjunction resolves to one pass over both planes, so the transition carries one dwell and one read rather than two of each
