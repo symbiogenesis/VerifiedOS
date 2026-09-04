@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """What a mutation run decides, spelled once for every oracle that runs one.
 
-Four loops in this tree seed a defect and ask whether something noticed, and until
+Five loops in this tree seed a defect and ask whether something noticed, and before
 this module they agreed about the method and disagreed about everything a reader
-sees: three of them counted the verdicts one way and the fourth counted them
-another, each with its own tallies, its own report and its own arithmetic from
-verdicts to an exit code. That is one engine written four times, and the failure
+sees: each carried its own tallies, its own report and its own arithmetic from
+verdicts to an exit code. That is one engine written five times, and the failure
 mode is the quiet one: an accounting that drifts between loops reads like two
 different measurements of two different things.
 
@@ -39,10 +38,12 @@ live for exactly as long as nobody looked. That is why the population that can d
 is the one whose third verdict fails the run.
 
 The two are therefore produced by different loops rather than by one loop's taste. A
-generated oracle yields stillborn mutants and never unseeded ones; the checker's
-authored oracle yields unseeded ones and never stillborn ones, its oracle being a
-subprocess that always runs. `summarize` carries both because it is one report over
-both, not because either loop is expected to produce the other's.
+generated oracle yields stillborn mutants and never unseeded ones. The two authored
+oracles yield unseeded ones and never stillborn ones, because neither compiles
+anything: the checker's is a subprocess that always runs, and the gate over the
+deferred instruments is a check group's own run over a context. `summarize` carries
+both verdicts because it is one report over every population, not because any loop is
+expected to produce the other's.
 
 ## The report, and the second copy that survives the process
 
