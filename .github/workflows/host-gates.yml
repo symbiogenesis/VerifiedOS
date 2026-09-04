@@ -21,7 +21,12 @@
 # carries. Every action here runs on node24, the runtime the runner now forces a node20
 # action onto with a deprecation warning; two are named by their floating major tag and
 # setup-uv by a whole version, because astral-sh stopped publishing major and minor tags
-# at v8, so its bump is a version and not a major. jsonschema is the one third-party
+# at v8, so its bump is a version and not a major. Its cache is turned off rather than
+# left on its default, which is on for a hosted runner: nothing here is resolved from a
+# dependency file, there being no lockfile, requirements file or pyproject in the tree,
+# so the key the action derives is constant and the entry it saves would never be
+# invalidated. The three installs below name exact versions instead, which is the
+# property a cache key would have been standing in for. jsonschema is the one third-party
 # import the tools make, installed the way tools/README.md spells it for the host. On
 # Linux, run.py makes no WSL hop: the hop is taken only on win32, and the wave's
 # members are host commands regardless. PYTHONUTF8 is set so that a redirected stream
@@ -64,6 +69,8 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: false
 
       - name: Install the pinned checkers as uv tools
         run: |
