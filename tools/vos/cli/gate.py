@@ -7,20 +7,20 @@ There are three, and each decides about a different artifact:
     selftest   the checker     every rule it carries, against its own mutant
     typecheck  the Python      every expression and every signature, under two pins
 
-Nothing runs them but a person, by hand, before anything lands, so three commands
-are three chances to remember two. This is the one command that removes that: one
-launch, one exit code, and each member's own report printed whole under its own
-heading, in the order declared here rather than the order the three finished in. It
-is what `run.py` does when it is asked for nothing else.
+Asked for by hand, three commands are three chances to remember two. This is the
+one command that removes that: one launch, one exit code, and each member's own
+report printed whole under its own heading, in the order declared here rather than
+the order the three finished in. It is what `run.py` does when it is asked for
+nothing else, and what [the push workflow](../../../.github/workflows/host-gates.yml)
+runs at every push and pull request to `main`.
 
 **They run together because they contend for nothing.** All three only read the
-checkout, and the two small ones fit inside the slack of the large one. Measured
-warm on a twelve-core host, three alternated runs of each arm: the selftest alone
-at a 22.8 s median, the wave at 23.9 s, the same three in sequence at 26.0 s. The
-other two cost about a second inside the wave where they cost three beside it, and
-the wave's spread is the tighter of the two, 23.8 to 24.2 s against 23.7 to 26.6.
-The saving is the smaller half of why this exists. The one verdict is the other
-half, and the larger.
+checkout, and the two small ones fit inside the slack of the large one. **No figure
+is quoted for that here**, on the ground [the tools' README](../../README.md) states
+and the findings register carries: a median is a property of the checker it was taken
+at, the rule count and the mutant population both move on every rule landed, and this
+host does not reproduce a wave figure within a factor of two. The saving is the
+smaller half of why this exists. The one verdict is the other half, and the larger.
 
 **`--fix` is the exception to the wave, and a correctness one.** `check --fix`
 rewrites the documents whose arithmetic moved, and the selftest opens by copying

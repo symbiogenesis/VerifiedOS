@@ -8,6 +8,8 @@ silently, in whichever direction nobody looked, which is the defect the register
 sweep 2 names. The defect takes several granularities, and they are one mistake, so
 they are one tool:
 
+    generated     the emitted file    every generated artifact against its generator and its owner
+    ring          the compiled file   the interface artifact against the two owners it is emitted from
     traces        the reference       every bookmark a trace cites, and the section it shows
     coread        the co-currency     every entry against the prose it cites, as last read together
     extraction    the section set     the prose's normative sections against the register's
@@ -16,11 +18,14 @@ they are one tool:
     views         the membership      what a derived view carries, checked in both directions
     confers       the enumeration     every set closed by conferral, and the agenda it misses
     bindings      the instantiation   the apex statement's fields against the view binding them
+    keccak        the shared answer   one permutation state, through both transcriptions of it
     counts        the cardinality     every figure any document asserts, against its artifact
     compounds     the synthesis       a statement over rows, against the rows it rests on
     estimates     the arithmetic      every checklist total and share against the item hours
     differential  the twin roster     the corpus manifest against its document, every member assembling
+    findings      the index           every finding a completion note counts, against its entry
     costated      the joint statement a fact stated in more than one pair, at each site stating it
+    pins          the edition         every upstream pin against the gitlink the index carries
 
 Three further groups check what a file is rather than what it says: for a document,
 the shape and the characters, where a fault survives a rendered read because the

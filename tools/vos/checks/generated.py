@@ -16,12 +16,15 @@ changes what four rules downstream decide.
 ## The claim, and the two lanes it is decided on
 
 **The claim is one sentence: every artifact the table below names is byte-identical to
-what its generator emits from its owners.** Neither lane can decide the whole of it, and
-the split is a property of the machine rather than a weakening of the claim.
+what its generator emits from its owners.** A host row is decided whole here and a guest
+row is not, and the split is a property of the machine rather than a weakening of the
+claim.
 
-`check.py` runs on the Windows host, where there is no Sail, so the emitter for the one
-row here **cannot run at this gate at all**. What the host can decide, it decides, and
-what it cannot it names in its own `ok` line rather than passing over:
+`check.py` runs on the Windows host, where there is no Sail, so the emitter for the
+**guest** row here **cannot run at this gate at all**, where a host row's is Python over
+artifacts this checkout already carries and is re-run at every landing. What the host
+can decide of the guest row, it decides, and what it cannot it names in its own `ok`
+line rather than passing over:
 
 - **the artifact against the index.** The index is what this repository has been told
   the generator last emitted, and what review last saw, so a working tree that has
@@ -42,14 +45,15 @@ What is left is exactly one question: *would Sail, run now, write these bytes?* 
 rather than at every landing. It is named in the `ok` line, so a green K-88 says which
 half it decided and never claims the other.
 
-**Why not simply make the checker run the generator.** Two reasons, and both are
-disqualifying on their own. The host has no Sail, so a rule that ran the generator would
-be red on the machine this repository is edited from, which is a rule that gets turned
-off rather than a rule that bites. And re-launching into the guest would put a 40-second
-Sail run and a WSL dependency inside a three-gate wave that answers in 24 seconds, for a
-question that changes only when the model does. What makes the split honest is that the
-host's half is not vacuous: it catches the hand edit and it catches the stale artifact,
-which are the two ways a generated file goes wrong in practice.
+**Why not simply make the checker run the bundle's generator.** Two reasons, and both
+are disqualifying on their own. The host has no Sail, so a rule that ran that generator
+would be red on the machine this repository is edited from, which is a rule that gets
+turned off rather than a rule that bites. And re-launching into the guest would put a
+40-second Sail run and a WSL dependency inside the three-gate wave, for a question that
+changes only when the model does. Neither reason reaches a host row, whose generator
+needs no toolchain at all. What makes the split honest is that the host's half of a
+guest row is not vacuous either: it catches the hand edit and it catches the stale
+artifact, which are the two ways a generated file goes wrong in practice.
 
 ## Fail-closed, on K-67's and K-75's ground
 
