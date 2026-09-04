@@ -126,7 +126,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000d** measurement: the two emitters disagree about a word whose low two bits are not `11`, the fetch path still taking upstream's compressed branch where the profile excludes `C` and fixes the instruction length
 · Raised: S11
-· Disposition: open, which emitter is right being the model's question; the generator spends no stream on encodings the profile does not have
+· Disposition: closed at M0.20, which took the model's question the other way than the phrasing implies: the packet was right, the fetch's length decision is deleted, and a corpus check on the trap value decides it
 
 **F-000e** upstream-defect: the source half of the packet's integer extension is declared and never written, both source addresses and their data always zero
 · Raised: S11
@@ -366,7 +366,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-002** measurement: fixed-width fetch deletes the gating and not the 16-bit path, so the parcel check, the illegal-parcel cause and the compressed decode mapping stay load-bearing with no real clauses behind them
 · Raised: c2
-· Disposition: standing, the fixed instruction length making a short parcel an illegal instruction rather than a misaligned fetch
+· Disposition: closed at M0.20, which deleted the 16-bit path as well: the three named here lost their last user when the fetch's length decision went, and what carries a word whose low two bits are not `11` is `ILLEGAL`, whole
 
 **F-003** upstream-defect: the alignment relaxation lives in four places rather than one, and only two of them are visible from the extension registry
 · Raised: c2
@@ -681,7 +681,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-081** owed-act: a property that saves a list register and restores it by assigning the saved binding does not restore it, and only the harness's per-property reset hides that
 · Raised: M0.8d
-· Disposition: open, recorded rather than quietly repaired because a second property stands on the same idiom, correct as run and not correct the moment one wants to observe its own restore
+· Disposition: closed at M0.20 and the claim does not hold: a property that observes its own restore passes under that idiom, the emitted list being reference-counted so a saved binding aliases the register rather than copying it; the sites move to the other shape on a weaker ground
 
 **F-082** measurement: the one-directional refusal set is the point, the symmetric one having refused every composition in this tree
 · Raised: M0.8d
@@ -878,6 +878,49 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-124f** measurement: nothing left with the two struck clauses, every candidate checked against its callers by name rather than assumed dead
 · Raised: M0.19
 · Disposition: closed, the two live encodings the strike named the duplication against standing where they were
+
+**F-228a** measurement: the fetch contradicted the two checks above it inside one function, asking the executive capability for four bytes and refusing a PC that is not four-byte aligned and then deriving a second, shorter length from the word it had authorised four bytes for
+· Raised: M0.20
+· Disposition: closed, the length decision deleted and the granule split kept for the precise fault addresses it is actually for
+
+**F-228b** measurement: the packet was right and the commit trace was wrong, the trace's fetch callback taking the halfword after the compressed branch where the packet was set to the whole word before it, and the trap value carrying the same halfword where a program rather than a rig can see it
+· Raised: M0.20
+· Disposition: closed, a corpus check on the trap value deciding it; this is the answer to F-000d
+· Restates: F-000d
+
+**F-228c** measurement: what decides the boundary of a dead-surface deletion is which act killed the construct, six losing their last user with the fetch's length decision and the compressed register vocabulary having lost its own at the batch that took the compressed instructions
+· Raised: M0.20
+· Disposition: open for the second half, booked rather than swept, its ground being that batch's rather than this one's and nothing on the fetch or decode path reaching it
+
+**F-228d** measurement: the claim that a property restoring a list register by assigning the saved binding does not restore it is false, the emitted list being reference-counted and the copy incrementing before it kills, so the binding and the register are one chain
+· Raised: M0.20
+· Disposition: closed, one property written on each shape and both observing their own restore and passing; what is true of the idiom is the weaker sentence the repaired comments now carry
+· Restates: F-081
+
+**F-228e** upstream-defect: the emitted list constructor overwrites its destination without releasing what it overwrote, so a cons whose tail is not the destination's current value leaks the old list
+· Raised: M0.20
+· Disposition: open, no site in this tree being that shape, every cons into a register here taking the branch that transfers the count to the tail
+
+**F-228f** measurement: a corpus member's own trap count was stale in two artifacts and in two directions before this item touched it, the source header understating it and the document miscounting which traps it was made of
+· Raised: M0.20
+· Disposition: closed, both repaired; no rule reads either figure, the membership rule holding the check count and not the prose beside it
+
+**F-228g** method: the property harness cannot reach the fetch at all, that function being private to a module the harness only requires, so the whole fetch path is decidable from the corpus alone
+· Raised: M0.20
+· Disposition: standing, and a sharper case than the configured-policy one it extends: there the harness reaches the code and answers about the wrong machine, here it does not reach the code
+
+**F-228h** method: the corpus-image acceptance criterion cannot tell a member that grew from an encoding that moved, its subject being the encoder and its input being the corpus, so the first edit to any member reds a test whose own instruction is never to repair a red run by rerecording
+· Raised: M0.20
+· Disposition: closed, the rerecord admitted by measuring the old figure back under the current encoder and that procedure recorded beside the figure rather than left to the next lane to invent
+
+**F-228i** method: a lane that leaves its derived arithmetic to an integrator cannot run the mutation selftest at all, the selftest's baseline being the checker that every landing reds, so it reports an unmutated sandbox that does not pass rather than a killed population
+· Raised: M0.20
+· Disposition: standing, the figure owed to the integrator's own run after the merge rather than to a lane, which quotes none
+
+**F-228j** measurement: the model's revision stamp carries `-dirty` over a committed tree the host reads clean, with no build tree inside the checkout and no working-tree change to account for it, so the marker beside a revision figure does not decide whether the tree it was built from was edited
+· Raised: M0.20
+· Disposition: open, which side is right about the tree undetermined here and no cause asserted; the act is a reading of the two gits against each other, and until it is taken every revision figure in the plan carrying the marker is uninformative rather than wrong
+
 ## M1 · Toolchain spine
 
 **F-125** upstream-defect: the pinned compiler's dual-licensed subset does not reach the verified backend passes, the target backend, or the capability backend, which are precisely what the re-homing takes

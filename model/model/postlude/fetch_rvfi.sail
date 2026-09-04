@@ -23,10 +23,12 @@ private function rvfi_fetch() -> FetchResult = {
   if   PC[1 .. 0] != 0b00
   then return F_Error(E_Fetch_Addr_Align(), PC);
 
+  // The injected word is the whole instruction: ILEN is fixed at 32 and `C` is
+  // excluded (R-15-036, R-15-014), so there is no second length to read out of
+  // its low two bits, and this reports the same word the trace does whether or
+  // not that word is an encoding this machine allocates (postlude/fetch.sail).
   let i = rvfi_instruction[rvfi_insn];
   rvfi_inst_data[rvfi_insn]   = zero_extend(i);
-  if   (i[1 .. 0] != 0b11)
-  then return F_RVC(i[15 .. 0]);
 
   // fetch PC check for the next instruction granule
   let PC_hi = PC + 2;

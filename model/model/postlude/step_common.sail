@@ -41,9 +41,11 @@ function hart_is_waiting(s : HartState) -> bool =
 // The result of a fetch, which includes any possible error
 // from an extension that interposes on the fetch operation.
 
+// The compressed arm is gone with the length decision that produced it: `C` is
+// excluded and ILEN is fixed at 32 (R-15-036, R-15-014), so a fetch yields one
+// 32-bit word or an error and never a shorter instruction (postlude/fetch.sail).
 union FetchResult = {
   F_Ext_Error : ext_fetch_addr_error,      // For extensions
   F_Base      : word,                      // Base ISA
-  F_RVC       : half,                      // Compressed ISA
   F_Error     : (ExceptionType, xlenbits)  // standard exception and PC
 }
