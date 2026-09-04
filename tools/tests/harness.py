@@ -10,6 +10,7 @@ tests (`--fix`, `--bless`, ledger and manifest writes) run there, never against
 the live tree.
 """
 
+import os
 import subprocess
 import tempfile
 from collections.abc import Callable, Iterator
@@ -39,6 +40,29 @@ def ensure(cond: bool, msg: str) -> None:
     """The assertion that survives -O: raise, never assert."""
     if not cond:
         raise AssertionError(msg)
+
+
+def with_env(name: str, value: str | None, fn: Callable[[], None]) -> None:
+    """Run `fn` with one environment override in place, restoring whatever stood.
+
+    The hook the tools' own call-time overrides are written for: `vos.env` reads each
+    of its `VOS_*` settings where it uses them rather than at import, so a case can
+    name the build root, the lane or the administrative directory a run is to answer
+    about. Shared here because three modules want it, and the restore is what keeps a
+    case that sets one from deciding the next case's answer.
+    """
+    was = os.environ.get(name)
+    if value is None:
+        os.environ.pop(name, None)
+    else:
+        os.environ[name] = value
+    try:
+        fn()
+    finally:
+        if was is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = was
 
 
 @contextmanager

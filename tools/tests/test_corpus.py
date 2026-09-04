@@ -10,11 +10,14 @@ the unit under test, and reaching it through `load` would need a git tree per
 string.
 """
 
+import json
+import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos.corpus import HEADING_RE, Document, slug
 
@@ -139,6 +142,78 @@ def _non_utf8_names_the_document() -> None:
         raise AssertionError("a non-UTF-8 tracked document must stop the load")
 
 
+# The load and the staged-blob read, in a child of their own. Run here rather than
+# in this process because the environment that points the parse at a checkout is
+# process-global and the runner runs modules in a pool: an override set in-process is
+# set for every module reading the real corpus beside it. A child is also the honest
+# shape, being exactly what a lane runs when it runs `python3 tools/check.py`.
+_PROBE = (
+    "import json, sys;"
+    "from pathlib import Path;"
+    "from vos import corpus;"
+    "root = Path(sys.argv[1]);"
+    "loaded = corpus.load(root);"
+    "print(json.dumps({'docs': [d.name for d in loaded.docs],"
+    " 'targets': sorted(loaded.by_name['docs/a.md'].targets),"
+    " 'blob': (corpus.staged_bytes(root, 'docs/a.md') or b'').decode('utf-8')}))"
+)
+
+
+def _probe(root: Path, admin: Path | None) -> tuple[int, str, str]:
+    environment: dict[str, str] = {**os.environ, "PYTHONPATH": str(TOOLS)}
+    if admin is None:
+        environment.pop("VOS_GIT_DIR", None)
+    else:
+        environment["VOS_GIT_DIR"] = str(admin)
+    argv: list[str] = [sys.executable, "-c", _PROBE, str(root)]
+    done = subprocess.run(argv, capture_output=True, encoding="utf-8",
+                          errors="replace", check=False, timeout=120,
+                          env=environment)
+    return done.returncode, done.stdout, done.stderr
+
+
+def _reads_a_checkout_git_cannot_find_by_itself() -> None:
+    """The lane condition, reproduced here rather than only inside WSL.
+
+    A linked worktree created by the host's git holds a Windows path in its `.git`
+    file, so inside the guest git standing in that tree finds no repository at all and
+    exits 128. This parse is the one every rule reads the corpus through, so without
+    the translation `vos.env` already owns, a whole run of the checker in a lane ends
+    in a traceback rather than in a verdict. The condition is *git cannot resolve the
+    repository from the tree, and the environment can name it*, which needs no WSL to
+    stand up: the administrative directory is moved out of the checkout and named
+    through the same override a lane's translation answers with.
+    """
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        base = Path(td).resolve()
+        work, admin = base / "work", base / "admin"
+        (work / "docs").mkdir(parents=True)
+        body = '# A\n\n<a id="one"></a>\n'
+        (work / "docs" / "a.md").write_text(body, encoding="utf-8", newline="")
+        _git(work, "init", "-q")
+        _git(work, "add", "-A")
+        (work / ".git").rename(admin)
+
+        code, _, said = _probe(work, None)
+        ensure(code != 0 and "not a git repository" in said,
+               f"precondition: with the administrative directory moved out of the "
+               f"tree, git must not resolve this checkout on its own, got "
+               f"{code} and {said[-200:]!r}")
+
+        code, printed, said = _probe(work, admin)
+        ensure(code == 0,
+               f"the parse must reach the named directory, got {code} and "
+               f"{said[-400:]!r}")
+        answered = json.loads(printed)
+        ensure(answered["docs"] == ["docs/a.md"],
+               f"the corpus loads the tracked document, got {answered['docs']}")
+        ensure("one" in answered["targets"],
+               f"the document is parsed and not merely listed, got "
+               f"{answered['targets']}")
+        ensure(answered["blob"] == body,
+               f"the staged blob is read through it too, got {answered['blob']!r}")
+
+
 def _find_root_refuses_outside_a_checkout() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         try:
@@ -162,5 +237,7 @@ def cases() -> list[Case]:
         Case("merge-conflict-one-document", _merge_conflict_one_document),
         Case("deleted-but-indexed-dropped", _deleted_but_indexed_dropped),
         Case("non-utf8-names-the-document", _non_utf8_names_the_document),
+        Case("reads-a-checkout-git-cannot-find",
+             _reads_a_checkout_git_cannot_find_by_itself),
         Case("find-root-refusal", _find_root_refuses_outside_a_checkout),
     ]

@@ -14,11 +14,14 @@ reports are the same, arrived at in one pass instead of many.
 """
 
 import bisect
+import os
 import re
 import subprocess
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from vos import env
 
 # The line-anchored patterns here are matched against one line rather than scanned
 # across the whole text with `(?m)^`. The two decide the same lines, but a multiline
@@ -291,10 +294,28 @@ class Corpus:
         return name in self.by_name
 
 
+def _git_environment(root: Path) -> dict[str, str] | None:
+    """This process's environment with whatever a `git` run in `root` needs laid over
+    it, or `None` where it needs nothing.
+
+    The translation is [env.py](env.py)'s and is reached rather than repeated. A linked
+    worktree created by the *host's* git holds a Windows path in its `.git` file, so
+    inside the guest a bare `git` in that lane exits 128 with `not a git repository`;
+    this parse is the one every rule reads the corpus through, so without the
+    translation `python3 tools/check.py` in a lane ends in a traceback rather than in a
+    verdict, and the rules decide nothing at all. On the primary worktree, and on the
+    host where the pointer is already usable, there is nothing to say and this answers
+    `None`, which leaves those lanes exactly as they were.
+    """
+    overlay = env.git_env(root)
+    return {**os.environ, **overlay} if overlay else None
+
+
 def _git(root: Path, *args: str) -> list[str]:
     proc = subprocess.run(
         ["git", "-c", "core.quotepath=false", *args],
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False,
+        env=_git_environment(root),
     )
     if proc.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
@@ -314,7 +335,8 @@ def staged_bytes(root: Path, path: str) -> bytes | None:
     and that is exactly the difference a byte-identity rule exists to see.
     """
     proc = subprocess.run(["git", "cat-file", "blob", f":{path}"],
-                          cwd=root, capture_output=True, check=False)
+                          cwd=root, capture_output=True, check=False,
+                          env=_git_environment(root))
     return proc.stdout if proc.returncode == 0 else None
 
 

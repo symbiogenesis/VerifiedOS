@@ -31,7 +31,7 @@ from tests.harness import TOOLS, Case, ensure, sandbox_tree
 # The live sources the sandbox copy of the tool runs on, relative to the root.
 _SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/coread.py",
             "tools/vos/__init__.py", "tools/vos/coread.py",
-            "tools/vos/corpus.py", "tools/vos/register.py")
+            "tools/vos/corpus.py", "tools/vos/env.py", "tools/vos/register.py")
 
 # Three entries in the register's own shape: body line, criterion, conferral on the
 # third, trace. The parse anchors on these spellings, so the fixture keeps them.
