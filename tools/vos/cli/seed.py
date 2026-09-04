@@ -23,6 +23,14 @@ What a verdict is, and the report and the exit code they imply, is
 [vos/seeded.py](../seeded.py)'s and is shared with every other loop that seeds a
 defect; what is here is the population and the three oracles.
 
+**A run of any of the three is built to outlive its own lane.** Each takes the
+keepalive lease `vos/env.py` exposes, so the guest distribution does not idle out from
+under a population that costs a compiler or a prover per member, and each writes every
+verdict to a journal beside the lane's staged trees as it is decided, so a run that is
+killed anyway still says what it had decided rather than losing the lot at the report
+it never printed. The report itself is unmoved: accumulated, printed whole, in
+population order, and closing on the line that carries the run's scope.
+
 The Coq lane runs **two** oracles in sequence and the second is the one worth the
 item. A mutation the prover refuses is killed by the artifact's own statements, which
 is a good answer and the one a reader expects. A mutation the prover accepts is a
@@ -63,6 +71,7 @@ from vos.seeded import (
     KILLED,
     STILLBORN,
     SURVIVED,
+    Journal,
     Scope,
     Verdict,
     chosen,
@@ -80,6 +89,37 @@ WORK = "seed"
 # a stillborn mutant with near certainty and mutating `ApexTheorem.v`'s vocabulary is
 # a mutation of a `Prop` no vector computes.
 COQ_SUBJECT = "proofs/CyclicExecutive.v"
+
+
+def lane_env() -> env.Environment:
+    """This lane's environment, with the distribution held up for as long as it lasts.
+
+    **Every oracle here is a loop long enough to lose the VM underneath it**, and this
+    was the one family of loops in the tree not taking the lease. WSL2 starts its idle
+    timer once the last process in the distribution exits, and a mutation run is
+    minutes to hours of compiler or prover with several lanes competing for the same
+    guest: a teardown does not fail the run, it takes the whole of it, verdicts
+    included. `run.py model` takes the lease on every subcommand that drives the
+    toolchain, and the lease is idempotent through its pidfile, so taking it here costs
+    nothing where one is already held and is the difference between a lost run and a
+    finished one where it is not.
+
+    `list` does not come through here, and deliberately: it walks a source and drives
+    no toolchain, so it answers on the host, where there is no distribution to hold up.
+    """
+    e = env.load()
+    env.keepalive()
+    return e
+
+
+def journal_at(e: env.Environment, name: str) -> Journal:
+    """Where one oracle's run writes its verdicts down as it decides them.
+
+    Beside the lane's staged trees rather than inside one: every tree here is rebuilt
+    from scratch at the head of the next run, and a record whose whole purpose is to
+    outlive the run that wrote it must not sit in a directory the next run deletes.
+    """
+    return Journal(e.lane_root / WORK / f"{name}.journal")
 
 
 def read_source(path: Path) -> str:
@@ -185,7 +225,7 @@ def stage_sail(root: Path, spec: oracle_spec.Spec, tree: Path) -> None:
 
 def cmd_sail(args: argparse.Namespace) -> int:
     """Seed a defect into a model source and require the generated vectors to move."""
-    e = env.load()
+    e = lane_env()
     root = find_root()
     try:
         spec = oracle_spec.load(root, args.spec)
@@ -205,18 +245,20 @@ def cmd_sail(args: argparse.Namespace) -> int:
     tree = work / "tree"
     stage_sail(root, spec, tree)
     original = read_source(root / rel)
+    picked, scope = picked_with_scope(root, rel, args)
+    book = journal_at(e, f"sail-{spec.name}")
 
-    out: list[str] = []
+    out: list[str] = [book.start(rel, f"{spec.name} vector", scope)]
     baseline = oracle_spec.generate(root, spec, work / "base", out, model_root=tree)
     if baseline is None:
         out.append("FAIL the unmutated spec did not run, so there is no baseline")
+        book.close(1)
         print("\n".join(out))
         return 1
     _, total, _ = sailrig.census(baseline)
     out.append(f"== baseline: {total} vector(s) from {spec.name}")
 
     verdicts: list[Verdict] = []
-    picked, scope = picked_with_scope(root, rel, args)
     for mutant in picked:
         write_source(tree / rel, mutant.apply(original))
         try:
@@ -224,19 +266,22 @@ def cmd_sail(args: argparse.Namespace) -> int:
             got = oracle_spec.generate(root, spec, work / "mutant", said,
                                        model_root=tree)
             if got is None:
-                verdicts.append(Verdict(mutant, STILLBORN, "the mutated model did not "
-                                                           "compile"))
+                verdicts.append(book.record(
+                    Verdict(mutant, STILLBORN, "the mutated model did not compile")))
                 continue
             _, bad, n_want, n_got = sailrig.compare(baseline, got)
             if bad or n_want != n_got:
-                verdicts.append(Verdict(mutant, KILLED,
-                                        f"{bad} of {total} vector(s) moved", bad))
+                verdicts.append(book.record(
+                    Verdict(mutant, KILLED, f"{bad} of {total} vector(s) moved", bad)))
             else:
-                verdicts.append(Verdict(mutant, SURVIVED, "every vector reproduced"))
+                verdicts.append(book.record(
+                    Verdict(mutant, SURVIVED, "every vector reproduced")))
         finally:
             write_source(tree / rel, original)
 
-    code = summarize(out, verdicts, rel, f"{spec.name} vector", scope)
+    code = summarize(out, verdicts, rel, f"{spec.name} vector",
+                     scope.decided(len(verdicts)))
+    book.close(code)
     print("\n".join(out))
     return code
 
@@ -292,12 +337,16 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
 
 def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
                mutants: list[mutate.Mutant], original: str, baseline: list[str],
-               quickchick: bool) -> list[Verdict]:
+               quickchick: bool, book: Journal) -> list[Verdict]:
     """One shard of the population, run serially in the one tree that shard owns.
 
     The source is restored after every mutant rather than at the end, because the next
     mutant in this shard is applied to the original text and a tree left mutated would
     compound two seeds into a defect nobody generated.
+
+    Every verdict is journalled where it is decided rather than where the shards are
+    joined, which is the whole of what makes the record survive: a run torn down never
+    reaches the join.
     """
     staged = work / rel
     harness = work / "harness" / harness_name
@@ -305,8 +354,8 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
     for mutant in mutants:
         write_source(staged, mutant.apply(original))
         try:
-            verdicts.append(_coq_verdict(found, work, rel, harness, mutant,
-                                         baseline, quickchick))
+            verdicts.append(book.record(
+                _coq_verdict(found, work, rel, harness, mutant, baseline, quickchick)))
         finally:
             write_source(staged, original)
     return verdicts
@@ -314,7 +363,7 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
 
 def _run_shards(found: gallina.Prover, trees: list[Path], rel: str, harness_name: str,
                 picked: list[mutate.Mutant], original: str, baseline: list[str],
-                quickchick: bool) -> list[Verdict]:
+                quickchick: bool, book: Journal) -> list[Verdict]:
     """The population across the staged trees, one shard each, all at once.
 
     **The partition is round-robin and therefore exhaustive by construction.** Taking
@@ -336,10 +385,10 @@ def _run_shards(found: gallina.Prover, trees: list[Path], rel: str, harness_name
     """
     if len(trees) == 1:
         return _coq_shard(found, trees[0], rel, harness_name, picked, original,
-                          baseline, quickchick)
+                          baseline, quickchick, book)
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(trees)) as pool:
         done = [pool.submit(_coq_shard, found, tree, rel, harness_name, part,
-                            original, baseline, quickchick)
+                            original, baseline, quickchick, book)
                 for tree, part in zip(trees, shard(picked, len(trees)), strict=True)]
         got = [future.result() for future in done]
     # Undone the same way it was done, rather than by sorting on anything read off a
@@ -373,9 +422,15 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
     other way of seeing, and it is cheap to refuse here.
     """
     def one(work: Path) -> tuple[list[str] | None, str]:
+        # The emitter's own account of a failure is carried out rather than dropped
+        # into a list nobody reads: a baseline that will not stand up is the one moment
+        # in this loop where the reader has nothing else to go on, and "the unmutated
+        # tree did not run" costs a whole second run to turn into which proof refused
+        # and what the prover said about it.
         if quickchick:
             return _quickchick_baseline(root, found, work, harness_name)
-        return gallina.emit(root, work, []), ""
+        said: list[str] = []
+        return gallina.emit(root, work, said), "\n".join(said)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(trees)) as pool:
         got = list(pool.map(one, trees))
@@ -404,7 +459,7 @@ def cmd_coq(args: argparse.Namespace) -> int:
     and its verdict is a minimal counterexample. A mutant both miss is a site neither
     the proofs nor either kind of generation decides anything about.
     """
-    e = env.load()
+    e = lane_env()
     root = find_root()
     rel = args.file
     if not (root / rel).is_file():
@@ -418,10 +473,14 @@ def cmd_coq(args: argparse.Namespace) -> int:
               "`run.py quickchick check` says which switch holds what")
         return 1
 
-    work = e.lane_root / WORK / ("quickchick" if args.quickchick else "coq")
+    name = "quickchick" if args.quickchick else "coq"
+    work = e.lane_root / WORK / name
     out: list[str] = []
     harness_name = gallina.RANDOMIZED if args.quickchick else gallina.ENUMERATIVE
     original = read_source(root / rel)
+    oracle_name = ("prover-then-QuickChick" if args.quickchick
+                   else "prover-then-vector")
+    picked, scope = picked_with_scope(root, rel, args)
 
     # One tree per job, and the single-job path keeps the directory it always used, so
     # a run that asked for no concurrency stages exactly where it staged before.
@@ -433,17 +492,20 @@ def cmd_coq(args: argparse.Namespace) -> int:
         return 1
     said = (f"{len(baseline)} vector(s) from the Gallina front"
             if not args.quickchick else "green under QuickChick")
+    # The journal is opened after the trees are stood up rather than before, because
+    # standing one up rebuilds it from scratch and the single-job path stages into this
+    # lane's own working directory.
+    book = journal_at(e, name)
+    out.append(book.start(rel, oracle_name, scope))
     out.append(f"== baseline: {said}, {gallina.version(found)} in {switch}"
                + (f", over {len(trees)} staged tree(s) agreeing unmutated"
                   if len(trees) > 1 else ""))
 
-    picked, scope = picked_with_scope(root, rel, args)
     verdicts = _run_shards(found, trees, rel, harness_name, picked, original,
-                           baseline, args.quickchick)
+                           baseline, args.quickchick, book)
 
-    code = summarize(out, verdicts, rel,
-                     "prover-then-QuickChick" if args.quickchick
-                     else "prover-then-vector", scope)
+    code = summarize(out, verdicts, rel, oracle_name, scope.decided(len(verdicts)))
+    book.close(code)
     print("\n".join(out))
     return code
 
@@ -495,7 +557,7 @@ def cmd_properties(args: argparse.Namespace) -> int:
     reader's to keep out of the window, which is why the warning below is printed as
     well as the lock being held.
     """
-    e = env.load()
+    e = lane_env()
     root = find_root()
     rel = args.file
     path = root / rel
@@ -519,33 +581,36 @@ def cmd_properties(args: argparse.Namespace) -> int:
         return 1
 
     original = read_source(path)
+    picked, scope = picked_with_scope(root, rel, args)
+    book = journal_at(e, "properties")
     out: list[str] = [
         f"== this run writes into {rel} and puts it back after every mutant.",
         "   For the length of one mutant the checkout on disk is wrong, so nothing",
         "   else may read it: `git add` would stage a defect, `check.py` would report",
         "   a format that disagrees with itself, and the selftest would copy a",
         "   mutated tree into the template every sandbox links against.",
+        book.start(rel, "$[test] harness", scope),
     ]
     base_ok, base_said = _properties_run(harness)
     if not base_ok:
         out.append(f"FAIL the unmutated model's harness is not green: {base_said}")
+        book.close(1)
         print("\n".join(out))
         return 1
     out.append(f"== baseline: {base_said}")
 
     verdicts: list[Verdict] = []
-    picked, scope = picked_with_scope(root, rel, args)
     try:
         for mutant in picked:
             write_source(path, mutant.apply(original))
             built = _build_harness(e)
             if not built:
-                verdicts.append(Verdict(mutant, STILLBORN,
-                                        "the mutated model did not build"))
+                verdicts.append(book.record(
+                    Verdict(mutant, STILLBORN, "the mutated model did not build")))
             else:
                 ok, said = _properties_run(harness)
-                verdicts.append(Verdict(mutant, SURVIVED, said) if ok
-                                else Verdict(mutant, KILLED, said, 1))
+                verdicts.append(book.record(Verdict(mutant, SURVIVED, said) if ok
+                                            else Verdict(mutant, KILLED, said, 1)))
             write_source(path, original)
             if read_source(path) != original:
                 out.append(f"FAIL {rel} could not be restored; the run stops here")
@@ -561,11 +626,17 @@ def cmd_properties(args: argparse.Namespace) -> int:
     rebuilt = _build_harness(e)
     ok, said = _properties_run(harness) if rebuilt else (False, "the rebuild failed")
     out.append(f"== the lane's build tree, rebuilt from the restored source: {said}")
-    code = summarize(out, verdicts, rel, "$[test] harness", scope)
+    # The scope is narrowed to the verdicts rather than left at what was picked,
+    # because this is the one loop that can stop before the end of its own sample: a
+    # restore it cannot verify breaks the loop above, and a closing line taken from the
+    # picking would then state a run larger than the verdicts printed under it.
+    code = summarize(out, verdicts, rel, "$[test] harness",
+                     scope.decided(len(verdicts)))
     if not (rebuilt and ok):
         out.append(f"FAIL the lane's build tree does not hold the unmutated model; "
                    f"run `run.py model build` before anything reads {e.simulator}")
         code = 1
+    book.close(code)
     print("\n".join(out))
     return code
 
