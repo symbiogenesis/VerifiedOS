@@ -286,7 +286,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-234a** method: a register act closes a gap the plan reported and nothing carries the answer back to the cell that reported it, the entry's disposition moving while the bullet goes on saying the question is unstated
 · Raised: S20
-· Disposition: closed, M3.6a's four taken gaps now naming the entry that answered each; the general case stands, K-61 reaching no checklist finding bullet and K-82 holding the register total and never the two halves' agreement
+· Disposition: closed, M3.6a's five taken gaps now naming the entry that answered each; the general case stands, K-61 reaching no checklist finding bullet and K-82 holding the register total and never the two halves' agreement
 
 **F-234b** method: a disposition moved to closed while the plan bullet it indexes still read *reported rather than closed*, the register owning disposition and the note owning content so the half-repair is the expected shape
 · Raised: S20
