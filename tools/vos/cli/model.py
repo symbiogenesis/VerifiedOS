@@ -118,20 +118,20 @@ def _configure(e: env.Environment, build_dir: Path,
     """The one cmake configure line. It was written out in two loops, which is one fact
     in two places and a pair that can silently stop agreeing.
 
-    `GIT_DIR` rides along for a lane whose `.git` names its administrative directory in
-    the host's spelling, because the `git describe` cmake runs at configure is what
-    stamps the emulator with the model revision every downstream artifact records itself
-    against. It is scoped to this one child and no further: see `env.git_dir`.
+    The git environment rides along for a lane whose `.git` names its administrative
+    directory in the host's spelling, because the `git describe` cmake runs at configure
+    is what stamps the emulator with the model revision every downstream artifact
+    records itself against. Both halves of it ride, the directory and the work tree, and
+    the second is what makes the `-dirty` suffix a reading of the lane rather than a
+    constant: see `env.git_env`. It is scoped to this one child and no further.
     """
-    admin = env.git_dir(e.root)
     return env.stage("configure", [
         "cmake", "-S", str(e.model), "-B", str(build_dir), "-GNinja",
         "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
         "-DDOWNLOAD_GMP=FALSE",
         "-DENABLE_RISCV_TESTS=TRUE",
         *e.compilers, *e.ccache, *(extra or []),
-    ], stdout=out, stderr=out,
-       add_env=None if admin is None else {"GIT_DIR": str(admin)})
+    ], stdout=out, stderr=out, add_env=env.git_env(e.root) or None)
 
 
 def _require(binary: str, how: str) -> None:

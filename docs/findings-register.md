@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 419 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 425 of them across 73 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -62,7 +62,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000o** owed-act: a lane's configure child is given the administrative directory and no work tree, so the emulator it builds is stamped dirty whatever the lane's state is, the child's own directory being read as the tree and every tracked file as deleted
 · Raised: S4
-· Disposition: open, reported and not closed; the commit half is right and the flag is noise that would mask a genuinely edited lane
+· Disposition: closed by I13, which hands the child the work tree beside the directory from one owner, so the marker reads the lane it was configured in
 
 **F-000p** owed-act: three commands the entry point's table declares host-capable cannot run on the host, the command's own dispatch preparing the guest environment before it reads which subcommand was asked for
 · Raised: S4
@@ -98,7 +98,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-197f** upstream-defect: the corpus parse reads the git index without the translation the environment module already provides for a linked worktree, so inside the guest on a lane every corpus-reading tool ends in a traceback naming no git repository rather than in a verdict
 · Raised: S9
-· Disposition: open, reported and not closed, that parse being the one every rule reads; the primary worktree is green on both lanes and this item's own guest case reaches the translation rather than repeating it
+· Disposition: closed by I13, the parse reaching that translation rather than repeating it, for the index listing and the staged-blob read alike
 
 **F-197g** measurement: a landed decline's ground names two opam switches where the lane now carries four, two having been added by milestones that landed after the sentence was written, and the argument the ground carries is strengthened rather than weakened by the count
 · Raised: S9
@@ -1668,7 +1668,8 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-204** owed-act: three subcommands the command table declares answerable on either lane are refused on the host, the module loading the build environment before it dispatches
 · Raised: R1c-i
-· Disposition: open, a tools act at the module's entry point; the three shipped key sets and the three validations this item reports were taken from inside the guest instead
+· Disposition: closed by I13 on a measurement rather than an act, the repair having landed at M1.4-prime where F-000p records it; what I13 adds is the case that dispatches every declared subcommand on the lane it runs on
+· Restates: F-000p
 
 **F-205** measurement: the plan's own cell for this work stated a composition four apertures out of date, a milestone having added the root of trust's windows after the cell was written
 · Raised: R1c-i
@@ -1705,7 +1706,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-213** method: the exit-evidence sweep's model revision is a stamp taken once at cmake configure and carried in the emulator, so its dirty marker names the tree that generated the reference rather than the tree the sweep prints from
 · Raised: R1c-i
-· Disposition: standing, the marker read as the configure-time state it is; the lane's `.git` pointer is translated for the guest so the stamp resolves at all, and a completion note quoting a revision says which build it came from
+· Disposition: standing, the marker read as the configure-time state it is, and a completion note quoting a revision says which build it came from; the suffix that prompted this was the missing work tree rather than that state, which I13 measured and F-220a carries
 
 ## Build-loop instruments
 
@@ -1748,3 +1749,27 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-186** measurement: a census over the tracked Python finds no public function named outside its own module and no module outside the test package that nothing imports, so the tool surface is the number of cross-artifact facts somebody decided to hold rather than unused code
 · Raised: I12
 · Disposition: standing, which is what puts the lever on S15's generation rather than on a search for dead code
+
+**F-220a** measurement: an always-on revision marker is the missing work tree and not a configure-time snapshot, and only running the same describe under three environments tells the two accounts apart, both of them predicting the suffix that was seen
+· Raised: I13
+· Disposition: closed, the pair and the empty environment both answering the commit alone where the directory by itself appends the marker
+
+**F-220b** method: a finding that restates a closed one stays open for as long as nobody re-measures it, and costs a reader the belief that the defect is live
+· Raised: I13
+· Disposition: closed, the restatement re-measured and the entry it restates named on it
+
+**F-220c** method: `--help` decides nothing about which lane a command answers on, argparse exiting during parsing before the module reaches its environment, so the obvious probe reports green about exactly the defect it is aimed at
+· Raised: I13
+· Disposition: closed, the case carrying an argument table that reaches every declared subcommand's handler
+
+**F-220d** method: a case that sets a process-global override sets it for every module the test runner is running in the pool beside it, so a fixture pointing one tool at a throwaway tree decides six other modules' answers about the real one
+· Raised: I13
+· Disposition: closed, the composition split from the reading so one case needs no override, and the reading's own case moved into a child process
+
+**F-220e** owed-act: the set of subcommands answering on either lane is prose in three places and a table in one, and two of the three had drifted below what the table declares
+· Raised: I13
+· Disposition: open, the third being I12's completion note, which records what that act put there and is left as the record it is; the tools' README is held against the table and the entry point no longer enumerates
+
+**F-220f** measurement: a host-lane reading that promises to skip the toolchain preparations skipped them only on the lane that cannot take them, the guard having been written as the platform refusal's arm rather than as the reading's own
+· Raised: I13
+· Disposition: closed, one guard over the three preparations, so the promise holds on either machine

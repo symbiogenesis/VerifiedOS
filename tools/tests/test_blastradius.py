@@ -25,7 +25,7 @@ from tests.harness import TOOLS, Case, ensure, sandbox_tree
 # The live sources the sandbox copy of the tool runs on, relative to the root.
 _SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/blast.py",
             "tools/vos/__init__.py", "tools/vos/apex.py",
-            "tools/vos/fieldbindings.py", "tools/vos/corpus.py")
+            "tools/vos/fieldbindings.py", "tools/vos/corpus.py", "tools/vos/env.py")
 
 # Small enough to derive by hand: witness consumes alpha and beta through its type,
 # seam_one concludes beta from alpha, seam_two concludes gamma from beta, and
