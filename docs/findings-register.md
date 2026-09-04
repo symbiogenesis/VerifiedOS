@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 419 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 424 of them across 73 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -82,11 +82,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-197b** owed-act: the simulator's version pin is restated in a document twice and in code once and no rule holds the three together, the commit-pin rule reading object ids alone and the checker-pin rule reading the two checkers alone
 · Raised: S9
-· Disposition: open, recorded as a candidate rule and none added here; the provisioner adds no fourth copy, importing the constant instead
+· Disposition: closed at I15, the constant read as the owner and each of the three sites held against it, reported and never repaired because each states the version beside what was done at it
 
 **F-197c** owed-act: no artifact declared the distribution-package set the model build needs, so the provisioner becomes its owner and no rule holds the list
 · Raised: S9
-· Disposition: open, recorded as a candidate rule; what stands in for it is that every row names a consumer already in this tree and a row that cannot name one is not written
+· Disposition: open, and narrowed rather than closed: I15 made the discipline a gate, so every row now names an artifact this tree carries and a symbol it still spells, which is what the rule can decide; whether the set is complete is a question no artifact here answers and stays a register act's
 
 **F-197d** owed-act: three provisioning routes have owners that state them as prose for a person rather than as a command a tool can run, two of them being rows that probe and report and plan nothing and the third a route no row probes at all
 · Raised: S9
@@ -203,7 +203,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000x** owed-act: the encoder table is a proper subset of the surface the model spells and no rule reads the gap, 593 of the enumerated mnemonics having no row in it
 · Raised: S15
-· Disposition: open, recorded as a candidate rule and none added here; the converse holds today, every encoder row but the one unstructured clause appearing in the enumeration
+· Disposition: closed at I15 by generation rather than by a rule, the table having become a function of the same bundle and the residue standing at 14 names the artifact itself accounts for; the candidate rule is declined there and its id stays unspent
 
 **F-000y** measurement: a count went stale where its own list shrank, a sentence naming five readers standing above a list of four after the quarantine took one out
 · Raised: S15
@@ -1432,7 +1432,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-218b** owed-act: nothing holds the emitter's own statement of the wire encoding against the section that states it, the rule over the generated artifact holding it against the emitter and the declaration rather than against the mapping, so a row edited in the profile moves neither and the drift is silent in both directions
 · Raised: M6.4
-· Disposition: open, stated as an absence in the profile's own holders section rather than repaired by a rule, the binding being the tools' act and not this document's
+· Disposition: closed at I15, which supplied the binding as a rule of the tools: the ladder is recomputed from the entry's own rungs and the two encoded sizes are held against the rows that place their members, with the rows it does not reach named in the profile's holders section rather than left to be discovered
 
 **F-218c** measurement: an exit line quoted a seeded population measured against a working copy that is not the artifact that landed, and no rule reads a population figure, so the sample fraction it reports was wrong by a fifth with every gate green
 · Raised: M6.4
@@ -1748,3 +1748,24 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-186** measurement: a census over the tracked Python finds no public function named outside its own module and no module outside the test package that nothing imports, so the tool surface is the number of cross-artifact facts somebody decided to hold rather than unused code
 · Raised: I12
 · Disposition: standing, which is what puts the lever on S15's generation rather than on a search for dead code
+
+**F-222a** measurement: the lane's fact table named its second owner by a bare file name where the index carries a path, so a row of the machine's own description pointed at nothing a reader or a tool could open
+· Raised: I15
+· Disposition: closed, the row rewritten to the path, and it is the finding the rule made on the run that landed it
+
+**F-222b** method: an entry states its width ladder twice, once of a length or count field and once of a discriminant, and the second is the one the emitter implements, so a rule reading the first occurrence leaves the second free to move
+· Raised: I15
+· Disposition: closed, both statements read and required to agree, with the criterion's own restatement of the ceiling held against the top rung beside them
+
+**F-222c** measurement: the encoder table's gap against the surface the model spells fell from 593 mnemonics to 14 when the table became generated, and every one of the 14 is named by the artifact itself with the guard or the unread clause accounting for it
+· Raised: I15
+· Disposition: closed, and it is the ground of a decline rather than a defect: the accounting and the artifact are one act, so a rule over the residue would hold a run's output against the same run's account of itself
+· Restates: F-000x
+
+**F-222d** method: a landing falsified a section written to report what nothing holds, the binding it supplied having been recorded there as owed and not written
+· Raised: I15
+· Disposition: closed, the section repaired to name which rows the new rule reaches and which stay unheld, a claim that no rule holds a whole section being wider than any rule that replaces it
+
+**F-222e** owed-act: the elaborator's other version is restated in two places and owned by no constant, the imported core's own flow pinning the same tool at a different version through a build system nothing here runs
+· Raised: I15
+· Disposition: open, reported and not closed; the version-pin rule does not reach it and would be inventing an owner for another project's flow if it did
