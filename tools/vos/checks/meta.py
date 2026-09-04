@@ -429,9 +429,10 @@ def _lane(ctx: Context) -> None:
 
     rep.report("K-100", "row(s) of the lane's fact table naming what this tree does not "
                "carry:", findings,
-               f"each of {PROVISION}'s {len(facts)} rows names an artifact the index "
-               f"carries, {symbols} of them a symbol that artifact still spells, and the "
-               f"{named} run.py commands they name are the entry point's")
+               f"the {paths} artifacts {PROVISION}'s {len(facts)} rows name are paths the "
+               f"index carries, the {symbols} symbols they name are ones those files "
+               f"still spell, and the {named} run.py commands they name are the entry "
+               "point's")
 
 
 def _source(ctx: Context, rel: str) -> str:
