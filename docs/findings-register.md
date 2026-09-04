@@ -1751,23 +1751,23 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-225a** method: the set of authored sources that lints standalone and the set that stands in the imported build are not one list, a source written for the imported datapath compiling against the imported packages and so failing a lint that compiles it alone
 · Raised: I16
-· Disposition: closed, the two declared apart with the difference stated at both, and a substituted source linted in the elaboration's own context
+· Disposition: closed, the two declared apart with the difference stated at both, a substituted source meeting the elaboration's own compile where an error refuses the arm and no lint gate at all
 
 **F-225b** method: a declared substitution that reaches no line of the imported manifest and a file list one source short are indistinguishable in the composed result and opposite in meaning, and the arm elaborates either way
 · Raised: I16
-· Disposition: closed, the declaration refused per substitution and per imported source rather than applied best-effort, the sharpest case being a line the unreached filter already dropped
+· Disposition: closed, the declaration refused per substitution and per imported source rather than applied best-effort, in all three ways it can mean nothing, the sharpest case being a line the unreached filter already dropped
 
 **F-225c** owed-act: the provenance record's elaborated-result column means what the parameters removed, and at the first declared substitution a removal can be what an authored source replaced instead
 · Raised: I16
-· Disposition: open, the instrument reporting the two apart so the column stays true of the rows carrying it, and a sentence in the record's §5 naming the partition owed at the first declared row rather than before it
+· Disposition: open, the instrument reporting the two apart so the column stays true of the rows carrying it, and a sentence in the record's §5 naming the partition owed at the first row that displaces a module kind rather than at the first row declared
 
 **F-225d** measurement: the diff's attribution is by direct declaration, so a module a replaced file instantiated that a third imported file declares reads as removed by a parameter
 · Raised: I16
 · Disposition: standing, the answer being a substitution row naming that file too rather than a third elaboration, which is what a curator prices when writing one
 
-**F-225e** measurement: an authored package introduces no module kind, so a substitution whose authored side is a package is invisible to the introduction and inert halves of the diff and visible to the displaced half alone
+**F-225e** measurement: a package declares no module kind, so a substitution whose authored side is a package is invisible to the introduction and inert members of the diff, and where its imported side is a package too it is visible to no member at all, which is what R1b's own first row measures as
 · Raised: I16
-· Disposition: standing, and it is why the inert check reads module declarations rather than substitution rows
+· Disposition: standing, the partition first deciding something at a row whose imported side declares modules, and it is why the inert check reads module declarations rather than substitution rows
 
 **F-225f** owed-act: the end-to-end elaboration evidence for both mechanisms cannot be taken in any checkout of this repository today, the gitlink the elaboration refuses by name on being one nothing open had reached and reaching it being a clone rather than a command
 · Raised: I16

@@ -9,14 +9,17 @@ is decided over the two inventories as sets. That is the whole of what each deci
 composition is a text transform over a manifest, and the partition is set algebra over
 two module-kind sets and two attribution maps.
 
-Four edges carry the weight. An authored source stands at the *first* imported line it
+Six edges carry the weight. An authored source stands at the *first* imported line it
 replaces and the rest are dropped, so one authored file for a tree of imported ones is
 one entry where the tree was. A declared substitution that reaches no line of the
 manifest is a refusal rather than a file list one source short, because the two are
-indistinguishable in the result and opposite in meaning. A line dropped as unreached is
-not then available to be substituted, which is that refusal's sharpest case. And a
-module kind is attributed by what the SystemVerilog *declares*, so a comment carrying a
-module declaration is not one.
+indistinguishable in the result and opposite in meaning. An imported source the manifest
+names and the checkout does not carry is the third refusal, its line gone from the build
+and the kinds it declared unreadable. A line dropped as unreached is not then available
+to be substituted, which is the first refusal's sharpest case. A module kind is
+attributed by what the SystemVerilog *declares*, so a comment carrying a module
+declaration is not one. And a declared name is reduced the way a netlist name is, so the
+two name spaces join rather than reporting one module as two findings.
 """
 
 from pathlib import Path
@@ -42,11 +45,13 @@ ${CVA6_REPO_DIR}/core/include/${TARGET_CFG}_config_pkg.sv
 ${CVA6_REPO_DIR}/core/cache_subsystem/wt_dcache.sv
 ${CVA6_REPO_DIR}/core/cache_subsystem/wt_dcache_mem.sv
 ${CVA6_REPO_DIR}/core/store_unit.sv
+${CVA6_REPO_DIR}/core/include/cva6_cheri_pkg.sv
 """
 
 _FLIST = f"{rtl.CORE}/{rtl.CORE_FLIST}"
 _DCACHE = "core/cache_subsystem/wt_dcache.sv"
 _DCACHE_MEM = "core/cache_subsystem/wt_dcache_mem.sv"
+_FORMAT = "core/include/cva6_cheri_pkg.sv"
 
 _SRAM = rtl.Substitution(imported=(_DCACHE, _DCACHE_MEM), authored="rtl/vos_sram.sv")
 
@@ -156,6 +161,55 @@ def _missing_authored_source_is_a_refusal() -> None:
            f"and is one refusal rather than a silent entry, got {files.refusals!r}")
 
 
+def _imported_source_the_checkout_lacks_is_a_refusal() -> None:
+    # The third way a declaration can mean nothing, and the quiet one: the line matched,
+    # so it is out of the build, and the file is not on disk, so the kinds it declared
+    # are unreadable and the substitution's displacements would read as the parameters'
+    # removals, which is the one mis-attribution the partition exists to prevent.
+    ghost = rtl.Substitution(imported=("core/store_unit.sv",),
+                             authored="rtl/vos_sram.sv")
+    with sandbox_tree(_TREE) as root:
+        files = _compose(root, ghost)
+    ensure(files.unmatched == (),
+           f"the declaration did reach a line of the manifest, got {files.unmatched!r}")
+    ensure(files.absent == (("rtl/vos_sram.sv", "core/store_unit.sv"),),
+           f"the unreadable imported source read back as {files.absent!r}")
+    ensure(files.taken == (),
+           "and the row is not one the diff attributes by, its displacements being "
+           "unreadable")
+    ensure(len(files.refusals) == 1 and files.refusals[0].startswith("FAIL"),
+           f"which is one refusal rather than a silent skip, got {files.refusals!r}")
+
+
+def _package_row_is_taken_and_attributes_nothing() -> None:
+    # R1b's own first row: a package standing for a package. It is taken, and both
+    # attribution maps are empty, so the partition says nothing about it at all.
+    row = rtl.Substitution(imported=(_FORMAT,), authored="rtl/vos_format_pkg.sv")
+    tree = dict(_TREE)
+    tree[f"{rtl.CORE}/{_FORMAT}"] = "package cva6_cheri_pkg;\nendpackage\n"
+    tree["rtl/vos_format_pkg.sv"] = "package vos_cheri_pkg;\nendpackage\n"
+    with sandbox_tree(tree) as root:
+        files = _compose(root, row)
+        introduced, displaced = rtl._substitution_modules(root, files.taken)
+    ensure(files.taken == (row,) and not files.refusals,
+           f"the row is taken and refuses nothing, got {files.taken!r}")
+    ensure(introduced == {} and displaced == {},
+           f"and attributes nothing on either side, got {introduced!r} {displaced!r}")
+
+
+def _double_underscore_joins_one_name_space() -> None:
+    # A declared name is reduced the way a netlist name is. Without that, a module whose
+    # own name carries a double underscore joins to nothing and is reported at once as
+    # inert and as unexplained: two findings out of one module, both false.
+    declared = rtl._declared_modules("module vos_sram__bank ();\nendmodule\n")
+    ensure(declared == frozenset({"vos_sram"}),
+           f"the declared name reduces to its kind, got {sorted(declared)!r}")
+    netlist = {rtl._kind("vos_sram__bank"), rtl._kind("vos_sram__bank__Vab12")}
+    diff = rtl._diff(netlist, set(), dict.fromkeys(declared, "rtl/vos_sram.sv"), {})
+    ensure(diff.introduced == ("vos_sram",) and diff.findings == 0,
+           f"so the module is one introduction and no finding, got {diff!r}")
+
+
 def _declared_modules_are_declarations() -> None:
     text = ("// module commented_out ();\n"
             "/* module blocked_out (); */\n"
@@ -241,6 +295,12 @@ def cases() -> list[Case]:
              _unreached_line_cannot_be_substituted),
         Case("missing-authored-source-is-a-refusal",
              _missing_authored_source_is_a_refusal),
+        Case("imported-source-the-checkout-lacks-is-a-refusal",
+             _imported_source_the_checkout_lacks_is_a_refusal),
+        Case("package-row-is-taken-and-attributes-nothing",
+             _package_row_is_taken_and_attributes_nothing),
+        Case("double-underscore-joins-one-name-space",
+             _double_underscore_joins_one_name_space),
         Case("declared-modules-are-declarations", _declared_modules_are_declarations),
         Case("substitution-modules-read-both-sides",
              _substitution_modules_read_both_sides),

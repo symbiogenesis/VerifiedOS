@@ -18,8 +18,9 @@ host; the model, RTL, generator and prover loops run inside WSL, where the toolc
 lives. Rather than refuse a guest command asked for on the host, this re-launches it
 through `wsl` and says so, so there is no `wsl -u root -e python3` to remember and no
 wrong lane to be in. A guest command has to *drive* the toolchain to need the hop:
-`model config-keys`, `rtl provenance`, `oracle list`, `seed list` and `testrig
-protocol` read this checkout and answer here.
+every subcommand `vos/cli/__init__.py` marks `host_ok`, `rtl filelist` and `testrig
+protocol` among them, reads this checkout and answers here. Which ones those are is
+read off that table rather than listed again here.
 
 Everything past the command's name is that command's own, verbatim, including
 `--help` and anything this file would otherwise read as its own flag. There is one
