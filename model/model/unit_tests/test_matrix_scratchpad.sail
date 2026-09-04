@@ -83,6 +83,23 @@ function test_scratchpad_pma(c : CoreClass) -> PMA_Region = struct {
   include_in_device_tree = true,
 }
 
+// Installing the region and taking it out again are two functions rather than
+// an idiom written at each property, and the removal reads the register it is
+// restoring rather than a binding taken before the change. Both shapes restore
+// (M0.20 measured it, against the property below), but only this one is correct
+// *whatever the list representation is*: assigning a saved binding back is
+// correct here because the emitted list is reference-counted, so the binding
+// aliases the register instead of being a copy of it, which is a property of
+// the backend rather than of the property that relies on it.
+function test_install_scratchpad(c : CoreClass) -> unit =
+  pma_regions = test_scratchpad_pma(c) :: pma_regions
+
+function test_uninstall_scratchpad() -> unit =
+  match pma_regions {
+    _ :: rest => pma_regions = rest,
+    [||]      => assert(false, "the installed scratchpad region must still be there"),
+  }
+
 // **A declared scratchpad is found from either end, and it is on neither latency
 // class.** The class table sizes it and the address map places it, so the two
 // questions a reader can ask are *where is this class's scratchpad* and *whose
@@ -90,8 +107,7 @@ function test_scratchpad_pma(c : CoreClass) -> PMA_Region = struct {
 // than off two that could drift.
 $[test]
 function test_a_declared_scratchpad_is_found_from_either_end() -> unit = {
-  let saved = pma_regions;
-  pma_regions = test_scratchpad_pma(CoreClass_M) :: saved;
+  test_install_scratchpad(CoreClass_M);
 
   let inside = Physaddr(test_scratchpad_base + 0x0000000000000010);
   assert(scratchpad_class_at(inside) == Some(CoreClass_M));
@@ -115,7 +131,7 @@ function test_a_declared_scratchpad_is_found_from_either_end() -> unit = {
   // and not a property of the machine at large.
   assert(scratchpad_class_at(Physaddr(0x0000000080000000)) == None());
 
-  pma_regions = saved;
+  test_uninstall_scratchpad();
 }
 
 // **The partition switch's pass covers exactly the declared range, and it takes
@@ -132,8 +148,7 @@ function test_a_declared_scratchpad_is_found_from_either_end() -> unit = {
 // disclosure half of the zeroize discipline (R-15-060, R-15-182).
 $[test]
 function test_vmclear_covers_the_declared_scratchpad_and_nothing_else() -> unit = {
-  let saved = pma_regions;
-  pma_regions = test_scratchpad_pma(CoreClass_C) :: saved;
+  test_install_scratchpad(CoreClass_C);
 
   // Two capabilities, one inside the scratchpad and one in first-class RAM
   // outside it, written through the ordinary capability store so that both
@@ -198,5 +213,36 @@ function test_vmclear_covers_the_declared_scratchpad_and_nothing_else() -> unit 
   assert(C(encdec_reg(0b00100)).tag);
   assert(C(encdec_reg(0b00100)) == ram_auth);
 
-  pma_regions = saved;
+  test_uninstall_scratchpad();
+}
+
+// **The restore is observed rather than assumed.** The two properties above
+// install a region and take it out again, and until this one nothing asked
+// whether the map afterwards was the map before: the harness resets every
+// register between properties, so a restore that did nothing is
+// indistinguishable from one that worked at every point outside the property
+// body that made it. The question can therefore only be put *inside* one body,
+// which is what this property is, and it is what decides the idiom above rather
+// than asserting it.
+$[test]
+function test_a_scratchpad_install_is_undone_by_its_own_restore() -> unit = {
+  let inside = Physaddr(test_scratchpad_base);
+  let ram    = Physaddr(0x0000000080000000);
+
+  assert(scratchpad_class_at(inside) == None(), "the shipped map places no scratchpad");
+  assert(memory_class_at(ram) == Some(FirstClass), "and it places main memory");
+
+  test_install_scratchpad(CoreClass_M);
+  assert(scratchpad_class_at(inside) == Some(CoreClass_M), "the install is visible");
+
+  test_uninstall_scratchpad();
+
+  // Both halves, because a restore can fail in two directions: it can leave what
+  // it installed standing, and it can lose the map it was restoring.
+  assert(scratchpad_class_at(inside) == None(),
+         "the restore takes the installed region back out");
+  assert(scratchpad_region_of(pma_regions, CoreClass_M) == None(),
+         "and it is gone from the class's end of the map as well");
+  assert(memory_class_at(ram) == Some(FirstClass),
+         "the restore puts back the map it found rather than some other one");
 }

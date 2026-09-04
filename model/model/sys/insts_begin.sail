@@ -67,17 +67,18 @@ scattered mapping assembly
 val encdec : instruction <-> bits(32)
 scattered mapping encdec
 
-val encdec_compressed : instruction <-> bits(16)
-scattered mapping encdec_compressed
+// There is no second, *shorter* decode either. `C` is excluded and ILEN is
+// fixed at 32 (R-15-036, R-15-014), so the fetch reads one 32-bit word and
+// never a parcel (postlude/fetch.sail), and the 16-bit mapping the compressed
+// extension decoded through has nothing left to decode.
 
 // There is no second, capability-mode decode. Upstream needs one because
 // `auipc`, `jal` and `jalr` read differently under a capability-mode PCC; here
 // those encodings have only their capability reading, so the one mapping below
 // carries them (extensions/CHERI/cheri_insts.sail, R-15-001).
 
-// We declare the ILLEGAL/C_ILLEGAL instruction clauses here instead of in
-// insts_end, so that model extensions can make use of them.
+// We declare the ILLEGAL instruction clause here instead of in
+// insts_end, so that model extensions can make use of it.
 // However, the encdec mapping must come last to ensure that all
 // unmatched encodings decode to an illegal instruction.
 union clause instruction = ILLEGAL : word
-union clause instruction = C_ILLEGAL : half

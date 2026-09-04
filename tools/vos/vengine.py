@@ -237,14 +237,12 @@ def _random_word(pick: Choices) -> int:
 
     The low two bits are forced to `11` because this profile excludes `C` and
     fixes ILEN at 32, so a word without them is not an instruction this machine
-    has. `rvfi_fetch` nonetheless takes upstream's compressed branch on one, and
-    the two emitters then say different things about the same injected word: the
-    commit trace's `fetch_callback` reports the sixteen-bit halfword the model
-    decoded, while `rvfi_insn` was set to the whole word before that branch was
-    taken. Which of the two is right is the model's question and not the
-    generator's, and it is recorded rather than smoothed over; what the
-    generator owes is not to spend its stream on encodings the profile does not
-    have.
+    has: three quarters of a uniform draw would be words that allocate to no
+    encoding, and a stream that did not force them would spend most of itself on
+    the illegal-instruction path. What the model does with such a word is no
+    longer open, and the forcing is no longer standing in for that: the fetch
+    reads no length out of those two bits, so both emitters report the whole
+    word and the trap value is the whole word (M0.20, postlude/fetch.sail).
     """
     while True:
         word = pick.below(1 << 32) | 0b11
