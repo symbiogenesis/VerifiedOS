@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 419 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 422 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -140,9 +140,21 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S11
 · Disposition: closed, K-85 holding §4's declared record kinds against §9's meeting and elision tables in both directions and both tables against the projection and the packet view themselves, which are run rather than read
 
+**F-220** upstream-defect: the translator the deferred program logic's owed translation would ride states its terms in three first-party Nix derivations and in no licence file, the forge reporting null and its three generated opam files carrying no `license:` field because its `dune-project` has no `(license ...)` stanza for dune to propagate
+· Raised: S12, in prose
+· Disposition: standing, the grant permissive and total across the three packages the tree ships, each derivation's `src` being that tree, and the notice a redistribution retains composed from the project's own authors field rather than found in it
+
+**F-221** method: a licence reading that searches licence filenames and the forge's own detection answers whether a licence file exists and never what terms the authors stated, so an upstream whose grant sits in its packaging is refused on an absence the reading has not established
+· Raised: S12, in prose
+· Disposition: closed, the rule stated in [THIRD-PARTY.md](../THIRD-PARTY.md)'s reading section so that it governs every reading on that page rather than the one row that found it
+
 **F-000z** measurement: the verified lowering route's compiler emits bare-metal position-independent code over the base integer extension with no capability back end, so the claim that its target exists is true of plain RISC-V and false against the purecap-only requirement
 · Raised: S12, in prose
 · Disposition: standing, the target gap read at the upstream rather than closed, and M1.6 meeting it end to end from the other side
+
+**F-222** owed-act: two standing dispositions rest on a licence-file search rather than on a reading of the files that state terms, the cryptography milestone's unlicensed Jasmin candidate and the NTT deposit beside it
+· Raised: S12, in prose
+· Disposition: open, both booked for re-reading at their own rows against the rule F-221 states, neither being on any milestone this plan schedules before the co-simulation gate
 
 **F-000h** measurement: the `$[test]` harness does reach the capability format's packing, killing all five live mutants of it, and names one property for every one of them because it stops at the alphabetically first to fire
 · Raised: S13a
