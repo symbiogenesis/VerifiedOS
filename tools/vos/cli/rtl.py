@@ -6,7 +6,7 @@ elaboration the absence contract wants.
 Five loops, and the first answers on the host:
 
     provenance  instant  the synthesis-configuration record, parsed and printed
-    lint        ~1 s     Verilator over the authored sources in rtl/, alone
+    lint        ~1 s     Verilator over this repository's own sources in rtl/, alone
     vectors     ~2 min   the model's own answers about the capability format, as text
     crosscheck  ~2 min   and the authored package required to reproduce every line
     elaborate   ~2 min   the imported core at the curated configuration and at the
@@ -31,8 +31,12 @@ names a line a person can read on both sides. What it decides is agreement over 
 vectors it emitted; it is not the co-simulation gate, which is R2's and runs a core.
 
 **Nothing here is copied out of an imported tree.** `rtl/` holds files this repository
-authored and the imported sources are reached through the gitlinks under `upstream/`,
-so this tool composes a file list across the two rather than a vendored tree.
+authored or generated and the imported sources are reached through the gitlinks under
+`upstream/`, so this tool composes a file list across the two rather than a vendored
+tree. The address map under `rtl/` is one of the generated ones: `lint` compiles it
+because whether a generator's output is *SystemVerilog* is a question K-88's byte
+comparison does not ask, and it is reported apart from the authored sources because the
+repair for a finding in one is an edit and in the other a regeneration.
 
 The last four run inside WSL, where Verilator and the Sail toolchain live:
 
@@ -57,7 +61,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from vos import cli, env, provenance, sailrig
+from vos import cli, env, provenance, sailrig, socmap
 from vos.corpus import find_root
 
 # The pinned simulator, and the ground the pin stands on. Ubuntu 26.04 packages this
@@ -70,11 +74,30 @@ from vos.corpus import find_root
 VERILATOR_PIN = "5.032"
 VERILATOR_HOW = "apt-get install verilator on Ubuntu 26.04"
 
+# The capability format's own package, named apart from the set below because the
+# cross-check compiles this and nothing else: the harness replays vectors about the
+# format, and handing it a module about the address map would make that loop fail for
+# a reason that is not about the format.
+FORMAT_PACKAGE = "rtl/vos_cheri_pkg.sv"
+
 # The authored sources, in the order a compiler must see them: the format package
 # declares the types the rest use.
 AUTHORED: tuple[str, ...] = (
-    "rtl/vos_cheri_pkg.sv",
+    FORMAT_PACKAGE,
+    "rtl/vos_soc_decode.sv",
 )
+
+# The generated sources under `rtl/`, kept apart from the authored ones because the
+# repair for a finding differs: an authored source is edited and a generated one is
+# regenerated, K-88 holding its bytes against the composition it is a function of.
+# They are linted in the same run and ahead of the authored set, the map package
+# declaring the types and the constants the decode module imports.
+GENERATED: tuple[str, ...] = (
+    socmap.ARTIFACT,
+)
+
+# What `lint` compiles, in the order a compiler must see it.
+SOURCES: tuple[str, ...] = (*GENERATED, *AUTHORED)
 
 # The cross-check's two halves. The generator is Sail because it has to call the
 # model's own functions, and the harness is SystemVerilog because it has to call the
@@ -242,7 +265,8 @@ def _lint(binary: str, root: Path, sources: list[str], extra: list[str]) -> tupl
 
 
 def cmd_lint(args: argparse.Namespace) -> int:
-    """The authored sources alone, under every warning a package can answer.
+    """This repository's own sources under `rtl/`, under every warning a package can
+    answer.
 
     Two warnings are switched off and both are properties of linting a *package* rather
     than of the code in it: a package instantiates nothing, so every parameter it
@@ -250,6 +274,14 @@ def cmd_lint(args: argparse.Namespace) -> int:
     not touch reads as an unused bit. Switching them off here rather than in the source
     keeps the file free of suppressions that would go stale the day something
     instantiates it.
+
+    **The generated source is linted beside the authored ones and is not one of them.**
+    Whether the address map a generator wrote *compiles* is a question no other gate
+    asks: K-88 decides that the bytes are the generator's and says nothing about
+    whether they are SystemVerilog, so an emitter that starts writing a package no
+    compiler accepts would pass every host gate. The two counts are reported apart
+    because the repair differs, an authored source being edited and a generated one
+    regenerated.
     """
     del args
     out: list[str] = []
@@ -258,14 +290,15 @@ def cmd_lint(args: argparse.Namespace) -> int:
         print("\n".join(out))
         return 1
     root = find_root()
-    code, text = _lint(binary, root, list(AUTHORED),
+    code, text = _lint(binary, root, list(SOURCES),
                        ["-Wall", "-Wno-UNUSEDPARAM", "-Wno-UNUSEDSIGNAL"])
     if code != 0:
         print(text)
-        print(f"FAIL {len(AUTHORED)} authored source(s) did not lint clean")
+        print(f"FAIL {len(SOURCES)} source(s) under rtl/ did not lint clean")
         return 1
-    print(f"ok verilator {VERILATOR_PIN}: all {len(AUTHORED)} authored source(s) lint "
-          "clean, with no warning a package can answer")
+    print(f"ok verilator {VERILATOR_PIN}: all {len(SOURCES)} source(s) under rtl/ lint "
+          f"clean, {len(AUTHORED)} authored and {len(GENERATED)} generated, with no "
+          "warning a package can answer")
     return 0
 
 
@@ -374,7 +407,7 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
         if code != 0:
             return code
 
-    sources = [root / s for s in (*AUTHORED, HARNESS)]
+    sources = [root / s for s in (FORMAT_PACKAGE, HARNESS)]
     missing = [str(s) for s in sources if not s.is_file()]
     if missing:
         print("\n".join(f"FAIL {s} is not in the repository" for s in missing))
@@ -641,7 +674,7 @@ def cmd_wait(args: argparse.Namespace) -> int:
 
 COMMANDS: cli.Table = {
     "provenance": (cmd_provenance, "parse and print the synthesis-provenance record"),
-    "lint": (cmd_lint, "Verilator over the authored sources in rtl/"),
+    "lint": (cmd_lint, "Verilator over this repository's own sources in rtl/"),
     "vectors": (cmd_vectors,
                 "the model's own answers about the capability format, as text"),
     "crosscheck": (cmd_crosscheck,

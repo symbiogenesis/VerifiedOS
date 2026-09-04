@@ -159,6 +159,8 @@ The imported tag path carries one tag per 128-bit region on the AXI user bits, w
 
 The tag controller also holds a **tag cache**, which A-11 excludes: CHERI tags ride the SRAM word here and no separate tag hierarchy exists. What transfers from the reference is the separate tag block and the user-bit carriage, not the caching in front of them.
 
+**The two `mocha` rows are sites in a file this plan does not take, and that is why they are literal rows rather than work.** Both sit in the bring-up SoC's own top-level glue, and taking that top whole is the arm the plan refuses: it would import an address map from a design that fields an MMU this profile deletes. The SoC top is authored here over [the frozen profile's composition](../model/config/verifiedos.json) instead, so the frozen granule is stated by the authored top and neither literal is ever carried across. What does transfer from this section is the fabric's own `CapSize`, which is a parameter on the tag controller rather than a rewrite, and the collapsed-width fact that one AXI beat carries exactly one tag.
+
 ### 2.5 Behaviour the frozen format requires and the imported tree does not have
 
 Five sites are additions rather than changes, and each is named because a delta read as narrowing alone would miss them.
