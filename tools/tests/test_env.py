@@ -12,16 +12,22 @@ One case here runs real `git` over a throwaway checkout rather than reading a
 function's return, because what `git_env` is for is a *child's* answer: the overlay
 is correct exactly when the `git describe` cmake runs at configure reports a clean
 lane clean and an edited one edited, and no assertion about a dictionary decides that.
+
+One case is guest-only, and it is the arm the host cannot reach at all: `load()` on
+win32 returns at the platform refusal before it gets to the preparations, so what
+`toolchain=False` skips is decidable only where a toolchain could have been prepared.
 """
 
+import json
 import os
 import subprocess
+import sys
 import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from tests.harness import Case, ensure, with_env
+from tests.harness import TOOLS, Case, ensure, with_env
 from vos import env
 
 
@@ -262,6 +268,65 @@ def _git_env_is_empty_where_nothing_needs_saying() -> None:
             f"a .git directory needs no overlay, got {env.git_env(root)}"))
 
 
+# Both readings of `load` mutate the process they run in, the full one raising the
+# stack limit, applying the opam switch and moving PATH, so each is asked in a child:
+# done in the runner's own process, a case here would prepare a toolchain for every
+# module in the pool beside it.
+_LOAD_PROBE = """
+import json
+import os
+import resource
+import sys
+
+from vos import env
+
+before = dict(os.environ)
+stack = resource.getrlimit(resource.RLIMIT_STACK)[0]
+env.load(toolchain=(sys.argv[1] == "full"))
+added = sorted(set(os.environ) - set(before))
+print(json.dumps({
+    "added": added,
+    "opam": [n for n in added if n.startswith(("OPAM", "OCAML", "CAML"))],
+    "path_moved": os.environ["PATH"] != before["PATH"],
+    "stack_raised": resource.getrlimit(resource.RLIMIT_STACK)[0] != stack,
+}))
+"""
+
+
+def _load_probe(which: str) -> dict[str, object]:
+    done = subprocess.run([sys.executable, "-c", _LOAD_PROBE, which],
+                          capture_output=True, encoding="utf-8", errors="replace",
+                          check=False, timeout=120,
+                          env={**os.environ, "PYTHONPATH": str(TOOLS)})
+    ensure(done.returncode == 0,
+           f"the {which} load must answer, got {done.returncode} and "
+           f"{done.stderr[-400:]!r}")
+    return dict(json.loads(done.stdout))
+
+
+def _host_lane_reading_drives_no_toolchain() -> None:
+    """`load(toolchain=False)` skips the three preparations on the machine that has them.
+
+    The guard used to be the win32 refusal's arm, so the promise was true exactly where
+    nothing could check it and false where a `host_ok` subcommand actually pays for it:
+    inside the guest, a question about a JSON file raised the OCaml stack, shelled out
+    for the opam switch and announced an absent solver prefix first. The full reading is
+    run beside it so this is a difference and not an assertion about a machine that
+    happens to have no opam.
+    """
+    lean = _load_probe("lean")
+    ensure(lean["path_moved"] is False and lean["stack_raised"] is False
+           and lean["opam"] == [],
+           f"the host-lane reading must leave PATH and the stack limit alone and "
+           f"apply no opam environment, got {lean}")
+
+    full = _load_probe("full")
+    ensure(full["path_moved"] is True and full["stack_raised"] is True
+           and full["opam"] != [],
+           f"precondition: the full reading does all three on this machine, or the "
+           f"case above decides nothing, got {full}")
+
+
 def cases() -> list[Case]:
     return [
         # host-only because on the guest load() would not refuse, it would load
@@ -277,4 +342,8 @@ def cases() -> list[Case]:
         Case("git-env-names-the-work-tree", _git_env_names_the_work_tree),
         Case("git-env-empty-where-nothing-needs-saying",
              _git_env_is_empty_where_nothing_needs_saying),
+        # guest-only for the reason the first case here is host-only, and the other way
+        # round: on win32 load() refuses before it reaches the guard under test
+        Case("host-lane-reading-drives-no-toolchain",
+             _host_lane_reading_drives_no_toolchain, lane="guest"),
     ]

@@ -8,10 +8,19 @@ spelling both ends share), the manifest check `corpus` decides per member
 the two donor-seeding copies a lane stands up from. Held here with fixture logs and
 throwaway directories, because a regression in any of them reports the wrong run's
 verdict or configures a tree against state it did not produce.
+
+`_configure` is held here too, and at the caller rather than at the composer it calls.
+What that line hands its child is the whole of the repair `env.git_overlay` exists for,
+and a case that decides the overlay decides nothing about whether the configure passes
+it: the defect this repository met lived at this call and not one module over.
 """
 
 import importlib.util
 import io
+import json
+import os
+import subprocess
+import sys
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -243,8 +252,90 @@ def _seed_test_data() -> None:
                "a tree that already holds the suite's directory keeps it as it is")
 
 
+# `_configure` in a child of its own, with `env.stage` standing in for the run. Two
+# reasons for the child and neither is style: the environment that names a checkout's
+# administrative directory is process-global and the runner runs modules in a pool, so
+# an override set in-process is set for every module reading the real tree beside it;
+# and `stage` itself is unrunnable here, `os.wait4` being POSIX-only and cmake being the
+# one thing a test of what cmake is *told* has no business starting.
+_CONFIGURE_PROBE = """
+import json
+import sys
+from pathlib import Path
+
+from vos import env
+from vos.cli import model
+
+seen = {}
+
+
+def _record(name, argv, report_to=None, **kw):
+    seen["argv"] = argv
+    seen["add_env"] = kw.get("add_env")
+    return 0
+
+
+env.stage = _record
+root = Path(sys.argv[1])
+e = env.Environment(root=root, model=root / "model", build_root=root / "build",
+                    log_root=root / "log", lane="probe", cpus=1,
+                    mem_available_mb=1024, jobs=1, test_jobs=1)
+code = model._configure(e, root / "build" / "tree")
+print(json.dumps({"code": code, "argv": seen["argv"], "add_env": seen["add_env"]}))
+"""
+
+
+def _probe_configure(root: Path, admin: Path | None) -> dict[str, object]:
+    environment: dict[str, str] = {**os.environ, "PYTHONPATH": str(TOOLS)}
+    if admin is None:
+        environment.pop("VOS_GIT_DIR", None)
+    else:
+        environment["VOS_GIT_DIR"] = str(admin)
+    done = subprocess.run([sys.executable, "-c", _CONFIGURE_PROBE, str(root)],
+                          capture_output=True, encoding="utf-8", errors="replace",
+                          check=False, timeout=120, env=environment)
+    ensure(done.returncode == 0,
+           f"the configure probe must answer, got {done.returncode} and "
+           f"{done.stderr[-400:]!r}")
+    return cast("dict[str, object]", json.loads(done.stdout))
+
+
+def _configure_hands_the_child_the_work_tree() -> None:
+    """The one line that decides what a lane's emulator stamps itself with.
+
+    `env.git_overlay`'s own case decides that the pair reports a clean checkout clean
+    and an edited one edited. That is a fact about the composer, and the defect was at
+    this caller: it spelled `GIT_DIR` out for itself and named no work tree, so the
+    overlay could be right and every lane still be stamped `-dirty`. Held here at the
+    call, so reverting it to either of the two forms it has had, the one key or no
+    environment at all, fails rather than passes.
+    """
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td).resolve()
+        admin = root / "administrative"
+        admin.mkdir()
+
+        answered = _probe_configure(root, admin)
+        argv = cast("list[str]", answered["argv"])
+        ensure(argv[0] == "cmake" and str(root / "build" / "tree") in argv,
+               f"precondition: the stage under test is the cmake configure, got "
+               f"{argv[:4]}")
+        overlay = answered["add_env"]
+        ensure(overlay == {"GIT_DIR": str(admin), "GIT_WORK_TREE": str(root)},
+               f"the configure must hand its child both halves, the work tree being "
+               f"the repository root, got {overlay}")
+
+        # and nothing where nothing needs saying: a checkout git resolves by itself
+        # gets no environment at all rather than an overlay asserting its own tree
+        answered = _probe_configure(root, None)
+        ensure(answered["add_env"] is None,
+               f"a checkout needing no overlay must be handed none, got "
+               f"{answered['add_env']}")
+
+
 def cases() -> list[Case]:
     return [
+        Case("configure-hands-the-work-tree", _configure_hands_the_child_the_work_tree),
         Case("stage-exit-spelling", _stage_exit_spelling),
         Case("report-build-verdict", _report_build_verdict),
         Case("report-build-unfinished", _report_build_unfinished),

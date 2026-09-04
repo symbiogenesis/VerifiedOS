@@ -49,9 +49,11 @@ to *drive* the toolchain to need the hop: `model config-keys`,
 `oracle list`, `oracle emit`, `seed list` and `testrig protocol` read this checkout and
 answer on either lane. That is a declaration and not a description, so
 [tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
-lane the suite is running on and holds this sentence against the table itself: a
-subcommand the table declares and this line does not name sends a reader into the guest
-for an answer the host already had.
+lane the suite is running on, and holds every subcommand the table declares against
+this page: one the table declares and this page nowhere names sends a reader into the
+guest for an answer the host already had. Only that direction is held, and only against
+the page rather than against this sentence; a name here the table does not declare is
+caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |

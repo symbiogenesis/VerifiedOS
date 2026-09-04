@@ -141,11 +141,17 @@ def _run_py_hops_on_exactly_the_rest() -> None:
 
 
 def _readme_names_every_declaration() -> None:
-    """The sentence a person reads, against the set the tool acts on.
+    """Every subcommand the table declares, named somewhere on the page a person reads.
 
-    Not tidiness: the sentence is where a reader learns that a command they were told
-    runs in WSL will answer here, so one that names fewer than the table does sends
+    Not tidiness: the page is where a reader learns that a command they were told runs
+    in WSL will answer here, so one the table declares and the page never names sends
     them into the guest for an answer the host already had.
+
+    Two things this deliberately does not decide, both being rules about prose rather
+    than about a set. It searches the whole file rather than the one sentence, so a
+    subcommand named only in a later table row would satisfy it; and it holds one
+    direction, so a page naming a subcommand the table does *not* declare is caught
+    here by nothing. The second is the open residue the findings register carries.
     """
     text = _README.read_text(encoding="utf-8")
     missing = sorted(f"{name} {sub}" for name, sub in _declared()
