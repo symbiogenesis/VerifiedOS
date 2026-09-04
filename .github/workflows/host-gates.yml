@@ -21,7 +21,12 @@
 # carries. Every action here runs on node24, the runtime the runner now forces a node20
 # action onto with a deprecation warning; two are named by their floating major tag and
 # setup-uv by a whole version, because astral-sh stopped publishing major and minor tags
-# at v8, so its bump is a version and not a major. Its cache is turned off rather than
+# at v8, so its bump is a version and not a major. The uv it installs is named too,
+# rather than left to the fallback the action takes when it can read no required-version
+# off a uv.toml or a pyproject: the version stated is the one the developer lane runs,
+# so an installer difference between the two lanes is a bump taken here and not a
+# silent drift. Nothing holds it, that being the action-reference class again. Its
+# cache is turned off rather than
 # left on its default, which is on for a hosted runner: nothing here is resolved from a
 # dependency file, there being no lockfile, requirements file or pyproject in the tree,
 # so the key the action derives is constant and the entry it saves would never be
@@ -70,6 +75,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
         with:
+          version: "0.12.5"
           enable-cache: false
 
       - name: Install the pinned checkers as uv tools
