@@ -1630,9 +1630,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M6.5a
 · Disposition: open, each instantiated by a demo declaration carrying no composition claim and every one pinned in the artifact's ledger
 
-**F-230l** method: an alternative construction's *keeps* theorem has to be read at the instant the defect is about and not at the end of the run, a property of a final state being falsified by an event after the defect that the specification suffers too
+**F-230l** method: a strict comparison between two positions in a list is weakened to a non-strict one with nothing to notice, because the two agree everywhere except where both operands are absent and a generated family of weakenings never reaches that case, so an ordering conjunct needs a witness whose two acts are both missing and not only one that reorders them
 · Raised: M6.5a
-· Disposition: closed at the item, the transposed consumer's keeps-theorem restated over what it never does at all rather than over the notification word as the activation left it, a later publication clearing that word under the specification as well
+· Disposition: closed at the item by adding three chains outside the generated family, one per strict ordering conjunct, each carrying a broken count that moves when the comparison does; the seeded population found the same shape twice, once per act chain, and neither reordering family reaches it
 
 ## RTL track
 
