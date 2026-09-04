@@ -358,6 +358,34 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Disposition: closed, the sentence repaired where it stands and the workflow named beside it; the page and the working rules were carried at the landing and this docstring was not
 · Restates: F-198d
 
+**F-236a** measurement: the document written for an independent reviewer told them this repository has no continuous integration and that a person runs every gate by hand, and the push workflow landed fourteen hours later and repaired the two statements inside the tools lane and not the one outside it
+· Raised: S22
+· Disposition: closed, the sentence rewritten to say which of the six commands runs unattended and which do not; F-198a's ground and F-181's disposition rest on the same fact and are reported rather than closed here, being standing findings of other items
+
+**F-236b** measurement: a unit-test header called its properties the only programs exercising the capability instruction surface until a purecap corpus that landed six and a half hours after the sentence was written, and the file was edited three further times over the two days after that landing without the sentence being re-read
+· Raised: S22
+· Disposition: closed, the clause deleted and the header stopped at the half that holds
+
+**F-236c** measurement: a second unit-test header called its properties the whole of the machine's own regression corpus and the commit that falsified it is the commit that last edited the file, creating eleven purecap programs while it had the sentence open
+· Raised: S22
+· Disposition: closed, the sentence deleted, the `riscv-tests` explanation beneath it still true and kept
+
+**F-236d** measurement: one program's trap accounting is stated in two tracked files and both are wrong in opposite directions from one authoring commit, the source header undercounting a path the program takes eight times and the corpus document breaking a correct total of eight into five capability violations where the program raises six
+· Raised: S22
+· Disposition: closed at all three sentences in one act, against the program itself and the count the manifest records
+
+**F-236e** method: a rule that recomputes a quantity from a source does not read the prose restating that quantity beside it, so a member's check count can be machine-confirmed while the member's own header and the document's own row each state a different number
+· Raised: S22
+· Disposition: open, reported and not closed; holding a header against a check count means deciding which sentence in a comment is a count, which is a reading and not an arithmetic, and the three sites now agree so a rule would report ok about a tree already repaired
+
+**F-236f** measurement: a corpus program's header states the register convention at a different register from the document that owns it, `c10` upward against `c8` upward, eight lines above the same file's own move into `c8` and refuted for every member
+· Raised: S22
+· Disposition: closed by taking the owning document's figure, the restatement kept because a program's header is read by somebody holding that program open
+
+**F-236g** measurement: a landing repaired one of two sites in one document that state the same fact, rewriting the section that says the encoder table is generated and carries the vector arithmetic while the absence table went on giving *encoded by neither the assembler nor a member* as its ground
+· Raised: S22
+· Disposition: closed by narrowing the ground to the member half, which is the half that holds and the half the row's own closing cell already names, and by qualifying the section preamble, whose blanket claim that no row is a corpus-side gap the narrowed row would otherwise contradict
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
