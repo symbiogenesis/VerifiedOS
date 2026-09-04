@@ -797,6 +797,39 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.2, in prose
 · Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two waiting on M1.4's toolchain
 
+**F-224** upstream-defect: the pin carries no stock target backend to start from, the one under its architecture directory being the compartment-aware modification of it and carrying two admitted lemmas in its assembly language file, both in that added layer's own material
+· Raised: M1.2a
+· Disposition: open, the choice between the pin's tree and the upstream release nothing here pins being a start-from question this item reports rather than takes
+
+**F-224a** measurement: five of the eight axes of the delta have no counterpart in the start-from at all, nine capability tokens occurring zero times across its twenty-eight files, so what those axes cost was a property of the tree being left rather than of the work
+· Raised: M1.2a
+· Disposition: standing, each of the five re-stated as an authoring half over the model with the removed half named beside it
+
+**F-224b** measurement: the register-file axis inverts under the start-from change, the pin's three register defects going with the tree while the deletion the profile requires doubles, sixty-four of a hundred and sixty-nine instruction constructors naming a float register
+· Raised: M1.2a
+· Disposition: standing, the count taken over the start-from's own declaration rather than carried from the tree it replaces
+
+**F-224c** owed-act: whether the compiler's block model with run-time allocation is a re-homing or a replacement against a flat dense space with composition-time allocation, which the landed start-from decision does not carry
+· Raised: M1.2a
+· Disposition: closed, ruled a re-homing because no stage of the compiler assigns an address to a block and composition-time allocation already exists, the run-time allocation the profile removes being a frame placement and a heap builtin pair rather than the memory type; the heap half's own site is in the common tree and lands on the seam below
+
+**F-224d** measurement: the capability value carrier and the tagged memory it needs are a fork of the compiler's common tree rather than of its backend, measured at the upstream's own such fork, with the heap deletion's own site in that same tree, and no child of the split names any of it
+· Raised: M1.2a
+· Disposition: open, the seam reported and the checklist id for a child carrying it not allocated here
+
+**F-224e** measurement: the licence split runs between the two halves of the delta, the backend the start-from supplies sitting outside the dual-licensed subset and the common tree the memory model forks sitting inside it
+· Raised: M1.2a
+· Disposition: standing, read at the pin's own licence file and leaving the containment arm where the provenance decision put it
+· Restates: F-125
+
+**F-224f** measurement: the frame carve is an integer add on the stack pointer expanded in the compiler's unverified OCaml rather than in its verified pipeline, and it is the site every frame-derived narrowing has to become exactly representable at
+· Raised: M1.2a
+· Disposition: standing, the site named so that the frame item and the narrowing item meet at it rather than at the layout
+
+**F-224g** method: a delta measured against a start-from is not a property of the work, the half of it that is the start-from's own defects evaporating when the start-from moves and leaving the authoring half unmeasured
+· Raised: M1.2a
+· Disposition: standing, the re-price declined on that ground and the figure's standing changed in place of its midpoint
+
 **F-128a** method: a mapping applied twice in one clause needs its arguments in the key, a lookup by the mapping's name alone giving every application the first one's arm
 · Raised: M1.4′
 · Disposition: closed, the selector keyed on its argument positions as well as its name; caught by holding the generated constants against the transcription's own encoder over the rows both carry
