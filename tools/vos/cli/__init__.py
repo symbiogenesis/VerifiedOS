@@ -122,7 +122,7 @@ COMMANDS: tuple[Command, ...] = (
             lane="guest"),
     Command("rtl", "vos.cli.rtl",
             "the authored RTL, its provenance, and the cross-check against the model",
-            lane="guest", host_ok=frozenset({"provenance"})),
+            lane="guest", host_ok=frozenset({"provenance", "filelist"})),
     Command("oracle", "vos.cli.oracle",
             "the model-as-oracle vector generator", lane="guest",
             host_ok=frozenset({"list", "emit"})),

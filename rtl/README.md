@@ -45,6 +45,7 @@ Beyond the format, three pieces of the curation are authoring work that no confi
 
 ```console
 $ python tools/run.py rtl provenance                       # the record, parsed
+$ python tools/run.py rtl filelist         # the curated arm's file list, composed
 $ python tools/run.py rtl lint             # the authored sources
 $ python tools/run.py rtl vectors          # the model's own answers, as text
 $ python tools/run.py rtl crosscheck       # and this package reproducing them
