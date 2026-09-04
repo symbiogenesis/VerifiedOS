@@ -1010,6 +1010,15 @@ CASES: list[Case] = [
     ("K-96", "a completed attended item the calibration record no longer carries",
      _first_match(PLAN, r"(?m)^\| S1 \| I \| [\d.,]+ \|[^\r\n]*\r?\n", lambda _m: "")),
 
+    # the same move one record over, in the pool whose two ratios the ruling against
+    # pooling turns on: the agent-parallel authored estimate moves, so the parallel
+    # ratio and the pooled figure the plan states in order to refuse it both move with
+    # it while every actual stays in its cell. What the case asks is that the second
+    # record is fitted rather than merely present, which the attended record's own case
+    # cannot ask, its rows being a different table under a different heading
+    ("K-96", "an agent-parallel ratio the second record's estimates do not give",
+     _renumber(PLAN, r"(?m)^\| M6\.0b \| X-authored \| ([\d.,]+) \|", 1, "999")),
+
     ("K-38", "a table row of the wrong width",
      _literal(MATRIX, "| `B-01` | `P-1` |", "| seeded | `B-01` | `P-1` |")),
 

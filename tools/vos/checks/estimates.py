@@ -26,6 +26,16 @@ ratio and count the calibration states is the quotient over that record, which i
 total over the completed attended items in both directions so that a landing which
 adds no row is loud rather than a fit taken over fewer items.
 
+There are two such records and never one sum over both. An attended actual is an
+elapsed attended interval and an agent-parallel actual is summed agent-session
+wall-clock over an item's passes, no item carries both, and the plan's own ruling is
+that nothing here converts between them, so each series is joined to its own record and
+each stated ratio is the quotient over the record carrying the pool it names. The one
+figure fitted across the pair is the one the plan states in order to refuse it, what the
+class-X-authored pool would read if the two were pooled, and it is computed here for the
+same reason every other figure is: a number stated to be rejected still has to be the
+number.
+
 A third authored token joins the range: an open item's **authority class**, `I` where what
 the item realizes is fixed inside this repository and `X` where it is not. It is a judgment
 and stays one, but everything resting on it is arithmetic and lands here: the two class
@@ -100,6 +110,17 @@ CHAIN_M8A = ["M1.2", "M1.7", "M3.5", "M4.4", "M5.3", "M6.5a", "M7.1", "M8a"]
 # fits over, and `n/a` in both columns is an item that never carried an estimate, which is
 # inside the record's totality and outside the fit
 RECORD_HEADING = "### Calibration record"
+
+# the agent-parallel series' own record, and it is a second table rather than a fourth
+# column of the first for two reasons neither of which is taste. The two series are
+# fitted apart, S19 having ruled that an attended interval and a summed agent-session
+# wall-clock are two quantities with no measured conversion between them, so a pooled
+# ratio would be arithmetic over two units; and the row pattern below is three cells
+# wide, so a widened row matches in no record at all and the reading would empty in
+# silence while every figure it feeds went undefined. A heading of any depth is where
+# `_record` stops, which is what holds the two tables apart with no second pattern.
+PARALLEL_HEADING = "#### The agent-parallel series"
+
 RECORD_ROW_RE = re.compile(
     r"(?m)^\| (?P<item>[^|\r\n]+?) \| (?P<pool>[^|\r\n]+?) \| (?P<est>[^|\r\n]+?) \|[ \t]*\r?$")
 POOLS = ("I", "X-read", "X-authored")
@@ -240,18 +261,20 @@ def _parse(raw: str) -> tuple[list[Item], list[Section], list[str]]:
     return items, sections, malformed
 
 
-def _record(raw: str) -> tuple[list[tuple[str, str, str]], list[str]]:
-    """The calibration record's rows, and what stops them being read.
+def _record(raw: str, heading: str) -> tuple[list[tuple[str, str, str]], list[str]]:
+    """A calibration record's rows, and what stops them being read.
 
-    The record is the run of table rows under its own heading, up to the next heading
+    A record is the run of table rows under its own heading, up to the next heading
     of any depth. The header row and its rule are the table's and not rows of the record,
-    and a record with no rows at all is a finding rather than a fit over nothing.
+    and a record with no rows at all is a finding rather than a fit over nothing. Two
+    records are read this way, the attended one and the agent-parallel one, and the
+    heading each stops at is the other's.
     """
-    at = raw.find(f"\n{RECORD_HEADING}")
+    at = raw.find(f"\n{heading}")
     if at < 0:
-        return [], [f"{PLAN} carries no '{RECORD_HEADING}' heading, so no pool and no "
-                    "estimate is recorded for any completed item"]
-    body = raw[at + 1 + len(RECORD_HEADING):]
+        return [], [f"{PLAN} carries no '{heading}' heading, so no pool and no "
+                    "estimate is recorded for any completed item under it"]
+    body = raw[at + 1 + len(heading):]
     end = re.search(r"(?m)^#{1,6} ", body)
     if end:
         body = body[:end.start()]
@@ -265,8 +288,44 @@ def _record(raw: str) -> tuple[list[tuple[str, str, str]], list[str]]:
         rows.append((item, cast("str", m.group("pool")).strip(),
                      cast("str", m.group("est")).strip()))
     if not rows:
-        return [], [f"the calibration record under '{RECORD_HEADING}' carries no row"]
+        return [], [f"the calibration record under '{heading}' carries no row"]
     return rows, []
+
+
+def _fit(record: list[tuple[str, str, str]], actuals: dict[str, Item], what: str,
+         subject: str, derived: list[str]) -> dict[str, list[tuple[str, float, float]]]:
+    """One record joined to the actuals in the items' own cells, pool by pool.
+
+    Held total in both directions, so a landing that adds no row is loud rather than a
+    fit taken silently over fewer items, and a row naming an item of the other series
+    is a finding rather than a pair quietly counted in the wrong record.
+    """
+    seen: set[str] = set()
+    fit: dict[str, list[tuple[str, float, float]]] = {pool: [] for pool in POOLS}
+    for item, pool, est in record:
+        if item in seen:
+            derived.append(f"the {what} carries {item} twice")
+            continue
+        seen.add(item)
+        if item not in actuals:
+            derived.append(f"the {what} carries {item}, which is not a {subject} "
+                           "of the plan")
+            continue
+        if pool == NOT_APPLICABLE and est == NOT_APPLICABLE:
+            continue
+        if pool not in POOLS or not HOURS_RE.match(est):
+            derived.append(f"{item}: pool '{pool}' and estimate '{est}' are not one of "
+                           f"{', '.join(POOLS)} beside an hours figure, or n/a in both")
+            continue
+        fit[pool].append((item, _hours(est), actuals[item].hours))
+    derived.extend(f"{item} is a {subject} the {what} carries no row for"
+                   for item in actuals if item not in seen)
+    return fit
+
+
+def _ratio(pairs: list[tuple[str, float, float]]) -> float | None:
+    estimated = sum(e for _, e, _ in pairs)
+    return sum(a for _, _, a in pairs) / estimated if estimated else None
 
 
 def run(ctx: Context) -> None:
@@ -359,45 +418,42 @@ def run(ctx: Context) -> None:
     chain_mid = round(sum(i.hours for i in chain), 1)
 
     # ---- K-96, second half: the calibration, fitted over the record and the actuals ----
-    record, unreadable = _record(raw)
+    # Two records and two fits, and the pair is never summed: an attended actual is an
+    # elapsed attended interval and an agent-parallel one is summed agent-session
+    # wall-clock, no item carries both, and the plan's own ruling is that nothing here
+    # converts between them. So each series is joined to its own record and each ratio
+    # the basis states is the quotient over the record that carries the pool it names.
+    record, unreadable = _record(raw, RECORD_HEADING)
     derived.extend(unreadable)
     ctx.shared["calibration_rows"] = len(record)
     attended = {_head(i.label): i for i in items
                 if i.done and AGENT_PARALLEL not in i.tail}
-    parallel = [_head(i.label) for i in items if i.done and AGENT_PARALLEL in i.tail]
-    seen: set[str] = set()
-    fit: dict[str, list[tuple[str, float, float]]] = {pool: [] for pool in POOLS}
-    for item, pool, est in record:
-        if item in seen:
-            derived.append(f"the calibration record carries {item} twice")
-            continue
-        seen.add(item)
-        if item not in attended:
-            derived.append(f"the calibration record carries {item}, which is not a "
-                           "completed attended item of the plan")
-            continue
-        if pool == NOT_APPLICABLE and est == NOT_APPLICABLE:
-            continue
-        if pool not in POOLS or not HOURS_RE.match(est):
-            derived.append(f"{item}: pool '{pool}' and estimate '{est}' are not one of "
-                           f"{', '.join(POOLS)} beside an hours figure, or n/a in both")
-            continue
-        fit[pool].append((item, _hours(est), attended[item].hours))
-    derived.extend(f"{item} is a completed attended item the calibration record carries no "
-                   "row for" for item in attended if item not in seen)
+    parallel_items = {_head(i.label): i for i in items
+                      if i.done and AGENT_PARALLEL in i.tail}
+    parallel = list(parallel_items)
+    fit = _fit(record, attended, "calibration record", "completed attended item", derived)
 
-    def _ratio(pairs: list[tuple[str, float, float]]) -> float | None:
-        estimated = sum(e for _, e, _ in pairs)
-        return sum(a for _, _, a in pairs) / estimated if estimated else None
+    precord, punreadable = _record(raw, PARALLEL_HEADING)
+    derived.extend(punreadable)
+    ctx.shared["parallel_rows"] = len(precord)
+    pfit = _fit(precord, parallel_items, "agent-parallel record",
+                "completed agent-parallel item", derived)
 
     ratios = {pool: _ratio(pairs) for pool, pairs in fit.items()}
+    pratios = {pool: _ratio(pairs) for pool, pairs in pfit.items()}
     derived.extend(f"the {pool} pool of the calibration record is empty, so the ratio "
                    "the basis states for it exists over nothing"
                    for pool, ratio in ratios.items() if ratio is None)
+    derived.extend(f"the {pool} pool of the agent-parallel record is empty, so the ratio "
+                   "the basis states for it exists over nothing"
+                   for pool, ratio in pratios.items() if ratio is None)
     all_pairs = [pair for pairs in fit.values() for pair in pairs]
     fit_est = round(sum(e for _, e, _ in all_pairs), 1)
     fit_act = round(sum(a for _, _, a in all_pairs), 1)
     lowest = sorted((a / e, item) for item, e, a in all_pairs if e)[:2]
+    ppairs = [pair for pairs in pfit.values() for pair in pairs]
+    pfit_est = round(sum(e for _, e, _ in ppairs), 1)
+    pfit_act = round(sum(a for _, _, a in ppairs), 1)
 
     # the calibrated total re-weights each class's open hours by its pool's ratio: class I
     # by the I pool's, and class X by the authored pool's alone, which the conventions state
@@ -520,7 +576,14 @@ def run(ctx: Context) -> None:
     counts = {pool: _count(len(pairs)) for pool, pairs in fit.items()}
     ratio_t = {pool: quantize(ratio, 2) if ratio is not None else "n/a"
                for pool, ratio in ratios.items()}
+    pratio_t = {pool: quantize(ratio, 2) if ratio is not None else "n/a"
+                for pool, ratio in pratios.items()}
     outside = _count(len(fit["X-read"]) + len(fit["X-authored"]))
+    # the one fit taken across both records, and the plan states it as the thing the
+    # ruling refuses rather than as a figure anything is priced against
+    pooled = fit["X-authored"] + pfit["X-authored"]
+    pooled_est = round(sum(e for _, e, _ in pooled), 1)
+    pooled_act = round(sum(a for _, _, a in pooled), 1)
     judged_lines = [
         ("the critical chain",
          r"(?m)^\* Critical chain through M8a:.*?Over those items the chain sums to "
@@ -582,6 +645,36 @@ def run(ctx: Context) -> None:
         ("the pool weakness",
          r"n = (?P<na>\d+) in the pool that matters",
          {"na": str(len(fit["X-authored"]))}),
+        # the second fit, over the second record, in the shape the first is stated in.
+        # Its last two figures are the pair the ruling turns on and are the two pools'
+        # own ratios again, stated together because what the sentence asserts is that
+        # they straddle one and neither figure alone says that
+        ("the agent-parallel fit",
+         r"(?m)^\* \*\*The agent-parallel series is fitted on its own record and the two "
+         r"fits are not pooled\*\*.*?across the (?P<n>[a-z-]+) items carrying both, gives "
+         r"(?P<act>[\d.,]+) h actual against (?P<est>[\d.,]+) h estimated, a ratio of "
+         r"(?P<r>[\d.]+): (?P<ni>[a-z-]+) items whose authority is in this repository ran "
+         r"at \*\*(?P<ri>[\d.]+)\*\*, (?P<nr>[a-z-]+) that read an external thing ran at "
+         r"\*\*(?P<rr>[\d.]+)\*\*, and the (?P<na>[a-z-]+) that authored against an "
+         r"external authority ran at \*\*(?P<ra>[\d.]+)\*\*\..*?"
+         r"(?P<attended>[\d.]+) attended against (?P<parallel>[\d.]+) here",
+         {"n": _count(len(ppairs)), "act": format_hours(pfit_act),
+          "est": format_hours(pfit_est),
+          "r": quantize(pfit_act / pfit_est, 2) if pfit_est else "n/a",
+          "ni": _count(len(pfit["I"])), "ri": pratio_t["I"],
+          "nr": _count(len(pfit["X-read"])), "rr": pratio_t["X-read"],
+          "na": _count(len(pfit["X-authored"])), "ra": pratio_t["X-authored"],
+          "attended": ratio_t["X-authored"], "parallel": pratio_t["X-authored"]}),
+        # what the ruling refuses, computed rather than asserted: the one pool the
+        # calibration rests on, taken over both records at once. It is the only figure
+        # here fitted across the two clocks, and it exists to be reported as the thing
+        # that would happen and not as the thing that is done
+        ("the pooled class-X fit",
+         r"the pool is then (?P<n>[a-z-]+) items at (?P<act>[\d.,]+) h actual against "
+         r"(?P<est>[\d.,]+) h estimated, a ratio of \*\*(?P<r>[\d.]+)\*\*",
+         {"n": _count(len(pooled)), "act": format_hours(pooled_act),
+          "est": format_hours(pooled_est),
+          "r": quantize(pooled_act / pooled_est, 2) if pooled_est else "n/a"}),
     ]
 
     # the horizon is the one sentence read before it is held: the rate is the plan's, and
@@ -611,7 +704,9 @@ def run(ctx: Context) -> None:
         derived.extend(r.findings)
     rep.report("K-96", "chain or calibration figure(s) the cells beneath them do not give:",
                derived,
-               f"the critical chain sums over {len(chain)} open cells and the calibration "
-               f"fits over {len(all_pairs)} of the record's {len(record)} rows, and all "
-               f"{held} figures stated over them agree, across {len(judged_lines)} sentences")
+               f"the critical chain sums over {len(chain)} open cells, the calibration "
+               f"fits over {len(all_pairs)} of the record's {len(record)} rows and the "
+               f"agent-parallel series over {len(ppairs)} of its own record's "
+               f"{len(precord)}, and all {held} figures stated over them agree, across "
+               f"{len(judged_lines)} sentences")
     rep.line()

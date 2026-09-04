@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 419 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 425 of them across 73 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -208,6 +208,31 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-000y** measurement: a count went stale where its own list shrank, a sentence naming five readers standing above a list of four after the quarantine took one out
 · Raised: S15
 · Disposition: closed, repaired there and in the two parser docstrings that named the departed module as a sibling
+
+**F-226a** measurement: the two execution modes cannot be pooled, an attended actual and an agent-parallel actual being different quantities with no item measured on both clocks and no artifact here stating a conversion
+· Raised: S19
+· Disposition: standing, the ruling taken at the item and each series fitted over a record of its own; the arithmetic agrees from the other side, the pool the whole calibration rests on falling on opposite sides of one in the two modes
+
+**F-226b** measurement: the authority class predicts overrun in the attended series and predicts nothing in the agent-parallel one, where both overruns are class I and every class-X item ran under its estimate
+· Raised: S19
+· Disposition: standing, recorded as a measurement and deliberately not as a second prior, a series this small being no population to fit one over
+
+**F-226c** measurement: the two-item pool every open class-X cell is priced against is closed to new members by execution mode rather than by scarcity, all four class-X items landed since the fit having run under fan-out
+· Raised: S19
+· Disposition: open, reported and not closed; what moves the count is a lane landing an open class-X cell at one attention, which is a choice about how a lane is run and not this item's to schedule
+
+**F-226d** method: the calibration record's earliest-estimate convention measures a different thing in each series, eight of the agent-parallel items having been re-priced downward at one act before any of them ran
+· Raised: S19
+· Disposition: standing, both bases recorded at the item so the gap between them is visible rather than latent, and the ruling holding at either
+
+**F-226e** method: an item whose scope moved between its pricing and its landing is outside the calibration fit and carries n/a, which is the convention the agent-parallel record now states at the case that raised it
+· Raised: S19
+· Disposition: closed on the convention half, the attended record's n/a keeping its narrower meaning; the residue split itself stays open where it was raised
+· Restates: F-205l
+
+**F-226f** owed-act: an agent-parallel actual is a sum over an item's authoring, verification and repair passes and no cell records how many, so two items stating one figure may be one pass or four with nothing telling them apart
+· Raised: S19
+· Disposition: open, reported and not closed; recording it changes what every future agent-parallel cell carries, which is the plan's to state and not one item's to impose on the cells already landed
 
 ## M0 · Hardware reference
 

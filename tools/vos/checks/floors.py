@@ -230,6 +230,12 @@ def run(ctx: Context) -> None:
         # by row; the floor is for the reading itself, a heading this rule can no longer
         # find leaving it holding no rows against every item at once.
         "rows of the plan's calibration record": sh.get("calibration_rows", 0),
+        # The second record K-96 fits over, floored for the reason the first is and for
+        # one more: it sits under a heading of its own inside the first record's section,
+        # so a heading retitled away leaves the first record swallowing these rows and
+        # reporting each of them as an item it does not recognize, which is loud, while
+        # this reading empties in silence.
+        "rows of the plan's agent-parallel record": sh.get("parallel_rows", 0),
         "dominant terms read from the big table": len(sh.get("ends", [])),
         "differential corpus members": len(sh.get("corpus_members", [])),
         # One rather than three, and the two §9 tables are the ones left out. Either of
