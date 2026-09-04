@@ -12,7 +12,7 @@ Five things, in the order a reader wants them:
     rules      K-77 and K-58 over the live tree, the two check groups unchanged
     floors     the enumerations those two read, each required to have members
     registry   check-rules.md against the checks carrying it, in both directions
-    mutants    one seeded defect per rule, reported in the shared verdict vocabulary
+    mutants    at least one seeded defect per rule, in the shared verdict vocabulary
     tests      the test modules that moved with the instruments
 
 That is the three-edit discipline `tools/README.md` states, kept whole inside the
@@ -338,7 +338,11 @@ def _one_mutant(mutant: Mutant, root: Path, corpus: Corpus, reg: Register,
 
 def _mutants(root: Path, corpus: Corpus, reg: Register, art: Artifacts,
              rep: Reporter, clean: bool) -> None:
-    """One seeded defect per rule, reported through the shared verdict vocabulary.
+    """At least one seeded defect per rule, through the shared verdict vocabulary.
+
+    At least one is the honest shape and the landing loop's registry states why: one
+    defect does not always reach every direction a rule holds, so K-77 carries three
+    cases where K-58 carries one, for the reason the table itself gives at them.
 
     Nothing below decides anything against a tree that was already failing, on the
     checker's own oracle's ground: a mutant would be reported killed by whatever was

@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """What this gate's fourth section decides, and the distinction it used to lose.
 
-The gate runs the two quarantined rules against one seeded defect each, and a case can
-fail in two ways that are repaired in two different places. A **survivor** is a defect
-the rule read and said nothing about: the repair is in the rule, which is not deciding.
-An **unseeded** case is one whose mutation no longer applies to an artifact that moved
-under it: the repair is in the case, and until it is made the rule reports live for as
-long as nobody looks. Merged into one findings list under one label, both failed the
+The gate runs the two quarantined rules against at least one seeded defect each, and a
+case can fail in two ways that are repaired in two different places. A **survivor** is
+a defect the rule read and said nothing about: the repair is in the rule, which is not
+deciding. An **unseeded** case is one whose mutation no longer applies to an artifact
+that moved under it: the repair is in the case, and until it is made the rule reports
+live for as long as nobody looks. Merged into one findings list under one label, both failed the
 run and neither was named, which is the state this module holds against.
 
 Nothing here runs the gate. Its own run over the live tree is what `python
@@ -36,11 +36,15 @@ def _case(rule: str = "K-77", what: str = "a defect the contract states") -> Mut
 def _a_case_names_itself_by_rule_and_defect() -> None:
     """`vos.seeded.Seeded` asks one thing of a mutant, a line naming the defect well
     enough that a reader can go and look at it. An authored case has no site, so what
-    identifies it is the rule it is aimed at and the defect in words."""
+    identifies it is the rule it is aimed at and the defect in words.
+
+    Held against a literal here rather than over `MUTANTS`, because `what` is computed
+    from the two fields: a pass over the live table would satisfy any table at all and
+    so would decide nothing about either. What the live table owes is that its rules are
+    the quarantine's, which is the case at the end of this module.
+    """
     named = _case().what
     ensure(named == "K-77: a defect the contract states", f"a case names itself {named!r}")
-    ensure(all(m.what.startswith(f"{m.rule}: ") for m in MUTANTS),
-           "a live case does not name its own rule")
 
 
 def _the_two_failures_are_named_apart() -> None:
