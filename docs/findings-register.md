@@ -1171,7 +1171,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-227l** measurement: three seeded weakenings survived across two forty-mutant samples, each at a site nothing above it decided, a key-expansion guard only a key length the standard does not carry can part, a length list no computation visited, and a word rotation whose result the truncating exclusive-or that consumes it silently cuts back to four bytes
 · Raised: M3.4d
-· Disposition: closed, one statement added for each, the guard made a parameter with its raised alternative beside it, both length lists pinned by their own shape, and the rotation stated over four arbitrary bytes, each mutant then refused
+· Disposition: closed, one statement added for each, the guard made a parameter with its raised alternative beside it, both length lists held to the standard's own shape and to its own count, the count being what the shape alone leaves free, and the rotation stated over four arbitrary bytes, each mutant then refused
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a

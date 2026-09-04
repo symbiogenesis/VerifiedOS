@@ -197,8 +197,10 @@
    constant 0x63 and the inverse transform's taps {2, 5, 7} and constant 0x05;
    the MixColumns polynomial {03}x^3 + {01}x^2 + {01}x + {02} and its inverse
    {0b}x^3 + {0d}x^2 + {09}x + {0e}; and SP 800-38D's 128-bit block, its
-   96-bit IV split, its 32-bit counter field, its 64-bit length fields and its
-   reduction polynomial a^128 + a^7 + a^2 + a + 1 as its own exponent list.
+   96-bit IV split, its 32-bit counter field, its 64-bit length fields, its
+   s5.2.1.2 tag lengths as the two lists it states them in, five general and
+   two restricted, and its reduction polynomial a^128 + a^7 + a^2 + a + 1 as
+   its own exponent list.
    Everything else is derived: the round constants are the recurrence's, the
    S-box is the inverse and the affine map's, 0x1B is computed from the
    modulus, 0xE1 is computed from R's exponents, and the MixColumns matrix is
@@ -231,13 +233,15 @@
    FIPS 197's own, read at Appendices A.1, B and C.1 through C.3 and at
    sections 5.1.1, 5.1.3, 5.2 and 5.3.3. The five AES-GCM cases are the test
    cases published with the GCM specification, numbered 1 through 5 there, and
-   they are the cases NIST's own AES-GCM validation sets carry. **Every one of
-   them was recomputed on 2026-09-03 by a second implementation before it was
-   written down here**, an independent transcription of the two standards run
-   against OpenSSL 3.5.5 through its Python binding, so each literal below
-   reached this file by two routes and not one. Neither instrument is pinned,
-   neither enters any trust base, and nothing above the answers depends on
-   them.
+   that is the whole of their provenance: no ACVP file is quoted here and
+   nothing in this repository pins what NIST's own validation sets carry, so
+   saying these were those would be a claim about an external corpus with no
+   measurement under it. **Every one of them was recomputed on 2026-09-03 by a
+   second implementation before it was written down here**, an independent
+   transcription of the two standards run against OpenSSL 3.5.5 through its
+   Python binding, so each literal below reached this file by two routes and
+   not one. Neither instrument is pinned, neither enters any trust base, and
+   nothing above the answers depends on them.
    ========================================================================= *)
 
 Open Scope list_scope.
@@ -1255,10 +1259,8 @@ Example the_wrong_affine_constant_misses_the_published_ciphertext :
                  (bytes_from (upto 16))
                  (bytes_from (0x00 :: 0x11 :: 0x22 :: 0x33 :: 0x44 :: 0x55 :: 0x66 :: 0x77 ::
                               0x88 :: 0x99 :: 0xAA :: 0xBB :: 0xCC :: 0xDD :: 0xEE :: 0xFF :: nil))))
-           (block_of_state
-              (aes_encrypt 4 (bytes_from (upto 16))
-                 (bytes_from (0x00 :: 0x11 :: 0x22 :: 0x33 :: 0x44 :: 0x55 :: 0x66 :: 0x77 ::
-                              0x88 :: 0x99 :: 0xAA :: 0xBB :: 0xCC :: 0xDD :: 0xEE :: 0xFF :: nil))))
+           (block_from (0x69 :: 0xC4 :: 0xE0 :: 0xD8 :: 0x6A :: 0x7B :: 0x04 :: 0x30 ::
+                        0xD8 :: 0xCD :: 0xB7 :: 0x80 :: 0x70 :: 0xB4 :: 0xC5 :: 0x5A :: nil))
   = false.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1344,9 +1346,13 @@ Example the_models_form_and_the_standards_form_are_one_multiplication :
 Proof. vm_compute. reflexivity. Qed.
 
 (* The form without the reflection is the standard's multiplication under a
-   byte-wise reversal of the bits, so it is a field multiplication too, with
-   the same commutativity and the same identity, and what refuses it is only
-   that it names the wrong bit string. *)
+   byte-wise reversal of the bits, so it is a field multiplication too and
+   commutative just as the standard's is. What refuses it is that it names the
+   wrong bit strings, and the unit is where that is smallest and sharpest: its
+   identity is the standard's reflected, 0x01 00..00 where the standard's is
+   0x80 00..00. Both are computed below, the second as a refusal, because an
+   identity carried over from the isomorphism rather than decided at the
+   element is the one obligation this near alternative could be let off. *)
 Example the_unreflected_form_is_the_standards_under_a_byte_wise_reversal :
   all_of (fun p => bits_eqb (ghash_mul_without_the_reflection (fst p) (snd p))
                             (reflect_block (gf128_mul (reflect_block (fst p))
@@ -1358,6 +1364,18 @@ Example the_unreflected_form_is_commutative_too :
   all_of (fun p => bits_eqb (ghash_mul_without_the_reflection (fst p) (snd p))
                             (ghash_mul_without_the_reflection (snd p) (fst p)))
          ghash_probe_pairs = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_unreflected_form_has_the_reflected_identity :
+  all_of (fun x => bits_eqb (ghash_mul_without_the_reflection x
+                               (block_from (0x01 :: repeat_of 15 0))) x)
+         ghash_probe_blocks = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_standards_identity_is_not_the_unreflected_forms :
+  all_of (fun x => bits_eqb (ghash_mul_without_the_reflection x
+                               (block_from (0x80 :: repeat_of 15 0))) x)
+         ghash_probe_blocks = false.
 Proof. vm_compute. reflexivity. Qed.
 
 Example the_unreflected_form_is_a_different_multiplication :
@@ -1515,19 +1533,37 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* The unpadded GHASH input agrees with the standard's at every published case
    whose associated data and ciphertext are both block-aligned, which is the
-   first three of the five, and parts from it at the fourth. A vector set with
-   no unaligned member cannot see this defect at all. *)
+   first three of the five, and parts from it at the fourth. All three of those
+   carry an **empty** associated data, where the padding of A is absent in any
+   case, so a fourth conjunct of this file's own carries the aligned case the
+   five do not: a sixteen-byte associated data beside a thirty-two-byte
+   plaintext, where both paddings are present and both are empty. A vector set
+   with no unaligned member cannot see this defect at all. *)
 Example the_unpadded_ghash_input_agrees_at_every_aligned_published_case :
-  andb (andb (bits_eqb (snd (gcm_encrypt_unpadded 4 (bytes_from (repeat_of 16 0))
-                                                  (block_from (repeat_of 12 0)) nil nil))
-                       (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))
-                                         (block_from (repeat_of 12 0)) nil nil)))
-             (bits_eqb (snd (gcm_encrypt_unpadded 4 (bytes_from (repeat_of 16 0))
-                                                  (block_from (repeat_of 12 0)) nil
-                                                  (block_from (repeat_of 16 0))))
-                       (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))
-                                         (block_from (repeat_of 12 0)) nil
-                                         (block_from (repeat_of 16 0))))))
+  andb (andb (andb (bits_eqb (snd (gcm_encrypt_unpadded 4 (bytes_from (repeat_of 16 0))
+                                                       (block_from (repeat_of 12 0)) nil nil))
+                             (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))
+                                               (block_from (repeat_of 12 0)) nil nil)))
+                   (bits_eqb (snd (gcm_encrypt_unpadded 4 (bytes_from (repeat_of 16 0))
+                                                        (block_from (repeat_of 12 0)) nil
+                                                        (block_from (repeat_of 16 0))))
+                             (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))
+                                               (block_from (repeat_of 12 0)) nil
+                                               (block_from (repeat_of 16 0))))))
+             (let key := bytes_from (0xFE :: 0xFF :: 0xE9 :: 0x92 :: 0x86 :: 0x65 :: 0x73 :: 0x1C ::
+                                     0x6D :: 0x6A :: 0x8F :: 0x94 :: 0x67 :: 0x30 :: 0x83 :: 0x08 :: nil) in
+              let iv := block_from (0xCA :: 0xFE :: 0xBA :: 0xBE :: 0xFA :: 0xCE :: 0xDB :: 0xAD ::
+                                    0xDE :: 0xCA :: 0xF8 :: 0x88 :: nil) in
+              let m := block_from (0xD9 :: 0x31 :: 0x32 :: 0x25 :: 0xF8 :: 0x84 :: 0x06 :: 0xE5 ::
+                                   0xA5 :: 0x59 :: 0x09 :: 0xC5 :: 0xAF :: 0xF5 :: 0x26 :: 0x9A ::
+                                   0x86 :: 0xA7 :: 0xA9 :: 0x53 :: 0x15 :: 0x34 :: 0xF7 :: 0xDA ::
+                                   0x2E :: 0x4C :: 0x30 :: 0x3D :: 0x8A :: 0x31 :: 0x8A :: 0x72 ::
+                                   0x1C :: 0x3C :: 0x0C :: 0x95 :: 0x95 :: 0x68 :: 0x09 :: 0x53 ::
+                                   0x2F :: 0xCF :: 0x0E :: 0x24 :: 0x49 :: 0xA6 :: 0xB5 :: 0x25 ::
+                                   0xB1 :: 0x6A :: 0xED :: 0xF5 :: 0xAA :: 0x0D :: 0xE6 :: 0x57 ::
+                                   0xBA :: 0x63 :: 0x7B :: 0x39 :: 0x1A :: 0xAF :: 0xD2 :: 0x55 :: nil) in
+              bits_eqb (snd (gcm_encrypt_unpadded 4 key iv nil m))
+                       (snd (gcm_encrypt 4 key iv nil m))))
        (bits_eqb (snd (gcm_encrypt_unpadded 4 (bytes_from (upto 16))
                                             (block_from (repeat_of 12 7)) (block_from (upto 16))
                                             (block_from (upto 32))))
@@ -1693,11 +1729,17 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_full_tag_is_the_longest_admissible_one :
   Nat.eqb (nth_of 0 admissible_tag_lengths 0) block_bits = true := eq_refl.
 
-(* Both lists pinned by their own shape rather than left as literals no
-   computation visits. The admissible lengths descend one byte at a time from
-   the full tag, and each restricted length is a whole number of bytes below
-   the shortest admissible one. A tag length nothing reaches is a site a seeded
-   weakening survives at rather than a site nothing can go wrong in. *)
+(* Both lists held to the standard's own shape **and to its own count**, rather
+   than left as literals no computation visits. The admissible lengths descend
+   one byte at a time from the full tag and there are five of them; each
+   restricted length is a whole number of bytes below the shortest admissible
+   one and there are two. The counts are exactly what the shape alone leaves
+   free, and they are not decoration: without them a sixth admissible length of
+   88 descends one byte at a time like the five above it, and a third
+   restricted length of 24 is a whole number of bytes below the shortest
+   admissible one like the two beside it, so both checks below pass on lists SP
+   800-38D s5.2.1.2 does not admit. A tag length nothing reaches is a site a
+   seeded weakening survives at rather than a site nothing can go wrong in. *)
 Example the_admissible_tag_lengths_descend_one_byte_at_a_time_from_the_full_tag :
   all_of (fun i => Nat.eqb (nth_of i admissible_tag_lengths 0) (block_bits - byte_bits * i))
          (upto (length_of admissible_tag_lengths)) = true.
@@ -1709,12 +1751,28 @@ Example every_restricted_tag_length_is_whole_bytes_below_the_shortest_admissible
          restricted_tag_lengths = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Example every_admissible_tag_length_is_a_prefix_of_the_full_tag :
-  all_of (fun t => bits_eqb (take_of t (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))
-                                                         (block_from (repeat_of 12 0)) nil nil)))
-                            (take_of t (block_from
-                              (0x58 :: 0xE2 :: 0xFC :: 0xCE :: 0xFA :: 0x7E :: 0x30 :: 0x61 ::
-                               0x36 :: 0x7F :: 0x1D :: 0x57 :: 0xA4 :: 0xE7 :: 0x45 :: 0x5A :: nil))))
+Example the_two_tag_length_lists_carry_the_counts_the_standard_states :
+  andb (Nat.eqb (length_of admissible_tag_lengths) 5)
+       (Nat.eqb (length_of restricted_tag_lengths) 2) = true := eq_refl.
+
+(* Truncating at a listed length takes a whole number of bytes off the front of
+   the published tag and no more, which is the whole of what makes a listed
+   length a length *of this tag*. The equality is the weakest of the three
+   clauses and holds of every natural number, both sides being the same block
+   under `take_of`; the length clause is what refuses a t above 128 and the
+   whole-byte clause what refuses a t that is not a byte boundary, so the
+   statement decides the domain it quantifies over rather than passing over it.
+   Without the two the check is true of `7 :: 5000 :: 3 :: 999 :: nil`. *)
+Example truncating_at_every_listed_tag_length_takes_whole_bytes_of_the_published_tag :
+  all_of (fun t =>
+            let short := take_of t (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))
+                                                     (block_from (repeat_of 12 0)) nil nil)) in
+            andb (andb (Nat.eqb (length_of short) t)
+                       (Nat.eqb (Nat.modulo t byte_bits) 0))
+                 (bits_eqb short
+                    (take_of t (block_from
+                       (0x58 :: 0xE2 :: 0xFC :: 0xCE :: 0xFA :: 0x7E :: 0x30 :: 0x61 ::
+                        0x36 :: 0x7F :: 0x1D :: 0x57 :: 0xA4 :: 0xE7 :: 0x45 :: 0x5A :: nil)))))
          (admissible_tag_lengths ++ restricted_tag_lengths) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1949,6 +2007,8 @@ Print Assumptions the_field_multiplication_on_blocks_is_commutative.
 Print Assumptions the_models_form_and_the_standards_form_are_one_multiplication.
 Print Assumptions the_unreflected_form_is_the_standards_under_a_byte_wise_reversal.
 Print Assumptions the_unreflected_form_is_commutative_too.
+Print Assumptions the_unreflected_form_has_the_reflected_identity.
+Print Assumptions the_standards_identity_is_not_the_unreflected_forms.
 Print Assumptions the_unreflected_form_is_a_different_multiplication.
 Print Assumptions the_counter_field_wraps_and_leaves_the_rest_of_the_block_alone.
 Print Assumptions the_hash_subkey_of_the_all_zero_key_is_the_published_one.
@@ -1978,7 +2038,8 @@ Print Assumptions the_last_round_key_is_the_last_four_words.
 Print Assumptions the_full_tag_is_the_longest_admissible_one.
 Print Assumptions the_admissible_tag_lengths_descend_one_byte_at_a_time_from_the_full_tag.
 Print Assumptions every_restricted_tag_length_is_whole_bytes_below_the_shortest_admissible_one.
-Print Assumptions every_admissible_tag_length_is_a_prefix_of_the_full_tag.
+Print Assumptions the_two_tag_length_lists_carry_the_counts_the_standard_states.
+Print Assumptions truncating_at_every_listed_tag_length_takes_whole_bytes_of_the_published_tag.
 Print Assumptions palindromic_bytes.
 Print Assumptions there_are_sixteen_bytes_that_are_their_own_reversal.
 Print Assumptions the_reflection_fixes_a_block_of_those_bytes_and_moves_the_others.
