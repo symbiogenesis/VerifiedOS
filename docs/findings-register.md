@@ -235,6 +235,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S18
 · Disposition: open, reported rather than taken: the ruling belongs to the item that made it and the wording to the milestone, and the name is the one place the plan still reads the other way
 
+**F-223g** method: a predicate authored from a register entry alone re-asks what a landed generated artifact already answers, so what an item owes is the entry's obligation set minus what that artifact carries
+· Raised: S18
+· Disposition: closed, the DMA cell cut to the two obligations the ring declaration and its generated contract do not carry, with the theorem holding each of the rest named beside it
+
+**F-223h** method: a measurement is stated in the unit its instrument emits, and a bound derived in a unit nothing here emits is discharged where its own acceptance clause puts it rather than re-asked of a run
+· Raised: S18
+· Disposition: closed, the frame question restated over the slot order the commit trace carries, no counter on this machine reading a cycle at all
+
+**F-223i** method: a condition a host rule already decides for every corpus member cannot fail where the bullet above it passes, so it discriminates against nothing at the item that restates it
+· Raised: S18
+· Disposition: closed, the assembling condition struck and the rule that decides it named in its place
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
