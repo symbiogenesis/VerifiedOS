@@ -211,17 +211,17 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-226a** measurement: the two execution modes cannot be pooled, an attended actual and an agent-parallel actual being different quantities with no item measured on both clocks and no artifact here stating a conversion
 · Raised: S19
-· Disposition: standing, the ruling taken at the item and each series fitted over a record of its own; the arithmetic agrees from the other side, the pool the whole calibration rests on falling on opposite sides of one in the two modes
+· Disposition: standing, the ruling taken at the item and each series fitted over a record of its own; the arithmetic agrees from the other side, the pool the whole calibration rests on falling on opposite sides of one in the two modes, though that straddle rests on M6.0b alone and the ruling is taken on the unit rather than on it
 
-**F-226b** measurement: the authority class predicts overrun in the attended series and predicts nothing in the agent-parallel one, where both overruns are class I and every class-X item ran under its estimate
+**F-226b** measurement: the overrun pattern separates the two execution modes on the taken prices and not on the record's own basis, where the class-X-authored pool is the most overrun-prone pool in both, 2 of 2 attended and 1 of 2 under fan-out against 9 of 45 and 1 of 7 for class I, so the mode difference is the pool ratio alone and its straddle of one is M6.0b's
 · Raised: S19
-· Disposition: standing, recorded as a measurement and deliberately not as a second prior, a series this small being no population to fit one over
+· Disposition: standing as a negative result, the asymmetry the item set out to record being an artefact of reading the pattern on one basis and the ratios on another; recorded as a measurement and deliberately not as a second prior, a series this small being no population to fit one over
 
-**F-226c** measurement: the two-item pool every open class-X cell is priced against is closed to new members by execution mode rather than by scarcity, all four class-X items landed since the fit having run under fan-out
+**F-226c** measurement: the two-item pool every open class-X cell is priced against is closed to new members by execution mode rather than by scarcity, both class-X-authored items landed since the fit having run under fan-out; the other two class-X landings are outside it on grounds that are not the mode, M1.6 having read rather than authored and M3.4a's scope having moved
 · Raised: S19
 · Disposition: open, reported and not closed; what moves the count is a lane landing an open class-X cell at one attention, which is a choice about how a lane is run and not this item's to schedule
 
-**F-226d** method: the calibration record's earliest-estimate convention measures a different thing in each series, eight of the agent-parallel items having been re-priced downward at one act before any of them ran
+**F-226d** method: the calibration record's earliest-estimate convention measures a different thing in each series, six of the ten fitted agent-parallel items having been re-priced downward at one act before any of them ran, one upward at another and three not at all, for a 20.5 h gap between the two bases
 · Raised: S19
 · Disposition: standing, both bases recorded at the item so the gap between them is visible rather than latent, and the ruling holding at either
 
