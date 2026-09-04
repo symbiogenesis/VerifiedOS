@@ -182,7 +182,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-198a** measurement: a workflow's own green is unobservable from this repository, there being no continuous integration by decision, no runner registered against either remote, and nothing here that exercises a hosted image
 · Raised: S14
-· Disposition: standing, recorded as the ground of the decline rather than as a defect; an authored workflow could be held to nothing before it landed, which is what makes an unrun gate a promise in another file
+· Disposition: standing as the ground of the decline S14 took, an authored workflow having been held to nothing before it landed; the push workflow has since landed and runs the host gate wave and `run.py test` at every push and pull request to `main`, so what an unrun gate would have promised is measured
 
 **F-198b** owed-act: three classes of fact a workflow must state have no owner in this tree, the runner label, the action references it pins, and the bootstrap route
 · Raised: S14
@@ -283,6 +283,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-226f** owed-act: an agent-parallel actual is a sum over an item's authoring, verification and repair passes and no cell records how many, so two items stating one figure may be one pass or four with nothing telling them apart
 · Raised: S19
 · Disposition: open, reported and not closed; recording it changes what every future agent-parallel cell carries, which is the plan's to state and not one item's to impose on the cells already landed
+
+**F-234a** method: a register act closes a gap the plan reported and nothing carries the answer back to the cell that reported it, the entry's disposition moving while the bullet goes on saying the question is unstated
+· Raised: S20
+· Disposition: closed, M3.6a's five taken gaps now naming the entry that answered each; the general case stands, K-61 reaching no checklist finding bullet and K-82 holding the register total and never the two halves' agreement
+
+**F-234b** method: a disposition moved to closed while the plan bullet it indexes still read *reported rather than closed*, the register owning disposition and the note owning content so the half-repair is the expected shape
+· Raised: S20
+· Disposition: closed, M1.9's and R1c-i's bullets past-tensed and each naming the act F-142i and F-204 already record
+
+**F-234c** measurement: a landing falsifies the decline that priced it, four present-tense sentences across two cells and two dispositions here asserting there is no continuous integration in this repository after the push workflow landed
+· Raised: S20
+· Disposition: closed, each repaired to what is true and the workflow named; it is F-198d's class run in the opposite direction, from the act back onto the decline rather than from the decline onto the forward claims
+
+**F-234d** method: a figure an artifact computes about itself was transcribed into the plan rather than cited, and drifted by twenty-three members while the artifact went on computing the right one
+· Raised: S20
+· Disposition: closed, M3.6a's generated-family and early-release figures re-taken from the artifact that computes them
+
+**F-234e** measurement: a count of a proof file's obligations moves when a later item adds to that file, so a cell that counts its own artifact understates it while the exit-evidence figure beside it stays frozen and right
+· Raised: S20
+· Disposition: closed, the count deleted rather than re-taken, the next statement moving it again and no rule reading it
+
+**F-234f** method: a denominator nothing owns goes stale at the next landing where the numerator does not, three sites carrying one against a total a sibling act had already moved
+· Raised: S20
+· Disposition: closed, each denominator dropped where a live site or a rule's own passing line already states it
+
+**F-234g** method: a roster sentence stops enumerating, and the same document names the omitted item complete in its own summary with nothing reading either
+· Raised: S20
+· Disposition: closed, the validation list replaced by the rule it was enumerating and the lane list and two sequencing rows cut to what is open
+
+**F-234h** owed-act: the truth of a prose sentence is what no rule in the registry is about, and ten of the thirty claims repaired here are figures rather than judgments, so the gap is not confined to sentences a rule could not reach
+· Raised: S20
+· Disposition: open, reported and not closed: what holds a figure is an owner per figure, which is K-24's device and one edit per figure rather than a rule
 
 ## M0 · Hardware reference
 
@@ -1983,7 +2015,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-181** upstream-defect: this tree carries workflow files and their being inert is what keeps them green, two of their own lines naming a target and an option the curation has since removed
 · Raised: I8
-· Disposition: standing, making one live being the permanent vendored divergence I4 and I8 both refuse; S14 was to be the disposition and declined on a measurement, so this repository carries no workflow of its own either
+· Disposition: standing, making one live being the permanent vendored divergence I4 and I8 both refuse; S14 was to be the disposition and declined on a measurement
 
 **F-182** measurement: the mutation sandbox's index carried no gitlink at all, standing each submodule up as a directory holding a stand-in
 · Raised: I11
