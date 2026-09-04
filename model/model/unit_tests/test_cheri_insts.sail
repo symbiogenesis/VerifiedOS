@@ -2,9 +2,7 @@
 // (extensions/CHERI/cheri_insts.sail and cheri_mem.sail).
 //
 // These are the surface's standing regression, as the algebra's are
-// (test_capability.sail), and with `riscv-tests` no longer a corpus this
-// machine can run they are also the only programs exercising it until M0.12's
-// purecap corpus exists.
+// (test_capability.sail).
 
 // *****************************************************************
 // Control transfers.

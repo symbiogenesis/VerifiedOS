@@ -7,7 +7,6 @@
 // bounds encoding) is a proof over statements of this shape, and until it is
 // discharged these are what the frozen field widths are checked against.
 //
-// They are also, for now, the whole of the machine's own regression corpus.
 // `riscv-tests` addresses memory with an integer base register throughout,
 // which on a purecap machine is an untagged capability that faults at its
 // first load, so the suite stopped being a corpus this machine can run when the

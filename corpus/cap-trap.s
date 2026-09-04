@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# The trap path, taken seven times: a capability violation raises one cause
+# The trap path, taken eight times: a capability violation raises one cause
 # code and reports its detail in `mtval`, the interrupted PCC is saved whole in
 # MEPCC, and `mret` returns to it (R-15-073, R-15-073a).
 #
@@ -8,7 +8,7 @@
 # privilege mechanism here rather than a ring (R-15-003).
 #
 # Each check leaves the cause it expects in `t5` and the trap value it expects
-# in `t6`, so the handler is one comparison rather than seven, and a wrong cause
+# in `t6`, so the handler is one comparison rather than eight, and a wrong cause
 # fails where the fault was raised rather than three checks later. The `mtval`
 # payload of a capability violation is the register that raised it above the
 # five-bit violation code (core/cap_causes.sail).
