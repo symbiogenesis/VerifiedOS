@@ -209,6 +209,32 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S15
 · Disposition: closed, repaired there and in the two parser docstrings that named the departed module as a sibling
 
+**F-223a** owed-act: three device windows every shipped composition declares and the attested devicetree advertises are claimed by no accessor in the model's MMIO dispatch, so an access to one falls through to the RAM path and answers zero instead of refusing
+· Raised: S18
+· Disposition: open, a model act reported and not closed; it is the distinction the sequencer's own window was claimed to make, met at the three windows a program runs into nothing at
+
+**F-223b** owed-act: the emulator has no second bus initiator, so the obligations placed on a capability-checked DMA engine have no mechanism on this machine to be measured over
+· Raised: S18
+· Disposition: open, a model act reported and not closed; the artifact half of the DMA service's predicate is written without it and the on-machine half waits on it
+
+**F-223c** owed-act: the recovery discipline a crash-and-recovery predicate would be stated over is still unchosen, so naming a post-crash store would take the register's decision rather than measure anything
+· Raised: S18
+· Disposition: open, the fact met a second time at the item that would measure it rather than at the one that states it
+· Restates: F-194b
+
+**F-223d** owed-act: the intent vocabulary a deterministic translation cache would be keyed on is still unenumerated, so the cache's key has no closed variant set to quantify over
+· Raised: S18
+· Disposition: open, the fact met a second time at the item that owns the cache rather than at the one that authored the graph
+· Restates: F-219c
+
+**F-223e** method: a predicate that would have a trace reader compute what the machine already decides is a second implementation of the same algorithm, and belongs on the side that already holds it
+· Raised: S18
+· Disposition: closed, the containment half rewritten as the member's own attempted derivation reported through the exit verdict, on the corpus document's own ground for not re-deriving bounds inside the reader
+
+**F-223f** owed-act: an item's name claims a plurality its own first bullet has ruled out, and no rule reads a cell's name against its bullets
+· Raised: S18
+· Disposition: open, reported rather than taken: the ruling belongs to the item that made it and the wording to the milestone, and the name is the one place the plan still reads the other way
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
