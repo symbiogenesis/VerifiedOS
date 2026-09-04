@@ -138,7 +138,7 @@ Against a second executor the same records are compared instruction by instructi
 
 ## 7. What the corpus cannot exercise yet, and why
 
-Each of these is an absence in the machine or in the model, not a gap in the corpus, and each closes with the milestone that supplies it.
+All but one of these is an absence in the machine or in the model, not a gap in the corpus, and each closes with the milestone that supplies it. The exception is the vector arithmetic and the segment forms: the model carries them and [the generated encoder table](../tools/generated/dialect-table.json) spells them, so what is absent there is the member that writes one, which is what its own closing cell names.
 
 | Absent | Why | Closes at |
 | --- | --- | --- |
