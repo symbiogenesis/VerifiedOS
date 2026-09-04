@@ -609,6 +609,11 @@ def git_dir(root: Path) -> Path | None:
     is already usable, a primary worktree, and a lane with no `wslpath` to ask all
     answer `None`, which leaves the behaviour exactly as it was.
 
+    The pointer is read through `_gitdir_pointer` rather than parsed again here, which
+    is what makes that function's *two readers* true of `_lane` and of this: written out
+    twice, the file test, the read and the `gitdir:` prefix were one fact in two places
+    and the pair could have stopped agreeing about which files are pointers at all.
+
     `VOS_GIT_DIR` names the directory outright and is read at call time like every
     other override here. It is the route left open where the translation cannot be
     made, a guest with no `wslpath` answering `None` above and every `git` in that lane
@@ -618,16 +623,9 @@ def git_dir(root: Path) -> Path | None:
     override = os.environ.get("VOS_GIT_DIR")
     if override:
         return Path(override)
-    dot_git = root / ".git"
-    if not dot_git.is_file():
+    target = _gitdir_pointer(root)
+    if target is None:
         return None
-    try:
-        pointer = dot_git.read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-    if not pointer.startswith("gitdir:"):
-        return None
-    target = pointer.removeprefix("gitdir:").strip()
     if Path(target).is_dir():
         return None
     if not re.match(r"^[A-Za-z]:[/\\]", target):
