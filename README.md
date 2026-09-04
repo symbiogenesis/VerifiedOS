@@ -86,7 +86,7 @@ Each core runs a single hardware thread, so SMT's cross-thread contention and sh
 
 ### Everything on general-purpose verified cores
 
-No firmware coprocessors. Graphics, machine learning, signal processing, and every radio, sensor, and input device run on general-purpose scalar, vector (RVV), and matrix cores that share one base ISA, one capability model, and one set of proofs. There is no fixed-function GPU, discrete accelerator, or opaque baseband or controller firmware: no processor on the chip runs code the proofs do not cover, with the one tolerated exception of the [eUICC](docs/spec.md#r-04-011), a carrier's own computer kept as a register slave with no authority over the platform. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is throughput, which [the performance estimates](docs/performance-estimates.md) put at a fraction of a current integrated GPU's on 3D graphics and in the class of an early NPU on dense inference.
+No firmware coprocessors. Graphics, machine learning, signal processing, and every radio, sensor, and input device run on general-purpose scalar, vector (RVV), and matrix cores that share one base ISA, one capability model, and one set of proofs. There is no fixed-function GPU, discrete accelerator, or opaque baseband or controller firmware: every processor on the chip runs code one of the platform's own [trust classes](docs/spec.md#r-12-004) accounts for, trusted and proven or contained and restartable, with the one tolerated exception of the [eUICC](docs/spec.md#r-04-011), a carrier's own computer kept as a register slave with no authority over the platform. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is throughput, which [the performance estimates](docs/performance-estimates.md) put at a fraction of a current integrated GPU's on 3D graphics and in the class of an early NPU on dense inference.
 
 ### On-die OpenTitan-class root of trust
 
@@ -273,7 +273,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Protocol downgrade and negotiation confusion | Each protocol has one composition-fixed configuration, ciphersuite, and version, with no capability-driven fallback; downgrade generations are absent from silicon | **🕳️&nbsp;Absent** |
 | Link and radio state-machine flaws | A Lustre control plane refines a formal model of the standard's state machine, making unmodeled states, transitions, and timers unreachable | **✅&nbsp;Proved** |
 | Model unfaithfulness and composed session security | Each reference model is curated from its protocol's machine-checked symbolic security analysis, so the machine the sequencer provably runs is the one whose session security that analysis checks; what remains recorded is the model's faithfulness to the prose standard, the primitives' symbolic abstraction, and the imported analyses standing as evidence outside the trust base | **🚩&nbsp;Residual** |
-| Firmware bugs in auxiliary processors, baseband to management engine | Those programmable foreign computers are absent; fixed-function matter is driven by verified host software | **🕳️&nbsp;Absent** |
+| Firmware bugs in auxiliary processors, baseband to management engine | Those programmable foreign computers are absent; fixed-function matter is driven by attested host software | **🕳️&nbsp;Absent** |
 
 
 ### Faults the machine detects rather than prevents
