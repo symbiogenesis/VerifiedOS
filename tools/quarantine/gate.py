@@ -28,8 +28,8 @@ document the `Context` already holds and a configuration read from a root the
 whose document text or whose root has been moved. Nothing is written into the
 checkout.
 
-**The verdicts are [vos/seeded.py](../vos/seeded.py)'s, which is the fourth mutation
-loop joining the other three.** K-83 forbids the *landing* loop reaching into the
+**The verdicts are [vos/seeded.py](../vos/seeded.py)'s, which is this loop joining the
+four that already share them.** K-83 forbids the *landing* loop reaching into the
 quarantine and says nothing about the reverse, so this gate reads the shared
 vocabulary the way it already reads `vos.report` and `vos.corpus`. What that buys is
 the distinction this loop used to lose: a mutation that no longer applies is
