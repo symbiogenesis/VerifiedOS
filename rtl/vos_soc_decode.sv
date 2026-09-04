@@ -49,10 +49,14 @@ module vos_soc_decode
   // decodes as a miss, so a caller that has not driven this gets a refusal rather
   // than a hit at address zero.
   input  logic [BytesWidth-1:0]               bytes_i,
-  // The access kind, as the two independent facts a PMA is stated over. A fetch is
-  // `fetch_i` alone, a load is neither, a store is `write_i` alone. A caller
-  // asserting both asks for a region that is executable *and* writable, which no
-  // region here is, so the malformed case refuses rather than admitting.
+  // The access kind, as the three this module encodes: a fetch is `fetch_i` alone,
+  // a load is neither, a store is `write_i` alone. Asserting both names no kind at
+  // all, the model's `MemoryAccessType` carrying no constructor that is a fetch and
+  // a store at once, so the decode refuses that encoding outright. It is refused
+  // rather than read as a conjunction of the two permissions because a main-memory
+  // region is executable and writable together, so that conjunction would *admit*
+  // the malformed case wherever the kernel's own code and data live; the refusal is
+  // the same fail-closed reading a zero-byte access and a straddling one already get.
   input  logic                                fetch_i,
   input  logic                                write_i,
 
@@ -97,8 +101,13 @@ module vos_soc_decode
         // One conjunct per asserted kind and the read bit for the kind that
         // asserts neither, so a fetch is decided by `executable` alone and never
         // additionally by `readable`, which is the model's own reading
-        // (`pmaCheck` in model/model/sys/mem.sail) and not a stricter one here.
-        permitted_o    = (~fetch_i | VosRegions[i].executable)
+        // (`pmaCheck` in model/model/sys/mem.sail) and not a stricter one on any
+        // of the three kinds it encodes. The leading term is the one place this is
+        // stricter, and what it is stricter about is an input `pmaCheck` has no
+        // constructor for: both bits asserted is refused here rather than decided,
+        // so no well-formed access sees it and a malformed one gets a refusal.
+        permitted_o    = ~(fetch_i & write_i)
+                       & (~fetch_i | VosRegions[i].executable)
                        & (~write_i | VosRegions[i].writable)
                        & (fetch_i | write_i | VosRegions[i].readable);
       end

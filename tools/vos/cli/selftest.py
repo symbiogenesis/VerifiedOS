@@ -74,6 +74,7 @@ from vos.dialectgen import TABLE as DIALECT_TABLE
 from vos.figures import words
 from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
+from vos.socmap import ARTIFACT as SOC_MAP
 
 CHECKER = "tools/check.py"
 RULES = "tools/check-rules.md"
@@ -1473,6 +1474,27 @@ CASES: list[Case] = [
     # so seeding it changes what this rule decides and what no other rule reads.
     ("K-88", "a host-lane generated artifact one token off what its generator writes",
      _literal(DIALECT_TABLE, '"ctor": "RTYPE"', '"ctor": "RTYPEX"')),
+
+    # A third case for K-88, and what it adds is not a reading: it is that the *second*
+    # host row is live. The reading is the one above, so by the rule this file otherwise
+    # keeps, one case per reading, this case would not be written. It is written because
+    # what makes a row decide anything is the table rather than the code over it, and a
+    # row nothing ever seeds is a row that can be misconfigured and still report green
+    # at every run, which is the shape this repository names a check that decides
+    # nothing. Registry coverage cannot see it either, being by rule.
+    #
+    # The seed is the ROM region's `executable` bit, hand-written into the generated map
+    # against the composition that owns it: a map granting a permission its composition
+    # withholds is the defect a generated artifact held against its last commit rather
+    # than against its generator would carry, and this row's whole point is that it is
+    # held against the generator. The anchor is the whole PMA quadruple because
+    # `executable: 1'b0` is written at two regions and the leading one is the ROM's only
+    # by the composition's order.
+    ("K-88", "a second host row's generated artifact granting a permission its "
+             "composition withholds",
+     _literal(SOC_MAP,
+              "io: 1'b1, executable: 1'b0, readable: 1'b1, writable: 1'b0",
+              "io: 1'b1, executable: 1'b1, readable: 1'b1, writable: 1'b0")),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written

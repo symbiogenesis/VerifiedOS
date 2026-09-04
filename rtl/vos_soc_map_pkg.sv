@@ -90,13 +90,14 @@ package vos_soc_map_pkg;
   localparam int unsigned VosApUart = 8;
   localparam int unsigned VosApBlkdev = 9;
 
-  // The window whose extent the composition does not state. Its size is
-  // `revocation_bitmap_bytes` in model/model/core/revocation.sail, a
-  // function of the plane it covers rather than a configuration key, so
-  // it is carried here as a base alone and is outside the table above.
-  // Inventing an extent for it would be the unowned derived fact this
-  // repository refuses, and a decoder over this package reaches it not
-  // at all rather than wrongly.
+  // The window or windows whose extent the composition does not state.
+  // An extent that is not a configuration key is a fact some other
+  // artifact owns, and inventing one here would be the unowned derived
+  // fact this repository refuses, so each is carried as a base alone and
+  // is outside the table above; a decoder over this package reaches one
+  // not at all rather than wrongly. Which artifact sizes a given window
+  // is read at that window and is deliberately not named here, this
+  // emitter finding windows by shape and knowing no window's name.
   localparam int unsigned VosApertureCountUnsized = 1;
   localparam logic [63:0] VosApRevocationBase = 64'h0000_0000_0220_0000;
 

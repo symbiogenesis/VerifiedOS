@@ -244,6 +244,16 @@ decides nothing; an unseeded one is a fact about the *case*, whose seed no longe
 applies to a document that moved under it, and it is a finding, because a case that has
 stopped applying reports its rule live for as long as nobody looks.
 
+**That coverage is counted over rules, so a rule whose subject is a table wants a case
+per row and not only per reading.** The run's own coverage line, *every registered rule
+carries a case*, stays true the day a table-driven rule gains a row nothing seeds, and a
+row nothing seeds reports green
+whether or not it decides anything, which is the shape a check that decides nothing takes
+here. K-88 is the rule with that shape and it carries three cases for the reason: the
+model bundle at its guest reading, the encoder table at its host reading, and the SoC
+address map at the second host row, that third one repeating a reading and deciding only
+that the row is live.
+
 `seed`'s oracles are separate subcommands because they are three prices, not three
 kinds: a Gallina mutant costs a prover run, a Sail mutant costs a compile of the spec's
 own handful of model files, and a `$[test]` mutant costs a re-emission and a recompile
@@ -288,10 +298,14 @@ one and a wall-clock figure for the wave does not: the first host row's generato
 0.15 s and, measured warm on this twelve-core host when it was added, took the wave from
 35.6 s to 52 s, which is that product. The second row's generator is the SoC address map's
 and runs in 3.95 ms, measured in-process over fifty runs, so the relation prices it under
-half a second and no wave measurement here can see it: five runs of the checker alone on
-this host averaged 54.4 s against a fastest of 42.5 s, which is a spread two orders of
-magnitude above what the row costs. **A host row is priced by its generator and confirmed
-by the wave only where the two are the same size.** What the price buys is K-88 deciding
+half a second and no wave measurement here can see it: five runs of the wave itself,
+`python tools/run.py`, averaged 46.5 s on this host between a fastest of 43.1 s and a
+slowest of 48.9 s, so its own run-to-run spread is an order of magnitude above the row's
+whole price and swallows it. Which instrument the spread is taken over is the load-bearing
+half of that sentence and not the number: `tools/check.py` alone runs warm in about 2 s
+here, so a spread quoted off the checker would be a figure about the thing the sandbox
+count multiplies rather than about the multiplied wave. **A host row is priced by its
+generator and confirmed by the wave only where the two are the same size.** What the price buys is K-88 deciding
 byte identity outright rather than against the last commit. `--fix` is the one exception to the wave
 and a correctness one, the repair running alone and to completion before the rest,
 because the selftest opens by copying the working tree and a document rewritten

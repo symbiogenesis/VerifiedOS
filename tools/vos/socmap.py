@@ -33,7 +33,11 @@ function of the plane it covers rather than a key. It is emitted as a base with 
 extent and named as such, because a size invented here would be exactly the
 unowned derived fact this repository refuses. A decoder over this package therefore
 reaches ten of the eleven apertures, which the package says out loud rather than
-leaving to be discovered.
+leaving to be discovered. What it says out loud is that the window is unsized and
+never who sizes it: this module finds windows by shape and knows no window's name,
+so a comment naming this one's owner would be right by accident today and wrong the
+day a composition declares a second unsized window, with K-88 green either way
+because it compares this emitter's output to itself.
 
 ## Which composition, and why one is enough
 
@@ -279,14 +283,21 @@ def _aperture_table(apertures: list[Aperture]) -> list[str]:
     out += [f"  localparam int unsigned VosAp{a.name} = {i};"
             for i, a in enumerate(sized)]
     if unsized:
+        # Written about *any* unsized window and never about the one that is unsized
+        # today, which is the same discipline the finding above it keeps: this emitter
+        # knows no window's name, so it cannot know which artifact sizes one, and a
+        # comment naming the revocation sidecar's owner would be right by accident
+        # until a composition declares a second unsized window and wrong from then on
+        # with the gate still green, K-88 comparing this emitter's output to itself.
         out += ["",
-                "  // The window whose extent the composition does not state. Its size is",
-                "  // `revocation_bitmap_bytes` in model/model/core/revocation.sail, a",
-                "  // function of the plane it covers rather than a configuration key, so",
-                "  // it is carried here as a base alone and is outside the table above.",
-                "  // Inventing an extent for it would be the unowned derived fact this",
-                "  // repository refuses, and a decoder over this package reaches it not",
-                "  // at all rather than wrongly."]
+                "  // The window or windows whose extent the composition does not state.",
+                "  // An extent that is not a configuration key is a fact some other",
+                "  // artifact owns, and inventing one here would be the unowned derived",
+                "  // fact this repository refuses, so each is carried as a base alone and",
+                "  // is outside the table above; a decoder over this package reaches one",
+                "  // not at all rather than wrongly. Which artifact sizes a given window",
+                "  // is read at that window and is deliberately not named here, this",
+                "  // emitter finding windows by shape and knowing no window's name."]
         out += [f"  localparam int unsigned VosApertureCountUnsized = {len(unsized)};"]
         out += [f"  localparam logic [63:0] VosAp{a.name}Base = {_hex64(a.base)};"
                 for a in unsized]
