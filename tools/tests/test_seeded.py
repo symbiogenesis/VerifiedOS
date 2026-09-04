@@ -14,7 +14,16 @@ source and one authored, and each satisfies `Seeded` from a different shape: a w
 mutant carries a site and a rewrite, an authored case carries the rule it is aimed at
 and the defect in words. Both are held here, because a signature that admitted only
 one of them would be found by running the loop that carries the other.
+
+The third part is the journal, and what it pins is what a *report* cannot: the report
+is printed once at the end, so a run torn down before that end says nothing at all, and
+a whole-population run over the prover is exactly the run that outlives its lane. So
+the file is held to being complete up to the moment the process stopped, to carrying
+the scope before the first verdict, and to closing only where a run reached its report.
 """
+
+import tempfile
+from pathlib import Path
 
 from tests.harness import Case, ensure
 from vos import mutate, seeded
@@ -224,6 +233,97 @@ def _a_scope_is_partial_only_when_it_ran_less() -> None:
     ensure(seeded.Scope(whole=8, ran=7).partial, "a partial scope read as whole")
 
 
+def _a_scope_narrows_to_what_was_decided() -> None:
+    """The one loop that can stop before the end of its own sample is the `$[test]`
+    one, which stops the moment it cannot verify the restore of the file it mutated.
+    Its closing line has to be about the verdicts printed under it and not about the
+    population it set out to run, which is the same misquotation the scope exists for.
+    """
+    scope = seeded.Scope(whole=382, ran=16, left=("const-inc",))
+    stopped = scope.decided(9)
+    ensure((stopped.whole, stopped.ran) == (382, 9),
+           f"a stopped run's scope reads {stopped}")
+    ensure(stopped.left == ("const-inc",), "the axis a reader can act on was dropped")
+    ensure("9 of 382" in stopped.stated(), f"the clause says {stopped.stated()!r}")
+
+
+def _the_finding_count_and_the_exit_code_agree() -> None:
+    """Two callers read it now: the loops exit through `summarize`, and the quarantine's
+    gate counts findings into a reporter carrying four other sections. Two readings of
+    one arithmetic is the drift this module exists to remove."""
+    populations: list[list[seeded.Verdict]] = [
+        [],
+        [seeded.Verdict(_mutant(), seeded.KILLED, "moved")],
+        [seeded.Verdict(_mutant(), seeded.STILLBORN, "no build")],
+        [seeded.Verdict(_mutant(1), seeded.KILLED, "moved"),
+         seeded.Verdict(_mutant(2), seeded.SURVIVED, "reproduced")],
+        [seeded.Verdict(_mutant(1), seeded.KILLED, "moved"),
+         seeded.Verdict(_mutant(2), seeded.UNSEEDED, "moved off"),
+         seeded.Verdict(_mutant(3), seeded.SURVIVED, "reproduced")],
+        [seeded.Verdict(_mutant(), seeded.UNSEEDED, "moved off")],
+    ]
+    for verdicts in populations:
+        out: list[str] = []
+        code = seeded.summarize(out, verdicts, "f.sail", "test")
+        found = seeded.findings_in(verdicts)
+        ensure((code == 1) == (found > 0),
+               f"exit {code} against {found} finding(s) over "
+               f"{[v.outcome for v in verdicts]}")
+    ensure(seeded.findings_in(populations[4]) == 2,
+           "a survivor and an unseeded mutant are two findings")
+    ensure(seeded.findings_in(populations[2]) == 1,
+           "an all-stillborn population is one finding about the run")
+    ensure(seeded.findings_in(populations[1]) == 0, "a kill is no finding")
+
+
+def _a_journal_is_complete_up_to_where_the_run_stopped() -> None:
+    """The whole point: a run killed at member three has the first three on disk, with
+    no closing line, and the head says what population they are three of."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        book = seeded.Journal(Path(td) / "deep" / "run.journal")
+        said = book.start("f.sail", "test", seeded.Scope(whole=382, ran=16))
+        ensure(str(book.path) in said, f"the run is not told where the journal is: {said}")
+        for n in range(3):
+            book.record(seeded.Verdict(_mutant(n), seeded.KILLED, f"moved {n}"))
+        lines = book.path.read_text(encoding="utf-8").splitlines()
+        ensure("16 of 382" in lines[1], f"the head does not carry the scope: {lines[:2]}")
+        ensure(sum(1 for line in lines if "killed" in line) == 3,
+               f"three decided verdicts are not all on disk: {lines}")
+        ensure(not any(line.startswith("== complete") for line in lines),
+               f"a run that has not finished wrote a closing line: {lines}")
+
+
+def _a_finished_run_closes_its_journal() -> None:
+    """And the closing line's absence is what makes the case above readable: without
+    one, a truncated file and a finished file are the same file."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        book = seeded.Journal(Path(td) / "run.journal")
+        book.start("f.sail", "test", seeded.Scope(whole=2, ran=2))
+        book.record(seeded.Verdict(_mutant(1), seeded.SURVIVED, "reproduced"))
+        book.record(seeded.Verdict(_mutant(2), seeded.UNSEEDED, "moved off"))
+        book.close(1)
+        lines = book.path.read_text(encoding="utf-8").splitlines()
+        ensure(lines[-1] == "== complete: 2 verdict(s) decided, exit 1",
+               f"the closing line reads {lines[-1]!r}")
+        ensure(any("survived" in line for line in lines)
+               and any("unseeded" in line for line in lines),
+               f"the two verdicts are not named apart in the journal: {lines}")
+
+
+def _a_journal_names_the_verdict_it_hands_back() -> None:
+    """`record` returns its verdict so a loop journals and keeps in one expression: two
+    statements are where a verdict reaches the report and not the file, which is the
+    defect the journal exists to prevent arriving inside the journal."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        book = seeded.Journal(Path(td) / "run.journal")
+        book.start("f.sail", "test", seeded.Scope(whole=1, ran=1))
+        verdict = seeded.Verdict(_mutant(7), seeded.KILLED, "moved 4", 4)
+        ensure(book.record(verdict) is verdict, "record did not hand its verdict back")
+        written = book.path.read_text(encoding="utf-8")
+        ensure(verdict.mutant.what in written and "moved 4" in written,
+               f"the line does not name the defect or how it died: {written!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("a shard partition loses nobody", _a_shard_partition_loses_nobody),
@@ -236,6 +336,15 @@ def cases() -> list[Case]:
              _a_loop_that_passes_no_scope_reports_what_it_did_before),
         Case("a scope is partial only when it ran less",
              _a_scope_is_partial_only_when_it_ran_less),
+        Case("a scope narrows to what was decided",
+             _a_scope_narrows_to_what_was_decided),
+        Case("the finding count and the exit code agree",
+             _the_finding_count_and_the_exit_code_agree),
+        Case("a journal is complete up to where the run stopped",
+             _a_journal_is_complete_up_to_where_the_run_stopped),
+        Case("a finished run closes its journal", _a_finished_run_closes_its_journal),
+        Case("a journal names the verdict it hands back",
+             _a_journal_names_the_verdict_it_hands_back),
         Case("a survivor fails the run", _a_survivor_fails_the_run),
         Case("a stillborn mutant does not", _a_stillborn_mutant_does_not_fail_the_run),
         Case("an unseeded mutant is a finding", _an_unseeded_mutant_is_a_finding),

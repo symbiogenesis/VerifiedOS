@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 419 of them across 72 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 423 of them across 73 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -158,7 +158,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-000r** owed-act: a fourth mutation loop carries its own table, its own seeding and its own accounting, and merges the case whose seed no longer applies with the mutant that survived into one list under one label
 · Raised: S13b
-· Disposition: open, the loop being the quarantine's own gate and outside this absorption's scope; it may read the shared vocabulary, the rule holding the boundary forbidding only the landing loop reaching into the quarantine and not the reverse
+· Disposition: closed by I14, the loop reading the shared verdicts and reporting through the one summary, so a mutation that no longer applies and one the rule read and said nothing about are two verdicts counted and named apart; the boundary rule is unmoved, forbidding only the landing loop reaching into the quarantine and not the reverse
 
 **F-000s** method: an item's stated blocker did not survive the act it blocked, an appended case and the rewritten run loop lying far outside the context a merge reads and the shared region coming through byte-identical
 · Raised: S13b
@@ -950,11 +950,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-142i** owed-act: a mutant costs a recompile of every shipped proof where only the mutated source and its dependents can move, and nothing in the tree requires this one, so most of each mutant is spent where the mutation cannot reach and the share grows with every artifact a lane lands
 · Raised: M1.9
-· Disposition: open, narrowing the recompile to the mutated source and its dependents being a tools act
+· Disposition: closed, a mutant recompiling the mutated source and the sources that require it in the shared dependency order, with the whole directory compiled once at the baseline where nothing on disk is trusted yet
 
 **F-142j** owed-act: a whole-population Coq mutation run does not survive a fan-out, the guest distribution being torn down under it or wedged against launching it at all with three and four lanes running the same loop beside it, and the loop takes none of the keepalive lease every model loop takes while printing its report once at the end
 · Raised: M1.9
-· Disposition: open, both halves being tools acts; the population was decided instead by runs partitioned by operator whose union is the whole of it, detached in the guest so no host-side lifetime reaches them
+· Disposition: closed by I14, both halves being tools acts: every oracle takes the keepalive lease before its first mutant, and every verdict is written to a journal beside the lane's staged trees as it is decided, the head carrying the scope and the closing line written only by a run that reached its report
 
 **F-142k** measurement: no rule computes a proof artifact's line count, and the figure a cell carried for one had drifted off the file by a line while the file itself was unmoved
 · Raised: M1.9
@@ -1748,3 +1748,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-186** measurement: a census over the tracked Python finds no public function named outside its own module and no module outside the test package that nothing imports, so the tool surface is the number of cross-artifact facts somebody decided to hold rather than unused code
 · Raised: I12
 · Disposition: standing, which is what puts the lever on S15's generation rather than on a search for dead code
+
+**F-221a** measurement: a disposition read open over an act the tree already carried, nothing holding a register disposition against the code it describes, so the entry went on asking for work that was done with every gate green
+· Raised: I14
+· Disposition: closed, the entry re-dispositioned against what the loop does now; the class is standing and is the one a re-reading catches, a disposition being a judgment no rule computes
+
+**F-221b** measurement: a seeded run's stated scope counted the mutants it picked and not the verdicts it reached, and the one oracle that writes into the checkout stops the moment it cannot verify its own restore, so a stopped run would close on a line stating a run larger than the verdicts printed under it
+· Raised: I14
+· Disposition: closed, the scope narrowed to the verdicts at the point the report is made, which leaves the two oracles that always finish reporting exactly what they reported before
+
+**F-221c** measurement: eight relative links inside the tools' own docstrings resolve to nothing, six of them naming an executable the one-entry-point move retired, and no rule reads a link written in Python prose
+· Raised: I14
+· Disposition: closed under `tools/`, every one repointed at the module the command now dispatches; standing in three shipped proof headers naming the same retired tool, a comment edit there costing a guest run of the proof gate this item does not take
+
+**F-221d** measurement: a baseline that would not stand up discarded the prover's own account of why, the emitter's findings being appended to a list nobody read, so the one moment in the loop where a reader has nothing else to go on cost a second whole run to locate
+· Raised: I14
+· Disposition: closed, the emitter's text carried out of the baseline and printed as the refusal's reason
