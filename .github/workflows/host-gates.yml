@@ -18,12 +18,15 @@
 # tools/vos/cli/typecheck.py, so a bump taken in one place and not the other is a
 # finding on the next run. The runner label, the action references and the bootstrap
 # route are the three classes this file states that no rule owns, which finding F-198b
-# carries. jsonschema is the one third-party import the tools
-# make, installed the way tools/README.md spells it for the host. On Linux, run.py
-# makes no WSL hop: the hop is taken only on win32, and the wave's members are host
-# commands regardless. PYTHONUTF8 is set so that a redirected stream on the runner
-# reads and writes the corpus's encoding, which is what run.py reconfigures on its
-# own streams and cannot reach in a member's.
+# carries. Every action here runs on node24, the runtime the runner now forces a node20
+# action onto with a deprecation warning; two are named by their floating major tag and
+# setup-uv by a whole version, because astral-sh stopped publishing major and minor tags
+# at v8, so its bump is a version and not a major. jsonschema is the one third-party
+# import the tools make, installed the way tools/README.md spells it for the host. On
+# Linux, run.py makes no WSL hop: the hop is taken only on win32, and the wave's
+# members are host commands regardless. PYTHONUTF8 is set so that a redirected stream
+# on the runner reads and writes the corpus's encoding, which is what run.py
+# reconfigures on its own streams and cannot reach in a member's.
 #
 # What the test step witnesses is narrower than its name: tools/vos/cli/test.py
 # reads the lane off sys.platform, so on this runner the cases marked host are
@@ -50,17 +53,17 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out the tree, gitlinks and no submodule
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: false
 
       - name: Set up Python at the floor tools/README.md states
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.14"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.0.1
 
       - name: Install the pinned checkers as uv tools
         run: |
