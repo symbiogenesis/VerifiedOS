@@ -286,7 +286,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-236a** measurement: the document written for an independent reviewer told them this repository has no continuous integration and that a person runs every gate by hand, and the push workflow landed fourteen hours later and repaired the two statements inside the tools lane and not the one outside it
 · Raised: S22
-· Disposition: closed, the sentence rewritten to say which of the six commands runs unattended and which do not
+· Disposition: closed, the sentence rewritten to say which of the six commands runs unattended and which do not; F-198a's ground and F-181's disposition rest on the same fact and are reported rather than closed here, being standing findings of other items
 
 **F-236b** measurement: a unit-test header called its properties the only programs exercising the capability instruction surface until a purecap corpus that landed six and a half hours after the sentence was written, and the file was edited three further times over the two days after that landing without the sentence being re-read
 · Raised: S22
