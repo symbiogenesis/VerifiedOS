@@ -530,6 +530,12 @@ def load(*, toolchain: bool = True) -> Environment:
     rather than an oversight: they are where a build *would* be, and a host-lane command
     that needs no build has no use for them, while one that reported a Windows path
     would be inventing a tree nothing ever writes.
+
+    On the guest that reading skips the same three preparations rather than only the
+    refusal, which is what makes *answers on either machine* true of the machine that
+    could take them: a `host_ok` subcommand asked for inside WSL drives no toolchain
+    either, so raising the stack, shelling out for the opam switch and announcing an
+    absent solver prefix are two costs and one spurious warning bought for nothing.
     """
     if sys.platform == "win32" and toolchain:
         raise SystemExit("the model loops run inside WSL: "
@@ -549,9 +555,10 @@ def load(*, toolchain: bool = True) -> Environment:
             test_jobs=1,
         )
 
-    _raise_stack_limit()
-    _apply_opam_env()
-    _prepend_z3_path()
+    if toolchain:
+        _raise_stack_limit()
+        _apply_opam_env()
+        _prepend_z3_path()
 
     tools = Path(__file__).resolve().parent.parent
     root = _env_path("VOS_ROOT", tools.parent)
@@ -601,7 +608,16 @@ def git_dir(root: Path) -> Path | None:
     root is configurable and the tool that knows it ships with the guest. A pointer that
     is already usable, a primary worktree, and a lane with no `wslpath` to ask all
     answer `None`, which leaves the behaviour exactly as it was.
+
+    `VOS_GIT_DIR` names the directory outright and is read at call time like every
+    other override here. It is the route left open where the translation cannot be
+    made, a guest with no `wslpath` answering `None` above and every `git` in that lane
+    then failing, and it is how a test drives `git_env` below over a checkout that
+    needs no translating.
     """
+    override = os.environ.get("VOS_GIT_DIR")
+    if override:
+        return Path(override)
     dot_git = root / ".git"
     if not dot_git.is_file():
         return None
@@ -622,6 +638,52 @@ def git_dir(root: Path) -> Path | None:
     done = subprocess.run([tool, "-u", target], capture_output=True, text=True, check=False)
     translated = Path(done.stdout.strip())
     return translated if done.returncode == 0 and translated.is_dir() else None
+
+
+def git_overlay(admin: Path, root: Path) -> dict[str, str]:
+    """What a child must be told before it can run `git` in a checkout whose
+    administrative directory is `admin`. Laid over the child's own environment and
+    never exported globally, for the reason `stage`'s `add_env` states.
+
+    **`GIT_DIR` alone is half an answer and the missing half is not cosmetic.** With no
+    `GIT_WORK_TREE`, git takes the child's own working directory as the tree, and a
+    child asking about this repository rarely stands at its root: cmake runs
+    `git describe --tags --always --dirty --broken` in `model/cmake`, which is
+    `project_version.cmake`'s own `WORKING_DIRECTORY`. The index is then read against
+    that directory, every tracked path in it is missing, and `--dirty` fires whatever
+    the lane's state is. Measured from that directory over a checkout `git status
+    --porcelain` reports empty: the pair answers the commit alone, `GIT_DIR` by itself
+    answers the same commit with `-dirty` appended and lists every tracked path as
+    ` D`, and no environment at all answers the commit alone because git's own
+    discovery finds the tree the child is standing in.
+
+    An always-on marker is not a conservative one. The emulator's revision is what
+    every downstream artifact records itself against, and a suffix that cannot be
+    absent cannot report the lane that is genuinely edited, which is the only thing it
+    is there to say.
+
+    The work tree is the repository root rather than the model tree, because the
+    revision being stamped is this repository's: a curation edit outside `model/` moves
+    it exactly as one inside does.
+
+    Separate from `git_env` below because this half is a composition over two paths and
+    that half is a reading of a checkout: a case can decide the composition against
+    real `git` over a throwaway tree, where deciding it through the reading would mean
+    setting a process-global override while the rest of the suite runs in threads
+    beside it.
+    """
+    return {"GIT_DIR": str(admin), "GIT_WORK_TREE": str(root)}
+
+
+def git_env(root: Path) -> dict[str, str]:
+    """The overlay this checkout needs, empty where it needs none.
+
+    Empty is the primary worktree's answer and the host's, where git's own discovery
+    finds the tree from the directory the child stands in; a lane read from the guest
+    is where it is not, and `git_dir` above states why.
+    """
+    admin = git_dir(root)
+    return {} if admin is None else git_overlay(admin, root)
 
 
 def _lock_path(build_dir: Path) -> Path:

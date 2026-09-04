@@ -180,15 +180,14 @@ def _git(*argv: str) -> tuple[int, str, str]:
     A linked worktree made by the host's git holds a *Windows* path in its `.git`
     file, so inside the guest a bare `git` in a lane exits 128 with `not a git
     repository`, which is I7's own finding and is a property of the lane rather than
-    of anything here. `env.git_dir` is the translation that act already landed, and it
-    is reached rather than repeated; it answers `None` on the primary worktree and on
+    of anything here. `env.git_env` is the overlay that act landed and I13 completed,
+    and it is reached rather than repeated; it is empty on the primary worktree and on
     the host, where nothing needs translating.
     """
-    admin = env.git_dir(_ROOT)
-    overlay = None if admin is None else {**os.environ, "GIT_DIR": str(admin)}
+    overlay = env.git_env(_ROOT)
     done = subprocess.run(["git", *argv], capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=300, cwd=_ROOT,
-                          env=overlay)
+                          env={**os.environ, **overlay} if overlay else None)
     return done.returncode, done.stdout, done.stderr
 
 

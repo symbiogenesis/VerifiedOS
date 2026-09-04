@@ -44,10 +44,14 @@ substitute for the guest lane's evidence.
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
 `wsl -u root -e python3` to remember and no wrong lane to be in. A guest command has
-to *drive* the toolchain to need the hop: `model config-keys`, `model asm`,
-`model freeze-emit`, `rtl provenance`,
-`oracle list`, `seed list` and `testrig protocol` read this checkout and answer on
-either lane.
+to *drive* the toolchain to need the hop: `model config-keys`,
+`model validate-config`, `model asm`, `model freeze-emit`, `rtl provenance`,
+`oracle list`, `oracle emit`, `seed list` and `testrig protocol` read this checkout and
+answer on either lane. That is a declaration and not a description, so
+[tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
+lane the suite is running on and holds this sentence against the table itself: a
+subcommand the table declares and this line does not name sends a reader into the guest
+for an answer the host already had.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
