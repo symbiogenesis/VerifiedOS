@@ -25,22 +25,25 @@ enumerated rather than counted here, because the count is `_PIN_SITES`' to state
 
 K-75 is that rule one figure over, on the version the tools are *written* to rather
 than the versions they run. The interpreter floor decides what the two checkers admit
-and what this directory's Python may say, and it is written twice as a setting, once
-in ty's dialect and once in ruff's, restated five times in prose, and restated once
-more as a literal the provisioner probes the running interpreter against; ty.toml's is
-the source because it is the environment an editor's language server and this gate both
-resolve against, and the only site that writes the figure bare. The two dialects are
-why the rule is worth having rather than obvious: `3.14` and `py314` are one figure in
-two spellings, so a bump applied to one of them does not read as a disagreement with
-the other, and each of the five prose sites was a hand-copy nothing owned. The
-provisioner's site is the one that could not be an import at all: a TOML setting is not
-a module, so `run.py provision` either restates the figure or cannot probe it, and this
-window is what makes the restatement checked rather than trusted.
+and what this directory's Python may say, and it is written as a setting in ty's
+dialect and in ruff's, restated in prose, and restated as a literal the provisioner
+probes the running interpreter against and as the version the push workflow installs;
+ty.toml's is the source because it is the environment an editor's language server and
+this gate both resolve against, and the only site that writes the figure bare. The
+sites are enumerated rather than counted here, because the count is `_FLOOR_SITES`' to
+state. The two dialects are why the rule is worth having rather than obvious: `3.14`
+and `py314` are one figure in two spellings, so a bump applied to one of them does not
+read as a disagreement with the other, and every prose site was a hand-copy nothing
+owned. The provisioner's site is the one that could not be an import at all: a TOML
+setting is not a module, so `run.py provision` either restates the figure or cannot
+probe it, and this window is what makes the restatement checked rather than trusted.
 
-The window is `tools/` by decision rather than by reach. The plan restates the floor in
-two of its own cells, and a rule about how this directory is written has no business
-holding a sentence in a document about the build order; that pairing is the plan's to
-own if anything is to own it.
+The window is the enumerated sites rather than a directory, as K-67's is: `tools/`
+carries all but one, and the push workflow's `python-version` is the copy the gate
+actually runs on. The plan restates the floor in two of its own cells and is outside by
+decision, a rule about how this directory is written having no business holding a
+sentence in a document about the build order; that pairing is the plan's to own if
+anything is to own it.
 
 K-84 is the third direction on the same registry and the one that faces outward. K-00
 holds the registry against the checks and the selftest holds it against the mutants,
