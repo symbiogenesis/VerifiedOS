@@ -1586,6 +1586,54 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M6.4, in prose
 · Disposition: closed, taken at M6.0b, which gives the typed IDL profile an item of its own rather than leaving M6.4 to author the type layer it is stated over
 
+**F-230a** owed-act: no entry says which agent resets the notification word or at which point, the word being required to be a binary armed state with a *defined* reset and neither the register nor the profile defining one, and the entry that bounds notifications per activation not saying whether its scope is the activation or the arming
+· Raised: M6.5a
+· Disposition: open, both arms exhibited and both shown to exclude the lost wakeup, with the arm the item takes decided by the declared maximum-notifications figure rather than by the entry: a reset at the drain sends two signals for one arming where a reset at the signal coalesces them to one
+
+**F-230b** owed-act: the bounded-segment discipline is stated of zero-copy DMA throughout and reaches a service that copies only through the per-variant record every operation must carry, so what obliges a copying service to bound its segments is a record field rather than an obligation of an entry
+· Raised: M6.5a
+· Disposition: open, the bound stated over that field and none of the entry's capability, extent-revalidation or quiescence clauses claimed, those being the DMA service's
+
+**F-230c** owed-act: a copy-based service has no device contract to import a device-service bound from, where the per-variant accounting entry requires exactly that import, so the largest term of a copying service's per-operation WCET has no named owner
+· Raised: M6.5a
+· Disposition: open, the service reproducing the declaration's own figure and claiming nothing about where it came from
+
+**F-230d** owed-act: which of the six lifecycle states make a request identifier live is unstated, one entry requiring the identifier unique among the session's *live* requests and another rejecting reuse of a live one with nothing marking the subset
+· Raised: M6.5a
+· Disposition: open, Submitted and Accepted forced and Free and Reclaimed excluded on pain of no identifier ever being reusable, with Writing and Terminal left to the declaration, both arms admitted and the difference machine-checked on an identifier held by a slot being written
+
+**F-230e** owed-act: whether the accounted latency of the declared progress bound includes the queueing delay of the requests ahead of a submission is undecided, the joint-bound entry naming five quantities and no relation among them
+· Raised: M6.5a
+· Disposition: open, the accounting left a declared field, both arms admitted on their own terms and the difference machine-checked at every operation as exactly the queueing term
+
+**F-230f** owed-act: the polling cadence is one of the five terms the joint bound is over and is declared nowhere, being absent from the constants the ring-constant entry enumerates and from the fourteen the ring declaration fixes, so the term the arithmetic turns on has no owner
+· Raised: M6.5a
+· Disposition: open, carried as a service field and read by the admission conjunct that holds the declared latency to the declared accounting
+
+**F-230g** owed-act: how the four payload-slot ownership phases refine into the six request-lifecycle states is unstated, the lifecycle entry's criterion saying the lifecycle refines those transitions without weakening them and giving no map, and four and six not pairing by counting
+· Raised: M6.5a
+· Disposition: open, both carried and neither stated as a function of the other
+
+**F-230h** owed-act: the producer is required to signal *only when the consumer may sleep* and whether the consumer may sleep is the consumer's own recheck, while the only cell the header gives the producer is the notification word, so either the armed word is that predicate or the clause names something no header cell carries
+· Raised: M6.5a
+· Disposition: open, the armed word read as the predicate and the reading stated at the header rather than left for a reader to find
+
+**F-230i** owed-act: what a copy-based service copies into has no owner, the copy-once requirement having a parser write its fixed destination buffer whole and no entry giving a server a staging buffer, a size for it, or a lifetime
+· Raised: M6.5a
+· Disposition: open, the staging buffer left a field with the obligation that it holds the declared payload and its own declared headroom
+
+**F-230j** owed-act: no entry excludes a server re-reading a delegated buffer after validating it, the descriptor entry putting the validation before eligibility and saying nothing about a second read while the *never reinterpreted after* clause is stated of the DMA extent alone
+· Raised: M6.5a
+· Disposition: open, the defect refuted by construction rather than cited as an absence: the revalidating copier is shown to leave its validated extent, read the source twice and vary with the second image, while still refusing an overlong length
+
+**F-230k** owed-act: every composition magnitude of a copy-based service is a field no entry fixes, the accepted ceiling and its two slacks, the batch and its slack, and per operation the segments, the staging buffer, the cleanup cost, the released-reference count, the three reproduced costs, the accounted latency, the progress slack and the progress bound, and with them the live state set, the reset owner, the counter flag, the cadence, the accounting arm, the charging rule and the identity
+· Raised: M6.5a
+· Disposition: open, each instantiated by a demo declaration carrying no composition claim and every one pinned in the artifact's ledger
+
+**F-230l** method: an alternative construction's *keeps* theorem has to be read at the instant the defect is about and not at the end of the run, a property of a final state being falsified by an event after the defect that the specification suffers too
+· Raised: M6.5a
+· Disposition: closed at the item, the transposed consumer's keeps-theorem restated over what it never does at all rather than over the notification word as the activation left it, a later publication clearing that word under the specification as well
+
 ## RTL track
 
 **F-168** measurement: the capability width identity collapses onto the register width across the imported core, one declaration the delta books across twenty-five files
