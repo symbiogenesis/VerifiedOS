@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 551 of them across 88 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 559 of them across 89 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -429,6 +429,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-247** measurement: a proof-file comment named `shared_cell` where the function is `is_shared_cell`
 · Raised: S24
 · Disposition: closed, CopyRingService.v corrected
+
+**F-248** measurement: PartitionContext.v's gap-list and the M4.2a plan cell report seven register gaps, a budget reading and two further findings as owed, all closed by S1's R-07-029a, R-07-031b, R-07-027a, R-07-037c, R-07-037d, R-15-220a, R-11-023's amended Accept and a struck registry row, with S1 having carried the closures to the findings-register index but not to the note's prose
+· Raised: S25
+· Disposition: closed, both prose sites carried back at S25 with three co-stated sites inside PartitionContext.v; the register index (F-157 through F-164) was already current, which is the one-fact-one-owner split
+
+**F-249** measurement: CyclicExecutive.v reported R-11-023's criterion narrower than the check and unresolved, where R-11-023's amended Accept enumerates the four quantities and makes never-occupants load-bearing
+· Raised: S25
+· Disposition: closed, carried back
+
+**F-250** measurement: Keccak.v's item d named the AEAD as residue at M3.4c and absent, where it moved to M3.4d and AesGcm.v authors AES-GCM
+· Raised: S25
+· Disposition: closed, item d repaired, the same class as S24's crown-jewels row-14 fix
+
+**F-251** measurement: Keccak.v claimed the 12-round known answer was cross-checked against a standard library's SHA-3, a cross-check the Sail harness header scopes to eleven digests rather than to a permutation state
+· Raised: S25
+· Disposition: closed, narrowed to what the harness header records
+
+**F-252** measurement: AesGcm.v's reading 5 said five AES step mappings and named four, AES having four round steps
+· Raised: S25
+· Disposition: closed, corrected to four
+
+**F-253** measurement: SupervisionTree.v said the design literals are five and listed four, at three sites rather than the two a first pass repaired
+· Raised: S25
+· Disposition: closed, corrected at the header, the count block and the each_unit_once comment
+
+**F-254** measurement: an audit finding flagged SupervisionTree.v:47's "S12 records the purecap Bedrock2 backend does not exist" as blocks-a-fresh-read, reading "S12" as the file's obligation label rather than the S12 reconnaissance checklist item, which does record it
+· Raised: S25
+· Disposition: standing, the claim verified correct and the label collision disambiguated rather than repaired as a defect
+
+**F-255** method: a stale-claim repair is the act most likely to author a stale claim, this item's own first pass having introduced four false claims of exactly that class and left five co-stated sites standing, all caught by an adversarial read before the commit
+· Raised: S25
+· Disposition: standing, the four repaired and the five carried; what catches this class is a reader who did not write the repair, which is the same lesson S23 paid for once
 
 ## M0 · Hardware reference
 
