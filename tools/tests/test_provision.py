@@ -204,8 +204,18 @@ def _check_is_read_only() -> None:
 
     Bracketed rather than asserted empty, because the suite may run on a tree with
     untracked work in flight and what is owed is that these two runs added none of it.
+
+    The tree is this repository's and never a populated submodule's, which is the
+    reading the working rules state for `upstream/`: the tools read what the index
+    conveys, one gitlink per submodule, and a populated one is a checkout-dependent
+    thing the host's git may have written pointer files into that the guest cannot
+    resolve. Left to recurse, `git status` spawns a child in every populated submodule,
+    so on a checkout where a nested submodule's `.git` file names a Windows path the
+    read exits 128 about that pointer and decides nothing about the provisioner, which
+    has no path into `upstream/` at all. Ignoring submodules is what makes the case
+    answer the same over a populated checkout and over the bare one CI reads.
     """
-    code, before, err = _git("status", "--porcelain")
+    code, before, err = _git("status", "--porcelain", "--ignore-submodules=all")
     ensure(code == 0, f"git status failed: {err!r}")
     _FLOW.porcelain = before
 
@@ -215,7 +225,7 @@ def _check_is_read_only() -> None:
            f"provision --check answered differently on its second run:\n"
            f"first:  {first!r}\nsecond: {second!r}")
 
-    code, after, err = _git("status", "--porcelain")
+    code, after, err = _git("status", "--porcelain", "--ignore-submodules=all")
     ensure(code == 0, f"git status failed: {err!r}")
     ensure(after == before,
            f"a --check run moved the tree:\nbefore: {before!r}\nafter: {after!r}")
