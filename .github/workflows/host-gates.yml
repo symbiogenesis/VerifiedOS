@@ -39,9 +39,11 @@
 # reconfigures on its own streams and cannot reach in a member's.
 #
 # What the test step witnesses is narrower than its name: tools/vos/cli/test.py
-# reads the lane off sys.platform, so on this runner the cases marked host are
-# skipped and the lane-neutral cases run beside the guest slice, whose one case
-# holds provision --check to answering the same twice over an unmoved tree.
+# reads the lane off sys.platform and the toolchain off opam, so on this runner the
+# cases marked host are skipped, the cases marked toolchain are skipped too, there
+# being no Sail switch here to drive, and the lane-neutral cases run beside the guest
+# slice, whose one case holds provision --check to answering the same twice over an
+# unmoved tree.
 
 name: host-gates
 

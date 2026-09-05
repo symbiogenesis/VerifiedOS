@@ -244,7 +244,13 @@ def _importable(module: str, distribution: str) -> Found:
         return Found(True, f"{module} present, at a version its metadata does not state")
 
 
-def _switches() -> tuple[str, ...]:
+def switches() -> tuple[str, ...]:
+    """Every opam switch this machine carries, empty where it carries no opam at all.
+
+    Public because the tools' test runner asks the same question: a case marked for the
+    toolchain lane runs only where the Sail switch stands, and that is decided here
+    rather than by a second probe, on the ground `_installed` states for the switch
+    probes, that the question is what a run would compile against."""
     return tuple(line.strip()
                  for line in _say(("opam", "switch", "list", "--short")).splitlines()
                  if line.strip())
@@ -260,7 +266,7 @@ def _installed(switch: str, package: str) -> str:
 
 def _switch_at(switch: str, package: str, pin: str) -> Found:
     """A switch carrying one package at the version an owner in this tree fixes."""
-    if switch not in _switches():
+    if switch not in switches():
         return Found(False, f"opam has no {switch} switch")
     found = _installed(switch, package)
     if not found:
@@ -277,7 +283,7 @@ def _switch_has(switch: str, package: str) -> Found:
     thing disagreeing with the machine. What the report carries is the version found,
     which is what a run's evidence wants anyway.
     """
-    if switch not in _switches():
+    if switch not in switches():
         return Found(False, f"opam has no {switch} switch")
     found = _installed(switch, package)
     if not found:

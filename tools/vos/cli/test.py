@@ -27,10 +27,28 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from tests.harness import Case
+from vos import env
+from vos.cli.provision import switches
 from vos.report import Reporter
 
 # The lane this process is, spelled the way Case.lane spells it.
 LANE = "host" if sys.platform == "win32" else "guest"
+
+
+def _lanes() -> frozenset[str]:
+    """The lane values a case may carry and still run in this process.
+
+    Platform alone decides "host" against "guest", and it is not enough to decide
+    whether the guest is the lane the toolchain stands in: the CI runner is Linux and
+    has never been provisioned, so a case that drives the toolchain would run there and
+    fail on a precondition about the machine rather than about the tools. "toolchain"
+    is therefore admitted only where the Sail switch is one opam answers for, which is
+    the provisioner's own probe rather than a second reading of the same fact.
+    """
+    lanes = {"any", LANE}
+    if LANE == "guest" and env.SAIL_SWITCH in switches():
+        lanes.add("toolchain")
+    return frozenset(lanes)
 
 
 def _module_names(only: str | None) -> list[str]:
@@ -67,7 +85,8 @@ def _load(name: str) -> list[Case] | str:
     return narrowed
 
 
-def _run_module(name: str, cases: list[Case] | str, slow: bool) -> Reporter:
+def _run_module(name: str, cases: list[Case] | str, slow: bool,
+                lanes: frozenset[str]) -> Reporter:
     """One module's whole verdict, on its own slate."""
     rep = Reporter()
     if isinstance(cases, str):
@@ -77,7 +96,7 @@ def _run_module(name: str, cases: list[Case] | str, slow: bool) -> Reporter:
     failures: list[str] = []
     ran = 0
     for case in cases:
-        if (case.slow and not slow) or case.lane not in ("any", LANE):
+        if (case.slow and not slow) or case.lane not in lanes:
             continue
         ran += 1
         try:
@@ -101,8 +120,12 @@ def run(only: str | None = None, slow: bool = False) -> Reporter:
                     + (f" and --only '{only}'" if only else "")])
     else:
         loaded = [(name, _load(name)) for name in names]
+        # decided once, ahead of the pool: the probe is a subprocess, and every module
+        # would otherwise pay for it and could in principle be answered differently
+        lanes = _lanes()
         with ThreadPoolExecutor(max_workers=min(8, len(names))) as pool:
-            parts = list(pool.map(lambda entry: _run_module(entry[0], entry[1], slow), loaded))
+            parts = list(pool.map(
+                lambda entry: _run_module(entry[0], entry[1], slow, lanes), loaded))
         for part in parts:
             rep.out.extend(part.out)
             rep.findings += part.findings

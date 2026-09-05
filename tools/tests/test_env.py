@@ -342,8 +342,10 @@ def cases() -> list[Case]:
         Case("git-env-names-the-work-tree", _git_env_names_the_work_tree),
         Case("git-env-empty-where-nothing-needs-saying",
              _git_env_is_empty_where_nothing_needs_saying),
-        # guest-only for the reason the first case here is host-only, and the other way
-        # round: on win32 load() refuses before it reaches the guard under test
+        # toolchain-only, for the reason the first case here is host-only and the other
+        # way round: on win32 load() refuses before it reaches the guard under test, and
+        # on a guest with no opam switch the full reading has nothing to apply, so its
+        # precondition fails about the machine rather than deciding about the guard
         Case("host-lane-reading-drives-no-toolchain",
-             _host_lane_reading_drives_no_toolchain, lane="guest"),
+             _host_lane_reading_drives_no_toolchain, lane="toolchain"),
     ]

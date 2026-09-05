@@ -26,8 +26,11 @@ TOOLS = Path(__file__).resolve().parents[1]
 class Case:
     """One check: `fn` returns None on pass and raises, with a message, on failure.
 
-    `slow` cases run only under `--slow`; `lane` is "any", "host", or "guest", and
-    the runner filters by platform, so one module can carry both lanes' cases.
+    `slow` cases run only under `--slow`; `lane` is "any", "host", "guest", or
+    "toolchain". The runner decides "host" and "guest" by platform, so one module can
+    carry both lanes' cases; "toolchain" is the guest with the Sail switch standing,
+    which a Linux runner that never provisioned is not, so a case that drives the
+    toolchain is skipped there rather than failing on a precondition about the machine.
     """
 
     name: str
