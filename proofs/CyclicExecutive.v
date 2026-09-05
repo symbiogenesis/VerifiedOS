@@ -34,15 +34,15 @@
    Readings of the register this statement takes:
 
    1. Admission reads the declared slot geometry and never an occupant.
-      R-11-023's criterion names the check's inputs as "widths and offsets
-      and never occupants", while R-11-006 states the check over slot WCETs
-      and task periods and R-11-009 requires the switch-duty ratio counted.
-      The load-bearing half of the criterion is "never occupants", so the
-      geometry a slot declares here is its width, its offset, its declared
-      in-slot bound, and its declared visit period, and the invariance is
-      stated over all four. That R-11-023's enumeration is narrower than
-      the check R-11-006 and R-11-009 describe is reported and not
-      resolved.
+      R-11-023's criterion enumerates the check's inputs as slot widths,
+      slot offsets, each task's period and the switch-duty ratio R-11-009
+      requires counted, and never an occupant, which is the check R-11-006
+      and R-11-009 state between them. The load-bearing half is "never
+      occupants", so the geometry a slot declares here is its width, its
+      offset, its declared in-slot bound, and its declared visit period,
+      and the invariance is stated over all four of those. That the
+      criterion once read narrower than the check was reported here and
+      resolved at that entry's own Accept (S1); carried back at S25.
    2. A slot's declared bound is a property of the slot and not of its
       tenant, which is what keeps reading 1 true. R-11-022a makes the visit
       period a shape choice for the same reason: two shorter focus slots

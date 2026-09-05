@@ -43,8 +43,8 @@
    index, and records and finite indices wherever a datatype is not owed.
    Three inductives are owed, because the register itself closes their
    enumerations, and each costs a compilation lemma per constructor on any
-   such route. That is a price recorded rather than a claim made: S12
-   records that the purecap Bedrock2 backend does not exist, so nothing here
+   such route. That is a price recorded rather than a claim made: the S12 reconnaissance item records that the purecap
+   Bedrock2 backend does not exist, so nothing here
    is asserted to be Rupicola-compilable and the CompCert-C/VST route stays
    the default.
 
@@ -124,7 +124,7 @@
       false where either unit is absent, which is what makes a deletion a
       refusal rather than a silence.
 
-   The literals taken from the design, and there are five. R-12-087's
+   The literals taken from the design, and there are four. R-12-087's
    detector enumeration is eight and its action enumeration is ten, so
    `all_detectors` and `all_actions` are those two lists written out and
    `there_are_eight_detectors` and `there_are_ten_actions` are the counts
@@ -402,7 +402,7 @@ Definition all_classes : list Criticality :=
   (cons RestartableWithoutCheckpoint (cons Discardable nil)))).
 
 (* The three counts, checked by conversion rather than claimed. These are
-   three of this file's five literals from the design, and the day an entry
+   three of this file's four literals from the design, and the day an entry
    admits a ninth detector is the day one of them stops holding. *)
 Example there_are_eight_detectors : count_of all_detectors = 8 := eq_refl.
 
@@ -571,7 +571,7 @@ Definition precedes (u v : nat) (l : list nat) : bool :=
    ========================================================================= *)
 
 (* R-12-073's start order: every unit of the roster started exactly once.
-   The 1 is the fourth of this file's five literals. *)
+   The 1 is the fourth of this file's four literals. *)
 Definition each_unit_once (m : Machine) (l : list nat) : bool :=
   all_of (fun u => Nat.eqb (occurrences u l) 1) (upto m.(unit_count)).
 

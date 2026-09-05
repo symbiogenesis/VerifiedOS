@@ -189,8 +189,10 @@
       the DRBG this file does not author is where they would land; R-10-024
       freezes the cipher to AES-GCM where the plan's own sentence has both
       AEADs authored; and R-05-058c's split carries no classical scheme to
-      author at all. All three are named as residue at checklist item M3.4c
-      and are absent rather than implied.
+      author at all. The DRBG and the signature question are named as
+      residue at checklist item M3.4c and are absent here; the AEAD is no
+      longer among them, having moved to M3.4d where AesGcm.v authors
+      AES-GCM; carried back at S25.
 
    The literals taken from the standard, and there are no others. The 5 x 5 x
    64 geometry (`side`, `width`, `lanes`), the twenty-four and twelve round
@@ -1293,8 +1295,9 @@ Example the_long_form_starts_at_round_zero :
    transcriptions. The Keccak team publishes the 24-round all-zero state and
    not the 12-round one, so this constant is the one the Sail unit's harness
    carries at `keccak_kat_zero_12`, which that file's own header records as
-   produced by an independent FIPS 202 implementation cross-checked against a
-   standard library's SHA-3. It is therefore a third route and not a copy of
+   produced by the independent FIPS 202 implementation the Sail harness header
+   records, whose standard-library SHA-3 cross-check covers its eleven digests
+   rather than this permutation state. It is therefore a third route and not a copy of
    either transcription, and it is the only thing here that decides the short
    form at a value rather than only against the long one. Its lane order is the
    Sail literal's read through `keccak_state_of_literal`, which is this file's

@@ -113,7 +113,7 @@
       different routes. Putting an answer in a `Definition` would also put it
       inside the seeded-mutation population, where a published byte moved off
       by one would score as a kill of the oracle rather than of the subject.
-   5. **The five step mappings are the standard's own, by the standard's own
+   5. **The four step mappings are the standard's own, by the standard's own
       names, in the standard's own order, and unfused**: SubBytes, ShiftRows,
       MixColumns and AddRoundKey, one definition each, composed once in
       `aes_round_over`; and their four inverses composed once in `inv_round`.

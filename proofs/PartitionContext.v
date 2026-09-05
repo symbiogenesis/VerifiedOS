@@ -75,13 +75,16 @@
       of them. R-07-037b puts the register and context swap on both the
       switch and the rotation and has the rotation omit exactly the three,
       so constants_paid below sums over those three alone, and switch_cost
-      is the constant R-11-009 and R-11-024 call "the partition-switch
-      constant". R-18-009 reads those three as the whole budget, refusing
-      an added term on the ground that the three-term switch budget does
-      not carry one, while R-07-044 puts the pending swap in that budget
+      sums those three and no more: R-15-220a makes them the platform terms
+      of a budget whose context term sits beside them, and R-11-009 charges
+      that budget inside R-07-040's wider padded boundary constant, so
+      switch_cost is neither of those two wider figures. R-18-009 read those three as the whole budget, refusing
+      an added term, while R-07-044 puts the pending swap in that budget
       and R-07-015's restore is work the switch performs; whether the two
-      sit inside the three terms or beside them is not stated anywhere, and
-      this file states neither.
+      sit inside the three terms or beside them was unstated when this file
+      landed, and R-15-220a (S1) has since stated it, the two sitting
+      beside the three in one context term with R-18-009 corrected to
+      match; carried back at S25.
    9. The cost model and the state model are disjoint on purpose, and the
       reason is architectural rather than editorial. Two of R-15-220's
       three constants act on state this context does not carry and cannot:
@@ -95,27 +98,40 @@
       outright: switch_discharges_every_rotation_obligation.
 
    What this file deliberately does not author, with the entry that owes
-   each decision. A register gap is reported, not closed, and these are
-   reported rather than taken:
+   each decision. A register gap is reported, not closed; six of the ten
+   below were reported here and taken later by S1, their closures carried
+   back at S25, and the rest stand:
 
    a. Endpoint object state: no states, no queue, no queue discipline, and
       no disposition of a send with no ready peer. R-07-029 states an
       obligation about what must not cross and no mechanism. Owed at a
-      letter-suffixed entry after R-07-029.
+      letter-suffixed entry after R-07-029, closed there by R-07-029a (S1):
+      an endpoint's whole kernel-held state is one posted receive or none,
+      no queue and no wait; carried back at S25.
    b. The blocking discipline. R-07-029 says synchronous endpoints;
       R-07-037a forbids any blocking call; R-12-096 has a ring consumer
-      sleep. Owed at R-07-029 or R-07-037a.
+      sleep. Owed at R-07-029 or R-07-037a, closed by R-07-029a (S1):
+      synchronous is rendezvous or refusal, and R-12-096's sleep is the
+      poll-site yield, nowhere a block; carried back at S25.
    c. The frozen ABI's invocation list. R-07-031a's criterion audits an
       enumeration no artifact carries, so nothing here is named, signed, or
-      numbered as a kernel invocation. Owed at R-07-031a.
+      numbered as a kernel invocation. Owed at R-07-031a, closed by
+      R-07-031b (S1), which numbers the list closed at five; carried back
+      at S25.
    d. Badge semantics, message transfer shape, the notification object's
       representation, and whether a reply object exists. Owed at R-07-029,
-      R-07-031, R-07-007, and R-07-031a respectively.
+      R-07-031, R-07-007, and R-07-031a respectively, closed by R-07-027a
+      (badge and reply, no reply object surviving), R-07-029a (message
+      shape) and R-07-031b (the empty notification group), all S1; carried
+      back at S25.
    e. A closed inductive of kernel object classes. R-07-027 names three
       classes, R-07-031a names four ABI groups one of which is not an
       object, and R-08-004d says the grant table is not a restored object
       class. The Action inductive below is over R-07-037b's own four names
-      for what a switch does and is not an object inventory.
+      for what a switch does and is not an object inventory. Closed by
+      R-07-027a (S1), which resolves the count as a conflation of two kinds,
+      three object classes beside two tables that are not objects; carried
+      back at S25.
    f. The pending component's contents. Pending is the interrupt-file
       pending state R-07-044 disposes of and R-07-039 has a partition read
       at poll sites; it is not the notification object R-07-007 asserts and
@@ -133,7 +149,9 @@
       nothing at all, which is what an unstated obligation is, and
       rotation_pending_arm_is_observable shows that asserting nothing has
       an observable consequence rather than being harmless. Owed at
-      R-07-037b or R-07-044.
+      R-07-037b or R-07-044, closed by R-07-037c (S1), which swaps the
+      pending component exactly as the switch does on R-07-044's swap arm
+      and cites this file's observability theorem; carried back at S25.
    i. What a same-label group member may assume about the state the
       rotation does not clear. Section 5.1 makes the vector CSRs zeroize
       and not save, so nothing is saved to restore, and R-07-037b's
@@ -141,7 +159,9 @@
       omission is a confidentiality argument, that every flow the three
       constants cut is internal to one label, which decides nothing about
       what the next member reads or about the bounds R-11-027 derives over
-      it. Owed at R-07-037b.
+      it. Owed at R-07-037b, closed by R-07-037d (S1): a same-label group
+      shares one confidentiality domain, so a member may begin on the
+      zeroize-class state a sibling left; carried back at S25.
    j. Every composition magnitude. The switch's four cost fields, the CSR
       bank, the pending type and its static partition are fields; the demo
       machines at the end instantiate them with arbitrary witness values
@@ -187,8 +207,8 @@ Record Machine : Type := {
                                     observes of its own bits; a composition
                                     constant R-07-044 does not further
                                     constrain, so no law is stated of it     *)
-  rotation_swaps_pending : bool; (* unstated for R-07-037b's intra-slot
-                                    step (gap h)                            *)
+  rotation_swaps_pending : bool; (* R-07-037c (S1) swaps it on R-07-044's
+                                    arm where a swap exists; gap h, S25     *)
 
   (* --- R-15-220's three constants, plus the drain the four-term reading
          would list beside the fence rather than inside it ---------------- *)
@@ -307,8 +327,9 @@ Definition Switch (m : Machine) : Step m := fun succ pre post =>
 
 (* R-07-037b's intra-slot step: the same register swap and the same restore
    of the restorable CSRs, with the zeroized class left where the omitted
-   pass leaves it (reading 7) and the pending arm left where the register
-   leaves it (gap h). *)
+   pass leaves it (reading 7) and the pending arm R-07-037c (S1) has since
+   fixed to the swap the switch performs, the field keeping both arms so
+   the observability theorem still exhibits them (gap h, S25). *)
 Definition Rotation (m : Machine) : Step m := fun succ pre post =>
   (forall r, Nat.ltb r register_count = true ->
      ctx_reg post r = ctx_reg succ r)
@@ -435,8 +456,9 @@ Definition OmitsTheThreeConstants (p : Action -> bool) : Prop :=
 
 (* R-15-220's three constants and what a step pays of them. The restore is
    absent from this sum because R-15-220 names three terms and the restore
-   is not one of the three; whether its own cost sits inside them or beside
-   them is unstated, and this file states neither (reading 8). *)
+   is not one of the three; R-15-220a (S1) puts the restore and the pending
+   swap beside them in one context term, so this sum stays the platform
+   three (reading 8, carried back at S25). *)
 Definition constants_paid (m : Machine) (p : Action -> bool) : nat :=
   (if p FenceT then m.(fence_t_cost) else 0)
   + (if p Vmclear then m.(vmclear_cost) else 0)
