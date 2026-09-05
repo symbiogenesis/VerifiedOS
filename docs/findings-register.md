@@ -1057,7 +1057,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-224** upstream-defect: the pin carries no stock target backend to start from, the one under its architecture directory being the compartment-aware modification of it and carrying two admitted lemmas in its assembly language file, both in that added layer's own material
 · Raised: M1.2a
-· Disposition: open, the choice between the pin's tree and the upstream release nothing here pins being a start-from question this item reports rather than takes
+· Disposition: closed, the start-from ruled as the pin's own `riscV/` as the contained repository carries it, compartment layer and all, because it alone composes with the `Mach` layer and the security layer M1.1b keeps for robust preservation, and a stock tree would be a new pin, a new licence read and a backend that no longer composes
 
 **F-224a** measurement: five of the eight axes of the delta have no counterpart in the start-from at all, nine capability tokens occurring zero times across its twenty-eight files, so what those axes cost was a property of the tree being left rather than of the work
 · Raised: M1.2a
