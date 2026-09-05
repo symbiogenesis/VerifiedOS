@@ -202,6 +202,12 @@ The two lanes spell the interpreter differently, and that is not an oversight. O
 
 `trace-diff` bounds each executor run with `--timeout`, so an emulator that hangs without retiring instructions becomes a SHORT finding instead of a command that never returns.
 
+`model corpus --refresh` rewrites the manifest's own record counts and trace digests, which makes it the one flag that can turn a regression into the baseline: it is for the run where the manifest is what changed, and never for a red run.
+
+`model typecheck` runs `sail --just-check` with its output inherited, and Sail prints nothing on success, so exit 0 with nothing printed is the pass and not a run that failed to start.
+
+`tools/co-read.json`, the ledger `coread --bless` writes, is one line per requirement id, so two lanes blessing disjoint ids merge cleanly and two touching one id conflict loudly, which is the right outcome. A conflict there is resolved by hunk and never by taking a side whole, which discards every blessing the other lane recorded and re-opens the pairs it read; the merged text of a conflicted pair then wants a fresh `coread --show` and `--bless`.
+
 ## One toolchain, several checkouts
 
 There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `run.py model lane` prints which one this is, where it builds, and whether anything is building there right now.
@@ -245,6 +251,21 @@ did not compile, and nothing was decided about the oracle because the oracle nev
 compiled and did not, and it is the finding: the oracle does not reach that site.
 Counting stillborn mutants as kills is the standard way a mutation score is inflated,
 so a run scores over the live population and reports the three apart.
+
+**A killed population is a result about the statements and never about the
+definitions.** Every mutant killed says some theorem moved when a definition did, which
+is that the file's theorems constrain the file's own definitions; it says nothing about
+whether those definitions are what the register fixes, and an artifact can kill every
+mutant, close under the proof gate and still resolve an open register question by fiat
+or state a bar no entry carries. Measured on the proof-authoring fan-out, every artifact
+that carried such a decision had a fully killed population, so the reader that resolves
+each cited entry against the register and asks which sentence closes each literal and
+each definition shape is not a second opinion on the score but the only reader asking
+that question. Three tells: a numeric literal no entry closes; a definition whose shape
+encodes a choice the register leaves open, a queue where the register fixes only
+readiness or a total function where it admits a refusal; and a bound shipped as an
+equality, which the statements constrain identically under either reading and no grep
+finds.
 
 **Those verdicts are [seeded.py](vos/seeded.py)'s and the oracle is the loop's**, which
 is what makes the selftest below a fourth oracle over this vocabulary rather than a
@@ -348,6 +369,15 @@ imports against, and the pinned checker stays the same one whichever interpreter
 directories and then `PATH`; all three are kept, because reporting absent what is
 present is the one failure a pinned-version gate must not have.
 
+The checkers are installed once per lane and not once per machine: uv's tool bin
+directory on the host and the guest's are different filesystems, so an install is shared
+by every worktree on its lane and by nothing on the other. A bump is therefore both
+installs and the pin edit, and the gate is red on one lane between the first install and
+the pin landing and on the other between the pin landing and the second install, the
+finding reversing direction between the two, so which lane reported is read before a
+version finding is read as drift. The window is not a mistake, the install having to
+precede the edit; landing the pin commit promptly is what shortens it.
+
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or
 switched off, and that is deliberate: the alternative is a list of opt-ins that silently
 stops growing the day ty adds a rule nobody transcribed. What ruff is *not* asked is in
@@ -393,6 +423,7 @@ Each of these is a rule the next tool added is expected to keep.
 - **An id pattern admits the letter suffix.** Every id family here can take one, because a thing inserted between two others is suffixed rather than renumbered, so `A-\d+` does not merely read imprecisely, it narrows its input silently and in two directions that mask each other: the parse side undercounts, and a claim repaired from that parse is then *written* wrong under `--fix`, which is worse than a copied figure because the rule vouches for it; while on the name side a token under a trailing `(?![\w-])` boundary does not match the suffixed id at all, so a citation of one that does not exist is skipped rather than reported unknown. Audit the parse side and the name side together, since fixing either alone leaves the other blind.
 - **An invariant is stated where it is relied on.** A reader entitled to a value because two branches above ruled out the alternatives says so, rather than leaving a `None` to be subscripted at the point the tool is reporting the finding it exists to report.
 - **Assertions that guard an artifact are raised, not asserted.** `python -O` deletes an `assert`, and a check standing between a mis-transcribed row and an image the emulator runs anyway has to outlive a flag. `zip` over two sequences that must correspond takes `strict=True` for the same reason: a silent truncation in a tool whose output is evidence is worse than a stopped run.
+- **A rule's cost is the shape of its scan, not the Python around it.** Three shapes each cost tens of milliseconds per pass over the corpus and each has a cheaper equal: `(?m)^` over a document's whole text, which the engine attempts at every line start however few lines match, where walking `doc.lines` with `.match()` behind a substring pre-test gives the line index free; a leading lookbehind such as `(?<![\w-])`, re-decided at every position, where dropping it and checking the boundary in Python on the hits is safe wherever every character inside the token is a word character; and a case-insensitive alternation with no literal prefix, where `str.find` over the lowered text proposes sites and the pattern decides them. The third is where the second's rule reverses, removing the lookbehind making it slower, so a candidate is timed against an equality assertion over the current result rather than applied blind.
 
 ## Adding a rule to the checker
 
