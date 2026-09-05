@@ -1897,6 +1897,7 @@ Radiation qualification remains a backplane, driver, and packaging obligation ra
 
 Refresh timing follows the same static discipline.
 The compositor chooses from an **enumerated fixed-rate set** at content boundaries (rates such as 48 or 120 Hz, chosen to share common multiples with content cadences), while §11 reserves the fastest mode.
+The shipped precedent for that choice is Windows' **Content Match Refresh Rate**, which switches the panel to a fixed mode the declared frame rate of the playing video divides and holds it there; what the design takes from it is the switch on a declared content property, and what it does not take is the sibling feature beside it, **Dynamic Refresh Rate**, which switches on user activity and rides on a variable-refresh panel (§15).
 Adaptive-Sync and per-frame variable refresh are absent because completion time would reveal the slowest composed surface to other compartments and to an external sink.
 The fixed set keeps most cadence benefits while presentation timing remains a composition-time constant.
 
