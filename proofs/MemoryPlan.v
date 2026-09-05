@@ -48,8 +48,9 @@
    What is deferred, and to which item. The backend that emits the
    narrowings R-15-007k constrains is M1.2's, and nothing below is a
    lowering, an instruction selection, or a claim about emitted code: what
-   is here is the plan-side side condition M1.2's axis-6 paragraph says is
-   otherwise written against a plan that lands two items later. The
+   is here is the plan-side side condition M1.9's own entry says would
+   otherwise be written against a plan that lands two items later, M1.2's
+   axis-6 paragraph now recording M1.9 ahead of it instead. The
    per-instruction latency table R-11-015 derives a bound from is
    R-11-015's own and is not authored, so a region's fetch count and a
    slot's declared in-slot bound are declared inputs here. The per-class

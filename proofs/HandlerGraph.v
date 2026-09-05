@@ -115,7 +115,8 @@
    the signed composition whatever it observes; that loader reads a roster
    out of a generation and this composer compiles a graph out of interface
    descriptors, so the two are the same shape at two objects. Neither of
-   those files carries an edge, a template, a pool or a format.
+   those files carries a handler-graph edge, a media template, a node or
+   ring pool, or a parsed format.
 
    No Require. Nothing beyond the Rocq prelude is reachable, so Classical and
    FunctionalExtensionality are unavailable and every equality below is

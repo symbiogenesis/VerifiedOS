@@ -43,8 +43,9 @@
    up the C instance the frozen surface is an ABI of, and nothing below
    states a calling convention, a register assignment, an ABI number, or a
    trap encoding. R-07-028's initialisation-refinement obligation is
-   M6.0b's and M4.4's to discharge against an installed graph; what is here
-   is the inventory that obligation quantifies over. The authoring
+   stated by M3.3 over an arbitrary composed cap graph and its discharge
+   against an installed graph is deferred; what is here is the inventory
+   that obligation quantifies over. The authoring
    constraint this file does keep is the restricted subset a
    Rupicola-class compiler admits: no general recursion, every recursive
    function structural over a list or a finite index, and records and
