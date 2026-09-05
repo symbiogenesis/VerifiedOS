@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 540 of them across 86 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 546 of them across 87 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -385,6 +385,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-236g** measurement: a landing repaired one of two sites in one document that state the same fact, rewriting the section that says the encoder table is generated and carries the vector arithmetic while the absence table went on giving *encoded by neither the assembler nor a member* as its ground
 · Raised: S22
 · Disposition: closed by narrowing the ground to the member half, which is the half that holds and the half the row's own closing cell already names, and by qualifying the section preamble, whose blanket claim that no row is a corpus-side gap the narrowed row would otherwise contradict
+
+**F-237** measurement: one hash-separation field was described three ways as a total-separation `extend_separates` no hash function realizes, where RotFirmware.v's field is the finite `extend_separates_on_the_chain` discharged by conversion over a concrete extension; the three sites were Keccak.v's finding c, the M3.4a bullet, and F-205g
+· Raised: S23
+· Disposition: closed, all three repaired to the finite-instance reality, F-205g's own text reworded with them
+
+**F-238** measurement: a completed item was missing from the summary's own `Completed:` roster, which ran S19, S20, S21 and jumped to M0.1, S22 having landed as one of the three stale-claim lanes and been dropped from the roster no rule reads
+· Raised: S23
+· Disposition: closed, S22 inserted where it belongs
+
+**F-239** measurement: a crown-jewel row named one primitive's functional reference where two exist, row 14 naming only Keccak.v after AesGcm.v landed the day its clause was written
+· Raised: S23
+· Disposition: closed, AesGcm.v named beside Keccak.v, the row's partial class unmoved so no coverage standing moves
+
+**F-240** owed-act: a crown-jewel statement artifact exists for a row that reads not authored, DischargeSequence.v stating row 26's ordering as rows 14 and 17's artifacts state theirs, but row 26's conferred vehicle is a devicetree rider and its flip cascades to the crown-jewels totals and the coverage standings
+· Raised: S23
+· Disposition: open, reported to the crown-jewels owner as a judgment the R-05-150 review rules rather than a mechanical repair
+
+**F-241** owed-act: the findings register's continuous-integration framings are stale against host-gates.yml and the F-229h README repair, at F-198a, F-181 and F-198b and at the README wave-figure characterization of F-128n and F-235i
+· Raised: S23
+· Disposition: open, each self-corrected in its own disposition, kept deliberately by F-236a, or another item's disposition to restate, so left to the item that owns each
+
+**F-242** measurement: a sweep finding was verified false, the off-clock gap list not undercounting because row 23's probing-model statement is authored by the Post-M10 probing cell and so sits outside the no-item-authors gap, unlike row 24 which is only stood over
+· Raised: S23
+· Disposition: standing, recorded so it is not re-proposed as a repair
 
 ## M0 · Hardware reference
 
@@ -1352,9 +1376,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M3.4a
 · Disposition: open, residue named to M3.4c, which is the item that would run the generator
 
-**F-205g** owed-act: a firmware machine declares a hash field no hash function realizes, asking for total separation of distinct inputs where collisions exist and the register's own assumption is computational
+**F-205g** owed-act: a firmware machine's hash-separation field is stated at the chain's scale as `extend_separates_on_the_chain`, the seven item codes extending to seven distinct digests at each of the seven chain digests, rather than as a total separation of every distinct pair that no hash function realizes; R-05-058c's assumption is computational and this is its finite decidable instance
 · Raised: M3.4a
-· Disposition: open, the function supplied and the field left a declared assumption
+· Disposition: open, the finite instance discharged by conversion over a concrete extension while wiring the real hash and the register's word on the finite-versus-computational scoping stay owed to M3.4 and R-05-058c
 
 **F-205h** owed-act: one of the five step mappings is not shown invertible, so the acceptance clause calling the permutation a permutation is stated and not closed, that step being a linear map on the column-parity space whose inverse is dense
 · Raised: M3.4a

@@ -172,12 +172,17 @@
       bit order, the lane flattening, the byte order of a squeezed output, and
       whether a Gallina reference is inside any acceptance at all are readings
       of this file and nothing else.
-   c. **RotFirmware.v's `extend_separates` is not realized here.** That
-      Machine field asks a hash to separate every pair of distinct inputs
-      totally, and no function has that property, collisions existing;
-      R-05-058c's hash-only assumption is computational. What M3.4a supplies
-      is the function, and the field stays a declared Machine assumption.
-      Owed at R-05-058c or R-09-002.
+   c. **RotFirmware.v's hash-separation field is the finite instance, not a
+      total one.** That Machine field is `extend_separates_on_the_chain`, the
+      finite instance of R-05-058c's computational hash-only assumption at the
+      scale the chain uses it: at each of the seven digests the chain extends
+      from, the seven item codes extend to seven distinct digests. It is
+      decidable and the demo machine discharges it by conversion over a
+      concrete extension rather than leaving it a bare assumption, and a total
+      separation of every distinct pair is met by no hash function, which is
+      why the field is deliberately not that (RotFirmware reading 7). What
+      stays owed is wiring the real hash extension in place of the demo's,
+      which is M3.4's. Owed at R-05-058c or R-09-002.
    d. **No AEAD, no DRBG and no signature is authored here.** R-15-241d's
       seeding discipline, its reseed bounds and its prediction- and
       backtracking-resistance clauses have no artifact in this repository and
