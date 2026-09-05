@@ -56,7 +56,7 @@
    transcribed, and nothing declared here shadows a name that file exports:
    the ring constants, `submit`, `accept`, `may_reserve`, `work_pending`,
    `sleeps`, `agree`, `eqb_reflexive`, `activation_cost`,
-   `cancellation_interval`, the four record types and every `op_`, `enc_`,
+   `cancellation_interval`, the five record types and every `op_`, `enc_`,
    `rec_` and `lifecycle_` name are used at the spelling RingContract gives
    them. `cancel` is the one exported name this file deliberately does not
    reach, R-12-097's four answers being M6.5b's family and this file stating
@@ -196,7 +196,7 @@
      `there_are_three_rejected_paths` is its count.
    - R-12-008a's "only head, tail, and notification cells are concurrently
      shared" is three, and R-12-091's header is exactly four words, so
-     `header_word` has four constructors, `shared_cell` marks three of them,
+     `header_word` has four constructors, `is_shared_cell` marks three of them,
      and the two counts are stated against each other rather than separately.
    - R-12-096's "drains within its admitted budget, arms its notification
      word, re-reads the producer index, and sleeps only if the recheck still

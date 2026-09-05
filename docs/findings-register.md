@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 546 of them across 87 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 551 of them across 88 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -409,6 +409,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-242** measurement: a sweep finding was verified false, the off-clock gap list not undercounting because row 23's probing-model statement is authored by the Post-M10 probing cell and so sits outside the no-item-authors gap, unlike row 24 which is only stood over
 · Raised: S23
 · Disposition: standing, recorded so it is not re-proposed as a repair
+
+**F-243** measurement: a proof-file comment claimed a sibling carries no edge, template, pool or format, where SupervisionTree.v carries capability-grant edges and PoolLow/PoolExhausted pool signals
+· Raised: S24
+· Disposition: closed, HandlerGraph.v's nouns scoped to the handler graph's own subjects so the no-shared-subject argument holds
+
+**F-244** measurement: a proof-file comment attributed R-07-028's discharge to M6.0b, the IDL profile unrelated to the initial capability distribution, where R-07-028 is stated by M3.3 and its discharge is deferred per field-bindings
+· Raised: S24
+· Disposition: closed, EndpointIPC.v's attribution corrected to M3.3-stated and discharge-deferred
+
+**F-245** measurement: a proof-file comment credited M1.2's axis-6 paragraph with M1.9's own "lands two items later" phrasing, M1.2's axis-6 now recording M1.9 ahead of it
+· Raised: S24
+· Disposition: closed, MemoryPlan.v's attribution corrected
+
+**F-246** measurement: a no-shadow inventory named the four record types where RingContract.v exports five, labels beside the other four and present at authoring
+· Raised: S24
+· Disposition: closed, CopyRingService.v corrected to five, the no-shadow property itself verified true at zero collisions
+
+**F-247** measurement: a proof-file comment named `shared_cell` where the function is `is_shared_cell`
+· Raised: S24
+· Disposition: closed, CopyRingService.v corrected
 
 ## M0 · Hardware reference
 
