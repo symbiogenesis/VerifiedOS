@@ -156,8 +156,7 @@ And the sizing judgment recurs one level down rather than retiring: each compart
 The product therefore pays for peak isolation in both bytes and cycles, so effective capacity and throughput can fall together on bursty interactive workloads.
 Read as a product rather than as an allocator, that is the objection in its sharpest form: a correct refusal can still be a product failure.
 Excellent offline packing does not abolish uncertainty about what a person does next, proving that a declared population fits does not prove its limit comfortable, and variable demand must fit a predetermined envelope that resources outside it cannot rescue.
-For a fixed communications terminal that is excellent; for an exploratory personal computer it is a loss of function and not a slower implementation of the same function, which is why [the README](../README.md)'s heading *no wasted memory* is indefensible as an unqualified product claim: it means a class of allocator waste is removed, not that fabricated memory is usefully occupied.
-Q1 repairs the claim at its site.
+For a fixed communications terminal that is excellent; for an exploratory personal computer it is a loss of function and not a slower implementation of the same function, which is why [the README](../README.md)'s memory heading claims *no allocator waste* and not *no wasted memory*: a class of allocator waste is removed, and fabricated memory is not thereby usefully occupied.
 
 **The performance account's headline outruns its own rows.**
 [The headline total](performance-estimates.md#headline-total) pulls symmetric crypto and AI inference back to parity-or-better, and the rows beneath it do not establish that: the vector-crypto gains exclude secret operands and the masked datapath carrying the actual secret-key work has no throughput figure; the matrix gain is compute against scalar execution while the same document calls low-batch inference bandwidth-bound, so it is no token-rate prediction; the graphics row accepts a large loss against a real GPU; and several favourable ratios stand against scalar or software baselines rather than the equipped application processor the headline names as its comparator.
@@ -325,15 +324,7 @@ One residual is answered in the form the rest want: R-17-058a carries the masked
 
 ## The overview says more than the corpus beneath it
 
-*Closable by writing, so charged to Q1 rather than numbered: each is a summary sentence whose qualification already stands deeper in the corpus, and each is deleted here when the sentence is repaired at its site.*
-
-**Nothing for timing to leak is too broad.** [The README](../README.md)'s memory highlight says so and omits the bank-address term and the secret-address rejection its own table states; fixed per-class access latency deletes particular history-dependent channels and not all timing leakage, control-flow variation or physical emission.
-
-**Exact subobject bounds are not supplied by the tag.** The README's hardware-only overflow story wants R-15-007c's bounds-precision qualification and the layout and typing obligations that compensate for representability: CHERI checks the represented bounds, and making them the intended object's is work above the hardware, which is evidence that the hardware-only explanation is incomplete and not that the stack is unsafe.
-
-**ECC does not make arbitrary corruption never silent.** A finite-distance code misses some larger error patterns and miscorrects outside its guaranteed fault model, interleaving and scrubbing narrowing the risk under spatial and temporal assumptions without making every multi-bit event correctable, so the README's definition of detection as never silent wants its stated fault-model boundary; the point is not specific to gain cells.
-
-**The shell wording contradicts itself at the overview level.** The README promises a shell and its injection row says there is none; the distinction meant is a typed command interpreter against string-to-process execution, a useful design distinction obscured by an absolute claim.
+*Closable by writing where a summary sentence outruns the qualification standing deeper in the corpus, and charged to Q1 rather than numbered; such a sentence is repaired at its site and deleted here, so what stands is the overclaim no sentence repair reaches.*
 
 **Naming a cost does not pay it.** Booking a residual is much better than hiding one and does not establish that the residual is tolerable in the proposed deployment, and a proof gate refusing an unusable composition is sound behaviour by the gate and not success by the product.
 

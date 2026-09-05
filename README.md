@@ -4,7 +4,7 @@ Design for an end-to-end formally verified computer, built around a bespoke in-o
 
 Engineering effort is treated as free and trust as the scarce resource, so security comes ahead of performance and ahead of compatibility with existing hardware and software.
 
-The first release is a [mobile device](docs/spec.md#r-18-004a), stated as a floor of eight things one composed configuration must carry together: a voice call, move cellular and Wi-Fi data, open secure sessions, take photographs, play one video stream, run a shell with one program in focus, hold a language model resident and generating, and open its content formats through verified parsers. It is a [few-active-things machine](docs/spec.md#r-17-008): a small number of programs run at a time, each in a share of time and memory fixed when the image was composed, [every structure whose size depends on input](docs/spec.md#r-08-046) sized ahead of time with a declared action for filling up, and [a background program nearly stopped](docs/spec.md#r-17-005) while the foreground stays fast. Three things do not run on it: a general web browser, which [the first release defers](docs/spec.md#r-18-004); software built on the device, since [it runs software and does not build it](docs/spec.md#r-02-008); and anything expecting to be installed without a reboot, because [an install is a new generation](docs/spec.md#r-13-001a) that takes effect at the next boot and [discards what was not declared durable](docs/spec.md#r-17-035a). No form factor is fixed by the design: [laptop, workstation, and server instantiations](docs/spec.md#r-02-003) share its principles and differ in physical particulars.
+The first release is a [mobile device](docs/spec.md#r-18-004a), stated as a floor of eight things one composed configuration must carry together: a voice call, move cellular and Wi-Fi data, open secure sessions, take photographs, play one video stream, keep a full set of programs open with one in focus, hold a language model resident and generating, and open its content formats through verified parsers. It is a [few-active-things machine](docs/spec.md#r-17-008): a small number of programs run at a time, each in a share of time and memory fixed when the image was composed, [every structure whose size depends on input](docs/spec.md#r-08-046) sized ahead of time with a declared action for filling up, and [a background program nearly stopped](docs/spec.md#r-17-005) while the foreground stays fast. Three things do not run on it: a general web browser, which [the first release defers](docs/spec.md#r-18-004); software built on the device, since [it runs software and does not build it](docs/spec.md#r-02-008); and anything expecting to be installed without a reboot, because [an install is a new generation](docs/spec.md#r-13-001a) that takes effect at the next boot and [discards what was not declared durable](docs/spec.md#r-17-035a). No form factor is fixed by the design: [laptop, workstation, and server instantiations](docs/spec.md#r-02-003) share its principles and differ in physical particulars.
 
 > This repository is a living design specification. Nothing here is built or released.
 
@@ -24,7 +24,7 @@ _Expand a section to jump straight to it._
 - [No simultaneous multithreading (SMT)](#no-simultaneous-multithreading-smt)
 - [Everything on general-purpose verified cores](#everything-on-general-purpose-verified-cores)
 - [On-die OpenTitan-class root of trust](#on-die-opentitan-class-root-of-trust)
-- [No wasted memory](#no-wasted-memory)
+- [No allocator waste](#no-allocator-waste)
 
 </details>
 
@@ -66,7 +66,7 @@ A minimal capability kernel, one instance per core; everything else runs as unpr
 
 ### Fixed-latency on-die memory with end-to-end ECC
 
-All memory is on the same die as the cores, error-corrected from the register file outward, and comes in two fixed speeds: fast SRAM for the working set and for code with deadlines, and a denser, slower class of gain cells for bulk data like framebuffers, media, and AI model weights. Which class an address sits in is settled when the image is built, and nothing between a core and a cell keeps track of what was accessed recently, so every access to a class costs that class's constant, whatever ran before it: nothing for timing to leak, nothing for a worst-case analysis to guess at. That one property deletes the L1/L2/L3 hierarchy, the coherence protocol, the DRAM channels, and the per-row counters a DRAM design needs against Rowhammer. Being on-die, there is no bus to probe and no module to lift, so memory encryption and an anti-replay tree are deleted rather than proved. Both classes carry the same tags, ECC, and revocation check, but the SRAM is more private. Both also share one 36-bit physical address space, so 64 GB bounds the whole machine, model weights included: the specification [states that ceiling as a bet](docs/spec.md#r-15-002c) on where useful local inference plateaus, resting on the denser class, which is [the least-proven component in the design](docs/spec.md#r-15-247m) and whose capacity counts only once a measured part supplies it.
+All memory is on the same die as the cores, error-corrected from the register file outward, and comes in two fixed speeds: fast SRAM for the working set and for code with deadlines, and a denser, slower class of gain cells for bulk data like framebuffers, media, and AI model weights. Which class an address sits in is settled when the image is built, and nothing between a core and a cell keeps track of what was accessed recently, so every access to a class costs that class's constant, whatever ran before it: no history for timing to leak, nothing for a worst-case analysis to guess at. That one property deletes the L1/L2/L3 hierarchy, the coherence protocol, the DRAM channels, and the per-row counters a DRAM design needs against Rowhammer. Being on-die, there is no bus to probe and no module to lift, so memory encryption and an anti-replay tree are deleted rather than proved. Both classes carry the same tags, ECC, and revocation check, but the SRAM is more private. Both also share one 36-bit physical address space, so 64 GB bounds the whole machine, model weights included: the specification states that ceiling as a bet on where useful local inference plateaus, resting on the denser class, which is the least-proven component in the design and whose capacity counts only once a measured part supplies it.
 
 ### CHERI in place of the usual protection hardware
 
@@ -86,13 +86,13 @@ Each core runs a single hardware thread, so SMT's cross-thread contention and sh
 
 ### Everything on general-purpose verified cores
 
-No firmware coprocessors. Graphics, machine learning, signal processing, and every radio, sensor, and input device run on general-purpose scalar, vector (RVV), and matrix cores that share one base ISA, one capability model, and one set of proofs. There is no fixed-function GPU, discrete accelerator, or opaque baseband or controller firmware: every processor on the chip runs code the admission checker has proved memory-safe, control-flow-correct, and schedulable, whether that code is [trusted and functionally proven or contained and restartable](docs/spec.md#r-12-004), with the one tolerated exception of the [eUICC](docs/spec.md#r-04-011), a carrier's own computer kept as a register slave with no authority over the platform. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is throughput, which [the performance estimates](docs/performance-estimates.md) put at a fraction of a current integrated GPU's on 3D graphics and in the class of an early NPU on dense inference.
+No firmware coprocessors. Graphics, machine learning, signal processing, and every radio, sensor, and input device run on general-purpose scalar, vector (RVV), and matrix cores that share one base ISA, one capability model, and one set of proofs. There is no fixed-function GPU, discrete accelerator, or opaque baseband or controller firmware: every processor on the chip runs code the admission checker has proved memory-safe, control-flow-correct, and schedulable, whether that code is trusted and functionally proven or contained and restartable, with the one tolerated exception of the eUICC, a carrier's own computer kept as a register slave with no authority over the platform. Heterogeneity lives in the datapath, never in the trust structure. The accepted price is throughput, which the performance estimates put at a fraction of a current integrated GPU's on 3D graphics and in the class of an early NPU on dense inference.
 
 ### On-die OpenTitan-class root of trust
 
 A scalar CHERI-enabled RV64 core under the same ISA, capability model, and proofs, the platform's only management processor, handles measured boot, key custody, and attestation.
 
-### No wasted memory
+### No allocator waste
 
 Nothing is allocated while the system runs: every buffer, table, and stack is placed before boot, and the deepest the stack can ever get is proved by the same check that proves worst-case timing. Code that overruns its declared bound is rejected at build time, and a set of bounds too large for the chip is rejected before anything runs, so neither is a failure a user can hit. Placing memory ahead of time is also the cheaper choice: an allocator deciding as it goes can waste a factor that grows with the spread of object sizes, while a plan made offline comes within a constant factor of the best possible, and is exactly optimal for the nested lifetimes this design produces. What replaces the page tables, swap, and allocator bookkeeping is small and itemized: error correction and capability tags at about 8% of stored data, and a revocation bitmap no structure doing that job could beat. Optimality in general is not claimed: pools sized for their peak sit mostly empty, the one case a run-time heap wins on average, and every floor here is measured against this project's own specification rather than a universal one.
 
@@ -109,7 +109,7 @@ Four say the bug class cannot occur at all:
 
 Three claim something weaker:
 
-- 🔔 **Detected**: the fault can occur but never silently: it is corrected or contained fail-stop, never claimed absent.
+- 🔔 **Detected**: a fault the detector is built for can occur but never silently: it is corrected or contained fail-stop, never claimed absent.
 - 🤝 **Transferred**: a real obligation owned by the named party; naming it makes it countable, nothing more.
 - 🚩 **Residual**: the row names what it leaves open; the spec's [residual-risks](docs/spec.md#17-residual-risks-the-honest-ceiling) section carries it.
 
@@ -152,7 +152,7 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 
 | Potential bug or attack class | Construction | Mode |
 | --- | --- | --- |
-| Buffer overflows and out-of-bounds access, down to sub-object fields | Every usable pointer is a tagged capability with hardware-enforced bounds | **🛡️&nbsp;Enforced** |
+| Buffer overflows and out-of-bounds access, down to sub-object fields | Every usable pointer is a tagged capability with hardware-enforced bounds, and the offline memory plan lays each object out so every narrowing is exact, the install check refusing one that would round | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected** |
 | Pointer and device-address forgery | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **🛡️&nbsp;Enforced** |
 | Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **🛡️&nbsp;Enforced**<br>**🕳️&nbsp;Absent** |
 | Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **🛡️&nbsp;Enforced** |
@@ -171,7 +171,7 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 | `setuid`-style privilege escalation | There is no uid/gid identity to assume and no `fork()` to inherit it through; authority is only what the manifest delegates | **🕳️&nbsp;Absent** |
 | Path traversal and `../` escape | A path is only an app-local alias for a manifest capability; no runtime `mount`/`bind`, global directory, or path-based capability lookup can reach outside the manifest | **🕳️&nbsp;Absent** |
 | TOCTOU races through filename and link re-resolution | The capability *is* the object, and no symlink indirection exists, leaving no re-resolution window between check and use | **🕳️&nbsp;Absent** |
-| Shell injection and `system()`-style string-to-process execution | There is no shell, `fork()`/`exec()`, or `PATH` lookup to turn composed text into an action; *run this command* asks the service manager to start a capability-delegated compartment | **🕳️&nbsp;Absent** |
+| Shell injection and `system()`-style string-to-process execution | There is no text shell, `fork()`/`exec()`, or `PATH` lookup to turn composed text into an action; *run this command* asks the service manager to start a capability-delegated compartment | **🕳️&nbsp;Absent** |
 | Environment-variable injection | No environment block exists to inherit or poison | **🕳️&nbsp;Absent** |
 | Argument injection between composed commands | The command interpreter pipes typed values between typed-signature commands, never byte streams for each stage to reparse | **🕳️&nbsp;Absent** |
 | Dispatch hijack, handler registration to content sniffing | The handler/translator graph is finite, signed, and fixed at composition; no runtime act can add a handler or reroute a format to one | **🕳️&nbsp;Absent** |
