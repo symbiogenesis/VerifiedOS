@@ -222,6 +222,7 @@ TY_CONF = "tools/ty.toml"
 RUFF_CONF = "tools/ruff.toml"
 
 PLAN = "docs/implementation-checklist.md"
+LOG = "docs/completion-log.md"
 
 # A holder citation, in the form the landed items write it: the rule id in bold, on the
 # sentence saying what that rule holds. Bold is the whole of what separates a claim
@@ -611,8 +612,9 @@ def _landings(ctx: Context, registered: set[str]) -> None:
     skipped.
 
     The citation half reads the whole document corpus and the declaration half reads
-    the plan, and the asymmetry is deliberate: naming a holder is the same claim
-    wherever it is written, where a landing is an act the plan records.
+    the plan and the completion log, and the asymmetry is deliberate: naming a holder
+    is the same claim wherever it is written, where a landing is an act the plan
+    records, in the log for a landed item and in the plan for an open one.
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -636,29 +638,33 @@ def _landings(ctx: Context, registered: set[str]) -> None:
                         "this rule reads nothing; the form is the rule id in bold, which "
                         f"{PLAN}'s checklist conventions fix")
 
+    # a landed item's note, and so its declaration, lives in the completion log from
+    # S10b; the plan is still read because an open item's note stays there
     declared = 0
-    plan = ctx.corpus.get(PLAN)
-    if plan is None:
-        findings.append(f"{PLAN} is not in the repository, so no landing can be read")
-    else:
-        for i, _ in plan.unfenced("Landed:", _LANDED_RE):
+    for name in (PLAN, LOG):
+        doc = ctx.corpus.get(name)
+        if doc is None:
+            findings.append(f"{name} is not in the repository, so no landing can be "
+                            "read there")
+            continue
+        for i, _ in doc.unfenced("Landed:", _LANDED_RE):
             declared += 1
-            tier = _TIER_RE.match(plan.lines[i])
+            tier = _TIER_RE.match(doc.lines[i])
             if tier is None:
-                findings.append(f"{PLAN}:{i + 1} declares a landing in a form this rule "
+                findings.append(f"{name}:{i + 1} declares a landing in a form this rule "
                                 "does not read; a declaration is 'Landed: Tier A' or "
                                 "'Landed: Tier B under' the rules holding what it created")
             elif tier.group("tier") == "B" and not _HOLDER_RE.search(tier.group("rest")):
-                findings.append(f"{PLAN}:{i + 1} lands at Tier B and names no rule "
+                findings.append(f"{name}:{i + 1} lands at Tier B and names no rule "
                                 "holding what it created, which is the fourth of the "
                                 "four conditions Tier B is admitted on")
 
     rep.report("K-84", "holder citation(s) and landing declaration(s) no registry "
                "answers:", findings,
                f"the corpus's {cited} holder citations name rules {RULES} or "
-               f"{Q_RULES} carries, and each of the plan's {declared} landing "
-               "declarations states a tier and, at Tier B, the rule holding what it "
-               "created")
+               f"{Q_RULES} carries, and each of the {declared} landing declarations "
+               "in the plan and the completion log states a tier and, at Tier B, the "
+               "rule holding what it created")
 
 
 def _at(text: str, offset: int) -> int:

@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""findings: the findings register against the plan's notes, in both directions.
+"""findings: the findings register against the notes, in both directions.
 
 The implementation plan produces findings and, until this register existed, nothing
-read them. That cost three ways, all three of which are failures of *totality* rather
+read them. The notes themselves live in the completion log from S10b, one entry per
+landed item, and this group holds that log total against the plan's landed items as
+well, so a landing whose note was never written is a finding here and not a silence. That cost three ways, all three of which are failures of *totality* rather
 than of content: one fact was found at two items with nothing to say so, an owed act
 had nowhere to live until somebody assembled S1's rows out of prose by hand, and a
 methodological finding stayed a paragraph where it was a rule. An index that is
@@ -89,11 +91,14 @@ def run(ctx: Context) -> None:
     index = findings.parse(ctx.text(findings.REGISTER)
                            if findings.REGISTER in ctx.corpus else "")
     read = findings.plan(ctx.text(findings.PLAN)
-                         if findings.PLAN in ctx.corpus else "")
+                         if findings.PLAN in ctx.corpus else "",
+                         ctx.text(findings.LOG)
+                         if findings.LOG in ctx.corpus else "")
 
     items = sorted({e.raised for e in index.entries})
     ctx.shared["findings the register indexes"] = len(index.entries)
     ctx.shared["findings the plan's notes count"] = sum(b.size for b in read.blocks)
+    ctx.shared["landed items the completion log carries an entry for"] = len(read.log_items)
     ctx.q[ENTRY_COUNT] = len(index.entries)
     ctx.q[ITEM_COUNT] = len(items)
     # rebound rather than appended to: the counts group's own list is a module-level
@@ -116,7 +121,9 @@ def run(ctx: Context) -> None:
                found,
                f"the register indexes {len(index.entries)} findings across "
                f"{len(items)} items, one for each of the "
-               f"{sum(b.size for b in read.blocks)} the plan's notes count and "
-               f"{sum(1 for e in index.entries if e.in_prose)} more it states in "
-               f"prose, and {opened} open owed acts stand where S1 reads them")
+               f"{sum(b.size for b in read.blocks)} the notes count and "
+               f"{sum(1 for e in index.entries if e.in_prose)} more they state in "
+               f"prose, the completion log carries an entry for each of the plan's "
+               f"{len(read.done)} landed items, and {opened} open owed acts stand "
+               "where S1 reads them")
     rep.line()

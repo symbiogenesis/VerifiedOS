@@ -1,10 +1,10 @@
 # Findings Register
 
-*An index of what the build has found, and not a second copy of it. The completion notes and cells of [the implementation checklist](implementation-checklist.md) own every finding's content; this register owns its id, its type, the item that raised it, and its disposition, and owns nothing else.*
+*An index of what the build has found, and not a second copy of it. The completion notes in [the completion log](completion-log.md) and the cells of [the implementation checklist](implementation-checklist.md) own every finding's content; this register owns its id, its type, the item that raised it, and its disposition, and owns nothing else.*
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 559 of them across 89 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 562 of them across 90 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -13,7 +13,7 @@ A finding is something the build learned that the plan would otherwise learn aga
 · Restates: (where the plan records one fact twice) the entry this one is the second sighting of
 ```
 
-**One fact, one owner.** The plan's note is the finding and this register is the index over it, so an entry names what was found as far as a reader needs to recognize it and then stops: a figure it quotes is there to name the finding and belongs to the note, and it never argues the note's case a second time. Where the two disagree the note wins, being the record of the act where this is a pointer at it.
+**One fact, one owner.** The item's note is the finding and this register is the index over it, so an entry names what was found as far as a reader needs to recognize it and then stops: a figure it quotes is there to name the finding and belongs to the note, and it never argues the note's case a second time. Where the two disagree the note wins, being the record of the act where this is a pointer at it.
 
 **Ids are permanent and order is the plan's.** A retired finding keeps its number and is struck, never reused, because a number is what a later item cites when it meets the same fact. Entries sit in the order the plan records them, so a finding added to a note that already has others takes a letter suffix and sits where the note puts it, not where its number would.
 
@@ -111,6 +111,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-197i** method: a lane can leave an untracked file at a tracked path in the worktree its branch merges into, where the merge refuses and the selftest's sandbox reads it as an empty source, and every gate the lane runs is green over it because each decides about the worktree it runs in
 · Raised: S9
 · Disposition: closed, the path clear at the landing and the primary worktree's status empty; the standing reading is that a lane's own gates decide nothing about the tree it merges into
+
+**F-256** method: a figure a checker rule holds live inside an item's cell loses its hold when the item lands, the cell becoming a completion-log note the tree keeps frozen, so an item whose cell carries a K-96 judged sentence or a K-24 claim is one whose landing must move or drop the hold in the same act
+· Raised: S10b
+· Disposition: closed, both holds dropped from the estimates group, the class-I outturn S10b's own cell stated and the pooled class-X fit S19's note states each staying as the measurement its gate took; the check before landing an item is whether estimates.py's judged lines or counts.py's claims read its cell
+
+**F-257** measurement: no landed item carried prose after its child items, so every completion note was one contiguous span between its header line and the next item line
+· Raised: S10b
+· Disposition: standing, the move being one span per item with nothing attributed by hand
+
+**F-258** measurement: the fragment links inside the moved notes named two headings of the checklist, the build-loop instruments section and the calibration record
+· Raised: S10b
+· Disposition: closed, the first resolving inside the log, which carries that section, and the second rewritten to point back at the checklist, which still carries the record
 
 **F-000a** upstream-defect: the commit trace's default destination is block-buffered into a pipe while the injection diagnostics are unbuffered on the other descriptor, and the end-of-trace acknowledgement prints whatever the trace flag says because its call site passes a comparison where every other passes the flag
 · Raised: S11

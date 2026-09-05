@@ -263,6 +263,13 @@ def run(ctx: Context) -> None:
         "findings the register indexes": sh.get("findings the register indexes", 0),
         "findings the plan's notes count":
             sh.get("findings the plan's notes count", 0),
+        # A third for the same rule, since S10b moved the notes into the completion log:
+        # K-82 holds that log's entries total against the plan's landed items, so a log
+        # whose heading shape this rule can no longer read would leave it reporting
+        # every landed item as unrecorded, which is loud, while a plan that has stopped
+        # marking items landed would leave the log's entries held against nothing.
+        "landed items the completion log carries an entry for":
+            sh.get("landed items the completion log carries an entry for", 0),
     }
     ctx.floors = floors
     rep.report("K-47", "enumeration(s) the tool reads and finds empty:",

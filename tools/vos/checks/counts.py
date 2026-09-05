@@ -73,6 +73,9 @@ SPEC = "docs/spec.md"
 TAL = "docs/typed-assembly-language.md"
 TOOLS_README = "tools/README.md"
 PLAN = "docs/implementation-checklist.md"
+# the completion log carries every landed item's note from S10b, so a claim a note
+# states is read there rather than in the plan
+LOG = "docs/completion-log.md"
 FINDINGS = "docs/findings-register.md"
 
 # file, quantity, style, and the pattern that captures the stated figure alone
@@ -249,15 +252,15 @@ CLAIMS = [
     # both would put their value into K-26's alternation, where fifteen collides with
     # an unrelated fifteen in the plan that no artifact here owns. So the documents
     # state the complement and one figure is registered rather than two.
-    (PLAN, "provision-facts", "words", r"[\w-]+(?= rows, one per switch)"),
-    (PLAN, "provision-facts", "words", r"(?<=the lane is )[\w-]+(?= stated facts)"),
-    (PLAN, "provision-uncommanded", "words",
+    (LOG, "provision-facts", "words", r"[\w-]+(?= rows, one per switch)"),
+    (LOG, "provision-facts", "words", r"(?<=the lane is )[\w-]+(?= stated facts)"),
+    (LOG, "provision-uncommanded", "words",
      r"(?<=stated facts and all but )[\w-]+(?= of them carry a command)"),
-    (PLAN, "provision-uncommanded", "words",
+    (LOG, "provision-uncommanded", "words",
      r"[\w-]+(?= of the [\w-]+ rows report and plan nothing)"),
-    (PLAN, "provision-facts", "words",
+    (LOG, "provision-facts", "words",
      r"(?<=of the )[\w-]+(?= rows report and plan nothing)"),
-    (PLAN, "provision-switches", "words", r"(?<=this lane now carries )[\w-]+"),
+    (LOG, "provision-switches", "words", r"(?<=this lane now carries )[\w-]+"),
     (FINDINGS, "provision-switches", "words",
      r"(?<=where the lane now carries )[\w-]+"),
     (TOOLS_README, "provision-switches", "words",
@@ -273,9 +276,9 @@ CLAIMS = [
     # admitted count is registered: the refusals are twelve, and `twelve` in K-26's
     # alternation collides with twenty-three unrelated sentences in this corpus, which
     # is the collision the provisioner's rows above already refused to pay for.
-    (PLAN, "dialect-admitted", "digits",
+    (LOG, "dialect-admitted", "digits",
      r"(?<=The generated table carries \*\*)[\d,]+(?=\*\* admitted mnemonics)"),
-    (PLAN, "dialect-admitted", "digits",
+    (LOG, "dialect-admitted", "digits",
      r"(?<=the generated table at \*\*)[\d,]+(?=\*\* admitted mnemonics)"),
 ]
 

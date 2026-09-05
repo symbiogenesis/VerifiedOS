@@ -31,10 +31,9 @@ elapsed attended interval and an agent-parallel actual is summed agent-session
 wall-clock over an item's passes, no item carries both, and the plan's own ruling is
 that nothing here converts between them, so each series is joined to its own record and
 each stated ratio is the quotient over the record carrying the pool it names. The one
-figure fitted across the pair is the one the plan states in order to refuse it, what the
-class-X-authored pool would read if the two were pooled, and it is computed here for the
-same reason every other figure is: a number stated to be rejected still has to be the
-number.
+figure ever fitted across the pair, what the class-X-authored pool would read if the two
+were pooled, is the one S19 stated in order to refuse it, and it stays in that item's
+completion-log note as the measurement its gate took rather than being held live here.
 
 A third authored token joins the range: an open item's **authority class**, `I` where what
 the item realizes is fixed inside this repository and `X` where it is not. It is a judgment
@@ -582,11 +581,6 @@ def run(ctx: Context) -> None:
     pratio_t = {pool: quantize(ratio, 2) if ratio is not None else "n/a"
                 for pool, ratio in pratios.items()}
     outside = _count(len(fit["X-read"]) + len(fit["X-authored"]))
-    # the one fit taken across both records, and the plan states it as the thing the
-    # ruling refuses rather than as a figure anything is priced against
-    pooled = fit["X-authored"] + pfit["X-authored"]
-    pooled_est = round(sum(e for _, e, _ in pooled), 1)
-    pooled_act = round(sum(a for _, _, a in pooled), 1)
     judged_lines = [
         ("the critical chain",
          r"(?m)^\* Critical chain through M8a:.*?Over those items the chain sums to "
@@ -621,9 +615,6 @@ def run(ctx: Context) -> None:
         ("the fan-out ceiling count",
          r"The fan-out has run against that ceiling (?P<n>[a-z-]+) times",
          {"n": _count(len(parallel))}),
-        ("the class-I outturn an open item prices against",
-         r"Class I has run at (?P<ri>[\d.]+) over (?P<ni>[a-z-]+) completed items",
-         {"ri": ratio_t["I"], "ni": counts["I"]}),
         ("the calibration risk",
          r"rests on (?P<na>[a-z-]+) completed items in the class that matters",
          {"na": counts["X-authored"]}),
@@ -668,16 +659,6 @@ def run(ctx: Context) -> None:
           "nr": _count(len(pfit["X-read"])), "rr": pratio_t["X-read"],
           "na": _count(len(pfit["X-authored"])), "ra": pratio_t["X-authored"],
           "attended": ratio_t["X-authored"], "parallel": pratio_t["X-authored"]}),
-        # what the ruling refuses, computed rather than asserted: the one pool the
-        # calibration rests on, taken over both records at once. It is the only figure
-        # here fitted across the two clocks, and it exists to be reported as the thing
-        # that would happen and not as the thing that is done
-        ("the pooled class-X fit",
-         r"the pool is then (?P<n>[a-z-]+) items at (?P<act>[\d.,]+) h actual against "
-         r"(?P<est>[\d.,]+) h estimated, a ratio of \*\*(?P<r>[\d.]+)\*\*",
-         {"n": _count(len(pooled)), "act": format_hours(pooled_act),
-          "est": format_hours(pooled_est),
-          "r": quantize(pooled_act / pooled_est, 2) if pooled_est else "n/a"}),
     ]
 
     # the horizon is the one sentence read before it is held: the rate is the plan's, and

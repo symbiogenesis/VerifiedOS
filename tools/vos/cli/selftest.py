@@ -605,6 +605,9 @@ MATRIX = "docs/coverage-matrix.md"
 PROFILE = "docs/isa-profile.md"
 PERF = "docs/performance-estimates.md"
 PLAN = "docs/implementation-checklist.md"
+# every landed item's note, and so every findings block, holder citation and landing
+# declaration a landed item wrote, lives here from S10b
+LOG = "docs/completion-log.md"
 BINDINGS = "docs/field-bindings.md"
 ABSENCE = "docs/absence-contract.md"
 CORPUS_DOC = "docs/differential-corpus.md"
@@ -754,12 +757,34 @@ def _k84(box: Sandbox) -> bool:
     is the whole mutation: the four conditions Tier B is admitted on are prose until
     something reads them, and what this asks is whether the fourth one now bites.
     """
-    text = box.read(PLAN)
+    text = box.read(LOG)
     m = re.search(r"(?m)^(?P<ind>[^\S\r\n]*)\* Exit evidence:[^\r\n]*", text)
     if not m:
         return False
-    return box.write(PLAN, replace_span(
+    return box.write(LOG, replace_span(
         text, m, f"{m.group()}\n{m.group('ind')}* Landed: Tier B."))
+
+
+def _k82_entry(box: Sandbox) -> bool:
+    """A landed item whose completion-log entry is gone, and whose cell no longer links.
+
+    The heading is deleted whole, so the note beneath it is read as the previous
+    entry's, and the plan's cell drops the link it carried, so that the link check does
+    not report the dead fragment first and the case decides on K-82's own reading: a
+    landed item the log carries no entry for. The item is one whose note carries no
+    findings block, so the merge into its neighbour moves no count and the case is
+    the totality alone.
+    """
+    heading = "### M0.5 · Reconcile the baselines\n\n"
+    log = box.read(LOG)
+    if heading not in log:
+        return False
+    plan = box.read(PLAN)
+    link = " ([note](completion-log.md#m05-reconcile-the-baselines))"
+    if link not in plan:
+        return False
+    return (box.write(LOG, log.replace(heading, "", 1))
+            and box.write(PLAN, plan.replace(link, "", 1)))
 
 
 def _k82_figure(box: Sandbox) -> bool:
@@ -1425,7 +1450,7 @@ CASES: list[Case] = [
     # writes exactly this. The citation moved is the capability format's, and no other
     # rule reads a K- id in this document, so the case passes on K-84's own report.
     ("K-84", "a landing naming a holder the rule registry does not carry",
-     _literal(PLAN, "**K-79**", "**K-64**")),
+     _literal(LOG, "**K-79**", "**K-64**")),
 
     # The other half, and the case above does not reach it: with the declaration loop
     # deleted that mutant is still killed, so a rule narrowed to its citations would
@@ -1442,8 +1467,15 @@ CASES: list[Case] = [
     # passes on K-82's own report with no collateral.
     ("K-82", "a completion note whose declared count is not the number of findings "
              "beneath it",
-     _literal(PLAN, "  * Six findings.\n    * **The discharge needed no mechanism",
+     _literal(LOG, "  * Six findings.\n    * **The discharge needed no mechanism",
               "  * Seven findings.\n    * **The discharge needed no mechanism")),
+
+    # The third side of the relation, which neither case above reaches: the notes live
+    # in the completion log from S10b and K-82 holds that log's entries total against
+    # the plan's landed items. A landed item whose entry is gone is what a landing that
+    # forgot its note, or a move that lost one, looks like, and no other rule sees it
+    # once the cell's link goes with the heading.
+    ("K-82", "a landed item the completion log carries no entry for", _k82_entry),
 
     # One rule gets one case, and this rule gets two, because the pairing fails from
     # two sides and neither case reaches the other: with the resolution half deleted

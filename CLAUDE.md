@@ -10,6 +10,7 @@
 | [docs/requirements-register.md](docs/requirements-register.md) | Normative. The artifact the review gate audits; the prose is its commentary |
 | [docs/coverage-matrix.md](docs/coverage-matrix.md) | One cell per property-boundary pair, pointing at the register |
 | [docs/implementation-checklist.md](docs/implementation-checklist.md) | Build order, milestones, estimates, and execution state |
+| [docs/completion-log.md](docs/completion-log.md) | The note each landed item recorded at its gate; the checklist keeps one line and a link per landed item |
 | [docs/absence-contract.md](docs/absence-contract.md) | What an auditor searches for and must not find |
 | [model/](model/) | The curated Sail model |
 | [rtl/](rtl/) | The RTL this repository authored, and the record binding each claimed absence to a build |
@@ -24,6 +25,7 @@
 - **An entry and the prose it cites are read together.** Editing either side leaves that pair owed a re-reading, which rule K-61 reports; `tools/run.py coread --show <id>` prints the two sides against each other and `--bless <id>` records the reading. Blessing is a judgment and deliberately not `--fix`, so a stale pair cannot be cleared by repairing arithmetic. A prose edit dirties a median of four pairs.
 - **To change a coverage cell, change the register first.** Adding a boundary or a property adds a whole line or column, every cell of which must be filled before the checker passes. See [how to change a cell](docs/coverage-matrix.md#4-how-to-read-a-cell-and-how-to-change-one).
 - **Every checklist item carries one estimate cell**, and every subtotal, the grand total, and the progress figures are sums over those cells that `tools/check.py --fix` recomputes. See [checklist conventions](docs/implementation-checklist.md#checklist-conventions).
+- **A landed item's note goes in the completion log, not the checklist.** The checklist keeps the item's header line, its cell, one summary line and a link to the log entry, whose heading spells the item's label as the checklist writes it; rule K-82 holds the log's entries total against the landed items in both directions, and reads findings blocks and `Landed:` lines there. An open item's note stays in the checklist until it lands.
 - **No em-dash (U+2014) in any tracked document**, with no carve-out: rule K-40. A not-applicable cell is `n/a`, never a blank and never a bare dash.
 - **The documents carry present-tense current state.** They do not narrate their own past readings or the revisions that got them here; completion evidence on a checked item is the exception, being a measurement recorded at its gate.
 - **A `§n` is resolved by hand.** Rule K-13 holds only that some document in the repository numbers that section, because the numbering is shared, so a reference aimed at the wrong document passes green. Bare `§n` names [the register](docs/requirements-register.md)'s section, or [the profile](docs/isa-profile.md)'s where the sentence says the profile states it; [the version matrix](docs/cheri-version-matrix.md) is where both conventions meet and states its own reading.

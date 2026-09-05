@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The findings register, and the plan's own count of what it indexes.
+"""The findings register, the notes' own findings blocks, and the relation between them.
 
-Two artifacts, one relation. `docs/implementation-checklist.md` records a finding in
-a completion note, under a count with its bullets beneath it or as a bullet that
-opens `Finding`; `docs/findings-register.md` gives that finding an id, a type, the
-item that raised it, and a disposition. This module reads both sides and states
-where they disagree, so that the rule over them and any later tool asking the same
-question share one parse rather than two.
+Three artifacts, one relation. `docs/implementation-checklist.md` carries every item
+and, for a landed one, a single line and a link; `docs/completion-log.md` carries the
+note each landed item recorded, under a heading spelling the item's label, and a note
+records a finding under a count with its bullets beneath it or as a bullet that opens
+`Finding`; `docs/findings-register.md` gives that finding an id, a type, the item that
+raised it, and a disposition. This module reads all three and states where they
+disagree, so that the rule over them and any later tool asking the same question share
+one parse rather than two.
 
 **The block's size is its bullets and never its own word.** A note writes `Six
 findings.` above six of them, and holding the register against that word would let a
@@ -16,13 +18,21 @@ ordinary arithmetic-is-recomputed discipline applied to a document's own enumera
 
 **A leading word that is not a count is prose and not a malformed block.** One note
 opens a paragraph `Environment findings, booked for later lanes.` and carries three
-findings inside it; the plan states them in prose rather than under a count, so the
+findings inside it; the note states them in prose rather than under a count, so the
 register indexes them by hand and marks them `in prose`. Reading that bullet as a
 block this parse could not count would make a permanent finding out of a shape the
 register already declares it does not hold. What keeps the reading fail-closed
 instead is the comparison itself: a count word this alternation stops recognizing
-takes its whole block out of the plan's side, and the entries indexing it are then
+takes its whole block out of the notes' side, and the entries indexing it are then
 entries naming findings the note no longer records, which is a finding either way.
+
+**The log is held total against the plan's landed items in both directions.** A
+landed or struck item with no entry is a note that was never written or was lost in
+the move, and an entry naming no landed item is a note whose item was struck or
+renamed under it; each is named rather than left to be met. Blocks are read in both
+documents, because an open item's note still lives in the plan, and a block there is
+attributed to the item it sits under exactly as one in the log is attributed to the
+heading it sits under.
 
 The register's own template is fenced, and a fence displays text rather than
 declaring anything, so the fenced spans are dropped before either pattern runs. That
@@ -37,6 +47,7 @@ from vos import figures
 
 REGISTER = "docs/findings-register.md"
 PLAN = "docs/implementation-checklist.md"
+LOG = "docs/completion-log.md"
 
 # The closed vocabularies. A type says what a reader does with the finding and a
 # disposition says whether anything is owed; an entry carrying neither in the words
@@ -65,7 +76,12 @@ _COUNTS = {figures.words(n).capitalize(): n for n in range(1, 100)}
 # A checklist item, checked, unchecked, or struck. The label runs to the first middot,
 # which is where the plan separates an item's id from its name; an item with no middot
 # at all is its own label, `Initial check/emit/FAST tooling` being the one such.
-_ITEM_RE = re.compile(r"^[^\S\r\n]*\* (?:\[[ x]\] |~~)\*\*(?P<label>[^*\r\n]+?)\*\*")
+_ITEM_RE = re.compile(r"^[^\S\r\n]*\* (?:\[(?P<box>[ x])\] |(?P<struck>~~))\*\*(?P<label>[^*\r\n]+?)\*\*")
+# A log entry's heading: the item's label as the plan writes it, one heading level
+# below the section it sits in and two below the log's own title, a child item of a
+# split milestone sitting one level below its parent. A section heading is two hashes
+# and is not an entry.
+_LOG_ITEM_RE = re.compile(r"^#{3,4} (?P<label>\S[^\r\n]*?)[ \t]*$")
 # Longest first, so `Twenty-three` is read as itself rather than as a `Twenty` whose
 # alternative then fails on the hyphen and takes the block out of the reading with it.
 _BLOCK_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}(?P<word>"
@@ -99,10 +115,12 @@ class Index:
 
 @dataclass(frozen=True)
 class Block:
-    """One findings block of a completion note: whose it is, how many bullets it
-    carries, and what its own word claims. `declared` is zero for the singleton form,
-    which states no count and carries exactly the one finding its bullet is."""
+    """One findings block of a note: which document and line it is at, whose it is,
+    how many bullets it carries, and what its own word claims. `declared` is zero for
+    the singleton form, which states no count and carries exactly the one finding its
+    bullet is."""
 
+    doc: str
     item: str
     line: int
     size: int
@@ -111,10 +129,15 @@ class Block:
 
 @dataclass
 class Plan:
-    """The checklist's side: every item label it carries, and every findings block."""
+    """The notes' side: every item label the plan carries, the landed and struck ones
+    among them, the items the completion log carries an entry for, and every findings
+    block either document records."""
 
     present: bool = False
+    log_present: bool = False
     items: set[str] = field(default_factory=set)
+    done: set[str] = field(default_factory=set)
+    log_items: set[str] = field(default_factory=set)
     blocks: list[Block] = field(default_factory=list)
 
 
@@ -133,6 +156,10 @@ def _unfenced(text: str) -> list[str]:
         if marker:
             inside = not inside
     return lines
+
+
+def _head(label: str) -> str:
+    return label.partition(" · ")[0].strip()
 
 
 def parse(text: str) -> Index:
@@ -221,29 +248,65 @@ def _block_size(lines: list[str], start: int, indent: int) -> int:
     return size
 
 
-def plan(text: str) -> Plan:
-    """The checklist's items, and every findings block with the item that raised it."""
-    read = Plan(present=bool(text))
-    if not text:
-        return read
+def _blocks(doc: str, lines: list[str], item_at: dict[int, str]) -> list[Block]:
+    """Every findings block of one document, attributed to the item whose span it is in.
 
-    lines = text.split("\n")
+    `item_at` gives, for each line that opens an item, that item's label head; a block
+    belongs to the last item opened above it, and one above every item belongs to
+    nobody, which the comparison then skips as an item the plan does not carry.
+    """
+    blocks: list[Block] = []
     item = ""
     for i, line in enumerate(lines):
-        head = _ITEM_RE.match(line)
-        if head is not None:
-            item = head.group("label").split(" · ")[0].strip()
-            read.items.add(item)
+        if i in item_at:
+            item = item_at[i]
             continue
         block = _BLOCK_RE.match(line)
         if block is not None:
             declared = _COUNTS[block.group("word")]
-            read.blocks.append(Block(item=item, line=i + 1, declared=declared,
-                                     size=_block_size(lines, i, len(block.group("ind")))))
+            blocks.append(Block(doc=doc, item=item, line=i + 1, declared=declared,
+                                size=_block_size(lines, i, len(block.group("ind")))))
             continue
         single = _SINGLE_RE.match(line)
         if single is not None:
-            read.blocks.append(Block(item=item, line=i + 1, declared=0, size=1))
+            blocks.append(Block(doc=doc, item=item, line=i + 1, declared=0, size=1))
+    return blocks
+
+
+def plan(text: str, log: str = "") -> Plan:
+    """The checklist's items, the log's entries, and every findings block either carries.
+
+    The plan is read for every item, the landed and struck ones noted apart; the log is
+    read for its entry headings, and both are read for blocks. An absent plan yields a
+    `Plan` that is not present, and the comparison then says so once rather than once
+    per entry; an absent log is recorded the same way and reported the same way.
+    """
+    read = Plan(present=bool(text), log_present=bool(log))
+    if not text:
+        return read
+
+    lines = text.split("\n")
+    item_at: dict[int, str] = {}
+    for i, line in enumerate(lines):
+        head = _ITEM_RE.match(line)
+        if head is not None:
+            label = _head(head.group("label"))
+            item_at[i] = label
+            read.items.add(label)
+            if head.group("box") == "x" or head.group("struck") is not None:
+                read.done.add(label)
+    read.blocks.extend(_blocks(PLAN, lines, item_at))
+
+    if log:
+        log_lines = _unfenced(log)
+        log_at: dict[int, str] = {}
+        for i, line in enumerate(log_lines):
+            head = _LOG_ITEM_RE.match(line)
+            if head is not None:
+                label = _head(head.group("label"))
+                log_at[i] = label
+                read.log_items.add(label)
+        read.blocks.extend(_blocks(LOG, log_lines, log_at))
     return read
 
 
@@ -256,7 +319,7 @@ def counted(read: Plan) -> dict[str, int]:
 
 
 def indexed(index: Index) -> dict[str, int]:
-    """How many entries name each item, over the entries the plan counts."""
+    """How many entries name each item, over the entries the notes count."""
     per: dict[str, int] = {}
     for entry in index.entries:
         if not entry.in_prose:
@@ -265,7 +328,7 @@ def indexed(index: Index) -> dict[str, int]:
 
 
 def disagreements(index: Index, read: Plan) -> list[str]:
-    """Everything the two sides do not agree on, in the order a reader repairs it."""
+    """Everything the sides do not agree on, in the order a reader repairs it."""
     if not index.present:
         return [f"{REGISTER} is not in the checker's corpus, so no finding the plan "
                 "records is indexed by anything"]
@@ -274,7 +337,17 @@ def disagreements(index: Index, read: Plan) -> list[str]:
                 "held against nothing"]
 
     found = list(index.malformed)
-    found += [f"{PLAN}:{b.line} declares {b.declared} findings over {b.size} bullet(s)"
+    if not read.log_present:
+        found.append(f"{LOG} is not in the checker's corpus, so no landed item's note "
+                     "is read and the register's entries are held against the plan's "
+                     "open notes alone")
+    else:
+        found += [f"{item} is a landed item {LOG} carries no entry for"
+                  for item in sorted(read.done - read.log_items)]
+        found += [f"{LOG} carries an entry for {item}, which is not a landed item the "
+                  "plan carries"
+                  for item in sorted(read.log_items - read.done)]
+    found += [f"{b.doc}:{b.line} declares {b.declared} findings over {b.size} bullet(s)"
               for b in read.blocks if b.declared and b.declared != b.size]
     found += [f"{REGISTER}:{e.line} {e.ident} is raised at {e.raised}, which is not an "
               "item the plan carries"
