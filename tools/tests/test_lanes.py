@@ -92,6 +92,16 @@ _RUNS: dict[tuple[str, str], Argv] = {
 }
 
 
+# The one run whose subject is a gitlink. `rtl filelist` reads the imported core's
+# manifest, which a checkout that has initialized no submodule does not hold, and the CI
+# clone is that checkout by design. Its answer there is the absence named and exit 1,
+# which is an answer given on this lane about the tree and not a refusal of the lane, so
+# the case accepts it in that one form only: any other nonzero exit, from this run or
+# any other, is still the failure it always was.
+_ABSENT_GITLINK = "is not in this checkout"
+_READS_A_GITLINK: frozenset[tuple[str, str]] = frozenset({("rtl", "filelist")})
+
+
 def _declared() -> set[tuple[str, str]]:
     return {(command.name, sub) for command in COMMANDS for sub in command.host_ok}
 
@@ -124,6 +134,8 @@ def _declared_subcommands_answer_on_this_lane() -> None:
             said = out.getvalue() + err.getvalue()
             ensure("runs inside WSL" not in said and "run inside WSL" not in said,
                    f"`run.py {name} {sub}` answered with the guest refusal: {said!r}")
+            if code != 0 and (name, sub) in _READS_A_GITLINK and _ABSENT_GITLINK in said:
+                continue
             ensure(code == 0,
                    f"`run.py {name} {sub}` exited {code}: {said[-400:]!r}")
 
