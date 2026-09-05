@@ -94,7 +94,10 @@ CLASS_RE = re.compile(r"^ · (?P<cls>[IX])(?= ·|$)")
 AFTER_M8B = ["R4", "R5", "M9", "M9a", "M10", "Post-M10",
              "M0.8c", "M1.3", "M1.3a", "M1.4", "M1.8b",
              "M3.4b", "M3.6b", "M5.4", "M6.1b", "M6.2b", "M6.3b", "M6.5b",
-             "M6.6", "M6.7", "M6.8", "S5", "S6"]
+             "M6.6", "M6.7", "M6.8", "S5", "S6",
+             # the assessment's decision items, each a decision over measurements Q4 and Q5
+             # take ahead of the software gate, and none on either chain
+             "Q6", "Q7", "Q8", "Q9", "Q10"]
 AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
 # the critical chain through the software gate, in the order the summary names it. A
