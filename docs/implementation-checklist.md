@@ -413,12 +413,12 @@ The other four off-clock rows are the radio reference state machines (inventory 
 
 * Completed: S1, S2, S3, S4, S7, S8, S9, S10a, S10b, S11, S12, S13a, S13b, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M0.19, M0.20, M1.1, M1.1a, M1.1b, M1.2a, M1.4′, M1.5, M1.6, M1.8a, M1.9, M3.1, M3.2, M3.3, M3.4a, M3.4d, M3.6a, M4.1, M4.1a, M4.1b, M4.2a, M4.2b, M4.3, M5.1, M5.2, M6.0a, M6.0b, M6.1a, M6.2a, M6.3a, M6.4, M6.5a, R1a, R1c-i, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15, I16 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause. **S14 is a sixth of the same kind and the first outside the instruments**, S9 having retired the first of the two grounds I8 declined push CI on and the measurement then finding the second standing.
 * The open work and the order it is taken in are [Sequencing](#sequencing)'s; each landed item's note is in [the completion log](completion-log.md), which also keeps [the lane-by-lane state this summary carried](completion-log.md#the-summarys-state-before-s10b-landed-2026-09-05) before the notes moved out of this file.
-* Total estimate: 1,264.1 h midpoint, class I 244.5 h and class X 584.5 h over the open items.
-* Calibrated against completed-item outturn (class I 0.71, class X 1.68): approximately 1,590.7 h.
-* Progress by estimate: 435.1 of 1,264.1 h complete (34.4%); 829 h remaining (65.6%).
-* M8a gate: 203 h of open work falls at or before it, of which 122 h is class X.
+* Total estimate: 1,278.1 h midpoint, class I 249.5 h and class X 593.5 h over the open items.
+* Calibrated against completed-item outturn (class I 0.71, class X 1.68): approximately 1,609.3 h.
+* Progress by estimate: 435.1 of 1,278.1 h complete (34.0%); 843 h remaining (66.0%).
+* M8a gate: 217 h of open work falls at or before it, of which 131 h is class X.
 * M8b gate: a 90.5 h chain of open work running beside the software one, R1b through M8b.
-* Critical chain through M8a: **its head is discharged**, S1 and every provenance decision being landed, and M1.9 with them, its memory plan closed on a population that decided every site, so what remains of it runs M1.2, M1.7, M3.5, M4.4, M5.3, M7.1 and M8a; every Gallina item beside it is `Wasm-parallel` and adds none, and M6.5a has left it the same way, its copy-based service landing as a statement artifact that wanted no backend. Over those items the chain sums to 67–142 h at a 104.5 h midpoint, M1.2 entering as its six open children because it carries no estimate cell of its own. The membership is the author's and the sum is arithmetic `tools/check.py` recomputes over those cells like the two gate figures above, so a re-price of anything on the chain moves it in the same edit, and it is read as a serial-path ceiling rather than as a bill.
+* Critical chain through M8a: **its head is discharged**, S1 and every provenance decision being landed, and M1.9 with them, its memory plan closed on a population that decided every site, so what remains of it runs M1.2, M1.7, M3.5, M4.4, M5.3, M7.1 and M8a; every Gallina item beside it is `Wasm-parallel` and adds none, and M6.5a has left it the same way, its copy-based service landing as a statement artifact that wanted no backend. Over those items the chain sums to 72–155 h at a 113.5 h midpoint, M1.2 entering as its six open children because it carries no estimate cell of its own. The membership is the author's and the sum is arithmetic `tools/check.py` recomputes over those cells like the two gate figures above, so a re-price of anything on the chain moves it in the same edit, and it is read as a serial-path ceiling rather than as a bill.
 
 ### Sequencing
 
@@ -552,7 +552,7 @@ The work that is undelegatable, the work that unblocks a lane, and the instrumen
 * [ ] **S26 · Close the critique's work list where the documents already answer it** · 5 h, range 3–7 · 0.4% · I
   * The six of [the critique's](critique.md#the-work-list) eight open work-list items that a register or spec sentence closes: three text edits whose answer the corpus already contains (33, 34, 36), two calls whose recording arm is a design reading (30, 38), and one reading of the outside world declined into a sentence (35). Items 10 and 37 stay open, each gated on an artifact that does not exist. Every edit is Tier A and dirties the pairs K-61 reports, which are read and blessed in the same landing.
 
-**S subtotal:** 102.9 h · 8% · 88.9 h complete · open range 9–19 h.
+**S subtotal:** 107.9 h · 8% · 88.9 h complete · open range 12–26 h.
 
 ### Q · Assessment actions
 
@@ -590,9 +590,9 @@ Q1, Q2a, Q3a, Q4a and Q5a open independently, the host-side halves waiting on no
   * **Done when** one useful component has one authoritative operational source, a mechanically regenerated implementation, a checked relation at every claimed boundary, and an execution on the target model. A host-only prototype completes the first experiment and not the device proof. The CompCert-C/VST route stays the default until a comparison displaces it, and the item stops where the bridge or the backend costs more than the duplication it removes. Higher-order specification code does not fit the target subset, which M1.6 measured over the supervision tree, so nothing here is sold as compilation of the golden model; functional compilation establishes neither constant-time behaviour, resource bounds, robust preservation nor the hardware refinement; no general Gallina compiler and no verified collector is built first; the domain-specific generation already in the plan stays where it fits, and hand-refined code stays where it makes the implementation and the proof simpler.
   * **Split at entry by what a host can decide**, on M3.4's precedent: the host-only prototype the item itself calls the first experiment is one child, and the device path, which waits on M1.2f's backend, is the other. The two children redistribute this cell's 20 h and its 12–28 range rather than re-price them.
 
-  * [ ] **Q2a · Demonstrate the lowering route host-only on a wire parser** · 10 h, range 6–14 · 0.0% · X
+  * [ ] **Q2a · Demonstrate the lowering route host-only on a wire parser** · 10 h, range 6–14 · 0.8% · X
     * Bullets one to three whole, the host half of the measurement (generated code size, proof-build time, the hand-authored glue, and the reaching exit's `-S` and `-dcapasm` figures), and a written recommendation on the device path that takes no decision. The artifacts follow M1.5's precedent, a source and a recipe a later reader re-runs in the switch M1.6 created.
-  * [ ] **Q2b · Choose the device path and close the relation to the Sail model** · 10 h, range 6–14 · 0.0% · X
+  * [ ] **Q2b · Choose the device path and close the relation to the Sail model** · 10 h, range 6–14 · 0.8% · X
     * Bullet four, the target half of the measurement (target cycles and peak storage) and the execution on the target model the Done-when asks for. Gates on M1.2f, the reaching exit's admissibility riding the backend.
 * [ ] **Q3 · Connect the existing assurance instruments to the slice**
   * **Connect the pinned capability-helper property suite to the narrowed model** and enumerate the assumptions the narrowing moved. `sail-cheri-riscv-verif` is pinned and no tool here runs either of its targets; its properties are stated at the upstream edition of helpers this model transplanted and then narrowed, so the premises the narrowing moved are enumerated before anything is run, and bounds edges, malformed encodings and the permission representation are exercised against the current semantics.
@@ -602,9 +602,9 @@ Q1, Q2a, Q3a, Q4a and Q5a open independently, the host-side halves waiting on no
   * **Done when** the slice's production code is connected to its functional specification, its changed representation properties are checked, and the security claim states which assumptions and which physical faults remain outside it. The routes are the existing Sail, Rocq, Verilator, QuickChick, `oracle` and `seed` ones [tools/README.md](../tools/README.md) states, and a new fuzzing framework is not the first dependency wanted here. The effect is stronger evidence and less regression risk at more immediate effort: a test can falsify a claim and a surviving test discharges no universal theorem, and no speed or capacity credit belongs to this item.
   * **Split at entry by what exists to connect to.** The pinned property suite and the narrowed model both exist, so the first bullet is a child of its own; the other three want the slice Q2b lowers and the protected-sequence fault model [the crown-jewel inventory](crown-jewels.md) books as not authored, and are the second. The children redistribute this cell's 25 h and its 15–35 range.
 
-  * [ ] **Q3a · Connect the capability-helper property suite to the narrowed model** · 8 h, range 5–11 · 0.0% · X
+  * [ ] **Q3a · Connect the capability-helper property suite to the narrowed model** · 8 h, range 5–11 · 0.6% · X
     * The first bullet: the premises the narrowing moved enumerated before anything runs, the properties transcribed at the frozen widths and run over the model's own SMT route, and bounds edges, malformed encodings and the permission representation exercised against the current semantics.
-  * [ ] **Q3b · Extend the instruments to the lowered slice and specify its fault model** · 17 h, range 10–24 · 0.0% · X
+  * [ ] **Q3b · Extend the instruments to the lowered slice and specify its fault model** · 17 h, range 10–24 · 1.3% · X
     * Bullets two to four over the slice Q2b lowers, and the Done-when. Gates on Q2b and on the fault model above, which is a Tier-A authoring act no item yet owns.
 * [ ] **Q4 · Measure inference demand before adding supply**
   * **Select the model, the representative tasks, the quality threshold, the context lengths and the concurrency**, and track weights, KV state, scratch, decoding buffers and the rest of the simultaneous workload separately.
@@ -614,9 +614,9 @@ Q1, Q2a, Q3a, Q4a and Q5a open independently, the host-side halves waiting on no
   * **Done when** a quality-acceptable configuration has a measured host baseline, an explicit target traffic budget, and a report saying whether compute, bandwidth, storage or the slot grant is the limit. Quantization reduces bytes and so traffic; a smaller model or context reduces function as well as demand; no physical cell is created; and bandwidth-bound decoding gains only where the saved transfers outweigh the added computation and other traffic. Useful quality decides, not nominal parameter count.
   * **Split at entry by what a host can measure**, on the sentence above that its host-side half waits on no image: the demand side and the budget are one child, and the target kernels against the fixed bandwidth grant, which wait on M6.6's kernel and M6.8's grant behind the M8a gate, are the other. The children redistribute this cell's 14 h and its 8–20 range.
 
-  * [ ] **Q4a · Measure host-side inference demand and state the target traffic budget** · 9 h, range 5–13 · 0.0% · X
+  * [ ] **Q4a · Measure host-side inference demand and state the target traffic budget** · 9 h, range 5–13 · 0.7% · X
     * Bullets one to three on the host, the demand half of bullet four, and the budget scored against R-18-004b's floor; the quality-acceptability threshold is Q1's, so what this child records is the comparator and the threshold's owner.
-  * [ ] **Q4b · Measure the target kernels against the fixed bandwidth grant** · 5 h, range 3–7 · 0.0% · X · after the M8a gate
+  * [ ] **Q4b · Measure the target kernels against the fixed bandwidth grant** · 5 h, range 3–7 · 0.4% · X · after the M8a gate
     * The target half of bullet four and the Done-when's verdict at a measured grant. Gates on M6.6 and M6.8.
 * [ ] **Q5 · Search static placements within the isolation rules**
   * **Export the placement problem as structured data**: object lifetimes, alignment, representable bounds, owner, bank, memory class, reserved sizes, slot grants and timing limits, over M1.9's plan, with the memory-plan obligations (R-08-012c) and [the bank-count contract](bank-count-dse-contract.md) as the constraints.
@@ -627,9 +627,9 @@ Q1, Q2a, Q3a, Q4a and Q5a open independently, the host-side halves waiting on no
   * **Done when** the same workload has a checked improved assignment, or the report says why none was found without presenting a limited search as a proof of impossibility. An optimality claim needs more than one checked feasible assignment. The gain is possibly more usable payload in the same RAM and better throughput under the same schedule, no raw capacity, and nothing at all where the present assignment is already good.
   * **Split at entry by what a plan can be searched over today.** M1.9's plan is a witness whose every figure carries no composition claim, so the export, the enumeration and the exact check are one child taken over it now, and the comparison on the admitted workload, which wants Q1's limits and a composed roster, is the other. The children redistribute this cell's 12 h and its 8–16 range.
 
-  * [ ] **Q5a · Export the placement problem and search it over the standing plan** · 7 h, range 5–9 · 0.0% · I
+  * [ ] **Q5a · Export the placement problem and search it over the standing plan** · 7 h, range 5–9 · 0.5% · I
     * Bullets one to three and five over M1.9's witness plan, taking the second arm of the Done-when: a checked improved assignment over that plan, or a report saying why none is found, never a proof of impossibility.
-  * [ ] **Q5b · Compare the found placement on the admitted workload** · 5 h, range 3–7 · 0.0% · I
+  * [ ] **Q5b · Compare the found placement on the admitted workload** · 5 h, range 3–7 · 0.4% · I
     * Bullet four and the Done-when's first arm over a composed roster. Gates on Q1 and on the roster M7.1 composes.
 * [ ] **Q6 · Compare memory topologies on one workload** · 17 h, range 10–24 · 1.3% · X · after the M8a gate
   * **Compare three candidates on the workload each actually satisfies**: a smaller qualified all-SRAM configuration, the two-class configuration R-15-247 states, and SRAM beside an explicit public-weight store.
@@ -728,10 +728,10 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [x] **M0.6c · Remove excluded source surface**
   * The excluded source surface is removed in four batches, each gated on typecheck, build, schema validation and the profile-subset tests. ([note](completion-log.md#m06c-remove-excluded-source-surface))
 
-  * [x] **c1 · Leaf extensions** · 1.9 h actual · 0.2%
+  * [x] **c1 · Leaf extensions** · 1.9 h actual · 0.1%
     * Unentangled excluded modules, dormant hooks and dormant targets are removed. ([note](completion-log.md#c1-leaf-extensions))
 
-  * [x] **c2 · Entangled extensions** · 1.9 h actual · 0.2%
+  * [x] **c2 · Entangled extensions** · 1.9 h actual · 0.1%
     * The compressed, cache-management, pointer-masking, CFI and counter extensions are removed with their core and system hooks. ([note](completion-log.md#c2-entangled-extensions))
 
   * [x] **c3 · Privilege and translation batch** · 4 h actual · 0.3%
@@ -776,7 +776,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [ ] **M0.8 · Parameterize by core class**
   * Split at entry, and the split is the C-class freeze's: M0.8a is the class table and the roster, which is all the freeze needs from the parameterization and adds no decode surface, and M0.8b to M0.8d are the datapaths those classes name, deferred until before the fast emulator would have carried them, which the M2 strike has now removed. They are parallel with each other because they touch different extension directories, and each is one build configuration of the same model rather than a fork of it (R-15-005).
 
-  * [x] **M0.8a · The core roster and the class table** · 7 h actual · 0.6%
+  * [x] **M0.8a · The core roster and the class table** · 7 h actual · 0.5%
     * The core classes and the roster land as composition-time declarations with counts derived from the roster, and K-60 holds the class table across its artifacts. ([note](completion-log.md#m08a-the-core-roster-and-the-class-table))
 
   * [x] **M0.8b · V-class long-vector datapath and per-element capability checks** · 6.5 h actual · 0.5%
@@ -834,7 +834,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 * [x] **M0.20 · Close the fetch path's instruction-length decision and the harness's restore idiom** · 2.5 h actual · 0.2% · agent-parallel
   * The fetch path's instruction-length decision is deleted with the 16-bit decode surface, and the harness restore defect does not reproduce. ([note](completion-log.md#m020-close-the-fetch-paths-instruction-length-decision-and-the-harnesss-restore-idiom))
 
-**M0 subtotal:** 121.1 h · 10% · 116.1 h complete · open range 3–7 h.
+**M0 subtotal:** 121.1 h · 9% · 116.1 h complete · open range 3–7 h.
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -884,16 +884,16 @@ Every later milestone is purecap and managed-runtime-free from here.
     * A capability type at [cap_format.sail](../model/model/core/cap_format.sail)'s `cap_size`, the merged 32-entry integer-and-capability file [reg_type.sail](../model/model/core/reg_type.sail) carries, and scalar floating point deleted with every instruction constructor naming a float register (R-15-039), which M1.2a measured at 64 of the start-from's 169 where `cheririscV/` had carried 30. Gates on M1.2a and gates c, d and e.
     * **Acceptance predicate.** Done when, in the contained repository at a stated commit, a clean build of the pin's toolchain puts every file of `FILES` at exit 0 with the admit census unchanged; `riscV/Asm.v`'s `preg` is `IR | PC` and names no float register and no instruction constructor names `freg`; `riscV/Capability.v` mirrors [cap_format.sail](../model/model/core/cap_format.sail)'s eight widths and bit positions with its round-trip lemma closed and pins the capability to one `Mint64`/`Q64` slot by reflexivity; `ccomp -S` is byte-identical to the pin's on every FP-free member of M1.2's test set and refuses a scalar-FP program by name; and `cheririscV/` and `common/` carry no diff. **The capability value carrier is not this item's**: `Vcap` and the tagged `memval` live in `common/` and are M1.2g's, so the type authored here is the backend-local encoding and the width over stock chunks. The compiler's disposition of scalar-FP source is a refusal at `Asmgen` naming R-15-039, with float-typed values in integer registers under the soft-float-register convention R-15-040 accepts and the VL=1 lowering M1.3's.
     * **Axis 1's landed work is spent here as a measurement and not as a patch**, on M1.1b's own reading: it repointed 35 sites over six `cheririscV/` files at a width switch, and stock `riscV/` has no capability type to switch the width of.
-  * [ ] **M1.2g · Author the capability value carrier and the tagged memval in common/** · 9 h, range 5–13 · 0.0% · X
+  * [ ] **M1.2g · Author the capability value carrier and the tagged memval in common/** · 9 h, range 5–13 · 0.7% · X
     * The seam child M1.2a reported the split short of: a capability value in `common/Values.v`, the tagged `memval` in `common/Memdata.v` with the chunk and the typed slot beside it, and the heap half of axis 8, the `EF_malloc` and `EF_free` arms of `common/Events.v` deleted under R-08-010. It sits between b and c because that is where its obligation falls, M1.2b authoring the encoding it carries and M1.2d's frame discipline resting on the memory it defines. Gates on M1.2b; M1.2d gates on it. Entered at its own cell rather than carved from the five, so it is the one re-price the subtree takes.
-  * [ ] **M1.2c · Author the permission lattice and the otype space** · 7 h, range 4–10 · 0.6% · X
+  * [ ] **M1.2c · Author the permission lattice and the otype space** · 7 h, range 4–10 · 0.5% · X
     * `perms_expand` and `perms_narrow` transcribed from [cap_common.sail](../model/model/core/cap_common.sail) lines 88–184, the four-bit otype space with its three reserved classes, and the two reserved sentry otypes with `cjalr` admitting each only in its own role (R-15-008, R-15-071). Gates on M1.2b.
     * Its exit evidence is that the lattice is read out of the model rather than invented, which is what makes this the authoring half of axes 2, 4 and 5 rather than a narrowing of them.
   * [ ] **M1.2d · Author the frame layout and the calling convention against the slot plan** · 9 h, range 6–12 · 0.7% · X
     * `Asmgen`'s stack arms, the frame carve, the spill discipline and the cross-boundary sequences, over a frame laid out at composition (R-08-011) rather than over the `URW*` frontier axis 3 describes. **The largest child, and the one M1.1b named as where the delta concentrates.** Gates on M1.2c and on M1.9's plan.
   * [ ] **M1.2e · Land the exactly-representable narrowing side condition** · 5 h, range 3–7 · 0.4% · X
     * R-15-007k discharged against [MemoryPlan.v](../proofs/MemoryPlan.v)'s slot plan for every narrowing the backend emits, with `CRAM`, `CRRL` and `CSetBoundsExact` unadmitted. This is axis 6, the one axis stated wholly over the profile rather than over the pin, so it survives the start-from change untouched, and it is the child whose other input is already in the tree. Gates on M1.2b.
-  * [ ] **M1.2f · Close the acceptance loop, both ends** · 7 h, range 4–10 · 0.6% · X
+  * [ ] **M1.2f · Close the acceptance loop, both ends** · 7 h, range 4–10 · 0.5% · X
     * The component-level differential declared as this item's acceptance criterion, the same Gallina component run host-side on the Wasm oracle and lowered purecap with the outputs compared; and the program-level loop feeding generated C through `ccomp` to [vos/asm.py](../tools/vos/asm.py), [vos/image.py](../tools/vos/image.py) and the golden emulator. Gates M1.3 and M1.7.
     * It also closes the rig paragraph above: of the three obstacles that stood between the shapes, two went with the start-from and what is left is the encoder, which M1.4′ carries.
 * [ ] **M1.3 · Add baseline target support and bound-directed lowering** · 12 h, range 8–16 · 0.9% · X · after the M8a gate
@@ -915,7 +915,7 @@ Every later milestone is purecap and managed-runtime-free from here.
   * Four things bound how much is available. Both artifacts are CompCert extensions, so the first question at the milestone that would take either is whether the **INRIA Non-Commercial License Agreement** reaches them, read from each artifact's own licence file at that milestone against the containment arm M1.1a took. Neither is CHERI, so a capability-carrying encoding, a tag-bearing image and the sealed forms stay authored. Neither is this dialect, so the RISC-V instantiation is a template to re-home rather than a backend to adopt, the same act M1.2 prices for the compiler. And whether this or R-05-023a's decompilation into logic is the covering instrument for the source-correspondence theorem is a call at the hardening program's opening: this cell records a candidate and decides nothing.
 * [x] **M1.5 · Run the CertiCoq-to-Wasm oracle** · 3 h actual · 0.2%
   * The CertiCoq-to-Wasm loop closes end to end on a release rather than a pinned commit, in an opam switch of its own. ([note](completion-log.md#m15-run-the-certicoq-to-wasm-oracle))
-* [x] **M1.6 · Stand up GC-free lowering routes** · 7 h actual · 0.6% · agent-parallel
+* [x] **M1.6 · Stand up GC-free lowering routes** · 7 h actual · 0.5% · agent-parallel
   * The Rupicola route stands up whole and forks, a verified exit with no capability instruction and a reaching exit with no theorem, so CompCert-C stays the default. ([note](completion-log.md#m16-stand-up-gc-free-lowering-routes))
 * [ ] **M1.7 · Boot purecap Gallina hello-world on the M0 emulator** · 9 h, range 6–12 · 0.7% · I
   * **Acceptance predicate.** The item closes when the lowered image is a member of [the differential corpus](differential-corpus.md) and one run of `run.py model corpus` answers that corpus's two questions of it: the program's own, a HTIF verdict of success with `gp` naming no failed check, and the rig's, the normalized commit trace digesting to what the manifest records. `tools/check.py` holds the membership in both directions and holds the member's recorded check count against the count its source carries, so a program that stopped assembling is a finding on the host rather than a surprise in the guest. Nothing here is a new instrument: this is the adjudication [that document's §6](differential-corpus.md#6-how-a-run-is-adjudicated) already runs, applied to the first image this plan lowers rather than assembles.
@@ -927,7 +927,7 @@ Every later milestone is purecap and managed-runtime-free from here.
   * [x] **M1.8a · The instrument, its two renderings, its gate, and the checker rule** · 9 h actual · 0.7% · Parallel
     * The freeze analyzer lands with its two renderings and its gate, deciding what it can before its corpus exists, and K-77 holds its enumerations against the contract. ([note](completion-log.md#m18a-the-instrument-its-two-renderings-its-gate-and-the-checker-rule))
 
-  * [ ] **M1.8b · The emitters, the sweep, and the published report** · 9.5 h, range 6–13 · 0.8% · I · Parallel, behind M1.4′ · after the M8a gate
+  * [ ] **M1.8b · The emitters, the sweep, and the published report** · 9.5 h, range 6–13 · 0.7% · I · Parallel, behind M1.4′ · after the M8a gate
     * **Deferred with the freeze it serves.** The ordered act decides the profile's code-size rows and nothing on the M8a chain is compiled against a decided one, R-15-014a making the provisional profile a total compilation target; M1.4′ supplies the link map and the per-site table, and M1.3a supplies the outlined corpus, both of which arrive with it rather than before it.
     * **Three contract acts M1.8a reported are taken as one amendment before this lane opens, and that ordering is the decision rather than a preference.** They are the order-of-act wording, §0's list being the recipe's and the contract's §1 the decisions'; FD-2's absent default arm, which states neither a default nor a ground for having none where its neighbour in the same position states both; and the missing predicate for the rule §3 calls its most consequential, that S6 is re-selected inside every variant, which §9 carries no `G-` predicate for. The precedent is M0.11 and the reason is its own: an instrument arriving with its own acceptance criteria has graded its own homework, and a predicate discovered missing *during* the sweep is exactly that failure arriving late, when the corpus it would have gated has already been measured. Taking them at M1.8b was the arm not taken; it saves a context switch and lets the sweep run against a contract whose most consequential rule has nothing behind it. The deferral past M8a is what makes the earlier act affordable.
     * What remains is the three inputs and the runs over them, and every form is declared rather than open: the sidecar stream is §4's eleven fields, one tab-separated row per emitted instruction site under a header naming them in that order, with the closed producer enumeration the backend declares and the report reprints; the link map is `site_id`, address, bundle and slot; and the encoded image is its bytes beside the composer's per-site entry-and-escape table. M1.2's backend emits the first and M1.4′'s composer the other two, each against a header the analyzer refuses to read positionally, because a stream whose columns moved would be read into the wrong labels and a mis-stratified hit rate that is precise is the failure §4's schema exists to prevent.
@@ -936,7 +936,7 @@ Every later milestone is purecap and managed-runtime-free from here.
 * [x] **M1.9 · Two-class static memory plan and placement WCET delta** · 13.5 h actual · 1.1%
   * The two-class memory plan, the placement rule and the admission-visible WCET delta land as one statement artifact whose seeded population is wholly refused. ([note](completion-log.md#m19-two-class-static-memory-plan-and-placement-wcet-delta))
 
-**M1 subtotal:** 137 h · 11% · 50.5 h complete · open range 55–118 h.
+**M1 subtotal:** 146 h · 11% · 50.5 h complete · open range 60–131 h.
 
 ### M2 · Fast emulator, struck
 
@@ -991,9 +991,9 @@ RoT core + firmware (§2), M-mode firmware (§3), crypto core (§4) → the gold
     * **It sits ahead of M3.4b and behind M3.4a**, which is where its obligation belongs rather than where its letter would put it: this is the pre-gate half of the milestone's own seam, and M3.4b is behind the M8a gate.
     * **Split at entry by what waits on a ruling.** The Gallina half waits on nothing, and the generator run waits on where a generated C file lands in this tree and how it is marked, so the two are children of their own. The children redistribute this cell's 11 h and its 6–16 range.
 
-    * [ ] **M3.4c-i · SHA-256, HMAC-DRBG-SHA-256 and the boot verifier's signature statement in Gallina** · 7 h, range 4–10 · 0.0% · X · Wasm-parallel
+    * [ ] **M3.4c-i · SHA-256, HMAC-DRBG-SHA-256 and the boot verifier's signature statement in Gallina** · 7 h, range 4–10 · 0.5% · X · Wasm-parallel
       * The acquisition route decided and the two primitives authored the way SHA-3 was, R-15-241d's seeding discipline carried as explicit hypotheses, and the statement of what the boot chain's verifier needs over M3.4a's `shake256`.
-    * [ ] **M3.4c-ii · The Fiat-Crypto generator run and its tracked emission** · 4 h, range 2–6 · 0.0% · X
+    * [ ] **M3.4c-ii · The Fiat-Crypto generator run and its tracked emission** · 4 h, range 2–6 · 0.3% · X
       * A recorded run of the pinned generator with the emission tracked beside the commit it was derived at, which is what R-05-060's acceptance audits.
 
   * [x] **M3.4d · The AEAD in Gallina** · 4 h actual · 0.3% · agent-parallel
@@ -1032,7 +1032,7 @@ Gallina microkernel (§5), one instance per emulated core; capability/IPC tests 
 
   * [x] **M4.2a · The partition context, the switch, and the cyclic-executive schedule** · 9 h actual · 0.7%
     * The partition context, the switch and the cyclic-executive schedule land as two statement artifacts with every composition quantity a field. ([note](completion-log.md#m42a-the-partition-context-the-switch-and-the-cyclic-executive-schedule))
-  * [x] **M4.2b · Endpoint and notification IPC, and the surviving object inventory** · 9.5 h actual · 0.8% · agent-parallel
+  * [x] **M4.2b · Endpoint and notification IPC, and the surviving object inventory** · 9.5 h actual · 0.7% · agent-parallel
     * Endpoint and notification IPC and the surviving object inventory land as one statement artifact over the invocation enumeration S1 closed. ([note](completion-log.md#m42b-endpoint-and-notification-ipc-and-the-surviving-object-inventory))
 * [x] **M4.3 · Exercise capability lifecycle, IPC, and slot faults through Wasm** · 4 h actual · 0.3% · agent-parallel
   * The kernel surface is exercised through generated vectors, randomized properties and the first repository source staged into the Wasm oracle. ([note](completion-log.md#m43-exercise-capability-lifecycle-ipc-and-slot-faults-through-wasm))
@@ -1089,7 +1089,7 @@ The ring data plane is brought up in its contract order: the common ring schema 
 
   * [x] **M6.2a · The composition-time admission path** · 12.4 h actual · 1.0% · agent-parallel
     * The composition-time admission path lands as one statement artifact over the register's closed enumerations and the TAL's phase order. ([note](completion-log.md#m62a-the-composition-time-admission-path))
-  * [ ] **M6.2b · The on-device CIC kernel, refined** · 18.5 h, range 12–25 · 1.5% · X · after the M8a gate
+  * [ ] **M6.2b · The on-device CIC kernel, refined** · 18.5 h, range 12–25 · 1.4% · X · after the M8a gate
     * The MetaCoq-lineage proof-term checker refined to CompCert-C through CHERI-CompCert, arriving with the derivations that give it something to check.
 * [ ] **M6.3 · Build the package composer and contained object router**
   * **Split at entry**: the composer emits the finite typed handler and translator graph a booting system needs, and the router's private namespaces, intents, live queries, deterministic translation caching and protocol-bound credential handles are what an application layer needs, which no pre-MVP server does.
@@ -1120,7 +1120,7 @@ The ring data plane is brought up in its contract order: the common ring schema 
   * **Deferred whole with M6.7 and M6.8**: an inference server is an application-layer obligation on the release roster, and §18 already defers the application program. Nothing on the M8a chain admits a session.
   * R-12-084b's shape applied to R-12-085: the server's slot, worker set, and pools fixed at composition against a declared ceiling, a model inside it running in the admitted slot and one above it answered when the session opens.
   * Includes the canonical model shape descriptor: a schema-bounded non-recursive Narcissus format carrying an R-05-051a canonicity theorem, so **the descriptor's parser is verified while the model stays untrusted data**. No proof is asked of the weights, which do not execute; the executing code is the server's GEMM and attention kernels, and they carry their obligations whichever weights they read.
-* [ ] **M6.7 · Expert-residency declaration and admission arithmetic** · 7 h, range 4–10 · 0.6% · I · Parallel with M6.6 · after the M8a gate
+* [ ] **M6.7 · Expert-residency declaration and admission arithmetic** · 7 h, range 4–10 · 0.5% · I · Parallel with M6.6 · after the M8a gate
   * The all-experts-resident condition, the fixed top-k WCET argument (work per token is constant regardless of which experts route, routing selecting addresses rather than an amount of work), and a typed refusal for routed fetch across the storage boundary.
 * [ ] **M6.8 · Bank grant and admitted token rate** · 6.5 h, range 4–9 · 0.5% · I · Parallel with M6.6 · after the M8a gate
   * Make the inference server's bank grant an explicit ceiling term, with the admitted token rate derived from it at composition and refused above rather than degraded (R-15-247p).
@@ -1162,7 +1162,7 @@ The RTL track, in parallel from the M0 freeze:
 
   * [x] **R1a · The capability format's algebra, and the cross-check that decides it** · 10 h actual · 0.8%
     * The capability format package is whole and cross-checked against the model's own vectors, with K-79 holding the parameters at every restating site. ([note](completion-log.md#r1a-the-capability-formats-algebra-and-the-cross-check-that-decides-it))
-  * [ ] **R1b · Curate the scalar datapath: the width collapse, the caches, the store buffer and the prediction rule** · 52.5 h, range 35–70 · 4.2% · X · beside the M8a chain
+  * [ ] **R1b · Curate the scalar datapath: the width collapse, the caches, the store buffer and the prediction rule** · 52.5 h, range 35–70 · 4.1% · X · beside the M8a chain
     * **S7's reconnaissance settles the start-from and leaves this cell's direction unmoved.** The register has already made the call: R-15-090's acceptance names the CHERI-CVA6 front end among the imported or modified cores that have an evidence path from first bring-up, and R-15-092's authored list does not name the scalar core. The pass also moves the grounding: the delta enumerates no site for the instruction cache and none for any front-end file.
     * **Counterexample-driven from the first elaboration under S11**, which is the precedent the RVFI-DII line sets: a tight counterexample cycle is what let one person add full CHERI functionality to an Ibex-class core in a month.
     * The delta's §2.2 and §2.3, plus §2.1's cause enumeration and `mtval` reporting structure, which R1a's format-algebra scope left behind: `CLEN = 2 * XLEN` collapsing onto `XLEN`, one declaration the delta books across 25 files of `core/`, the sixteen-way store rotate the delta deletes whole with it, the hybrid decode and the capability-mode flag threaded through decode, issue, execute, commit, the CSR file and the top level, the flat-SRAM replacement for the two caches (A-09 and A-10, which no configuration parameter removes), and the TSO store buffer. **§2.4 is not this item's**: its tag-plane sites are R1c-ii's (`mocha`) and the fabric's (`axi-cheri-tagcontroller`), and its one core site is in a file A-10 deletes, so what transfers here is the fact rather than the site, that at the collapsed granule one AXI beat carries exactly one tag.
@@ -1217,7 +1217,7 @@ The RTL track, in parallel from the M0 freeze:
   * R-15-247m's obligations as one package: measured usable density from a **repaired megabit-class macro** carrying complete tag, ECC, refresh, discharge, and routing overhead; the four per-class latency constants; the retention corner as a measured interval; bank-granularity tag discharge with a characterized worst-corner dwell and a dwell-invariant fail-stop indication; and the simultaneous-activation envelope against droop, thermal coupling, and endurance at the M0.17 bank granularity.
   * These are **qualification gates, not re-open conditions**: a macro that misses one is a part that does not qualify, not an architecture that reverts.
 
-**RTL subtotal:** 159 h · 13% · 19 h complete · open range 89–191 h.
+**RTL subtotal:** 159 h · 12% · 19 h complete · open range 89–191 h.
 
 ### M8–M10 and later
 
@@ -1228,9 +1228,9 @@ The RTL track, in parallel from the M0 freeze:
 * [ ] **M8b · Co-simulation MVP: R3 complete** · 2 h, range 1–3 · 0.2% · I
   * The RTL artifact of record in hand, corpus-green under Verilator and booting the same image to the same console and event digests.
   * Everything after the two is hardware realization and hardening.
-* [ ] **M9 · Synthesize and boot scalar purecap on FPGA** · 30 h, range 20–40 · 2.4% · X
+* [ ] **M9 · Synthesize and boot scalar purecap on FPGA** · 30 h, range 20–40 · 2.3% · X
   * Synthesize the R3 artifact for the board (§11); the purecap golden-model images (M1–M7) boot on it directly, differentially tested against M7; and the exit criterion is **M0.10's replacement pair rather than an ISA-test suite**, the differential corpus green on the board and the composed image reaching the same console and event digests as the golden emulator. M0.6f excluded `riscv-tests` outright, so *ISA tests green* names a corpus this machine refuses in full, and no item below generates a replacement: §0's Isla derivation of ISA test vectors from the frozen model is the route and it carries no cell.
-* [ ] **M10 · Extend CHERI checks across V/M/FEC datapaths** · 45 h, range 30–60 · 3.6% · X
+* [ ] **M10 · Extend CHERI checks across V/M/FEC datapaths** · 45 h, range 30–60 · 3.5% · X
   * Extend the V/M/FEC datapaths to capability checks (the genuine new RTL, §18), the scalar core and purecap software are already in hand from M1/M9, so the FPGA then matches the golden model across all core classes.
   * The RTL is net-new and the design under it is not, which §11 states and this cell does not restate: what the CHERI-RVV line settles is the per-element question and not any of the hardware, so the estimate stands whole. Where it reaches this item is the amortized check, which M0.8b's per-element discard and R-15-085a's two vector-memory rows both price as though the question were closed, and which is the boundary a magnitude would come from if R-17-041's ever acquire one.
 * [ ] **M9a · Discharge and refresh droop model** · 12.5 h, range 8–17 · 1.0% · X
@@ -1255,7 +1255,7 @@ Three statements are owed at that program's opening rather than inside it. The *
   * PF-PINI over ℤ_q, the renewal argument that a fresh mask between pipeline stages erases the earlier stage's multiplicity, its k-stage generalization, and the algebraic-to-hardware Barrett bridge, re-proved in Coq against the Lean development's statements.
   * **The source is an artifact rather than a paper, which is what this cell rests on**: eighteen kernel-verified theorems over five files in the composition repository, MIT-licensed with an archival deposit beside it, so its terms permit whatever a transcription could carry, no provenance fork of the M1.1a kind arises, and nothing is vendored (R-18-001a, read 2026-08-23).
   * **Two gaps decide the cell and both are the source's own.** It is first-order by its stated scope, one probe per wire, where R-05-004a's obligation is *d*-th order, so the order generalization is authored rather than transcribed. And Lean 4 with Mathlib is not Coq with mathcomp: statements and proof architecture cross, tactic proofs and the algebraic hierarchy beneath them do not, so what this item buys is a reachable target and a proof plan rather than a port. It is the cheapest of the four for exactly that reason, and a transcription costed as though it were an original formalization, or an original formalization costed as though it were a transcription, is the error this split exists to prevent.
-* [ ] **Post-M10 · Author the Boolean composition half** · 40 h, range 22–58 · 3.2% · X
+* [ ] **Post-M10 · Author the Boolean composition half** · 40 h, range 22–58 · 3.1% · X
   * PINI at arbitrary order over GF(2) on the NI and SNI ladder beneath it, glitch-robust, for the HPC and DOM gadget families the datapath carries, instantiated on the AES S-box and the Keccak χ the R-05-004a secret path runs through.
   * **The nearest source is EasyCrypt's Boolean masking proofs, and it is a source in the weakest of the three senses** (R-18-001a, read 2026-08-23). EasyCrypt is its own logic and its own checker rather than a Coq library, its masking line is NI and SNI over GF(2^n) and predates PINI, and the 2026 movement in the area is in checkers rather than in provers. One 2026 result is pinned for its technique and not its artifact, probing security routed through conditional independence in a separation logic for exactly that, and it is stated on paper with no mechanization.
   * **This is the largest of the four.** It is the half the AES and Keccak datapaths cannot do without, it is original in the prover and near-original in content at arbitrary order, and the transcription beside it buys it nothing: a prime field's uniformity arguments do not carry to GF(2), which is why the prime-field case was the gap and the Boolean one was not.
@@ -1323,12 +1323,12 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * C · fresh systems authoring with functional tests
   * D · RTL and FPGA work
 * Confidence: every open item's range spans roughly a factor of two about its midpoint, and a class believed softer is priced by widening its own items' ranges rather than by a second figure stated over the total.
-* Grand total: the sum of the item cells, 1,264.1 h midpoint over a 951.1–1,577.1 h range.
+* Grand total: the sum of the item cells, 1,278.1 h midpoint over a 959.1–1,597.1 h range.
 * **The authority class is the calibration, and it is measured rather than assumed.** Taking each completed attended item's earliest recorded estimate, which [the calibration record](#calibration-record) carries beside the item's pool, against its recorded actual, across the sixty items carrying both, gives 228.9 h actual against 303.4 h estimated, a ratio of 0.75. The error is not uniform and in one pool it runs the other way: forty-six items whose authority is in this repository ran at **0.71**, twelve that read, pin, install or measure an external thing ran at **0.76**, and the two that authored against an external authority ran at **1.68**. Neither overrun is random. M0.8d authored FEC decoders and Keccak against FIPS 202, the ACVP vectors and TS 38.212, and its own finding is that the two defects the known-answer vectors found were both transcriptions; M0.12 authored a corpus, an assembler, a dialect table and an ELF composer from nothing, because no toolchain has one. The deepest under-runs are equally consistent, the two lowest ratios in the record being e3 at 0.13 and e4 at 0.14.
 * **The ratio is a prior on range width and not a re-price of midpoints**, which is what the conventions above already require of a class-X cell, and which is what the calibrated figure states separately rather than folding in. Its own weakness is stated: n = 2 in the pool that matters. It is every completed item that authored against an external authority, every one of them overran, all for the same reason, and the consequence is asymmetric, so it is treated as a widening rather than a multiplier. **Turning the prior into a measurement is S19's, and what that item measured is why the pool has not grown**: every completed item that has authored against an external authority since the fit was taken ran under fan-out, so it is on the other clock and outside this pool by the rule below.
 * **The agent-parallel series is fitted on its own record and the two fits are not pooled**, which is S19's ruling. Taking each completed agent-parallel item's earliest recorded estimate, which [the agent-parallel record](#the-agent-parallel-series) carries beside its pool, against its recorded actual, across the twelve items carrying both, gives 84.7 h actual against 154 h estimated, a ratio of 0.55: seven items whose authority is in this repository ran at **0.54**, two that read an external thing ran at **0.45**, and the three that authored against an external authority ran at **0.65**. **The pool the class-X convention rests on falls on opposite sides of one in the two modes**, 1.68 attended against 0.65 here, so pooling would not widen the class-X prior but delete it, and it would delete it on a conversion between the two clocks that no item has been measured on both of. This ratio prices no cell, which mode an item lands in not being known when the item is priced.
 * **The strategy the classes imply is one sentence: move work across the authority line, and generate what is currently authored.** What has not moved is the class-X residue before the M8a gate, which is ten open cells, five of them M1.2's children, and which the gate figures above put at more than half that gate's hours.
-* Horizon: at 10–20 attended hours per week, the 829 h remaining is 41–83 attended weeks and the critical chain's 104.5 h midpoint 5–10 of them, both arithmetic `tools/check.py` recomputes over the cells and the stated rate, and neither a promise.
+* Horizon: at 10–20 attended hours per week, the 843 h remaining is 42–84 attended weeks and the critical chain's 113.5 h midpoint 6–11 of them, both arithmetic `tools/check.py` recomputes over the cells and the stated rate, and neither a promise.
 * At that rate the M8a gate is set by the critical chain rather than by the bill, and the chain is lane 1's to release. Review capacity was the constraint beyond three lanes; the two-tier landing rule and the unattended runner are what move it, so lane count is bounded by the register acts that gate a lane rather than by attention at the end of one.
 
 ### Calibration record
