@@ -2296,7 +2296,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-275** method: `tools/vos/checks/estimates.py:93` lists R4 first in `AFTER_M8B` and the checklist's Q6 at line 611 says the topology comparison precedes R4 and R5, both unedited at 28e1897 under the ruling that opens R4 now as a document act
 · Raised: R4
-· Disposition: open, the integrator's at landing, which reconciles the sentence and the list; until then the item stands landed inside a partition the tool says is not yet reachable
+· Disposition: closed at landing, the list reconciled to the sentence rather than the other way round: R4 leaves `AFTER_M8B` and the three sites that named it beside R5 as deferred work name R5 alone, Q6's own bullet having already put the architecture ahead of the comparison and the qualification evidence behind it
 
 **F-284** measurement: the first substitution row refuses the curated arm at nine type-name declarations before the elaborator reads any member of `cap_reg_t`, so the member-reading sites the delta prices are unreached and eight of the nine sites sit on no row of the delta's §2.2 or §2.3
 · Raised: R1b

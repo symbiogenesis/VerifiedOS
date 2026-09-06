@@ -90,7 +90,7 @@ CLASS_RE = re.compile(r"^ · (?P<cls>[IX])(?= ·|$)")
 # `AFTER_M8B` is what falls beyond the co-simulation gate; `AFTER_M8A` is that plus the RTL
 # chain, which runs beside the software one rather than inside it, so an item on it falls
 # after the software gate without being deferred past anything
-AFTER_M8B = ["R4", "R5", "M9", "M9a", "M10", "Post-M10",
+AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "M0.8c", "M1.3", "M1.3a", "M1.4", "M1.8b",
              "M3.4b", "M3.6b", "M5.4", "M6.1b", "M6.2b", "M6.3b", "M6.5b",
              "M6.6", "M6.7", "M6.8", "S5", "S6",

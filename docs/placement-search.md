@@ -103,7 +103,7 @@ Every candidate is decided by the port of the file's own checks, one Python func
 
 ## 7. What this document records rather than settles
 
-**The comparison on admitted workload is owed and not taken.** The item's fourth bullet compares placements on the admitted workload, and no composed roster exists to compare on: the demo plan's figures are witness values, R-18-004d's demonstration set is unauthored, and the absolute limits Q1 states are Q1's to state. The report says so in its status line, and the half of the item that wants them waits behind those acts.
+**The comparison on admitted workload is owed and not taken.** The item's fourth bullet compares placements on the admitted workload, and no composed roster exists to compare on: the demo plan's figures are witness values, R-18-004d's demonstration set is unauthored, and the absolute limits now exist and are not ratified, [the product-gate contract](product-gate-contract.md) stating them over declared envelope parameters that are every one proposed and its PG-11 making a verdict read against a proposed parameter a reading until the product's owner ratifies it. The report says so in its status line, and the half of the item that wants them waits behind those acts.
 
 **Two fields the plan would want for the register's own terms are reported to the register.** R-08-012a's bank-spreading term is stated over banks the plan does not model, and R-08-045's per-line-item charge is read over region indices with no owner named. Whether the plan gains a `bank_of` or an owner field is a register act at R-08-011 and R-08-012a, and this document carries the gap and takes no side.
 
