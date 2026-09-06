@@ -446,6 +446,33 @@ Example the_three_equalities_decide_their_own_enumerations :
         (eqb_decides transition_eqb all_transitions)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* The seven edges all differ from each other in **both** endpoints, so
+   they cannot tell an equality that joins its two comparisons with `and`
+   from one that joins them with `or`. Two self-edges, which are not
+   transitions and are here only as probes, are what separate the two. *)
+Definition transition_probes : list Transition :=
+  all_transitions ++ (LockEdge BeforeFirstUnlock BeforeFirstUnlock
+                      :: LifecycleEdge Raw Raw :: nil).
+
+Example the_transition_equality_decides_a_wider_probe_than_the_edges :
+  eqb_decides transition_eqb transition_probes = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* An equality that is reflexive on every edge and still wrong, so that both
+   halves of the test above are load-bearing: this one says every lock edge
+   equals everything, which no reflexivity check catches and which the count
+   catches. *)
+Definition lax_transition_eqb (a b : Transition) : bool :=
+  match a with
+  | LockEdge _ _ => true
+  | _ => transition_eqb a b
+  end.
+
+Example a_reflexive_equality_can_still_be_wrong :
+  andb (all_of (fun t => lax_transition_eqb t t) all_transitions)
+       (negb (eqb_decides lax_transition_eqb all_transitions)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Example there_are_five_lifecycle_edges_and_two_lock_edges :
   andb (Nat.eqb (length_of lifecycle_edges) 5) (Nat.eqb (length_of lock_edges) 2) = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -858,19 +885,28 @@ Example the_four_refused_disciplines_move_one_field_each :
           :: nonced_below_half_its_strength :: nil) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* The bounds are bounds and not thresholds: a discipline that admits one
-   draw and reseeds after one is disciplined, which is what separates
-   "at least one" from "more than one". *)
-Definition at_the_smallest_bounds : SeedingDiscipline :=
+(* The bounds are bounds and not thresholds, and the flag beside them is a
+   request and not an admission condition. The witness's own figures stay
+   out of the definition: what is decided is which pairs of bounds the
+   premise admits, so the numbers live inside the statements that decide. *)
+Definition bounded_at (draw interval : nat) (pr : bool) : SeedingDiscipline :=
   {| security_strength := security_strength demo;
      seed_length := seed_length demo;
      nonce_length := nonce_length demo;
-     draw_bound := 1;
-     interval_bound := 1;
+     draw_bound := draw;
+     interval_bound := interval;
      reseed_on := reseed_on demo;
-     prediction_resistance := false |}.
+     prediction_resistance := pr |}.
 
-Example the_smallest_bounds_are_still_bounds : Disciplined at_the_smallest_bounds.
+Example one_is_the_smallest_bound_and_zero_is_refused_on_either :
+  andb (disciplined_b (bounded_at 1 1 false))
+  (andb (negb (disciplined_b (bounded_at 0 1 false)))
+        (negb (disciplined_b (bounded_at 1 0 false)))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example prediction_resistance_is_requested_and_not_required :
+  andb (disciplined_b (bounded_at 1 1 false))
+       (disciplined_b (bounded_at 1 1 true)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
@@ -1242,6 +1278,10 @@ Print Assumptions all_lifecycles.
 Print Assumptions all_lock_states.
 Print Assumptions eqb_decides.
 Print Assumptions the_three_equalities_decide_their_own_enumerations.
+Print Assumptions transition_probes.
+Print Assumptions the_transition_equality_decides_a_wider_probe_than_the_edges.
+Print Assumptions lax_transition_eqb.
+Print Assumptions a_reflexive_equality_can_still_be_wrong.
 Print Assumptions there_are_five_lifecycle_edges_and_two_lock_edges.
 Print Assumptions no_edge_leaves_rma_and_none_joins_development_to_production.
 Print Assumptions SeedingDiscipline.
@@ -1295,8 +1335,9 @@ Print Assumptions nonced_below_half_its_strength.
 Print Assumptions the_discipline_nonced_below_half_its_strength_is_refused.
 Print Assumptions the_two_short_lengths_are_short_by_one_bit.
 Print Assumptions the_four_refused_disciplines_move_one_field_each.
-Print Assumptions at_the_smallest_bounds.
-Print Assumptions the_smallest_bounds_are_still_bounds.
+Print Assumptions bounded_at.
+Print Assumptions one_is_the_smallest_bound_and_zero_is_refused_on_either.
+Print Assumptions prediction_resistance_is_requested_and_not_required.
 Print Assumptions two_draws.
 Print Assumptions no_reseed_run.
 Print Assumptions pr_false_run.
