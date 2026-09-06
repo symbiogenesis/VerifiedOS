@@ -156,15 +156,18 @@
    below holds of everything and none holds of nothing.
 
    Where each published answer came from. FIPS 205, *Stateless Hash-Based
-   Digital Signature Standard*, August 2024, read on 2026-09-05 at the copy
-   fetched from csrc.nist.gov under
-   /pubs/fips/205/final: Table 2 for the parameter row and the three sizes,
-   s5 for the two Winternitz lengths, s10.1 for the message-digest length,
-   and s11.1 for the six instantiations and the address size. NIST states at
-   nist.gov/oism/copyrights that work developed by NIST employees is not
-   subject to copyright protection within the United States, with no notice
-   condition stated. Every derived quantity was recomputed by hand from the
-   standard's formulas before it was written down here.
+   Digital Signature Standard*, read on 2026-09-05 at the copy fetched from
+   nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf: Table 2 for the
+   parameter row and the three published sizes, s5 for the two Winternitz
+   lengths, s10.1 for the message-digest length, and s11.1 for the six
+   instantiations and the address size. The instrument is the one
+   Sha256.v records for NIST's own files at nist.gov/oism/copyrights, whose
+   three paragraphs do not agree on what reaches a published standard, so
+   the strictest is met here as it is there: the document and NIST as its
+   source are named, the parameters are quoted unmodified, and no change
+   notice is owed because nothing was changed. Every derived quantity was
+   recomputed by hand from the standard's formulas before it was written
+   down here.
    ========================================================================= *)
 
 Require Import Keccak.

@@ -189,9 +189,15 @@
    under
    csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/,
    read on 2026-09-05. The instrument is the one Sha256.v records for the
-   same corpus, NIST's statement at nist.gov/oism/copyrights that software
-   and data developed by NIST employees are not subject to copyright
-   protection within the United States, with no notice condition stated.
+   same corpus and it is read as that file reads it: NIST's page at
+   nist.gov/oism/copyrights carries three paragraphs that could each reach a
+   `.rsp` file and they do not agree, the Software disclaimer stating the
+   same three conditions the ACVP repository's README states before it says
+   that software developed by NIST employees is not subject to copyright
+   protection within the United States, so what is done here is to meet the
+   strictest of them: the archive, its CAVS header line and NIST as the
+   source are named above, the answers are quoted unmodified, and no change
+   notice is owed because nothing was changed.
    **Every answer was recomputed on 2026-09-05 by a second and independent
    transcription of s10.1.2 in Python over the host's `hmac` before it was
    written down here**, so each reached this file by two routes. Neither

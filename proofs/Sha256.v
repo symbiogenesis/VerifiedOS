@@ -201,12 +201,24 @@
    "CAVS 11.0", generated 2011-02-28), both under
    csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/,
    on the same date. **The instrument on NIST's files is the one NIST states
-   at nist.gov/oism/copyrights**, read the same day: software and data
-   developed by NIST employees are not subject to copyright protection within
-   the United States, and no notice, change-notice or acknowledgement
-   condition is stated over them; that is a different instrument from the
-   ACVP repository's README M3.4a read, which reaches the ACVP JSON sets and
-   not these. The seven HMAC cases of RFC 4231 s4.2 through s4.8 are read at
+   at nist.gov/oism/copyrights**, read the same day, and it is not the flat
+   grant a first reading takes it for. That page carries three paragraphs
+   that could each reach these files and they do not say the same thing: its
+   *Software disclaimer* states the same three conditions the ACVP
+   repository's README states, notice retention, a change notice on a
+   modified work and explicit acknowledgement of NIST as the source, and
+   ends "The software developed by NIST employees is not subject to
+   copyright protection within the United States"; its *Data disclaimer*
+   states a warranty term and no condition at all; and its *Use of NIST
+   information* paragraph makes what is on NIST's pages public information
+   with a byline credit requested. **Which of the three reaches a `.rsp`
+   file the CAVS system emitted is not settled by the page**, so what is
+   done here is to meet the strictest of them: the archive, its own CAVS
+   header line and NIST as the source are named above, the answers are
+   quoted unmodified, and no change notice is owed because nothing was
+   changed. Reading the last sentence alone and concluding that no condition
+   is stated would be a grant inferred from one paragraph of an instrument
+   that carries three. The seven HMAC cases of RFC 4231 s4.2 through s4.8 are read at
    rfc-editor.org/rfc/rfc4231.txt on the same date; its notice reads
    "Copyright (C) The Internet Society (2005)" and "This document is subject
    to the rights, licenses and restrictions contained in BCP 78", which is
