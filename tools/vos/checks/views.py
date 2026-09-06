@@ -98,6 +98,19 @@ VIEWS: list[View] = [
               r"Retention figures are lower bounds|"
               r"repaired megabit-class macro|"
               r"whole-bound to islands"),
+    # the macro architecture is the input to the measurement R-15-247m names, so
+    # what the view must carry is the entries that fix what the macro is: the tag
+    # plane in the array, the codeword as the write unit, the discharge through the
+    # write devices and its completion read, the phase schedule, the register slave
+    # that drives both, and the measurement every figure is owed to
+    View(file="docs/second-class-macro-architecture.md", governing="R-15-247m",
+         body=r"Validity tags are native to each class's own array|"
+              r"No sub-granule write exists at the array|"
+              r"Discharge is realized through the cells' existing write devices|"
+              r"Discharge completion is a fixed worst-corner dwell|"
+              r"Bank discharge and refresh phases are fixed and staggered|"
+              r"No instruction is added for discharge|"
+              r"Per-class usable density, the retention floor"),
 ]
 
 
