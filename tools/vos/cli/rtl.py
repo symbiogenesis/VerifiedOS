@@ -395,9 +395,17 @@ def cmd_lint(args: argparse.Namespace) -> int:
         print(text)
         print(f"FAIL {len(SOURCES)} source(s) under rtl/ did not lint clean")
         return 1
-    print(f"ok verilator {VERILATOR_PIN}: all {len(SOURCES)} source(s) under rtl/ lint "
-          f"clean, {len(AUTHORED)} authored and {len(GENERATED)} generated, with no "
-          "warning a package can answer")
+    # What the count is over, derived rather than asserted: `rtl/` carries sources this
+    # gate cannot reach, and a line reading `all N under rtl/` against a directory
+    # holding more than N is a count with no predicate. The gap is read off the tree so
+    # that a source added here is disclosed by the next run rather than silently absent.
+    unlinted = sorted(f"rtl/{path.name}" for path in (root / "rtl").glob("*.sv")
+                      if f"rtl/{path.name}" not in SOURCES)
+    aside = (f"; not among them: {', '.join(unlinted)}, compiled against the imported "
+             f"packages and unable to lint alone") if unlinted else ""
+    print(f"ok verilator {VERILATOR_PIN}: all {len(SOURCES)} source(s) under rtl/ that "
+          f"lint standalone are clean, {len(AUTHORED)} authored and {len(GENERATED)} "
+          f"generated, with no warning a package can answer{aside}")
     return 0
 
 
