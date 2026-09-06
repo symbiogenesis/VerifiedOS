@@ -474,6 +474,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S25
 · Disposition: standing, the four repaired and the five carried; what catches this class is a reader who did not write the repair, which is the same lesson S23 paid for once
 
+**F-265** method: the critique's work-list paragraph counts its open items by class in a sentence no rule reads, a search of tools/vos for "open items are" and "work list" returning no check, so a miscount after a deletion passes every gate
+· Raised: S26
+· Disposition: standing, recounted by hand at S26 to the two B items and reported rather than held, a rule over a non-normative document's own bookkeeping being an edit no lane was allocated, K-109 reserved and unused
+
+**F-266** measurement: the critique's line 80 restated the reduced-software-tier composition where no register entry owned it, against the critique's own rule that a disposition another document owns is cited and never restated
+· Raised: S26
+· Disposition: closed, R-01-002a booking the composition and the line citing the entry in place of the sentence
+
+**F-267** measurement: the lane's first pass wrote four claims the corpus does not say, R-15-172's tax as pools sitting mostly empty where the entry says pooling is forfeited, R-15-173a's prose placed below the r-15-247 span where its anchor sits above it at spec line 2347 against 2354, CJ-VELUS and CJ-HAL as two rows where the crown-jewel inventory carries them as two targets over six rows, and R-06-015a's budget as a budget on the install where the entry declares it per proof over the closure
+· Raised: S26
+· Disposition: closed, all four repaired at 4984708 by an adversarial re-read before the wave, the same class S23 and S25 record for a stale-claim repair
+
+**F-268** owed-act: the reading R-17-048a now schedules at each re-pin act of the CHERI lineage has no dated baseline, no artifact recording which emulators, independent CHERI implementations and re-checking provers are eligible at the current pin, so the first reading at a re-pin act is a survey rather than a diff
+· Raised: S26
+· Disposition: open, an S-item of S17's shape being the act if a baseline is wanted ahead of the next re-pin, none scheduled and the sentence as landed owing nothing before that act
+
+**F-269** measurement: the refutation check item 38's second arm owed, a grep of the register for biometric, fingerprint, face and trusted-path sites returning 22 lines at 4984708, found one contained consumer whose output the machine accepts, the biometric matcher R-12-016 places in the contained non-TCB class, so a quality-only residue stated over the whole class would be false for that device
+· Raised: S26
+· Disposition: closed, R-12-004 carving the matcher out as a bound on authority under R-12-019 and R-17-054 rather than as a quality figure or a proof, the consent front-ends being taken by the trusted-path agent under R-15-144 and so outside the class
+
 ## Q · Assessment actions
 
 **F-259** measurement: the estimates' headline blended five workload classes sharing no comparator into one parity-or-better sentence and restated the general-scalar band's ends and an approximate midpoint at three sites the band rule's pattern never reaches, the vector-crypto row excluding secret operands and the second-class row calling token generation bandwidth-bound beneath it
