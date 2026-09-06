@@ -743,7 +743,7 @@ def _membership_is_an_instrument_error() -> None:
     # are owned in `vos/` and read from both ends since M1.4-prime: the analyzer streams
     # them and the composer writes two of them, and a schema declared at both ends would
     # be a transcription held together by nothing.
-    for rel in ("__init__.py", "jsonc.py", "corpus.py", "freezeschema.py"):
+    for rel in ("__init__.py", "jsonc.py", "corpus.py", "env.py", "freezeschema.py"):
         files[f"tools/vos/{rel}"] = (TOOLS / "vos" / rel).read_text(encoding="utf-8")
     with sandbox_tree(files) as root:
         done = _run(root)
