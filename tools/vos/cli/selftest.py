@@ -72,6 +72,7 @@ from vos.coread import LEDGER
 from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
 from vos.dialectgen import TABLE as DIALECT_TABLE
 from vos.figures import words
+from vos.memplan import ARTIFACT as MEMORY_PLAN
 from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
 from vos.socmap import ARTIFACT as SOC_MAP
@@ -1560,6 +1561,16 @@ CASES: list[Case] = [
      _literal(SOC_MAP,
               "io: 1'b1, executable: 1'b0, readable: 1'b1, writable: 1'b0",
               "io: 1'b1, executable: 1'b1, readable: 1'b1, writable: 1'b0")),
+    # A fourth case for K-88, for the third host row and for the reason the third case
+    # states: a row nothing seeds is a row that can be misconfigured and report green.
+    # The seed is the second class's fetch constant in the memory plan's export, moved
+    # one unit off what the proof file declares, which is the plan's own over-margin
+    # variant written into the generated artifact by hand: a placement search reading
+    # it would price every second-class region one unit dearer than the proof gate
+    # admits, and every other rule reads nothing out of this file.
+    ("K-88", "a third host row's generated artifact declaring a fetch constant its "
+             "proof file does not",
+     _literal(MEMORY_PLAN, '"second_fetch": 15', '"second_fetch": 16')),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written

@@ -84,7 +84,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 from vos import corpus as corpus_mod
-from vos import dialectgen, sailbundle, socmap
+from vos import dialectgen, memplan, sailbundle, socmap
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -121,6 +121,12 @@ def _socmap_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
     """The SoC address map, which is a function of the frozen composition alone."""
     del bundle
     return socmap.emit(root)
+
+
+def _memplan_emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    """The memory plan's placement problem, a function of the proof file alone."""
+    del bundle
+    return memplan.emit(root)
 
 
 @dataclass(frozen=True)
@@ -172,6 +178,18 @@ GENERATED: tuple[Row, ...] = (
         owners="the frozen profile's composition",
         checker="this gate",
         emit=_socmap_emit),
+    # The memory plan's placement problem as data, read out of M1.9's proof file: the
+    # demo plan's lists and literals, the register's placement of each region kind,
+    # and every variant plan by the lists it is built from. The proof file is in this
+    # checkout and the reader is Python, so the whole claim is decided here; the
+    # artifact records the file's md5 in its header, so an edit to the file that the
+    # reader still follows moves the bytes and is a finding until `--fix` regenerates.
+    Row(path=memplan.ARTIFACT,
+        generator="run.py check --fix",
+        lane="host",
+        owners="the memory plan's proof file",
+        checker="this gate",
+        emit=_memplan_emit),
 )
 
 
