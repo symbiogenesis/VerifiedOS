@@ -1,0 +1,89 @@
+{
+ "instrument": {
+  "name": "llama.cpp",
+  "release": "v0.4.0",
+  "commit": "427291b5b34cd914a31b3fd3b61a68f6184f4b9f",
+  "version_banner": "version: 0.4.0-dev (build 10816, commit 427291b5b), built with GNU 15.2.0 for Linux aarch64",
+  "configure": "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=ON -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF",
+  "detected_march": "-mcpu=oryon-1+rng+crc+dotprod+i8mm+nosve+nosme",
+  "cmake": "4.2.3",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "targets": [
+   "llama-bench",
+   "llama-completion",
+   "llama-perplexity",
+   "llama-cli",
+   "llama-gguf"
+  ],
+  "not_built": [
+   "llama-server",
+   "the web front end",
+   "gguf-py",
+   "GGML_CPU_KLEIDIAI"
+  ],
+  "licence": "MIT at LICENSE, Copyright (c) 2023-2026 The ggml authors, with the thirteen vendored components read at their own files, read 2026-09-05",
+  "location": "cloned into /root/build/lane-q4-demand/, not a gitlink, nothing tracked"
+ },
+ "weight": {
+  "repository": "Qwen/Qwen3-4B-GGUF",
+  "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+  "licence": "Apache-2.0 at LICENSE at that revision, appendix filled in as Copyright 2025 Alibaba Cloud, and README front matter license: apache-2.0, read 2026-09-05",
+  "architecture": "qwen3",
+  "parameters": 4022468096,
+  "n_layer": 36,
+  "n_embd": 2560,
+  "n_head": 32,
+  "n_head_kv": 8,
+  "n_embd_head_k": 128,
+  "n_embd_head_v": 128,
+  "n_vocab": 151936,
+  "n_ctx_train": 40960,
+  "output_head_tied": true,
+  "widest_published": "Q8_0, no f16 or bf16 file is published at this revision",
+  "files": {
+   "Qwen3-4B-Q4_K_M.gguf": {
+    "bytes_measured": 2497280256,
+    "bytes_listed_by_the_repository_tree": 2497280256,
+    "sha256_measured": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+    "sha256_listed_by_the_repository_tree": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+    "measured_equals_listed": true
+   },
+   "Qwen3-4B-Q5_0.gguf": {
+    "bytes_measured": 2823710976,
+    "bytes_listed_by_the_repository_tree": 2823710976,
+    "sha256_measured": "7f99c1aeefbcf991f04f67104e3d6f7b899e95170359ce081b0618d4f11878f5",
+    "sha256_listed_by_the_repository_tree": "7f99c1aeefbcf991f04f67104e3d6f7b899e95170359ce081b0618d4f11878f5",
+    "measured_equals_listed": true
+   },
+   "Qwen3-4B-Q5_K_M.gguf": {
+    "bytes_measured": 2889513184,
+    "bytes_listed_by_the_repository_tree": 2889513184,
+    "sha256_measured": "aca596860e8cb40af6539e3f2ea40df305f42515deac56d49c08d39a02e6533f",
+    "sha256_listed_by_the_repository_tree": "aca596860e8cb40af6539e3f2ea40df305f42515deac56d49c08d39a02e6533f",
+    "measured_equals_listed": true
+   },
+   "Qwen3-4B-Q6_K.gguf": {
+    "bytes_measured": 3306260704,
+    "bytes_listed_by_the_repository_tree": 3306260704,
+    "sha256_measured": "8a08533841623c2a689763b9318d8e27b3e052ad5b38015d4be4c04fa96f68a3",
+    "sha256_listed_by_the_repository_tree": "8a08533841623c2a689763b9318d8e27b3e052ad5b38015d4be4c04fa96f68a3",
+    "measured_equals_listed": true
+   },
+   "Qwen3-4B-Q8_0.gguf": {
+    "bytes_measured": 4280404704,
+    "bytes_listed_by_the_repository_tree": 4280404704,
+    "sha256_measured": "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300",
+    "sha256_listed_by_the_repository_tree": "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300",
+    "measured_equals_listed": true
+   }
+  }
+ },
+ "machine": {
+  "cpu": "Snapdragon(R) X Elite - X1E78100 - Qualcomm(R) Oryon(TM) CPU, 12 cores, aarch64, asimddp i8mm bf16, no SVE",
+  "guest": "WSL2, kernel 6.18.33.2-microsoft-standard-WSL2, 15 GB, no GPU",
+  "threads": 12,
+  "backend": "CPU only",
+  "concurrency": "nine sibling agent lanes shared the same twelve cores throughout; every throughput figure is a lower bound taken under that load",
+  "power": "the Q4_K_M f16-cache llama-bench run was taken on battery, discharging; every other timed figure was taken on AC, charging, as each stage stamp in the run logs records"
+ }
+}

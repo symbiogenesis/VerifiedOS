@@ -1,6 +1,6 @@
 {
  "tensor_count": 398,
- "total_bytes": 2491323904,
+ "total_bytes": 2883556864,
  "n_params_from_ne": 4022468096,
  "n_layers": 36,
  "token_embd": {
@@ -18,10 +18,10 @@
  },
  "output_weight": null,
  "output_head_tied": true,
- "block_bytes": 2172248064,
+ "block_bytes": 2564481024,
  "non_block_non_embd_bytes": 10240,
  "head_bytes": 319065600,
- "weight_bytes_read_per_token_excluding_lookup_row": 2491323904,
+ "weight_bytes_read_per_token_excluding_lookup_row": 2883556864,
  "by_type": {
   "f32": {
    "tensors": 145,
@@ -33,29 +33,29 @@
    "bytes": 725491200,
    "n_elts": 884408320
   },
-  "q4_K": {
+  "q5_K": {
    "tensors": 216,
-   "bytes": 1765048320,
+   "bytes": 2157281280,
    "n_elts": 3137863680
   }
  },
  "layer0_tensor_bytes": {
-  "attn_k.weight": 1474560,
+  "attn_k.weight": 1802240,
   "attn_k_norm.weight": 512,
   "attn_norm.weight": 10240,
-  "attn_output.weight": 5898240,
-  "attn_q.weight": 5898240,
+  "attn_output.weight": 7208960,
+  "attn_q.weight": 7208960,
   "attn_q_norm.weight": 512,
   "attn_v.weight": 2150400,
   "ffn_down.weight": 20428800,
-  "ffn_gate.weight": 14008320,
+  "ffn_gate.weight": 17121280,
   "ffn_norm.weight": 10240,
-  "ffn_up.weight": 14008320
+  "ffn_up.weight": 17121280
  },
- "file": "Qwen3-4B-Q4_K_M.gguf",
- "quant": "Q4_K_M",
- "bits_per_parameter": 4.9548,
+ "file": "Qwen3-4B-Q5_K_M.gguf",
+ "quant": "Q5_K_M",
+ "bits_per_parameter": 5.7349,
  "embedding_row_bytes": 2100,
- "weight_bytes_read_per_token": 2491326004,
+ "weight_bytes_read_per_token": 2883558964,
  "predicate": "the sum of the size field over every gguf_ex_read_1 tensor line llama-gguf prints for the file, size being ggml_nbytes as that reader computes it; bytes read per generated token are every tensor of the file (the head is tied, so token_embd.weight is the head read whole) plus one embedding row for the input lookup"
 }

@@ -1,0 +1,41 @@
+{
+ "file": "Qwen3-4B-Q5_0.gguf",
+ "quant": "Q5_0",
+ "invocation": "/usr/bin/time -v llama-completion -m <file> -c 8192 -n 128 -t 12 --temp 0.7 -f prompt.txt -no-cnv -v",
+ "cache": "f16 key and value, flash attention auto",
+ "n_ctx": 8192,
+ "n_batch": 2048,
+ "n_ubatch": 512,
+ "n_threads": 12,
+ "prompt_tokens": 556,
+ "prompt_eval_ms": 31233.33,
+ "prompt_eval_ms_per_token": 56.18,
+ "prompt_eval_tokens_per_second": 17.8,
+ "generated_tokens": 127,
+ "eval_ms": 89583.66,
+ "eval_ms_per_token": 705.38,
+ "eval_tokens_per_second": 1.42,
+ "total_ms": 120860.07,
+ "total_tokens": 683,
+ "load_ms": 3476.64,
+ "sampling_ms": 30.04,
+ "max_rss_kib": 4397064,
+ "wall_clock": "2:04.82",
+ "buffers_f16_cache_mib": {
+  "model_mapped_mib": 2687.22,
+  "model_repack_mib": 304.28,
+  "kv_mib": 1152.0,
+  "compute_mib": 306.75,
+  "output_mib": 0.58
+ },
+ "predicate": "the common_perf_print lines llama-completion prints, tokenization inside prompt eval and sampling inside eval; the buffer-size lines the loader logs under -v at n_ctx 8192, batch 2048, micro-batch 512; and the maximum resident set /usr/bin/time -v reports",
+ "power": null,
+ "buffers_q8_0_cache_mib": {
+  "model_mapped_mib": 2687.22,
+  "model_repack_mib": 304.28,
+  "kv_mib": 612.0,
+  "compute_mib": 311.75,
+  "output_mib": 0.58
+ },
+ "buffers_q8_0_cache_predicate": "the same loader lines under -ctk q8_0 -ctv q8_0 -fa on at n_ctx 8192, from the one-token trace run rather than the generation run"
+}
