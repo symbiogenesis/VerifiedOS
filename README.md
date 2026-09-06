@@ -349,7 +349,7 @@ Its standing output is the extraction-defect list: normative claims that resist 
 
 ### Derived views
 
-Seven **derived views** collect what the register states across many entries but no document held:
+Eight **derived views** collect what the register states across many entries but no document held:
 
 - **The [frozen instruction-set profile](docs/isa-profile.md)**: the single enumeration of the ISA, covering base, adopted extensions, exclusions with their grounds, the CHERI feature set, per-class datapath parameters, and the timing contracts. It carries a third disposition beside adopted and excluded: a **standing adoption** is an extension the profile has already decided it would take, still waiting on the standards body to ratify it, so the decision is on the page while the machine carries none of it. The schedule root and first day-one deliverable of the spec's [realization plan](docs/spec.md#18-realization) consume it.
 - **The [microarchitectural absence contract](docs/absence-contract.md)**: eighteen enumerated absences with the netlist evidence an auditor searches for, both discharge forms, the table-freeness rule, and the `fence.t` four-class completeness map. It is buildable on day one: the one part of the least-built layer (RTL ⊑ Sail) that does not need that layer to exist first.
