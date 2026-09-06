@@ -2334,9 +2334,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: R1b
 · Disposition: closed, the predicate stated beside each figure at the cell, and the record's own figures reproduced
 
-**F-293** owed-act: every file the two enumerated layers name is a Solderpad file the datapath curation must replace, `rtl/README.md` §1 forbids copying one in, and whether an authored substitute may be a copy-and-edit under the Apache-2.0 election THIRD-PARTY.md records or must be clean-room over the imported names is undecided
+**F-293** owed-act: every file the two enumerated layers name is a Solderpad file the datapath curation must replace, the Apache-2.0 election THIRD-PARTY.md records at the CHERI-CVA6 pin permits copying one, and `rtl/README.md` §1 admits a file to `rtl/` where this repository wrote it or a generator here writes it from an artifact it owns, which is a rule over provenance rather than over permission
 · Raised: R1b
-· Disposition: open, the integrator's before seam 2, and it moves THIRD-PARTY.md and rtl/README.md whichever way it goes
+· Disposition: closed, the later seams authoring their substitutes on the seam-1 row's shape and a copy-and-edit of the imported tree taking a repository of its own on the compiler milestone's precedent, so neither THIRD-PARTY.md nor `rtl/README.md` moves and the cell is not re-priced
 
 ## Build-loop instruments
 
