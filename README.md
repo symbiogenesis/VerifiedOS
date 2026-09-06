@@ -357,6 +357,8 @@ Seven **derived views** collect what the register states across many entries but
 
 - **The [bank-count exploration contract](docs/bank-count-dse-contract.md)**: how the dense memory is divided into independently addressed banks, which is a trade between how much data a bank can deliver at once and how much current the chip draws when several wake together. It names the seven quantities the choice turns on and records that six of them have no value yet, three of those waiting on a measured chip and three on artifacts this programme has still to build, so what it publishes today is the shape of the answer and an explicit refusal to pick one.
 
+- **The [second-class macro architecture](docs/second-class-macro-architecture.md)**: what the dense memory's five stated properties make its memory macro look like, from the stacked decks down to what one row holds, and what one measurement has to return for each part before the chip is real. It states no figure, on purpose: every density, latency, retention and current figure is named as a quantity to be measured on a repaired macro, so the document can be measured against without ever having been able to stand in for the measurement.
+
 Every row cites its governing requirement, and each view is defective, never authoritative, where it disagrees with the register. Traces cite the prose by the `<a id="r-ss-nnn">` bookmark a requirement's own number derives rather than by line number, so editing the prose moves the target with the text, and neither those references nor any figure these documents assert is maintained by hand.
 
 ## ⚖️ License <a id="license"></a>
