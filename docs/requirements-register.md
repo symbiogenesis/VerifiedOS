@@ -2119,6 +2119,20 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: a development- or test-rooted image verifies in no production part, and the ROM carries no engineering-key or unlock-token path to be authorized.
 · Trace: CJ-CRYPTO-SPEC
 
+**R-09-036a** MUST: The root that admits a *generation* is the holder's and not the vendor's: the ML-DSA roots the system-integrity reader and A/B transactor (R-06-005) accept for a signed generation root and its reference integrity manifest (R-09-026) are an **enrolled root set** the RoT holds under its monotonic-counter-protected state, initialized at personalization to the vendor's generation key and changed afterwards only by the device's holder, the principal presenting the primary credential (R-12-016), through the credential-gated, consent-witnessed trusted path a rollback takes (R-11-002, R-12-022); the metal-mask ROM's root (R-09-036) is untouched by it and verifies the RoT runtime firmware and the M-mode image alone.
+· Accept: the holder may add a root, remove one, and remove the vendor's, and a generation signed under any enrolled root is admitted exactly as a vendor-signed one is with R-11-005's proof check unchanged, so signing decides who may push and proof decides what may run, which is artifact-not-pedigree (R-13-013) applied to the signer, and a holder's own generation may come from any composer they choose (R-13-001c).
+· Accept: the set is never empty: a removal that would leave no enrolled root admitting both a retained bootable generation (R-09-030) and a recovery generation (R-09-029) does not take effect until the holder has installed one that does, so the holder cannot lock themself out of their own device by one act.
+· Accept: the enrolled set is measured into the device register (R-09-025a) at every boot, so a quote states which roots could have admitted the running generation and a relying party reads a holder-rooted device off the quote rather than inferring it.
+· Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC
+
+**R-09-036b** MUST NOT: No party but the holder changes the enrolled set: no vendor unlock token, remote enrolment, escrowed root, or signed directive adds or removes a root, and no admitted generation alters the set from software, the change being an RoT act taken on the trusted consent path alone.
+· Accept: the vendor's whole authority over a fielded device is one enrolled root the holder can remove, after which an update directive under it (R-11-005a) is not admitted; what the holder does not thereby gain is the silicon's lifecycle, the Debug Module staying closed in production (R-09-034), and the anti-rollback floor (R-09-030) binds a holder's generation as it binds the vendor's, so a holder's build declares a security version at or above it.
+· Trace: CJ-NI, CJ-DEVTREE
+
+**R-09-036c** IS: Factory reset (R-10-033) and the duress erase (R-09-024) return the enrolled set to its personalization value beside re-deriving identity, so a device changing hands carries no prior holder's root.
+· Accept: no enrolled root survives either path except the personalization value, so a second-hand or erased device admits the vendor's generations and nobody else's until its holder acts.
+· Trace: CJ-DEVTREE
+
 **R-09-037** MUST: The RoT extends the lifecycle state into the measured chain as its first extension, before the ROM verifies any payload, and the reference integrity manifest (R-09-026) carries the production value as the expected one.
 · Accept: every later measurement is bound to the state it ran under and a relying party appraises a debuggable part from its quote rather than inferring it; R-09-025's vector is not widened, the state entering as a chain measurement rather than as a further field.
 · Trace: CJ-DEVTREE
@@ -2321,7 +2335,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-10-032** MUST: FDE keys are sealed to the RoT and measured state; per-profile volume keys are resident only After First Unlock, released into the crypto core by the credential-gated unlock transition and zeroized on lock or idle timeout, so the Before-First-Unlock state holds no user-data key; memory is zeroized at shutdown.
 · Accept: the BFU key inventory is empty.
-· Accept: the policy an FDE key is sealed under names the reference-integrity-manifest signing root (R-09-026) over the generation register (R-09-025a) and the anti-rollback floor (R-09-030), never a measured value, so the generation an update commits and the recovery generation (R-09-029) each unseal it on their own signed manifest, the A/B transactor re-seals nothing at commit, and a generation below the floor is refused at the seal as it is at the boot.
+· Accept: the policy an FDE key is sealed under names the enrolled root set (R-09-036a) over the generation register (R-09-025a) and the anti-rollback floor (R-09-030), never a measured value, so a generation whose reference integrity manifest (R-09-026) is signed under any enrolled root at or above the floor unseals it, the generation an update commits and the recovery generation (R-09-029) alike, the A/B transactor re-seals nothing at commit, a root the holder enrols or removes moves what the key opens to without re-sealing it, and a generation below the floor is refused at the seal as it is at the boot.
 · Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC
 
 **R-10-033** IS: Factory reset is discarding the volumes; device identity re-derives from the RoT.
@@ -2637,7 +2651,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-014** MUST: The sealing and attestation service is a crypto-core-backed compartment exposing seal/unseal, attestation quotes, reference-manifest retrieval, and monotonic-counter operations over rings, binding secrets to the RoT and measured state.
 · Accept: keys never leave the crypto core; apps hold only sealed blobs and capability handles, so the constant-time obligation stays on the core.
-· Accept: a seal names its policy, the exact measured vector (R-09-025) or a manifest-root signature (R-09-026) over the generation register (R-09-025a) at or above the anti-rollback floor, and every unseal is bound as well to the requesting compartment's identity in the composed graph (R-07-028), the name and never the image hash, so a blob survives its own compartment's update and is refused to a peer in the same generation.
+· Accept: a seal names its policy, the exact measured vector (R-09-025) or a reference-integrity-manifest signature (R-09-026) under any enrolled root (R-09-036a) over the generation register (R-09-025a) at or above the anti-rollback floor, and every unseal is bound as well to the requesting compartment's identity in the composed graph (R-07-028), the name and never the image hash, so a blob survives its own compartment's update and is refused to a peer in the same generation.
 · Trace: CJ-CRYPTO-SPEC, CJ-CT-SOUND
 
 **R-12-015** MUST: A relying party retrieves the running generation's reference integrity manifest through the same service and appraises a quote against it, so remote verification needs no vendor-side golden database.
