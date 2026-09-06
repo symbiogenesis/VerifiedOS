@@ -403,10 +403,12 @@ finds, so an absent package is an `unresolved-import` and a suppression for it i
 lacks it, the directive is a finding on the lane that has it, and the gate's verdict
 turns on what happens to be installed instead of on what the code says. ty.toml pins
 `python-platform` for the same reason on the other axis, so that the tools are typed
-against one declared target and not against whichever machine ran the checker. The one
-`ty: ignore` in this directory is [vos/config.py](vos/config.py)'s, on a cast where ty
-calls the code unsound without it and the cast redundant with it, and it names
-`redundant-cast` alone; no import suppression exists here, which leaves every unresolved
+against one declared target and not against whichever machine ran the checker. The
+`ty: ignore` directives in this directory are the same narrowing cast in
+[vos/config.py](vos/config.py) and [vos/socmap.py](vos/socmap.py), where ty calls the code
+unsound without the cast and the cast redundant with it, each naming `redundant-cast`, and
+one in [tests/test_mutate.py](tests/test_mutate.py) naming `invalid-argument-type`; no
+import suppression exists here, which leaves every unresolved
 import an error without a carve-out to audit.
 
 ## The conventions

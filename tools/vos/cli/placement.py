@@ -178,7 +178,7 @@ def _report(plan: memplan.Plan, src: memplan.Source, max_leaves: int | None) -> 
           f"class, fetch count or slot")
     print(f"status: {'complete enumeration over the declared set' if complete else 'INCOMPLETE, cut short by --max-leaves; not infeasibility'}"
           f"; not an optimality claim outside that set; admitted workload: n/a, no "
-          f"composed roster (R-18-004d unauthored, Q1 open)")
+          f"composed roster (R-18-004d unauthored, Q1's envelope proposed)")
     print("residuals: fields the plan does not carry, "
           + "; ".join(f"{name}: {why}" for name, why in memplan.ABSENT.items()))
     print("residuals: cost inputs, none read and none rounded; the two fetch "

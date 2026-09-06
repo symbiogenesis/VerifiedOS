@@ -12,7 +12,7 @@
 | [bank-dse.py](bank-dse.py) | Every candidate bank count, scored against the arithmetic that exists without a coefficient, admitting none |
 | [checks/](checks/) | K-77 and K-58, the two rules that hold each instrument against the contract it answers |
 | [check-rules.md](check-rules.md) | This directory's own rule registry, held against those checks in both directions |
-| [tests/](tests/) | The three test modules that moved with the instruments, one seeded defect per CI predicate among them |
+| [tests/](tests/) | The test modules `gate.py` discovers by glob, one seeded defect per CI predicate among them |
 | [gate.py](gate.py) | The one command over all of the above |
 
 The two **contracts** stayed in [docs/](../../docs/), and deliberately. They are specifications the register cites and other rules read: the freeze contract is held against the register by the views group and against R-15-014a's closed delta by K-70, and the bank contract is one of the three artifacts K-55 requires to go on booking the per-class bank count as open. What was quarantined is the machinery, never the obligation.
@@ -27,7 +27,7 @@ $ python tools/quarantine/freeze-report.py --json      # as the record the CI ga
 $ python tools/quarantine/freeze-report.py --markdown  # as the rendering a curator reads
 ```
 
-`gate.py` runs the two rules over the live tree, the floors under them, one seeded mutant per rule, this directory's registry against the checks carrying it, and the three test modules, and answers with one exit code. It is **not** a member of [python tools/run.py](../run.py) and is not run before a landing. It is run when something here or in one of the two contracts is edited, and at the milestone that un-quarantines an instrument.
+`gate.py` runs the two rules over the live tree, the floors under them, one seeded mutant per rule, this directory's registry against the checks carrying it, and every test module under [tests/](tests/), and answers with one exit code. It is **not** a member of [python tools/run.py](../run.py) and is not run before a landing. It is run when something here or in one of the two contracts is edited, and at the milestone that un-quarantines an instrument.
 
 The tools may be run from anywhere: each finds the repository root from its own location, exactly as every tool in [tools/](../) does.
 

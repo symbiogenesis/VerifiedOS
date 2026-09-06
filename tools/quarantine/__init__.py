@@ -4,8 +4,8 @@
 Two whole instruments live here, each answering a specification rather than an
 output, each tested and gated, and each waiting on a decision nobody can take yet:
 the profile-freeze analyzer, whose ordered act falls behind the M8a gate, and the
-bank-count exploration, whose hard constraint has no operands until R4 and R5
-measure a macro. Nothing about either is wrong. What was wrong is that both sat in
+bank-count exploration, whose hard constraint has no operands until R5 measures a
+macro, R4 having stated the architecture that defines them and no figure. Nothing about either is wrong. What was wrong is that both sat in
 a loop that runs before every landing, for decisions that will not be taken until
 after that gate, so they were taken out of it and put here whole.
 
@@ -13,7 +13,7 @@ after that gate, so they were taken out of it and put here whole.
 un-quarantines it, `check-rules.md` is this directory's own rule registry, and
 `gate.py` is the one command that runs everything here: the two rules over the live
 tree, the floors under them, one seeded mutant per rule, this registry against the
-checks carrying it, and the three test modules that moved with the instruments.
+checks carrying it, and every test module under `tests/`, which it finds by glob.
 
 **The direction of the coupling is the whole point.** This package may read
 `vos`, which is where the parses and the reporting convention live. Nothing outside
