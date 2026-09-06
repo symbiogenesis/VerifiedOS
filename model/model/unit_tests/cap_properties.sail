@@ -94,6 +94,27 @@
 //
 // Upstream's `-->` and `<-->` sugar is the prelude's `==>` here, and its `EXTZ`
 // is a concatenation with a zero bit or `zero_extend`.
+//
+// Two premises below are load-bearing rather than decorative, and each was put
+// to the solver on its own as the property that drops it. Neither is stated
+// here as a property, a property being a thing this file expects to prove; each
+// is restated in the note the landing recorded, and either is reproduced by
+// pasting the body back in and running `run.py model smt --property` on it.
+//
+//   `encodableCap` is not identically true. The property that says it is,
+//   `memBitsToCapability(c.tag, capToMemBits(c)) == c` over a free `Capability`,
+//   is satisfiable, so the implications guarded by `encodableCap` below restrict
+//   something. It is not identically false either, propDefaultCapEncodable,
+//   propNullCapEncodable and propRootDataCapEncodable each proving it at a
+//   concrete capability; with propEncodableCorrect proved, those two readings
+//   together say the predicate is exactly the round trip's fixed set.
+//
+//   The containment domain (j) is not decoration. propSetBoundsContains with
+//   `unsigned(reqTop) <= pow2(cap_addr_width)` replaced by `>` is satisfiable,
+//   which is R-15-007a's own edge arriving as a solver witness: above 2^36 the
+//   derived region does not contain the requested one. The entry says the tag is
+//   what makes that unreachable rather than a repair, and the tag is outside
+//   what these properties quantify over.
 
 // *****************************************************************
 // Encodability.
@@ -450,38 +471,30 @@ function propPermsLatticeExclusions(code : CapPermsCode) -> bool = {
 // The load path's strips are exact (R-15-074): removing global, removing the
 // three store permissions, or removing both from any admitted set lands on an
 // admitted set rather than below one, so a read-only view of a structure yields
-// exactly the read-only views of what it points at.
+// exactly the read-only views of what it points at. Bit 0 of the expanded
+// bitmap is the globality bit and bits 2, 4 and 5 are Permit_Store,
+// Permit_Store_Capability and Permit_Store_Local, on the order
+// `perms_expand` states (cap_common.sail).
+//
+// One strip per property rather than three in one: each of these is a
+// `perms_narrow` call, and `perms_narrow` is a thirty-two-way search whose
+// term the SMT backend unrolls, so a property naming three of them costs more
+// to emit than the three cost together.
 $[property]
-function propPermsLoadStripsAreExact(code : CapPermsCode) -> bool = {
-  let set = perms_expand(code);
-  let noGlobal = set & ~(0b0000_0000_0001);
-  let noStore = set & ~(0b0000_0011_0100);
-  let neither = noGlobal & noStore;
-  perms_expand(perms_narrow(noGlobal)) == noGlobal
-    & perms_expand(perms_narrow(noStore)) == noStore
-    & perms_expand(perms_narrow(neither)) == neither
+function propPermsStripGlobalExact(code : CapPermsCode) -> bool = {
+  let stripped = perms_expand(code) & ~(0b0000_0000_0001);
+  perms_expand(perms_narrow(stripped)) == stripped
 }
 
-// PROBE: expected to fail, run once to obtain a solver witness; removed before landing.
 $[property]
-function probeContainmentAbove(c : Capability, reqBase : CapAddrBits, reqTop : CapLenBits) -> bool = {
-  let (_, newCap) = setCapBounds(c, reqBase, reqTop);
-  let (newBase, newTop) = getCapBounds(newCap);
-  let above = unsigned(reqBase) <= unsigned(reqTop) & unsigned(reqTop) > pow2(cap_addr_width);
-  above ==> (newBase <= unsigned(reqBase) & unsigned(reqTop) <= newTop)
+function propPermsStripStoreExact(code : CapPermsCode) -> bool = {
+  let stripped = perms_expand(code) & ~(0b0000_0011_0100);
+  perms_expand(perms_narrow(stripped)) == stripped
 }
 
-// PROBE: is the narrowing monotone in the subset order; removed before landing.
 $[property]
-function probePermsNarrowMonotone(w1 : CapPermsBits, w2 : CapPermsBits) -> bool = {
-  let g1 = perms_expand(perms_narrow(w1));
-  let g2 = perms_expand(perms_narrow(w2));
-  ((w1 & w2) == w1) ==> ((g1 & g2) == g1)
+function propPermsStripBothExact(code : CapPermsCode) -> bool = {
+  let stripped = perms_expand(code) & ~(0b0000_0011_0101);
+  perms_expand(perms_narrow(stripped)) == stripped
 }
 
-// PROBE: upstream's premise for propSetBoundsEncodable, without the domain; removed before landing.
-$[property]
-function probeSetBoundsEncodableUpstream(c : Capability, reqBase : CapAddrBits, reqTop : CapLenBits) -> bool = {
-  let (_, c2) = setCapBounds(c, reqBase, reqTop);
-  (encodableCap(c) & unsigned(reqBase) <= unsigned(reqTop)) ==> encodableCap(c2)
-}

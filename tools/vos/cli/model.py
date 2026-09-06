@@ -605,6 +605,9 @@ AUTO_NOT_FOUND = "Solver could not find counterexample"
 AUTO_UNEXPECTED = "Unexpected solver output:"
 UNRECOGNIZED = "unrecognized"
 
+# How much of a counterexample's model to print before pointing at the file holding it.
+MODEL_HEAD_LINES = 12
+
 
 def property_names(text: str) -> list[str]:
     """Every `$[property]` head in a Sail source, in source order.
@@ -793,8 +796,17 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
         counts[label] += 1
         print(f"{label:<15} {name:<34} {wall:8.1f} s  ({smt2.stat().st_size} bytes)")
         if verdict == COUNTEREXAMPLE:
-            for line in model:
+            # The solver's model is SMT-LIB over the emitter's own names and runs to
+            # thousands of lines, so it is written beside the file it came from and
+            # only its head is printed. `--auto` is the form that renders one back
+            # into Sail values.
+            witness = smt2.with_suffix(".model")
+            witness.write_text("\n".join(model) + "\n", encoding="utf-8")
+            for line in model[:MODEL_HEAD_LINES]:
                 print(f"    {line}")
+            if len(model) > MODEL_HEAD_LINES:
+                print(f"    ... {len(model)} lines in {witness}; `--auto` renders it "
+                      f"in Sail values")
         elif verdict is None:
             for line in said.splitlines()[:3]:
                 print(f"    {line}")
