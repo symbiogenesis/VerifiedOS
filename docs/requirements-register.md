@@ -30,7 +30,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **IDs are permanent.** A retired requirement keeps its number and is struck, never reused. Renumbering breaks every review record that cites it.
 
-**Order is the specification's, not the numbering's.** Entries appear in the order of the prose they extract, so a requirement added after its neighbours sits where its obligation belongs and not where its number would put it: §18.5 runs 031, 032, 034, 035, 033. A letter-suffixed ID (`R-05-022a`) is an obligation inserted between two existing ones; it is a full entry and is counted as one.
+**Order is the specification's, not the numbering's.** Entries appear in the order of the prose they extract, so a requirement added after its neighbours sits where its obligation belongs and not where its number would put it: §18.5 runs 031, 032, 034, 035, 036, 037, 033. A letter-suffixed ID (`R-05-022a`) is an obligation inserted between two existing ones; it is a full entry and is counted as one.
 
 ### Crown-jewel specs referenced
 

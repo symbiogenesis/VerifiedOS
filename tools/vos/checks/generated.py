@@ -430,10 +430,11 @@ def run(ctx: Context) -> None:
     rep.report(
         "K-88", "generated artifact(s) that are not what their generator wrote:",
         findings,
-        f"all {len(GENERATED)} generated artifact(s) are the bytes the index holds for "
-        f"them and record {owners} owner(s) this checkout still hashes to, {hosted} of "
-        f"them held against what their generator writes here and now; the Sail emitter "
-        f"itself is not on this lane, so `{guest}` is what holds the rest against it")
+        f"all {len(GENERATED)} generated artifact(s) are carried by the git index, "
+        f"{hosted} of them held against what their generator writes here and now, and "
+        f"the rest against the bytes the index holds and {owners} owner(s) this checkout "
+        f"still hashes to; the Sail emitter itself is not on this lane, so `{guest}` is "
+        f"what holds those against it")
     for line in fixed:
         rep.line(line)
     rep.line()

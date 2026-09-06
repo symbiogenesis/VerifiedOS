@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The Gallina front's input side: generated vectors now, QuickChick when it is bought.
+"""The Gallina front's input side: generated vectors, and randomized properties under QuickChick.
 
 The CertiCoq -> Wasm oracle (M1.5) runs Gallina components on a stock engine and
 **nothing generates their inputs**, so what it exercises is whatever a person thought
