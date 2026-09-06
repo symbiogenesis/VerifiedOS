@@ -1,0 +1,395 @@
+{
+ "header": {
+  "generator": "vos.memplan",
+  "version": 1,
+  "source": "proofs/MemoryPlan.v",
+  "source_md5": "79516919a1598797065a565db8e35fa2",
+  "standing": "demo_plan",
+  "lists_read": [
+   "demo_base_granules",
+   "demo_bases",
+   "demo_critical",
+   "demo_fetch_counts",
+   "demo_island_bases",
+   "demo_island_spans",
+   "demo_islands",
+   "demo_kinds",
+   "demo_length_granules",
+   "demo_lengths",
+   "demo_live_ends",
+   "demo_live_starts",
+   "demo_origin_regions",
+   "demo_placed",
+   "demo_slots",
+   "escaped_charged_slots",
+   "escaping_base_granules",
+   "escaping_bases",
+   "first_class_list",
+   "odd_base_granules",
+   "odd_bases",
+   "off_by_one_bases",
+   "overlapping_base_granules",
+   "overlapping_bases",
+   "reserved_charged_slots",
+   "second_class_list",
+   "shared_base_granules",
+   "shared_bases",
+   "shorter_length_granules",
+   "shorter_lengths",
+   "underflow_base_granules",
+   "underflow_bases",
+   "unquantized_bases",
+   "unquantized_lengths"
+  ],
+  "lists_unread": [
+   "all_kinds",
+   "listed_kinds",
+   "margin_ladder",
+   "named_kinds",
+   "reserved_ladder",
+   "stranger_placement"
+  ],
+  "literals_read": {
+   "region_count": 8,
+   "first_fetch": 10,
+   "fixed_first_class": 1024,
+   "first_budget": 2048
+  },
+  "plans_read": 16
+ },
+ "plan": {
+  "name": "demo_plan",
+  "region_count": 8,
+  "first_fetch": 10,
+  "second_fetch": 15,
+  "fixed_first_class": 1024,
+  "first_budget": 2048,
+  "placed": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "origin_regions": [
+   1,
+   2
+  ],
+  "islands": [
+   {
+    "id": 0,
+    "base": 0,
+    "span": 1024
+   },
+   {
+    "id": 1,
+    "base": 2048,
+    "span": 1904
+   }
+  ],
+  "regions": [
+   {
+    "index": 0,
+    "kind": "HardTaskAndHotCode",
+    "cycle_critical": false,
+    "class": "FirstClass",
+    "base": 0,
+    "length": 64,
+    "live_from": 0,
+    "live_to": 30,
+    "granule": 1,
+    "base_granules": 0,
+    "length_granules": 64,
+    "island": 0,
+    "fetch_count": 12,
+    "slot": 0,
+    "placement_delta": 0
+   },
+   {
+    "index": 1,
+    "kind": "InterpreterObjectArenas",
+    "cycle_critical": false,
+    "class": "SecondClass",
+    "base": 2048,
+    "length": 256,
+    "live_from": 0,
+    "live_to": 30,
+    "granule": 4,
+    "base_granules": 512,
+    "length_granules": 64,
+    "island": 1,
+    "fetch_count": 0,
+    "slot": 1,
+    "placement_delta": 0
+   },
+   {
+    "index": 2,
+    "kind": "ScalarWorkingSet",
+    "cycle_critical": false,
+    "class": "FirstClass",
+    "base": 64,
+    "length": 32,
+    "live_from": 0,
+    "live_to": 10,
+    "granule": 1,
+    "base_granules": 64,
+    "length_granules": 32,
+    "island": 0,
+    "fetch_count": 0,
+    "slot": 1,
+    "placement_delta": 0
+   },
+   {
+    "index": 3,
+    "kind": "ColdStaticallyPlacedCode",
+    "cycle_critical": false,
+    "class": "SecondClass",
+    "base": 2304,
+    "length": 96,
+    "live_from": 0,
+    "live_to": 30,
+    "granule": 1,
+    "base_granules": 2304,
+    "length_granules": 96,
+    "island": 1,
+    "fetch_count": 1,
+    "slot": 1,
+    "placement_delta": 5
+   },
+   {
+    "index": 4,
+    "kind": "InterpreterBody",
+    "cycle_critical": false,
+    "class": "FirstClass",
+    "base": 96,
+    "length": 128,
+    "live_from": 10,
+    "live_to": 30,
+    "granule": 1,
+    "base_granules": 96,
+    "length_granules": 128,
+    "island": 0,
+    "fetch_count": 40,
+    "slot": 2,
+    "placement_delta": 0
+   },
+   {
+    "index": 5,
+    "kind": "ModelWeights",
+    "cycle_critical": false,
+    "class": "SecondClass",
+    "base": 2400,
+    "length": 512,
+    "live_from": 0,
+    "live_to": 30,
+    "granule": 8,
+    "base_granules": 300,
+    "length_granules": 64,
+    "island": 1,
+    "fetch_count": 0,
+    "slot": 1,
+    "placement_delta": 0
+   },
+   {
+    "index": 6,
+    "kind": "ApplicationPayload",
+    "cycle_critical": true,
+    "class": "FirstClass",
+    "base": 224,
+    "length": 192,
+    "live_from": 0,
+    "live_to": 30,
+    "granule": 2,
+    "base_granules": 112,
+    "length_granules": 96,
+    "island": 0,
+    "fetch_count": 0,
+    "slot": 1,
+    "placement_delta": 0
+   },
+   {
+    "index": 7,
+    "kind": "ApplicationPayload",
+    "cycle_critical": false,
+    "class": "SecondClass",
+    "base": 2928,
+    "length": 1024,
+    "live_from": 0,
+    "live_to": 30,
+    "granule": 16,
+    "base_granules": 183,
+    "length_granules": 64,
+    "island": 1,
+    "fetch_count": 0,
+    "slot": 1,
+    "placement_delta": 0
+   }
+  ],
+  "worst_case_timing": 5
+ },
+ "variants": {
+  "over_margin_plan": {
+   "lengths": "demo_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 16
+  },
+  "flat_plan": {
+   "lengths": "demo_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 10
+  },
+  "unit_delta_plan": {
+   "lengths": "demo_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 11
+  },
+  "fast_second_plan": {
+   "lengths": "demo_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 9
+  },
+  "shared_slot_plan": {
+   "lengths": "demo_lengths",
+   "bases": "shared_bases",
+   "bgran": "shared_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "overlapping_live_plan": {
+   "lengths": "demo_lengths",
+   "bases": "overlapping_bases",
+   "bgran": "overlapping_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "island_escaping_plan": {
+   "lengths": "demo_lengths",
+   "bases": "escaping_bases",
+   "bgran": "escaping_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "island_underflow_plan": {
+   "lengths": "demo_lengths",
+   "bases": "underflow_bases",
+   "bgran": "underflow_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "unquantized_plan": {
+   "lengths": "demo_lengths",
+   "bases": "unquantized_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "off_by_one_plan": {
+   "lengths": "demo_lengths",
+   "bases": "off_by_one_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "odd_base_plan": {
+   "lengths": "demo_lengths",
+   "bases": "odd_bases",
+   "bgran": "odd_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "unquantized_length_plan": {
+   "lengths": "unquantized_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "shorter_region_plan": {
+   "lengths": "shorter_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "shorter_length_granules",
+   "slots": "demo_slots",
+   "second": 15
+  },
+  "reserved_charged_plan": {
+   "lengths": "demo_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "reserved_charged_slots",
+   "second": 15
+  },
+  "slot_escaping_plan": {
+   "lengths": "demo_lengths",
+   "bases": "demo_bases",
+   "bgran": "demo_base_granules",
+   "lgran": "demo_length_granules",
+   "slots": "escaped_charged_slots",
+   "second": 15
+  }
+ },
+ "absent": {
+  "owner": "no Plan field names the compartment or line item a region belongs to; R-08-045's charge is read over `placed` as a list of region indices",
+  "bank": "no Plan field names a bank; R-15-228a makes the bank/macro/tier-to-island map an input to the plan, and the plan reads it only as `island_of`, `island_base` and `island_span`",
+  "reserved_size": "no Plan field states a reservation apart from `length_of`; a region's slot is exactly its length",
+  "slot_bound": "the timing limit of the frame slot a region's code runs in is CyclicExecutive.v's `Frame`, read by `slot_indices_held` against a frame's slot count and carried by the plan only as `slot_of`"
+ },
+ "constraints": [
+  {
+   "check": "containment_ok",
+   "entry": "R-08-012c"
+  },
+  {
+   "check": "colouring_ok",
+   "entry": "R-08-014"
+  },
+  {
+   "check": "slot_bases_quantized",
+   "entry": "R-15-007k"
+  },
+  {
+   "check": "slot_lengths_quantized",
+   "entry": "R-15-007k"
+  },
+  {
+   "check": "plan_ok",
+   "entry": "R-08-045"
+  },
+  {
+   "check": "places_ok",
+   "entry": "R-15-247s"
+  },
+  {
+   "check": "slot_indices_held",
+   "entry": "R-15-247j"
+  },
+  {
+   "check": "pool_fits",
+   "entry": "R-14-010"
+  }
+ ]
+}
