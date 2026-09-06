@@ -2321,6 +2321,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-10-032** MUST: FDE keys are sealed to the RoT and measured state; per-profile volume keys are resident only After First Unlock, released into the crypto core by the credential-gated unlock transition and zeroized on lock or idle timeout, so the Before-First-Unlock state holds no user-data key; memory is zeroized at shutdown.
 · Accept: the BFU key inventory is empty.
+· Accept: the policy an FDE key is sealed under names the reference-integrity-manifest signing root (R-09-026) over the generation register (R-09-025a) and the anti-rollback floor (R-09-030), never a measured value, so the generation an update commits and the recovery generation (R-09-029) each unseal it on their own signed manifest, the A/B transactor re-seals nothing at commit, and a generation below the floor is refused at the seal as it is at the boot.
 · Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC
 
 **R-10-033** IS: Factory reset is discarding the volumes; device identity re-derives from the RoT.
