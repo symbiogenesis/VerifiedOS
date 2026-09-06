@@ -2242,6 +2242,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: R1c-ii
 · Disposition: closed, the format package named apart and the cross-check taking it alone, which is the same narrowness that loop's model-source list already states its ground for
 
+**F-270** owed-act: no register entry states what a macro architecture specification must contain, a search of the register at 28e1897 for `macro architecture`, `deck row`, `page size` and `sense width` reaching R-15-014a, R-15-108's criterion and R-15-181a's criterion and no entry whose head line names the architecture, R-15-247m obliging the measurement only
+· Raised: R4
+· Disposition: open, a register act for the product's owner; the specification lands as a derived view written against R-15-247m's measurement obligation and the memory subsystem's one sentence, binding nothing meanwhile
+
+**F-271** measurement: five of the ten pages the alternatives register's 2T0C entry cites did not serve an unauthenticated read on 2026-09-05, the two IEEE Xplore pages returning no readable body, the Science Advances and ResearchGate pages 403, and nature.com a redirect to its sign-in endpoint, and the entry's readings carry no date at the sentence where R-18-001a wants one
+· Raised: R4
+· Disposition: open, owed to R5, which re-takes each reading at the milestone that spends it; the view carries the five readings that served and no figure from the five that did not
+
+**F-272** owed-act: the view takes one shape decision the five properties leave open, that a bank lies within one deck, on grounds that are each an entry (R-15-247g, R-15-247m, R-15-173) while the conclusion is nobody's, with its forfeit, no cross-deck periphery amortisation, stated beside it
+· Raised: R4
+· Disposition: open, folded into the register act above; a reader taking the choice as decided would be reading a derived view as normative, which its header forbids
+
+**F-273** measurement: registering the eighth derived view moves K-24's view count, README.md:348 and docs/critique.md:3 asserting seven where the artifact gives eight at 28e1897, and the selftest's baseline refuses on that same finding so no mutant decides anything on the lane; in a scratch clone at 29bdfd8 with only that count repaired the selftest kills 114 of 114 mutants with 0 stillborn over all 94 rules
+· Raised: R4
+· Disposition: closed at the integrator's one `--fix` per merge, which rewrites both sites; the scratch-clone figure is recorded as taken and is not the item's evidence
+
+**F-274** measurement: the first draft stated the imec roadmap page's 4.5-hour retention as taken at room temperature where the page states no temperature, attributed the words *fewer decks* to R-15-173 which names no deck, cited R-15-050 for the island-ceiling clause that is R-15-247p's Accept, and carried one of the seven view body patterns with a different initial case
+· Raised: R4
+· Disposition: closed at 28e1897, all four repaired, the three imec pages re-read on 2026-09-05 and none stating a temperature or a life beside its retention figure
+
+**F-275** method: `tools/vos/checks/estimates.py:93` lists R4 first in `AFTER_M8B` and the checklist's Q6 at line 611 says the topology comparison precedes R4 and R5, both unedited at 28e1897 under the ruling that opens R4 now as a document act
+· Raised: R4
+· Disposition: open, the integrator's at landing, which reconciles the sentence and the list; until then the item stands landed inside a partition the tool says is not yet reachable
+
 ## Build-loop instruments
 
 **F-178** measurement: the shared memo cache one instrument proposed already existed for the typecheck loop, one file every checkout wrote, live across four concurrent lanes
