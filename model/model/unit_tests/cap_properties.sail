@@ -63,9 +63,15 @@
 //       domain R-15-007a states, a requested top at or below 2^36: above it the
 //       chosen exponent can reach 31, which the struct holds and the five-bit
 //       field does not, so `propSetBoundsEncodable` carries that domain where
-//       upstream's premise was `reqBase <= reqTop` alone.
+//       upstream's premise was `reqBase <= reqTop` alone. That is read off
+//       `setCapBounds`'s own exponent choice and no probe pins it; the
+//       containment property below is the one whose domain a probe pins.
 //
-// Per upstream property, what this file does with it:
+// Per upstream property, what this file does with it. *Carried* means the
+// property's own statement is upstream's, with only the types, the widths and
+// the named constants under it moved; *restated* means the statement itself
+// changed, a premise or a conjunct being added, dropped or replaced;
+// *unstatable* means its subject is not in this model.
 //
 //   propEncodableCorrect              carried, over the redefined encodableCap
 //   propDecodeEncodable               carried
@@ -84,7 +90,7 @@
 //   propSetLSBs                       carried, over (h)
 //   propSetBoundsSmallExact           carried, with the stronger (g) beside it
 //   propRepresentableSetBoundsExact   unstatable, (f)
-//   propPowerOfTwoRepresentable       carried, the exponent bounded to the space
+//   propPowerOfTwoRepresentable       restated, n bounded to range(0, 36) (a)
 //   propZeroLenRepresentable          carried
 //   propRepresentableBoundsMono       unstatable, (f)
 //   propRepresentableLengthIdempotent unstatable, (f)
@@ -95,26 +101,37 @@
 // Upstream's `-->` and `<-->` sugar is the prelude's `==>` here, and its `EXTZ`
 // is a concatenation with a zero bit or `zero_extend`.
 //
-// Two premises below are load-bearing rather than decorative, and each was put
-// to the solver on its own as the property that drops it. Neither is stated
-// here as a property, a property being a thing this file expects to prove; each
-// is restated in the note the landing recorded, and either is reproduced by
-// pasting the body back in and running `run.py model smt --property` on it.
+// Two premises below carry a probe that drops each, so that the implications
+// guarded by them are not read as vacuous. A probe is not carried as a
+// property, a property here being a thing the file expects to prove, and its
+// answer is satisfiability rather than a proof. The bodies are written out so a
+// reader restores one and runs `run.py model smt --property` on it. Nothing in
+// the tree holds either answer: what the landing's own run got is in the Q3a
+// note of docs/completion-log.md, with the revision and the solver it was taken
+// at.
 //
-//   `encodableCap` is not identically true. The property that says it is,
-//   `memBitsToCapability(c.tag, capToMemBits(c)) == c` over a free `Capability`,
-//   is satisfiable, so the implications guarded by `encodableCap` below restrict
-//   something. It is not identically false either, propDefaultCapEncodable,
-//   propNullCapEncodable and propRootDataCapEncodable each proving it at a
-//   concrete capability; with propEncodableCorrect proved, those two readings
-//   together say the predicate is exactly the round trip's fixed set.
+//   $[property]
+//   function probeAllEncodable(c : Capability) -> bool =
+//     memBitsToCapability(c.tag, capToMemBits(c)) == c
 //
-//   The containment domain (j) is not decoration. propSetBoundsContains with
-//   `unsigned(reqTop) <= pow2(cap_addr_width)` replaced by `>` is satisfiable,
-//   which is R-15-007a's own edge arriving as a solver witness: above 2^36 the
-//   derived region does not contain the requested one. The entry says the tag is
-//   what makes that unreachable rather than a repair, and the tag is outside
-//   what these properties quantify over.
+//   $[property]
+//   function probeContainsNoDomain(c : Capability, reqBase : CapAddrBits,
+//                                  reqTop : CapLenBits) -> bool = {
+//     let (_, newCap) = setCapBounds(c, reqBase, reqTop);
+//     let (newBase, newTop) = getCapBounds(newCap);
+//     let outDomain = unsigned(reqBase) <= unsigned(reqTop)
+//                     & unsigned(reqTop) > pow2(cap_addr_width);
+//     outDomain ==> (newBase <= unsigned(reqBase) & unsigned(reqTop) <= newTop)
+//   }
+//
+// The first is the claim that `encodableCap` is identically true, since by
+// propEncodableCorrect the round trip is the identity exactly where the
+// predicate holds; the second is the claim that the containment domain (j) is
+// decoration. propDefaultCapEncodable, propNullCapEncodable and
+// propRootDataCapEncodable pin the predicate from the other side, each proving
+// it at a concrete capability. R-15-007a says the tag is what makes the region
+// above 2^36 unreachable rather than a repair, and the tag is outside what
+// these properties quantify over.
 
 // *****************************************************************
 // Encodability.
@@ -471,10 +488,14 @@ function propPermsLatticeExclusions(code : CapPermsCode) -> bool = {
 // The load path's strips are exact (R-15-074): removing global, removing the
 // three store permissions, or removing both from any admitted set lands on an
 // admitted set rather than below one, so a read-only view of a structure yields
-// exactly the read-only views of what it points at. Bit 0 of the expanded
-// bitmap is the globality bit and bits 2, 4 and 5 are Permit_Store,
-// Permit_Store_Capability and Permit_Store_Local, on the order
-// `perms_expand` states (cap_common.sail).
+// exactly the read-only views of what it points at. The two masks are the ones
+// `load_transitivity` applies as `keep_global` and `keep_mutable`
+// (extensions/CHERI/cheri_mem.sail), restated here as literals: bit 0 of the
+// expanded bitmap is the globality bit and bits 2, 4 and 5 are Permit_Store,
+// Permit_Store_Capability and Permit_Store_Local, on the order `perms_expand`
+// states (core/cap_common.sail). No rule holds the two sites together, so a
+// change to the load path's masks leaves these three properties proving the
+// strip that was; the landing reports that as a finding and closes none of it.
 //
 // One strip per property rather than three in one: each of these is a
 // `perms_narrow` call, and `perms_narrow` is a thirty-two-way search whose

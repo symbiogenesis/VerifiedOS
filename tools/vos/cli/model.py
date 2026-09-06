@@ -698,6 +698,11 @@ def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
 
     The memo cache is the lane's own, seeded from the typecheck cache, and the run
     holds it for the reason `cmd_typecheck` does: Sail rewrites it whole at exit.
+
+    The emission's `STAGE` line goes to the log rather than the console, which is
+    `env.stage`'s own rule that a stage reports beside its own output: what the
+    emission cost is the figure a completion note quotes, and a console line no file
+    keeps cannot be re-taken by the reader who checks the note.
     """
     _require("sail", SAIL_HOW)
     if not args.auto:
@@ -746,7 +751,7 @@ def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
                     "--config", str(e.profile),
                     "--variable", SMT_VARIABLE,
                     "riscv.sail_project", SMT_MODULE,
-                ], sys.stdout, cwd=e.model / "model", stdout=handle, stderr=handle)
+                ], cwd=e.model / "model", stdout=handle, stderr=handle)
         if args.auto:
             return _report_auto(log, picked, code)
         if code:
