@@ -474,6 +474,32 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S25
 · Disposition: standing, the four repaired and the five carried; what catches this class is a reader who did not write the repair, which is the same lesson S23 paid for once
 
+## Q · Assessment actions
+
+**F-259** measurement: the estimates' headline blended five workload classes sharing no comparator into one parity-or-better sentence and restated the general-scalar band's ends and an approximate midpoint at three sites the band rule's pattern never reaches, the vector-crypto row excluding secret operands and the second-class row calling token generation bandwidth-bound beneath it
+· Raised: Q1
+· Disposition: closed, the headline split into five claims each naming its comparator, the row or entry owning its figure and its status, the secret-operand path and the token rate preserved as unknowns, and no figure restated
+
+**F-260** measurement: the porting guide restated the old headline as parity-to-many-× outside the estimates, so a repair to one document left the tree with two headlines
+· Raised: Q1
+· Disposition: closed, the sentence naming the scalar comparator and the non-secret scope and linking the split headline, with the critique's paragraph and the plan's own Q1 cell repaired in the same landing
+
+**F-261** measurement: the README's five overview repairs stand at seven sites under the six site predicates, with no link into the repository over the design highlights and no README edit owed, an expected line number measuring one off because a table's header rule sits where the row was expected
+· Raised: Q1
+· Disposition: closed, verification only and no edit, the predicate recorded beside the count
+
+**F-262** method: a result carries host elapsed time, target model cycles, FPGA observations and silicon measurements as four column families that are never summed, averaged or converted, a host benchmark figure entering a target column being a record that says something nobody measured, and a wall-clock verdict needing the model's latency magnitudes and the operating point on the model family and the operating point alone on the FPGA and silicon families
+· Raised: Q1
+· Disposition: closed, two predicates of the product-gate contract stating it, Q4a's host benchmark runs being the first consumer
+
+**F-263** owed-act: the product-gate contract's five declared parameters, sustained device power, enclosure temperature, update turnaround, the inference KL-divergence ceiling and the top-1 agreement floor, are proposed with a ground and what would change each and bind nothing, the envelope being the one R-18-004a's fifth Accept says reaches no pre-silicon gate and Q10 reserves to the product's owner
+· Raised: Q1
+· Disposition: open, the ratification the product's owner's; a verdict read against a proposed value is a reading and one predicate of the contract refuses a report that says otherwise
+
+**F-264** owed-act: no register entry states an input-to-response bound across a change of focus, R-11-023 fixing the focus rebinding at a major-frame boundary and R-11-006 fitting the slots to that frame, so that the interval an input latched before the boundary waits is composable from the major frame and R-11-022a's bound, R-17-007 timestamping the change to the unfocused and no entry stating the composed interval as an obligation, which is the interval the product-gate contract's worked example fails a candidate on
+· Raised: Q1
+· Disposition: open, reported as a register gap and not closed, a bound over the focus rebinding being a register act
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
