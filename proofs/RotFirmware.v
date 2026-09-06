@@ -14,9 +14,14 @@
    on a failed root; R-09-029's boot-target latch measured like every other
    input; R-09-025's attestation vector and R-09-026's reference-value dual
    over the same vector, appraised by R-12-015's relying party; R-12-014's
-   seal and unseal binding secrets to the RoT and the measured state, with
-   R-15-079's diversification by lifecycle state and R-09-023's sealing-root
-   version beside them; R-09-028 and R-09-030's monotonic anti-rollback
+   seal and unseal binding secrets to the RoT and the measured state under
+   the policy the seal names, the exact measured vector or a reference
+   integrity manifest signed under any enrolled root at or above the floor
+   (R-10-032), bound as well to the requesting compartment, with R-15-079's
+   diversification by lifecycle state and R-09-023's sealing-root version
+   beside them; R-09-036a's enrolled root set, changed by the holder on the
+   trusted consent path and by nobody else (R-09-036b) and never emptied;
+   R-09-028 and R-09-030's monotonic anti-rollback
    floor, boot counting and automatic revert; R-10-013's four monotonic
    counters with the events R-10-013 and R-09-023 pair them with;
    R-12-017's attempt counter charged before the comparison and never
@@ -107,22 +112,50 @@
       the vector. R-09-037 says both in as many words, so Field carries a
       sixth constructor whose only role is to be excluded, and the widening
       family is generated over it.
-   5. Unseal is one predicate with four independent gates and a fifth
-      obligation on what it hands back, so this file states five properties
-      of an unseal and not four. The gates are the measured digest
-      (R-12-014's "binding secrets to the RoT and measured state"), the
-      lifecycle state (R-15-079's diversified hierarchy, whose own
-      acceptance clause is that a debuggable part cannot unseal
-      production-sealed material), the sealing-root version (R-09-023's
-      RoT-fresh conferral into R-10-013), and the latched start-up verdict
-      (R-09-006a); reading 6 is the fifth. Each of the five is refuted by a
-      construction keeping the other four, so the five are five obligations
-      and not one stated five times.
+   5. Unseal is one predicate with five independent gates and a sixth
+      obligation on what it hands back, so this file states six properties
+      of an unseal and not five. The gates are the policy the seal names
+      (R-12-014's "binding secrets to the RoT and measured state", which
+      that entry's criterion makes one of two policies: the exact measured
+      vector, or a reference integrity manifest signed under any enrolled
+      root over the generation register at or above the floor, the policy
+      R-10-032 gives the FDE key), the lifecycle state (R-15-079's
+      diversified hierarchy, whose own acceptance clause is that a
+      debuggable part cannot unseal production-sealed material), the
+      sealing-root version (R-09-023's RoT-fresh conferral into R-10-013),
+      the latched start-up verdict (R-09-006a), and the requesting
+      compartment's identity in the composed graph (R-12-014's criterion,
+      the name and never the image hash); reading 6 is the sixth. Each of
+      the six is refuted by a construction keeping the other five, so the
+      six are six obligations and not one stated six times. The policy gate
+      is stated three ways beside its one statement, because the register
+      states three consequences of it: the exact policy binds to the
+      measured digest, the manifest policy follows the enrolled set so a
+      root the holder removes closes what it opened, and the manifest
+      policy refuses below the floor at the seal as R-10-032 says it does.
+      What the manifest policy does *not* read is the digest, which is
+      stated as a theorem over an arbitrary digest and is the whole of what
+      R-10-032 buys: the generation an update commits opens the key on its
+      own signed manifest, and the transactor re-seals nothing.
    6. What an unseal returns is a handle and never a key. R-12-014's
       criterion is that apps hold only sealed blobs and capability handles
       and R-12-015a deletes raw key export, so the answer type carries a
       cleartext constructor whose only role is to be excluded, and the
-      exporting construction is refuted while satisfying all four gates.
+      exporting construction is refuted while satisfying all five gates.
+  6a. The enrolled root set is a list the holder edits and the register
+      closes nothing about its contents, so it is a field, and the signature
+      a manifest carries is the crypto core's verdict (M3.4) and not this
+      file's: what is here is the root the running generation's reference
+      integrity manifest verified under, a field beside the set, and the
+      generation's declared security version beside both, which R-09-030's
+      floor already compares against. Enrolment is R-09-036a's act read as
+      a function of a consent bit, an act and the current set, and what is
+      stated of it is what R-09-036a and R-09-036b close: nothing changes
+      without consent, the set is never emptied, and the root asked for is
+      removed. The register's *never empty* is the stronger *never left
+      without a root admitting a retained bootable generation and a
+      recovery generation*; the emptiness half is what this file states
+      and the retained-generation half is gap i.
    7. The hash is arbitrary, and what a Machine declares of it is
       R-05-058c's hash-only assumption at the scale this file uses it and
       not a total one. Collisions exist for every hash function, so a field
@@ -285,18 +318,42 @@
    h. Every composition magnitude. The ROM seed, the extension, the
       measurement encoding, the fuse-held state, the entropy verdict, the
       expected debug-entry response, the accepted roots, the ROM-verified
-      stage set, the rollback floor, the boot bound, the four counter values
-      and the witness and reference values are fields; the demo machines at
-      the end instantiate them with arbitrary witness values that carry no
-      composition claim. Not a gap and not a deferral: it is the field
-      discipline stated once, in the list its own paragraph above gives.
+      stage set, the rollback floor, the boot bound, the four counter values,
+      the enrolled root set, the manifest's verified root, the generation's
+      declared version and the witness and reference values are fields; the
+      demo machines at the end instantiate them with arbitrary witness
+      values that carry no composition claim. Not a gap and not a deferral:
+      it is the field discipline stated once, in the list its own paragraph
+      above gives.
+   i. Which enrolled roots admit a retained bootable generation and a
+      recovery generation. R-09-036a lets a removal take effect only while
+      some enrolled root still admits both, and nothing here models a
+      retained generation or the image a root admits, that being M3.5's
+      boot chain on the emulator; so the enrolment below refuses the removal
+      that would empty the set and says nothing about the removal that
+      leaves a set admitting nothing. Deferred to this file's own next
+      revision rather than to the register, which decides it.
+   j. The two registers R-09-025a splits the chain into, and the two inputs
+      it and R-09-036a add to the measured set: the per-unit calibration
+      R-15-126 measures and the enrolled root set measured at every boot.
+      The chain below is one list of steps and one digest, which R-09-025a
+      calls the digest over both registers, so nothing here contradicts the
+      split and nothing here states it; and the input prologue carries the
+      three inputs reading 1 names and neither of the two the register now
+      adds, so the twelve-member prologue family and the seven digests the
+      extension separates are stated over a prologue the register has since
+      widened. Owed at this file, at the reading that adds the two items to
+      `Item` and re-derives the families, and not at the register.
 
    Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
    property of an arbitrary parameter, proved of the specification, and
    refuted of an alternative construction the register's own sentence
    excludes. Inhabitation is concrete: nine demo machines differing one
-   field at a time, a blob that unseals here and four presentations at which
-   it does not, a chain that passes beside twenty-eight generated weakenings of
+   field at a time and three more differing in their roots, a blob under
+   each policy that unseals here and the presentations at which each does
+   not, an enrolment that adds, removes and declines to empty beside two
+   that change without consent or empty the set, a chain that passes beside
+   twenty-eight generated weakenings of
    which twenty-seven are refused and the twenty-eighth is gap a, seventeen
    refused weakenings of the vector beside four transpositions that are
    admitted because the vector is a set, a lifecycle table that R-09-034
@@ -874,6 +931,20 @@ Example only_the_third_answer_is_cleartext :
   (cons (is_cleartext (Cleartext 0)) nil))
   = cons false (cons false (cons true nil)) := eq_refl.
 
+(* R-12-014's criterion: a seal names its policy, and there are two, the
+   exact measured vector or a reference integrity manifest signed under any
+   enrolled root over the generation register at or above the anti-rollback
+   floor (R-09-036a), the second being the policy R-10-032 gives the FDE
+   key. Two, because the entry names two. *)
+Inductive Policy : Type :=
+| ExactVector (d : nat)
+| ManifestUnderEnrolledRoot.
+
+(* R-09-036a's two acts on the enrolled set. *)
+Inductive EnrolAct : Type :=
+| AddRoot (r : nat)
+| RemoveRoot (r : nat).
+
 (* The chain's items: the three inputs the register names as measured, and
    one measurement per stage (reading 1). *)
 Inductive Item : Type :=
@@ -1102,6 +1173,15 @@ Record Machine : Type := {
 
   rollback_floor : nat;
   boot_bound : nat;
+
+  (* --- R-09-036a's enrolled root set, the root the running generation's
+         reference integrity manifest verified under (the verification
+         itself being the crypto core's, M3.4), and the generation's declared
+         security version that R-09-030's floor is compared against ------- *)
+
+  enrolled_roots : list nat;
+  manifest_root : nat;
+  generation_version : nat;
 
   (* --- R-10-013's four counters, at their current values ---------------- *)
 
@@ -1761,178 +1841,343 @@ Theorem the_two_admitted_chain_shapes_differ :
 Proof. split; reflexivity. Qed.
 
 (* =========================================================================
-   Seal and unseal (R-09-008, R-12-014, R-15-079, R-09-023, R-09-006a).
+   Seal and unseal (R-09-008, R-12-014, R-10-032, R-09-036a, R-15-079,
+   R-09-023, R-09-006a).
 
-   R-12-014 binds secrets to the RoT and the measured state and R-09-008
-   puts seal, unseal and the quote on the RoT's TPM-functional surface. Four
-   gates decide an unseal and each comes from its own entry (reading 5), so
-   the four are stated apart. What an unseal returns is a handle and never a
-   key (reading 6), which is a fifth obligation and is refuted by a
-   construction that passes all four gates; so this section states five
-   properties of an unseal, and each of the five is refuted by a
-   construction that keeps the other four.
+   R-12-014 binds secrets to the RoT and the measured state under the policy
+   the seal names, and R-09-008 puts seal, unseal and the quote on the RoT's
+   TPM-functional surface. Five gates decide an unseal and each comes from
+   its own entry (reading 5), so the five are stated apart. What an unseal
+   returns is a handle and never a key (reading 6), which is a sixth
+   obligation and is refuted by a construction that passes all five gates;
+   so this section states six properties of an unseal, and each of the six
+   is refuted by a construction that keeps the other five. The policy gate
+   is one gate with three stated faces, because the register states three
+   consequences of it and a reader of any one should find it by name.
    ========================================================================= *)
 
 Record Blob : Type := {
-  bound_digest : nat;
+  bound_policy : Policy;
   bound_state : Lifecycle;
   bound_root_version : nat;
+  bound_compartment : nat;
   blob_handle : nat
 }.
 
-Definition Unseal (m : Machine) : Type := nat -> Blob -> Answer.
+(* The measured digest, the requesting compartment's identity in the
+   composed graph, and the blob. *)
+Definition Unseal (m : Machine) : Type := nat -> nat -> Blob -> Answer.
 
-Definition unseal_admits (m : Machine) (d : nat) (b : Blob) : bool :=
+(* R-12-014's two policies. The exact policy reads the digest the chain
+   reached; the manifest policy reads none of it, and reads instead whether
+   the running generation's reference integrity manifest verified under a
+   root the holder has enrolled and whether the generation stands at or
+   above the floor (R-10-032, R-09-036a). *)
+Definition policy_admits (m : Machine) (d : nat) (p : Policy) : bool :=
+  match p with
+  | ExactVector bd => Nat.eqb d bd
+  | ManifestUnderEnrolledRoot =>
+      andb (member Nat.eqb m.(manifest_root) m.(enrolled_roots))
+           (Nat.leb m.(rollback_floor) m.(generation_version))
+  end.
+
+Lemma policy_admits_exact :
+  forall (m : Machine) (d bd : nat),
+    policy_admits m d (ExactVector bd) = Nat.eqb d bd.
+Proof. reflexivity. Qed.
+
+Lemma policy_admits_manifest :
+  forall (m : Machine) (d : nat),
+    policy_admits m d ManifestUnderEnrolledRoot
+    = andb (member Nat.eqb m.(manifest_root) m.(enrolled_roots))
+           (Nat.leb m.(rollback_floor) m.(generation_version)).
+Proof. reflexivity. Qed.
+
+Definition unseal_admits (m : Machine) (d c : nat) (b : Blob) : bool :=
   andb m.(entropy_ok)
-  (andb (Nat.eqb d b.(bound_digest))
+  (andb (policy_admits m d b.(bound_policy))
   (andb (lifecycle_eqb m.(state) b.(bound_state))
-        (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version)))).
+  (andb (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version))
+        (Nat.eqb c b.(bound_compartment))))).
 
-Definition spec_unseal (m : Machine) : Unseal m := fun d b =>
-  if unseal_admits m d b then Handle b.(blob_handle) else Refused.
+Definition spec_unseal (m : Machine) : Unseal m := fun d c b =>
+  if unseal_admits m d c b then Handle b.(blob_handle) else Refused.
 
-Definition spec_seal (m : Machine) (d h : nat) : Blob :=
-  {| bound_digest := d;
+Definition spec_seal (m : Machine) (p : Policy) (c h : nat) : Blob :=
+  {| bound_policy := p;
      bound_state := m.(state);
      bound_root_version := m.(counter) SealingRootVersion;
+     bound_compartment := c;
      blob_handle := h |}.
 
-(* R-12-014: secrets are bound to the measured state, so a machine whose
-   chain reached a different digest holds no path to the material. *)
+Lemma seal_policy :
+  forall (m : Machine) (p : Policy) (c h : nat),
+    (spec_seal m p c h).(bound_policy) = p.
+Proof. reflexivity. Qed.
+
+Lemma seal_state :
+  forall (m : Machine) (p : Policy) (c h : nat),
+    (spec_seal m p c h).(bound_state) = m.(state).
+Proof. reflexivity. Qed.
+
+Lemma seal_root_version :
+  forall (m : Machine) (p : Policy) (c h : nat),
+    (spec_seal m p c h).(bound_root_version) = m.(counter) SealingRootVersion.
+Proof. reflexivity. Qed.
+
+Lemma seal_compartment :
+  forall (m : Machine) (p : Policy) (c h : nat),
+    (spec_seal m p c h).(bound_compartment) = c.
+Proof. reflexivity. Qed.
+
+Lemma seal_handle :
+  forall (m : Machine) (p : Policy) (c h : nat),
+    (spec_seal m p c h).(blob_handle) = h.
+Proof. reflexivity. Qed.
+
+(* R-12-014: secrets are bound to the policy the seal names, so a machine
+   at which that policy does not hold holds no path to the material. *)
+Definition BindsToItsPolicy (m : Machine) (u : Unseal m) : Prop :=
+  forall (d c : nat) (b : Blob),
+    policy_admits m d b.(bound_policy) = false -> u d c b = Refused.
+
+(* The exact face of the policy gate: under the exact policy, a machine
+   whose chain reached a different digest holds no path to the material. *)
 Definition BindsToTheMeasuredState (m : Machine) (u : Unseal m) : Prop :=
-  forall (d : nat) (b : Blob),
-    Nat.eqb d b.(bound_digest) = false -> u d b = Refused.
+  forall (d c : nat) (b : Blob) (bd : nat),
+    b.(bound_policy) = ExactVector bd ->
+    Nat.eqb d bd = false -> u d c b = Refused.
+
+(* The enrolled face (R-09-036a, R-10-032): under the manifest policy, a
+   generation whose manifest verified under no enrolled root opens nothing,
+   which is what a root the holder removes takes with it. *)
+Definition FollowsTheEnrolledSet (m : Machine) (u : Unseal m) : Prop :=
+  forall (d c : nat) (b : Blob),
+    b.(bound_policy) = ManifestUnderEnrolledRoot ->
+    member Nat.eqb m.(manifest_root) m.(enrolled_roots) = false ->
+    u d c b = Refused.
+
+(* The floor face (R-10-032): under the manifest policy a generation below
+   the anti-rollback floor is refused at the seal as it is at the boot. *)
+Definition RefusesBelowTheFloorAtTheSeal (m : Machine) (u : Unseal m) : Prop :=
+  forall (d c : nat) (b : Blob),
+    b.(bound_policy) = ManifestUnderEnrolledRoot ->
+    Nat.leb m.(rollback_floor) m.(generation_version) = false ->
+    u d c b = Refused.
 
 (* R-15-079: the RoT key hierarchy diversifies by lifecycle state, whose own
    acceptance clause is that a debuggable part cannot unseal
    production-sealed material. *)
 Definition DiversifiesByLifecycle (m : Machine) (u : Unseal m) : Prop :=
-  forall (d : nat) (b : Blob),
-    lifecycle_eqb m.(state) b.(bound_state) = false -> u d b = Refused.
+  forall (d c : nat) (b : Blob),
+    lifecycle_eqb m.(state) b.(bound_state) = false -> u d c b = Refused.
 
 (* R-09-023 with R-10-013: the key-wrapping and sealing-root version is
    under the monotonic counter and advances on the duress erase and on key
    rotation, so material sealed under an earlier version stays sealed. *)
 Definition RefusesPastTheSealingRoot (m : Machine) (u : Unseal m) : Prop :=
-  forall (d : nat) (b : Blob),
+  forall (d c : nat) (b : Blob),
     Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version) = false ->
-    u d b = Refused.
+    u d c b = Refused.
 
 (* R-09-006a: on a failed start-up health test the RoT derives no key and
    unseals no material, and R-15-241b's fail-closed line is that no reduced
    rate, best-effort or last-known-good path exists. *)
 Definition UnsealsNothingOnAFailedRoot (m : Machine) (u : Unseal m) : Prop :=
-  m.(entropy_ok) = false -> forall (d : nat) (b : Blob), u d b = Refused.
+  m.(entropy_ok) = false -> forall (d c : nat) (b : Blob), u d c b = Refused.
+
+(* R-12-014's criterion: every unseal is bound to the requesting
+   compartment's identity in the composed graph, so a blob is refused to a
+   peer in the same generation. *)
+Definition BoundToTheCompartment (m : Machine) (u : Unseal m) : Prop :=
+  forall (d c : nat) (b : Blob),
+    Nat.eqb c b.(bound_compartment) = false -> u d c b = Refused.
 
 (* R-12-014's criterion and R-12-015a's deletion of raw key export: what a
    holder gets back is a capability handle and never cleartext. *)
 Definition ExportsNoKey (m : Machine) (u : Unseal m) : Prop :=
-  forall (d : nat) (b : Blob), is_cleartext (u d b) = false.
+  forall (d c : nat) (b : Blob), is_cleartext (u d c b) = false.
 
-(* S1 through S5 (R-12-014, R-15-079, R-09-023, R-09-006a). *)
+(* S1 through S6 (R-12-014, R-10-032, R-09-036a, R-15-079, R-09-023,
+   R-09-006a), the policy gate stated once and then at each of its three
+   faces. *)
+Theorem the_specification_unseal_binds_to_its_policy :
+  forall m : Machine, BindsToItsPolicy m (spec_unseal m).
+Proof.
+  intros m d c b H. unfold spec_unseal, unseal_admits. rewrite H.
+  destruct m.(entropy_ok); reflexivity.
+Qed.
+
 Theorem the_specification_unseal_binds_to_the_measured_state :
   forall m : Machine, BindsToTheMeasuredState m (spec_unseal m).
 Proof.
-  intros m d b H. unfold spec_unseal, unseal_admits. rewrite H.
+  intros m d c b bd Hp H. unfold spec_unseal, unseal_admits.
+  rewrite Hp. rewrite policy_admits_exact. rewrite H.
   destruct m.(entropy_ok); reflexivity.
+Qed.
+
+Theorem the_specification_unseal_follows_the_enrolled_set :
+  forall m : Machine, FollowsTheEnrolledSet m (spec_unseal m).
+Proof.
+  intros m d c b Hp H. unfold spec_unseal, unseal_admits.
+  rewrite Hp. rewrite policy_admits_manifest. rewrite H.
+  destruct m.(entropy_ok); reflexivity.
+Qed.
+
+Theorem the_specification_unseal_refuses_below_the_floor_at_the_seal :
+  forall m : Machine, RefusesBelowTheFloorAtTheSeal m (spec_unseal m).
+Proof.
+  intros m d c b Hp H. unfold spec_unseal, unseal_admits.
+  rewrite Hp. rewrite policy_admits_manifest. rewrite H.
+  destruct m.(entropy_ok);
+    destruct (member Nat.eqb m.(manifest_root) m.(enrolled_roots)); reflexivity.
 Qed.
 
 Theorem the_specification_unseal_diversifies_by_lifecycle :
   forall m : Machine, DiversifiesByLifecycle m (spec_unseal m).
 Proof.
-  intros m d b H. unfold spec_unseal, unseal_admits. rewrite H.
-  destruct m.(entropy_ok); destruct (Nat.eqb d b.(bound_digest)); reflexivity.
+  intros m d c b H. unfold spec_unseal, unseal_admits. rewrite H.
+  destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+    reflexivity.
 Qed.
 
 Theorem the_specification_unseal_refuses_past_the_sealing_root :
   forall m : Machine, RefusesPastTheSealingRoot m (spec_unseal m).
 Proof.
-  intros m d b H. unfold spec_unseal, unseal_admits. rewrite H.
-  destruct m.(entropy_ok); destruct (Nat.eqb d b.(bound_digest));
+  intros m d c b H. unfold spec_unseal, unseal_admits. rewrite H.
+  destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
     destruct (lifecycle_eqb m.(state) b.(bound_state)); reflexivity.
 Qed.
 
 Theorem the_specification_unseal_fails_closed_on_a_failed_root :
   forall m : Machine, UnsealsNothingOnAFailedRoot m (spec_unseal m).
 Proof.
-  intros m H d b. unfold spec_unseal, unseal_admits. rewrite H. reflexivity.
+  intros m H d c b. unfold spec_unseal, unseal_admits. rewrite H. reflexivity.
+Qed.
+
+Theorem the_specification_unseal_is_bound_to_the_compartment :
+  forall m : Machine, BoundToTheCompartment m (spec_unseal m).
+Proof.
+  intros m d c b H. unfold spec_unseal, unseal_admits. rewrite H.
+  destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+    destruct (lifecycle_eqb m.(state) b.(bound_state));
+    destruct (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version));
+    reflexivity.
 Qed.
 
 Theorem the_specification_unseal_exports_no_key :
   forall m : Machine, ExportsNoKey m (spec_unseal m).
 Proof.
-  intros m d b. unfold spec_unseal. destruct (unseal_admits m d b); reflexivity.
+  intros m d c b. unfold spec_unseal. destruct (unseal_admits m d c b);
+    reflexivity.
 Qed.
 
-(* S6: and the round trip, so the five obligations above are not proved of a
-   construction that refuses everything. A blob sealed at this digest, this
-   state and this sealing root unseals here and hands back the handle it was
-   sealed with. *)
+(* S7: and the round trips, so the six obligations above are not proved of
+   a construction that refuses everything. A blob sealed under the exact
+   policy at this digest, this state, this sealing root and this compartment
+   unseals here and hands back the handle it was sealed with. *)
 Theorem a_blob_sealed_here_unseals_here :
-  forall (m : Machine) (d h : nat),
-    m.(entropy_ok) = true -> spec_unseal m d (spec_seal m d h) = Handle h.
+  forall (m : Machine) (d c h : nat),
+    m.(entropy_ok) = true ->
+    spec_unseal m d c (spec_seal m (ExactVector d) c h) = Handle h.
 Proof.
-  intros m d h H. unfold spec_unseal, unseal_admits, spec_seal. simpl.
-  rewrite H. rewrite nat_eqb_refl. rewrite lifecycle_eqb_refl.
-  rewrite nat_eqb_refl. reflexivity.
+  intros m d c h H. unfold spec_unseal, unseal_admits.
+  rewrite seal_policy. rewrite seal_state. rewrite seal_root_version.
+  rewrite seal_compartment. rewrite seal_handle. rewrite policy_admits_exact.
+  rewrite H. repeat rewrite nat_eqb_refl. rewrite lifecycle_eqb_refl.
+  reflexivity.
+Qed.
+
+(* S8 (R-10-032): a blob sealed under the manifest policy opens at *any*
+   digest, the digest being universally quantified and read by nothing,
+   provided the running generation's manifest verified under an enrolled
+   root and the generation stands at or above the floor. This is the whole
+   of what that entry buys: the generation an update commits opens the FDE
+   key on its own signed manifest, and the transactor re-seals nothing. *)
+Theorem a_manifest_bound_blob_opens_at_any_digest :
+  forall (m : Machine) (d c h : nat),
+    m.(entropy_ok) = true ->
+    member Nat.eqb m.(manifest_root) m.(enrolled_roots) = true ->
+    Nat.leb m.(rollback_floor) m.(generation_version) = true ->
+    spec_unseal m d c (spec_seal m ManifestUnderEnrolledRoot c h) = Handle h.
+Proof.
+  intros m d c h H Hr Hf. unfold spec_unseal, unseal_admits.
+  rewrite seal_policy. rewrite seal_state. rewrite seal_root_version.
+  rewrite seal_compartment. rewrite seal_handle. rewrite policy_admits_manifest.
+  rewrite H. rewrite Hr. rewrite Hf. repeat rewrite nat_eqb_refl.
+  rewrite lifecycle_eqb_refl. reflexivity.
 Qed.
 
 (* -------------------------------------------------------------------------
    Refutation witnesses over the unseal. Each drops exactly one gate and is
-   shown to keep the other four, so the five are five obligations and not
-   one stated five times.
+   shown to keep the other five, so the six are six obligations and not
+   one stated six times.
    ------------------------------------------------------------------------- *)
 
 (* An unseal that checks who is asking and not what ran: the lifecycle
-   state, the sealing root and the entropy verdict all hold, and the
-   measured state does not enter. R-12-014's *binding secrets to the RoT and
-   measured state* is the whole of what refuses it. *)
-Definition convenient_unseal (m : Machine) : Unseal m := fun _ b =>
+   state, the sealing root, the entropy verdict and the compartment all
+   hold, and the policy does not enter. R-12-014's *binding secrets to the
+   RoT and measured state* is the whole of what refuses it. *)
+Definition convenient_unseal (m : Machine) : Unseal m := fun _ c b =>
   if andb m.(entropy_ok)
        (andb (lifecycle_eqb m.(state) b.(bound_state))
-             (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version)))
+       (andb (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version))
+             (Nat.eqb c b.(bound_compartment))))
   then Handle b.(blob_handle) else Refused.
 
-Theorem the_convenient_unseal_keeps_the_other_four :
+Theorem the_convenient_unseal_keeps_the_other_five :
   forall m : Machine,
     DiversifiesByLifecycle m (convenient_unseal m)
     /\ RefusesPastTheSealingRoot m (convenient_unseal m)
     /\ UnsealsNothingOnAFailedRoot m (convenient_unseal m)
+    /\ BoundToTheCompartment m (convenient_unseal m)
     /\ ExportsNoKey m (convenient_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split ] ].
-  - intros d b H. unfold convenient_unseal. rewrite H.
+  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  - intros d c b H. unfold convenient_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
-  - intros d b H. unfold convenient_unseal. rewrite H.
+  - intros d c b H. unfold convenient_unseal. rewrite H.
     destruct m.(entropy_ok);
       destruct (lifecycle_eqb m.(state) b.(bound_state)); reflexivity.
-  - intros H d b. unfold convenient_unseal. rewrite H. reflexivity.
-  - intros d b. unfold convenient_unseal.
+  - intros H d c b. unfold convenient_unseal. rewrite H. reflexivity.
+  - intros d c b H. unfold convenient_unseal. rewrite H.
+    destruct m.(entropy_ok);
+      destruct (lifecycle_eqb m.(state) b.(bound_state));
+      destruct (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version));
+      reflexivity.
+  - intros d c b. unfold convenient_unseal.
     destruct (andb m.(entropy_ok) _); reflexivity.
 Qed.
 
 (* An unseal that ignores the lifecycle state, which is the material a
    debuggable part must not reach (R-15-079). *)
-Definition portable_unseal (m : Machine) : Unseal m := fun d b =>
+Definition portable_unseal (m : Machine) : Unseal m := fun d c b =>
   if andb m.(entropy_ok)
-       (andb (Nat.eqb d b.(bound_digest))
-             (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version)))
+       (andb (policy_admits m d b.(bound_policy))
+       (andb (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version))
+             (Nat.eqb c b.(bound_compartment))))
   then Handle b.(blob_handle) else Refused.
 
-Theorem the_portable_unseal_keeps_the_other_four :
+Theorem the_portable_unseal_keeps_the_other_five :
   forall m : Machine,
-    BindsToTheMeasuredState m (portable_unseal m)
+    BindsToItsPolicy m (portable_unseal m)
     /\ RefusesPastTheSealingRoot m (portable_unseal m)
     /\ UnsealsNothingOnAFailedRoot m (portable_unseal m)
+    /\ BoundToTheCompartment m (portable_unseal m)
     /\ ExportsNoKey m (portable_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split ] ].
-  - intros d b H. unfold portable_unseal. rewrite H.
+  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  - intros d c b H. unfold portable_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
-  - intros d b H. unfold portable_unseal. rewrite H.
-    destruct m.(entropy_ok); destruct (Nat.eqb d b.(bound_digest)); reflexivity.
-  - intros H d b. unfold portable_unseal. rewrite H. reflexivity.
-  - intros d b. unfold portable_unseal.
+  - intros d c b H. unfold portable_unseal. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      reflexivity.
+  - intros H d c b. unfold portable_unseal. rewrite H. reflexivity.
+  - intros d c b H. unfold portable_unseal. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      destruct (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version));
+      reflexivity.
+  - intros d c b. unfold portable_unseal.
     destruct (andb m.(entropy_ok) _); reflexivity.
 Qed.
 
@@ -1940,80 +2185,132 @@ Qed.
    key rotation leaves the old material reachable: R-09-023's one-way,
    non-rollbackable erase undone by the service that was supposed to enact
    it. *)
-Definition stale_unseal (m : Machine) : Unseal m := fun d b =>
+Definition stale_unseal (m : Machine) : Unseal m := fun d c b =>
   if andb m.(entropy_ok)
-       (andb (Nat.eqb d b.(bound_digest))
-             (lifecycle_eqb m.(state) b.(bound_state)))
+       (andb (policy_admits m d b.(bound_policy))
+       (andb (lifecycle_eqb m.(state) b.(bound_state))
+             (Nat.eqb c b.(bound_compartment))))
   then Handle b.(blob_handle) else Refused.
 
-Theorem the_stale_unseal_keeps_the_other_four :
+Theorem the_stale_unseal_keeps_the_other_five :
   forall m : Machine,
-    BindsToTheMeasuredState m (stale_unseal m)
+    BindsToItsPolicy m (stale_unseal m)
     /\ DiversifiesByLifecycle m (stale_unseal m)
     /\ UnsealsNothingOnAFailedRoot m (stale_unseal m)
+    /\ BoundToTheCompartment m (stale_unseal m)
     /\ ExportsNoKey m (stale_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split ] ].
-  - intros d b H. unfold stale_unseal. rewrite H.
+  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  - intros d c b H. unfold stale_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
-  - intros d b H. unfold stale_unseal. rewrite H.
-    destruct m.(entropy_ok); destruct (Nat.eqb d b.(bound_digest)); reflexivity.
-  - intros H d b. unfold stale_unseal. rewrite H. reflexivity.
-  - intros d b. unfold stale_unseal.
+  - intros d c b H. unfold stale_unseal. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      reflexivity.
+  - intros H d c b. unfold stale_unseal. rewrite H. reflexivity.
+  - intros d c b H. unfold stale_unseal. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      destruct (lifecycle_eqb m.(state) b.(bound_state)); reflexivity.
+  - intros d c b. unfold stale_unseal.
     destruct (andb m.(entropy_ok) _); reflexivity.
 Qed.
 
 (* An unseal that carries on over a failed start-up health test, which is
    the degraded path R-15-241b's criterion says exists in neither hardware
    nor firmware. *)
-Definition best_effort_unseal (m : Machine) : Unseal m := fun d b =>
-  if andb (Nat.eqb d b.(bound_digest))
+Definition best_effort_unseal (m : Machine) : Unseal m := fun d c b =>
+  if andb (policy_admits m d b.(bound_policy))
        (andb (lifecycle_eqb m.(state) b.(bound_state))
-             (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version)))
+       (andb (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version))
+             (Nat.eqb c b.(bound_compartment))))
   then Handle b.(blob_handle) else Refused.
 
-Theorem the_best_effort_unseal_keeps_the_other_four :
+Theorem the_best_effort_unseal_keeps_the_other_five :
   forall m : Machine,
-    BindsToTheMeasuredState m (best_effort_unseal m)
+    BindsToItsPolicy m (best_effort_unseal m)
     /\ DiversifiesByLifecycle m (best_effort_unseal m)
     /\ RefusesPastTheSealingRoot m (best_effort_unseal m)
+    /\ BoundToTheCompartment m (best_effort_unseal m)
     /\ ExportsNoKey m (best_effort_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split ] ].
-  - intros d b H. unfold best_effort_unseal. rewrite H. reflexivity.
-  - intros d b H. unfold best_effort_unseal. rewrite H.
-    destruct (Nat.eqb d b.(bound_digest)); reflexivity.
-  - intros d b H. unfold best_effort_unseal. rewrite H.
-    destruct (Nat.eqb d b.(bound_digest));
+  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  - intros d c b H. unfold best_effort_unseal. rewrite H. reflexivity.
+  - intros d c b H. unfold best_effort_unseal. rewrite H.
+    destruct (policy_admits m d b.(bound_policy)); reflexivity.
+  - intros d c b H. unfold best_effort_unseal. rewrite H.
+    destruct (policy_admits m d b.(bound_policy));
       destruct (lifecycle_eqb m.(state) b.(bound_state)); reflexivity.
-  - intros d b. unfold best_effort_unseal.
-    destruct (andb (Nat.eqb d b.(bound_digest)) _); reflexivity.
+  - intros d c b H. unfold best_effort_unseal. rewrite H.
+    destruct (policy_admits m d b.(bound_policy));
+      destruct (lifecycle_eqb m.(state) b.(bound_state));
+      destruct (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version));
+      reflexivity.
+  - intros d c b. unfold best_effort_unseal.
+    destruct (andb (policy_admits m d b.(bound_policy)) _); reflexivity.
+Qed.
+
+(* An unseal that ignores who is asking, so a blob one compartment sealed
+   is redeemed by a peer in the same generation: the binding R-12-014's
+   criterion adds beside the measured state, dropped. *)
+Definition promiscuous_unseal (m : Machine) : Unseal m := fun d _ b =>
+  if andb m.(entropy_ok)
+       (andb (policy_admits m d b.(bound_policy))
+       (andb (lifecycle_eqb m.(state) b.(bound_state))
+             (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version))))
+  then Handle b.(blob_handle) else Refused.
+
+Theorem the_promiscuous_unseal_keeps_the_other_five :
+  forall m : Machine,
+    BindsToItsPolicy m (promiscuous_unseal m)
+    /\ DiversifiesByLifecycle m (promiscuous_unseal m)
+    /\ RefusesPastTheSealingRoot m (promiscuous_unseal m)
+    /\ UnsealsNothingOnAFailedRoot m (promiscuous_unseal m)
+    /\ ExportsNoKey m (promiscuous_unseal m).
+Proof.
+  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  - intros d c b H. unfold promiscuous_unseal. rewrite H.
+    destruct m.(entropy_ok); reflexivity.
+  - intros d c b H. unfold promiscuous_unseal. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      reflexivity.
+  - intros d c b H. unfold promiscuous_unseal. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      destruct (lifecycle_eqb m.(state) b.(bound_state)); reflexivity.
+  - intros H d c b. unfold promiscuous_unseal. rewrite H. reflexivity.
+  - intros d c b. unfold promiscuous_unseal.
+    destruct (andb m.(entropy_ok) _); reflexivity.
 Qed.
 
 (* An unseal that passes every gate and hands back the key: R-12-015a's raw
    key export, which is the operation that entry says is absent. It is the
-   construction that shows the four gates do not carry the fifth
+   construction that shows the five gates do not carry the sixth
    obligation. *)
-Definition exporting_unseal (m : Machine) : Unseal m := fun d b =>
-  if unseal_admits m d b then Cleartext b.(blob_handle) else Refused.
+Definition exporting_unseal (m : Machine) : Unseal m := fun d c b =>
+  if unseal_admits m d c b then Cleartext b.(blob_handle) else Refused.
 
-Theorem the_exporting_unseal_keeps_all_four_gates :
+Theorem the_exporting_unseal_keeps_all_five_gates :
   forall m : Machine,
-    BindsToTheMeasuredState m (exporting_unseal m)
+    BindsToItsPolicy m (exporting_unseal m)
     /\ DiversifiesByLifecycle m (exporting_unseal m)
     /\ RefusesPastTheSealingRoot m (exporting_unseal m)
-    /\ UnsealsNothingOnAFailedRoot m (exporting_unseal m).
+    /\ UnsealsNothingOnAFailedRoot m (exporting_unseal m)
+    /\ BoundToTheCompartment m (exporting_unseal m).
 Proof.
-  intros m. split; [ | split; [ | split ] ].
-  - intros d b H. unfold exporting_unseal, unseal_admits. rewrite H.
+  intros m. split; [ | split; [ | split; [ | split ] ] ].
+  - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
     destruct m.(entropy_ok); reflexivity.
-  - intros d b H. unfold exporting_unseal, unseal_admits. rewrite H.
-    destruct m.(entropy_ok); destruct (Nat.eqb d b.(bound_digest)); reflexivity.
-  - intros d b H. unfold exporting_unseal, unseal_admits. rewrite H.
-    destruct m.(entropy_ok); destruct (Nat.eqb d b.(bound_digest));
+  - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      reflexivity.
+  - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
       destruct (lifecycle_eqb m.(state) b.(bound_state)); reflexivity.
-  - intros H d b. unfold exporting_unseal, unseal_admits. rewrite H.
+  - intros H d c b. unfold exporting_unseal, unseal_admits. rewrite H.
     reflexivity.
+  - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
+    destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
+      destruct (lifecycle_eqb m.(state) b.(bound_state));
+      destruct (Nat.eqb (m.(counter) SealingRootVersion) b.(bound_root_version));
+      reflexivity.
 Qed.
 
 Theorem the_exporting_unseal_is_refuted :
@@ -2021,14 +2318,137 @@ Theorem the_exporting_unseal_is_refuted :
     m.(entropy_ok) = true -> ~ ExportsNoKey m (exporting_unseal m).
 Proof.
   intros m H C.
-  specialize (C (m.(counter) SealingRootVersion)
-                {| bound_digest := m.(counter) SealingRootVersion;
-                   bound_state := m.(state);
-                   bound_root_version := m.(counter) SealingRootVersion;
-                   blob_handle := 0 |}).
-  unfold exporting_unseal, unseal_admits in C. simpl in C.
-  rewrite H in C. rewrite nat_eqb_refl in C. rewrite lifecycle_eqb_refl in C.
-  simpl in C. discriminate C.
+  specialize (C 0 0 (spec_seal m (ExactVector 0) 0 0)).
+  unfold exporting_unseal, unseal_admits in C.
+  rewrite seal_policy in C. rewrite seal_state in C.
+  rewrite seal_root_version in C. rewrite seal_compartment in C.
+  rewrite seal_handle in C. rewrite policy_admits_exact in C.
+  rewrite H in C. repeat rewrite nat_eqb_refl in C.
+  rewrite lifecycle_eqb_refl in C. simpl in C. discriminate C.
+Qed.
+
+(* =========================================================================
+   Enrolment (R-09-036a, R-09-036b).
+
+   R-09-036a makes the root that admits a generation the holder's: an
+   enrolled root set the RoT holds, changed by the holder on the trusted
+   consent path and by nobody else (R-09-036b), never left empty. Read as a
+   function of a consent bit, an act and the current set (reading 6a), it
+   owes three obligations, each refuted by a construction keeping the other
+   two: nothing changes without consent, the set is never emptied, and the
+   root asked for is removed. R-09-036c, that factory reset and the duress
+   erase return the set to its personalization value, is a statement about
+   two paths this file does not model and is left where R-10-033 and
+   R-09-024 put it.
+   ========================================================================= *)
+
+Fixpoint without (r : nat) (l : list nat) : list nat :=
+  match l with
+  | nil => nil
+  | cons x t => if Nat.eqb r x then without r t else cons x (without r t)
+  end.
+
+Definition is_empty {A : Type} (l : list A) : bool :=
+  match l with nil => true | cons _ _ => false end.
+
+Lemma member_without :
+  forall (r : nat) (l : list nat), member Nat.eqb r (without r l) = false.
+Proof.
+  intros r l. unfold member. induction l as [ | x t IH ].
+  - reflexivity.
+  - simpl. destruct (Nat.eqb r x) eqn:E.
+    + exact IH.
+    + simpl. rewrite E. exact IH.
+Qed.
+
+Definition Enrolment (m : Machine) : Type :=
+  bool -> EnrolAct -> list nat -> list nat.
+
+Definition spec_enrol (m : Machine) : Enrolment m := fun consent act set =>
+  if consent then
+    match act with
+    | AddRoot r => if member Nat.eqb r set then set else cons r set
+    | RemoveRoot r =>
+        if is_empty (without r set) then set else without r set
+    end
+  else set.
+
+(* R-09-036b: no party but the holder changes the set, so an act carrying
+   no consent leaves it as it was. *)
+Definition ChangesNothingWithoutConsent (m : Machine) (e : Enrolment m) : Prop :=
+  forall (act : EnrolAct) (set : list nat), e false act set = set.
+
+(* R-09-036a: the set is never empty, so a removal that would empty it does
+   not take effect. *)
+Definition NeverEmptiesTheSet (m : Machine) (e : Enrolment m) : Prop :=
+  forall (consent : bool) (act : EnrolAct) (set : list nat),
+    is_empty set = false -> is_empty (e consent act set) = false.
+
+(* R-09-036a: the holder may remove a root, the vendor's included, wherever
+   the removal leaves a root standing. *)
+Definition RemovesTheRootAsked (m : Machine) (e : Enrolment m) : Prop :=
+  forall (r : nat) (set : list nat),
+    is_empty (without r set) = false ->
+    member Nat.eqb r (e true (RemoveRoot r) set) = false.
+
+(* E1 through E3. *)
+Theorem the_specification_enrolment_changes_nothing_without_consent :
+  forall m : Machine, ChangesNothingWithoutConsent m (spec_enrol m).
+Proof. intros m act set. reflexivity. Qed.
+
+Theorem the_specification_enrolment_never_empties_the_set :
+  forall m : Machine, NeverEmptiesTheSet m (spec_enrol m).
+Proof.
+  intros m consent act set H. unfold spec_enrol. destruct consent; cbv beta iota.
+  - destruct act as [ r | r ]; cbv beta iota.
+    + destruct (member Nat.eqb r set); [ exact H | reflexivity ].
+    + destruct (is_empty (without r set)) eqn:E; [ exact H | exact E ].
+  - exact H.
+Qed.
+
+Theorem the_specification_enrolment_removes_the_root_asked :
+  forall m : Machine, RemovesTheRootAsked m (spec_enrol m).
+Proof.
+  intros m r set H. unfold spec_enrol. cbv beta iota. rewrite H.
+  exact (member_without r set).
+Qed.
+
+(* An enrolment that takes the act whoever presents it: the remote
+   enrolment, the unlock token and the signed directive R-09-036b names. *)
+Definition remote_enrol (m : Machine) : Enrolment m := fun _ act set =>
+  spec_enrol m true act set.
+
+Theorem the_remote_enrolment_keeps_the_other_two :
+  forall m : Machine,
+    NeverEmptiesTheSet m (remote_enrol m)
+    /\ RemovesTheRootAsked m (remote_enrol m).
+Proof.
+  intros m. split.
+  - intros consent act set H. unfold remote_enrol.
+    exact (the_specification_enrolment_never_empties_the_set m true act set H).
+  - intros r set H. unfold remote_enrol.
+    exact (the_specification_enrolment_removes_the_root_asked m r set H).
+Qed.
+
+(* An enrolment that removes whatever it is asked to, so the holder's one
+   act can leave the device admitting nothing. *)
+Definition emptying_enrol (m : Machine) : Enrolment m := fun consent act set =>
+  if consent then
+    match act with
+    | AddRoot r => if member Nat.eqb r set then set else cons r set
+    | RemoveRoot r => without r set
+    end
+  else set.
+
+Theorem the_emptying_enrolment_keeps_the_other_two :
+  forall m : Machine,
+    ChangesNothingWithoutConsent m (emptying_enrol m)
+    /\ RemovesTheRootAsked m (emptying_enrol m).
+Proof.
+  intros m. split.
+  - intros act set. reflexivity.
+  - intros r set H. unfold emptying_enrol. cbv beta iota.
+    exact (member_without r set).
 Qed.
 
 (* =========================================================================
@@ -3379,8 +3799,9 @@ Lemma demo_extend_separates_on_the_chain :
   separates_along (fun d a => S (S (d + d + a))) demo_item_code 0 = true.
 Proof. reflexivity. Qed.
 
-Definition demo_with (st : Lifecycle) (ent : bool) (dl : Lifecycle -> bool)
-                     (ctr : Counter -> nat) (wit : Field -> nat) : Machine := {|
+Definition demo_full (st : Lifecycle) (ent : bool) (dl : Lifecycle -> bool)
+                     (ctr : Counter -> nat) (wit : Field -> nat)
+                     (roots : list nat) (signer ver : nat) : Machine := {|
   rom_seed := 0;
   extend := fun d a => S (S (d + d + a));
   item_code := demo_item_code;
@@ -3393,13 +3814,72 @@ Definition demo_with (st : Lifecycle) (ent : bool) (dl : Lifecycle -> bool)
   rom_verifies := demo_rom_verifies;
   rollback_floor := 4;
   boot_bound := 3;
+  enrolled_roots := roots;
+  manifest_root := signer;
+  generation_version := ver;
   counter := ctr;
   witness := wit;
   reference := demo_witness
 |}.
 
+(* The personalization value: the vendor's generation key alone, at an
+   arbitrary witness value, with the running generation's manifest verified
+   under it and the generation one above the floor. *)
+Definition demo_with (st : Lifecycle) (ent : bool) (dl : Lifecycle -> bool)
+                     (ctr : Counter -> nat) (wit : Field -> nat) : Machine :=
+  demo_full st ent dl ctr wit (cons 3 nil) 3 5.
+
 Definition demo : Machine :=
   demo_with Production true debug_table demo_counter demo_witness.
+
+(* R-09-036a at three machines differing from `demo` in the two fields the
+   manifest policy reads and in nothing else: the holder has removed the
+   vendor's key and runs a generation under their own; the holder has
+   removed the vendor's key and the running generation is still the
+   vendor's; and the running generation declares a version below the
+   floor. *)
+Definition demo_holder : Machine :=
+  demo_full Production true debug_table demo_counter demo_witness
+            (cons 5 nil) 5 5.
+
+Definition demo_orphaned : Machine :=
+  demo_full Production true debug_table demo_counter demo_witness
+            (cons 5 nil) 3 5.
+
+Definition demo_below_floor : Machine :=
+  demo_full Production true debug_table demo_counter demo_witness
+            (cons 3 nil) 3 3.
+
+Example the_roots_at_the_three_rooted_machines :
+  demo.(enrolled_roots) = cons 3 nil /\ demo.(manifest_root) = 3
+  /\ demo.(generation_version) = 5
+  /\ demo_holder.(enrolled_roots) = cons 5 nil
+  /\ demo_holder.(manifest_root) = 5 /\ demo_holder.(generation_version) = 5
+  /\ demo_orphaned.(enrolled_roots) = cons 5 nil
+  /\ demo_orphaned.(manifest_root) = 3 /\ demo_orphaned.(generation_version) = 5
+  /\ demo_below_floor.(enrolled_roots) = cons 3 nil
+  /\ demo_below_floor.(manifest_root) = 3
+  /\ demo_below_floor.(generation_version) = 3 :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl eq_refl)))))))))).
+
+(* And *why* each of the three is admitted or refused, which the refusals
+   alone do not say: the manifest policy has two conditions and a machine
+   failing both would be refused for a reason no example here attributes.
+   The holder's machine passes both, the orphaned one fails the enrolled-root
+   condition alone, and the below-floor one fails the floor condition alone,
+   so each refusal below is over one condition rather than over a pair. *)
+Example each_rooted_machine_fails_at_most_one_condition :
+  cons (member Nat.eqb demo_holder.(manifest_root) demo_holder.(enrolled_roots))
+  (cons (Nat.leb demo_holder.(rollback_floor) demo_holder.(generation_version))
+  (cons (member Nat.eqb demo_orphaned.(manifest_root) demo_orphaned.(enrolled_roots))
+  (cons (Nat.leb demo_orphaned.(rollback_floor) demo_orphaned.(generation_version))
+  (cons (member Nat.eqb demo_below_floor.(manifest_root) demo_below_floor.(enrolled_roots))
+  (cons (Nat.leb demo_below_floor.(rollback_floor) demo_below_floor.(generation_version))
+    nil)))))
+  = cons true (cons true (cons false (cons true (cons true (cons false nil)))))
+  := eq_refl.
 
 Definition demo_debug : Machine :=
   demo_with Development true debug_table demo_counter demo_witness.
@@ -3442,22 +3922,29 @@ Example the_demo_machine_declares :
 
 (* R-15-241b's latched verdict at every machine below, so that a machine
    varied for one reason is not silently varied for a second: exactly one of
-   the nine holds a failed root, and it is the one the fail-closed
-   refutations are stated at. *)
+   the twelve holds a failed root, and it is the one the fail-closed
+   refutations are stated at. The three rooted machines are here for that
+   reason and not for completeness: each is refused or admitted below on its
+   roots, and a refusal that could also be read off a failed verdict would
+   attribute nothing. *)
 Example the_entropy_verdict_at_every_demo_machine :
   map_over entropy_ok (cons demo (cons demo_debug (cons demo_erased
     (cons demo_flat (cons demo_forked (cons demo_stale (cons demo_open
-    (cons demo_dark (cons demo_test_live nil)))))))))
+    (cons demo_dark (cons demo_test_live (cons demo_holder
+    (cons demo_orphaned (cons demo_below_floor nil))))))))))))
   = cons true (cons true (cons true (cons false (cons true (cons true
-    (cons true (cons true (cons true nil)))))))) := eq_refl.
+    (cons true (cons true (cons true (cons true (cons true
+    (cons true nil))))))))))) := eq_refl.
 
 Example the_lifecycle_state_at_every_demo_machine :
   map_over state (cons demo (cons demo_debug (cons demo_erased
     (cons demo_flat (cons demo_forked (cons demo_stale (cons demo_open
-    (cons demo_dark (cons demo_test_live nil)))))))))
+    (cons demo_dark (cons demo_test_live (cons demo_holder
+    (cons demo_orphaned (cons demo_below_floor nil))))))))))))
   = cons Production (cons Development (cons Production (cons Production
     (cons Production (cons Production (cons Production (cons Production
-    (cons Production nil)))))))) := eq_refl.
+    (cons Production (cons Production (cons Production
+    (cons Production nil))))))))))) := eq_refl.
 
 (* And the liveness table at every machine below, so that the three the
    entry refuses are one cell away from R-09-034's table rather than three
@@ -3564,61 +4051,124 @@ Theorem the_two_admitted_chain_shapes_measure_alike :
 Proof. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
-   Seal and unseal, at a machine. One blob, sealed in production under
-   sealing-root version 7 at the digest the chain reached, and the four
-   machines at which it does not open.
+   Seal and unseal, at a machine. Two blobs, one under each policy, sealed
+   in production under sealing-root version 7 by compartment 40, the exact
+   one at the digest the chain reached; and the machines and presentations
+   at which each does not open.
    ------------------------------------------------------------------------- *)
 
 Definition demo_blob : Blob :=
-  {| bound_digest := 5; bound_state := Production;
-     bound_root_version := 7; blob_handle := 21 |}.
+  {| bound_policy := ExactVector 5; bound_state := Production;
+     bound_root_version := 7; bound_compartment := 40; blob_handle := 21 |}.
+
+Definition demo_fde_blob : Blob :=
+  {| bound_policy := ManifestUnderEnrolledRoot; bound_state := Production;
+     bound_root_version := 7; bound_compartment := 40; blob_handle := 22 |}.
 
 Example the_demo_blob_declares :
-  demo_blob.(bound_digest) = 5 /\ demo_blob.(bound_state) = Production
-  /\ demo_blob.(bound_root_version) = 7 /\ demo_blob.(blob_handle) = 21 :=
-  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
-
-(* S7: the specification opens it here and at none of the four machines that
-   differ by one gate, which is what keeps the five obligations above from
-   being proved of a construction that refuses everything. *)
-Example the_blob_opens_here_and_nowhere_else :
-  spec_unseal demo 5 demo_blob = Handle 21
-  /\ spec_unseal demo 6 demo_blob = Refused
-  /\ spec_unseal demo_debug 5 demo_blob = Refused
-  /\ spec_unseal demo_erased 5 demo_blob = Refused
-  /\ spec_unseal demo_flat 5 demo_blob = Refused :=
+  demo_blob.(bound_policy) = ExactVector 5 /\ demo_blob.(bound_state) = Production
+  /\ demo_blob.(bound_root_version) = 7 /\ demo_blob.(bound_compartment) = 40
+  /\ demo_blob.(blob_handle) = 21 :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
 
-Theorem the_convenient_unseal_ignores_the_measured_state :
-  ~ BindsToTheMeasuredState demo (convenient_unseal demo).
-Proof. intros H. specialize (H 6 demo_blob eq_refl). discriminate H. Qed.
+Example the_demo_fde_blob_declares :
+  demo_fde_blob.(bound_policy) = ManifestUnderEnrolledRoot
+  /\ demo_fde_blob.(bound_compartment) = 40
+  /\ demo_fde_blob.(blob_handle) = 22 :=
+  conj eq_refl (conj eq_refl eq_refl).
+
+(* S9: the specification opens the exact blob here and at none of the five
+   presentations that differ by one gate, which is what keeps the six
+   obligations above from being proved of a construction that refuses
+   everything. *)
+Example the_blob_opens_here_and_nowhere_else :
+  spec_unseal demo 5 40 demo_blob = Handle 21
+  /\ spec_unseal demo 6 40 demo_blob = Refused
+  /\ spec_unseal demo 5 41 demo_blob = Refused
+  /\ spec_unseal demo_debug 5 40 demo_blob = Refused
+  /\ spec_unseal demo_erased 5 40 demo_blob = Refused
+  /\ spec_unseal demo_flat 5 40 demo_blob = Refused :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
+
+(* S10 (R-10-032, R-09-036a): the manifest blob opens at the digest it was
+   sealed beside and at another, which is the update surviving; opens at
+   the holder-rooted machine, which is the key following the enrolled set;
+   and is refused where the running generation's manifest verified under a
+   root the holder removed, where the generation is below the floor, and
+   where a peer compartment asks. *)
+Example the_fde_blob_opens_at_any_digest_and_follows_the_roots :
+  spec_unseal demo 5 40 demo_fde_blob = Handle 22
+  /\ spec_unseal demo 6 40 demo_fde_blob = Handle 22
+  /\ spec_unseal demo_holder 6 40 demo_fde_blob = Handle 22
+  /\ spec_unseal demo_orphaned 5 40 demo_fde_blob = Refused
+  /\ spec_unseal demo_below_floor 5 40 demo_fde_blob = Refused
+  /\ spec_unseal demo 5 41 demo_fde_blob = Refused :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
+
+Theorem the_convenient_unseal_ignores_the_policy :
+  ~ BindsToItsPolicy demo (convenient_unseal demo).
+Proof. intros H. specialize (H 6 40 demo_blob eq_refl). discriminate H. Qed.
 
 Theorem the_portable_unseal_opens_production_material_on_a_debuggable_part :
   ~ DiversifiesByLifecycle demo_debug (portable_unseal demo_debug).
-Proof. intros H. specialize (H 5 demo_blob eq_refl). discriminate H. Qed.
+Proof. intros H. specialize (H 5 40 demo_blob eq_refl). discriminate H. Qed.
 
 Theorem the_stale_unseal_survives_the_erase :
   ~ RefusesPastTheSealingRoot demo_erased (stale_unseal demo_erased).
-Proof. intros H. specialize (H 5 demo_blob eq_refl). discriminate H. Qed.
+Proof. intros H. specialize (H 5 40 demo_blob eq_refl). discriminate H. Qed.
 
 Theorem the_best_effort_unseal_opens_on_a_failed_root :
   ~ UnsealsNothingOnAFailedRoot demo_flat (best_effort_unseal demo_flat).
-Proof. intros H. specialize (H eq_refl 5 demo_blob). discriminate H. Qed.
+Proof. intros H. specialize (H eq_refl 5 40 demo_blob). discriminate H. Qed.
+
+Theorem the_promiscuous_unseal_opens_for_a_peer :
+  ~ BoundToTheCompartment demo (promiscuous_unseal demo).
+Proof. intros H. specialize (H 5 41 demo_blob eq_refl). discriminate H. Qed.
 
 Theorem the_exporting_unseal_hands_back_the_key :
   ~ ExportsNoKey demo (exporting_unseal demo).
 Proof. exact (the_exporting_unseal_is_refuted demo eq_refl). Qed.
 
-(* Each of the four refuted constructions agrees with the specification
+(* Each of the five refuted constructions agrees with the specification
    where its own gate is not the one being crossed, so the named defect and
    not the construction's shape is what refuses it. *)
-Example the_four_refuted_unseals_agree_where_their_gate_is_not_crossed :
-  convenient_unseal demo 5 demo_blob = Handle 21
-  /\ portable_unseal demo 5 demo_blob = Handle 21
-  /\ stale_unseal demo 5 demo_blob = Handle 21
-  /\ best_effort_unseal demo 5 demo_blob = Handle 21
-  /\ exporting_unseal demo 6 demo_blob = Refused :=
-  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
+Example the_five_refuted_unseals_agree_where_their_gate_is_not_crossed :
+  convenient_unseal demo 5 40 demo_blob = Handle 21
+  /\ portable_unseal demo 5 40 demo_blob = Handle 21
+  /\ stale_unseal demo 5 40 demo_blob = Handle 21
+  /\ best_effort_unseal demo 5 40 demo_blob = Handle 21
+  /\ promiscuous_unseal demo 5 40 demo_blob = Handle 21
+  /\ exporting_unseal demo 6 40 demo_blob = Refused :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
+
+(* -------------------------------------------------------------------------
+   Enrolment, at a machine: the holder adds a root, removes the vendor's
+   once their own stands, is declined the removal that would empty the set,
+   and is not answered without consent; and the two refuted enrolments do
+   what the specification does not.
+   ------------------------------------------------------------------------- *)
+
+Example the_enrolment_at_the_demo_roots :
+  spec_enrol demo true (AddRoot 5) (cons 3 nil) = cons 5 (cons 3 nil)
+  /\ spec_enrol demo true (RemoveRoot 3) (cons 5 (cons 3 nil)) = cons 5 nil
+  /\ spec_enrol demo true (RemoveRoot 3) (cons 3 nil) = cons 3 nil
+  /\ spec_enrol demo false (AddRoot 5) (cons 3 nil) = cons 3 nil
+  /\ remote_enrol demo false (AddRoot 5) (cons 3 nil) = cons 5 (cons 3 nil)
+  /\ emptying_enrol demo true (RemoveRoot 3) (cons 3 nil) = nil :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
+
+Theorem the_remote_enrolment_is_refuted :
+  ~ ChangesNothingWithoutConsent demo (remote_enrol demo).
+Proof.
+  intros H. specialize (H (AddRoot 5) (cons 3 nil)). cbv in H. discriminate H.
+Qed.
+
+Theorem the_emptying_enrolment_is_refuted :
+  ~ NeverEmptiesTheSet demo (emptying_enrol demo).
+Proof.
+  intros H. specialize (H true (RemoveRoot 3) (cons 3 nil) eq_refl).
+  cbv in H. discriminate H.
+Qed.
 
 (* -------------------------------------------------------------------------
    The quote and the appraisal, at a machine.
@@ -4093,33 +4643,69 @@ Print Assumptions the_blind_entropy_chain_draws_before_the_verdict.
 Print Assumptions front_loaded_chain.
 Print Assumptions the_front_loaded_chain_satisfies_every_stated_obligation.
 Print Assumptions the_two_admitted_chain_shapes_differ.
+Print Assumptions Policy.
+Print Assumptions EnrolAct.
 Print Assumptions Blob.
 Print Assumptions Unseal.
+Print Assumptions policy_admits.
+Print Assumptions policy_admits_exact.
+Print Assumptions policy_admits_manifest.
 Print Assumptions unseal_admits.
 Print Assumptions spec_unseal.
 Print Assumptions spec_seal.
+Print Assumptions seal_policy.
+Print Assumptions seal_state.
+Print Assumptions seal_root_version.
+Print Assumptions seal_compartment.
+Print Assumptions seal_handle.
+Print Assumptions BindsToItsPolicy.
 Print Assumptions BindsToTheMeasuredState.
+Print Assumptions FollowsTheEnrolledSet.
+Print Assumptions RefusesBelowTheFloorAtTheSeal.
 Print Assumptions DiversifiesByLifecycle.
 Print Assumptions RefusesPastTheSealingRoot.
 Print Assumptions UnsealsNothingOnAFailedRoot.
+Print Assumptions BoundToTheCompartment.
 Print Assumptions ExportsNoKey.
+Print Assumptions the_specification_unseal_binds_to_its_policy.
 Print Assumptions the_specification_unseal_binds_to_the_measured_state.
+Print Assumptions the_specification_unseal_follows_the_enrolled_set.
+Print Assumptions the_specification_unseal_refuses_below_the_floor_at_the_seal.
 Print Assumptions the_specification_unseal_diversifies_by_lifecycle.
 Print Assumptions the_specification_unseal_refuses_past_the_sealing_root.
 Print Assumptions the_specification_unseal_fails_closed_on_a_failed_root.
+Print Assumptions the_specification_unseal_is_bound_to_the_compartment.
 Print Assumptions the_specification_unseal_exports_no_key.
 Print Assumptions a_blob_sealed_here_unseals_here.
+Print Assumptions a_manifest_bound_blob_opens_at_any_digest.
 Print Assumptions convenient_unseal.
-Print Assumptions the_convenient_unseal_keeps_the_other_four.
+Print Assumptions the_convenient_unseal_keeps_the_other_five.
 Print Assumptions portable_unseal.
-Print Assumptions the_portable_unseal_keeps_the_other_four.
+Print Assumptions the_portable_unseal_keeps_the_other_five.
 Print Assumptions stale_unseal.
-Print Assumptions the_stale_unseal_keeps_the_other_four.
+Print Assumptions the_stale_unseal_keeps_the_other_five.
 Print Assumptions best_effort_unseal.
-Print Assumptions the_best_effort_unseal_keeps_the_other_four.
+Print Assumptions the_best_effort_unseal_keeps_the_other_five.
+Print Assumptions promiscuous_unseal.
+Print Assumptions the_promiscuous_unseal_keeps_the_other_five.
 Print Assumptions exporting_unseal.
-Print Assumptions the_exporting_unseal_keeps_all_four_gates.
+Print Assumptions the_exporting_unseal_keeps_all_five_gates.
 Print Assumptions the_exporting_unseal_is_refuted.
+Print Assumptions without.
+Print Assumptions is_empty.
+Print Assumptions member_without.
+Print Assumptions Enrolment.
+Print Assumptions spec_enrol.
+Print Assumptions ChangesNothingWithoutConsent.
+Print Assumptions NeverEmptiesTheSet.
+Print Assumptions RemovesTheRootAsked.
+Print Assumptions the_specification_enrolment_changes_nothing_without_consent.
+Print Assumptions the_specification_enrolment_never_empties_the_set.
+Print Assumptions the_specification_enrolment_removes_the_root_asked.
+Print Assumptions remote_enrol.
+Print Assumptions the_remote_enrolment_keeps_the_other_two.
+Print Assumptions emptying_enrol.
+Print Assumptions the_emptying_enrolment_keeps_the_other_two.
 Print Assumptions quote_vector.
 Print Assumptions the_vector_carries_five_terms.
 Print Assumptions the_vector_excludes_the_lifecycle_fuse.
@@ -4322,7 +4908,13 @@ Print Assumptions forked_witness.
 Print Assumptions stale_witness.
 Print Assumptions the_three_witness_sets.
 Print Assumptions demo_extend_separates_on_the_chain.
+Print Assumptions demo_full.
 Print Assumptions demo_with.
+Print Assumptions demo_holder.
+Print Assumptions demo_orphaned.
+Print Assumptions demo_below_floor.
+Print Assumptions the_roots_at_the_three_rooted_machines.
+Print Assumptions each_rooted_machine_fails_at_most_one_condition.
 Print Assumptions demo.
 Print Assumptions demo_debug.
 Print Assumptions demo_erased.
@@ -4350,12 +4942,19 @@ Print Assumptions the_two_admitted_chain_shapes_measure_alike.
 Print Assumptions demo_blob.
 Print Assumptions the_demo_blob_declares.
 Print Assumptions the_blob_opens_here_and_nowhere_else.
-Print Assumptions the_convenient_unseal_ignores_the_measured_state.
+Print Assumptions the_convenient_unseal_ignores_the_policy.
 Print Assumptions the_portable_unseal_opens_production_material_on_a_debuggable_part.
 Print Assumptions the_stale_unseal_survives_the_erase.
 Print Assumptions the_best_effort_unseal_opens_on_a_failed_root.
+Print Assumptions the_promiscuous_unseal_opens_for_a_peer.
 Print Assumptions the_exporting_unseal_hands_back_the_key.
-Print Assumptions the_four_refuted_unseals_agree_where_their_gate_is_not_crossed.
+Print Assumptions the_five_refuted_unseals_agree_where_their_gate_is_not_crossed.
+Print Assumptions demo_fde_blob.
+Print Assumptions the_demo_fde_blob_declares.
+Print Assumptions the_fde_blob_opens_at_any_digest_and_follows_the_roots.
+Print Assumptions the_enrolment_at_the_demo_roots.
+Print Assumptions the_remote_enrolment_is_refuted.
+Print Assumptions the_emptying_enrolment_is_refuted.
 Print Assumptions the_specification_quote_at_two_machines.
 Print Assumptions the_widened_quote_is_refuted.
 Print Assumptions the_best_effort_quote_is_refuted.
