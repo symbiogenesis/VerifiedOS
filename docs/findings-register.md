@@ -1381,7 +1381,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-188e** owed-act: whether the attestation vector's *this set* names four terms or five is unfixed, the criterion saying *the quote's vector*, which is not the quote, and one neighbouring entry carrying the referent over without fixing it while another constrains the lifecycle state rather than the chain
 · Raised: M3.2
-· Disposition: open, the item taking the wide reading as a stated judgment carrying this gap rather than as an enumeration the register closes, and pricing the narrow one by computing that a relying party appraises clean on a forked chain
+· Disposition: closed, R-09-025a fixing the vector's chain term as the digest over the generation register and the device register with the set gaining no field, which is the wide reading the item took as a judgment and the register now states
 
 **F-189** measurement: neither differential instrument reaches the root-of-trust firmware artifact, the whole mutation score being the assumption gate refusing to compile, because the QuickChick harness requires two unrelated proof artifacts and nothing stages this one
 · Raised: M3.2, in prose
