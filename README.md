@@ -24,6 +24,7 @@ _Expand a section to jump straight to it._
 - [No simultaneous multithreading (SMT)](#no-simultaneous-multithreading-smt)
 - [Everything on general-purpose verified cores](#everything-on-general-purpose-verified-cores)
 - [On-die OpenTitan-class root of trust](#on-die-opentitan-class-root-of-trust)
+- [The device holder owns the root](#the-device-holder-owns-the-root)
 - [No allocator waste](#no-allocator-waste)
 
 </details>
