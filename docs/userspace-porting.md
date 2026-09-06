@@ -104,7 +104,7 @@ Independent of the application, the same five substrate mismatches are re-target
 ## Writing for the fast paths: a source-level discipline, not a mechanism
 
 The five obstacles above decide whether a port is *admissible*; this decides whether it is *fast*, and it is the one performance lever that lives entirely in application source.
-SoA layouts, batching, and replacing pointer-chasing with vectorizable or matrix-shaped structure move general-purpose work onto the RVV, systolic-GEMM, and table-free-crypto paths (§15) that already run at parity-to-many-×, which is where the compute deleted by obstacle 2 has to land.
+SoA layouts, batching, and replacing pointer-chasing with vectorizable or matrix-shaped structure move general-purpose work onto the RVV, systolic-GEMM, and table-free-crypto paths (§15) that [the estimates](performance-estimates.md#headline-total) score as multiples over a scalar baseline, non-secret operands only on the crypto path, which is where the compute deleted by obstacle 2 has to land.
 The single address space (no MMU, §7) already helps pointer-chasing on its own.
 
 Nothing here is specific to this design, and a conventional chip benefits from the same rewrite, so this moves work onto fast paths both machines share rather than closing distance against one.
