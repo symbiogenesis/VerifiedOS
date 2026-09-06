@@ -596,6 +596,54 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q2a
 · Disposition: open at those two sites, the third instance, inside the lowering paragraph this landing rewrote, being narrowed here to what the switch holds
 
+**F-304** owed-act: R-18-004a(vii)'s inference member and R-18-004b's bandwidth line are jointly satisfiable only at an M-class grant well above the 8 GB/s that entry states as its minimum, and the 20 GB/s aggregate floor is where the room for it has to be found, that aggregate being required to carry scanout, the compositor, the decode pool and the camera ring concurrently with the grant; the floor's own three-billion-parameter model at a real four-bit density demands 9.29 GB/s on its weight stream alone and 12.50 GB/s with the cheaper cache, 62% of the aggregate
+· Raised: Q4a
+· Disposition: open, reported and not closed; both figures are floors on supply rather than caps on demand, so neither is violated alone, and what is owed is a register act deciding whether the grant floor rises, the member's rate or context falls, or the aggregate is restated
+
+**F-305** owed-act: R-18-004a(vii) states a parameter count and a nominal bit width where R-18-004b's bandwidth comparison needs bytes, and no entry fixes what *four-bit* costs per parameter; every published four-bit format of a model this size costs more, 4.955 bits on the file measured, and the 4.5 bits of the `q4_0` format this publisher does not ship is that block type's own density rather than a whole-file cost, so it is a lower bound on a conversion that keeps a wider embedding as the measured file does
+· Raised: Q4a
+· Disposition: open, reported and not closed; the gap is a term the register names without making measurable, and closing it is a register act this lane does not take
+
+**F-306** method: a commit recorded in a licence table as a named upstream release was the upstream's build tag seven commits past that release, its own binaries reporting a development version; `git tag --points-at` at the pin is the one command that settles which, and a release name read off a release page is not evidence about a commit. Correcting the prose left the tracked machine-readable record the prose cites still asserting the release name, which no gate reads and which an adversarial re-measurement found
+· Raised: Q4a
+· Disposition: closed, the licence row, the report and the manifest all restated to the commit and its build tag with the release tag's own commit and the distance beside them, the licence reading having been taken at the pin's own files throughout
+
+**F-307** method: a per-file throughput table taken in eight windows over nearly three hours under agent fan-out and across a power change put the widest file fastest in all four of its columns, the reverse of what bytes per token predict, where the same files in one invocation resolved the four-bit file above every wider one at 5.7 combined standard deviations in both of two passes and did not separate the three widest from each other at three repetitions; a cross-configuration comparison is one process in one window with the power state sampled beside it, and the claim it supports is the one its printed errors resolve
+· Raised: Q4a
+· Disposition: standing, recorded so a later measurement item takes the unit of comparison and the resolution test rather than re-deriving them, the failure being in the measurement design and in reading an unresolved ordering as a result, not in the instrument or the model
+
+**F-308** measurement: the CPU backend of the pinned benchmark maps the weight file and then repacks the block-quantized matrices it has an interleaved kernel for into a second buffer, which for four of five files is every tensor less the 784,384 bytes of `f32` normalizations and for the fifth is its embedding alone, so a host maximum resident set over-states a target's by close to the whole weight set
+· Raised: Q4a
+· Disposition: standing, recorded so a resident-bytes figure for the target is built from the tensor bytes and the loader's buffer lines rather than read off a host process
+
+**F-309** measurement: on the ladder measured, two five-bit formats 0.131 bits per parameter apart differ by a factor of 5.6 in mean KL divergence and 8.3 points of top-1 agreement, tens of combined standard errors wide, one carrying a single scale over 32 elements where the other carries a super-block scale and minimum plus a per-sub-block scale and minimum over 256; against the four-bit k-quant that same legacy format costs 13.1% more bytes per token for a quality result that resolves on no column, so ordering candidate formats by nominal width pays for width and misses the format that buys quality at the same width
+· Raised: Q4a
+· Disposition: standing, recorded so a later quantization comparison scores measured bytes against a measured comparator read against its own standard errors rather than against a format's name
+
+**F-310** measurement: narrowing the block type does not narrow a whole file, the tied head and the block scales staying wider, so across one publisher's own ladder the widest-to-four-bit ratio is 1.72 rather than the 2 its nominal widths suggest, the four-bit file's 0.955 bits of excess over four splitting into 0.56 for the `q6_K` embedding and down-projections and 0.39 for the `q4_K` block scales; the performance estimates' 'factor of two to four directly on bandwidth' is stated against a different comparator and is neither confirmed nor refuted, and what is added is that the achievable ratio is a property of the whole file
+· Raised: Q4a
+· Disposition: standing, no estimate figure edited, the estimates' own row being pinned by the counts group's claim table and a fall being the integrator's to take if it is taken at all
+
+**F-311** measurement: the only permissively licensed dense GGUF at or above the floor's size publishes no unquantized weight at its pinned revision, so the widest weight and therefore the quality comparator's base is an eight-bit file and every divergence in the column is measured from an 8.5-bit file rather than from the model. The base scored against itself returns zero mean KL divergence, 100.000% top-1 agreement and a delta-p RMS of 0.001%, so two of the three columns pass; its ln perplexity ratio to itself is 0.00398 plus or minus 0.00161 rather than zero, which that agreement cannot honestly produce, and the residual bounds what a perplexity comparison over this corpus and chunking resolves
+· Raised: Q4a
+· Disposition: standing, recorded so a later quality threshold states which base it is a threshold against and which of the tool's columns it may lean on; the cause of the ratio column's residual is not settled at the pin here
+
+**F-312** measurement: the tokenization and sampling time the host benchmark's own documentation excludes cost under a tenth of one percent of total across five end-to-end runs, so what a separate end-to-end run is worth here is the first-token latency and the maximum resident set rather than a correction to the throughput figure
+· Raised: Q4a
+· Disposition: standing, recorded so a later run takes the end-to-end pass for the two figures the benchmark does not report rather than for a correction it does not need
+
+**F-313** measurement: R-18-004b's usable second-class payload is at least 4 GB less an exclusivity fraction of at most 20%, summed over R-15-247s's second list for the whole roster, and it states no per-consumer figure by design, so a single-consumer measurement cannot be closed at that entry and the 3.2 GB it composes to is a floor rather than a value; the floor's own projected inference model takes 88% of it under the cheaper cache before any other consumer is placed
+· Raised: Q4a
+· Disposition: standing, no per-consumer figure asserted anywhere, the entry's own criterion forbidding one; what a composition may give inference is the memory plan's at composition
+
+**F-314** method: two of five downloaded weights ended at `curl` exit 56 at 57% and 32% of their length and were refused only by comparison against the digest the publisher's own tree listing states; a file verified by existence, by a plausible size, or by a digest computed over the bytes received would have yielded figures for a truncated model
+· Raised: Q4a
+· Disposition: standing, both files re-fetched whole and every measured digest recorded beside the listed one in the tracked manifest, so a reader can re-check the identity of every byte measured
+
+**F-315** owed-act: R-18-004a(vii) places the inference model wholly resident on the second class and fixes nothing about the KV cache, and R-15-247s's second list names bulk by volume and model weights and names no cache, its criterion being latency-criticality, which a cache read once per generated token can be argued either side of; at the floor's declared context that cache is 1.21 GB under an f16 format and 0.64 GB under `q8_0`, a third to a half of the weight stream, so the class it sits on moves the measured four-bit demand between 12.46 and 18.50 GB/s and moves the resident comparison by the same term
+· Raised: Q4a
+· Disposition: open, reported and not closed; the placement is the whole-program static memory plan's (R-08-012a) exactly as the compute and output buffers are, and the report states the demand with the cache and without it rather than assuming one, the register tension it reports holding on the weight stream alone either way
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations

@@ -411,7 +411,7 @@ The other four off-clock rows are the radio reference state machines (inventory 
 
 ### Current summary
 
-* Completed: S1, S2, S3, S4, S7, S8, S9, S10a, S10b, S11, S12, S13a, S13b, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, Q1, Q2a, Q5a, M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M0.19, M0.20, M1.1, M1.1a, M1.1b, M1.2a, M1.4′, M1.5, M1.6, M1.8a, M1.9, M3.1, M3.2, M3.3, M3.4a, M3.4d, M3.6a, M4.1, M4.1a, M4.1b, M4.2a, M4.2b, M4.3, M5.1, M5.2, M6.0a, M6.0b, M6.1a, M6.2a, M6.3a, M6.4, M6.5a, R1a, R1c-i, R4, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15, I16 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause. **S14 is a sixth of the same kind and the first outside the instruments**, S9 having retired the first of the two grounds I8 declined push CI on and the measurement then finding the second standing.
+* Completed: S1, S2, S3, S4, S7, S8, S9, S10a, S10b, S11, S12, S13a, S13b, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, Q1, Q2a, Q4a, Q5a, M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M0.19, M0.20, M1.1, M1.1a, M1.1b, M1.2a, M1.4′, M1.5, M1.6, M1.8a, M1.9, M3.1, M3.2, M3.3, M3.4a, M3.4d, M3.6a, M4.1, M4.1a, M4.1b, M4.2a, M4.2b, M4.3, M5.1, M5.2, M6.0a, M6.0b, M6.1a, M6.2a, M6.3a, M6.4, M6.5a, R1a, R1c-i, R4, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15, I16 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause. **S14 is a sixth of the same kind and the first outside the instruments**, S9 having retired the first of the two grounds I8 declined push CI on and the measurement then finding the second standing.
 * The open work and the order it is taken in are [Sequencing](#sequencing)'s; each landed item's note is in [the completion log](completion-log.md), which also keeps [the lane-by-lane state this summary carried](completion-log.md#the-summarys-state-before-s10b-landed-2026-09-05) before the notes moved out of this file.
 * Total estimate: 1,238.2 h midpoint, class I 230 h and class X 563.5 h over the open items.
 * Calibrated against completed-item outturn (class I 0.71, class X 1.68): approximately 1,554.7 h.
@@ -610,8 +610,8 @@ Q1, Q2a, Q3a, Q4a and Q5a open independently, the host-side halves waiting on no
   * **Done when** a quality-acceptable configuration has a measured host baseline, an explicit target traffic budget, and a report saying whether compute, bandwidth, storage or the slot grant is the limit. Quantization reduces bytes and so traffic; a smaller model or context reduces function as well as demand; no physical cell is created; and bandwidth-bound decoding gains only where the saved transfers outweigh the added computation and other traffic. Useful quality decides, not nominal parameter count.
   * **Split at entry by what a host can measure**, on the sentence above that its host-side half waits on no image: the demand side and the budget are one child, and the target kernels against the fixed bandwidth grant, which wait on M6.6's kernel and M6.8's grant behind the M8a gate, are the other. The children redistribute this cell's 14 h and its 8–20 range.
 
-  * [ ] **Q4a · Measure host-side inference demand and state the target traffic budget** · 9 h, range 5–13 · 0.7% · X
-    * Bullets one to three on the host, the demand half of bullet four, and the budget scored against R-18-004b's floor; the quality-acceptability threshold is Q1's, so what this child records is the comparator and the threshold's owner.
+  * [x] **Q4a · Measure host-side inference demand and state the target traffic budget** · 9.5 h actual · 0.0% · agent-parallel
+    * The host demand of one dense model at every quantization its publisher ships, the quality comparator against the widest weight, and the target traffic budget scored against both of the register's bandwidth floors, with the acceptability threshold left to Q1. ([note](completion-log.md#q4a-measure-host-side-inference-demand-and-state-the-target-traffic-budget))
   * [ ] **Q4b · Measure the target kernels against the fixed bandwidth grant** · 5 h, range 3–7 · 0.4% · X · after the M8a gate
     * The target half of bullet four and the Done-when's verdict at a measured grant. Gates on M6.6 and M6.8.
 * [ ] **Q5 · Search static placements within the isolation rules**
@@ -1448,6 +1448,7 @@ One row per completed item marked `agent-parallel`, in document order, on the sa
 | S26 | I | 5 |
 | Q1 | I | 7.5 |
 | Q2a | X-authored | 10 |
+| Q4a | X-read | 9 |
 | Q5a | I | 7 |
 | M0.20 | n/a | n/a |
 | M1.2a | X-read | 4 |
