@@ -129,7 +129,12 @@
       a hybrid signature, and the two roles the diversity is stated over are
       the ROM-verified and the re-signable). Owed at M3.4b.
    b. **No entry states the header's field offsets, its length bound or the
-      order of its fields.** R-09-005 says fixed-layout and length-bounded
+      order of its fields**, and **that the four fields pack the header
+      exactly is this file's reading and not the entry's**: a gap between
+      two declared fields is a run of bytes no field names, which is what a
+      reader that is not a parser has no business walking into, so the
+      predicate here asks for packing where the entry asks only for a fixed
+      layout. R-09-005 says fixed-layout and length-bounded
       and states no number, so the witness's offsets are this file's and the
       predicate holds the shape rather than the values. Owed at R-09-005.
    c. **No entry states the anti-rollback floor's width, its unit or where
@@ -695,20 +700,32 @@ Definition header_fields (hd : Header) : list HeaderField :=
 
 Definition field_ends (f : HeaderField) : nat := field_offset f + field_length f.
 
-Fixpoint fields_ascend (l : list HeaderField) : bool :=
+(* The fields pack the header exactly rather than merely ascending inside
+   it. A gap between two declared fields is a run of bytes no field names
+   and the length bound does not reach, which is the thing a reader that is
+   not a parser has no business walking into, so the layout is fixed only
+   where the four fields account for every byte of it. *)
+Fixpoint fields_pack (l : list HeaderField) : bool :=
   match l with
   | nil => true
   | f :: rest =>
       match rest with
       | nil => true
-      | g :: _ => andb (Nat.leb (field_ends f) (field_offset g)) (fields_ascend rest)
+      | g :: _ => andb (Nat.eqb (field_ends f) (field_offset g)) (fields_pack rest)
       end
   end.
 
+Fixpoint last_end (l : list HeaderField) : nat :=
+  match l with
+  | nil => 0
+  | f :: rest => match rest with nil => field_ends f | _ :: _ => last_end rest end
+  end.
+
 Definition header_is_fixed_layout (hd : Header) : bool :=
-  andb (fields_ascend (header_fields hd))
-  (andb (all_of (fun f => Nat.leb (field_ends f) (header_bytes hd)) (header_fields hd))
-        (all_of (fun f => Nat.ltb 0 (field_length f)) (header_fields hd))).
+  andb (Nat.eqb (field_offset (image_offset hd)) 0)
+  (andb (fields_pack (header_fields hd))
+  (andb (Nat.eqb (last_end (header_fields hd)) (header_bytes hd))
+        (all_of (fun f => Nat.ltb 0 (field_length f)) (header_fields hd)))).
 
 Definition signature_field_holds_the_scheme (p : ParameterSet) (hd : Header) : bool :=
   Nat.eqb (field_length (image_signature hd)) (signature_bytes p).
@@ -735,6 +752,21 @@ Example the_three_equalities_decide_their_own_enumerations :
   andb (eqb_decides prim_eqb all_prims)
   (andb (eqb_decides phase_eqb all_phases)
         (eqb_decides root_eqb all_roots)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* An equality that is reflexive on every constructor and still wrong, so
+   that the two halves of the test above are both load-bearing: this one
+   says the engineering root equals every root, which no reflexivity check
+   catches and which the count catches. *)
+Definition lax_root_eqb (a b : Root) : bool :=
+  match a with
+  | EngineeringRoot => true
+  | _ => root_eqb a b
+  end.
+
+Example a_reflexive_equality_can_still_be_wrong :
+  andb (all_of (fun r => lax_root_eqb r r) all_roots)
+       (negb (eqb_decides lax_root_eqb all_roots)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Definition admits_version (v : RomVerifier) (version : nat) : bool :=
@@ -886,6 +918,25 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example the_witness_reaches_five_calls_and_every_one_is_the_hash :
   andb (Nat.eqb (length_of (calls demo)) 5) (hash_only_b demo) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Each call returns the length its role takes: the message digest is the
+   only one of the six that is not n bytes, and the other four are. *)
+Example every_call_returns_the_length_its_role_takes :
+  all_of (fun c => Nat.eqb (call_out_bits c)
+                           (match call_role c with
+                            | MessageDigest => 8 * digest_bytes (parameters demo)
+                            | _ => 8 * hash_bytes (parameters demo)
+                            end))
+         (calls demo) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_five_roles_are_five_and_the_digest_is_the_odd_one :
+  andb (Nat.eqb (count_where (fun c => match call_role c with
+                                       | MessageDigest => true | _ => false end)
+                             (calls demo)) 1)
+       (negb (Nat.eqb (8 * digest_bytes (parameters demo))
+                      (8 * hash_bytes (parameters demo)))) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example the_witness_refuses_a_version_below_its_floor :
@@ -1051,21 +1102,21 @@ Definition header_running_past_its_length : Header :=
 (* Three: a field of no length at all, which ascends and stays inside the
    bound and names nothing. *)
 Definition header_with_an_empty_field : Header :=
-  {| image_offset := image_offset demo_header;
+  {| image_offset := {| field_offset := 0; field_length := 8 |};
      image_length := {| field_offset := 8; field_length := 0 |};
-     image_hash := image_hash demo_header;
-     image_signature := image_signature demo_header;
-     header_bytes := header_bytes demo_header |}.
+     image_hash := {| field_offset := 8; field_length := hash_bytes shake_256s |};
+     image_signature := {| field_offset := 8 + hash_bytes shake_256s;
+                           field_length := signature_bytes shake_256s |};
+     header_bytes := 8 + hash_bytes shake_256s + signature_bytes shake_256s |}.
 
 Example each_broken_header_breaks_exactly_the_clause_it_exists_for :
-  andb (andb (negb (fields_ascend (header_fields header_whose_fields_overlap)))
-             (all_of (fun f => Nat.leb (field_ends f) (header_bytes header_whose_fields_overlap))
+  andb (andb (negb (fields_pack (header_fields header_whose_fields_overlap)))
+             (all_of (fun f => Nat.ltb 0 (field_length f))
                      (header_fields header_whose_fields_overlap)))
-  (andb (andb (fields_ascend (header_fields header_running_past_its_length))
-              (negb (all_of (fun f => Nat.leb (field_ends f)
-                                              (header_bytes header_running_past_its_length))
-                            (header_fields header_running_past_its_length))))
-        (andb (fields_ascend (header_fields header_with_an_empty_field))
+  (andb (andb (fields_pack (header_fields header_running_past_its_length))
+              (negb (Nat.eqb (last_end (header_fields header_running_past_its_length))
+                             (header_bytes header_running_past_its_length))))
+        (andb (fields_pack (header_fields header_with_an_empty_field))
               (negb (all_of (fun f => Nat.ltb 0 (field_length f))
                             (header_fields header_with_an_empty_field))))) = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -1227,12 +1278,15 @@ Print Assumptions HeaderField.
 Print Assumptions Header.
 Print Assumptions header_fields.
 Print Assumptions field_ends.
-Print Assumptions fields_ascend.
+Print Assumptions fields_pack.
+Print Assumptions last_end.
 Print Assumptions header_is_fixed_layout.
 Print Assumptions signature_field_holds_the_scheme.
 Print Assumptions RomVerifier.
 Print Assumptions eqb_decides.
 Print Assumptions the_three_equalities_decide_their_own_enumerations.
+Print Assumptions lax_root_eqb.
+Print Assumptions a_reflexive_equality_can_still_be_wrong.
 Print Assumptions admits_version.
 Print Assumptions hash_only_b.
 Print Assumptions HashOnly.
@@ -1256,6 +1310,8 @@ Print Assumptions spec_roots.
 Print Assumptions demo.
 Print Assumptions the_witness_is_admissible.
 Print Assumptions the_witness_reaches_five_calls_and_every_one_is_the_hash.
+Print Assumptions every_call_returns_the_length_its_role_takes.
+Print Assumptions the_five_roles_are_five_and_the_digest_is_the_odd_one.
 Print Assumptions the_witness_refuses_a_version_below_its_floor.
 Print Assumptions the_witness_accepts_no_engineering_root_in_any_state.
 Print Assumptions with_a_lattice_verifier.
