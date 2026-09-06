@@ -103,7 +103,7 @@ class RefusedError(RuntimeError):
 
 
 # How the model's own operand printers land in this assembler's operand vocabulary. The
-# whole printed surface is 22 applications and six literals over 218 clauses, so this is
+# whole printed surface is 22 applications and six literals over 217 clauses, so this is
 # a closed set rather than a growing one, and a printer absent from it refuses the row.
 #
 # `cap_reg_name` and `reg_name` are one kind here and two in the model, which is not a

@@ -22,8 +22,8 @@ the file. A text scan can take only the clause's **skeleton**, its string litera
 order, which for this clause is the single character `.`; everything the three mappings
 decide is left out. [sailbundle.py](sailbundle.py) reads the clause as the emitter
 structured it instead, resolves each mapping against its own literal arms, and hands
-back the finished mnemonics. Over this model that turns 136 readable skeletons into 217
-of 218 clauses enumerated, and the single residue is `FENCE`, whose `forwards ... when`
+back the finished mnemonics. Over this model that turns 135 readable skeletons into 216
+of 217 clauses enumerated, and the single residue is `FENCE`, whose `forwards ... when`
 form the emitter leaves as body text with no structured right-hand side.
 
 **The direction of the reading flips with it, and that is a different sentence rather

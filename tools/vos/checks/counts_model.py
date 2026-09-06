@@ -140,9 +140,9 @@ def excluded_forms(ctx: Context) -> None:
     **The model's side is the emitter's own bundle, and the direction of the reading
     flipped with it.** A text scan could take only a clause's string literals, so a
     mnemonic assembled entirely inside mappings left nothing to match and the reading
-    was a *lower* bound over 136 of 218 clauses. The bundle carries each clause as
+    was a *lower* bound over 135 of 217 clauses. The bundle carries each clause as
     structured patterns, so every mapping in a mnemonic is resolved against its own
-    literal arms and 217 of the 218 are enumerated outright. What that buys is a ceiling
+    literal arms and 216 of the 217 are enumerated outright. What that buys is a ceiling
     rather than a floor: `LOAD` spells `"l" ^ width_mnemonic(width) ^
     maybe_u(is_unsigned)`, whose cross product admits `ldu`, and the constraint that
     forbids that combination lives in the `encdec` clause and not in the assembly
