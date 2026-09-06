@@ -2065,6 +2065,11 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the quote's vector is exactly this set.
 · Trace: CJ-DEVTREE, CJ-SAIL
 
+**R-09-025a** MUST: The chain's extensions are recorded in two registers, split by who fixes the expected value: a generation register for every extension the generation's source determines (R-09-002's four stages) and a device register for every extension the unit itself supplies (R-09-037's lifecycle state, R-09-006a's verdict, R-09-029's latch, and the per-unit calibration R-15-126 measures); the vector's chain term is the digest over both, so the set above gains no field, and a seal policy (R-12-014) or a relying party's appraisal (R-12-015) may name the generation register alone.
+· Accept: the reference integrity manifest's expected value for the generation register is reproduced from source under R-09-027 and carries no per-unit input, its expected value for the device register is the constant shape R-09-037 states, and a quote appraised on the generation register alone identifies the software and never the unit.
+· Accept: which register a seal names is the sealer's decision and is recorded in the blob, so a policy naming the generation register alone still opens after every input the unit supplies has changed under it, and one naming the device register does not.
+· Trace: CJ-DEVTREE
+
 **R-09-026** MUST: Each signed generation emits a reference integrity manifest: the reference-value dual of the quote, covering the same vector, so a remote relying party can appraise evidence against expected values.
 · Accept: it is per-generation and ML-DSA-signed, rides the A/B signed-generation machinery, and is served beside the quote by the sealing and attestation service; TCG RIM or IETF CoRIM encodings may be emitted for interop.
 · Trace: CJ-DEVTREE
