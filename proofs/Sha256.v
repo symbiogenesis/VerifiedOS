@@ -630,6 +630,26 @@ Definition small_sigma1 (x : word) : word := wxor3 (rotr 17 x) (rotr 19 x) (shr 
 Definition rotation_amounts : list nat :=
   2 :: 13 :: 22 :: 6 :: 11 :: 25 :: 7 :: 18 :: 17 :: 19 :: nil.
 
+(* The list above is the standard's own table of the ten rotation amounts
+   and the four functions above write theirs inline, which makes the list a
+   second statement of a fact the functions already own. It is held to them
+   here rather than left beside them: a table nothing computes from is a
+   table nothing can be wrong against. *)
+Example the_listed_amounts_are_the_ones_the_four_sigmas_use :
+  let a := fun i => nth_of i rotation_amounts 0 in
+  let x := bytes_from (0x6A :: 0x09 :: 0xE6 :: 0x67 :: nil) in
+  andb (andb (bits_eqb (big_sigma0 x) (wxor3 (rotr (a 0) x) (rotr (a 1) x) (rotr (a 2) x)))
+             (bits_eqb (big_sigma1 x) (wxor3 (rotr (a 3) x) (rotr (a 4) x) (rotr (a 5) x))))
+       (andb (bits_eqb (small_sigma0 x) (wxor3 (rotr (a 6) x) (rotr (a 7) x) (shr 3 x)))
+             (bits_eqb (small_sigma1 x) (wxor3 (rotr (a 8) x) (rotr (a 9) x) (shr 10 x))))
+  = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_ten_amounts_are_ten_and_none_of_them_is_a_whole_word :
+  andb (Nat.eqb (length_of rotation_amounts) 10)
+       (all_of (fun r => Nat.ltb r word_bits) rotation_amounts) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* -------------------------------------------------------------------------
    The message schedule, s6.2.2 step 1: the block's sixteen words and then
    forty-eight computed from the taps at t - 2, t - 7, t - 15 and t - 16.
@@ -862,6 +882,14 @@ Proof. intros. split; vm_compute; reflexivity. Qed.
    ------------------------------------------------------------------------- *)
 
 Definition probe_lengths : list nat := upto (2 * block_bits + byte_bits).
+
+(* The probe set has to reach past two whole blocks, because a padding that
+   is right on every message of one or two blocks and wrong on the first
+   that needs a third is the defect the boundary lengths exist to catch. *)
+Example the_probes_reach_past_two_whole_blocks :
+  andb (Nat.leb (S (2 * block_bits)) (length_of probe_lengths))
+       (Nat.eqb (nth_of (2 * block_bits) probe_lengths 0) (2 * block_bits)) = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Example the_pad_is_a_positive_multiple_of_the_block_at_every_probed_length :
   all_of (fun l => let p := length_of (pad (repeat_of l true)) in
@@ -1534,6 +1562,8 @@ Print Assumptions big_sigma1.
 Print Assumptions small_sigma0.
 Print Assumptions small_sigma1.
 Print Assumptions rotation_amounts.
+Print Assumptions the_listed_amounts_are_the_ones_the_four_sigmas_use.
+Print Assumptions the_ten_amounts_are_ten_and_none_of_them_is_a_whole_word.
 Print Assumptions word_at.
 Print Assumptions block_at.
 Print Assumptions schedule_over.
@@ -1578,6 +1608,7 @@ Print Assumptions word_addition_is_commutative.
 Print Assumptions the_rotations_are_invertible_on_an_arbitrary_word.
 Print Assumptions the_schedule_keeps_the_block_as_its_first_sixteen_words.
 Print Assumptions probe_lengths.
+Print Assumptions the_probes_reach_past_two_whole_blocks.
 Print Assumptions the_pad_is_a_positive_multiple_of_the_block_at_every_probed_length.
 Print Assumptions the_message_is_a_prefix_of_its_pad_and_the_length_is_its_suffix.
 Print Assumptions the_one_bit_follows_the_message.
