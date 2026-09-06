@@ -82,7 +82,7 @@ preamble and its own `__main__` block. [vos/cli/\_\_init\_\_.py](vos/cli/__init_
 is the table `run.py` reads, and it is the only place a command's name, its module and
 its lane are written down.
 
-Five directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, and the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations. K-88 holds each against what its generator writes, and the two are decided differently: the table's generator runs at this gate, so its bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. [oracle-specs/](oracle-specs/) is
+Six directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, and the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations. K-88 holds each against what its generator writes, and the two are decided differently: the table's generator runs at this gate, so its bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. [oracle-specs/](oracle-specs/) is
 one JSON file per oracle: the sources to compile, and per line kind the parameters,
 the domain that walks them, the Sail that calls the model, and what to print.
 [cheri-equiv/](cheri-equiv/) is the cross-check's two halves, a Sail generator that
@@ -91,6 +91,11 @@ it printed; neither is a translation of the other and the only thing they share 
 line format each states in its own header. [quickchick/](quickchick/) is the Gallina
 harnesses. [wasm-oracle/](wasm-oracle/) is the container the CertiCoq → Wasm oracle is
 built and run in, and [its own README](wasm-oracle/README.md) states what it pins.
+[bedrock2-lowering/](bedrock2-lowering/) is the Gallina-to-C lowering loop Q2a stood up
+in the Rupicola switch M1.6 created: the sources it derives, a hand-run driver, and the
+digest of what it emits, with [its own README](bedrock2-lowering/README.md) stating the
+recipe and the boundary audit. No `run.py` command reaches it, on the same ground as the
+Wasm oracle.
 
 [quarantine/](quarantine/) is the exception to the one entry point, and deliberately:
 it holds the two instruments whose decisions are deferred, the two rules that hold
