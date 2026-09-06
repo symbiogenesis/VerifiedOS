@@ -82,7 +82,7 @@ Each repack figure is the arithmetic of the column beside it: 2,491,323,904 less
 
 ## 6. The host baseline
 
-**`llama-bench`, per file.** For each file and each cache format, `-p 512 -n 128 -d 0,8192 -t 12`, the `q8_0` cache with `-fa 1`: the predicate is *`avg_ts` over the repetitions the row states, as `llama-bench -o json` reports*, with `stddev_ts` beside it, and every JSON file is tracked under [inference-demand/](inference-demand/). These figures exclude tokenization and sampling.
+**`llama-bench`, per file.** For each file and each cache format, `-p 512 -n 128 -d 0,8192 -t 12`, the `q8_0` cache with `-fa 1`: the predicate is *`avg_ts` over the repetitions the row states, as `llama-bench -o json` reports*, with `stddev_ts` beside it, and every JSON file is tracked under [inference-demand/](inference-demand/). These figures exclude tokenization and sampling, which the tool's own `tools/llama-bench/README.md` states at the pin: *the measurements with `llama-bench` do not include the times for tokenization and for sampling*.
 
 | File | Cache | Reps | Power | pp512 at depth 0 | tg128 at depth 0 | pp512 at depth 8,192 | tg128 at depth 8,192 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
