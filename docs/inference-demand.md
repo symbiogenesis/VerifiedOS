@@ -57,8 +57,11 @@ A Snapdragon X Elite X1E78100 (Oryon, aarch64, twelve cores, `asimddp`, `i8mm`, 
 | File | Tensors | Total tensor bytes | `token_embd.weight` | Bytes read per token | Bits per parameter |
 | --- | --- | --- | --- | --- | --- |
 | Q4_K_M | 398 | 2,491,323,904 | 319,065,600 (`q6_K`) | 2,491,323,904 | 4.955 |
+| Q8_0 | 398 | 4,274,448,384 | 413,265,920 (`q8_0`) | 4,274,448,384 | 8.501 |
 
-The bits-per-parameter column is the tensor bytes over 4,022,468,096 parameters, and is what a four-bit format costs once its block scales and its `q6_K` embedding and down-projections are counted: the floor's *four-bit* is 4.955 bits here.
+The bits-per-parameter column is the tensor bytes over 4,022,468,096 parameters, and is what a four-bit format costs once its block scales and its `q6_K` embedding and down-projections are counted: the floor's *four-bit* is 4.955 bits here, and the loader's own `4.95 BPW` agrees.
+
+**What the loader allocates is not what the target holds.** The CPU backend of this release maps the file (a `CPU_Mapped model buffer` equal to the tensor bytes) and then repacks every block-quantized matrix into an interleaved layout for its `i8mm` kernels, a `CPU_REPACK model buffer` of the same order beside it, so the host process holds the weights twice; the host's maximum resident set is read with that in mind, and the resident figure the budget scores is the tensor bytes, the KV buffer, the compute buffer and the output buffer, which is what a target holding one copy needs.
 
 **KV bytes.** The cache holds one key and one value vector per layer per token, each of `n_head_kv × head_dim` = 8 × 128 = 1,024 elements, over 36 layers: 73,728 elements per token. At f16 that is **147,456 bytes per token** and at `q8_0` (34 bytes per block of 32) **78,336 bytes per token**; at 8,192 tokens, **1,207,959,552 bytes** (1,152 MiB) and **641,728,512 bytes** (612 MiB). The loader's own `KV buffer size` line at `n_ctx` 8,192 is the measured counterpart of that arithmetic, recorded in section 6. Under dense attention the whole cache is read once per generated token, so at depth 8,192 the KV read per token is the cache's size.
 
@@ -72,7 +75,16 @@ The bits-per-parameter column is the tensor bytes over 4,022,468,096 parameters,
 
 **End to end.** One `llama-completion` run per file at `-c 8192 -n 128 -t 12 --temp 0.7` over a fixed prompt, the first 24 lines of [spec.md](spec.md) at this revision ([prompt.json](inference-demand/prompt.json) carries the text and its SHA-256), with `-no-cnv` so no chat template is applied. The figures are the `common_perf_print` lines the tool prints: `prompt eval time` is first-token latency with tokenization included, `eval time` is per-token generation with sampling included, and `total time` is the whole; the maximum resident set is `/usr/bin/time -v`'s.
 
-**Resident bytes.** The loader's `model buffer size`, `KV buffer size`, `compute buffer size` and `output buffer size` lines at `n_ctx` 8,192, batch 2,048 and micro-batch 512, per file and per cache format, are the separate weight, KV, scratch and decoding-buffer figures the item asks for, and the maximum resident set beside them is what the whole process took.
+**Resident bytes.** The loader's `model buffer size`, `KV buffer size`, `compute buffer size` and `output buffer size` lines at `n_ctx` 8,192, batch 2,048 and micro-batch 512, per file and per cache format, are the separate weight, KV, scratch and decoding-buffer figures the item asks for (predicate: *the buffer-size lines the loader logs under `-v` at `n_ctx` 8192, batch 2048*, in `inference-demand/e2e-<quant>.json`), and the maximum resident set beside them is what the whole process took, the repacked second copy included.
+
+| File | Cache | Mapped model buffer | KV buffer at 8,192 | Compute buffer | Output buffer |
+| --- | --- | --- | --- | --- | --- |
+| Q4_K_M | f16 | 2,362.55 MiB | 1,152.00 MiB | 306.75 MiB | 0.58 MiB |
+| Q4_K_M | q8_0, flash attention | 2,362.55 MiB | 612.00 MiB | 311.75 MiB | 0.58 MiB |
+| Q8_0 | f16 | 4,051.20 MiB | 1,152.00 MiB | 306.75 MiB | 0.58 MiB |
+| Q8_0 | q8_0, flash attention | 4,051.20 MiB | 612.00 MiB | 311.75 MiB | 0.58 MiB |
+
+The KV buffers are the arithmetic of section 5 exactly (1,207,959,552 and 641,728,512 bytes), the output buffer is one row of logits (151,936 × 4 bytes), and the compute buffer is the graph's scratch at a 512-token micro-batch.
 
 ## 7. The quality comparator
 
@@ -84,10 +96,14 @@ The budget takes the register's rate and floor and this section's bytes. For a c
 
 | Configuration | W, bytes per token | K at 8,192 | Demand at 5 tokens/s | Against 8 GB/s | Resident bytes | Against 3.2 GB |
 | --- | --- | --- | --- | --- | --- | --- |
-| Q4_K_M, f16 cache | 2,491,323,904 | 1,207,959,552 | 18.50 GB/s | 2.31 × the floor | | |
-| Q4_K_M, q8_0 cache | 2,491,323,904 | 641,728,512 | 15.67 GB/s | 1.96 × the floor | | |
+| Q4_K_M, f16 cache | 2,491,323,904 | 1,207,959,552 | 18.50 GB/s | 2.31 × the floor | 4,021,542,318 | 1.26 × the payload |
+| Q4_K_M, q8_0 cache | 2,491,323,904 | 641,728,512 | 15.67 GB/s | 1.96 × the floor | 3,460,554,158 | 1.08 × the payload |
+| Q8_0, f16 cache | 4,274,448,384 | 1,207,959,552 | 27.41 GB/s | 3.43 × the floor | 5,804,666,798 | 1.81 × the payload |
+| Q8_0, q8_0 cache | 4,274,448,384 | 641,728,512 | 24.58 GB/s | 3.07 × the floor | 5,243,678,638 | 1.64 × the payload |
 
-**The projection to the floor's own member.** At this file's 4.955 bits per parameter a three-billion-parameter dense model reads 1.858 GB per token, 9.29 GB/s at five tokens per second before any cache is read; at `q4_0`'s 4.5 bits per parameter, 1.688 GB and 8.44 GB/s; at a pure four bits with no scale, which no format has, 1.5 GB and 7.5 GB/s. So under every four-bit format that exists, the weight stream of the floor's (vii) alone exceeds the 8 GB/s M-class grant floor of R-18-004b at the floor's own rate and before its KV term, and the two entries are in tension at the arithmetic this item exists to do. That is a register-level act, reported in the completion note and taken by nobody here.
+The resident column is the tensor bytes plus the KV buffer plus the compute and output buffers section 6 records, in bytes; the Q8_0 rows take the compute buffers the Q4_K_M rows measured, the graph being the same shape.
+
+**The projection to the floor's own member.** At this file's 4.955 bits per parameter a three-billion-parameter dense model reads 1.858 GB per token, 9.29 GB/s at five tokens per second before any cache is read; at `q4_0`'s 4.5 bits per parameter, 1.688 GB and 8.44 GB/s; at a pure four bits with no scale, which no format has, 1.5 GB and 7.5 GB/s. So under every four-bit format that exists, the weight stream of the floor's (vii) alone exceeds the 8 GB/s M-class grant floor of R-18-004b at the floor's own rate and before its KV term, and the two entries are in tension at the arithmetic this item exists to do. That is a register-level act, reported in the completion note and taken by nobody here. On storage the projection lands on the other side of the line: 1.858 GB of weights with this model's own cache geometry is 2.83 GB resident under a `q8_0` cache, inside the 3.2 GB payload, and 3.39 GB under an f16 cache, outside it, so at the floor's model size the cache format is what decides the capacity comparison and the bandwidth comparison is failed either way.
 
 **Compute.** Two operations per parameter per token over the 4,022,468,096 parameters is 8.0 GFLOP per token, plus attention over the cache at 8,192 tokens, 2 × 2 × 36 × 8,192 × 4,096 = 4.8 GFLOP; at five tokens per second, about 64 GFLOP/s. That is small against an M-class array and against the vector unit the estimates assign de-quantization to, so compute is not the binding term at the floor's rate, which is what [the estimates](performance-estimates.md) already say; what this report adds is the number. The host's own de-quantization cost is a different quantity on a different machine and neither confirms nor refutes R-15-117a's external price.
 
