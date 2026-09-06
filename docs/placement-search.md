@@ -107,4 +107,4 @@ Every candidate is decided by the port of the file's own checks, one Python func
 
 **Two fields the plan would want for the register's own terms are reported to the register.** R-08-012a's bank-spreading term is stated over banks the plan does not model, and R-08-045's per-line-item charge is read over region indices with no owner named. Whether the plan gains a `bank_of` or an owner field is a register act at R-08-011 and R-08-012a, and this document carries the gap and takes no side.
 
-**No solver is added.** The item admits OR-Tools CP-SAT where a coupled placement or scheduling search justifies it, and nothing here couples one: the enumeration completes over its declared set without one. The measurement that keeps it out for now is recorded at the item's landing and not here.
+**No solver is added.** The item admits OR-Tools CP-SAT where a coupled placement or scheduling search justifies it, and nothing here couples one: the enumeration completes over its declared set without one, and a dependency is selected at the milestone that reads its licence and pins it, which is a decision the plan reserves and this document does not take.
