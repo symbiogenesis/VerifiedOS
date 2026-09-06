@@ -546,7 +546,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-282** owed-act: docs/critique.md:154 says nothing in the corpus prices packings, and this landing prices a packing on span used, unused reservation and padding over a witness plan, so the sentence is a claim to re-read on landing while the paragraph around it (critique.md:144-159) names no item and is not answered by a witness-plan search
 · Raised: Q5a
-· Disposition: open, reported to the integrator, who owns docs/critique.md under the fan-out; the paragraph stays
+· Disposition: closed, the sentence repaired where it claimed the corpus prices no packing: the placement search is named there with the three scores it ranks and the bank and latency-class terms it carries none of, so the paragraph's objection stands unsoftened and the paragraph itself stays
 
 **F-283** owed-act: the item's fourth bullet compares placements on the admitted workload and no composed roster exists to compare on, the demo figures being witness values, R-18-004d's demonstration set unauthored, R-18-004b's per-class resident bytes summed by a whole-program plan that does not yet exist and the absolute limits Q1's to state, and the cost inputs the Q table names are all pending so nothing is rounded
 · Raised: Q5a
@@ -931,7 +931,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-095** owed-act: the block-size instrument cannot evaluate its own output, the second-class axis wanting three quantities that exist nowhere in this repository
 · Raised: M0.13
-· Disposition: open, owed to R4 to author the macro architecture and to R5 to measure it; the matrix ships with both axes empty
+· Disposition: open, and narrowed rather than closed: R4 has authored the second-class macro architecture, which defines the deck row and the page and carries both as measurands R5 returns, so the column axis has a definition and no candidate, while the row axis has neither, the first-class macro geometry being supplied by no item this plan schedules
 
 **F-096** measurement: the first-class half is computable now, and it turns on a ceiling the destination register sets, a group wider than the register having nowhere to be returned
 · Raised: M0.13

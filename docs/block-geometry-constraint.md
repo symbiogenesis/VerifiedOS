@@ -44,8 +44,8 @@ One row per constraint, each citing the entry that owns it. The **status** colum
 | C4 | the block is at most `max_mem_access`, 4096 bytes | the single-write allocation; subsumed by C3 | derivable |
 | C5 | the block is a whole number of ECC codewords, 32 bytes at the payload R-15-181a fixes or 16 at its fallback | R-15-181, R-15-181a, R-15-182 | derivable |
 | C6 | every granule of the block has its own revocation bit or lies outside the covered union, the bitmap being keyed per 8-byte granule and the intervals aligned at 64 bytes | R-08-005a, R-15-007s | derivable, and vacuous |
-| C7 | the block is a whole number of first-class SRAM macro rows, and does not straddle one | R-15-014a (vii) | owed to R4, R5 |
-| C8 | the block is a whole number of second-class deck rows, and lies within one page | R-15-014a (vii), R-15-247 | owed to R4, R5 |
+| C7 | the block is a whole number of first-class SRAM macro rows, and does not straddle one | R-15-014a (vii) | owed, and to no item this plan schedules, R4 having authored the second class alone and R5 qualifying that class alone |
+| C8 | the block is a whole number of second-class deck rows, and lies within one page | R-15-014a (vii), R-15-247 | owed to R5, R4 having defined the row and the page and stated no figure for either |
 | C9 | the block's single-access sense width is realizable on the second class | R-15-181a's fallback clause, R-15-247m | owed to R5 |
 | C10 | the per-block latency of each of the four instructions is inside its slot | R-15-182, R-15-177a | owed to R-17-041's magnitudes, the M1 schedule |
 | C11 | the sweep's preemption granularity survives the block width | R-08-007, R-08-007b | owed to R-17-041's magnitudes, the M1 schedule |
@@ -73,7 +73,7 @@ One row per first-class macro geometry candidate, one column per second-class de
 | --- | --- | --- |
 | not authored | not authored | n/a |
 
-**The matrix ships with both axes empty, and that is this item's result rather than its failure.** No deck row width, page size, or single-access sense width exists anywhere in this repository, and R-15-247m forbids one being asserted ahead of the macro measurement: *no density figure is an architectural input ahead of that measurement*. The macro architecture that would state a row and a page is R4's to author and R5's to measure. What M0.13 can do before them is fix the candidate space, close the derivable constraints over it, and state what an inadmissible answer looks like, which is what M0.11 did for the freeze report before a backend existed.
+**The matrix ships with both axes empty, and that is this item's result rather than its failure.** No deck row width, page size, or single-access sense width exists anywhere in this repository, and R-15-247m forbids one being asserted ahead of the macro measurement: *no density figure is an architectural input ahead of that measurement*. The macro architecture that would state a row and a page is authored: [the second-class macro architecture](second-class-macro-architecture.md) defines the deck, the row and the page and carries the deck row width and the page size as measurands R5 returns, every one of them pending, so the column axis has a definition and still no candidate. **The row axis has neither**, that document being the second class's alone and R5's qualification the same class's, so the first-class macro geometry C7 is stated over is supplied by no item this plan schedules. What M0.13 can do before them is fix the candidate space, close the derivable constraints over it, and state what an inadmissible answer looks like, which is what M0.11 did for the freeze report before a backend existed.
 
 ## 6. What makes an answer inadmissible
 
@@ -87,4 +87,4 @@ One row per first-class macro geometry candidate, one column per second-class de
 
 ## 7. What this document is not
 
-It is not the macro architecture, which R4 authors. It is not the per-class bank count, which R-15-247p owns and [its own instrument](bank-count-dse-contract.md) constrains the way this one constrains the block. It does not name a value, and neither does that one: the block size is item (vii) of R-15-014a's closed final-freeze delta and the bank count is item (viii) of the same closed delta, so a document naming either would be taking a freeze decision early, which is an amendment that reruns the review gate under R-18-034 rather than a second-act decision.
+It is not [the macro architecture](second-class-macro-architecture.md), which R4 authored. It is not the per-class bank count, which R-15-247p owns and [its own instrument](bank-count-dse-contract.md) constrains the way this one constrains the block. It does not name a value, and neither does that one: the block size is item (vii) of R-15-014a's closed final-freeze delta and the bank count is item (viii) of the same closed delta, so a document naming either would be taking a freeze decision early, which is an amendment that reruns the review gate under R-18-034 rather than a second-act decision.
