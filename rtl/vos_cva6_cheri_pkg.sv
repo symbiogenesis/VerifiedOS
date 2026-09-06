@@ -33,10 +33,16 @@
 // field, no exponent half, no guest cause, no `int_mode` flag, no `EF` format bit,
 // no compressed-bounds union, no implied or embedded packing, no
 // `legalize_arch_perms`, no `is_offset_in_range`, no `bot3z` or `add_b1000`, no
-// representable-alignment mask, and no single `SENTRY_CAP`. A datapath site that
-// reads one of them does not compile against this package, and that failure is
-// the measurement the first seam takes: each such site is a row of the delta's
-// §2.2 or §2.3 and the compile names it by file and line.
+// representable-alignment mask, and no single `SENTRY_CAP`. Three names the
+// rewrite and structure rows replace are absent too: `cap_meta_data_t`, whose
+// quantities the decode derives inside itself, and `cap_tval2_t` and
+// `cap_report_perms_t`, whose places `cap_tval_t` below and the expanded bitmap
+// `perms_expand` returns take. A datapath site that names any of them does not
+// compile against this package, and that failure is the measurement the first
+// seam takes: the compile names each site by file and line, one layer at a time,
+// the parser stopping at a type name it cannot resolve before the elaborator
+// reaches a member read behind it, and a named site on no row of the delta's
+// §2.2 or §2.3 is a site the delta owes rather than one it books.
 //
 // **What is carried from the model that the format package left behind.** The
 // capability cause set of `model/model/core/cap_causes.sail`: the eleven ISAv9
