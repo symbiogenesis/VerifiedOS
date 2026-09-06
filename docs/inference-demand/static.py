@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Sum the per-tensor byte figures llama-gguf prints for one GGUF file.
+"""Emit static-<quant>.json whole for one GGUF file, from llama-gguf's own tensor lines.
+
+Usage: static.py <quant>-tensors.txt <model file name>
 
 Predicate: every `gguf_ex_read_1: tensor[i]: name = N, size = S, ..., type = T, n_elts = E`
 line of the tool's output, S being ggml_nbytes as the tool's own reader computes it, and
 every `gguf_ex_read_1: tensor[i]: n_dims = D, ne = (a, b, c, d), name = N` line, whose
 product is the tensor's element count (the tool's own n_elts is size / type_size, which for a
 block-quantized type counts blocks rather than elements).
+
+The derived fields the report and the budget read are computed here rather than downstream,
+so the tracked JSON is this script's output byte for byte: bits per parameter is the tensor
+bytes in bits over the element count, the embedding row is the embedding matrix's bytes over
+the vocabulary (its second dimension), and bytes read per generated token are every tensor
+plus that one row. The quantization is the model file name's last hyphen-separated segment
+with its `.gguf` suffix removed.
 """
 import json
 import re
@@ -22,7 +31,15 @@ DIMS = re.compile(
 )
 
 
-def main(path: str) -> None:
+PREDICATE = (
+    "the sum of the size field over every gguf_ex_read_1 tensor line llama-gguf prints for "
+    "the file, size being ggml_nbytes as that reader computes it; bytes read per generated "
+    "token are every tensor of the file (the head is tied, so token_embd.weight is the head "
+    "read whole) plus one embedding row for the input lookup"
+)
+
+
+def main(path: str, model_file: str) -> None:
     tensors: list[dict[str, object]] = []
     dims: dict[str, tuple[int, ...]] = {}
     for line in open(path, encoding="utf-8", errors="replace"):
@@ -72,8 +89,10 @@ def main(path: str) -> None:
     )
     head_bytes = (int(embd["bytes"]) if tied else int(out_w["bytes"])) if (embd or out_w) else 0
     per_token_excl_lookup = blk + other + head_bytes
+    # the embedding row the input lookup reads: the matrix's bytes over its vocabulary axis,
+    # which is its second dimension
+    row_bytes = int(embd["bytes"]) // dims["token_embd.weight"][1] if embd else 0
     result = {
-        "source": path,
         "tensor_count": len(tensors),
         "total_bytes": total,
         "n_params_from_ne": n_params,
@@ -87,10 +106,16 @@ def main(path: str) -> None:
         "weight_bytes_read_per_token_excluding_lookup_row": per_token_excl_lookup,
         "by_type": dict(by_type),
         "layer0_tensor_bytes": per_layer,
+        "file": model_file,
+        "quant": model_file.rsplit("-", 1)[-1][: -len(".gguf")],
+        "bits_per_parameter": round(total * 8 / n_params, 4),
+        "embedding_row_bytes": row_bytes,
+        "weight_bytes_read_per_token": per_token_excl_lookup + row_bytes,
+        "predicate": PREDICATE,
     }
     json.dump(result, sys.stdout, indent=1)
     print()
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2])

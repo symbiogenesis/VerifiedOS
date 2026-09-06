@@ -1,8 +1,13 @@
 {
  "instrument": {
   "name": "llama.cpp",
-  "release": "v0.4.0",
   "commit": "427291b5b34cd914a31b3fd3b61a68f6184f4b9f",
+  "build_tag_at_this_commit": "b10816",
+  "is_a_release": false,
+  "nearest_release_tag": "v0.4.0",
+  "nearest_release_tag_commit": "5266f24da75dc449bd56cbed7addb9c8e4a6a73e",
+  "commits_after_that_release_tag": 7,
+  "identity_predicate": "git tag --points-at at the pin answers b10816 alone; git rev-parse v0.4.0^{commit} answers 5266f24d and git rev-list --count 5266f24d..427291b5 answers 7",
   "version_banner": "version: 0.4.0-dev (build 10816, commit 427291b5b), built with GNU 15.2.0 for Linux aarch64",
   "configure": "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=ON -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF",
   "detected_march": "-mcpu=oryon-1+rng+crc+dotprod+i8mm+nosve+nosme",
@@ -16,10 +21,13 @@
    "llama-gguf"
   ],
   "not_built": [
-   "llama-server",
+   "the llama-server binary",
    "the web front end",
    "gguf-py",
    "GGML_CPU_KLEIDIAI"
+  ],
+  "built_but_never_invoked": [
+   "libllama-server-impl.so, which the release's shared-library layout builds beside the five executables"
   ],
   "licence": "MIT at LICENSE, Copyright (c) 2023-2026 The ggml authors, with the thirteen vendored components read at their own files, read 2026-09-05",
   "location": "cloned into /root/build/lane-q4-demand/, not a gitlink, nothing tracked"
@@ -84,6 +92,27 @@
   "threads": 12,
   "backend": "CPU only",
   "concurrency": "nine sibling agent lanes shared the same twelve cores throughout; every throughput figure is a lower bound taken under that load",
-  "power": "the Q4_K_M f16-cache llama-bench run was taken on battery, discharging; every other timed figure was taken on AC, charging, as each stage stamp in the run logs records"
+  "power": "the run spans three states, each stage stamping its own; every timed figure carries the state of its stamp",
+  "power_states": [
+   {
+    "state": "Discharging",
+    "first_stamp": "2026-09-06T01:42:20Z",
+    "last_stamp": "2026-09-06T02:07:03Z",
+    "covers": "the Q4_K_M f16-cache per-file bench and the static reads"
+   },
+   {
+    "state": "Charging",
+    "first_stamp": "2026-09-06T02:53:43Z",
+    "last_stamp": "2026-09-06T04:55:08Z",
+    "covers": "the other seven per-file bench rows, four of the five end-to-end runs, every KL run and the first controlled pass"
+   },
+   {
+    "state": "Discharging",
+    "first_stamp": "2026-09-06T05:10:53Z",
+    "last_stamp": "2026-09-06T05:57:58Z",
+    "covers": "the Q5_0 end-to-end run and the second controlled pass"
+   }
+  ],
+  "power_predicate": "each stage reads /sys/class/power_supply/*/status and stamps it into the run log; the two transitions are bracketed by consecutive stamps rather than timed, and the second controlled pass carries its own 131-sample record in power-ctrl2.json"
  }
 }

@@ -26,16 +26,25 @@
   "model_repack_mib": 304.28,
   "kv_mib": 1152.0,
   "compute_mib": 306.75,
-  "output_mib": 0.58
+  "output_mib": 0.58,
+  "graph_nodes": 1266
  },
  "predicate": "the common_perf_print lines llama-completion prints, tokenization inside prompt eval and sampling inside eval; the buffer-size lines the loader logs under -v at n_ctx 8192, batch 2048, micro-batch 512; and the maximum resident set /usr/bin/time -v reports",
- "power": null,
+ "power": "battery, discharging",
  "buffers_q8_0_cache_mib": {
   "model_mapped_mib": 2687.22,
   "model_repack_mib": 304.28,
   "kv_mib": 612.0,
   "compute_mib": 311.75,
-  "output_mib": 0.58
+  "output_mib": 0.58,
+  "graph_nodes": 1698
  },
- "buffers_q8_0_cache_predicate": "the same loader lines under -ctk q8_0 -ctv q8_0 -fa on at n_ctx 8192, from the one-token trace run rather than the generation run"
+ "buffers_q8_0_cache_predicate": "the same loader lines under -ctk q8_0 -ctv q8_0 -fa on at n_ctx 8192, from the one-token trace run rather than the generation run",
+ "power_stamp": "2026-09-06T05:10:53Z",
+ "power_predicate": "the state /sys/class/power_supply/*/status reported at the stage stamp immediately before this run",
+ "unaccounted_ms": 13.04,
+ "unaccounted_predicate": "the tool's own common_perf_print unaccounted time line, total less sampling less prompt eval less eval",
+ "loader_file_size_gib": 2.62,
+ "loader_bits_per_weight": 5.6,
+ "loader_bpw_predicate": "the print_info file size line the loader prints, its parenthesised BPW figure"
 }

@@ -5,11 +5,13 @@
   "source_of_rate_and_context": "R-18-004a(vii)",
   "m_class_grant_floor_bytes_per_second": 8000000000.0,
   "aggregate_floor_bytes_per_second": 20000000000.0,
-  "second_class_payload_bytes": 4000000000.0,
-  "tau": 0.2,
-  "usable_second_class_payload_bytes": 3200000000.0,
+  "second_class_payload_bytes_floor": 4000000000.0,
+  "tau_max": 0.2,
+  "usable_second_class_payload_bytes_floor": 3200000000.0,
   "source_of_supply_floors": "R-18-004b",
-  "note": "the supply floors are minima on what an artifact must grant and measure, not caps: a demand above one is met by a grant above the floor and fails only against a supply at it"
+  "note": "every supply figure here is a bound on a quantity a composition declares and not a value: the two bandwidth figures are minima on what must be granted and measured, the payload is a minimum and tau a maximum, so the usable payload floor is 3.2 GB and a composition may declare more. A demand above any of them is met by a composition above the floor and fails only against one at it.",
+  "unit_base": "decimal, 10^9 bytes per GB. R-18-004b fixes no base for its unit and the corpus writes the second-class region in binary units elsewhere, so the base is this report's convention; against a binary 4 GiB payload every multiple of the usable payload floor falls by a factor of 1.0737",
+  "kv_cache_class": "undecided by any artifact. R-18-004a(vii) places the model wholly on the second class and says nothing about the cache; R-15-247s's second list names model weights and bulk by volume and names no cache, and its criterion is latency-criticality, which a cache read once per generated token can be argued either side of. The placement is the whole-program memory plan's (R-08-012a), so every demand and resident figure below that folds K in is an upper bound conditional on the cache sitting on the second class, and weights_only_demand_gb_per_second beside it is the part R-18-004a(vii) does place there"
  },
  "arithmetic": "demand = rate * (weight bytes read per token + KV bytes at the declared context), dense attention reading the whole cache once per generated token at depth 8192; resident = tensor bytes + KV buffer + compute buffer + output buffer, one copy of the weights, the host backend's repacked second copy excluded and stated separately",
  "measured": [
@@ -22,11 +24,14 @@
    "bytes_read_per_token": 3699285556,
    "demand_bytes_per_second_at_5_tokens_per_second": 18496427780,
    "demand_gb_per_second": 18.496,
+   "weights_only_demand_gb_per_second": 12.457,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 1.557,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.623,
    "multiple_of_8_gb_per_second_grant_floor": 2.312,
    "fraction_of_20_gb_per_second_aggregate_floor": 0.925,
    "resident_bytes": 4021541888.0,
    "resident_gb": 4.022,
-   "multiple_of_usable_payload": 1.257
+   "multiple_of_usable_payload_floor": 1.257
   },
   {
    "quant": "Q4_K_M",
@@ -37,11 +42,14 @@
    "bytes_read_per_token": 3133054516,
    "demand_bytes_per_second_at_5_tokens_per_second": 15665272580,
    "demand_gb_per_second": 15.665,
+   "weights_only_demand_gb_per_second": 12.457,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 1.557,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.623,
    "multiple_of_8_gb_per_second_grant_floor": 1.958,
    "fraction_of_20_gb_per_second_aggregate_floor": 0.783,
    "resident_bytes": 3460553728.0,
    "resident_gb": 3.461,
-   "multiple_of_usable_payload": 1.081
+   "multiple_of_usable_payload_floor": 1.081
   },
   {
    "quant": "Q5_0",
@@ -52,11 +60,14 @@
    "bytes_read_per_token": 4025716276,
    "demand_bytes_per_second_at_5_tokens_per_second": 20128581380,
    "demand_gb_per_second": 20.129,
+   "weights_only_demand_gb_per_second": 14.089,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 1.761,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.704,
    "multiple_of_8_gb_per_second_grant_floor": 2.516,
    "fraction_of_20_gb_per_second_aggregate_floor": 1.006,
    "resident_bytes": 4347972608.0,
    "resident_gb": 4.348,
-   "multiple_of_usable_payload": 1.359
+   "multiple_of_usable_payload_floor": 1.359
   },
   {
    "quant": "Q5_0",
@@ -67,11 +78,14 @@
    "bytes_read_per_token": 3459485236,
    "demand_bytes_per_second_at_5_tokens_per_second": 17297426180,
    "demand_gb_per_second": 17.297,
+   "weights_only_demand_gb_per_second": 14.089,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 1.761,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.704,
    "multiple_of_8_gb_per_second_grant_floor": 2.162,
    "fraction_of_20_gb_per_second_aggregate_floor": 0.865,
    "resident_bytes": 3786984448.0,
    "resident_gb": 3.787,
-   "multiple_of_usable_payload": 1.183
+   "multiple_of_usable_payload_floor": 1.183
   },
   {
    "quant": "Q5_K_M",
@@ -82,11 +96,14 @@
    "bytes_read_per_token": 4091518516,
    "demand_bytes_per_second_at_5_tokens_per_second": 20457592580,
    "demand_gb_per_second": 20.458,
+   "weights_only_demand_gb_per_second": 14.418,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 1.802,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.721,
    "multiple_of_8_gb_per_second_grant_floor": 2.557,
    "fraction_of_20_gb_per_second_aggregate_floor": 1.023,
    "resident_bytes": 4413774848.0,
    "resident_gb": 4.414,
-   "multiple_of_usable_payload": 1.379
+   "multiple_of_usable_payload_floor": 1.379
   },
   {
    "quant": "Q5_K_M",
@@ -97,11 +114,14 @@
    "bytes_read_per_token": 3525287476,
    "demand_bytes_per_second_at_5_tokens_per_second": 17626437380,
    "demand_gb_per_second": 17.626,
+   "weights_only_demand_gb_per_second": 14.418,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 1.802,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.721,
    "multiple_of_8_gb_per_second_grant_floor": 2.203,
    "fraction_of_20_gb_per_second_aggregate_floor": 0.881,
    "resident_bytes": 3852786688.0,
    "resident_gb": 3.853,
-   "multiple_of_usable_payload": 1.204
+   "multiple_of_usable_payload_floor": 1.204
   },
   {
    "quant": "Q6_K",
@@ -112,11 +132,14 @@
    "bytes_read_per_token": 4508266036,
    "demand_bytes_per_second_at_5_tokens_per_second": 22541330180,
    "demand_gb_per_second": 22.541,
+   "weights_only_demand_gb_per_second": 16.502,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 2.063,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.825,
    "multiple_of_8_gb_per_second_grant_floor": 2.818,
    "fraction_of_20_gb_per_second_aggregate_floor": 1.127,
    "resident_bytes": 4830522368.0,
    "resident_gb": 4.831,
-   "multiple_of_usable_payload": 1.51
+   "multiple_of_usable_payload_floor": 1.51
   },
   {
    "quant": "Q6_K",
@@ -127,11 +150,14 @@
    "bytes_read_per_token": 3942034996,
    "demand_bytes_per_second_at_5_tokens_per_second": 19710174980,
    "demand_gb_per_second": 19.71,
+   "weights_only_demand_gb_per_second": 16.502,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 2.063,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 0.825,
    "multiple_of_8_gb_per_second_grant_floor": 2.464,
    "fraction_of_20_gb_per_second_aggregate_floor": 0.986,
    "resident_bytes": 4269534208.0,
    "resident_gb": 4.27,
-   "multiple_of_usable_payload": 1.334
+   "multiple_of_usable_payload_floor": 1.334
   },
   {
    "quant": "Q8_0",
@@ -142,11 +168,14 @@
    "bytes_read_per_token": 5482410656,
    "demand_bytes_per_second_at_5_tokens_per_second": 27412053280,
    "demand_gb_per_second": 27.412,
+   "weights_only_demand_gb_per_second": 21.372,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 2.672,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 1.069,
    "multiple_of_8_gb_per_second_grant_floor": 3.427,
    "fraction_of_20_gb_per_second_aggregate_floor": 1.371,
    "resident_bytes": 5804666368.0,
    "resident_gb": 5.805,
-   "multiple_of_usable_payload": 1.814
+   "multiple_of_usable_payload_floor": 1.814
   },
   {
    "quant": "Q8_0",
@@ -157,11 +186,14 @@
    "bytes_read_per_token": 4916179616,
    "demand_bytes_per_second_at_5_tokens_per_second": 24580898080,
    "demand_gb_per_second": 24.581,
+   "weights_only_demand_gb_per_second": 21.372,
+   "weights_only_multiple_of_8_gb_per_second_grant_floor": 2.672,
+   "weights_only_fraction_of_20_gb_per_second_aggregate_floor": 1.069,
    "multiple_of_8_gb_per_second_grant_floor": 3.073,
    "fraction_of_20_gb_per_second_aggregate_floor": 1.229,
    "resident_bytes": 5243678208.0,
    "resident_gb": 5.244,
-   "multiple_of_usable_payload": 1.639
+   "multiple_of_usable_payload_floor": 1.639
   }
  ],
  "projection_to_three_billion_parameters": [
@@ -175,7 +207,7 @@
    "demand_gb_per_second": 15.33,
    "weights_only_demand_gb_per_second": 9.29,
    "resident_gb": 3.388,
-   "multiple_of_usable_payload": 1.059
+   "multiple_of_usable_payload_floor": 1.059
   },
   {
    "basis": "this file's Q4_K_M",
@@ -187,7 +219,7 @@
    "demand_gb_per_second": 12.499,
    "weights_only_demand_gb_per_second": 9.29,
    "resident_gb": 2.827,
-   "multiple_of_usable_payload": 0.884
+   "multiple_of_usable_payload_floor": 0.884
   },
   {
    "basis": "q4_0",
@@ -199,7 +231,7 @@
    "demand_gb_per_second": 14.477,
    "weights_only_demand_gb_per_second": 8.438,
    "resident_gb": 3.218,
-   "multiple_of_usable_payload": 1.006
+   "multiple_of_usable_payload_floor": 1.006
   },
   {
    "basis": "q4_0",
@@ -211,7 +243,7 @@
    "demand_gb_per_second": 11.646,
    "weights_only_demand_gb_per_second": 8.438,
    "resident_gb": 2.657,
-   "multiple_of_usable_payload": 0.83
+   "multiple_of_usable_payload_floor": 0.83
   },
   {
    "basis": "a pure four bits with no block scale",
@@ -223,7 +255,7 @@
    "demand_gb_per_second": 13.54,
    "weights_only_demand_gb_per_second": 7.5,
    "resident_gb": 3.03,
-   "multiple_of_usable_payload": 0.947
+   "multiple_of_usable_payload_floor": 0.947
   },
   {
    "basis": "a pure four bits with no block scale",
@@ -235,7 +267,7 @@
    "demand_gb_per_second": 10.709,
    "weights_only_demand_gb_per_second": 7.5,
    "resident_gb": 2.469,
-   "multiple_of_usable_payload": 0.772
+   "multiple_of_usable_payload_floor": 0.772
   }
  ],
  "compute": {
