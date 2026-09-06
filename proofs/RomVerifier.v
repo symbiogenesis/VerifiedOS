@@ -206,6 +206,20 @@ Definition occurs_once {A : Type} (eqb : A -> A -> bool) (x : A) (l : list A) : 
 Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
   negb (all_of (fun x => negb (p x)) l).
 
+(* The two arithmetic helpers are checked where they round rather than only
+   where they are used, because every value the parameter sets below feed
+   them happens to divide and a helper checked at those alone is checked at
+   the case that cannot go wrong. *)
+Example the_ceiling_rounds_up_where_the_division_does_not_divide :
+  andb (andb (Nat.eqb (ceil_div 8 8) 1) (Nat.eqb (ceil_div 9 8) 2))
+       (andb (Nat.eqb (ceil_div 0 8) 0) (Nat.eqb (ceil_div 16 8) 2)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example a_value_equal_to_the_base_takes_two_digits :
+  andb (andb (Nat.eqb (digits_base 8 16 15) 1) (Nat.eqb (digits_base 8 16 16) 2))
+       (andb (Nat.eqb (digits_base 8 16 255) 2) (Nat.eqb (digits_base 8 16 256) 3)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* The prelude carries `Nat.leb` and `Nat.ltb` and none of the arithmetic
    theory about them, so the one ordering fact the floor check needs is
    authored here rather than imported. *)
@@ -306,6 +320,74 @@ Example the_signature_is_four_hundred_and_sixty_five_times_the_public_key_and_a_
           (931 * public_key_bytes shake_256s) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+Example the_maximum_checksum_takes_three_base_sixteen_digits :
+  andb (Nat.eqb (message_len shake_256s * (winternitz shake_256s - 1)) 960)
+       (Nat.eqb (checksum_len shake_256s) 3) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -------------------------------------------------------------------------
+   The whole of Table 2's SHAKE half, because one row checks the formulas at
+   one point and six check them where they differ. Each row's seven
+   tabulated quantities are definitions, being inputs; each row's published
+   m, public key size and signature size stays inside the statement that
+   decides against it, so no published answer is a mutation target.
+   ------------------------------------------------------------------------- *)
+
+Definition shake_128s : ParameterSet :=
+  {| hash_bytes := 16; tree_height := 63; layers := 7; subtree_height := 9;
+     fors_height := 12; fors_trees := 14; lg_winternitz := 4 |}.
+
+Definition shake_128f : ParameterSet :=
+  {| hash_bytes := 16; tree_height := 66; layers := 22; subtree_height := 3;
+     fors_height := 6; fors_trees := 33; lg_winternitz := 4 |}.
+
+Definition shake_192s : ParameterSet :=
+  {| hash_bytes := 24; tree_height := 63; layers := 7; subtree_height := 9;
+     fors_height := 14; fors_trees := 17; lg_winternitz := 4 |}.
+
+Definition shake_192f : ParameterSet :=
+  {| hash_bytes := 24; tree_height := 66; layers := 22; subtree_height := 3;
+     fors_height := 8; fors_trees := 33; lg_winternitz := 4 |}.
+
+Definition shake_256f : ParameterSet :=
+  {| hash_bytes := 32; tree_height := 68; layers := 17; subtree_height := 4;
+     fors_height := 9; fors_trees := 35; lg_winternitz := 4 |}.
+
+Definition shake_sets : list ParameterSet :=
+  shake_128s :: shake_128f :: shake_192s :: shake_192f :: shake_256s :: shake_256f :: nil.
+
+Example the_six_rows_derive_their_published_message_digest_lengths :
+  map_over digest_bytes shake_sets = 30 :: 34 :: 39 :: 42 :: 47 :: 49 :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_six_rows_derive_their_published_public_key_sizes :
+  map_over public_key_bytes shake_sets = 32 :: 32 :: 48 :: 48 :: 64 :: 64 :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_six_rows_derive_their_published_signature_sizes :
+  map_over signature_bytes shake_sets = 7856 :: 17088 :: 16224 :: 35664 :: 29792 :: 49856 :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+(* h' is tabulated and h / d determines it, so the table states one quantity
+   twice and the two are held together here rather than left to agree. *)
+Example every_rows_subtree_height_is_its_own_quotient :
+  all_of (fun p => Nat.eqb (subtree_height p) (Nat.div (tree_height p) (layers p)))
+         shake_sets = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example every_rows_checksum_takes_three_digits :
+  all_of (fun p => Nat.eqb (checksum_len p) 3) shake_sets = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_six_rows_derive_their_chain_counts :
+  map_over chain_count shake_sets = 35 :: 35 :: 51 :: 51 :: 67 :: 67 :: nil.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_frozen_row_is_the_one_the_suite_names :
+  andb (Nat.eqb (hash_bytes shake_256s) 32)
+       (negb (Nat.eqb (tree_height shake_256s) (tree_height shake_256f))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* -------------------------------------------------------------------------
    FIPS 205 s11.1: the six functions at the SHAKE parameter sets, each of
    them SHAKE256 over a concatenation the standard fixes. The address is
@@ -365,6 +447,18 @@ Definition demo_address_two : list bool :=
 Example the_addresses_are_the_standards_thirty_two_bytes :
   andb (Nat.eqb (length_of demo_address_one) (8 * address_bytes))
        (Nat.eqb (length_of demo_address_two) (8 * address_bytes)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The seed and the message are n bytes, which is what the standard's own
+   arguments to these functions are. *)
+Example the_seed_and_the_message_are_n_bytes :
+  andb (Nat.eqb (length_of demo_seed) (8 * hash_bytes shake_256s))
+       (Nat.eqb (length_of demo_message) (8 * hash_bytes shake_256s)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_two_addresses_differ_in_one_byte :
+  andb (negb (bits_eqb demo_address_one demo_address_two))
+       (bits_eqb (drop_of 8 demo_address_one) (drop_of 8 demo_address_two)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example the_six_functions_return_the_lengths_the_standard_fixes :
@@ -534,6 +628,9 @@ Definition root_eqb (a b : Root) : bool :=
   | _, _ => false
   end.
 
+Definition all_roots : list Root :=
+  ProductionRoot :: DevelopmentRoot :: TestRoot :: EngineeringRoot :: nil.
+
 (* R-09-005's fixed-layout, length-bounded header. A field is an offset and
    a length, both constants, which is the whole of what fixed-layout means
    here: no field's position is read from any other field's value, because
@@ -582,6 +679,21 @@ Record RomVerifier : Type := {
   accepted_roots : Lifecycle -> list Root;
   rollback_floor : nat
 }.
+
+(* The three decidable equalities are decided rather than assumed: each is
+   reflexive on every constructor of its own type and false on every
+   distinct pair of them, over the whole enumeration in both directions. A
+   diagonal arm nobody exercises is a comparison that quietly answers false
+   of a thing and itself. *)
+Definition eqb_decides {A : Type} (eqb : A -> A -> bool) (l : list A) : bool :=
+  all_of (fun x => andb (eqb x x)
+                        (Nat.eqb (count_where (eqb x) l) 1)) l.
+
+Example the_three_equalities_decide_their_own_enumerations :
+  andb (eqb_decides prim_eqb all_prims)
+  (andb (eqb_decides phase_eqb all_phases)
+        (eqb_decides root_eqb all_roots)) = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition admits_version (v : RomVerifier) (version : nat) : bool :=
   Nat.leb (rollback_floor v) version.
@@ -868,6 +980,110 @@ Example the_undersized_signature_field_is_still_a_fixed_layout :
 Proof. vm_compute. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
+   Three headers that break one clause of the layout each, and two verifiers
+   that break one clause of the predicate each, so that every conjunct above
+   is decided by something rather than carried by the conjunct beside it.
+   Each is the witness with one field moved.
+   ------------------------------------------------------------------------- *)
+
+Definition header_with (sig_field : HeaderField) (bytes : nat) : Header :=
+  {| image_offset := image_offset demo_header;
+     image_length := image_length demo_header;
+     image_hash := image_hash demo_header;
+     image_signature := sig_field;
+     header_bytes := bytes |}.
+
+(* One: the signature field starts inside the hash field, so the fields do
+   not ascend. It is still inside the header's own length and still sized to
+   the scheme. *)
+Definition header_whose_fields_overlap : Header :=
+  header_with {| field_offset := 40; field_length := signature_bytes shake_256s |}
+              (48 + signature_bytes shake_256s).
+
+(* Two: the signature field runs past the header's declared length, which is
+   the length bound R-09-005 asks for. The fields still ascend. *)
+Definition header_running_past_its_length : Header :=
+  header_with {| field_offset := 48; field_length := signature_bytes shake_256s |}
+              (48 + signature_bytes shake_256s - 1).
+
+(* Three: a field of no length at all, which ascends and stays inside the
+   bound and names nothing. *)
+Definition header_with_an_empty_field : Header :=
+  {| image_offset := image_offset demo_header;
+     image_length := {| field_offset := 8; field_length := 0 |};
+     image_hash := image_hash demo_header;
+     image_signature := image_signature demo_header;
+     header_bytes := header_bytes demo_header |}.
+
+Example each_broken_header_breaks_exactly_the_clause_it_exists_for :
+  andb (andb (negb (fields_ascend (header_fields header_whose_fields_overlap)))
+             (all_of (fun f => Nat.leb (field_ends f) (header_bytes header_whose_fields_overlap))
+                     (header_fields header_whose_fields_overlap)))
+  (andb (andb (fields_ascend (header_fields header_running_past_its_length))
+              (negb (all_of (fun f => Nat.leb (field_ends f)
+                                              (header_bytes header_running_past_its_length))
+                            (header_fields header_running_past_its_length))))
+        (andb (fields_ascend (header_fields header_with_an_empty_field))
+              (negb (all_of (fun f => Nat.ltb 0 (field_length f))
+                            (header_fields header_with_an_empty_field))))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_three_broken_headers_are_refused_and_the_witness_is_not :
+  andb (header_is_fixed_layout demo_header)
+  (andb (negb (header_is_fixed_layout header_whose_fields_overlap))
+  (andb (negb (header_is_fixed_layout header_running_past_its_length))
+        (negb (header_is_fixed_layout header_with_an_empty_field)))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example each_broken_header_still_sizes_its_signature_field_to_the_scheme :
+  andb (signature_field_holds_the_scheme shake_256s header_whose_fields_overlap)
+  (andb (signature_field_holds_the_scheme shake_256s header_running_past_its_length)
+        (signature_field_holds_the_scheme shake_256s header_with_an_empty_field)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Four: a production part whose accepted set has one member and it is the
+   wrong one, which is what separates the set's size from its membership. *)
+Definition accepting_one_wrong_root_in_production : RomVerifier :=
+  {| parameters := parameters demo;
+     header := header demo;
+     order := order demo;
+     calls := calls demo;
+     accepted_roots := fun l => match l with
+                                | Production => DevelopmentRoot :: nil
+                                | other => spec_roots other
+                                end;
+     rollback_floor := rollback_floor demo |}.
+
+Example one_wrong_root_is_refused_though_the_set_is_still_a_singleton :
+  andb (Nat.eqb (length_of (accepted_roots accepting_one_wrong_root_in_production Production)) 1)
+       (negb (admissible_b accepting_one_wrong_root_in_production)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Five: a verifier with no floor at all, which keeps the floor check in its
+   order and admits every version there is. *)
+Definition with_the_floor_at_zero : RomVerifier :=
+  {| parameters := parameters demo;
+     header := header demo;
+     order := order demo;
+     calls := calls demo;
+     accepted_roots := accepted_roots demo;
+     rollback_floor := 0 |}.
+
+Example a_floor_of_zero_is_refused_and_admits_every_version :
+  andb (andb (negb (admissible_b with_the_floor_at_zero))
+             (precedes_in phase_eqb CheckFloor Execute (order with_the_floor_at_zero)))
+       (andb (admits_version with_the_floor_at_zero 0)
+             (hash_only_b with_the_floor_at_zero)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_witness_and_its_order_place_every_phase_where_the_entry_wants_it :
+  andb (andb (Nat.eqb (index_of phase_eqb ReadHeader spec_order) 0)
+             (Nat.eqb (index_of phase_eqb Execute spec_order) 4))
+       (andb (negb (precedes_in phase_eqb Execute Execute spec_order))
+             (negb (precedes_in phase_eqb Execute ReadHeader spec_order))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -------------------------------------------------------------------------
    The R-05-163 assumption gate reads this block. Every shipped constant is
    enumerated from its own proof term and held against the declared set: the
    one Require above is a sibling under proofs/ that Requires nothing, so
@@ -882,6 +1098,8 @@ Print Assumptions index_of.
 Print Assumptions precedes_in.
 Print Assumptions occurs_once.
 Print Assumptions any_of.
+Print Assumptions the_ceiling_rounds_up_where_the_division_does_not_divide.
+Print Assumptions a_value_equal_to_the_base_takes_two_digits.
 Print Assumptions leb_false_of_ltb.
 Print Assumptions andb_left.
 Print Assumptions andb_right.
@@ -902,6 +1120,20 @@ Print Assumptions the_public_key_is_the_published_sixty_four_bytes.
 Print Assumptions the_signature_is_the_published_twenty_nine_thousand_seven_hundred_and_ninety_two_bytes.
 Print Assumptions the_signature_is_tens_of_kilobytes.
 Print Assumptions the_signature_is_four_hundred_and_sixty_five_times_the_public_key_and_a_half.
+Print Assumptions the_maximum_checksum_takes_three_base_sixteen_digits.
+Print Assumptions shake_128s.
+Print Assumptions shake_128f.
+Print Assumptions shake_192s.
+Print Assumptions shake_192f.
+Print Assumptions shake_256f.
+Print Assumptions shake_sets.
+Print Assumptions the_six_rows_derive_their_published_message_digest_lengths.
+Print Assumptions the_six_rows_derive_their_published_public_key_sizes.
+Print Assumptions the_six_rows_derive_their_published_signature_sizes.
+Print Assumptions every_rows_subtree_height_is_its_own_quotient.
+Print Assumptions every_rows_checksum_takes_three_digits.
+Print Assumptions the_six_rows_derive_their_chain_counts.
+Print Assumptions the_frozen_row_is_the_one_the_suite_names.
 Print Assumptions address_bytes.
 Print Assumptions h_msg.
 Print Assumptions prf.
@@ -917,6 +1149,8 @@ Print Assumptions demo_message.
 Print Assumptions demo_address_one.
 Print Assumptions demo_address_two.
 Print Assumptions the_addresses_are_the_standards_thirty_two_bytes.
+Print Assumptions the_seed_and_the_message_are_n_bytes.
+Print Assumptions the_two_addresses_differ_in_one_byte.
 Print Assumptions the_six_functions_return_the_lengths_the_standard_fixes.
 Print Assumptions two_addresses_separate_the_same_message.
 Print Assumptions the_address_free_hash_collapses_the_two_addresses.
@@ -943,6 +1177,7 @@ Print Assumptions Lifecycle.
 Print Assumptions all_lifecycles.
 Print Assumptions Root.
 Print Assumptions root_eqb.
+Print Assumptions all_roots.
 Print Assumptions HeaderField.
 Print Assumptions Header.
 Print Assumptions header_fields.
@@ -951,6 +1186,8 @@ Print Assumptions fields_ascend.
 Print Assumptions header_is_fixed_layout.
 Print Assumptions signature_field_holds_the_scheme.
 Print Assumptions RomVerifier.
+Print Assumptions eqb_decides.
+Print Assumptions the_three_equalities_decide_their_own_enumerations.
 Print Assumptions admits_version.
 Print Assumptions hash_only_b.
 Print Assumptions HashOnly.
@@ -992,3 +1229,15 @@ Print Assumptions the_widened_root_set_still_accepts_the_production_root.
 Print Assumptions signature_field_sized_at_the_public_key.
 Print Assumptions the_undersized_signature_field_is_refused.
 Print Assumptions the_undersized_signature_field_is_still_a_fixed_layout.
+Print Assumptions header_with.
+Print Assumptions header_whose_fields_overlap.
+Print Assumptions header_running_past_its_length.
+Print Assumptions header_with_an_empty_field.
+Print Assumptions each_broken_header_breaks_exactly_the_clause_it_exists_for.
+Print Assumptions the_three_broken_headers_are_refused_and_the_witness_is_not.
+Print Assumptions each_broken_header_still_sizes_its_signature_field_to_the_scheme.
+Print Assumptions accepting_one_wrong_root_in_production.
+Print Assumptions one_wrong_root_is_refused_though_the_set_is_still_a_singleton.
+Print Assumptions with_the_floor_at_zero.
+Print Assumptions a_floor_of_zero_is_refused_and_admits_every_version.
+Print Assumptions the_witness_and_its_order_place_every_phase_where_the_entry_wants_it.
