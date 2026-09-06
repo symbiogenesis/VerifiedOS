@@ -25,7 +25,8 @@
 // `cap_reg_t` is a typedef of it and no third format exists between the datapath
 // and the model. Its width is the sum of the decoded form's fields, which the
 // imported `build_config_pkg.sv` reads as `PCLEN = $bits(cap_reg_t)`; the
-// figure is measured at the elaboration and stated there rather than here.
+// figure is measured by compiling the package rather than stated here, and
+// R1b's evidence quotes it beside the imported register form's.
 //
 // **Every deletion row of docs/rtl-reparameterization-delta.md §2.1 is a member
 // this package does not have.** No software-defined permission field, no reserved
