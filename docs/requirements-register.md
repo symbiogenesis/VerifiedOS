@@ -2637,6 +2637,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-12-014** MUST: The sealing and attestation service is a crypto-core-backed compartment exposing seal/unseal, attestation quotes, reference-manifest retrieval, and monotonic-counter operations over rings, binding secrets to the RoT and measured state.
 · Accept: keys never leave the crypto core; apps hold only sealed blobs and capability handles, so the constant-time obligation stays on the core.
+· Accept: a seal names its policy, the exact measured vector (R-09-025) or a manifest-root signature (R-09-026) over the generation register (R-09-025a) at or above the anti-rollback floor, and every unseal is bound as well to the requesting compartment's identity in the composed graph (R-07-028), the name and never the image hash, so a blob survives its own compartment's update and is refused to a peer in the same generation.
 · Trace: CJ-CRYPTO-SPEC, CJ-CT-SOUND
 
 **R-12-015** MUST: A relying party retrieves the running generation's reference integrity manifest through the same service and appraises a quote against it, so remote verification needs no vendor-side golden database.
