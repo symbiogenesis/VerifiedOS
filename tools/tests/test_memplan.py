@@ -50,8 +50,9 @@ _REFUSALS = {
 }
 
 # The two-region toy: one island of 64 bytes, a 16-byte region and a 32-byte region
-# whose live ranges overlap, both at the island's base in the standing plan so that the
-# quantum reads as one and the grid is every byte.
+# whose live ranges overlap, the first at the island's base and the second right after
+# it in the standing plan, so that the quantum reads as sixteen and the enumerated grid
+# is every sixteenth byte while the finer grid at every byte is counted beside it.
 _TOY = """
 Inductive RegionKind : Type :=
 | ScalarWorkingSet
@@ -239,8 +240,9 @@ def _the_port_agrees_with_the_proof_file_on_every_plan() -> None:
 def _the_enumerator_is_complete_over_the_toy() -> None:
     plan = memplan.plan_of(memplan.parse(_TOY), "demo_plan")
     found = memplan.enumerate_island(plan, 0)
-    # a 16-byte region has 49 bases in 64 bytes and a 32-byte one has 33, every byte
-    # being on the grid since the standing bases' gcd is 16 and the granules are 1
+    # the standing bases' gcd is 16 and both granules are 1, so the step is 16 on both
+    # and a 16-byte region has 4 bases in 64 bytes where a 32-byte one has 3; at every
+    # byte, the finer grid the report counts and never walks, they have 49 and 33
     ensure(found.quantum == 16 and found.steps == (16, 16), f"the toy's grid: {found}")
     ensure(found.counts == (4, 3) and found.grid == 12, f"the toy's counts: {found}")
     ensure(found.granule_grid == 49 * 33, f"the finer grid is counted: {found}")
