@@ -552,6 +552,50 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q5a
 · Disposition: open, Q5b's; the report's status line states the comparison as not taken and why, and the residual lines print every cost input as a symbol
 
+**F-294** measurement: the lowering route's checked relation covers only the first of the four boundaries between an operational Gallina source and this machine, the derivation closing under no axioms, the printer beneath it carrying no theorem in either of its two editions, the compiler beneath that carrying a theorem about a target the register forbids, and nothing relating any of it to the model
+· Raised: Q2a
+· Disposition: standing, the boundary count being what the demonstration measures rather than something it can close, and the note claiming one boundary and naming the three it does not reach
+· Restates: F-131a
+
+**F-295** measurement: the maintenance cost of this route runs asymmetrically, a constant moved in the generated owner costing zero lines of the component and one regeneration while a precondition moved in the component stops the derivation at every reduced site and emits nothing, so regeneration absorbs a declaration change and does not absorb a specification change
+· Raised: Q2a
+· Disposition: standing, measured by two probes on one component and recorded as the term a widening of the technique pays
+
+**F-296** measurement: the capability printer's stubbed arms on this component are the whole set the program needs and no more, sixteen distinct arms against the nineteen the lowering item measured on its own program
+· Raised: Q2a
+· Disposition: standing, nothing here resting on the capability output and the arm set being the size of the gap against the backend the compiler milestone's five open children author
+· Restates: F-131i
+
+**F-297** upstream-defect: the verified backend's register-operation compiler takes no instruction-set argument and maps multiplication, high-multiplication, division and remainder to their own instructions unconditionally, so a pipeline instantiated at the base integer set emits M-extension instructions wherever an array access scales an index
+· Raised: Q2a
+· Disposition: standing, the alphabet being a property of the compiler's definition rather than of the instance a caller declares, recorded so that a later reading of the verified exit does not take the declared set for the emitted one
+
+**F-298** measurement: the generated C of this component is 5.9 times a hand-written C of the same check by bytes and 2.4 times by instruction, the route re-materializing each bound test and giving every refusing path its own status assignment, with the printer's preamble a seventh of the difference
+· Raised: Q2a
+· Disposition: standing, and the proof side of the comparison is not taken, no refinement of this check existing in the tree, so the figure decides size and alphabet alone
+
+**F-299** owed-act: the generated interface artifact fixes every encoded width, size and case count and fixes no field order, carrying the descriptor's order only as the summation order of two size definitions, so a consumer computes its offsets by restating the typed profile's section 4.2 prose and no lemma holds the restatement to it; because the direction and content-type widths are both one byte, a profile that swapped those two fields would move no numeral, fail neither reflexivity lemma in the component and change no emitted byte while each read took the other field's byte
+· Raised: Q2a
+· Disposition: open, an order object in the artifact its own generator writes would close it and neither the artifact nor this lane's component is where that act sits, and the recipe states the field order as restated rather than read in the meantime
+
+**F-300** owed-act: the lowering item names a wire parser as its component and the tree carries none, the wire-format inventory row reading not authored, no item on the plan authoring one, and no decoder over bytes existing under the proofs tree, so the demonstration authors its own component under the tools tree
+· Raised: Q2a
+· Disposition: open, the inventory row unmoved by this landing and the shipped parser still owed
+
+**F-301** owed-act: two register entries assume a single lowering path carrying both proof transport and an admissible target, one requiring the synthesis be counted as transport rather than an anchor and the other admitting a verified compilation step with no clause about where the transport stops, and a second program lowered through the same route is again the exit with the C and without the theorem
+· Raised: Q2a
+· Disposition: open, a register act reported again and not closed, and whether the two are one gap or two is a reading this item does not take
+· Restates: F-131e
+
+**F-302** owed-act: the intermediate language the register entry, the specification and the plan all name for this route is emitted by neither of its exits on a second program as on the first, the reaching exit emitting C source text and the verified exit encoded machine words
+· Raised: Q2a
+· Disposition: open, a register act reported again and not closed
+· Restates: F-131j
+
+**F-303** owed-act: the proof gate's switch carries four Rocq libraries beside its prover today, installed by other work, where two tracked sites state that emptiness as a deliberate property of the gate's reach, the licence page's QuickChick paragraph and the comment restating it in the QuickChick command's own source
+· Raised: Q2a
+· Disposition: open at those two sites, the third instance, inside the lowering paragraph this landing rewrote, being narrowed here to what the switch holds
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
