@@ -57,6 +57,7 @@ A Snapdragon X Elite X1E78100 (Oryon, aarch64, twelve cores, `asimddp`, `i8mm`, 
 | File | Tensors | Total tensor bytes | `token_embd.weight` | Bytes read per token | Bits per parameter |
 | --- | --- | --- | --- | --- | --- |
 | Q4_K_M | 398 | 2,491,323,904 | 319,065,600 (`q6_K`) | 2,491,323,904 | 4.955 |
+| Q6_K | 398 | 3,300,304,384 | 319,065,600 (`q6_K`) | 3,300,304,384 | 6.563 |
 | Q8_0 | 398 | 4,274,448,384 | 413,265,920 (`q8_0`) | 4,274,448,384 | 8.501 |
 
 The bits-per-parameter column is the tensor bytes over 4,022,468,096 parameters, and is what a four-bit format costs once its block scales and its `q6_K` embedding and down-projections are counted: the floor's *four-bit* is 4.955 bits here, and the loader's own `4.95 BPW` agrees.
@@ -81,6 +82,8 @@ The bits-per-parameter column is the tensor bytes over 4,022,468,096 parameters,
 | --- | --- | --- | --- | --- | --- |
 | Q4_K_M | f16 | 2,362.55 MiB | 1,152.00 MiB | 306.75 MiB | 0.58 MiB |
 | Q4_K_M | q8_0, flash attention | 2,362.55 MiB | 612.00 MiB | 311.75 MiB | 0.58 MiB |
+| Q6_K | f16 | 3,127.93 MiB | 1,152.00 MiB | 306.75 MiB | 0.58 MiB |
+| Q6_K | q8_0, flash attention | 3,127.93 MiB | 612.00 MiB | 311.75 MiB | 0.58 MiB |
 | Q8_0 | f16 | 4,051.20 MiB | 1,152.00 MiB | 306.75 MiB | 0.58 MiB |
 | Q8_0 | q8_0, flash attention | 4,051.20 MiB | 612.00 MiB | 311.75 MiB | 0.58 MiB |
 
@@ -96,12 +99,14 @@ The budget takes the register's rate and floor and this section's bytes. For a c
 
 | Configuration | W, bytes per token | K at 8,192 | Demand at 5 tokens/s | Against 8 GB/s | Resident bytes | Against 3.2 GB |
 | --- | --- | --- | --- | --- | --- | --- |
-| Q4_K_M, f16 cache | 2,491,323,904 | 1,207,959,552 | 18.50 GB/s | 2.31 × the floor | 4,021,542,318 | 1.26 × the payload |
-| Q4_K_M, q8_0 cache | 2,491,323,904 | 641,728,512 | 15.67 GB/s | 1.96 × the floor | 3,460,554,158 | 1.08 × the payload |
-| Q8_0, f16 cache | 4,274,448,384 | 1,207,959,552 | 27.41 GB/s | 3.43 × the floor | 5,804,666,798 | 1.81 × the payload |
-| Q8_0, q8_0 cache | 4,274,448,384 | 641,728,512 | 24.58 GB/s | 3.07 × the floor | 5,243,678,638 | 1.64 × the payload |
+| Q4_K_M, f16 cache | 2,491,323,904 | 1,207,959,552 | 18.50 GB/s | 2.31 × the floor | 4,021,541,888 | 1.26 × the payload |
+| Q4_K_M, q8_0 cache | 2,491,323,904 | 641,728,512 | 15.67 GB/s | 1.96 × the floor | 3,460,553,728 | 1.08 × the payload |
+| Q6_K, f16 cache | 3,300,304,384 | 1,207,959,552 | 22.54 GB/s | 2.82 × the floor | 4,830,522,368 | 1.51 × the payload |
+| Q6_K, q8_0 cache | 3,300,304,384 | 641,728,512 | 19.71 GB/s | 2.46 × the floor | 4,269,534,208 | 1.33 × the payload |
+| Q8_0, f16 cache | 4,274,448,384 | 1,207,959,552 | 27.41 GB/s | 3.43 × the floor | 5,804,666,368 | 1.81 × the payload |
+| Q8_0, q8_0 cache | 4,274,448,384 | 641,728,512 | 24.58 GB/s | 3.07 × the floor | 5,243,678,208 | 1.64 × the payload |
 
-The resident column is the tensor bytes plus the KV buffer plus the compute and output buffers section 6 records, in bytes; the Q8_0 rows take the compute buffers the Q4_K_M rows measured, the graph being the same shape.
+The resident column is, in bytes, the tensor bytes plus the KV buffer plus the compute buffer section 6 records for that cache format (306.75 MiB = 321,650,688 bytes with an f16 cache, 311.75 MiB = 326,893,568 with a `q8_0` cache) plus one row of logits (151,936 × 4 = 607,744 bytes, the loader's `0.58 MiB`); the compute buffer does not vary with the weight format, the graph being the same shape, and the loader confirms it at each file it reports for.
 
 **The projection to the floor's own member.** At this file's 4.955 bits per parameter a three-billion-parameter dense model reads 1.858 GB per token, 9.29 GB/s at five tokens per second before any cache is read; at `q4_0`'s 4.5 bits per parameter, 1.688 GB and 8.44 GB/s; at a pure four bits with no scale, which no format has, 1.5 GB and 7.5 GB/s. So under every four-bit format that exists, the weight stream of the floor's (vii) alone exceeds the 8 GB/s M-class grant floor of R-18-004b at the floor's own rate and before its KV term, and the two entries are in tension at the arithmetic this item exists to do. That is a register-level act, reported in the completion note and taken by nobody here. On storage the projection lands on the other side of the line: 1.858 GB of weights with this model's own cache geometry is 2.83 GB resident under a `q8_0` cache, inside the 3.2 GB payload, and 3.39 GB under an f16 cache, outside it, so at the floor's model size the cache format is what decides the capacity comparison and the bandwidth comparison is failed either way.
 
