@@ -411,7 +411,7 @@ The other four off-clock rows are the radio reference state machines (inventory 
 
 ### Current summary
 
-* Completed: S1, S2, S3, S4, S7, S8, S9, S10a, S10b, S11, S12, S13a, S13b, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, Q1, M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M0.19, M0.20, M1.1, M1.1a, M1.1b, M1.2a, M1.4′, M1.5, M1.6, M1.8a, M1.9, M3.1, M3.2, M3.3, M3.4a, M3.4d, M3.6a, M4.1, M4.1a, M4.1b, M4.2a, M4.2b, M4.3, M5.1, M5.2, M6.0a, M6.0b, M6.1a, M6.2a, M6.3a, M6.4, M6.5a, R1a, R1c-i, R4, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15, I16 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause. **S14 is a sixth of the same kind and the first outside the instruments**, S9 having retired the first of the two grounds I8 declined push CI on and the measurement then finding the second standing.
+* Completed: S1, S2, S3, S4, S7, S8, S9, S10a, S10b, S11, S12, S13a, S13b, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, Q1, Q5a, M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M0.19, M0.20, M1.1, M1.1a, M1.1b, M1.2a, M1.4′, M1.5, M1.6, M1.8a, M1.9, M3.1, M3.2, M3.3, M3.4a, M3.4d, M3.6a, M4.1, M4.1a, M4.1b, M4.2a, M4.2b, M4.3, M5.1, M5.2, M6.0a, M6.0b, M6.1a, M6.2a, M6.3a, M6.4, M6.5a, R1a, R1c-i, R4, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15, I16 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause. **S14 is a sixth of the same kind and the first outside the instruments**, S9 having retired the first of the two grounds I8 declined push CI on and the measurement then finding the second standing.
 * The open work and the order it is taken in are [Sequencing](#sequencing)'s; each landed item's note is in [the completion log](completion-log.md), which also keeps [the lane-by-lane state this summary carried](completion-log.md#the-summarys-state-before-s10b-landed-2026-09-05) before the notes moved out of this file.
 * Total estimate: 1,249.6 h midpoint, class I 237 h and class X 573.5 h over the open items.
 * Calibrated against completed-item outturn (class I 0.71, class X 1.68): approximately 1,570.8 h.
@@ -623,8 +623,8 @@ Q1, Q2a, Q3a, Q4a and Q5a open independently, the host-side halves waiting on no
   * **Done when** the same workload has a checked improved assignment, or the report says why none was found without presenting a limited search as a proof of impossibility. An optimality claim needs more than one checked feasible assignment. The gain is possibly more usable payload in the same RAM and better throughput under the same schedule, no raw capacity, and nothing at all where the present assignment is already good.
   * **Split at entry by what a plan can be searched over today.** M1.9's plan is a witness whose every figure carries no composition claim, so the export, the enumeration and the exact check are one child taken over it now, and the comparison on the admitted workload, which wants Q1's limits and a composed roster, is the other. The children redistribute this cell's 12 h and its 8–16 range.
 
-  * [ ] **Q5a · Export the placement problem and search it over the standing plan** · 7 h, range 5–9 · 0.6% · I
-    * Bullets one to three and five over M1.9's witness plan, taking the second arm of the Done-when: a checked improved assignment over that plan, or a report saying why none is found, never a proof of impossibility.
+  * [x] **Q5a · Export the placement problem and search it over the standing plan** · 1.3 h actual · 0.0% · agent-parallel
+    * The placement problem is exported from the memory plan's proof file and held by K-88, an exact port of that file's checks admits every candidate, and a complete enumeration over a declared set finds a tighter packing of the witness plan that credits nothing to the product. ([note](completion-log.md#q5a-export-the-placement-problem-and-search-it-over-the-standing-plan))
   * [ ] **Q5b · Compare the found placement on the admitted workload** · 5 h, range 3–7 · 0.4% · I
     * Bullet four and the Done-when's first arm over a composed roster. Gates on Q1 and on the roster M7.1 composes.
 * [ ] **Q6 · Compare memory topologies on one workload** · 17 h, range 10–24 · 1.4% · X · after the M8a gate
@@ -1433,6 +1433,7 @@ One row per completed item marked `agent-parallel`, in document order, on the sa
 | S22 | n/a | n/a |
 | S26 | I | 5 |
 | Q1 | I | 7.5 |
+| Q5a | I | 7 |
 | M0.20 | n/a | n/a |
 | M1.2a | X-read | 4 |
 | M1.6 | X-read | 18.5 |

@@ -520,6 +520,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q1
 · Disposition: open, reported as a register gap and not closed, a bound over the focus rebinding being a register act
 
+**F-276** owed-act: the memory plan's export declares owner and bank absent by name because R-08-011's plan as M1.9 states it carries neither, so R-08-012a's bank-spreading term is stated over banks the plan does not model and R-08-045's per-line-item charge is read over region indices with no line item named
+· Raised: Q5a
+· Disposition: open, reported and not closed; whether the plan gains a `bank_of` and an owner field is a register act at R-08-011 and R-08-012a, and the export carries each absence with its ground until one is taken
+
+**F-277** method: R-08-012a's first objective, the proven simultaneous peak, is decided by live ranges and lengths alone, so a search that moves slot bases cannot improve it and reaches only the span, the unused reservation and the padding after it
+· Raised: Q5a
+· Disposition: closed, the report printing the footprint unmoved on both sides and the search contract refusing a footprint gain attributed to a base search as PS-7
+
+**F-278** measurement: the demo plan's bases were chosen to exhibit refutations rather than to be tight, so the admitted assignment 32 bytes tighter in island 0 and 16 in island 1 at `2957352` establishes that the machinery reaches an assignment the standing one is bettered by and credits nothing to the product
+· Raised: Q5a
+· Disposition: closed, the report's verdict line and the contract's PS-4 stating that any gain over the demo plan is over witness values carrying no composition claim; the checklist's gains table for Q5 is not realized by it
+
+**F-279** measurement: the scout brief refused OR-Tools on ortools 9.15.6755 shipping cp310 to cp313 wheels only, and the same PyPI record read 2026-09-05 lists 34 wheels over cp39 through cp314, so the ground was false the day it was written
+· Raised: Q5a
+· Disposition: closed, the contract and the note refusing the solver on the item's own order instead: CP-SAT is admitted only where a coupled placement or scheduling search justifies it, the enumeration completes over its declared set with nothing coupled, and a dependency is selected at the milestone that reads its licence and pins it
+
+**F-280** method: the island quantum is the gcd of the standing plan's bases from the island's base, which makes the standing plan a member and the set walkable and also makes a plan at coarser offsets yield a coarser grid, the finer grid at every granule multiple (356,944,861,377 and 7,321,746,600 points at `2957352`) being counted and never walked
+· Raised: Q5a
+· Disposition: closed, the predicate stated once in the tool and printed at the head of every report, the finer set's size printed beside the enumerated one, and completeness claimed over the declared set alone under PS-3
+
+**F-281** owed-act: docs/placement-search.md quotes the tool's candidate-set predicate verbatim in its §2 and restates the check-to-entry pairs of `CONSTRAINTS` in its §4 table, and no rule holds either restatement against tools/vos/memplan.py, so a change to the tool leaves the document stale with no finding
+· Raised: Q5a
+· Disposition: open, reported and not closed; K-101 is not allocated and no rule is added under the fan-out, so the landing is declared Tier A rather than Tier B under K-88, and the holder is a K-68 co-stated pin or a rule of K-58's shape at a later act
+
+**F-282** owed-act: docs/critique.md:154 says nothing in the corpus prices packings, and this landing prices a packing on span used, unused reservation and padding over a witness plan, so the sentence is a claim to re-read on landing while the paragraph around it (critique.md:144-159) names no item and is not answered by a witness-plan search
+· Raised: Q5a
+· Disposition: open, reported to the integrator, who owns docs/critique.md under the fan-out; the paragraph stays
+
+**F-283** owed-act: the item's fourth bullet compares placements on the admitted workload and no composed roster exists to compare on, the demo figures being witness values, R-18-004d's demonstration set unauthored, R-18-004b's per-class resident bytes summed by a whole-program plan that does not yet exist and the absolute limits Q1's to state, and the cost inputs the Q table names are all pending so nothing is rounded
+· Raised: Q5a
+· Disposition: open, Q5b's; the report's status line states the comparison as not taken and why, and the residual lines print every cost input as a symbol
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
