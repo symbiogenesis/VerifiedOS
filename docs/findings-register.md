@@ -2298,6 +2298,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: R4
 · Disposition: open, the integrator's at landing, which reconciles the sentence and the list; until then the item stands landed inside a partition the tool says is not yet reachable
 
+**F-284** measurement: the first substitution row refuses the curated arm at nine type-name declarations before the elaborator reads any member of `cap_reg_t`, so the member-reading sites the delta prices are unreached and eight of the nine sites sit on no row of the delta's §2.2 or §2.3
+· Raised: R1b
+· Disposition: standing, the nine sites being seam 2's to curate and the delta's to book, and the member layer reachable only once the three replaced types have no reader left
+
+**F-285** measurement: the delta books the cause enumeration and the `mtval` layout at §2.1 and enumerates none of the twenty-three sites that consume them, four `cap_tval2_t` declarations and nineteen reads of the imported fault constants across four files, and the probe's second layer is 31 unbooked sites of 46
+· Raised: R1b
+· Disposition: standing, the delta document owing rows for the consumers of its §2.1 structure rows, which this lane's one-sentence edit to its §3 does not add
+
+**F-286** measurement: `$bits(cap_reg_t)` is 68 from the adapter against 137 from the imported package at the curated configuration, the 129 the brief assumed being the imported memory form and `CTLEN`, and `build_config_pkg.sv:41` reads `PCLEN` off the register form
+· Raised: R1b
+· Disposition: standing, the width collapse being seam 2's and every `PCLEN` port the delta's §2.2 books following this figure
+
+**F-287** measurement: three datapath sites read the imported single `SENTRY_CAP`, `branch_unit.sv:123` and `:232` and `cheri_unit.sv:207`, and the adapter exports the forward and backward edge pair with no alias, so none compiles until it says which edge it means
+· Raised: R1b
+· Disposition: standing, seam 4's, on R-15-071's ground that the branch unit distinguishes the edges
+
+**F-288** measurement: no admitted permission set holds both store and execute, so the adapter exports `REG_ROOT_CODE_CAP` and `REG_ROOT_DATA_CAP` and no single root, and `include/ariane_pkg.sv:37` reads the single one where the delta books that file at line 34 only
+· Raised: R1b
+· Disposition: standing, which root each reset site takes being a composition reading seam 2 records (R-15-007l, R-15-007p)
+
+**F-289** method: the `mtval` payload is `regnum @ code` at eleven bits where the imported `cap_tval2_t` was twenty-two, `set_cap_reg_addr` is the checked setter because the model has no unchecked one and the frozen one clears the tag above 2^36, and `cap_mem_to_cap_reg` applies the null exclusive-or on the load side the imported tree left it off
+· Raised: R1b
+· Disposition: closed, each stated in the adapter's header beside the Sail definition it follows, and the load-side transform measured by the probe's all-zero granule decoding to `REG_NULL_CAP`
+
+**F-290** owed-act: `CAP_EXCEPTION = 28`, the eleven ISAv9 cause codes, the five-bit and six-bit widths and `PCC_IDX = 0b100000` are transcriptions of `cap_causes.sail` and `types_ext.sail` that rule K-79 does not read, held by one case in the tools' suite and by no checker rule
+· Raised: R1b
+· Disposition: open, K-104 reserved and not used, the holder being a rule over the two Sail files and the adapter that a later act writes
+
+**F-291** method: a linked worktree populates `upstream/cva6-cheri` whole by `--reference` to the primary's module store and `upstream/opentitan` blob-filtered under a cone sparse checkout of `hw/ip/prim` and `hw/ip/prim_generic`, the 22 gitlink ids unchanged and the elaboration reading its three primitive packages and refusing nothing by name
+· Raised: R1b
+· Disposition: closed, recorded with sizes at the cell, and the retiring `git worktree remove` wants `--force`
+
+**F-292** method: the 272 and 229 warnings R1 recorded are the count under the tool's `--xml-only` invocation, `--lint-only` over the same two lists reports 309 and 274, and with the first row in place the parser stops before any warning, so the count the lint gate cannot reach is zero on this row and the adapter is in `AUTHORED` besides
+· Raised: R1b
+· Disposition: closed, the predicate stated beside each figure at the cell, and the record's own figures reproduced
+
+**F-293** owed-act: every file the two enumerated layers name is a Solderpad file the datapath curation must replace, `rtl/README.md` §1 forbids copying one in, and whether an authored substitute may be a copy-and-edit under the Apache-2.0 election THIRD-PARTY.md records or must be clean-room over the imported names is undecided
+· Raised: R1b
+· Disposition: open, the integrator's before seam 2, and it moves THIRD-PARTY.md and rtl/README.md whichever way it goes
+
 ## Build-loop instruments
 
 **F-178** measurement: the shared memo cache one instrument proposed already existed for the typecheck loop, one file every checkout wrote, live across four concurrent lanes
