@@ -100,14 +100,23 @@ VERILATOR_HOW = "apt-get install verilator on Ubuntu 26.04"
 # a reason that is not about the format.
 FORMAT_PACKAGE = "rtl/vos_cheri_pkg.sv"
 
+# The package the imported datapath reaches its format through, re-pointed at the
+# format package above. It declares the imported package's own name, `cva6_cheri_pkg`,
+# because the datapath reaches the format by that name and the substitution mechanism
+# renames nothing; its bodies are calls on `vos_cheri_pkg` and it imports nothing else,
+# which is what lets it sit in both declarations below.
+ADAPTER_PACKAGE = "rtl/vos_cva6_cheri_pkg.sv"
+
 # The authored sources, in the order a compiler must see them: the format package
 # declares the types the rest use. This is the set `lint` compiles **alone**, which is
 # what makes it the standalone-lintable set rather than the authored one: a source
 # written to stand in the imported datapath is compiled against the imported packages,
-# so it cannot lint by itself and does not belong here. `SUBSTITUTIONS` below is the
-# other declaration, and the two are deliberately not one list.
+# so it cannot lint by itself and does not belong here unless, like the adapter, it
+# imports only a package this set already carries. `SUBSTITUTIONS` below is the other
+# declaration, and the two are deliberately not one list.
 AUTHORED: tuple[str, ...] = (
     FORMAT_PACKAGE,
+    ADAPTER_PACKAGE,
     "rtl/vos_soc_decode.sv",
 )
 
@@ -149,14 +158,19 @@ class Substitution:
     authored: str
 
 
-# The declared substitutions, and today there are none. R1a authored the capability
-# format's algebra as `vos_cheri_pkg`, which exports neither the package name nor the
-# type names the imported datapath reaches its format through, so a row pointing it at
-# `core/include/cva6_cheri_pkg.sv` would name a file the imported sources cannot compile
-# against: re-pointing the datapath is R1b's first seam and the row is that item's to
-# declare. What is here is the mechanism the row needs, held by this module's own tests
-# against a synthetic manifest rather than by a run nothing can take yet.
-SUBSTITUTIONS: tuple[Substitution, ...] = ()
+# The imported package the adapter stands at, spelled as the manifest spells it.
+IMPORTED_FORMAT_PACKAGE = "core/include/cva6_cheri_pkg.sv"
+
+# The declared substitutions. The first row is R1b's first seam: the adapter stands
+# where the imported manifest names its capability package, so the datapath compiles
+# against the frozen format under the name it already uses. A package declares no
+# module, so this row is visible to no member of the partition below, which attributes
+# nothing on either side of it and says so when `filelist` takes it (F-225e); what the
+# row decides is whether the datapath compiles, and that is the elaboration's compile
+# and not the diff. The first row that displaces a module kind is the flat-SRAM one.
+SUBSTITUTIONS: tuple[Substitution, ...] = (
+    Substitution(imported=(IMPORTED_FORMAT_PACKAGE,), authored=ADAPTER_PACKAGE),
+)
 
 # The cross-check's two halves. The generator is Sail because it has to call the
 # model's own functions, and the harness is SystemVerilog because it has to call the
