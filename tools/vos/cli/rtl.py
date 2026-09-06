@@ -100,14 +100,23 @@ VERILATOR_HOW = "apt-get install verilator on Ubuntu 26.04"
 # a reason that is not about the format.
 FORMAT_PACKAGE = "rtl/vos_cheri_pkg.sv"
 
+# The package the imported datapath reaches its format through, re-pointed at the
+# format package above. It declares the imported package's own name, `cva6_cheri_pkg`,
+# because the datapath reaches the format by that name and the substitution mechanism
+# renames nothing; its bodies are calls on `vos_cheri_pkg` and it imports nothing else,
+# which is what lets it sit in both declarations below.
+ADAPTER_PACKAGE = "rtl/vos_cva6_cheri_pkg.sv"
+
 # The authored sources, in the order a compiler must see them: the format package
 # declares the types the rest use. This is the set `lint` compiles **alone**, which is
 # what makes it the standalone-lintable set rather than the authored one: a source
 # written to stand in the imported datapath is compiled against the imported packages,
-# so it cannot lint by itself and does not belong here. `SUBSTITUTIONS` below is the
-# other declaration, and the two are deliberately not one list.
+# so it cannot lint by itself and does not belong here unless, like the adapter, it
+# imports only a package this set already carries. `SUBSTITUTIONS` below is the other
+# declaration, and the two are deliberately not one list.
 AUTHORED: tuple[str, ...] = (
     FORMAT_PACKAGE,
+    ADAPTER_PACKAGE,
     "rtl/vos_soc_decode.sv",
 )
 
@@ -140,6 +149,14 @@ class Substitution:
     imported file declares is one the substitution displaced rather than one a parameter
     removed.
 
+    `requires` is the authored sources the authored one imports, relative to this
+    repository's root and in the order a compiler must see them. The imported manifest
+    names none of them, so nothing places them unless the row does: each is placed
+    immediately ahead of the authored source at the line it replaces, once however many
+    rows require it, and one not in the checkout is a refusal like an absent authored
+    source. This is the ordinary shape rather than an edge, every source written
+    against the frozen format importing the format package.
+
     **Nothing is copied out of the imported tree by any of this.** The authored file
     lives in `rtl/`, the imported one stays behind its gitlink, and what this composes
     is a list of paths across the two.
@@ -147,16 +164,28 @@ class Substitution:
 
     imported: tuple[str, ...]
     authored: str
+    requires: tuple[str, ...] = ()
+
+    @property
+    def placed(self) -> tuple[str, ...]:
+        """Every authored path this row puts in the file list, in compile order."""
+        return (*self.requires, self.authored)
 
 
-# The declared substitutions, and today there are none. R1a authored the capability
-# format's algebra as `vos_cheri_pkg`, which exports neither the package name nor the
-# type names the imported datapath reaches its format through, so a row pointing it at
-# `core/include/cva6_cheri_pkg.sv` would name a file the imported sources cannot compile
-# against: re-pointing the datapath is R1b's first seam and the row is that item's to
-# declare. What is here is the mechanism the row needs, held by this module's own tests
-# against a synthetic manifest rather than by a run nothing can take yet.
-SUBSTITUTIONS: tuple[Substitution, ...] = ()
+# The imported package the adapter stands at, spelled as the manifest spells it.
+IMPORTED_FORMAT_PACKAGE = "core/include/cva6_cheri_pkg.sv"
+
+# The declared substitutions. The first row is R1b's first seam: the adapter stands
+# where the imported manifest names its capability package, so the datapath compiles
+# against the frozen format under the name it already uses. A package declares no
+# module, so this row is visible to no member of the partition below, which attributes
+# nothing on either side of it and says so when `filelist` takes it (F-225e); what the
+# row decides is whether the datapath compiles, and that is the elaboration's compile
+# and not the diff. The first row that displaces a module kind is the flat-SRAM one.
+SUBSTITUTIONS: tuple[Substitution, ...] = (
+    Substitution(imported=(IMPORTED_FORMAT_PACKAGE,), authored=ADAPTER_PACKAGE,
+                 requires=(FORMAT_PACKAGE,)),
+)
 
 # The cross-check's two halves. The generator is Sail because it has to call the
 # model's own functions, and the harness is SystemVerilog because it has to call the
@@ -548,10 +577,11 @@ class FileList:
     are refusals rather than warnings: a declared substitution that reaches no line of
     the manifest leaves the imported source in the build and the authored one out of it,
     which elaborates cleanly and measures the wrong design; an authored path not in the
-    checkout does the same; and an imported path this checkout does not carry drops its
-    line from the build with nothing able to read the module kinds it declared, so the
-    substitution's own displacements would read as the parameters' removals, which is
-    the one mis-attribution the partition exists to prevent.
+    checkout does the same, a required one included; and an imported path this
+    checkout does not carry drops its line from the build with nothing able to read the
+    module kinds it declared, so the substitution's own displacements would read as the
+    parameters' removals, which is the one mis-attribution the partition exists to
+    prevent.
     """
 
     lines: tuple[str, ...]
@@ -586,10 +616,12 @@ def _file_list(root: Path, config: Path,
 
     An authored source is placed at the first imported line it replaces and the rest of
     its lines are dropped, so one authored file standing for a tree of imported ones is
-    one entry where the tree was. A line this drops as unreached is not then available
-    to be substituted, which is why an unmatched declaration has to be a refusal: the
-    two ways of losing a line are indistinguishable in the result and opposite in
-    meaning.
+    one entry where the tree was; what it requires is placed just ahead of it there,
+    once, because the imported manifest names no authored package and the compiler has
+    to see the format package before the first source that imports it. A line this
+    drops as unreached is not then available to be substituted, which is why an
+    unmatched declaration has to be a refusal: the two ways of losing a line are
+    indistinguishable in the result and opposite in meaning.
     """
     core = root / CORE
     text = (core / CORE_FLIST).read_text(encoding="utf-8")
@@ -611,9 +643,10 @@ def _file_list(root: Path, config: Path,
         if found is not None:
             sub, rel = found
             hit.setdefault(sub, set()).add(rel)
-            if sub.authored not in placed:
-                lines.append(str(root / sub.authored))
-                placed.add(sub.authored)
+            for path in sub.placed:
+                if path not in placed:
+                    lines.append(str(root / path))
+                    placed.add(path)
             continue
         lines.append(line.replace(CORE_VAR, str(core)))
     prim = root / PRIM
@@ -629,8 +662,8 @@ def _file_list(root: Path, config: Path,
                     if hit.get(sub, set()).issuperset(sub.imported) and not gone[sub]),
         unmatched=tuple((sub.authored, rel) for sub in subs for rel in sub.imported
                         if rel not in hit.get(sub, set())),
-        missing=tuple(sub.authored for sub in subs
-                      if not (root / sub.authored).is_file()),
+        missing=tuple(path for sub in subs for path in sub.placed
+                      if not (root / path).is_file()),
         absent=tuple((sub.authored, rel) for sub in subs for rel in sub.imported
                      if rel in gone[sub]))
 
@@ -666,11 +699,14 @@ def _substitution_modules(root: Path, subs: tuple[Substitution, ...]
     introduced: dict[str, str] = {}
     displaced: dict[str, str] = {}
     for sub in subs:
-        authored = root / sub.authored
-        if authored.is_file():
-            for name in _declared_modules(authored.read_text(encoding="utf-8",
-                                                             errors="replace")):
-                introduced[name] = sub.authored
+        # Over everything the row places, because a required source is in the file
+        # list too and a module it declared would reach the netlist by the same door.
+        for path in sub.placed:
+            authored = root / path
+            if authored.is_file():
+                for name in _declared_modules(authored.read_text(encoding="utf-8",
+                                                                 errors="replace")):
+                    introduced[name] = path
         for rel in sub.imported:
             imported = root / CORE / rel
             if imported.is_file():
