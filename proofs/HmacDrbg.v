@@ -326,6 +326,16 @@ Fixpoint draw_blocks (fuel : nat) (k v acc : list bool) : list bool * list bool 
 
 Definition blocks_for (bits : nat) : nat := Nat.div (bits + outlen_bits - 1) outlen_bits.
 
+(* Checked where it rounds and not only at the corpus's 1024 bits, which is
+   four whole blocks and so is the one request that cannot go wrong: a
+   request of one bit still costs a block, and a request one bit past a
+   block costs another. *)
+Example a_partial_block_still_costs_a_block :
+  andb (andb (Nat.eqb (blocks_for 0) 0) (Nat.eqb (blocks_for 1) 1))
+       (andb (Nat.eqb (blocks_for outlen_bits) 1)
+             (Nat.eqb (blocks_for (S outlen_bits)) 2)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Definition update_on (additional : list bool) (k v : list bool) : list bool * list bool :=
   match additional with
   | nil => pair k v
@@ -413,6 +423,28 @@ Definition lock_edges : list Transition :=
 Definition all_transitions : list Transition := lifecycle_edges ++ lock_edges.
 
 Definition the_lock_edge : Transition := LockEdge AfterFirstUnlock BeforeFirstUnlock.
+
+Definition all_lifecycles : list Lifecycle :=
+  Raw :: TestState :: Development :: Production :: Rma :: nil.
+
+Definition all_lock_states : list LockState :=
+  BeforeFirstUnlock :: AfterFirstUnlock :: nil.
+
+(* The three decidable equalities are decided rather than assumed: each is
+   reflexive on every constructor of its own type and matches exactly one
+   member of its enumeration, which catches a diagonal arm answering false
+   of a thing and itself and an arm answering true of two different things.
+   `transition_eqb` is checked over the seven edges the discipline reseeds
+   on, so an arm making a lifecycle edge equal to a lock edge is caught
+   there and not left to the reseed map. *)
+Definition eqb_decides {A : Type} (eqb : A -> A -> bool) (l : list A) : bool :=
+  all_of (fun x => andb (eqb x x) (Nat.eqb (count_where (eqb x) l) 1)) l.
+
+Example the_three_equalities_decide_their_own_enumerations :
+  andb (eqb_decides lifecycle_eqb all_lifecycles)
+  (andb (eqb_decides lock_eqb all_lock_states)
+        (eqb_decides transition_eqb all_transitions)) = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Example there_are_five_lifecycle_edges_and_two_lock_edges :
   andb (Nat.eqb (length_of lifecycle_edges) 5) (Nat.eqb (length_of lock_edges) 2) = true.
@@ -791,6 +823,56 @@ Example the_discipline_with_no_interval_is_refused :
   disciplined_b with_no_interval = false.
 Proof. vm_compute. reflexivity. Qed.
 
+(* A fourth, whose nonce is one bit shorter than the witness's, which is the
+   only clause of s8.6.7 the three above leave undecided. *)
+Definition nonced_below_half_its_strength : SeedingDiscipline :=
+  {| security_strength := security_strength demo;
+     seed_length := seed_length demo;
+     nonce_length := nonce_length demo - 1;
+     draw_bound := draw_bound demo;
+     interval_bound := interval_bound demo;
+     reseed_on := reseed_on demo;
+     prediction_resistance := false |}.
+
+Example the_discipline_nonced_below_half_its_strength_is_refused :
+  disciplined_b nonced_below_half_its_strength = false.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Each of the four is refused at a boundary and not somewhere past one: the
+   short seed is one bit under the strength, the short nonce one bit under
+   the witness's, and one more bit of either is what the witness has. *)
+Example the_two_short_lengths_are_short_by_one_bit :
+  andb (andb (Nat.eqb (S (seed_length seeded_below_its_strength)) (security_strength demo))
+             (Nat.leb (security_strength demo) (seed_length demo)))
+       (andb (Nat.eqb (S (nonce_length nonced_below_half_its_strength)) (nonce_length demo))
+             (Nat.leb (security_strength demo) (2 * nonce_length demo))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Each of the four is the witness with one field moved and no other, which
+   is what "held to its single difference" means here: the flag none of them
+   is about stays where the witness put it, and so does the strength. *)
+Example the_four_refused_disciplines_move_one_field_each :
+  all_of (fun d => andb (negb (prediction_resistance d))
+                        (Nat.eqb (security_strength d) (security_strength demo)))
+         (silent_on_the_lock_edge :: seeded_below_its_strength :: with_no_interval
+          :: nonced_below_half_its_strength :: nil) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The bounds are bounds and not thresholds: a discipline that admits one
+   draw and reseeds after one is disciplined, which is what separates
+   "at least one" from "more than one". *)
+Definition at_the_smallest_bounds : SeedingDiscipline :=
+  {| security_strength := security_strength demo;
+     seed_length := seed_length demo;
+     nonce_length := nonce_length demo;
+     draw_bound := 1;
+     interval_bound := 1;
+     reseed_on := reseed_on demo;
+     prediction_resistance := false |}.
+
+Example the_smallest_bounds_are_still_bounds : Disciplined at_the_smallest_bounds.
+Proof. vm_compute. reflexivity. Qed.
+
 (* -------------------------------------------------------------------------
    The three published families, run through the envelope. Each is two
    draws of 1024 bits with nothing personalized and nothing additional; the
@@ -1009,6 +1091,17 @@ Example a_lock_transition_from_an_empty_pool_halts :
                   (Cross the_lock_edge)) = false.
 Proof. vm_compute. reflexivity. Qed.
 
+(* The instantiation refuses an entropy input and a nonce of the wrong
+   length separately, so neither length is carried by the other. *)
+Example an_instantiation_refuses_each_wrong_length_on_its_own :
+  andb (andb (completed (run_from demo no_reseed_entropy no_reseed_nonce nil nil nil))
+             (negb (completed (run_from demo (take_of 8 no_reseed_entropy)
+                                        no_reseed_nonce nil nil nil))))
+       (negb (completed (run_from demo no_reseed_entropy
+                                  (take_of 8 no_reseed_nonce) nil nil nil))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+
 (* The interval at the witness, and the one thing about it a reader gets
    wrong: the third draw finds the counter past two and takes the pool's one
    string to reseed, and the reseed puts the counter back to one, so the
@@ -1050,12 +1143,36 @@ Example the_counter_at_zero_agrees_with_the_standard_on_the_outputs_it_shares :
            (output_at no_reseed_run 1) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* A halted run reports nothing rather than the last thing it held, which is
+   R-15-241b's fail-stop read at the reader: no pool, no counter, no output,
+   and no last-known-good arm to read one off. *)
+Example a_halted_run_reports_nothing :
+  andb (andb (negb (completed (run demo three_draws witness_run_without_a_pool)))
+             (Nat.eqb (pool_left (run demo three_draws witness_run_without_a_pool)) 0))
+       (andb (Nat.eqb (reseed_counter (state_of (run demo three_draws
+                                                     witness_run_without_a_pool))) 0)
+             (Nat.eqb (length_of (outputs_of (run demo three_draws
+                                                  witness_run_without_a_pool))) 0)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
 (* The inverted update misses the published answer at the empty
    personalization string every family here uses, which is the branch it
    inverts. *)
 Example the_inverted_update_misses_the_published_answer :
   let s0 := instantiate_with_the_inverted_update no_reseed_entropy no_reseed_nonce nil in
   bits_eqb (fst (generate_core s0 corpus_draw_bits nil)) (output_at no_reseed_run 0) = false.
+Proof. vm_compute. reflexivity. Qed.
+
+(* Both alternative instantiations start their counter where the standard's
+   does, except the one whose whole point is that it does not, so the update
+   and the counter are two differences and not one thing. *)
+Example the_alternative_instantiations_move_one_thing_each :
+  andb (Nat.eqb (reseed_counter (instantiate_with_the_inverted_update
+                                   no_reseed_entropy no_reseed_nonce nil))
+                (reseed_counter (instantiate no_reseed_entropy no_reseed_nonce nil)))
+       (Nat.eqb (S (reseed_counter (instantiate_with_the_counter_at_zero
+                                      no_reseed_entropy no_reseed_nonce nil)))
+                (reseed_counter (instantiate no_reseed_entropy no_reseed_nonce nil))) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* And it is held to that single difference on both branches, in opposite
@@ -1106,6 +1223,7 @@ Print Assumptions reseed.
 Print Assumptions reseed_ignoring_its_entropy.
 Print Assumptions draw_blocks.
 Print Assumptions blocks_for.
+Print Assumptions a_partial_block_still_costs_a_block.
 Print Assumptions update_on.
 Print Assumptions generate_core.
 Print Assumptions generate_core_updating_before_it_emits.
@@ -1120,6 +1238,10 @@ Print Assumptions lifecycle_edges.
 Print Assumptions lock_edges.
 Print Assumptions all_transitions.
 Print Assumptions the_lock_edge.
+Print Assumptions all_lifecycles.
+Print Assumptions all_lock_states.
+Print Assumptions eqb_decides.
+Print Assumptions the_three_equalities_decide_their_own_enumerations.
 Print Assumptions there_are_five_lifecycle_edges_and_two_lock_edges.
 Print Assumptions no_edge_leaves_rma_and_none_joins_development_to_production.
 Print Assumptions SeedingDiscipline.
@@ -1169,6 +1291,12 @@ Print Assumptions the_discipline_silent_on_the_lock_edge_is_refused.
 Print Assumptions the_discipline_silent_on_the_lock_edge_reseeds_on_every_other_edge.
 Print Assumptions the_discipline_seeded_below_its_strength_is_refused.
 Print Assumptions the_discipline_with_no_interval_is_refused.
+Print Assumptions nonced_below_half_its_strength.
+Print Assumptions the_discipline_nonced_below_half_its_strength_is_refused.
+Print Assumptions the_two_short_lengths_are_short_by_one_bit.
+Print Assumptions the_four_refused_disciplines_move_one_field_each.
+Print Assumptions at_the_smallest_bounds.
+Print Assumptions the_smallest_bounds_are_still_bounds.
 Print Assumptions two_draws.
 Print Assumptions no_reseed_run.
 Print Assumptions pr_false_run.
@@ -1199,6 +1327,7 @@ Print Assumptions the_lock_edge_takes_a_string_from_the_pool.
 Print Assumptions every_transition_takes_a_string_from_the_pool_at_the_witness.
 Print Assumptions the_discipline_silent_on_the_lock_edge_takes_nothing_there.
 Print Assumptions a_lock_transition_from_an_empty_pool_halts.
+Print Assumptions an_instantiation_refuses_each_wrong_length_on_its_own.
 Print Assumptions three_draws.
 Print Assumptions four_draws.
 Print Assumptions five_draws.
@@ -1208,5 +1337,7 @@ Print Assumptions witness_run_without_a_pool.
 Print Assumptions witness_run_counting_from_zero.
 Print Assumptions the_counter_at_zero_admits_a_third_draw_the_standard_halts.
 Print Assumptions the_counter_at_zero_agrees_with_the_standard_on_the_outputs_it_shares.
+Print Assumptions a_halted_run_reports_nothing.
 Print Assumptions the_inverted_update_misses_the_published_answer.
+Print Assumptions the_alternative_instantiations_move_one_thing_each.
 Print Assumptions the_inverted_update_is_one_pass_from_the_standard_on_each_branch.
