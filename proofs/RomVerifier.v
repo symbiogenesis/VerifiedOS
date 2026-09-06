@@ -92,6 +92,15 @@
       and the near alternative it exists to exclude is the same call with
       the address dropped, which has the same output length, is `shake256`
       in every other respect, and collapses the three roles into one.
+      **`PRF` is the one of the six whose signature and whose concatenation
+      disagree**, the standard writing `PRF(PK.seed, SK.seed, ADRS)` and
+      instantiating it over `PK.seed || ADRS || SK.seed`, so both are
+      written out below and the alternative that concatenates in its own
+      argument order is built and refuted. That alternative agrees with the
+      standard's at every input whose address and secret seed are the same
+      string, which is exactly the family a test reusing one value for both
+      would not separate them on, and the file computes that agreement
+      rather than leaving it to be found.
    3. **R-09-005a's two figures are read differently, and the file says
       which is which.** *Tens of kilobytes* is made a figure: the signature
       size the parameter set determines is 29,792 bytes, which the file
@@ -400,8 +409,22 @@ Definition address_bytes : nat := 32.
 Definition h_msg (p : ParameterSet) (randomizer pk_seed pk_root message : list bool) : list bool :=
   shake256 (8 * digest_bytes p) (randomizer ++ pk_seed ++ pk_root ++ message).
 
-Definition prf (p : ParameterSet) (pk_seed address sk_seed : list bool) : list bool :=
+(* PRF is the one of the six whose argument order is not its concatenation
+   order: the standard writes `PRF(PK.seed, SK.seed, ADRS)` and instantiates
+   it as `SHAKE256(PK.seed || ADRS || SK.seed, 8n)`, so the address sits
+   between the two seeds while the signature puts it last. The signature
+   here is the standard's and so is the concatenation, which is the whole
+   point of writing both down. *)
+Definition prf (p : ParameterSet) (pk_seed sk_seed address : list bool) : list bool :=
   shake256 (8 * hash_bytes p) (pk_seed ++ address ++ sk_seed).
+
+(* The transcription defect that exists: a PRF that concatenates in its own
+   argument order. It has the same output length and reads the same three
+   inputs, and it is the reading a transcriber who copied the signature and
+   not the body would produce. *)
+Definition prf_in_its_argument_order (p : ParameterSet)
+                                     (pk_seed sk_seed address : list bool) : list bool :=
+  shake256 (8 * hash_bytes p) (pk_seed ++ sk_seed ++ address).
 
 Definition prf_msg (p : ParameterSet) (sk_prf opt_rand message : list bool) : list bool :=
   shake256 (8 * hash_bytes p) (sk_prf ++ opt_rand ++ message).
@@ -464,7 +487,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_six_functions_return_the_lengths_the_standard_fixes :
   andb (Nat.eqb (length_of (h_msg shake_256s demo_seed demo_seed demo_seed demo_message))
                 (8 * digest_bytes shake_256s))
-  (andb (Nat.eqb (length_of (prf shake_256s demo_seed demo_address_one demo_seed))
+  (andb (Nat.eqb (length_of (prf shake_256s demo_seed demo_seed demo_address_one))
                  (8 * hash_bytes shake_256s))
   (andb (Nat.eqb (length_of (prf_msg shake_256s demo_seed demo_seed demo_message))
                  (8 * hash_bytes shake_256s))
@@ -475,6 +498,25 @@ Proof. vm_compute. reflexivity. Qed.
 Example two_addresses_separate_the_same_message :
   negb (bits_eqb (f_chain shake_256s demo_seed demo_address_one demo_message)
                  (f_chain shake_256s demo_seed demo_address_two demo_message)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The two PRFs read the same three inputs, return the same length, and
+   differ at the first pair of seeds that are not the address. *)
+Example the_argument_ordered_prf_misses_the_standards_answer :
+  andb (Nat.eqb (length_of (prf_in_its_argument_order shake_256s demo_seed demo_message
+                                                      demo_address_one))
+                (length_of (prf shake_256s demo_seed demo_message demo_address_one)))
+       (negb (bits_eqb (prf_in_its_argument_order shake_256s demo_seed demo_message
+                                                  demo_address_one)
+                       (prf shake_256s demo_seed demo_message demo_address_one))) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* And it agrees with the standard's wherever the address and the secret
+   seed are the same string, which is the family of inputs a test that
+   reused one value for both would not separate them on. *)
+Example the_argument_ordered_prf_agrees_where_the_two_tails_coincide :
+  bits_eqb (prf_in_its_argument_order shake_256s demo_seed demo_message demo_message)
+           (prf shake_256s demo_seed demo_message demo_message) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example the_address_free_hash_collapses_the_two_addresses :
@@ -1137,6 +1179,7 @@ Print Assumptions the_frozen_row_is_the_one_the_suite_names.
 Print Assumptions address_bytes.
 Print Assumptions h_msg.
 Print Assumptions prf.
+Print Assumptions prf_in_its_argument_order.
 Print Assumptions prf_msg.
 Print Assumptions f_chain.
 Print Assumptions h_node.
@@ -1153,6 +1196,8 @@ Print Assumptions the_seed_and_the_message_are_n_bytes.
 Print Assumptions the_two_addresses_differ_in_one_byte.
 Print Assumptions the_six_functions_return_the_lengths_the_standard_fixes.
 Print Assumptions two_addresses_separate_the_same_message.
+Print Assumptions the_argument_ordered_prf_misses_the_standards_answer.
+Print Assumptions the_argument_ordered_prf_agrees_where_the_two_tails_coincide.
 Print Assumptions the_address_free_hash_collapses_the_two_addresses.
 Print Assumptions fors_calls.
 Print Assumptions chain_steps_at_most.
