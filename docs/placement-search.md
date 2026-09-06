@@ -58,7 +58,7 @@ The search ranks admitted candidates lexicographically on span used and then pad
 
 ## 4. The constraints, and who decides them
 
-Every candidate is decided by the port of the file's own checks, one Python function per Gallina definition, each named for the definition it ports and holding to it under [the tools' own tests](../tools/tests/test_memplan.py), which run the port over the file's admitted plan and its fifteen refutation variants and require the same verdict the file states of each.
+Every candidate is decided by the port of the file's own checks, one Python function per Gallina definition, each named for the definition it ports and holding to it under [the tools' own tests](../tools/tests/test_memplan.py), which run the port over the file's admitted plan and every variant plan it builds and require of each the verdict the file's own `Example` lines state.
 
 | Check | Entry | What it decides |
 | --- | --- | --- |
