@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 643 of them across 103 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 648 of them across 104 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2665,3 +2665,23 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-233g** method: a rule's declared residue gave a ground that did not describe the tree, the two files a window leaves out being said to compose the figure from the constant where each also spells it as a literal, inside a parser's own sample of the tool's greeting
 · Raised: I15
 · Disposition: closed, the ground restated at both sites to the one that holds: a banner sample is fixed by the shape a dotted version takes in a greeting and stays true the day the pin moves, so neither file is a site on either count
+
+**F-340** owed-act: R-09-005a's permutation figure is stated as a count of permutation calls, and the census the parameter set determines bounds them from below and never from above, so a lower bound of 764 calls neither establishes the entry's figure nor refutes it and the `Example` that computes it says calls in its own name
+· Raised: M3.4c-i
+· Disposition: open, reported and not closed; whether the entry's figure is a lower bound, an exact count or a different quantity is a register act
+
+**F-341** owed-act: the comment at `tools/vos/cli/proofs.py`:435-437 puts rocqchk last on the ground that a witness the artifacts do not carry is worth reporting in seconds rather than after a re-check of the whole tree, but `scan_witnesses` runs inside the compile loop at 407-410 and its verdict is reported only at 428, after every file has compiled, so the seconds it promises are unavailable on any tree whose compile is not itself seconds
+· Raised: M3.4c-i
+· Disposition: open, reported and not repaired; the ordering it defends is right and the ground it gives is false, so the repair is to hoist the witness scan out of the compile loop, which is a change to the gate's structure and wants its own item rather than a lane landing
+
+**F-342** method: `THIRD-PARTY.md`'s Fiat-Crypto build section stated two claims false against the tree it measured, that `rewriter` carries no licence text, where `COPYRIGHT` names three arms with `LICENSE-MIT`, `LICENSE-APACHE` and `LICENSE-BSD-1` beside it so only a search for a file named exactly `LICENSE` finds nothing, and a zero of built objects over `bedrock2/src`, a path the recursive checkout does not carry at all, the declined tree being `rupicola/bedrock2/bedrock2/src` with 151 `.v` files and no `.vo` beside `rupicola/src` with 66 and none
+· Raised: M3.4c-i
+· Disposition: closed at landing, the discoverability clause deleted rather than narrowed a third time and the zero restated as a declined compilation over a path that exists rather than a count with no predicate
+
+**F-343** method: a thirty-two-bit value spelled as a single `nat` literal is a unary numeral the evaluator materializes before it shifts, so a shift probe written that way took the guest VM down twice before the cause was found
+· Raised: M3.4c-i
+· Disposition: closed at landing, the probe written a byte at a time and decided by conversion
+
+**F-344** method: the proof gate now reports 5,180 constants over 21 files where it reported 4,656 over 18, which puts its runtime past the 120-second default an agent session applies to a foreground command, and a killed run prints neither a `FAIL:` line nor a rocq diagnostic so it presents as a proof defect; the diagnostic has three arms and rests on an enumeration taken over every spelling of a non-zero exit, six `return 1` sites at 383, 418, 423, 426, 433 and 448 with no `sys.exit` and no `raise SystemExit` in the module, so a `FAIL:` line is a verdict from the gate, a traceback is a defect in the tool, and neither with no diagnostic is upstream of the command entirely
+· Raised: M3.4c-i
+· Disposition: standing, recorded because the invariant outlives the figure that occasioned it; the timeout is the invoking session's and not the repository's, so the guard is an explicit timeout or a detached run rather than a change to the gate
