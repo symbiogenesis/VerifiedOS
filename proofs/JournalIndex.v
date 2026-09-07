@@ -3871,6 +3871,21 @@ Example the_duplicate_value_the_family_inserts :
     (cons (Some 99) (cons (Some 99) nil))))) := eq_refl.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Blk : Blk := blank_block.
+Definition witness_Commit : Commit := demo_commit.
+Definition witness_KeyAlgebra : KeyAlgebra := nat_keys.
+Definition witness_Machine : Machine := demo.
+Definition witness_Write : Write := new_leaf.
+
+(* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`: every shipped
    constant's enumerated assumption set is compared against the declared set
    R-05-164 currently makes empty, so `Closed under the global context` is

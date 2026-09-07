@@ -14,16 +14,28 @@ this gate grows an allowlist read from it, never from the development.
 An admitted lemma, an unresolved obligation, a locally declared parameter, or any axiom
 fails this gate rather than shipping green.
 
+Every module the wave compiled is then handed to `rocqchk`, the prover's own kernel
+re-checker, in one invocation. R-05-016a licenses exactly this and says why it costs
+no trust: a re-check can only reject, so a second implementation refusing a
+kernel-checked term is a finding, and one accepting a term adds no ground the first did
+not already give. **The honest limit is the same entry's**, and is booked here rather
+than left for a reader to supply: `rocqchk` shares the kernel's lineage, and the
+prover's own bug list records defects reaching that checker equally, so this is a
+second reading and not independence. Nothing downstream may cite it as a second
+implementation in R-05-016's sense.
+
 The same run holds the decidable half of R-05-166. Each artifact states its obligations
 over an arbitrary instance of a carrier record (`Machine`, `Composition`, `Plan`,
 `Vocabulary`) whose fields are what the register leaves to composition, and a
 quantifier over a record nobody builds is R-05-165's uninhabited-domain mode. So for
-every record a file's theorem statements quantify over, the gate requires that the file
-constructs one: a closed top-level definition typed at the record, which is the
-`demo` convention every artifact follows, or failing that its `Build_` constructor or a
-record literal opening with one of its fields anywhere in the source. The closed
-definitions are the witnesses it counts beside each file's constants. Whether a
-witness is non-trivial is a judgement the register books under §17, not a check.
+every record a file's theorem statements quantify over, the artifact carries a named
+witness, a closed top-level `Definition witness_<Record> : <Record> := ...` in that file
+or in one it Requires, and this gate looks that constant up rather than deciding
+inhabitation itself. **The decision is the prover's**: the definition either type-checks
+at the record or the compile above fails, so what is read here is a name and an
+ascription, where reading a construction out of the text would be an approximation of a
+type judgement. Whether a witness is non-trivial is a judgement the register books under
+§17, not a check.
 
 Needs the pinned Rocq switch, which `vos.env` locates and which is deliberately not the
 switch the Sail toolchain lives in. It is a guest command, so `python tools/run.py
@@ -51,22 +63,29 @@ from vos.proofs import strip_comments as _strip_comments
 PROOFS = "proofs"
 CLOSED = "Closed under the global context"
 
-# The witness convention, read across the shipped artifacts and stated here so the help
-# text can say what the gate reads. The inhabitant of a carrier record is a closed
-# top-level Definition typed at it, named `demo` or a `demo_<variant>` / `<variant>_demo`
-# of it (`demo_plan`, `demo_composition`, `l2_demo`; `trivial_vocabulary` for the apex
-# statement), with the instances a refutation rejects as closed definitions of the same
-# type beside it (`leaky_vocabulary`, `refusing_harmonic`, `over_margin_plan`). The gate
-# decides on the shape, a closed definition typed at a quantified record, and never on
-# the name, so a witness renamed is still a witness and a name without a construction
-# behind it is not one.
-WITNESS_CONVENTION = ("a closed top-level Definition typed at the carrier record, named "
-                      "`demo` or a `demo_<variant>` of it, with each refuted instance a "
-                      "closed definition of the same type beside it")
+# The witness convention the artifacts keep, stated here so the help text can say what
+# the gate reads. It is a *name*, and that is the whole of the change R-05-166's
+# decidable half needed: the inhabitant of a carrier record R is a closed top-level
+# `Definition witness_R : R := <term>`, whose term is usually an alias of the artifact's
+# own reference instance (`demo`, `demo_plan`, `l2_demo`, `trivial_vocabulary`) and is
+# a construction of its own where the artifact had none. The prover decides that the
+# term inhabits the record, by type-checking the ascription during the compile above;
+# this gate decides only that the constant is there and is ascribed at the record it
+# names. A witness renamed is therefore no longer a witness, which is deliberate: the
+# name is what makes the author's claim locatable, where a shape read out of the text
+# was an approximation that admitted a construction sitting inside a hypothesis, a
+# refuted example, or any term that never was a closed inhabitant.
+WITNESS_PREFIX = "witness_"
+WITNESS_CONVENTION = (f"a closed top-level `Definition {WITNESS_PREFIX}<Record> : "
+                      "<Record> := ...` in the artifact or in one it Requires, whose "
+                      "term is the artifact's own reference instance where it has one")
 
 # The vernaculars whose sentence states a theorem, and so whose binders are the
-# quantifiers this gate reads; and the ones whose sentence can define a closed term, and
-# so can be a witness. `Example` is on both lists on purpose: it states and it defines.
+# quantifiers this gate reads; and, beside them, every vernacular whose sentence carries
+# a name and an ascription at all, which is the shape this parse walks. `Example` is on
+# both lists on purpose: it states and it defines. Only `Definition` can be a witness,
+# which the witness lookup requires of the keyword rather than of this table, so that
+# widening the parse cannot widen what counts as an inhabitant.
 STATEMENTS = ("Theorem", "Lemma", "Example", "Corollary", "Fact", "Remark", "Proposition")
 DEFINERS = ("Definition", "Example", "Theorem", "Lemma", "Corollary", "Fact", "Instance")
 # A section binder quantifies every statement in its section, so it is a quantifier too.
@@ -80,8 +99,6 @@ _SECTION_BINDER = re.compile(r"^(" + "|".join(SECTION_BINDERS) + r")\s+(.*)", re
 _BINDER = re.compile(r"[({]\s*[\w']+(?:\s+[\w']+)*\s*:\s*([^)}]*)[)}]")
 _QUANTIFIER = re.compile(r"\b(?:forall|exists)\s+[\w']+(?:\s+[\w']+)*\s*:\s*([^,]*),")
 _HEAD = re.compile(r"^([\w']+)")
-_BUILD = re.compile(r"\bBuild_([\w']+)\b")
-_LITERAL = re.compile(r"\{\|\s*([\w']+)\s*:=")
 
 
 @dataclass(frozen=True)
@@ -89,8 +106,8 @@ class Witnesses:
     """What one source's text says about the records its statements range over.
 
     `quantified` maps each such record to how many statements quantify it; `witnesses`
-    maps a record to the closed definitions typed at it; `unbuilt` names the quantified
-    records the source never constructs at all, which is the gate's finding.
+    maps a record to the named witness constants ascribed at it; `unbuilt` names the
+    quantified records no witness inhabits, which is the gate's finding.
     """
 
     quantified: dict[str, int] = field(default_factory=dict)
@@ -99,8 +116,11 @@ class Witnesses:
 
     @property
     def witness_count(self) -> int:
-        return sum(len(names) for record, names in self.witnesses.items()
-                   if record in self.quantified)
+        """How many of the quantified records carry a witness, counted over records
+        rather than over names: one record reached both from the source and from a
+        companion it Requires is one witnessed record and not two, so the figure this
+        reports is comparable with the quantified count printed beside it."""
+        return sum(1 for record in self.quantified if self.witnesses.get(record))
 
 
 def _split_top(text: str, mark: str) -> tuple[str, str] | None:
@@ -165,48 +185,38 @@ def _quantified_heads(text: str) -> set[str]:
     return found
 
 
-def _record_fields(sentence: str) -> list[str]:
-    """The field names a Record sentence declares, in order."""
-    start = sentence.find("{")
-    end = sentence.rfind("}")
-    if start < 0 or end < start:
-        return []
-    names: list[str] = []
-    depth = 0
-    part: list[str] = []
-    for ch in sentence[start + 1:end] + ";":
-        if ch in "([{":
-            depth += 1
-        elif ch in ")]}":
-            depth -= 1
-        if ch == ";" and depth == 0:
-            split = _split_top("".join(part), ":")
-            if split is not None and split[0].strip():
-                names.append(split[0].split()[0])
-            part = []
-        else:
-            part.append(ch)
-    return names
-
-
 def scan_witnesses(text: str, imported: tuple[str, ...] = ()) -> Witnesses:
     """R-05-166's decidable half over one source.
 
-    Records and constructions are read from the source and from the sources it Requires
+    Two readings, and they are not the same kind of reading, which is why one of them
+    is a lexical scan and the other is a lookup.
+
+    **Which records are quantified** is read from this source's own statements, and
+    over-approximating there is fail-loud: a binder this misreads as ranging over a
+    record demands a witness the artifact then has to carry, so the error costs an
+    author a line and never lets a vacuous theorem through.
+
+    **Whether a record is inhabited** is not read at all. The artifact names its
+    witness, `Definition witness_<Record> : <Record>`, and the compile that produced
+    this file's assumption evidence is what decided the ascription holds; here it is a
+    name and a head identifier. Under-approximating that is fail-loud in the same
+    direction and over-approximating it was the defect: a construction matched anywhere
+    in the text can sit inside a hypothesis, a refuted example or a term that never was
+    a closed inhabitant, and a non-vacuity gate that over-approximates goes false green.
+
+    Records and witnesses are read from the source and from the sources it Requires
     locally, because an artifact may state its obligations over a record a companion
-    declares and inhabit it with the companion's witness; quantification is read from
-    this source's own statements, which are the theorems it ships.
+    declares and inhabit it with the companion's witness.
     """
-    records: dict[str, list[str]] = {}
+    records: set[str] = set()
     witnesses: dict[str, list[str]] = {}
-    built: set[str] = set()
     quantified: dict[str, int] = {}
     for index, source in enumerate((text, *imported)):
         own = index == 0
         for sentence in _sentences(source):
             record = _RECORD.match(sentence)
             if record:
-                records[record.group(1)] = _record_fields(sentence)
+                records.add(record.group(1))
                 continue
             binder = _SECTION_BINDER.match(sentence)
             if binder and own:
@@ -227,20 +237,21 @@ def scan_witnesses(text: str, imported: tuple[str, ...] = ()) -> Witnesses:
             if own and keyword in STATEMENTS:
                 for head in _quantified_heads(f"{binders} {typ}"):
                     quantified[head] = quantified.get(head, 0) + 1
+            # A witness is a Definition, takes no argument, and is ascribed at the very
+            # record its name claims: `witness_Plan : Plan` and, where the record is a
+            # family, `witness_Installed : Installed demo_wx`, whose head is the record.
+            # Each of the three is checked rather than assumed, so a `witness_Plan`
+            # ascribed at something else is not a witness and says so by its absence.
+            if keyword != "Definition" or not name.startswith(WITNESS_PREFIX):
+                continue
             if binders.strip():
                 continue
-            head = _instance_head(typ)
-            if head is not None:
-                witnesses.setdefault(head, []).append(name)
-        live = _strip_comments(source)
-        built |= {hit.group(1) for hit in _BUILD.finditer(live)}
-        by_field = {name: record for record, names in records.items() for name in names}
-        built |= {by_field[hit.group(1)] for hit in _LITERAL.finditer(live)
-                  if hit.group(1) in by_field}
+            claimed = name[len(WITNESS_PREFIX):]
+            if _instance_head(typ) == claimed and name not in witnesses.get(claimed, []):
+                witnesses.setdefault(claimed, []).append(name)
 
     ranged = {record: count for record, count in quantified.items() if record in records}
-    unbuilt = sorted(record for record in ranged
-                     if record not in witnesses and record not in built)
+    unbuilt = sorted(record for record in ranged if record not in witnesses)
     return Witnesses(quantified=ranged, witnesses=witnesses, unbuilt=unbuilt)
 
 
@@ -294,6 +305,28 @@ def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
 
+def _recheck(root: Path, sources: list[Path]) -> subprocess.CompletedProcess[str]:
+    """Every compiled module handed to the kernel's own re-checker, in one invocation.
+
+    One invocation over all of them rather than one per artifact, for a reason that is
+    about what is decided and only then about cost. `rocqchk` loads a module's
+    dependencies whichever way it is called, so per-artifact re-checks the shared ones
+    once per dependent, and it builds **one** global environment out of what it was
+    handed, so a single run is also the only one of the two shapes that decides the
+    modules are consistent *together* rather than eighteen times apart. It was the
+    faster shape as well when the two were timed against each other, though by a margin
+    inside the run-to-run spread, so cost did not decide it.
+
+    `-silent` suppresses the per-constant trace, which is a progress report rather than
+    evidence; a rejection still prints. `-Q proofs ""` is the compile's own mapping, so
+    a module is named by its bare stem exactly as the artifacts Require it.
+    """
+    return subprocess.run(
+        [*env.rocqchk_command(), "-silent", "-Q", PROOFS, "",
+         *(source.stem for source in sources)],
+        cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
+
+
 def _assumptions(stdout: str) -> tuple[int, list[str]]:
     """One compile's Print Assumptions output, read back block by block.
 
@@ -327,17 +360,19 @@ def _assumptions(stdout: str) -> tuple[int, list[str]]:
 def main(argv: list[str] | None = None) -> int:
     argparse.ArgumentParser(
         prog="run.py proofs",
-        description="Compile every shipped proof, hold its assumptions against the "
-                    "declared set (R-05-163), and hold every record its theorems "
-                    "quantify over to a construction (R-05-166's decidable half).",
+        description="Compile every shipped proof, re-check the compiled modules with "
+                    "rocqchk, hold every assumption against the declared set "
+                    "(R-05-163), and hold every record the theorems quantify over to a "
+                    "named witness (R-05-166's decidable half).",
         epilog=f"The witness convention the artifacts follow is {WITNESS_CONVENTION}. "
-               "The gate decides on the shape rather than the name: a record a file's "
-               "statements quantify over must be constructed in that file or one it "
-               "Requires, by a closed definition typed at it, by its Build_ constructor, "
-               "or by a record literal opening with one of its fields; the closed "
-               "definitions are the witnesses counted beside each file's constants. "
-               "Whether a witness is non-trivial is a judgement outside this gate, "
-               "booked in the register's §17.").parse_args(argv)
+               "The gate decides on the name and the ascription and never on the "
+               "inhabitation, which the compile above decided by type-checking the "
+               "definition; the witnesses it counts are the quantified records that "
+               "carry one. Whether a witness is non-trivial is a judgement outside "
+               "this gate, booked in the register's §17. The rocqchk pass is "
+               "R-05-016a's re-check, which can only reject: it is a second reading "
+               "of the same kernel lineage and not an independent one."
+               ).parse_args(argv)
 
     root = find_root()
     proofs = root / PROOFS
@@ -391,11 +426,28 @@ def main(argv: list[str] | None = None) -> int:
     print("\n".join(lines))
     if unbuilt:
         for source, record in unbuilt:
-            print(f"FAIL: {source.name} quantifies over Record {record} and never "
-                  f"constructs one (R-05-166): no closed definition typed at it, no "
-                  f"Build_{record}, no record literal opening with one of its fields")
+            print(f"FAIL: {source.name} quantifies over Record {record} and carries no "
+                  f"witness for it (R-05-166): neither it nor a proof it Requires "
+                  f"defines a closed `{WITNESS_PREFIX}{record} : {record}`")
         return 1
-    print(f"ok: {closed} constant(s), each closed under the global context; "
-          f"{witnessed} witness(es), every quantified record constructed")
+
+    # Last, because it is the expensive reading and every cheap one above decides
+    # without it: a witness the artifacts do not carry is worth reporting in seconds
+    # rather than after a re-check of the whole tree.
+    rechecked = _recheck(root, sources)
+    said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
+    # Under -silent a clean re-check says nothing at all, so output is a rejection or a
+    # diagnostic and neither passes beneath this gate, on the reading `_assumptions`
+    # takes of the compiler's own chatter.
+    if rechecked.returncode != 0 or said:
+        print(f"FAIL: rocqchk did not re-check what the compiler accepted "
+              f"(exit {rechecked.returncode}). R-05-016a: a re-check can only reject, "
+              f"so a refusal here is a finding about the terms:")
+        print(said or "it printed nothing and exited non-zero")
+        return 1
+    print(f"ok: {closed} constant(s), each closed under the global context and "
+          f"re-checked by rocqchk, which shares the kernel's lineage and is a second "
+          f"reading rather than an independent one; {witnessed} witness(es), one per "
+          f"quantified record")
     return 0
 

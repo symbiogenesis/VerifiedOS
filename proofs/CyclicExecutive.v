@@ -1039,6 +1039,23 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Band : Band bool := band_a.
+Definition witness_Composition : Composition := demo_composition.
+Definition witness_Frame : Frame bool := rung_a.
+Definition witness_Ladder : Ladder bool := demo_ladder.
+Definition witness_Population : Population :=
+  {| live_count := 0; utilization := 0; queue_depth := 0 |}.
+Definition witness_Slot : Slot bool := reserved_slot.
+
+(* -------------------------------------------------------------------------
    R-05-163's assumption gate, as in the two artifacts beside this one.
    ------------------------------------------------------------------------- *)
 
