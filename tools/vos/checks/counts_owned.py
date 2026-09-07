@@ -78,7 +78,10 @@ OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
 RANGE_OWNER = ("R-15-007e", r"the (\d+)-(\d+)% no-C penalty")
 RANGE_SITES: list[tuple[str, str, str]] = [
     (REGISTER, r"(?<=the )\d+-\d+(?=% no-C penalty)", "{lo}-{hi}"),
-    (SPEC, r"(?<=an accepted )\d+–\d+(?=% code-size penalty)", "{lo}–{hi}"),
+    # anchored on the clause that names the deletion rather than on the word before the
+    # figure: the acceptance wording is what R-15-036 moved, and a lookbehind on it made
+    # a true reword read as a lost site
+    (SPEC, r"\d+–\d+(?=% code-size penalty for deleting the C extension)", "{lo}–{hi}"),
     (SPEC, r"(?<=the former )\d+-\d+(?=% code-size penalty)", "{lo}-{hi}"),
 ]
 
