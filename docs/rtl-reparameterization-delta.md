@@ -78,7 +78,7 @@ All of `core/include/cva6_cheri_pkg.sv`, which is where the format is fixed.
 | 391 | `exp > CAP_MAX_EXP ? CAP_MAX_EXP` | literal | 30 |
 | 394, 395 | `{2'b00, cap.addr}` at 66 bits, sliced `[XLEN+1-exp -: CAP_M_WIDTH]` | literal | 38 bits, sliced at the frozen widths |
 | 396 | `r = base_bits - 14'b01000000000000` | literal | a 14-bit literal with no re-parameterized reading; the frozen limit is `B3 - 0b001` over the top three bits |
-| 421, 423, 432, 433 | four `66'b0` concatenation literals | literal | `cap_addr_width + 2`, so 38 |
+| 421, 423, 433 | three `66'b0` literals, two of them concatenation operands and one a mask | literal | `cap_addr_width + 2`, so 38 |
 | 424, 432, 491 | three `52'b0` shift literals | literal | the frozen shift distance, which is not `CAP_MAX_EXP` on this side either |
 | 427 to 430 | the malformed-bounds predicate, cased on `exp == 0` and `exp == 1` | rewrite | which triples derive a top below their base is a property of the algorithm at 8 and 6 bits, and R-15-007a states decode as a total function over the 19-bit bounds encoding and characterizes that set at these widths rather than inheriting it |
 | 436 | the top-wrap correction, guarded `exp > 1` | rewrite | the frozen guard is `E < cap_max_E - 1`, which is a different predicate and not a re-valued constant |
@@ -98,7 +98,7 @@ All of `core/include/cva6_cheri_pkg.sv`, which is where the format is fixed.
 | 831 to 857 | `decode_bounds` | rewrite | with the two-format union gone, decode is the top-two-bit derivation alone. The three hard-coded slices `[11:0]`, `[13:12]` and the two `3'b000` steals are the M=14 positions and become `[5:0]` and `[7:6]` with no steal |
 | 865 to 889 | `encode_bounds` | rewrite | the frozen packing is field-adjacent, and the exponent-half extraction has no counterpart |
 
-Read at `36a1dc5c` on 2026-08-23, 94 lines of that one file mention a format parameter by name, and every function above the halfway mark of the file is on the list. The package is not a place where a curator changes seven numbers.
+Read at `36a1dc5c` on 2026-08-23, 94 lines of that one file mention a format parameter by name. The package is not a place where a curator changes seven numbers.
 
 ### 2.2 The width identity, outside the package
 
@@ -152,14 +152,14 @@ The imported tag path carries one tag per 128-bit region on the AXI user bits, w
 | `mocha/hw/top_chip/rtl/top_pkg.sv` | 114, 115 | literal | `CapSizeBits = 128` becomes 64, and the tag store's length, `DRAMPhysicalLength >> $clog2(CapSizeBits)`, doubles with it |
 | `mocha/hw/top_chip/rtl/axi_sram.sv` | 21, 88 | literal | the tag-bit address width, stated as `AddrWidth - $clog2(CapSizeBits/8)`, gains a bit |
 | `axi-cheri-tagcontroller/src/axi_tagctrl_top.sv`, `axi_tagctrl_reg_wrap.sv` | 16, 128 | width | `CapSize` is a real parameter with a 128 default, so the granule change is a parameter here and not a rewrite |
-| `axi-cheri-tagcontroller/src/axi_tagctrl_w.sv`, `axi_tagctrl_r.sv` | 119, 202; 79, 122 | width | the tag-bit index, `a_x_addr[$clog2(CapSize/8) +: $clog2(AxiDataWidth)]`, shifts down one bit, and the number of tags a beat carries doubles |
+| `axi-cheri-tagcontroller/src/axi_tagctrl_w.sv`, `axi_tagctrl_r.sv` | 119, 200; 79, 122 | width | the tag-bit index, `a_x_addr[$clog2(CapSize/8) +: $clog2(AxiDataWidth)]`, shifts down one bit, and the number of tags a beat carries doubles |
 | `axi-cheri-tagcontroller/src/axi_tagctrl_ax.sv` | 92, 97, 105 | width | the block-size arithmetic follows |
 | `cva6-cheri/core/cache_subsystem/wt_dcache_mem.sv` | 156, 295 | width | the user-bit indexing carries a `(CLEN/XLEN)` factor, which is exactly the two-beats-per-tag mapping. At the collapsed width the factor is one, and one AXI beat carries exactly one tag. This is the site where the frozen granule makes the bus **simpler** than the reference |
 | `cva6-cheri/core/include/cv64a6_imafdczcheri_sv39_config_pkg.sv` | 33, 42 | n/a | `CheriCapTagWidth = 1` and `DataUserWidth = CheriCapTagWidth` are already right, and stay |
 
 The tag controller also holds a **tag cache**, which A-11 excludes: CHERI tags ride the SRAM word here and no separate tag hierarchy exists. What transfers from the reference is the separate tag block and the user-bit carriage, not the caching in front of them.
 
-**The two `mocha` rows are sites in a file this plan does not take, and that is why they are literal rows rather than work.** Both sit in the bring-up SoC's own top-level glue, and taking that top whole is the arm the plan refuses: it would import an address map from a design that fields an MMU this profile deletes. The top this design carries is authored over [the frozen profile's composition](../model/config/verifiedos.json) instead, and it is owed rather than written: R1c-ii has authored the map-facing half alone, so no file here states the frozen granule yet and what these two rows record is a reference literal with no destination on this side rather than one an authored top has already restated. What does transfer from this section is the fabric's own `CapSize`, which is a parameter on the tag controller rather than a rewrite, and the collapsed-width fact that one AXI beat carries exactly one tag.
+**The two `mocha` rows are sites in a file this plan does not take, and that is why they are literal rows rather than work.** Both sit in the bring-up SoC's own top-level glue, and taking that top whole is the arm the plan refuses: it would import an address map from a design that fields an MMU this profile deletes. The top this design carries is authored over [the frozen profile's composition](../model/config/verifiedos.json) instead, and it is owed rather than written: R1c-ii has authored the map-facing half alone, so no authored top restates the frozen granule yet, [the format package](../rtl/vos_cheri_pkg.sv) stating it as `CapSize` where these rows' destination would be a top, and what these two rows record is a reference literal with no destination on this side rather than one an authored top has already restated. What does transfer from this section is the fabric's own `CapSize`, which is a parameter on the tag controller rather than a rewrite, and the collapsed-width fact that one AXI beat carries exactly one tag.
 
 ### 2.5 Behaviour the frozen format requires and the imported tree does not have
 
