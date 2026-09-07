@@ -9,26 +9,36 @@ derived figure in it is a defect rather than a liberty. Fold what survives into
 
 ## 0. Read this first: the tooling is not slow, the machine is throttled
 
-Measured on this host during this session, against the reference figures the tree already
-records in `tools/README.md` and `tools/vos/env.py`:
+Measured on this host during this session. **Every figure below is this session's own
+measurement**, which is the correction an audit of this note forced: an earlier draft
+presented a `1.4 s` AC reference as something the tree records, and no artifact in the tree
+records it. What the tree actually records is `tools/README.md`'s "runs warm in about 2 s"
+and `tools/vos/env.py`'s `1.0/1.1/1.6 s`, and the second is from a tree of 65 rules.
 
-| Instrument | Now (battery) | Recorded reference (AC) | Ratio |
+| Instrument | Now (battery) | Re-measured on AC | Ratio |
 | --- | --- | --- | --- |
 | `Win32_Battery` BatteryStatus | 1 (discharging) | 2 (AC) | n/a |
-| `% Processor Performance` | 22.4% then 35.6% | ~93% | ~3x |
-| `python tools/check.py` | 3.73 s | 1.4 s | 2.7x |
+| `% Processor Performance` | 22.4% then 35.6% | ~94% | ~3x |
+| `python tools/check.py` | 3.73 s | 2.2 s on a quiet box | 1.7x |
 | `python tools/run.py` (three host gates) | 81.2 s | 35.6 s to 52 s | ~2x |
+
+**Most of the checker's apparent slowdown is rule growth, not power state**, and that is the
+half the first draft missed. `check.py` went from about 1.1 s at 65 registered rules to
+about 2.2 s at 98, so a reader comparing today's run against `env.py`'s figure is mostly
+measuring the registry. Power state is worth about 1.7x on top of that, not the 2.7x the
+draft claimed. Both effects are real; only one of them is a reason to plug the laptop in.
 
 **Plugging the laptop in is worth more than any optimisation proposed below**, and it costs
 nothing. The checker's own cost was already investigated to its floor: the selftest is a
 sandbox count times one `check.py` run, `--jobs` shows no reproducible optimum once power
 state is controlled for, and the micro-optimisations already tried and rejected are listed
-so nobody re-tries them. A run far off the reference figures **on AC** is a regression; a
-run far off them on battery is the power state.
+so nobody re-tries them. A run far off **this session's own AC figures, at the registry size
+they were taken at**, is a regression; a run far off them on battery is the power state; and
+a run far off `env.py`'s older triple is most likely neither, the registry having grown.
 
 The second lever is already documented and worth repeating: after a document edit run
-`python tools/check.py` alone (1.4 s on AC), not the whole wave (35 s to 52 s). The wave is
-for landing, not for iterating.
+`python tools/check.py` alone (about 2 s on AC), not the whole wave (35 s to 52 s). The wave
+is for landing, not for iterating.
 
 ---
 
@@ -180,7 +190,12 @@ already existed.
       budget §4 sets, because it is a per-character Python walk. The citation half does not
       need it: a Gallina identifier cannot carry a hyphen, so an `R-nn-nnn` token in a `.v`
       is inside a comment or a string by construction, which makes the whole-text scan equal
-      to the stripped one as a rule rather than as a property of one tree. The two helpers
+      to a **comments-only** scan. Note which way round that runs, because the first draft
+      of this paragraph had it backwards: `strip_comments` blanks the comments and keeps the
+      code, so the stripped text yields **zero** ids where the whole text yields 3140. The
+      guarantee is also one-directional. Nothing can be missed, since no id can be an
+      identifier; an id inside a string literal could in principle be over-reported, and
+      measured, none is. The two helpers
       were promoted to `vos/proofs.py` and serve the constant half alone, off the wave.
 - [x] **Extend `run.py blast`** to answer `blast R-07-015` with the proof artifacts that
       cite it, alongside the apex fields it already reports.
@@ -210,8 +225,16 @@ already existed.
       this artifact; a constant-level *discharge* means this constant claims to answer it.
       Phase 0 gives the first for free; this gives the second.
 
-- [ ] **Annotate the existing 18 files.** They already cite the ids in prose; this promotes
-      the load-bearing subset to checked claims and populates the ledger immediately.
+- [ ] **Annotate the existing 17 hand-authored files, and not the eighteenth.**
+      They already cite the ids in prose; this promotes the load-bearing subset to checked
+      claims and populates the ledger immediately.
+
+      **`proofs/RingContract.v` is generated and must be excluded by name.** Its own header
+      says so: `run.py ring emit` writes it and K-89 holds it byte-identical to what that
+      command emits. A hand-written annotation in it fails K-89 the moment it is staged and
+      is erased by the next emit. Its annotation belongs in the emitter,
+      `tools/vos/cli/ring.py`, or nowhere. The count is 17 authored plus one emitted
+      wherever this note says 18.
 
 - [ ] **`docs/proof-ledger.md`**, a derived view, one `VIEWS` row in `checks/views.py` with
       its governing requirement. Columns: requirement, artifact, constant, kind, refutation
@@ -263,10 +286,27 @@ was under-sold in the first pass.
       a blank file; the header can never go stale; and the transcription half of the K-61
       reading disappears, because there is nothing left to disagree.*
 
-      **Watch:** keep the derived region to entry lines only, not criteria, or `.v` diffs
-      get noisy and every register reword forces a recompile. `proofs/` takes default line
-      endings, so `model/`'s verbatim-CRLF hazard does not apply, but the `--fix` writer
-      still needs the LF discipline every other writer here uses.
+      **Blocker, and it is a design defect rather than a caveat: the region as sketched is
+      self-feeding and does not converge.** K-103 and `run.py blast` read an artifact's
+      citations with a whole-text `findall` over the `.v`, deliberately without stripping
+      comments, on the hyphen argument above. Register entry lines cite other entries, so a
+      region transcribed into a file adds citations to the file it was written into, and the
+      next `--fix` transcribes those in turn. Measured: transcribing `PartitionContext.v`'s
+      38 cited entries introduces 22 ids the artifact does not itself cite;
+      `DischargeSequence.v` 43, `MemoryPlan.v` 28, `ApexTheorem.v` 23. Each run widens the
+      set, and `blast R-x` starts answering with artifacts that merely transcribe an entry.
+      **This must be resolved before any of Phase 2 is written**, and there are two honest
+      ways: exclude the delimited region from `proofcites.ids`, which changes what landed at
+      3f96243 and wants a rule of its own so the exclusion cannot silently widen; or write
+      the region's ids in a form `REQ_TOKEN_RE` does not match. An implementer who does
+      neither gets a checker that grows its own answer.
+
+      **Watch:** exclude `proofs/RingContract.v`, which `run.py ring emit` generates and
+      K-89 holds byte-identical, or the `--fix` writer becomes a second generator fighting
+      the first over one artifact. Keep the derived region to entry lines only, not criteria,
+      or `.v` diffs get noisy and every register reword forces a recompile. `proofs/` takes
+      default line endings, so `model/`'s verbatim-CRLF hazard does not apply, but the
+      `--fix` writer still needs the LF discipline every other writer here uses.
 
 **Gate: phase 1. Prototype on one file before committing to all 18.**
 
@@ -279,8 +319,13 @@ was under-sold in the first pass.
       two sources.
       *This is the honest shape of proofs-to-code here, and it already works twice.*
 - [ ] **`.glob` for constant-level dependency graphs**, once there is something to point it
-      at. `.glob` records every top-level constant as `def <byte-start>:<byte-end> <> <name>`
-      plus every reference and a source `DIGEST`, so it gives an exact intra-proof blast
+      at. `.glob` records a top-level constant as `<kind> <byte-start>:<byte-end> <> <name>`,
+      where kind is one of `def`, `prf`, `rec`, `ind`, `constr`, `proj`, `scheme` or `not`,
+      with `binder` lines as noise, plus every reference and a source `DIGEST`.
+      **A theorem is `prf`, not `def`**, which is the whole subject of the ledger: over
+      `PartitionContext.glob` the 31 `prf` lines are exactly its 30 `Theorem` plus one
+      `Lemma`, while `def` counts 46 definitions, and a parser coded to `def` finds zero
+      theorems. Records are `rec` and their fields `proj`. So it gives an exact intra-proof blast
       radius and would let a `bound` tier be computed by checking whether a constant's
       transitive references reach the Sail-emitted Coq. **Defer until the Sail Coq backend
       lands**, because today every artifact would carry the same tier.
@@ -399,9 +444,12 @@ The vocabulary sweep is the weak instrument against the residue, honestly descri
 
 ## 8. Calls that are yours
 
-1. **Does the ledger live in `docs/`?** It is a derived view like the other ten, which
-   argues for `docs/proof-ledger.md`. Against: it is a burn-down of work in progress rather
-   than a statement about the design, which argues for `tools/`.
+1. **Does the ledger live in `docs/`?** It would be a derived view like every other one,
+   each carrying a governing requirement, which argues for `docs/proof-ledger.md`. Against:
+   it is a burn-down of work in progress rather than a statement about the design, which
+   argues for `tools/`. The count is deliberately not written here: `views.VIEWS` owns it,
+   K-24 holds the README's assertion of it, and F-273 records the last time two documents
+   froze that same number and drifted.
 2. **How much of the `.v` header is derived** (phase 2). Entry lines only is the
    conservative call and the one recommended above. Entry lines plus criteria would make
    the artifacts near self-contained at the price of much noisier diffs.
