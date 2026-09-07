@@ -118,10 +118,10 @@ than through `ctx.corpus`. That is the 5.7 ms, and it is the larger half of the 
 
 ### Phase A: two free wins, independent of everything else
 
-Neither gates on anything below, neither touches the register, and both come out of §6's
-pass on the tooling. Do them whenever.
+**Landed on main at e4e2a4d.** Neither gated on anything below, and the second turned out
+to touch the register after all, for the reason recorded at call 5 below.
 
-- [ ] **Run `rocqchk` after the compile in `run.py proofs`.** It is already in the pinned
+- [x] **Run `rocqchk` after the compile in `run.py proofs`.** It is already in the pinned
       switch (`vos/env.py` and `vos/gallina.py` both name it as shipping there) and **is run
       by nothing**. R-05-016a licenses exactly this and says why it costs no trust: a
       re-check can only reject, so a second implementation refusing a kernel-checked term is
@@ -129,9 +129,13 @@ pass on the tooling. Do them whenever.
       Book the honest limit beside it, which that entry also states: `rocqchk` shares the
       kernel's lineage and its bug list records defects reaching that checker equally, so
       this is a second reading rather than independence.
-      *Cost: one subprocess per artifact, inside a command that already compiles them all.*
+      *Cost: one subprocess for the whole set, inside a command that already compiles them
+      all. One invocation and not one per artifact, because `rocqchk` builds a single global
+      environment from what it is handed, so only the whole set re-checks the modules as
+      consistent together; per-artifact runs re-check each shared dependency once per
+      dependent for a strictly weaker claim.*
 
-- [ ] **Turn R-05-166's inhabitation approximation into a decision.** `cli/proofs.py`'s
+- [x] **Turn R-05-166's inhabitation approximation into a decision.** `cli/proofs.py`'s
       `scan_witnesses` regex-approximates a **type** judgment, and the dangerous direction is
       live: over-approximate and a non-vacuity gate goes false green. One line per carrier
       record fixes it, with no proof and no new machinery:
@@ -142,7 +146,11 @@ pass on the tooling. Do them whenever.
       checks that a constant of that name and shape exists. An approximation becomes a
       decision, and the fragile binder-and-quantifier half of `scan_witnesses` retires with
       it.
-      *Cost: one line per quantified record across 18 files; the gate gets smaller.*
+      *Cost, as built: 49 closed definitions across 14 files covering all 54 quantified
+      (file, record) pairs, five of them served through a local `Require` rather than
+      restated. The gate got smaller: the two anywhere-matching searches and the
+      ascription-head guess retired, while the binder and quantifier scan stayed, its
+      errors being fail-loud where the witness half's were fail-silent.*
 
 ### Phase 0: free coverage, no `.v` edits
 
@@ -399,9 +407,24 @@ The vocabulary sweep is the weak instrument against the residue, honestly descri
    that writes into tracked `.v` sources. Everything else is read-only against them.
 4. **Whether to raise the crown-jewel status token to a computed three-value tier now**, or
    leave it as the existing three words until more than one artifact would move.
-5. **Whether `rocqchk` failing is a gate or a report** (Phase A). Gate is the honest reading
-   of R-05-016a, since a re-check that only ever warns decides nothing. Against: it puts a
-   second program on the path to a green proof run.
+5. **~~Whether `rocqchk` failing is a gate or a report~~ (Phase A). Decided: gate**, and
+   shipped as one at e4e2a4d. R-05-016a is the honest reading, since a re-check that only
+   ever warns decides nothing, and a rejection is the whole yield: a second implementation
+   refusing a kernel-checked term is a finding of the first order, which is not a thing to
+   leave in a log for someone to notice.
+
+   **The cost objection was mis-stated here and does not decide anything.** "It puts a
+   second program on the path to a green proof run" is an argument about *running*
+   `rocqchk`, not about what happens to its verdict. The runtime is paid identically either
+   way; reporting instead of gating buys back no time at all and only removes the
+   consequence. So the two arms differ solely in whether the verdict binds, and on that
+   question there is no argument for the arm that decides nothing. This is also why the
+   figure that could not be taken honestly, §4's untaken timing, never blocked the call: a
+   measurement only matters where the arms differ, and here they do not.
+
+   Failure polarity settles the residue. A false red costs an author an afternoon, nothing
+   on the device rests on the verdict, and reverting to a report is a two-line edit in
+   `main()` if it ever proves flaky.
 6. **Whether the freeze arithmetic moving to Gallina (§6) is worth doing before the second
    freeze act**, or whether it waits until there is a figure to check. It is the one place
    in the tree where a wrong tool output is irreversible.
@@ -414,8 +437,8 @@ Nothing here is blocked on anything outside this file except where noted.
 
 | Order | Item | Gates on | Touches |
 | --- | --- | --- | --- |
-| 1 | Phase A: `rocqchk` | nothing | `cli/proofs.py` |
-| 2 | Phase A: witness constants | nothing | 18 `.v` files, `cli/proofs.py` |
+| 1 | **Done.** Phase A: `rocqchk` | nothing | landed at e4e2a4d, `cli/proofs.py`, `env.py` |
+| 2 | **Done.** Phase A: witness constants | nothing | landed at e4e2a4d, 14 `.v` files, `cli/proofs.py`, R-05-166 |
 | 3 | **Done.** Phase 0: `proofcites.py`, `blast`, K-103 | nothing | landed at 3f96243, 11 paths under `tools/` |
 | 4 | Phase 1: annotation, ledger, three rules, derived tokens | 3 | new view, `views.py`, `confers.py`, two docs |
 | 5 | §6.2: freeze arithmetic in Gallina | nothing (call 6) | `tools/quickchick/` |
@@ -424,9 +447,16 @@ Nothing here is blocked on anything outside this file except where noted.
 | 8 | Phase 3: cross-artifact constant table | 4 | `checks/keccak.py`, K-76 |
 | 9 | Phase 3: `.glob` dependency graphs | Sail Coq backend | new |
 
-Items 1 through 3 gate on nothing and deliver the blast-radius answer and the two assurance
-fixes before any register or view changes at all. **Item 3 is landed**, at 3f96243, and
-items 1 and 2 are in flight on `lane/proofs-gate-0907`. Nothing below item 3 has started.
+**Items 1 through 3 are landed**, at 3f96243 and e4e2a4d, and they gated on nothing.
+Nothing below item 3 has started.
+
+One prediction in that row failed and is worth keeping. Items 1 through 3 were said to
+deliver "before any register or view changes at all", and item 2 changed the register:
+tightening the gate exposed that R-05-166's criterion had been admitting evidence its own
+MUST does not accept, so the criterion was made to decide rather than the gate loosened to
+match it. A tooling change that turns an approximation into a decision should be expected
+to surface a criterion written around the approximation, which is a reason to *do* such
+changes rather than a cost of them.
 
 Two of this note's own instructions were falsified by building item 3, both caught only
 because the implementer measured rather than complied: sharing the comment strip on the
