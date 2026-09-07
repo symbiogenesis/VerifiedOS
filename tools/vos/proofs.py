@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-"""What a Rocq source Requires, and the order that puts a directory in.
+"""What a Rocq source Requires, the order that puts a directory in, and where its
+comments end.
 
 Name order is not a dependency order, and a `Require` compiled ahead of its dependency
 is satisfied by whatever stale `.vo` a previous run left behind, which is a green run
@@ -7,6 +8,13 @@ about a proof nobody rebuilt. [run.py proofs](cli/proofs.py) has always derived 
 order rather than assuming it; the parse moved here when [run.py seed](cli/seed.py) needed
 the same order for a mutated copy of the same tree, on the convention that a parse two
 tools make is written once.
+
+`strip_comments` and `sentences` are here on that same convention and arrived the same
+way. They were the proof gate's own, private to [run.py proofs](cli/proofs.py), until
+[evidence.py](evidence.py) needed the second half of a `.v` the gate already reads: what
+the file *defines*, which is a sentence's opening vernacular and so is decided by where
+the comments end. Both are lexical and neither knows any Gallina: a comment nests and a
+string literal outside one is kept whole, and that is the whole of what they are for.
 """
 
 import re
@@ -16,6 +24,50 @@ from pathlib import Path
 # and the names are split on whitespace because one command may Require several.
 REQUIRE = re.compile(r"^\s*(?:From\s+\S+\s+)?Require(?:\s+(?:Import|Export))?\s+([^.]+)\.",
                      re.MULTILINE)
+
+# A Rocq sentence ends at a full stop followed by whitespace, which is what keeps
+# `m.(field)` and `Nat.add` inside their sentence.
+SENTENCE_END = re.compile(r"\.(?=\s|$)")
+
+
+def strip_comments(text: str) -> str:
+    """The source with its comments blanked. Rocq comments nest, and a string literal
+    outside one is kept whole so a `(*` inside it does not open one."""
+    out: list[str] = []
+    depth = 0
+    i = 0
+    n = len(text)
+    while i < n:
+        if text.startswith("(*", i):
+            depth += 1
+            i += 2
+            continue
+        if depth and text.startswith("*)", i):
+            depth -= 1
+            i += 2
+            continue
+        if depth == 0 and text[i] == '"':
+            j = text.find('"', i + 1)
+            j = n - 1 if j < 0 else j
+            out.append(text[i:j + 1])
+            i = j + 1
+            continue
+        if depth == 0 or text[i] == "\n":
+            out.append(text[i])
+        i += 1
+    return "".join(out)
+
+
+def sentences(text: str) -> list[str]:
+    """Every sentence the source states, comments gone and whitespace trimmed.
+
+    A character walk over the whole file, so it is priced per megabyte rather than per
+    sentence: measured over the shipped `proofs/` tree it is about four hundred
+    milliseconds, which is nothing beside the prover run the gate pays it inside and is
+    two orders of magnitude above what a rule of `check.py` may spend. A caller on the
+    host wave reads what it can read without this.
+    """
+    return [s.strip() for s in SENTENCE_END.split(strip_comments(text)) if s.strip()]
 
 
 def local_requires(source: Path, stems: set[str]) -> set[str]:

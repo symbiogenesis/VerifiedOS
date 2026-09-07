@@ -41,6 +41,13 @@ from vos import env
 from vos import proofs as proofs_mod
 from vos.corpus import find_root
 
+# The lexical half of this parse, promoted to `vos.proofs` when a second tool needed it
+# and imported back under the names this module already used, so that the reading below
+# is unchanged by the move. `a parse two tools make is written once` is that module's
+# own convention and this is it applied to itself.
+from vos.proofs import sentences as _sentences
+from vos.proofs import strip_comments as _strip_comments
+
 PROOFS = "proofs"
 CLOSED = "Closed under the global context"
 
@@ -65,9 +72,6 @@ DEFINERS = ("Definition", "Example", "Theorem", "Lemma", "Corollary", "Fact", "I
 # A section binder quantifies every statement in its section, so it is a quantifier too.
 SECTION_BINDERS = ("Variable", "Variables", "Context", "Hypothesis", "Hypotheses")
 
-# A Rocq sentence ends at a full stop followed by whitespace, which is what keeps
-# `m.(field)` and `Nat.add` inside their sentence.
-_SENTENCE_END = re.compile(r"\.(?=\s|$)")
 _RECORD = re.compile(r"^(?:Record|Structure)\s+([\w']+)")
 _DEFINER = re.compile(r"^(?:Program\s+)?(" + "|".join(DEFINERS) + r")\s+([\w']+)(.*)", re.DOTALL)
 _SECTION_BINDER = re.compile(r"^(" + "|".join(SECTION_BINDERS) + r")\s+(.*)", re.DOTALL)
@@ -97,38 +101,6 @@ class Witnesses:
     def witness_count(self) -> int:
         return sum(len(names) for record, names in self.witnesses.items()
                    if record in self.quantified)
-
-
-def _strip_comments(text: str) -> str:
-    """The source with its comments blanked. Rocq comments nest, and a string literal
-    outside one is kept whole so a `(*` inside it does not open one."""
-    out: list[str] = []
-    depth = 0
-    i = 0
-    n = len(text)
-    while i < n:
-        if text.startswith("(*", i):
-            depth += 1
-            i += 2
-            continue
-        if depth and text.startswith("*)", i):
-            depth -= 1
-            i += 2
-            continue
-        if depth == 0 and text[i] == '"':
-            j = text.find('"', i + 1)
-            j = n - 1 if j < 0 else j
-            out.append(text[i:j + 1])
-            i = j + 1
-            continue
-        if depth == 0 or text[i] == "\n":
-            out.append(text[i])
-        i += 1
-    return "".join(out)
-
-
-def _sentences(text: str) -> list[str]:
-    return [s.strip() for s in _SENTENCE_END.split(_strip_comments(text)) if s.strip()]
 
 
 def _split_top(text: str, mark: str) -> tuple[str, str] | None:

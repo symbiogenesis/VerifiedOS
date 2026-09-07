@@ -8,6 +8,10 @@ trail, and the exit codes. The wave-1 contract gets its own cases: a `none yet`
 cell matches nothing, an artifact matches only as a whole token, and a missing
 input file or a drifted bindings row is a worded finding rather than a traceback.
 
+The requirement form has its own cases because it has two ends and they fail apart:
+the Authored-by resolution against the view, and the citation index over the fixture
+proof artifacts. A whole-output assertion pins the join of the two.
+
 The subprocess runs a copy of the live sources materialized into a sandbox tree,
 because the tool derives its root from its own file and the fixture must be that
 root; the copy is read from the live tree at run time, so it is this checkout's
@@ -25,7 +29,8 @@ from tests.harness import TOOLS, Case, ensure, sandbox_tree
 # The live sources the sandbox copy of the tool runs on, relative to the root.
 _SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/blast.py",
             "tools/vos/__init__.py", "tools/vos/apex.py",
-            "tools/vos/fieldbindings.py", "tools/vos/corpus.py", "tools/vos/env.py")
+            "tools/vos/fieldbindings.py", "tools/vos/corpus.py", "tools/vos/env.py",
+            "tools/vos/evidence.py", "tools/vos/proofs.py", "tools/vos/register.py")
 
 # Small enough to derive by hand: witness consumes alpha and beta through its type,
 # seam_one concludes beta from alpha, seam_two concludes gamma from beta, and
@@ -51,10 +56,19 @@ _BINDINGS = """\
 
 | Field | Consumed by | Semantics | Instantiated by |
 | --- | --- | --- | --- |
-| `alpha` | seam_one | prose | [proofs/Alpha.v](../proofs/Alpha.v) (`AlphaProof`) |
+| `alpha` | seam_one | prose (R-07-015) | [proofs/Alpha.v](../proofs/Alpha.v) (`AlphaProof`) |
 | `beta` | seam_one, seam_two | prose | none yet |
 | `gamma` | seam_two | prose | none yet |
 | `delta` | seam_one | prose | [proofs/Delta.v](../proofs/Delta.v) (`DeltaProof`) |
+"""
+
+# A fixture development citing one entry twice and defining two constants, so the
+# requirement form's citation half has a count and a constant count to report.
+_ALPHA = """\
+(* a fixture development, arguing from R-07-015 and from R-07-015 again *)
+Definition alpha_helper : nat := 0.
+Theorem AlphaProof : True.
+Proof. exact I. Qed.
 """
 
 
@@ -67,6 +81,7 @@ def _fixture() -> dict[str, str]:
     files = _sources()
     files["docs/requirements-register.md"] = "# register stub for find_root\n"
     files["proofs/ApexTheorem.v"] = _APEX
+    files["proofs/Alpha.v"] = _ALPHA
     files["docs/field-bindings.md"] = _BINDINGS
     return files
 
@@ -182,6 +197,52 @@ def _drifted_row() -> None:
            f"{done.stdout!r}")
 
 
+def _requirement_both_ends() -> None:
+    # The entry authors alpha through the view's Authored-by cell, and one artifact
+    # cites it twice; the field half is the same report --field gives, so what this
+    # pins is that both ends arrive and that the citation half counts rather than
+    # merely names.
+    done = _run(_root(), "R-07-015")
+    ensure(done.returncode == 0, f"a requirement with both ends exits 0, got "
+                                 f"{done.returncode}: {done.stdout!r}")
+    ensure(done.stdout == (
+        "requirement R-07-015 authors: alpha\n"
+        "\n"
+        "field alpha\n"
+        "  consumed by:\n"
+        "    witness\n"
+        "    seam_one (a premise)\n"
+        "    uses_alpha\n"
+        "  downstream, only if a re-proved seam's conclusion statement must change:\n"
+        "    seam_one concludes beta\n"
+        "    seam_two concludes gamma\n"
+        "  and last, always: composition_meta_lemma, the R-18-031(b) linking theorem\n"
+        "\n"
+        "proof artifacts citing R-07-015, which is an argument from the entry and not "
+        "a discharge of it:\n"
+        "  proofs/Alpha.v: 2 citation(s), among 2 constant(s) defined\n"),
+        f"the requirement report read {done.stdout!r}")
+
+
+def _requirement_reaching_nothing() -> None:
+    # A live-looking id no cell authors and no artifact cites is a finding rather than
+    # an empty report read as coverage.
+    done = _run(_root(), "R-99-999")
+    ensure(done.returncode == 1, f"a requirement nothing reaches is a finding, got "
+                                 f"{done.returncode}")
+    ensure("requirement R-99-999 authors no Prop field of the Vocabulary record"
+           in done.stdout
+           and "no proof artifact under proofs/ cites R-99-999" in done.stdout,
+           f"both halves must say they found nothing, got {done.stdout!r}")
+
+
+def _requirement_malformed() -> None:
+    done = _run(_root(), "seam_one")
+    ensure(done.returncode == 1
+           and "'seam_one' is no requirement id" in done.stdout,
+           f"a non-id must be refused as one, got {done.returncode}: {done.stdout!r}")
+
+
 def _missing_apex() -> None:
     files = _sources()
     files["docs/requirements-register.md"] = "# register stub for find_root\n"
@@ -223,6 +284,9 @@ def cases() -> list[Case]:
         Case("none-yet-matches-nothing", _none_yet_matches_nothing, lane="host"),
         Case("whole-token-artifact", _whole_token_artifact, lane="host"),
         Case("drifted-row", _drifted_row, lane="host"),
+        Case("requirement-both-ends", _requirement_both_ends, lane="host"),
+        Case("requirement-reaching-nothing", _requirement_reaching_nothing, lane="host"),
+        Case("requirement-malformed", _requirement_malformed, lane="host"),
         Case("missing-apex", _missing_apex, lane="host"),
         Case("missing-bindings", _missing_bindings, lane="host"),
         Case("teardown", _teardown, lane="host"),
