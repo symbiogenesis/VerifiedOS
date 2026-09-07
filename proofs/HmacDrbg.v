@@ -1230,6 +1230,23 @@ Example the_inverted_update_is_one_pass_from_the_standard_on_each_branch :
 Proof. vm_compute. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   Each of the three aliases the reference instance the statements above
+   already run against, so the witness is the discipline, the state and the
+   run this file's own examples compute over and not a second construction
+   built to satisfy the gate.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_SeedingDiscipline : SeedingDiscipline := demo.
+
+Definition witness_DrbgState : DrbgState := instantiated_for_pr.
+
+Definition witness_Run : Run := witness_run.
+
+(* -------------------------------------------------------------------------
    The R-05-163 assumption gate reads this block. Every shipped constant is
    enumerated from its own proof term and held against the declared set: the
    one Require above is a sibling under proofs/ that Requires nothing, so

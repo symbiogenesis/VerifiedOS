@@ -105,11 +105,15 @@
       which is which.** *Tens of kilobytes* is made a figure: the signature
       size the parameter set determines is 29,792 bytes, which the file
       computes and holds inside ten and a hundred kibibytes. *Thousands of
-      Keccak permutations* is a typical-case figure and not a bound the
-      parameters force: the census below is 8,444 calls where every WOTS+
-      chain is walked whole and 764 where none is, so the low end is
-      hundreds. Both ends are computed and the gap is reported at that
-      entry rather than repaired here.
+      Keccak permutations* is left unaudited, and deliberately: what the
+      census below computes is **calls**, running from 764 where every
+      message digit is w - 1 and only each layer's three checksum chains are
+      walked whole, to 8,444 where every chain is. By reading 4 each call
+      costs at least one permutation, so those figures bound the permutation
+      count from below and never from above, and a lower bound of 764 calls
+      neither establishes the entry's figure nor refutes it. Nothing here
+      computes a permutation count, so that half of the entry is reported as
+      unaudited rather than decided.
    4. **The census counts calls and not permutations.** Every call of the
       six absorbs at least one block and so costs at least one Keccak
       permutation, and the two tree-root compressions absorb more than one,
@@ -546,8 +550,9 @@ Definition fors_calls (p : ParameterSet) : nat :=
   fors_trees p * (1 + fors_height p) + 1.
 
 (* s5: a verifier walks each chain from the signature's digit to w - 1, so
-   the steps a layer costs run from none, where every message digit is
-   w - 1 and the checksum digits are therefore all zero, to all of them. *)
+   the steps a layer costs run from the checksum's chains alone, where every
+   message digit is w - 1 and the checksum digits are therefore all zero and
+   each of those three chains is walked whole, to all of them. *)
 Definition chain_steps_at_most (p : ParameterSet) : nat :=
   chain_count p * (winternitz p - 1).
 
@@ -573,9 +578,11 @@ Example the_census_runs_from_seven_hundred_and_sixty_four_to_eight_thousand_four
        (Nat.eqb (verify_calls_at_most shake_256s) 8444) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* R-09-005a's second figure, and the half of it the parameters do not
-   force: the high end is thousands and the low end is hundreds. *)
-Example the_high_end_is_thousands_and_the_low_end_is_hundreds :
+(* The two ends of the *call* census, stated as calls. R-09-005a's second
+   figure is over permutations, which this file bounds from below and never
+   from above, so neither end below decides that figure: reading 3 above says
+   which is which and books the gap at the entry. *)
+Example the_high_end_is_thousands_of_calls_and_the_low_end_is_hundreds :
   andb (andb (Nat.leb 1000 (verify_calls_at_most shake_256s))
              (Nat.ltb (verify_calls_at_most shake_256s) 10000))
        (Nat.ltb (verify_calls_at_least shake_256s) 1000) = true.
@@ -1177,6 +1184,57 @@ Example the_witness_and_its_order_place_every_phase_where_the_entry_wants_it :
 Proof. vm_compute. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
+   The edges the statements above reach past, each one a site `run.py seed`
+   found and no statement of this file decided: the arm a total function
+   takes where its list runs out, the answer the digit count gives when its
+   fuel does, and the floor the field-length clause sets. Nothing above
+   hands any of them the input that reaches the arm, which is why the
+   answers are the transcription's own and are stated here rather than left
+   to be inferred from the callers that never ask.
+   ------------------------------------------------------------------------- *)
+
+Example the_packing_of_no_fields_at_all_holds :
+  fields_pack nil = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_last_end_of_no_fields_at_all_is_zero :
+  Nat.eqb (last_end nil) 0 = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_digit_count_out_of_fuel_answers_zero :
+  Nat.eqb (digits_base 0 (winternitz shake_256s) (signature_bytes shake_256s)) 0 = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The field-length clause's floor is one byte and not two: a one-byte
+   field names a byte, so the header below packs its four fields exactly,
+   stays inside its own declared length and is admitted whole. *)
+Definition header_with_a_one_byte_field : Header :=
+  {| image_offset := {| field_offset := 0; field_length := 1 |};
+     image_length := {| field_offset := 1; field_length := 8 |};
+     image_hash := {| field_offset := 9; field_length := hash_bytes shake_256s |};
+     image_signature := {| field_offset := 9 + hash_bytes shake_256s;
+                           field_length := signature_bytes shake_256s |};
+     header_bytes := 9 + hash_bytes shake_256s + signature_bytes shake_256s |}.
+
+Example a_field_of_a_single_byte_is_admitted :
+  header_is_fixed_layout header_with_a_one_byte_field = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   Both alias the instance the statements above already compute over: the
+   frozen SLH-DSA-SHAKE-256s parameter set, and the verifier whose every
+   primitive field is shake256.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_ParameterSet : ParameterSet := shake_256s.
+
+Definition witness_RomVerifier : RomVerifier := demo.
+
+(* -------------------------------------------------------------------------
    The R-05-163 assumption gate reads this block. Every shipped constant is
    enumerated from its own proof term and held against the declared set: the
    one Require above is a sibling under proofs/ that Requires nothing, so
@@ -1258,7 +1316,7 @@ Print Assumptions verify_calls.
 Print Assumptions verify_calls_at_most.
 Print Assumptions verify_calls_at_least.
 Print Assumptions the_census_runs_from_seven_hundred_and_sixty_four_to_eight_thousand_four_hundred_and_forty_four.
-Print Assumptions the_high_end_is_thousands_and_the_low_end_is_hundreds.
+Print Assumptions the_high_end_is_thousands_of_calls_and_the_low_end_is_hundreds.
 Print Assumptions the_forty_seven_byte_digest_is_the_only_call_that_is_not_n_bytes.
 Print Assumptions Prim.
 Print Assumptions prim_eqb.
@@ -1342,3 +1400,8 @@ Print Assumptions one_wrong_root_is_refused_though_the_set_is_still_a_singleton.
 Print Assumptions with_the_floor_at_zero.
 Print Assumptions a_floor_of_zero_is_refused_and_admits_every_version.
 Print Assumptions the_witness_and_its_order_place_every_phase_where_the_entry_wants_it.
+Print Assumptions the_packing_of_no_fields_at_all_holds.
+Print Assumptions the_last_end_of_no_fields_at_all_is_zero.
+Print Assumptions the_digit_count_out_of_fuel_answers_zero.
+Print Assumptions header_with_a_one_byte_field.
+Print Assumptions a_field_of_a_single_byte_is_admitted.

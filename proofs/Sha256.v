@@ -1466,6 +1466,83 @@ Example a_one_block_key_is_neither_hashed_nor_padded :
 Proof. vm_compute. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
+   The edges the composition above computes over and never states, each one
+   a site `run.py seed` reached and no statement of this file did. Three
+   kinds sit here. A **width**: the shift and the schedule are consumed by
+   operations that truncate to the shorter of their operands, so a longer
+   answer is cut back to size and the composition's own answers do not move
+   with it. An **intermediate**: the multiplier runs only inside a
+   comparison, where a product wrong by a little decides the same
+   comparison. And a **default**: what a total function answers where its
+   input runs out, which nothing above reaches because nothing above hands
+   it a ragged input. Each is the transcription's own claim and is stated
+   here rather than left to a reader to infer from the functions that
+   happen to consume it.
+   ------------------------------------------------------------------------- *)
+
+(* s3.2's SHR^n is a shift within the word, so its answer is a word of the
+   same width: the exclusive-or in each lower-case sigma truncates to the
+   shorter of its operands and cuts a longer answer back again, which is
+   what leaves both the width and the shift itself unsaid by every digest
+   above. Stated on 0x12345678 at the two amounts the sigmas use, so the
+   answer decides the amount as well as the width. The word and both
+   answers are written a byte at a time, which is how every other word in
+   this file is written and which keeps every literal inside a byte: a
+   thirty-two-bit value spelled as one `nat` is a unary numeral the
+   evaluator would have to build before it could shift it. *)
+Definition shift_probe : word := bytes_from (0x12 :: 0x34 :: 0x56 :: 0x78 :: nil).
+
+Example the_right_shift_by_three_answers_the_standard_s_word :
+  bits_eqb (shr 3 shift_probe) (bytes_from (0x02 :: 0x46 :: 0x8A :: 0xCF :: nil)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_right_shift_by_ten_answers_the_standard_s_word :
+  bits_eqb (shr 10 shift_probe) (bytes_from (0x00 :: 0x04 :: 0x8D :: 0x15 :: nil)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* s6.2.2 step 1 computes the block's sixteen words and forty-eight more,
+   and the compression reads the first sixty-four words of whatever it is
+   handed, so a schedule computed over too many indices is read short
+   rather than refused and no digest above moves with it. *)
+Example the_schedule_is_exactly_the_rounds_long :
+  Nat.eqb (length_of (schedule (block_at (blocks_of (pad abc)) 0))) rounds = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The multiplier of the constant derivation, stated on a product rather
+   than left inside the comparison the root search makes of it, where a
+   product wrong by a little decides the same comparison: 11 * 13 is 143,
+   held from both sides so the pair decides the value and not one bound. *)
+Example the_multiplier_answers_its_product_from_below :
+  leb_le (mul_le (bits_le_of word_bits 11) (bits_le_of word_bits 13))
+         (bits_le_of word_bits 143) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_multiplier_answers_its_product_from_above :
+  leb_le (bits_le_of word_bits 143)
+         (mul_le (bits_le_of word_bits 11) (bits_le_of word_bits 13)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The defaults, each stated at the input that reaches it. Nothing above
+   hands any of these functions a ragged input, so each answer below is the
+   transcription's own and is stated here rather than inferred from the
+   callers that never ask. *)
+Example the_bits_past_the_end_of_a_string_are_zero :
+  bits_eqb (map_over (bit_at zero_word) (up_from word_bits word_bits)) zero_word = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example a_string_is_unequal_to_its_own_prefix :
+  negb (bits_eqb zero_word (take_of hash_words zero_word)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_comparison_answers_where_the_first_string_runs_out :
+  leb_be nil zero_word = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example the_comparison_answers_where_the_second_string_runs_out :
+  leb_be zero_word nil = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* -------------------------------------------------------------------------
    The R-05-163 assumption gate reads this block. Every shipped constant is
    enumerated from its own proof term and held against the declared set: there
    is no Admitted, no Axiom, no top-level Parameter and no Require anywhere
@@ -1680,3 +1757,13 @@ Print Assumptions the_truncating_hmac_agrees_at_every_key_within_the_block.
 Print Assumptions the_truncating_hmac_parts_at_every_key_beyond_the_block.
 Print Assumptions the_short_and_long_key_cases_are_split_at_the_block.
 Print Assumptions a_one_block_key_is_neither_hashed_nor_padded.
+Print Assumptions shift_probe.
+Print Assumptions the_right_shift_by_three_answers_the_standard_s_word.
+Print Assumptions the_right_shift_by_ten_answers_the_standard_s_word.
+Print Assumptions the_schedule_is_exactly_the_rounds_long.
+Print Assumptions the_multiplier_answers_its_product_from_below.
+Print Assumptions the_multiplier_answers_its_product_from_above.
+Print Assumptions the_bits_past_the_end_of_a_string_are_zero.
+Print Assumptions a_string_is_unequal_to_its_own_prefix.
+Print Assumptions the_comparison_answers_where_the_first_string_runs_out.
+Print Assumptions the_comparison_answers_where_the_second_string_runs_out.
