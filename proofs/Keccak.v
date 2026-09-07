@@ -185,14 +185,14 @@
       which is M3.4's. Owed at R-05-058c or R-09-002.
    d. **No AEAD, no DRBG and no signature is authored here.** R-15-241d's
       seeding discipline, its reseed bounds and its prediction- and
-      backtracking-resistance clauses have no artifact in this repository and
-      the DRBG this file does not author is where they would land; R-10-024
+      backtracking-resistance clauses are stated in HmacDrbg.v, which
+      authors HMAC-DRBG-SHA-256 over Sha256.v and takes that discipline as
+      the explicit hypothesis of every theorem it states; R-10-024
       freezes the cipher to AES-GCM where the plan's own sentence has both
       AEADs authored; and R-05-058c's split carries no classical scheme to
-      author at all. The DRBG and the signature question are named as
-      residue at checklist item M3.4c and are absent here; the AEAD is no
-      longer among them, having moved to M3.4d where AesGcm.v authors
-      AES-GCM; carried back at S25.
+      author at all, so what the boot chain's ROM verifier needs is stated
+      over this file's `shake256` in RomVerifier.v rather than authored as a
+      scheme. The AEAD is in AesGcm.v; none of the four is here.
 
    The literals taken from the standard, and there are no others. The 5 x 5 x
    64 geometry (`side`, `width`, `lanes`), the twenty-four and twelve round
