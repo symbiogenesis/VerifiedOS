@@ -333,8 +333,87 @@ def _configure_hands_the_child_the_work_tree() -> None:
                f"{answered['add_env']}")
 
 
+_PROPERTY_SOURCE = (
+    "// a comment\n"
+    "$[property]\n"
+    "function propOne(c : Capability) -> bool = true\n"
+    "\n"
+    "function helper(x : int) -> bool = true\n"
+    "$[property]\n"
+    "// the head may sit under a comment\n"
+    "private function propTwo(a : bits(8), b : bits(8)) -> bool = {\n"
+    "  a == b\n"
+    "}\n"
+    "$[test]\n"
+    "function not_a_property() -> unit = ()\n"
+)
+
+
+def _property_census() -> None:
+    names = _MODEL.property_names(_PROPERTY_SOURCE)
+    ensure(names == ["propOne", "propTwo"],
+           f"the census is every $[property] head in source order, got {names}")
+    ensure(_MODEL.property_names("function f() -> bool = true\n") == [],
+           "a source with no mark has an empty census")
+    # a mark that names nothing is refused rather than counted or skipped
+    for broken in ("$[property]\n", "$[property]\nval f : unit -> bool\n"):
+        try:
+            _MODEL.property_names(broken)
+        except ValueError as defect:
+            ensure("no function head" in str(defect), f"the refusal names the defect, got {defect}")
+        else:
+            raise AssertionError(f"{broken!r} must be refused, not counted")
+
+
+def _solver_verdicts() -> None:
+    # the three verdicts, read off the first line, with the model kept for a sat
+    for output, want, rest in (
+        ("unsat\n", _MODEL.PROVED, []),
+        ("sat\n(\n  (define-fun x () Bool true)\n)\n", _MODEL.COUNTEREXAMPLE,
+         ["(", "  (define-fun x () Bool true)", ")"]),
+        ("unknown\n", _MODEL.UNDECIDED, []),
+        ("timeout\n", _MODEL.UNDECIDED, []),
+    ):
+        verdict, model = _MODEL.solver_verdict(output)
+        ensure(verdict == want and model == rest,
+               f"{output!r} must read as {want} with {rest}, got {verdict} {model}")
+    # anything else fails closed: a solver that changed its wording is not a proof
+    for output in ("", "error: bad input\n", "sat unsat\n", "UNSAT\n", "(model)\nunsat\n"):
+        verdict, _ = _MODEL.solver_verdict(output)
+        ensure(verdict is None, f"{output!r} must be unrecognized, got {verdict}")
+
+
+_AUTO_TRANSCRIPT = (
+    "Checking counterexample: /root/build/lane-x/smt/model_propOne.smt2\n"
+    "Solver could not find counterexample\n"
+    "Solver output:\n"
+    "unsat\n"
+    "Checking counterexample: /root/build/lane-x/smt/model_propTwo.smt2\n"
+    "Solver found counterexample: ok\n"
+    "  c -> struct { tag = false }\n"
+    "Replaying counterexample: ok\n"
+    "Checking counterexample: /root/build/lane-x/smt/model_propThree.smt2\n"
+    "Unexpected solver output:\n"
+    "unsat\n"
+    "Checking counterexample: /root/build/lane-x/smt/model_propFour.smt2\n"
+)
+
+
+def _auto_verdicts() -> None:
+    got = _MODEL.auto_verdicts(_AUTO_TRANSCRIPT)
+    ensure(got == {"propOne": _MODEL.PROVED, "propTwo": _MODEL.COUNTEREXAMPLE,
+                   "propThree": _MODEL.UNRECOGNIZED, "propFour": _MODEL.UNRECOGNIZED},
+           f"the three shapes Sail prints, and nothing else, decide a verdict; got {got}")
+    # the solver's own `unsat` echoed under an unexpected-output line is not a proof
+    ensure("propFive" not in _MODEL.auto_verdicts("unsat\nSolver could not find counterexample\n"),
+           "a verdict line with no property opened before it names nothing")
+
+
 def cases() -> list[Case]:
     return [
+        Case("property-census", _property_census),
+        Case("solver-verdicts", _solver_verdicts),
+        Case("auto-verdicts", _auto_verdicts),
         Case("configure-hands-the-work-tree", _configure_hands_the_child_the_work_tree),
         Case("stage-exit-spelling", _stage_exit_spelling),
         Case("report-build-verdict", _report_build_verdict),

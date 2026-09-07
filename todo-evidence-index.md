@@ -76,15 +76,17 @@ whole proofs tree.
 
 ## 3. What the second pass changed
 
-The first sketch was more expensive than it needed to be. Four things came out, one went in.
+The first sketch was more expensive than it needed to be. Four things came out and one went
+in; a later pass on the tooling question corrected one more.
 
 | Change | Why |
 | --- | --- |
-| **Dropped** a new `· Machine-checked:` conferral line in the register | The `· Accept:` criterion **already** states what decides the entry. A second line stating what a theorem must say is one fact in two places, which is the defect the register's own rules forbid. Removes a rule, a mutant, and churn across 1402 entries. |
-| **Dropped** `.glob` from the critical path | `.glob` is gitignored (`.gitignore:30`), so the host wave can never read it, and carrying guest facts across in a tracked JSON recreates the sync surface this is meant to remove. Everything phase 1 needs is in the tracked `.v` text, which `cli/proofs.py` already parses. Keep `.glob` for phase 3. |
+| **Dropped** a new `· Machine-checked:` conferral line in the register | The `· Accept:` criterion **already** states what decides the entry. A second line stating what a theorem must say is one fact in two places, which is the defect the register's own rules forbid. Removes a rule, a mutant, and an edit at every entry the register carries. |
+| **Dropped** `.glob` from the critical path | `.gitignore` ignores `proofs/*.glob`, so the host wave can never read it, and carrying guest facts across in a tracked JSON recreates the sync surface this is meant to remove. Everything phase 1 needs is in the tracked `.v` text, which `cli/proofs.py` already parses. Keep `.glob` for phase 3. |
 | **Dropped** co-read pairs for every (requirement, theorem) pair | A prose edit already dirties a median of four pairs. Multiplying that by proof coverage makes register editing *slower*, which is the opposite of the goal. Scope co-read to crown-jewel rows, where the semantic reading actually matters. |
 | **Reframed** the proofs-to-code leg around K-91 and K-76 | Both already exist and both work by comparing constants stated in two source files at zero prover cost. That beats inventing a refinement-tier vocabulary. |
-| **Added** phase 0 | **338 distinct R-ids are already cited** across the 18 `.v` files. A file-level citation index costs one regex pass and zero authoring, and answers blast-radius questions on day one. |
+| **Added** phase 0 | **The `.v` files already cite register ids in bulk**, 338 distinct ones across the 18 of them as measured at d942c1c. A file-level citation index therefore costs one regex pass and zero authoring, and answers blast-radius questions on day one. |
+| **Corrected** the advice to reuse `scan_witnesses` | It came out of the tooling-verification pass (§6). That function approximates a *type* judgment with a regex, so extending it is the wrong direction. Phase 0 stays lexical; the semantic half moves to the prover in Phase A. |
 
 ## 4. The measured cost of the new group
 
@@ -106,22 +108,56 @@ Total added cost: about **8 ms per `check.py` run** (read plus scan), so under *
 a whole selftest pass**, against a wave of 35 s to 52 s on AC. **Under 2%.** On AC the
 figure is nearer 3 ms.
 
-Note the corpus is markdown-only (`corpus.py:410`), so the group reads `.v` itself rather
+Note the corpus is markdown-only, `corpus.py` admitting a path only where it ends `.md`
+and falls outside `UNREAD_PREFIX`, so the group reads `.v` itself rather
 than through `ctx.corpus`. That is the 5.7 ms, and it is the larger half of the cost.
 
 ---
 
 ## 5. The work
 
+### Phase A: two free wins, independent of everything else
+
+Neither gates on anything below, neither touches the register, and both come out of §6's
+pass on the tooling. Do them whenever.
+
+- [ ] **Run `rocqchk` after the compile in `run.py proofs`.** It is already in the pinned
+      switch (`vos/env.py` and `vos/gallina.py` both name it as shipping there) and **is run
+      by nothing**. R-05-016a licenses exactly this and says why it costs no trust: a
+      re-check can only reject, so a second implementation refusing a kernel-checked term is
+      a finding, and one accepting a term adds no ground the first did not already give.
+      Book the honest limit beside it, which that entry also states: `rocqchk` shares the
+      kernel's lineage and its bug list records defects reaching that checker equally, so
+      this is a second reading rather than independence.
+      *Cost: one subprocess per artifact, inside a command that already compiles them all.*
+
+- [ ] **Turn R-05-166's inhabitation approximation into a decision.** `cli/proofs.py`'s
+      `scan_witnesses` regex-approximates a **type** judgment, and the dangerous direction is
+      live: over-approximate and a non-vacuity gate goes false green. One line per carrier
+      record fixes it, with no proof and no new machinery:
+
+      Definition witness_Machine : Machine := demo true true true.
+
+      The prover then decides inhabitation by type-checking that line, and the gate only
+      checks that a constant of that name and shape exists. An approximation becomes a
+      decision, and the fragile binder-and-quantifier half of `scan_witnesses` retires with
+      it.
+      *Cost: one line per quantified record across 18 files; the gate gets smaller.*
+
 ### Phase 0: free coverage, no `.v` edits
 
 Delivers blast radius immediately from citations that already exist.
 
 - [ ] **`tools/vos/evidence.py`**: one whole-text `findall` per `.v`, returning
-      `{file -> set of R-ids cited}` and `{file -> [constant names]}`. Reuse
-      `cli/proofs.py`'s existing `_strip_comments` / `_sentences` / `_DEFINER` rather than
-      writing a second parser, on `vos/proofs.py`'s own stated convention that a parse two
-      tools make is written once.
+      `{file -> set of R-ids cited}` and `{file -> [constant names]}`.
+
+      **Keep it lexical, and this is a correction to the first sketch.** A
+      `(*| ... |*)` comment and a `Theorem <name>` line are not Gallina and need no Gallina
+      parser, which is precisely what lets the host wave run in CI with no toolchain. Share
+      `cli/proofs.py`'s `_strip_comments` and `_sentences`, which are lexical too. Do
+      **not** extend into binder, quantifier or type analysis: that is the semantic half, it
+      belongs to the prover, and Phase A retires the existing approximation of it rather
+      than growing a second one.
 - [ ] **Extend `run.py blast`** to answer `blast R-07-015` with the proof artifacts that
       cite it, alongside the apex fields it already reports.
       *Buys: the question "what does this register edit re-open?" goes from unanswerable to
@@ -226,7 +262,93 @@ was under-sold in the first pass.
 
 ---
 
-## 6. What this decides, and what it does not
+## 6. How much of the tooling belongs in Rocq
+
+**Almost none of `tools/`, and the register has already decided it three times.** The
+question matters here because the evidence index adds tooling, so the rule that governs the
+new group is the rule that governs the old ones.
+
+### Why verifying the checker is the wrong instrument
+
+The decisive argument is not cost. It is that **verification does not catch the failure mode
+that actually threatens a checker.** A checker's real risk is a rule that decides nothing: a
+pattern encoding its own answer, a count with no predicate, a comparison made against an
+empty set. A soundness proof is useless against that, because a rule that always passes is
+trivially correct against a specification saying it always passes. The instrument for that
+risk is falsification, and it already exists: `run.py selftest` requires every rule to
+**fail** on a deliberately broken tree. That is strictly better assurance here than a proof.
+
+Three further grounds, each already in the register:
+
+- **Failure polarity.** A false green in `check.py` costs a drifted document, caught by
+  R-05-150's review. A false red costs an author an afternoon. Nothing on the device rests
+  on its verdict, and it is not among R-06-001's seven TCB items.
+- **It would prove the wrong property.** `check.py` decides *agreement between documents*.
+  R-17-016's whole point is that agreement is not correctness: proofs match the spec, never
+  intent. A machine-checked guarantee that the corpus agrees with itself is a guarantee
+  about the property that matters least.
+- **Anchor budget.** Formalising it needs a semantics for the corpus format. R-05-020 admits
+  a new anchor only on three shown conditions, one being that it retires an interim. It
+  retires nothing.
+
+And there is a settling precedent: **R-05-064 deleted the CryptOpt-style verified
+translation-validation toolchain rather than deferring it**, booking the cost explicitly (a
+net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category,
+and a §18 workstream). R-05-066 states the general rule: an untrusted producer whose output
+an **existing** checker re-validates is admissible and free to be arbitrarily aggressive.
+**Verifying a producer instead of checking its output is the named anti-pattern.**
+
+### The decision rule
+
+Three tests. Verify only where (1) is yes and (2) is no; (3) raises priority.
+
+1. Does anything rest on the verdict that a later act does not re-derive?
+2. Is the output re-validated by something already in the trust base?
+3. Is the decision irreversible?
+
+| Tool | Verdict | Ground |
+| --- | --- | --- |
+| `check.py`, views, counts, figures, coread, blast | **No** | Review re-derives it. R-05-150 is the gate, not this. |
+| `selftest` | **No** | It is itself the falsification instrument. |
+| `memplan`, `placement` | **No** | R-08-014 says it outright: *the plan is checked, not trusted*; an overlap is a type error at the on-device TAL check. |
+| `oracle`, `seed`, `quickchick`, `differential` | **No** | Untrusted finders by construction (R-05-018, R-05-045). Verifying an oracle is a category error. |
+| `asm`, `encdec`, `capformat`, `dialect` | **No** | Already differentially checked against the Sail; `tools/oracle-specs/capformat.json` exists. R-15-007a's proof is owed over the Sail functions, not the Python. |
+| `run.py proofs`' assumption gate | **No** | The trust sits in `Print Assumptions` and the kernel; the Python only compares strings. The answer is Phase A's `rocqchk`, not a proof. |
+| The two admission checkers | **Yes, and already required** | TCB under R-06-001, and R-06-015d already obliges `CJ-ADMIT-IMPL`. These are a product deliverable, not `tools/`. |
+
+### The three that should move, none of which is verification
+
+1. **Inhabitation, from regex to type-check.** Phase A's second item. The one place a regex
+   approximates a type judgment.
+2. **Irreversible arithmetic.** The freeze figures are the strongest genuine candidate in the
+   tree, because R-15-036i makes the dictionary a **permanent** commitment where a later
+   change invalidates stored code wholesale. Do not verify the Python. State the arithmetic
+   in Gallina, `Compute` it, and have the tool compare its own answer against the prover's.
+   The machinery already exists: `tools/quickchick/Vectors.v` plus `gallina.py`'s
+   `Compute`-output reader.
+   - [ ] Add the R-15-036h density model as a Gallina definition and compare.
+3. **Self-description over source-parsing.** `vos/apex.py` regex-parses a Gallina record out
+   of `ApexTheorem.v`. Where a prover run already happens, the artifact should emit its own
+   metadata rather than be parsed for it. The clean split, which Phase 0 and Phase A now
+   implement between them:
+   - **Lexical facts** (comment annotations, constant names): Python, host wave, no
+     toolchain, CI-safe.
+   - **Semantic facts about terms** (what a record declares, what a theorem quantifies over,
+     whether a witness inhabits a type): the prover, guest wave.
+   - [ ] Once Phase A lands, revisit whether `vos/apex.py`'s record parse can be replaced by
+         a `Compute` in `ApexTheorem.v` that prints its own Prop-field list.
+
+### The line
+
+Move something into Rocq when its verdict is a **premise** of a claim nothing later
+re-derives. Everything in `tools/` fails that test, because the review gate re-derives all
+of it by construction. What belongs in Rocq is what the **device** rests on, and the register
+already names those: the admission checkers under `CJ-ADMIT-IMPL`, and the crown jewels that
+are specifications rather than tools.
+
+---
+
+## 7. What this decides, and what it does not
 
 Stated plainly, because the repository's own discipline demands it and because the failure
 mode here is a checker that certifies a set it cannot see the whole of.
@@ -248,7 +370,7 @@ The vocabulary sweep is the weak instrument against the residue, honestly descri
 
 ---
 
-## 7. Calls that are yours
+## 8. Calls that are yours
 
 1. **Does the ledger live in `docs/`?** It is a derived view like the other ten, which
    argues for `docs/proof-ledger.md`. Against: it is a burn-down of work in progress rather
@@ -260,3 +382,30 @@ The vocabulary sweep is the weak instrument against the residue, honestly descri
    that writes into tracked `.v` sources. Everything else is read-only against them.
 4. **Whether to raise the crown-jewel status token to a computed three-value tier now**, or
    leave it as the existing three words until more than one artifact would move.
+5. **Whether `rocqchk` failing is a gate or a report** (Phase A). Gate is the honest reading
+   of R-05-016a, since a re-check that only ever warns decides nothing. Against: it puts a
+   second program on the path to a green proof run.
+6. **Whether the freeze arithmetic moving to Gallina (§6) is worth doing before the second
+   freeze act**, or whether it waits until there is a figure to check. It is the one place
+   in the tree where a wrong tool output is irreversible.
+
+---
+
+## 9. Suggested order
+
+Nothing here is blocked on anything outside this file except where noted.
+
+| Order | Item | Gates on | Touches |
+| --- | --- | --- | --- |
+| 1 | Phase A: `rocqchk` | nothing | `cli/proofs.py` |
+| 2 | Phase A: witness constants | nothing | 18 `.v` files, `cli/proofs.py` |
+| 3 | Phase 0: `evidence.py`, `blast`, one rule | nothing | new module, `cli/blast.py` |
+| 4 | Phase 1: annotation, ledger, three rules, derived tokens | 3 | new view, `views.py`, `confers.py`, two docs |
+| 5 | §6.2: freeze arithmetic in Gallina | nothing (call 6) | `tools/quickchick/` |
+| 6 | §6.3: retire `apex.py`'s record parse | 2 | `vos/apex.py`, `ApexTheorem.v` |
+| 7 | Phase 2: derived `.v` headers | 4, and call 3 | 18 `.v` files, a `--fix` writer |
+| 8 | Phase 3: cross-artifact constant table | 4 | `checks/keccak.py`, K-76 |
+| 9 | Phase 3: `.glob` dependency graphs | Sail Coq backend | new |
+
+Items 1 through 3 are a day's work between them, gate on nothing, and deliver the
+blast-radius answer and the two assurance fixes before any register or view changes at all.

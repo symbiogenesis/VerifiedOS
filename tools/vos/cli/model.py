@@ -45,6 +45,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -566,6 +567,260 @@ def cmd_lane(e: env.Environment, args: argparse.Namespace) -> int:
     print(f"build log        {e.log('model-build')}")
     print(f"building now     {f'yes, pid {holder}' if holder else 'no'}")
     return 0
+
+
+# =====================================================================================
+# smt: the capability-helper property suite, one solver verdict per property
+# =====================================================================================
+
+# The module the project file keeps behind its variable, the assignment that turns it
+# on, and the source the census is read from. Each is spelled once here: the project
+# file names the first two and the test that pins the census reader names the third.
+SMT_MODULE = "cap_properties"
+SMT_VARIABLE = "smt_properties=true"
+SMT_SOURCE = Path("model") / "unit_tests" / "cap_properties.sail"
+# The prefix `-o` hands Sail, which names every emitted file `<prefix>_<function>.smt2`.
+SMT_PREFIX = "model"
+
+# What a property looks like in the source: the attribute on a line of its own and the
+# head of the function under it. The census is read off the source rather than off the
+# emitted files, because a property the emitter silently dropped is exactly what a
+# count of files would fail to notice.
+PROPERTY_MARK = re.compile(r"^\$\[property\]\s*$")
+FUNCTION_HEAD = re.compile(r"^(?:private\s+)?function\s+([A-Za-z_][A-Za-z0-9_']*)\s*\(")
+
+# The three verdicts, and the first line of solver output each is read from. Anything
+# else is unrecognized and fails closed: a solver that changed its wording must not read
+# as a proof.
+PROVED, COUNTEREXAMPLE, UNDECIDED = "proved", "counterexample", "undecided"
+SOLVER_VERDICTS: dict[str, str] = {
+    "unsat": PROVED, "sat": COUNTEREXAMPLE, "unknown": UNDECIDED, "timeout": UNDECIDED,
+}
+
+# What Sail's own auto mode prints per property, which `--auto` reads. The three
+# shapes are Sail 0.20.2's (`Smt_exp.Counterexample.check`), pinned by the test.
+AUTO_CHECKING = re.compile(r"^Checking counterexample: (.+)$")
+AUTO_FOUND = "Solver found counterexample:"
+AUTO_NOT_FOUND = "Solver could not find counterexample"
+AUTO_UNEXPECTED = "Unexpected solver output:"
+UNRECOGNIZED = "unrecognized"
+
+# How much of a counterexample's model to print before pointing at the file holding it.
+MODEL_HEAD_LINES = 12
+
+
+def property_names(text: str) -> list[str]:
+    """Every `$[property]` head in a Sail source, in source order.
+
+    A mark followed by anything but a function head is refused rather than skipped:
+    the census is the figure a completion note quotes, and a mark that names nothing
+    is a defect in the source, not a property the count may leave out.
+    """
+    names: list[str] = []
+    pending: int | None = None
+    for number, line in enumerate(text.splitlines(), start=1):
+        if pending is not None:
+            if not line.strip() or line.lstrip().startswith("//"):
+                continue
+            head = FUNCTION_HEAD.match(line)
+            if head is None:
+                raise ValueError(f"line {pending}: $[property] is followed by no function head")
+            names.append(head.group(1))
+            pending = None
+        elif PROPERTY_MARK.match(line):
+            pending = number
+    if pending is not None:
+        raise ValueError(f"line {pending}: $[property] is followed by no function head")
+    return names
+
+
+def solver_verdict(output: str) -> tuple[str | None, list[str]]:
+    """Read one solver run: the verdict its first line carries, and the lines after it,
+    which under `-model` are the counterexample when there is one. `None` is a first
+    line this loop does not know, and the caller fails closed on it."""
+    lines = [line for line in output.splitlines() if line.strip()]
+    if not lines:
+        return None, []
+    return SOLVER_VERDICTS.get(lines[0].strip()), lines[1:]
+
+
+def auto_verdicts(text: str) -> dict[str, str]:
+    """Read Sail's auto-mode transcript into one verdict per property.
+
+    Each property opens with the file being checked and closes with one of three
+    lines; a property whose closing line is none of them is `unrecognized`, and a
+    property the transcript never opens is absent from the result, which the caller
+    treats as a failure rather than as a pass over nothing.
+    """
+    verdicts: dict[str, str] = {}
+    current: str | None = None
+    for line in text.splitlines():
+        opened = AUTO_CHECKING.match(line)
+        if opened is not None:
+            stem = Path(opened.group(1).strip()).stem
+            current = stem.removeprefix(f"{SMT_PREFIX}_")
+            verdicts[current] = UNRECOGNIZED
+        elif current is not None and verdicts[current] == UNRECOGNIZED:
+            if line.startswith(AUTO_FOUND):
+                verdicts[current] = COUNTEREXAMPLE
+            elif line.startswith(AUTO_NOT_FOUND):
+                verdicts[current] = PROVED
+            elif line.startswith(AUTO_UNEXPECTED):
+                current = None
+    return verdicts
+
+
+def _solver_version(binary: str) -> str:
+    done = subprocess.run([binary, "--version"], capture_output=True, text=True, check=False)
+    return done.stdout.strip() or done.stderr.strip() or f"{binary}: no version"
+
+
+def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
+    """Run the capability-helper property suite through Sail's SMT target and give
+    every property its own verdict and its own time.
+
+    The suite is `unit_tests/cap_properties.sail`, kept behind the project file's
+    `smt_properties` variable so that `--all-modules`, which every build, its ctest,
+    the bundle and the typecheck pass, never waits on a solver; this loop turns the
+    variable on and selects the module by name, which loads it with the `prelude` and
+    `core` it requires and nothing else.
+
+    Three verdicts and never two. **Proved** is the solver's `unsat` over the
+    negation, a verdict over the whole input space. **Counterexample** is `sat`, with
+    the model printed under it. **Undecided** is `unknown` or the `--timeout`, and it
+    is its own verdict rather than a pass: a property the solver did not close is not
+    one it proved. The ctest's `--smt-auto` gives one verdict for the whole set and
+    no per-property timeout, so the default here emits once and puts each file to
+    the solver itself; `--auto` runs Sail's own mode instead, which renders a
+    counterexample back into Sail values and replays it, and is the form to read a
+    failure in. Both are evidence about the Sail functions and neither is R-15-007a's
+    proof.
+
+    The memo cache is the lane's own, seeded from the typecheck cache, and the run
+    holds it for the reason `cmd_typecheck` does: Sail rewrites it whole at exit.
+
+    The emission's `STAGE` line goes to the log rather than the console, which is
+    `env.stage`'s own rule that a stage reports beside its own output: what the
+    emission cost is the figure a completion note quotes, and a console line no file
+    keeps cannot be re-taken by the reader who checks the note.
+    """
+    _require("sail", SAIL_HOW)
+    if not args.auto:
+        _require("z3", "z3 is what the model's own ctest names for --smt-auto-solver")
+
+    source = e.model / SMT_SOURCE
+    if not source.is_file():
+        print(f"no property suite at {source}", file=sys.stderr)
+        return 1
+    try:
+        names = property_names(source.read_text(encoding="utf-8"))
+    except ValueError as defect:
+        print(f"{source}: {defect}", file=sys.stderr)
+        return 1
+    if not names:
+        print(f"{source} carries no $[property] head", file=sys.stderr)
+        return 1
+    unknown = sorted(set(args.property) - set(names))
+    if unknown:
+        print(f"no such property in {SMT_SOURCE}: {', '.join(unknown)}", file=sys.stderr)
+        return 1
+    picked = [n for n in names if not args.property or n in args.property]
+    print(f"== {len(names)} $[property] heads in {SMT_SOURCE}, {len(picked)} selected")
+
+    out = e.lane_root / "smt"
+    cache = out / "sail_smt_cache"
+    lock = env.hold_lock(cache, "an smt run")
+    try:
+        _seed_cache_file([e.typecheck_cache, e.primary_typecheck_cache], cache)
+        e.log_dir.mkdir(parents=True, exist_ok=True)
+        log = e.log("model-smt")
+        print(f"== log: {log}")
+        if args.reuse and not args.auto:
+            print(f"== reusing the emission standing in {out}")
+            code = 0
+        else:
+            for stale in out.glob(f"{SMT_PREFIX}_*.smt2"):
+                stale.unlink()
+            with log.open("w", encoding="utf-8") as handle:
+                code = env.stage("emit", [
+                    "sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",
+                    "--memo-z3", "--memo-z3-path", str(cache),
+                    "--smt",
+                    *(["--smt-auto", "--smt-auto-solver", "z3"] if args.auto else []),
+                    "-o", str(out / SMT_PREFIX),
+                    "--config", str(e.profile),
+                    "--variable", SMT_VARIABLE,
+                    "riscv.sail_project", SMT_MODULE,
+                ], cwd=e.model / "model", stdout=handle, stderr=handle)
+        if args.auto:
+            return _report_auto(log, picked, code)
+        if code:
+            print(f"the emission failed with exit {code}; the log is {log}", file=sys.stderr)
+            return code
+        return _solve_each(out, picked, args.timeout, e)
+    finally:
+        lock.close()
+
+
+def _report_auto(log: Path, picked: list[str], code: int) -> int:
+    """Read Sail's own verdicts back out of the log, one line per property."""
+    verdicts = auto_verdicts(log.read_text(encoding="utf-8", errors="replace"))
+    failed = 0
+    for name in picked:
+        verdict = verdicts.get(name, "missing")
+        failed += verdict != PROVED
+        print(f"{verdict:<15} {name}")
+    print(f"== {len(picked)} properties under --auto: {len(picked) - failed} proved, "
+          f"{failed} not; sail exit {code}; counterexamples are rendered in {log}")
+    return 1 if failed or code else 0
+
+
+def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) -> int:
+    """Put each emitted file to the solver on its own, under one timeout each."""
+    counts = dict.fromkeys((PROVED, COUNTEREXAMPLE, UNDECIDED, UNRECOGNIZED), 0)
+    for name in picked:
+        smt2 = out / f"{SMT_PREFIX}_{name}.smt2"
+        if not smt2.is_file():
+            print(f"{'missing':<15} {name}  (the emission wrote no {smt2.name})")
+            counts[UNRECOGNIZED] += 1
+            continue
+        started = time.perf_counter()
+        said = ""
+        try:
+            done = subprocess.run(["z3", f"-T:{timeout}", "-model", str(smt2)],
+                                  capture_output=True, text=True, check=False,
+                                  timeout=timeout + 60)
+            said = done.stdout or done.stderr
+            verdict, model = solver_verdict(done.stdout)
+        except subprocess.TimeoutExpired:
+            # the solver's own -T is the timeout; this is the guard on a solver that
+            # ignored it, and it is the same verdict
+            verdict, model = UNDECIDED, []
+        wall = time.perf_counter() - started
+        label = verdict or UNRECOGNIZED
+        counts[label] += 1
+        print(f"{label:<15} {name:<34} {wall:8.1f} s  ({smt2.stat().st_size} bytes)")
+        if verdict == COUNTEREXAMPLE:
+            # The solver's model is SMT-LIB over the emitter's own names and runs to
+            # thousands of lines, so it is written beside the file it came from and
+            # only its head is printed. `--auto` is the form that renders one back
+            # into Sail values.
+            witness = smt2.with_suffix(".model")
+            witness.write_text("\n".join(model) + "\n", encoding="utf-8")
+            for line in model[:MODEL_HEAD_LINES]:
+                print(f"    {line}")
+            if len(model) > MODEL_HEAD_LINES:
+                print(f"    ... {len(model)} lines in {witness}; `--auto` renders it "
+                      f"in Sail values")
+        elif verdict is None:
+            for line in said.splitlines()[:3]:
+                print(f"    {line}")
+    print(f"== {len(picked)} properties: {counts[PROVED]} proved, "
+          f"{counts[COUNTEREXAMPLE]} counterexample, {counts[UNDECIDED]} undecided at "
+          f"--timeout {timeout} s, {counts[UNRECOGNIZED]} unrecognized or missing; "
+          f"{_solver_version('sail')}; {_solver_version('z3')}; "
+          f"lane {e.lane or 'primary'} in {out}")
+    return 0 if counts[PROVED] == len(picked) else 1
 
 
 def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
@@ -1223,6 +1478,19 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("lane", help="where this checkout builds, and what is building there"
                    ).set_defaults(run=cmd_lane)
+
+    smt = sub.add_parser("smt", help="the capability-helper property suite under the "
+                                     "SMT target, one verdict and one time per property")
+    smt.add_argument("--property", action="append", default=[], metavar="NAME",
+                     help="run this property alone (repeatable; default: every one)")
+    smt.add_argument("--timeout", type=int, default=600,
+                     help="seconds the solver gets per property before it is undecided")
+    smt.add_argument("--auto", action="store_true",
+                     help="Sail's own --smt-auto instead, which renders and replays a "
+                          "counterexample in Sail values and has no per-property timeout")
+    smt.add_argument("--reuse", action="store_true",
+                     help="solve the files the last run emitted rather than emitting again")
+    smt.set_defaults(run=cmd_smt)
 
     oracle = sub.add_parser("oracle",
                             help="build the M0.4 capability oracle and run its suite")
