@@ -146,26 +146,43 @@ pass on the tooling. Do them whenever.
 
 ### Phase 0: free coverage, no `.v` edits
 
-Delivers blast radius immediately from citations that already exist.
+**Landed on main at 3f96243**, in two commits. Delivers blast radius from citations that
+already existed.
 
-- [ ] **`tools/vos/evidence.py`**: one whole-text `findall` per `.v`, returning
+- [x] **`tools/vos/proofcites.py`**: one whole-text `findall` per `.v`, returning
       `{file -> set of R-ids cited}` and `{file -> [constant names]}`.
+
+      **Named `proofcites` and not `evidence`.** This tree pairs `vos/<name>.py` with
+      `vos/cli/<name>.py` as a convention, the first being the machinery behind the command
+      of that name, so `vos/evidence.py` would have promised the exit-evidence sweep that
+      `run.py evidence` actually runs.
 
       **Keep it lexical, and this is a correction to the first sketch.** A
       `(*| ... |*)` comment and a `Theorem <name>` line are not Gallina and need no Gallina
-      parser, which is precisely what lets the host wave run in CI with no toolchain. Share
-      `cli/proofs.py`'s `_strip_comments` and `_sentences`, which are lexical too. Do
+      parser, which is precisely what lets the host wave run in CI with no toolchain. Do
       **not** extend into binder, quantifier or type analysis: that is the semantic half, it
       belongs to the prover, and Phase A retires the existing approximation of it rather
       than growing a second one.
-- [ ] **Extend `run.py blast`** to answer `blast R-07-015` with the proof artifacts that
+
+      **The comment strip stays off the host wave**, which corrects this note's own earlier
+      instruction to share `cli/proofs.py`'s `_strip_comments` and `_sentences` for both
+      halves. Measured, that strip costs about 417 ms over `proofs/`, roughly 86x the
+      budget §4 sets, because it is a per-character Python walk. The citation half does not
+      need it: a Gallina identifier cannot carry a hyphen, so an `R-nn-nnn` token in a `.v`
+      is inside a comment or a string by construction, which makes the whole-text scan equal
+      to the stripped one as a rule rather than as a property of one tree. The two helpers
+      were promoted to `vos/proofs.py` and serve the constant half alone, off the wave.
+- [x] **Extend `run.py blast`** to answer `blast R-07-015` with the proof artifacts that
       cite it, alongside the apex fields it already reports.
       *Buys: the question "what does this register edit re-open?" goes from unanswerable to
       one command.*
-- [ ] **One rule** holding every cited R-id in `proofs/*.v` to a live requirement.
-      Catches citations of retired or misspelled ids, which nothing catches today.
+- [x] **One rule** holding every cited R-id in `proofs/*.v` to a live requirement.
+      Catches citations of retired or misspelled ids, which nothing catches today. Landed as
+      **K-103**, over the tracked `.v` files, holding each cited id to an entry the register
+      declares and has not struck. Reached from the register side too: the K-10 mutant, which
+      renumbers an entry so two declare one id, now trips it as well.
 
-**Gate: nothing. Do this first.** It is one module, one rule, one mutant.
+**Gate: nothing. Do this first.** It was one module, one rule, one mutant.
 
 ### Phase 1: the annotation and the ledger
 
@@ -399,7 +416,7 @@ Nothing here is blocked on anything outside this file except where noted.
 | --- | --- | --- | --- |
 | 1 | Phase A: `rocqchk` | nothing | `cli/proofs.py` |
 | 2 | Phase A: witness constants | nothing | 18 `.v` files, `cli/proofs.py` |
-| 3 | Phase 0: `evidence.py`, `blast`, one rule | nothing | new module, `cli/blast.py` |
+| 3 | **Done.** Phase 0: `proofcites.py`, `blast`, K-103 | nothing | landed at 3f96243, 11 paths under `tools/` |
 | 4 | Phase 1: annotation, ledger, three rules, derived tokens | 3 | new view, `views.py`, `confers.py`, two docs |
 | 5 | §6.2: freeze arithmetic in Gallina | nothing (call 6) | `tools/quickchick/` |
 | 6 | §6.3: retire `apex.py`'s record parse | 2 | `vos/apex.py`, `ApexTheorem.v` |
@@ -407,5 +424,12 @@ Nothing here is blocked on anything outside this file except where noted.
 | 8 | Phase 3: cross-artifact constant table | 4 | `checks/keccak.py`, K-76 |
 | 9 | Phase 3: `.glob` dependency graphs | Sail Coq backend | new |
 
-Items 1 through 3 are a day's work between them, gate on nothing, and deliver the
-blast-radius answer and the two assurance fixes before any register or view changes at all.
+Items 1 through 3 gate on nothing and deliver the blast-radius answer and the two assurance
+fixes before any register or view changes at all. **Item 3 is landed**, at 3f96243, and
+items 1 and 2 are in flight on `lane/proofs-gate-0907`. Nothing below item 3 has started.
+
+Two of this note's own instructions were falsified by building item 3, both caught only
+because the implementer measured rather than complied: sharing the comment strip on the
+host wave, corrected in Phase 0 above, and the module name, corrected with it. **Treat the
+unexecuted phases as carrying the same density of error**, and measure the load-bearing
+claim before acting on it rather than after.

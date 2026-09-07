@@ -87,6 +87,7 @@ class Context:
 # exist yet.
 from . import (  # noqa: E402
     bindings,
+    citations,
     compounds,
     confers,
     coread,
@@ -123,6 +124,7 @@ GROUPS = [
     confers,
     bindings,
     keccak,
+    citations,
     counts,
     compounds,
     estimates,

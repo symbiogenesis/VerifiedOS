@@ -4,6 +4,7 @@
 
     tools/run.py blast --field composed_schedulability
     tools/run.py blast --artifact proofs/SomeWorkstream.v
+    tools/run.py blast R-07-015           # one register entry, both its ends
     tools/run.py blast                    # every field with its consumers
 
 The mechanical facts come from proofs/ApexTheorem.v alone, through the one parse
@@ -16,12 +17,23 @@ nothing, and any other cell matches only where the queried name equals a whole t
 of it, never a bare substring, so a fragment of a longer word is no hit and the
 table's empty state cannot read as full coverage.
 
+The requirement form answers the question a register edit actually asks, and it has
+two ends because the entry reaches the proofs two ways. Through the view's
+**Authored by** column it names the Prop fields whose meaning that entry gives, and
+each of those is then reported exactly as `--field` reports it. Through the citations
+the proof artifacts already carry, read by vos/proofcites.py, it names the developments
+that argue from that entry, whether or not any of them discharges a field yet. An id
+is matched as an id rather than as a token, because those cells write one as
+`(R-05-159)` and as `R-05-023's`, where a token split would answer neither.
+
 The honest scope of the answer: a change to what a field *states* re-opens the
 definitions that consume it, and nothing else. The downstream trail printed after is
 conditional and labelled as such: a re-proved seam re-opens its consumers only if its
 conclusion's statement had to change too. And every seam sits under
 composition_meta_lemma, the R-18-031(b) linking theorem, which is always the last
-thing re-opened and is listed once rather than per line.
+thing re-opened and is listed once rather than per line. The citation half is weaker
+still and is labelled where it prints: an artifact that cites an entry has argued from
+it, which is not a claim that anything in it discharges the entry.
 """
 
 import argparse
@@ -29,8 +41,9 @@ import re
 from collections import deque
 from pathlib import Path
 
-from vos import apex, fieldbindings
+from vos import apex, fieldbindings, proofcites
 from vos.corpus import find_root
+from vos.register import REQ_TOKEN_RE
 
 # What a cell breaks into: the runs left between whitespace and the punctuation a
 # markdown link or code span wraps a path in.
@@ -91,7 +104,57 @@ def field_lines(record: apex.ApexRecord, conclusions: dict[str, str],
     return out
 
 
-def report(root: Path, field: str | None, artifact: str | None) -> tuple[int, list[str]]:
+def _authoring(rows: list[fieldbindings.Row], ident: str) -> list[str]:
+    """The Prop fields one register entry is named as the author of.
+
+    An id is matched as an id and never as a token: the Authored-by cells write one
+    inside parentheses and one in the possessive, so a token split answers neither,
+    where reading the ids a cell names answers both and cannot pair `R-05-159` with
+    `R-05-159a`.
+    """
+    return [row.field for row in rows if ident in REQ_TOKEN_RE.findall(row.authored_by)]
+
+
+def _cited_by(root: Path) -> tuple[list[tuple[str, str]], list[str]]:
+    """Every proof artifact in the working tree, and why any of them would not read."""
+    return proofcites.read(root, proofcites.on_disk(root))
+
+
+def _requirement_lines(record: apex.ApexRecord, conclusions: dict[str, str],
+                       fields: list[str], ident: str,
+                       pairs: list[tuple[str, str]]) -> tuple[int, list[str]]:
+    """One requirement's two ends: the fields it authors, and the proofs citing it.
+
+    The constant count is taken only for the artifacts that cite the entry, because it
+    wants the comment-stripping walk and that walk is priced per megabyte: over the
+    whole tree it is most of a second, and over the handful an entry reaches it is not
+    worth a flag.
+    """
+    out: list[str] = []
+    if fields:
+        out.append(f"requirement {ident} authors: {', '.join(fields)}")
+    else:
+        out.append(f"requirement {ident} authors no Prop field of the Vocabulary record")
+    out.append("")
+    for f in fields:
+        out.extend(field_lines(record, conclusions, f))
+        out.append("")
+
+    citing = [(rel, count, text) for rel, text in pairs
+              if (count := sum(1 for i in proofcites.ids(text) if i == ident))]
+    if citing:
+        out.append(f"proof artifacts citing {ident}, which is an argument from the "
+                   f"entry and not a discharge of it:")
+        out.extend(f"  {rel}: {count} citation(s), among "
+                   f"{len(proofcites.names(text))} constant(s) defined"
+                   for rel, count, text in citing)
+    else:
+        out.append(f"no proof artifact under {proofcites.PROOFS}/ cites {ident}")
+    return len(fields) + len(citing), out
+
+
+def report(root: Path, field: str | None, artifact: str | None,
+           requirement: str | None = None) -> tuple[int, list[str]]:
     """One whole run as data, the exit code and the lines to print, so the caller
     decides what to do with the verdict rather than parsing what was printed."""
     out: list[str] = []
@@ -102,6 +165,23 @@ def report(root: Path, field: str | None, artifact: str | None) -> tuple[int, li
         return 1, out
     record = apex.read(apex_path)
     conclusions = _seam_conclusions(record)
+
+    if requirement:
+        if not REQ_TOKEN_RE.fullmatch(requirement):
+            out.append(f"'{requirement}' is no requirement id; the form is R-nn-nnn "
+                       "with an optional letter suffix")
+            return 1, out
+        bindings_path = root / fieldbindings.BINDINGS
+        if not bindings_path.is_file():
+            out.append(f"FAIL: {fieldbindings.BINDINGS} is not in the repository")
+            return 1, out
+        rows = fieldbindings.rows(bindings_path.read_text(encoding="utf-8"))
+        pairs, faults = _cited_by(root)
+        found, lines = _requirement_lines(
+            record, conclusions, _authoring(rows, requirement), requirement, pairs)
+        out.extend(lines)
+        out.extend(f"FAIL: {fault}" for fault in faults)
+        return (0 if found and not faults else 1), out
 
     if field:
         if field not in record.field_set:
@@ -144,14 +224,24 @@ def report(root: Path, field: str | None, artifact: str | None) -> tuple[int, li
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="What an edit re-opens in the apex statement.")
+    # A bare positional, because `blast R-07-015` is how the question is asked out
+    # loud; it is checked against the other two here rather than in a mutually
+    # exclusive group, which would have to be told a positional's default is not a
+    # value the caller gave.
+    parser.add_argument("requirement", nargs="?",
+                        help="a requirement id, whose authored fields and citing proof "
+                             "artifacts are both reported")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--field", help="one Prop field of the Vocabulary record")
     group.add_argument("--artifact",
                        help="a proof development, named by a whole token of its "
                             "Instantiated-by cell")
     args = parser.parse_args(argv)
+    if args.requirement and (args.field or args.artifact):
+        parser.error("a requirement id is a query of its own; it takes neither "
+                     "--field nor --artifact beside it")
 
-    code, out = report(find_root(), args.field, args.artifact)
+    code, out = report(find_root(), args.field, args.artifact, args.requirement)
     print("\n".join(out))
     return code
 

@@ -3,8 +3,9 @@
 
 docs/field-bindings.md is one table, one row per Prop field of the apex statement's
 Vocabulary record, and two tools read its cells: the checker's bindings group holds
-the mechanical cells against the `.v`, and `blast-radius.py` reads the
-Instantiated-by column to find which fields an artifact discharges. The row shape is
+the mechanical cells against the `.v`, and [run.py blast](cli/blast.py) reads the
+Instantiated-by column to find which fields an artifact discharges and the Authored-by
+column to find which fields a register entry gives their meaning. The row shape is
 therefore a fact two consumers depend on, and it is decided here rather than spelled
 at each call site, which is the two-copies-of-one-fact defect the checker exists to
 catch.
@@ -39,6 +40,7 @@ class Row:
 
     field: str            # the Prop field the row binds, backticks stripped
     consumers: str        # the Consumed-by cell, as written
+    authored_by: str      # the Authored-by cell, as written
     instantiated_by: str  # the Instantiated-by cell, as written
 
 
@@ -55,6 +57,7 @@ def _scan(text: str) -> tuple[list[Row], list[str]]:
             continue
         rows.append(Row(field=m.group(1),
                         consumers=cells[2].strip(),
+                        authored_by=cells[3].strip(),
                         instantiated_by=cells[4].strip()))
     return rows, broken
 

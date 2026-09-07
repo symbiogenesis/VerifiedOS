@@ -620,6 +620,7 @@ DELTA = "docs/rtl-reparameterization-delta.md"
 FINDINGS = "docs/findings-register.md"
 RING_ARTIFACT = "proofs/RingContract.v"
 KECCAK_GALLINA = "proofs/Keccak.v"
+SEAM_WITNESSES = "proofs/SeamWitnesses.v"
 
 
 # One seeded defect, applied to a sandbox, answering whether it changed anything. A
@@ -1407,10 +1408,13 @@ CASES: list[Case] = [
     # other gate still green. The seeded file is one no other tool imports, so the
     # sandbox's own checker run is unaffected and the case decides about K-83 alone; the
     # statement is written here inside a string on one line, which is why the rule is
-    # anchored at a line start and this file is not a site of its own.
+    # anchored at a line start and this file is not a site of its own. The anchor is the
+    # one import that tool cannot lose rather than the first line of its import block,
+    # because a tool gaining a module rewrites that line and the case would then seed
+    # nothing, which is a finding about the case and not about the rule.
     ("K-83", "a landing-loop tool that imports the quarantined instruments",
-     _literal("tools/vos/cli/blast.py", "from vos import apex, fieldbindings",
-              "from quarantine import freeze\nfrom vos import apex, fieldbindings")),
+     _literal("tools/vos/cli/blast.py", "from vos.corpus import find_root",
+              "from quarantine import freeze\nfrom vos.corpus import find_root")),
 
     # One rule gets one case, and this rule gets two, because it holds two ways in and
     # the case above reaches only one: with the path half deleted the mutant above is
@@ -1671,6 +1675,18 @@ CASES: list[Case] = [
     ("K-102", "a completed item the summary's roster stops naming",
      _literal("docs/implementation-checklist.md",
               "S25, S26, S27, S28, S29, S30, Q1", "S25, S26, S27, S28, S29, Q1")),
+
+    # A transposition rather than an invented id, because that is the shape the defect
+    # actually takes: a header sentence is written from memory about an entry that turns
+    # out to be numbered something else, and the result renders as a citation, compiles,
+    # and passes the assumption gate. `proofs/` carries no Markdown, so no other rule
+    # reads the edit at all: K-11 resolves ids in documents and K-63 reads `model/` by
+    # kind, which is what makes this one rule's finding and nobody else's. The seed is in
+    # a header comment because that is where the artifacts argue from the register, and
+    # it moves no count, no link and no anchor.
+    ("K-103", "a proof artifact citing a requirement id with two digits transposed",
+     _literal(SEAM_WITNESSES, "the R-05-165 / R-05-166 discipline",
+              "the R-05-165 / R-05-616 discipline")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
