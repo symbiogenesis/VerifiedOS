@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 635 of them across 102 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 643 of them across 103 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -700,7 +700,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q3a
 · Disposition: open, referred to Q3b as its first act, where choosing a property subset by emission cost rather than by subject is what makes it payable
 
-**F-338** method: cmake's `git describe --tags --always --dirty --broken` runs under `GIT_DIR` and `GIT_WORK_TREE` and consults the submodules, and a gitlink populated on a Windows checkout reports modified from WSL, so `run.py model reference` printed `0affe37-dirty` with `upstream/sail-cheri-riscv-verif` populated and `0affe37` with it de-populated, at one commit and one worktree with the host-side `git status --short` empty in both readings
+**F-338** method: cmake's `git describe --tags --always --dirty --broken` runs under `GIT_DIR` and `GIT_WORK_TREE` and consults the submodules, and a gitlink populated on a Windows checkout reports modified from WSL, so `run.py model reference` printed `0affe37-dirty` with `upstream/sail-cheri-riscv-verif` populated and that same revision without the suffix with it de-populated, at one commit and one worktree with the host-side `git status --short` empty in both readings
 · Raised: Q3a
 · Disposition: standing, reported and not repaired, the describe site being in the vendored `model/` tree that stays byte-identical to its pin; a lane de-populates before the build whose stamp it quotes, which is what this one did, and the durable repair is `--ignore-submodules=all` at whatever site the tree eventually owns
 
