@@ -495,7 +495,9 @@ function propPermsLatticeExclusions(code : CapPermsCode) -> bool = {
 // Permit_Store_Capability and Permit_Store_Local, on the order `perms_expand`
 // states (core/cap_common.sail). No rule holds the two sites together, so a
 // change to the load path's masks leaves these three properties proving the
-// strip that was; the landing reports that as a finding and closes none of it.
+// strip that was. Nothing closes that here: what would close it is a checker
+// pairing the mask literals at the two sites, and no rule under tools/vos
+// names either identifier or either literal.
 //
 // One strip per property rather than three in one: each of these is a
 // `perms_narrow` call, and `perms_narrow` is a thirty-two-way search whose
