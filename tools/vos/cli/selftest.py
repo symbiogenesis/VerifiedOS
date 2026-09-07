@@ -1641,6 +1641,25 @@ CASES: list[Case] = [
     # off the sandbox, which is what makes the artifact side the one a case can move.
     ("K-100", "a lane fact naming a consumer the module it points at has renamed",
      _k100),
+
+    # The *template* is seeded rather than a shipped composition, and it is the only seed
+    # that isolates this reading. `memory.regions` is in neither non-primary file's
+    # declared divergence set and a list is compared whole, so an `executable` flipped in
+    # any of the three is K-65's finding as well; flipped in the primary it is K-88's too,
+    # the SoC map package being generated from that file's regions. The template is read
+    # by this rule and, for another key entirely, by K-57, so a device region made
+    # executable there is a defect exactly one rule reads.
+    #
+    # It is also the direction the defect arrives from, which is why the rule takes the
+    # template in at all: it is what every generated test-matrix configuration is
+    # configured from and the copy no `*.json` reading and no dialect loader reaches, so
+    # an attribute changed here reaches a built emulator through a file nothing else
+    # opens. The first `"executable": false` in it is the ROM region's, which is typed
+    # IOMemory, so the literal is unambiguous and the substitution declares a device
+    # endpoint fetchable.
+    ("K-101", "a device region the configuration template declares executable",
+     _literal("model/config/config.json.in",
+              '"executable": false', '"executable": true')),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

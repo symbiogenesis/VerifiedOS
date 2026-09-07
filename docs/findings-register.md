@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 629 of them across 99 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 631 of them across 100 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -502,6 +502,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S27
 · Disposition: open, the site left unaligned on purpose because an unowned second derivation of a figure is a finding rather than something to overwrite, and what would close it is one owner for the quantity
 
+**F-326** method: the next unallocated checker-rule id was named as unspent at two sites, a completion-log note recording what its own gate measured and an open finding's disposition beside it, so allocating that id falsifies a sentence in each, and only one of the two is a document an act may carry, gate-time evidence staying as written
+· Raised: S28
+· Disposition: closed at S28, the open disposition carried to the act and the gate-time note left as written; what generalizes is that a claim about which id is free is a claim about the registry's state and belongs where the registry is read rather than in a note that freezes
+
+**F-327** owed-act: the rule holding the map's device regions reads the compositions and the configuration template and never the SoC map package the RTL reads, which carries the same per-region bits and is generated from the primary composition rather than authored beside it
+· Raised: S28
+· Disposition: open, reported and not closed; the generation is K-88's subject so the source is held and the package inherits it, and what would close it is a re-derivation of the package beside the rule rather than a second reading of the same bits
+
 ## Q · Assessment actions
 
 **F-259** measurement: the estimates' headline blended five workload classes sharing no comparator into one parity-or-better sentence and restated the general-scalar band's ends and an approximate midpoint at three sites the band rule's pattern never reaches, the vector-crypto row excluding secret operands and the second-class row calling token generation bandwidth-bound beneath it
@@ -550,7 +558,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-281** owed-act: docs/placement-search.md quotes the tool's candidate-set predicate verbatim in its §2 and restates the check-to-entry pairs of `CONSTRAINTS` in its §4 table, and no rule holds either restatement against tools/vos/memplan.py, so a change to the tool leaves the document stale with no finding
 · Raised: Q5a
-· Disposition: open, reported and not closed; K-101 is not allocated and no rule is added under the fan-out, so the landing is declared Tier A rather than Tier B under K-88, and the holder is a K-68 co-stated pin or a rule of K-58's shape at a later act
+· Disposition: open, reported and not closed; no rule is added under the fan-out for it, so the landing is declared Tier A rather than Tier B under K-88, and the holder is a K-68 co-stated pin or a rule of K-58's shape at a later act
 
 **F-282** owed-act: docs/critique.md:154 says nothing in the corpus prices packings, and this landing prices a packing on span used, unused reservation and padding over a witness plan, so the sentence is a claim to re-read on landing while the paragraph around it (critique.md:144-159) names no item and is not answered by a witness-plan search
 · Raised: Q5a

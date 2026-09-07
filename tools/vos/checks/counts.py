@@ -42,6 +42,7 @@ from vos import dialectgen, differential, figures
 from vos.checks.counts_capformat import cap_format
 from vos.checks.counts_configs import (
     aperture_placements,
+    device_region_executability,
     excluded_by_name_keys,
     shipped_configurations,
     vectorless_configurations,
@@ -683,4 +684,5 @@ def run(ctx: Context) -> None:
     vectorless_configurations(ctx)
     aperture_placements(ctx)
     excluded_by_name_keys(ctx)
+    device_region_executability(ctx)
     rep.line()

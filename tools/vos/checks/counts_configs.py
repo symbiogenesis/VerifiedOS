@@ -448,3 +448,149 @@ def excluded_by_name_keys(ctx: Context) -> None:
                f"each of the {len(carried)} extensions the profile excludes by name and "
                f"the model still gates on a key reads false in all "
                f"{len(SHIPPED_CONFIGS)} shipped configurations")
+
+
+# The fourth file that carries the regions, and the one no `*.json` reading reaches. It
+# is the CMake template `model/config/CMakeLists.txt` configures every generated
+# test-matrix configuration from, and it reads one of those back into the emulator's own
+# default header, so an attribute set here reaches a built emulator without passing
+# through a file the dialect loader can open at all: it writes `@VARIABLE@` placeholders
+# where a generated configuration writes a number, so it is not JSON in any dialect and
+# is read as the template it is, which is how `vos/geometry.py` already reads the welded
+# block size out of it for K-57.
+#
+# The region pattern is tempered rather than greedy, so a pair is one region's own two
+# keys and never one region's type beside its neighbour's permission. The bare type
+# pattern beside it is the population those pairs are held against, which is what keeps
+# this half from narrowing quietly: a region the paired reading stops reaching is a
+# finding rather than a region silently dropped.
+CONFIG_TEMPLATE = "model/config/config.json.in"
+TEMPLATE_REGION_RE = re.compile(r'"mem_type"\s*:\s*"(\w+)"(?:(?!"mem_type").)*?'
+                                r'"executable"\s*:\s*(true|false)', re.DOTALL)
+TEMPLATE_TYPE_RE = re.compile(r'"mem_type"\s*:')
+
+# The two kinds a region is, named so that a type spelled outside them stops the
+# comparison for that region rather than passing as one that is not a device.
+MEM_TYPES = ("IOMemory", "MainMemory")
+
+
+def device_region_executability(ctx: Context) -> None:
+    """K-101: no region a composition types as IO memory is executable.
+
+    `executable` is the one PMA attribute an architectural instruction fetch is decided
+    by. `pmaCheck` maps `InstructionFetch()` to it and returns an access fault where it
+    reads false (model/model/sys/mem.sail), and `pma_regions` is the composition's own
+    `memory.regions` outright (model/model/sys/pma.sail), so whether a fetch to a device
+    endpoint faults or returns is a value in a JSON file rather than a shape of the tree.
+    No register entry states which value it takes: the W^X entries are stated over
+    capability authority instead, R-14-003 having W^X subsume the per-page no-execute bit
+    and R-15-007l's Accept saying in as many words that the bound is on capabilities and
+    not on memory, the same address being writable through one capability and executable
+    through another.
+
+    **The forward direction only, and the converse is refused rather than left out.** A
+    region typed IOMemory is a register-slave endpoint and is not fetched from, so that
+    half is exception-free across every composition and the template alike. The reverse
+    is a shape the model *mandates*: `check_pma_region` refuses an IO-memory scratchpad
+    and refuses an executable one, on R-18-009's ground that a statically-placed
+    instruction scratchpad is a question this profile leaves open
+    (model/model/postlude/validate_config.sail), which leaves any scratchpad R-15-167
+    admits a main-memory region with `executable` false. A rule reading the two
+    attributes as a biconditional would refuse the first composition that declares one,
+    which is a rule deciding a design question rather than holding one.
+
+    **K-65 is the neighbour and cannot see this.** `memory.regions` is in neither
+    non-primary file's declared divergence set and a list is compared whole, so a region
+    attribute that drifted in one file is already its finding. What it is satisfied by is
+    the three files agreeing on a value none of them should carry, which is the shape
+    this defect arrives in: the primary edited and the other two kept in step.
+
+    **The template is inside the rule and not beside it**, because it is the copy a
+    `*.json` glob and the dialect loader both miss and the copy every generated
+    configuration is configured from.
+
+    Report-only, on K-87's and K-94's ground: which value a composition declares is a
+    composition's decision, and a rule that flipped one would be deciding what machine a
+    file describes.
+
+    Fail-closed on the reading, on K-67's and K-75's ground: a composition stating no
+    readable `memory.regions`, a region declaring no attributes, a region whose memory
+    type is neither of the two kinds a region is or whose `executable` is not a boolean,
+    an absent template, a template carrying no region in the form this rule reads, a
+    template typing more regions than this rule pairs an executability with, and a run
+    reaching no IO memory region at all are each a finding rather than a comparison made
+    against nothing, which leaves this rule owing the floors group no member.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    # where it is written, the memory type it is given, and whether it is executable
+    read: list[tuple[str, str, bool]] = []
+
+    for rel in SHIPPED_CONFIGS:
+        # `config.value` rather than a second parse: the dialect is decoded in one place,
+        # and K-65 above has already paid for these files this run.
+        regions = config.value(ctx.root / rel, "memory", "regions")
+        if not isinstance(regions, list) or not regions:
+            findings.append(f"{rel} states no `memory.regions` this rule can read, so no "
+                            f"region it declares is held against the fetch gate")
+            continue
+        for index, region in enumerate(regions):
+            where = f"{rel}'s `memory.regions[{index}]`"
+            attributes = region.get("attributes") if isinstance(region, dict) else None
+            if not isinstance(attributes, dict):
+                findings.append(f"{where} declares no attributes, so its memory type and "
+                                f"its executability cannot be read together")
+                continue
+            kind, executable = attributes.get("mem_type"), attributes.get("executable")
+            if not isinstance(kind, str) or kind not in MEM_TYPES:
+                findings.append(f"{where} is typed {kind!r}, which is neither of the two "
+                                f"kinds a region is, so whether it is a device endpoint "
+                                f"cannot be decided")
+                continue
+            if not isinstance(executable, bool):
+                findings.append(f"{where} states no boolean `executable`, so what "
+                                f"`pmaCheck` admits a fetch to it on is undecided")
+                continue
+            read.append((where, kind, executable))
+
+    path = ctx.root / CONFIG_TEMPLATE
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    pairs = TEMPLATE_REGION_RE.findall(text)
+    typed = len(TEMPLATE_TYPE_RE.findall(text))
+    if not text:
+        findings.append(f"{CONFIG_TEMPLATE} is not in the repository, so the template "
+                        f"every generated configuration is configured from is held by "
+                        f"nothing")
+    elif not pairs:
+        findings.append(f"{CONFIG_TEMPLATE} carries no region in the form this rule reads "
+                        f"a memory type and an executability out of")
+    elif len(pairs) != typed:
+        findings.append(f"{CONFIG_TEMPLATE} types {typed} regions and this rule pairs "
+                        f"{len(pairs)} of them with an `executable`, so its reading has "
+                        f"narrowed and the regions it no longer reaches are unheld")
+
+    for index, (kind, flag) in enumerate(pairs):
+        where = f"{CONFIG_TEMPLATE}'s region {index}"
+        if kind not in MEM_TYPES:
+            findings.append(f"{where} is typed `{kind}`, which is neither of the two kinds "
+                            f"a region is, so whether it is a device endpoint cannot be "
+                            f"decided")
+            continue
+        read.append((where, kind, flag == "true"))
+
+    device = [(where, executable) for where, kind, executable in read
+              if kind == "IOMemory"]
+    findings += [f"{where} is typed IOMemory and declares `executable` true, so an "
+                 f"instruction fetch to a device endpoint is admitted by `pmaCheck` "
+                 f"(model/model/sys/mem.sail) where it would otherwise raise an access "
+                 f"fault"
+                 for where, executable in device if executable]
+    if read and not device:
+        findings.append("no region any shipped configuration or the configuration "
+                        "template declares is typed IOMemory, so this rule decides "
+                        "nothing about a device endpoint at all")
+
+    rep.report("K-101", "device region(s) a composition declares executable:", findings,
+               f"each of the {len(device)} IO memory regions the "
+               f"{len(SHIPPED_CONFIGS)} shipped configurations and {CONFIG_TEMPLATE} "
+               f"declare is non-executable, out of {len(read)} regions read")
