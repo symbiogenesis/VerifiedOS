@@ -3270,7 +3270,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CERISE, CJ-SAIL
 
 **R-14-003** IS: W^X subsumes the Harvard split, DEP, and the per-page no-execute bit, and supplies the *whole* of W^X rather than the necessary half: monotone derivation cannot mint execute authority over a writable region, so the writable-to-executable promotion primitive an NX bit must be paired with never exists.
-· Accept: the coarse page-granular hedge is declined on the same grounds as the MMU and PMP.
+· Accept: the coarse page-granular hedge is declined on the same grounds as the MMU and PMP, and the fetch-permission function beside the promotion one is disposed of here rather than in the commentary alone: execute authority rides the Program Counter Capability, which must carry execute permission for a fetch to proceed, at object and capability granularity and with no page-table walk in the path (R-15-013a).
 · Trace: CJ-CERISE
 
 **R-14-004** MUST NOT: The invariant admits no runtime-codegen exception: the sole way an executable region appears is install-time capability wiring deriving execute-only authority over read-only regions of the content-addressed image.
@@ -3551,6 +3551,10 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-013** MUST: Defense-in-depth clause (*verify rather than hedge*): a redundant mechanism is admitted only if it is a genuinely disjoint failure domain the primary's own verification does not reach; where the primary is formally verified, the hedge is declined.
 · Accept: neither roster is kept here. Every declined hedge cites *verify rather than hedge* at the point of decline and every admitted one cites it at the point of admission, so both sets are read off the citations and a hedge cannot be settled in the prose without the clause knowing. A decline shows the primary's own verification reaches the domain; an admission shows a genuinely disjoint failure domain and zero cost on the scarce axis.
+· Trace: CJ-T
+
+**R-15-013a** MUST: A decline under R-15-013 is discharged against every function the declined structure performs in the architecture it is taken from, and not against the function it is filed under alone. R-15-013's decline criterion reads *the domain*, singular, and that domain is the one whose coverage made the structure redundant, so a structure its origin architecture gave more than one function is discharged on one and silent on the rest, a silence a reader cannot tell from an enumeration that found nothing. The decline therefore enumerates those functions and carries a disposition for each: the mechanism here that covers it, the entry that already covers it, or the statement that nothing here requires it.
+· Accept: every decline citing *verify rather than hedge* carries one recorded disposition per enumerated function, in the form R-15-075's locked-PMP roles already take, and a disposition is a citation where the mechanism is elsewhere, R-15-206's interrupt-file confinement standing for the remapping function at R-15-205's decline. A disposition carried only by the prose specification is not carried, R-05-152 making the register the artifact the gate audits. A decline naming fewer functions than the structure performs is incomplete rather than decided, and a function the review gate adds stands as a finding until it carries a disposition. The set quantified over is the decline roster R-15-013 has read off the citations, so no roster is kept here either; and the enumeration asks what the structure supplied where R-15-010's five parts ask what a candidate would cost, so neither test discharges the other.
 · Trace: CJ-T
 
 **R-15-014** MUST: The profile is frozen with the proof, and all reserved, custom, and unused encodings trap rather than silently executing.
@@ -4878,7 +4882,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 ### 15.26 Capability-checked DMA
 
 **R-15-205** MUST NOT: Neither an IOMMU nor an IOPMP is on the die: device DMA is brought under CHERI rather than confined by a separate translation or region-protection unit.
-· Accept: the device-side completion of the No-PMP decision; the IOMMU's translation is dead weight in one address space and only its protection is wanted, which CHERI supplies unforgeably and byte-granularly.
+· Accept: the device-side completion of the No-PMP decision; the IOMMU's translation is dead weight in one address space and only its protection is wanted, which CHERI supplies unforgeably and byte-granularly. Its third function is interrupt remapping, disposed of at R-15-206 rather than here, a device MSI being a store confined by the same capability check rather than by a remapping table (R-15-013a).
 · Trace: CJ-CERISE
 
 **R-15-206** MUST: Every DMA-capable block is one of exactly two capability-checked shapes: a core-issued capability-operand mover, or an autonomous streaming engine holding a delegated, bounds-checked, revocable capability for the lifetime of its window.
@@ -6137,7 +6141,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1402 requirements. §19 is non-normative and yields none. Counts include the 449 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1403 requirements. §19 is non-normative and yields none. Counts include the 450 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6155,7 +6159,7 @@ All eighteen normative sections are extracted, at 1402 requirements. §19 is non
 | **§12 System Servers** | **extracted** | **126** |
 | **§13 Packaging & Supply Chain** | **extracted** | **39** |
 | **§14 Userland** | **extracted** | **29** |
-| **§15 Hardware Platform** | **extracted** | **413** |
+| **§15 Hardware Platform** | **extracted** | **414** |
 | **§16 Reliability** | **extracted** | **35** |
 | **§17 Residual Risks** | **extracted** | **134** |
 | **§18 Realization** | **extracted** | **58** |

@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 631 of them across 100 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 633 of them across 101 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -509,6 +509,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-327** owed-act: the rule holding the map's device regions reads the compositions and the configuration template and never the SoC map package the RTL reads, which carries the same per-region bits and is generated from the primary composition rather than authored beside it
 · Raised: S28
 · Disposition: open, reported and not closed; the generation is K-88's subject so the source is held and the package inherits it, and what would close it is a re-derivation of the package beside the rule rather than a second reading of the same bits
+
+**F-328** method: R-15-013's criterion states that both its rosters are read off the citations, every declined hedge citing the clause at the point of decline, but three of the standing declines carry that citation only in the prose specification, which R-05-152 makes commentary rather than the artifact the gate audits, so the register reaches them only through R-15-200's criterion naming the roster in passing
+· Raised: S29
+· Disposition: open, reported and not closed; the admissions do carry the citation in their own criterion lines, so the defect is one-sided, and what would close it is a citation added at each declining entry rather than a roster kept somewhere
+
+**F-329** owed-act: the enumeration R-15-013a obliges is not bounded from outside, a reviewer always being able to name one more function a structure performed in the architecture it is taken from, so the criterion decides that a named function carries a disposition and never that the naming has finished
+· Raised: S29
+· Disposition: open by construction; it takes R-15-010's shape, an enumeration whose members each carry a recorded disposition and where a member the review gate adds stands as a finding until disposed, which makes incompleteness visible without making it decidable, and the residue is the review gate's rather than a rule's
 
 ## Q · Assessment actions
 
