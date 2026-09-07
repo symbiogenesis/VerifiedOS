@@ -494,6 +494,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S26
 · Disposition: closed, R-12-004 carving the matcher out as a bound on authority under R-12-019 and R-17-054 rather than as a quality figure or a proof, the consent front-ends being taken by the trusted-path agent under R-15-144 and so outside the class
 
+**F-324** measurement: the ungraded branch's array sits on the same planar tier as the cores (R-15-108a), a tier R-15-161 keeps off gate-all-around and CFET and R-17-063b keeps on a frontside-powered fully-depleted SOI node an infra-red probe resolves, while the density band the budget is derived from is stated for high-density SRAM at leading nodes, so the band does not name the process assumption it is stated under
+· Raised: S27
+· Disposition: open, reported and not closed; every reading of it moves the budget down or leaves it alone and never up, so it does not block the alignment, and the act that would close it is the macro measurement R-15-247m already owns
+
+**F-325** owed-act: two derivations of the same quantity disagree by a third and no rule holds them together, the inspirations tree deriving about 2.6 MB/mm² usable per full-reticle tier, which is 54.7% of its own raw macro figure, where the register's band with the metadata above the payload gives 27.7 to 46.2 Mb/mm² of payload, so the same all-array half field is near a gigabyte under the one and 1.386 to 2.31 GB under the other
+· Raised: S27
+· Disposition: open, the site left unaligned on purpose because an unowned second derivation of a figure is a finding rather than something to overwrite, and what would close it is one owner for the quantity
+
 ## Q · Assessment actions
 
 **F-259** measurement: the estimates' headline blended five workload classes sharing no comparator into one parity-or-better sentence and restated the general-scalar band's ends and an approximate midpoint at three sites the band rule's pattern never reaches, the vector-crypto row excluding secret operands and the second-class row calling token generation bandwidth-bound beneath it
