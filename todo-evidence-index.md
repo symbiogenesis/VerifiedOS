@@ -81,11 +81,11 @@ in; a later pass on the tooling question corrected one more.
 
 | Change | Why |
 | --- | --- |
-| **Dropped** a new `· Machine-checked:` conferral line in the register | The `· Accept:` criterion **already** states what decides the entry. A second line stating what a theorem must say is one fact in two places, which is the defect the register's own rules forbid. Removes a rule, a mutant, and churn across 1402 entries. |
-| **Dropped** `.glob` from the critical path | `.glob` is gitignored (`.gitignore:30`), so the host wave can never read it, and carrying guest facts across in a tracked JSON recreates the sync surface this is meant to remove. Everything phase 1 needs is in the tracked `.v` text, which `cli/proofs.py` already parses. Keep `.glob` for phase 3. |
+| **Dropped** a new `· Machine-checked:` conferral line in the register | The `· Accept:` criterion **already** states what decides the entry. A second line stating what a theorem must say is one fact in two places, which is the defect the register's own rules forbid. Removes a rule, a mutant, and an edit at every entry the register carries. |
+| **Dropped** `.glob` from the critical path | `.gitignore` ignores `proofs/*.glob`, so the host wave can never read it, and carrying guest facts across in a tracked JSON recreates the sync surface this is meant to remove. Everything phase 1 needs is in the tracked `.v` text, which `cli/proofs.py` already parses. Keep `.glob` for phase 3. |
 | **Dropped** co-read pairs for every (requirement, theorem) pair | A prose edit already dirties a median of four pairs. Multiplying that by proof coverage makes register editing *slower*, which is the opposite of the goal. Scope co-read to crown-jewel rows, where the semantic reading actually matters. |
 | **Reframed** the proofs-to-code leg around K-91 and K-76 | Both already exist and both work by comparing constants stated in two source files at zero prover cost. That beats inventing a refinement-tier vocabulary. |
-| **Added** phase 0 | **338 distinct R-ids are already cited** across the 18 `.v` files. A file-level citation index costs one regex pass and zero authoring, and answers blast-radius questions on day one. |
+| **Added** phase 0 | **The `.v` files already cite register ids in bulk**, 338 distinct ones across the 18 of them as measured at d942c1c. A file-level citation index therefore costs one regex pass and zero authoring, and answers blast-radius questions on day one. |
 | **Corrected** the advice to reuse `scan_witnesses` | It came out of the tooling-verification pass (§6). That function approximates a *type* judgment with a regex, so extending it is the wrong direction. Phase 0 stays lexical; the semantic half moves to the prover in Phase A. |
 
 ## 4. The measured cost of the new group
@@ -108,7 +108,8 @@ Total added cost: about **8 ms per `check.py` run** (read plus scan), so under *
 a whole selftest pass**, against a wave of 35 s to 52 s on AC. **Under 2%.** On AC the
 figure is nearer 3 ms.
 
-Note the corpus is markdown-only (`corpus.py:410`), so the group reads `.v` itself rather
+Note the corpus is markdown-only, `corpus.py` admitting a path only where it ends `.md`
+and falls outside `UNREAD_PREFIX`, so the group reads `.v` itself rather
 than through `ctx.corpus`. That is the 5.7 ms, and it is the larger half of the cost.
 
 ---
