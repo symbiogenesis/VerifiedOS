@@ -411,7 +411,7 @@ The other four off-clock rows are the radio reference state machines (inventory 
 
 ### Current summary
 
-* Completed: S1, S2, S3, S4, S7, S8, S9, S10a, S10b, S11, S12, S13a, S13b, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, S27, S28, S29, S30, Q1, Q2a, Q4a, Q5a, M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M0.19, M0.20, M1.1, M1.1a, M1.1b, M1.2a, M1.4′, M1.5, M1.6, M1.8a, M1.9, M3.1, M3.2, M3.3, M3.4a, M3.4d, M3.6a, M4.1, M4.1a, M4.1b, M4.2a, M4.2b, M4.3, M5.1, M5.2, M6.0a, M6.0b, M6.1a, M6.2a, M6.3a, M6.4, M6.5a, R1a, R1c-i, R4, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15, I16 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause. **S14 is a sixth of the same kind and the first outside the instruments**, S9 having retired the first of the two grounds I8 declined push CI on and the measurement then finding the second standing.
+* Completed: S1, S2, S3, S4, S7, S8, S9, S10a, S10b, S11, S12, S13a, S13b, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, S27, S28, S29, S30, Q1, Q2a, Q3a, Q4a, Q5a, M0.1–M0.5, M0.6a, M0.6b, M0.6c (c1–c4), M0.6d, M0.6e (e1–e5), M0.6f, M0.6g, M0.6h, M0.7, M0.8a, M0.8b, M0.8d, M0.9, M0.10, M0.11, M0.12, M0.13, M0.14, M0.15, M0.16, M0.17, M0.18, M0.19, M0.20, M1.1, M1.1a, M1.1b, M1.2a, M1.4′, M1.5, M1.6, M1.8a, M1.9, M3.1, M3.2, M3.3, M3.4a, M3.4d, M3.6a, M4.1, M4.1a, M4.1b, M4.2a, M4.2b, M4.3, M5.1, M5.2, M6.0a, M6.0b, M6.1a, M6.2a, M6.3a, M6.4, M6.5a, R1a, R1c-i, R4, and the build-loop instruments I0, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15, I16 and the initial check/emit/FAST tooling. Five instrument clauses are **declines carrying a measurement**, the act of measuring having removed the premise: I2, I6 and I8 whole, I4's second clause, and I5's prefix-map clause. **S14 is a sixth of the same kind and the first outside the instruments**, S9 having retired the first of the two grounds I8 declined push CI on and the measurement then finding the second standing.
 * The open work and the order it is taken in are [Sequencing](#sequencing)'s; each landed item's note is in [the completion log](completion-log.md), which also keeps [the lane-by-lane state this summary carried](completion-log.md#the-summarys-state-before-s10b-landed-2026-09-05) before the notes moved out of this file.
 * Total estimate: 1,308.7 h midpoint, class I 257 h and class X 592 h over the open items.
 * Calibrated against completed-item outturn (class I 0.71, class X 1.68): approximately 1,636.7 h.
@@ -614,8 +614,8 @@ Q1, Q2a, Q3a, Q4a and Q5a open independently, the host-side halves waiting on no
   * **Done when** the slice's production code is connected to its functional specification, its changed representation properties are checked, and the security claim states which assumptions and which physical faults remain outside it. The routes are the existing Sail, Rocq, Verilator, QuickChick, `oracle` and `seed` ones [tools/README.md](../tools/README.md) states, and a new fuzzing framework is not the first dependency wanted here. The effect is stronger evidence and less regression risk at more immediate effort: a test can falsify a claim and a surviving test discharges no universal theorem, and no speed or capacity credit belongs to this item.
   * **Split at entry by what exists to connect to.** The pinned property suite and the narrowed model both exist, so the first bullet is a child of its own; the other three want the slice Q2b lowers and the protected-sequence fault model [the crown-jewel inventory](crown-jewels.md) books as not authored, and are the second. The children redistribute this cell's 25 h and its 15–35 range.
 
-  * [ ] **Q3a · Connect the capability-helper property suite to the narrowed model** · 8 h, range 5–11 · 0.6% · X
-    * The first bullet: the premises the narrowing moved enumerated before anything runs, the properties transcribed at the frozen widths and run over the model's own SMT route, and bounds edges, malformed encodings and the permission representation exercised against the current semantics.
+  * [x] **Q3a · Connect the capability-helper property suite to the narrowed model** · 4.3 h actual · 0.0% · agent-parallel
+    * The pinned suite is transcribed at the frozen widths with the premise the narrowing moved named at every property, and a solver puts each one to its own verdict. ([note](completion-log.md#q3a-connect-the-capability-helper-property-suite-to-the-narrowed-model))
   * [ ] **Q3b · Extend the instruments to the lowered slice and specify its fault model** · 17 h, range 10–24 · 1.3% · X
     * Bullets two to four over the slice Q2b lowers, and the Done-when. Gates on Q2b and on the fault model above, which is a Tier-A authoring act no item yet owns.
 * [ ] **Q4 · Measure inference demand before adding supply**
@@ -1564,6 +1564,7 @@ One row per completed item marked `agent-parallel`, in document order, on the sa
 | S30 | n/a | n/a |
 | Q1 | I | 7.5 |
 | Q2a | X-authored | 10 |
+| Q3a | X-read | 8 |
 | Q4a | X-read | 9 |
 | Q5a | I | 7 |
 | M0.20 | n/a | n/a |

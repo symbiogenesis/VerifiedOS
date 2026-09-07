@@ -676,6 +676,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q4a
 · Disposition: open, reported and not closed; the placement is the whole-program static memory plan's (R-08-012a) exactly as the compute and output buffers are, and the report states the demand with the cache and without it rather than assuming one, the register tension it reports holding on the weight stream alone either way
 
+**F-332** measurement: the pinned capability-helper property suite loads at neither Sail 0.20.2 nor the narrowed capability record, `EXTZ` being a type error and the property bodies reading `internal_E`, `reserved`, the flags field through `getCapFlags` and `setCapFlags`, and `uperms`, so the pin's `smt` target cannot be pointed at this model and connecting it is a transcription rather than a run of the pin
+· Raised: Q3a
+· Disposition: closed, the 24 properties restated at the frozen widths in model/model/unit_tests/cap_properties.sail with the upstream notice retained at model/LICENCE.cheri-verif, THIRD-PARTY.md's pin row moved from `pinned to read later` to `read` and its two no-tool-runs-either-target sentences rewritten; S12's frozen note is unaffected, stating what the upstream's targets do rather than what this tree runs
+
+**F-333** owed-act: five of the pin's 24 properties are unstatable here because `getRepresentableLength` and `getRepresentableAlignmentMask` left with `cram` and `crrl` at M0.6f, and the contract they stated, which moved to the static memory plan, is restated by no property and booked as a checkable claim by no register entry
+· Raised: Q3a
+· Disposition: open, reported to R-15-007k and R-08-011 as their obligation rather than the capability format harness's, and named by property in the transcribed suite's header so the gap is visible where a reader looks for them
+
+**F-334** owed-act: R-15-007a says the format's own property harness owes the containment domain as a case, and the harness now states it, `propSetBoundsContains` and `propSetBoundsWellFormed` both proving over the whole input space while the probe that drops the domain is satisfiable, but an SMT verdict over the Sail functions is evidence and not the representation-correctness proof the entry names, and the entry's malformed-set clause asks for a characterization over all 19-bit bounds triples where what is proved is a statement about the set `setCapBounds` reaches
+· Raised: Q3a
+· Disposition: open, reported and not closed; whether a proved `$[property]` discharges the owed case, whether the entry's wording moves, and whether the malformed-set clause takes any of this are register acts
+
+**F-335** measurement: the suite's two guarding premises were put to the solver as the properties that drop them rather than assumed, the property asserting that every `Capability` round-trips through the in-memory form coming back satisfiable, so `encodableCap` is not identically true, the three concrete reset capabilities coming back proved, so it is not identically false, and the containment property with its domain inverted coming back satisfiable, so the 2^36 bound in `propSetBoundsContains` restricts something, while the same bound in `propSetBoundsEncodable` is read off `setCapBounds`'s own exponent choice and no probe pins it
+· Raised: Q3a
+· Disposition: standing, recorded in the suite's header with each probe's body so the guarded implications are not read as vacuous and either reading is reproduced by pasting the body back and running `run.py model smt --property` on it
+
+**F-336** method: `perms_narrow` is a thirty-two-way search the SMT backend unrolls, so a property naming one costs about 390,000 bytes of SMT-LIB and a fifth of a second of solving while a property naming three and a probe naming two each ran past 900 s of emission with no file written and were stopped, which puts the enumerated permission lattice's binary relations, monotonicity in the subset order among them, outside the SMT route until the emission is narrowed
+· Raised: Q3a
+· Disposition: standing, the three load-side strips R-15-074 asks about stated one per property for this reason; R-15-007b's join is statable at one call and is left to Q3b
+
+**F-337** owed-act: a `run.py seed smt` oracle cannot reuse an emission, a mutant changing the model, so each mutant pays the suite's whole 751.1 s emission before any solving and a sample of ten costs over two hours in one lane before the oracle itself is written, which is why the fourth seed oracle is not built here
+· Raised: Q3a
+· Disposition: open, referred to Q3b as its first act, where choosing a property subset by emission cost rather than by subject is what makes it payable
+
+**F-338** method: cmake's `git describe --tags --always --dirty --broken` runs under `GIT_DIR` and `GIT_WORK_TREE` and consults the submodules, and a gitlink populated on a Windows checkout reports modified from WSL, so `run.py model reference` printed `0affe37-dirty` with `upstream/sail-cheri-riscv-verif` populated and `0affe37` with it de-populated, at one commit and one worktree with the host-side `git status --short` empty in both readings
+· Raised: Q3a
+· Disposition: standing, reported and not repaired, the describe site being in the vendored `model/` tree that stays byte-identical to its pin; a lane de-populates before the build whose stamp it quotes, which is what this one did, and the durable repair is `--ignore-submodules=all` at whatever site the tree eventually owns
+
+**F-339** method: the lane's report quoted K-63 as resolving 1,689 requirement citations across 98 model files, and three readings taken since give 1,661 across 97 in the completion log, 1,665 across 97 on main without this suite and 1,690 across 98 at the merge, so the pair matches no tree this repository has had while the file count it was quoted beside did match, and it survived a figure sweep because it sat inside a sentence of evidence rather than in a table, where a number reads as rhetoric rather than as a claim
+· Raised: Q3a
+· Disposition: closed at landing, the note citing the rule as green rather than carrying a count `check.py` recomputes, on the ground that such a figure moves with work the item never touched and a note is frozen where the rule is not
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
