@@ -54,11 +54,12 @@ from vos import proofs as proofs_mod
 from vos.corpus import find_root
 
 # The lexical half of this parse, promoted to `vos.proofs` when a second tool needed it
-# and imported back under the names this module already used, so that the reading below
+# and imported back under the name this module already used, so that the reading below
 # is unchanged by the move. `a parse two tools make is written once` is that module's
-# own convention and this is it applied to itself.
+# own convention and this is it applied to itself. `strip_comments` came back with it and
+# is no longer imported here: its one consumer was the anywhere-matching witness search,
+# which retired when the prover took the inhabitation judgement over.
 from vos.proofs import sentences as _sentences
-from vos.proofs import strip_comments as _strip_comments
 
 PROOFS = "proofs"
 CLOSED = "Closed under the global context"
