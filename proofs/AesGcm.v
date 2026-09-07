@@ -1794,6 +1794,17 @@ Example the_reflection_fixes_a_block_of_those_bytes_and_moves_the_others :
 Proof. vm_compute. reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_AeadParameters : AeadParameters := demo.
+
+(* -------------------------------------------------------------------------
    The R-05-163 assumption gate reads this block. Every shipped constant is
    enumerated from its own proof term and held against the declared set: there
    is no Admitted, no Axiom, no top-level Parameter and no Require anywhere

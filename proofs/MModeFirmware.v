@@ -1610,6 +1610,22 @@ Theorem the_wide_root_installer_refines_exactly :
 Proof. intros g st [ Hd _ ] e. exact (Hd e). Qed.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Edge : Edge demo_wx := demo_wide_edge.
+Definition witness_Installed : Installed demo_wx :=
+  {| ins_holds := fun _ => false;
+     ins_resident := nil;
+     ins_roots := fun _ _ => false |}.
+Definition witness_Machine : Machine := demo_wx.
+
+(* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`: every shipped
    constant's enumerated assumption set is compared against the declared set
    R-05-164 currently makes empty, so "Closed under the global context" is

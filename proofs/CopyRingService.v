@@ -3261,6 +3261,20 @@ Example the_two_copy_runs :
 Proof. vm_compute; reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Service : Service := demo_service.
+Definition witness_ring_view : ring_view := full_view.
+Definition witness_slot : slot := demo_slot.
+Definition witness_world : world := quiet_world.
+
+(* -------------------------------------------------------------------------
    The R-05-163 gate: every constant closed under the global context.
    ------------------------------------------------------------------------- *)
 

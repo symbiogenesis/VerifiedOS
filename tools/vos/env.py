@@ -501,6 +501,32 @@ def rocq_command() -> list[str]:
                      f"{install_line(ROCQ_INSTALL)}")
 
 
+def rocqchk_command() -> list[str]:
+    """The prover's own kernel re-checker, as an argument list.
+
+    Resolved the three ways `rocq_command` resolves the compiler and separately from
+    it, so a lane that overrides one may override the other: `$VOS_ROCQCHK`, then the
+    pinned switch, then PATH. It ships in ROCQ_SWITCH beside `rocq` rather than in a
+    package of its own, which is why an absence is answered with that switch's install
+    line: a tree with `rocq` and no `rocqchk` is a switch built some other way, not a
+    missing dependency this repository states a second recipe for.
+
+    It takes no subcommand where `rocq c` takes one: the binary still announces itself
+    as `coqchk` and its usage is `coqchk <options> modules`.
+    """
+    override = os.environ.get("VOS_ROCQCHK")
+    if override:
+        return [override]
+    pinned = opam_root() / ROCQ_SWITCH / "bin" / "rocqchk"
+    if pinned.is_file():
+        return [str(pinned)]
+    found = shutil.which("rocqchk")
+    if found:
+        return [found]
+    raise SystemExit(f"no kernel re-checker: neither $VOS_ROCQCHK, nor {pinned}, nor "
+                     f"rocqchk on PATH. {install_line(ROCQ_INSTALL)}")
+
+
 def _apply_opam_env() -> None:
     """Guarded, because the container lanes load this module too and have no opam.
     Nothing is masked by the guard: a Sail loop without the switch fails loudly at

@@ -1687,6 +1687,17 @@ Theorem the_specification_supervisor_is_inhabited_and_not_constant :
 Proof. split; [ reflexivity | split; reflexivity ]. Qed.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Machine : Machine := demo.
+
+(* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`: every shipped
    constant's enumerated assumption set is compared against the declared set
    R-05-164 currently makes empty, so "Closed under the global context" is

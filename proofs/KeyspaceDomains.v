@@ -3797,6 +3797,31 @@ Example the_alias_table_answers_its_own_names_and_no_others :
 
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Batch : Batch := demo_batch.
+Definition witness_Composition : Composition := l2_demo.
+Definition witness_Epoch : Epoch :=
+  {| ep_committed := true; ep_sealed := true |}.
+Definition witness_Ext : Ext :=
+  {| ex_present := true; ex_domain := 0; ex_len := 0; ex_plain := 0 |}.
+Definition witness_K2 : K2 :=
+  {| k_domain := 0; k_space := 0; k_kind := 0;
+     k_object := 0; k_attr := 0; k_version := 0 |}.
+Definition witness_Keyring : Keyring :=
+  {| kr_root_live := true; kr_resident := fun _ => false;
+     kr_blob := fun _ => false |}.
+Definition witness_NsCap : NsCap := demo_cap.
+Definition witness_Obs : Obs := obs_zero.
+Definition witness_Sealing : Sealing := demo_sealing.
+
+(* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`: every shipped
    constant's enumerated assumption set is compared against the declared set
    R-05-164 currently makes empty, so `Closed under the global context` is

@@ -4018,6 +4018,19 @@ Example the_inference_is_right_where_the_predecessor_wrote :
   /\ Nat.eqb (after_the_second_member 1) 1 = false := conj eq_refl eq_refl.
 
 (* -------------------------------------------------------------------------
+   R-05-166's inhabitation witnesses: one closed definition per record this
+   file's statements quantify over, named for that record and ascribed at it.
+   The prover decides inhabitation by type-checking the ascription, so
+   `run.py proofs` reads a name rather than approximating a type judgement.
+   A record this file reaches through a Require is witnessed in the file that
+   declares it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Kernel : Kernel := empty_kernel.
+Definition witness_Machine : Machine := demo.
+Definition witness_Offer : Offer := offer_into 0.
+
+(* -------------------------------------------------------------------------
    R-05-163's assumption gate, run by `run.py proofs`: every shipped
    constant's enumerated assumption set is compared against the declared
    set R-05-164 currently makes empty, so "Closed under the global context"
