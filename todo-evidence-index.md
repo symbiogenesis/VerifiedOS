@@ -5,6 +5,16 @@ rules read it like any other document, K-40's em-dash ban among them, and a hand
 derived figure in it is a defect rather than a liberty. Fold what survives into
 [docs/critique.md](docs/critique.md) and the plan's Q-series, then delete this file.*
 
+*Whoever folds it: **the Phase 2 blocker in §5 must reach the Q-series item that would build
+it**, and it is the one thing here that no other artifact records. A derived header region
+transcribing register entry lines into a `.v` feeds its own citation set, because K-103 and
+`run.py blast` read citations with a whole-text scan; measured, the transcription introduces
+22 ids `PartitionContext.v` does not cite, 43 in `DischargeSequence.v`, 28 in
+`MemoryPlan.v`, and every `--fix` widens the set. It is not a critique work-list item, since
+it names no requirement and decides no design call, and it is not a finding, since nothing
+in the tree exhibits it today. It is a constraint on work not yet scheduled, and deleting
+this file without carrying it forward loses it.*
+
 ---
 
 ## 0. Read this first: the tooling is not slow, the machine is throttled
