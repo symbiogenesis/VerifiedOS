@@ -1,3 +1,9 @@
+// The capability-helper property suite is behind a variable that defaults off,
+// so that `--all-modules` (every build, its ctest, the bundle and the typecheck)
+// never waits on an SMT solver; `run.py model smt` turns it on with
+// `--variable smt_properties=true` (unit_tests/cap_properties.sail).
+variable smt_properties = false
+
 prelude {
   files
     prelude/prelude.sail,
@@ -384,6 +390,13 @@ unit_tests {
     unit_tests/test_keccak.sail,
     unit_tests/test_fec.sail,
     unit_tests/test_rot.sail,
+}
+
+cap_properties {
+  after unit_tests
+  requires prelude, core
+
+  files if $smt_properties then [unit_tests/cap_properties.sail] else []
 }
 
 main {
