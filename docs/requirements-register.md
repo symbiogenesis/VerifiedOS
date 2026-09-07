@@ -3689,6 +3689,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 **R-15-035** MUST NOT: The initialization-tag plane (Mon CHÉRI-derived Write-before-Read as a second metadata plane) is excluded; the property is carried by the §5 definite-initialization attribute.
 · Accept: one tag plane exists in the SRAM word, not two (R-15-165); the deletion recovers one bit per granule, its DECTED coverage, a Sail invariant, an RTL ⊑ Sail obligation, and a DSE parameter.
+· Accept: the plane's three functions each carry a disposition here rather than in the commentary, which is what the decline owes under R-15-013a: uninitialized *pointers* are covered by the validity tag the word already carries, prior-tenant *disclosure* by the eager zeroize at the partition boundary, and use of uninitialized *data* by §5's definite-initialization attribute with the verified HAL and TCB proofs beside it. What the plane alone would still catch is a certifier or metatheorem error, which is the formally-verified-primary failure R-15-013 declines a hedge against, so the enumeration closes rather than leaving a member silent.
 · Trace: CJ-RTL-SAIL, CJ-TAL-SOUND
 
 **R-15-036** MUST NOT: The C (compressed) extension is excluded, and a restricted `VerifiedOS-C` profile with it; the code-size cost is no longer accepted but recovered by the dictionary encoding (R-15-036a), which is denser and deletes the ambiguity rather than mitigating it.
