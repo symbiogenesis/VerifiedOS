@@ -54,7 +54,7 @@ fact, which is which of the two the edit landed in.
 
 from typing import TYPE_CHECKING
 
-from vos import evidence
+from vos import proofcites
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -69,20 +69,20 @@ def run(ctx: Context) -> None:
     rep, reg = ctx.rep, ctx.reg
     rep.line(HEADING)
 
-    rels = [rel for rel in ctx.corpus.tracked if evidence.is_source(rel)]
+    rels = [rel for rel in ctx.corpus.tracked if proofcites.is_source(rel)]
     findings: list[str] = []
     if not rels:
-        findings.append(f"the git index carries no {evidence.SUFFIX} file under "
-                        f"{evidence.PROOFS}/, so there is no proof artifact for this "
+        findings.append(f"the git index carries no {proofcites.SUFFIX} file under "
+                        f"{proofcites.PROOFS}/, so there is no proof artifact for this "
                         "rule to read a citation out of")
 
-    pairs, faults = evidence.read(ctx.root, rels)
+    pairs, faults = proofcites.read(ctx.root, rels)
     findings += faults
 
     total = 0
     distinct: set[str] = set()
     for rel, text in pairs:
-        cited = evidence.ids(text)
+        cited = proofcites.ids(text)
         total += len(cited)
         distinct |= set(cited)
         findings += [f"{rel} cites {ident}, which names no live requirement: the "

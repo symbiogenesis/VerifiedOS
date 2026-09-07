@@ -21,7 +21,7 @@ The requirement form answers the question a register edit actually asks, and it 
 two ends because the entry reaches the proofs two ways. Through the view's
 **Authored by** column it names the Prop fields whose meaning that entry gives, and
 each of those is then reported exactly as `--field` reports it. Through the citations
-the proof artifacts already carry, read by vos/evidence.py, it names the developments
+the proof artifacts already carry, read by vos/proofcites.py, it names the developments
 that argue from that entry, whether or not any of them discharges a field yet. An id
 is matched as an id rather than as a token, because those cells write one as
 `(R-05-159)` and as `R-05-023's`, where a token split would answer neither.
@@ -41,7 +41,7 @@ import re
 from collections import deque
 from pathlib import Path
 
-from vos import apex, evidence, fieldbindings
+from vos import apex, fieldbindings, proofcites
 from vos.corpus import find_root
 from vos.register import REQ_TOKEN_RE
 
@@ -117,7 +117,7 @@ def _authoring(rows: list[fieldbindings.Row], ident: str) -> list[str]:
 
 def _cited_by(root: Path) -> tuple[list[tuple[str, str]], list[str]]:
     """Every proof artifact in the working tree, and why any of them would not read."""
-    return evidence.read(root, evidence.on_disk(root))
+    return proofcites.read(root, proofcites.on_disk(root))
 
 
 def _requirement_lines(record: apex.ApexRecord, conclusions: dict[str, str],
@@ -141,15 +141,15 @@ def _requirement_lines(record: apex.ApexRecord, conclusions: dict[str, str],
         out.append("")
 
     citing = [(rel, count, text) for rel, text in pairs
-              if (count := sum(1 for i in evidence.ids(text) if i == ident))]
+              if (count := sum(1 for i in proofcites.ids(text) if i == ident))]
     if citing:
         out.append(f"proof artifacts citing {ident}, which is an argument from the "
                    f"entry and not a discharge of it:")
         out.extend(f"  {rel}: {count} citation(s), among "
-                   f"{len(evidence.names(text))} constant(s) defined"
+                   f"{len(proofcites.names(text))} constant(s) defined"
                    for rel, count, text in citing)
     else:
-        out.append(f"no proof artifact under {evidence.PROOFS}/ cites {ident}")
+        out.append(f"no proof artifact under {proofcites.PROOFS}/ cites {ident}")
     return len(fields) + len(citing), out
 
 

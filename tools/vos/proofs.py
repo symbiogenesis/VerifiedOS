@@ -11,7 +11,7 @@ tools make is written once.
 
 `strip_comments` and `sentences` are here on that same convention and arrived the same
 way. They were the proof gate's own, private to [run.py proofs](cli/proofs.py), until
-[evidence.py](evidence.py) needed the second half of a `.v` the gate already reads: what
+[proofcites.py](proofcites.py) needed the second half of a `.v` the gate already reads: what
 the file *defines*, which is a sentence's opening vernacular and so is decided by where
 the comments end. Both are lexical and neither knows any Gallina: a comment nests and a
 string literal outside one is kept whole, and that is the whole of what they are for.

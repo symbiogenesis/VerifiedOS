@@ -30,7 +30,7 @@ from tests.harness import TOOLS, Case, ensure, sandbox_tree
 _SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/blast.py",
             "tools/vos/__init__.py", "tools/vos/apex.py",
             "tools/vos/fieldbindings.py", "tools/vos/corpus.py", "tools/vos/env.py",
-            "tools/vos/evidence.py", "tools/vos/proofs.py", "tools/vos/register.py")
+            "tools/vos/proofcites.py", "tools/vos/proofs.py", "tools/vos/register.py")
 
 # Small enough to derive by hand: witness consumes alpha and beta through its type,
 # seam_one concludes beta from alpha, seam_two concludes gamma from beta, and

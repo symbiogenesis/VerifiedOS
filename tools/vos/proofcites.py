@@ -8,14 +8,16 @@ for free, because the ids are already written down: which artifacts a register e
 re-opens is a scan away, where before it was a grep somebody had to remember to make.
 This is that scan, held here rather than at its callers because two of them make it,
 [the citations check](checks/citations.py) and [run.py blast](cli/blast.py), and *a
-parse two tools make is written once*.
+parse two tools make is written once*. Its two halves are named for what they read
+out of one artifact, and the module is named for the half that has a rule under it.
 
 **It is lexical and it stays lexical.** A requirement id inside a comment and a
 `Theorem <name>` opening a sentence are not Gallina and need no Gallina parser, which
 is exactly what lets the host wave decide them in CI on a clone with no prover
 toolchain installed. What a term *means*, what a theorem quantifies over, whether a
 witness inhabits a type: those are the prover's, they are decided in the guest by
-[run.py proofs](cli/proofs.py), and nothing here approximates one of them.
+[run.py proofs](cli/proofs.py), and nothing here approximates one of them. The name
+says which half this is.
 
 **The two halves are read differently and priced differently**, and the split is the
 point rather than an accident of implementation.
@@ -40,10 +42,16 @@ proof gate pays it inside, and it is two orders of magnitude above what one rule
 and never for the whole tree on the host wave. Nothing here caches it: a caller that
 wants it says so by calling for it.
 
-**A note on the name.** [cli/evidence.py](cli/evidence.py) is the guest's exit-evidence
-sweep and has nothing to do with this. They share a word the way `vos/corpus.py` and
-`vos/differential.py` share *corpus*: that one reads the documents and this one reads
-the proof artifacts, and neither is a lane of the other.
+**A note on the name, because this module was called `evidence.py` first and the
+rename is the interesting part.** `vos/<name>.py` beside `vos/cli/<name>.py` is a
+convention here rather than a coincidence: `proofs`, `coread`, `ring`, `oracle` and
+`differential` all pair that way, and in every one of them the `vos/` module is the
+shared machinery behind the command of that name. So a `vos/evidence.py` would not
+merely collide with [cli/evidence.py](cli/evidence.py), the guest's exit-evidence
+sweep; it would make a false promise in the repository's own vocabulary, saying *this
+is the machinery behind that sweep*, and a reader looking for the sweep's
+implementation would find this file first and the real one second. `proofcites` breaks
+no convention and says what it holds.
 """
 
 import re
