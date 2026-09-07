@@ -1660,6 +1660,17 @@ CASES: list[Case] = [
     ("K-101", "a device region the configuration template declares executable",
      _literal("model/config/config.json.in",
               '"executable": false', '"executable": true')),
+
+    # The defect this rule exists for, in the shape it actually arrived in twice: an item
+    # lands, the summary's derived figures move with it under `--fix`, and the roster
+    # beside them keeps the set it had. `S28` is dropped rather than misspelled because a
+    # misspelling would leave a token the reading could still resolve, where an omission
+    # is what a landing commits. It is the id no other line reads: the two series' lists
+    # and the calibration record carry it, and K-96 rewrites both from the cells rather
+    # than from this sentence, so a roster missing it is exactly one rule's finding.
+    ("K-102", "a completed item the summary's roster stops naming",
+     _literal("docs/implementation-checklist.md",
+              "S25, S26, S27, S28, S29, S30, Q1", "S25, S26, S27, S28, S29, Q1")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.

@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 633 of them across 101 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 635 of them across 102 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -517,6 +517,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-329** owed-act: the enumeration R-15-013a obliges is not bounded from outside, a reviewer always being able to name one more function a structure performed in the architecture it is taken from, so the criterion decides that a named function carries a disposition and never that the naming has finished
 · Raised: S29
 · Disposition: open by construction; it takes R-15-010's shape, an enumeration whose members each carry a recorded disposition and where a member the review gate adds stands as a finding until disposed, which makes incompleteness visible without making it decidable, and the residue is the review gate's rather than a rule's
+
+**F-330** method: the Current summary's completed roster is a derived fact stated by hand beside figures the tool recomputes, and no source under tools/vos read it, so two consecutive landings added themselves to the recomputed lists and not to the roster and both passed every gate over a sentence stating a set it no longer described
+· Raised: S30
+· Disposition: closed at S30 by K-102, which holds membership in both the roster's directions of standing-in, an item counting as named by its own id, by a parent, or by its children; what generalizes is that a sentence sitting among recomputed figures is the one most likely to be assumed recomputed
+
+**F-331** method: a seeded defect whose site is shared with a list another rule recomputes is read by both rules and isolates neither, and the selftest reports the case as a survivor rather than as an ambiguous site, so the seed reads as a rule that does not reach its subject when what is wrong is the choice of site
+· Raised: S30
+· Disposition: open, reported and not closed; K-102's own case is narrowed to a run the roster alone carries, and what would close it generally is the selftest naming which rules read a seeded site rather than only that more than one fired
 
 ## Q · Assessment actions
 
