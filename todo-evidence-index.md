@@ -1,6 +1,8 @@
 # Tying the register to the proofs: an evidence index
 
-*A working note at the repository root, not a tracked document. Fold what survives into
+*A working note at the repository root. It is **tracked**, so the checker's total-class
+rules read it like any other document, K-40's em-dash ban among them, and a hand-maintained
+derived figure in it is a defect rather than a liberty. Fold what survives into
 [docs/critique.md](docs/critique.md) and the plan's Q-series, then delete this file.*
 
 ---
