@@ -40,13 +40,14 @@ and the standing proposal is to replace the transcribed part of it with a delimi
 region a repair writes from the cited entries' own normative lines. That region cannot
 be read as citation, because a register entry line cites other entries: a transcription
 would make an artifact cite everything it merely quotes, and the next regeneration would
-transcribe those in turn. Measured over the shipped tree, one such pass introduces 43
-ids `DischargeSequence.v` does not cite and 22 `PartitionContext.v` does not, and
-repeating it converges at 200 and 77 against the 26 and 38 each genuinely makes. So
-`ids` skips what sits between the delimiters, `derived` is where that reading is made,
-and [the citations check](checks/citations.py)'s K-108 is what stops the exclusion
-widening past a transcription. The exclusion is one substring pre-test on the artifacts
-carrying no region, which is all of them today.
+transcribe those in turn. Measured over the shipped tree when this landed, one such pass
+introduces 43 ids `DischargeSequence.v` does not cite and 22 `PartitionContext.v` does
+not, and repeating it converges at 200 and 77 against the 26 and 38 each genuinely
+makes. So `ids` skips what sits between the delimiters, `derived` is where that reading
+is made, and [the citations check](checks/citations.py)'s K-108 is what stops the
+exclusion widening past a transcription. On the artifacts carrying no region, which is
+all of them today, the whole exclusion is one substring pre-test, and the parse is made
+once per artifact and handed to both rules that read through it.
 
 The **constant** half is not on that budget. It reads a sentence's opening vernacular,
 so it has to know where the comments end, and `vos.proofs.sentences` is a character
@@ -118,8 +119,11 @@ DEFINERS = ("Definition", "Example", "Theorem", "Lemma", "Corollary", "Fact",
 
 # The modifiers a definition may open with and still be the same definition: an
 # attribute block, and the locality and elaboration keywords that precede a vernacular.
-_MODIFIERS = r"(?:#\[[^\]]*\]\s*)?(?:Local\s+|Global\s+|Program\s+)*"
-_DEFINED_RE = re.compile(rf"^{_MODIFIERS}(?:{'|'.join(DEFINERS)})\s+([\w']+)")
+# Public because [the citations check](checks/citations.py) composes a pattern of its
+# own over the same opening, and what precedes a vernacular is one fact: written twice
+# it becomes two, and the second one goes stale the first time a keyword is added here.
+MODIFIERS = r"(?:#\[[^\]]*\]\s*)?(?:Local\s+|Global\s+|Program\s+)*"
+_DEFINED_RE = re.compile(rf"^{MODIFIERS}(?:{'|'.join(DEFINERS)})\s+([\w']+)")
 
 
 def is_source(rel: str) -> bool:
@@ -238,7 +242,7 @@ def derived(text: str) -> Derived:
     return Derived((), tuple(faults)) if faults else Derived(tuple(spans), ())
 
 
-def ids(text: str) -> list[str]:
+def ids(text: str, region: Derived | None = None) -> list[str]:
     """Every requirement citation one artifact makes, in the order it makes them.
 
     Repeats are kept: how often an artifact argues from an entry is the caller's to
@@ -249,8 +253,14 @@ def ids(text: str) -> list[str]:
     region read as citation feeds itself on every regeneration. An artifact whose
     delimiters do not balance carries no region here, so the whole of it is read and
     the imbalance is `derived`'s fault for the caller to report.
+
+    `region` is that parse where the caller has already made it, and the parameter is
+    the scan's shape rather than a convenience: the exclusion costs one whole-text pass
+    per artifact, and the citations group's two rules would otherwise each pay for it
+    over the same bytes. A caller with nothing to hand over passes nothing.
     """
-    region = derived(text)
+    if region is None:
+        region = derived(text)
     if not region.spans:
         # `findall` over a pattern with no group hands back the whole matches, which are
         # strings; the cast says so, where rebuilding the list to prove it would be a

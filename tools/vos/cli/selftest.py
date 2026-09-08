@@ -73,6 +73,7 @@ from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citati
 from vos.dialectgen import TABLE as DIALECT_TABLE
 from vos.figures import words
 from vos.memplan import ARTIFACT as MEMORY_PLAN
+from vos.proofcites import DERIVED_BEGIN
 from vos.sailbundle import BUNDLE
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict, summarize
 from vos.socmap import ARTIFACT as SOC_MAP
@@ -1692,11 +1693,14 @@ CASES: list[Case] = [
     # it. That is the failure the exclusion is capable of and the whole reason it has a
     # rule of its own: an unclosed BEGIN excludes the rest of the file, and K-103 above
     # it then reads a proof artifact that cites nothing and says so as though it had
-    # decided something. Seeded in the header because that is where a region is written.
+    # decided something. Seeded inside the header comment because that is where a region
+    # is written, and the delimiter is read from the module that declares it rather than
+    # spelled here: a copy would go on killing this mutant after a respelling, as a
+    # marker the parse cannot read at all, which is a case passing for a reason it was
+    # not written for and the quietest way for one to stop testing what it names.
     ("K-108", "a derived region opened in a proof artifact and never closed",
-     _literal(SEAM_WITNESSES, "(* SPDX-License-Identifier: Apache-2.0 *)",
-              "(* SPDX-License-Identifier: Apache-2.0 *)\n"
-              "(*| BEGIN derived: cited entries |*)")),
+     _literal(SEAM_WITNESSES, "   SeamWitnesses.v\n",
+              f"   SeamWitnesses.v\n\n   {DERIVED_BEGIN}\n")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
