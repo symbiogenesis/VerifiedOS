@@ -622,6 +622,8 @@ DELTA = "docs/rtl-reparameterization-delta.md"
 FINDINGS = "docs/findings-register.md"
 RING_ARTIFACT = "proofs/RingContract.v"
 KECCAK_GALLINA = "proofs/Keccak.v"
+AESGCM_GALLINA = "proofs/AesGcm.v"
+SHA256_GALLINA = "proofs/Sha256.v"
 SEAM_WITNESSES = "proofs/SeamWitnesses.v"
 
 
@@ -1609,6 +1611,24 @@ CASES: list[Case] = [
     # lane-by-lane comparison rather than a length or a parse.
     ("K-91", "a known answer one byte off in the Gallina transcription of FIPS 202",
      _literal(KECCAK_GALLINA, "0x17 :: 0x86 :: 0xA7 :: 0xB9", "0x17 :: 0x86 :: 0xA7 :: 0xBA")),
+
+    # Two cases rather than one, because the rule reads two shapes on each side and
+    # neither defect reaches the other's. The S-box seed moves a byte of a Gallina
+    # `Example` against a Sail vector literal, which is the shape K-91 already has one
+    # object over; the sigma seed moves a member of a Gallina `Definition`'s list against
+    # four model functions read in that list's own grouping, taking only the amounts the
+    # model spells as rotations rather than as shifts.
+    # Both seeds are on the *Gallina* side, and neither is a defect nothing else could
+    # see: each breaks the `Example` that states it and the Coq gate would refuse it. What
+    # makes them cases for this rule is that no gate which would refuse them runs on the
+    # host lane, which is the lane this rule is for and the only one CI has. Seeding the
+    # model's side instead would put the write under the `-text` tree, where the whole
+    # point of a one-token mutation is lost to a line-ending sweep.
+    ("K-107", "a published S-box byte off by one in the Gallina derivation of FIPS 197",
+     _literal(AESGCM_GALLINA, "0x63 :: 0x7C :: 0x77 :: 0x7B", "0x63 :: 0x7C :: 0x77 :: 0x7A")),
+
+    ("K-107", "a SHA-256 sigma rotation amount the model and the reference now spell apart",
+     _literal(SHA256_GALLINA, "7 :: 18 :: 17 :: 19 :: nil", "7 :: 18 :: 17 :: 20 :: nil")),
 
     ("K-89", "a generated interface artifact whose width rule was narrowed by hand",
      _literal(RING_ARTIFACT,
