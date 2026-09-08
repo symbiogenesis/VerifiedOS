@@ -54,7 +54,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from vos import freezeschema
+from vos import freezemodel, freezeschema
 from vos.jsonc import Json
 
 CONTRACT = "docs/freeze-measurement-contract.md"
@@ -809,17 +809,25 @@ HOST_TIMING_RE = re.compile(r"(?i)host|wall.?clock|wall.?time|elapsed|nanosecond
 # the arithmetic that exists without the corpus
 # =====================================================================================
 #
-# Everything below is computed from what the format and the register already fix. None
+# Everything here is computed from what the format and the register already fix. None
 # of it is a measurement and none of it decides anything: the acceptance test is on the
 # observation, and what these produce is the shape a candidate must satisfy whatever the
 # observation turns out to be.
+#
+# **The model itself is owned in `vos/` and read from here**, for the reason §4's schema
+# is: it has two ends now. R-15-036i makes the dictionary a permanent freeze-time
+# commitment, so this is the one arithmetic in the tree whose wrong answer invalidates
+# stored code rather than costing a recompile, and it is therefore stated a second time
+# in Gallina and compared, which `run.py quickchick freeze` runs. That comparison is on
+# the landing loop's side of K-83 and cannot reach in here; the model can be read from
+# there, which is the direction that rule leaves open. Written down twice inside this
+# repository's Python the model would be a transcription held together by nothing, which
+# is the defect the checker exists to catch. The names are re-exported under the
+# spellings this module's own readers and its tests already ask for.
 
-# The `C` counterfactual R-15-036 rests the exclusion on, and the canonical stream it is
-# a share of. The bar is their product and is recomputed here rather than copied from
-# the contract's sentence, which is what makes the contract's 22.4 checkable.
-CANONICAL_BITS = 32
-OPTIMISTIC_SHARE = 0.70
-PESSIMISTIC_SHARE = 0.75
+CANONICAL_BITS = freezemodel.CANONICAL_BITS
+OPTIMISTIC_SHARE = freezemodel.OPTIMISTIC_SHARE
+PESSIMISTIC_SHARE = freezemodel.PESSIMISTIC_SHARE
 
 # The slot width the format leaves no room in: an escape is exactly two slots carrying
 # one canonical 32-bit instruction verbatim, so 2w >= 32; any wider slot wastes
@@ -827,98 +835,15 @@ PESSIMISTIC_SHARE = 0.75
 # The value is §8's own and is read from its FD-2 candidate cell; this is the fallback
 # for a caller with no contract in hand, and `slot_width_derivation` is what says why
 # the number cannot be anything else.
-SLOT_WIDTH = 16
-DICTIONARY_INDEX_BOUND = 16          # log2 of the entries a slot can index
+SLOT_WIDTH = freezemodel.SLOT_WIDTH
+DICTIONARY_INDEX_BOUND = freezemodel.DICTIONARY_INDEX_BOUND
 
-
-def optimistic_bar() -> float:
-    """The acceptance bar in encoded bits per instruction, derived and not declared."""
-    return OPTIMISTIC_SHARE * CANONICAL_BITS
-
-
-def pessimistic_bar() -> float:
-    """The figure reported beside the bar, which is not the bar."""
-    return PESSIMISTIC_SHARE * CANONICAL_BITS
-
-
-def slot_width_derivation() -> list[tuple[str, str, bool]]:
-    """Why `w` is derived and not swept: each constraint, its arithmetic, and whether
-    the reference width satisfies it."""
-    return [
-        ("an escape is two slots holding one canonical instruction verbatim",
-         f"2w = {2 * SLOT_WIDTH} bits against {CANONICAL_BITS} canonical bits",
-         2 * SLOT_WIDTH >= CANONICAL_BITS),
-        ("a wider slot wastes escape bits and buys index space the profile has no use "
-         "for", f"2(w - 16) = {2 * (SLOT_WIDTH - 16)} bits wasted per escape",
-         SLOT_WIDTH <= 16),
-        ("a slot must index the dictionary, which is bounded at 2^16 entries",
-         f"w = {SLOT_WIDTH} against log2(N) at most {DICTIONARY_INDEX_BOUND}",
-         SLOT_WIDTH >= DICTIONARY_INDEX_BOUND),
-    ]
-
-
-@dataclass(frozen=True)
-class Geometry:
-    """One `(h, k)` candidate, and the model over it.
-
-    `per_slot` is R-15-036h's `w + h/k`, the bits an instruction pays for one slot with
-    its share of the bundle header. `lambda_bound` is R-15-036j's `(2 - p)/(k - 1)`.
-    `required_lambda` is the packing term the geometry may realize and still clear the
-    bar at the register's break-even hit rate, and `min_p_at_bound` is the hit rate it
-    would need if the packing were at its own worst case.
-    """
-
-    h: int
-    k: int
-    w: int
-    bundle: int
-    per_slot: float
-    lambda_bound: float
-    required_lambda: float
-    min_p_at_bound: float
-    min_p_unpacked: float
-    legal: bool
-
-    @property
-    def clears_at_break_even(self) -> bool:
-        """Whether the geometry clears the bar at the break-even hit rate for every
-        packing term its own bound admits."""
-        return self.required_lambda >= self.lambda_bound
-
-    @property
-    def infeasible_at_break_even(self) -> bool:
-        """Whether it fails the bar at the break-even hit rate even with perfect
-        packing, which no measurement can rescue."""
-        return self.required_lambda < 0.0
-
-
-def model_bits(per_slot: float, hit_rate: float, packing: float) -> float:
-    """R-15-036h's slot model with R-15-036j's packing term: `(w + h/k)(2 - p + L)`."""
-    return per_slot * (2.0 - hit_rate + packing)
-
-
-def geometry(h: int, k: int, w: int = SLOT_WIDTH,
-             p: float = 0.804) -> Geometry:
-    """One candidate bundle geometry, scored against the derived bar.
-
-    `legal` is FD-2's own structural constraint, `h >= k`, which holds because the
-    header carries one escape-start bit per slot: a candidate below it is not a narrower
-    search, it is a bundle whose header cannot say where its escapes begin.
-    """
-    per_slot = w + h / k
-    bar = optimistic_bar()
-    bound = (2.0 - p) / (k - 1) if k > 1 else float("inf")
-    # the packing term that puts the model exactly on the bar at the break-even p
-    required = bar / per_slot - (2.0 - p)
-    # the hit rate that puts it on the bar with the packing at its own bound, and with
-    # no packing loss at all; both are `2 - x` for the x each case solves to
-    at_bound = bar / (per_slot * (1.0 + 1.0 / (k - 1))) if k > 1 else bar / per_slot
-    return Geometry(
-        h=h, k=k, w=w, bundle=h + w * k, per_slot=per_slot,
-        lambda_bound=bound, required_lambda=required,
-        min_p_at_bound=2.0 - at_bound, min_p_unpacked=2.0 - bar / per_slot,
-        legal=h >= k,
-    )
+optimistic_bar = freezemodel.optimistic_bar
+pessimistic_bar = freezemodel.pessimistic_bar
+slot_width_derivation = freezemodel.slot_width_derivation
+Geometry = freezemodel.Geometry
+model_bits = freezemodel.model_bits
+geometry = freezemodel.geometry
 
 
 def candidate_geometries(contract: Contract) -> list[Geometry]:

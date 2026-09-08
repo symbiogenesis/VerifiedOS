@@ -742,8 +742,15 @@ def _membership_is_an_instrument_error() -> None:
     # `freezeschema.py` is here because §4's field tuples and its four declared paths
     # are owned in `vos/` and read from both ends since M1.4-prime: the analyzer streams
     # them and the composer writes two of them, and a schema declared at both ends would
-    # be a transcription held together by nothing.
-    for rel in ("__init__.py", "jsonc.py", "corpus.py", "env.py", "freezeschema.py"):
+    # be a transcription held together by nothing. `freezemodel.py` is here for the same
+    # reason and a sharper one: R-15-036h's slot model and R-15-036j's packing term are
+    # owned there and stated a second time in Gallina, which `run.py quickchick freeze`
+    # compares, and that comparison is on the landing loop's side of K-83 and cannot
+    # reach in here. This list is hand-written and nothing holds it against the imports,
+    # so a module the instrument gains is a sandbox that fails on the import and prints
+    # nothing at all rather than a case that says what is missing.
+    for rel in ("__init__.py", "jsonc.py", "corpus.py", "env.py", "freezeschema.py",
+                "freezemodel.py"):
         files[f"tools/vos/{rel}"] = (TOOLS / "vos" / rel).read_text(encoding="utf-8")
     with sandbox_tree(files) as root:
         done = _run(root)
