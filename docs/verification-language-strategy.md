@@ -590,6 +590,7 @@ Do not implement a universal adapter layer across every surveyed language or req
 | Proposed library surface | Small useful result | Existing machinery to reuse or evaluate |
 | --- | --- | --- |
 | Model views | A buffer's contents, length, initialized region, and frame condition share one representation predicate. | Existing Rocq lists/finite indices and the chosen memory logic; no parallel byte-address semantics. |
+| Target interfaces | Generic algorithms require only named operation, representation, and composition laws. | Rocq modules and functors; prove one CHERI instance over the existing anchors. |
 | Construction combinators | Sequence, branch, bounded iteration, and local update produce the concrete program and its refinement proof together. | Fiat/Bedrock/Rupicola-style relational compilation, with every transport endpoint made explicit. |
 | Proof support | Normalize bounds, apply array-update lemmas, preserve frames, and expose the first unsolved goal. | Rocq tactics; Equations for dependent definitions; Iris automation where the instantiated logic supports it. |
 | Source-oriented interaction | A user alternates between writing a statement and applying a proof step while inspecting current symbolic state. | Live Verification's interaction model, initially in the existing Rocq editor rather than a new LSP implementation. |
@@ -608,6 +609,8 @@ Publish the source-level theorem and its assumptions before attempting native ar
 No claim of constant time, CHERI admission, or native performance accompanies a source-only result.
 
 The first experiment succeeds only if the generated or refined implementation is the term named in the theorem, an incorrect implementation is rejected, and the second client reuses the first client's proof infrastructure without introducing another memory semantics.
+The generic proof must depend only on the advertised interface, with CHERI representation facts confined to its instance.
+Audit that dependency boundary and reject an instance with an undischarged required law; one working instance alone is not empirical evidence of broad target portability.
 The native follow-on additionally binds the theorem and admission evidence to the final bytes and checks them against the same Sail term the hardware refinement consumes.
 
 ### Concrete Package Shape
@@ -616,13 +619,15 @@ The following are proposed module names within one package, not existing files o
 
 | Module | Public surface | Proof responsibility |
 | --- | --- | --- |
-| `Models` | Pure sequence updates, bounded indices, initialized-prefix views, protocol transition functions | Functional facts independent of any second memory model |
-| `Representation` | Buffer ownership, readable initialized cells, disjoint slices, model snapshots | Connect abstract values to the chosen concrete storage and permission predicates |
-| `Build` | `sequence`, `branch`, `bounded_loop`, `store`, `with_element` | Construct program terms while composing their existing logic's proof rules |
-| `Buffers` | `fill`, `initialize`, `update`, disjoint `copy`, then `map_into` | Contents, bounds, frame, termination, and declared resource effects for concrete implementations |
+| `Models` | Pure sequence updates, bounded indices, initialized-prefix views, protocol transition functions | Target-independent functional facts; no new memory model |
+| `Interfaces` | Coherent program/logic signatures, primitive laws, representability and required guarantee judgments | State all generic theorem premises without treating them as discharged axioms |
+| `Representation` | Buffer ownership, readable initialized cells, disjoint slices, model snapshots | Parameterized views and laws connected to concrete predicates by each instance |
+| `Build` | `sequence`, `branch`, `bounded_loop`, `store`, `with_element` | Construct the instance's program terms while composing its proved rules |
+| `Buffers` | `fill`, `initialize`, `update`, disjoint `copy`, then `map_into` | Generic contents, bounds, frame, termination, and effect proofs under explicit interface laws |
 | `Protocols` | Indexed transitions and scoped acquisition/return | Preserve an independently specified protocol and its ownership invariant on success and failure |
 | `Grades` | Optional fixed-domain accounting and checked arithmetic evidence | Interpret the chosen grade in an actual trace or resource predicate; no universal grade engine initially |
-| `Evidence` | Theorem subject, representation, assumptions, source/build bindings | Integrate with existing artifact evidence; a metadata wrapper cannot establish correspondence |
+| `Instances.Cheri` | Selected CHERI program/logic interpretation, primitive implementations, concrete representations | Discharge the generic laws and connect to existing source/transport anchors; no second ISA semantics |
+| `Evidence` | Theorem subject, semantic instance, required guarantees, representation, assumptions, source/build bindings | Integrate with existing artifact evidence; a metadata wrapper cannot establish correspondence |
 | `Automation` | Bounds, sequence updates, frame reconstruction, named lemma hints | Produce ordinary Rocq terms and preserve useful unresolved goals |
 
 The public component package can have this schematic Rocq module shape:
@@ -643,12 +648,13 @@ These qualified names stand for definitions and judgments supplied by a backend,
 The module signature also requires the primitive and composition laws used by the builders; a concrete instance proves them in its existing semantics.
 An abstract signature is a conditional proof interface, not permission to admit its unproved parameters as global axioms.
 Pure algorithm contracts live outside this module; each backend connects their input/output models to its contract and representation judgments.
+The program type, representations, logic judgments, and law proofs belong to one coherent instance; they cannot be selected independently from incompatible source semantics or memory models.
 The terminating bounded-component interface is intentional; a reactive service needs a different progress contract.
 The representation is shared between the entry condition, refinement theorem, and exit condition, not chosen independently to make a theorem vacuous.
 Accepted assumptions are inspected transitively from the proof environment, not trusted because a record contains an empty list called `assumptions`.
 The package initially stores the selected imperative term and its theorem; it does not pretend that a source-level `Component` already contains an admitted binary.
 
-For buffer fill, the component author supplies a pure result function and the concrete program's entry representation.
+For buffer fill, the component author supplies a pure result function and an entry requirement expressed through the buffer interface; the instance provides the concrete representation.
 `Build.bounded_loop` asks for an invariant, a decreasing measure, and a proved body step; `Build.store` produces the updated initialized-cell predicate and the corresponding sequence-update fact.
 The library proves the induction and reconstructs the frame.
 The caller still supplies meaningful functional intent, aliasing premises, and exceptional-case policy; the library saves repeated derivation, not specification judgment.
@@ -664,6 +670,7 @@ BufferOwn(target, values)
 ```
 
 The law requires a valid index and the actual layout/disjointness premises of the selected memory logic.
+The generic client uses the proved rule; the instance owns its concrete layout proof. Concurrency or fractional sharing is not inferred from this sequential interface.
 `*` separates resources; `-*` is the restoring implication, not ordinary reusable implication.
 The continuation retains the rest of the buffer and reconstructs the whole after the cell is returned.
 An ordinary Rocq record containing a permission proposition does not enforce linearity: validity comes from the separation-logic derivation, including its frame and update rules.
@@ -673,6 +680,7 @@ Start with byte buffers and lexical scope; general shared interior mutation and 
 
 **Descriptor-backed codecs.** Extend the existing format route with reusable bounds, consumed-length, failure, and round-trip lemmas.
 Generate implementation and proof obligations from the same reviewed descriptor, while keeping independent malformed-input examples and semantic review.
+Keep format bytes, endianness, and rejection behavior explicit in the descriptor rather than inheriting a target's native layout; instantiate storage access separately.
 This is potentially more valuable than another frontend because an attacker-facing parser repeatedly needs the same representation and rejection arguments.
 Do not add a competing descriptor language or independently retype the format in Vela.
 
@@ -680,22 +688,27 @@ Do not add a competing descriptor language or independently retype the format in
 An operation returning `Result` must identify the resource state on both branches; a failed publish cannot lose ownership or invent a published token.
 Start with a sequential bounded protocol.
 Ring concurrency, crash recovery, freshness, and cancellation are separate semantic obligations and can make superficially similar APIs much more expensive.
-Idris's linear IO demonstrates the library technique; the protocol theorem still comes from this project's actual operations.
+Idris's linear IO demonstrates the library technique; a reusable transition theorem is conditional on the instance's actual operation laws.
+For VerifiedOS, publication ordering and capability authority are discharged by its instance, not hidden behind a portable state name.
 
 **Small graded accounting library.** Start with a fixed natural-valued event count or upper bound, proved by loop induction, plus its interpretation over the selected execution trace.
 Composition, branching, and loops need explicitly different rules: sequential counts add; alternatives must agree for an exact count or use a sound upper bound; iteration needs a proved bound.
 Later generalization can package semiring/order laws and an interpretation theorem, with additional premises for erasure or linearity where needed.
 Keep permission fractions in the existing separation algebra rather than forcing them into a total numeric semiring.
 This is a library of checked judgments, not an extension to CIC conversion or a new on-device grade solver.
+An abstract event count can survive a target change; its interpretation as target cost cannot survive without the corresponding new proof.
 Resource-budget exhaustion and protocol misuse are useful correctness targets; a new verified tool whose only purpose is tightening an already-sound bound remains outside the standing design.
 
 **Proof authoring and evidence diagnostics.** Extend the existing Rocq editor and build entry point to show the active model view, available permissions, unresolved obligation, theorem subject, and transitive assumptions.
-Distinguish unsupported translation, solver timeout, failed proof, and stale subject binding.
+Distinguish unsupported translation, missing target guarantee, solver timeout, failed instance law, failed client proof, and stale subject binding.
+Expose which obligations are generic and which come from the selected profile, so a backend failure does not appear as an unexplained source-level type error.
 Record proof-edit effort and maintenance across clients, not just proof-script line count.
 An external solver or AI assistant may suggest terms or lemmas; successful replay is the condition for using them.
 This tooling must use current artifact identity and gate records, not create another cache whose success flag can bypass admission.
 
 **Restricted frontend.** Only after these APIs work, parse a small subset of the Vela examples into calls to proved combinators, retaining source locations and an explicit source-correspondence story.
+Keep target selection and guarantee requirements separate from ordinary buffer syntax, with explicit diagnostics when source arithmetic or effects exceed the profile.
+Refactor surface syntax against the same elaborated contracts before introducing new semantic constructs; an elaboration snapshot is a useful regression test, not a substitute for correspondence evidence.
 A syntax demo is cheap compared with checked elaboration, dependent inference, borrowing diagnostics, and proof preservation.
 An alternative Rust-facing annotation layer should target the existing RefinedRust/Radium route; it is not a reason to build a universal Verus/Prusti/Creusot proof translator.
 No new optimizer, code generator, or language runtime is necessary for the initial library.
@@ -707,19 +720,24 @@ Promotion into implementation work requires the repository's normal milestone an
 
 | Experiment | Evidence to produce | What disconfirms the approach |
 | --- | --- | --- |
-| Library feasibility | Fill plus a reusable bounded update or copy operation, with Rocq replay and an explicit assumptions report. | Proofs concern only a separate model, require fresh axioms, or cannot express the actual ownership/representation boundary. |
+| Library feasibility | Generic fill plus bounded update or copy, a proved initial CHERI-aware instance, Rocq replay, and an explicit assumptions report. | Proofs concern only a separate model, require fresh axioms, or cannot express the actual ownership/representation boundary. |
+| Interface adequacy | Inspect generic theorem dependencies; require every primitive/representation law and reject a deliberately missing or false one. | Clients import CHERI representation facts directly, or an instance is accepted through an unchecked law declaration. |
 | Specification adequacy | Independent examples and generated checks against the executable contract, including empty/full buffers, boundary indices, and overflow limits. | A wrong store value or off-by-one variant still satisfies the purported full contract. Mutation construction failure decides nothing. |
-| Proof reuse | Change the second client's bound or representation through the shared interface; record manual proof edits and replay behavior. | Each client needs its own byte semantics or repeated low-level proof script. A shorter notation without less proof maintenance is not enough. |
+| Proof reuse | Change a client bound within its declared limits; separately change representation and reprove instance laws while replaying unchanged generic theorems. Record manual proof edits. | Each client needs its own byte semantics or repeated low-level proof script. A shorter notation without less proof maintenance is not enough. |
+| Profile enforcement | Require an isolation or observation guarantee absent from a test profile and confirm rejection; bind supported guarantees to their actual theorems. | A feature flag or static ownership alone is accepted as proof of adversarial-context isolation. |
+| Tooling refactor | Change syntax or proof search while preserving meaning; replay evidence and refresh source correspondence. Change a semantic law and confirm dependent results become invalid. | A changed source subject or law inherits a cached success without the required revalidation. |
 | Format integration | Use an existing Narcissus-style descriptor and account for successful parsing, malformed input, and consumed bytes. | Safety proves while interpretation, rejection policy, or encoder/decoder agreement remains unspecified. |
 | Native integration | Bind actual source, compiler inputs, link layout, final bytes, Sail version, and replayable evidence; reject a changed byte or stale certificate. | A source theorem is presented as the binary theorem, or a non-CHERI upstream backend is treated as the deployed target. |
 | Performance and resources | Equivalent target/compiler settings, functional cross-checks, code and stack measurements, and no undeclared runtime support. | Performance relies on unproved representation changes, hidden allocation, or omitted failure/overflow behavior. |
 | Surface-language value | Implement only syntax already represented by successful library clients and compare proof-editing effort. | A new parser/typechecker becomes prerequisite to the useful component, or source meaning cannot be tied to the elaborated theorem. |
+| Optional external portability probe | In a separately scoped reuse project with an existing verified backend, instantiate the same bounded-buffer theorem on a non-CHERI target and report all changed proofs and weaker guarantees. | The generic proof needs target-specific rewrites, or a source-only port is reported as equivalent binary isolation. This is not a VerifiedOS deployment milestone. |
 
 For executable contract checks, use the repository's [oracle, mutation, and QuickChick instruments](../tools/README.md) where applicable; keep negative proof tests alongside positive replay.
 A release-quality component also needs a transitive assumption audit: no unresolved holes, no `Admitted`, no new unchecked axioms, and no unsafe proof-evaluation shortcut outside the accepted base.
 Assumptions about primitives, FFI, the memory model, and platform behavior are named rather than erased from the report.
 
-The lowest-hanging fruit is the shared specification/representation library and live proof workflow.
+The lowest-hanging fruit is the shared specification/representation library with narrow target interfaces and a live proof workflow.
+The initial value comes from reuse within the CHERI instance; broad portability remains a hypothesis until another instance is actually proved.
 A restricted surface parser is a later usability project.
 A general quantitative dependent typechecker, a Rust-equivalent ecosystem, and a verified optimizing CHERI compiler are substantial separate undertakings, not features obtained by adding notation to Rocq.
 
@@ -736,11 +754,14 @@ No AI productivity multiplier is assumed.
 
 Each row is scoped from its stated starting point. Rows overlap and are alternatives or extensions, so they must not be added as a project total.
 Source-level deliverables exclude CHERI compiler construction, whole-system proofs, hardware refinement, production certification, and on-device admission unless explicitly stated.
+The initial library bands include narrowly factoring already usable primitive rules into interfaces and proving the corresponding initial instance wrappers.
+They do not include discovering a new memory logic, establishing missing primitive soundness, or engineering a universal backend API.
+If that foundation is unavailable, the pilot reports the blocking obligation rather than consuming its budget under a claim of target independence.
 
 | Deliverable | Effort judgment | Starting point and exit evidence |
 | --- | --- | --- |
-| `VerifiedComponents` feasibility pilot | 4-8 person-weeks | An accessible selected imperative semantics and usable primitive rules. Fill and bounded update share representation lemmas; Rocq replay, mutation rejection, and assumption audit. Stop if those prerequisites cannot be demonstrated. |
-| Reusable bounded-component library | 4-9 person-months, including the pilot | Start from the same primitive foundation. Initialization, disjoint copy, scoped update, documented combinators, independent client reuse, and proof-maintenance tests. Source assurance only. |
+| `VerifiedComponents` feasibility pilot | 4-8 person-weeks | An accessible CHERI-aware imperative semantics and usable primitive rules. Generic fill and bounded update, narrow interface laws and initial instance wrappers; replay, mutation rejection, and assumption audit. Stop if those prerequisites cannot be demonstrated. |
+| Reusable bounded-component library | 4-9 person-months, including the pilot | Start from the same primitive foundation. Parameterized initialization, disjoint copy, scoped update, documented combinators, independent client reuse, and instance/refactoring tests. One concrete instance; source assurance only. |
 | Scoped borrow-restoration extension | 1-3 person-months | Working buffer predicates and frame rules. Lexical element/slice borrowing with negative alias/escape tests; excludes general Rust borrow inference and concurrent interior mutation. |
 | Indexed protocol library | 1-3 person-months | A reviewed sequential transition specification and primitive implementations. One bounded protocol, with success/failure ownership and reuse by another client; excludes crash/concurrency/freshness proofs. |
 | Descriptor-backed codec integration | 2-4 person-months | Existing descriptor and synthesis path already usable. One bounded format, concrete representation, parse/reject/consumed-length proofs, and reusable support; excludes inventing or porting the synthesis backend. |
@@ -750,11 +771,16 @@ Source-level deliverables exclude CHERI compiler construction, whole-system proo
 | Restricted Vela syntax prototype | 2-4 person-months | Successful library clients. Parse their bounded subset, preserve source locations, and generate inspectable terms/proofs. A prototype is not accepted source-correspondence evidence by itself. |
 | Reviewed restricted frontend | 9-18 person-months, including its syntax prototype | Working library and a fixed small source semantics. Checked elaboration/correspondence for that subset, useful diagnostics, negative tests, reproducible builds; reuse the existing backend and runtime discipline. |
 | Native integration of one library family | 2-6 person-months | The required CHERI compilation, source-correspondence, and final-artifact checking routes already work. Connect representations and obligations, bind exact bytes, and measure resources; this prerequisite is not established by the survey. |
+| Optional second-target bounded-buffer probe outside VerifiedOS | 1-3 person-months | Working generic library and a second backend with already proved compatible primitive/logic rules. Instantiate one family and audit proof reuse and missing guarantees. Source-level experiment only; excludes backend porting, compiler construction, and equivalent isolation. |
 | General graded dependent systems-language implementation | 4-10 person-years for a limited usable research tool | Language design, elaboration, resource analysis, layout, one backend, core libraries, and editor support. Does not include a Rust-sized ecosystem or a fully verified end-to-end compiler. High uncertainty. |
 | New verified optimizing CHERI compiler route | 10-30 or more person-years | A fixed source/target subset and substantial reuse of verified compiler infrastructure. Include representation, erasure/lowering, optimization preservation, ABI/link integration, and the required security-property transport. Excludes hardware proofs and a full general-language ecosystem; feasibility may require narrowing the scope. |
 
 The final two rows are order-of-magnitude research budgets, not confidence intervals or estimates of the repository's existing compiler work.
 They explain why a general language or fresh compiler is not low-hanging fruit.
+There is no responsible architecture-independent estimate for a complete new target port without its ISA, memory/concurrency model, ABI, compiler evidence, and required security profile.
+The optional probe budget assumes those source-level foundations already exist; it is not a budget for adding an arbitrary processor.
+An existing target-parametric verified compiler can offer reusable passes and simulation structure, but target lowering, calling convention, linking, and security preservation still need separate evidence.
+The framework does not reduce the repository's unfinished CHERI compiler obligations by relabeling them as an instance.
 The existing [implementation checklist](implementation-checklist.md) remains the owner of scheduled work and its measured/calibrated estimates; these ranges neither replace it nor subtract claimed savings from it.
 Gerty-style typechecking optimization is not separately recommended: its toy-program result establishes a technique, not a bottleneck here or a justification for new speed-only verified machinery.
 
@@ -766,21 +792,25 @@ These are unmeasured expectations with different denominators, not percentages t
 The first clients can take longer because they pay for abstraction, primitive lemmas, tooling integration, and independent review.
 Novel algorithms, concurrency, cryptographic reductions, compiler preservation, and hardware refinement should receive no assumed savings from a buffer library.
 
-The strongest savings mechanism is reuse of a proved representation and frame/restoration theorem across changing clients.
+Within one target, the strongest savings mechanism is reuse of a proved representation and frame/restoration theorem across changing clients.
+Across targets, reuse primarily covers abstract specifications, algorithm proofs, and authoring tools; representation and target-security proofs are separate work.
+Rapid syntax and proof-search iteration can preserve these investments when the semantic contract stays fixed, while a new observation model or interface law can invalidate substantial downstream work.
 The next is generation from an existing format or protocol specification, avoiding repeated implementation/proof synchronization.
 Earlier ownership diagnostics may shorten debugging, but changing syntax alone is unlikely to dominate the proof budget.
 General grading can reduce repeated resource accounting only if clients actually share that analysis; otherwise it adds algebra, inference, and maintenance work.
 
 Use a break-even model instead of quoting an OS-wide percentage.
-Let $L$ be the upfront library effort, $M$ maintenance over the evaluation period, $B_i$ the comparable baseline effort for client $i$, and $A_i$ its effort with the library, including learning and integration:
+Let $L$ be upfront library and interface effort, $M$ shared maintenance, $P_j$ the attributable establishment and maintenance cost of target instance $j$, $B_i$ the comparable baseline effort for client $i$, and $A_i$ its effort with the library, including learning and integration:
 
 $$
-\operatorname{NetSaved} = \sum_{i=1}^{N}(B_i - A_i) - L - M.
+\operatorname{NetSaved} = \sum_{i=1}^{N}(B_i - A_i) - L - M - \sum_{j=1}^{T} P_j.
 $$
 
 Adoption pays back only when this is positive, with equivalent contract strength and evidence endpoints.
 Do not count both a shared lemma and every client using it as separate upfront costs, or compare a source-only library theorem with a baseline that includes final-byte proofs.
+Charge initial instance work to either its inclusive deliverable budget or $P_j$, never both. Apply the same accounting boundary to the baseline, including any existing backend prerequisites.
 Measure author time, review time, proof repair after a representation change, and kernel replay separately.
+For a second target, report unchanged generic theorems, changed instance proofs, unsupported guarantees, and port maintenance rather than quoting a portability percentage.
 Use clients not used to design the combinators, and preserve a hand-authored baseline on the same semantics.
 If realistic reuse does not repay library costs, retain the useful component proofs and stop generalizing.
 
@@ -788,6 +818,8 @@ If realistic reuse does not repay library costs, retain the useful component pro
 
 The proposal initially makes existing required guarantees easier to establish; it does not strengthen the platform merely by adding types or annotations.
 A genuinely additional guarantee needs a stronger named contract and a proof over the implementation, followed by the required transport to bytes.
+Target abstraction adds a useful enforcement boundary when tools reject missing semantic laws and unsupported security requirements.
+It does not itself add hardware isolation: each accepted guarantee is conditional on the selected instance's proved interpretation and stated environment assumptions.
 
 | Checked library property | Defects it can exclude within its semantics | What remains outside that result |
 | --- | --- | --- |
@@ -803,21 +835,27 @@ For a single-use publication permission, for example, an ownership theorem can r
 Proving that publication eventually occurs also needs termination/progress and failure semantics; move-only syntax cannot establish it.
 A grade that merely renames an existing permission contributes no stronger guarantee, although it may improve error locality.
 Shared libraries also concentrate risk: a weak contract or wrong representation can affect every client, so independent contract review and negative specification tests remain essential even when the implementation theorem checks.
+Audit generic laws for vacuous premises and instance representations for satisfiable entry states; a sound implication with an impossible precondition is not a usable component.
+For deployment, the stronger VerifiedOS profile remains mandatory even if the same framework serves less demanding projects elsewhere.
 
 ## Decision
 
-Adopt **Rocq-native proof-carrying components** as the unit of experimentation, with a rich specification world and a tightly represented executable world.
+Adopt **target-parametric, Rocq-native proof-carrying components** as the unit of experimentation, with a rich specification world and a tightly represented executable world.
+Prove one concrete CHERI instance first. Hide its architecture from ordinary component contracts while retaining its exact representation, compilation, and security obligations in the instance and artifact evidence.
 Use Idris 2 for state-indexed APIs and erasure, Verus for erased ownership evidence and proof ergonomics, Creusot/Prusti for borrow-end contracts, RefinedRust for foundational ownership, and Live Verification/Rupicola for construction and proof reuse.
 Use Granule, Gerty, and GraD to distinguish what a resource annotation means and what theorem justifies it, not as ready-made CHERI compilation paths.
 Keep F*/Pulse and Lean's program-verification tooling as active comparisons, and CakeML/Pancake as references for honest end-to-end compiler claims.
 
 Prioritize the bounded-component pilot and small proof/evidence diagnostics, then scoped restoration and existing descriptor/protocol clients when they demonstrate reuse.
+Test generic theorem dependencies, missing-law rejection, required-profile enforcement, and selective invalidation as part of that pilot rather than building a universal target layer first.
 Add a fixed-domain resource library only for a named obligation that existing combinators do not already handle well.
 Defer general grading, a new language server, and a frontend until measured authoring problems justify them; a fresh optimizing compiler is not part of this library proposal.
 This ordering can deliver useful source proofs without waiting for a universal language, while leaving native admission dependent on the existing compiler and artifact work.
+Keep syntax, automation, and editor iteration above explicit semantic interfaces, and reserve any non-CHERI portability experiment for a separately scoped reuse project.
 
 The desired golden artifact is achievable in principle as a binary proved against an independently reviewed model.
 This strategy's immediate contribution is to make that proof path easier to author and reuse, without claiming that a new language has already closed the project's compiler, source-correspondence, timing, or hardware obligations.
+The reusable result is a framework for producing such artifacts under explicit target interpretations, not one binary, memory model, or security promise that applies to every architecture.
 
 No upstream code is incorporated by this proposal.
 Any implementation milestone that incorporates a dependency first reads that upstream's actual license and records the chosen artifact and its terms under the repository's [third-party discipline](../THIRD-PARTY.md).
