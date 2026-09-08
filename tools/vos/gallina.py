@@ -51,14 +51,24 @@ QUICKCHICK_SWITCH = "quickchick-9.1.1"
 PROOFS = "proofs"
 HARNESS_DIR = "tools/quickchick"
 
-# The two harnesses by the names they carry in the checkout, this lane's working
-# directory under the lane root, and the file the vectors land in. Named here rather
-# than in either tool, two tools driving this rig and neither being allowed its own
-# name for where the other one's output went.
+# The harnesses by the names they carry in the checkout, this lane's working directory
+# under the lane root, and the files the vectors land in. Named here rather than in
+# either tool, three tools driving this rig and none being allowed its own name for
+# where another one's output went.
 ENUMERATIVE = "Vectors.v"
 RANDOMIZED = "Properties.v"
+FREEZE = "FreezeModel.v"
 WORK = "gallina"
 VECTORS = "vectors.txt"
+FREEZE_VECTORS = "freeze-vectors.txt"
+FREEZE_MODEL = "freeze-model.txt"
+
+# Every harness that is an *entry point*: a file `compile_support` must leave alone,
+# because a run compiles exactly one of them and the others are either priced on a
+# library this switch may not hold or are a second subject entirely. A set rather than
+# a tuple spelled at the one site that reads it, so that adding a harness is one edit
+# here and the exclusion cannot be the half somebody forgets.
+ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, FREEZE})
 
 # The one line a harness's output is read back through. `Compute` on a `list string`
 # prints `= ["a"; "b"] : list string`, and the entries carry no quote and no backslash
@@ -223,13 +233,17 @@ def compile_support(found: Prover, work: Path) -> list[Failure]:
     """The harness directory's shared sources: everything there that is not an entry
     point, which is what an entry point's `Require` resolves against.
 
-    The two entry points are excluded by name rather than by their contents, because
-    one of them needs a library this repository has not installed and compiling it to
-    satisfy the other one's imports would make the enumerative half wait on the
-    randomized half's price.
+    The entry points are excluded by name rather than by their contents, and the reason
+    is one per harness. The randomized half needs a library this repository installs in
+    a switch of its own, and compiling it to satisfy another harness's imports would
+    make the enumerative half wait on the randomized half's price. The freeze model is
+    a second subject with no reader here at all: compiling it as shared support would
+    put a `Compute` over a hundred vectors inside every `quickchick vectors` run and
+    inside every seeded mutant's baseline, which is a price paid by loops that decide
+    nothing about it.
     """
     shared = [p for p in sorted((work / "harness").glob("*.v"))
-              if p.name not in (ENUMERATIVE, RANDOMIZED)]
+              if p.name not in ENTRY_POINTS]
     return _compile_all(found, work, shared)
 
 
