@@ -9,7 +9,9 @@
 
 The mechanical facts come from proofs/ApexTheorem.v alone, through the one parse
 vos/apex.py holds, which the checker's bindings group also reads, so the answer here
-and the checked view in docs/field-bindings.md cannot disagree. The artifact form
+and the checked view in docs/field-bindings.md cannot disagree. A statement that parse
+cannot read whole is refused rather than answered short, an answer over the fields it
+could name being the one way this tool can be wrong and sound. The artifact form
 reads that view's Instantiated-by column, through the one row parse
 vos/fieldbindings.py holds, to find which fields an artifact discharges. The match
 contract: a cell equal to `none yet` is the named absence of an artifact and matches
@@ -164,6 +166,15 @@ def report(root: Path, field: str | None, artifact: str | None,
         out.append(f"FAIL: {apex.APEX} is not in the repository")
         return 1, out
     record = apex.read(apex_path)
+    # A statement the parse could not read whole would answer this question over a field
+    # list short by exactly the fields nobody can name and a blast radius short by
+    # exactly the consumers nobody saw, which is the one way this tool can be
+    # confidently wrong: what it prints is what an editor takes to be the whole of what
+    # an edit re-opens, and a short answer here reads as a small radius. Refused rather
+    # than narrowed.
+    if record.unread:
+        out.extend(f"FAIL: {said}" for said in record.unread)
+        return 1, out
     conclusions = _seam_conclusions(record)
 
     if requirement:
