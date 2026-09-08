@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """consttab: the published constants two artifacts each state, against each other.
 
-Three files under [proofs/](../../../proofs/) name a file of the curated model in their
-own prose and mean the same thing by it each time: a table some standard publishes is
-transcribed once in Sail and derived a second time in Gallina, so that a defect in
-either is a disagreement with the standard rather than a disagreement between two
-things this repository wrote. [Keccak.v](../../../proofs/Keccak.v) says it of
+Three files under [proofs/](../../../proofs/) name a file of the curated model as
+transcribing what they themselves derive, which is narrower than naming one at all:
+[MemoryPlan.v](../../../proofs/MemoryPlan.v) names two as composition-time declarations
+it takes as inputs and is not one of the three. What the three mean by it each time is
+that a table some standard publishes is transcribed once in Sail and derived a second
+time in Gallina, so that a defect in either is a disagreement with the standard rather
+than a disagreement between two things this repository wrote.
+[Keccak.v](../../../proofs/Keccak.v) says it of
 [the permutation](../../../model/model/extensions/keccak/keccak_p1600.sail),
 [AesGcm.v](../../../proofs/AesGcm.v) of
 [the crypto extension's shared types](../../../model/model/extensions/K/types_kext.sail),
@@ -14,11 +17,12 @@ sit one file over in
 [its utilities](../../../model/model/extensions/vector_crypto/zvk_utils.sail).
 
 **A discipline with no holder is a sentence**, which is K-91's ground one object over.
-That rule holds the three permutation *answers* both Keccak files quote. What nothing
-reads is the *tables those answers are computed from*, and the tree says so twice: the
-completion log's M3.4d block records the AES pair as a finding owing a checker id, and
-Sha256.v writes at its own fourth reading that no rule reads the two together. This rule
-is that id, and its subject is the tables.
+That rule holds the three permutation *answers* both Keccak files quote and reaches no
+table. The *tables those answers are computed from* are what this rule holds, and the
+tree names that gap twice: the completion log's M3.4d block records the AES pair as a
+finding owing a checker id, and Sha256.v writes at its own fourth reading that no rule
+reads the two together. This rule is the id the first of those asks for, and its subject
+is the tables.
 
 **The subject is the constants and never the functions.** Sha256.v declines its pair
 because the thing transcribed on both sides is four *functions*, and no text comparison
@@ -183,6 +187,10 @@ _ASSIGN_RE = re.compile(r"(?<![:<>=!])=(?![=>])")
 # A `Definition`'s own `:=`, which is the same split one token over.
 _DEFINE_RE = re.compile(r":=")
 
+# What a Coq identifier continues into, so that a statement whose name merely starts with
+# a row's is not the statement the row names.
+_CONTINUES_RE = re.compile(r"[\w']")
+
 # Where a Gallina body stops. Every construct here opens at column zero in the artifacts
 # this rule reads, and the two endings both artifacts use, a `Proof.` block and a
 # trailing `:= eq_refl.`, are covered by the first and by the next construct.
@@ -244,8 +252,19 @@ def _only(pair: Pair) -> tuple[str | None, str]:
 
 
 def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
-    """The text of one named Gallina statement, or why it could not be located."""
-    opened = raw.find(f"\n{keyword} {pair['name']}")
+    """The text of one named Gallina statement, or why it could not be located.
+
+    The name is matched whole. A Coq identifier continues into a letter, a digit, an
+    underscore or a prime, so a search for the name as a prefix locates a statement the
+    row does not name: the row's own statement renamed to a longer one then reads green
+    off its replacement, which is the one thing this rule promises to report. The
+    boundary is checked at each hit rather than written into a pattern, a `(?m)^` scan
+    of these files costing more than the whole of the rest of the rule.
+    """
+    head = f"\n{keyword} {pair['name']}"
+    opened = raw.find(head)
+    while opened >= 0 and _CONTINUES_RE.match(raw, opened + len(head)):
+        opened = raw.find(head, opened + 1)
     if opened < 0:
         return None, f"{pair['gallina']} states no {keyword} named {pair['name']}"
     rest = raw[opened + 1:]
@@ -525,7 +544,7 @@ def run(ctx: Context) -> None:
 
     rep.report("K-107", "published constant(s) two transcriptions disagree about:",
                findings,
-               f"the {decided} published constant(s) the Gallina references and the "
-               f"curated model both state are the same {values} value(s), read through "
-               "each side's own order")
+               f"the {decided} published constant(s) this rule pairs between the "
+               f"Gallina references and the curated model are the same {values} "
+               f"value(s), read through each side's own order")
     rep.line()
