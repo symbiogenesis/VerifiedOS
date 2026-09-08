@@ -11,12 +11,17 @@ exist to catch, so the parse is here and neither carries a copy of it.
 
 **What this reads is what the source spells, which is why it is Python and not a
 prover.** A record's field list and the field reads inside a definition body are
-tokens the author wrote, not terms anything elaborates: the prover records them and
-does not compute them, and the prelude this statement is deliberately confined to
-offers no reflection that would let the artifact print its own field names. So this
-runs on the host wave with no toolchain in reach, which is what lets K-42, K-43 and
-K-44 be decided by the push workflow on a runner that has no Rocq. What a term
-*means* is the guest lane's, and `run.py proofs` is where it is asked.
+tokens the author wrote, not terms anything elaborates. `Compute` is conversion, and a
+field name is not a term conversion reduces to, so an artifact printing its own field
+names would be quoting its own syntax back through a reflection plugin: the same
+lexical fact through a heavier machine, and an import into a file whose own prose says
+it depends on nothing beyond the prelude. The assumption gate settles it in any case,
+since `run.py proofs` reads the statement's compile output and holds every line that
+is not `Closed under the global context` against the set R-05-164 makes empty, so a
+`Compute` here fails R-05-163 rather than serving it. This runs on the host wave with
+no toolchain in reach instead, which is what lets K-42, K-43 and K-44 be decided by the
+push workflow on a runner with no Rocq and no submodule. What a term *means* is the
+guest lane's, and `run.py proofs` is where it is asked.
 
 **The parse is total over what the record declares, and that is the shape rather
 than a flourish.** The failure this file must not have is the quiet one: a field
@@ -30,6 +35,16 @@ used to decide by spelling: the body is found by matching braces rather than by 
 lazy `}.`, which a brace inside the record would have ended early, and a field read
 is `<anything>.(field)` rather than `v.(field)`, so a definition that names its
 record argument something else is read instead of silently contributing nothing.
+
+**The consumer half is read twice and the two readings are held together.** The same
+quiet failure has a second shape on this side: `v.(f)` abbreviates the projection `f`
+applied to `v`, so a seam written `f v` consumes the field in Gallina and not in any
+scan for the abbreviation, which leaves one consumer cell short and the view agreeing
+with it. So each body is also read for the field names it mentions outside an
+assignment, and a body whose two readings differ is `unread` rather than answered from
+whichever is longer. Both callers refuse on a non-empty `unread`, which is the only
+answer available: a parse that cannot say what a body consumes cannot narrow the
+answer to what it happened to see.
 """
 
 import re
@@ -76,8 +91,17 @@ _DEFINITION_RE = re.compile(r"(?sm)^Definition (\w+)(.*?\.)\s*(?=^[A-Z]\w*\b|\Z)
 # whether the pattern above read all of them.
 _DEFINITION_HEAD = "Definition "
 
-# A field read through a record value, at whatever the definition calls its argument.
+# A field read through a record value, at whatever the definition calls its argument,
+# and the second reading that holds the first honest. `v.(f)` is an abbreviation: `f v`
+# applies the same projection and is equally legal Gallina, so a seam written that way
+# consumes a field this pattern does not see, and the consumer cell is short with
+# nothing to disagree with it. The two readings are held together rather than unioned,
+# because the record constructions at the end of the statement name every field in
+# assignment position and consume none of them, which a union would report as
+# thirty-four consumers apiece; so an assignment is what the second reading discounts,
+# and a body the two read differently is handed to the caller instead of answered.
 _FIELD_READ_RE = re.compile(r"\w+\.\((\w+)\)")
+_ASSIGNED_RE = re.compile(r"\b(\w+)\s*:=")
 
 
 @dataclass
@@ -87,9 +111,11 @@ class ApexRecord:
     consumers: dict[str, list[str]] = field(default_factory=dict)   # field -> what touches it
     def_fields: dict[str, list[str]] = field(default_factory=dict)  # definition -> fields read
     declarations: int = 0          # every declaration the record makes, read or not
-    # What the record states and this parse could not read, each worded for a caller
-    # that has to report it. Non-empty is a finding and never a narrower answer: a
-    # declaration nobody can name is an obligation nobody can bind.
+    # What the statement says and this parse could not read whole, in the record or in
+    # a definition body, each worded for a caller that has to report it. Non-empty is a
+    # finding and never a narrower answer: a declaration nobody can name is an
+    # obligation nobody can bind, and a body nobody can read is a consumer cell held
+    # against a set rather than against the statement.
     unread: list[str] = field(default_factory=list)
 
 
@@ -195,6 +221,14 @@ def read(path: Path) -> ApexRecord:
         for f in _FIELD_READ_RE.findall(body):
             if f in rec.field_set and f not in reads:
                 reads.append(f)
+        named = {w for w in _WORD_RE.findall(body)
+                 if w in rec.field_set} - set(_ASSIGNED_RE.findall(body))
+        if named != set(reads):
+            rec.unread.append(
+                f"the definition '{name}' reads "
+                f"{', '.join(reads) or 'no field'} through the record value and names "
+                f"{', '.join(sorted(named)) or 'none'}, so what it consumes is two "
+                "answers and this parse states neither")
         if reads:
             rec.def_fields[name] = reads
             for f in reads:

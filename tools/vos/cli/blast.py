@@ -166,9 +166,12 @@ def report(root: Path, field: str | None, artifact: str | None,
         out.append(f"FAIL: {apex.APEX} is not in the repository")
         return 1, out
     record = apex.read(apex_path)
-    # A record the parse could not read whole would answer this question over a field
-    # list that is short by exactly the fields nobody can name, which is the one way
-    # this tool can be confidently wrong. Refused rather than narrowed.
+    # A statement the parse could not read whole would answer this question over a field
+    # list short by exactly the fields nobody can name and a blast radius short by
+    # exactly the consumers nobody saw, which is the one way this tool can be
+    # confidently wrong: what it prints is what an editor takes to be the whole of what
+    # an edit re-opens, and a short answer here reads as a small radius. Refused rather
+    # than narrowed.
     if record.unread:
         out.extend(f"FAIL: {said}" for said in record.unread)
         return 1, out

@@ -17,11 +17,15 @@ whether a row cites the right authoring artifact is the review gate's question.
 
 **Held in both directions, and the parse's own residue is held with them.** A row
 naming no Prop field and a Prop field carrying no row are each a finding here, which
-is what makes a field list that has narrowed loud rather than merely shorter. The one
-narrowing that pairing cannot see is a field the parse never named, since the view has
-no row for it either and the count is one short with nothing to disagree; so
-vos/apex.py reads the record whole and hands back what it could not read, and this
-rule reports that before it reports anything about the rows.
+is what makes a field list that has narrowed loud rather than merely shorter, and the
+consumer cells are pinned the same way against the same parse. What a pairing cannot
+see either way is what the parse never read: a field it did not name has no row to
+disagree with it, and a consumer it did not see leaves a cell that was already written
+without it. Both sides narrow in silence and neither the floor nor a cell notices,
+because the floor counts members and the count is merely one short. So vos/apex.py
+reads the record whole and each definition body twice, hands back whatever it could
+not read, and this rule reports that residue before it reports anything about the
+rows: a parse with a residue has not decided what these three verdicts claim.
 """
 
 import re
@@ -70,10 +74,13 @@ def run(ctx: Context) -> None:
     by_field = {row.field: row for row in table}
     row_order = [row.field for row in table]
 
-    # What the statement declares and the parse could not read comes first, because a
-    # declaration nobody can name is a row nobody can write: reported here rather than
-    # left to narrow the field list, which no floor can see. A count one short of what
-    # the record makes is exactly the shape of a pass over nothing.
+    # What the statement says and the parse could not read comes first, because a
+    # declaration nobody can name is a row nobody can write and a body nobody can read
+    # is a consumer cell held against a guess: reported here rather than left to narrow
+    # the field list or the consumers, neither of which any floor can see, a count one
+    # short being exactly the shape of a pass over nothing. The rule fails on it rather
+    # than reporting it elsewhere, because what it decides is that the view carries
+    # exactly the record's Prop fields, and a parse with a residue has not decided that.
     problems = list(record.unread)
     problems += [f"the row '{line}' is too narrow to carry the view's cells"
                  for line in fieldbindings.malformed(raw)]
@@ -83,9 +90,9 @@ def run(ctx: Context) -> None:
     if not problems and row_order != record.fields:
         problems.append("the rows are not in the record's declaration order")
     rep.report("K-42", "field row(s) disagreeing with the record:", problems,
-               f"the view carries the record's {len(record.fields)} Prop fields, "
-               f"in declaration order, out of the {record.declarations} declarations "
-               "the record makes and this run read every one of")
+               f"the view carries the record's {len(record.fields)} Prop fields, in "
+               f"declaration order; the record makes {record.declarations} declarations "
+               "and this run read them all")
 
     wrong = []
     for f in row_order:
