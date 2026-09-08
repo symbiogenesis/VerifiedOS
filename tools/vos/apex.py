@@ -87,9 +87,15 @@ _WORD_RE = re.compile(r"\w+")
 # the definition above it and reported as that definition's own field reads.
 _DEFINITION_RE = re.compile(r"(?sm)^Definition (\w+)(.*?\.)\s*(?=^[A-Z]\w*\b|\Z)")
 
-# What a `Definition` sentence looks like from outside, for the count that says
-# whether the pattern above read all of them.
-_DEFINITION_HEAD = "Definition "
+# What a `Definition` sentence looks like from outside, for the count that says whether
+# the pattern above read all of them. Indentation is admitted here and refused there on
+# purpose, and that difference is the whole of what makes this a count rather than a
+# restatement: a definition inside a `Module` or a `Section` is indented, the pattern
+# above anchors at column 0, and a count anchored at column 0 too would have been the
+# audited pattern spelling its own answer, unable to report the one shape it exists to
+# catch. Counted wider than it is read, so an indented sentence is a residue and not a
+# consumer nobody saw.
+_DEFINITION_HEAD_RE = re.compile(r"(?m)^[ \t]*Definition\s")
 
 # A field read through a record value, at whatever the definition calls its argument,
 # and the second reading that holds the first honest. `v.(f)` is an abbreviation: `f v`
@@ -100,6 +106,13 @@ _DEFINITION_HEAD = "Definition "
 # assignment position and consume none of them, which a union would report as
 # thirty-four consumers apiece; so an assignment is what the second reading discounts,
 # and a body the two read differently is handed to the caller instead of answered.
+#
+# **What is discounted is the occurrence and never the name**, because one body does
+# both: a record built from another record writes `f := f v`, assigning the field and
+# consuming it in the same line. Subtracting the name would drop that read from the
+# second reading, leave it absent from the first as well, and let the two agree on a
+# body whose every consumer had just been lost, which is this file's silent failure
+# wearing an assignment. Subtracting the position keeps the read and reports it.
 _FIELD_READ_RE = re.compile(r"\w+\.\((\w+)\)")
 _ASSIGNED_RE = re.compile(r"\b(\w+)\s*:=")
 
@@ -211,7 +224,7 @@ def read(path: Path) -> ApexRecord:
 
     # every Definition consuming a field through the record value, in body order
     definitions = _DEFINITION_RE.findall(raw)
-    spelled = raw.count("\n" + _DEFINITION_HEAD) + raw.startswith(_DEFINITION_HEAD)
+    spelled = len(_DEFINITION_HEAD_RE.findall(raw))
     if len(definitions) < spelled:
         rec.unread.append(
             f"the file spells {spelled} `Definition` sentences and this parse reads "
@@ -221,8 +234,9 @@ def read(path: Path) -> ApexRecord:
         for f in _FIELD_READ_RE.findall(body):
             if f in rec.field_set and f not in reads:
                 reads.append(f)
-        named = {w for w in _WORD_RE.findall(body)
-                 if w in rec.field_set} - set(_ASSIGNED_RE.findall(body))
+        assigned = {m.span(1) for m in _ASSIGNED_RE.finditer(body)}
+        named = {m.group() for m in _WORD_RE.finditer(body)
+                 if m.group() in rec.field_set and m.span() not in assigned}
         if named != set(reads):
             rec.unread.append(
                 f"the definition '{name}' reads "
