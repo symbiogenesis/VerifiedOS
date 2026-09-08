@@ -8,7 +8,7 @@ for free, because the ids are already written down: which artifacts a register e
 re-opens is a scan away, where before it was a grep somebody had to remember to make.
 This is that scan, held here rather than at its callers because two of them make it,
 [the citations check](checks/citations.py) and [run.py blast](cli/blast.py), and *a
-parse two tools make is written once*. Its two halves are named for what they read
+parse two tools make is written once*. Its halves are named for what they read
 out of one artifact, and the module is named for the half that has a rule under it.
 
 **It is lexical and it stays lexical.** A requirement id inside a comment and a
@@ -19,7 +19,7 @@ witness inhabits a type: those are the prover's, they are decided in the guest b
 [run.py proofs](cli/proofs.py), and nothing here approximates one of them. The name
 says which half this is.
 
-**The two halves are read differently and priced differently**, and the split is the
+**The halves are read differently and priced differently**, and the split is the
 point rather than an accident of implementation.
 
 The **citation** half is one whole-text `re.findall` per file, and reading the bytes off
@@ -36,11 +36,40 @@ reading.
 
 The **constant** half is not on that budget. It reads a sentence's opening vernacular,
 so it has to know where the comments end, and `vos.proofs.sentences` is a character
-walk costing about 400 ms over the same tree. That is nothing beside the prover run the
-proof gate pays it inside, and it is two orders of magnitude above what one rule of
-`check.py` may spend, so it is computed for the artifacts a query actually asks about
-and never for the whole tree on the host wave. Nothing here caches it: a caller that
-wants it says so by calling for it.
+walk costing about 400 ms over the same tree, measured at 1.11 s over the tree as it
+stands on the host this was extended on. That is nothing beside the prover run the
+proof gate pays it inside, and it is two to three orders of magnitude above what one
+rule of `check.py` may spend, so it is computed for the artifacts a query actually asks
+about and never for the whole tree on the host wave. Nothing here caches it: a caller
+that wants it says so by calling for it.
+
+The **discharge** half is the third, and it is on the citation half's budget rather
+than the constant half's, which is the whole of why it is written the way it is. A
+discharge annotation is `(*| discharges: R-07-015, R-15-007i |*)` on its own line
+immediately above a top-level statement, and what it says is that *this constant claims
+to answer those entries*. That is a strictly stronger claim than the file-level
+citation beside it, which says only that the entry informed the artifact, and the two
+are kept apart in every name here for that reason: a citation is a bibliography and a
+discharge is a debt. **Neither is evidence that the theorem states the obligation.**
+Whether the sentence a constant proves is the sentence the entry demands is a reading,
+it belongs to the review gate R-05-150 fixes and to R-17-016, and nothing in this
+module or in any rule over it approximates it.
+
+It is read with one whole-text scan for the opening marker and one anchored attempt per
+hit, which is the shape the citation half's timing argues for and not a second walk of
+the sentences: the constant a discharge names is the one on the line *below* it, so
+the vernacular and the name are read off that line rather than looked up in the
+definition index. That is what keeps a rule over this at a few milliseconds instead of
+at the second the definition index costs, and it is also where the reading stops. A
+statement written inside an enclosing comment reads here exactly as one the file binds,
+because telling those apart is what comment stripping is for; that residue is declared
+at the rule and is not closed by anything cheaper.
+
+**Fail-closed on the marker rather than on the form.** Every `(*|` in a proof artifact
+is taken to be an attempt at an annotation, so one that will not parse comes back as a
+fault instead of being skipped as an ordinary comment. The alternative reading, taking
+only what matches and passing over the rest, makes a mistyped annotation invisible in
+exactly the way an unread citation was invisible before this module existed.
 
 **A note on the name, because this module was called `evidence.py` first and the
 rename is the interesting part.** `vos/<name>.py` beside `vos/cli/<name>.py` is a
@@ -79,6 +108,40 @@ DEFINERS = ("Definition", "Example", "Theorem", "Lemma", "Corollary", "Fact",
 # attribute block, and the locality and elaboration keywords that precede a vernacular.
 _MODIFIERS = r"(?:#\[[^\]]*\]\s*)?(?:Local\s+|Global\s+|Program\s+)*"
 _DEFINED_RE = re.compile(rf"^{_MODIFIERS}(?:{'|'.join(DEFINERS)})\s+([\w']+)")
+
+# The vernaculars whose sentence *states* something, which is the set a discharge may
+# sit above. It is a subset of `DEFINERS` and the difference is the whole content of the
+# distinction this module keeps: a `Definition`, a `Fixpoint`, an `Inductive` or a
+# `Record` introduces a term, and a term answers no obligation, where a `Theorem` and
+# its six synonyms assert one. `Example` is in because Rocq treats it as a `Definition`
+# whose body is a proof script and this repository writes its known-answer checks that
+# way, so an `Example` is a sentence somebody proved and can be claimed against an
+# entry; `Instance` is out because what it asserts is a class membership the elaborator
+# fills in, and a claim on it would be a claim about a resolution rather than about a
+# statement.
+STATEMENTS = ("Theorem", "Lemma", "Corollary", "Fact", "Proposition", "Remark",
+              "Example")
+
+# The marker a discharge annotation opens with. Every occurrence of it in a proof
+# artifact is an attempt at an annotation, which is what makes a malformed one a fault
+# rather than a comment this parse walks past.
+DISCHARGE_OPEN = "(*|"
+
+_OPEN_RE = re.compile(re.escape(DISCHARGE_OPEN))
+
+# The annotation and the sentence beneath it, as one anchored match. The id list may not
+# span lines, which is what bounds the `[^|\r\n]*` run to the line it opens on rather
+# than to the rest of a two-megabyte artifact; the newline between the two is required
+# and no blank line is admitted between them, because a discharge that floats above an
+# empty line names whichever sentence happens to come next.
+_DISCHARGE_RE = re.compile(
+    r"\(\*\|[^\S\r\n]*discharges:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n"
+    rf"[^\S\r\n]*{_MODIFIERS}(?P<vernac>[A-Za-z]+)[^\S\r\n]+(?P<name>[\w']+)")
+
+# One annotation's whole content: the constant it sits above, and the entries that
+# constant claims to answer. Repeats inside one list are the caller's to notice; the
+# order is the file's, because a ledger written in it reads down the artifact.
+type Claim = tuple[str, list[str]]
 
 
 def is_source(rel: str) -> bool:
@@ -151,9 +214,108 @@ def names(text: str) -> list[str]:
     return found
 
 
+def _listed(body: str) -> tuple[list[str], str | None]:
+    """The annotation's id list, or why it is not one.
+
+    Comma-separated and nothing else, so a list is read as a list rather than scanned
+    for whatever happens to look like an id in it. The difference is the case the
+    scanning reading gets wrong: `discharges: R-07-015 and the rest` yields one id under
+    a `findall` and reports nothing, where the author wrote a sentence and meant two.
+    """
+    found: list[str] = []
+    for token in body.split(","):
+        word = token.strip()
+        if not word:
+            return [], ("an empty entry in its id list, so the list is not a "
+                        "comma-separated one" if body.strip() else
+                        "no requirement id at all, so it claims nothing")
+        if not REQ_TOKEN_RE.fullmatch(word):
+            return [], (f"{word!r} in its id list, which is not a requirement id; the "
+                        "form is comma-separated R-nn-nnn with an optional letter "
+                        "suffix and nothing else")
+        found.append(word)
+    return found, None
+
+
+def discharges(text: str) -> tuple[list[Claim], list[str]]:
+    """Every discharge annotation one artifact makes, and the ones it could not read.
+
+    The claims come back in the order the file makes them and the faults in the order it
+    commits them, each naming the line a person has to go and visit. Both are returned
+    rather than raised, on the same ground `read` above states about a file that will
+    not decode: a rule reports what it could not read, and an artifact carrying one
+    mistyped annotation still yields the rest of its claims.
+
+    Four things are refused and each is worded as itself, because they are four
+    different edits. A marker that shares its line with code before it is not the form
+    at all. A marker whose annotation will not parse is a mistyped one. An id list that
+    is not a comma-separated list of requirement ids claims something this parse cannot
+    name. And an annotation above a vernacular outside `STATEMENTS` is a claim on a term
+    rather than on a sentence, which is the one of the four that renders perfectly and
+    reads as correct.
+    """
+    claims: list[Claim] = []
+    faults: list[str] = []
+    for mark in _OPEN_RE.finditer(text):
+        at = text.count("\n", 0, mark.start()) + 1
+        head = text.rfind("\n", 0, mark.start()) + 1
+        if text[head:mark.start()].strip():
+            faults.append(f"line {at} opens {DISCHARGE_OPEN} with code before it on the "
+                          "same line; a discharge annotation sits alone on the line "
+                          "above the statement it claims")
+            continue
+        hit = _DISCHARGE_RE.match(text, mark.start())
+        if hit is None:
+            faults.append(f"line {at} opens {DISCHARGE_OPEN} and no discharge annotation "
+                          f"follows it; the form is `{DISCHARGE_OPEN} discharges: "
+                          "R-nn-nnn |*)` on its own line, with a statement on the next "
+                          "line and no blank line between")
+            continue
+        listed, fault = _listed(hit.group("ids"))
+        if fault is not None:
+            faults.append(f"line {at} states {fault}")
+            continue
+        vernac, name = hit.group("vernac"), hit.group("name")
+        if vernac not in STATEMENTS:
+            faults.append(f"line {at} claims {', '.join(listed)} above `{vernac} {name}`, "
+                          f"which states nothing; a discharge sits above one of "
+                          f"{', '.join(STATEMENTS)}")
+            continue
+        claims.append((name, listed))
+    return claims, faults
+
+
 def citations(pairs: list[tuple[str, str]]) -> dict[str, set[str]]:
     """The citation index: each artifact against the requirements it names."""
     return {rel: set(ids(text)) for rel, text in pairs}
+
+
+def claims(pairs: list[tuple[str, str]]) -> tuple[dict[str, list[Claim]], list[str]]:
+    """The discharge index: each artifact against what its constants claim to answer.
+
+    The faults of every artifact are gathered into one list rather than kept per file,
+    because their one reader reports them under a single rule and each already names the
+    artifact it came from. A constant annotated twice in one file is a fault here rather
+    than two claims, since the two annotations are two answers to the question *what
+    does this constant claim*, and a ledger built over both would carry the constant
+    twice against whichever union of ids the second annotation happened to write.
+    """
+    index: dict[str, list[Claim]] = {}
+    faults: list[str] = []
+    for rel, text in pairs:
+        found, problems = discharges(text)
+        faults += [f"{rel}: {problem}" for problem in problems]
+        seen: dict[str, int] = {}
+        kept: list[Claim] = []
+        for name, listed in found:
+            seen[name] = seen.get(name, 0) + 1
+            if seen[name] > 1:
+                faults.append(f"{rel}: `{name}` carries more than one discharge "
+                              "annotation, so what that constant claims is stated twice")
+                continue
+            kept.append((name, listed))
+        index[rel] = kept
+    return index, faults
 
 
 def constants(pairs: list[tuple[str, str]]) -> dict[str, list[str]]:
