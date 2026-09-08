@@ -43,9 +43,10 @@
 
    **Why Z and not nat.** Rocq's nat is unary, and the intermediate a
    fixed-point rendering forms is 2 * num * scale: for the bare model at the
-   256-bit bundle that is above 10^8, which is 10^8 constructors to allocate
-   and a division that walks them. Z is binary and the same expression is a
-   handful of machine words. The rendering is still exact fixed point rather
+   256-bit bundle that is above 10^8, and for the packed model at its own
+   bound it passes 10^11, which is that many constructors to allocate and a
+   division that walks them. Z is binary and the same expression is a handful
+   of machine words. The rendering is still exact fixed point rather
    than QArith: every figure crosses as an integer at a declared scale, so the
    comparison against the Python is an integer equality and never a float
    epsilon, and Z buys the sign the required packing term needs.

@@ -13,9 +13,10 @@ and holds it against the first.
 **Owned here rather than in the quarantine, for the reason
 [freezeschema.py](freezeschema.py) is.** There are two ends of this arithmetic now: the
 deferred instrument that reports it and the comparison that checks it, and K-83 holds the
-landing loop out of `tools/quarantine/` while leaving the other direction open. So the
-model lives here and the instrument reads it, and the names it re-exports are the ones
-its own readers already ask for.
+landing loop out of the quarantine while leaving the other direction open, which is why
+this file may not spell that directory's path either. So the model lives here and the
+instrument reads it, and the names it re-exports are the ones its own readers already
+ask for.
 
 **Exact rationals, and integers at a declared scale.** Every figure below is computed
 over `Fraction` and rendered as an integer at a scale this module fixes, so the
@@ -43,6 +44,12 @@ SLOT_MODEL = "R-15-036h"
 PACKING_TERM = "R-15-036j"
 COMMITMENT = "R-15-036i"
 REGISTER = "docs/requirements-register.md"
+
+# The two files that state this arithmetic, by the names a finding has to print. Neither
+# is imported by the other and neither is compiled against the other: what crosses is
+# text, which is what makes a disagreement a line a person reads on both sides.
+MODULE = "tools/vos/freezemodel.py"
+HARNESS = "tools/quickchick/FreezeModel.v"
 
 # =====================================================================================
 # what the format and R-15-036 already fix
@@ -282,7 +289,7 @@ class Outlining:
     break_even_pcrelative: int | None
 
 
-def outlining_break_even(lengths: "list[int] | range") -> list[Outlining]:
+def outlining_break_even(lengths: list[int]) -> list[Outlining]:
     """The site count at which each region length starts to pay, under both forms."""
     out: list[Outlining] = []
     for n in lengths:
@@ -509,6 +516,33 @@ def held(lines: list[str], fixed: Anchors, whose: str) -> list[str]:
     return findings
 
 
+def family_counts(lines: list[str]) -> dict[str, int]:
+    """How many vectors one side states in each declared family, in walk order.
+
+    A dictionary seeded from `FAMILIES` rather than gathered from the lines, so a family
+    that went empty is a zero somebody can see and not a key that stopped existing.
+    """
+    counts = dict.fromkeys(FAMILIES, 0)
+    for line in lines:
+        field = line.split()
+        if len(field) > 1 and field[0] == PREFIX and field[1] in counts:
+            counts[field[1]] += 1
+    return counts
+
+
+def empty_families(lines: list[str], whose: str) -> list[str]:
+    """A declared family one side states no vector in, which is the narrowing this
+    comparison cannot otherwise see.
+
+    Two grids emptied in step agree with each other perfectly, and `compare` below would
+    report that agreement, so the floor is stated over the families rather than over a
+    count: what fails is the family, and the report names which.
+    """
+    return [f"{whose} states no vector in the `{name}` family, so this comparison "
+            f"decides nothing about it" for name, count in family_counts(lines).items()
+            if count == 0]
+
+
 def compare(theirs: list[str], ours: list[str]) -> list[str]:
     """The prover's vectors against this module's, keyed by the point each states.
 
@@ -522,12 +556,15 @@ def compare(theirs: list[str], ours: list[str]) -> list[str]:
                 for line in lines if line.startswith(f"{PREFIX} ") and " -> " in line}
 
     prover, model = index(theirs), index(ours)
-    findings = [f"the harness states no vector at all, having printed "
-                f"{len(theirs)} line(s) none of which is a `{PREFIX} ` point"] \
-        if not prover else []
-    findings += [f"the harness answers `{key} -> {prover[key]}` and this model answers "
-                 f"`{ours_at}`" for key, ours_at in model.items()
-                 if key in prover and prover[key] != ours_at]
+    if not prover:
+        # one finding rather than one per point: a harness that printed nothing
+        # disagrees with every vector at once, and a report saying so line by line
+        # buries the fact that the harness is what failed.
+        return [f"the harness states no vector at all, having printed {len(theirs)} "
+                f"line(s) none of which is a `{PREFIX} ` point"]
+    findings = [f"the harness answers `{key} -> {prover[key]}` and this model answers "
+                f"`{ours_at}`" for key, ours_at in model.items()
+                if key in prover and prover[key] != ours_at]
     findings += [f"the harness states `{key}` and this model states no such point"
                  for key in prover if key not in model]
     findings += [f"this model states `{key}` and the harness states no such point"

@@ -21,9 +21,19 @@ priced part rather than an aesthetic: the two routes into a switch this reposito
 already had cost a rebuild of a landed environment apiece, which is what `INSTALL`
 below records.
 
+[quickchick/FreezeModel.v](quickchick/FreezeModel.v) is a third harness and a different
+question: not *what does this artifact answer* but *do the two statements of one
+arithmetic agree*. R-15-036i makes the instruction dictionary a permanent freeze-time
+commitment, so the density model over it is the one arithmetic in this tree whose wrong
+answer invalidates stored code rather than costing a recompile, and it is therefore
+written down twice on purpose, in [vos/freezemodel.py](freezemodel.py) and in that
+harness, and compared. `freeze` below runs the second and holds it against the first and
+both against the four figures the register's own prose quotes.
+
     python tools/run.py quickchick check
     python tools/run.py quickchick vectors
     python tools/run.py quickchick properties
+    python tools/run.py quickchick freeze
 
 **Which finding this answers.** M0.8d's, in the register's other language: a property
 written before the vectors and never run is a property whose subject somebody chose,
@@ -34,7 +44,7 @@ structural property was written about. Generation does not depend on the choice.
 import argparse
 import subprocess
 
-from vos import cli, env, gallina
+from vos import cli, env, freezemodel, gallina
 from vos.corpus import find_root
 
 # The opam package, and what installing it costs. Measured on 2026-08-29 rather than
@@ -197,15 +207,80 @@ def cmd_properties(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_freeze(args: argparse.Namespace) -> int:
+    """The freeze's density arithmetic, stated twice and compared, plus the register.
+
+    **Three readings and not two, and the third is what makes the first two mean
+    anything.** Two statements of one model agreeing with each other says nothing about
+    either agreeing with the entry it implements: a defect transcribed into both is
+    exactly what their comparison cannot see. So each side is also held against the four
+    figures R-15-036h and R-15-036j quote in their own prose, which is the reading a
+    person makes by eye and the only one outside both statements.
+
+    **Fail-closed at every step.** No prover, a harness that did not compile, a harness
+    that printed no vector, a register sentence that has moved out from under the reader,
+    or a declared family either side states nothing in: each is a finding and exit 1,
+    never a comparison quietly made against less.
+    """
+    e = env.load()
+    root = find_root()
+    work = gallina.work_dir(e.lane_root)
+
+    ours = freezemodel.vector_lines()
+    model_file = gallina.write(ours, work / gallina.FREEZE_MODEL)
+    fixed, said = freezemodel.anchors(root)
+    findings: list[str] = [*said, *freezemodel.empty_families(ours, freezemodel.MODULE)]
+    if fixed is not None:
+        findings += freezemodel.held(ours, fixed, freezemodel.MODULE)
+
+    out: list[str] = [
+        f"== the freeze density model ({freezemodel.SLOT_MODEL} and "
+        f"{freezemodel.PACKING_TERM}), stated twice (lane {e.lane or 'primary'})",
+        f"   {freezemodel.MODULE:<32} {len(ours):>4} vector(s)  {model_file}"]
+    theirs = gallina.emit(root, work, out, harness=gallina.FREEZE)
+    if theirs is None:
+        out.extend(f"     {line}" for line in findings)
+        out.append(f"FAIL {freezemodel.HARNESS} did not answer, so nothing was "
+                   "compared; the model's own statement stands unchecked")
+        print("\n".join(out))
+        return 1
+
+    vector_file = gallina.write(theirs, work / gallina.FREEZE_VECTORS)
+    found = gallina.prover(gallina.ORACLE_SWITCH)
+    out.append(f"   {freezemodel.HARNESS:<32} {len(theirs):>4} vector(s)  "
+               f"{vector_file}")
+    out.append(f"   {gallina.version(found) if found else 'unknown prover'} in the "
+               f"{gallina.ORACLE_SWITCH} switch")
+    out.append("   " + "  ".join(f"{name} {count}" for name, count
+                                 in freezemodel.family_counts(theirs).items()))
+    out.extend(f"     {line}" for line in ours[:args.show])
+
+    findings += freezemodel.empty_families(theirs, freezemodel.HARNESS)
+    if fixed is not None:
+        findings += freezemodel.held(theirs, fixed, freezemodel.HARNESS)
+    findings += freezemodel.compare(theirs, ours)
+    if findings:
+        out.extend(f"     {line}" for line in findings)
+        out.append(f"FAIL {len(findings)} finding(s) against an arithmetic "
+                   f"{freezemodel.COMMITMENT} makes permanent")
+        print("\n".join(out))
+        return 1
+    out.append(f"ok the two statements of the model agree on {len(ours)} vector(s), "
+               f"and both agree with {freezemodel.REGISTER}")
+    print("\n".join(out))
+    return 0
+
+
 COMMANDS: cli.Table = {
     "check": (cmd_check, "whether QuickChick is installed, and what installing costs"),
     "vectors": (cmd_vectors, "the enumerative half: generated inputs, as text"),
     "properties": (cmd_properties, "the randomized half, which QuickChick runs"),
+    "freeze": (cmd_freeze, "the freeze's density model, stated twice and compared"),
 }
 
 
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
-    if name == "vectors":
+    if name in ("vectors", "freeze"):
         sub.add_argument("--show", type=int, default=3, metavar="N",
                          help="print the first N vectors as a sample")
 

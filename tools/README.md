@@ -193,6 +193,7 @@ $ python tools/run.py testrig bridge             # both dialects, one run
 $ python tools/run.py oracle vectors --spec capformat
 $ python tools/run.py quickchick check           # and what the install costs
 $ python tools/run.py quickchick vectors         # the Gallina front's answers
+$ python tools/run.py quickchick freeze          # the freeze's model, stated twice
 $ python tools/run.py seed coq --sample 20
 $ python tools/run.py seed sail --spec keccak --sample 14
 $ python tools/run.py proofs
