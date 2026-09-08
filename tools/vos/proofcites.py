@@ -94,6 +94,18 @@ DERIVED_MARK = "(*|"
 # this pattern is a fault rather than a region silently stopping being one.
 _DERIVED_RE = re.compile(r"\(\*\|\s*(BEGIN|END)\s+derived\s*(?::[^|\r\n]*)?\|\*\)")
 
+# The other construct spelled in this marker, and the reason the stray count subtracts
+# it. `(*|` is coqdoc's delimiter rather than this repository's, so the region is not
+# its only occupant: a discharge annotation above a constant is written in it too, and
+# was here first. Counting every marker as an attempted delimiter therefore reported
+# each of those as a region nothing excludes, which is a rule whose premise its own
+# tree had already falsified. Subtracting the well-formed ones keeps what the stray
+# count is for, a BEGIN or an END respelled past `_DERIVED_RE` leaving a region
+# unexcluded with nothing said, and widens it by one honest case: an annotation
+# misspelled past this pattern is a marker in neither set and is reported here rather
+# than read as prose by everything.
+_ANNOTATION_RE = re.compile(r"\(\*\|\s*discharges:[^|\r\n]*\|\*\)")
+
 # The vernaculars whose sentence binds a top-level name. It is deliberately *not*
 # `cli/proofs.py`'s `DEFINERS`, and the difference is the question each list answers
 # rather than a second copy of one answer: that one is the shape a non-vacuity witness
@@ -217,11 +229,11 @@ def derived(text: str) -> Derived:
         faults.append(f"line {line_at(text, opened_at)} opens a derived region the file "
                       "never closes, which is the delimiter that would hold every "
                       "citation below it out of the reading")
-    stray = text.count(DERIVED_MARK) - read
+    stray = text.count(DERIVED_MARK) - read - len(_ANNOTATION_RE.findall(text))
     if stray:
         faults.append(f"{stray} occurrence(s) of `{DERIVED_MARK}` are neither a BEGIN "
-                      "nor an END this parse reads, so a region may be delimited by a "
-                      "marker nothing excludes")
+                      "nor an END this parse reads, nor a discharge annotation, so a "
+                      "region may be delimited by a marker nothing excludes")
 
     return Derived((), tuple(faults)) if faults else Derived(tuple(spans), ())
 
