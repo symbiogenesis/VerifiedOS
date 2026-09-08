@@ -327,11 +327,19 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-T
 
 **R-05-017** MUST: SMT results enter only via in-kernel reconstruction (SMTCoq-style witness import).
-· Accept: every SMT-derived fact has a kernel-checked reconstruction; no `Axiom` records an SMT result.
+· Accept: every SMT-derived fact has a kernel-checked reconstruction; no `Axiom` records an SMT result. Each admitted route records and successfully replays its exact solver, certificate format, reconstruction plugin and Rocq revisions.
 · Trace: CJ-T
 
 **R-05-018** IS: Learned tactic synthesis and LLM-guided proof search are untrusted finders whose terms the kernel re-checks, and carry zero trust cost.
 · Accept: removing every such tool from the pipeline invalidates no checked theorem.
+· Trace: CJ-T
+
+**R-05-018a** MUST: Interactive proof feedback is bound to its source and dependency environment and never substitutes for batch proof acceptance.
+· Accept: acceptance requires a fresh batch build of the exact sources and dependency environment, the R-05-163 assumption audit and `rocqchk`; provisional admissions, cached goals and rendered pages satisfy none of these gates. Changing a source, dependency or configuration invalidates the feedback's current status, and a negative check demonstrates that an unfinished interactive proof cannot pass acceptance. Host-only gates remain executable without Rocq.
+· Trace: CJ-T
+
+**R-05-018b** MUST: Reused proof libraries, generated definitions and automation are qualified against the client theorems and their actual transitive assumptions before adoption.
+· Accept: each retained candidate has a reproducible pinned environment and an incorporation-time licence reading, its client statements are unchanged, and its generated definitions and replay scripts pass kernel checking and R-05-163 without enlarging declarations merely to pass. Any claimed CHERI representation or primitive-operation law has a checked connection to the selected semantics; generic library laws or a theorem over another machine do not discharge it.
 · Trace: CJ-T
 
 ### 5.4 The semantic-anchor budget
@@ -6142,7 +6150,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ## Coverage
 
-All eighteen normative sections are extracted, at 1403 requirements. §19 is non-normative and yields none. Counts include the 450 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
+All eighteen normative sections are extracted, at 1405 requirements. §19 is non-normative and yields none. Counts include the 452 letter-suffixed entries, each of which is a full entry and not a variant of the one it follows; the entries themselves are the list, and enumerating their IDs a second time here would be a derived fact restated where nothing checks it. Every figure in this section, the table included, is recomputed from the entries by `tools/check.py` rather than kept in step by hand. Section coverage is a precondition for the R-05-150 gate, not the gate itself: the review still has to decide, per section, whether the extraction is *complete*, which is the question the register exists to make askable.
 
 | Section | Status | Entries |
 | --- | --- | --- |
@@ -6150,7 +6158,7 @@ All eighteen normative sections are extracted, at 1403 requirements. §19 is non
 | **§2 Non-Goals** | **extracted** | **8** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **13** |
-| **§5 Languages & Verification** | **extracted** | **211** |
+| **§5 Languages & Verification** | **extracted** | **213** |
 | **§6 Trusted Computing Base** | **extracted** | **31** |
 | **§7 Kernel** | **extracted** | **65** |
 | **§8 Authority Model** | **extracted** | **87** |
