@@ -25,6 +25,17 @@ hypothetical: run against the ten-seam fail-closed register it returned the dete
 class (R-17-030n), the entropy health test (R-17-030o), the display path (R-17-030p),
 and budget admission (R-17-030q), none of which any reading had found.
 
+The crown-jewel side's agenda is the one whose hold is a document rather than a
+conferral collection: a candidate is held by conferring the status or by being cited
+in an inventory row, since a requirement the inventory names is one the review gate
+already reads. Its vocabulary is therefore the vocabulary of **formal discharge**,
+and what it reports is a requirement promising a machine-checked artifact that no
+row of the inventory carries and no entry confers. The distinction that decides most
+of its dispositions is the inventory's own: a crown jewel is a specification, so a
+build-time decision procedure over one composition, a workstream that stages an
+artifact another entry confers, and a proof over somebody else's specification each
+answer the vocabulary without being a member.
+
 The three sets differ in how their collector grows, and that difference is the
 register's rather than this file's: R-17-030 and the crown-jewel inventory grow by
 addition, a seam or a row written beside the others, and R-10-013 grows by amendment,
@@ -142,6 +153,48 @@ AGENDAS: list[Agenda] = [
             "R-16-008": "the same pinning through the trusted transactor",
         },
     ),
+    Agenda(
+        name="formal-discharge",
+        # The words this register states a machine-checked discharge in. Over-approximating
+        # on purpose and demonstrably so: it reaches a residency prohibition, a release
+        # manifest, and a declined-alternative essay citing somebody else's prover, none of
+        # which discharge anything, and each of those catches is what shows the sweep is
+        # not shaped around the answer it returns.
+        vocab=(r"machine.checked|mechani[sz]ed|proof obligation|proof[- ]artifacts?|"
+               r"formally verified|formal proof|shipped theorem|"
+               r"prove[nd] in (?:Coq|Rocq|Gallina|Lean|Isabelle)"),
+        # The hygiene gates over the set: each quantifies across every shipped theorem
+        # rather than promising one, and R-05-167 says in so many words that the two are
+        # preconditions on every claim discharged by a machine-checked theorem.
+        ruling=["R-05-163", "R-05-166", "R-05-167"],
+        disposition={
+            "R-03-004": "the residual enumeration, whose protocol-level member names the upstream analyses R-12-043e curates; the state machines those analyses fix are the rows R-12-043c confers",
+            "R-04-006": "nesting authors no artifact: the graph it names is the one R-07-025 fixes at build time, and its criterion tests only that no object class appears",
+            "R-05-051a": "a second theorem over the descriptors R-05-046 confers one by one; what it is proved against is the descriptor, and R-05-042's inventory records which descriptors carry it",
+            "R-05-080": "locates the residual unsafe rather than stating what is proved of it; the hardware contracts are the specification R-05-082 confers, and this criterion tests an empty set of blocks outside the HAL",
+            "R-05-081": "the proof obligation over those same contracts: what it adds is that each primitive is discharged rather than reviewed, the specification the proofs match being R-05-082's",
+            "R-06-015d": "its own criterion books CJ-ADMIT-IMPL as a theorem rather than a specification this platform authors, both judgments being fixed elsewhere; the inventory carries specifications and the theorem-target table carries this target",
+            "R-07-005": "a build-time decision procedure over one composition, as its criterion states: it decides an instance and establishes no property a specification could be wrong about",
+            "R-07-025": "the same build-time decision over one composed topology; the specification a wrong answer would betray is the policy model R-08-028 and R-17-012 confer",
+            "R-10-002": "names the prover and the lineage of the four storage layers; each layer's specification is its curated upstream's, and the criterion tests only that no foreign-prover proof enters the trust base",
+            "R-10-006": "an upstream property consumed as an admission precondition: the proof is RefFS's, and what this entry states is that §11 may not admit a task without it",
+            "R-10-007": "the compilation and prover route for those same layers, declining Dafny/Z3 and Rosette as bases; it fixes which artifacts are trusted rather than what any of them says",
+            "R-11-006": "the admission proof over one task set, decided per composition against the schedule R-11-017 confers; its Coq artifact is an instance witness and not a specification",
+            "R-13-010c": "a residency prohibition: proof artifacts here names bytes kept out of execution SRAM and consumed at admission, not a discharge",
+            "R-13-029": "a release-manifest obligation over whatever proofs exist; it names no theorem and its criterion tests presence",
+            "R-14-002": "its criterion moves the discharge to the permission encoding R-15-007l fixes, where the machine-checked part is a finite check over 32 codepoints inside the model R-15-005 confers",
+            "R-14-004a": "cites a published machine-checked JIT to foreclose a verifiability argument; the artifact is somebody else's and this entry authors nothing against it",
+            "R-14-006": "the same graph R-07-025 fixes, read at the intra-app scale, its criterion stating that no new mechanism appears",
+            "R-15-011": "proof obligation here names admission test 2's flow-discipline burden, discharged per feature under R-15-010 rather than by a theorem over an artifact",
+            "R-15-013": "the clause deciding when a redundant mechanism is admitted; it reads formal verification as a condition on the hedge and confers nothing on the primary",
+            "R-15-062": "the adoption entry for fence.t: the flush-set statement and its mechanized classification are the specification R-15-221 confers, and this criterion defers to R-15-186 through R-15-194",
+            "R-16-003": "names the mechanism and its owner on the integrity path, as its criterion says; the crash specification is the §10 stack's and its proof is R-18-026's deliverable",
+            "R-17-058d": "a reduction over the two axioms already stated, checked beside R-05-004a's theorems against the probing-model statement R-15-053a confers; it selects a countermeasure and fixes no model of its own",
+            "R-18-003b": "a §18 workstream: its five day-one deliverables are each stated elsewhere, and a workstream stages what another entry confers",
+            "R-18-026": "the workstream staging the storage layers R-10-002 fixes; it orders the proofs and confers no specification of its own",
+            "R-18-031": "the workstream staging the apex theorem R-05-156 confers; sub-deliverable (a) authors that statement and this entry orders the work rather than fixing it",
+        },
+    ),
 ]
 
 
@@ -158,10 +211,20 @@ def run(ctx: Context) -> None:
     # behind no conferring requirement is the view legislating, which a derived view
     # may not do. Rows only: the theorem table is targets, not specifications.
     cj_confer = [i for i in reg.ids if CJ_VOCAB.search(reg.body[i])]
-    rep.report("K-18", "crown-jewel row(s) no requirement confers:",
-               [f"row {row.split('|')[1].strip()}: {row.split('|')[2].strip()}"
-                for row in art.cj_rows
-                if not any(c in cj_confer for c in REQ_TOKEN_RE.findall(row))],
+
+    # Each row's citations are read once and asked two questions. K-18 asks whether one
+    # of them confers, which is the direction below; the formal-discharge agenda asks
+    # whether an entry is among them at all, that being its whole hold, since a
+    # requirement the inventory names is one the review gate already reads.
+    cj_cited: set[str] = set()
+    rowless: list[str] = []
+    for row in art.cj_rows:
+        tokens = REQ_TOKEN_RE.findall(row)
+        cj_cited.update(tokens)
+        if not any(c in cj_confer for c in tokens):
+            rowless.append(f"row {row.split('|')[1].strip()}: {row.split('|')[2].strip()}")
+
+    rep.report("K-18", "crown-jewel row(s) no requirement confers:", rowless,
                f"every row cites one of the {len(cj_confer)} requirements that confer the status")
 
     rep.report("K-19", "Accept-line crown-jewel assertion(s) neither conferred nor dispositioned:",
@@ -254,6 +317,7 @@ def run(ctx: Context) -> None:
     held_by_agenda = {
         "fail-closed": set(fc_confer) | set(fc_cited) | set(fc_seams),
         "RoT-fresh": set(rf_confer),
+        "formal-discharge": set(cj_confer) | cj_cited,
     }
     for agenda in AGENDAS:
         vocab = re.compile(agenda["vocab"], re.IGNORECASE)
@@ -299,6 +363,13 @@ def run(ctx: Context) -> None:
                f"all {dispositions + len(CJ_ACCEPT_DISPOSITION)} dispositions and every ruling "
                "suppress a live finding")
 
+    # The RoT-fresh agenda's own count, and the critique's claim over it is about that
+    # agenda rather than about whichever row sits second. Read by name, so a fourth
+    # agenda inserted above it raises here instead of quietly retargeting the claim
+    # onto a different set, which `--fix` would then rewrite into a true sentence
+    # about the wrong thing.
+    by_name = {a["name"]: a for a in AGENDAS}
+
     ctx.shared.update(
         cj_confer=cj_confer,
         fc_seams=fc_seams,
@@ -306,6 +377,6 @@ def run(ctx: Context) -> None:
         rf_confer=rf_confer,
         rot_states=len(states),
         dispositions=dispositions,
-        rot_cases=len(AGENDAS[1]["disposition"]),
+        rot_cases=len(by_name["RoT-fresh"]["disposition"]),
     )
     rep.line()
