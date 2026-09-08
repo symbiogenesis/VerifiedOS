@@ -15,7 +15,14 @@ The local hypothesis is that executable specifications and proof-producing const
 The discriminating experiment is a bounded buffer operation: prove its contract using only the declared interface laws, instantiate those laws over the selected CHERI-aware program semantics, and show that changing the store or its bound breaks the proof.
 A library that only proves a second hand-transcribed model, without relating the implementation to it, fails that experiment.
 
-The [language and verification design](spec.md#r-05-019) already separates semantic anchors from proof transport.
+The hypothesis carries a precondition this repository does not currently meet, and it belongs in the recommendation rather than in a caveat further down.
+Removing *repeated* specification-to-implementation work presupposes enough authored specifications for there to be a repetition, and [the crown-jewel inventory](crown-jewels.md) books all but a handful of its rows as not authored while [the critique](critique.md) reads exactly that as the project's binding constraint.
+The library's value therefore lands on the second and third client rather than the first, and while that constraint holds the cheaper move is to author specifications and let the repetition appear before building the thing that removes it.
+
+The register already separates the two halves this proposal needs: [semantic anchors are frozen and exhaustively enumerated](spec.md#r-05-019), while [a verified compiler is proof transport between two existing anchors rather than an anchor, and is admitted freely](spec.md#r-05-021).
+The generic library and its construction combinators are transport in that sense, which is what makes them cheap to admit.
+A surface language's elaborator is not: it is a translator, and [a new semantics, program logic or translator is admitted only on three conditions](spec.md#r-05-020), Coq-native or mechanically bridged, non-duplicating of an existing anchor, and retiring an interim it replaces.
+This proposal meets the first two and names no interim for the third, so the frontend has a gate to clear that the library does not, and nothing below should be read as having cleared it.
 The VerifiedOS instance adds definitions and theorems over those anchors, not a parallel operational semantics or a non-CHERI deployment path.
 Other projects could supply different proved instances without changing the generic library or acquiring VerifiedOS's security claims by implication.
 Its first usable result can be a verified source-level component; an admitted optimized binary remains a later result dependent on the existing compiler and artifact-verification work.
@@ -104,7 +111,7 @@ AI proof synthesis can help in all these workflows, but contributes candidate pr
 | System | What it establishes or enables | Consequence for this project |
 | --- | --- | --- |
 | [Live Verification in an Interactive Proof Assistant](https://doi.org/10.1145/3656439), PLDI 2024 | Incremental construction of low-level programs and their proofs inside Coq, with symbolic state at the cursor. | Closest precedent for the proposed Rocq-library-first UX. Reproducing the interaction is smaller than designing a new language and runtime. |
-| [Rupicola](https://github.com/mit-plv/rupicola) and [Bedrock2](https://github.com/mit-plv/bedrock2) | Relational compilation from functional descriptions to imperative code, plus a low-level verified compiler and end-to-end examples. | Directly useful construction techniques. Upstream Bedrock2's word/byte memory and riscv-coq target are not CHERI or the pinned Sail term. The project's planned Clight transport needs its own demonstrated connection. |
+| [Rupicola](https://github.com/mit-plv/rupicola) and [Bedrock2](https://github.com/mit-plv/bedrock2) | Relational compilation from functional descriptions to imperative code, plus a low-level verified compiler and end-to-end examples. | Directly useful construction techniques, and the one row here this repository has already measured rather than surveyed: M1.6 stood the stack up whole and found its verified exit emitting base-integer RISC-V with no capability instruction anywhere, which is the non-capability compilation target [purecap-only](spec.md#r-18-002) forbids, while the C-printer exit that does reach a usable target carries no theorem at all. Reuse the construction technique and treat the target as unbuilt; the planned Clight transport needs its own demonstrated connection. |
 | [MetaRocq](https://metarocq.github.io/) | Quotation, verified type checking, and erasure; its bibliography includes verified extraction to OCaml/Malfunction in 2024 and the consolidated typechecking/erasure account in 2025. | Useful metaprogramming and proof infrastructure. Erasure is not native compilation; the documented safe checker also states a strong-normalization assumption. Inspect each theorem's assumptions rather than inferring them from the project name. |
 | [CertiRocq, formerly CertiCoq](https://github.com/CertiRocq/certirocq) | Gallina compilation to Clight and WebAssembly. | The current README says large parts are verified and others remain in progress. General Gallina compilation includes representation/runtime issues; it is not an automatic static-memory CHERI backend. Monitor or use for host tools, not the first on-device route. |
 | [CakeML](https://cakeml.org/) and [Pancake](https://cakeml.org/pancake.html) | CakeML demonstrates proof-producing translation and compilation to machine code. Pancake pursues explicit-memory systems programming using lower compiler layers without a GC. | Closest architectural evidence that the executable-reference goal is feasible. Their HOL foundation and target models are different; adopting them would not be a small Rocq library change. |
@@ -283,6 +290,11 @@ Index conversion and iteration expose a representability bound and proved increm
 The generic fill theorem quantifies over these laws. The VerifiedOS instance discharges them over its selected CHERI-aware semantics and transport, rather than asserting a flat-address memory model that CHERI must emulate.
 Keep handles opaque: pointer width, integer casts, address equality, provenance, capability tags, bounds compression, endianness, and alignment are not implicit generic facts.
 An operation that genuinely needs one of them states that dependency in a narrower interface.
+
+**The interface is a proof-side abstraction and never a second way to reach the machine, which is a register constraint rather than a design preference.**
+[A verified component reaches an instruction through exactly one surface](spec.md#r-05-023b), a backend primitive named by that instruction's own profile mnemonic and operand form and taking its meaning from the pinned Sail clause for it, and that surface is a duty of [the two required certifying compilers](spec.md#r-18-014) rather than a deliverable standing beside them.
+An operation law here is therefore discharged over that primitive and inherits its meaning; a law that introduced a machine operation of its own would be the second surface the register says does not exist.
+The constraint binds the instance and not the generic modules, and it is what keeps a target interface from quietly becoming a competing backend.
 
 Use static module instantiation and specialization, not runtime virtual dispatch, for this abstraction.
 Logical parameters and law proofs are erased; actual storage handles and required runtime metadata remain.
@@ -552,10 +564,15 @@ Reviewed executable Gallina contract + generic component theorem
 ```
 
 These arrows are obligations, not claims that the route is implemented end to end.
+**The weakest arrow is named rather than left to be discovered, and the plan already owns it.**
+Q2b chooses the device path and closes the relation to the Sail model, and the plan's own reading of that fork is that the Clight intermediate R-05-043 names is emitted by neither exit the route currently has, so the route is a second front end until that bridge exists.
+Nothing in this document shortens that item, and a library built above the bridge does not build the bridge.
 Another project's backend replaces the target-specific portion, not the independently reviewed contract; it must prove its own transport and artifact claims.
 Within VerifiedOS, all machine-level connections still use the same pinned Sail term and the reviewed source anchors.
 For a Rust-origin component, the existing Radium/source-correspondence route replaces the Gallina-to-C construction portion; no new source language displaces contained Rust by this proposal.
 TCB components retain the required verified-C path.
+That a component's source language is free at the admission boundary is the register's position and not this document's: [admission never gates on the source language or producer identity of a binary](spec.md#r-05-008), which is what makes a new surface language a question about proof-authoring cost rather than about admission.
+It is also what leaves [source correspondence](spec.md#r-05-026) as the binding obligation instead, a proof about the wrong source subject being one the kernel accepts and that entry rejects.
 
 For a contract `Contract`, implementation `Program`, final bytes `Binary`, and pinned machine semantics `Sail`, the central functional goal has the shape
 
@@ -581,6 +598,12 @@ The proposed first deliverable is a small off-device Rocq package, provisionally
 It exposes executable pure specifications, operation and representation interfaces, reusable refinement lemmas, and proof automation that produces terms checked by Rocq.
 The package is useful independently of any new surface syntax.
 
+**Its stop condition is reached before its first line, and saying so is the most useful thing this proposal currently does.**
+The pilot's stated starting point is an accessible CHERI-aware imperative semantics with usable primitive rules.
+The Iris-over-Sail program logic those rules would be stated in is an anchor the register enumerates and this development does not yet carry, which is why the machine-boundary connection is described as planned throughout this document; the specifications such rules would quantify over are booked as not authored across all but a handful of [the crown-jewel inventory](crown-jewels.md)'s rows; and M1.6 measured the one relational-compilation stack that might have supplied the primitives as carrying no capability awareness at all.
+So the prerequisite is the work, and the library is what becomes worth building once the semantics it abstracts exists.
+An earlier version would be abstracting an interface nothing can yet instantiate, which is the failure mode the interface-adequacy experiment below is designed to detect and would detect in its own first week.
+
 ### Library Contents and Reuse
 
 The interfaces are target-parametric, but the first concrete backend is deliberately singular: instantiate them over the existing Gallina contract and selected CHERI-C transport, with the planned Iris-over-Sail connection at the machine boundary.
@@ -591,7 +614,7 @@ Do not implement a universal adapter layer across every surveyed language or req
 | --- | --- | --- |
 | Model views | A buffer's contents, length, initialized region, and frame condition share one representation predicate. | Existing Rocq lists/finite indices and the chosen memory logic; no parallel byte-address semantics. |
 | Target interfaces | Generic algorithms require only named operation, representation, and composition laws. | Rocq modules and functors; prove one CHERI instance over the existing anchors. |
-| Construction combinators | Sequence, branch, bounded iteration, and local update produce the concrete program and its refinement proof together. | Fiat/Bedrock/Rupicola-style relational compilation, with every transport endpoint made explicit. |
+| Construction combinators | Sequence, branch, bounded iteration, and local update produce the concrete program and its refinement proof together. | Fiat/Bedrock/Rupicola-style relational compilation, with every transport endpoint made explicit. M1.6 has already measured those endpoints on this tree, so the combinators are the reusable part and the endpoints are the open one. |
 | Proof support | Normalize bounds, apply array-update lemmas, preserve frames, and expose the first unsolved goal. | Rocq tactics; Equations for dependent definitions; Iris automation where the instantiated logic supports it. |
 | Source-oriented interaction | A user alternates between writing a statement and applying a proof step while inspecting current symbolic state. | Live Verification's interaction model, initially in the existing Rocq editor rather than a new LSP implementation. |
 | Certificate packaging | Keep the actual program term, its contract, representation relation, checked theorem, and declared assumptions together. | Existing artifact/proof infrastructure; no opaque success flag and no replacement admission format. |
@@ -717,6 +740,9 @@ No new optimizer, code generator, or language runtime is necessary for the initi
 
 These are proposed experiments, not booked checklist items. The effort ranges below are separate research-planning judgments.
 Promotion into implementation work requires the repository's normal milestone and review process.
+**One of them is already booked and half landed, and that overlap is the first thing to read here rather than a detail.**
+The plan's Q2 demonstrates one single-source lowering route on a wire parser; its host-only half, Q2a, landed with a boundary audit finding the checked relation stopping at the first of its four boundaries, and its device half, Q2b, is open.
+The library-feasibility row below overlaps that item instead of preceding it, so the question a funder faces is not whether to run the first experiment but whether a target-parametric library changes how Q2b and Q3b are done.
 
 | Experiment | Evidence to produce | What disconfirms the approach |
 | --- | --- | --- |
@@ -747,10 +773,16 @@ A general quantitative dependent typechecker, a Rust-equivalent ecosystem, and a
 
 These are engineering judgments for deciding which experiment to fund, not measured productivity results, upstream delivery promises, or estimates copied into the implementation checklist.
 A person-week or person-month means focused engineering effort, including local proof work, tests, documentation, and review preparation; it is not elapsed time for an intermittently staffed project.
+
+**They are also in a different unit from the plan's, and the two are not convertible.**
+[The implementation checklist](implementation-checklist.md) prices every item in attended agent-session hours, keeps a separate clock for items that ran under fan-out, fits a calibration over each clock separately on the ground that no item has been measured on both, and derives every total, range and progress figure from those cells arithmetically.
+A person-month here is neither of those clocks.
+Read the ranges below as relative costs *among the experiments in this document*, and read the plan's own cells for what any of this would cost this project.
+A reader who converts at forty hours to the person-week will find that the smallest deliverable below exceeds the plan's entire remaining balance, and that result is an artefact of the unit rather than a finding about the work.
 The estimates assume engineers already productive in Rocq and the selected program logic, stable primitive specifications, and reuse of existing libraries.
 A small team needs both proof-engineering and systems/compiler expertise; dividing person-months by headcount is not a reliable calendar forecast because semantic design and review are serial dependencies.
 An unfamiliar team, missing transport theorem, changing ISA/ABI, or unexpectedly weak upstream library can exceed these bands substantially.
-No AI productivity multiplier is assumed.
+No AI productivity multiplier is assumed, which makes these figures conservative for this repository specifically rather than neutral: the plan carries a fan-out series whose measured outturn runs well under its estimates, and every item it has completed against an external authority since that fit was taken has run in that mode.
 
 Each row is scoped from its stated starting point. Rows overlap and are alternatives or extensions, so they must not be added as a project total.
 Source-level deliverables exclude CHERI compiler construction, whole-system proofs, hardware refinement, production certification, and on-device admission unless explicitly stated.
@@ -770,7 +802,7 @@ If that foundation is unavailable, the pilot reports the blocking obligation rat
 | Existing-editor proof/evidence diagnostics | 3-6 person-weeks | Existing Rocq interaction and build evidence are available. Focus on local obligations, subject identity, and assumptions; excludes a new language server. |
 | Restricted Vela syntax prototype | 2-4 person-months | Successful library clients. Parse their bounded subset, preserve source locations, and generate inspectable terms/proofs. A prototype is not accepted source-correspondence evidence by itself. |
 | Reviewed restricted frontend | 9-18 person-months, including its syntax prototype | Working library and a fixed small source semantics. Checked elaboration/correspondence for that subset, useful diagnostics, negative tests, reproducible builds; reuse the existing backend and runtime discipline. |
-| Native integration of one library family | 2-6 person-months | The required CHERI compilation, source-correspondence, and final-artifact checking routes already work. Connect representations and obligations, bind exact bytes, and measure resources; this prerequisite is not established by the survey. |
+| Native integration of one library family | 2-6 person-months | Starts only once the required CHERI compilation, source-correspondence and final-artifact checking routes work, and none of them does today: the device half of the lowering route is open in the plan and gated on its backend. Connect representations and obligations, bind exact bytes, and measure resources. The starting point is a condition on the row and not a description of the present tree. |
 | Optional second-target bounded-buffer probe outside VerifiedOS | 1-3 person-months | Working generic library and a second backend with already proved compatible primitive/logic rules. Instantiate one family and audit proof reuse and missing guarantees. Source-level experiment only; excludes backend porting, compiler construction, and equivalent isolation. |
 | General graded dependent systems-language implementation | 4-10 person-years for a limited usable research tool | Language design, elaboration, resource analysis, layout, one backend, core libraries, and editor support. Does not include a Rust-sized ecosystem or a fully verified end-to-end compiler. High uncertainty. |
 | New verified optimizing CHERI compiler route | 10-30 or more person-years | A fixed source/target subset and substantial reuse of verified compiler infrastructure. Include representation, erasure/lowering, optimization preservation, ABI/link integration, and the required security-property transport. Excludes hardware proofs and a full general-language ecosystem; feasibility may require narrowing the scope. |
@@ -846,7 +878,8 @@ Use Idris 2 for state-indexed APIs and erasure, Verus for erased ownership evide
 Use Granule, Gerty, and GraD to distinguish what a resource annotation means and what theorem justifies it, not as ready-made CHERI compilation paths.
 Keep F*/Pulse and Lean's program-verification tooling as active comparisons, and CakeML/Pancake as references for honest end-to-end compiler claims.
 
-Prioritize the bounded-component pilot and small proof/evidence diagnostics, then scoped restoration and existing descriptor/protocol clients when they demonstrate reuse.
+Prioritize the small proof and evidence diagnostics, which are the one deliverable here whose stated starting point already holds, and hold the bounded-component pilot behind the semantics it abstracts rather than in front of it.
+Take scoped restoration and the existing descriptor and protocol clients when they demonstrate reuse.
 Test generic theorem dependencies, missing-law rejection, required-profile enforcement, and selective invalidation as part of that pilot rather than building a universal target layer first.
 Add a fixed-domain resource library only for a named obligation that existing combinators do not already handle well.
 Defer general grading, a new language server, and a frontend until measured authoring problems justify them; a fresh optimizing compiler is not part of this library proposal.
