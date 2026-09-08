@@ -985,7 +985,6 @@ Definition traps_with_the_schedule_transitions (a : Act) : bool :=
 
 (* S-i and S-i-a: both are admissible, which is the gap made checkable
    rather than asserted. *)
-(*| discharges: R-07-031b |*)
 Theorem the_files_own_trap_surface_is_admissible :
   AdmissibleTrapSurface traps_act.
 Proof.
@@ -997,7 +996,6 @@ Proof.
   intros a H. destruct a; first [ discriminate H | reflexivity ].
 Qed.
 
-(*| discharges: R-07-031b |*)
 Theorem the_syscall_carried_trap_surface_is_admissible :
   AdmissibleTrapSurface traps_with_the_schedule_transitions.
 Proof.
@@ -1141,7 +1139,6 @@ Theorem every_admissible_trap_surface_carries_the_exception :
     /\ is_the_act_of_an_invocation ASynchronousException = false.
 Proof. intros t [ _ [ H _ ] ]. exact (conj H eq_refl). Qed.
 
-(*| discharges: R-08-032, R-07-039 |*)
 Theorem no_admissible_trap_surface_traps_a_notification_half :
   forall t : TrapSurface, AdmissibleTrapSurface t ->
     t ANotifySignal = false /\ t ANotifyReceive = false.
@@ -1395,7 +1392,7 @@ Definition badge_return : ReturnPath :=
   {| rp_classes := nil; rp_otypes := 0; rp_mints := false; rp_act := ASend |}.
 
 (* S5 through S8 (R-07-027a, R-04-008, R-15-007). *)
-(*| discharges: R-07-027a, R-04-008, R-15-007 |*)
+(*| discharges: R-07-027a, R-04-008 |*)
 Theorem the_badge_return_path_discharges_all_four :
   SpendsNoObjectClass badge_return
   /\ SpendsNoObjectType badge_return
@@ -1962,7 +1959,6 @@ Fixpoint badges (w : nat) : list (list bool) :=
 
 (* S13 (R-07-031, R-15-007, gap a): every badge the generator produces at a
    width has that width, stated of an arbitrary width. *)
-(*| discharges: R-07-031, R-15-007 |*)
 Theorem every_generated_badge_has_the_declared_width :
   forall w : nat, all_of (fun b => Nat.eqb (count_of b) w) (badges w) = true.
 Proof.
@@ -2148,7 +2144,6 @@ Definition RefusalCostsItsOwnInvocation (m : Machine) (c : Invocation -> nat) : 
   forall i : Invocation, Nat.leb (c i) (m.(invocation_cost) i) = true.
 
 (* S21 (R-07-029a, R-11-006). *)
-(*| discharges: R-07-029a, R-11-006 |*)
 Theorem the_specification_refusal_costs_its_own_invocation :
   RefusalCostsItsOwnInvocation demo demo.(refusal_cost).
 Proof. intros i. destruct i; reflexivity. Qed.
@@ -2191,7 +2186,7 @@ Fixpoint run_offers (t : Transfer) (k : Kernel) (st : Readiness)
 (* S22 (R-07-029a, R-11-010): stated of an arbitrary transfer that parks
    nothing and an arbitrary offer sequence, so it is a property of the
    discipline rather than a computation over one witness. *)
-(*| discharges: R-07-029a, R-11-010 |*)
+(*| discharges: R-07-029a |*)
 Theorem no_sequence_of_re_offers_parks_anything :
   forall (t : Transfer), ParksNothing t ->
     forall (k : Kernel) (st : Readiness) (l : list Offer),
@@ -2368,7 +2363,7 @@ Proof.
   destruct (has_work b); reflexivity.
 Qed.
 
-(*| discharges: R-12-096, R-07-029a |*)
+(*| discharges: R-12-096 |*)
 Theorem the_specification_decider_yields_only_on_an_empty_drain :
   YieldsOnlyOnAnEmptyDrain spec_decide.
 Proof. intros b n H. unfold spec_decide. rewrite H. reflexivity. Qed.
@@ -2464,7 +2459,7 @@ Theorem the_specification_delivery_sees_its_own_pending_only :
   forall m : Machine, SeesItsOwnPendingOnly m (spec_delivery m).
 Proof. intros m p s b. reflexivity. Qed.
 
-(*| discharges: R-07-037c, R-07-044 |*)
+(*| discharges: R-07-037c |*)
 Theorem the_specification_delivery_swaps_where_a_swap_exists :
   forall m : Machine, SwapsWhereASwapExists m (spec_delivery m).
 Proof. intros m _ p s b. reflexivity. Qed.
@@ -3707,7 +3702,6 @@ Qed.
    carries control and never bulk data. The predicate is proved of a
    message inside the budget and refuted of one past it, so it decides
    rather than restating `message_ok`. *)
-(*| discharges: R-07-029, R-07-031 |*)
 Theorem the_specification_medium_carries_no_bulk_data :
   CarriesNoBulkData demo probe_message.
 Proof. reflexivity. Qed.

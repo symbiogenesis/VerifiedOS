@@ -380,7 +380,6 @@ Definition in_list (p : Perm) (l : list Perm) : bool := any_of (perm_eqb p) l.
 Example the_permission_field_has_thirty_two_codepoints :
   count_of all_perms = 32 := eq_refl.
 
-(*| discharges: R-15-007b |*)
 Theorem every_codepoint_is_enumerated : forall p : Perm, in_list p all_perms = true.
 Proof.
   intros [ b4 b3 b2 b1 b0 ].
@@ -657,7 +656,6 @@ Definition inventory_ok (l : list Resident) : bool :=
 Example the_specification_inventory_is_admitted :
   inventory_ok spec_inventory = true := eq_refl.
 
-(*| discharges: R-07-024, R-07-020 |*)
 Theorem the_specification_inventory_has_one_entry :
   InventoryHasOneEntry spec_inventory /\ TheKernelIsResident spec_inventory.
 Proof. split; reflexivity. Qed.
@@ -845,7 +843,7 @@ Proof.
   cbv beta in Hq. exact (negb_true _ Hq).
 Qed.
 
-(*| discharges: R-07-019, R-07-024 |*)
+(*| discharges: R-07-019 |*)
 Theorem quiescence_follows_from_the_refinement :
   forall (m : Machine) (g : Graph m) (st : Installed m),
     Handoff m g st -> PlanNamesNoFirmwareEdge m g -> Quiescent m st.
@@ -861,7 +859,7 @@ Qed.
    graph's check to the booted machine is the initialisation refinement and
    nothing else, which reading 8 states and which the construction after it
    refutes. *)
-(*| discharges: R-07-025, R-07-028, R-07-023 |*)
+(*| discharges: R-07-028, R-07-023 |*)
 Theorem the_build_time_check_becomes_an_installed_property :
   forall (m : Machine) (I : Installer m) (g : Graph m) (st : Installed m),
     InstallsExactly m I -> I g st ->
@@ -963,7 +961,7 @@ Definition DecidesOnThePermission (m : Machine) (gt : Gate m) : Prop :=
     gt p md = access_system_registers (m.(decode) p).
 
 (* F7 (R-07-018, R-15-003). *)
-(*| discharges: R-07-018, R-15-003 |*)
+(*| discharges: R-07-018 |*)
 Theorem the_specification_gate_decides_on_the_permission :
   forall m : Machine, DecidesOnThePermission m (spec_gate m).
 Proof. intros m p md. reflexivity. Qed.
@@ -1026,7 +1024,6 @@ Proof. intros m e r. reflexivity. Qed.
    subtract. It grants nothing the capability does not already grant, which
    is why PMP is redundant surface rather than a second authority; and it is
    still a second decision to get right, which is why it is refuted as one. *)
-(*| discharges: R-15-075 |*)
 Theorem a_region_table_only_subtracts :
   forall (m : Machine) (table : m.(Region) -> bool) (e : Edge m) (r : m.(Region)),
     region_gated m table e r = true -> authorizes m e r = true.
@@ -1063,7 +1060,7 @@ Definition NoAmbientAuthority (m : Machine) (g : Graph m) (w : WorkingSet m) : P
   forall e : Edge m, w e = true -> holds m e g = true.
 
 (* F10 (R-05-091, R-05-086, R-05-087). *)
-(*| discharges: R-05-091, R-05-086, R-05-087 |*)
+(*| discharges: R-05-087 |*)
 Theorem the_firmware_holds_only_planned_authority :
   forall (m : Machine) (g : Graph m), NoAmbientAuthority m g (spec_working m g).
 Proof. intros m g e H. exact H. Qed.
@@ -1105,7 +1102,6 @@ Definition spec_lazy (m : Machine) : Lazy m := fun _ g => spec_working m g.
 Definition DoesNotDependOnTheCall (m : Machine) (l : Lazy m) : Prop :=
   forall (i j : nat) (g : Graph m) (e : Edge m), l i g e = l j g e.
 
-(*| discharges: R-05-086 |*)
 Theorem the_specification_is_not_lazily_initialized :
   forall m : Machine, DoesNotDependOnTheCall m (spec_lazy m).
 Proof. intros m i j g e. reflexivity. Qed.

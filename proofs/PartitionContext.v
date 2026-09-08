@@ -353,7 +353,7 @@ Qed.
 
 (* T2 (R-07-015, R-15-001b, isa-profile.md section 5.1, R-07-014a,
    R-07-014c). *)
-(*| discharges: R-07-015, R-07-014c |*)
+(*| discharges: R-07-015 |*)
 Theorem restore_total_over_nameable_csrs :
   forall m : Machine, RestoresNameableCsrs m (Switch m).
 Proof.
@@ -497,7 +497,7 @@ Theorem switch_pays_all_three :
   forall m : Machine, constants_paid m switch_performs = switch_cost m.
 Proof. intros m. reflexivity. Qed.
 
-(*| discharges: R-15-220, R-07-037b |*)
+(*| discharges: R-07-037b |*)
 Theorem rotation_pays_none_of_the_three :
   PaysNoneOfTheThree rotation_performs.
 Proof. intros m. reflexivity. Qed.
@@ -884,7 +884,6 @@ Definition unzeroed_post : State demo_rotation_swaps :=
   Build_Context demo_rotation_swaps
     (fun _ => (true, true)) (fun _ => true) true.
 
-(*| discharges: R-07-037b |*)
 Theorem rotation_omits_the_zeroize_at_state_level :
   Rotation demo_rotation_swaps demo_succ demo_succ unzeroed_post
   /\ ~ Switch demo_rotation_swaps demo_succ demo_succ unzeroed_post
@@ -911,7 +910,7 @@ Qed.
    rotations from one successor context disagree on it.
    ========================================================================= *)
 
-(*| discharges: R-07-044, R-07-037c |*)
+(*| discharges: R-07-037c |*)
 Theorem rotation_pending_carries_nothing_on_the_swapping_arm :
   forall (m : Machine) (succ : Context m) (pre1 post1 pre2 post2 : State m),
     m.(rotation_swaps_pending) = true ->

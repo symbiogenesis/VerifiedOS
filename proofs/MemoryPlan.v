@@ -1402,7 +1402,6 @@ Qed.
    so a composition whose two constants coincide carries no delta whatever
    the placement. What separates the classes in this arithmetic is the pair
    of constants and never the class's name. *)
-(*| discharges: R-15-247s |*)
 Theorem equal_constants_carry_no_delta :
   forall (p : Plan) (a : Assignment) (r : nat),
     p.(second_fetch) = p.(first_fetch) -> placement_delta p a r = 0.
@@ -1430,7 +1429,7 @@ Definition DeltaReadsThePlacementAlone (d : Delta) : Prop :=
     a r = b r ->
     d p a r = d q b r.
 
-(*| discharges: R-15-247j, R-11-015 |*)
+(*| discharges: R-15-247j |*)
 Theorem the_placement_delta_reads_the_placement_alone :
   DeltaReadsThePlacementAlone placement_delta.
 Proof.
@@ -1664,7 +1663,7 @@ Qed.
 
 (* S4a (R-15-247j, R-11-006): the delta is a bound and not a relayout, at
    whichever slot it is charged to. *)
-(*| discharges: R-15-247j, R-11-006 |*)
+(*| discharges: R-15-247j |*)
 Theorem charging_moves_no_offset_and_no_width :
   forall (T : Type) (i d : nat) (f : Frame T),
     pairwise_disjoint (frame_slots (charge_frame_at i d f))
@@ -1726,7 +1725,7 @@ Proof. intros c p a r f H. exact H. Qed.
    `brittle_admission` included (limit i); what isolates the slot is the
    pair of witnesses beside the refutation below, which read one plan at
    the region's own slot and at the frame's focus. *)
-(*| discharges: R-15-247j, R-11-020 |*)
+(*| discharges: R-15-247j |*)
 Theorem the_specification_admission_charges_the_region_s_own_slot :
   ChargesTheRegionSOwnSlot spec_admission.
 Proof. intros c p a r f. reflexivity. Qed.
@@ -1775,7 +1774,6 @@ Qed.
    slot index the frame does not carry, the specification's own admission
    is the uncharged verdict whatever the delta, so one unit more of delta
    moves nothing and the input stops being an input. *)
-(*| discharges: R-15-247j |*)
 Theorem a_slot_the_frame_does_not_carry_absorbs_the_whole_delta :
   forall (c : Composition) (p : Plan) (a : Assignment) (r : nat)
          (f : Frame (Tenant c)),
@@ -1869,7 +1867,6 @@ Qed.
 (* S4c (R-15-247j): a smaller delta is admitted wherever a larger one is,
    stated of an arbitrary composition, slot index and frame. This is what
    makes the margin below a margin rather than a coincidence. *)
-(*| discharges: R-15-247j |*)
 Theorem a_smaller_delta_is_admitted_wherever_a_larger_one_is :
   forall (c : Composition) (i d e : nat) (f : Frame (Tenant c)),
     Nat.leb d e = true ->
@@ -2814,7 +2811,7 @@ Qed.
    "moving the arenas raises the origin-pool ceiling P for the same
    first-class budget" as a theorem over an arbitrary bound, kind, plan and
    population rather than as a remark. *)
-(*| discharges: R-14-015, R-14-009, R-14-010 |*)
+(*| discharges: R-14-015 |*)
 Theorem the_register_placement_admits_every_population_a_promotion_admits :
   forall (bnd : PopulationBound) (p : Plan) (k : RegionKind) (n : nat),
     MonotoneInTheMemberCost bnd ->

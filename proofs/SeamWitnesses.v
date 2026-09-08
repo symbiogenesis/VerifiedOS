@@ -244,7 +244,7 @@ Proof. exact (fun H => H (conj I (conj I I))). Qed.
    seam conclusions alone do not entail T.
    ------------------------------------------------------------------------- *)
 
-(*| discharges: R-05-165, R-05-166, R-18-031 |*)
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma composition_meta_lemma_distinguishing :
   ~ composition_meta_lemma leaky_vocabulary.
 Proof.

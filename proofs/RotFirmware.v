@@ -1544,7 +1544,6 @@ Qed.
    specification chain extends from, substituting one item's measurement
    for another's moves the digest; the property is finite where the field
    is, so a real hash meets it (reading 7). *)
-(*| discharges: R-05-058c |*)
 Theorem a_different_measurement_moves_the_digest :
   forall (m : Machine) (d : nat) (a b : Item),
     member Nat.eqb d (chain_extension_points m m.(rom_seed) boot_steps) = true ->
@@ -2026,7 +2025,7 @@ Proof.
   destruct m.(entropy_ok); reflexivity.
 Qed.
 
-(*| discharges: R-09-036a, R-10-032 |*)
+(*| discharges: R-10-032 |*)
 Theorem the_specification_unseal_follows_the_enrolled_set :
   forall m : Machine, FollowsTheEnrolledSet m (spec_unseal m).
 Proof.
@@ -2415,7 +2414,6 @@ Theorem the_specification_enrolment_changes_nothing_without_consent :
   forall m : Machine, ChangesNothingWithoutConsent m (spec_enrol m).
 Proof. intros m act set. reflexivity. Qed.
 
-(*| discharges: R-09-036a |*)
 Theorem the_specification_enrolment_never_empties_the_set :
   forall m : Machine, NeverEmptiesTheSet m (spec_enrol m).
 Proof.
@@ -2682,7 +2680,7 @@ Qed.
    party whose appraisal is sound over what it covers gets the chain with
    it. The construction beside it is what the narrower reading of that
    entry's "this set" would let past. *)
-(*| discharges: R-09-025, R-09-026, R-12-015 |*)
+(*| discharges: R-09-025, R-12-015 |*)
 Theorem an_appraisal_over_a_covered_vector_decides_the_chain :
   forall (m : Machine) (ap : Appraisal m) (v : list Field),
     AppraisesEveryCoveredTerm m ap ->
@@ -2937,7 +2935,6 @@ Theorem the_specification_advancement_spares_the_data_commit :
   NeverOnADataCommit advances_on.
 Proof. reflexivity. Qed.
 
-(*| discharges: R-10-013a |*)
 Theorem the_specification_advancement_leaves_no_counter_dead :
   EveryCounterAdvancesOnSomething advances_on.
 Proof. reflexivity. Qed.
@@ -3503,13 +3500,12 @@ Definition CarriesTheRegistersDebugTable (m : Machine) : Prop :=
 (* D1a, D2a and D3a: the specification satisfies all three, stated of an
    arbitrary machine carrying the register's table rather than of one demo
    machine, so the three are properties of the table and not of a witness. *)
-(*| discharges: R-15-078 |*)
 Theorem the_registers_table_closes_production :
   forall m : Machine,
     CarriesTheRegistersDebugTable m -> ClosesTheDebugModuleInProduction m.
 Proof. intros m H. unfold ClosesTheDebugModuleInProduction. exact (H Production). Qed.
 
-(*| discharges: R-09-034, R-09-035 |*)
+(*| discharges: R-09-034 |*)
 Theorem the_registers_table_opens_development_and_rma :
   forall m : Machine,
     CarriesTheRegistersDebugTable m -> OpensTheDebugModuleWhereTheEntryDoes m.
