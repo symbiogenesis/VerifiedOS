@@ -227,17 +227,25 @@ def cmd_freeze(args: argparse.Namespace) -> int:
     work = gallina.work_dir(e.lane_root)
 
     ours = freezemodel.vector_lines()
-    model_file = gallina.write(ours, work / gallina.FREEZE_MODEL)
     fixed, said = freezemodel.anchors(root)
     findings: list[str] = [*said, *freezemodel.empty_families(ours, freezemodel.MODULE)]
     if fixed is not None:
         findings += freezemodel.held(ours, fixed, freezemodel.MODULE)
 
+    # The model's file is written *after* the staging and never before it. `emit` stages
+    # into `work` and rebuilds it from scratch, so a file written there first is one this
+    # same run deletes, and the line below would name a path the reader cannot open at
+    # exactly the moment a disagreement makes them want to. Only a lane holding a prover
+    # reaches the staging at all, which is why a proverless host never sees it.
+    staged: list[str] = []
+    theirs = gallina.emit(root, work, staged, harness=gallina.FREEZE)
+    model_file = gallina.write(ours, work / gallina.FREEZE_MODEL)
+
     out: list[str] = [
         f"== the freeze density model ({freezemodel.SLOT_MODEL} and "
         f"{freezemodel.PACKING_TERM}), stated twice (lane {e.lane or 'primary'})",
-        f"   {freezemodel.MODULE:<32} {len(ours):>4} vector(s)  {model_file}"]
-    theirs = gallina.emit(root, work, out, harness=gallina.FREEZE)
+        f"   {freezemodel.MODULE:<32} {len(ours):>4} vector(s)  {model_file}",
+        *staged]
     if theirs is None:
         out.extend(f"     {line}" for line in findings)
         out.append(f"FAIL {freezemodel.HARNESS} did not answer, so nothing was "

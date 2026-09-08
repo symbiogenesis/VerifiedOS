@@ -33,6 +33,7 @@ a candidate must satisfy whatever the observation turns out to be.
 """
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
@@ -289,8 +290,13 @@ class Outlining:
     break_even_pcrelative: int | None
 
 
-def outlining_break_even(lengths: list[int]) -> list[Outlining]:
-    """The site count at which each region length starts to pay, under both forms."""
+def outlining_break_even(lengths: Iterable[int]) -> list[Outlining]:
+    """The site count at which each region length starts to pay, under both forms.
+
+    `Iterable` rather than `list` because the deferred instrument reads this one under
+    its own spelling and walks a `range` over it, and a signature narrower than its
+    callers would be a reason to keep the second copy this replaced.
+    """
     out: list[Outlining] = []
     for n in lengths:
         # nm > n + m + 1 <=> m(n - 1) > n + 1, and nm > n + 2m + 1 <=> m(n - 2) > n + 1
@@ -491,8 +497,14 @@ def held(lines: list[str], fixed: Anchors, whose: str) -> list[str]:
     findings: list[str] = []
     linear = found.get(f"{PREFIX} lin {w} {h} {k}")
     reference = found.get(f"{PREFIX} ref 0")
-    if linear is None or reference is None:
-        return [f"{whose} states no line at the reference instantiation "
+    # The two lines are checked for the fields this reader takes from them, the first two
+    # of the linear form and the first five of the reference, rather than assumed to
+    # carry them: a side that names the point and answers it short is the same defect as
+    # one that states no point, and reading past the end of its answer would raise here
+    # instead of reporting, before `compare` below ever said which line had moved.
+    if (linear is None or reference is None
+            or len(linear) < 2 or len(reference) < 5):
+        return [f"{whose} states no complete line at the reference instantiation "
                 f"(w = {w}, h = {h}, k = {k}), so none of the four figures "
                 f"{SLOT_MODEL} and {PACKING_TERM} quote is decided"]
     for what, got, want, scale in (
