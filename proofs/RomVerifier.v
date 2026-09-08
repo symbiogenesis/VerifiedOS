@@ -328,7 +328,6 @@ Example the_signature_is_the_published_twenty_nine_thousand_seven_hundred_and_ni
 Proof. vm_compute. reflexivity. Qed.
 
 (* R-09-005a's first figure, made a figure. *)
-(*| discharges: R-09-005a |*)
 Example the_signature_is_tens_of_kilobytes :
   andb (Nat.leb (10 * 1024) (signature_bytes shake_256s))
        (Nat.ltb (signature_bytes shake_256s) (100 * 1024)) = true.
@@ -402,7 +401,6 @@ Example the_six_rows_derive_their_chain_counts :
   map_over chain_count shake_sets = 35 :: 35 :: 51 :: 51 :: 67 :: 67 :: nil.
 Proof. vm_compute. reflexivity. Qed.
 
-(*| discharges: R-05-058a |*)
 Example the_frozen_row_is_the_one_the_suite_names :
   andb (Nat.eqb (hash_bytes shake_256s) 32)
        (negb (Nat.eqb (tree_height shake_256s) (tree_height shake_256f))) = true.
@@ -821,7 +819,6 @@ Definition Admissible (v : RomVerifier) : Prop := admissible_b v = true.
    What is stated of an arbitrary verifier and an arbitrary version.
    ------------------------------------------------------------------------- *)
 
-(*| discharges: R-09-005 |*)
 Theorem a_version_below_the_floor_is_refused :
   forall (v : RomVerifier) (version : nat),
     Nat.ltb version (rollback_floor v) = true -> admits_version v version = false.
@@ -829,7 +826,6 @@ Proof.
   intros v version H. unfold admits_version. apply leb_false_of_ltb. exact H.
 Qed.
 
-(*| discharges: R-05-058c |*)
 Theorem an_admissible_verifier_reaches_nothing_but_the_hash :
   forall v : RomVerifier, Admissible v -> HashOnly v.
 Proof.
@@ -837,7 +833,6 @@ Proof.
   apply andb_left in H. exact H.
 Qed.
 
-(*| discharges: R-09-005 |*)
 Theorem an_admissible_verifier_measures_before_it_executes :
   forall v : RomVerifier,
     Admissible v -> precedes_in phase_eqb Measure Execute (order v) = true.
@@ -849,7 +844,6 @@ Proof.
   apply andb_right in H. apply andb_right in H. exact H.
 Qed.
 
-(*| discharges: R-09-005 |*)
 Theorem an_admissible_verifier_verifies_before_it_executes :
   forall v : RomVerifier,
     Admissible v -> precedes_in phase_eqb VerifySignature Execute (order v) = true.
@@ -861,7 +855,6 @@ Proof.
   apply andb_right in H. apply andb_left in H. exact H.
 Qed.
 
-(*| discharges: R-09-005 |*)
 Theorem an_admissible_verifier_checks_the_floor_before_it_executes :
   forall v : RomVerifier,
     Admissible v -> precedes_in phase_eqb CheckFloor Execute (order v) = true.
@@ -873,7 +866,6 @@ Proof.
   apply andb_left in H. exact H.
 Qed.
 
-(*| discharges: R-09-005, R-09-005a |*)
 Theorem an_admissible_verifier_sizes_its_signature_field_to_its_parameter_set :
   forall v : RomVerifier,
     Admissible v ->

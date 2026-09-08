@@ -1518,7 +1518,6 @@ Qed.
    them, at every crash point and of an arbitrary pair of blocks. This is
    R-10-005c's "index and objects are never observed mismatched" with the
    quantifier where the acceptance clause puts it. *)
-(*| discharges: R-10-005c |*)
 Theorem one_transaction_lands_all_or_nothing :
   forall (t : nat) (j : list Rec) (b1 b2 : nat),
     all_of (fun r => Nat.eqb (rec_txn r) t) j = true ->
@@ -1933,7 +1932,7 @@ Definition spec_path : PathResolver := fun al _ n => alias_look al n.
 Definition ReadsNoGlobalDirectory (pr : PathResolver) : Prop :=
   forall (al : Aliases) (g1 g2 : Ambient) (n : nat), pr al g1 n = pr al g2 n.
 
-(*| discharges: R-14-012a, R-08-001 |*)
+(*| discharges: R-14-012a |*)
 Theorem the_specification_reads_no_global_directory :
   ReadsNoGlobalDirectory spec_path.
 Proof. intros al g1 g2 n. reflexivity. Qed.
@@ -2167,7 +2166,6 @@ Qed.
 
 (* R-10-022's per-domain keying, read from the observer's side: a separated
    key opens exactly the domain it belongs to and nothing beside it. *)
-(*| discharges: R-10-022 |*)
 Lemma the_key_opens_exactly_its_own_domain :
   forall (c : Composition) (s : Sealing) (a : nat -> bool) (d : nat),
     keys_separated c s = true ->
@@ -3238,7 +3236,6 @@ Example the_kind_roster_is_the_composition_s :
    keyspace whose keys all name declared kinds is one every key of which
    does, which is the only thing a count can decide. It is stated so that
    the roster has a reader rather than being a field nothing consults. *)
-(*| discharges: R-10-005 |*)
 Theorem every_key_of_an_in_range_keyspace_names_a_declared_kind :
   forall (c : Composition) (ks : Keyspace) (k : nat),
     every_key_names_a_declared_kind (kind_count c) ks = true ->

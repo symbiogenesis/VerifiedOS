@@ -832,7 +832,6 @@ Proof. intros x y c. destruct x; destruct y; destruct c; reflexivity. Qed.
    is the property that separates an adder from a ripple of the right length:
    a defect in the carry or the sum bit that treats its two operands
    differently fails this, where every published digest below is a value. *)
-(*| discharges: R-05-165, R-05-166 |*)
 Theorem the_adder_is_commutative :
   forall (a b : list bool) (c : bool), add_le a b c = add_le b a c.
 Proof.
@@ -843,7 +842,6 @@ Proof.
   - rewrite (xorb_comm_local x y). rewrite (majb_comm_local x y c). rewrite IH. reflexivity.
 Qed.
 
-(*| discharges: R-05-165, R-05-166 |*)
 Theorem word_addition_is_commutative :
   forall a b : word, wadd a b = wadd b a.
 Proof.
@@ -855,7 +853,6 @@ Qed.
    of thirty-two arbitrary bits. That is the whole of what is invertible
    here: the shifts drop bits, the compression maps 768 bits to 256, and no
    inverse of either is stated. *)
-(*| discharges: R-05-165, R-05-166 |*)
 Theorem the_rotations_are_invertible_on_an_arbitrary_word :
   forall b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 b16 b17 b18 b19 b20 b21 b22 b23 b24 b25 b26 b27 b28 b29 b30 b31 : bool,
     let w :=
@@ -870,7 +867,6 @@ Proof. intros. vm_compute. reflexivity. Qed.
 (* The schedule keeps a block of sixteen arbitrary words as its first sixteen
    entries, standard's sigmas or exchanged: the exchange is a defect of the
    computed words alone. *)
-(*| discharges: R-05-165, R-05-166 |*)
 Theorem the_schedule_keeps_the_block_as_its_first_sixteen_words :
   forall w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : word,
     let blk := w0 :: w1 :: w2 :: w3 :: w4 :: w5 :: w6 :: w7 ::
@@ -895,14 +891,12 @@ Example the_probes_reach_past_two_whole_blocks :
        (Nat.eqb (nth_of (2 * block_bits) probe_lengths 0) (2 * block_bits)) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(*| discharges: R-05-165, R-05-166 |*)
 Example the_pad_is_a_positive_multiple_of_the_block_at_every_probed_length :
   all_of (fun l => let p := length_of (pad (repeat_of l true)) in
                    andb (Nat.eqb (Nat.modulo p block_bits) 0) (Nat.ltb l p))
          probe_lengths = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(*| discharges: R-05-165, R-05-166 |*)
 Example the_message_is_a_prefix_of_its_pad_and_the_length_is_its_suffix :
   all_of (fun l => let m := repeat_of l true in
                    let p := pad m in
@@ -911,7 +905,6 @@ Example the_message_is_a_prefix_of_its_pad_and_the_length_is_its_suffix :
          probe_lengths = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(*| discharges: R-05-165, R-05-166 |*)
 Example the_one_bit_follows_the_message :
   all_of (fun l => bit_at (pad (repeat_of l false)) l) probe_lengths = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -1451,7 +1444,6 @@ Definition long_key_cases : list (list bool * list bool) :=
   pair rfc4231_key_long rfc4231_data_6 :: pair rfc4231_key_long rfc4231_data_7 ::
   pair cavp_key_70 cavp_msg_70 :: pair cavp_key_74 cavp_msg_74 :: nil.
 
-(*| discharges: R-05-165, R-05-166 |*)
 Example the_truncating_hmac_agrees_at_every_key_within_the_block :
   all_of (fun c => bits_eqb (hmac_with_the_long_key_truncated (fst c) (snd c))
                             (hmac_sha256 (fst c) (snd c)))

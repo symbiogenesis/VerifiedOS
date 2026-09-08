@@ -661,7 +661,7 @@ Qed.
    specification's order be one witness among the orders this file exhibits
    rather than the only expressible list. No unit is handed a
    capability designating a unit the order has not already started. *)
-(*| discharges: R-12-073, R-07-027, R-07-028 |*)
+(*| discharges: R-12-073 |*)
 Theorem an_ordered_bringup_starts_the_grantee_first :
   forall (m : Machine) (l : list nat) (u v : nat),
     grants_nothing_early m l = true ->
@@ -699,7 +699,6 @@ Definition IsTheSignedComposition (m : Machine) (ld : Loader m) : Prop :=
   forall sig : Signals, ld sig = m.(start_order).
 
 (* S2 (R-10-026). *)
-(*| discharges: R-10-026 |*)
 Theorem the_specification_loads_the_signed_composition :
   forall m : Machine, IsTheSignedComposition m (spec_loader m).
 Proof. intros m sig. reflexivity. Qed.
@@ -736,7 +735,7 @@ Proof.
 Qed.
 
 (* S4 (R-10-037, R-08-043a). *)
-(*| discharges: R-10-037, R-08-043a |*)
+(*| discharges: R-10-037 |*)
 Theorem the_specification_regrant_carries_no_retired_authority :
   forall m : Machine, CarriesNoRetiredAuthority m (spec_regrant m).
 Proof.
@@ -835,7 +834,7 @@ Definition WithinTheCeiling (ceiling : nat) (b : Backoff) : Prop :=
    every attempt, including every attempt past the last declared step, which
    is where a formula-shaped backoff runs away. Stated of an arbitrary
    schedule and an arbitrary ceiling. *)
-(*| discharges: R-16-007, R-16-027 |*)
+(*| discharges: R-16-027 |*)
 Theorem a_bounded_schedule_bounds_every_attempt :
   forall (s : list nat) (c : nat),
     BoundedSchedule c s -> WithinTheCeiling c (delay_at s c).
@@ -929,7 +928,7 @@ Definition BootCounted (m : Machine) (adm : BootAdmission m) : Prop :=
     Nat.ltb s.(boots) m.(boot_bound) = false -> adm s = false.
 
 (* S11 (R-16-007, R-09-028). *)
-(*| discharges: R-16-007, R-09-028 |*)
+(*| discharges: R-16-007 |*)
 Theorem the_specification_counts_boots :
   forall m : Machine, BootCounted m (spec_boot_admit m).
 Proof. intros m s H. unfold spec_boot_admit. exact H. Qed.
@@ -1154,7 +1153,6 @@ Example the_non_sacrificable_ladder_and_the_discardable_one :
    ------------------------------------------------------------------------- *)
 
 (* S13 (R-12-073, R-07-027): the composed order passes all three conjuncts. *)
-(*| discharges: R-12-073, R-07-027 |*)
 Theorem the_specification_order_is_a_bringup :
   BroughtUpInOrder demo spec_order.
 Proof. apply bringup_ok_sound. reflexivity. Qed.
@@ -1526,7 +1524,6 @@ Example the_scoring_selector_crosses_the_class_boundary :
 
 (* R-12-089's ladder clause: the non-sacrificable class declares no action
    that ends a unit, and a ladder that puts one there is refused. *)
-(*| discharges: R-12-089 |*)
 Theorem the_specification_ladder_spares_the_non_sacrificable :
   SparesTheNonSacrificable spec_ladder.
 Proof. reflexivity. Qed.
