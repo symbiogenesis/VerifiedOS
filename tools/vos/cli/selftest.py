@@ -68,6 +68,7 @@ from queue import Queue
 from typing import cast
 
 from vos import corpus as corpus_mod
+from vos.checks.ledger import ARTIFACT as PROOF_LEDGER
 from vos.coread import LEDGER
 from vos.corpus import GITLINK_MODE, MODEL_FACTS, UNREAD_PREFIX, is_model_citation_path
 from vos.dialectgen import TABLE as DIALECT_TABLE
@@ -1687,6 +1688,31 @@ CASES: list[Case] = [
     ("K-103", "a proof artifact citing a requirement id with two digits transposed",
      _literal(SEAM_WITNESSES, "the R-05-165 / R-05-166 discipline",
               "the R-05-165 / R-05-616 discipline")),
+
+    # A discharge annotation above a `Definition`, which is the one of this rule's four
+    # refusals that renders perfectly and reads as correct: the annotation parses, its id
+    # is live, and what it claims is that a *term* answers an obligation. The other three
+    # read as typos to anyone who looks at the line, and this one does not, so it is the
+    # case worth having.
+    #
+    # The id it claims is one the file already cites, and that is what isolates the rule.
+    # An annotation is ordinary text in the artifact, so its ids reach K-103's citation
+    # scan and the ledger's cited set alike: an id the file does not already carry would
+    # add a ledger row and fire K-106 as well, and a dead one would fire K-103. Reusing a
+    # live id the header already argues from moves exactly one rule's verdict.
+    ("K-105", "a discharge annotation claiming an entry above a term rather than a "
+              "statement",
+     _literal(SEAM_WITNESSES, "Definition refutes_seam_ni_timing",
+              "(*| discharges: R-05-160 |*)\nDefinition refutes_seam_ni_timing")),
+
+    # The generated ledger promoted by hand: one row's claim column moved from `cited` to
+    # `claimed` with no annotation anywhere to back it. That is the direction this defect
+    # arrives from, a burn-down being a table somebody wants to tick off, and the claim
+    # column is the only cell whose edit still renders as a true-looking row, the other
+    # three being join keys. Nothing else in the tool reads this file, so the verdict is
+    # one rule's. It is also the repair lane's seed for the same rule.
+    ("K-106", "a generated ledger row hand-promoted from cited to claimed",
+     _literal(PROOF_LEDGER, "| n/a | cited |", "| n/a | claimed |")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
@@ -1744,6 +1770,11 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     # the model's, so it rides it: what is proved is that --fix writes a whole generated
     # file back from the index rather than that it recomputes an arithmetic.
     "K-88": ("restored from the index", _case_mutation("K-88")),
+    # The second that is not a figure, and it rides its own case for the reason K-88's
+    # does: a hand-promoted ledger row is already the state its repair is for, and what
+    # the lane proves is that --fix writes the whole artifact from its generator rather
+    # than that it recomputes an arithmetic in place.
+    "K-106": ("ledger row", _case_mutation("K-106")),
 }
 
 

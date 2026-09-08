@@ -9,7 +9,8 @@ re-opens is a scan away, where before it was a grep somebody had to remember to 
 This is that scan, held here rather than at its callers because two of them make it,
 [the citations check](checks/citations.py) and [run.py blast](cli/blast.py), and *a
 parse two tools make is written once*. Its halves are named for what they read
-out of one artifact, and the module is named for the half that has a rule under it.
+out of one artifact, and the module is named for the citation, which is the half the
+first rule stood over.
 
 **It is lexical and it stays lexical.** A requirement id inside a comment and a
 `Theorem <name>` opening a sentence are not Gallina and need no Gallina parser, which
@@ -36,12 +37,11 @@ reading.
 
 The **constant** half is not on that budget. It reads a sentence's opening vernacular,
 so it has to know where the comments end, and `vos.proofs.sentences` is a character
-walk costing about 400 ms over the same tree, measured at 1.11 s over the tree as it
-stands on the host this was extended on. That is nothing beside the prover run the
-proof gate pays it inside, and it is two to three orders of magnitude above what one
-rule of `check.py` may spend, so it is computed for the artifacts a query actually asks
-about and never for the whole tree on the host wave. Nothing here caches it: a caller
-that wants it says so by calling for it.
+walk costing about 400 ms over the same tree. That is nothing beside the prover run the
+proof gate pays it inside, and it is two orders of magnitude above what one rule of
+`check.py` may spend, so it is computed for the artifacts a query actually asks about
+and never for the whole tree on the host wave. Nothing here caches it: a caller that
+wants it says so by calling for it.
 
 The **discharge** half is the third, and it is on the citation half's budget rather
 than the constant half's, which is the whole of why it is written the way it is. A
@@ -52,24 +52,28 @@ citation beside it, which says only that the entry informed the artifact, and th
 are kept apart in every name here for that reason: a citation is a bibliography and a
 discharge is a debt. **Neither is evidence that the theorem states the obligation.**
 Whether the sentence a constant proves is the sentence the entry demands is a reading,
-it belongs to the review gate R-05-150 fixes and to R-17-016, and nothing in this
-module or in any rule over it approximates it.
+it belongs to the review gate R-05-150 fixes and to the residue R-17-016 declares, and
+nothing in this module or in any rule over it approximates it.
 
-It is read with one whole-text scan for the opening marker and one anchored attempt per
-hit, which is the shape the citation half's timing argues for and not a second walk of
-the sentences: the constant a discharge names is the one on the line *below* it, so
-the vernacular and the name are read off that line rather than looked up in the
-definition index. That is what keeps a rule over this at a few milliseconds instead of
-at the second the definition index costs, and it is also where the reading stops. A
-statement written inside an enclosing comment reads here exactly as one the file binds,
-because telling those apart is what comment stripping is for; that residue is declared
-at the rule and is not closed by anything cheaper.
+It is read with one whole-text `str.find` for the opening marker and one anchored
+attempt per hit, which is the shape the citation half's timing argues for and not a
+second walk of the sentences: the constant a discharge names is the one on the line
+*below* it, so the vernacular and the name are read off that line rather than looked up
+in the definition index. That is what keeps a rule over this at a few milliseconds
+instead of at the half-second the definition index costs, and it is also where the
+reading stops. A statement written inside an enclosing comment reads here exactly as one
+the file binds, because telling those apart is what comment stripping is for; that
+residue is declared at the rule and is not closed by anything cheaper.
 
 **Fail-closed on the marker rather than on the form.** Every `(*|` in a proof artifact
 is taken to be an attempt at an annotation, so one that will not parse comes back as a
 fault instead of being skipped as an ordinary comment. The alternative reading, taking
 only what matches and passing over the rest, makes a mistyped annotation invisible in
-exactly the way an unread citation was invisible before this module existed.
+exactly the way an unread citation was invisible before this module existed. The price
+is stated rather than hidden: a proof artifact that *writes the form out in its own
+prose*, to explain the convention to a reader, is committing a fault by this reading and
+has to spell the marker some other way. That is the trade a marker-level floor buys, and
+it is the cheap direction to be wrong in, because the fault names the line.
 
 **A note on the name, because this module was called `evidence.py` first and the
 rename is the interesting part.** `vos/<name>.py` beside `vos/cli/<name>.py` is a
@@ -124,18 +128,22 @@ STATEMENTS = ("Theorem", "Lemma", "Corollary", "Fact", "Proposition", "Remark",
 
 # The marker a discharge annotation opens with. Every occurrence of it in a proof
 # artifact is an attempt at an annotation, which is what makes a malformed one a fault
-# rather than a comment this parse walks past.
+# rather than a comment this parse walks past. It is a literal, so the scan for it is
+# `str.find` rather than a pattern: over the shipped tree that is one C-level pass
+# costing about the same as the citation half's own `findall`.
 DISCHARGE_OPEN = "(*|"
 
-_OPEN_RE = re.compile(re.escape(DISCHARGE_OPEN))
+# The word the annotation states its claim with, held here so that the pattern below and
+# every message about a malformed annotation spell it once.
+DISCHARGE_WORD = "discharges"
 
 # The annotation and the sentence beneath it, as one anchored match. The id list may not
 # span lines, which is what bounds the `[^|\r\n]*` run to the line it opens on rather
-# than to the rest of a two-megabyte artifact; the newline between the two is required
-# and no blank line is admitted between them, because a discharge that floats above an
-# empty line names whichever sentence happens to come next.
+# than to the rest of a two-megabyte artifact; nothing but horizontal space may follow
+# the closing marker, and no blank line is admitted between the two, because a discharge
+# that floats above an empty line names whichever sentence happens to come next.
 _DISCHARGE_RE = re.compile(
-    r"\(\*\|[^\S\r\n]*discharges:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n"
+    rf"\(\*\|[^\S\r\n]*{DISCHARGE_WORD}:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n"
     rf"[^\S\r\n]*{_MODIFIERS}(?P<vernac>[A-Za-z]+)[^\S\r\n]+(?P<name>[\w']+)")
 
 # One annotation's whole content: the constant it sits above, and the entries that
@@ -233,6 +241,9 @@ def _listed(body: str) -> tuple[list[str], str | None]:
             return [], (f"{word!r} in its id list, which is not a requirement id; the "
                         "form is comma-separated R-nn-nnn with an optional letter "
                         "suffix and nothing else")
+        if word in found:
+            return [], (f"{word} twice in one id list, so how many entries the "
+                        "annotation claims depends on which of the two is read")
         found.append(word)
     return found, None
 
@@ -249,37 +260,44 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
     Four things are refused and each is worded as itself, because they are four
     different edits. A marker that shares its line with code before it is not the form
     at all. A marker whose annotation will not parse is a mistyped one. An id list that
-    is not a comma-separated list of requirement ids claims something this parse cannot
-    name. And an annotation above a vernacular outside `STATEMENTS` is a claim on a term
-    rather than on a sentence, which is the one of the four that renders perfectly and
-    reads as correct.
+    is not a comma-separated list of distinct requirement ids claims something this parse
+    cannot name. And an annotation above a vernacular outside `STATEMENTS` is a claim on
+    a term rather than on a sentence, which is the one of the four that renders
+    perfectly and reads as correct.
+
+    The line a fault names is accumulated across the scan rather than counted from the
+    start of the file at each hit, which is one pass over the text for the whole walk
+    instead of one per marker: the tree the host wave reads is two and a half megabytes,
+    and the annotations are expected to number in the hundreds.
     """
     claims: list[Claim] = []
     faults: list[str] = []
-    for mark in _OPEN_RE.finditer(text):
-        at = text.count("\n", 0, mark.start()) + 1
-        head = text.rfind("\n", 0, mark.start()) + 1
-        if text[head:mark.start()].strip():
-            faults.append(f"line {at} opens {DISCHARGE_OPEN} with code before it on the "
-                          "same line; a discharge annotation sits alone on the line "
+    at, line = 0, 1
+    while (mark := text.find(DISCHARGE_OPEN, at)) >= 0:
+        line += text.count("\n", at, mark)
+        at = mark + len(DISCHARGE_OPEN)
+        head = text.rfind("\n", 0, mark) + 1
+        if text[head:mark].strip():
+            faults.append(f"line {line} opens {DISCHARGE_OPEN} with code before it on "
+                          "the same line; a discharge annotation sits alone on the line "
                           "above the statement it claims")
             continue
-        hit = _DISCHARGE_RE.match(text, mark.start())
+        hit = _DISCHARGE_RE.match(text, mark)
         if hit is None:
-            faults.append(f"line {at} opens {DISCHARGE_OPEN} and no discharge annotation "
-                          f"follows it; the form is `{DISCHARGE_OPEN} discharges: "
-                          "R-nn-nnn |*)` on its own line, with a statement on the next "
-                          "line and no blank line between")
+            faults.append(f"line {line} opens {DISCHARGE_OPEN} and no discharge "
+                          f"annotation follows it; the form is `{DISCHARGE_OPEN} "
+                          f"{DISCHARGE_WORD}: R-nn-nnn |*)` alone on its line, with a "
+                          "statement on the next line and no blank line between")
             continue
         listed, fault = _listed(hit.group("ids"))
         if fault is not None:
-            faults.append(f"line {at} states {fault}")
+            faults.append(f"line {line} states {fault}")
             continue
         vernac, name = hit.group("vernac"), hit.group("name")
         if vernac not in STATEMENTS:
-            faults.append(f"line {at} claims {', '.join(listed)} above `{vernac} {name}`, "
-                          f"which states nothing; a discharge sits above one of "
-                          f"{', '.join(STATEMENTS)}")
+            faults.append(f"line {line} claims {', '.join(listed)} above "
+                          f"`{vernac} {name}`, which states nothing; a discharge sits "
+                          f"above one of {', '.join(STATEMENTS)}")
             continue
         claims.append((name, listed))
     return claims, faults
@@ -305,14 +323,14 @@ def claims(pairs: list[tuple[str, str]]) -> tuple[dict[str, list[Claim]], list[s
     for rel, text in pairs:
         found, problems = discharges(text)
         faults += [f"{rel}: {problem}" for problem in problems]
-        seen: dict[str, int] = {}
+        seen: set[str] = set()
         kept: list[Claim] = []
         for name, listed in found:
-            seen[name] = seen.get(name, 0) + 1
-            if seen[name] > 1:
+            if name in seen:
                 faults.append(f"{rel}: `{name}` carries more than one discharge "
                               "annotation, so what that constant claims is stated twice")
                 continue
+            seen.add(name)
             kept.append((name, listed))
         index[rel] = kept
     return index, faults
