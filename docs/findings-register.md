@@ -1766,7 +1766,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-227i** method: the differential pair this artifact claims is held by no rule, one file deriving the tables the curated model transcribes while each gate decides its own side, which is the shape the rule for the hash pair already closed one primitive over
 · Raised: M3.4d
-· Disposition: open, the rule that would close it needing a checker id this lane was not allotted, with its two sides named in the item's note
+· Disposition: closed at K-107, which reads the forward S-box, the round constants and the inverse MixColumns coefficients out of this artifact and out of the curated model's `types_kext.sail` and compares them as integers, so a table edited on one side alone is a finding rather than two gates each staying green on its own copy
 
 **F-227j** owed-act: one of the four step maps is not shown a bijection, so the composite claim that the cipher is one is stated by the artifact of itself and left open, that step being multiplication by a unit in a polynomial ring whose bijectivity needs a linearity argument the artifact does not make
 · Raised: M3.4d

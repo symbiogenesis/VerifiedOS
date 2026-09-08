@@ -109,9 +109,13 @@
       two lower-case sigmas of s4.1.2, one definition each, and the round is
       composed once from them. The curated model's vector-crypto unit at
       model/model/extensions/vector_crypto/zvknhab_insts.sail transcribes the
-      same functions for the `Zvknhb` instructions; no rule reads the two
-      together and this file does not claim the pair, which is reported
-      below as F-205b's shape one hash over.
+      same functions for the `Zvknhb` instructions; no rule reads those
+      functions together and this file does not claim that pair, which is
+      reported below as F-205b's shape one hash over. What a rule does
+      hold is narrower and is not that pair: K-107 reads this file's
+      sigma rotation amounts against the ones
+      model/model/extensions/vector_crypto/zvk_utils.sail states, so the
+      functions remain the half nothing decides.
    5. **The compression function is not a permutation and this file says
       so.** It maps a 512-bit block and a 256-bit state to a 256-bit state,
       so no inverse is stated and no bijection is claimed of it. What is
