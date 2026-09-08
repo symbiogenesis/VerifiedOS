@@ -1019,6 +1019,7 @@ Proof. vm_compute. reflexivity. Qed.
    statement that decides against it.
    ------------------------------------------------------------------------- *)
 
+(*| discharges: R-10-024 |*)
 Example the_appendix_b_example_reaches_the_published_ciphertext :
   map_over byte_value
     (aes_encrypt 4
@@ -1052,6 +1053,7 @@ Example the_last_expanded_round_key_is_the_published_one :
   0xE1 :: 0x3F :: 0x0C :: 0xC8 :: 0xB6 :: 0x63 :: 0x0C :: 0xA6 :: nil.
 Proof. vm_compute. reflexivity. Qed.
 
+(*| discharges: R-10-024 |*)
 Example the_appendix_c_one_example_reaches_the_published_ciphertext :
   map_over byte_value
     (aes_encrypt 4 (bytes_from (upto 16))
@@ -1061,6 +1063,7 @@ Example the_appendix_c_one_example_reaches_the_published_ciphertext :
   0xD8 :: 0xCD :: 0xB7 :: 0x80 :: 0x70 :: 0xB4 :: 0xC5 :: 0x5A :: nil.
 Proof. vm_compute. reflexivity. Qed.
 
+(*| discharges: R-10-024 |*)
 Example the_appendix_c_two_example_reaches_the_published_ciphertext :
   map_over byte_value
     (aes_encrypt 6 (bytes_from (upto 24))
@@ -1070,6 +1073,7 @@ Example the_appendix_c_two_example_reaches_the_published_ciphertext :
   0x6E :: 0xAF :: 0x70 :: 0xA0 :: 0xEC :: 0x0D :: 0x71 :: 0x91 :: nil.
 Proof. vm_compute. reflexivity. Qed.
 
+(*| discharges: R-10-024 |*)
 Example the_appendix_c_three_example_reaches_the_published_ciphertext :
   map_over byte_value
     (aes_encrypt 8 (bytes_from (upto 32))
@@ -1402,6 +1406,7 @@ Example the_hash_subkey_of_the_all_zero_key_is_the_published_one :
   0x88 :: 0x4C :: 0xFA :: 0x59 :: 0xCA :: 0x34 :: 0x2B :: 0x2E :: nil.
 Proof. vm_compute. reflexivity. Qed.
 
+(*| discharges: R-10-024 |*)
 Example the_first_published_case_reaches_its_tag :
   bytes_of (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))
                              (block_from (repeat_of 12 0)) nil nil)) =
@@ -1409,6 +1414,7 @@ Example the_first_published_case_reaches_its_tag :
   0x36 :: 0x7F :: 0x1D :: 0x57 :: 0xA4 :: 0xE7 :: 0x45 :: 0x5A :: nil.
 Proof. vm_compute. reflexivity. Qed.
 
+(*| discharges: R-10-024 |*)
 Example the_second_published_case_reaches_its_ciphertext_and_tag :
   let r := gcm_encrypt 4 (bytes_from (repeat_of 16 0)) (block_from (repeat_of 12 0)) nil
                        (block_from (repeat_of 16 0)) in
@@ -1419,6 +1425,7 @@ Example the_second_published_case_reaches_its_ciphertext_and_tag :
         0xF5 :: 0x3A :: 0x67 :: 0xB2 :: 0x12 :: 0x57 :: 0xBD :: 0xDF :: nil).
 Proof. vm_compute. reflexivity. Qed.
 
+(*| discharges: R-10-024 |*)
 Example the_third_published_case_reaches_its_ciphertext_and_tag :
   let r := gcm_encrypt 4
              (bytes_from (0xFE :: 0xFF :: 0xE9 :: 0x92 :: 0x86 :: 0x65 :: 0x73 :: 0x1C ::
@@ -1447,6 +1454,7 @@ Example the_third_published_case_reaches_its_ciphertext_and_tag :
         0x2C :: 0xF3 :: 0x5A :: 0xBD :: 0x2B :: 0xA6 :: 0xFA :: 0xB4 :: nil).
 Proof. vm_compute. reflexivity. Qed.
 
+(*| discharges: R-10-024 |*)
 Example the_fourth_published_case_carries_associated_data_and_an_unaligned_plaintext :
   let r := gcm_encrypt 4
              (bytes_from (0xFE :: 0xFF :: 0xE9 :: 0x92 :: 0x86 :: 0x65 :: 0x73 :: 0x1C ::
@@ -1480,6 +1488,7 @@ Proof. vm_compute. reflexivity. Qed.
 (* The fifth published case takes the other J0 arm: its IV is 64 bits, so the
    initial counter block is a GHASH of the IV and its length rather than a
    concatenation. Without this case the long arm is a branch no vector enters. *)
+(*| discharges: R-10-024 |*)
 Example the_fifth_published_case_takes_the_other_initial_counter_arm :
   let r := gcm_encrypt 4
              (bytes_from (0xFE :: 0xFF :: 0xE9 :: 0x92 :: 0x86 :: 0x65 :: 0x73 :: 0x1C ::
@@ -1513,6 +1522,7 @@ Proof. vm_compute. reflexivity. Qed.
    Authenticated decryption, and the two near alternatives to the composition.
    ------------------------------------------------------------------------- *)
 
+(*| discharges: R-10-024 |*)
 Example the_open_of_a_seal_returns_the_message_and_a_flipped_tag_bit_returns_nothing :
   let key := bytes_from (0xFE :: 0xFF :: 0xE9 :: 0x92 :: 0x86 :: 0x65 :: 0x73 :: 0x1C ::
                          0x6D :: 0x6A :: 0x8F :: 0x94 :: 0x67 :: 0x30 :: 0x83 :: 0x08 :: nil) in

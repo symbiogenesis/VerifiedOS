@@ -1331,6 +1331,7 @@ Qed.
    arbitrary chain, which is what lets the specification's chain be one
    witness among the chains this file exhibits rather than the only
    expressible list. *)
+(*| discharges: R-09-002 |*)
 Theorem a_measured_chain_records_a_stage_before_it_runs :
   forall (l : list Step) (s : Stage),
     measured_before_run l = true ->
@@ -1343,6 +1344,7 @@ Qed.
 
 (* C2 (R-09-037): and the lifecycle extension precedes every other, at an
    arbitrary item of an arbitrary chain. *)
+(*| discharges: R-09-037 |*)
 Theorem a_measured_chain_extends_the_lifecycle_first :
   forall (l : list Step) (i : Item),
     lifecycle_extended_first l = true ->
@@ -1357,6 +1359,7 @@ Proof.
 Qed.
 
 (* C3 (R-09-006a): and the verdict precedes every stage that runs. *)
+(*| discharges: R-09-006a |*)
 Theorem a_measured_chain_records_the_verdict_before_any_stage_runs :
   forall (l : list Step) (s : Stage),
     verdict_before_any_run l = true ->
@@ -1386,6 +1389,7 @@ Example no_step_of_the_chain_precedes_itself :
               boot_steps = false := conj eq_refl eq_refl.
 
 (* C4: the specification's chain passes all six conjuncts. *)
+(*| discharges: R-09-002, R-09-006a, R-09-029, R-09-037 |*)
 Theorem the_specification_chain_is_a_measured_chain :
   IsAMeasuredChain boot_steps.
 Proof. apply chain_ok_sound. reflexivity. Qed.
@@ -1410,6 +1414,7 @@ Definition IsTheOnePath (ld : Loader) : Prop :=
   forall k1 k2 : BootKind, ld k1 = ld k2.
 
 (* C5 (R-09-006). *)
+(*| discharges: R-09-006 |*)
 Theorem the_specification_loader_is_the_one_path : IsTheOnePath spec_loader.
 Proof. intros k1 k2. reflexivity. Qed.
 
@@ -1417,6 +1422,7 @@ Proof. intros k1 k2. reflexivity. Qed.
    a chain checked on cold boot to the deep-sleep wake and the recovery
    generation, and the construction below shows that without it the
    cold-boot check says nothing about either. *)
+(*| discharges: R-09-002, R-09-006 |*)
 Theorem the_one_path_carries_the_measured_chain :
   forall (ld : Loader) (k : BootKind),
     IsTheOnePath ld -> chain_ok (ld ColdBoot) = true -> chain_ok (ld k) = true.
@@ -1476,6 +1482,7 @@ Definition IsReproducible (m : Machine) (dg : Digest m) : Prop :=
   forall (o1 o2 : Observation) (l : list Step), dg o1 l = dg o2 l.
 
 (* C7 (R-09-027). *)
+(*| discharges: R-09-027 |*)
 Theorem the_specification_digest_is_reproducible :
   forall m : Machine, IsReproducible m (spec_digest m).
 Proof. intros m o1 o2 l. reflexivity. Qed.
@@ -1537,6 +1544,7 @@ Qed.
    specification chain extends from, substituting one item's measurement
    for another's moves the digest; the property is finite where the field
    is, so a real hash meets it (reading 7). *)
+(*| discharges: R-05-058c |*)
 Theorem a_different_measurement_moves_the_digest :
   forall (m : Machine) (d : nat) (a b : Item),
     member Nat.eqb d (chain_extension_points m m.(rom_seed) boot_steps) = true ->
@@ -2001,6 +2009,7 @@ Definition ExportsNoKey (m : Machine) (u : Unseal m) : Prop :=
 (* S1 through S6 (R-12-014, R-10-032, R-09-036a, R-15-079, R-09-023,
    R-09-006a), the policy gate stated once and then at each of its three
    faces. *)
+(*| discharges: R-12-014 |*)
 Theorem the_specification_unseal_binds_to_its_policy :
   forall m : Machine, BindsToItsPolicy m (spec_unseal m).
 Proof.
@@ -2008,6 +2017,7 @@ Proof.
   destruct m.(entropy_ok); reflexivity.
 Qed.
 
+(*| discharges: R-12-014 |*)
 Theorem the_specification_unseal_binds_to_the_measured_state :
   forall m : Machine, BindsToTheMeasuredState m (spec_unseal m).
 Proof.
@@ -2016,6 +2026,7 @@ Proof.
   destruct m.(entropy_ok); reflexivity.
 Qed.
 
+(*| discharges: R-09-036a, R-10-032 |*)
 Theorem the_specification_unseal_follows_the_enrolled_set :
   forall m : Machine, FollowsTheEnrolledSet m (spec_unseal m).
 Proof.
@@ -2024,6 +2035,7 @@ Proof.
   destruct m.(entropy_ok); reflexivity.
 Qed.
 
+(*| discharges: R-10-032 |*)
 Theorem the_specification_unseal_refuses_below_the_floor_at_the_seal :
   forall m : Machine, RefusesBelowTheFloorAtTheSeal m (spec_unseal m).
 Proof.
@@ -2033,6 +2045,7 @@ Proof.
     destruct (member Nat.eqb m.(manifest_root) m.(enrolled_roots)); reflexivity.
 Qed.
 
+(*| discharges: R-15-079 |*)
 Theorem the_specification_unseal_diversifies_by_lifecycle :
   forall m : Machine, DiversifiesByLifecycle m (spec_unseal m).
 Proof.
@@ -2041,6 +2054,7 @@ Proof.
     reflexivity.
 Qed.
 
+(*| discharges: R-09-023, R-10-013 |*)
 Theorem the_specification_unseal_refuses_past_the_sealing_root :
   forall m : Machine, RefusesPastTheSealingRoot m (spec_unseal m).
 Proof.
@@ -2049,12 +2063,14 @@ Proof.
     destruct (lifecycle_eqb m.(state) b.(bound_state)); reflexivity.
 Qed.
 
+(*| discharges: R-09-006a |*)
 Theorem the_specification_unseal_fails_closed_on_a_failed_root :
   forall m : Machine, UnsealsNothingOnAFailedRoot m (spec_unseal m).
 Proof.
   intros m H d c b. unfold spec_unseal, unseal_admits. rewrite H. reflexivity.
 Qed.
 
+(*| discharges: R-12-014 |*)
 Theorem the_specification_unseal_is_bound_to_the_compartment :
   forall m : Machine, BoundToTheCompartment m (spec_unseal m).
 Proof.
@@ -2065,6 +2081,7 @@ Proof.
     reflexivity.
 Qed.
 
+(*| discharges: R-12-014, R-12-015a |*)
 Theorem the_specification_unseal_exports_no_key :
   forall m : Machine, ExportsNoKey m (spec_unseal m).
 Proof.
@@ -2094,6 +2111,7 @@ Qed.
    root and the generation stands at or above the floor. This is the whole
    of what that entry buys: the generation an update commits opens the FDE
    key on its own signed manifest, and the transactor re-seals nothing. *)
+(*| discharges: R-10-032 |*)
 Theorem a_manifest_bound_blob_opens_at_any_digest :
   forall (m : Machine) (d c h : nat),
     m.(entropy_ok) = true ->
@@ -2392,10 +2410,12 @@ Definition RemovesTheRootAsked (m : Machine) (e : Enrolment m) : Prop :=
     member Nat.eqb r (e true (RemoveRoot r) set) = false.
 
 (* E1 through E3. *)
+(*| discharges: R-09-036b |*)
 Theorem the_specification_enrolment_changes_nothing_without_consent :
   forall m : Machine, ChangesNothingWithoutConsent m (spec_enrol m).
 Proof. intros m act set. reflexivity. Qed.
 
+(*| discharges: R-09-036a |*)
 Theorem the_specification_enrolment_never_empties_the_set :
   forall m : Machine, NeverEmptiesTheSet m (spec_enrol m).
 Proof.
@@ -2406,6 +2426,7 @@ Proof.
   - exact H.
 Qed.
 
+(*| discharges: R-09-036a |*)
 Theorem the_specification_enrolment_removes_the_root_asked :
   forall m : Machine, RemovesTheRootAsked m (spec_enrol m).
 Proof.
@@ -2493,6 +2514,7 @@ Definition CompletesNoQuoteOnAFailedRoot (m : Machine) (q : Quote m) : Prop :=
   m.(entropy_ok) = false -> q = None.
 
 (* Q1 (R-09-025, R-09-037). *)
+(*| discharges: R-09-025, R-09-037 |*)
 Theorem the_specification_quote_covers_the_vector_exactly :
   forall m : Machine, CoversTheVectorExactly m (spec_quote m).
 Proof.
@@ -2502,6 +2524,7 @@ Proof.
 Qed.
 
 (* Q2 (R-09-006a). *)
+(*| discharges: R-09-006a |*)
 Theorem the_specification_quote_completes_nothing_on_a_failed_root :
   forall m : Machine, CompletesNoQuoteOnAFailedRoot m (spec_quote m).
 Proof. intros m H. unfold spec_quote. rewrite H. reflexivity. Qed.
@@ -2619,6 +2642,7 @@ Definition AppraisesEveryCoveredTerm (m : Machine) (ap : Appraisal m) : Prop :=
     Nat.eqb (m.(witness) f) (m.(reference) f) = true.
 
 (* A1 (R-12-015). *)
+(*| discharges: R-12-015 |*)
 Theorem the_specification_appraisal_reaches_every_covered_term :
   forall m : Machine, AppraisesEveryCoveredTerm m (spec_appraise m).
 Proof.
@@ -2658,6 +2682,7 @@ Qed.
    party whose appraisal is sound over what it covers gets the chain with
    it. The construction beside it is what the narrower reading of that
    entry's "this set" would let past. *)
+(*| discharges: R-09-025, R-09-026, R-12-015 |*)
 Theorem an_appraisal_over_a_covered_vector_decides_the_chain :
   forall (m : Machine) (ap : Appraisal m) (v : list Field),
     AppraisesEveryCoveredTerm m ap ->
@@ -2731,10 +2756,12 @@ Definition TheFloorItselfBoots (m : Machine) (sel : Selection m) : Prop :=
 
 (* R1 and R2 (R-09-030): the two halves of *at or above*, stated apart
    because one construction satisfies either and fails the other. *)
+(*| discharges: R-09-030 |*)
 Theorem the_specification_selection_refuses_below_the_floor :
   forall m : Machine, NothingBelowTheFloorBoots m (bootable m).
 Proof. intros m v H. exact H. Qed.
 
+(*| discharges: R-09-030 |*)
 Theorem the_specification_selection_admits_the_floor_itself :
   forall m : Machine, TheFloorItselfBoots m (bootable m).
 Proof. intros m. unfold bootable. exact (nat_leb_refl m.(rollback_floor)). Qed.
@@ -2792,6 +2819,7 @@ Proof.
 Qed.
 
 (* R3 and R4 (R-09-028). *)
+(*| discharges: R-09-028 |*)
 Theorem the_specification_floor_never_descends : NeverDescends spec_floor.
 Proof.
   intros current declared. unfold spec_floor.
@@ -2800,6 +2828,7 @@ Proof.
   - exact (nat_leb_refl current).
 Qed.
 
+(*| discharges: R-09-028 |*)
 Theorem the_specification_floor_reaches_the_declared_value :
   ReachesTheDeclaredFloor spec_floor.
 Proof.
@@ -2903,10 +2932,12 @@ Definition EveryCounterAdvancesOnSomething (adv : Advancement) : Prop :=
   all_of (fun c => any_of (adv c) all_events) all_counters = true.
 
 (* R5 and R6 (R-10-013, R-10-013a). *)
+(*| discharges: R-10-013 |*)
 Theorem the_specification_advancement_spares_the_data_commit :
   NeverOnADataCommit advances_on.
 Proof. reflexivity. Qed.
 
+(*| discharges: R-10-013a |*)
 Theorem the_specification_advancement_leaves_no_counter_dead :
   EveryCounterAdvancesOnSomething advances_on.
 Proof. reflexivity. Qed.
@@ -2914,6 +2945,7 @@ Proof. reflexivity. Qed.
 (* R7: and read at an arbitrary counter rather than only over the roster,
    so the obligation is about the enumeration and not about the list's
    order. *)
+(*| discharges: R-10-013 |*)
 Theorem no_counter_of_the_enumeration_advances_on_a_data_commit :
   forall c : Counter, advances_on c DataCommit = false.
 Proof.
@@ -3003,10 +3035,12 @@ Definition AdmitsBelowTheBound (m : Machine) (adm : BootAdmission m) : Prop :=
 
 (* R8 and R8a (R-09-028), stated apart because one construction satisfies
    either and fails the other. *)
+(*| discharges: R-09-028 |*)
 Theorem the_specification_boot_admission_reverts_past_the_bound :
   forall m : Machine, RevertsPastTheBound m (spec_boot_admits m).
 Proof. intros m n H. exact H. Qed.
 
+(*| discharges: R-09-028 |*)
 Theorem the_specification_boot_admission_admits_below_the_bound :
   forall m : Machine, AdmitsBelowTheBound m (spec_boot_admits m).
 Proof. intros m n H. exact H. Qed.
@@ -3047,10 +3081,12 @@ Definition ChargesTheOrdinaryFailure (ch : Charge) : Prop :=
 
 (* R9 and R10 (R-09-006a, R-09-028), stated apart because one construction
    satisfies either and fails the other. *)
+(*| discharges: R-09-006a |*)
 Theorem the_specification_charge_spares_the_entropy_halt :
   SpendsNoAttemptOnTheEntropyHalt spec_charge.
 Proof. intros n. reflexivity. Qed.
 
+(*| discharges: R-09-028 |*)
 Theorem the_specification_charge_spends_on_the_ordinary_failure :
   ChargesTheOrdinaryFailure spec_charge.
 Proof.
@@ -3098,10 +3134,12 @@ Definition IsAnInvolution (rv : Revert) : Prop :=
   forall s : Slot, rv (rv s) = s.
 
 (* R11 and R12 (R-09-028). *)
+(*| discharges: R-09-028 |*)
 Theorem the_specification_revert_reaches_the_other_slot :
   RevertsToTheOtherSlot spec_revert.
 Proof. intros s. destruct s; discriminate. Qed.
 
+(*| discharges: R-09-028 |*)
 Theorem the_specification_revert_is_an_involution : IsAnInvolution spec_revert.
 Proof. intros s. destruct s; reflexivity. Qed.
 
@@ -3165,6 +3203,7 @@ Definition AdvancesBeforeTheComparison (l : list AttemptStep) : Prop :=
   precedes attempt_eqb ChargeTheCounter CompareTheCredential l = true.
 
 (* R13 (R-12-017). *)
+(*| discharges: R-12-017 |*)
 Theorem the_specification_attempt_charges_before_it_compares :
   AdvancesBeforeTheComparison spec_attempt.
 Proof. reflexivity. Qed.
@@ -3196,10 +3235,12 @@ Definition KeepsTheCompletedAttempt (st : Settle) : Prop :=
   forall n : nat, st false n = n.
 
 (* R14 and R15 (R-12-017). *)
+(*| discharges: R-12-017 |*)
 Theorem the_specification_settlement_refunds_nothing :
   RefundsNothing spec_settle.
 Proof. intros cut n. unfold spec_settle. exact (nat_leb_refl n). Qed.
 
+(*| discharges: R-12-017 |*)
 Theorem the_specification_settlement_keeps_the_completed_attempt :
   KeepsTheCompletedAttempt spec_settle.
 Proof. intros n. reflexivity. Qed.
@@ -3257,12 +3298,14 @@ Definition AcceptsNoSecondRoot (m : Machine) (rm : Rom m) : Prop :=
   forall r1 r2 : nat, rm r1 = true -> rm r2 = true -> r1 = r2.
 
 (* V1 and V2 (R-09-036). *)
+(*| discharges: R-09-036 |*)
 Theorem the_specification_rom_accepts_the_states_own_root :
   forall m : Machine, AcceptsTheStatesOwnRoot m (spec_rom m).
 Proof.
   intros m. unfold spec_rom. exact (nat_eqb_refl (m.(accepted_root) m.(state))).
 Qed.
 
+(*| discharges: R-09-036 |*)
 Theorem the_specification_rom_accepts_no_second_root :
   forall m : Machine, AcceptsNoSecondRoot m (spec_rom m).
 Proof.
@@ -3356,10 +3399,12 @@ Definition RomVerifiesWithSlhDsa (m : Machine) (sc : SchemeChoice m) : Prop :=
   forall (s : Stage) (x : Signer), m.(rom_verifies) s = true -> sc s x = SlhDsa.
 
 (* V3 and V4 (R-09-002, R-05-058c). *)
+(*| discharges: R-09-002 |*)
 Theorem the_specification_scheme_is_chosen_by_the_verifier :
   forall m : Machine, ChosenByTheVerifier m (spec_scheme m).
 Proof. intros m s x y. reflexivity. Qed.
 
+(*| discharges: R-05-058c |*)
 Theorem the_specification_scheme_gives_the_rom_slh_dsa :
   forall m : Machine, RomVerifiesWithSlhDsa m (spec_scheme m).
 Proof. intros m s x H. unfold spec_scheme. rewrite H. reflexivity. Qed.
@@ -3458,16 +3503,19 @@ Definition CarriesTheRegistersDebugTable (m : Machine) : Prop :=
 (* D1a, D2a and D3a: the specification satisfies all three, stated of an
    arbitrary machine carrying the register's table rather than of one demo
    machine, so the three are properties of the table and not of a witness. *)
+(*| discharges: R-15-078 |*)
 Theorem the_registers_table_closes_production :
   forall m : Machine,
     CarriesTheRegistersDebugTable m -> ClosesTheDebugModuleInProduction m.
 Proof. intros m H. unfold ClosesTheDebugModuleInProduction. exact (H Production). Qed.
 
+(*| discharges: R-09-034, R-09-035 |*)
 Theorem the_registers_table_opens_development_and_rma :
   forall m : Machine,
     CarriesTheRegistersDebugTable m -> OpensTheDebugModuleWhereTheEntryDoes m.
 Proof. intros m H. split; [ exact (H Development) | exact (H Rma) ]. Qed.
 
+(*| discharges: R-09-034 |*)
 Theorem the_registers_table_closes_every_other_state :
   forall m : Machine,
     CarriesTheRegistersDebugTable m -> ClosesTheDebugModuleEverywhereElse m.
@@ -3503,6 +3551,7 @@ Proof. intros m H. exact (H Production eq_refl eq_refl). Qed.
    rather than asserted above: D1 is never used, and a machine satisfying D2
    and D3 carries `debug_table` at every one of the five states, D1
    following from D3 by the lemma just proved. *)
+(*| discharges: R-09-034 |*)
 Theorem the_two_independent_clauses_fix_the_table :
   forall m : Machine,
     OpensTheDebugModuleWhereTheEntryDoes m ->
@@ -3612,10 +3661,12 @@ Definition EntersOnlyOnTheResponse (m : Machine) (en : DebugEntry m) : Prop :=
   forall (l : Lifecycle) (c : Credential),
     en l c = true -> Nat.eqb c (m.(debug_response) l) = true.
 
+(*| discharges: R-09-034 |*)
 Theorem the_specification_entry_opens_no_closed_state :
   forall m : Machine, EntersNoClosedState m (spec_debug_entry m).
 Proof. intros m l c H. unfold spec_debug_entry. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-15-079 |*)
 Theorem the_specification_entry_takes_only_the_response :
   forall m : Machine, EntersOnlyOnTheResponse m (spec_debug_entry m).
 Proof.

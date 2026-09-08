@@ -1276,6 +1276,7 @@ Qed.
 Lemma drop_of_zero : forall (A : Type) (l : list A), drop_of 0 l = l.
 Proof. intros A l. reflexivity. Qed.
 
+(*| discharges: R-15-056a |*)
 Theorem the_short_form_is_the_last_rounds_and_not_the_first :
   forall (n : nat) (a : state), keccak_p n (keccak_prefix n a) = keccak_p rounds_total a.
 Proof.
@@ -1285,9 +1286,11 @@ Proof.
   rewrite drop_of_zero. reflexivity.
 Qed.
 
+(*| discharges: R-15-056a |*)
 Example the_short_form_starts_at_round_twelve :
   nth_of 0 (round_indices rounds_short) 0 = rounds_short := eq_refl.
 
+(*| discharges: R-15-056a |*)
 Example the_long_form_starts_at_round_zero :
   nth_of 0 (round_indices rounds_total) 0 = 0 := eq_refl.
 

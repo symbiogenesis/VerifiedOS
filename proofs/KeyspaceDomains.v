@@ -807,21 +807,25 @@ Definition Keyspace : Type := list (prod K2 nat).
    them.
    ------------------------------------------------------------------------- *)
 
+(*| discharges: R-10-003 |*)
 Theorem the_l2_index_inherits_the_order_theorem :
   forall (k : K2) (v : nat) (ix : Index l2_keys),
     sorted l2_keys ix = true -> sorted l2_keys (ins l2_keys k v ix) = true.
 Proof. exact (inserting_preserves_the_order l2_keys). Qed.
 
+(*| discharges: R-10-003 |*)
 Theorem the_l2_index_inherits_the_read_back_theorem :
   forall (k : K2) (v : nat) (ix : Index l2_keys),
     look l2_keys k (ins l2_keys k v ix) = Some v.
 Proof. exact (the_key_just_written_reads_back l2_keys). Qed.
 
+(*| discharges: R-10-003 |*)
 Theorem the_l2_index_inherits_the_frame_theorem :
   forall (k j : K2) (v : nat) (ix : Index l2_keys),
     k2_eqb j k = false -> look l2_keys j (ins l2_keys k v ix) = look l2_keys j ix.
 Proof. exact (no_other_key_moves l2_keys). Qed.
 
+(*| discharges: R-10-003 |*)
 Theorem the_l2_index_inherits_the_transposition_theorem :
   forall (a b : K2) (u v : nat) (ix : Index l2_keys) (q : K2),
     k2_eqb a b = false ->
@@ -990,12 +994,14 @@ Proof.
     [ reflexivity | simpl; rewrite IH; reflexivity ].
 Qed.
 
+(*| discharges: R-10-005 |*)
 Theorem the_specification_snapshot_adds_at_most_the_declared_constant :
   forall c : Composition, AddsAtMostTheDeclaredConstant c spec_snapshot.
 Proof.
   intros c ks ve. exact (leb_add_right (count_of ks) (snapshot_cost c)).
 Qed.
 
+(*| discharges: R-10-005 |*)
 Theorem the_specification_snapshot_keeps_every_read_it_already_had :
   KeepsEveryReadItAlreadyHad spec_snapshot.
 Proof. intros ks ve k v H. exact H. Qed.
@@ -1088,6 +1094,7 @@ Definition spec_meta : MetaReader := fun ks k => look l2_keys k ks.
 Definition IsAViewOfTheKeyspace (mr : MetaReader) : Prop :=
   forall (ks : Keyspace) (k : K2), mr ks k = look l2_keys k ks.
 
+(*| discharges: R-10-005a |*)
 Theorem the_specification_metadata_is_a_view :
   IsAViewOfTheKeyspace spec_meta.
 Proof. intros ks k. reflexivity. Qed.
@@ -1176,6 +1183,7 @@ Definition ObeysTheDomain (rs : Resolver) : Prop :=
       = filter_of (in_domain (nc_domain n)) ks2 ->
     rs n q ks1 = rs n q ks2.
 
+(*| discharges: R-12-024e |*)
 Theorem the_specification_mints_nothing : MintsNothing spec_resolve.
 Proof.
   intros n q ks. unfold spec_resolve. destruct (admits n q); [ | reflexivity ].
@@ -1184,10 +1192,12 @@ Proof.
   rewrite nat_eqb_refl. rewrite nat_eqb_refl. rewrite nat_leb_refl. reflexivity.
 Qed.
 
+(*| discharges: R-10-005b |*)
 Theorem the_specification_answers_only_the_admitted_namespace :
   AnswersOnlyTheAdmittedNamespace spec_resolve.
 Proof. intros n q ks H. unfold spec_resolve. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-10-005b |*)
 Theorem the_specification_obeys_the_domain : ObeysTheDomain spec_resolve.
 Proof.
   intros n q ks1 ks2 H. unfold spec_resolve.
@@ -1387,6 +1397,7 @@ Definition WritesNoAuthority (pt : Persister) : Prop :=
   forall (n1 n2 : NsCap) (k : K2) (v : nat) (ks : Keyspace),
     pt n1 k v ks = pt n2 k v ks.
 
+(*| discharges: R-10-005b |*)
 Theorem the_specification_writes_no_authority : WritesNoAuthority spec_persist.
 Proof. intros n1 n2 k v ks. reflexivity. Qed.
 
@@ -1469,6 +1480,7 @@ Definition OneTransaction (c : Composition) (wr : Writer) : Prop :=
   forall ba : Batch,
     all_of (fun r => Nat.eqb (rec_txn r) (batch_txn c)) (wr c ba) = true.
 
+(*| discharges: R-10-005b |*)
 Theorem the_specification_writes_one_transaction :
   forall c : Composition, OneTransaction c spec_writer.
 Proof.
@@ -1506,6 +1518,7 @@ Qed.
    them, at every crash point and of an arbitrary pair of blocks. This is
    R-10-005c's "index and objects are never observed mismatched" with the
    quantifier where the acceptance clause puts it. *)
+(*| discharges: R-10-005c |*)
 Theorem one_transaction_lands_all_or_nothing :
   forall (t : nat) (j : list Rec) (b1 b2 : nat),
     all_of (fun r => Nat.eqb (rec_txn r) t) j = true ->
@@ -1550,6 +1563,7 @@ Definition NeverObservedApart (c : Composition) (wr : Writer) : Prop :=
     bool_eqb (touched (take i (wr c ba)) (object_block c))
              (touched (take i (wr c ba)) (index_block c)) = true.
 
+(*| discharges: R-10-005c |*)
 Theorem the_object_and_the_index_are_never_observed_apart :
   forall (c : Composition) (wr : Writer),
     OneTransaction c wr -> CommitsOnlyWithEveryBlock c wr ->
@@ -1605,6 +1619,7 @@ Proof.
     destruct (Nat.eqb (rec_txn r) t); simpl; exact (IH t Hs).
 Qed.
 
+(*| discharges: R-10-005c |*)
 Theorem the_specification_writer_commits_only_with_every_block :
   forall c : Composition, CommitsOnlyWithEveryBlock c spec_writer.
 Proof.
@@ -1627,6 +1642,7 @@ Proof.
         destruct (Nat.eqb (meta_block c) (index_block c)); reflexivity.
 Qed.
 
+(*| discharges: R-10-005c |*)
 Theorem the_specification_writer_is_never_observed_apart :
   forall c : Composition, NeverObservedApart c spec_writer.
 Proof.
@@ -1732,6 +1748,7 @@ Definition AtMostOneMarker (em : Emitter) : Prop :=
     all_of (fun d => negb (is_rescan d)) ds = true ->
     Nat.leb (count_of (filter_of is_rescan (em bound ds))) 1 = true.
 
+(*| discharges: R-10-005c |*)
 Theorem the_specification_bounds_the_queue : BoundsTheQueue spec_emit.
 Proof.
   intros bound ds Hb. destruct bound as [ | k ]; [ discriminate Hb | ].
@@ -1740,6 +1757,7 @@ Proof.
   simpl. exact (take_is_bounded Delta k ds).
 Qed.
 
+(*| discharges: R-10-005c |*)
 Theorem the_specification_emits_at_most_one_marker : AtMostOneMarker spec_emit.
 Proof.
   intros bound ds H. unfold spec_emit.
@@ -1815,6 +1833,7 @@ Definition spec_commit (c : Composition) (ba : Batch) : Committer :=
 Definition NeverBackpressuresTheCommit (cw : Committer) : Prop :=
   forall (o1 o2 : nat) (s : Store) (b : nat), cw o1 s b = cw o2 s b.
 
+(*| discharges: R-10-005c |*)
 Theorem the_specification_never_backpressures_the_commit :
   forall (c : Composition) (ba : Batch),
     NeverBackpressuresTheCommit (spec_commit c ba).
@@ -1835,6 +1854,7 @@ Definition spec_derive : Deriver :=
 Definition DerivesOnlyAfterTheCommit (dv : Deriver) : Prop :=
   forall j : list Rec, all_of (fun t => commits (scan j) t) (dv j) = true.
 
+(*| discharges: R-10-005c |*)
 Theorem the_specification_derives_only_after_the_commit :
   DerivesOnlyAfterTheCommit spec_derive.
 Proof.
@@ -1873,6 +1893,7 @@ Definition spec_resume : Resumer := fun _ => cons Rescan nil.
 Definition SurvivesNoCrash (rs : Resumer) : Prop :=
   forall q : list Delta, rs q = cons Rescan nil.
 
+(*| discharges: R-10-005c |*)
 Theorem the_specification_survives_no_crash : SurvivesNoCrash spec_resume.
 Proof. intros q. reflexivity. Qed.
 
@@ -1912,6 +1933,7 @@ Definition spec_path : PathResolver := fun al _ n => alias_look al n.
 Definition ReadsNoGlobalDirectory (pr : PathResolver) : Prop :=
   forall (al : Aliases) (g1 g2 : Ambient) (n : nat), pr al g1 n = pr al g2 n.
 
+(*| discharges: R-14-012a, R-08-001 |*)
 Theorem the_specification_reads_no_global_directory :
   ReadsNoGlobalDirectory spec_path.
 Proof. intros al g1 g2 n. reflexivity. Qed.
@@ -2145,6 +2167,7 @@ Qed.
 
 (* R-10-022's per-domain keying, read from the observer's side: a separated
    key opens exactly the domain it belongs to and nothing beside it. *)
+(*| discharges: R-10-022 |*)
 Lemma the_key_opens_exactly_its_own_domain :
   forall (c : Composition) (s : Sealing) (a : nat -> bool) (d : nat),
     keys_separated c s = true ->
@@ -2163,6 +2186,7 @@ Qed.
 (* S: the specification's observation is non-interferent, of an arbitrary
    observer set, an arbitrary authority set, and an arbitrary pair of
    volumes agreeing on everything that authority set covers. *)
+(*| discharges: R-10-002 |*)
 Theorem the_specification_is_noninterferent :
   forall (c : Composition) (s : Sealing) (a : nat -> bool) (v w : Volume) (i : nat),
     keys_separated c s = true ->
@@ -2195,6 +2219,7 @@ Proof.
     + reflexivity.
 Qed.
 
+(*| discharges: R-10-002 |*)
 Corollary the_specification_meets_the_obligation :
   forall (c : Composition) (s : Sealing),
     keys_separated c s = true ->
@@ -2240,6 +2265,7 @@ Definition dedup_key_is_its_own (c : Composition) (s : Sealing) : bool :=
 (* R-10-016's acceptance clause, extracted from the bounded check: the same
    plaintext in two domains does not present the same digest, so a
    confirmation-of-file oracle across domains has nothing to compare. *)
+(*| discharges: R-10-016 |*)
 Theorem no_cross_domain_confirmation_of_file :
   forall (c : Composition) (s : Sealing) (d e p : nat),
     dedup_separated c s = true ->
@@ -2292,6 +2318,7 @@ Definition NoKeyIsResident (er : Eraser) : Prop :=
 Definition NoBlobSurvives (er : Eraser) : Prop :=
   forall (kr : Keyring) (d : nat), kr_blob (er kr) d = false.
 
+(*| discharges: R-10-014 |*)
 Theorem the_specification_leaves_no_key_recoverable :
   LeavesNoKeyRecoverable spec_erase.
 Proof. intros kr d. reflexivity. Qed.
@@ -2475,6 +2502,7 @@ Proof.
   intros b a c H. destruct b; [ simpl in H; exact H | exact (nat_eqb_refl 0) ].
 Qed.
 
+(*| discharges: R-10-013c |*)
 Theorem the_specification_epoch_root_reads_only_declared_versions :
   forall c : Composition, ReadsOnlyDeclaredVersions c (spec_epoch_root c).
 Proof.
@@ -2537,6 +2565,7 @@ Definition spec_ack : Acknowledger := fun e => ep_sealed e.
 Definition AcknowledgesOnlyAtTheSeal (ak : Acknowledger) : Prop :=
   forall e : Epoch, ep_sealed e = false -> ak e = false.
 
+(*| discharges: R-10-013c |*)
 Theorem the_specification_acknowledges_only_at_the_seal :
   AcknowledgesOnlyAtTheSeal spec_ack.
 Proof. intros e H. exact H. Qed.
@@ -2576,6 +2605,7 @@ Definition RefusesWhatItCannotProveFresh (rd : FreshReader) : Prop :=
   forall (e : Epoch) (ok : bool) (x : nat),
     andb (ep_sealed e) ok = false -> rd e ok x = None.
 
+(*| discharges: R-10-013c, R-10-013e |*)
 Theorem the_specification_refuses_what_it_cannot_prove_fresh :
   RefusesWhatItCannotProveFresh spec_fresh_read.
 Proof. intros e ok x H. unfold spec_fresh_read. rewrite H. reflexivity. Qed.
@@ -3208,6 +3238,7 @@ Example the_kind_roster_is_the_composition_s :
    keyspace whose keys all name declared kinds is one every key of which
    does, which is the only thing a count can decide. It is stated so that
    the roster has a reader rather than being a field nothing consults. *)
+(*| discharges: R-10-005 |*)
 Theorem every_key_of_an_in_range_keyspace_names_a_declared_kind :
   forall (c : Composition) (ks : Keyspace) (k : nat),
     every_key_names_a_declared_kind (kind_count c) ks = true ->
@@ -3680,6 +3711,7 @@ Example a_delta_at_another_version_names_another_key :
 (* And what an overflowing emission delivers is the stream's own prefix and
    never a reordering or an invention of it, stated of an arbitrary bound
    and an arbitrary stream. *)
+(*| discharges: R-10-005c |*)
 Theorem an_overflowing_emission_is_a_prefix_of_the_stream :
   forall (bound : nat) (ds : list Delta),
     Nat.leb (count_of ds) bound = false ->

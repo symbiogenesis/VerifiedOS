@@ -398,6 +398,7 @@ Qed.
 
 (* S1 (R-11-023 and its criterion). Two frames of one geometry receive one
    verdict, whatever occupies their slots. *)
+(*| discharges: R-11-023 |*)
 Theorem admission_is_occupancy_blind :
   forall c : Composition, OccupancyBlind c (admits c).
 Proof.
@@ -409,6 +410,7 @@ Qed.
 
 (* S1b: R-11-023's act itself. The compositor's focus rebinding, and every
    other retenanting of a frame, leaves the verdict where it was. *)
+(*| discharges: R-11-023 |*)
 Theorem admission_survives_every_retenanting :
   forall (c : Composition) (rts dts : list (Tenant c)) (f : Frame (Tenant c)),
     admits c (reassign_frame rts dts f) = admits c f.
@@ -464,6 +466,7 @@ Qed.
 
 (* S3 (R-11-020 and its criterion): the hard-deadline half of the verdict
    is one value across the whole ladder, so no population change moves it. *)
+(*| discharges: R-11-020 |*)
 Theorem reserved_band_discharged_once :
   forall (c : Composition) (mf ph : nat) (res : list (Slot (Tenant c)))
          (rungs : list (Frame (Tenant c))) (f g : Frame (Tenant c)),
@@ -479,6 +482,7 @@ Qed.
 
 (* S4 (R-11-014d, R-11-014a): no rung swap lengthens the frame or shifts a
    frame origin. *)
+(*| discharges: R-11-014d, R-11-014a |*)
 Theorem one_frame_length_across_rungs :
   forall (T : Type) (mf ph : nat) (res : list (Slot T))
          (rungs : list (Frame T)) (f g : Frame T),
@@ -505,6 +509,7 @@ Definition LadderAdmits (c : Composition) (l : Ladder (Tenant c)) : Prop :=
    obligation; and inside a ladder that shares what R-11-020 and R-11-014d
    make it share, it moves neither the reserved band's half of the verdict,
    nor the frame length, nor the phase offset. *)
+(*| discharges: R-11-024, R-11-020, R-11-014d |*)
 Theorem rung_change_is_a_table_swap :
   forall (c : Composition) (l : Ladder (Tenant c)) (mf ph : nat)
          (res : list (Slot (Tenant c))) (f g : Frame (Tenant c)),
@@ -536,6 +541,7 @@ Definition SizeIndependent (c : Composition)
 (* S5b: one switch, not one per slot of the rung being entered. The claim
    is definitional on this side and refutable on the other, which is where
    its content is (per_slot_swap_cost_is_refuted below). *)
+(*| discharges: R-11-024 |*)
 Theorem rung_change_cost_is_one_switch :
   forall c : Composition, SizeIndependent c (rung_change_cost c).
 Proof. intros c b d. reflexivity. Qed.
@@ -565,6 +571,7 @@ Qed.
 
 (* S6 (R-11-022, R-11-023): the focus majority is decided by widths, so a
    focus rebinding cannot change whether a band is focus-shaped. *)
+(*| discharges: R-11-022, R-11-023 |*)
 Theorem focus_shape_is_occupancy_blind :
   forall c : Composition, BandOccupancyBlind c (FocusShaped c).
 Proof.
@@ -574,6 +581,7 @@ Proof.
 Qed.
 
 (* S6b (R-11-022): "one focus slot plus (n-1) background slots". *)
+(*| discharges: R-11-022 |*)
 Theorem focus_band_is_one_focus_plus_the_rest :
   forall (T : Type) (b : Band T),
     count_of (band_slots b) = S (count_of (band_background b)).
@@ -597,6 +605,7 @@ Definition CountOnly (c : Composition) (f : Population -> nat) : Prop :=
   forall p q : Population, live_count p = live_count q -> f p = f q.
 
 (* S7 (R-11-025): the index moves on the live count and on nothing else. *)
+(*| discharges: R-11-025 |*)
 Theorem rung_follows_the_live_count_alone :
   forall c : Composition, CountOnly c (rung_index c).
 Proof.
@@ -655,6 +664,7 @@ Definition NoNarrowing (c : Composition) (step : Arrival c) : Prop :=
     slot_width s = slot_width template.
 
 (* S8 (R-11-026): the ceiling holds under every victim choice. *)
+(*| discharges: R-11-026 |*)
 Theorem ceiling_is_an_invariant :
   forall (c : Composition) (choose_victim : Population -> option (Tenant c)),
     CeilingInvariant c (arrive c choose_victim).
@@ -667,6 +677,7 @@ Qed.
 
 (* S8b (R-11-026): past the ceiling with no victim to suspend, the arrival
    receives no slot. *)
+(*| discharges: R-11-026 |*)
 Theorem refusal_arm_grants_no_slot :
   forall (c : Composition) (choose_victim : Population -> option (Tenant c))
          (template : Slot (Tenant c)) (t : Tenant c) (p : Population),
@@ -680,6 +691,7 @@ Qed.
 
 (* S8c (R-11-026): "no slot rather than a thinner one". No arm narrows a
    width, under every victim choice. *)
+(*| discharges: R-11-026 |*)
 Theorem no_arm_narrows_a_slot :
   forall (c : Composition) (choose_victim : Population -> option (Tenant c)),
     NoNarrowing c (arrive c choose_victim).
@@ -695,6 +707,7 @@ Qed.
 (* S8d (R-11-026): "suspension keeps state and removes a slot; it is not
    termination". The suspension arm names the victim and leaves the
    population count where it was. *)
+(*| discharges: R-11-026 |*)
 Theorem suspension_is_not_termination :
   forall (c : Composition) (choose_victim : Population -> option (Tenant c))
          (template : Slot (Tenant c)) (t : Tenant c) (p : Population)
@@ -732,6 +745,7 @@ Definition GeometryOnly {T : Type}
 (* S9 (R-07-032, R-07-033, R-07-036): which slot owns an instant is a
    function of widths and offsets alone, so an idle slot yields nothing to
    another tenant and no slack crosses a boundary. *)
+(*| discharges: R-07-032, R-07-033, R-07-036 |*)
 Theorem geometry_ignores_behaviour :
   forall T : Type, GeometryOnly (@slot_index_at T).
 Proof.

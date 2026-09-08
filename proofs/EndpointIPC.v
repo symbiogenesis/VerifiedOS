@@ -845,10 +845,12 @@ Definition AssignsTheGroupsTheEntryAssigns (g : Grouping) : Prop :=
   /\ g Revoke = RevocationGroup.
 
 (* S9a and S9b (R-07-031a, R-07-031b). *)
+(*| discharges: R-07-031a, R-07-031b |*)
 Theorem the_specification_grouping_leaves_the_notification_group_empty :
   TheNotificationGroupIsEmpty group_of.
 Proof. intros i. destruct i; reflexivity. Qed.
 
+(*| discharges: R-07-031a, R-07-031b |*)
 Theorem the_specification_grouping_makes_the_entrys_assignment :
   AssignsTheGroupsTheEntryAssigns group_of.
 Proof.
@@ -863,6 +865,7 @@ Qed.
    A grouping that makes the entry's assignment cannot file anything under the
    notification group, because the entry's assignment names a group for every
    one of the five and names that group for none of them. *)
+(*| discharges: R-07-031b |*)
 Theorem the_entrys_assignment_empties_the_notification_group :
   forall g : Grouping,
     AssignsTheGroupsTheEntryAssigns g -> TheNotificationGroupIsEmpty g.
@@ -982,6 +985,7 @@ Definition traps_with_the_schedule_transitions (a : Act) : bool :=
 
 (* S-i and S-i-a: both are admissible, which is the gap made checkable
    rather than asserted. *)
+(*| discharges: R-07-031b |*)
 Theorem the_files_own_trap_surface_is_admissible :
   AdmissibleTrapSurface traps_act.
 Proof.
@@ -993,6 +997,7 @@ Proof.
   intros a H. destruct a; first [ discriminate H | reflexivity ].
 Qed.
 
+(*| discharges: R-07-031b |*)
 Theorem the_syscall_carried_trap_surface_is_admissible :
   AdmissibleTrapSurface traps_with_the_schedule_transitions.
 Proof.
@@ -1129,12 +1134,14 @@ Example nothing_the_abi_numbers_fails_to_trap :
    them is the ABI's cut. The witness is the exception surface, which every
    admissible value carries and the criterion excludes from the numbering, so
    neither result turns on how gap i is answered. *)
+(*| discharges: R-07-031b |*)
 Theorem every_admissible_trap_surface_carries_the_exception :
   forall t : TrapSurface, AdmissibleTrapSurface t ->
     t ASynchronousException = true
     /\ is_the_act_of_an_invocation ASynchronousException = false.
 Proof. intros t [ _ [ H _ ] ]. exact (conj H eq_refl). Qed.
 
+(*| discharges: R-08-032, R-07-039 |*)
 Theorem no_admissible_trap_surface_traps_a_notification_half :
   forall t : TrapSurface, AdmissibleTrapSurface t ->
     t ANotifySignal = false /\ t ANotifyReceive = false.
@@ -1260,6 +1267,7 @@ Proof. intros l [ H1 H2 ]. apply andb_join; [ exact H1 | exact H2 ]. Qed.
 Definition spec_inventory : list Nameable := object_classes.
 
 (* S1 (R-07-027a): the composed inventory passes both conjuncts. *)
+(*| discharges: R-07-027a |*)
 Theorem the_specification_inventory_is_closed :
   InventoryIsClosedAtThree spec_inventory.
 Proof. apply inventory_ok_sound. reflexivity. Qed.
@@ -1277,6 +1285,7 @@ Definition DesignatesOnlyObjects (d : Designation) : Prop :=
 Definition spec_designation : Designation := fun _ => NEndpoint.
 
 (* S2 (R-07-027a): no capability names a table. *)
+(*| discharges: R-07-027a |*)
 Theorem the_specification_designation_names_only_objects :
   DesignatesOnlyObjects spec_designation.
 Proof. intros c. reflexivity. Qed.
@@ -1314,6 +1323,7 @@ Definition DistinguishesTheClassesFromTheTables (f : Lifecycles) : Prop :=
   exists (c : Nameable) (op : Lifecycle), is_object c = true /\ f c op = true.
 
 (* S3 and S4 (R-07-027a, R-08-004d). *)
+(*| discharges: R-07-027a, R-08-004d |*)
 Theorem the_specification_gives_no_table_a_lifecycle :
   NoTableHasALifecycle spec_lifecycles.
 Proof.
@@ -1321,6 +1331,7 @@ Proof.
     try discriminate H; reflexivity.
 Qed.
 
+(*| discharges: R-07-027a |*)
 Theorem the_specification_distinguishes_the_classes_from_the_tables :
   DistinguishesTheClassesFromTheTables spec_lifecycles.
 Proof. exists NEndpoint. exists LRevoke. exact (conj eq_refl eq_refl). Qed.
@@ -1384,6 +1395,7 @@ Definition badge_return : ReturnPath :=
   {| rp_classes := nil; rp_otypes := 0; rp_mints := false; rp_act := ASend |}.
 
 (* S5 through S8 (R-07-027a, R-04-008, R-15-007). *)
+(*| discharges: R-07-027a, R-04-008, R-15-007 |*)
 Theorem the_badge_return_path_discharges_all_four :
   SpendsNoObjectClass badge_return
   /\ SpendsNoObjectType badge_return
@@ -1464,6 +1476,7 @@ Qed.
 
 (* S9 (R-07-031a, R-07-031b): the composed surface numbers each of the five
    exactly once. *)
+(*| discharges: R-07-031a, R-07-031b |*)
 Theorem the_specification_surface_is_the_frozen_one :
   IsTheFrozenSurface spec_surface.
 Proof. apply frozen_surface_sound. reflexivity. Qed.
@@ -1514,6 +1527,7 @@ Proof.
 Qed.
 
 (* S10 (R-07-031b): two members with the same number are the same member. *)
+(*| discharges: R-07-031b |*)
 Theorem the_number_determines_the_invocation :
   forall (l : list Invocation) (i j : Invocation) (k : nat),
     pos_inv i l = Some k -> pos_inv j l = Some k -> i = j.
@@ -1541,6 +1555,7 @@ Proof.
     + destruct (IH i H) as [ k Hk ]. rewrite Hk. exists (S k). reflexivity.
 Qed.
 
+(*| discharges: R-07-031b |*)
 Theorem every_frozen_surface_numbers_every_member :
   forall l : list Invocation, IsTheFrozenSurface l ->
     forall i : Invocation,
@@ -1579,10 +1594,12 @@ Definition DispatchesByTheNumberAlone (d : Dispatcher) : Prop :=
   forall (o1 o2 : Observation) (n : nat), d o1 n = d o2 n.
 
 (* S11 (R-07-031b, R-07-030), of every sequence and then of this one. *)
+(*| discharges: R-07-031b, R-07-030 |*)
 Theorem every_surface_dispatches_by_the_number_alone :
   forall l : list Invocation, DispatchesByTheNumberAlone (dispatch_of l).
 Proof. intros l o1 o2 n. reflexivity. Qed.
 
+(*| discharges: R-07-031b, R-07-030 |*)
 Theorem the_specification_dispatches_by_the_number_alone :
   DispatchesByTheNumberAlone spec_dispatch.
 Proof. exact (every_surface_dispatches_by_the_number_alone spec_surface). Qed.
@@ -1945,6 +1962,7 @@ Fixpoint badges (w : nat) : list (list bool) :=
 
 (* S13 (R-07-031, R-15-007, gap a): every badge the generator produces at a
    width has that width, stated of an arbitrary width. *)
+(*| discharges: R-07-031, R-15-007 |*)
 Theorem every_generated_badge_has_the_declared_width :
   forall w : nat, all_of (fun b => Nat.eqb (count_of b) w) (badges w) = true.
 Proof.
@@ -2064,21 +2082,26 @@ Definition ResumesNoPartition (t : Transfer) : Prop :=
     runnable (after t k st o) p = runnable k p.
 
 (* S14 through S18 (R-07-029, R-07-029a, R-07-037a). *)
+(*| discharges: R-07-029, R-07-029a |*)
 Theorem the_specification_refuses_with_no_ready_peer :
   RefusesWithNoReadyPeer spec_transfer.
 Proof. intros k st o H. unfold said, spec_transfer. simpl. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-07-029, R-07-029a |*)
 Theorem the_specification_rendezvous_with_a_ready_peer :
   RendezvousWithAReadyPeer spec_transfer.
 Proof. intros k st o H. unfold said, spec_transfer. simpl. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-07-029a |*)
 Theorem the_specification_parks_nothing : ParksNothing spec_transfer.
 Proof. intros k st o H. unfold after, spec_transfer. simpl. exact H. Qed.
 
+(*| discharges: R-07-029a, R-07-037a |*)
 Theorem the_specification_leaves_no_partition_waiting :
   LeavesNoPartitionWaiting spec_transfer.
 Proof. intros k st o p H. unfold after, spec_transfer. simpl. exact H. Qed.
 
+(*| discharges: R-07-029a |*)
 Theorem the_specification_resumes_no_partition :
   ResumesNoPartition spec_transfer.
 Proof. intros k st o p. unfold after, spec_transfer. reflexivity. Qed.
@@ -2087,6 +2110,7 @@ Proof. intros k st o p. unfold after, spec_transfer. reflexivity. Qed.
    readiness state and an arbitrary offer. This is what the generated
    sixteen-state family below is an instance of rather than a substitute
    for. *)
+(*| discharges: R-07-029a |*)
 Theorem the_outcome_is_the_readiness_bit :
   forall (k : Kernel) (st : Readiness) (o : Offer),
     is_refused (said spec_transfer k st o) = negb (st o.(offer_at)).
@@ -2109,6 +2133,7 @@ Definition spec_run (st : Readiness) (o : Offer) : Outcome :=
   said spec_transfer empty_kernel st o.
 
 (* S20 (R-07-029a's typed refusal). *)
+(*| discharges: R-07-029a |*)
 Theorem the_specification_carries_nothing_where_nothing_crossed :
   CarriesNothingWhereNothingCrossed Outcome delivered spec_run.
 Proof.
@@ -2123,6 +2148,7 @@ Definition RefusalCostsItsOwnInvocation (m : Machine) (c : Invocation -> nat) : 
   forall i : Invocation, Nat.leb (c i) (m.(invocation_cost) i) = true.
 
 (* S21 (R-07-029a, R-11-006). *)
+(*| discharges: R-07-029a, R-11-006 |*)
 Theorem the_specification_refusal_costs_its_own_invocation :
   RefusalCostsItsOwnInvocation demo demo.(refusal_cost).
 Proof. intros i. destruct i; reflexivity. Qed.
@@ -2165,6 +2191,7 @@ Fixpoint run_offers (t : Transfer) (k : Kernel) (st : Readiness)
 (* S22 (R-07-029a, R-11-010): stated of an arbitrary transfer that parks
    nothing and an arbitrary offer sequence, so it is a property of the
    discipline rather than a computation over one witness. *)
+(*| discharges: R-07-029a, R-11-010 |*)
 Theorem no_sequence_of_re_offers_parks_anything :
   forall (t : Transfer), ParksNothing t ->
     forall (k : Kernel) (st : Readiness) (l : list Offer),
@@ -2188,6 +2215,7 @@ Fixpoint outcomes_of (t : Transfer) (k : Kernel) (st : Readiness)
   | cons o r => cons (said t k st o) (outcomes_of t (after t k st o) st r)
   end.
 
+(*| discharges: R-17-030x |*)
 Theorem an_unready_peer_refuses_every_offer_in_a_sequence :
   forall (t : Transfer), RefusesWithNoReadyPeer t ->
     forall (st : Readiness), (forall e : nat, st e = false) ->
@@ -2229,9 +2257,11 @@ Definition TransfersOnlyWhatIsNamed (g : Grant) : Prop :=
     carried msg c = false -> g msg h c = h c.
 
 (* S23 through S25 (R-07-029, R-04-008). *)
+(*| discharges: R-04-008 |*)
 Theorem the_specification_grant_mints_nothing : MintsNothing spec_grant.
 Proof. intros msg h c H. exact H. Qed.
 
+(*| discharges: R-07-029 |*)
 Theorem the_specification_grant_grants_everything_named :
   GrantsEverythingNamed spec_grant.
 Proof.
@@ -2239,6 +2269,7 @@ Proof.
   destruct (h c); reflexivity.
 Qed.
 
+(*| discharges: R-07-029, R-04-008 |*)
 Theorem the_specification_grant_transfers_only_what_is_named :
   TransfersOnlyWhatIsNamed spec_grant.
 Proof.
@@ -2292,9 +2323,11 @@ Definition spec_signal (b : bool) : bool := true.
 Definition spec_reset (b : bool) : bool := false.
 
 (* S26 and S27 (R-12-096). *)
+(*| discharges: R-12-096 |*)
 Theorem the_specification_signal_coalesces : Coalescing bool spec_signal.
 Proof. intros w. reflexivity. Qed.
 
+(*| discharges: R-12-096 |*)
 Theorem the_specification_reset_is_defined :
   ResetIsDefined bool armed_of spec_reset.
 Proof. intros w. reflexivity. Qed.
@@ -2327,6 +2360,7 @@ Definition YieldsOnlyOnAnEmptyDrain (d : Decider) : Prop :=
   forall b n : Ring, has_work b = true -> d b n = false.
 
 (* S28 and S29 (R-12-096, R-07-029a). *)
+(*| discharges: R-12-096 |*)
 Theorem the_specification_decider_rechecks_after_arming :
   RechecksAfterArming spec_decide.
 Proof.
@@ -2334,6 +2368,7 @@ Proof.
   destruct (has_work b); reflexivity.
 Qed.
 
+(*| discharges: R-12-096, R-07-029a |*)
 Theorem the_specification_decider_yields_only_on_an_empty_drain :
   YieldsOnlyOnAnEmptyDrain spec_decide.
 Proof. intros b n H. unfold spec_decide. rewrite H. reflexivity. Qed.
@@ -2378,6 +2413,7 @@ Definition IsCompositionFixedRotation (a : Advancer) : Prop :=
   forall (o1 o2 : Observation) (u : nat), a o1 u = a o2 u.
 
 (* S30 (R-07-037b). *)
+(*| discharges: R-07-037b |*)
 Theorem the_specification_rotation_is_composition_fixed :
   forall m : Machine, IsCompositionFixedRotation (spec_advance m).
 Proof. intros m o1 o2 u. reflexivity. Qed.
@@ -2423,14 +2459,17 @@ Definition DoesNotVaryWithThePredecessor (d : Delivery) : Prop :=
    enough to carry one fact. *)
 
 (* S31, S31a and S32 (R-07-037c, R-07-044). *)
+(*| discharges: R-07-044 |*)
 Theorem the_specification_delivery_sees_its_own_pending_only :
   forall m : Machine, SeesItsOwnPendingOnly m (spec_delivery m).
 Proof. intros m p s b. reflexivity. Qed.
 
+(*| discharges: R-07-037c, R-07-044 |*)
 Theorem the_specification_delivery_swaps_where_a_swap_exists :
   forall m : Machine, SwapsWhereASwapExists m (spec_delivery m).
 Proof. intros m _ p s b. reflexivity. Qed.
 
+(*| discharges: R-07-037c |*)
 Theorem the_specification_delivery_does_not_vary_with_the_predecessor :
   forall m : Machine, DoesNotVaryWithThePredecessor (spec_delivery m).
 Proof. intros m p q s b. reflexivity. Qed.
@@ -2485,6 +2524,7 @@ Fixpoint run_dispatches (st : Step) (f : Files) (pred : nat) (l : list nat)
   | cons s r => run_dispatches st (st pred s f) s r
   end.
 
+(*| discharges: R-07-037c, R-07-044 |*)
 Theorem the_specification_step_leaves_every_other_members_bits_alone :
   forall react : nat -> nat -> bool,
     LeavesEveryOtherMembersBitsAlone (step_of react).
@@ -2494,6 +2534,7 @@ Proof. intros react p s u b f H. unfold step_of. rewrite H. reflexivity. Qed.
    it finds, across any sequence of dispatches that does not name it. Stated
    of an arbitrary step meeting the clause above and of an arbitrary
    sequence, so it is a property of the discipline and not of one trace. *)
+(*| discharges: R-07-037c |*)
 Theorem the_bits_a_member_leaves_are_restored_at_its_next_dispatch :
   forall st : Step, LeavesEveryOtherMembersBitsAlone st ->
     forall (l : list nat) (u : nat),
@@ -2537,6 +2578,7 @@ Qed.
 (* S33 (R-07-037d): in an admissible group every observation of a sibling's
    residue is an observation inside one label, stated of an arbitrary group
    and an arbitrary label assignment. *)
+(*| discharges: R-07-037d |*)
 Theorem an_admissible_group_keeps_the_residue_in_domain :
   forall (m : Machine) (g : list nat) (u v : nat),
     SameLabelGroup m g = true ->
@@ -2566,6 +2608,7 @@ Definition ClaimsNoParticularSibling (f : Inference) : Prop :=
   forall s : nat, f s = None.
 
 (* S34 (R-07-037d). *)
+(*| discharges: R-07-037d |*)
 Theorem the_specification_claims_no_particular_sibling :
   ClaimsNoParticularSibling spec_inference.
 Proof. intros s. reflexivity. Qed.
@@ -2988,6 +3031,7 @@ Definition NumbersEveryInvocation (f : Numbering) : Prop :=
 Definition NumbersNothingElse (f : Numbering) : Prop :=
   forall a : Act, is_the_act_of_an_invocation a = false -> f a = false.
 
+(*| discharges: R-07-031b |*)
 Theorem the_specification_numbering_discharges_both :
   NumbersEveryInvocation numbered_act /\ NumbersNothingElse numbered_act.
 Proof.
@@ -3650,6 +3694,7 @@ Definition bulk_message (n : nat) : Message :=
    data, stated of an arbitrary machine and an arbitrary payload size
    rather than of one witness. High-throughput I/O rides a user-level ring
    because this bound refuses it here. *)
+(*| discharges: R-07-029, R-07-031 |*)
 Theorem no_bulk_payload_crosses_the_kernel :
   forall (m : Machine) (n : nat),
     Nat.leb n m.(word_count) = false -> message_ok m (bulk_message n) = false.
@@ -3662,6 +3707,7 @@ Qed.
    carries control and never bulk data. The predicate is proved of a
    message inside the budget and refuted of one past it, so it decides
    rather than restating `message_ok`. *)
+(*| discharges: R-07-029, R-07-031 |*)
 Theorem the_specification_medium_carries_no_bulk_data :
   CarriesNoBulkData demo probe_message.
 Proof. reflexivity. Qed.

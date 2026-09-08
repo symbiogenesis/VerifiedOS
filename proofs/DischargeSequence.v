@@ -942,6 +942,7 @@ Qed.
 
 (* D1 (R-15-247d, R-15-247g): the specification is ordered at every phase
    count, and not only at the demo's. *)
+(*| discharges: R-15-247d, R-15-247g |*)
 Theorem specification_is_ordered :
   forall n : nat, Ordered (upto n) (admission_sequence (upto n) all_positive).
 Proof.
@@ -956,6 +957,7 @@ Qed.
    a negative reading refused, without the residue boundary or
    addressability being reached at all: whatever phase the schedule begins
    at, its read stands on the negative arm and neither entry step does. *)
+(*| discharges: R-15-247d, R-17-024a, R-17-058f |*)
 Theorem authority_invalidation_is_independent_of_residue_sanitization :
   forall (k : nat) (rest : list nat),
     occurs (PhaseRead k) (admission_sequence (cons k rest) (fun _ => false)) = true
@@ -973,6 +975,7 @@ Qed.
    and measured execution standing in that order with no discharge, dwell
    or read between them; that is the order's own last two conjuncts, and
    the second-pass sequencer below is what the count refuses. *)
+(*| discharges: R-15-247d |*)
 Theorem the_success_path_carries_no_second_pass :
   forall n : nat,
     precedes DomainAddressable ResidueConfirmed (admission_sequence (upto n) all_positive)
@@ -1257,9 +1260,11 @@ Definition ReadFollowsTheDwell (q : Sequencer) : Prop :=
     /\ precedes (PhaseDwell k) (PhaseRead k) (q ks r) = true.
 
 (* D3 through D8: the specification meets all six, at every phase count. *)
+(*| discharges: R-15-247d, R-15-247g |*)
 Theorem specification_keeps_the_order : KeepsTheOrder spec_sequencer.
 Proof. exact specification_is_ordered. Qed.
 
+(*| discharges: R-15-247f, R-15-247d |*)
 Theorem specification_stops_on_a_negative_reading :
   StopsOnNegativeReading spec_sequencer.
 Proof.
@@ -1269,6 +1274,7 @@ Proof.
   - rewrite (occurs_entry_admission MeasuredExecution r ks eq_refl). exact H.
 Qed.
 
+(*| discharges: R-17-030n |*)
 Theorem specification_latches_on_a_negative_reading :
   LatchesOnNegativeReading spec_sequencer.
 Proof.
@@ -1276,12 +1282,14 @@ Proof.
     rewrite (occurs_latch_admission r ks); rewrite H; reflexivity.
 Qed.
 
+(*| discharges: R-15-247f, R-15-247d |*)
 Theorem specification_stands_no_step_twice : NoStepStandsTwice spec_sequencer.
 Proof.
   intros n r s.
   exact (nodup_at_most_once _ s (nodup_admission_sequence (upto n) r (nodup_upto n))).
 Qed.
 
+(*| discharges: R-15-247f |*)
 Theorem specification_stands_each_phase_step_once :
   EveryPhaseStepStandsOnce spec_sequencer.
 Proof.
@@ -1293,6 +1301,7 @@ Proof.
   destruct s; try discriminate Hs; inversion Hs; subst; simpl; assumption.
 Qed.
 
+(*| discharges: R-15-247f |*)
 Theorem specification_reads_after_the_dwell : ReadFollowsTheDwell spec_sequencer.
 Proof.
   intros ks r k H. unfold spec_sequencer, admission_sequence in *.
@@ -1680,6 +1689,7 @@ Qed.
    machine, which is the soundness that entry grants the per-bank read
    before refusing it on cost. The domain's banks being the phases' banks
    is what carries it (reading 8). *)
+(*| discharges: R-15-247f |*)
 Theorem the_per_phase_reader_is_the_per_bank_reader :
   forall (m : Machine) (sw : Sweep m), spec_reader m sw = per_bank_reader m sw.
 Proof.
@@ -1690,6 +1700,7 @@ Qed.
 (* D10 (R-15-247d's acceptance clause), on the reader side: a reader
    answering for every phase admits no bank the pass reached and did not
    finish, and admits only drained domains. *)
+(*| discharges: R-15-247d |*)
 Theorem specification_reader_admits_no_partially_sanitized_bank :
   forall m : Machine, AdmitsNoPartiallySanitizedBank m (spec_reader m).
 Proof.
@@ -1697,6 +1708,7 @@ Proof.
   exact (drained_domain_has_no_partial_bank m sw H).
 Qed.
 
+(*| discharges: R-15-247d |*)
 Theorem specification_reader_admits_only_drained_domains :
   forall m : Machine, AdmitsOnlyDrainedDomains m (spec_reader m).
 Proof.
@@ -1720,6 +1732,7 @@ Definition spec_path (m : Machine) (sw : Sweep m) : list Step :=
 
 (* D11 (R-15-247f, R-15-189n): the RoT's gate on the transition is the
    conjunction of the phase readings (reading h). *)
+(*| discharges: R-15-247f, R-15-189n |*)
 Theorem admission_is_the_readers_confirmation :
   forall (m : Machine) (sw : Sweep m),
     occurs DomainAddressable (spec_path m sw) = spec_reader m sw.
@@ -1741,6 +1754,7 @@ Qed.
 (* D12 (R-15-247d, R-15-247f). The file's load-bearing theorem: on every
    machine and every sweep, a path that makes the domain addressable is
    one on which every bank drained and no bank was left half-swept. *)
+(*| discharges: R-15-247d, R-15-247f |*)
 Theorem no_path_admits_a_partially_sanitized_bank :
   forall (m : Machine) (sw : Sweep m),
     occurs DomainAddressable (spec_path m sw) = true ->
@@ -1978,6 +1992,7 @@ Definition IsTheDeclaredConstant (m : Machine) (d : DwellLength m) : Prop :=
 
 (* D13 (R-15-247f, R-15-247g): the dwell entering the transition budget is
    the composition constant and is not read off the array. *)
+(*| discharges: R-15-247f, R-15-247g |*)
 Theorem specification_dwell_is_the_declared_constant :
   forall m : Machine, IsTheDeclaredConstant m (spec_dwell m).
 Proof. intros m sw b. reflexivity. Qed.
@@ -2021,6 +2036,7 @@ Definition HoldsEveryRequester (m : Machine) (h : ResetHold m) : Prop :=
 
 (* D14 (R-15-247h): every requester the roster names, and R-15-247h names
    three classes rather than one (reading 5). *)
+(*| discharges: R-15-247h |*)
 Theorem specification_holds_every_requester :
   forall m : Machine, HoldsEveryRequester m (spec_hold m).
 Proof. intros m. apply all_of_true. Qed.
@@ -2055,6 +2071,7 @@ Definition NoRequesterNamesTheDomainEarly
     precedes (rel r) DomainAddressable (success_path (phases m)) = false.
 
 (* D15 (R-15-247d, R-15-247h), at every machine. *)
+(*| discharges: R-15-247d, R-15-247h |*)
 Theorem specification_releases_no_requester_early :
   forall m : Machine, NoRequesterNamesTheDomainEarly m (spec_release m).
 Proof. intros m r. unfold spec_release. apply precedes_irrefl. Qed.

@@ -1459,6 +1459,7 @@ Definition spec_compose : Composer := fun m _ r => {|
 Definition ComposesFromDescriptorsAlone (c : Composer) : Prop :=
   forall (m : Machine) (a1 a2 : Ambient) (r : list nat), c m a1 r = c m a2 r.
 
+(*| discharges: R-12-024b |*)
 Theorem the_specification_composes_from_descriptors_alone :
   ComposesFromDescriptorsAlone spec_compose.
 Proof. intros m a1 a2 r. reflexivity. Qed.
@@ -1470,6 +1471,7 @@ Definition ExecutesNoPackageCode (c : Composer) : Prop :=
   forall (m : Machine) (s : nat -> list Edge) (a : Ambient) (r : list nat),
     c (with_script m s) a r = c m a r.
 
+(*| discharges: R-13-002 |*)
 Theorem the_specification_executes_no_package_code :
   ExecutesNoPackageCode spec_compose.
 Proof. intros m s a r. reflexivity. Qed.
@@ -1487,6 +1489,7 @@ Definition IsFiniteAndClosed (r : list nat) (g : Graph) : Prop :=
   endpoints_inside g = true
   /\ all_of (fun n => mem_nat n r) g.(graph_nodes) = true.
 
+(*| discharges: R-12-024b |*)
 Theorem the_specification_emits_a_finite_closed_graph :
   forall (m : Machine) (a : Ambient) (r : list nat),
     IsFiniteAndClosed r (spec_compose m a r).
@@ -1516,6 +1519,7 @@ Qed.
    (R-12-005) read off the same emitted list, each as the conjunct its entry
    owns. They are separate theorems because each is refuted by a separate
    composer below. *)
+(*| discharges: R-12-013a |*)
 Theorem every_composed_edge_declares_a_resource_limit :
   forall (m : Machine) (a : Ambient) (r : list nat),
     all_of (fun e => Nat.ltb 0 e.(edge_limit)) (spec_compose m a r).(graph_edges)
@@ -1527,6 +1531,7 @@ Proof.
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
+(*| discharges: R-12-013a |*)
 Theorem every_composed_edge_declares_an_interface_world :
   forall (m : Machine) (a : Ambient) (r : list nat),
     all_of (fun e => Nat.ltb e.(edge_world) m.(world_count))
@@ -1538,6 +1543,7 @@ Proof.
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
+(*| discharges: R-12-024e |*)
 Theorem the_specification_never_widens_a_manifest :
   forall (m : Machine) (a : Ambient) (r : list nat),
     all_of (fun e => Nat.leb e.(edge_bounds)
@@ -1550,6 +1556,7 @@ Proof.
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
+(*| discharges: R-12-024f, R-05-042 |*)
 Theorem every_parsed_format_is_inventoried_and_verified :
   forall (m : Machine) (a : Ambient) (r : list nat),
     all_of (fun e => m.(in_inventory) e.(edge_format))
@@ -1566,6 +1573,7 @@ Proof.
     + exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
+(*| discharges: R-12-005 |*)
 Theorem every_composed_ring_is_inside_the_ceiling :
   forall (m : Machine) (a : Ambient) (r : list nat),
     all_of (fun e => Nat.leb e.(edge_ring) m.(ring_depth_ceiling))
@@ -1591,6 +1599,7 @@ Definition ExemptsNoFormatClass (c : Composer) : Prop :=
                                (m.(verified_parser) e.(edge_format))))
            (c m a r).(graph_edges) = true.
 
+(*| discharges: R-12-024f |*)
 Theorem the_specification_exempts_no_format_class :
   ExemptsNoFormatClass spec_compose.
 Proof.
@@ -1800,6 +1809,7 @@ Definition no_amendment : Amender := fun g => g.
 Definition NeverAmendsARunningGraph (f : Amender) : Prop :=
   forall g : Graph, f g = g.
 
+(*| discharges: R-12-024b |*)
 Theorem the_specification_never_amends_a_running_graph :
   NeverAmendsARunningGraph no_amendment.
 Proof. intros g. reflexivity. Qed.
@@ -1894,10 +1904,12 @@ Definition IsRecomposition
   forall (m : Machine) (r : list nat) (p : nat),
     ins m r p = spec_compose m composition_ambient (after r p).
 
+(*| discharges: R-13-001a, R-12-024b |*)
 Theorem the_specification_install_is_a_recomposition :
   IsRecomposition spec_install after_install.
 Proof. intros m r p. reflexivity. Qed.
 
+(*| discharges: R-13-001a, R-12-024b |*)
 Theorem the_specification_uninstall_is_a_recomposition :
   IsRecomposition spec_uninstall after_uninstall.
 Proof. intros m r p. reflexivity. Qed.
@@ -2007,14 +2019,17 @@ Definition DoesNotSniffTheContent (sel : Selector) : Prop :=
   forall (g : Graph) (q : Request) (n1 n2 : nat),
     sel g (with_content q n1) = sel g (with_content q n2).
 
+(*| discharges: R-12-024b |*)
 Theorem the_specification_selection_does_not_vary_with_the_run :
   DoesNotVaryWithTheRun spec_select.
 Proof. intros g q n1 n2. reflexivity. Qed.
 
+(*| discharges: R-12-013a, R-12-024b |*)
 Theorem the_specification_selection_does_not_read_the_name :
   DoesNotReadTheName spec_select.
 Proof. intros g q n1 n2. reflexivity. Qed.
 
+(*| discharges: R-12-024b |*)
 Theorem the_specification_selection_does_not_sniff_the_content :
   DoesNotSniffTheContent spec_select.
 Proof. intros g q n1 n2. reflexivity. Qed.
@@ -2025,6 +2040,7 @@ Definition RespectsTheRequestedBound (sel : Selector) : Prop :=
   forall (g : Graph) (q : Request) (e : Edge),
     sel g q = Some e -> Nat.leb e.(edge_limit) q.(req_bound) = true.
 
+(*| discharges: R-12-013a |*)
 Theorem the_specification_respects_the_requested_bound :
   RespectsTheRequestedBound spec_select.
 Proof.
@@ -2042,6 +2058,7 @@ Definition AnswersTheRequestedIntent (sel : Selector) : Prop :=
     sel g q = Some e ->
     Nat.eqb e.(edge_intent) q.(req_intent).(int_index) = true.
 
+(*| discharges: R-12-024b, R-12-013a |*)
 Theorem the_specification_answers_the_requested_intent :
   AnswersTheRequestedIntent spec_select.
 Proof.
@@ -2059,6 +2076,7 @@ Definition ReturnsOnlyAdmittedEdges (m : Machine) (r : list nat)
     all_of (admissible_edge m r) g.(graph_edges) = true ->
     sel g q = Some e -> admissible_edge m r e = true.
 
+(*| discharges: R-12-024b |*)
 Theorem the_specification_returns_only_admitted_edges :
   forall (m : Machine) (r : list nat),
     ReturnsOnlyAdmittedEdges m r spec_select.
@@ -2082,6 +2100,7 @@ Definition FailsClosed (sel : Selector) : Prop :=
   forall (g : Graph) (q : Request),
     any_of (matches q) g.(graph_edges) = false -> sel g q = None.
 
+(*| discharges: R-12-024b |*)
 Theorem the_specification_fails_closed :
   FailsClosed spec_select.
 Proof.
@@ -2121,6 +2140,7 @@ Definition IntroducesNothing (c : Composer) (sel : Selector) : Prop :=
                (c m a r).(graph_edges) = true
     end.
 
+(*| discharges: R-12-013a |*)
 Theorem the_specification_introduces_nothing :
   IntroducesNothing spec_compose spec_select.
 Proof.
@@ -2419,6 +2439,7 @@ Definition RequiresEveryQuantity (b : MayBind) : Prop :=
   forall (m : Machine) (n : nat) (q : AdmittedQuantity),
     (m.(descriptor) n).(desc_admits) q = false -> b m n = false.
 
+(*| discharges: R-12-024c |*)
 Theorem the_specification_requires_every_quantity :
   RequiresEveryQuantity spec_may_bind.
 Proof.
@@ -2472,6 +2493,7 @@ Definition spec_schedule : Schedule := fun m n => (m.(descriptor) n).(desc_origi
 Definition AdmitsAtTheTimeTheOriginFixes (s : Schedule) : Prop :=
   forall (m : Machine) (n : nat), s m n = (m.(descriptor) n).(desc_origin).
 
+(*| discharges: R-12-024c |*)
 Theorem the_specification_admits_at_the_time_the_origin_fixes :
   AdmitsAtTheTimeTheOriginFixes spec_schedule.
 Proof. intros m n. reflexivity. Qed.
@@ -2510,6 +2532,7 @@ Definition spec_creates : Creation := fun _ => false.
 Definition CreatesNothing (c : Creation) : Prop :=
   all_of (fun k => negb (c k)) all_forbidden_creations = true.
 
+(*| discharges: R-12-024c |*)
 Theorem the_specification_binding_creates_nothing :
   CreatesNothing spec_creates.
 Proof. reflexivity. Qed.
@@ -2586,6 +2609,7 @@ Definition BorrowsNothing (b : Binder) : Prop :=
     (b m occ t = Some (CapacityExhausted RingPool) -> ring_full m occ t = true)
     /\ (b m occ t = Some (CapacityExhausted NodePool) -> node_full m occ t = true).
 
+(*| discharges: R-08-047 |*)
 Theorem the_specification_binder_always_answers : AlwaysAnswers spec_bind.
 Proof.
   intros m occ t. unfold spec_bind.
@@ -2593,9 +2617,11 @@ Proof.
   destruct (ring_full m occ t); reflexivity.
 Qed.
 
+(*| discharges: R-08-047 |*)
 Theorem the_specification_binder_declines_when_full : DeclinesWhenFull spec_bind.
 Proof. intros m occ t H. unfold spec_bind. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-08-047 |*)
 Theorem the_specification_binder_borrows_nothing : BorrowsNothing spec_bind.
 Proof.
   intros m occ t. split.
@@ -2763,6 +2789,7 @@ Proof. intros m. reflexivity. Qed.
 
 (* O17 (R-12-013a): a well-formed template is a typed chain between its two
    declared ends, stated of an arbitrary machine and an arbitrary chain. *)
+(*| discharges: R-12-013a |*)
 Theorem a_well_formed_template_is_a_typed_chain :
   forall (m : Machine) (t : list Stage),
     template_ok m t = true -> chain_typed t = true /\ ends_match m t = true.
@@ -2776,6 +2803,7 @@ Qed.
 (* O15 (R-13-001b with R-12-024c): every node a template names is already
    composed and already admitted, so the template is not a pre-proved empty
    slot and no package binds into one. *)
+(*| discharges: R-13-001b, R-12-024c |*)
 Theorem a_well_formed_template_binds_composed_admitted_nodes :
   forall (m : Machine) (t : list Stage),
     template_ok m t = true ->
@@ -2792,6 +2820,7 @@ Qed.
 
 (* O18 (R-12-005 with R-12-024c): every ring a template declares has a
    nonzero depth inside the ceiling the composition sized. *)
+(*| discharges: R-12-005, R-12-024c |*)
 Theorem a_well_formed_template_declares_bounded_rings :
   forall (m : Machine) (t : list Stage),
     template_ok m t = true ->
@@ -2810,6 +2839,7 @@ Qed.
 
 (* O19 (R-08-021 applied): every join of a bound template is between two
    nodes at one level, or the composition declared the channel. *)
+(*| discharges: R-08-021 |*)
 Theorem a_well_formed_template_crosses_no_undeclared_label :
   forall (m : Machine) (t : list Stage),
     template_ok m t = true -> labels_joined m t = true.

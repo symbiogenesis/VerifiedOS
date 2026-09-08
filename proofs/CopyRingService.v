@@ -761,6 +761,7 @@ Definition rv_slot (i : nat) : nat := Nat.modulo i ring_capacity.
    capacity admits, two sequence numbers carry the same wire index only when
    they are the same number. This is a fact about the declared constants and
    it is what makes `work_pending`'s modular difference the occupancy. *)
+(*| discharges: R-12-091 |*)
 Theorem the_wire_index_separates_a_live_window :
   all_of (fun base =>
             all_of (fun d => agree (Nat.eqb (rv_wire (base + d)) (rv_wire base))
@@ -772,6 +773,7 @@ Proof. vm_compute; reflexivity. Qed.
 (* A slot is reused exactly a capacity later, which is the whole content of
    "the producer never overwrites an unconsumed entry": every distance strictly
    inside the capacity lands on a different slot. *)
+(*| discharges: R-12-091, R-12-095 |*)
 Theorem the_producer_never_writes_a_live_slot :
   all_of (fun base =>
             all_of (fun d => implb (Nat.ltb 0 d)
@@ -780,6 +782,7 @@ Theorem the_producer_never_writes_a_live_slot :
          (upto ring_capacity) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-091 |*)
 Theorem the_slot_is_reused_exactly_a_capacity_later :
   all_of (fun base => Nat.eqb (rv_slot (base + ring_capacity)) (rv_slot base))
          (upto ring_capacity) = true.
@@ -793,6 +796,7 @@ Proof. vm_compute; reflexivity. Qed.
    occupancy by subtraction while the contract computes it modulo the span owes
    the bridge as a statement, because the two agree only inside a window the
    declared constants make. *)
+(*| discharges: R-12-091 |*)
 Theorem the_occupancy_is_the_contracts_modular_difference :
   all_of (fun base =>
             all_of (fun occ => agree (work_pending (rv_wire (base + occ))
@@ -835,6 +839,7 @@ Definition WritesOnlyTheProducerIndex (f : ring_view -> ring_view) : Prop :=
 Definition WritesOnlyTheConsumerIndex (f : ring_view -> ring_view) : Prop :=
   forall v : ring_view, rv_produced (f v) = rv_produced v.
 
+(*| discharges: R-12-005, R-12-008a |*)
 Theorem the_publisher_writes_only_the_producer_index :
   WritesOnlyTheProducerIndex rv_publish.
 Proof.
@@ -842,6 +847,7 @@ Proof.
   destruct (Nat.ltb (rv_occupancy v) ring_capacity); reflexivity.
 Qed.
 
+(*| discharges: R-12-005, R-12-008a |*)
 Theorem the_consumer_writes_only_the_consumer_index :
   WritesOnlyTheConsumerIndex rv_take.
 Proof.
@@ -873,6 +879,7 @@ Qed.
 
 (* The SPSC statement: the invariant survives an arbitrary interleaving, which
    is a quantifier over every schedule of the two agents (reading 3). *)
+(*| discharges: R-12-005, R-12-008a |*)
 Theorem the_invariant_survives_every_interleaving :
   forall (sched : list turn) (v : ring_view),
     rv_ok v = true -> rv_ok (rv_run sched v) = true.
@@ -895,6 +902,7 @@ Definition brimming_view : ring_view := mk_ring_view (Nat.pred ring_capacity) 0.
 Definition empty_view : ring_view := mk_ring_view 0 0.
 Definition single_view : ring_view := mk_ring_view 1 0.
 
+(*| discharges: R-12-095 |*)
 Theorem the_ring_fills_to_capacity_and_refuses_one_past :
   andb (may_reserve (rv_occupancy brimming_view))
        (match service_submit full_view with
@@ -913,6 +921,7 @@ Definition NoPartialEnqueue (f : ring_view -> ring_view) : Prop :=
     | submit_enqueued => True
     end.
 
+(*| discharges: R-12-095 |*)
 Theorem the_specification_never_partially_enqueues : NoPartialEnqueue rv_publish.
 Proof.
   unfold NoPartialEnqueue. intro v.
@@ -1153,11 +1162,13 @@ Example there_are_five_producer_conjuncts :
   count_of producer_conjuncts = 5.
 Proof. reflexivity. Qed.
 
+(*| discharges: R-12-096 |*)
 Theorem the_specification_consumer_chain_breaks_nothing :
   andb (consumer_chain_ok spec_consumer_chain)
        (Nat.eqb (consumer_broken spec_consumer_chain) 0) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-096, R-12-008a |*)
 Theorem the_specification_producer_chain_breaks_nothing :
   andb (producer_chain_ok spec_producer_chain)
        (Nat.eqb (producer_broken spec_producer_chain) 0) = true.
@@ -1444,6 +1455,7 @@ Definition loses_a_wakeup (r : reset_owner) (b : nat) (l : list consumer_act)
 Definition ExcludesEveryLostWakeup (r : reset_owner) (l : list consumer_act) : Prop :=
   forall p : nat, loses_a_wakeup r ring_max_batch_size l p = false.
 
+(*| discharges: R-12-096 |*)
 Theorem the_specification_chain_excludes_every_lost_wakeup :
   ExcludesEveryLostWakeup reset_at_the_signal spec_consumer_chain.
 Proof.
@@ -1499,6 +1511,7 @@ Proof. intro p. destruct p as [| [| [| [| k]]]]; vm_compute; reflexivity. Qed.
 
 (* The specification stays inside its budget too, which is the obligation the
    refutation above is *not* about. *)
+(*| discharges: R-12-096, R-12-098 |*)
 Theorem the_specification_consumer_stays_inside_its_budget :
   forall p : nat,
     Nat.leb (w_drained (activation reset_at_the_signal ring_max_batch_size
@@ -1616,6 +1629,7 @@ Definition after_a_coalesced_burst : world :=
 Definition after_the_signal_arrived : world :=
   mk_world (mk_ring_view 2 0) true 1 2 0 false.
 
+(*| discharges: R-12-096 |*)
 Theorem the_specification_sleep_rule_reads_the_indices :
   NeverSleepsOverASeenGap spec_sleep_rule.
 Proof.
@@ -1631,6 +1645,7 @@ Qed.
    contract's answer and this file's alike. `sleeps` ignores the index the
    drain ended on, so the drained argument is passed the consumed index and
    decides nothing, which is the entry's own sentence. *)
+(*| discharges: R-12-096 |*)
 Theorem the_specification_sleep_rule_is_the_contracts :
   all_of (fun c =>
             all_of (fun d =>
@@ -1677,6 +1692,7 @@ Definition ActivationIsBounded (b : nat) (l : list consumer_act) : Prop :=
   forall p : nat,
     Nat.leb (w_drained (activation reset_at_the_signal b l p quiet_world)) b = true.
 
+(*| discharges: R-07-029a, R-11-006 |*)
 Theorem the_specification_activation_is_bounded :
   ActivationIsBounded ring_max_batch_size spec_consumer_chain.
 Proof.
@@ -1796,20 +1812,24 @@ Definition breaks_ownership (d : ownership_defect) (o : ownership) : bool :=
   | restores_under_a_reader => consumer_may_read o
   end.
 
+(*| discharges: R-12-008a |*)
 Theorem no_phase_is_both_producer_writable_and_consumer_readable :
   all_of (fun o => negb (andb (producer_may_write o) (consumer_may_read o)))
          all_ownership_phases = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-008a |*)
 Theorem exactly_one_phase_admits_the_consumer :
   Nat.eqb (count_of (filter_of consumer_may_read all_ownership_phases)) 1 = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-008a, R-12-094 |*)
 Theorem the_publication_consumes_writable_ownership :
   andb (producer_may_write own_producer_writable)
        (negb (producer_may_write (ownership_next own_producer_writable))) = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-008a |*)
 Theorem each_rejected_path_is_broken_somewhere :
   all_of (fun d => any_of (breaks_ownership d) all_ownership_phases)
          all_rejected_paths = true.
@@ -2000,6 +2020,7 @@ Example there_are_three_advancer_obligations :
   count_of advancer_obligations = 3.
 Proof. reflexivity. Qed.
 
+(*| discharges: R-12-092, R-12-094 |*)
 Theorem the_specification_advancer_keeps_every_obligation :
   andb (advancer_ok spec_advance) (Nat.eqb (advancer_broken spec_advance) 0) = true.
 Proof. vm_compute; reflexivity. Qed.
@@ -2117,6 +2138,7 @@ Proof. vm_compute; reflexivity. Qed.
 (* The malformed step is the one admitted step past a successor, and it
    acquires no authority: the contract's own second relation, instantiated
    here at the service's own event. *)
+(*| discharges: R-12-094 |*)
 Theorem the_malformed_event_takes_the_contracts_own_step :
   match spec_advance ev_malformed (slot_at state_Submitted) with
   | Some z => Nat.eqb (lifecycle_rank (sl_state z))
@@ -2125,6 +2147,7 @@ Theorem the_malformed_event_takes_the_contracts_own_step :
   end = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-094 |*)
 Theorem the_malformed_event_is_admitted_at_one_state_only :
   Nat.eqb (count_of (filter_of (fun s => match spec_advance ev_malformed s with
                                          | Some _ => true
@@ -2194,6 +2217,7 @@ Definition RefusesAnOverlongLength (f : Copier) : Prop :=
   forall (d : nat) (b a : buffer),
     Nat.leb (buf_length b) d = false -> f d b a = None.
 
+(*| discharges: R-05-124, R-12-012a |*)
 Theorem the_copy_once_service_stays_inside_the_validated_extent :
   StaysInsideTheValidatedExtent copy_once.
 Proof.
@@ -2203,6 +2227,7 @@ Proof.
   - discriminate H.
 Qed.
 
+(*| discharges: R-05-124, R-12-012a |*)
 Theorem the_copy_once_service_reads_the_source_once : ReadsTheSourceOnce copy_once.
 Proof.
   unfold ReadsTheSourceOnce. intros d b a r H. unfold copy_once in H.
@@ -2211,10 +2236,12 @@ Proof.
   - discriminate H.
 Qed.
 
+(*| discharges: R-05-124, R-12-012a |*)
 Theorem the_copy_once_service_does_not_vary_with_the_second_image :
   DoesNotVaryWithTheSecondImage copy_once.
 Proof. unfold DoesNotVaryWithTheSecondImage. intros d b a1 a2. reflexivity. Qed.
 
+(*| discharges: R-12-012a |*)
 Theorem the_copy_once_service_refuses_an_overlong_length :
   RefusesAnOverlongLength copy_once.
 Proof.
@@ -2305,6 +2332,7 @@ Definition charged_at_the_maximum (segments : nat) (_ : copy_run) : nat :=
 Definition charged_at_the_arrival (_ : nat) (r : copy_run) : nat :=
   actual_copy_cost r.
 
+(*| discharges: R-11-006 |*)
 Theorem charging_at_the_maximum_is_independent_of_the_arrival :
   CostIsIndependentOfTheArrival charged_at_the_maximum.
 Proof.
@@ -2362,6 +2390,7 @@ Definition enqueued_count (l : list submit_result) : nat :=
                                 | submit_would_block => false
                                 end) l).
 
+(*| discharges: R-12-098 |*)
 Theorem the_batch_admits_what_the_ring_holds_and_refuses_the_rest :
   andb (Nat.eqb (enqueued_count (submit_batch 5 crowded_view)) 3)
        (Nat.eqb (enqueued_count (submit_batch 5 roomy_view)) 5) = true.
@@ -2381,6 +2410,7 @@ Proof. vm_compute; reflexivity. Qed.
 
 (* A batch's publication is bounded by the declared maximum batch size, which
    is the contract's own constant and never a figure of this file. *)
+(*| discharges: R-12-098 |*)
 Theorem a_batch_is_bounded_by_the_declared_maximum :
   Nat.eqb (enqueued_count (submit_batch ring_max_batch_size roomy_view))
           ring_max_batch_size = true.
@@ -2859,6 +2889,7 @@ Definition service_accept (s : Service) (slots : list slot)
 Definition busy_slots : list slot :=
   cons (mk_slot state_Writing 0 true 7) (cons (mk_slot state_Accepted 0 true 9) nil).
 
+(*| discharges: R-12-092 |*)
 Theorem a_duplicate_live_identifier_is_refused_at_this_service :
   service_accept demo_service busy_slots ring_session_generation
                  ring_session_generation 9 = false.
@@ -2962,6 +2993,7 @@ Proof. vm_compute; reflexivity. Qed.
 (* The activation cost is the contract's own and this service reproduces it
    rather than restating it: what the service adds is the copy, which rides
    the declared device-service bound (gap c). *)
+(*| discharges: R-12-101 |*)
 Theorem the_service_reproduces_the_contracts_activation_cost :
   all_of (fun o => Nat.eqb (activation_cost o)
                            (rec_max_requests_drained (op_declared_record o)
@@ -2971,6 +3003,7 @@ Theorem the_service_reproduces_the_contracts_activation_cost :
          all_ops = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-11-006, R-12-101 |*)
 Theorem the_activation_still_spends_the_declared_slot_budget :
   all_of (fun o => Nat.eqb (activation_cost o + op_activation_slack o) ring_slot_budget)
          all_ops = true.
@@ -2980,17 +3013,20 @@ Proof. vm_compute; reflexivity. Qed.
    to terminal completion is the contract's, and what this service adds is
    that its own cleanup cost sits inside the declared cleanup bound with a
    declared margin, and that every reference the operation holds is released. *)
+(*| discharges: R-12-097 |*)
 Theorem the_cleanup_sits_inside_the_declared_bound :
   all_of (fun o => Nat.leb (so_cleanup (svc_per_op demo_service o))
                            (rec_cancellation_cleanup_cost (op_declared_record o)))
          all_ops = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-097 |*)
 Theorem every_held_reference_is_released_at_cleanup :
   all_of (fun o => Nat.eqb (so_released (svc_per_op demo_service o)) (op_buffer_refs o))
          all_ops = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-12-097 |*)
 Theorem the_cancellation_interval_is_the_contracts :
   all_of (fun o => implb (op_cancellable o)
                          (Nat.eqb (cancellation_interval o + op_cancellation_slack o)
@@ -3001,11 +3037,13 @@ Proof. vm_compute; reflexivity. Qed.
 (* The segment bound this service takes through R-12-101's record rather than
    through R-12-100's own sentence (gap b), and the payload the contract
    already holds to its declared segments. *)
+(*| discharges: R-12-101 |*)
 Theorem every_declared_segment_count_is_inside_the_rings :
   all_of (fun o => Nat.leb (so_segments (svc_per_op demo_service o)) ring_max_segments)
          all_ops = true.
 Proof. vm_compute; reflexivity. Qed.
 
+(*| discharges: R-05-124, R-12-101 |*)
 Theorem the_staging_buffer_holds_the_declared_payload :
   all_of (fun o => Nat.leb (rec_max_payload_bytes (op_declared_record o))
                            (so_staging (svc_per_op demo_service o)))
