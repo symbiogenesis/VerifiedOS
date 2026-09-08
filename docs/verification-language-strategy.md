@@ -6,16 +6,18 @@
 
 ## Recommendation
 
-Build a Rocq library and a source-oriented proof workflow before building a new language.
-The useful synthesis is an Idris-like specification layer, Rust-like explicit ownership and representation, and C#-like discoverability and diagnostics, elaborated into the existing Rocq development.
+Build a target-parametric Rocq library and a source-oriented proof workflow before building a new language.
+Separate the reusable framework from its first concrete instance, VerifiedOS's CHERI target.
+The useful synthesis is an Idris-like specification layer, Rust-like explicit ownership and representation, and C#-like discoverability and diagnostics, elaborated into Rocq through explicit semantic interfaces.
 It does not require a new proof kernel or a dependently typed on-device checker.
 
-The local hypothesis is that a reusable library of executable specifications, representation lemmas, and proof-producing construction combinators can remove repeated specification-to-implementation work while leaving the project's semantic-anchor budget unchanged.
-The discriminating experiment is a bounded buffer operation: derive an implementation over an existing program semantics, prove its functional contract, and show that changing the store or its bound breaks the proof.
+The local hypothesis is that executable specifications and proof-producing construction combinators, parameterized by proved operation and representation laws, can remove repeated specification-to-implementation work while leaving the project's semantic-anchor budget unchanged.
+The discriminating experiment is a bounded buffer operation: prove its contract using only the declared interface laws, instantiate those laws over the selected CHERI-aware program semantics, and show that changing the store or its bound breaks the proof.
 A library that only proves a second hand-transcribed model, without relating the implementation to it, fails that experiment.
 
 The [language and verification design](spec.md#r-05-019) already separates semantic anchors from proof transport.
-The proposed library adds definitions and theorems over those anchors, not a parallel operational semantics.
+The VerifiedOS instance adds definitions and theorems over those anchors, not a parallel operational semantics or a non-CHERI deployment path.
+Other projects could supply different proved instances without changing the generic library or acquiring VerifiedOS's security claims by implication.
 Its first usable result can be a verified source-level component; an admitted optimized binary remains a later result dependent on the existing compiler and artifact-verification work.
 
 ## Research Landscape
@@ -448,14 +450,15 @@ Host reference execution may use extraction for testing, but that executable's t
 
 ## First Deliverable
 
-The proposed first deliverable is a small off-device Rocq package, provisionally `VerifiedComponents`, for proving bounded components against existing semantic anchors.
-It exposes executable pure specifications, representation predicates, reusable refinement lemmas, and proof automation that produces terms checked by Rocq.
+The proposed first deliverable is a small off-device Rocq package, provisionally `VerifiedComponents`, for proving bounded components through target-parametric interfaces interpreted over existing semantic anchors.
+It exposes executable pure specifications, operation and representation interfaces, reusable refinement lemmas, and proof automation that produces terms checked by Rocq.
 The package is useful independently of any new surface syntax.
 
 ### Library Contents and Reuse
 
-The first backend is deliberately singular: build definitions over the existing Gallina contract and selected verified-C transport, with the planned Iris-over-Sail connection at the machine boundary.
-Do not implement a universal adapter layer across every surveyed language before a concrete client works.
+The interfaces are target-parametric, but the first concrete backend is deliberately singular: instantiate them over the existing Gallina contract and selected CHERI-C transport, with the planned Iris-over-Sail connection at the machine boundary.
+Use ordinary Rocq modules with explicit laws, introducing only the parameters needed by these clients.
+Do not implement a universal adapter layer across every surveyed language or require a second target before a concrete client works.
 
 | Proposed library surface | Small useful result | Existing machinery to reuse or evaluate |
 | --- | --- | --- |
@@ -495,19 +498,24 @@ The following are proposed module names within one package, not existing files o
 | `Evidence` | Theorem subject, representation, assumptions, source/build bindings | Integrate with existing artifact evidence; a metadata wrapper cannot establish correspondence |
 | `Automation` | Bounds, sequence updates, frame reconstruction, named lemma hints | Produce ordinary Rocq terms and preserve useful unresolved goals |
 
-The public component package can have this schematic Rocq shape:
+The public component package can have this schematic Rocq module shape:
 
 ```text
-Record Component (contract : Contract) := {
-	implementation : SelectedBackend.Program;
-	representation : SelectedLogic.Representation;
-	functional : SelectedLogic.Refines implementation representation contract;
-	terminates : SelectedLogic.TerminatesUnder implementation contract.entry;
-	effects : SelectedLogic.RespectsEffects implementation contract.effects
-}.
+Module Components (Backend : COMPONENT_BACKEND).
+	Record Component (contract : Backend.Contract) := {
+		implementation : Backend.Program;
+		representation : Backend.Representation;
+		functional : Backend.Refines implementation representation contract;
+		terminates : Backend.TerminatesUnder implementation contract.entry;
+		effects : Backend.RespectsEffects implementation contract.effects
+	}.
+End Components.
 ```
 
-These qualified names stand for definitions and judgments at the chosen existing backend, not new axioms, actual APIs, or a claim that these declarations compile.
+These qualified names stand for definitions and judgments supplied by a backend, not new axioms, actual APIs, or a claim that these declarations compile.
+The module signature also requires the primitive and composition laws used by the builders; a concrete instance proves them in its existing semantics.
+An abstract signature is a conditional proof interface, not permission to admit its unproved parameters as global axioms.
+Pure algorithm contracts live outside this module; each backend connects their input/output models to its contract and representation judgments.
 The terminating bounded-component interface is intentional; a reactive service needs a different progress contract.
 The representation is shared between the entry condition, refinement theorem, and exit condition, not chosen independently to make a theorem vacuous.
 Accepted assumptions are inspected transitively from the proof environment, not trusted because a record contains an empty list called `assumptions`.
