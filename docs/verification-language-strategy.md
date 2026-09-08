@@ -26,6 +26,8 @@ This is a broad, decision-oriented survey of primary papers, project documentati
 It emphasizes developments from 2024 onward, retaining earlier systems where they supply a missing part of the proposed design.
 Links in each entry are its evidence; moving documentation describes the snapshot, not a pinned dependency or a reproduced benchmark.
 No surveyed toolchain is demonstrated by these sources to deliver the entire requested combination on VerifiedOS's CHERI target.
+The project-fit columns assess that initial instance, not the general usefulness of these systems on other architectures.
+Architecture independence is also distinct from prover independence: the proposed reusable framework still checks proofs in Rocq.
 
 ### Rust and Low-Level Verification
 
@@ -116,8 +118,10 @@ The comparison is about theorem endpoints and runtime obligations, not whether a
 ## What a Golden Binary Can Mean
 
 A binary is executable, but being executable does not make it a correctness oracle for itself.
-The target is a **proof-carrying executable reference implementation**: exact bytes, interpreted by the pinned Sail semantics, proved to refine an independently reviewed contract.
+The target is a **proof-carrying executable reference implementation**: exact bytes, interpreted by a named target semantics, proved to refine an independently reviewed contract.
+For VerifiedOS that semantics is the pinned Sail term. A different target needs its own interpretation and artifact theorem.
 An optimized implementation can then serve as a fast oracle for other implementations of that contract.
+The portable object is the contract and its reusable proof structure, not a universal binary or a target-independent timing theorem.
 Independent specification review and differential tests remain necessary because agreement with itself cannot reveal a wrong specification.
 
 The evidence chain separates the following judgments:
@@ -127,6 +131,9 @@ The evidence chain separates the following judgments:
 - Compilation, assembly, linking, and image construction preserve the required behavior.
 - Final bytes satisfy the required admission properties under the pinned Sail model.
 - Hardware implements that model at the tier the platform actually claims.
+
+Different target binaries may implement the same abstract contract through different representations, provided their input/output encodings and permitted observations are related explicitly.
+For a nondeterministic or underspecified contract, correct implementations need not produce identical traces; differential comparison must respect the contract rather than assume byte-for-byte output agreement.
 
 Functional refinement alone does not prove constant-time behavior, worst-case execution time, absence of hidden allocation, or robust isolation against adversarial linked code.
 Those remain the separately scoped obligations of the [specification](spec.md) and [admission language](typed-assembly-language.md).
@@ -166,7 +173,7 @@ Thus Idris 2 is a design reference here, not an assurance shortcut.
 The proposed split is deliberate:
 
 - **Specification/proof world:** dependent functions, indexed families, existential packages, induction, rich mathematical structures, and reusable verified algorithms. Elaborate into CIC; use only its accepted assumptions and reject unresolved proof holes.
-- **Runtime world:** explicit finite representations, machine integers, bounded arrays, explicit regions and capabilities, ownership/borrowing, and statically accounted effects. Rich types may describe these values without becoming runtime objects.
+- **Runtime world:** explicit finite representations, machine integers, bounded arrays, regions and resource handles, ownership/borrowing, and statically accounted effects. The VerifiedOS instance represents applicable handles with CHERI capabilities. Rich types may describe these values without becoming runtime objects.
 - **Proof automation:** arbitrary off-device search may time out or fail. Successful search produces a checked term; nontermination of a tactic never produces a theorem or permission to ship.
 
 This is not a promise to embed all of Idris 2 unchanged in Rocq.
@@ -233,10 +240,123 @@ Quantum semantics add no direct implementation advantage to the bounded classica
 Start with library-level proofs of the particular relationships needed by real clients.
 General grading becomes worthwhile when it eliminates repeated resource derivations across those clients, not merely because many analyses can be described by an algebra.
 
+## Target Abstraction and Tooling Evolution
+
+The framework can hide architecture from ordinary component authors, but cannot remove architecture from the proof chain.
+Separate source portability, generic proof reuse, concrete representation correctness, and artifact security.
+A component qualifies for a target only when that target supplies the laws and guarantees it requires.
+Making the interface small does not make the target's compiler, memory model, or hardware proofs small.
+
+### Portable Interfaces and Concrete Instances
+
+| Layer | Reusable content | Instance-specific evidence |
+| --- | --- | --- |
+| Language and editor | Syntax, dependent contracts, proof interaction, source locations, diagnostic protocol | Interpretation of target-sensitive features and profile compatibility |
+| Pure specifications | Abstract sequences, algorithm results, format meaning, protocol transitions | Encodings and relationships to represented input/output values |
+| Operation and resource interfaces | Ownership, scoped borrows, framing, explicit effects, primitive contracts | Sound implementation of each operation and law in the chosen program logic |
+| Program construction | Generic induction and composition over proved primitive rules | Concrete program terms, numeric limits, layout, ABI, and compilation preservation |
+| Artifact evidence | Dependency tracking, proof orchestration, explicit theorem subjects | Binary semantics, permitted contexts, linking, observation/leakage model, hardware assumptions |
+
+For the bounded-buffer example, the interface can have this schematic shape:
+
+```text
+interface BufferStorage {
+	type Handle;
+	type Index;
+	predicate Owns(Handle handle, Seq<byte> contents);
+	predicate ValidIndex(Index index, Nat length);
+
+	operation Read(...);
+	operation Write(...);
+	operation WithElement(...);
+
+	proof ReadReturnsSelectedElement;
+	proof WriteUpdatesSelectedElementAndPreservesFrame;
+	proof ScopedBorrowRestoresOwnership;
+	proof OperationsTerminateUnderTheirPreconditions;
+}
+```
+
+This is an interface sketch, not a new memory semantics or a complete declaration of these proof rules.
+The concrete rules must bind the operation's program term, entry and exit representation, arithmetic premises, effects, frame, and permitted interference.
+Index conversion and iteration expose a representability bound and proved increment rule; the generic algorithm cannot assume an unbounded machine index.
+The generic fill theorem quantifies over these laws. The VerifiedOS instance discharges them over its selected CHERI-aware semantics and transport, rather than asserting a flat-address memory model that CHERI must emulate.
+Keep handles opaque: pointer width, integer casts, address equality, provenance, capability tags, bounds compression, endianness, and alignment are not implicit generic facts.
+An operation that genuinely needs one of them states that dependency in a narrower interface.
+
+Use static module instantiation and specialization, not runtime virtual dispatch, for this abstraction.
+Logical parameters and law proofs are erased; actual storage handles and required runtime metadata remain.
+Inlining, layout, and generated code still need inspection and the selected compilation evidence: a module boundary alone promises neither zero overhead nor good code generation.
+The high-level loop invariant can be reused even when the concrete representation and primitive proofs differ.
+
+The first instance is CHERI-specific; the generic modules are not.
+In a separate reuse project, an ordinary-architecture implementation could discharge a bounded buffer contract through verified ownership and access operations.
+That example would demonstrate portability of this contract, not equivalence to VerifiedOS's isolation model or authorization for a non-CHERI VerifiedOS target.
+Do not build a second implementation here merely to fill an adapter roster.
+
+### Required Guarantees, Not Feature Flags
+
+A target profile identifies the semantic instance, representation and ABI choices, accepted assumptions, and available guarantee theorems.
+A component declares required guarantees; acceptance needs checked evidence that the profile supplies them, not a Boolean claiming that the target supports a feature.
+Keep useful guarantees independent instead of making every target implement a universal interface:
+
+| Requirement | What can be shared | What the target must justify |
+| --- | --- | --- |
+| Bounded storage access | Contents, bounds, and frame contracts | Representation, primitive safety, arithmetic limits, and relevant execution contexts |
+| Exclusive mutation | Ownership and borrow-restoration rules | Sound resource interpretation, including any unsafe or external code |
+| Isolation from adversarial code | Statement of authority confinement and allowed observations | Hardware enforcement, verified software enforcement, or sufficient restrictions on linked contexts |
+| Revocation or freshness | Protocol interfaces and abstract transition requirements | The actual invalidation mechanism, epoch rules, and interference assumptions; CHERI alone is not a blanket temporal-safety proof |
+| Information flow and constant time | Relational specification and some compositional proof rules | Target observations, instruction behavior, compiler preservation, and applicable hardware leakage model |
+| Resource bounds | Abstract accounting and bounded-loop arguments | Mapping to allocation, instruction costs, or timing under the chosen environment |
+
+A target may implement a guarantee differently, with additional runtime cost and proof obligations.
+It may also be unable to implement it under the requested threat model.
+In that case the tooling rejects the component/profile pairing or the author explicitly selects a different contract; it never silently weakens the guarantee.
+Source-level ownership on conventional hardware does not protect against arbitrary unverified code with unrestricted memory access.
+Conversely, a CHERI backend does not automatically establish functional correctness, liveness, or every form of revocation.
+This preserves stronger optional guarantees without reducing every component to the weakest common target.
+
+### Refactoring Without Expanding Trust
+
+The iteration boundary is a reviewed semantic interface, not a permanent surface-language design:
+
+```text
+Editable language, inference, automation, and editor tools
+	-> explicit program terms and proof obligations with source correspondence
+	-> reusable Rocq component interfaces and generic theorems
+	-> concrete semantic instance and proved target laws
+	-> target compiler and final-artifact evidence
+```
+
+Frontend elaborators, tactics, solvers, and AI assistants may change frequently because their proposed proofs are rechecked.
+Their output must still identify the intended source program and contract; proof-producing does not excuse an incorrect source translation.
+Initially these outputs are ordinary Rocq terms over the existing backend, not a newly invented universal intermediate language or trusted checker.
+Adding a new meaning for a language construct needs explicit semantics and corresponding proof work, even if its syntax looks like a small edit.
+
+| Change | Reuse opportunity | Required revalidation |
+| --- | --- | --- |
+| Editor presentation or lemma search | Same statements, program terms, and target laws | Tool behavior; replay of new proof output, if any |
+| New syntax or inference strategy with unchanged meaning | Same generic component and backend theorems | Elaboration and exact source-subject correspondence; invalidate changed source bindings |
+| Refactored algorithm preserving a contract | Same client-facing contract and target primitive laws | The changed implementation's proof, termination/effects, and affected binary evidence |
+| New storage representation | Same abstract algorithm contract and generic theorem | Representation and primitive laws, layout/ABI, compilation and affected artifacts |
+| Changed interface law or observation model | Only results independent of the change | Dependent generic and instance proofs; no reuse based solely on unchanged names |
+| Different target or emitted bytes | Applicable abstract contracts and generic lemmas | Target law instantiation and all affected final-artifact bindings and judgments |
+
+Use dependency identities covering semantic definitions, theorem statements, representations, assumptions, source closure, and the relevant toolchain/artifact inputs.
+Incremental checking can avoid rebuilding unaffected results, but a source change can invalidate its binding even when it emits identical machine code.
+Retaining an exact existing binary theorem is distinct from establishing that it corresponds to the newly authored source.
+Caching must follow the existing evidence discipline and cannot turn a stale success flag into authority.
+No new on-device solving, grade interpretation, or open-term reduction is introduced into VerifiedOS's TAL checker.
+
+This design supports rapid tooling iteration without requiring compatibility with a released language: this is a proposal, not a frozen public API.
+The aim is to localize the proof consequences of a change, not prohibit necessary changes to the semantic interface.
+
 ## An Ideal Surface
 
 Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name, or existing implementation.
 Its surface borrows C#'s readable declarations and tool discoverability, Rust's ownership and representation control, and Idris's type-directed specification and proof construction.
+The examples use portable buffer contracts. A build selects a concrete semantic instance and required target profile separately; CHERI does not appear in an ordinary buffer function's signature.
+`byte` denotes an eight-bit value, while `usize` and represented lengths obey the selected target's explicit limits, never the build host's inferred word size.
 
 ### A Small Example
 
@@ -264,7 +384,7 @@ public void Fill<ghost count: Nat>(mut target: Span<byte, count>, byte value)
 
 The mutable borrow supplies exclusive access for the call and returns that access on exit; its representation invariant relates runtime length to `count` and the concrete memory to `Model`.
 The inferred frame states that memory outside the borrow is unchanged.
-The loop guard establishes bounds and increment safety; the natural-valued variant establishes termination.
+The loop guard establishes bounds and increment safety using the instance's representable-length and index laws; the natural-valued variant establishes termination.
 `Take` and `Repeat` compute in specifications, not on the deployed target.
 Ordinary filling of initialized public data is the example: it does not establish secure secret erasure, device-memory semantics, or resistance to dead-store elimination.
 
@@ -331,8 +451,9 @@ public owned Buffer<byte, count, Initialized> Prepare<ghost count: Nat>(
 }
 ```
 
-The runtime length and capability remain real data; the state index and initialization proof are erased.
-The invariant relates initialized bytes to readable values, including layout, alignment, and applicable capability-tag rules.
+The runtime length and storage handle remain real data; the state index and initialization proof are erased.
+For VerifiedOS the handle includes the applicable CHERI capability.
+The generic invariant relates initialized storage to readable values; the instance proves the concrete layout, alignment, and applicable capability-tag rules.
 Initializing byte storage is intentionally narrower than initializing arbitrary capability-bearing records.
 Every exit path must return or explicitly dispose of ownership according to a proved operation; an affine move rule alone does not guarantee completion of a resource protocol.
 
@@ -349,7 +470,7 @@ assert target.Model == before.Update(index, value);
 Here `Store` has a checked contract and returns the updated permission through its mutable argument.
 `AcquireFromOwner` must consume or suspend the owner's existing permission; it cannot manufacture write authority from an address or identifier.
 The snapshot is duplicable, the write permission is not, and neither is emitted as runtime data.
-This does not make a hardware capability erasable: the capability used for the actual store remains in the generated code.
+This does not make a hardware capability erasable: in the CHERI instance, the capability used for the actual store remains in the generated code.
 The library can initially hide these explicit permission steps inside the scoped borrowing combinator.
 
 ### Optional Grades With Explicit Meaning
@@ -389,14 +510,16 @@ An IFC checker must track control dependence as well as data dependence; a publi
 | Dependent contracts | Lengths, initialization states, protocol states, and abstract contents can index types. Unresolved equalities become visible proof goals rather than silent coercions. |
 | Effects and authority | Reads, writes, allocation, device access, and permitted calls are explicit and compositional. FFI and assembly require contracts over the actual operation, not an unchecked `extern` promise. |
 | Error handling | Exhaustive `Result`/`Option` patterns and explicit failure paths. No hidden exception unwinding or ambient service access. |
-| Code generation | Ahead-of-time specialization with explicit layout and ABI. Closures need a known environment representation; generic specialization is checked for code-size growth. |
+| Code generation | Static target/module instantiation and ahead-of-time specialization with explicit layout and ABI. Closures need a known environment representation; generic specialization is checked for code-size growth. |
+| Target requirements | Select semantic instances and required guarantee theorems separately from ordinary source syntax. Reject unsupported requirements; never silently downgrade the contract. |
 | Proof interaction | Type-directed holes, inline goals, calculational steps, lemma search, reproducible automation, and one diagnostic that distinguishes disproved, unresolved, timed out, and unsupported. |
 | Encapsulation | Clients use abstract contracts; representation proofs stay with the defining module. Changing layout invalidates its proof dependencies without requiring clients to inspect the heap. |
 
 The C# contribution is **ergonomics**, not the CLR: namespaces, precise completion, useful diagnostics, readable generic APIs, and direct navigation between code and proof.
 Properties cannot conceal unaccounted effects; query syntax needs a known allocation-free lowering before it belongs in the runtime subset.
 Open-ended reflection, dynamic loading, general managed objects, and an implicit async scheduler are outside that subset.
-This preserves the existing deployment constraints while leaving host-side proof tooling expressive.
+These restrictions define the initial systems-language subset and preserve VerifiedOS's deployment constraints while leaving host-side proof tooling expressive.
+The framework's target parameters do not authorize a backend to add hidden allocation or a managed runtime to that subset.
 
 ### Performance Is an Artifact Claim
 
@@ -411,10 +534,12 @@ Source annotations for secrecy or cost express proof obligations. Constant-time 
 
 ## From the Library to Bytes
 
-The preferred path for an initial on-device component is:
+The reusable part of the path is a generic contract and construction theorem, instantiated with proved target operations and representation laws.
+Its preferred VerifiedOS route for an initial on-device component is:
 
 ```text
-Reviewed executable Gallina contract + explicit representation
+Reviewed executable Gallina contract + generic component theorem
+	-> CHERI instance: proved operation laws + explicit representation
 	-> Rocq proof-guided construction of an imperative implementation
 	-> proved transport to the selected CHERI-C / CompCert representation
 	-> CHERI-CompCert and required secure-compilation evidence
@@ -427,6 +552,8 @@ Reviewed executable Gallina contract + explicit representation
 ```
 
 These arrows are obligations, not claims that the route is implemented end to end.
+Another project's backend replaces the target-specific portion, not the independently reviewed contract; it must prove its own transport and artifact claims.
+Within VerifiedOS, all machine-level connections still use the same pinned Sail term and the reviewed source anchors.
 For a Rust-origin component, the existing Radium/source-correspondence route replaces the Gallina-to-C construction portion; no new source language displaces contained Rust by this proposal.
 TCB components retain the required verified-C path.
 
