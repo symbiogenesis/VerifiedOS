@@ -344,6 +344,7 @@ Definition Rotation (m : Machine) : Step m := fun succ pre post =>
    ========================================================================= *)
 
 (* T1 (R-07-015, R-15-007i). *)
+(*| discharges: R-07-015, R-15-007i |*)
 Theorem restore_total_over_registers :
   forall m : Machine, RestoresRegisters m (Switch m).
 Proof.
@@ -352,6 +353,7 @@ Qed.
 
 (* T2 (R-07-015, R-15-001b, isa-profile.md section 5.1, R-07-014a,
    R-07-014c). *)
+(*| discharges: R-07-015, R-07-014c |*)
 Theorem restore_total_over_nameable_csrs :
   forall m : Machine, RestoresNameableCsrs m (Switch m).
 Proof.
@@ -361,6 +363,7 @@ Qed.
 (* T3 (R-07-015's criterion). The file's load-bearing theorem: over the
    registers the architecture carries and the CSRs a partition can name, no
    predecessor value reaches the successor's view. *)
+(*| discharges: R-07-015 |*)
 Theorem no_residue : forall m : Machine, NoResidue m (Switch m).
 Proof.
   intros m succ pre1 post1 pre2 post2 [Hr1 [Hc1 Hp1]] [Hr2 [Hc2 Hp2]].
@@ -373,6 +376,7 @@ Qed.
 (* T4 (R-07-044), a corollary of T3 read at its third component: the
    pending state the successor observes is fixed by the successor context,
    whatever the predecessor held. *)
+(*| discharges: R-07-044 |*)
 Theorem pending_carries_nothing_across :
   forall (m : Machine) (succ : Context m) (pre1 post1 pre2 post2 : State m),
     Switch m succ pre1 post1 -> Switch m succ pre2 post2 ->
@@ -402,6 +406,7 @@ Definition SumsExactlyTheThreeTerms (f : Machine -> nat) : Prop :=
     f m = m.(fence_t_cost) + m.(vmclear_cost) + m.(opp_relock_cost).
 
 (* T5 (R-15-220): three terms, not four. *)
+(*| discharges: R-15-220 |*)
 Theorem cost_is_three_terms : SumsExactlyTheThreeTerms switch_cost.
 Proof. intros m. reflexivity. Qed.
 
@@ -417,6 +422,7 @@ Qed.
 
 (* T5a (R-15-220's criterion): listing the fence and the drain separately
    inflates every switch bound feeding section 11 by a full drain. *)
+(*| discharges: R-15-220 |*)
 Theorem drain_counted_once :
   forall m : Machine, 0 < m.(drain_cost) -> switch_cost m < four_term_cost m.
 Proof.
@@ -468,6 +474,7 @@ Definition PaysNoneOfTheThree (p : Action -> bool) : Prop :=
   forall m : Machine, constants_paid m p = 0.
 
 (* T6 (R-07-037b, R-11-006b). *)
+(*| discharges: R-07-037b |*)
 Theorem rotation_is_a_strict_subset :
   PerformsStrictlyFewer rotation_performs switch_performs.
 Proof.
@@ -477,6 +484,7 @@ Proof.
 Qed.
 
 (* T6b (R-07-037b's own three omissions). *)
+(*| discharges: R-07-037b |*)
 Theorem rotation_omits_the_three_constants :
   OmitsTheThreeConstants rotation_performs.
 Proof. split; [ reflexivity | split; reflexivity ]. Qed.
@@ -484,10 +492,12 @@ Proof. split; [ reflexivity | split; reflexivity ]. Qed.
 (* T6c: what the omission is worth. The switch pays R-15-220's three
    constants and the rotation pays none of them, which is R-07-037b's "all
    three return at the slot boundary" as arithmetic. *)
+(*| discharges: R-15-220, R-07-037b |*)
 Theorem switch_pays_all_three :
   forall m : Machine, constants_paid m switch_performs = switch_cost m.
 Proof. intros m. reflexivity. Qed.
 
+(*| discharges: R-15-220, R-07-037b |*)
 Theorem rotation_pays_none_of_the_three :
   PaysNoneOfTheThree rotation_performs.
 Proof. intros m. reflexivity. Qed.
@@ -496,6 +506,7 @@ Proof. intros m. reflexivity. Qed.
    label-internal case inherits the register restore whole and the CSR
    restore over the restorable class, which is what a step omitting
    R-07-014c's pass can meet (reading 7). *)
+(*| discharges: R-07-037b |*)
 Theorem rotation_restore_is_total :
   forall m : Machine,
     RestoresRegisters m (Rotation m)
@@ -512,6 +523,7 @@ Qed.
    and this relational inclusion run in opposite directions, which is
    correct rather than a discrepancy: a step that performs fewer actions
    constrains fewer components. *)
+(*| discharges: R-07-037b |*)
 Theorem switch_discharges_every_rotation_obligation :
   forall (m : Machine) (succ : Context m) (pre post : State m),
     Switch m succ pre post -> Rotation m succ pre post.
@@ -872,6 +884,7 @@ Definition unzeroed_post : State demo_rotation_swaps :=
   Build_Context demo_rotation_swaps
     (fun _ => (true, true)) (fun _ => true) true.
 
+(*| discharges: R-07-037b |*)
 Theorem rotation_omits_the_zeroize_at_state_level :
   Rotation demo_rotation_swaps demo_succ demo_succ unzeroed_post
   /\ ~ Switch demo_rotation_swaps demo_succ demo_succ unzeroed_post
@@ -898,6 +911,7 @@ Qed.
    rotations from one successor context disagree on it.
    ========================================================================= *)
 
+(*| discharges: R-07-044, R-07-037c |*)
 Theorem rotation_pending_carries_nothing_on_the_swapping_arm :
   forall (m : Machine) (succ : Context m) (pre1 post1 pre2 post2 : State m),
     m.(rotation_swaps_pending) = true ->

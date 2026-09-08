@@ -1131,6 +1131,7 @@ Qed.
    placement read off each region's kind where the register names it and
    off the plan's cycle-criticality judgment where it does not, stated of
    an arbitrary plan rather than computed over a demo one. *)
+(*| discharges: R-15-247, R-15-247s |*)
 Theorem the_specification_places_as_the_register_places :
   forall p : Plan, PlacesAsTheRegisterPlaces p (spec_assign p).
 Proof. intros p r _. reflexivity. Qed.
@@ -1192,6 +1193,7 @@ Qed.
 (* S1a, S1b and S1c (R-15-247j, R-14-015): each of the three by-name
    placements follows from the whole assignment, and each is stated so that
    a construction breaking it alone can be exhibited. *)
+(*| discharges: R-15-247j |*)
 Theorem the_specification_places_hard_task_code_first :
   forall p : Plan, HardTaskCodeIsFirstClass p (spec_assign p).
 Proof.
@@ -1200,6 +1202,7 @@ Proof.
                      eq_refl).
 Qed.
 
+(*| discharges: R-14-015 |*)
 Theorem the_specification_places_the_arenas_second :
   forall p : Plan, ArenasAreSecondClass p (spec_assign p).
 Proof.
@@ -1208,6 +1211,7 @@ Proof.
                      (the_specification_places_as_the_register_places p) eq_refl).
 Qed.
 
+(*| discharges: R-14-015 |*)
 Theorem the_specification_places_the_interpreter_body_first :
   forall p : Plan, TheInterpreterBodyIsFirstClass p (spec_assign p).
 Proof.
@@ -1218,6 +1222,7 @@ Qed.
 
 (* S1d (R-15-247s's criterion clause): and the placement the register makes
    by criterion, stated of an arbitrary plan. *)
+(*| discharges: R-15-247s |*)
 Theorem the_specification_places_payloads_by_the_criterion :
   forall p : Plan, PlacesPayloadsByTheCriterion p (spec_assign p).
 Proof.
@@ -1303,6 +1308,7 @@ Definition DecidedOnceAtComposition (pl : Placer) : Prop :=
 
 (* S2 (R-15-247's own criterion: no instruction, no fault and no power
    transition moves a region across the boundary). *)
+(*| discharges: R-15-247 |*)
 Theorem the_specification_placer_is_decided_once :
   forall p : Plan, DecidedOnceAtComposition (spec_placer p).
 Proof. intros p o1 o2 r. reflexivity. Qed.
@@ -1382,6 +1388,7 @@ Proof. intros p a r. reflexivity. Qed.
 
 (* S3a (R-15-247j): first-class placement carries no delta at all, which is
    why the rule prices second-class code and says nothing about the first. *)
+(*| discharges: R-15-247j |*)
 Theorem the_first_class_carries_no_delta :
   forall (p : Plan) (a : Assignment) (r : nat),
     a r = FirstClass -> placement_delta p a r = 0.
@@ -1395,6 +1402,7 @@ Qed.
    so a composition whose two constants coincide carries no delta whatever
    the placement. What separates the classes in this arithmetic is the pair
    of constants and never the class's name. *)
+(*| discharges: R-15-247s |*)
 Theorem equal_constants_carry_no_delta :
   forall (p : Plan) (a : Assignment) (r : nat),
     p.(second_fetch) = p.(first_fetch) -> placement_delta p a r = 0.
@@ -1422,6 +1430,7 @@ Definition DeltaReadsThePlacementAlone (d : Delta) : Prop :=
     a r = b r ->
     d p a r = d q b r.
 
+(*| discharges: R-15-247j, R-11-015 |*)
 Theorem the_placement_delta_reads_the_placement_alone :
   DeltaReadsThePlacementAlone placement_delta.
 Proof.
@@ -1655,6 +1664,7 @@ Qed.
 
 (* S4a (R-15-247j, R-11-006): the delta is a bound and not a relayout, at
    whichever slot it is charged to. *)
+(*| discharges: R-15-247j, R-11-006 |*)
 Theorem charging_moves_no_offset_and_no_width :
   forall (T : Type) (i d : nat) (f : Frame T),
     pairwise_disjoint (frame_slots (charge_frame_at i d f))
@@ -1703,6 +1713,7 @@ Definition ChargesTheRegionSOwnSlot (adm : Admission) : Prop :=
 (* S4b (R-15-247j): the specification's admission refuses whatever the
    charged arithmetic refuses, which is the acceptance clause's "an input
    to section 11 admission rather than a report about it" as a property. *)
+(*| discharges: R-15-247j |*)
 Theorem the_specification_admission_counts_the_delta :
   CountsTheDelta spec_admission.
 Proof. intros c p a r f H. exact H. Qed.
@@ -1715,6 +1726,7 @@ Proof. intros c p a r f H. exact H. Qed.
    `brittle_admission` included (limit i); what isolates the slot is the
    pair of witnesses beside the refutation below, which read one plan at
    the region's own slot and at the frame's focus. *)
+(*| discharges: R-15-247j, R-11-020 |*)
 Theorem the_specification_admission_charges_the_region_s_own_slot :
   ChargesTheRegionSOwnSlot spec_admission.
 Proof. intros c p a r f. reflexivity. Qed.
@@ -1763,6 +1775,7 @@ Qed.
    slot index the frame does not carry, the specification's own admission
    is the uncharged verdict whatever the delta, so one unit more of delta
    moves nothing and the input stops being an input. *)
+(*| discharges: R-15-247j |*)
 Theorem a_slot_the_frame_does_not_carry_absorbs_the_whole_delta :
   forall (c : Composition) (p : Plan) (a : Assignment) (r : nat)
          (f : Frame (Tenant c)),
@@ -1856,6 +1869,7 @@ Qed.
 (* S4c (R-15-247j): a smaller delta is admitted wherever a larger one is,
    stated of an arbitrary composition, slot index and frame. This is what
    makes the margin below a margin rather than a coincidence. *)
+(*| discharges: R-15-247j |*)
 Theorem a_smaller_delta_is_admitted_wherever_a_larger_one_is :
   forall (c : Composition) (i d e : nat) (f : Frame (Tenant c)),
     Nat.leb d e = true ->
@@ -2056,6 +2070,7 @@ Definition TheCoarsestGranuleWithinThatBound (q : Quantum) : Prop :=
 Definition AlignsOnAPowerOfTwo (q : Quantum) : Prop :=
   forall len : nat, is_pow2 (q len) = true.
 
+(*| discharges: R-15-007c |*)
 Theorem the_specification_quantum_is_byte_exact_below_the_threshold :
   ByteExactBelowTheThreshold spec_quantum.
 Proof.
@@ -2092,6 +2107,7 @@ Proof.
     + left. exact (leb_false_ltb _ _ E).
 Qed.
 
+(*| discharges: R-15-007c |*)
 Theorem the_specification_quantum_is_no_coarser_than_the_bound :
   NoCoarserThanTheLengthOverTheSixthPower spec_quantum.
 Proof.
@@ -2100,6 +2116,7 @@ Proof.
   exact (granule_exponent_within_the_bound len len H).
 Qed.
 
+(*| discharges: R-15-007c, R-15-007k |*)
 Theorem the_specification_quantum_is_the_coarsest_within_that_bound :
   TheCoarsestGranuleWithinThatBound spec_quantum.
 Proof.
@@ -2118,6 +2135,7 @@ Proof.
     rewrite (leb_succ_false len) in Hs. discriminate Hs.
 Qed.
 
+(*| discharges: R-15-007c |*)
 Theorem the_specification_quantum_aligns_on_a_power_of_two :
   AlignsOnAPowerOfTwo spec_quantum.
 Proof.
@@ -2380,6 +2398,7 @@ Definition Exact (p : Plan) (n : Narrowing) : Prop :=
    index, which is that entry's "the residue class is known where the layout
    is decided even where the address is not known to the compartment
    holding it". Stated of an arbitrary plan, narrowing and index. *)
+(*| discharges: R-15-007k |*)
 Theorem a_quantized_slot_base_narrows_exactly :
   forall (p : Plan) (n : Narrowing),
     base_is_quantized p n.(at_region) = true -> Exact p n.
@@ -2415,6 +2434,7 @@ Definition AdmitsOnlyExactNarrowings (chk : NarrowingCheck) : Prop :=
 (* S5c (R-15-007k): a `csetbounds` whose result rounds outward is a defect
    in the slot plan, so the check the plan carries admits only what is
    exact. *)
+(*| discharges: R-15-007k |*)
 Theorem the_specification_narrowing_check_admits_only_exact_narrowings :
   AdmitsOnlyExactNarrowings spec_narrow_ok.
 Proof. intros p n H. exact (a_quantized_slot_base_narrows_exactly p n H). Qed.
@@ -2509,6 +2529,7 @@ Proof. intros p r. reflexivity. Qed.
    placement has no capability derivation, so the obligation is on the base
    the plan actually assigns and both inequalities are load-bearing: the
    lower edge is refuted below by a plan that starts under its island. *)
+(*| discharges: R-08-012c |*)
 Theorem the_plan_s_own_placement_stays_inside_every_island :
   forall p : Plan,
     containment_ok p (spec_placement p) = true ->
@@ -2734,6 +2755,7 @@ Definition MonotoneInTheMemberCost (bnd : PopulationBound) : Prop :=
     bnd p a n = true -> bnd p b n = true.
 
 (* S8a: the specification's bound is that property. *)
+(*| discharges: R-14-015 |*)
 Theorem the_specification_bound_is_monotone_in_the_member_cost :
   MonotoneInTheMemberCost pool_fits.
 Proof.
@@ -2792,6 +2814,7 @@ Qed.
    "moving the arenas raises the origin-pool ceiling P for the same
    first-class budget" as a theorem over an arbitrary bound, kind, plan and
    population rather than as a remark. *)
+(*| discharges: R-14-015, R-14-009, R-14-010 |*)
 Theorem the_register_placement_admits_every_population_a_promotion_admits :
   forall (bnd : PopulationBound) (p : Plan) (k : RegionKind) (n : nat),
     MonotoneInTheMemberCost bnd ->

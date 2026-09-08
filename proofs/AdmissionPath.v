@@ -1951,6 +1951,7 @@ Definition IsAFunctionOfThePackage (D : Type) (chk : Checker D) : Prop :=
 (* S1: the conjunction is what the two halves buy, and the proof is where the
    two meet: an ambient carrying one run and the other state mediates between
    them, so neither half alone is the property and the two together are. *)
+(*| discharges: R-06-015b, R-13-001c |*)
 Theorem the_two_halves_compose :
   forall (D : Type) (chk : Checker D),
     ReadsNoComposerState D chk -> IsRunIndependent D chk ->
@@ -1979,6 +1980,7 @@ Proof.
 Qed.
 
 (* S2 (R-06-015b, TAL-001). *)
+(*| discharges: R-06-015b |*)
 Theorem the_specification_is_a_function_of_the_package :
   forall (m : Machine) (D : Type) (rd : Reading D),
     IsAFunctionOfThePackage D (spec_check m D rd).
@@ -2039,6 +2041,7 @@ Definition reads_alike (D E : Type) (rd : Reading D) (re : Reading E)
    same verdict, whatever ambient either was checked in. This is reading 3
    made checkable across carriers; the single-carrier obligation above is what
    a construction can break. *)
+(*| discharges: R-13-003 |*)
 Theorem the_verdict_is_a_function_of_the_reading :
   forall (m : Machine) (D E : Type) (rd : Reading D) (re : Reading E)
          (a b : Ambient) (p : Package D) (q : Package E),
@@ -2107,6 +2110,7 @@ Definition FailsClosed (m : Machine) (D : Type) (rd : Reading D)
   SoundFor D (WellTyped m D rd) chk.
 
 (* S4 (R-13-014, R-13-022, R-06-009). *)
+(*| discharges: R-13-014, R-13-022, R-06-009 |*)
 Theorem the_specification_fails_closed :
   forall (m : Machine) (D : Type) (rd : Reading D),
     FailsClosed m D rd (spec_check m D rd).
@@ -2141,6 +2145,7 @@ Qed.
    obligations and R-17-033 is what says so in the register's own words: a
    producer that cannot emit a valid derivation for a safe program costs
    availability, and one whose output is admitted without one costs safety. *)
+(*| discharges: R-17-033 |*)
 Theorem the_specification_is_complete_for_the_typing_relation :
   forall (m : Machine) (D : Type) (rd : Reading D),
     CompleteFor D (WellTyped m D rd) (spec_check m D rd).
@@ -2294,6 +2299,7 @@ Qed.
 
 (* S18: the specification satisfies all eight, which is
    `the_specification_fails_closed` read clause by clause. *)
+(*| discharges: R-13-014, R-13-022, R-06-009 |*)
 Theorem the_specification_satisfies_every_named_refusal :
   forall (m : Machine) (D : Type) (rd : Reading D),
     RefusesAnAbsentDerivation D (spec_check m D rd)
@@ -2534,6 +2540,7 @@ Definition ReadsNoPedigree (D : Type) (chk : Checker D) : Prop :=
     same_but_the_pedigree D p q -> chk a p = chk a q.
 
 (* S10 (R-13-013): removing every producer attestation changes no verdict. *)
+(*| discharges: R-13-013 |*)
 Theorem the_specification_reads_no_pedigree :
   forall (m : Machine) (D : Type) (rd : Reading D),
     ReadsNoPedigree D (spec_check m D rd).
@@ -2546,6 +2553,7 @@ Qed.
 (* And R-13-013's own sentence as a consequence: a package admitted under one
    producer is admitted under any, which is *any producer of a well-typed
    binary is admitted identically* stated where it can be refuted. *)
+(*| discharges: R-13-013 |*)
 Theorem admission_does_not_move_with_the_producer :
   forall (m : Machine) (D : Type) (rd : Reading D) (a : Ambient)
          (p : Package D) (who : nat) (att : bool),
@@ -2666,6 +2674,7 @@ Proof.
 Qed.
 
 (* S11 (R-11-005, R-13-001a, R-13-001c): the specification is atomic. *)
+(*| discharges: R-11-005, R-13-001a, R-13-001c |*)
 Theorem the_specification_is_all_or_nothing :
   forall (m : Machine) (D : Type) (rd : Reading D),
     IsAllOrNothing m D rd (spec_compose m D rd).
@@ -2674,6 +2683,7 @@ Proof.
 Qed.
 
 (* S11a: and what it does commit was validated whole. *)
+(*| discharges: R-11-005 |*)
 Theorem the_specification_commits_only_the_accepted :
   forall (m : Machine) (D : Type) (rd : Reading D),
     CommitsOnlyTheAccepted m D rd (spec_compose m D rd).
@@ -2685,6 +2695,7 @@ Qed.
 
 (* S12 (R-13-001c, R-13-010b): and it emits no stranger the roster does not
    name and its own passes did not declare. *)
+(*| discharges: R-13-001c, R-13-010b |*)
 Theorem the_specification_emits_no_uncovered_stranger :
   forall (m : Machine) (D : Type) (rd : Reading D),
     EmitsNoUncoveredStranger D (spec_compose m D rd).
@@ -2700,6 +2711,7 @@ Proof.
   intros y Hy. rewrite Hy. reflexivity.
 Qed.
 
+(*| discharges: R-13-001c, R-13-010a, R-13-010b |*)
 Theorem the_specification_covers_what_it_synthesized :
   forall (m : Machine) (D : Type) (rd : Reading D),
     CoversWhatItSynthesized D (spec_compose m D rd).
@@ -2712,6 +2724,7 @@ Qed.
 (* S13 (R-17-033's polarity): and every package of an admissible roster
    reaches the image, so the atomicity theorem is not proved by a composer
    that emits nothing. *)
+(*| discharges: R-17-033 |*)
 Theorem the_specification_commits_every_accepted :
   forall (m : Machine) (D : Type) (rd : Reading D),
     CommitsEveryAccepted m D rd (spec_compose m D rd).
@@ -3122,6 +3135,7 @@ Qed.
 (* S15: a transposition of a derivation's records changes no verdict, at any
    position of any derivation whose records the checker recognises. Reading 7
    as a theorem rather than as a conversion over the demo's seven. *)
+(*| discharges: R-05-029 |*)
 Theorem a_transposition_of_the_records_changes_no_verdict :
   forall (m : Machine) (id tc : nat) (c : Cert) (n : nat),
     all_of step_recognised c.(cert_steps) = true ->
@@ -3140,6 +3154,7 @@ Qed.
 
 (* S16: and a duplication does not either. R-05-029's criterion fixes no
    multiplicity, so a derivation discharging one facet twice discharges it. *)
+(*| discharges: R-05-029 |*)
 Theorem a_duplication_of_a_record_changes_no_verdict :
   forall (m : Machine) (id tc : nat) (c : Cert) (n : nat),
     all_of step_recognised c.(cert_steps) = true ->

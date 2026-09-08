@@ -620,11 +620,13 @@ Definition disciplined_run_b (d : SeedingDiscipline) (p : list (list bool)) (ops
    arbitrary run.
    ------------------------------------------------------------------------- *)
 
+(*| discharges: R-15-241d |*)
 Theorem a_reseed_resets_the_counter :
   forall (s : DrbgState) (entropy additional : list bool),
     reseed_counter (reseed s entropy additional) = 1.
 Proof. intros. reflexivity. Qed.
 
+(*| discharges: R-15-241d |*)
 Theorem a_draw_advances_the_counter :
   forall (s : DrbgState) (bits : nat) (additional : list bool),
     reseed_counter (snd (generate_core s bits additional)) = S (reseed_counter s).
@@ -635,6 +637,7 @@ Proof. intros. reflexivity. Qed.
    before the post-draw update, and the state that leaves is that update
    over the last drawn value. Stated by unfolding, so that the alternative
    below has an order to invert. *)
+(*| discharges: R-15-241d |*)
 Theorem a_draw_emits_before_it_updates :
   forall (s : DrbgState) (bits : nat) (additional : list bool),
     let kv0 := update_on additional (key s) (value s) in
@@ -646,16 +649,19 @@ Theorem a_draw_emits_before_it_updates :
        = snd (hmac_drbg_update additional (fst kv0) (snd drawn)).
 Proof. intros. split. reflexivity. split. reflexivity. reflexivity. Qed.
 
+(*| discharges: R-15-241d |*)
 Theorem a_draw_past_the_interval_is_refused_by_the_algorithm :
   forall (interval : nat) (s : DrbgState) (bits : nat) (additional : list bool),
     Nat.ltb interval (reseed_counter s) = true -> generate interval s bits additional = None.
 Proof. intros interval s bits additional H. unfold generate. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-15-241d |*)
 Theorem a_draw_past_the_bound_is_refused :
   forall (d : SeedingDiscipline) (r : Run) (bits : nat) (additional : list bool),
     Nat.ltb (draw_bound d) bits = true -> step d r (Draw bits additional) = None.
 Proof. intros d r bits additional H. unfold step. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-15-241d |*)
 Theorem every_transition_reseeds_under_a_disciplined_discipline :
   forall d : SeedingDiscipline, Disciplined d -> all_of (reseed_on d) all_transitions = true.
 Proof.
@@ -664,6 +670,7 @@ Proof.
   exact H.
 Qed.
 
+(*| discharges: R-15-241d |*)
 Theorem the_lock_edge_reseeds_under_a_disciplined_discipline :
   forall d : SeedingDiscipline, Disciplined d -> reseed_on d the_lock_edge = true.
 Proof.
@@ -676,6 +683,7 @@ Qed.
 
 (* A lock transition under a disciplined discipline takes the next string of
    the pool and leaves the state reseeded from it. *)
+(*| discharges: R-15-241d |*)
 Theorem a_lock_transition_takes_fresh_entropy :
   forall (d : SeedingDiscipline) (r : Run) (e : list bool) (rest : list (list bool)),
     Disciplined d ->
@@ -692,6 +700,7 @@ Qed.
 (* A draw past the interval under a disciplined discipline takes fresh
    entropy before it draws, and the state that leaves has counted one draw
    since a reseed. *)
+(*| discharges: R-15-241d |*)
 Theorem a_draw_past_the_interval_reseeds_first :
   forall (d : SeedingDiscipline) (r : Run) (bits : nat) (additional e : list bool)
          (rest : list (list bool)),
@@ -711,6 +720,7 @@ Qed.
 
 (* A pool with nothing left halts a reseed rather than reseeding with
    nothing, for every discipline and every state. *)
+(*| discharges: R-15-241d |*)
 Theorem an_empty_pool_halts_a_reseed :
   forall (d : SeedingDiscipline) (r : Run) (additional : list bool),
     pool r = nil -> step d r (Reseed additional) = None.

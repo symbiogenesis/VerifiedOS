@@ -962,6 +962,7 @@ Qed.
    arm gets its own proof of the same three obligations. *)
 
 (* S1 (R-16-005, R-10-036). *)
+(*| discharges: R-16-005, R-10-036 |*)
 Theorem a_discipline_leaves_untouched_blocks_alone :
   forall cut : Discipline, LeavesUntouchedBlocks cut (recover_under cut).
 Proof.
@@ -970,6 +971,7 @@ Proof.
 Qed.
 
 (* S2 (R-10-036). *)
+(*| discharges: R-10-036 |*)
 Theorem a_discipline_lands_every_committed_write :
   forall cut : Discipline, LandsEveryCommittedWrite cut (recover_under cut).
 Proof.
@@ -979,6 +981,7 @@ Qed.
 
 (* S3 (R-10-001a, reading 2): an idempotent discipline's recovery reads
    nothing its own discipline did not admit. *)
+(*| discharges: R-10-001a |*)
 Theorem an_idempotent_discipline_reads_only_what_it_admits :
   forall cut : Discipline,
     IsIdempotent cut -> ReadsOnlyWhatTheDisciplineAdmits cut (recover_under cut).
@@ -992,6 +995,7 @@ Qed.
    lands every committed write is idempotent *for that reason*, which is why
    no construction below refutes it alone. The two obligations beneath it
    are what a construction has to break. *)
+(*| discharges: R-10-036 |*)
 Theorem an_honest_recovery_replays_idempotently :
   forall (cut : Discipline) (rc : Recovery),
     LeavesUntouchedBlocks cut rc -> LandsEveryCommittedWrite cut rc ->
@@ -1257,6 +1261,7 @@ Definition honest_at (rc : Recovery) (s : Store) (blocks : nat)
    arbitrary journal rather than for the demo's. A prefix is a journal, so
    this is the crash-point family stated as a quantifier over the cut and
    not as an enumeration of one. *)
+(*| discharges: R-10-002, R-10-036, R-16-005 |*)
 Theorem the_specification_recovers_honestly_from_every_journal :
   forall (j : list Rec) (s : Store) (blocks : nat),
     honest_at spec_recover s blocks j = true.
@@ -1290,6 +1295,7 @@ Proof.
     simpl in H. simpl. exact (IH t H).
 Qed.
 
+(*| discharges: R-10-002 |*)
 Theorem no_later_crash_point_uncommits_a_transaction :
   forall (i t : nat) (j : list Rec),
     commits (scan (take i j)) t = true -> commits (scan j) t = true.
@@ -1411,6 +1417,7 @@ Qed.
 (* S16 (R-10-036): replaying a prefix again reaches the store the journal
    itself reaches, of an arbitrary intact journal, an arbitrary store, an
    arbitrary cut and an arbitrary block. *)
+(*| discharges: R-10-036 |*)
 Theorem replaying_a_prefix_reaches_the_same_store :
   forall (j : list Rec) (s : Store) (i b : nat),
     all_of intact j = true ->
@@ -1446,6 +1453,7 @@ Proof.
 Qed.
 
 (* S16b: and replaying a suffix again, on the same terms. *)
+(*| discharges: R-10-036 |*)
 Theorem replaying_a_suffix_reaches_the_same_store :
   forall (j : list Rec) (s : Store) (i b : nat),
     all_of intact j = true ->
@@ -1939,6 +1947,7 @@ Qed.
 (* S7 (R-10-010, reading 8): every retained snapshot root reads what it read
    before, at every crash point and every torn granule. Stated of an
    arbitrary medium, commit and retained set. *)
+(*| discharges: R-10-010 |*)
 Theorem the_specification_leaves_every_retained_root_unmoved :
   forall (m : Machine) (md : Medium) (c : Commit),
     spares_the_retained m md c = true -> RetainedRootsUnmoved m md c.
@@ -2237,6 +2246,7 @@ Qed.
    below fail one conjunct apiece; three of them are refuted of this
    obligation and the fourth is not, which is what separates R-10-010's
    retained-root obligation from this one. *)
+(*| discharges: R-10-036, R-16-003 |*)
 Theorem an_admissible_commit_is_crash_consistent :
   forall (m : Machine) (md : Medium) (c : Commit),
     covered m md (cm_old_root c) = true ->
@@ -2395,6 +2405,7 @@ Qed.
 (* S11 (R-10-003): insertion preserves the index's order, of an arbitrary
    key algebra and an arbitrary index. This is the "verified once" half of
    that entry: no instance appears in the statement or the proof. *)
+(*| discharges: R-10-003 |*)
 Theorem inserting_preserves_the_order :
   forall (ka : KeyAlgebra) (k : Key ka) (v : nat) (ix : Index ka),
     sorted ka ix = true -> sorted ka (ins ka k v ix) = true.
@@ -2430,6 +2441,7 @@ Qed.
 (* S12 (R-10-003): what was written is what is read, and nothing else moves.
    The two halves are separate obligations, and the constructions below
    break one apiece. *)
+(*| discharges: R-10-003 |*)
 Theorem the_key_just_written_reads_back :
   forall (ka : KeyAlgebra) (k : Key ka) (v : nat) (ix : Index ka),
     look ka k (ins ka k v ix) = Some v.
@@ -2443,6 +2455,7 @@ Proof.
       * simpl. rewrite Ek. exact IH.
 Qed.
 
+(*| discharges: R-10-003 |*)
 Theorem no_other_key_moves :
   forall (ka : KeyAlgebra) (k j : Key ka) (v : nat) (ix : Index ka),
     key_eqb ka j k = false -> look ka j (ins ka k v ix) = look ka j ix.
@@ -2462,6 +2475,7 @@ Qed.
    arbitrary index and an arbitrary query. This is the generality the demo's
    twenty conversions below do not carry: they decide the family and this
    decides the reason, and it follows from S12's two halves alone. *)
+(*| discharges: R-10-003 |*)
 Theorem transposing_two_distinct_writes_answers_the_same_everywhere :
   forall (ka : KeyAlgebra) (a b : Key ka) (u v : nat) (ix : Index ka) (q : Key ka),
     key_eqb ka a b = false ->
@@ -2513,16 +2527,19 @@ Definition flush (ka : KeyAlgebra) (bx : Buffered ka) : Buffered ka :=
 Definition plain_look (ka : KeyAlgebra) (k : Key ka) (bx : Buffered ka) : option nat :=
   look ka k (snd bx).
 
+(*| discharges: R-10-004 |*)
 Theorem a_buffered_message_shadows_the_entry_beneath_it :
   forall (ka : KeyAlgebra) (k : Key ka) (v : nat) (ix1 ix2 : Index ka),
     look ka k ix1 = Some v -> blook ka k (pair ix1 ix2) = Some v.
 Proof. intros ka k v ix1 ix2 H. unfold blook. simpl. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-10-004 |*)
 Theorem an_unbuffered_key_falls_through :
   forall (ka : KeyAlgebra) (k : Key ka) (ix1 ix2 : Index ka),
     look ka k ix1 = None -> blook ka k (pair ix1 ix2) = look ka k ix2.
 Proof. intros ka k ix1 ix2 H. unfold blook. simpl. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-10-004 |*)
 Theorem a_flushed_node_has_an_empty_buffer :
   forall (ka : KeyAlgebra) (k : Key ka) (bx : Buffered ka),
     blook ka k (flush ka bx) = plain_look ka k (flush ka bx).
@@ -2595,6 +2612,7 @@ Definition NoNodeOverflows (bd : Builder) : Prop :=
 
 (* S13 (R-10-003, R-10-022a, gap b): every node a build produces fits the
    declared fanout, of an arbitrary machine and an arbitrary key list. *)
+(*| discharges: R-10-003, R-10-022a |*)
 Theorem the_specification_builder_overflows_no_node : NoNodeOverflows spec_builder.
 Proof.
   intros m keys. unfold spec_builder.
@@ -2651,6 +2669,7 @@ Definition ReadsTheReferrersTag (pl : Placement) : Prop :=
 (* S14 (R-10-022a, R-10-021): a device free to move a block cannot make a
    mis-placed one open, because what the reader compares against came from
    the node that referenced it. *)
+(*| discharges: R-10-022a, R-10-021 |*)
 Theorem the_specification_reads_the_referrers_tag :
   forall m : Machine, ReadsTheReferrersTag (spec_placement m).
 Proof.
@@ -2799,6 +2818,7 @@ Example the_torn_family_is_twenty_four :
 
 (* S15 (R-10-001a, reading 2): a torn record is a cut and never a
    corruption, at every record and every granule. One conversion. *)
+(*| discharges: R-10-001a |*)
 Example every_torn_write_recovers_as_the_cut_before_it :
   all_of (torn_writes_at demo_journal) (upto (count_of demo_journal)) = true
   := eq_refl.
@@ -3061,6 +3081,7 @@ Example every_crash_point_of_the_commit_covers_its_root :
    instance of the general theorem and not a second proof of it. The two
    hypotheses are conversions at this composition: the previous root covers
    whole nodes, and the plan is admissible. *)
+(*| discharges: R-10-036, R-16-003 |*)
 Theorem the_demo_commit_is_crash_consistent :
   CrashConsistent demo demo_medium demo_commit spec_sequencer.
 Proof.
@@ -3156,6 +3177,7 @@ Example which_crash_points_the_eager_publisher_fails :
 
 (* S18: and the publish is what carries the property, which is why the
    specification's sequencer names the new root only past the whole plan. *)
+(*| discharges: R-10-036 |*)
 Theorem the_published_root_is_named_only_past_the_whole_plan :
   forall (c : Commit) (i : nat),
     Nat.leb (count_of (cm_plan c)) i = false -> spec_sequencer c i = cm_old_root c.
@@ -3394,6 +3416,7 @@ Definition builds_the_same_index (l : list (prod nat nat)) : bool :=
 (* S19 (R-10-003): every permutation of a distinct-key list builds one
    index, so the index is a function of the key set and not of the order it
    arrived in. One conversion over the family. *)
+(*| discharges: R-10-003 |*)
 Example every_permutation_builds_the_same_index :
   all_of builds_the_same_index (key_transpositions demo_entries) = true := eq_refl.
 
@@ -3452,6 +3475,7 @@ Example the_duplicate_that_wins_is_the_later_one :
 (* S19c: and every member of every arm builds a sorted index, which is S11
    read at twenty concrete orders including the empty and singleton cases
    gap g leaves open. *)
+(*| discharges: R-10-003 |*)
 Example every_key_order_builds_a_sorted_index :
   all_of (fun l => sorted nat_keys (demo_index l)) (key_orders demo_entries)
   = true := eq_refl.
@@ -3685,6 +3709,7 @@ Example the_nodes_name_their_children_and_hold_their_tags :
    mechanism rather than a field: the current root's two children and the
    retained root's one open under the tags their parents carry, and each
    refuses the other's block. *)
+(*| discharges: R-10-022a |*)
 Example every_node_tag_opens_exactly_its_own_child :
   spec_placement demo demo_medium (blk_node (demo_medium 0)) 0 1 = true
   /\ spec_placement demo demo_medium (blk_node (demo_medium 0)) 1 2 = true

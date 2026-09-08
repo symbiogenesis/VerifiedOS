@@ -380,6 +380,7 @@ Definition in_list (p : Perm) (l : list Perm) : bool := any_of (perm_eqb p) l.
 Example the_permission_field_has_thirty_two_codepoints :
   count_of all_perms = 32 := eq_refl.
 
+(*| discharges: R-15-007b |*)
 Theorem every_codepoint_is_enumerated : forall p : Perm, in_list p all_perms = true.
 Proof.
   intros [ b4 b3 b2 b1 b0 ].
@@ -517,6 +518,7 @@ Definition wx_check (d : Perm -> Authority) : bool :=
    -checked part* is the property itself and not an approximation of it.
    Completeness is what a soundness-only reading would leave out, and it is
    the half that says a passing check has missed nothing. *)
+(*| discharges: R-14-002 |*)
 Theorem the_finite_check_decides_wx :
   forall d : Perm -> Authority, wx_check d = true <-> WxAtTheEncoding d.
 Proof.
@@ -545,6 +547,7 @@ Definition WxOverTheDistribution (m : Machine) (g : Graph m) : Prop :=
    whatever a capability's provenance, which is R-15-007l's *holding for
    every capability in every reachable state*. The confirmation is therefore
    redundant in the strict sense: it follows. *)
+(*| discharges: R-14-002, R-15-007l |*)
 Theorem the_encoding_carries_every_distribution :
   forall (m : Machine) (g : Graph m),
     WxAtTheEncoding m.(decode) -> WxOverTheDistribution m g.
@@ -558,6 +561,7 @@ Qed.
    below, whose build-time check reaches the machine only through R-07-028. *)
 Definition InstalledEdges (m : Machine) : Type := Edge m -> bool.
 
+(*| discharges: R-15-007l |*)
 Theorem the_encoding_reaches_the_booted_machine :
   forall (m : Machine) (ins : InstalledEdges m),
     WxAtTheEncoding m.(decode) ->
@@ -584,6 +588,7 @@ Definition PromotesToWritableExecute (m : Machine) (f : Promotion m) : Prop :=
     /\ permit_execute (edge_authority m (f e)) = true.
 
 (* W3 (R-14-003). *)
+(*| discharges: R-14-003 |*)
 Theorem no_promotion_primitive_exists :
   forall (m : Machine) (f : Promotion m),
     WxAtTheEncoding m.(decode) -> ~ PromotesToWritableExecute m f.
@@ -652,6 +657,7 @@ Definition inventory_ok (l : list Resident) : bool :=
 Example the_specification_inventory_is_admitted :
   inventory_ok spec_inventory = true := eq_refl.
 
+(*| discharges: R-07-024, R-07-020 |*)
 Theorem the_specification_inventory_has_one_entry :
   InventoryHasOneEntry spec_inventory /\ TheKernelIsResident spec_inventory.
 Proof. split; reflexivity. Qed.
@@ -797,11 +803,13 @@ Definition Handoff (m : Machine) : Installer m := fun g st =>
    ========================================================================= *)
 
 (* F1 (R-07-028). *)
+(*| discharges: R-07-028 |*)
 Theorem the_handoff_installs_exactly :
   forall m : Machine, InstallsExactly m (Handoff m).
 Proof. intros m g st [ Hd _ ] e. exact (Hd e). Qed.
 
 (* F2 (R-07-019, R-07-006). *)
+(*| discharges: R-07-019, R-07-006 |*)
 Theorem the_handoff_roots_are_bounded :
   forall (m : Machine) (g : Graph m) (st : Installed m),
     Handoff m g st -> RootsAreBounded m st.
@@ -811,6 +819,7 @@ Proof.
 Qed.
 
 (* F3 (R-07-019). *)
+(*| discharges: R-07-019 |*)
 Theorem the_handoff_roots_every_core :
   forall (m : Machine) (g : Graph m) (st : Installed m),
     Handoff m g st -> EveryCoreIsRooted m g st.
@@ -836,6 +845,7 @@ Proof.
   cbv beta in Hq. exact (negb_true _ Hq).
 Qed.
 
+(*| discharges: R-07-019, R-07-024 |*)
 Theorem quiescence_follows_from_the_refinement :
   forall (m : Machine) (g : Graph m) (st : Installed m),
     Handoff m g st -> PlanNamesNoFirmwareEdge m g -> Quiescent m st.
@@ -851,6 +861,7 @@ Qed.
    graph's check to the booted machine is the initialisation refinement and
    nothing else, which reading 8 states and which the construction after it
    refutes. *)
+(*| discharges: R-07-025, R-07-028, R-07-023 |*)
 Theorem the_build_time_check_becomes_an_installed_property :
   forall (m : Machine) (I : Installer m) (g : Graph m) (st : Installed m),
     InstallsExactly m I -> I g st ->
@@ -875,6 +886,7 @@ Qed.
    and the per-core physical-partition bound is the root bound's. The third,
    crown-jewel secret fencing, is the crypto core's own boundary and is not
    this file's to state. *)
+(*| discharges: R-14-002, R-15-007l, R-07-006 |*)
 Theorem the_two_pmp_roles_this_file_carries_are_carried :
   forall (m : Machine) (g : Graph m) (st : Installed m),
     WxAtTheEncoding m.(decode) -> Handoff m g st ->
@@ -937,6 +949,7 @@ Proof. exact the_handoff_roots_every_core. Qed.
 (* R-07-018's Accept, by construction: there is no S-mode and no U-mode. *)
 Inductive Mode : Type := MachineMode.
 
+(*| discharges: R-07-018 |*)
 Theorem the_platform_has_one_mode : forall a b : Mode, a = b.
 Proof. intros [ ] [ ]. reflexivity. Qed.
 
@@ -950,6 +963,7 @@ Definition DecidesOnThePermission (m : Machine) (gt : Gate m) : Prop :=
     gt p md = access_system_registers (m.(decode) p).
 
 (* F7 (R-07-018, R-15-003). *)
+(*| discharges: R-07-018, R-15-003 |*)
 Theorem the_specification_gate_decides_on_the_permission :
   forall m : Machine, DecidesOnThePermission m (spec_gate m).
 Proof. intros m p md. reflexivity. Qed.
@@ -964,6 +978,7 @@ Definition mode_gate (m : Machine) : Gate m :=
    separates no two capabilities and no two modes, so *privilege escalation
    has no ring to target* is a property of this mode type rather than a
    claim about an attacker. *)
+(*| discharges: R-07-023 |*)
 Theorem a_mode_check_separates_nothing :
   forall (m : Machine) (p q : Perm) (md1 md2 : Mode),
     mode_gate m p md1 = mode_gate m q md2.
@@ -1002,6 +1017,7 @@ Definition region_gated (m : Machine) (table : m.(Region) -> bool) : Decision m 
   fun e r => andb (authorizes m e r) (table r).
 
 (* F9 (R-15-075). *)
+(*| discharges: R-15-075 |*)
 Theorem the_specification_decides_on_the_capability_alone :
   forall m : Machine, DecidesOnTheCapabilityAlone m (spec_decision m).
 Proof. intros m e r. reflexivity. Qed.
@@ -1010,6 +1026,7 @@ Proof. intros m e r. reflexivity. Qed.
    subtract. It grants nothing the capability does not already grant, which
    is why PMP is redundant surface rather than a second authority; and it is
    still a second decision to get right, which is why it is refuted as one. *)
+(*| discharges: R-15-075 |*)
 Theorem a_region_table_only_subtracts :
   forall (m : Machine) (table : m.(Region) -> bool) (e : Edge m) (r : m.(Region)),
     region_gated m table e r = true -> authorizes m e r = true.
@@ -1046,6 +1063,7 @@ Definition NoAmbientAuthority (m : Machine) (g : Graph m) (w : WorkingSet m) : P
   forall e : Edge m, w e = true -> holds m e g = true.
 
 (* F10 (R-05-091, R-05-086, R-05-087). *)
+(*| discharges: R-05-091, R-05-086, R-05-087 |*)
 Theorem the_firmware_holds_only_planned_authority :
   forall (m : Machine) (g : Graph m), NoAmbientAuthority m g (spec_working m g).
 Proof. intros m g e H. exact H. Qed.
@@ -1087,6 +1105,7 @@ Definition spec_lazy (m : Machine) : Lazy m := fun _ g => spec_working m g.
 Definition DoesNotDependOnTheCall (m : Machine) (l : Lazy m) : Prop :=
   forall (i j : nat) (g : Graph m) (e : Edge m), l i g e = l j g e.
 
+(*| discharges: R-05-086 |*)
 Theorem the_specification_is_not_lazily_initialized :
   forall m : Machine, DoesNotDependOnTheCall m (spec_lazy m).
 Proof. intros m i j g e. reflexivity. Qed.
@@ -1534,6 +1553,7 @@ Qed.
    other side of: once W+X is unrepresentable a root set covering both a
    store need and an execute need has two distinct members, so the
    multi-rootedness falls out rather than being built. *)
+(*| discharges: R-15-007p |*)
 Theorem the_root_set_has_two_members_where_both_authorities_are_needed :
   forall (m : Machine) (rt : Edge m -> bool) (es ex : Edge m),
     WxAtTheEncoding m.(decode) ->

@@ -129,13 +129,16 @@ Definition conclusion_witness_vocabulary
    covers all nine at once because seam_lemmas is their conjunction.
    ------------------------------------------------------------------------- *)
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_lemmas_inhabitation : seam_lemmas trivial_vocabulary.
 Proof. repeat split; intro H; exact I. Qed.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma substrate_and_tower_inhabitation :
   substrate_invariants trivial_vocabulary /\ refinement_tower trivial_vocabulary.
 Proof. repeat split. Qed.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma composition_meta_lemma_inhabitation :
   composition_meta_lemma trivial_vocabulary.
 Proof. intros _. exact statement_inhabitation_witness. Qed.
@@ -150,6 +153,7 @@ Proof. intros _. exact statement_inhabitation_witness. Qed.
 Definition refutes_seam_ni_timing : Vocabulary :=
   conclusion_witness_vocabulary False True True True True True True True True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_ni_timing_distinguishing :
   ~ seam_ni_timing refutes_seam_ni_timing.
 Proof. exact (fun H => H (conj I I)). Qed.
@@ -158,6 +162,7 @@ Proof. exact (fun H => H (conj I I)). Qed.
 Definition refutes_seam_wcet_isolation : Vocabulary :=
   conclusion_witness_vocabulary True False True True True True True True True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_wcet_isolation_distinguishing :
   ~ seam_wcet_isolation refutes_seam_wcet_isolation.
 Proof. exact (fun H => H (conj I I)). Qed.
@@ -167,6 +172,7 @@ Proof. exact (fun H => H (conj I I)). Qed.
 Definition refutes_seam_ct_rtl_sail : Vocabulary :=
   conclusion_witness_vocabulary True True False True True True True True True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_ct_rtl_sail_distinguishing :
   ~ seam_ct_rtl_sail refutes_seam_ct_rtl_sail.
 Proof. exact (fun H => H (conj I I)). Qed.
@@ -175,6 +181,7 @@ Proof. exact (fun H => H (conj I I)). Qed.
 Definition refutes_seam_cheri_tal_sail : Vocabulary :=
   conclusion_witness_vocabulary True True True False True True True True True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_cheri_tal_sail_distinguishing :
   ~ seam_cheri_tal_sail refutes_seam_cheri_tal_sail.
 Proof. exact (fun H => H (conj I I)). Qed.
@@ -184,6 +191,7 @@ Proof. exact (fun H => H (conj I I)). Qed.
 Definition refutes_seam_ae_noninterference : Vocabulary :=
   conclusion_witness_vocabulary True True True True False True True True True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_ae_noninterference_distinguishing :
   ~ seam_ae_noninterference refutes_seam_ae_noninterference.
 Proof. exact (fun H => H (conj I I)). Qed.
@@ -193,6 +201,7 @@ Proof. exact (fun H => H (conj I I)). Qed.
 Definition refutes_seam_liveness_schedulability : Vocabulary :=
   conclusion_witness_vocabulary True True True True True False True True True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_liveness_schedulability_distinguishing :
   ~ seam_liveness_schedulability refutes_seam_liveness_schedulability.
 Proof. exact (fun H => H (conj I I)). Qed.
@@ -202,6 +211,7 @@ Proof. exact (fun H => H (conj I I)). Qed.
 Definition refutes_seam_consent_declassification : Vocabulary :=
   conclusion_witness_vocabulary True True True True True True False True True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_consent_declassification_distinguishing :
   ~ seam_consent_declassification refutes_seam_consent_declassification.
 Proof. exact (fun H => H I). Qed.
@@ -211,6 +221,7 @@ Proof. exact (fun H => H I). Qed.
 Definition refutes_seam_crypto_hardness : Vocabulary :=
   conclusion_witness_vocabulary True True True True True True True False True.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_crypto_hardness_distinguishing :
   ~ seam_crypto_hardness refutes_seam_crypto_hardness.
 Proof. exact (fun H => H (conj I I)). Qed.
@@ -220,6 +231,7 @@ Proof. exact (fun H => H (conj I I)). Qed.
 Definition refutes_seam_attestation_capability_safety : Vocabulary :=
   conclusion_witness_vocabulary True True True True True True True True False.
 
+(*| discharges: R-05-165, R-05-166 |*)
 Lemma seam_attestation_capability_safety_distinguishing :
   ~ seam_attestation_capability_safety refutes_seam_attestation_capability_safety.
 Proof. exact (fun H => H (conj I (conj I I))). Qed.
@@ -232,6 +244,7 @@ Proof. exact (fun H => H (conj I (conj I I))). Qed.
    seam conclusions alone do not entail T.
    ------------------------------------------------------------------------- *)
 
+(*| discharges: R-05-165, R-05-166, R-18-031 |*)
 Lemma composition_meta_lemma_distinguishing :
   ~ composition_meta_lemma leaky_vocabulary.
 Proof.

@@ -661,6 +661,7 @@ Qed.
    specification's order be one witness among the orders this file exhibits
    rather than the only expressible list. No unit is handed a
    capability designating a unit the order has not already started. *)
+(*| discharges: R-12-073, R-07-027, R-07-028 |*)
 Theorem an_ordered_bringup_starts_the_grantee_first :
   forall (m : Machine) (l : list nat) (u v : nat),
     grants_nothing_early m l = true ->
@@ -698,6 +699,7 @@ Definition IsTheSignedComposition (m : Machine) (ld : Loader m) : Prop :=
   forall sig : Signals, ld sig = m.(start_order).
 
 (* S2 (R-10-026). *)
+(*| discharges: R-10-026 |*)
 Theorem the_specification_loads_the_signed_composition :
   forall m : Machine, IsTheSignedComposition m (spec_loader m).
 Proof. intros m sig. reflexivity. Qed.
@@ -725,6 +727,7 @@ Definition CarriesNoRetiredAuthority (m : Machine) (g : Regrant m) : Prop :=
   forall u v : nat, g u v = true -> m.(retired) u v = false.
 
 (* S3 (R-12-074). *)
+(*| discharges: R-12-074 |*)
 Theorem the_specification_regrant_mints_nothing :
   forall m : Machine, MintsNothing m (spec_regrant m).
 Proof.
@@ -733,6 +736,7 @@ Proof.
 Qed.
 
 (* S4 (R-10-037, R-08-043a). *)
+(*| discharges: R-10-037, R-08-043a |*)
 Theorem the_specification_regrant_carries_no_retired_authority :
   forall m : Machine, CarriesNoRetiredAuthority m (spec_regrant m).
 Proof.
@@ -760,6 +764,7 @@ Definition ReadsOnlyItsOwnSignal (m : Machine) (dec : Detection m) : Prop :=
   forall (s1 s2 : Signals) (d : Detector), s1 d = s2 d -> dec s1 d = dec s2 d.
 
 (* S5 (R-12-087, R-12-088). *)
+(*| discharges: R-12-087, R-12-088 |*)
 Theorem the_specification_detector_reads_only_its_own_signal :
   forall m : Machine, ReadsOnlyItsOwnSignal m (spec_detect m).
 Proof. intros m s1 s2 d H. unfold spec_detect. rewrite H. reflexivity. Qed.
@@ -788,6 +793,7 @@ Definition IsCompositionFixed (m : Machine) (p : Policy m) : Prop :=
   forall (d : Detector) (s1 s2 : Signals), p d s1 = p d s2.
 
 (* S6 (R-12-087). *)
+(*| discharges: R-12-087 |*)
 Theorem the_specification_policy_is_composition_fixed :
   forall m : Machine, IsCompositionFixed m (spec_policy m).
 Proof. intros m d s1 s2. reflexivity. Qed.
@@ -829,6 +835,7 @@ Definition WithinTheCeiling (ceiling : nat) (b : Backoff) : Prop :=
    every attempt, including every attempt past the last declared step, which
    is where a formula-shaped backoff runs away. Stated of an arbitrary
    schedule and an arbitrary ceiling. *)
+(*| discharges: R-16-007, R-16-027 |*)
 Theorem a_bounded_schedule_bounds_every_attempt :
   forall (s : list nat) (c : nat),
     BoundedSchedule c s -> WithinTheCeiling c (delay_at s c).
@@ -875,10 +882,12 @@ Definition RespectsTheWindow (m : Machine) (adm : Admission m) : Prop :=
    so it manufactures no unbounded restart, checkpoint, sweep or eviction
    loop. The two are separate obligations because one construction can
    satisfy either and fail the other. *)
+(*| discharges: R-16-027 |*)
 Theorem the_specification_respects_the_dwell :
   forall m : Machine, RespectsTheDwell m (spec_admits m).
 Proof. intros m s H. unfold spec_admits. rewrite H. reflexivity. Qed.
 
+(*| discharges: R-16-027 |*)
 Theorem the_specification_respects_the_window :
   forall m : Machine, RespectsTheWindow m (spec_admits m).
 Proof.
@@ -902,6 +911,7 @@ Definition EscalatesPastTheRateLimit (m : Machine) (lim : Limiter m) : Prop :=
 (* S10 (R-16-027). Which action the escalation is stays the composition's,
    because R-16-027 has each pair declare it; the demo machine names RoT
    reset, which R-16-005 is what authorizes. *)
+(*| discharges: R-16-027 |*)
 Theorem the_specification_escalates_past_the_rate_limit :
   forall m : Machine, EscalatesPastTheRateLimit m (spec_limiter m).
 Proof. intros m s a H. unfold spec_limiter. rewrite H. reflexivity. Qed.
@@ -919,6 +929,7 @@ Definition BootCounted (m : Machine) (adm : BootAdmission m) : Prop :=
     Nat.ltb s.(boots) m.(boot_bound) = false -> adm s = false.
 
 (* S11 (R-16-007, R-09-028). *)
+(*| discharges: R-16-007, R-09-028 |*)
 Theorem the_specification_counts_boots :
   forall m : Machine, BootCounted m (spec_boot_admit m).
 Proof. intros m s H. unfold spec_boot_admit. exact H. Qed.
@@ -948,6 +959,7 @@ Definition spec_supervisor (m : Machine) : Supervisor := fun s d =>
 
 (* S12 (R-12-073): the reaction is a function of the declared state and the
    detector, and of nothing else the machine happens to be carrying. *)
+(*| discharges: R-12-073 |*)
 Theorem the_specification_supervisor_is_hidden_state_free :
   forall m : Machine, HiddenStateFree (spec_supervisor m).
 Proof. intros m s1 s2 d H. unfold spec_supervisor. rewrite H. reflexivity. Qed.
@@ -1142,6 +1154,7 @@ Example the_non_sacrificable_ladder_and_the_discardable_one :
    ------------------------------------------------------------------------- *)
 
 (* S13 (R-12-073, R-07-027): the composed order passes all three conjuncts. *)
+(*| discharges: R-12-073, R-07-027 |*)
 Theorem the_specification_order_is_a_bringup :
   BroughtUpInOrder demo spec_order.
 Proof. apply bringup_ok_sound. reflexivity. Qed.
@@ -1488,6 +1501,7 @@ Example the_scoring_policy_agrees_below_the_threshold :
    class it belongs to does not vary with what was observed. *)
 Definition declared_victim (m : Machine) : Selector m := fun _ => m.(victim).
 
+(*| discharges: R-12-089 |*)
 Theorem the_declared_victim_stays_inside_one_class :
   forall m : Machine, SelectsInsideOneClass m (declared_victim m).
 Proof. intros m s1 s2. reflexivity. Qed.
@@ -1512,6 +1526,7 @@ Example the_scoring_selector_crosses_the_class_boundary :
 
 (* R-12-089's ladder clause: the non-sacrificable class declares no action
    that ends a unit, and a ladder that puts one there is refused. *)
+(*| discharges: R-12-089 |*)
 Theorem the_specification_ladder_spares_the_non_sacrificable :
   SparesTheNonSacrificable spec_ladder.
 Proof. reflexivity. Qed.
