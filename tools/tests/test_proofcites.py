@@ -128,7 +128,7 @@ def _a_marker_that_is_neither_delimiter_is_a_fault() -> None:
     text = (f"(* cites R-01-001\n{proofcites.DERIVED_MARK} BEGIN derived entries |*)\n"
             f"   **R-02-002** MUST: the second obligation.\n{END} *)\n")
     region = proofcites.derived(text)
-    ensure(not region.spans and region.faults,
+    ensure(not region.spans and bool(region.faults),
            f"a marker this parse cannot read is a fault: {region!r}")
     ensure(any("neither a BEGIN" in fault for fault in region.faults),
            f"and names itself: {region.faults!r}")

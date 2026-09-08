@@ -59,12 +59,13 @@ entries' normative lines. **The reading above makes that self-feeding, which is 
 design defect and not a caveat**: K-103 and `run.py blast` read citations with a
 whole-text scan and deliberately no comment stripping, on the ground that a Gallina
 identifier cannot carry a hyphen, so an `R-nn-nnn` in a `.v` is inside a comment by
-construction; and a register entry line cites other entries. Measured over this tree,
-transcribing the cited entries' opening lines introduces 43 ids `DischargeSequence.v`
-does not itself cite, 28 in `MemoryPlan.v`, 23 in `ApexTheorem.v` and 22 in
-`PartitionContext.v`, and each regeneration widens the set: repeated to a fixed point
-those two reach 200 and 77 against the 26 and 38 they genuinely make, at which `blast`
-answers a register edit with the artifacts that merely quote the entry.
+construction; and a register entry line cites other entries. Measured over the shipped
+tree when this landed, transcribing the cited entries' normative lines introduces 43 ids
+`DischargeSequence.v` does not itself cite, 28 in `MemoryPlan.v`, 23 in `ApexTheorem.v`
+and 22 in `PartitionContext.v`, and each regeneration widens the set: repeated to a
+fixed point `DischargeSequence.v` names 200 ids against the 26 it genuinely cites and
+`PartitionContext.v` names 77 against 38, at which `blast` answers a register edit with
+the artifacts that merely quote the entry.
 
 So [proofcites.derived](../proofcites.py) holds a region out of `ids`, and this is the
 rule that stops the hole widening past a transcription. **Three readings and one
@@ -114,6 +115,12 @@ HEADING = "=== citations: what the proof artifacts cite, against the register ==
 
 MODULE = "tools/vos/proofcites.py"
 
+# One artifact as this group reads it: where it is, what it says, and where its derived
+# regions are. The delimiter parse is made once in `run` and handed to both rules below,
+# which is what keeps the exclusion at one whole-text pass over each file rather than at
+# one per rule reading through it.
+type Artifact = tuple[str, str, proofcites.Derived]
+
 # The vernaculars a derived region may not open a line with, and the shape one takes.
 # `proofcites.DEFINERS` is every sentence that binds a top-level name, and the four
 # commands beside it are what a region that has swallowed the file it sits in carries
@@ -123,9 +130,9 @@ MODULE = "tools/vos/proofcites.py"
 _COMMANDS = ("Require", "Import", "Export", "Axiom", "Parameter", "Hypothesis",
              "Ltac", "Notation")
 _STANDALONE = ("Proof", "Qed", "Defined", "Admitted")
-_MODIFIERS = r"(?:#\[[^\]]*\]\s*)?(?:Local\s+|Global\s+|Program\s+)*"
 _VERNACULAR_RE = re.compile(
-    rf"^\s*(?:{_MODIFIERS}(?:{'|'.join((*proofcites.DEFINERS, *_COMMANDS))})\s+[\w'(]"
+    rf"^\s*(?:{proofcites.MODIFIERS}"
+    rf"(?:{'|'.join((*proofcites.DEFINERS, *_COMMANDS))})\s+[\w'(]"
     rf"|(?:{'|'.join(_STANDALONE)})\s*\.)")
 
 # The two ids the probe is written over. They are shaped like requirement ids and are
@@ -141,26 +148,35 @@ def run(ctx: Context) -> None:
     rep.line(HEADING)
 
     rels = [rel for rel in ctx.corpus.tracked if proofcites.is_source(rel)]
-    empty = ([f"the git index carries no {proofcites.SUFFIX} file under "
-              f"{proofcites.PROOFS}/, so there is no proof artifact for this rule to "
-              "read a citation out of"] if not rels else [])
+    # An artifact this run could not open is handed to both rules, because neither can
+    # decide about a file it has no bytes of; the empty index is spelled at each rule
+    # instead, in the terms that rule reads, since what is missing there is not the same
+    # thing twice.
     pairs, faults = proofcites.read(ctx.root, rels)
+    read = [(rel, text, proofcites.derived(text)) for rel, text in pairs]
 
-    _cited(ctx, rels, pairs, empty + faults)
-    _regions(ctx, pairs, empty + faults)
+    _cited(ctx, rels, read, faults)
+    _regions(ctx, rels, read, faults)
     rep.line()
 
 
-def _cited(ctx: Context, rels: list[str], pairs: list[tuple[str, str]],
-           findings: list[str]) -> None:
+def _absent(what: str) -> list[str]:
+    """The finding an index carrying no proof artifact at all is, in a rule's own terms."""
+    return [f"the git index carries no {proofcites.SUFFIX} file under "
+            f"{proofcites.PROOFS}/, so there is no proof artifact for this rule to "
+            f"{what}"]
+
+
+def _cited(ctx: Context, rels: list[str], read: list[Artifact],
+           faults: list[str]) -> None:
     """K-103: every citation a shipped proof artifact makes names a live requirement."""
     rep, reg = ctx.rep, ctx.reg
-    findings = list(findings)
+    findings = list(faults) if rels else _absent("read a citation out of") + faults
 
     total = 0
     distinct: set[str] = set()
-    for rel, text in pairs:
-        cited = proofcites.ids(text)
+    for rel, text, region in read:
+        cited = proofcites.ids(text, region)
         total += len(cited)
         distinct |= set(cited)
         findings += [f"{rel} cites {ident}, which names no live requirement: the "
@@ -168,11 +184,11 @@ def _cited(ctx: Context, rels: list[str], pairs: list[tuple[str, str]],
                      for ident in sorted(set(cited)) if ident not in reg.id_set]
 
     if rels and not total:
-        findings.append(f"the {len(pairs)} proof artifacts make no requirement citation "
+        findings.append(f"the {len(read)} proof artifacts make no requirement citation "
                         "at all, so this rule would agree with every one of no citations")
 
     rep.report("K-103", "proof citation(s) naming no live requirement:", findings,
-               f"all {total} requirement citations the {len(pairs)} proof artifacts "
+               f"all {total} requirement citations the {len(read)} proof artifacts "
                f"make, {len(distinct)} of them distinct, name a live requirement of the "
                "register")
 
@@ -259,28 +275,28 @@ def _probe() -> tuple[int, list[str]]:
                            for what, held in readings if not held]
 
 
-def _regions(ctx: Context, pairs: list[tuple[str, str]],
-             findings: list[str]) -> None:
+def _regions(ctx: Context, rels: list[str], read: list[Artifact],
+             faults: list[str]) -> None:
     """K-108: a derived region is a transcription of what its artifact already cites.
 
-    Fail-closed where K-103 is, an index carrying no artifact and an artifact this run
-    could not read being handed in as findings already, and floored on the probe rather
-    than on a member count: a tree with no derived region at all still decides that the
+    Fail-closed where K-103 is: an index carrying no artifact leaves this rule nothing
+    to read a region out of, and an artifact whose bytes this run could not get is one
+    whose regions are undecided rather than absent. Floored on the probe rather than on
+    a member count, so a tree with no derived region at all still decides that the
     exclusion excludes, which is the property that stops it widening while nobody looks.
     """
     rep, reg = ctx.rep, ctx.reg
-    findings = list(findings)
+    findings = list(faults) if rels else _absent("read a derived region out of") + faults
 
     probes, moved = _probe()
     findings += moved
 
     regions = lines = 0
-    for rel, text in pairs:
-        region = proofcites.derived(text)
+    for rel, text, region in read:
         findings += [f"{rel}: {fault}" for fault in region.faults]
         if not region.spans:
             continue
-        allowed = _transcribable(reg, set(proofcites.ids(text)))
+        allowed = _transcribable(reg, set(proofcites.ids(text, region)))
         for span in region.spans:
             regions += 1
             lines += sum(1 for line in text[span[0]:span[1]].splitlines() if line.strip())
@@ -294,7 +310,7 @@ def _regions(ctx: Context, pairs: list[tuple[str, str]],
 
     rep.report("K-108", "derived region(s) the citation exclusion cannot be held to:",
                findings,
-               f"the {len(pairs)} proof artifacts' derived-region delimiters balance, "
+               f"the {len(read)} proof artifacts' derived-region delimiters balance, "
                f"the {lines} lines their {regions} regions carry transcribe only "
                f"entries those artifacts cite, and the exclusion holding a region out "
                f"of K-103's reading answers at each of its {probes} probes")
