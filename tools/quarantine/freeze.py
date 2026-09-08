@@ -879,33 +879,14 @@ def reserved_indices(size: int, reserve: float) -> int:
     return math.ceil(size * reserve)
 
 
-@dataclass(frozen=True)
-class Outlining:
-    """One region length, and the site count at which outlining begins to pay.
-
-    R-15-036p's arithmetic, stated as a column set by §6's FD-3: a region of `n`
-    instructions at `m` site-invariant sites costs `nm` slots inline, `n + m + 1`
-    outlined under a composition-time absolute call whose one target is one shared
-    dictionary entry, and `n + 2m + 1` under a PC-relative one whose per-site
-    displacement is a site-varying two-slot escape. `None` is *never pays*, which is a
-    result and not a missing figure.
-    """
-
-    n: int
-    break_even_absolute: int | None
-    break_even_pcrelative: int | None
-
-
-def outlining_break_even(lengths: Iterable[int]) -> list[Outlining]:
-    """The site count at which each region length starts to pay, under both forms."""
-    out: list[Outlining] = []
-    for n in lengths:
-        # nm > n + m + 1 <=> m(n - 1) > n + 1, and nm > n + 2m + 1 <=> m(n - 2) > n + 1
-        absolute = (n + 1) // (n - 1) + 1 if n > 1 else None
-        pcrelative = (n + 1) // (n - 2) + 1 if n > 2 else None
-        out.append(Outlining(n=n, break_even_absolute=absolute,
-                             break_even_pcrelative=pcrelative))
-    return out
+# R-15-036p's outlining break-even, read from the module above rather than stated here,
+# for the same reason and a sharper one: it is stated a second time in Gallina and
+# `run.py quickchick freeze` compares the two against each other and against the
+# register, so a third statement in this file would be the one held against neither, and
+# an edit to it would move this instrument's column set without moving that comparison.
+# It is §6's FD-3 column set here and the `obe` family there, and it is one arithmetic.
+Outlining = freezemodel.Outlining
+outlining_break_even = freezemodel.outlining_break_even
 
 
 # =====================================================================================
