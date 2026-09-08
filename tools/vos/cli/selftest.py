@@ -1687,6 +1687,16 @@ CASES: list[Case] = [
     ("K-103", "a proof artifact citing a requirement id with two digits transposed",
      _literal(SEAM_WITNESSES, "the R-05-165 / R-05-166 discipline",
               "the R-05-165 / R-05-616 discipline")),
+
+    # No artifact carries a derived region yet, so the seed opens one and never closes
+    # it. That is the failure the exclusion is capable of and the whole reason it has a
+    # rule of its own: an unclosed BEGIN excludes the rest of the file, and K-103 above
+    # it then reads a proof artifact that cites nothing and says so as though it had
+    # decided something. Seeded in the header because that is where a region is written.
+    ("K-108", "a derived region opened in a proof artifact and never closed",
+     _literal(SEAM_WITNESSES, "(* SPDX-License-Identifier: Apache-2.0 *)",
+              "(* SPDX-License-Identifier: Apache-2.0 *)\n"
+              "(*| BEGIN derived: cited entries |*)")),
 ]
 
 # A rule with no case is not a defect, but it must be a decision.
