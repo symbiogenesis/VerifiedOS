@@ -14,6 +14,14 @@ The mechanical half is derived in the one direction this repository allows: the 
 the source, the view restates it, and this group fails the restatement that drifts.
 The semantic half is deliberately not derivable and is only shape-checked here;
 whether a row cites the right authoring artifact is the review gate's question.
+
+**Held in both directions, and the parse's own residue is held with them.** A row
+naming no Prop field and a Prop field carrying no row are each a finding here, which
+is what makes a field list that has narrowed loud rather than merely shorter. The one
+narrowing that pairing cannot see is a field the parse never named, since the view has
+no row for it either and the count is one short with nothing to disagree; so
+vos/apex.py reads the record whole and hands back what it could not read, and this
+rule reports that before it reports anything about the rows.
 """
 
 import re
@@ -62,8 +70,13 @@ def run(ctx: Context) -> None:
     by_field = {row.field: row for row in table}
     row_order = [row.field for row in table]
 
-    problems = [f"the row '{line}' is too narrow to carry the view's cells"
-                for line in fieldbindings.malformed(raw)]
+    # What the statement declares and the parse could not read comes first, because a
+    # declaration nobody can name is a row nobody can write: reported here rather than
+    # left to narrow the field list, which no floor can see. A count one short of what
+    # the record makes is exactly the shape of a pass over nothing.
+    problems = list(record.unread)
+    problems += [f"the row '{line}' is too narrow to carry the view's cells"
+                 for line in fieldbindings.malformed(raw)]
     problems += [f"{f} has no row" for f in record.fields if f not in by_field]
     problems += [f"{f} is no Prop field of the record" for f in row_order
                  if f not in record.field_set]
@@ -71,7 +84,8 @@ def run(ctx: Context) -> None:
         problems.append("the rows are not in the record's declaration order")
     rep.report("K-42", "field row(s) disagreeing with the record:", problems,
                f"the view carries the record's {len(record.fields)} Prop fields, "
-               "in declaration order")
+               f"in declaration order, out of the {record.declarations} declarations "
+               "the record makes and this run read every one of")
 
     wrong = []
     for f in row_order:
