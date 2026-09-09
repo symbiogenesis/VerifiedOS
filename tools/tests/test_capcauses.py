@@ -3,7 +3,11 @@
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import capcauses
-from vos.corpus import find_root
+from vos.checks import Context
+from vos.checks.counts_capcauses import cap_causes
+from vos.corpus import Corpus, find_root
+from vos.register import Artifacts, Register
+from vos.report import Reporter
 
 
 def _sources() -> list[str]:
@@ -89,10 +93,29 @@ def _duplicate_or_unsupported_definitions_refuse() -> None:
 
 def _oversized_or_inconsistent_values_refuse() -> None:
     _refuses(_changed(3, "type xlen : Int = 64", "type xlen : Int = 10"), "payload")
-    _refuses(_changed(1, "0b011100", "0b1" + "0" * 64), "EXC_CHERI does not fit")
+    _refuses(_changed(1, "0b011100", "0b1" + "0" * 64), "EXC_CHERI literal width")
     _refuses(_changed(0, "=> 0b11000", "=> 0b00000"), "repeats a cause encoding")
     _refuses(_changed(0, "=> 0b11000", "=> 0b1100"), "literal width")
     _refuses(_changed(0, "= 0b100000", "= 0b10000"), "PCC_IDX literal width")
+
+
+def _exception_mapping_uses_its_own_width() -> None:
+    _refuses(_changed(1, "0b011100", "0b0011100"), "EXC_CHERI literal width")
+    _refuses(_changed(5, "type exc_code = bits(6)", "type exc_code = bits(5)"),
+             "EXC_CHERI literal width")
+    _refuses(_changed(5, "type exc_code = bits(6)", "type exc_code = bits(65)"),
+             "exc_code width does not fit")
+    changed = _changed(5, "type exc_code = bits(6)", "type exc_code = bits(7)")
+    changed[1] = changed[1].replace("0b011100", "0b1011100")
+    ensure("CAP_EXCEPTION = 92;" in capcauses.render(*changed),
+           "mapping did not follow its independently changed owner width")
+
+
+def _trap_value_alias_must_reach_xlen() -> None:
+    _refuses(_changed(3, "type xlenbits = bits(xlen)", "type xlenbits = bits(5)"),
+             "Sail xlenbits")
+    _refuses(_changed(3, "type xlenbits = bits(xlen)",
+                     "type xlenbits = bits(xlen)\ntype xlenbits = unsupported"), "found 2")
 
 
 def _region_repair_is_local_and_idempotent() -> None:
@@ -116,6 +139,36 @@ def _malformed_regions_refuse_repair() -> None:
             pass
         else:
             raise AssertionError("malformed region was repaired by guessing its extent")
+
+
+def _checker_repair_preserves_authored_bytes() -> None:
+    sources = _sources()
+    generated = capcauses.render(*sources)
+    prefix, suffix = "// authored prefix\r\n\r\n", "\r\n// authored suffix\r\n"
+    stale = generated.replace("CAP_EXCEPTION = 28;", "CAP_EXCEPTION = 29;")
+    tree = dict(zip(capcauses.OWNERS, sources, strict=True))
+    tree[capcauses.ADAPTER] = prefix + stale.replace("\n", "\r\n") + suffix
+    with sandbox_tree(tree) as root:
+        path = root / capcauses.ADAPTER
+        # Use bytes to make this probe independent of the fixture writer's newline policy.
+        path.write_bytes(tree[capcauses.ADAPTER].encode("utf-8"))
+        corpus = Corpus(root, [], {}, list(tree))
+        ctx = Context(root, corpus, Register(), Artifacts(), Reporter(), fix=True)
+        cap_causes(ctx)
+        ensure(ctx.rep.findings == 0, f"repair refused CRLF delimiters: {ctx.rep.out}")
+        expected = (prefix + generated + suffix).encode("utf-8")
+        ensure(ctx.fixed[capcauses.ADAPTER].encode("utf-8") == expected,
+               "checker normalized authored bytes outside the generated region")
+        path.write_text(ctx.fixed[capcauses.ADAPTER], encoding="utf-8", newline="")
+        ensure(path.read_bytes() == expected, "repair output changed authored line endings")
+        again = Context(root, corpus, Register(), Artifacts(), Reporter(), fix=True)
+        cap_causes(again)
+        ensure(again.rep.findings == 0 and not again.fixed, "byte-preserving repair has no fixpoint")
+        corpus.tracked.remove(capcauses.COMMON_TYPES)
+        missing = Context(root, corpus, Register(), Artifacts(), Reporter(), fix=True)
+        cap_causes(missing)
+        ensure(missing.rep.findings == 1 and not missing.fixed,
+               "an untracked mapped-width owner was accepted or repaired")
 
 
 def _absent_or_undecodable_owner_refuses() -> None:
@@ -145,5 +198,7 @@ def cases() -> list[Case]:
         _composition_selects_the_register_file_width,
         _duplicate_or_missing_table_rows_refuse, _duplicate_or_unsupported_definitions_refuse,
         _oversized_or_inconsistent_values_refuse, _region_repair_is_local_and_idempotent,
+        _exception_mapping_uses_its_own_width, _trap_value_alias_must_reach_xlen,
+        _checker_repair_preserves_authored_bytes,
         _malformed_regions_refuse_repair, _absent_or_undecodable_owner_refuses,
     )]
