@@ -9,12 +9,16 @@ if TYPE_CHECKING:
     from . import Context
 
 
+def _require_tracked(ctx: Context) -> None:
+    for name in (capcauses.ADAPTER, *capcauses.OWNERS):
+        if name not in ctx.corpus.tracked:
+            raise capcauses.CauseError(f"the index does not carry {name}")
+
+
 def cap_causes(ctx: Context) -> None:
     faults: list[str] = []
     try:
-        for name in (capcauses.ADAPTER, *capcauses.OWNERS):
-            if name not in ctx.corpus.tracked:
-                raise capcauses.CauseError(f"the index does not carry {name}")
+        _require_tracked(ctx)
         actual = (ctx.root / capcauses.ADAPTER).read_bytes().decode("utf-8")
         expected = capcauses.replace(actual, capcauses.emit(ctx.root))
         if actual != expected:
