@@ -46,8 +46,9 @@ asked for on the host is re-launched in the guest and says so, so there is no
 `wsl -u root -e python3` to remember and no wrong lane to be in. A guest command has
 to *drive* the toolchain to need the hop: `model config-keys`,
 `model validate-config`, `model asm`, `model freeze-emit`, `rtl provenance`,
-`rtl filelist`, `oracle list`, `oracle emit`, `seed list` and `testrig protocol` read
-this checkout and answer on either lane. That is a declaration and not a description, so
+`rtl filelist`, `oracle list`, `oracle emit`, `seed list`, `testrig protocol`,
+`placement export`, `placement check`, `placement admit` and `placement search`
+use this checkout and answer on either lane. That is a declaration and not a description, so
 [tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
 lane the suite is running on, and holds every subcommand the table declares against
 this page: one the table declares and this page nowhere names sends a reader into the
@@ -72,7 +73,7 @@ caught by nothing, which is a residue the findings register carries.
 | `oracle` | wsl | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on either lane; `vectors` needs Sail. |
 | `seed` | wsl | The seeded-defect generator: mutation operators walked over a Sail or Gallina source, pointed at an oracle that must notice. `list` answers on either lane; `sail`, `coq` and `properties` each need their oracle's toolchain. |
 | `ring` | host | The ring contract's generated interface artifact, from its two owners: `emit` writes [proofs/RingContract.v](../proofs/RingContract.v) out of [the ring declaration](../interfaces/ring-reference.json) and the register entries it reads, and `check` re-emits and compares byte for byte, which is what K-89 holds the tracked file to. It runs on the host because both owners are already in this checkout, which is why its rule can re-run the generator where K-88's guest row cannot. |
-| `placement` | host | The memory plan's placement problem, from its one owner: `export` writes [tools/generated/memory-plan.json](generated/memory-plan.json) out of [the memory plan's proof file](../proofs/MemoryPlan.v), which is the third host row K-88 holds against its generator; `check` re-emits and compares byte for byte; `admit` runs the exact port of that file's checks over one of its plans and prints a verdict per check; `search` enumerates the declared candidate set per island, re-checks every leaf whole, and prints the report [the search contract](../docs/placement-search.md) states. The port admits nothing: the proof status stays with the `.v`. |
+| `placement` | host / wsl | `export`, `check`, `admit` and `search` read the memory plan on either lane. `consistency` asks Z3 to select a jointly admissible candidate from the existing finite island grid, labels constraints with requirement IDs, and replays witnesses and contradiction cores through the exact predicates. A truncated grid can produce a witness but cannot establish unsatisfiability. The proof status remains with the Gallina artifact. |
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
 | `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
 | `proofs` | wsl | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. It then hands every compiled module to `rocqchk` in one invocation, which is R-05-016a's re-check and can only reject, and which shares the kernel's lineage, so it is a second reading rather than an independent one and is never to be cited as the latter. The same run holds R-05-166's decidable half: every record a file's theorems quantify over carries a named witness, a closed `Definition witness_<Record> : <Record>` in that file or in one it Requires, and the gate looks the constant up rather than reading a construction out of the text, the prover having decided the inhabitation by type-checking the ascription. Whether a witness is non-trivial is a judgement the gate does not make. |
@@ -428,6 +429,11 @@ silently become a requirement. Ordinary prose, tables and links remain Markdown.
 execution, journaling and output publication. Independent oracle workspaces can run
 concurrently. `seed properties` mutates the checkout and still requires exclusive access
 against every reader of that checkout.
+
+`placement consistency --plan demo_plan --max-candidates 64 --timeout 5` exercises
+the finite consistency pilot. It uses the memory plan's candidate domains and existing
+predicates, with other islands fixed. Its `sat`, `unsat` and `unknown` results concern
+that declared grid, not arbitrary placements or all natural-language requirements.
 
 ## The conventions
 

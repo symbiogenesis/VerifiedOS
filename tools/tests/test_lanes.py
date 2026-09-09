@@ -24,13 +24,15 @@ takes care to avoid.
 
 import io
 import json
+import shutil
 import tempfile
 from collections.abc import Callable
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from importlib import import_module
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import cast
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos.cli import COMMANDS
@@ -70,6 +72,13 @@ def _trivial_schema(scratch: Path) -> list[str]:
     return [str(schema), str(config)]
 
 
+def _placement_export(scratch: Path) -> list[str]:
+    (scratch / "proofs").mkdir(exist_ok=True)
+    (scratch / "tools" / "generated").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(_ROOT / "proofs" / "MemoryPlan.v", scratch / "proofs" / "MemoryPlan.v")
+    return []
+
+
 _RUNS: dict[tuple[str, str], Argv] = {
     ("model", "config-keys"): lambda _: [
         str(_ROOT / "model" / "config" / "verifiedos.json"),
@@ -89,6 +98,10 @@ _RUNS: dict[tuple[str, str], Argv] = {
     # is repository-relative by the subcommand's own contract.
     ("seed", "list"): lambda _: ["--file", "model/model/core/cap_common.sail"],
     ("testrig", "protocol"): lambda _: [],
+    ("placement", "export"): _placement_export,
+    ("placement", "check"): lambda _: [],
+    ("placement", "admit"): lambda _: [],
+    ("placement", "search"): lambda _: ["--max-leaves", "1"],
 }
 
 
@@ -122,8 +135,13 @@ def _declared_subcommands_answer_on_this_lane() -> None:
         scratch = Path(td).resolve()
         for (name, sub), argv in sorted(_RUNS.items()):
             out, err = io.StringIO(), io.StringIO()
+            # Export is the only newly declared command that writes a fixed path.
+            # Redirect its module's root provider, without changing the shared parser.
+            isolated = (patch.object(_MODULES[name], "corpus_mod",
+                                    SimpleNamespace(find_root=lambda: scratch))
+                        if (name, sub) == ("placement", "export") else nullcontext())
             try:
-                with redirect_stdout(out), redirect_stderr(err):
+                with isolated, redirect_stdout(out), redirect_stderr(err):
                     # cast because `main` crosses a dynamic import and answers `Any`;
                     # the convention it is being held to is that it returns an exit code
                     code = cast("int", _MODULES[name].main([sub, *argv(scratch)]))

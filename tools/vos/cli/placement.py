@@ -30,10 +30,11 @@ command prints is evidence about the machine.
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from vos import corpus as corpus_mod
-from vos import memplan
+from vos import env, memplan, placement_smt
 from vos.cli import Table, dispatch
 
 # The rules a reader of the report is pointed at, by name and never by a figure
@@ -202,13 +203,61 @@ def _search(args: argparse.Namespace) -> int:
         return 1
 
 
+def _consistency(args: argparse.Namespace) -> int:
+    root = corpus_mod.find_root()
+    binary = env.Z3_PREFIX / "bin" / "z3"
+    if not binary.is_file():
+        print(f"FAIL: pinned Z3 is absent at {binary}; run `run.py provision --apply`")
+        return 2
+    try:
+        src = memplan.read(root)
+        plan = memplan.plan_of(src, args.plan)
+        islands = plan.island_ids() if args.island is None else (args.island,)
+        if not islands:
+            print("FAIL: the plan contains no islands to check")
+            return 2
+        tables = [placement_smt.build_table(plan, island, args.max_candidates)
+                  for island in islands]
+
+        def solve(table: placement_smt.Table) -> placement_smt.Result:
+            return placement_smt.decide(
+                plan, table, args.timeout,
+                lambda script, timeout: placement_smt.invoke(str(binary), script, timeout))
+
+        with ThreadPoolExecutor(max_workers=min(len(tables), 4)) as pool:
+            results = list(pool.map(solve, tables))
+    except (memplan.PlanError, OSError) as exc:
+        print(f"FAIL: {exc}")
+        return 2
+    print(f"placement consistency: {plan.name} from {memplan.SOURCE} (md5 {src.md5})")
+    print(f"candidate set: {memplan.PREDICATE}")
+    for table, result in zip(tables, results, strict=True):
+        print(f"island {table.island}: {result.verdict}; "
+              f"{len(table.bases)}/{table.grid} candidates evaluated; {result.reason}")
+        if result.witness:
+            print("  witness: " + ", ".join(f"r{r}@{b}" for r, b in result.witness))
+        if result.core:
+            print("  conflicting constraints: " + ", ".join(result.core))
+    print("scope: each island with other islands fixed; absent frame and population "
+          "inputs are not checked; the Python predicates are a port and proof status "
+          f"stays with {memplan.SOURCE}")
+    return max(result.exit_code for result in results)
+
+
 def _flags(name: str, sub: argparse.ArgumentParser) -> None:
-    if name in ("admit", "search"):
+    if name in ("admit", "search", "consistency"):
         sub.add_argument("--plan", default=memplan.STANDING, metavar="NAME",
                          help=f"which plan of the .v to read (default {memplan.STANDING})")
     if name == "search":
         sub.add_argument("--max-leaves", type=int, default=None, metavar="N",
                          help="stop an island's walk after N leaves and say so")
+    if name == "consistency":
+        sub.add_argument("--island", type=int, default=None,
+                         help="check one island, default every island independently")
+        sub.add_argument("--max-candidates", type=int, default=4096,
+                         help="maximum candidates evaluated per island (default 4096)")
+        sub.add_argument("--timeout", type=float, default=10,
+                         help="seconds per solver invocation (default 10)")
 
 
 TABLE: Table = {
@@ -216,6 +265,7 @@ TABLE: Table = {
     "check": (_check, "re-emit and compare, byte for byte"),
     "admit": (_admit, "the exact check over one plan of the .v, verdict per check"),
     "search": (_search, "enumerate the declared candidate set and report"),
+    "consistency": (_consistency, "check the finite contract with labelled Z3 evidence"),
 }
 
 

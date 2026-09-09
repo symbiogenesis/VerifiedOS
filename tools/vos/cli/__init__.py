@@ -133,7 +133,8 @@ COMMANDS: tuple[Command, ...] = (
             "the ring contract's generated interface artifact, from its two owners"),
     Command("placement", "vos.cli.placement",
             "the memory plan's placement problem, exported from its proof file, "
-            "checked exactly and searched"),
+            "checked exactly and searched", lane="guest",
+            host_ok=frozenset({"export", "check", "admit", "search"})),
     Command("quickchick", "vos.cli.quickchick",
             "the Gallina front's input side", lane="guest"),
     Command("testrig", "vos.cli.testrig",

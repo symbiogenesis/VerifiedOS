@@ -718,10 +718,8 @@ def pool_fits(plan: Plan, population: int) -> bool:
             <= plan.first_budget)
 
 
-def refused_by(plan: Plan) -> list[str]:
-    """Which of the plan's boolean checks refuse it, by the `.v`'s own names, and an
-    empty list where every one admits it. The checks a placement can move come first
-    and the two it cannot come after, so that a report can say which half moved."""
+def admission_results(plan: Plan) -> dict[str, bool]:
+    """Each executable admission predicate and its answer over this plan."""
     checks = (
         ("containment_ok", containment_ok),
         ("colouring_ok", colouring_ok),
@@ -730,7 +728,12 @@ def refused_by(plan: Plan) -> list[str]:
         ("plan_ok", plan_ok),
         ("places_ok", places_ok),
     )
-    return [name for name, check in checks if not check(plan)]
+    return {name: check(plan) for name, check in checks}
+
+
+def refused_by(plan: Plan) -> list[str]:
+    """Which admission predicates refuse the plan, by their Gallina names."""
+    return [name for name, admitted in admission_results(plan).items() if not admitted]
 
 
 def worst_case_timing(plan: Plan) -> int:
@@ -859,6 +862,20 @@ def _positions(lo: int, hi: int, length: int, step: int) -> range:
     return range(lo, hi - length + 1, step)
 
 
+def candidate_grid(plan: Plan, island: int) -> tuple[tuple[int, ...], int,
+                                                   tuple[int, ...], tuple[range, ...]]:
+    """The declared search domain, shared by enumeration and consistency checking."""
+    if island not in plan.island_ids():
+        raise PlanError(f"plan {plan.name} has no region in island {island}")
+    regions = tuple(r for r in plan.regions() if plan.island_of(r) == island)
+    lo, hi = plan.island_base(island), plan.island_base(island) + plan.island_span(island)
+    quantum = island_quantum(plan, regions, island)
+    steps = tuple(math.lcm(quantum, granule_of(plan, r)) for r in regions)
+    positions = tuple(_positions(lo, hi, plan.length_of(r), step)
+                      for r, step in zip(regions, steps, strict=True))
+    return regions, quantum, steps, positions
+
+
 def enumerate_island(plan: Plan, island: int,
                      max_leaves: int | None = None) -> IslandSearch:
     """Every candidate the predicate admits for one island, each decided exactly.
@@ -872,12 +889,9 @@ def enumerate_island(plan: Plan, island: int,
     refused by `refused_by` alone: the objective ranks what that check admitted and
     never decides admission.
     """
-    regions = tuple(r for r in plan.regions() if plan.island_of(r) == island)
+    regions, quantum, steps, positions = candidate_grid(plan, island)
     lo, hi = plan.island_base(island), plan.island_base(island) + plan.island_span(island)
-    quantum = island_quantum(plan, regions, island)
-    steps = tuple(math.lcm(quantum, granule_of(plan, r)) for r in regions)
-    counts = tuple(len(_positions(lo, hi, plan.length_of(r), step))
-                   for r, step in zip(regions, steps, strict=True))
+    counts = tuple(len(domain) for domain in positions)
     grid = math.prod(counts) if regions else 0
     granule_grid = math.prod(
         len(_positions(lo, hi, plan.length_of(r), granule_of(plan, r)))
@@ -887,7 +901,6 @@ def enumerate_island(plan: Plan, island: int,
 
     lengths = [plan.length_of(r) for r in regions]
     overlaps = [[live_overlap(plan, r, s) for s in regions] for r in regions]
-    positions = [_positions(lo, hi, lengths[i], steps[i]) for i in range(len(regions))]
     depth_count = len(regions)
 
     leaves = pruned = feasible = 0
@@ -1021,6 +1034,9 @@ def render(problem: dict[str, Any]) -> str:
     return json.dumps(problem, indent=1) + "\n"
 
 
-def emit(root: Path) -> str:
-    """The whole artifact, from the `.v` alone."""
-    return render(export(read(root)))
+def emit(root: Path, source_text: str | None = None) -> str:
+    """The whole artifact, from the `.v` or its pending in-memory repair."""
+    source = read(root) if source_text is None else parse(
+        source_text, hashlib.md5(source_text.encode("utf-8"),
+                                 usedforsecurity=False).hexdigest())
+    return render(export(source))
