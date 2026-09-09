@@ -45,15 +45,13 @@
 // §2.2 or §2.3 is a site the delta owes rather than one it books.
 //
 // **What is carried from the model that the format package left behind.** The
-// capability cause set of `model/model/core/cap_causes.sail`: the eleven ISAv9
-// cause codes in a five-bit field, the six-bit register index a fault reports with
+// capability cause set of `model/model/core/cap_causes.sail`: the ISAv9
+// cause codes, their field width and the register index a fault reports with
 // `PCC` outside the merged file's index space, and the `mtval` payload
 // `zero_extend(regnum @ code)`; and the one `mcause` code a capability violation
-// raises, `EXC_CHERI`, from `model/model/core/types_ext.sail`. Those values are
-// restated here as digits and no checker rule reads them: rule K-79 holds the
-// format's widths and packings and says nothing about the cause table, so the
-// eleven codes, the two widths, `PCC_IDX` and `CAP_EXCEPTION` are transcriptions
-// held by nothing but a reading of the two Sail files beside them.
+// raises, `EXC_CHERI`, from `model/model/core/types_ext.sail`. Section 5 is
+// generated from those owners by `tools/vos/capcauses.py`; K-104 regenerates it
+// at the host gate and `tools/run.py check --fix` repairs its delimited region.
 //
 // **Two wrappers change what their imported namesakes did, on the model's
 // ground.** `set_cap_reg_addr` was the unchecked address set and is the checked
@@ -156,16 +154,18 @@ package cva6_cheri_pkg;
   // ---------------------------------------------------------------------------
   // 5. The capability cause set and the `mtval` payload (cap_causes.sail).
   //
-  //    The codes keep ISAv9's numbering and the enumeration carries the causes
-  //    this machine can raise and no others, so the field has gaps: 0b00100 to
-  //    0b10000 and 0b10111 name no cause. An enumeration written contiguously
-  //    would be a different encoding. A fault reports the register that raised
-  //    it in the six bits above the code, and `PCC`, which has no index in the
-  //    merged file, reports as the one value outside the file's index space.
+  //    The generator preserves the owner's cause enumeration and encodings,
+  //    its register index and the packing into the existing trap-value CSR.
   // ---------------------------------------------------------------------------
 
+  // BEGIN GENERATED CAPABILITY EXCEPTIONS
+  // Generated from model/model/core/cap_causes.sail and
+  // model/model/core/types_ext.sail, with register widths from
+  // model/model/core/types.sail, model/model/core/xlen.sail and
+  // model/config/verifiedos.json; repair with tools/run.py check --fix.
   localparam int unsigned CapExCodeWidth = 5;
   localparam int unsigned CapRegIdxWidth = 6;
+  localparam int unsigned CapRegFileIdxWidth = 5;
 
   typedef logic [CapExCodeWidth-1:0] cap_ex_code_t;
   typedef logic [CapRegIdxWidth-1:0] capreg_idx_t;
@@ -190,14 +190,10 @@ package cva6_cheri_pkg;
 
   localparam capreg_idx_t PCC_IDX = 6'b100000;
 
-  // The index a fault reports for a general-purpose register: the file's own
-  // index, one bit narrower than the fault index, zero-extended.
-  function automatic capreg_idx_t capreg_idx_of_regidx(logic [CapRegIdxWidth-2:0] r);
-    return {1'b0, r};
+  function automatic capreg_idx_t capreg_idx_of_regidx(logic [CapRegFileIdxWidth-1:0] r);
+    return {{(CapRegIdxWidth - CapRegFileIdxWidth){1'b0}}, r};
   endfunction
 
-  // The `mtval` layout: the violation type in the low five bits and the register
-  // above it, zero-extended into the register by the consumer.
   typedef struct packed {
     capreg_idx_t  regnum;
     cap_ex_code_t code;
@@ -210,10 +206,8 @@ package cva6_cheri_pkg;
     return {{(XLEN - $bits(cap_tval_t)){1'b0}}, t};
   endfunction
 
-  // The one `mcause` code a capability violation raises: `EXC_CHERI`, which
-  // `types_ext.sail` maps to `0b011100`. A restated digit with no holder; the
-  // imported tree's guest cause beside it goes with the hypervisor extension.
   localparam logic [XLEN-1:0] CAP_EXCEPTION = 28;
+  // END GENERATED CAPABILITY EXCEPTIONS
 
   // ---------------------------------------------------------------------------
   // 6. The register interface, each a call on the format package.

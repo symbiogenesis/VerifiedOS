@@ -1730,6 +1730,11 @@ CASES: list[Case] = [
      _literal(SEAM_WITNESSES, "the R-05-165 / R-05-166 discipline",
               "the R-05-165 / R-05-616 discipline")),
 
+    # The adapter's generated exception code is edited without moving its Sail owner.
+    # This reaches generation rather than the capability-format rule's width surface.
+    ("K-104", "a generated capability exception code changed in the RTL adapter",
+     _literal("rtl/vos_cva6_cheri_pkg.sv", "CAP_EXCEPTION = 28;", "CAP_EXCEPTION = 29;")),
+
     # An extra BEGIN inside the header makes the exclusion unbalanced. Read the marker
     # from its owner so a respelling cannot turn the case into an unrelated parse fault.
     ("K-108", "a derived region opened in a proof artifact and never closed",
@@ -1825,6 +1830,7 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     # than that it recomputes an arithmetic in place.
     "K-106": ("ledger row", _case_mutation("K-106")),
     "K-109": ("generated requirement header", _case_mutation("K-109")),
+    "K-104": ("generated capability exceptions", _case_mutation("K-104")),
 }
 
 

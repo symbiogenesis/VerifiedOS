@@ -330,8 +330,8 @@ def _adapter_carries_no_deleted_member() -> None:
 
 
 def _cause_table_is_the_models() -> None:
-    # The cause codes, the PCC index and the mcause code are digits restated from two
-    # Sail files no checker rule reads; this is the one comparison that holds them.
+    # Independently read the generated region's values; K-104 holds its bytes by
+    # regeneration, and this comparison also checks what that generator emitted.
     root = find_root()
     causes = (root / "model/model/core/cap_causes.sail").read_text(encoding="utf-8")
     ext = (root / "model/model/core/types_ext.sail").read_text(encoding="utf-8")

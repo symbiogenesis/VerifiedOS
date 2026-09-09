@@ -39,6 +39,7 @@ from typing import TYPE_CHECKING
 
 from vos import coread, dialectgen, differential, figures
 from vos import corpus as corpus_mod
+from vos.checks.counts_capcauses import cap_causes
 from vos.checks.counts_capformat import cap_format
 from vos.checks.counts_configs import (
     aperture_placements,
@@ -670,6 +671,7 @@ def run(ctx: Context) -> None:
     tag_plane(ctx)
     owned_figures(ctx)
     cap_format(ctx)
+    cap_causes(ctx)
     block_geometry(ctx)
     freeze_delta(ctx)
     core_classes(ctx)
