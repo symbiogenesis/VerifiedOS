@@ -1535,9 +1535,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.9
 · Disposition: closed, the figure re-measured at this gate with every other figure that cell states
 
-**F-316** method: the contained repository's `security/Recomposition.v` is byte-identical to the pin on this branch and builds green at the pin, and it fails against a backend with no float register bank for a reason that is the proof's style rather than any float reference in it: it enumerates `exec_instr`'s constructors as sibling bullets, so deleting the three float store forms leaves the store bullets over-counting by three and the seventh of them lands on `Pallocframe`, which is the failure the build reports at Recomposition.v:5585 of 10,147 lines; and it names the inversion products of `exec_step_load_arg_cross` and `exec_step_load_arg_int` positionally, so narrowing `Pld_arg`'s destination from `ireg + freg` to `ireg` renumbers them and leaves the file's five `destruct rd` sites at lines 6112, 6218, 6813, 6821 and 6840 (at `e640991`) each splitting a destination that is no longer a sum. Only one arm unblocks: an interactive Coq session over the file, repairing the bullet structure and the positional names. The arm of keeping `Pld_arg`'s destination a two-armed sum whose float arm is the empty type addresses the second cause only, leaves the store-bullet overcount that actually stops the build untouched, and has not been attempted
+**F-316** method: the contained recomposition proof depends on the backend's instruction-case count and load-argument premises; deleting the float bank requires matching proof branches and positional hypotheses to the integer-only constructors
 · Raised: M1.2b
-· Disposition: open, reported and not closed; the arm is a choice about how much of an imported proof this plan maintains rather than a technical call, and it is a re-price or a child of its own, the backend half alone having come in at 3.1 h against a 6 h cell.
+· Disposition: closed, contained commit `5b4e1cc335476f98506f01b5b8beaf29220c61b2` repairs the proof branches and hypotheses; the focused Recomposition target passes with unchanged theorem declarations and admit census. M1.2b still owes its clean full build and comparison clauses.
 
 **F-317** measurement: M1.2b's acceptance predicate requires that `cheririscV/` carry no diff, and one line must change: `CapAsmgen.v`'s `transl_mreg` ends its `Machregs.mreg` match with `| _ => R30`, which Coq refuses as a redundant pattern, an error and not a warning, once `mreg` has no float constructor left for the wildcard to reach. The deletion of that one line is the whole of the diff under `cheririscV/`, and `ccomp -S -dcapasm` still writes a 10,639-byte `.cap_asm` afterwards
 · Raised: M1.2b
@@ -2510,9 +2510,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: R1b
 · Disposition: closed, each stated in the adapter's header beside the Sail definition it follows, and the load-side transform measured by the probe's all-zero granule decoding to `REG_NULL_CAP`
 
-**F-290** owed-act: `CAP_EXCEPTION = 28`, the eleven ISAv9 cause codes, the five-bit and six-bit widths and `PCC_IDX = 0b100000` are transcriptions of `cap_causes.sail` and `types_ext.sail` that rule K-79 does not read, held by one case in the tools' suite and by no checker rule
+**F-290** owed-act: the adapter's capability exception declarations and packing require a binding to their Sail owners beyond K-79's capability-format surface
 · Raised: R1b
-· Disposition: open, K-104 reserved and not used, the holder being a rule over the two Sail files and the adapter that a later act writes
+· Disposition: closed, `tools/vos/capcauses.py` generates the adapter's exception region from the Sail definitions and frozen configuration; K-104 checks regeneration and repairs stale regions, refusing unreadable owners and malformed delimiters
 
 **F-291** method: a linked worktree populates `upstream/cva6-cheri` whole by `--reference` to the primary's module store and `upstream/opentitan` blob-filtered under a cone sparse checkout of `hw/ip/prim` and `hw/ip/prim_generic`, the 22 gitlink ids unchanged and the elaboration reading its three primitive packages and refusing nothing by name
 · Raised: R1b

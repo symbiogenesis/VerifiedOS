@@ -45,6 +45,11 @@
    weakened guards, widened delegations, cloned counters and client-supplied
    consent from the reference candidate. R-05-163's native assumption audit
    and R-05-166's closed record witnesses apply to this source artifact.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-166 R-12-015a R-12-015b
+   SHA256: 5bc1c50fd80b3ac41cf1936783a1638b8e9dd0762b0bbc5d3300a0af3e3aeb03
+   (*| END derived |*)
    ========================================================================= *)
 
 Open Scope list_scope.

@@ -112,6 +112,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/AesGcm.v | n/a | cited |
 | R-05-163 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-163 | proofs/CopyRingService.v | n/a | cited |
+| R-05-163 | proofs/CredentialHandles.v | n/a | cited |
 | R-05-163 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-163 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-163 | proofs/EndpointIPC.v | n/a | cited |
@@ -183,6 +184,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/AesGcm.v | n/a | cited |
 | R-05-166 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-166 | proofs/CopyRingService.v | n/a | cited |
+| R-05-166 | proofs/CredentialHandles.v | n/a | cited |
 | R-05-166 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-166 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-166 | proofs/EndpointIPC.v | n/a | cited |
@@ -671,7 +673,9 @@ being a finding of the rules that read them rather than a row of this table.
 | R-12-014 | proofs/RotFirmware.v | the_specification_unseal_exports_no_key | claimed |
 | R-12-015 | proofs/RotFirmware.v | the_specification_appraisal_reaches_every_covered_term | claimed |
 | R-12-015 | proofs/RotFirmware.v | an_appraisal_over_a_covered_vector_decides_the_chain | claimed |
+| R-12-015a | proofs/CredentialHandles.v | n/a | cited |
 | R-12-015a | proofs/RotFirmware.v | the_specification_unseal_exports_no_key | claimed |
+| R-12-015b | proofs/CredentialHandles.v | n/a | cited |
 | R-12-017 | proofs/RotFirmware.v | the_specification_attempt_charges_before_it_compares | claimed |
 | R-12-017 | proofs/RotFirmware.v | the_specification_settlement_refunds_nothing | claimed |
 | R-12-017 | proofs/RotFirmware.v | the_specification_settlement_keeps_the_completed_attempt | claimed |
