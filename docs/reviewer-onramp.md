@@ -66,7 +66,7 @@ Read [critique.md](critique.md) before starting. It is the project's own catalog
 ## 6. The commands, in the order a first reading needs them
 
 ```console
-$ python tools/run.py                             # every host gate, one run, one exit code
+$ python tools/run.py --check                     # every host gate, read-only, one exit code
 $ python tools/check.py                           # the checker alone
 $ python tools/run.py coread --show <id>          # a pair K-61 says is owed a reading
 $ python tools/run.py view                        # the register, rendered as the derived views read it
@@ -74,7 +74,7 @@ $ python tools/run.py rtl provenance              # each claimed absence, and th
 $ python tools/run.py oracle list                 # the differential oracles, and how large each is
 ```
 
-Only the host gate wave runs unattended: [host-gates.yml](../.github/workflows/host-gates.yml) runs `python tools/run.py` and `python tools/run.py test` on an Ubuntu runner at every push and pull request to `main`. Everything else here runs only when a person runs it, before anything lands, which is a fact about the assurance position and not only about the workflow. [tools/README.md](../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
+Only the host gate wave runs unattended: [host-gates.yml](../.github/workflows/host-gates.yml) runs `python tools/run.py --check --tests` on Windows and Ubuntu runners at every push and pull request to `main`. Required guest evidence is run explicitly before the affected item lands. During fan-out, workers return focused evidence and one integrator runs the complete gate over each stable integration batch; [the check schedule](../tools/README.md#check-scheduling-during-fan-out) states when to run each command and when a later edit invalidates its verdict. [tools/README.md](../tools/README.md) states what each command does and which lane it runs in; [tools/check-rules.md](../tools/check-rules.md) is the rule registry, one row per rule, and is the right place to look when a rule's name appears in output you did not expect.
 
 ## 7. Where a finding goes
 

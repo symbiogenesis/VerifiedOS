@@ -136,11 +136,11 @@ into WSL itself, so there is neither a wrong directory nor a wrong lane to be in
 
 ```console
 $ python tools/run.py help                       # every command, and the lane it runs in
-$ python tools/run.py                            # the three host gates, in one run
-$ python tools/run.py --fix                      # the repair first, then the other two
-$ python tools/run.py --tests                    # and the tools' own tests beside them
-$ python tools/check.py                          # the daily check, at the path the register cites
-$ python tools/run.py check --fix                # and rewrite what is arithmetic
+$ python tools/run.py --check                    # integrator: the three host gates, read-only
+$ python tools/run.py --fix                      # integrator: repair, then all three gates afresh
+$ python tools/run.py --check --tests            # final wave including the tools' behavioral tests
+$ python tools/check.py                          # checker feedback after a coherent document batch
+$ python tools/run.py check --fix                # integrator: arithmetic repair alone
 $ python tools/run.py selftest                   # every rule against its own mutant
 $ python tools/run.py typecheck                  # the tools against their own discipline
 $ python tools/run.py test                       # the tools against their own tests
@@ -309,6 +309,71 @@ runs.** For the length of one mutant the tree on disk is wrong, so `git add` sta
 defect, `check.py` reports a capability format that disagrees with itself, and
 `run.py selftest` copies a mutated tree into the template every sandbox links
 against. The run says so on its first line.
+
+## Check scheduling during fan-out
+
+**One integrator schedules validation for each stable integration batch.** A batch
+is the set of lane outputs being accepted together on one settled tree. Each brief
+names the lane's owned files, focused checks and deferred integration checks. Read-only
+scouts inspect sources without running gates. Workers check a coherent change when
+the result can guide their next edit; they do not run the complete wave after every
+file, tool call or handoff. In a shared checkout, the integrator combines overlapping
+check requests and reserves a quiet tree for their readers.
+
+| Changed surface | Feedback during lane work |
+| --- | --- |
+| Documents and cross-artifact facts | `python tools/run.py check` (or `python tools/check.py`) after a coherent edit batch. It checks the whole corpus; there is no file or rule filter. |
+| A checker rule | `python tools/run.py selftest --rule K-110`, substituting the changed rule, once the whole checker baseline is clean. This supplies only the selected rule's mutation evidence. |
+| Tool behavior | `python tools/run.py test --only sync_instructions`, substituting a module-name substring for the affected tests. |
+| Python sources or checker configuration | `python tools/run.py typecheck` after a coherent batch when feedback is needed before integration. It checks all tools; there is no path filter. |
+| Model, RTL or proofs | The changed artifact's required guest checks, against its real inputs and isolated outputs. Coordinate shared builds and proof runs; use `evidence` when its complete sweep is the acceptance check. |
+
+Use the existing verdict for unchanged inputs. If a checker run already reports
+arithmetic drift, instruction disagreement or owed co-reads, resolve those findings
+before running a selftest: its baseline runs the whole checker even under `--rule`,
+and a failed baseline supplies no mutation verdict. Workers report deferred repair
+and checks explicitly. They do not run `--fix` or bare `run.py`; the latter also
+synchronizes AGENTS.md and CLAUDE.md. A separately justified full lane gate uses
+`--check` and a slot agreed with the integrator.
+
+**Budget workers across the machine.** The full runner already parallelizes its
+gates; selftest, behavioral tests and typecheck also run internal workers. Keep one
+full host wave active across the fan-out by default, including across worktrees.
+Schedule costly guest work against the same CPU and memory budget. Focused checks
+may overlap on independent stable inputs when capacity permits; `selftest --jobs N`
+bounds that command's workers, not the whole gate. Default selftest sandboxes are
+private; never share an explicit `--sandbox` directory between live runs. Builds,
+proofs and oracle runs retain their own output ownership and locking rules.
+
+The integrator closes the batch in this order:
+
+1. Join the lane outputs, resolve shared edits, read the affected prose, and record
+   required co-read judgments. Inspect `git status --short --untracked-files=all`
+   and each intended diff; track new deliverables by path so the checker sees them.
+   Finish instruction sync, generated artifacts and other writes before gate readers
+   start. Keep the validated checkout stable until its readers finish.
+2. Resolve known findings cheaply. Use `python tools/run.py sync-instructions` for
+   instruction sync and `python tools/run.py check --fix` for arithmetic repair
+   alone when more editing or co-reading remains. Repair once after the batch's
+   authored inputs settle; repeat only if new input changes or findings require it.
+   An intermediate merge needs a targeted check only when its answer affects the
+   next integration decision.
+3. Run one complete host wave: `python tools/run.py --check` on the settled tree,
+   or `python tools/run.py --fix` when only repair remains. Append `--tests` for tool
+   changes or CI-equivalent host validation. `--fix --tests` already includes a
+   fresh checker, selftest, typecheck and default behavioral suite after repair;
+   do not follow success with a duplicate `--check --tests` on unchanged inputs.
+   The default suite does not replace required slow tests or guest evidence.
+4. Record the command, tested revision and any uncommitted input scope, verdict,
+   and deferred checks. A lane handoff is provisional until the integrated batch
+   passes every required gate and review; a selected-rule selftest cannot establish
+   that every mutant was killed. If later edits change a gate's inputs, refresh the
+   affected evidence before acceptance. Repeat a complete wave for a new integration
+   batch or when the affected scope cannot be established, not as a reassurance run.
+
+These are scheduling rules; the [landing tiers](../docs/implementation-checklist.md#checklist-conventions)
+and item acceptance predicates keep their full gates. `seed properties` still owns
+its checkout exclusively against every other reader and writer for the whole run.
 
 ## Checking the tools themselves
 
@@ -494,4 +559,7 @@ A rule that reads an enumeration owes the floors group a member count too, so th
 
 A **quarantined** rule keeps all three edits and keeps them together, in [quarantine/](quarantine/): the check under [quarantine/checks/](quarantine/checks/), the row in [quarantine/check-rules.md](quarantine/check-rules.md), and the mutant in [quarantine/gate.py](quarantine/gate.py), which holds the three against each other exactly as the meta group and the selftest hold the landing loop's. What decides which of the two places a rule belongs in is not the rule but its subject: an instrument whose decision is deferred is not worth a second of every landing, and [that directory's README](quarantine/README.md) states the condition that brings each one back.
 
-And whatever the edit, `python tools/run.py typecheck` has to be green before it lands, the same way `python tools/check.py` does.
+Before the integrated batch lands, typecheck and the checker must both be green.
+The integrator's complete host wave supplies those verdicts; document-only lanes do
+not need separate typecheck runs. Use [the check schedule](#check-scheduling-during-fan-out)
+for feedback during authoring and for the remaining landing gates.
