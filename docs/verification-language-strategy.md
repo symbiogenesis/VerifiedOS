@@ -8,6 +8,8 @@
 
 The bounded tooling qualification is scheduled as Q19 in [the implementation checklist](implementation-checklist.md#q-assessment-actions), with acceptance owned by [interactive-evidence discipline](spec.md#r-05-018a), [audited reuse](spec.md#r-05-018b) and [SMT reconstruction](spec.md#r-05-017). Q20 schedules the combined language acceptance experiment: a comparison contract, a conditional integrated authoring trial, and a conditional optimized-artifact promotion trial. General grading, a new frontend and external portability remain exploratory beyond those cells.
 
+Q19a/Q19b start with the existing copy-service invariant proofs and helpers. Q2c owns the scope and pricing of missing CHERI primitive, representation and semantic-connection work; Q3c separately owns the protected-sequence fault-model specification. Q19c's initial consumer is the parser's fixed-destination initialization, with the copy service's private staging operation reserved for independent reuse. Completing a scoping act supplies none of the checked artifacts those trials require.
+
 Build toward one developer-facing systems language, starting with a target-parametric Rocq library and an integrated source/proof workflow over its supported components.
 Separate the reusable framework from its first concrete instance, VerifiedOS's CHERI target.
 The useful synthesis is an Idris-like specification layer, Rust-like explicit ownership and representation, and C#-like discoverability and diagnostics, elaborated into Rocq through explicit semantic interfaces.
@@ -25,6 +27,8 @@ A library that only proves a second hand-transcribed model, without relating the
 The hypothesis carries a precondition this repository does not currently meet, and it belongs in the recommendation rather than in a caveat further down.
 Removing *repeated* specification-to-implementation work presupposes enough authored specifications for there to be a repetition, and [the crown-jewel inventory](crown-jewels.md) books all but a handful of its rows as not authored while [the critique](critique.md) reads exactly that as the project's binding constraint.
 The library's value therefore lands on the second and third client rather than the first, and while that constraint holds the cheaper move is to author specifications and let the repetition appear before building the thing that removes it.
+
+That constraint applies to the proposed imperative abstraction, not to all proof tooling. [CopyRingService.v](../proofs/CopyRingService.v) already supplies a concrete Q19b comparison through its Boolean and arithmetic helpers and invariant proofs, and Q19a uses those same source obligations for diagnostics. Qualification can improve existing statement-level proof work while the machine connection remains open; such savings establish no theorem about an executed service.
 
 The register already separates the two halves this proposal needs: [semantic anchors are frozen and exhaustively enumerated](spec.md#r-05-019), while [a verified compiler is proof transport between two existing anchors rather than an anchor, and is admitted freely](spec.md#r-05-021).
 The generic library and its construction combinators are transport in that sense, which is what makes them cheap to admit.
@@ -777,7 +781,7 @@ The package is useful independently of any new surface syntax.
 **Its stop condition is reached before its first line, and saying so is the most useful thing this proposal currently does.**
 The pilot's stated starting point is an accessible CHERI-aware imperative semantics with usable primitive rules.
 The Iris-over-Sail program logic those rules would be stated in is an anchor the register enumerates and this development does not yet carry, which is why the machine-boundary connection is described as planned throughout this document; the specifications such rules would quantify over are booked as not authored across all but a handful of [the crown-jewel inventory](crown-jewels.md)'s rows; and M1.6 measured the one relational-compilation stack that might have supplied the primitives as carrying no capability awareness at all.
-So the prerequisite is the work, and the library is what becomes worth building once the semantics it abstracts exists.
+Q2c assigns and prices that prerequisite work against the selected clients; the library becomes worth building once the semantics and rules it abstracts exist.
 An earlier version would be abstracting an interface nothing can yet instantiate, which is the failure mode the interface-adequacy experiment below is designed to detect and would detect in its own first week.
 
 This is a statement about the local instance. The [upstream capability results](#capability-aware-and-parametric-verification) already provide mechanized memory and encapsulation arguments with different subjects. Q2b's useful question is which existing rules can be connected to the pinned semantics and at what cost; the local absence is not evidence that those rules must all be invented from scratch.
@@ -953,7 +957,9 @@ The first experiment retains the existing theorem statements and compares setup,
 Q19a and Q19b book the bounded workflow and reuse trials; Q19c books the conditional library-feasibility pilot and its interface, specification and reuse checks. Q20 books the combined authoring and optimized-artifact comparison under the [language product contract](#language-product-contract). Its integration cells consume existing implementations and proofs; they do not price building missing backends or admission machinery. The remaining rows are research proposals, and the effort ranges below remain separate research-planning judgments. Promotion beyond those bounded cells requires the repository's normal milestone and review process.
 **The lowering experiment is already booked and half landed, and its boundary remains explicit.**
 The plan's Q2 demonstrates one single-source lowering route on a wire parser; its host-only half, Q2a, landed with a boundary audit finding the checked relation stopping at the first of its four boundaries, and its device half, Q2b, is open.
-Q19c consumes Q2b's usable primitive rules and tests generic source-level reuse; it does not charge again for Q2b's lowering or Q3b's target and fault evidence. If those rules do not exist, Q19c does not open by treating assumptions as an instance.
+Q19c consumes the checked primitive and representation artifacts whose implementation Q2c assigns and tests generic source-level reuse; it does not charge again for Q2b's lowering or Q3b's target and fault evidence. Q3c authors the protected-sequence fault model that Q3b applies. If the rules do not exist, neither a completed work breakdown nor assumed laws opens Q19c.
+
+The selected reusable operations serve Q2b's copy-once parser destination and M7.1's copy-service staging buffer. Their current statement artifacts do not supply byte-memory implementations; the consumer owners retain that realization and its baseline evidence. Q20a fixes the comparison before measurements. Q19c qualifies its instance and freezes the interface before the reserved client is adapted to it; M7.1 may author the baseline independently. Q20b measures that adaptation once, sharing its record with Q19c's reuse verdict. A client used to redesign the interface cannot also establish independent reuse. Q20b reports observed savings and projected break-even separately, and Q20c extends the same accounting to the actual artifact endpoint without charging shared work twice.
 
 | Experiment | Evidence to produce | What disconfirms the approach |
 | --- | --- | --- |
@@ -990,7 +996,6 @@ A person-week or person-month means focused engineering effort, including local 
 [The implementation checklist](implementation-checklist.md) prices every item in attended agent-session hours, keeps a separate clock for items that ran under fan-out, fits a calibration over each clock separately on the ground that no item has been measured on both, and derives every total, range and progress figure from those cells arithmetically.
 A person-month here is neither of those clocks.
 Read the ranges below as relative costs *among the experiments in this document*, and read the plan's own cells for what any of this would cost this project.
-A reader who converts at forty hours to the person-week will find that the smallest deliverable below exceeds the plan's entire remaining balance, and that result is an artefact of the unit rather than a finding about the work.
 The estimates assume engineers already productive in Rocq and the selected program logic, stable primitive specifications, and reuse of existing libraries.
 A small team needs both proof-engineering and systems/compiler expertise; dividing person-months by headcount is not a reliable calendar forecast because semantic design and review are serial dependencies.
 An unfamiliar team, missing transport theorem, changing ISA/ABI, or unexpectedly weak upstream library can exceed these bands substantially.

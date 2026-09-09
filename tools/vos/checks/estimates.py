@@ -107,7 +107,9 @@ AFTER_M8B = ["R5", "M9", "M9a", "M10", "Post-M10",
              "M6.6", "M6.7", "M6.8", "S5", "S6",
              # the assessment's decision items, each a decision over measurements Q4 and Q5
              # take ahead of the software gate, and none on either chain
-             "Q6", "Q7", "Q8", "Q9", "Q10"]
+             "Q6", "Q7", "Q8", "Q9", "Q10",
+             # fault-model authoring is a hardening prerequisite, deferred behind M8a
+             "Q3c"]
 AFTER_M8A = ["R1b", "R1c-i", "R1c-ii", "R2", "R3", "M8b", *AFTER_M8B]
 
 # the critical chain through the software gate, in the order the summary names it. A
