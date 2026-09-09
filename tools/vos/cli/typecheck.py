@@ -32,25 +32,21 @@ found from this file, never from the working directory.
 """
 
 import argparse
-import os
-import shutil
 import subprocess
 import sys
+import sysconfig
 from collections import defaultdict
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from vos import corpus as corpus_mod
+from vos import toolenv
 from vos.report import Reporter
 
-# The pins. Both are recorded in tools/README.md, and both are installed with
-# `uv tool install <name>==<v>` on either lane, one command per checker because that
-# is what uv's tool installs are: one environment each, holding one pinned tool and
-# nothing else. Neither is a dependency of anything here, so neither belongs in the
-# environment ty resolves this directory's imports against.
-TY_VERSION = "0.0.75"
-RUFF_VERSION = "0.16.5"
+_PINS = toolenv.checker_pins(Path(__file__).resolve().parents[3])
+TY_VERSION = _PINS["ty"]
+RUFF_VERSION = _PINS["ruff"]
 
 # How many findings of one rule are printed before the rest are counted. A run that
 # has just switched a rule on is a list of hundreds of one thing, and the verdict is
@@ -63,51 +59,11 @@ PER_RULE = 8
 TIMEOUT = 120
 
 
-def _uv_tool_bin() -> Path:
-    """Where `uv tool install` drops its shims, resolved the way uv resolves it.
-
-    Asked of the environment rather than of `uv tool dir --bin`, so that a lane which
-    has the tools uv installed but not uv itself on `PATH` still finds them, and so
-    that the lookup costs no subprocess and carries no timeout of its own.
-    """
-    for variable in ("UV_TOOL_BIN_DIR", "XDG_BIN_HOME"):
-        if directory := os.environ.get(variable):
-            return Path(directory)
-    return Path.home() / ".local" / "bin"
-
-
 def _tool(name: str) -> str | None:
-    """The checker's executable, preferring the isolated install this tree asks for.
-
-    Both are installed with `uv tool install`, which gives each checker its own
-    environment and drops a shim in uv's tool bin directory rather than into any
-    interpreter's site-packages. That is what makes the pinned checker the same one
-    whichever interpreter runs this file, and what keeps two developer tools out of
-    the environment ty resolves this directory's own imports against.
-
-    Three places are looked at and the order decides which install wins. uv's tool
-    bin directory is first, because it is where this tree says to put them. The
-    interpreter's own script directories are second, because a virtual environment
-    carrying the checkers is still a correct place to have them and was the only
-    place before uv; there are two of those and the lane decides which, a POSIX
-    interpreter and a Windows virtual environment putting `python` and its console
-    scripts in one directory while a Windows *system* install puts `python.exe` at
-    the root of the installation and its scripts in `Scripts/` beside it. `PATH` is
-    last, and answers for a lane that puts them somewhere else entirely.
-
-    All three are kept rather than the first alone. Looking only at the interpreter
-    made a stock host install read as *not installed* however many times it was
-    installed, and looking only at uv's directory would do exactly the same to a venv
-    that has them; a pinned-version gate is the one thing that must not report absent
-    what is present.
-    """
+    """Only the running interpreter's checker, never a global shim or PATH fallback."""
     suffix = ".exe" if sys.platform == "win32" else ""
-    root = Path(sys.executable).parent
-    for directory in (_uv_tool_bin(), root, root / "Scripts"):
-        candidate = directory / (name + suffix)
-        if candidate.is_file():
-            return str(candidate)
-    return shutil.which(name)
+    candidate = Path(sysconfig.get_path("scripts")) / (name + suffix)
+    return str(candidate) if candidate.is_file() else None
 
 
 def _version(exe: str) -> str:
@@ -132,8 +88,8 @@ def _pinned(rep: Reporter, name: str, pin: str) -> str | None:
     exe = _tool(name)
     if exe is None:
         rep.report(name, "not installed:",
-                   [f"{name} {pin} is not in {_uv_tool_bin()}, beside {sys.executable}, "
-                    f"or on PATH: uv tool install {name}=={pin}"])
+                   [f"{name} {pin} is not in {sysconfig.get_path('scripts')}: "
+                    "rerun python tools/run.py typecheck to synchronize uv.lock"])
         return None
     try:
         found = _version(exe)
@@ -147,7 +103,7 @@ def _pinned(rep: Reporter, name: str, pin: str) -> str | None:
     if found != pin:
         rep.report(name, "version(s) other than the pinned one:",
                    [f"{name} {found} is installed and this tree pins {pin}: "
-                    f"uv tool install {name}=={pin}"])
+                    "rerun python tools/run.py typecheck to synchronize uv.lock"])
         return None
     return exe
 
@@ -254,6 +210,7 @@ def _run_ty(rep: Reporter, root: Path) -> None:
     _run_checker(
         rep, "ty", TY_VERSION,
         ["check", "--config-file", str(tools / "ty.toml"), "--error", "all",
+         "--python", sys.executable,
          "--output-format", "concise", "--color", "never", "."],
         tools, with_stderr=True, parse=_parse_ty, label="type error(s):",
         ok=f"every expression typechecks under ty {TY_VERSION}, all rules at error")

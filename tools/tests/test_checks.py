@@ -240,29 +240,22 @@ def _counts_unreadable_prerequisite_owner_is_not_repaired() -> None:
                f"unresolved claims must not be repaired to zero: {ctx.fixed!r}")
 
 
-# K-67's fixture pin sites: the constants as typecheck.py spells them, the four
-# README sites the rule holds against them, and the workflow's two install lines,
-# which are the copy a hosted runner resolves rather than one a reader opens.
-_TYPECHECK_PINNED = 'TY_VERSION = "1.2.3"\nRUFF_VERSION = "4.5.6"\n'
-_WORKFLOW_PINNED = ("name: host gates\njobs:\n  gates:\n    steps:\n"
-                    "      - run: |\n"
-                    "          uv tool install ty==1.2.3\n"
-                    "          uv tool install ruff==4.5.6\n")
+_PROJECT_PINNED = '[dependency-groups]\ndev = ["ty==1.2.3", "ruff==4.5.6"]\n'
+_LOCK_PINNED = ('[[package]]\nname = "ty"\nversion = "1.2.3"\n'
+                '[[package]]\nname = "ruff"\nversion = "4.5.6"\n')
 _README_PINNED = ("# Tools\n\n"
                   "| Checker | Pin | What |\n| --- | --- | --- |\n"
                   "| [ty](https://x) | 1.2.3 | types |\n"
-                  "| [ruff](https://x) | 4.5.6 | lint |\n\n"
-                  "Install with `uv tool install ty==1.2.3` and "
-                  "`uv tool install ruff==4.5.6`.\n")
+                  "| [ruff](https://x) | 4.5.6 | lint |\n")
 
 
-def _k67(readme: str, typecheck: str | None,
-         workflow: str = _WORKFLOW_PINNED) -> Context:
+def _k67(readme: str, project: str | None,
+         lock: str = _LOCK_PINNED) -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
              "tools/README.md": readme,
-             ".github/workflows/host-gates.yml": workflow}
-    if typecheck is not None:
-        files["tools/vos/cli/typecheck.py"] = typecheck
+             "uv.lock": lock}
+    if project is not None:
+        files["pyproject.toml"] = project
     with sandbox_tree(files) as root:
         ctx = _context(root)
         meta.run(ctx)
@@ -270,61 +263,50 @@ def _k67(readme: str, typecheck: str | None,
 
 
 def _k67_agreement_is_ok() -> None:
-    ctx = _k67(_README_PINNED, _TYPECHECK_PINNED)
-    ensure("ok K-67: the six pin sites state ty 1.2.3 and "
-           "ruff 4.5.6, the versions tools/vos/cli/typecheck.py fixes" in ctx.rep.out,
-           f"six agreeing sites are one ok line naming both pins: {ctx.rep.out!r}")
+    ctx = _k67(_README_PINNED, _PROJECT_PINNED)
+    ensure("ok K-67: the README and lockfile state ty 1.2.3 and "
+           "ruff 4.5.6, the versions pyproject.toml fixes" in ctx.rep.out,
+           f"agreement names both pins: {ctx.rep.out!r}")
 
 
-def _k67_workflow_drift_is_a_finding() -> None:
-    # the copy a runner resolves rather than one a reader opens: a pin stale here
-    # runs the gate under a checker the tools do not fix, with every readable site
-    # still agreeing
-    ctx = _k67(_README_PINNED, _TYPECHECK_PINNED,
-               _WORKFLOW_PINNED.replace("ruff==4.5.6", "ruff==4.5.5"))
-    ensure(".github/workflows/host-gates.yml's ruff workflow install line states "
-           "4.5.5, tools/vos/cli/typecheck.py pins 4.5.6"
+def _k67_lock_drift_is_a_finding() -> None:
+    ctx = _k67(_README_PINNED, _PROJECT_PINNED,
+               _LOCK_PINNED.replace('version = "4.5.6"', 'version = "4.5.5"'))
+    ensure("uv.lock's ruff versions are ['4.5.5'], pyproject.toml pins 4.5.6"
            in _findings_under(ctx, "K-67"),
-           f"a drifted workflow pin names the two figures: "
+           f"a drifted lock pin names the two figures: "
            f"{_findings_under(ctx, 'K-67')!r}")
 
 
 def _k67_disagreement_names_both_figures() -> None:
-    ctx = _k67(_README_PINNED.replace("| 1.2.3 |", "| 9.9.9 |"), _TYPECHECK_PINNED)
+    ctx = _k67(_README_PINNED.replace("| 1.2.3 |", "| 9.9.9 |"), _PROJECT_PINNED)
     found = _findings_under(ctx, "K-67")
     ensure("tools/README.md's ty checker-table row states 9.9.9, "
-           "tools/vos/cli/typecheck.py pins 1.2.3" in found,
+           "pyproject.toml pins 1.2.3" in found,
            f"a drifted site names the two figures and nothing else: {found!r}")
 
 
 def _k67_unreadable_source_fails_closed() -> None:
-    # the source side gone: a rule that cannot read its ground reports, never
-    # passes over nothing, however clean the README side looks
     ctx = _k67(_README_PINNED, "# no pins here\n")
     found = _findings_under(ctx, "K-67")
-    ensure(any("no longer states TY_VERSION and RUFF_VERSION" in f for f in found),
+    ensure(any("cannot supply exact ty and ruff pins" in item for item in found),
            f"an unreadable source side is the finding: {found!r}")
     ensure(not any(line.startswith("ok K-67:") for line in ctx.rep.out),
            "fail-closed: no ok line stands beside the unread side")
 
 
-# K-75's newest site: the floor as `run.py provision` restates it, which is the one
-# site that could not have been an import, a TOML setting being no module. The
-# selftest's single mutant for this rule seeds `tools/ruff.toml`, so without these two
-# the claim that the rule bites at the provisioner's site would rest on a hand seed
-# nobody reruns. Only that one site is asserted on; the fixture states no other, so
-# the rest of `_FLOOR_SITES` reports missing and is tolerated exactly as this file's
-# other cases tolerate the rules a small fixture cannot satisfy.
 _TY_CONF = 'python-version = "3.14"\n'
 _PROVISION_AT = 'INTERPRETER_FLOOR = "3.14"\n'
 _PROVISION_DRIFTED = 'INTERPRETER_FLOOR = "3.13"\n'
 _FLOOR_SITE = "tools/vos/cli/provision.py's provisioned floor states "
 
 
-def _k75(provision: str) -> Context:
+def _k75(provision: str, project: str =
+         '[project]\nrequires-python = ">=3.14,<3.15"\n') -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
              "tools/README.md": _README_PINNED,
              "tools/ty.toml": _TY_CONF,
+             "pyproject.toml": project,
              "tools/vos/cli/provision.py": provision}
     with sandbox_tree(files) as root:
         ctx = _context(root)
@@ -353,6 +335,15 @@ def _k75_unreadable_provisioner_fails_closed() -> None:
            f"an unreadable site is the finding: {found!r}")
 
 
+def _k75_project_floor_is_held() -> None:
+       for project, fragment in (
+                     ('[project]\nrequires-python = ">=3.13,<3.15"\n', "requires-python states"),
+                     ("", "cannot supply requires-python")):
+              found = _findings_under(_k75(_PROVISION_AT, project), "K-75")
+              ensure(any(fragment in item for item in found),
+                        f"a drifted or missing project constraint must report: {found!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("estimates-refused-edit-writes-nothing",
@@ -372,7 +363,7 @@ def cases() -> list[Case]:
         Case("k67-agreement-is-ok", _k67_agreement_is_ok),
         Case("k67-disagreement-names-both-figures",
              _k67_disagreement_names_both_figures),
-        Case("k67-workflow-drift-is-a-finding", _k67_workflow_drift_is_a_finding),
+              Case("k67-lock-drift-is-a-finding", _k67_lock_drift_is_a_finding),
         Case("k67-unreadable-source-fails-closed", _k67_unreadable_source_fails_closed),
         Case("k75-provisioned-floor-at-the-pin-is-not-a-finding",
              _k75_provisioned_floor_at_the_pin_is_not_a_finding),
@@ -380,4 +371,5 @@ def cases() -> list[Case]:
              _k75_provisioned_floor_drifted_is_a_finding),
         Case("k75-unreadable-provisioner-fails-closed",
              _k75_unreadable_provisioner_fails_closed),
+       Case("k75-project-floor-is-held", _k75_project_floor_is_held),
     ]

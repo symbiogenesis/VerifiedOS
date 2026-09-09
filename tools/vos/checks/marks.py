@@ -96,6 +96,7 @@ MARKABLE: dict[str, tuple[str, str]] = {
 REFUSED: dict[str, str] = {
     ".md": f"{LICENSE_MAP} governs prose by path, so a per-file mark would restate it",
     ".json": "JSON admits no comment, so a mark would make the file unparseable",
+    ".lock": "resolver-generated dependency metadata rather than authored content",
     ".gitattributes": "git's own metadata rather than authored content",
     ".gitignore": "git's own metadata rather than authored content",
     ".gitmodules": "git's own metadata rather than authored content",

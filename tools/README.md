@@ -8,7 +8,7 @@ The tools run in two places. The documents, the proofs metadata, and the checker
 
 | Interpreter | Windows host | WSL guest |
 | --- | --- | --- |
-| Python | 3.14.7 | 3.14.4 |
+| Python | 3.14.7 | 3.14.5 |
 | `pwsh` | present | absent |
 | `bash` | the guest's | present |
 
@@ -18,7 +18,7 @@ Python is the only one that spans both, so it is the only choice that makes the 
 
 Nothing a shell offers is out of reach. Raising the OCaml stack the Sail emission needs is `resource.setrlimit` in the parent and inheritance in every child; and where a shell measures a stage badly, `/usr/bin/time` reporting the running maximum resident set over every child so far, `os.wait4` reports the child that was actually asked about.
 
-The floor is **3.14**, because that is Ubuntu 26.04's system interpreter and the model lane is not going to carry a second one. The host is held at the same version deliberately rather than by coincidence: one interpreter across both lanes is what stops a tool passing on the side it was written on and failing on the side it runs on.
+The floor is **3.14**, shared by the host and guest and enforced by the project constraint and checker targets. The system interpreter need not be replaced: uv can select an installed compatible interpreter for the tools' environment. The entry-point bootstrap accepts Python 3.12 or newer; command modules run only after the project environment is ready.
 
 Two things at that floor the tools depend on rather than merely tolerate:
 
@@ -130,6 +130,30 @@ Two more are the RVFI-DII rig's and sit beside them for the same reason: [rvfi.p
 
 ## Running them
 
+Install Python at the floor above and [uv](https://docs.astral.sh/uv/getting-started/installation/)
+at the version declared by [pyproject.toml](../pyproject.toml)'s
+`tool.uv.required-version`. Both must be available in each OS where commands run;
+Windows installations do not supply WSL's prerequisites. No activation, global
+package installation, or separate checker installation is needed.
+
+When a compatible Python is absent, install it explicitly with your platform's
+installer or `uv python install --no-config 3.14`. That one command bypasses project
+configuration for the manual install. The project keeps `python-downloads = "never"`,
+and normal commands never download Python. Ensure uv is on the non-interactive PATH
+used by WSL as well as your interactive shell.
+
+The first command synchronizes [uv.lock](../uv.lock), then runs inside the managed
+environment. Windows uses `out/venv-win32`; Linux, including WSL and CI, uses
+`out/venv-linux`. Each checkout has its own environments. Only the manifest,
+lockfile, and each OS's uv download cache are shared, never Windows and Linux
+executables. The runner selects an installed interpreter matching the project.
+
+Every top-level invocation checks the locked resolution; stale or missing lockfiles
+stop before dispatch rather than being regenerated. Child commands inherit the
+settled environment. Read-only gates may populate ignored environments and caches,
+but do not modify tracked dependencies or documents. [check.py](check.py)'s direct
+entry point uses the same bootstrap.
+
 From anywhere, and from either lane. Every tool finds the repository root from its own
 location rather than from the working directory, and `run.py` sends a guest command
 into WSL itself, so there is neither a wrong directory nor a wrong lane to be in.
@@ -202,9 +226,9 @@ $ python tools/run.py seed sail --spec keccak --sample 14
 $ python tools/run.py proofs
 ```
 
-There is no `-d` on the `wsl` invocation `run.py` makes, because `Ubuntu` is WSL's default and the default is what every guest command wants. The name is plain `Ubuntu` and the release is 26.04; it is not the only distribution registered on this machine, and nothing in the tools reads the distribution's name, so the only thing holding this together is that default. `wsl --install` sets the newly installed distribution as the default, so installing another one is the single action that quietly redirects every guest command. `wsl -l -v` says which one holds the default today and `wsl -s Ubuntu` puts it back.
+There is no `-d` on the `wsl` invocation `run.py` makes: it uses WSL's default distribution, expected to be the Ubuntu installation carrying the toolchain. No release number or distribution name is enforced by the tools. `wsl --install` can change that default, so check `wsl -l -v` after installing another distribution; `wsl -s Ubuntu` selects Ubuntu again.
 
-The two lanes spell the interpreter differently, and that is not an oversight. On the host `python3` is worse than absent: the python.org installer ships `python.exe` and `pythonw.exe` and no third spelling, and what answers to `python3` is Windows' own app execution alias, a stub that resolves, prints *Python was not found*, and exits 9009. A tool invoked through it fails as though the tool were broken. So `python` is the name, with `py -3.14` available when several versions are installed. Inside the guest the reverse holds. Ubuntu ships `python3` and no bare `python` at all; this distribution answers to both only because `python-is-python3` is installed on it, and [PEP 394](https://peps.python.org/pep-0394/) still names `python3` as the one spelling a script may assume. So the shebangs stay `#!/usr/bin/env python3` and so does every WSL command written down here, because both have to work on a stock 26.04 that has never had that metapackage. Treating `python` as portable is the one shortcut this rule exists to refuse.
+The entry-point spellings differ by OS. Use `python` on Windows, or `py -3.14` when selecting among installed versions; the `python3` app-execution alias may not launch an interpreter. Use `python3` in Ubuntu, where a bare `python` is not guaranteed. [PEP 394](https://peps.python.org/pep-0394/) gives the guest spelling, which the shebangs and WSL launcher retain. After bootstrap, both lanes use the compatible interpreter in their managed environment.
 
 `run.py model build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep.
 
@@ -234,9 +258,9 @@ A lane standing up for the first time is seeded from the primary worktree's tree
 
 ## The lane as a fact list, and what no provisioner reaches
 
-[run.py provision](vos/cli/provision.py) is that machine written down. The guest is a particular thing, four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor and a handful of distribution packages. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Every version and switch name in it is imported from the module that fixes it**, so the table is rows and not a second copy of the pins; the one figure written as a literal is the interpreter floor, because a TOML setting is not importable, and K-75 holds that restatement like the others. The count of switches in this sentence is not a copy either: K-24 computes it, and every other figure any document states about that table, over `FACTS` itself.
+[run.py provision](vos/cli/provision.py) is that machine written down. The guest is a particular thing, four opam switches, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor and a handful of distribution packages. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter floor is an explicit restatement held by K-75. The count of switches in this sentence is not a copy either: K-24 computes it, and every other figure any document states about that table, over `FACTS` itself.
 
-It is native rather than containerized, and that is what makes it architecture-agnostic: the prover's published image is amd64-only, an opam build from source is not, and the pinned solver arrives as a wheel built for both. **A row installs only what an artifact here states as a command.** Three routes have owners this file cannot import as an argument vector, uv's own installation, the creation of an opam root, and the CertiRocq oracle switch whose recipe is prose in [wasm-oracle/README.md](wasm-oracle/README.md), and inventing a command for one of them would be exactly the unowned derived fact the working rules refuse. Two of the three are rows and the third is a route no row probes; two further rows plan nothing for reasons of their own, the interpreter floor being the interpreter taking the probe and the cache invariant's repair being to give a lane a copy rather than to delete a warm cache.
+It is native rather than containerized: the prover and model toolchains are built on the guest. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. Creating an opam root and the CertiRocq oracle switch remains manual; the latter's recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
 
 **What it does not reach it prints rather than absorbs.** Two settings decide how this lane behaves and neither is in this tree: WSL2's memory reclamation, which lives in a per-user file global to every distribution, and whether a person edits from the host or from inside the guest. Both are printed at the end of a run as not reached and neither is counted into the verdict, which is the same boundary [vos/env.py](vos/env.py) draws around the idle timer.
 
@@ -420,7 +444,7 @@ checkers because one cannot do the whole job; what a type cannot decide, the beh
 A bare `run.py` first synchronizes the root instruction files, then runs `check`,
 `selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
 and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
-is the same complete validation without any writes and is the CI invocation.
+is the same complete validation without tracked writes and is the CI invocation.
 
 `--fix` synchronizes instructions and repairs derived artifacts before starting
 the readers. The checker runs again afterward, so a repaired finding does not leave
@@ -441,24 +465,19 @@ annotations contradicts nothing and is invisible to it; ruff's `ANN` group is wh
 coverage a rule. Both are pinned for the reason Rocq and z3 are pinned, and a version
 other than the pinned one is a finding rather than a warning.
 
-Both install with `uv tool install ty==0.0.75` and `uv tool install ruff==0.16.5`, one
-command each because a uv tool install is one environment holding one pinned tool. That
-isolation is the point rather than a side effect: neither checker is a dependency of
-anything here, so neither belongs in the environment ty resolves this directory's own
-imports against, and the pinned checker stays the same one whichever interpreter runs
-[run.py typecheck](vos/cli/typecheck.py). The shims land in uv's tool bin directory, which
-[run.py typecheck](vos/cli/typecheck.py) looks in first, ahead of the interpreter's own script
-directories and then `PATH`; all three are kept, because reporting absent what is
-present is the one failure a pinned-version gate must not have.
+The exact checker pins live in [pyproject.toml](../pyproject.toml)'s development
+group. `jsonschema` is a runtime dependency in the same project, and
+[uv.lock](../uv.lock) fixes the complete resolution for both operating systems.
+[run.py typecheck](vos/cli/typecheck.py) reads the pins from the manifest, runs only
+the environment's executables, and explicitly gives ty that environment's Python.
+K-67 holds this table and the lockfile against the manifest. Global checker shims
+and an unrelated activated environment cannot select different tools.
 
-The checkers are installed once per lane and not once per machine: uv's tool bin
-directory on the host and the guest's are different filesystems, so an install is shared
-by every worktree on its lane and by nothing on the other. A bump is therefore both
-installs and the pin edit, and the gate is red on one lane between the first install and
-the pin landing and on the other between the pin landing and the second install, the
-finding reversing direction between the two, so which lane reported is read before a
-version finding is read as drift. The window is not a mistake, the install having to
-precede the edit; landing the pin commit promptly is what shortens it.
+To update dependencies, edit the manifest, run `uv lock` from the repository root,
+update this checker table when its pins change, and run the Windows and Linux
+gates. Review and commit the manifest and lockfile together. To refresh resolution
+within the declared constraints, use `uv lock --upgrade`. Normal commands synchronize each checkout on its
+next invocation, so no manual reinstall window exists across worktrees or OSes.
 
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or
 switched off, and that is deliberate: the alternative is a list of opt-ins that silently
@@ -467,30 +486,16 @@ stops growing the day ty adds a rule nobody transcribed. What ruff is *not* aske
 that would hold in any project, and no group switched off to spare this code a rewrite. A
 single site that has to differ carries a `# noqa` and the sentence saying why.
 
-The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml) rather than on a
-command line, so that an editor's language server decides exactly what this gate decides.
+The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). In VS Code,
+select `out/venv-win32/Scripts/python.exe` on Windows or
+`out/venv-linux/bin/python` in Linux/Remote-WSL so editor imports use the same
+dependencies as the gate. The Linux typing target is intentional: the guest modules
+use POSIX APIs, even when the host checks them. It does not move execution into Linux.
 
-`jsonschema` is the third prerequisite and the one dependency here that is not the
-standard library, `uv pip install --system jsonschema` on the host and `apt install
-python3-jsonschema` in the guest. It is the one prerequisite that is **not** a uv tool
-install, and the reason is the distinction that decides every such choice here: the two
-checkers are tools this directory runs, so they get an environment of their own, while
-this is a library this directory imports, so it has to be in the environment the
-interpreter and ty both resolve against. It is required on **both** lanes although only the
-guest validates a configuration, and that is what keeps the gate lane-independent rather
-than merely convenient. ty resolves a third-party import against the environment it
-finds, so an absent package is an `unresolved-import` and a suppression for it is an
-`unused-ignore-comment` the moment the package is present: written for the lane that
-lacks it, the directive is a finding on the lane that has it, and the gate's verdict
-turns on what happens to be installed instead of on what the code says. ty.toml pins
-`python-platform` for the same reason on the other axis, so that the tools are typed
-against one declared target and not against whichever machine ran the checker. The
-`ty: ignore` directives in this directory are the same narrowing cast in
-[vos/config.py](vos/config.py) and [vos/socmap.py](vos/socmap.py), where ty calls the code
-unsound without the cast and the cast redundant with it, each naming `redundant-cast`, and
-one in [tests/test_mutate.py](tests/test_mutate.py) naming `invalid-argument-type`; no
-import suppression exists here, which leaves every unresolved
-import an error without a carve-out to audit.
+The local `redundant-cast` suppressions in [vos/config.py](vos/config.py) and
+[vos/socmap.py](vos/socmap.py) address ty's recursive-JSON narrowing behavior, not
+package discovery. The negative test in [tests/test_mutate.py](tests/test_mutate.py)
+also suppresses `invalid-argument-type`. Unresolved imports remain errors.
 
 ## Current evidence and generated documentation
 

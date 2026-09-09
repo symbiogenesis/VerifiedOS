@@ -15,13 +15,9 @@ would make this agreement trivially true and stop deciding anything. What no sca
 decides is whether a registered claim is the right claim, which is the same residue
 every conferral declares.
 
-K-67 is the same discipline pointed at the tools' own documentation and at the push
-workflow that installs them. typecheck.py fixes the ty and ruff pins, tools/README.md
-restates them in its checker table's two rows and in the `uv tool install` line each
-checker carries, the workflow installs each by version again, and nothing owned the
-copy. The rule holds every site against the source and is fail-closed in the reading:
-a side it cannot find is a finding, never a pass over nothing. The sites are
-enumerated rather than counted here, because the count is `_PIN_SITES`' to state.
+K-67 holds the README's checker pins and the resolved lockfile against pyproject.toml.
+The runtime reads the same manifest. Missing, malformed and duplicate declarations
+are findings, so an unreadable side cannot silently remove the comparison.
 
 K-75 is that rule one figure over, on the version the tools are *written* to rather
 than the versions they run. The interpreter floor decides what the two checkers admit
@@ -34,9 +30,8 @@ sites are enumerated rather than counted here, because the count is `_FLOOR_SITE
 state. The two dialects are why the rule is worth having rather than obvious: `3.14`
 and `py314` are one figure in two spellings, so a bump applied to one of them does not
 read as a disagreement with the other, and every prose site was a hand-copy nothing
-owned. The provisioner's site is the one that could not be an import at all: a TOML
-setting is not a module, so `run.py provision` either restates the figure or cannot
-probe it, and this window is what makes the restatement checked rather than trusted.
+owned. The provisioner explicitly restates the floor, while pyproject.toml constrains
+the interpreter used for dependency resolution. Both are held against ty's target.
 
 The window is the enumerated sites rather than a directory, as K-67's is: `tools/`
 carries all but one, and the push workflow's `python-version` is the copy the gate
@@ -164,11 +159,12 @@ declares of every pattern here.
 """
 
 import re
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from vos import cli, figures
+from vos import cli, figures, toolenv
 from vos.cli import provision
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -185,19 +181,12 @@ RULE_ID_RE = re.compile(r"\bK-\d{2,3}\b")
 REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 
 README = "tools/README.md"
-TYPECHECK = "tools/vos/cli/typecheck.py"
+PROJECT = "pyproject.toml"
+LOCK = "uv.lock"
 PROVISION = "tools/vos/cli/provision.py"
 
-# The pins as typecheck.py declares them, and the README sites restating them. The
-# version cell and the install argument are captured alone, so a disagreement names
-# the two figures and nothing else. Each checker carries its own install line because
-# `uv tool install` takes one tool per command, which is what makes the sites two
-# symmetrical pairs rather than two rows and a joint line.
-_PIN_SRC_RE = re.compile(r'^(TY|RUFF)_VERSION = "([^"\r\n]*)"', re.MULTILINE)
 _README_TY_ROW_RE = re.compile(r"(?m)^\| \[ty\]\([^)]*\) \| ([^ |]+) \|")
 _README_RUFF_ROW_RE = re.compile(r"(?m)^\| \[ruff\]\([^)]*\) \| ([^ |]+) \|")
-_README_TY_INSTALL_RE = re.compile(r"`uv tool install ty==([^\s`=]+)`")
-_README_RUFF_INSTALL_RE = re.compile(r"`uv tool install ruff==([^\s`=]+)`")
 
 # The sites, as the table every figure stated over them is read off rather than
 # copied from. Each row names the constant it holds that site against, so a site and
@@ -206,16 +195,9 @@ _README_RUFF_INSTALL_RE = re.compile(r"`uv tool install ruff==([^\s`=]+)`")
 # rule's own prose, which is where a hand-copied count last went stale.
 _WORKFLOW = ".github/workflows/host-gates.yml"
 
-_WF_TY_INSTALL_RE = re.compile(r"(?m)^\s*uv tool install ty==([^\s]+)\s*$")
-_WF_RUFF_INSTALL_RE = re.compile(r"(?m)^\s*uv tool install ruff==([^\s]+)\s*$")
-
 _PIN_SITES: list[tuple[str, str, re.Pattern[str], str]] = [
-    ("checker-table row", README, _README_TY_ROW_RE, "TY"),
-    ("checker-table row", README, _README_RUFF_ROW_RE, "RUFF"),
-    ("install line", README, _README_TY_INSTALL_RE, "TY"),
-    ("install line", README, _README_RUFF_INSTALL_RE, "RUFF"),
-    ("workflow install line", _WORKFLOW, _WF_TY_INSTALL_RE, "TY"),
-    ("workflow install line", _WORKFLOW, _WF_RUFF_INSTALL_RE, "RUFF"),
+    ("checker-table row", README, _README_TY_ROW_RE, "ty"),
+    ("checker-table row", README, _README_RUFF_ROW_RE, "ruff"),
 ]
 
 TY_CONF = "tools/ty.toml"
@@ -323,6 +305,8 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
      re.compile(r"Under (\S+) that import is the \*opt-out\*"), _plain),
     ("launcher spelling", README,
      re.compile(r"`py -([^`\s]+)`"), _plain),
+    ("manual interpreter install", README,
+     re.compile(r"`uv python install --no-config ([^`\s]+)`"), _plain),
     ("provisioned floor", PROVISION,
      re.compile(r'(?m)^INTERPRETER_FLOOR = "([^"\r\n]*)"'), _plain),
     ("workflow interpreter", _WORKFLOW,
@@ -479,55 +463,43 @@ def _source(ctx: Context, rel: str) -> str:
 
 
 def _pins(ctx: Context) -> None:
-    """K-67: every site stating a checker pin states the version typecheck.py fixes.
-
-    Fail-closed on the reading itself: the source constants and every site in
-    `_PIN_SITES` either parse in the form written today or are findings, so a
-    reworded README cannot take the comparison down with it and leave the rule green.
-
-    The window is the sites rather than a directory. The push workflow installs the two
-    checkers by version, so its install lines restate the pins as surely as the README's
-    do, and a bump that moved one and not the other would run the gate under a checker
-    the tools do not fix.
-    """
+    """K-67: the README and lockfile agree with the runtime's manifest reader."""
     rep = ctx.rep
     findings: list[str] = []
-
-    pins = {m.group(1): m.group(2)
-            for m in _PIN_SRC_RE.finditer(_source(ctx, TYPECHECK))}
-    ty, ruff = pins.get("TY"), pins.get("RUFF")
-    if ty is None or ruff is None:
-        findings.append(f"{TYPECHECK} no longer states TY_VERSION and RUFF_VERSION in "
-                        "a form this rule reads")
-
-    doc = ctx.corpus.get(README)
-    if doc is None:
-        findings.append(f"{README} is not in the repository")
-
-    # An empty findings list here already means both pins parsed, so each row's own
-    # key indexes them rather than a fourth pair of locals threaded through the loop.
-    if not findings and doc is not None:
-        # one read per file the table names, the README's coming from the corpus the
-        # run already holds rather than from a second trip to disk
-        text: dict[str, str] = {README: doc.raw}
-        for _, file, _, _ in _PIN_SITES:
-            if file not in text:
-                text[file] = _source(ctx, file)
-
+    pins: dict[str, str] = {}
+    try:
+        pins = toolenv.checker_pins(ctx.root)
+    except (OSError, ValueError, TypeError, KeyError) as err:
+        findings.append(f"{PROJECT} cannot supply exact ty and ruff pins: {err}")
+    if pins:
         for label, file, pattern, key in _PIN_SITES:
-            checker, want = key.lower(), pins[key]
-            m = pattern.search(text[file])
+            want = pins[key]
+            m = pattern.search(_source(ctx, file))
             if m is None:
-                findings.append(f"{file} no longer states {checker}'s pin in its "
+                findings.append(f"{file} no longer states {key}'s pin in its "
                                 f"{label}, in a form this rule reads")
             elif m.group(1) != want:
-                findings.append(f"{file}'s {checker} {label} states {m.group(1)}, "
-                                f"{TYPECHECK} pins {want}")
+                findings.append(f"{file}'s {key} {label} states {m.group(1)}, "
+                                f"{PROJECT} pins {want}")
+        try:
+            packages = tomllib.loads(_source(ctx, LOCK))["package"]
+            if not isinstance(packages, list) or not all(
+                    isinstance(package, dict) for package in packages):
+                findings.append(f"{LOCK}'s package must be an array of tables")
+            else:
+                for name, want in pins.items():
+                    versions = [package.get("version") for package in packages
+                                if package.get("name") == name]
+                    if versions != [want]:
+                        findings.append(f"{LOCK}'s {name} versions are {versions!r}, "
+                                        f"{PROJECT} pins {want}")
+        except (ValueError, TypeError, KeyError) as err:
+            findings.append(f"{LOCK} cannot supply resolved checker pins: {err}")
 
-    rep.report("K-67", "pin site(s) disagreeing with the versions typecheck.py "
+    rep.report("K-67", "pin site(s) disagreeing with the versions pyproject.toml "
                "fixes:", findings,
-               f"the {figures.words(len(_PIN_SITES))} pin sites state "
-               f"ty {ty} and ruff {ruff}, the versions {TYPECHECK} fixes")
+               f"the README and lockfile state ty {pins.get('ty')} and "
+               f"ruff {pins.get('ruff')}, the versions {PROJECT} fixes")
 
 
 def _floor(ctx: Context) -> None:
@@ -560,6 +532,15 @@ def _floor(ctx: Context) -> None:
     # that document carries is missing for a reason that is not its own.
     floor = stated.group(1) if stated else ""
     if not findings and doc is not None:
+        try:
+            required = tomllib.loads(_source(ctx, PROJECT))["project"]["requires-python"]
+            major, minor = floor.split(".")
+            want = f">={floor},<{major}.{int(minor) + 1}"
+            if required != want:
+                findings.append(f"{PROJECT}'s requires-python states {required!r}, "
+                                f"{TY_CONF} requires {want}")
+        except (ValueError, TypeError, KeyError) as err:
+            findings.append(f"{PROJECT} cannot supply requires-python: {err}")
         # one read per file the table names, the README's coming from the corpus the
         # run already holds rather than from a second trip to disk
         text: dict[str, str] = {README: doc.raw}

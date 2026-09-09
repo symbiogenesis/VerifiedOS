@@ -18,11 +18,91 @@ content, only on agreement between the two runs and on the exit code's meaning.
 import os
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
+from io import StringIO
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from tests.harness import TOOLS, Case, ensure
+from vos import toolenv
 
 _ROOT = TOOLS.parent
+
+
+def _locked_bootstrap() -> None:
+    for platform in ("win32", "linux"):
+        launch = Mock(return_value=SimpleNamespace(returncode=7))
+        with patch.object(toolenv, "sys", SimpleNamespace(
+                platform=platform, prefix="other", executable="python")), \
+                patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: "uv")), \
+                patch.object(toolenv, "os", SimpleNamespace(environ={
+                    "VIRTUAL_ENV": "foreign", "UV_PROJECT_ENVIRONMENT": "foreign"})), \
+                patch.object(toolenv, "subprocess", SimpleNamespace(run=launch)):
+            ensure(toolenv.bootstrap(_ROOT, ["check", "--fix"]) == 7,
+                   "bootstrap must preserve the command's exit code")
+            argv = launch.call_args.args[0]
+            ensure(
+                "--locked" in argv and "--exact" in argv and "--python" not in argv,
+                "bootstrap enforces the lock and lets the project select Python",
+            )
+            ensure(argv[-2:] == ["check", "--fix"], "arguments must survive verbatim")
+            environment = launch.call_args.kwargs["env"]
+            ensure(environment["UV_PROJECT_ENVIRONMENT"] == str(
+                toolenv.environment(_ROOT, platform)), "the environment is OS-specific")
+            ensure("VIRTUAL_ENV" not in environment, "ambient activation must not win")
+
+
+def _settled_children_do_not_sync() -> None:
+    token = toolenv.identity(_ROOT, sys.platform)
+    launch = Mock()
+    with patch.object(toolenv, "sys", SimpleNamespace(
+            platform=sys.platform, prefix=str(toolenv.environment(_ROOT, sys.platform)))), \
+            patch.object(toolenv, "os", SimpleNamespace(environ={toolenv.READY: token})), \
+            patch.object(toolenv, "subprocess", SimpleNamespace(run=launch)):
+        ensure(toolenv.bootstrap(_ROOT, ["check"]) is None,
+               "a child in the settled environment dispatches directly")
+        launch.assert_not_called()
+    ensure(toolenv.environment(_ROOT, "win32") != toolenv.environment(_ROOT, "linux"),
+           "Windows and WSL must never share a virtual environment")
+
+
+def _bootstrap_prerequisites() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-bootstrap-") as temporary:
+     root = Path(temporary)
+     for name in ("pyproject.toml", "uv.lock"):
+         (root / name).write_text("initial", encoding="utf-8")
+     token = toolenv.identity(root, sys.platform)
+     launch = Mock(return_value=SimpleNamespace(returncode=7))
+     errors = StringIO()
+     with patch.object(toolenv, "sys", SimpleNamespace(
+          platform=sys.platform, prefix=str(toolenv.environment(root, sys.platform)),
+          stderr=errors)), \
+          patch.object(toolenv, "os", SimpleNamespace(environ={toolenv.READY: token})), \
+          patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: "uv")), \
+          patch.object(toolenv, "subprocess", SimpleNamespace(run=launch)):
+         ensure(toolenv.bootstrap(root, ["check"]) is None,
+             "unchanged setup state permits direct dispatch")
+         (root / "uv.lock").write_text("changed", encoding="utf-8")
+         ensure(toolenv.bootstrap(root, ["check"]) == 7,
+             "a changed lock must synchronize even inside the environment")
+         launch.assert_called_once()
+         launch.reset_mock()
+         (root / "uv.lock").unlink()
+         ensure(toolenv.bootstrap(root, ["check"]) == 1,
+             "a missing lock must refuse dispatch")
+         launch.assert_not_called()
+         (root / "uv.lock").write_text("changed", encoding="utf-8")
+         with patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: None)):
+          ensure(toolenv.bootstrap(root, ["check"]) == 1,
+              "missing uv must refuse dispatch")
+         launch.assert_not_called()
+         launch.side_effect = OSError("cannot launch")
+         ensure(toolenv.bootstrap(root, ["check"]) == 1,
+             "an OS launch error must be a reported failure")
+         ensure("could not be started" in errors.getvalue(),
+             "the launch failure must include an actionable diagnostic")
 
 
 def _run(*argv: str, env: dict[str, str] | None = None) -> tuple[int, str, str]:
@@ -127,6 +207,9 @@ def cases() -> list[Case]:
     # the fast one. The quarantined instruments' own doubled runs went with them and
     # are bracketed the same way by the quarantine's own gate.
     return [
+        Case("locked-bootstrap", _locked_bootstrap),
+        Case("settled-children-do-not-sync", _settled_children_do_not_sync),
+        Case("bootstrap-prerequisites", _bootstrap_prerequisites),
         Case("tree-status-before", _tree_status_before, lane="host"),
         Case("coread-list-twice", _coread_list_twice, lane="host"),
         Case("unicode-pipe-twice", _unicode_pipe_twice, lane="host"),

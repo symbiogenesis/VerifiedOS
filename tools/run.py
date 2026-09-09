@@ -46,6 +46,7 @@ from typing import cast
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
+from vos import toolenv
 from vos.cli import BY_NAME, COMMANDS, Command
 
 # What every command's entry point is. `import_module` hands back a module whose
@@ -123,6 +124,9 @@ def main(argv: list[str] | None = None) -> int:
     root = corpus_mod.find_root()
     if command.guest_only(rest) and sys.platform == "win32":
         return _in_guest(root, command, rest)
+
+    if (code := toolenv.bootstrap(root, args)) is not None:
+        return code
 
     module = import_module(command.module)
     return cast("Main", module.main)(rest)

@@ -10,16 +10,16 @@ parsed, because a checker that died partway has not cleared the files it never
 reached.
 """
 
-import os
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos.cli import typecheck
 from vos.report import Reporter
 
-# What the version-probing stubs answer, chosen not to collide with any real tool
-# name so the PATH lookup in `_tool` can only find the stub this module wrote.
+# The fake executable's version banner, independent of installed checkers.
 _STUB_NAME = "vostestfakechk"
 _STUB_PIN = "9.9.9"
 
@@ -117,29 +117,20 @@ def _summarize_counts_findings_not_lines() -> None:
            "this sample prints fewer lines than there are findings, which is the point")
 
 
-def _uv_tool_bin_resolution() -> None:
-    # uv's own order, and the reason it is read from the environment rather than from
-    # `uv tool dir --bin`: a lane can hold the tools uv installed without holding uv.
-    names = ("UV_TOOL_BIN_DIR", "XDG_BIN_HOME")
-    saved = {name: os.environ.get(name) for name in names}
-    try:
-        for name in names:
-            os.environ.pop(name, None)
-        ensure(typecheck._uv_tool_bin() == Path.home() / ".local" / "bin",
-               f"with neither set the default is ~/.local/bin, got "
-               f"{typecheck._uv_tool_bin()}")
-        os.environ["XDG_BIN_HOME"] = "/xdg/bin"
-        ensure(typecheck._uv_tool_bin() == Path("/xdg/bin"),
-               "XDG_BIN_HOME decides when UV_TOOL_BIN_DIR is unset")
-        os.environ["UV_TOOL_BIN_DIR"] = "/uv/bin"
-        ensure(typecheck._uv_tool_bin() == Path("/uv/bin"),
-               "UV_TOOL_BIN_DIR outranks XDG_BIN_HOME")
-    finally:
-        for name, was in saved.items():
-            if was is None:
-                os.environ.pop(name, None)
-            else:
-                os.environ[name] = was
+def _environment_tool_resolution() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        directory = Path(td)
+        for platform, filename in (("win32", "ty.exe"), ("linux", "ty")):
+            candidate = directory / filename
+            candidate.touch()
+            with patch.object(typecheck, "sys", SimpleNamespace(platform=platform)), \
+                    patch.object(typecheck, "sysconfig", SimpleNamespace(
+                        get_path=lambda _: td)):
+                ensure(typecheck._tool("ty") == str(candidate),
+                       "the running environment supplies the checker on either OS")
+                ensure(typecheck._tool("uv") is None,
+                       "a missing environment tool must not fall back to PATH")
+            candidate.unlink()
 
 
 def _stub(directory: Path, name: str, body: str) -> Path:
@@ -172,20 +163,16 @@ def _checker_stub_body(exit_code: int, finding: bool) -> str:
 
 
 def _run_stub_checker(body: str, pin: str) -> Reporter:
-    """One `_run_checker` pass routed at a stub on PATH, so the pin gate, the run,
+    """One `_run_checker` pass routed at a stub, so the pin gate, the run,
     the parse and the verdict are all the real code's."""
     rep = Reporter()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         directory = Path(td)
-        _stub(directory, _STUB_NAME, body)
-        was = os.environ.get("PATH", "")
-        os.environ["PATH"] = f"{directory}{os.pathsep}{was}"
-        try:
+        stub = _stub(directory, _STUB_NAME, body)
+        with patch.object(typecheck, "_tool", return_value=str(stub)):
             typecheck._run_checker(
                 rep, _STUB_NAME, pin, ["check"], directory, with_stderr=False,
                 parse=typecheck._parse_ruff, label="lint finding(s):", ok="clean")
-        finally:
-            os.environ["PATH"] = was
     return rep
 
 
@@ -249,7 +236,7 @@ def _pin_gate_refusals() -> None:
         with_stderr=False, parse=typecheck._parse_ruff, label="lint finding(s):",
         ok="clean")
     ensure("not installed:" in "\n".join(absent.out)
-           and "uv tool install vostest-absent-tool==1.0.0" in "\n".join(absent.out),
+            and "synchronize uv.lock" in "\n".join(absent.out),
            f"an absent tool must name the uv remedy, got {absent.out!r}")
 
 
@@ -261,7 +248,7 @@ def cases() -> list[Case]:
         Case("summarize-ordering", _summarize_ordering),
         Case("summarize-truncation", _summarize_truncation),
         Case("summarize-counts-findings", _summarize_counts_findings_not_lines),
-        Case("uv-tool-bin-resolution", _uv_tool_bin_resolution),
+        Case("environment-tool-resolution", _environment_tool_resolution),
         Case("version-probe", _version_probe, lane="host"),
         Case("crash-reported-beside-findings", _crash_reported_beside_findings, lane="host"),
         Case("crash-with-nothing-parsed", _crash_with_nothing_parsed, lane="host"),

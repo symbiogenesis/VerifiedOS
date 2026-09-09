@@ -12,6 +12,7 @@ the live tree.
 
 import os
 import subprocess
+import sys
 import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -86,6 +87,15 @@ def sandbox_tree(files: dict[str, str]) -> Iterator[Path]:
         _git(root, "init", "-q")
         _git(root, "add", "-A")
         yield root
+
+
+def cli_argv(root: Path, module: str, *args: str) -> list[str]:
+    """Run a fixture's CLI in the settled interpreter without provisioning its inputs."""
+    return [sys.executable, "-c",
+            "import sys; from importlib import import_module; "
+            "sys.path.insert(0, sys.argv[1]); "
+            "raise SystemExit(import_module(sys.argv[2]).main(sys.argv[3:]))",
+            str(root / "tools"), module, *args]
 
 
 def _git(root: Path, *args: str) -> None:

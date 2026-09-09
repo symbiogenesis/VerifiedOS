@@ -58,6 +58,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
+from vos import toolenv
+
+if __name__ == "__main__":
+    code = toolenv.bootstrap(corpus_mod.find_root(), ["check", *sys.argv[1:]])
+    if code is not None:
+        sys.exit(code)
+
 from vos.checks import GROUPS, Context
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter

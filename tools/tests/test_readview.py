@@ -11,14 +11,13 @@ applied here around a declared write).
 """
 
 import subprocess
-import sys
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
-from tests.harness import TOOLS, Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, cli_argv, ensure, sandbox_tree
 
-_SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/view.py",
+_SOURCES = ("tools/vos/cli/__init__.py", "tools/vos/cli/view.py",
             "tools/vos/__init__.py", "tools/vos/coread.py",
             "tools/vos/corpus.py", "tools/vos/env.py", "tools/vos/register.py")
 
@@ -65,7 +64,7 @@ def _fixture() -> dict[str, str]:
 
 def _run(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(root / "tools" / "run.py"), "view"],
+        cli_argv(root, "vos.cli.view"),
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
 

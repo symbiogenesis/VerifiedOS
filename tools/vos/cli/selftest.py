@@ -174,13 +174,17 @@ class Sandbox:
 
         A subprocess and not an in-process call: two cases mutate the checker's own
         source, and only a fresh interpreter reads the mutant rather than the module
-        this process already imported.
+        this process already imported. Import the checker in the settled interpreter:
+        a mutated lockfile is input to audit, never an environment to install.
         """
         if fix and not self.fix_ok:
             raise SystemExit("--fix rewrites documents in place, which writes through "
                              "this sandbox's hardlinks into the template; it may only "
                              "run on the repair sandbox, which holds real copies")
-        argv = [sys.executable, str(self.path / CHECKER)] + (["--fix"] if fix else [])
+        argv = [sys.executable, "-c",
+            "import sys; sys.path.insert(0, sys.argv.pop(1)); "
+            "import check; raise SystemExit(check.main())",
+            str((self.path / CHECKER).parent)] + (["--fix"] if fix else [])
         # a run is ~1 s, so an overrun this size is a hang (a mutant that sends a
         # pattern into catastrophic backtracking), and it must land as its case's
         # failure rather than as a run that never ends; errors='replace' for the same
@@ -1141,6 +1145,10 @@ CASES: list[Case] = [
      _literal("tools/vos/checks/marks.py",
               '    ".json": "JSON admits no comment, so a mark would make the file '
               'unparseable",\n', "")),
+    ("K-53", "a generated lockfile whose metadata ruling has gone",
+     _literal("tools/vos/checks/marks.py",
+              '    ".lock": "resolver-generated dependency metadata rather than authored '
+              'content",\n', "")),
 
     # The owner is moved rather than one of the eleven figures, because a figure edited
     # alone is the easy half: what the rule is for is the granule changing under all of
@@ -1285,18 +1293,11 @@ CASES: list[Case] = [
     ("K-66", "a form the profile excludes and the model still decodes",
      _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
-    # One install line is moved and the checker-table rows are left, which is the shape
-    # the defect takes: a pin bumped where it is enforced or where it is read first,
-    # with the other copies going stale behind it.
-    ("K-67", "a README pin drifted from the version typecheck.py fixes",
-     _literal("tools/README.md", "uv tool install ty==0.0.75",
-              "uv tool install ty==0.0.74")),
-    # The same drift one file over, where it is worse: the workflow's install line is
-    # what a hosted runner actually resolves, so a pin stale here runs the gate under a
-    # checker the tools do not fix while every site a reader opens still agrees.
-    ("K-67", "a workflow pin drifted from the version typecheck.py fixes",
-     _literal(".github/workflows/host-gates.yml", "uv tool install ruff==0.16.5",
-              "uv tool install ruff==0.16.4")),
+    ("K-67", "a README pin drifted from the manifest",
+     _literal("tools/README.md", "| 0.0.75 |", "| 0.0.74 |")),
+    ("K-67", "a resolved checker pin drifted from the manifest",
+     _literal("uv.lock", 'name = "ruff"\nversion = "0.16.5"',
+              'name = "ruff"\nversion = "0.16.4"')),
 
     # One site of a fact two pairs state is reworded while its siblings stand, which
     # is the drift K-61 cannot see: the edited pair blesses on its own two sides and
@@ -1399,6 +1400,9 @@ CASES: list[Case] = [
     ("K-75", "a workflow interpreter below the floor ty.toml fixes",
      _literal(".github/workflows/host-gates.yml", 'python-version: "3.14"',
               'python-version: "3.13"')),
+    ("K-75", "a project admitting an interpreter below the typing target",
+     _literal("pyproject.toml", 'requires-python = ">=3.14,<3.15"',
+              'requires-python = ">=3.13,<3.15"')),
 
     # The configuration is moved rather than the record, because that is the direction
     # no reader of one file can see: the record goes on naming the parameter that takes

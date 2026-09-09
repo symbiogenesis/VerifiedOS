@@ -30,10 +30,10 @@ import sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 from vos import corpus
-import run
+from vos.cli import proofs
 root = Path(sys.argv[2])
 corpus.find_root = lambda start=None: root
-raise SystemExit(run.main(["proofs", "headers", *sys.argv[3:]]))
+raise SystemExit(proofs.main(["headers", *sys.argv[3:]]))
 """
 
 

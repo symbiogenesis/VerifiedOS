@@ -21,15 +21,14 @@ code that is tested.
 
 import json
 import subprocess
-import sys
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
-from tests.harness import TOOLS, Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, cli_argv, ensure, sandbox_tree
 
 # The live sources the sandbox copy of the tool runs on, relative to the root.
-_SOURCES = ("tools/run.py", "tools/vos/cli/__init__.py", "tools/vos/cli/coread.py",
+_SOURCES = ("tools/vos/cli/__init__.py", "tools/vos/cli/coread.py",
             "tools/vos/__init__.py", "tools/vos/coread.py",
             "tools/vos/corpus.py", "tools/vos/env.py", "tools/vos/register.py")
 
@@ -80,7 +79,7 @@ def _fixture() -> dict[str, str]:
 
 def _run(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(root / "tools" / "run.py"), "coread", *args],
+       cli_argv(root, "vos.cli.coread", *args),
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
 

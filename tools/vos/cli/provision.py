@@ -14,8 +14,9 @@ there.
 **It reads its facts rather than restating them.** Every version, switch name and pin
 below is imported from the module or the document that fixes it, so this file is a
 table of *rows* and not a second copy of the tree's pins. The one figure written here
-as a literal is the interpreter floor, which lives in a TOML setting no import reaches;
-K-75 holds this site against `tools/ty.toml` exactly as it holds the other seven.
+as a literal is the interpreter floor; K-75 holds this explicit restatement against
+`tools/ty.toml`. Python packages are synchronized from uv.lock before dispatch,
+so their rows probe the settled environment and carry no separate install recipes.
 
 **Native rather than containerized, which is what makes it arch-agnostic.** I8's
 exclusion was that the prover's published image is amd64-only; an opam build from
@@ -68,11 +69,7 @@ from vos import env, gallina
 from vos.cli import quickchick, rtl, typecheck
 from vos.report import Reporter
 
-# The version this directory's Python is written to, as `tools/ty.toml` fixes it and
-# `tools/ruff.toml` spells it in its own dialect. It is a literal here because a TOML
-# setting is not importable, and it is inside K-75's window for exactly that reason:
-# the rule holds every site under `tools/` that restates the floor against the one
-# artifact that owns it, so this restatement is checked rather than trusted.
+# K-75 holds this probe's floor against the checker targets and project requirement.
 INTERPRETER_FLOOR = "3.14"
 
 # The bound a probe must answer within. Every one of these is a version query or a
@@ -212,16 +209,10 @@ def _at_version(argv: Sequence[str], pin: str) -> Found:
 
 
 def _checker(name: str, pin: str) -> Found:
-    """One of the two pinned checkers, resolved the way the gate that runs it resolves
-    it. [typecheck.py](typecheck.py)'s three-place lookup is reached rather than
-    repeated: uv's tool bin directory, then the interpreter's script directories, then
-    PATH. A second copy of that order here would be a provisioner that disagrees with
-    the gate about whether a checker is installed, which is worse than no probe.
-    """
+    """Probe the environment-local checker selected by the gate."""
     exe = typecheck._tool(name)
     if exe is None:
-        return Found(False, f"no {name} in {typecheck._uv_tool_bin()}, "
-                            f"beside {sys.executable}, or on PATH")
+        return Found(False, f"no {name} in this interpreter's environment")
     try:
         found = typecheck._version(exe)
     except (OSError, subprocess.SubprocessError):
@@ -360,24 +351,21 @@ FACTS: tuple[Fact, ...] = (
          "tools/ty.toml, whose python-version this file restates under K-75",
          _interpreter),
     Fact("uv", GATE,
-         "the two pinned checkers, which install as uv tools",
-         "tools/README.md, which states the installs and not how uv itself arrives",
+            "run.py's locked Python environment",
+            "pyproject.toml's tool.uv.required-version, enforced by uv at startup",
          partial(_on_path, "uv")),
     Fact("ty", GATE,
          "run.py typecheck",
-         "tools/vos/cli/typecheck.py's TY_VERSION",
-         partial(_checker, "ty", typecheck.TY_VERSION),
-         (("uv", "tool", "install", f"ty=={typecheck.TY_VERSION}"),)),
+            f"pyproject.toml's dependency-groups.dev (ty {typecheck.TY_VERSION})",
+            partial(_checker, "ty", typecheck.TY_VERSION)),
     Fact("ruff", GATE,
          "run.py typecheck",
-         "tools/vos/cli/typecheck.py's RUFF_VERSION",
-         partial(_checker, "ruff", typecheck.RUFF_VERSION),
-         (("uv", "tool", "install", f"ruff=={typecheck.RUFF_VERSION}"),)),
+            f"pyproject.toml's dependency-groups.dev (ruff {typecheck.RUFF_VERSION})",
+            partial(_checker, "ruff", typecheck.RUFF_VERSION)),
     Fact("jsonschema", GATE,
          "run.py model validate-config, and ty on every lane",
-         "tools/README.md, the one non-stdlib import this directory has",
-         partial(_importable, "jsonschema", "jsonschema"),
-         ((*APT, "python3-jsonschema"),)),
+            "pyproject.toml's project.dependencies; synchronized by run.py",
+            partial(_importable, "jsonschema", "jsonschema")),
     Fact("opam", TOOLCHAIN,
          "every switch below, and vos/env.py's _apply_opam_env",
          "tools/vos/env.py",

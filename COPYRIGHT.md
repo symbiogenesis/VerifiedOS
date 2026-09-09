@@ -33,6 +33,7 @@ These kinds carry no mark:
 | --- | --- |
 | `.md` | The map above already reaches it by path. |
 | `.json` | JSON admits no comment, so a mark would make the file unparseable. |
+| `.lock` | Resolver-generated dependency metadata rather than authored content; the resolver regenerates it without authored headers. |
 | `.patch` | A diff's bytes are its meaning, and a prepended line breaks the hunks it names. |
 | `.gitattributes`, `.gitignore`, `.gitmodules` | Git's own configuration rather than authored content. |
 
