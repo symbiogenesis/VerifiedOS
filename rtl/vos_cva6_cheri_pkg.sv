@@ -160,7 +160,8 @@ package cva6_cheri_pkg;
 
   // BEGIN GENERATED CAPABILITY EXCEPTIONS
   // Generated from model/model/core/cap_causes.sail and
-  // model/model/core/types_ext.sail, with register widths from
+  // model/model/core/types_ext.sail, with its mapped width from
+  // model/model/core/types_common.sail and register widths from
   // model/model/core/types.sail, model/model/core/xlen.sail and
   // model/config/verifiedos.json; repair with tools/run.py check --fix.
   localparam int unsigned CapExCodeWidth = 5;

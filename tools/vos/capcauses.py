@@ -17,7 +17,8 @@ EXCEPTIONS = "model/model/core/types_ext.sail"
 TYPES = "model/model/core/types.sail"
 XLEN = "model/model/core/xlen.sail"
 CONFIG = "model/config/verifiedos.json"
-OWNERS = (CAUSES, EXCEPTIONS, TYPES, XLEN, CONFIG)
+COMMON_TYPES = "model/model/core/types_common.sail"
+OWNERS = (CAUSES, EXCEPTIONS, TYPES, XLEN, CONFIG, COMMON_TYPES)
 ADAPTER = "rtl/vos_cva6_cheri_pkg.sv"
 BEGIN = "  // BEGIN GENERATED CAPABILITY EXCEPTIONS"
 END = "  // END GENERATED CAPABILITY EXCEPTIONS"
@@ -74,17 +75,25 @@ def _shape(text: str, pattern: str, expected: str, label: str) -> None:
         raise CauseError(f"{label}: unsupported shape {found.strip()!r}")
 
 
-def render(causes: str, exceptions: str, types: str, xlen: str, config: str) -> str:
+def render(causes: str, exceptions: str, types: str, xlen: str, config: str,
+           common_types: str) -> str:
     """Emit the delimited region; all numeric values come from Sail definitions."""
-    causes, exceptions, types, xlen = map(_bare, (causes, exceptions, types, xlen))
+    causes, exceptions, types, xlen, common_types = map(
+        _bare, (causes, exceptions, types, xlen, common_types))
     for source, kind, name in (
         (xlen, "type", "xlen"), (types, "type", "base_E_enabled"),
         (types, "newtype", "regidx"), (types, "type", "regidx_bit_width"),
         (causes, "type", "capreg_idx"), (causes, "enum", "CapEx"),
         (causes, "let", "PCC_IDX"), (exceptions, "mapping", "ext_exc_type_bits"),
+        (common_types, "type", "exc_code"), (xlen, "type", "xlenbits"),
     ):
         _named(source, kind, name)
     xlen_width = int(_one(xlen, r"\btype\s+xlen\s*:\s*Int\s*=\s*(\d+)[ \t]*$", "Sail xlen"))
+    _shape(xlen, r"\btype\s+xlenbits\s*=\s*([^\n]+)", "bits(xlen)", "Sail xlenbits")
+    exception_width = int(_one(common_types, r"\btype\s+exc_code\s*=\s*bits\((\d+)\)[ \t]*$",
+                               "Sail exc_code"))
+    if exception_width < 1 or exception_width > xlen_width:
+        raise CauseError("Sail exc_code width does not fit xlen")
     _shape(types, r"\btype\s+base_E_enabled\s*:\s*Bool\s*=\s*([^\n]+)",
            "config base.E", "Sail register-file selection")
     _shape(types, r"\bnewtype\s+regidx\s*=\s*Regidx\s*:\s*([^\n]+)",
@@ -134,9 +143,9 @@ def render(causes: str, exceptions: str, types: str, xlen: str, config: str) -> 
     mapping_match = re.fullmatch(r"\s*EXC_CHERI\s*<->\s*0b([01]+)\s*,?\s*", mapping)
     if mapping_match is None:
         raise CauseError("Sail EXC_CHERI mapping has unsupported or duplicate rows")
+    if len(mapping_match.group(1)) != exception_width:
+        raise CauseError("Sail EXC_CHERI literal width disagrees with exc_code")
     cause = int(mapping_match.group(1), 2)
-    if cause >= 2 ** xlen_width:
-        raise CauseError("Sail EXC_CHERI does not fit xlen")
     # These are translations of the owner's packing and zero-extension, rather
     # than arbitrary expressions the emitter claims to understand as Sail.
     register_body = _body(causes, "capreg_idx_of_regidx",
@@ -152,7 +161,8 @@ def render(causes: str, exceptions: str, types: str, xlen: str, config: str) -> 
                           for (name,) in enum)
     return f"""{BEGIN}
   // Generated from {CAUSES} and
-  // {EXCEPTIONS}, with register widths from
+  // {EXCEPTIONS}, with its mapped width from
+  // {COMMON_TYPES} and register widths from
   // {TYPES}, {XLEN} and
   // {CONFIG}; repair with tools/run.py check --fix.
   localparam int unsigned CapExCodeWidth = {code_width};
@@ -207,7 +217,7 @@ def replace(text: str, region: str) -> str:
     """Replace exactly one complete region; malformed delimiters never guess a span."""
     if text.count(BEGIN.strip()) != 1 or text.count(END.strip()) != 1:
         raise CauseError("the adapter must carry exactly one pair of exception delimiters")
-    pattern = rf"(?m)^{re.escape(BEGIN)}\n.*?^{re.escape(END)}\n"
+    pattern = rf"(?m)^{re.escape(BEGIN)}\r?\n.*?^{re.escape(END)}\r?\n"
     matches = list(re.finditer(pattern, text, re.DOTALL))
     if len(matches) != 1:
         raise CauseError("the adapter's exception delimiters are reversed or malformed")

@@ -15,7 +15,7 @@ def cap_causes(ctx: Context) -> None:
         for name in (capcauses.ADAPTER, *capcauses.OWNERS):
             if name not in ctx.corpus.tracked:
                 raise capcauses.CauseError(f"the index does not carry {name}")
-        actual = (ctx.root / capcauses.ADAPTER).read_text(encoding="utf-8")
+        actual = (ctx.root / capcauses.ADAPTER).read_bytes().decode("utf-8")
         expected = capcauses.replace(actual, capcauses.emit(ctx.root))
         if actual != expected:
             if ctx.fix:
