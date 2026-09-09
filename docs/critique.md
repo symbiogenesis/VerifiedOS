@@ -56,10 +56,9 @@ Compiling Gallina directly supplies neither GC-free execution, bounded allocatio
 The direction that reduces the split is less hand-maintained semantic duplication: an executable bounded implementation language as the authoritative operational source where one fits, the abstract model derived from it or the code compiled through a correctness-preserving path, manual refinement kept where abstraction earns its cost rather than as the default consequence of starting every component in unrestricted Gallina, and no further grand compiler project before one small component reaches the device through the route proposed.
 Q2 is that experiment, on the wire-parser consumer M1.6 measured the route fits.
 
-This is less a bad local decision than an honest limit of the field.
-No verification language in this stack is simultaneously the most convenient specification notation, a directly synthesizable whole-machine implementation, and a producer of excellent optimized production binaries.
-The project therefore pays for compiler correctness, lowering, assembly, linking, image construction, RTL refinement, and the semantic bridges between them.
-Calling the sources singular does not make those correspondence obligations disappear.
+Substantial combinations already exist in the [strategy's closest-prior-art comparison](verification-language-strategy.md#closest-matches-to-the-complete-workflow): DeepSEA generates representation/refinement machinery for a restricted systems language, Sepref refines abstract algorithms into imperative implementations, and the verified Dafny subset and Bedrock2/Kami example connect different source workflows to stronger execution endpoints.
+Q2b and Q19c therefore ask which of those mechanisms fits the actual client and selected anchors before new machinery is authored; the [capability-law results](verification-language-strategy.md#capability-aware-and-parametric-verification) make that question concrete for CHERI reasoning as well.
+The remaining constraint is the conjunction of this platform's semantics, proof authority, runtime restrictions and artifact guarantees. The project still pays for the missing lowering, assembly, linking, image construction, RTL refinement and connections, with no saving credited merely for finding an upstream theorem.
 
 **Reuse is broad in the bibliography and narrow in the shipped artifact.**
 The project does pull in many third-party projects, but predominantly as pinned readings, executable references, differential oracles, proof lineages, or designs to re-home in Coq.
