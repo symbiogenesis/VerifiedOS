@@ -6,72 +6,100 @@
 
 ## Recommendation
 
-The bounded tooling qualification is scheduled as Q19 in [the implementation checklist](implementation-checklist.md#q-assessment-actions), with acceptance owned by [interactive-evidence discipline](spec.md#r-05-018a), [audited reuse](spec.md#r-05-018b) and [SMT reconstruction](spec.md#r-05-017). Q20 schedules the combined language acceptance experiment: a comparison contract, a conditional integrated authoring trial, and a conditional optimized-artifact promotion trial. Q21 separately scopes the unified core and compiler-route comparison. These cells do not implement a general language or select a new compiler intermediate by declaration.
+Keep **`VerifiedComponents` as a bounded, target-parametric Rocq library pilot**, with one CHERI instance. Pursue **Vela** as a separately scoped language design: one authoring surface for executable definitions, contracts and proofs, with flow-sensitive loans and explicit representations. Successful pilot combinators establish reusable proof engineering, not Vela's eventual calculus or compiler.
 
-**`VerifiedComponents` is a prerequisite experiment for Vela, not an implementation of Vela's eventual core calculus or compiler architecture.** Keep the library and its CHERI-first instance, while pursuing a separately scoped design comparison for the unified core and production compiler. The current Vela examples are temporary pilot notation. Successful scoped combinators establish reusable proof engineering; they do not make callback-shaped borrowing the intended user model or establish language unity.
+The [implementation checklist](implementation-checklist.md#q-assessment-actions) schedules Q19's tooling and conditional library qualification, Q20's integrated authoring and optimized-artifact trials, and **Q21a/Q21b's open design and pricing work** for the core and compiler comparison. Q21 is scheduled, but implements neither a frontend nor a backend. The Clight/CHERI-CompCert route remains required while Q21b compares it with a **direct explicit-memory capability IR** at equivalent proof endpoints and full cost; no intermediate is selected here.
 
-The language design target is one local account of authority, with flow-sensitive loans and inferred restoration, layered refinement automation, uniform dependent data and explicit staging. Logical permissions, hardware capabilities, effects, security permissions and resource budgets retain different interpretations. The compiler comparison treats the Clight route and a direct capability-aware route as hypotheses with full costs and substitute evidence, not as an implemented baseline against a cost-free alternative. Current register requirements remain binding until an evidence-backed amendment changes them.
+Start with diagnostics and selective reuse on existing proofs. Q19c's component pilot remains blocked until its concrete operation and representation laws are checked. Most specifications in [the crown-jewel inventory](crown-jewels.md) remain unauthored; those specifications and the missing machine connection retain their existing priority and owners. Core design can proceed without claiming to discharge them.
 
-Q19a/Q19b start with the existing copy-service invariant proofs and helpers. Q2c owns the scope and pricing of missing CHERI primitive, representation and semantic-connection work; Q3c separately owns the protected-sequence fault-model specification. Q19c's initial consumer is the parser's fixed-destination initialization, with the copy service's private staging operation reserved for independent reuse. Completing a scoping act supplies none of the checked artifacts those trials require.
+## Constraints and Desired Product
 
-Build toward one developer-facing systems language, starting with a target-parametric Rocq library and an integrated source/proof workflow over its supported components.
-Separate the reusable framework from its first concrete instance, VerifiedOS's CHERI target.
-The useful synthesis is an Idris-like specification layer, Rust-like explicit ownership and representation, and C#-like discoverability and diagnostics, elaborated into Rocq through explicit semantic interfaces.
-It does not require a new proof kernel or a dependently typed on-device checker.
+The [register](requirements-register.md) remains authoritative. [Semantic anchors are fixed](spec.md#r-05-019); [verified compilation transports proofs between them](spec.md#r-05-021). A [new translator](spec.md#r-05-020) must be Rocq-native or mechanically bridged, duplicate no anchor and retire an interim it replaces. A general Vela frontend names no retiring interim yet, so its admission remains unresolved. There is no new proof kernel, on-device dependent checker, managed runtime or non-CHERI VerifiedOS deployment path.
 
-Substantial parts of this workflow already exist, including combinations that reach beyond a source-only component theorem.
-The [closest prior art](#closest-matches-to-the-complete-workflow) is DeepSEA for a Rocq-oriented systems language and certified representation/lowering, Isabelle's Sepref/LLVM framework for reusable imperative refinement, and the verified Dafny subset through CakeML for familiar contracts connected to machine code.
-For the capability boundary, [memory-model-parametric symbolic execution and Morello-Cerise](#capability-aware-and-parametric-verification) supply particularly relevant mechanized results.
-The local experiment should identify what can be reused from those results before implementing equivalent machinery; its remaining uncertainty is compatibility with the selected semantics, assumptions and clients, as well as maintenance cost.
+### Language Product Contract
 
-The local hypothesis is that executable specifications and proof-producing construction combinators, parameterized by proved operation and representation laws, can remove repeated specification-to-implementation work while leaving the project's semantic-anchor budget unchanged.
-The discriminating experiment is a bounded buffer operation: prove its contract using only the declared interface laws, instantiate those laws over the selected CHERI-aware program semantics, and show that changing the store or its bound breaks the proof.
-A library that only proves a second hand-transcribed model, without relating the implementation to it, fails that experiment.
+**One language means one authoring surface, not one mathematical interpretation for every feature.** A component package combines its operational definition, independently reviewed intended behavior, explicit representations and supporting lemmas. Ordinary callers use typed APIs and inferred routine obligations; library authors prove the ownership and representation laws. The full combination remains a research objective, not a result established by library qualification.
 
-The proposed library needs enough concrete specifications to demonstrate recurring work that it can remove.
-Most specifications in [the crown-jewel inventory](crown-jewels.md) remain unauthored, which [the critique](critique.md) identifies as the project's binding constraint.
-The immediate priority is therefore to author those specifications and identify repeated work in later clients before generalizing it into a library.
-
-That constraint applies to the proposed imperative abstraction, not to all proof tooling. [CopyRingService.v](../proofs/CopyRingService.v) already supplies a concrete Q19b comparison through its Boolean and arithmetic helpers and invariant proofs, and Q19a uses those same source obligations for diagnostics. Qualification can improve existing statement-level proof work while the machine connection remains open; such savings establish no theorem about an executed service.
-
-The register already separates the two halves this proposal needs: [semantic anchors are frozen and exhaustively enumerated](spec.md#r-05-019), while [a verified compiler is proof transport between two existing anchors rather than an anchor, and is admitted freely](spec.md#r-05-021).
-The generic library and its construction combinators provide transport between the existing anchors.
-A new surface-language elaborator must satisfy [the admission conditions for a translator](spec.md#r-05-020): it must be Coq-native or mechanically bridged, must not duplicate an existing anchor, and must retire an interim it replaces.
-This proposal is designed around the first two conditions but names no interim for the third. The frontend therefore has an unresolved admission obligation beyond the library's proof work.
-The VerifiedOS instance adds definitions and theorems over those anchors, not a parallel operational semantics or a non-CHERI deployment path.
-Other projects could supply different proved instances without changing the generic library or acquiring VerifiedOS's security claims by implication.
-Its first usable result can be a verified source-level component; an admitted optimized binary remains a later result dependent on the existing compiler and artifact-verification work.
-
-## Language Product Contract
-
-The full combination is a research objective, not a demonstrated property of this proposal. Its foundations draw on strong existing work, but library qualification alone cannot establish C# productivity, Rust performance or a production binary with a complete proof chain. Q20 makes their conjunction an explicit experiment. No finite survey can establish that it includes every latest idea; a new result earns integration by closing a measured gap with compatible semantics and evidence.
-
-**One language means one authoring surface for executable definitions, contracts and proofs.** A component package contains its operational definition, independently reviewed intended behavior, explicit representation choices and supporting lemmas. Ordinary callers use typed APIs and inferred routine obligations; library authors prove the representation and ownership rules those APIs expose. Rich dependent mathematics remains available for difficult properties. This organization permits generated intermediate languages and target code underneath the surface; it must not require the pilot's author to maintain a second handwritten optimized implementation to make the first execute.
-
-That last condition is deliberately stronger than the current bring-up plan's manual Gallina-to-C refinement path. It applies first to the bounded family Q20 tests. Existing kernel and storage refinements retain their owners; their replacement requires an equivalent demonstrated path, not an assumption that every abstract Gallina algorithm can be lowered efficiently. If successful clients can express their code only by dropping into a separately maintained implementation language, the unified-language trial fails even when both programs have valid proofs.
+The supported family must execute without a second hand-maintained optimized implementation. This is stronger than the bring-up plan's manual Gallina-to-C refinement path and applies first to Q20's bounded clients. Existing kernel and storage refinements retain their owners until an equivalent replacement is demonstrated; arbitrary Gallina algorithms are not presumed efficiently lowerable.
 
 | Desired quality | Design commitment to test | Evidence needed before claiming it |
 | --- | --- | --- |
 | C#-like productivity | Discoverable APIs, local inference, concise contracts, actionable diagnostics, navigation, reproducible package builds and stable interfaces | Time to implement, diagnose, review and change representative tasks, including a client not used to design the library. Syntax resemblance and proof-search success rates alone do not decide this. |
 | Rust-like safety and control | Straight-line, flow-sensitive loans with inferred restoration, explicit layouts and bounded resource use, backed by proved primitives | Checked ownership and functional contracts across every supported exit, negative alias/escape/failure cases, and transport to the actual machine. Callback rewrites and manual restoration are measured limitations of the pilot, not the target UX. |
 | Idris/Gerty-style verification | Dependent specifications, erased proofs, indexed protocols and explicitly interpreted resource grades in the same workflow | Kernel-checked terms with the accepted assumptions, totality or progress where claimed, and sound resource interpretation. Routine code must not require authors to understand every underlying calculus. |
-| Production performance | Specialization, in-place representations and the selected backend's existing optimization duties | Comparable final code size, stack, allocation, memory traffic and target execution measurements. A cost proof is separate from a claim of competitive throughput. |
+| Production performance | Specialization, in-place representations and a verified or translation-validated optimization path appropriate to the selected backend | Comparable final code size, stack, allocation, memory traffic and target execution measurements. A cost proof is separate from a claim of competitive throughput. |
 | Maintainability | Abstract contracts, stable source and goal identities, semantic dependency tracking and reproducible proof replay | A semantics-preserving refactor, an internal representation change and a genuine contract change, with review and repair effort reported separately. Stable identities aid navigation but never authorize reuse after a semantic dependency changes. |
 | Proof interaction | Typed holes and a predictable refinement tier before interactive proof | Each residual goal retains its source span, local values, hypotheses, available authorities, expected exit state and target-specific cause. Unresolved nodes cannot enter an accepted build; measure automatic discharge and diagnostic latency rather than promising a percentage. |
 
-C#'s [language strategy](https://learn.microsoft.com/en-gb/dotnet/csharp/tour-of-csharp/strategy) treats tooling, learning resources and compatibility as part of feature development. Matching that experience therefore also takes maintained libraries, documentation, package compatibility and debugging support. The proposed resource discipline excludes parts of ordinary .NET programming; the pilot tests a bounded systems workflow, not parity with C#'s application ecosystem.
+### Expected Developer Experience
 
-**The optimized executable is the software golden artifact.** For a selected source closure and target, call the final image `B`. Q20's promotion trial uses those exact bytes on the Sail emulator and on every available compatible target execution environment; production admission and resource evidence refer to `B` as well. No later manual rewrite or unchecked optimization produces the shipped implementation. If optimization, linking, a dependency or configuration changes the image, the new image needs its own evidence. Hashes identify the subject; the source-correspondence and artifact proofs establish what it means.
+The intended workflow is straight-line code and concise contracts, inferred refinements, then optional calculational assertions and named lemmas within `proof` mode. Residual mathematics becomes a contextual typed hole or explicit Rocq proof; raw separation-logic state remains inspectable. Timeouts, unsupported constructs and disproved contracts have distinct diagnostics. Search and AI tools propose evidence, never weaken intent or grant acceptance. C#'s [language strategy](https://learn.microsoft.com/en-gb/dotnet/csharp/tour-of-csharp/strategy) also makes libraries, documentation and compatibility part of the product; syntax alone cannot supply its ecosystem.
 
-The independently reviewed contract remains a mathematical description of intended behavior. It can have an extracted host oracle, and the machine retains its independently authored Sail semantics. Neither needs to be textually identical to machine code. The saving is eliminating an independently maintained production implementation for the supported family, while preserving independent ways to detect a wrong contract. This software claim does not turn the host simulator into the fabricated processor.
+**The optimized executable is the software golden artifact.** Q20c exercises and promotes the same final image `B`, binding source correspondence, admission and resource evidence to its exact bytes. A changed image needs fresh evidence; a hash identifies the subject but proves no behavior. The independently reviewed contract, its optional host oracle and the independently authored Sail model remain distinct checks on intent and execution. No manual rewrite or unchecked optimization follows promotion.
 
-The experiment distinguishes **source-verified**, **artifact-connected** and **production-qualified** results. The first has a checked component theorem; the second connects the authored subject through representation and lowering to exact bytes; the third also meets the applicable admission, resource, security and target-evidence obligations. Bring-up can stop at an earlier result, but its success cannot be reported as the last one. Q20c consumes the existing compiler and assurance milestones rather than paying for their unfinished proofs inside a small integration estimate.
+Report **source-verified**, **artifact-connected** and **production-qualified** results separately. A component theorem is the first; correspondence through lowering to bytes adds the second; applicable admission, security, resources and target evidence supply the third. Neither a source proof nor emulator execution establishes competitive throughput, silicon behavior or the hardware theorem.
 
-The everyday automation policy follows the same split. Infer routine ownership, bounds and effect obligations where reliable; expose unresolved goals and counterexamples with their source context; allow explicit lemmas for harder mathematics. Timeouts and unsupported constructs stay distinct from disproved contracts. Proof search and optional AI assistance may propose code or lemmas, but they cannot weaken the reviewed contract or grant acceptance. Expressiveness is available when needed without promising automatic inference or proof of arbitrary dependent programs.
+## Proposed Architecture
 
-The language-product test is whether ordinary mutation, branching and error propagation have one comprehensible authority explanation. Authors should normally see code, concise contracts and inferred refinements, then optional calculational steps and named lemmas, with explicit Rocq proof for the remaining mathematics. Raw separation-logic contexts remain inspectable on demand. A coherent notation without a checked composition theorem is a design result, not a sound language.
+Use universe-stratified dependent values in CIC and explicitly sequenced computations over the selected semantics. A duplicable context holds stable values and snapshots; a resource context tracks authority through mutation, captures and exits. Memory loans, hardware capabilities, effects, security permissions and budgets retain distinct interpretations. One local explanation of authority does not make a capture set a proof of ownership or noninterference.
 
-## Research Landscape
+The pilot qualifies scoped callback rules; the eventual core targets flow-sensitive loans with inferred restoration at every supported exit. Closed synchronous effect summaries precede effect polymorphism and scoped discharge; handlers and suspension wait for their resource rules. A declared refinement fragment precedes domain automation and explicit proof. Dependent results retain runtime-discovered indices as real data with erased evidence.
+
+```text
+Authored source closure + independently reviewed contract
+	-> checked elaboration and source correspondence
+	-> interpreted core + reconstructed ownership/refinement proofs
+	-> proved representation and lowering
+	-> verified or translation-validated optimization
+	-> capability-aware selection/allocation + typed linkage
+	-> exact bytes + required TAL/CIC evidence over pinned Sail
+```
+
+Each arrow is an obligation. The frontend emits a [SourcePackage](#mechanically-produced-evidence) binding parsing, resolution, implicit insertion and desugaring to the authored source; MetaRocq does not supply that theorem merely by checking the resulting term. Hardware refinement meets the same Sail definitions independently. Reuse [DeepSEA and Sepref's construction/representation techniques](#closest-matches-to-the-complete-workflow) and [capability-law precedents](#capability-aware-and-parametric-verification) where their subjects and assumptions fit. The [core rules](#a-compositional-core), [illustrative surface](#an-ideal-surface) and [library package](#concrete-package-shape) specify the proposed boundaries in detail.
+
+## Compiler Route Decision
+
+**A Bedrock2-style end-to-end theorem does not require Clight; it requires a compositional proof chain terminating in the same pinned machine semantics.** [Bedrock2](https://github.com/mit-plv/bedrock2) compiles its own imperative source through lower representations to RISC-V instructions and bytes, composing source proofs, compiler correctness, an ISA-specification connection and a Kami processor theorem. [Pancake](https://cakeml.org/pancake.html) similarly uses explicit memory and lower CakeML compiler layers to transport source correctness toward binaries. These establish architectural precedent, not the required Rocq/CHERI integration.
+
+| Criterion | Clight/CompCert route | Direct explicit-memory capability-IR route |
+| --- | --- | --- |
+| Reusable verified infrastructure | Incumbent compiler passes, simulations and C proof interfaces | Reuse and missing proofs must be demonstrated |
+| Fit with generated Vela semantics | An additional representation boundary, with a specified source anchor | Potentially avoids that boundary; explicit representation proofs still required |
+| CHERI support | Required adaptation and composed evidence remain incomplete | Proposed route is unbuilt |
+| Optimization | Existing CompCert/Chamois verified passes and validated oracles | Must reuse or prove/validate suitable passes; breadth and benefit unmeasured |
+| C interoperability | Native structural advantage; purecap ABI and linkage proofs still owed | Requires a typed bridge to retained verified-C components |
+| End-to-end precedent | CompCert lineage and its composition results | Bedrock2 and CakeML/Pancake precedents with different targets and boundaries |
+| Current decision | Required default route, not an end-to-end completed route | Q21b research candidate, not an authorized replacement |
+
+**SSA is one candidate representation, not a decision embedded in the route's name.** The comparison also includes CFG/block representations and reuse within the existing compiler. [Chamois](https://certicompil.gricad-pages.univ-grenoble-alpes.fr/Chamois-CompCert/) already combines CFG-based RTL, BTL blocks, verified inlining and CSE, loop transformations, validated optimization oracles and validated register allocation. An incumbent route is not inherently an optimization dead end; ordinary target proofs still require capability, trap and leakage qualification here.
+
+Q21b fixes equivalent clients, target, artifact endpoint and budgets before an executable comparison, and prices missing implementation separately. Its [amendment dossier](#compiler-amendment-obligations) must replace every affected duty, including representation, optimization, source correspondence, typed linkage, robust preservation and compiler independence. R-05-043's Clight decoder waypoint remains binding; changing it alone cannot replace R-18-014's named TCB and Rust compiler duties. If neither route reaches the endpoint, neither qualifies. The [detailed comparison](#comparison-and-stop-conditions) states the measurements and stop conditions.
+
+## Experiments and Stop Conditions
+
+Q19a/Q19b start with [CopyRingService.v](../proofs/CopyRingService.v)'s existing helpers and invariant proofs. Q19c starts with parser destination initialization and reserves copy-service staging for independent reuse. Q2c scopes missing foundations, Q2b owns device lowering, Q3c specifies the protected-sequence fault model and Q3b owns its slice evidence. A completed scoping act supplies none of their checked prerequisites.
+
+| Experiment | Decisive evidence | Stop or blocking result |
+| --- | --- | --- |
+| Q19 tooling and conditional library pilot | Replay existing proofs; prove a generic bounded operation using checked CHERI laws; reject false/missing laws and wrong-store/bound variants | Missing concrete laws, fresh unchecked assumptions, or a theorem about a disconnected model |
+| Q20 integrated workflow | Freeze contracts and thresholds first; test [pilot composition](#pilot-composition-cases), held-out reuse, semantic edits and deliberately weakened specifications | Duplicate maintained implementations, undetected lost behavior, or failure to meet the predeclared usability/maintenance threshold |
+| Q20 optimized-artifact promotion | Connect the accepted source through lowering to exact bytes; compare equivalent manual/unoptimized baselines on the same target | Missing correspondence, admission, target or resource evidence; hidden runtime support or unproved optimization |
+| Q21a core qualification design | Specify [eventual-core composition](#eventual-core-composition-cases), typed-hole diagnostics and a soundness/implementation obligation map | Incoherent authority or exit rules; unsupported interactions claimed from the callback pilot |
+| Q21b compiler comparison design | Price both routes at equivalent endpoints, define emission-rule closure tests and specify duty-by-duty amendment evidence | Unpriced proof work, dropped arbitrary-context duties, or a missing artifact counted as a route victory |
+
+Q21 commissions design and pricing; a new executable trial needs its own implementation owner and budget. Positive and well-formed negative neighbors must exercise the same supported mechanisms; parser failure or unsupported syntax does not count as a safety rejection. The [detailed protocols](#detailed-experiment-protocols) retain the full tests. [Break-even accounting](#where-time-might-be-saved) charges shared work once, separates measured savings from projections and never compares source-only evidence with a final-byte baseline.
+
+## Decision
+
+Proceed with Q19's available proof tooling and the conditional CHERI library pilot, Q20's predeclared workflow/artifact comparisons, and Q21's scheduled core and compiler design work. Retain the current compiler requirements until equivalent substitute evidence supports an explicit amendment. Useful component proofs survive a rejected language or compiler trial; no route wins by weakening its endpoint.
+
+The main risks are composition failures across dependency, mutation, captures, exits and erasure; displaced compiler or general-logic proof work; common-mode contract/frontend errors; and insufficient reviewer capacity. General handlers, async/cancellation, concurrent interior mutation, universal grades, kernel equality changes and external target portability remain deferred. Frontend/backend implementation requires explicit scope and pricing, not another syntax example.
+
+No upstream code is incorporated here. Any incorporation first reads the selected artifact's licence and transitive notices under the [third-party discipline](../THIRD-PARTY.md). The appendices retain research evidence, proposed rules, implementation protocols and effort judgments; they do not add scheduled work or admission authority.
+
+## Appendix A: Research and Semantic Boundaries
+
+### Research Landscape
 
 This is a broad, decision-oriented survey of primary papers, project documentation, and implementation repositories, not a claim to enumerate every language or establish the absence of a newer preprint.
 It emphasizes developments from 2024 onward, retaining earlier systems where they supply a missing part of the proposed design.
@@ -80,7 +108,7 @@ No surveyed toolchain is demonstrated by these sources to deliver the entire req
 The project-fit columns assess that initial instance, not the general usefulness of these systems on other architectures.
 Architecture independence is also distinct from prover independence: the proposed reusable framework still checks proofs in Rocq.
 
-### Rust and Low-Level Verification
+#### Rust and Low-Level Verification
 
 | System | First-class verification and useful idea | Evidence boundary and project fit |
 | --- | --- | --- |
@@ -100,7 +128,7 @@ For existing Rust components, evaluate RefinedRust first when foundational owner
 Verus is a strong ergonomics comparator, not a drop-in replacement for the repository's proof authority.
 RustBelt supplies semantic foundations for Rust safety; it is not itself a push-button functional verifier for arbitrary crates.
 
-### What the Rust Verifiers Contribute
+#### What the Rust Verifiers Contribute
 
 **Verus: proof resources need ownership too.** Its [variable modes](https://verus-lang.github.io/verus/guide/reference-var-modes.html) separate runtime values from `ghost` mathematical values and `tracked` proof resources.
 Both ghost and tracked data are erased, but tracked resources retain ownership discipline during verification.
@@ -130,7 +158,7 @@ The practical choice is therefore not a contest between interchangeable Rust ver
 Use Verus to evaluate proof authoring and erased permissions, Creusot and Prusti to evaluate borrow contracts, and RefinedRust for a foundational ownership route already aligned with the architecture.
 A verifier's convenient annotation syntax does not remove the cost of specifying a primitive, proving its implementation, or connecting its source model to the deployed artifact.
 
-### Dependent Types, Effects, and Ergonomics
+#### Dependent Types, Effects, and Ergonomics
 
 | System | Contribution to the ideal language | Boundary to retain |
 | --- | --- | --- |
@@ -152,7 +180,7 @@ Koka's relevance extends beyond effects: its [fully in-place programming work](#
 The most directly relevant recent advances are therefore not a single new universal language: they are foundational Rust verification, live proof-state interaction, imperative dependent verification in Pulse and Lean, and more trustworthy extraction in Rocq.
 AI proof synthesis can help in all these workflows, but contributes candidate programs, contracts, and proof scripts only. A generated contract still needs independent review and a generated proof still needs kernel checking.
 
-### Compilation and Executable Models
+#### Compilation and Executable Models
 
 | System | What it establishes or enables | Consequence for this project |
 | --- | --- | --- |
@@ -168,7 +196,7 @@ F*/Low* with KaRaMeL, HACL*, Vale, and EverParse provide particularly strong evi
 Their production use supports feasibility, not equivalence between their trust assumptions and this repository's.
 The comparison is about theorem endpoints and runtime obligations, not whether a project uses the word "verified."
 
-### Closest Matches to the Complete Workflow
+#### Closest Matches to the Complete Workflow
 
 Several systems already combine executable models, implementation construction and foundational proofs; some also connect them to machine execution. The useful comparison is the supported component and the theorem's subject, rather than a score for how many language features a project lists. The following assessments are readings of upstream results, not locally reproduced integrations.
 
@@ -194,7 +222,7 @@ The [Bedrock2 umbrella development](https://github.com/mit-plv/bedrock2) connect
 
 **seL4: a delivered artifact comparator.** Its [proof overview](https://sel4.org/Verification/proofs.html) documents functional correctness, binary correctness and security properties, with availability depending on configuration. Its [assumptions](https://sel4.org/Verification/assumptions.html) retain hardware, boot/assembly and device obligations, and distinguish modeled information flow from timing channels. This is an established comparison for an executable artifact with substantial assurance, rather than a proposal for a new proof language. The register already records the different proof-authority boundary at [proof diversity](spec.md#r-05-016a); seL4's configuration-specific results do not supply this platform's purecap target, source workflow or TAL evidence.
 
-### Capability-Aware and Parametric Verification
+#### Capability-Aware and Parametric Verification
 
 **Memory-model-parametric symbolic execution has a Rocq foundation.** [Compositional Symbolic Execution for the Next 700 Memory Models](https://arxiv.org/abs/2508.15576), OOPSLA 2025, mechanizes a generic compositional symbolic-execution theory and instantiates it with multiple memory models. This is particularly close to the proposed separation between generic reasoning and instance-specific memory laws.
 
@@ -204,7 +232,7 @@ The [CHERI instance and scope limitations](https://arxiv.org/html/2508.15576v2) 
 
 **Gillian's language instances are different results.** The [TACAS 2023 CHERI-C work](https://arxiv.org/abs/2211.07511) formalizes a memory model in Isabelle/HOL and uses extracted code for concrete execution in Gillian. It must not be conflated with the later Rocq symbolic-execution foundation. [Gillian-Rust](https://giltho.github.io/publications/Gillian-Rust.pdf), PLDI 2025, combines semi-automated unsafe-Rust reasoning with Creusot's safe-Rust workflow through translated contracts. Its lifetime and prophecy reasoning makes it a useful borrow-contract comparator. The hybrid tool's Rust source verification does not become a Rocq certificate or a compiler-to-bytes theorem merely because some of its logical foundations have mechanizations. Keep it as a design comparison alongside RefinedRust, not a replacement for the selected Radium route.
 
-### Further Reuse and Emerging Compiler Work
+#### Further Reuse and Emerging Compiler Work
 
 | Project | Demonstrated contribution | Disposition for this proposal |
 | --- | --- | --- |
@@ -216,7 +244,7 @@ The [CHERI instance and scope limitations](https://arxiv.org/html/2508.15576v2) 
 
 The practical ordering is to inspect the existing construction and representation solutions first, then the actual capability-law interfaces, and only then consider infrastructure for a larger family of languages. These results strengthen the case for qualified reuse. They do not justify importing every listed tool or treating a missing local connection as a missing result everywhere.
 
-### Embedded Verification and Certified Synthesis
+#### Embedded Verification and Certified Synthesis
 
 Small embedded languages and proof-producing tools provide implemented pieces of the proposed workflow, even when they do not provide its machine connection. Evaluate their notation, proof rules and certificate construction before designing a new surface; distinguish an upstream demonstration from an integration this repository has reproduced.
 
@@ -236,11 +264,11 @@ Its cited predecessor [MiniC](https://gitlab.mpi-sws.org/iris/c) provides a mona
 
 **Priority:** read AddressC and SuSLik first for proof-surface and construction reuse, compare Velvet/Loom/LeetProof for workflow and specification testing, and consult Perennial within the journal work already selected. CFML/Sisyphus and FP2 are focused design references; creditmonad and MiniC are testing and historical references respectively. None removes the missing CHERI primitive rules, and none warrants a new compiler or semantic anchor merely to reproduce its demonstration.
 
-### Research That Changes the Experiments
+#### Research That Changes the Experiments
 
 **Optimization reuse: CompCert Chamois.** Its [current development](https://certicompil.gricad-pages.univ-grenoble-alpes.fr/Chamois-CompCert/) and [authors' overview](https://www.pepr-cyber-arsene.fr/publications/jfla24.pdf) provide verified or validated transformations, including loop and block optimizations and scheduling. Its BTL approach validates proposals from untrusted optimization machinery. M1.3 compares an applicable mechanism before authoring equivalent passes; Q20c measures the resulting image. Ordinary CompCert memory and target premises do not establish capability-tag preservation, trapping behavior, isolation, constant-time behavior or this platform's cost bounds. This is reuse within the already required backend, not a new speed-only checker. The selected fork's actual licence and dependency terms still need reading before incorporation; a forge classifier is insufficient.
 
-The performance gap cannot be settled by compiler lineage: [CompCert's own description](https://compcert.org/compcert-C.html) reports approximately 90% of GCC `-O1` performance on ARMv8. That upstream measurement neither establishes parity with Rust/LLVM nor predicts this custom target. Compare the selected backend on actual clients, retain valid transformations that help under the platform's constraints, and state the remaining gap.
+The performance gap cannot be settled by compiler lineage: [CompCert's own description](https://compcert.org/compcert-C.html) reports approximately 90% of GCC `-O1` performance on ARMv8 and weaker results on workloads needing aggressive loop optimization. Those upstream observations neither establish parity with Rust/LLVM nor predict this custom target. Compare the selected backend on actual clients, retain valid transformations that help under the platform's constraints, and state the remaining gap.
 
 **Representation and primitive contracts: VeriFFI.** [A Verified Foreign Function Interface between Coq and C](https://www.cs.princeton.edu/~appel/papers/VeriFFI.pdf), POPL 2025, generates VST function specifications from Gallina types and functional models, connecting high-level clients to proved C primitives with concrete representations. The checklist already names VeriFFI in its host-side checker fallback; Q2b and Q19c additionally inspect its contract-generation mechanism alongside DeepSEA before inventing representation glue. The paper does not demonstrate the complete CertiCoq end-to-end theorem. More immediately, [the existing third-party audit](../THIRD-PARTY.md) records a VST version and transitive-assumption mismatch with this repository. A design comparison is useful now; direct incorporation requires resolving those concrete blockers and reading the selected artifact's licence, not weakening the assumption audit.
 
@@ -254,7 +282,7 @@ The performance gap cannot be settled by compiler lineage: [CompCert's own descr
 
 These additions qualify mechanisms against existing owners. Pinning another repository alone closes no integration gap. The current tuple, client theorem, generated-code boundary, transitive assumptions, actual licence and measured benefit decide adoption. A blocked package can still inform a design; it cannot be described as an installed or proved part of the stack.
 
-## What a Golden Binary Can Mean
+### What a Golden Binary Can Mean
 
 A binary is executable, but being executable does not make it a correctness oracle for itself.
 The target is a **proof-carrying executable reference implementation**: exact bytes, interpreted by a named target semantics, proved to refine an independently reviewed contract.
@@ -278,7 +306,7 @@ Functional refinement alone does not prove constant-time behavior, worst-case ex
 Those remain the separately scoped obligations of the [specification](spec.md) and [admission language](typed-assembly-language.md).
 Neither an optimizing compiler nor an SMT success verdict closes them by implication.
 
-## C*: The Useful Idea and the Actual Boundary
+### C*: The Useful Idea and the Actual Boundary
 
 [C*: Unifying Programming and Verification in C](https://arxiv.org/html/2504.02246v1), April 2025, integrates executable C, assertions, and programmable proof blocks using familiar C syntax.
 Its valuable idea is a single development surface: inspect a symbolic program state, transform it with a proved lemma, and continue writing implementation code.
@@ -297,7 +325,7 @@ The paper's implementation and evaluation impose important limits:
 Do not import HOL Light as an additional admission authority, treat its symbolic executor as foundational, or infer a CHERI-aware verified compilation path from its use of C.
 The closest project-compatible implementation of that interaction is a Rocq-native workflow over the program logics already selected here.
 
-## Idris Flexibility Without an Idris Runtime
+### Idris Flexibility Without an Idris Runtime
 
 Idris 2's [quantities](https://idris2.readthedocs.io/en/latest/tutorial/multiplicities.html) distinguish erased values, values used exactly once, and unrestricted values.
 This is more useful than simply adding dependent array lengths: ownership protocols can evolve in types, and the type signature can state which indices are unavailable at runtime.
@@ -324,7 +352,7 @@ Erasure has a concrete test: two terms differing only in proof data must have th
 A runtime loop cannot read an erased length. It can read a stored length proved equal to the erased index, or use a compile-time specialized constant.
 An existential packet length discovered while parsing therefore remains a runtime integer with an erased proof, not magically compile-time knowledge.
 
-### Reading the Graded-Type Claims
+#### Reading the Graded-Type Claims
 
 The fixed quantity set in Idris 2 is a language implementation choice, not a definition of every quantitative type theory.
 [Idris 2: Quantitative Type Theory in Practice](https://arxiv.org/abs/2104.00480) describes erasure and resource protocols in Idris 2; it is not evidence that Idris lets a program replace its grading algebra.
@@ -379,14 +407,16 @@ Quantum semantics add no direct implementation advantage to the bounded classica
 Start with library-level proofs of the particular relationships needed by real clients.
 General grading becomes worthwhile when it eliminates repeated resource derivations across those clients, not merely because many analyses can be described by an algebra.
 
-## Target Abstraction and Tooling Evolution
+## Appendix B: Language Design and Target Interfaces
+
+### Target Abstraction and Tooling Evolution
 
 The framework can hide architecture from ordinary component authors, but cannot remove architecture from the proof chain.
 Separate source portability, generic proof reuse, concrete representation correctness, and artifact security.
 A component qualifies for a target only when that target supplies the laws and guarantees it requires.
 Making the interface small does not make the target's compiler, memory model, or hardware proofs small.
 
-### Portable Interfaces and Concrete Instances
+#### Portable Interfaces and Concrete Instances
 
 | Layer | Reusable content | Instance-specific evidence |
 | --- | --- | --- |
@@ -438,7 +468,7 @@ In a separate reuse project, an ordinary-architecture implementation could disch
 That example would demonstrate portability of this contract, not equivalence to VerifiedOS's isolation model or authorization for a non-CHERI VerifiedOS target.
 Do not build a second implementation here merely to fill an adapter roster.
 
-### Required Guarantees, Not Feature Flags
+#### Required Guarantees, Not Feature Flags
 
 A target profile identifies the semantic instance, representation and ABI choices, accepted assumptions, and available guarantee theorems.
 A component declares required guarantees; acceptance needs checked evidence that the profile supplies them, not a Boolean claiming that the target supports a feature.
@@ -460,7 +490,7 @@ Source-level ownership on conventional hardware does not protect against arbitra
 Conversely, a CHERI backend does not automatically establish functional correctness, liveness, or every form of revocation.
 This preserves stronger optional guarantees without reducing every component to the weakest common target.
 
-### Refactoring Without Expanding Trust
+#### Refactoring Without Expanding Trust
 
 The iteration boundary is a reviewed semantic interface, not a permanent surface-language design:
 
@@ -495,13 +525,13 @@ No new on-device solving, grade interpretation, or open-term reduction is introd
 This design supports rapid tooling iteration without requiring compatibility with a released language: this is a proposal, not a frozen public API.
 The aim is to localize the proof consequences of a change, not prohibit necessary changes to the semantic interface.
 
-## A Compositional Core
+### A Compositional Core
 
 The eventual core is a capability-oriented dependent language with explicitly interpreted modalities. Its programmer-facing question is local: which authority permits this operation, which values retain it, and what state must be returned at each exit? The foundation remains universe-stratified dependent values in CIC, explicitly sequenced computations over the selected semantics, and ownership interpreted in separation logic. Q21a owns the core design and its proof-obligation map before further syntax is extended; Q19's library is a source of proved rules, not evidence that this combination already has a sound metatheory.
 
 The proposed core has dependent functions and pairs, records and indexed sums, exhaustive matching, sequenced computation, moves, loans and scope exits. One typing judgment tracks a duplicable context of stable values and a resource context, together with result type, retained captures, effects and phase. Mutable steps transform the resource context; branch joins must return compatible resources or an indexed sum describing the alternatives. `Result`, `Option` and user unions are instances of that same data mechanism. The elaboration must yield a derivation interpreted over the existing anchors, not create an authoritative universal machine semantics. Its acceptance obligations include substitution, phase separation, authority preservation, sound loan restoration and coherent elaboration; syntax alone discharges none of them.
 
-### Authority and Modalities
+#### Authority and Modalities
 
 One capture analysis can propagate several kinds of authority, but its output must preserve their kinds and interpretation obligations:
 
@@ -517,7 +547,7 @@ A closure exposes the authorities it retains, including transitive captures; a c
 
 The modalities have orthogonal dimensions: phase (runtime, specification or proof), usage (unrestricted, affine, linear or a named graded domain), retained captures, represented versus erased data at specialization, and computational versus type-level index dependence. `ghost`, `tracked` and `owned` are pilot spellings for common combinations, not three competing accounts of authority and not values of one universal semiring. A tracked protocol token can impose a return obligation stronger than affine use; a duplicable snapshot cannot acquire that obligation merely by receiving the same grade.
 
-### Value and Resource Rules
+#### Value and Resource Rules
 
 **Dependent functions and pairs supply the structure.** A dependent function expresses an operation whose result is indexed by its input; an existential dependent pair packages a value discovered at runtime with the index and evidence needed to use it. Records, tagged unions and exhaustive matching provide the everyday presentation. Library authors may use full inductive families and equality proofs; ordinary clients usually see named types and inferred indices. A parsed packet's length is a real integer paired with erased evidence, not a proof that conjures a runtime value.
 
@@ -537,7 +567,7 @@ The modalities have orthogonal dimensions: phase (runtime, specification or proo
 
 Runtime expressions evaluate left to right, by value, with short-circuit Boolean operators and explicit control flow. Contracts and total pure definitions have their own checked mathematical interpretation. Bounded executable functions establish termination through structural recursion or a decreasing measure; service loops use a separate progress contract and cannot run during type conversion. Query expressions and convenience properties earn inclusion through a documented lowering with the same ownership, effects and representation obligations. These choices leave everyday declarations and blocks familiar while keeping their semantic consequences explicit.
 
-### Loans and Control Flow
+#### Loans and Control Flow
 
 Restoration is a control-flow obligation, not merely an end-of-block action. The eventual synchronous subset must give ordinary exits the same authority explanation:
 
@@ -552,7 +582,7 @@ Restoration is a control-flow obligation, not merely an end-of-block action. The
 
 Q21a selects the supported cases; general async, concurrency, revocation and shared interior mutation remain deferred. A linear cleanup construct is useful only if it elaborates through these rules. Aeneas, Creusot and Prusti inform borrow-end translation, Polonius informs flow-sensitive acceptance, and Affect informs continuation use. Their separate soundness results do not supply the combined theorem. Explicit recovery is reserved for genuinely ambiguous resource or protocol states, not imposed on every ordinary loan.
 
-### Layered Proof and Staging
+#### Layered Proof and Staging
 
 Routine checking has a defined order:
 
@@ -568,13 +598,13 @@ Equality ergonomics first use canonical indices, normalization, bidirectional in
 
 Staging distinguishes pure specification evaluation, compile-time code/evidence generation, represented runtime computation and checked proof terms. Cross-stage operations need typing, representation and soundness rules; generators record their inputs and dependencies and emit checked terms. A static bound can specialize a loop or layout, but a discovered packet length remains runtime data. A metaprogram that does not terminate or leaves a typed hole produces no accepted component. Sharing an evaluator between a generator and a host oracle creates common-mode risk, so independent intent review, negative examples and the independently authored Sail model remain necessary.
 
-### Compositional Leakage Obligations
+#### Compositional Leakage Obligations
 
 A source `ConstantTime` requirement denotes a relational contract: executions agreeing on public inputs and the declared entry relation have equivalent permitted observations, including branch, address and termination behavior where the selected observation model includes them. Combinators preserve that relation and callees expose compatible observation contracts; a label or effect flag is not its proof. This exposes secret-dependent control or addressing while the author can still diagnose it locally.
 
 The compiler must preserve the relation through representation, optimization, ABI and linkage to the required TAL or CIC judgment on final bytes. Ordinary functional simulation does not suffice. Target assumptions follow the actual profile: hardware caches and speculative execution are excluded here, so their absence is checked rather than silently replaced by a commodity leakage model. Instruction timing, explicit memory traffic and other declared observations still need their proofs; physical leakage outside that model remains outside the claim. Jasmin is a design comparator, not a new compilation route for this instance.
 
-### Type Theory and Elaboration Reuse
+#### Type Theory and Elaboration Reuse
 
 The relevant research supplies complementary rules and implementation techniques. It does not establish that stacking all the source calculi produces a sound or usable language. Q20 selects one presentation and tests the interactions it actually supports; a new translator or program semantics retains the register's admission conditions.
 
@@ -589,9 +619,13 @@ The relevant research supplies complementary rules and implementation techniques
 
 The existing [Equations](https://github.com/rocq-prover/equations) and [Rocq-Elpi](https://github.com/LPCIC/coq-elpi) qualifications cover dependent definitions, checked derivations, quotations and environment interaction. The [Equations indexed-types tutorial](https://rocq-prover.github.io/platform-docs/equations/tutorial_indexed.html) distinguishes constructive uniqueness-of-identity-proofs for decidable indices from a global axiom, and warns that axioms can obstruct computation. Q19b therefore checks that the selected indexed definitions actually compute and their equation lemmas replay, as well as auditing their assumptions. Elpi's higher-order abstract syntax can support a narrow elaboration task; MetaRocq retains its quotation/metatheory role. No package choice by itself supplies source correspondence or linear resource interpretation. Each incorporation still reads the chosen artifact's actual licence and dependency notices.
 
-### Composition Acceptance Cases
+#### Composition Acceptance Cases
 
-Q20a chooses cases available to its bounded clients and records unsupported interactions; Q20b exercises their elaborated terms through the existing proof gates. Q21a owns the eventual core's wider composition contract and separately priced implementation prerequisites. A source sketch is not an executed test. Acceptance needs a positive client combining the supported mechanisms and well-formed negative neighbors, so the absence of a parser or an unsupported feature is not counted as a successful safety rejection. Wider metatheory and a general frontend require their own scope and evidence.
+Q20a chooses cases available to its bounded clients and records unsupported interactions; Q20b exercises their elaborated terms through the existing proof gates. Q21a specifies a separate eventual-core qualification contract below. A source sketch is not an executed test. Acceptance needs a positive client combining the supported mechanisms and well-formed negative neighbors, so the absence of a parser or an unsupported feature is not counted as a successful safety rejection. Wider metatheory and a general frontend require their own scope and evidence.
+
+##### Pilot Composition Cases
+
+These cases qualify the bounded library and its callback-shaped loan mechanism; they do not establish flow-sensitive borrow inference.
 
 | Interaction | Positive evidence | Rejection or explicit unsupported result |
 | --- | --- | --- |
@@ -603,7 +637,22 @@ Q20a chooses cases available to its bounded clients and records unsupported inte
 | Inference and abstraction | Rename locals, qualify a name and add an unrelated import while retaining the same resolved contract | Silently select another instance, coercion, effect interpretation or numeric representation |
 | Dependent matching and automation | Execute a bounded indexed function and replay its equation and assumption checks | Obtain convenience by adding a global UIP axiom, unresolved obligation or stuck executable definition |
 
-## An Ideal Surface
+##### Eventual-Core Composition Cases
+
+Q21a must select and price a composed trial that combines these interactions, not count the pilot's callbacks or isolated examples as their implementation. Q21 owns the design contract; execution follows separately scoped implementation.
+
+| Interaction | Positive evidence to commission | Rejection or explicit unsupported result |
+| --- | --- | --- |
+| Flow-sensitive loans and branch results | Return a loan on one branch; mutate the owner on the branch retaining no loan, preserving the branch-specific dependent result | A retained loan overlaps mutation, or an owner is restored while its returned view remains live |
+| Reborrowing, disjoint fields and captures | Mutate proved-disjoint fields, end a nested reborrow and resume its parent; infer last use through closure captures | Overlapping exclusive loans, use of a suspended parent, or a transitively captured loan escaping its owner |
+| Loops, error propagation and cleanup | Restore or transfer resources at return, `Result` propagation, `break`, `continue` and loop back edges, preserving the resource invariant | An early exit loses a protocol resource, cleanup runs twice, or cleanup failure abandons another owner |
+| Dependency, typestate and erasure | Match a runtime-discovered index, mutate or resize through a state transition and return an appropriately indexed owner | Stale shape refinements, unjustified snapshots or erased data determining executable control flow |
+| Typed authority and refinement | Combine memory and effect authority with a separately proved observation policy; replay inferred bounds and source-located residual goals | A hardware capability grants declassification, a budget grants ownership, or an unreconstructed solver fact closes a goal |
+| Source correspondence and proof modes | Resolve calculational steps and named lemmas within `proof` mode; retain typed-hole context and invalidate changed desugaring | A valid stale core proof accepts altered source, a hole reaches an accepted package, or proof code changes runtime behavior |
+
+Suspension, cancellation, handlers and concurrent interior mutation remain deferred. A future extension needs additional composition cases and metatheory; no row above licenses those exits implicitly.
+
+### An Ideal Surface
 
 Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name, or existing implementation. These examples are temporary pilot notation, not a frozen final language design. The straight-line loan below expresses the target UX; the callback combinator describes the narrower library mechanism available for qualification.
 Its surface borrows C#'s readable declarations and tool discoverability, Rust's ownership and representation control, and Idris's type-directed specification and proof construction.
@@ -612,9 +661,9 @@ The examples use portable buffer contracts. A build selects a concrete semantic 
 
 The examples share one grammar: type-first parameters, `let` for an inferred immutable local and `var` for an inferred mutable local, with typed literals such as `0usize` when representation needs stating. `ref` borrows exclusively, `in` borrows shared storage, and `owned` consumes a value supplied with `move`; call sites spell `ref`, `in` and `move` explicitly. These borrow spellings are familiar from C#, but their exclusive-storage interpretation is Vela's proposed rule. `Buffer<T, count, State>` owns storage; `Span<T, count>` is a nonowning permission-backed view, not a freely copyable authority token. `Span<T>` hides an existential length while retaining a runtime `Length` and its proof relationship. Regions live on borrow modifiers: `in<'input> Span<byte, count>`, with `<region 'input, ghost Nat count>` declaring the parameters when a returned view needs that relationship. Call-local regions may be inferred; none is inferred to outlive its owner.
 
-All shown bounded operations must terminate on their stated entry conditions, including every error result. Every public operation exposes its effects and contract; an implementation may infer them locally, but they become a reviewed signature. `Nat(index)` in a contract embeds the machine value into mathematical naturals. `proof { ... }` is the only assertion/lemma surface used here: failure leaves a proof obligation, never an implicit runtime assertion or an assumption. The normal failure mechanism is an explicit `Result` branch. These are proposed conventions for original, unimplemented pseudocode, not a claim that a parser or typechecker accepts these examples.
+All shown bounded operations must terminate on their stated entry conditions, including every error result. Every public operation exposes its effects and contract; an implementation may infer them locally, but they become a reviewed signature. `Nat(index)` in a contract embeds the machine value into mathematical naturals. `proof { ... }` encloses proof mode: assertions, calculational steps and named lemma calls elaborate to checked obligations there. A typed hole retains its expected proposition and local context but cannot enter an accepted build. Failure is neither an implicit runtime assertion nor an assumption; normal executable failure uses an explicit `Result` branch. These are proposed conventions for original, unimplemented pseudocode, not a claim that a parser or typechecker accepts these examples.
 
-### A Small Example
+#### A Small Example
 
 The following is original, unimplemented pseudocode, not valid C#, Rust, Idris, or a checked Rocq example.
 `Span<byte, count>` describes already initialized storage with an explicit runtime length; its model is an erased logical sequence.
@@ -663,7 +712,7 @@ A successful `PacketView` packages runtime consumed and payload lengths, a borro
 An error carries no valid packet view. Matching the retained runtime result tag reveals the branch's witnesses and evidence; neither that tag nor the runtime lengths can be supplied solely by erased proofs.
 This interface is a candidate surface over the existing [descriptor-to-implementation route](spec.md#r-05-043), not a new handwritten parser specification.
 
-### Borrowing With a Restoration Contract
+#### Borrowing With a Restoration Contract
 
 The target borrowing surface is straight-line. This unimplemented example uses a local exclusive reference; elaboration must infer its end and reconstruct the container using the value left in the element:
 
@@ -682,7 +731,7 @@ For this bounded case, the proof can use `Build.with_element`, exposed in the pi
 
 `old` captures the entry model. The pilot callback may return a value such as `Result`, restoring the parent before the outer caller propagates an error. It supports neither a return jumping out of the caller nor suspension or unwinding. The target loan model must handle each supported control-flow exit explicitly, including branch-sensitive returned loans and loop edges; it cannot claim these features from the callback theorem. Q20 measures the pilot's rewriting cost, while Q21 tests whether inferred restoration removes that cost without weakening the resource contract.
 
-### Indexed Protocols and Erased Permissions
+#### Indexed Protocols and Erased Permissions
 
 An initialization operation should return a different state, not invite callers to assert that uninitialized memory is readable:
 
@@ -727,7 +776,7 @@ public PublishResult<id> TryPublish<ghost Identity id>(
 
 Snapshots can be copied; permission evidence cannot be duplicated or manufactured from an identifier. Hardware capabilities remain runtime values. This sequential example claims no concurrency, eventual publication, crash recovery or device ordering; a concrete publication operation must state and prove its actual effects and transition. The lower-level split/restore permission mechanism stays inside the [resource-law explanation](#concrete-package-shape), so ordinary clients cannot inspect a parent whose permission is suspended.
 
-### Optional Grades With Explicit Meaning
+#### Optional Grades With Explicit Meaning
 
 A higher-order operation can combine a functional specification with a use count:
 
@@ -753,7 +802,7 @@ Known grades may be specialized off-device; general grade polymorphism needs an 
 Use separate annotations such as `effects calls(endpoint)` and `requires Public(index)` where appropriate, rather than pretending usage counts, capability permissions, and security labels are the same analysis.
 An IFC checker must track control dependence as well as data dependence; a public return type alone does not exclude secret-dependent branches or addresses.
 
-### Feature Decisions
+#### Feature Decisions
 
 | Area | Proposed behavior |
 | --- | --- |
@@ -774,7 +823,7 @@ Open-ended reflection, dynamic loading, general managed objects, and an implicit
 These restrictions define the initial systems-language subset and preserve VerifiedOS's deployment constraints while leaving host-side proof tooling expressive.
 The framework's target parameters do not authorize a backend to add hidden allocation or a managed runtime to that subset.
 
-### Performance Is an Artifact Claim
+#### Performance Is an Artifact Claim
 
 Erasing a proof does not erase a boxed value, an allocation, a virtual call, or a costly representation conversion.
 Rust-like performance therefore needs layout control, specialization, efficient concrete data structures, and an inspected optimizing compilation path.
@@ -783,10 +832,12 @@ Report proof construction time and kernel replay time separately from runtime pe
 
 Q20a fixes the comparison workloads and acceptance thresholds before optimization, and Q20c consumes the existing backend work to run them on the exact promoted image. The same-target hand-authored baseline isolates representation and generation costs. A Rust comparison uses a matching target, ABI, checks and optimization settings where available; a commodity-machine Rust benchmark is an explicitly separate design experiment and cannot establish CHERI performance parity. Report typical execution measurements separately from worst-case bounds, emulator throughput separately from modeled target cycles, and absent hardware measurements as unavailable.
 
-The assurance implementation uses the selected compiler's optimizations and existing representation/refinement route. The separately scoped capability-SSA comparison below evaluates an alternative within the required lowering duty, not a new verified speed-only optimizer or checker. Neither track is exempt from the standing specification, and no alternative backend is built inside Q20's integration budget.
+The assurance implementation uses the selected compiler's optimizations and existing representation/refinement route. The separately scoped direct explicit-memory capability-IR comparison evaluates an alternative within the required lowering duty, not a new verified speed-only optimizer or checker. Neither track is exempt from the standing specification, and no alternative backend is built inside Q20's integration budget.
 Source annotations for secrecy or cost express proof obligations. Constant-time and timing conclusions still come from the appropriate final-artifact judgments.
 
-## From the Library to Bytes
+## Appendix C: Compiler and Evidence Obligations
+
+### From the Library to Bytes
 
 The reusable part of the path is a generic contract and construction theorem, instantiated with proved target operations and representation laws.
 Its current requirement-compatible VerifiedOS route for an initial on-device component is:
@@ -833,7 +884,7 @@ The reviewed Sail model remains upstream of artifact validation and hardware ref
 Do not regenerate ISA meaning from the new compiler or the binary it is meant to check.
 Host reference execution may use extraction for testing, but that executable's trust boundary is recorded independently; its test results are not automatically proofs about the Gallina definition.
 
-### Why the Incumbent Route Exists
+#### Why the Incumbent Route Exists
 
 The architecture seeks a Bedrock2/Kami-style composed software and hardware result in one proof assistant. Both sides meet at the same pinned Sail definitions under R-05-019b. R-05-023b gives explicitly named instructions outside ordinary lowering duties one mnemonic-bound primitive surface. CHERI-C/CompCert supplies the verified-C anchor and reusable compiler machinery; Clight supplies the decoder-synthesis waypoint under R-05-043. Representation and primitive contracts have VST/VeriFFI-style precedents, subject to the compatibility obstacles already recorded here. These are concrete reasons to retain the route while testing alternatives.
 
@@ -841,9 +892,9 @@ M1.6's measured exits are a live architectural input: its verified Bedrock2 exit
 
 CompCert has a structured memory semantics, not simply flat integer-addressable storage. Its purecap adaptation must still settle capability representation, provenance, tag-preserving stores, bounds, traps, casts, undefined behavior and ABI against this profile. Clight lowering can retain ownership or leakage facts in simulation relations even where it drops annotations; measure that proof burden rather than presuming all such information is lost. Conversely, a bespoke intermediate supplies neither easier proofs nor better optimization by definition.
 
-### Compiler Route Decision
+#### Compiler Amendment Obligations
 
-Maintain an **assurance track** using the narrowest current path to a composed artifact theorem, and a **performance research track** comparing specialization-friendly, explicit-memory capability SSA with validated improvements within that path. These are comparison tracks, not two newly authorized compiler implementations. Q21b owns their comparison contract and pricing; M1 and Q2 retain implementation ownership unless a reviewed decision changes it. The tracks may converge if an SSA stage or Chamois-style validation fits within the existing compiler.
+The [compiler decision](#compiler-route-decision) compares the required Clight route with a direct explicit-memory capability IR, including reuse of existing passes. Q21b owns their comparison contract and pricing; M1 and Q2 retain implementation ownership unless a reviewed decision changes it. The tracks may converge if a candidate IR stage or Chamois-style validation fits within the existing compiler.
 
 The direct-route hypothesis is that construction combinators can emit a capability-aware intermediate while retaining explicit provenance, authority narrowing, initialization and observation invariants, avoiding a representation translation for some new components. The incumbent hypothesis is that adapting existing passes, contracts and proof structure costs less than creating equivalents. Neither asserts that Clight prevents Rust-class performance or that SSA guarantees it. LLVM or MLIR additionally require precise treatment of poison, undefined behavior, capability operations, optimizer legality and linkage; emitting ordinary LLVM and trusting `-O3` is not an assurance chain.
 
@@ -868,7 +919,7 @@ An amendment dossier names substitute evidence rather than deleting a waypoint a
 
 Changing the required Iris-over-Sail validation path also needs review of R-05-023a and R-13-017; changing the anchor inventory faces R-05-019. A new translator or semantics still owes all of R-05-020's conditions. The proposal names no retiring interim for a general Vela frontend, so that admission gap remains open. Amending R-05-043 alone cannot authorize replacing the TCB compiler or its program logic.
 
-### Bounded Emission Versus General Logic
+#### Bounded Emission Versus General Logic
 
 Q21b prices a **bounded emission-lemma alternative** alongside Q2c's operation-law foundation. The hypothesis is that a restricted generated family needs simulation lemmas for a closed set of emitted constructs rather than a complete user-facing imperative proof system before its first compilation theorem. The proposed ledger names each construct, its emitted term, entry/exit representations, frame, arithmetic and effect premises, termination argument and pinned-Sail simulation, plus their composition theorem. Loops, calls and external interference still need invariants and explicit premises; finite syntax is not a finite proof of all programs.
 
@@ -876,7 +927,7 @@ Test closure on the parser destination and reserved staging client without adapt
 
 The reduction fails if each client needs fresh constructs or semantic exceptions, the family cannot express its failure/resource behavior, or encapsulation and robust preservation need a logical relation over arbitrary contexts anyway. Morello-Cerise is the relevant warning: simulation over known generated code does not provide its adversarial-code theorem. Even a successful bounded simulation removes neither the existing Iris-over-Sail anchor nor Q19c's actual-law prerequisite. A reduced entry condition needs checked substitute artifacts and explicit approval at the owning requirements and plan items.
 
-### Comparison and Stop Conditions
+#### Comparison and Stop Conditions
 
 Q21b fixes the client, source contract, target, artifact endpoint and time/resource budgets before either route is measured. Preparation may identify missing implementations, but the artifact trial opens only when their implementation and proof work have separately priced owners. A comparison with no compatible artifact remains undecided, not a victory for the easier syntax demo.
 
@@ -886,7 +937,7 @@ Capability cost attribution uses the actual profile. Measure derivation/narrowin
 
 If the direct route misses its capability-correct artifact, TAL and correspondence budget, reject that trial and retain the current required route without calling it complete. If the Clight route cannot demonstrate capability preservation, it remains blocked despite inherited optimizations. If neither meets the contract, neither qualifies; do not amend a waypoint merely to make a milestone green. Prefer a direct route for eligible new components only after the comparison and affected amendments, while retaining required verified-C and Rust consumers.
 
-### Mechanically Produced Evidence
+#### Mechanically Produced Evidence
 
 The eventual frontend's mandatory output has this schematic shape:
 
@@ -903,11 +954,13 @@ The reviewed elaboration relation covers checked parsing or parse validation, bi
 
 Linking is a typed proof boundary. Generated required/provided contracts state calling convention, preserved registers, stack shape, memory/capability authority, relocations, callbacks and reentrancy, effects and observations. Discharge them through existing TAL judgments where applicable and CIC proofs for deeper composition, not new TAL grade axes or an on-device solver. Independently compiled verified-C, Rust and generated components must agree, and their composition must retain required robust properties. An unchecked linker assumption cannot replace that evidence.
 
-The planned pipeline is source closure, checked elaboration, interpreted dependent core, reconstructed refinements and proofs, proved representation/lowering, verified or validated optimization, capability-aware selection and allocation, typed linkage, final image validation, then production qualification. The decoder currently goes through Clight; the direct capability-SSA branch is conditional. Both terminate at the same pinned Sail term, never a machine semantics generated by the compiler.
+The [proposed pipeline](#proposed-architecture) binds these packages through optimization, typed linkage and final image validation. The decoder's required route goes through Clight; a direct explicit-memory capability-IR branch is conditional. Both must terminate at the same pinned Sail term, never a machine semantics generated by the compiler.
 
 A promoted artifact's evidence package retains source and independent contract, elaborated program and correspondence, representation and ABI, functional/resource/observation proofs, solver certificates and actual transitive assumptions, optimization evidence, link contracts and composition, source/build/dependency/layout/byte identities, semantic pin and guarantee theorems, and measurements on those exact bytes. This organizes existing evidence rather than introducing a replacement admission format. A semantic dependency change reopens affected obligations even when displayed goal identities remain stable.
 
-## First Deliverable
+## Appendix D: Pilot and Qualification Protocols
+
+### First Deliverable
 
 The proposed first deliverable is a small off-device Rocq package, provisionally `VerifiedComponents`, for proving bounded components through target-parametric interfaces interpreted over existing semantic anchors.
 It exposes executable pure specifications, operation and representation interfaces, reusable refinement lemmas, and proof automation that produces terms checked by Rocq.
@@ -919,7 +972,7 @@ This blocks that implementation experiment, not core design or investigation of 
 
 This is a statement about the local instance. The [upstream capability results](#capability-aware-and-parametric-verification) already provide mechanized memory and encapsulation arguments with different subjects. Q2b's useful question is which existing rules can be connected to the pinned semantics and at what cost; the local absence is not evidence that those rules must all be invented from scratch.
 
-### Library Contents and Reuse
+#### Library Contents and Reuse
 
 The interfaces are target-parametric, but the first concrete backend is deliberately singular: instantiate them over the existing Gallina contract and selected CHERI-C transport, with the planned Iris-over-Sail connection at the machine boundary.
 Use ordinary Rocq modules with explicit laws, introducing only the parameters needed by these clients.
@@ -951,7 +1004,7 @@ The generic proof must depend only on the advertised interface, with CHERI repre
 Audit that dependency boundary and reject an instance with an undischarged required law; one working instance alone is not empirical evidence of broad target portability.
 The native follow-on additionally binds the theorem and admission evidence to the final bytes and checks them against the same Sail term the hardware refinement consumes.
 
-### Concrete Package Shape
+#### Concrete Package Shape
 
 The following are proposed module names within one package, not existing files or a request to create independent frameworks:
 
@@ -1014,7 +1067,7 @@ The continuation retains the rest of the buffer and reconstructs the whole after
 An ordinary Rocq record containing a permission proposition does not enforce linearity: validity comes from the separation-logic derivation, including its frame and update rules.
 Start with byte buffers and lexical scope; general shared interior mutation and concurrent invariants require additional rules and are not hidden inside this small interface.
 
-### Other Useful Libraries and Tools
+#### Other Useful Libraries and Tools
 
 **Descriptor-backed codecs.** Extend the existing format route with reusable bounds, consumed-length, failure, and round-trip lemmas.
 Generate implementation and proof obligations from the same reviewed descriptor, while keeping independent malformed-input examples and semantic review.
@@ -1052,7 +1105,7 @@ A syntax demo is cheap compared with checked elaboration, dependent inference, b
 An alternative Rust-facing annotation layer should target the existing RefinedRust/Radium route; it is not a reason to build a universal Verus/Prusti/Creusot proof translator.
 No new optimizer, code generator, or language runtime is necessary for the initial library.
 
-### Existing Tooling and Implementation Owners
+#### Existing Tooling and Implementation Owners
 
 The [current spec](spec.md#r-05-018a) selects bounded qualification, not blanket adoption. The [checklist's Q19](implementation-checklist.md#q-assessment-actions) owns the diagnostics and selective-reuse trials and a conditional source-level component pilot; Q2b and Q3b own the existing device and assurance work. Upstream capability is not compatibility with this checkout's exact Rocq/plugin tuple, and a package installed in a switch is not a library imported by a shipped proof. No candidate below is incorporated by this table.
 
@@ -1086,7 +1139,7 @@ The [current spec](spec.md#r-05-018a) selects bounded qualification, not blanket
 
 The first experiment retains the existing theorem statements and compares setup, manual proof edits, replay time and repair after a representative change. A candidate with no demonstrated maintenance benefit may be rejected. Additional protocol libraries, proof agents and semantic frameworks need a separately scoped item before incorporation; listing them here does not spend the Q19 pilot budgets on them. Licences and transitive notices are read from the selected upstream artifacts at incorporation, not inferred from a project's lineage or this survey.
 
-### Experiments and Stop Conditions
+#### Detailed Experiment Protocols
 
 Q19a and Q19b book the bounded workflow and reuse trials; Q19c books the conditional library-feasibility pilot and its interface, specification and reuse checks. Q20 books the combined authoring and optimized-artifact comparison under the [language product contract](#language-product-contract). Its integration cells consume existing implementations and proofs; they do not price building missing backends or admission machinery. Q21a separately scopes the core, and Q21b the compiler comparison and bounded emission-lemma alternative. Their design and pricing acts produce no implemented feature or artifact theorem. The effort ranges below remain separate research-planning judgments; expansion requires normal milestone and review approval.
 **The lowering experiment is already booked and half landed, and its boundary remains explicit.**
@@ -1134,9 +1187,11 @@ Core and route design can proceed alongside that work, without claiming that the
 Initial library value comes from reuse within the CHERI instance; broad portability remains a hypothesis until another instance is actually proved. A restricted surface parser follows a reviewed core and successful library clients.
 A general quantitative dependent typechecker, a Rust-equivalent ecosystem, and a verified optimizing CHERI compiler are substantial separate undertakings, not features obtained by adding notation to Rocq.
 
-## Effort and Expected Return
+## Appendix E: Effort and Return
 
-### Estimation Basis
+### Effort and Expected Return
+
+#### Estimation Basis
 
 These are engineering judgments for deciding which experiment to fund, not measured productivity results, upstream delivery promises, or estimates copied into the implementation checklist.
 A person-week or person-month means focused engineering effort, including local proof work, tests, documentation, and review preparation; it is not elapsed time for an intermittently staffed project.
@@ -1182,7 +1237,7 @@ The framework does not reduce the repository's unfinished CHERI compiler obligat
 The existing [implementation checklist](implementation-checklist.md) remains the owner of scheduled work and its measured/calibrated estimates; these ranges neither replace it nor subtract claimed savings from it.
 Gerty-style typechecking optimization is not separately recommended: its toy-program result establishes a technique, not a bottleneck here or a justification for new speed-only verified machinery.
 
-### Where Time Might Be Saved
+#### Where Time Might Be Saved
 
 There is no measured productivity percentage for this approach. Q20 compares recurring representation, framing, bounds and proof-repair work separately from the full implementation-and-proof task, including independent review and initial integration. Its acceptance thresholds are experiment decisions fixed before measurement, not forecasts of the savings it will find.
 The first clients can take longer because they pay for abstraction, primitive lemmas, tooling integration, and independent review.
@@ -1210,7 +1265,7 @@ For a second target, report unchanged generic theorems, changed instance proofs,
 Use clients not used to design the combinators, and preserve a hand-authored baseline on the same semantics.
 If realistic reuse does not repay library costs, retain the useful component proofs and stop generalizing.
 
-### Security Gains and Their Limits
+#### Security Gains and Their Limits
 
 The proposal initially makes existing required guarantees easier to establish; it does not strengthen the platform merely by adding types or annotations.
 A genuinely additional guarantee needs a stronger named contract and a proof over the implementation, followed by the required transport to bytes.
@@ -1233,28 +1288,3 @@ A grade that merely renames an existing permission contributes no stronger guara
 Shared libraries also concentrate risk: a weak contract or wrong representation can affect every client, so independent contract review and negative specification tests remain essential even when the implementation theorem checks.
 Audit generic laws for vacuous premises and instance representations for satisfiable entry states; a sound implication with an impossible precondition is not a usable component.
 For deployment, the stronger VerifiedOS profile remains mandatory even if the same framework serves less demanding projects elsewhere.
-
-## Decision
-
-Preserve the assurance strategy and redesign the language core. Keep **target-parametric, Rocq-native proof-carrying components** as the bounded Q19 experiment, with one CHERI instance, independent contracts, assumption audits and missing-law tests. Start with diagnostics and selective reuse on existing proofs; open the component pilot only after its concrete foundation is checked. Q20 still judges source usability and exact optimized-byte promotion separately, at unchanged contract strength.
-
-Pursue the authority-oriented dependent core as Q21a's design decision, not as an elaboration of the pilot notation by accretion. Prefer inferred straight-line loan restoration, distinct interpreted authority kinds, staged effects, a bounded refinement tier, uniform dependent data and mechanically checked source binding. Typed holes and semantic dependency tracking belong to the product contract, not a later cosmetic editor layer. The research comparisons identify mechanisms to reuse; their combined soundness, usability and maintenance remain to be demonstrated.
-
-Use Q21b to compare the incumbent route with direct capability-aware lowering and the bounded emission-lemma alternative. Compare full obligations and costs before selecting an intermediate. Preserve the pinned Sail endpoint, primitive surface, verified-C/Rust duties, typed linkage, robust preservation and final-artifact evidence. Any change to the decoder's Clight waypoint or another named duty requires its own evidence-backed amendment; neither an elegant IR nor a blocked incumbent supplies that evidence.
-
-The principal risk is compositional: dependent indices, mutation, captures, control-flow joins and erasure can each work separately while their combination fails. Other risks are displaced compiler proof work, loss of inherited optimization, persistent general-logic requirements, common-mode specification/frontend errors and inadequate reviewer capacity. Each has a falsifying experiment above. General handlers, async/cancellation, concurrent interior mutation, universal grades without independent useful analyses, kernel equality changes and external target portability remain deferred. A fresh frontend or backend implementation needs explicit scope and price before it begins.
-
-The intended result is one authoring surface whose optimized output is the software golden artifact, with an independently reviewed contract and unchanged proof authority. Source-level success is useful but cannot establish production qualification, Rust-equivalent performance or the hardware theorem. No route wins by weakening those endpoints.
-
-No upstream code is incorporated by this proposal.
-Any implementation milestone that incorporates a dependency first reads that upstream's actual license and records the chosen artifact and its terms under the repository's [third-party discipline](../THIRD-PARTY.md).
-
-## Expected Developer Experience
-
-The intended experience is to write a component and its promises together, use ordinary straight-line mutation and error propagation, and receive local explanations of missing authority or unproved behavior. Routine refinements are inferred within a declared fragment; difficult obligations become contextual typed holes, then lemmas or explicit proofs. Specialists build deeper results into reusable APIs. The supported component has no separately maintained fast implementation: its checked optimized output is what ships.
-
-Productivity should benefit most from repeated work: parsers, bounded buffers, protocol steps and changes to already verified libraries. The first examples pay the cost of specifying behavior and building the reusable proofs. Difficult algorithms and concurrency can still need substantial expert work. A familiar syntax alone cannot supply C#'s ecosystem or make arbitrary verification automatic.
-
-Maintenance can improve because contracts describe what callers rely on. Stable source and goal identities preserve navigation during refactoring, while semantic dependency tracking invalidates changed obligations. Repair suggestions must replay against the reviewed contract. Incorrect shared contracts remain a common failure source, so independent examples and review remain part of the workflow.
-
-Performance can approach carefully written native systems code where the compiler can erase proofs, specialize abstractions and use efficient in-place representations. Proof checking happens during development and admission; intended erased proofs need no runtime execution. Runtime checks, representation costs and security mechanisms still cost what the measured binary says they cost. Rust-equivalent throughput and predictable resource bounds are separate results to demonstrate, and neither is established by this proposal today.
