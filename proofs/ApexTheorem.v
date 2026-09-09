@@ -95,6 +95,15 @@
    (R-05-165, R-05-166): a model in which T is provable, so no premise
    is unsatisfiable and no quantifier domain is empty, and a model in
    which T is refutable, so the statement excludes something.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-01-002 R-05-102 R-05-156 R-05-156a R-05-156b R-05-158 R-05-159 R-05-160
+      R-05-161 R-05-161a R-05-162 R-05-162a R-05-163 R-05-164 R-05-165 R-05-166 R-06-008
+      R-06-012 R-06-014 R-07-021 R-07-028 R-08-026 R-08-027 R-08-027a R-08-028 R-10-025 R-11-017
+      R-15-101 R-17-003 R-17-013 R-17-013e R-17-041 R-17-042 R-17-043 R-17-049 R-17-058a
+      R-18-003b R-18-031
+   SHA256: 74dd117b55d0f355064e0c616a1b3c83db48cf1595c00344f3d1502ea2e16b46
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

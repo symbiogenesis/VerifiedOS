@@ -363,6 +363,16 @@
    declaration the demo extension meets by conversion beside two extensions
    computed to fail it, so no theorem is proved from a premise nothing
    satisfies and none from one everything satisfies.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-058c R-05-163 R-05-164 R-05-165 R-05-166 R-07-028 R-09-002 R-09-005
+      R-09-006 R-09-006a R-09-008 R-09-010 R-09-023 R-09-024 R-09-025 R-09-025a R-09-026
+      R-09-027 R-09-028 R-09-029 R-09-030 R-09-032 R-09-033 R-09-034 R-09-035 R-09-036 R-09-036a
+      R-09-036b R-09-036c R-09-037 R-10-011 R-10-013 R-10-013a R-10-032 R-10-033 R-11-017
+      R-12-014 R-12-015 R-12-015a R-12-017 R-15-078 R-15-079 R-15-126 R-15-247d R-15-240
+      R-15-241 R-15-241b R-15-241d R-16-007 R-16-015 R-16-021
+   SHA256: 11ebdd5d5d6d095a242a25c44e3a76c1638910e4099f867c0409936279b850f6
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

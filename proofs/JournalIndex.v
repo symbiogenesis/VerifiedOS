@@ -277,6 +277,15 @@
    retained snapshot root and a blank free pool; a commit whose plan is
    admissible beside four that are not; and a key list whose permutations
    agree and whose deletions do not.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-007a R-10-001a R-10-002 R-10-003
+      R-10-004 R-10-005 R-10-005a R-10-005b R-10-005c R-10-008 R-10-009 R-10-010 R-10-011
+      R-10-012 R-10-013 R-10-013i R-10-013b R-10-013c R-10-013e R-10-016 R-10-021 R-10-022
+      R-10-022a R-10-027 R-10-035 R-10-036 R-12-025 R-12-026 R-12-029 R-12-030 R-12-087
+      R-15-247b R-15-181 R-16-003 R-16-005
+   SHA256: cf3a3a1bd088a1ef36318ba8560b90df5d07f8f8701603128dc39d2349a89926
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

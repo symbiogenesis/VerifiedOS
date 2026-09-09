@@ -102,6 +102,8 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("placement", "check"): lambda _: [],
     ("placement", "admit"): lambda _: [],
     ("placement", "search"): lambda _: ["--max-leaves", "1"],
+    ("proofs", "headers"): lambda _: [],
+    ("proofs", "status"): lambda _: [],
 }
 
 
@@ -153,6 +155,9 @@ def _declared_subcommands_answer_on_this_lane() -> None:
             ensure("runs inside WSL" not in said and "run inside WSL" not in said,
                    f"`run.py {name} {sub}` answered with the guest refusal: {said!r}")
             if code != 0 and (name, sub) in _READS_A_GITLINK and _ABSENT_GITLINK in said:
+                continue
+            if (name, sub) == ("proofs", "status") and code == 1 and said.startswith(
+                    "FAIL: proof evidence is absent or stale:"):
                 continue
             ensure(code == 0,
                    f"`run.py {name} {sub}` exited {code}: {said[-400:]!r}")

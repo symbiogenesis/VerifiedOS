@@ -242,6 +242,13 @@
    Python binding, so each literal below reached this file by two routes and
    not one. Neither instrument is pinned, neither enters any trust base, and
    nothing above the answers depends on them.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-004a R-05-058a R-05-059 R-05-062 R-05-067 R-05-077a R-05-126b R-05-163
+      R-05-164 R-05-165 R-05-166 R-10-021 R-10-022 R-10-022a R-10-023 R-10-024 R-15-053a
+      R-15-058
+   SHA256: 9f6602f337474a278be08e315bd37b8fe9dfc34ad2a511e8f08daa91e2055fee
+   (*| END derived |*)
    ========================================================================= *)
 
 Open Scope list_scope.

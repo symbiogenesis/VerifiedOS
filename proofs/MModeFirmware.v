@@ -177,6 +177,14 @@
    twice: canonically at every machine whose plan roots every core, and
    concretely at two machines whose every domain is inhabited, one whose
    encoding excludes W+X and one whose encoding admits it.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-086 R-05-087 R-05-091 R-05-163 R-05-164 R-05-165 R-05-166 R-07-005
+      R-07-006 R-07-015 R-07-018 R-07-019 R-07-020 R-07-023 R-07-024 R-07-025 R-07-028 R-07-031a
+      R-07-031b R-08-011 R-11-024 R-14-002 R-14-003 R-15-003 R-15-007a R-15-007b R-15-007l
+      R-15-007p R-15-075
+   SHA256: d8254938e34c438190bbe667bd409cbc969f00e8c82b39c376f2995704f8bf33
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

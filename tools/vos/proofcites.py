@@ -1,105 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The citation index the proof artifacts already carry: what each `.v` cites, and what
-each defines.
+"""Requirement citations, discharge annotations and source declaration names.
 
-Every shipped proof opens by arguing from the register, and the arguments name
-requirement ids in bulk. Nothing read them. That is a whole coverage question answered
-for free, because the ids are already written down: which artifacts a register edit
-re-opens is a scan away, where before it was a grep somebody had to remember to make.
-This is that scan, held here rather than at its callers because two of them make it,
-[the citations check](checks/citations.py) and [run.py blast](cli/blast.py), and *a
-parse two tools make is written once*. Its halves are named for what they read
-out of one artifact, and the module is named for the citation, which is the half the
-first rule stood over.
+The host reads citations lexically, resolving their ids against the live register.
+Generated requirement-header regions are excluded: a manifest cannot select its own
+membership, and legacy transcriptions cannot turn their references into authored cites.
+The delimiters and region validation are shared with the header generator and K-108.
 
-**It is lexical and it stays lexical.** A requirement id inside a comment and a
-`Theorem <name>` opening a sentence are not Gallina and need no Gallina parser, which
-is exactly what lets the host wave decide them in CI on a clone with no prover
-toolchain installed. What a term *means*, what a theorem quantifies over, whether a
-witness inhabits a type: those are the prover's, they are decided in the guest by
-[run.py proofs](cli/proofs.py), and nothing here approximates one of them. The name
-says which half this is.
+A discharge annotation claims that the following statement answers named requirements.
+Marker-level validation rejects malformed annotations, enclosing comments and strings.
+The native guest audit resolves each claim to a compiled symbol, checks its type is a
+proposition, and enumerates its assumptions. Whether that proposition expresses the
+requirement is still the specification review gate's judgment.
 
-**The halves are read differently and priced differently**, and the split is the
-point rather than an accident of implementation.
-
-The **citation** half is one whole-text `re.findall` per file, and reading the bytes off
-disk is the larger half of what it costs. It needs no comment stripping at all, and that
-is a property of the language rather than of today's files: a Gallina identifier cannot
-carry a hyphen, so a `R-nn-nnn` token in a `.v` is inside a comment or a string literal
-by construction and never a name the prover binds. The scan shape matters and it inverts
-the usual intuition: measured over the shipped tree when this landed, a whole-text
-`findall` ran in 1.1 ms where line iteration with a regex per line took 15.3 ms and line
-iteration behind a prefix prefilter took 11.0 ms, because the C-level engine over one
-large string beats a Python-level walk of sixty thousand lines. That is the reversal
-[the tools' scan-shape rule](../README.md) warns is decided by timing rather than by
-reading.
-
-**A derived region is transcription and not citation, and the citation half holds it
-out.** A proof artifact's header argues from the register in prose somebody maintains,
-and the standing proposal is to replace the transcribed part of it with a delimited
-region a repair writes from the cited entries' own normative lines. That region cannot
-be read as citation, because a register entry line cites other entries: a transcription
-would make an artifact cite everything it merely quotes, and the next regeneration would
-transcribe those in turn. Measured over the shipped tree when this landed, one such pass
-introduces 43 ids `DischargeSequence.v` does not cite and 22 `PartitionContext.v` does
-not, and repeating it converges at 200 and 77 against the 26 and 38 each genuinely
-makes. So `ids` skips what sits between the delimiters, `derived` is where that reading
-is made, and [the citations check](checks/citations.py)'s K-108 is what stops the
-exclusion widening past a transcription. On the artifacts carrying no region, which is
-all of them today, the whole exclusion is one substring pre-test, and the parse is made
-once per artifact and handed to both rules that read through it.
-
-The **constant** half is not on that budget. It reads a sentence's opening vernacular,
-so it has to know where the comments end, and `vos.proofs.sentences` is a character
-walk costing about 400 ms over the same tree. That is nothing beside the prover run the
-proof gate pays it inside, and it is two orders of magnitude above what one rule of
-`check.py` may spend, so it is computed for the artifacts a query actually asks about
-and never for the whole tree on the host wave. Nothing here caches it: a caller that
-wants it says so by calling for it.
-
-The **discharge** half is the third, and it is on the citation half's budget rather
-than the constant half's, which is the whole of why it is written the way it is. A
-discharge annotation is `(*| discharges: R-07-015, R-15-007i |*)` on its own line
-immediately above a top-level statement, and what it says is that *this constant claims
-to answer those entries*. That is a strictly stronger claim than the file-level
-citation beside it, which says only that the entry informed the artifact, and the two
-are kept apart in every name here for that reason: a citation is a bibliography and a
-discharge is a debt. **Neither is evidence that the theorem states the obligation.**
-Whether the sentence a constant proves is the sentence the entry demands is a reading,
-it belongs to the review gate R-05-150 fixes and to the residue R-17-016 declares, and
-nothing in this module or in any rule over it approximates it.
-
-It is read with one whole-text `str.find` for the opening marker and one anchored
-attempt per hit, which is the shape the citation half's timing argues for and not a
-second walk of the sentences: the constant a discharge names is the one on the line
-*below* it, so the vernacular and the name are read off that line rather than looked up
-in the definition index. That is what keeps a rule over this at a few milliseconds
-instead of at the half-second the definition index costs, and it is also where the
-reading stops. A statement written inside an enclosing comment reads here exactly as one
-the file binds, because telling those apart is what comment stripping is for; that
-residue is declared at the rule and is not closed by anything cheaper.
-
-**Fail-closed on the marker rather than on the form.** Every `(*|` in a proof artifact
-is taken to be an attempt at an annotation, so one that will not parse comes back as a
-fault instead of being skipped as an ordinary comment. The alternative reading, taking
-only what matches and passing over the rest, makes a mistyped annotation invisible in
-exactly the way an unread citation was invisible before this module existed. The price
-is stated rather than hidden: a proof artifact that *writes the form out in its own
-prose*, to explain the convention to a reader, is committing a fault by this reading and
-has to spell the marker some other way. That is the trade a marker-level floor buys, and
-it is the cheap direction to be wrong in, because the fault names the line.
-
-**A note on the name, because this module was called `evidence.py` first and the
-rename is the interesting part.** `vos/<name>.py` beside `vos/cli/<name>.py` is a
-convention here rather than a coincidence: `proofs`, `coread`, `ring`, `oracle` and
-`differential` all pair that way, and in every one of them the `vos/` module is the
-shared machinery behind the command of that name. So a `vos/evidence.py` would not
-merely collide with [cli/evidence.py](cli/evidence.py), the guest's exit-evidence
-sweep; it would make a false promise in the repository's own vocabulary, saying *this
-is the machinery behind that sweep*, and a reader looking for the sweep's
-implementation would find this file first and the real one second. `proofcites` breaks
-no convention and says what it holds.
+The source-name reader strips comments and reads declaration vernacular. It supports
+host navigation; it is not the native inventory the assumption gate relies on.
 """
 
 import re
@@ -107,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from vos.proofs import sentences
+from vos.proofs import marker_depths, sentences
 from vos.register import REQ_TOKEN_RE
 
 # The shipped proof artifacts, as the directory holding them and the kind they are.
@@ -319,9 +233,8 @@ def ids(text: str, region: Derived | None = None) -> list[str]:
     Repeats are kept: how often an artifact argues from an entry is the caller's to
     count, and a set here would silently answer a different question.
 
-    What a derived region holds is transcription rather than citation and is skipped,
-    for the reason the module docstring states: an entry line cites other entries, so a
-    region read as citation feeds itself on every regeneration. An artifact whose
+    A derived reference manifest or legacy transcription is skipped, so its generated
+    ids cannot select their own membership on the next regeneration. An artifact whose
     delimiters do not balance carries no region here, so the whole of it is read and
     the imbalance is `derived`'s fault for the caller to report.
 
@@ -410,10 +323,17 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
     """
     claims: list[Claim] = []
     faults: list[str] = []
+    depths = marker_depths(text, DISCHARGE_OPEN) if DISCHARGE_OPEN in text else {}
     at, line = 0, 1
     while (mark := text.find(DISCHARGE_OPEN, at)) >= 0:
         line += text.count("\n", at, mark)
         at = mark + len(DISCHARGE_OPEN)
+        if _DERIVED_RE.match(text, mark):
+            continue
+        if depths.get(mark) != 0:
+            faults.append(f"line {line} places a discharge inside an enclosing "
+                          "comment or string, where it binds no compiled statement")
+            continue
         head = text.rfind("\n", 0, mark) + 1
         if text[head:mark].strip():
             faults.append(f"line {line} opens {DISCHARGE_OPEN} with code before it on "

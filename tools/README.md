@@ -47,8 +47,9 @@ asked for on the host is re-launched in the guest and says so, so there is no
 to *drive* the toolchain to need the hop: `model config-keys`,
 `model validate-config`, `model asm`, `model freeze-emit`, `rtl provenance`,
 `rtl filelist`, `oracle list`, `oracle emit`, `seed list`, `testrig protocol`,
-`placement export`, `placement check`, `placement admit` and `placement search`
-use this checkout and answer on either lane. That is a declaration and not a description, so
+`placement export`, `placement check`, `placement admit`, `placement search`,
+`proofs headers` and `proofs status` use this checkout and answer on either lane.
+That is a declaration and not a description, so
 [tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
 lane the suite is running on, and holds every subcommand the table declares against
 this page: one the table declares and this page nowhere names sends a reader into the
@@ -76,7 +77,7 @@ caught by nothing, which is a residue the findings register carries.
 | `placement` | host / wsl | `export`, `check`, `admit` and `search` read the memory plan on either lane. `consistency` asks Z3 to select a jointly admissible candidate from the existing finite island grid, labels constraints with requirement IDs, and replays witnesses and contradiction cores through the exact predicates. A truncated grid can produce a witness but cannot establish unsatisfiability. The proof status remains with the Gallina artifact. |
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the CertiRocq oracle's own switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
 | `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. |
-| `proofs` | wsl | Compiles every shipped proof in Require-derived dependency waves, accumulates every failure, and holds each assumption set against the declared one; a concurrent run blocks until the holder is done. It then hands every compiled module to `rocqchk` in one invocation, which is R-05-016a's re-check and can only reject, and which shares the kernel's lineage, so it is a second reading rather than an independent one and is never to be cited as the latter. The same run holds R-05-166's decidable half: every record a file's theorems quantify over carries a named witness, a closed `Definition witness_<Record> : <Record>` in that file or in one it Requires, and the gate looks the constant up rather than reading a construction out of the text, the prover having decided the inhabitation by type-checking the ascription. Whether a witness is non-trivial is a judgement the gate does not make. |
+| `proofs` | wsl / host | Compiles independent proofs in bounded dependency waves, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`. Missing or unsupported enumeration fails. `proofs status` checks the exported evidence against current source and compiled-file hashes on either lane; guest toolchain identity is recorded there, not re-probed by the host. `proofs headers` checks compact requirement references and fingerprints; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
 
 Each command is one module of [vos/cli/](vos/cli/), which is what those executables
 became: each keeps its docstring, its argparse and its `main(argv)`, less its own
@@ -420,6 +421,26 @@ import an error without a carve-out to audit.
 
 ## Current evidence and generated documentation
 
+`proofs status` and `proofs headers` run on the Windows host as well as in WSL.
+The proof receipt names the compiled constants, their types and audited assumptions,
+the local dependency graph, source identities and compiled output identities. A claim
+must resolve to an audited proposition. Matching metadata does not decide whether that
+proposition expresses the English requirement; that remains the requirement-to-contract
+review. The host checks source and output freshness; the guest records its prover
+identity during the proof run.
+
+The requirements register remains the authored normative source. K-109 holds each
+non-generated proof's compact reference manifest against the entries selected by its
+authored citations. The manifest records the owner, IDs and a SHA-256 fingerprint of
+their normative text; it does not copy that text. `check --fix` refreshes the manifest
+after arithmetic repairs. K-108 excludes it from citation discovery, so generation
+cannot invent new dependencies.
+
+Use `proofs headers --show proofs/PartitionContext.v` to read the selected entries as
+Markdown on demand. A current fingerprint records byte agreement, not semantic
+agreement between a requirement and a theorem. Authored modeling rationale, criteria
+and claim annotations keep their own roles; RingContract keeps its existing generator.
+
 The document parser supports top-level CommonMark fences using backticks or tildes,
 with matching delimiter characters and sufficient closing length. Unsupported container
 and deeply indented fence forms are refused with a file and line, so an example cannot
@@ -429,6 +450,13 @@ silently become a requirement. Ordinary prose, tables and links remain Markdown.
 execution, journaling and output publication. Independent oracle workspaces can run
 concurrently. `seed properties` mutates the checkout and still requires exclusive access
 against every reader of that checkout.
+
+Proof compilation uses bounded workers within dependency waves, preserves report order,
+and does not compile a dependent against a failed prerequisite's stale output.
+The final `rocqchk` pass uses one shared environment and the pinned tool's default
+kernel conversion. Enabling its bytecode compiler would also trust the serialized
+bytecode and VM; that option is left disabled. The checker offers no parallel worker
+option.
 
 `placement consistency --plan demo_plan --max-candidates 64 --timeout 5` exercises
 the finite consistency pilot. It uses the memory plan's candidate domains and existing

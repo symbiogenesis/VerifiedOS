@@ -321,6 +321,14 @@
    value on every boundary the file compares at, twenty-six generated chain
    weakenings, two publication bursts, two accounting arms, two live-state
    arms and two buffer images.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-097 R-05-124 R-05-163 R-05-165 R-05-166 R-07-029 R-07-029a R-07-036
+      R-07-037b R-08-047 R-11-006 R-12-005 R-12-008a R-12-009 R-12-091 R-12-092 R-12-093
+      R-12-094 R-12-095 R-12-096 R-12-097 R-12-098 R-12-100 R-12-101 R-12-011 R-12-012a R-15-183
+      R-17-030u R-18-037
+   SHA256: acc79cac280908a671cab046b1c9c02a6f978fa8e3eeb347ebb882f198b3c409
+   (*| END derived |*)
    ========================================================================= *)
 
 Require Import RingContract.

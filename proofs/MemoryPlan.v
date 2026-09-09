@@ -361,6 +361,13 @@
    region's declared length, off its granule and onto a shorter one; and
    two move one region's charged slot, the second of them past the count of
    slots the frame carries.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-011 R-08-012 R-08-012c R-08-014
+      R-08-045 R-11-006 R-11-009 R-11-015 R-11-015a R-11-020 R-14-009 R-14-010 R-14-015
+      R-15-007c R-15-007k R-15-164 R-15-247 R-15-247j R-15-247m R-15-247r R-15-247s R-18-004b
+   SHA256: 323d1b859f934629ff3e1be4d3626813eb640d79595772d1958b7bb7c167cf94
+   (*| END derived |*)
    ========================================================================= *)
 
 Require Import CyclicExecutive.

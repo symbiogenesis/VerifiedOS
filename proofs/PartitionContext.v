@@ -174,6 +174,15 @@
    function or action predicate and refuted the same way. Inhabitation is
    stated twice: canonically at every machine, and concretely at a machine
    whose every domain is inhabited.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-07-007 R-07-014a R-07-014c R-07-015
+      R-07-016 R-07-018 R-07-027 R-07-027a R-07-029 R-07-029a R-07-031 R-07-031a R-07-031b
+      R-07-037a R-07-037b R-07-037c R-07-037d R-07-039 R-07-040 R-07-044 R-08-004d R-11-006b
+      R-11-009 R-11-027 R-12-096 R-15-001b R-15-007i R-15-098 R-15-214 R-15-218 R-15-219
+      R-15-220 R-15-220a R-18-009
+   SHA256: a3fe4180b510f9299780a6d972968c4dfdd14136c596e72ee0f4aa287aa784a6
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

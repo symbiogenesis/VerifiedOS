@@ -107,6 +107,13 @@
    for a frame that admits, a frame whose slots overlap, a frame whose
    declared bound plus the switch constant exceeds its width, and a
    composition whose harmonic predicate refuses.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-165 R-05-166 R-07-007 R-07-029 R-07-031 R-07-031a R-07-032
+      R-07-033 R-07-036 R-07-037b R-11-006 R-11-006b R-11-009 R-11-014a R-11-014d R-11-015
+      R-11-017 R-11-020 R-11-021 R-11-022 R-11-022a R-11-023 R-11-024 R-11-025 R-11-026 R-15-220
+   SHA256: 805c38222ea3319fe7662ff718e2e83e83cd9aa4fa22d1ef8e314cd40ebeef09
+   (*| END derived |*)
    ========================================================================= *)
 
 Require Import PartitionContext.

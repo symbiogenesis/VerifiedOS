@@ -346,6 +346,15 @@
    purpose clause owes, `SeesItsOwnPendingOnly`, carries no hypothesis at
    all: a file shipping the guarded clause alone would be shipping an empty
    statement over half of R-07-044's disjunction.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-04-008 R-05-163 R-05-164 R-05-165 R-05-166 R-07-021 R-07-027 R-07-027a
+      R-07-028 R-07-029 R-07-029a R-07-030 R-07-031 R-07-031a R-07-031b R-07-035 R-07-037a
+      R-07-037b R-07-037c R-07-037d R-07-039 R-07-042 R-07-044 R-08-004c R-08-004d R-08-008
+      R-08-032 R-11-006 R-11-010 R-11-023 R-11-024 R-11-026 R-12-096 R-15-007 R-15-007n R-15-220
+      R-17-030x R-18-034
+   SHA256: e2743f0c13736065f21436e13367f7f303e4edd2b1f79fbb1ce62dae8deb1997
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

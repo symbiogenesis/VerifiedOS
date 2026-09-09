@@ -44,6 +44,11 @@
    fails on the conclusion alone. Where a conclusion is also another
    seam's premise (composed_schedulability feeds seam 6, ae_ind_cca_int_ctxt
    feeds seam 5), the witness claims nothing about that other seam.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-160 R-05-163 R-05-164 R-05-165 R-05-166 R-18-031
+   SHA256: 775dfecaaa575f3e8a7f0d8c9925b7edfe61b3a3effb15cffe0423c886f7d36e
+   (*| END derived |*)
    ========================================================================= *)
 
 Require Import ApexTheorem.

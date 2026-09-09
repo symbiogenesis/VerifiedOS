@@ -234,6 +234,12 @@
    answers by the host's `hashlib` and `hmac`, so each reached this file by
    two routes and not one. Neither instrument is pinned, neither enters any
    trust base, and nothing above the answers depends on them.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-004a R-05-059 R-05-062 R-05-067 R-05-077a R-05-163 R-05-164 R-05-165
+      R-05-166 R-15-041 R-15-055 R-15-241d
+   SHA256: 046d7754600b2998e4dd3b6bd80c38ae2597921e83697465229efdc38905c900
+   (*| END derived |*)
    ========================================================================= *)
 
 Open Scope list_scope.

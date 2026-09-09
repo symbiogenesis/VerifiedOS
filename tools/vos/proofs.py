@@ -22,8 +22,7 @@ from pathlib import Path
 
 # What a source Requires. `From X Require Import Y` and the bare forms all land here,
 # and the names are split on whitespace because one command may Require several.
-REQUIRE = re.compile(r"^\s*(?:From\s+\S+\s+)?Require(?:\s+(?:Import|Export))?\s+([^.]+)\.",
-                     re.MULTILINE)
+REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(.+)$")
 
 # A Rocq sentence ends at a full stop followed by whitespace, which is what keeps
 # `m.(field)` and `Nat.add` inside their sentence.
@@ -74,8 +73,33 @@ def local_requires(source: Path, stems: set[str]) -> set[str]:
     """The proofs this source Requires from its own directory, by file stem; what a
     library provides is not this module's to order."""
     text = source.read_text(encoding="utf-8")
-    named = (name for found in REQUIRE.finditer(text) for name in found.group(1).split())
-    return {name for name in named if name in stems}
+    named: set[str] = set()
+    for sentence in sentences(text):
+        found = REQUIRE.fullmatch(sentence)
+        if found:
+            prefix = found.group(1)
+            named.update(f"{prefix}.{name}" if prefix else name
+                         for name in found.group(2).split())
+    return named & stems
+
+
+def marker_depths(text: str, marker: str) -> dict[int, int]:
+    """Comment depth before each marker, with quoted strings skipped.
+
+    A discharge is itself a comment, so its opening marker must have depth zero.
+    The token walk stays in the regex engine between delimiters rather than walking
+    every character in Python. A marker inside a string is absent from the result.
+    """
+    depth = 0
+    found: dict[int, int] = {}
+    for token in re.finditer(r'\(\*|\*\)|"(?:[^"]|"")*"', text):
+        if token.group() == "(*":
+            if text.startswith(marker, token.start()):
+                found[token.start()] = depth
+            depth += 1
+        elif token.group() == "*)":
+            depth -= 1
+    return found
 
 
 def waves(sources: list[Path]) -> list[list[Path]]:

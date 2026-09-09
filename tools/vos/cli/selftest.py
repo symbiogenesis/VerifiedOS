@@ -859,6 +859,20 @@ def _k61(box: Sandbox) -> bool:
     return box.write(LEDGER, text[:m.start(2)] + "0" * 12 + text[m.end(2):])
 
 
+def _k109(box: Sandbox) -> bool:
+    """Change the generated fingerprint without changing authored citations."""
+    text = box.read(SEAM_WITNESSES)
+    start = text.find(DERIVED_BEGIN)
+    if start < 0:
+        return False
+    found = re.search(r"SHA256: ([0-9a-f]{64})", text[start:])
+    if found is None:
+        return False
+    a, b = start + found.start(1), start + found.end(1)
+    changed = ("1" if found.group(1)[0] == "0" else "0") + found.group(1)[1:]
+    return box.write(SEAM_WITNESSES, text[:a] + changed + text[b:])
+
+
 def _keep_own_id(entry_line: str) -> str:
     head = re.match(r"^\*\*R-\d\d-\d+[a-z]?\*\* ", entry_line)
     if head is None:
@@ -1710,18 +1724,12 @@ CASES: list[Case] = [
      _literal(SEAM_WITNESSES, "the R-05-165 / R-05-166 discipline",
               "the R-05-165 / R-05-616 discipline")),
 
-    # No artifact carries a derived region yet, so the seed opens one and never closes
-    # it. That is the failure the exclusion is capable of and the whole reason it has a
-    # rule of its own: an unclosed BEGIN excludes the rest of the file, and K-103 above
-    # it then reads a proof artifact that cites nothing and says so as though it had
-    # decided something. Seeded inside the header comment because that is where a region
-    # is written, and the delimiter is read from the module that declares it rather than
-    # spelled here: a copy would go on killing this mutant after a respelling, as a
-    # marker the parse cannot read at all, which is a case passing for a reason it was
-    # not written for and the quietest way for one to stop testing what it names.
+    # An extra BEGIN inside the header makes the exclusion unbalanced. Read the marker
+    # from its owner so a respelling cannot turn the case into an unrelated parse fault.
     ("K-108", "a derived region opened in a proof artifact and never closed",
      _literal(SEAM_WITNESSES, "   SeamWitnesses.v\n",
               f"   SeamWitnesses.v\n\n   {DERIVED_BEGIN}\n")),
+    ("K-109", "a generated proof header changing its owner's fingerprint", _k109),
     # A discharge annotation above a `Definition`, which is the one of this rule's four
     # refusals that renders perfectly and reads as correct: the annotation parses, its id
     # is live, and what it claims is that a *term* answers an obligation. The other three
@@ -1808,6 +1816,7 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     # the lane proves is that --fix writes the whole artifact from its generator rather
     # than that it recomputes an arithmetic in place.
     "K-106": ("ledger row", _case_mutation("K-106")),
+    "K-109": ("generated requirement header", _case_mutation("K-109")),
 }
 
 
@@ -2113,4 +2122,3 @@ def _registry_coverage(box: Sandbox) -> list[str]:
     else:
         print(f"  ok: all {len(registered)} registered rules carry a case")
     return gaps
-

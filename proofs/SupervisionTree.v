@@ -225,6 +225,14 @@
    bring-up order that passes beside twenty that do not, so no theorem is
    proved from a premise nothing satisfies and none from one everything
    satisfies.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-052 R-05-163 R-05-164 R-05-165 R-05-166 R-07-026 R-07-027 R-07-027a
+      R-07-028 R-08-043a R-09-028 R-10-026 R-10-028 R-10-036 R-10-037 R-11-006 R-12-001 R-12-002
+      R-12-093 R-12-073 R-12-074 R-12-087 R-12-088 R-12-089 R-12-090 R-15-247g R-15-220 R-16-001
+      R-16-005 R-16-007 R-16-024 R-16-025 R-16-026 R-16-027
+   SHA256: ce51bd0cf43bdb1d832649a12cd6aba94bdb5962f99212f1d95dd40704892410
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

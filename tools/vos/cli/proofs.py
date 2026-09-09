@@ -1,55 +1,32 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The R-05-163 assumption gate, wired ahead of the first closing theorem as R-05-168
-requires.
+"""Compile shipped proofs and audit the native environment, independent of footers.
 
-It compiles every shipped proof artifact and compares the mechanically enumerated
-assumption set of each constant the artifact prints (its trailing Print Assumptions
-block) against the declared set, which R-05-164 reads from the register: the admission
-axioms of R-06-011, the bootstrap root of R-06-014, and the Ax ledger of R-18-031(c).
-None of those is authored yet, so the declared set is empty and the only passing output
-is "Closed under the global context". When the register's declared set gains an entry,
-this gate grows an allowlist read from it, never from the development.
+The gate enumerates each module with Rocq Search after disabling both search filters,
+then asks Print Assumptions about every returned symbol. This includes local lemmas,
+nested modules and generated obligations. Claims must resolve to compiled propositions.
+The existing record-witness check remains the decidable part of the non-vacuity gate.
 
-An admitted lemma, an unresolved obligation, a locally declared parameter, or any axiom
-fails this gate rather than shipping green.
-
-Every module the wave compiled is then handed to `rocqchk`, the prover's own kernel
-re-checker, in one invocation. R-05-016a licenses exactly this and says why it costs
-no trust: a re-check can only reject, so a second implementation refusing a
-kernel-checked term is a finding, and one accepting a term adds no ground the first did
-not already give. **The honest limit is the same entry's**, and is booked here rather
-than left for a reader to supply: `rocqchk` shares the kernel's lineage, and the
-prover's own bug list records defects reaching that checker equally, so this is a
-second reading and not independence. Nothing downstream may cite it as a second
-implementation in R-05-016's sense.
-
-The same run holds the decidable half of R-05-166. Each artifact states its obligations
-over an arbitrary instance of a carrier record (`Machine`, `Composition`, `Plan`,
-`Vocabulary`) whose fields are what the register leaves to composition, and a
-quantifier over a record nobody builds is R-05-165's uninhabited-domain mode. So for
-every record a file's theorem statements quantify over, the artifact carries a named
-witness, a closed top-level `Definition witness_<Record> : <Record> := ...` in that file
-or in one it Requires, and this gate looks that constant up rather than deciding
-inhabitation itself. **The decision is the prover's**: the definition either type-checks
-at the record or the compile above fails, so what is read here is a name and an
-ascription, where reading a construction out of the text would be an approximation of a
-type judgement. Whether a witness is non-trivial is a judgement the register books under
-§17, not a check.
-
-Needs the pinned Rocq switch, which `vos.env` locates and which is deliberately not the
-switch the Sail toolchain lives in. It is a guest command, so `python tools/run.py
-proofs` on the host re-launches it there rather than refusing.
+Independent dependency-wave members run concurrently under one directory lock. Build
+products are cleared before the wave, and failed dependencies block their consumers.
+Every accepted module is rechecked by rocqchk before a content-bound JSON receipt is
+written. `proofs status` checks that receipt on either host without invoking Rocq;
+it records the guest toolchain identity and does not re-probe that guest from the host.
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
+import sys
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
-from vos import env
+from vos import env, proofaudit, receipts
 from vos import proofs as proofs_mod
 from vos.corpus import find_root
 
@@ -62,7 +39,8 @@ from vos.corpus import find_root
 from vos.proofs import sentences as _sentences
 
 PROOFS = "proofs"
-CLOSED = "Closed under the global context"
+RECEIPT = "proofs/proof-evidence.json"
+RECEIPT_SCHEMA = 1
 
 # The witness convention the artifacts keep, stated here so the help text can say what
 # the gate reads. It is a *name*, and that is the whole of the change R-05-166's
@@ -328,127 +306,265 @@ def _recheck(root: Path, sources: list[Path]) -> subprocess.CompletedProcess[str
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
 
-def _assumptions(stdout: str) -> tuple[int, list[str]]:
-    """One compile's Print Assumptions output, read back block by block.
+def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
+    tools = root / "tools"
+    owned = [tools / "run.py", tools / "vos" / "__init__.py",
+             tools / "vos" / "cli" / "__init__.py", tools / "vos" / "env.py",
+             tools / "vos" / "corpus.py", tools / "vos" / "register.py",
+             tools / "vos" / "proofs.py", tools / "vos" / "proofcites.py",
+             tools / "vos" / "proofaudit.py", tools / "vos" / "receipts.py",
+             tools / "vos" / "cli" / "proofs.py",
+             root / "docs" / "requirements-register.md"]
+    return receipts.snapshot(root, [*sources, *owned])
 
-    An `Axioms:` header opens a block and is structure rather than a finding, and a
-    wrapped axiom type's indented continuation lines belong to the entry above them,
-    so an axiom compares against the declared set whole rather than line by line.
-    Anything else the compiler printed is an entry too: chatter fails the gate rather
-    than passing beneath it.
-    """
-    closed = 0
-    entries: list[str] = []
-    in_axioms = False
-    for raw in stdout.splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        if line == CLOSED:
-            closed += 1
-            in_axioms = False
-            continue
-        if line == "Axioms:":
-            in_axioms = True
-            continue
-        if in_axioms and raw[:1].isspace() and entries:
-            entries[-1] += f" {line}"
-            continue
-        entries.append(line)
-    return closed, entries
+
+def _sources(root: Path) -> list[Path]:
+    """The complete supported source set, refusing silently omitted subdirectories."""
+    folder = root / PROOFS
+    sources = sorted(folder.rglob("*.v"))
+    nested = [source.relative_to(root).as_posix() for source in sources
+              if source.parent != folder]
+    if nested:
+        raise proofaudit.AuditError("nested proof source paths need namespace-aware "
+                                   "dependency support and cannot be omitted: "
+                                   + ", ".join(nested))
+    return sources
+
+
+def _query(root: Path, directory: Path, name: str, text: str) -> str:
+    query = directory / f"{name}.v"
+    query.write_text(text, encoding="utf-8", newline="")
+    done = subprocess.run(
+        [*env.rocq_command(), "-q", "-Q", str(root / PROOFS), "", str(query)],
+        cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
+    if done.returncode or done.stderr.strip():
+        raise proofaudit.AuditError(
+            f"{name} failed (exit {done.returncode}): "
+            f"{done.stderr.strip() or done.stdout.strip() or 'no diagnostic'}")
+    return done.stdout
+
+
+@dataclass(frozen=True)
+class Checked:
+    source: Path
+    symbols: list[proofaudit.Symbol] = field(default_factory=list)
+    witnesses: Witnesses = field(default_factory=Witnesses)
+    error: str = ""
+
+
+def _check_source(root: Path, source: Path, sources: list[Path]) -> Checked:
+    try:
+        text = source.read_text(encoding="utf-8")
+        unsupported = proofaudit.unsupported_abstractions(text)
+        if unsupported:
+            raise proofaudit.AuditError(
+                "native inventory cannot enumerate inaccessible module bodies: "
+                + "; ".join(unsupported))
+        done = _compile(root, source)
+        if done.returncode:
+            raise proofaudit.AuditError(
+                f"compile exited {done.returncode}: "
+                f"{done.stderr.strip() or done.stdout.strip() or 'no diagnostic'}")
+        with tempfile.TemporaryDirectory(prefix="vos-proof-audit-") as temporary:
+            directory = Path(temporary)
+            output = _query(root, directory, "Inventory",
+                            proofaudit.inventory_query(source.stem))
+            symbols = proofaudit.inventory(output, source.stem)
+            proofaudit.bind_claims(text, symbols)
+            output = _query(root, directory, "Assumptions",
+                            proofaudit.assumption_query(source.stem, symbols))
+            proofaudit.assumptions(output, symbols)
+        undeclared = [(symbol["name"], assumption) for symbol in symbols
+                      for assumption in symbol["assumptions"] if assumption not in DECLARED]
+        if undeclared:
+            raise proofaudit.AuditError("undeclared assumptions: " + "; ".join(
+                f"{name}: {assumption}" for name, assumption in undeclared))
+        witnesses = scan_witnesses(text, _imported(source, sources))
+        if witnesses.unbuilt:
+            raise proofaudit.AuditError(
+                "quantified records have no named witness: " + ", ".join(witnesses.unbuilt))
+        return Checked(source, symbols, witnesses)
+    except (OSError, ValueError) as err:
+        return Checked(source, error=str(err))
+
+
+def _toolchain() -> dict[str, object]:
+    compiler = Path(env.rocq_command()[0]).resolve()
+    checker = Path(env.rocqchk_command()[0]).resolve()
+    done = subprocess.run([*env.rocq_command(), "--version"], capture_output=True,
+                          text=True, encoding="utf-8", check=False)
+    if done.returncode or not done.stdout.strip():
+        raise proofaudit.AuditError("cannot identify the Rocq compiler version")
+    version = re.search(r"\bversion\s+([^\s]+)", done.stdout)
+    if version is None or version.group(1) != env.ROCQ_VERSION:
+        raise proofaudit.AuditError(f"Rocq version differs from pin {env.ROCQ_VERSION}")
+    return {"version": done.stdout.strip(), "pin": env.ROCQ_VERSION,
+            "compiler": {"path": str(compiler), "sha256": receipts.digest(compiler)},
+            "checker": {"path": str(checker), "sha256": receipts.digest(checker)}}
+
+
+def _validate_receipt(root: Path) -> None:
+    raw: object = json.loads((root / RECEIPT).read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise TypeError("receipt is not an object")
+    record = cast("dict[str, object]", raw)
+    if record.get("schema") != RECEIPT_SCHEMA or record.get("status") != "passed":
+        raise ValueError("receipt has no supported successful verdict")
+    sources = _sources(root)
+    if record.get("inputs") != _inputs(root, sources):
+        raise ValueError("proof inputs or proof-gate implementation have changed")
+    outputs = receipts.snapshot(root, (source.with_suffix(".vo") for source in sources))
+    if record.get("outputs") != outputs:
+        raise ValueError("compiled proof artifacts have changed")
+    artifacts = record.get("artifacts")
+    if not isinstance(artifacts, dict) or set(artifacts) != {source.name for source in sources}:
+        raise ValueError("receipt does not enumerate the current proof artifacts")
+    total = 0
+    for filename, artifact in artifacts.items():
+        if not isinstance(filename, str) or not isinstance(artifact, dict):
+            raise TypeError("malformed artifact identity")
+        symbols = artifact.get("symbols")
+        if not isinstance(symbols, list):
+            raise TypeError(f"{filename} has no native symbol inventory")
+        names: set[str] = set()
+        for symbol in symbols:
+            if not isinstance(symbol, dict):
+                raise TypeError(f"{filename} carries a malformed symbol")
+            name, typ = symbol.get("name"), symbol.get("type")
+            if (not isinstance(name, str) or not name.startswith(Path(filename).stem + ".")
+                    or name in names or not isinstance(typ, str) or not typ):
+                raise ValueError(f"{filename} carries an invalid native symbol or type")
+            if symbol.get("assumptions") != []:
+                raise ValueError(f"{name} has no closed assumption verdict")
+            claims = symbol.get("claims")
+            if not isinstance(claims, list) or any(not isinstance(c, str) for c in claims):
+                raise ValueError(f"{name} has malformed claims")
+            names.add(name)
+        total += len(names)
+    if not total:
+        raise ValueError("receipt has no native symbols")
+    toolchain = record.get("toolchain")
+    if not isinstance(toolchain, dict) or toolchain.get("pin") != env.ROCQ_VERSION:
+        raise ValueError("receipt does not identify the pinned toolchain")
+    if record.get("declared_assumptions") != sorted(DECLARED):
+        raise ValueError("receipt uses a different declared assumption set")
+    if record.get("kernel_recheck") != "passed":
+        raise ValueError("receipt has no successful kernel recheck")
+
+
+def _status(root: Path) -> int:
+    try:
+        _validate_receipt(root)
+    except (OSError, TypeError, ValueError) as err:
+        print(f"FAIL: proof evidence is absent or stale: {err}; run `run.py proofs`")
+        return 1
+    else:
+        print(f"ok: {RECEIPT} matches all current proof inputs and compiled outputs; "
+              "the guest toolchain identity is recorded, not re-probed on the host")
+        return 0
+
+
+def _run_locked(root: Path, jobs: int) -> int:
+    sources = _sources(root)
+    inputs = _inputs(root, sources)
+    toolchain = _toolchain()
+    stems = {source.stem for source in sources}
+    needs = {source.stem: proofs_mod.local_requires(source, stems) for source in sources}
+    # Remove only this run's own build products, under the held proof directory.
+    # Even an unrecognized dependency cannot consume a previous run's .vo.
+    for source in sources:
+        for suffix in (".vo", ".vos", ".vok"):
+            source.with_suffix(suffix).unlink(missing_ok=True)
+    (root / RECEIPT).unlink(missing_ok=True)
+    checked: list[Checked] = []
+    failed: set[str] = set()
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        for wave in proofs_mod.waves(sources):
+            ready: list[Path] = []
+            for source in wave:
+                blocked = needs[source.stem] & failed
+                if blocked:
+                    failed.add(source.stem)
+                    checked.append(Checked(source, error="blocked by failed dependencies: "
+                                           + ", ".join(sorted(blocked))))
+                else:
+                    ready.append(source)
+            results = list(pool.map(lambda source: _check_source(root, source, sources), ready))
+            checked.extend(results)
+            failed.update(item.source.stem for item in results if item.error)
+    if failed:
+        for item in sorted(checked, key=lambda item: item.source.name):
+            if item.error:
+                print(f"FAIL: {item.source.name}: {item.error}")
+        return 1
+    total = sum(len(item.symbols) for item in checked)
+    if not total:
+        print("FAIL: native Rocq inventory contains no compiled constant")
+        return 1
+    rechecked = _recheck(root, sources)
+    said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
+    if rechecked.returncode or said:
+        print(f"FAIL: rocqchk recheck (exit {rechecked.returncode}): "
+              f"{said or 'no diagnostic'}")
+        return 1
+    if inputs != _inputs(root, sources) or toolchain != _toolchain():
+        print("FAIL: proof inputs or the toolchain changed during the run")
+        return 1
+    outputs = receipts.snapshot(root, (source.with_suffix(".vo") for source in sources))
+    artifacts: dict[str, object] = {}
+    witnessed = 0
+    for item in sorted(checked, key=lambda item: item.source.name):
+        witnesses = item.witnesses.witness_count
+        witnessed += witnesses
+        artifacts[item.source.name] = {
+            "symbols": item.symbols,
+            "requires": sorted(needs[item.source.stem]),
+            "witnesses": item.witnesses.witnesses}
+        print(f"  {item.source.name}: {len(item.symbols)} constant(s), "
+              f"{witnesses} witness(es) over "
+              f"{len(item.witnesses.quantified)} quantified record(s)")
+    receipts.write(root / RECEIPT, {
+        "schema": RECEIPT_SCHEMA, "status": "passed", "inputs": inputs,
+        "outputs": outputs, "toolchain": toolchain, "artifacts": artifacts,
+        "declared_assumptions": sorted(DECLARED), "kernel_recheck": "passed"})
+    print(f"ok: {total} constant(s), each enumerated by Rocq, closed under the "
+          "global context and re-checked by rocqchk, which shares the kernel's "
+          f"lineage; {witnessed} witness(es); evidence: {RECEIPT}")
+    return 0
+
+
+def _run(root: Path, jobs: int) -> int:
+    proofs = root / PROOFS
+    if not (proofs / STATEMENT).exists():
+        print(f"FAIL: {PROOFS}/{STATEMENT} is not in the repository")
+        return 1
+    descriptor = _hold(proofs)
+    try:
+        result = _run_locked(root, jobs)
+    except (OSError, ValueError) as err:
+        print(f"FAIL: proof gate: {err}")
+        return 1
+    else:
+        return result
+    finally:
+        os.close(descriptor)
 
 
 def main(argv: list[str] | None = None) -> int:
-    argparse.ArgumentParser(
+    args = list(sys.argv[1:] if argv is None else argv)
+    if args and args[0] == "headers":
+        from vos import proofheaders  # noqa: PLC0415
+        return proofheaders.main(args[1:])
+    parser = argparse.ArgumentParser(
         prog="run.py proofs",
-        description="Compile every shipped proof, re-check the compiled modules with "
-                    "rocqchk, hold every assumption against the declared set "
-                    "(R-05-163), and hold every record the theorems quantify over to a "
-                    "named witness (R-05-166's decidable half).",
-        epilog=f"The witness convention the artifacts follow is {WITNESS_CONVENTION}. "
-               "The gate decides on the name and the ascription and never on the "
-               "inhabitation, which the compile above decided by type-checking the "
-               "definition; the witnesses it counts are the quantified records that "
-               "carry one. Whether a witness is non-trivial is a judgement outside "
-               "this gate, booked in the register's §17. The rocqchk pass is "
-               "R-05-016a's re-check, which can only reject: it is a second reading "
-               "of the same kernel lineage and not an independent one."
-               ).parse_args(argv)
-
+        description="Compile dependency waves concurrently; enumerate symbols, types "
+                    "and assumptions through Rocq; validate claims and witnesses; "
+                    "recheck with rocqchk and record content-bound evidence.")
+    parser.add_argument("command", nargs="?", choices=("run", "status"), default="run")
+    parser.add_argument("--jobs", type=int, default=min(4, os.process_cpu_count() or 1),
+                        help="maximum concurrent proof jobs (default: at most four)")
+    parsed = parser.parse_args(args)
+    if parsed.jobs < 1:
+        parser.error("--jobs must be positive")
     root = find_root()
-    proofs = root / PROOFS
-    statement = proofs / STATEMENT
-    if not statement.exists():
-        print(f"FAIL: {PROOFS}/{STATEMENT} is not in the repository")
-        return 1
-    _hold(proofs)
-
-    # Every source is compiled and every verdict kept, so a run with two broken proofs
-    # reports two rather than whichever came first. The recompile is unconditional on
-    # every run, fresh .vo or not: the Print Assumptions output produced during
-    # compilation is the evidence this gate reads, and a skipped compile is a skipped
-    # enumeration.
-    failures: list[tuple[Path, str]] = []
-    closed = 0
-    undeclared: list[str] = []
-    unbuilt: list[tuple[Path, str]] = []
-    witnessed = 0
-    lines: list[str] = []
-    sources = sorted(proofs.glob("*.v"))
-    for wave in proofs_mod.waves(sources):
-        for source in wave:
-            done = _compile(root, source)
-            if done.returncode != 0:
-                failures.append((source, done.stderr.strip()))
-                continue
-            enumerated, entries = _assumptions(done.stdout)
-            closed += enumerated
-            undeclared.extend(entry for entry in entries if entry not in DECLARED)
-            found = scan_witnesses(source.read_text(encoding="utf-8"),
-                                   _imported(source, sources))
-            witnessed += found.witness_count
-            unbuilt.extend((source, record) for record in found.unbuilt)
-            lines.append(f"  {source.name}: {enumerated} constant(s), "
-                         f"{found.witness_count} witness(es) over "
-                         f"{len(found.quantified)} quantified record(s)")
-
-    if failures:
-        for source, stderr in failures:
-            print(f"FAIL: {source.name} did not compile:\n{stderr}")
-        return 1
-    if undeclared:
-        print("FAIL: an assumption outside the declared set, which is empty (R-05-164):")
-        for entry in undeclared:
-            print(entry)
-        return 1
-    if not closed:
-        print("FAIL: no constant was enumerated; the artifact must end in Print Assumptions")
-        return 1
-    print("\n".join(lines))
-    if unbuilt:
-        for source, record in unbuilt:
-            print(f"FAIL: {source.name} quantifies over Record {record} and carries no "
-                  f"witness for it (R-05-166): neither it nor a proof it Requires "
-                  f"defines a closed `{WITNESS_PREFIX}{record} : {record}`")
-        return 1
-
-    # Last, because it is the expensive reading and every cheap one above decides
-    # without it: a witness the artifacts do not carry is worth reporting in seconds
-    # rather than after a re-check of the whole tree.
-    rechecked = _recheck(root, sources)
-    said = f"{rechecked.stdout}\n{rechecked.stderr}".strip()
-    # Under -silent a clean re-check says nothing at all, so output is a rejection or a
-    # diagnostic and neither passes beneath this gate, on the reading `_assumptions`
-    # takes of the compiler's own chatter.
-    if rechecked.returncode != 0 or said:
-        print(f"FAIL: rocqchk did not re-check what the compiler accepted "
-              f"(exit {rechecked.returncode}). R-05-016a: a re-check can only reject, "
-              f"so a refusal here is a finding about the terms:")
-        print(said or "it printed nothing and exited non-zero")
-        return 1
-    print(f"ok: {closed} constant(s), each closed under the global context and "
-          f"re-checked by rocqchk, which shares the kernel's lineage and is a second "
-          f"reading rather than an independent one; {witnessed} witness(es), one per "
-          f"quantified record")
-    return 0
-
+    return _status(root) if parsed.command == "status" else _run(root, parsed.jobs)

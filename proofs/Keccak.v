@@ -252,6 +252,12 @@
    implementation. The empty-message SHA3-256 answer is the same one the NIST
    ACVP SHA3-256 sets carry for the same input, and it is the answer the Sail
    unit's harness checks, which is where the two transcriptions meet.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-022 R-05-058a R-05-058c R-05-059 R-05-062 R-05-067 R-05-077a R-05-163
+      R-05-164 R-05-165 R-05-166 R-09-002 R-10-024 R-15-056 R-15-056a R-15-058 R-15-241d
+   SHA256: 9f600efc4d7879caa7351c1e04de4a5268b5e6ed5c6bbeeba7d416b913e30631
+   (*| END derived |*)
    ========================================================================= *)
 
 Open Scope list_scope.

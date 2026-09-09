@@ -337,6 +337,14 @@
    over a derivation that are refused beside families that are not, so no
    theorem is proved from a premise nothing satisfies and none from one
    everything satisfies.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-029 R-05-030 R-05-036 R-05-037 R-05-038 R-05-039 R-05-135a R-05-135b
+      R-05-163 R-05-164 R-05-165 R-05-166 R-06-008 R-06-009 R-06-014 R-06-015b R-06-015d
+      R-10-026 R-11-005 R-11-005a R-13-001 R-13-001a R-13-001c R-13-003 R-13-007 R-13-010a
+      R-13-010b R-13-011 R-13-012 R-13-013 R-13-014 R-13-022 R-13-025 R-13-026 R-17-033
+   SHA256: 027aeb15bc6bc218f5e7b069a094b5ef24ef0cf9ec4787b06a5c8db6a289a4c8
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

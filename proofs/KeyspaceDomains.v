@@ -358,6 +358,15 @@
    two are declared `Fresh`, held against three epoch roots; four epoch
    states against three readers; and eight keyring states of which four
    erasers decide differently.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-156 R-05-160 R-05-163 R-05-164 R-05-165 R-05-166 R-07-027a R-08-001
+      R-08-021 R-08-027a R-08-037a R-09-022 R-10-002 R-10-003 R-10-005 R-10-005a R-10-005b
+      R-10-005c R-10-007 R-10-008 R-10-011 R-10-012 R-10-013 R-10-013b R-10-013c R-10-013d
+      R-10-013e R-10-014 R-10-015 R-10-016 R-10-017 R-10-018 R-10-022 R-10-022a R-10-023
+      R-10-024 R-10-025 R-10-027 R-10-032 R-10-035 R-10-037 R-12-024a R-12-024e R-14-012a
+   SHA256: 9678a8c4362ce0aa874fc768608a70d3c8d34e8917c3c04667f122320e3c6781
+   (*| END derived |*)
    ========================================================================= *)
 
 Require Import JournalIndex.

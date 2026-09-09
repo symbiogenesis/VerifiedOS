@@ -186,6 +186,12 @@
    notice is owed because nothing was changed. Every derived quantity was
    recomputed by hand from the standard's formulas before it was written
    down here.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-004a R-05-058a R-05-058c R-05-062 R-05-067 R-05-077a R-05-163 R-05-165
+      R-05-166 R-09-005 R-09-005a R-09-036 R-17-049 R-17-049b
+   SHA256: 55266f5afbf0101195b3b58106387393bab374818724e5e8416cd9d86b0dccee
+   (*| END derived |*)
    ========================================================================= *)
 
 Require Import Keccak.

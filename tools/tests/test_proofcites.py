@@ -2,10 +2,8 @@
 """The derived header region: the exclusion that holds one out of the citation
 reading, and K-108, the rule that stops that exclusion widening.
 
-Every fixture here is synthetic. Not one of the shipped artifacts carries a derived
-region yet, so a test written against the tree would be a test against an empty set,
-which is the same vacuity K-108's own floor exists to refuse; and the cases that
-matter are the malformed ones, which no artifact should ever carry.
+Every fixture is synthetic, covering both reference manifests and legacy prose
+regions. Malformed cases must fail without relying on the shipped proof roster.
 
 What the parse half holds is the shape of the reading rather than the reading's
 subject: an artifact with no region is read whole, a well-formed region is skipped,
@@ -188,7 +186,7 @@ def _a_region_hiding_a_citation_is_the_finding() -> None:
     found = _k108(f"(* cites R-01-001\n{BEGIN}\n{_TRANSCRIPT}"
                   "   **R-03-003** MUST: the third obligation.\n"
                   f"{END} *)\n")
-    ensure(any("transcribes R-03-003" in f for f in found),
+    ensure(any("names R-03-003" in f for f in found),
            f"an id no cited entry transcribes is the finding: {found!r}")
     ensure(not any("R-02-002" in f for f in found),
            f"and an id the cited entry's own line names is not: {found!r}")
@@ -232,6 +230,30 @@ def _the_probe_holds_on_a_tree_with_no_region() -> None:
            f"and the exclusion answers at every probe: {probes} {moved!r}")
 
 
+def _compact_manifests_are_strict() -> None:
+    body = ("   Owner: docs/requirements-register.md\n"
+            "   Requirements: R-01-001\n"
+            "   SHA256: " + "a" * 64 + "\n")
+
+    def artifact(value: str) -> str:
+        return f"(* cites R-01-001\n{BEGIN}\n{value}{END} *)\n"
+
+    ensure(_k108(artifact(body)) == [], "a compact reference manifest was rejected")
+    bad = [body.replace("register.md", "other.md"),
+           body.replace("SHA256:", "Digest:"), body.replace("a" * 64, "abc"),
+           body + "   Definition hidden := 0.\n",
+           body.replace("R-01-001\n", "R-01-001 Definition hidden := 0.\n"),
+           body.replace("   Owner: docs/requirements-register.md\n", ""),
+           body + "   Owner: docs/requirements-register.md\n"]
+    for value in bad:
+        ensure(any("malformed reference manifest" in fault for fault in _k108(artifact(value))),
+               "an incomplete, extended or corrupted manifest was silently excluded")
+    for ident in ("R-02-002", "R-03-003"):
+        value = body.replace("Requirements: R-01-001", "Requirements: R-01-001\n      " + ident)
+        ensure(any("names " + ident in fault for fault in _k108(artifact(value))),
+               "a manifest hid an unauthored citation, including one reached transitively")
+
+
 def cases() -> list[Case]:
     return [
         Case("no-region-is-read-whole", _no_region_is_read_whole),
@@ -250,4 +272,5 @@ def cases() -> list[Case]:
         Case("wrapped-transcription-admitted", _a_wrapped_transcription_is_admitted),
         Case("unbalanced-region-is-the-finding", _an_unbalanced_region_is_the_finding),
         Case("probe-holds-with-no-region", _the_probe_holds_on_a_tree_with_no_region),
+        Case("compact-manifests-are-strict", _compact_manifests_are_strict),
     ]

@@ -390,6 +390,14 @@
    file makes. The ledger at the end pins every field of every witness no
    obligation reads, which is the hazard M6.2a measured: a field nothing
    reads is a field a weakening moves in silence.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-042 R-05-050 R-05-097 R-05-098 R-05-150 R-05-163 R-05-164 R-05-165
+      R-05-166 R-08-046 R-08-047 R-08-021 R-10-030 R-11-002 R-11-008 R-12-005 R-12-013a
+      R-12-024b R-12-024c R-12-024d R-12-024e R-12-024f R-12-084a R-13-001 R-13-001a R-13-001b
+      R-13-001c R-13-002 R-13-010b R-13-011
+   SHA256: 3c869d7f110616d9e3a7cb052f4d1680f0784041130f5145cb5c050ff0f55235
+   (*| END derived |*)
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------

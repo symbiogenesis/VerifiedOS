@@ -141,7 +141,7 @@ COMMANDS: tuple[Command, ...] = (
             "the RVFI-DII rig", lane="guest", host_ok=frozenset({"protocol"})),
     Command("proofs", "vos.cli.proofs",
             "every shipped proof, and its assumptions against the declared set",
-            lane="guest"),
+            lane="guest", host_ok=frozenset({"status", "headers"})),
 )
 
 BY_NAME: dict[str, Command] = {command.name: command for command in COMMANDS}
