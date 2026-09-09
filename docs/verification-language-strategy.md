@@ -6,7 +6,11 @@
 
 ## Recommendation
 
-The bounded tooling qualification is scheduled as Q19 in [the implementation checklist](implementation-checklist.md#q-assessment-actions), with acceptance owned by [interactive-evidence discipline](spec.md#r-05-018a), [audited reuse](spec.md#r-05-018b) and [SMT reconstruction](spec.md#r-05-017). Q20 schedules the combined language acceptance experiment: a comparison contract, a conditional integrated authoring trial, and a conditional optimized-artifact promotion trial. General grading, a new frontend and external portability remain exploratory beyond those cells.
+The bounded tooling qualification is scheduled as Q19 in [the implementation checklist](implementation-checklist.md#q-assessment-actions), with acceptance owned by [interactive-evidence discipline](spec.md#r-05-018a), [audited reuse](spec.md#r-05-018b) and [SMT reconstruction](spec.md#r-05-017). Q20 schedules the combined language acceptance experiment: a comparison contract, a conditional integrated authoring trial, and a conditional optimized-artifact promotion trial. Q21 separately scopes the unified core and compiler-route comparison. These cells do not implement a general language or select a new compiler intermediate by declaration.
+
+**`VerifiedComponents` is a prerequisite experiment for Vela, not an implementation of Vela's eventual core calculus or compiler architecture.** Keep the library and its CHERI-first instance, while pursuing a separately scoped design comparison for the unified core and production compiler. The current Vela examples are temporary pilot notation. Successful scoped combinators establish reusable proof engineering; they do not make callback-shaped borrowing the intended user model or establish language unity.
+
+The language design target is one local account of authority, with flow-sensitive loans and inferred restoration, layered refinement automation, uniform dependent data and explicit staging. Logical permissions, hardware capabilities, effects, security permissions and resource budgets retain different interpretations. The compiler comparison treats the Clight route and a direct capability-aware route as hypotheses with full costs and substitute evidence, not as an implemented baseline against a cost-free alternative. Current register requirements remain binding until an evidence-backed amendment changes them.
 
 Q19a/Q19b start with the existing copy-service invariant proofs and helpers. Q2c owns the scope and pricing of missing CHERI primitive, representation and semantic-connection work; Q3c separately owns the protected-sequence fault-model specification. Q19c's initial consumer is the parser's fixed-destination initialization, with the copy service's private staging operation reserved for independent reuse. Completing a scoping act supplies none of the checked artifacts those trials require.
 
@@ -49,10 +53,11 @@ That last condition is deliberately stronger than the current bring-up plan's ma
 | Desired quality | Design commitment to test | Evidence needed before claiming it |
 | --- | --- | --- |
 | C#-like productivity | Discoverable APIs, local inference, concise contracts, actionable diagnostics, navigation, reproducible package builds and stable interfaces | Time to implement, diagnose, review and change representative tasks, including a client not used to design the library. Syntax resemblance and proof-search success rates alone do not decide this. |
-| Rust-like safety and control | Ownership, temporary borrowing, explicit layouts, predictable failure and bounded resource use, with reusable safe interfaces to proved primitives | Checked ownership and functional contracts, negative alias/escape/failure cases, and the required transport to the actual machine. A new systems subset need not accept every Rust program, but records its restrictions. |
+| Rust-like safety and control | Straight-line, flow-sensitive loans with inferred restoration, explicit layouts and bounded resource use, backed by proved primitives | Checked ownership and functional contracts across every supported exit, negative alias/escape/failure cases, and transport to the actual machine. Callback rewrites and manual restoration are measured limitations of the pilot, not the target UX. |
 | Idris/Gerty-style verification | Dependent specifications, erased proofs, indexed protocols and explicitly interpreted resource grades in the same workflow | Kernel-checked terms with the accepted assumptions, totality or progress where claimed, and sound resource interpretation. Routine code must not require authors to understand every underlying calculus. |
 | Production performance | Specialization, in-place representations and the selected backend's existing optimization duties | Comparable final code size, stack, allocation, memory traffic and target execution measurements. A cost proof is separate from a claim of competitive throughput. |
-| Maintainability | Abstract public contracts, generated representation glue where proved, deterministic builds and dependency-aware proof replay | A semantics-preserving refactor, an internal representation change and a genuine contract change, with review and repair effort reported separately. Unrelated clients should not need representation facts. |
+| Maintainability | Abstract contracts, stable source and goal identities, semantic dependency tracking and reproducible proof replay | A semantics-preserving refactor, an internal representation change and a genuine contract change, with review and repair effort reported separately. Stable identities aid navigation but never authorize reuse after a semantic dependency changes. |
+| Proof interaction | Typed holes and a predictable refinement tier before interactive proof | Each residual goal retains its source span, local values, hypotheses, available authorities, expected exit state and target-specific cause. Unresolved nodes cannot enter an accepted build; measure automatic discharge and diagnostic latency rather than promising a percentage. |
 
 C#'s [language strategy](https://learn.microsoft.com/en-gb/dotnet/csharp/tour-of-csharp/strategy) treats tooling, learning resources and compatibility as part of feature development. Matching that experience therefore also takes maintained libraries, documentation, package compatibility and debugging support. The proposed resource discipline excludes parts of ordinary .NET programming; the pilot tests a bounded systems workflow, not parity with C#'s application ecosystem.
 
@@ -63,6 +68,8 @@ The independently reviewed contract remains a mathematical description of intend
 The experiment distinguishes **source-verified**, **artifact-connected** and **production-qualified** results. The first has a checked component theorem; the second connects the authored subject through representation and lowering to exact bytes; the third also meets the applicable admission, resource, security and target-evidence obligations. Bring-up can stop at an earlier result, but its success cannot be reported as the last one. Q20c consumes the existing compiler and assurance milestones rather than paying for their unfinished proofs inside a small integration estimate.
 
 The everyday automation policy follows the same split. Infer routine ownership, bounds and effect obligations where reliable; expose unresolved goals and counterexamples with their source context; allow explicit lemmas for harder mathematics. Timeouts and unsupported constructs stay distinct from disproved contracts. Proof search and optional AI assistance may propose code or lemmas, but they cannot weaken the reviewed contract or grant acceptance. Expressiveness is available when needed without promising automatic inference or proof of arbitrary dependent programs.
+
+The language-product test is whether ordinary mutation, branching and error propagation have one comprehensible authority explanation. Authors should normally see code, concise contracts and inferred refinements, then optional calculational steps and named lemmas, with explicit Rocq proof for the remaining mathematics. Raw separation-logic contexts remain inspectable on demand. A coherent notation without a checked composition theorem is a design result, not a sound language.
 
 ## Research Landscape
 
@@ -417,7 +424,7 @@ Keep handles opaque: pointer width, integer casts, address equality, provenance,
 An operation that genuinely needs one of them states that dependency in a narrower interface.
 
 **The interface is a proof-side abstraction and never a second way to reach the machine, which is a register constraint rather than a design preference.**
-[A verified component reaches an instruction through exactly one surface](spec.md#r-05-023b), a backend primitive named by that instruction's own profile mnemonic and operand form and taking its meaning from the pinned Sail clause for it, and that surface is a duty of [the two required certifying compilers](spec.md#r-18-014) rather than a deliverable standing beside them.
+[A verified component explicitly naming a profile instruction that no ordinary lowering duty reaches uses exactly one surface](spec.md#r-05-023b), a backend primitive named by that instruction's own profile mnemonic and operand form and taking its meaning from the pinned Sail clause for it, and that surface is a duty of [the two required certifying compilers](spec.md#r-18-014) rather than a deliverable standing beside them.
 An operation law here is therefore discharged over that primitive and inherits its meaning; a law that introduced a machine operation of its own would be the second surface the register says does not exist.
 The constraint binds the instance and not the generic modules, and it is what keeps a target interface from quietly becoming a competing backend.
 
@@ -490,7 +497,27 @@ The aim is to localize the proof consequences of a change, not prohibit necessar
 
 ## A Compositional Core
 
-Elegance here means that a small set of rules explains the examples together, that familiar code has a predictable meaning, and that a rejected combination has a local explanation. The proposed foundation is universe-stratified dependent values in CIC, explicitly sequenced computations over the existing program semantics, and ownership interpreted in the existing separation logic. This is a design contract for the pilot, not a claim that the full combination has a proved metatheory. The [composition acceptance cases](#composition-acceptance-cases) determine which combinations a prototype may claim.
+The eventual core is a capability-oriented dependent language with explicitly interpreted modalities. Its programmer-facing question is local: which authority permits this operation, which values retain it, and what state must be returned at each exit? The foundation remains universe-stratified dependent values in CIC, explicitly sequenced computations over the selected semantics, and ownership interpreted in separation logic. Q21a owns the core design and its proof-obligation map before further syntax is extended; Q19's library is a source of proved rules, not evidence that this combination already has a sound metatheory.
+
+The proposed core has dependent functions and pairs, records and indexed sums, exhaustive matching, sequenced computation, moves, loans and scope exits. One typing judgment tracks a duplicable context of stable values and a resource context, together with result type, retained captures, effects and phase. Mutable steps transform the resource context; branch joins must return compatible resources or an indexed sum describing the alternatives. `Result`, `Option` and user unions are instances of that same data mechanism. The elaboration must yield a derivation interpreted over the existing anchors, not create an authoritative universal machine semantics. Its acceptance obligations include substitution, phase separation, authority preservation, sound loan restoration and coherent elaboration; syntax alone discharges none of them.
+
+### Authority and Modalities
+
+One capture analysis can propagate several kinds of authority, but its output must preserve their kinds and interpretation obligations:
+
+| Authority kind | Surface role | Required interpretation |
+| --- | --- | --- |
+| Memory loan | Access, exclusivity, lifetime and restoration | Separation-logic ownership and frame laws |
+| Hardware capability | Represented authority, narrowing and confinement | Concrete CHERI representation and the pinned Sail meaning |
+| Effect capability | Permission to request an operation and delimit its scope | Operation/effect laws and, where supported, scope-discharge rules |
+| Security permission | A named declassification or observation policy | Relational noninterference or leakage theorem for that policy |
+| Resource budget | Consumption of a named allowance | Trace or cost interpretation and composition theorem |
+
+A closure exposes the authorities it retains, including transitive captures; a call requires the matching authority and accounts for its effects. No capture set alone proves exclusive ownership, bounds, noninterference or a runtime capability's validity. An operation may need several of these judgments, and diagnostics explain the missing one without coercing between kinds. There is no implicit conversion from a CHERI capability to a declassification permission or from an effect allowance to an owned cell.
+
+The modalities have orthogonal dimensions: phase (runtime, specification or proof), usage (unrestricted, affine, linear or a named graded domain), retained captures, represented versus erased data at specialization, and computational versus type-level index dependence. `ghost`, `tracked` and `owned` are pilot spellings for common combinations, not three competing accounts of authority and not values of one universal semiring. A tracked protocol token can impose a return obligation stronger than affine use; a duplicable snapshot cannot acquire that obligation merely by receiving the same grade.
+
+### Value and Resource Rules
 
 **Dependent functions and pairs supply the structure.** A dependent function expresses an operation whose result is indexed by its input; an existential dependent pair packages a value discovered at runtime with the index and evidence needed to use it. Records, tagged unions and exhaustive matching provide the everyday presentation. Library authors may use full inductive families and equality proofs; ordinary clients usually see named types and inferred indices. A parsed packet's length is a real integer paired with erased evidence, not a proof that conjures a runtime value.
 
@@ -498,9 +525,9 @@ Elegance here means that a small set of rules explains the examples together, th
 
 **Erasure and ownership answer different questions.** Ordinary values have runtime representations. `ghost` bindings hold duplicable mathematical descriptions and pure facts; `tracked` bindings expose resource evidence governed by the program logic. Both proof modes are erased, but tracked permission cannot be copied into the duplicable context. Owning a proposition-valued Rocq field alone provides no such discipline: the generated separation-logic derivation must enforce it. A proof may justify a runtime branch using a real value, but ghost data cannot supply that branch's condition, an unspecialized layout or a runtime array length. No global proof-irrelevance, uniqueness-of-identity-proofs or extensionality axiom is introduced for convenient syntax.
 
-**Ownership composes at every exit.** Moves transfer ownership, `in` creates a shared loan, and `ref` creates an exclusive loan; permission applies to the represented storage, not merely a descriptor record. A scoped operation restores its parent resource on every supported exit. Success and error branches return compatible ownership or a tagged result that describes their different states. `Result` propagation is ordinary exhaustive branching and pays the same restoration obligations; it cannot discard an owner. Protocol resources require a proved terminal or disposal operation, so affine weakening is not an implicit license to abandon them. The initial bounded callbacks return normally with a value, including an error value; nonlocal returns, resumable handlers and cancellation across their scopes require separate rules.
+**Ownership composes at every exit.** Moves transfer ownership, `in` creates a shared loan, and `ref` creates an exclusive loan; permission applies to represented storage, not merely a descriptor record. The target surface uses straight-line loans whose end is inferred from control flow, including last use where sound. Internally a backward restoration function, prophecy or restoring implication can relate a loan's final value to its parent. This is proof infrastructure, not a requirement to write a callback or invoke a `restore` function after each mutation. Success and error branches return compatible ownership or an indexed sum describing different states. Protocol resources require a proved terminal or disposal operation; affine weakening does not justify abandonment. Q19's bounded callback rule remains a restricted implementation, and its unsupported exits are not silently accepted by the target syntax.
 
-**Effects bound behavior and never grant authority.** One `effects` clause lists an upper bound on externally visible reads, writes, calls and allocation, including transitive callees, property getters and closure captures. A write permission is still required even when `writes(target)` appears. Local bounds may be inferred; public APIs expose closed bounds or explicitly bound effect parameters, never unconstrained residual variables. Sequential and branch footprints compose by union, and writing includes the footprint's permitted reads. Exact event counts instead add in sequence and must agree across alternatives, or become a proved upper bound. `allocates(none)` excludes dynamic heap/arena allocation and hidden boxing; automatic stack frames and known closure environments still need their own size accounting. Local mutable variables do not make a function externally stateful.
+**Effects describe use of authority without manufacturing it.** The pilot's `effects` clause is a closed upper bound on reads, writes, calls and allocation, including transitive callees, getters and captures. The core connects each operation to its required authority and projects an effect summary from that use. A write summary still requires a write permission. The design progresses from closed summaries for synchronous code, to effect polymorphism and scoped capability discharge, then only to affine handlers with proved cleanup, cancellation and suspension rules. Row and capability presentations are alternatives to compare, not two independent public effect systems. Public parameters have explicit bounds, never unconstrained residual variables. Footprints compose by union; exact event counts add in sequence and must agree across alternatives or become a proved upper bound. `allocates(none)` excludes heap/arena allocation and hidden boxing; stack frames and closure environments retain size obligations.
 
 **A callable has a calling mode, an effect bound and a contract.** Shared-call, exclusive-call and consuming-call interfaces correspond to borrowing or consuming its environment; purity alone does not select one. The first `MapInto` borrows a total shared-call function with immutable captures. Its invocation count does not permit duplicating the closure or calling a consuming closure repeatedly. Later mutable callbacks need a state-transition contract across invocations. Capturing a loan extends its lifetime to the closure's uses; captures cannot overlap an exclusive output loan or escape their owner. An event-count annotation says nothing about the number of machine calls left after inlining.
 
@@ -509,6 +536,43 @@ Elegance here means that a small set of rules explains the examples together, th
 **Abstraction has one resolution rule.** Value records and tagged unions have nominal public names; interfaces use explicit implementations and coherent selection. Public generic parameters and their law-bearing instances are fixed at the module boundary. The initial surface admits no overlapping implicit instances, effectful implicit conversions, mutable-reference covariance or representation-changing structural casts. Fully qualifying a name disambiguates it; an unrelated import must not silently change the selected operation. Derived equality, optics or protocol boilerplate use the same module system and generate visible laws. Definitional equality does not acquire those laws merely because a derivation generates them.
 
 Runtime expressions evaluate left to right, by value, with short-circuit Boolean operators and explicit control flow. Contracts and total pure definitions have their own checked mathematical interpretation. Bounded executable functions establish termination through structural recursion or a decreasing measure; service loops use a separate progress contract and cannot run during type conversion. Query expressions and convenience properties earn inclusion through a documented lowering with the same ownership, effects and representation obligations. These choices leave everyday declarations and blocks familiar while keeping their semantic consequences explicit.
+
+### Loans and Control Flow
+
+Restoration is a control-flow obligation, not merely an end-of-block action. The eventual synchronous subset must give ordinary exits the same authority explanation:
+
+| Exit or interaction | Required rule before support is claimed |
+| --- | --- |
+| Fallthrough, return and `Result` propagation | End nonescaping loans and restore or transfer each owned resource before the exit |
+| Branches and branch-sensitive returned loans | Refine the authority context per branch; retain only the returned loan and prove its owner's lifetime |
+| Loops, `break` and `continue` | Establish the resource invariant at back edges and the declared resource state at each exit |
+| Cleanup | Run a proved cleanup operation exactly where its resource contract requires it; cleanup may not lose a second resource on failure |
+| Abort, panic or exception | State whether the path is excluded, fail-stop or unwinding; prove its corresponding obligation rather than treating it as a normal return |
+| Suspension, cancellation and handlers | Specify retained authorities, reentry and cleanup; reject unsupported cases, including continuation duplication or disposal that violates a resource obligation |
+
+Q21a selects the supported cases; general async, concurrency, revocation and shared interior mutation remain deferred. A linear cleanup construct is useful only if it elaborates through these rules. Aeneas, Creusot and Prusti inform borrow-end translation, Polonius informs flow-sensitive acceptance, and Affect informs continuation use. Their separate soundness results do not supply the combined theorem. Explicit recovery is reserved for genuinely ambiguous resource or protocol states, not imposed on every ordinary loan.
+
+### Layered Proof and Staging
+
+Routine checking has a defined order:
+
+1. Kernel-compatible definitional computation and normalization.
+2. Flow-sensitive capture and ownership checking with a sound resource interpretation.
+3. A declared decidable refinement fragment, with reconstructable or certificate-producing automation.
+4. Domain procedures for sequence updates, arrays, frames and finite arithmetic.
+5. Explicit Rocq lemmas and proofs for residual obligations.
+
+The refinement tier targets bounded integer ranges, capacity relationships, alignment, discriminants, initialization and simple typestate, with nullity checks only for types that admit a null state. Specify the logic and supported arithmetic before calling it decidable: arbitrary quantified mathematics and arbitrary nonlinear arithmetic are not included by implication. Flux, LiquidHaskell and RefinedC supply design comparisons, not accepted solver encodings. Reconstruction follows R-05-017 where SMT contributes facts; failure or timeout leaves a goal, never an assumed refinement or an extended conversion rule. Q20 records the obligation population, discharge rate, latency, stability after edits and manual proof burden without a predicted percentage.
+
+Equality ergonomics first use canonical indices, normalization, bidirectional insertion of checked transports and derived decidable equality with locally proved uniqueness where applicable. Logical proof irrelevance is used only where proved for the particular proposition. Runtime proof erasure needs its own preservation theorem and confers no additional equality principle. Cubical or observational equality is a separately scoped kernel or translation research question, outside this core's CIC authority.
+
+Staging distinguishes pure specification evaluation, compile-time code/evidence generation, represented runtime computation and checked proof terms. Cross-stage operations need typing, representation and soundness rules; generators record their inputs and dependencies and emit checked terms. A static bound can specialize a loop or layout, but a discovered packet length remains runtime data. A metaprogram that does not terminate or leaves a typed hole produces no accepted component. Sharing an evaluator between a generator and a host oracle creates common-mode risk, so independent intent review, negative examples and the independently authored Sail model remain necessary.
+
+### Compositional Leakage Obligations
+
+A source `ConstantTime` requirement denotes a relational contract: executions agreeing on public inputs and the declared entry relation have equivalent permitted observations, including branch, address and termination behavior where the selected observation model includes them. Combinators preserve that relation and callees expose compatible observation contracts; a label or effect flag is not its proof. This exposes secret-dependent control or addressing while the author can still diagnose it locally.
+
+The compiler must preserve the relation through representation, optimization, ABI and linkage to the required TAL or CIC judgment on final bytes. Ordinary functional simulation does not suffice. Target assumptions follow the actual profile: hardware caches and speculative execution are excluded here, so their absence is checked rather than silently replaced by a commodity leakage model. Instruction timing, explicit memory traffic and other declared observations still need their proofs; physical leakage outside that model remains outside the claim. Jasmin is a design comparator, not a new compilation route for this instance.
 
 ### Type Theory and Elaboration Reuse
 
@@ -527,7 +591,7 @@ The existing [Equations](https://github.com/rocq-prover/equations) and [Rocq-Elp
 
 ### Composition Acceptance Cases
 
-Q20a chooses cases appropriate to its bounded clients and records unsupported interactions; Q20b exercises their elaborated terms through the existing proof gates. A source sketch is not an executed test. Acceptance needs a positive client combining the supported mechanisms and well-formed negative neighbors, so the absence of a parser or an unsupported feature is not counted as a successful safety rejection. Wider metatheory and a general frontend require their own scope and evidence.
+Q20a chooses cases available to its bounded clients and records unsupported interactions; Q20b exercises their elaborated terms through the existing proof gates. Q21a owns the eventual core's wider composition contract and separately priced implementation prerequisites. A source sketch is not an executed test. Acceptance needs a positive client combining the supported mechanisms and well-formed negative neighbors, so the absence of a parser or an unsupported feature is not counted as a successful safety rejection. Wider metatheory and a general frontend require their own scope and evidence.
 
 | Interaction | Positive evidence | Rejection or explicit unsupported result |
 | --- | --- | --- |
@@ -541,7 +605,7 @@ Q20a chooses cases appropriate to its bounded clients and records unsupported in
 
 ## An Ideal Surface
 
-Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name, or existing implementation.
+Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name, or existing implementation. These examples are temporary pilot notation, not a frozen final language design. The straight-line loan below expresses the target UX; the callback combinator describes the narrower library mechanism available for qualification.
 Its surface borrows C#'s readable declarations and tool discoverability, Rust's ownership and representation control, and Idris's type-directed specification and proof construction.
 The examples use portable buffer contracts. A build selects a concrete semantic instance and required target profile separately; CHERI does not appear in an ordinary buffer function's signature.
 `byte` denotes an eight-bit value, while `usize` and represented lengths obey the selected target's explicit limits, never the build host's inferred word size.
@@ -601,7 +665,7 @@ This interface is a candidate surface over the existing [descriptor-to-implement
 
 ### Borrowing With a Restoration Contract
 
-The first borrowing interface is scoped. A library rule lends an element to a callback, then reconstructs the whole container using the value the callback leaves there:
+The target borrowing surface is straight-line. This unimplemented example uses a local exclusive reference; elaboration must infer its end and reconstruct the container using the value left in the element:
 
 ```text
 public void SetFirst<ghost Nat count>(ref Span<byte, count> target, byte value)
@@ -609,15 +673,14 @@ public void SetFirst<ghost Nat count>(ref Span<byte, count> target, byte value)
 	effects writes(target), allocates(none)
 	ensures target.Model == old(target.Model).Update(0, value)
 {
-	WithElement(ref target, 0, (scoped ref byte selected) => {
-		selected = value;
-	});
+	ref byte selected = ref target[0usize];
+	selected = value;
 }
 ```
 
-`WithElement` is the surface name for `Build.with_element`. Its rule introduces a fresh loan quantified inside the callback contract; the callback cannot place that loan in its result or a longer-lived capture. Its inferred contract and captured effects remain inspectable. The parent is suspended while the loan is active, so a conflicting capture of `target` is rejected. Given the callback's total contract, the library proves invocation exactly once, termination and restoration; a once-callable closure type alone proves none of those facts about its caller. The environment has a known stack or static representation and no hidden allocation; the callback's effects still contribute to its caller's summary.
+For this bounded case, the proof can use `Build.with_element`, exposed in the pilot as `WithElement(ref target, 0, (scoped ref byte selected) => { selected = value; })`. Its rule introduces a fresh loan quantified inside the callback contract; the callback cannot place that loan in its result or a longer-lived capture. The parent is suspended while the loan is active. Given a total callback contract, the rule proves invocation once, termination and restoration; a once-callable type alone proves none of those facts about its caller. The environment has a known stack or static representation and no hidden allocation. A source frontend must prove this elaboration, not merely print the combinator call.
 
-`old` captures the entry model. The callback may return a value such as `Result`, but every such return restores the parent before the outer caller propagates an error. A return that jumps out of the caller, exception unwinding or suspension is outside this initial combinator. General returned loans and borrow-end/prophecy contracts are a later extension of the same resource law; they do not introduce another initial borrow syntax.
+`old` captures the entry model. The pilot callback may return a value such as `Result`, restoring the parent before the outer caller propagates an error. It supports neither a return jumping out of the caller nor suspension or unwinding. The target loan model must handle each supported control-flow exit explicitly, including branch-sensitive returned loans and loop edges; it cannot claim these features from the callback theorem. Q20 measures the pilot's rewriting cost, while Q21 tests whether inferred restoration removes that cost without weakening the resource contract.
 
 ### Indexed Protocols and Erased Permissions
 
@@ -695,14 +758,14 @@ An IFC checker must track control dependence as well as data dependence; a publi
 | Area | Proposed behavior |
 | --- | --- |
 | Everyday data | Value records, tagged unions, exhaustive patterns, generics, traits/interfaces, local inference, immutable bindings by default. No implicit object allocation. |
-| Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans, explicit escaping regions and typestate transitions; scoped callbacks are the initial borrowing interface. Record copying cannot duplicate permission. |
+| Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans, explicit escaping regions and typestate transitions. Flow-sensitive restoration is the target; scoped callbacks are pilot proof infrastructure. Record copying cannot duplicate permission. |
 | Numeric behavior | Distinguish mathematical specification integers from fixed-width runtime integers. Overflow is proved absent or represented by explicit checked/wrapping operations under the platform's existing rules. |
 | Dependent contracts | Stable lengths, states, identities and justified snapshots index types; changing contents use spatial predicates. Runtime-discovered indices use dependent packages. Non-definitional equalities need checked transport. |
-| Effects and authority | Reads, writes, allocation, device access, and permitted calls are explicit and compositional. FFI and assembly require contracts over the actual operation, not an unchecked `extern` promise. |
+| Effects and authority | Typed captures and required authorities explain operations; closed footprint summaries precede effect polymorphism and scoped discharge. FFI and assembly require actual operation contracts, never unchecked `extern` promises. |
 | Error handling | Exhaustive `Result`/`Option` patterns preserve resource states on all branches; scoped restoration precedes propagation. No hidden unwinding, abandonment of protocol obligations or ambient service access. |
 | Code generation | Static target/module instantiation and ahead-of-time specialization with explicit layout and ABI. Closures need a known environment representation; generic specialization is checked for code-size growth. |
 | Target requirements | Select semantic instances and required guarantee theorems separately from ordinary source syntax. Reject unsupported requirements; never silently downgrade the contract. |
-| Proof interaction | Bidirectional checking, type-directed holes, inline `proof` blocks, calculational steps, lemma search and reproducible automation; distinguish disproved, unresolved, timed out and unsupported. |
+| Proof interaction | Bidirectional checking and a declared refinement tier precede explicit proof; typed holes retain source and resource context, with stable goal identity and semantic invalidation. Distinguish disproved, unresolved, timed out and unsupported. |
 | Encapsulation | Clients use abstract contracts; representation proofs stay with the defining module. Changing layout invalidates its proof dependencies without requiring clients to inspect the heap. |
 
 The C# contribution is **ergonomics**, not the CLR: namespaces, precise completion, useful diagnostics, readable generic APIs, and direct navigation between code and proof.
@@ -720,14 +783,13 @@ Report proof construction time and kernel replay time separately from runtime pe
 
 Q20a fixes the comparison workloads and acceptance thresholds before optimization, and Q20c consumes the existing backend work to run them on the exact promoted image. The same-target hand-authored baseline isolates representation and generation costs. A Rust comparison uses a matching target, ABI, checks and optimization settings where available; a commodity-machine Rust benchmark is an explicitly separate design experiment and cannot establish CHERI performance parity. Report typical execution measurements separately from worst-case bounds, emulator throughput separately from modeled target cycles, and absent hardware measurements as unavailable.
 
-The design does not add a new verified speed-only optimizer or checker.
-It uses the selected compiler's optimizations and the existing representation/refinement route; any proposed extension remains subject to the standing specification.
+The assurance implementation uses the selected compiler's optimizations and existing representation/refinement route. The separately scoped capability-SSA comparison below evaluates an alternative within the required lowering duty, not a new verified speed-only optimizer or checker. Neither track is exempt from the standing specification, and no alternative backend is built inside Q20's integration budget.
 Source annotations for secrecy or cost express proof obligations. Constant-time and timing conclusions still come from the appropriate final-artifact judgments.
 
 ## From the Library to Bytes
 
 The reusable part of the path is a generic contract and construction theorem, instantiated with proved target operations and representation laws.
-Its preferred VerifiedOS route for an initial on-device component is:
+Its current requirement-compatible VerifiedOS route for an initial on-device component is:
 
 ```text
 Reviewed executable Gallina contract + generic component theorem
@@ -746,7 +808,7 @@ Reviewed executable Gallina contract + generic component theorem
 These arrows are obligations, not claims that the route is implemented end to end.
 **The missing lowering connection belongs to Q2b.**
 Q2b must choose the device path and prove its relation to the Sail model. Neither existing exit emits the Clight intermediate required by R-05-043, so both still need that connection.
-Building a library above this boundary supplies none of the missing lowering proof and does not shorten Q2b.
+Building a library above this boundary supplies none of the missing lowering proof. Q21b compares changing the intermediate and the prerequisite work; until evidence supports an explicit amendment, Q2b's existing obligations and Q19c's entry conditions stand.
 Another project's backend replaces the target-specific portion, not the independently reviewed contract; it must prove its own transport and artifact claims.
 Within VerifiedOS, all machine-level connections still use the same pinned Sail term and the reviewed source anchors.
 For a Rust-origin component, the existing Radium/source-correspondence route replaces the Gallina-to-C construction portion; no new source language displaces contained Rust by this proposal.
@@ -771,17 +833,89 @@ The reviewed Sail model remains upstream of artifact validation and hardware ref
 Do not regenerate ISA meaning from the new compiler or the binary it is meant to check.
 Host reference execution may use extraction for testing, but that executable's trust boundary is recorded independently; its test results are not automatically proofs about the Gallina definition.
 
+### Why the Incumbent Route Exists
+
+The architecture seeks a Bedrock2/Kami-style composed software and hardware result in one proof assistant. Both sides meet at the same pinned Sail definitions under R-05-019b. R-05-023b gives explicitly named instructions outside ordinary lowering duties one mnemonic-bound primitive surface. CHERI-C/CompCert supplies the verified-C anchor and reusable compiler machinery; Clight supplies the decoder-synthesis waypoint under R-05-043. Representation and primitive contracts have VST/VeriFFI-style precedents, subject to the compatibility obstacles already recorded here. These are concrete reasons to retain the route while testing alternatives.
+
+M1.6's measured exits are a live architectural input: its verified Bedrock2 exit has no capability instructions, and its C-printer exit has no printing theorem. Neither supplies the decoder-to-Clight connection. This establishes a missing path, not the infeasibility of CHERI-CompCert or the absence of value in its partial implementation. The comparison prices both total establishment and remaining work, crediting reusable artifacts without treating sunk effort as a reason to retain a route.
+
+CompCert has a structured memory semantics, not simply flat integer-addressable storage. Its purecap adaptation must still settle capability representation, provenance, tag-preserving stores, bounds, traps, casts, undefined behavior and ABI against this profile. Clight lowering can retain ownership or leakage facts in simulation relations even where it drops annotations; measure that proof burden rather than presuming all such information is lost. Conversely, a bespoke intermediate supplies neither easier proofs nor better optimization by definition.
+
+### Compiler Route Decision
+
+Maintain an **assurance track** using the narrowest current path to a composed artifact theorem, and a **performance research track** comparing specialization-friendly, explicit-memory capability SSA with validated improvements within that path. These are comparison tracks, not two newly authorized compiler implementations. Q21b owns their comparison contract and pricing; M1 and Q2 retain implementation ownership unless a reviewed decision changes it. The tracks may converge if an SSA stage or Chamois-style validation fits within the existing compiler.
+
+The direct-route hypothesis is that construction combinators can emit a capability-aware intermediate while retaining explicit provenance, authority narrowing, initialization and observation invariants, avoiding a representation translation for some new components. The incumbent hypothesis is that adapting existing passes, contracts and proof structure costs less than creating equivalents. Neither asserts that Clight prevents Rust-class performance or that SSA guarantees it. LLVM or MLIR additionally require precise treatment of poison, undefined behavior, capability operations, optimizer legality and linkage; emitting ordinary LLVM and trusting `-O3` is not an assurance chain.
+
+Optimization proposals may come from untrusted tools, but acceptance requires verified passes, proof-producing transformations or translation validation replayed under Rocq. Identify functional, capability/provenance, leakage and resource obligations separately for each transformation. A validator ignoring tags or changed traps does not qualify. Chamois supplies mechanisms to evaluate, not automatically portable BTL premises or proof of a custom optimizer.
+
+**Conditional amendment proposal:** permit R-05-043's decoder synthesis to lower through a named admitted explicit-memory intermediate directly to the target, while retaining the option of Clight. Preserve descriptor meaning, copy-once behavior, failure policy, bounded representation and exact-source-to-Sail refinement, along with the prohibition on managed-runtime extraction and per-grammar handwritten refinement. Clight remains the verified-C interoperation route where required. This proposal changes no current requirement; the comparison must first establish substitute evidence and justify the amendment.
+
+R-05-043 governs the decoder, not every component. R-18-014 is stronger than generic route diversity: it specifically requires CHERI-CompCert for the TCB, re-homing SECOMP2CHERI and completing robust preservation, plus a certifying Rust compiler. A direct Vela route cannot count as either merely by being structurally different. Retain both named duties and their consumers unless an amendment explicitly replaces one with equivalent obligations. Optimized routes need not emit identical instructions, but must agree on instruction meaning and permitted source behavior. Record shared parsers, semantics, validators and proof infrastructure as common-mode dependencies rather than counting executables as evidence of independence.
+
+An amendment dossier names substitute evidence rather than deleting a waypoint and hoping its duties follow:
+
+| Incumbent duty | Substitute evidence required of a changed route |
+| --- | --- |
+| Decoder synthesis, R-05-043 | Checked descriptor-to-implementation refinement without handwritten per-format code or a managed runtime |
+| Primitive and representation contracts | Layout, initialization, provenance, arithmetic, frame, failure and termination laws over the same semantic subject |
+| Verified compilation and optimization | Composed pass or validation theorems for the selected IR and capability behavior, with assumptions audited |
+| Final validation, R-05-023/R-05-023a | Assembly, relaxation, link and image refinement over the pinned Sail term in the required program logic |
+| Robust preservation and correspondence, R-05-024/R-05-026/R-05-032 | Adversarial-context and authored-source theorems, not only closed-program functional simulation |
+| Compiler duties, R-18-014 and its refinements | Named retained or replacement owners, target completeness, certifying output and a dependency-independence assessment |
+| Primitive surface and admission, R-05-023b | The same profile-bound instruction meanings and applicable TAL evidence, without private semantics or a new checker mechanism |
+| Verified-C and Rust interoperability | Typed ABI/link contracts and composition with retained routes, including bootstrap obligations |
+
+Changing the required Iris-over-Sail validation path also needs review of R-05-023a and R-13-017; changing the anchor inventory faces R-05-019. A new translator or semantics still owes all of R-05-020's conditions. The proposal names no retiring interim for a general Vela frontend, so that admission gap remains open. Amending R-05-043 alone cannot authorize replacing the TCB compiler or its program logic.
+
+### Bounded Emission Versus General Logic
+
+Q21b prices a **bounded emission-lemma alternative** alongside Q2c's operation-law foundation. The hypothesis is that a restricted generated family needs simulation lemmas for a closed set of emitted constructs rather than a complete user-facing imperative proof system before its first compilation theorem. The proposed ledger names each construct, its emitted term, entry/exit representations, frame, arithmetic and effect premises, termination argument and pinned-Sail simulation, plus their composition theorem. Loops, calls and external interference still need invariants and explicit premises; finite syntax is not a finite proof of all programs.
+
+Test closure on the parser destination and reserved staging client without adapting the rules to fit the latter. Q2c retains the existing foundation's implementation breakdown; Q21b reports reusable, replaced and still-required work in the same attended-session units. Price source correspondence, representation, emission and composition, optimization, TAL, linkage, leakage and robust preservation separately, charging shared work once. The comparison budget buys scoping, not a backend theorem, and no projected saving reduces plan estimates.
+
+The reduction fails if each client needs fresh constructs or semantic exceptions, the family cannot express its failure/resource behavior, or encapsulation and robust preservation need a logical relation over arbitrary contexts anyway. Morello-Cerise is the relevant warning: simulation over known generated code does not provide its adversarial-code theorem. Even a successful bounded simulation removes neither the existing Iris-over-Sail anchor nor Q19c's actual-law prerequisite. A reduced entry condition needs checked substitute artifacts and explicit approval at the owning requirements and plan items.
+
+### Comparison and Stop Conditions
+
+Q21b fixes the client, source contract, target, artifact endpoint and time/resource budgets before either route is measured. Preparation may identify missing implementations, but the artifact trial opens only when their implementation and proof work have separately priced owners. A comparison with no compatible artifact remains undecided, not a victory for the easier syntax demo.
+
+Compare establishment and remaining port costs; emission-rule closure; inherited versus newly proved optimization; retention or re-derivation of source invariants; capability code quality; TAL production; primitive conformance; route independence; reviewer accessibility; and selected licences and transitive notices. Direct IR inspection must be reproducible and understandable to its assigned reviewers. Q20's same-target and held-out-client rules carry over; comparable evidence endpoints are mandatory.
+
+Capability cost attribution uses the actual profile. Measure derivation/narrowing and bounds-setting operations, redundant authority operations, tagged spill/reload traffic, live capability pressure, stack/ABI padding, representability failures and vector/memory-promotion interactions. Assess provenance-preserving common-subexpression elimination, coalescing and allocation at those same boundaries. Use the profile's register organization and frozen capability width, not an assumed separate register file or 128-bit pointer. Attribute tag and SRAM/interconnect traffic separately from scalar transformations; missing counters remain unavailable. This cacheless target supplies no data-cache-miss metric, and Sail execution alone supplies no silicon pipeline-stall measurement. Capability costs dominating runtime is a hypothesis, not a conclusion.
+
+If the direct route misses its capability-correct artifact, TAL and correspondence budget, reject that trial and retain the current required route without calling it complete. If the Clight route cannot demonstrate capability preservation, it remains blocked despite inherited optimizations. If neither meets the contract, neither qualifies; do not amend a waypoint merely to make a milestone green. Prefer a direct route for eligible new components only after the comparison and affected amendments, while retaining required verified-C and Rust consumers.
+
+### Mechanically Produced Evidence
+
+The eventual frontend's mandatory output has this schematic shape:
+
+```text
+SourcePackage(sourceClosure) = {
+	coreProgram;
+	elaboration : Elaborates(sourceClosure, coreProgram);
+	typing : WellTyped(coreProgram);
+	sourceMap : SourceLocations(sourceClosure, coreProgram)
+}
+```
+
+The reviewed elaboration relation covers checked parsing or parse validation, binding and resolution, implicit insertion, overload/instance selection and desugaring. Source maps aid navigation; they are not correspondence proofs. Bind exact source, generated inputs and dependency/configuration identities to the derivations. MetaRocq can help construct and check terms but does not prove an external frontend merely by receiving its output. Typed holes remain outside accepted packages. Source, resolution and desugaring mutations must invalidate or refute correspondence even where a stale core theorem still checks.
+
+Linking is a typed proof boundary. Generated required/provided contracts state calling convention, preserved registers, stack shape, memory/capability authority, relocations, callbacks and reentrancy, effects and observations. Discharge them through existing TAL judgments where applicable and CIC proofs for deeper composition, not new TAL grade axes or an on-device solver. Independently compiled verified-C, Rust and generated components must agree, and their composition must retain required robust properties. An unchecked linker assumption cannot replace that evidence.
+
+The planned pipeline is source closure, checked elaboration, interpreted dependent core, reconstructed refinements and proofs, proved representation/lowering, verified or validated optimization, capability-aware selection and allocation, typed linkage, final image validation, then production qualification. The decoder currently goes through Clight; the direct capability-SSA branch is conditional. Both terminate at the same pinned Sail term, never a machine semantics generated by the compiler.
+
+A promoted artifact's evidence package retains source and independent contract, elaborated program and correspondence, representation and ABI, functional/resource/observation proofs, solver certificates and actual transitive assumptions, optimization evidence, link contracts and composition, source/build/dependency/layout/byte identities, semantic pin and guarantee theorems, and measurements on those exact bytes. This organizes existing evidence rather than introducing a replacement admission format. A semantic dependency change reopens affected obligations even when displayed goal identities remain stable.
+
 ## First Deliverable
 
 The proposed first deliverable is a small off-device Rocq package, provisionally `VerifiedComponents`, for proving bounded components through target-parametric interfaces interpreted over existing semantic anchors.
 It exposes executable pure specifications, operation and representation interfaces, reusable refinement lemmas, and proof automation that produces terms checked by Rocq.
 The package is useful independently of any new surface syntax.
 
-**Its stop condition is reached before its first line, and saying so is the most useful thing this proposal currently does.**
-The pilot's stated starting point is an accessible CHERI-aware imperative semantics with usable primitive rules.
-The Iris-over-Sail program logic those rules would be stated in is an anchor the register enumerates and this development does not yet carry, which is why the machine-boundary connection is described as planned throughout this document; the specifications such rules would quantify over are booked as not authored across all but a handful of [the crown-jewel inventory](crown-jewels.md)'s rows; and M1.6 measured the one relational-compilation stack that might have supplied the primitives as carrying no capability awareness at all.
-Q2c assigns and prices that prerequisite work against the selected clients; the library becomes worth building once the semantics and rules it abstracts exist.
-An earlier version would be abstracting an interface nothing can yet instantiate, which is the failure mode the interface-adequacy experiment below is designed to detect and would detect in its own first week.
+**The current Q19c library pilot is blocked on its concrete laws.** Its starting point is accessible CHERI-aware semantics with usable primitive rules, not an abstract signature asserted to be sound. The required Iris-over-Sail foundation and machine connection remain open, much of [the crown-jewel inventory](crown-jewels.md)'s specification work remains unauthored, and M1.6's verified exit supplies no capability-aware backend. Q2c assigns and prices the artifacts; Q19c opens only when their checked constants exist.
+
+This blocks that implementation experiment, not core design or investigation of a cheaper foundation. Q21b's bounded emission-lemma alternative tests whether a generated family can reach a compilation theorem with less prerequisite work. It neither proves that reduction nor removes general logic needed by other guarantees. A changed library entry condition must identify checked substitute laws and clear affected requirements; until then the pilot does not build an interface that nothing can instantiate.
 
 This is a statement about the local instance. The [upstream capability results](#capability-aware-and-parametric-verification) already provide mechanized memory and encapsulation arguments with different subjects. Q2b's useful question is which existing rules can be connected to the pinned semantics and at what cost; the local absence is not evidence that those rules must all be invented from scratch.
 
@@ -903,14 +1037,15 @@ This is a library of checked judgments, not an extension to CIC conversion or a 
 An abstract event count can survive a target change; its interpretation as target cost cannot survive without the corresponding new proof.
 Resource-budget exhaustion and protocol misuse are useful correctness targets; a new verified tool whose only purpose is tightening an already-sound bound remains outside the standing design.
 
-**Proof authoring and evidence diagnostics.** Extend the existing Rocq editor and build entry point to show the active model view, available permissions, unresolved obligation, theorem subject, and transitive assumptions.
+**Proof authoring and evidence diagnostics.** Extend the existing Rocq editor and build entry point to show the active model view, typed authorities, unresolved obligation, theorem subject, and transitive assumptions.
 Distinguish unsupported translation, missing target guarantee, solver timeout, failed instance law, failed client proof, and stale subject binding.
 Expose which obligations are generic and which come from the selected profile, so a backend failure does not appear as an unexplained source-level type error.
+Typed holes expose the local values, hypotheses, captures and expected exit state. Give goals stable identities across presentation-only edits, but track their semantic dependencies separately; an unchanged identifier is not evidence that a proof still applies. A proof-repair tool proposes source or lemma edits for review and fresh replay, never changes the intended contract or acceptance status itself.
 Record proof-edit effort and maintenance across clients, not just proof-script line count.
 An external solver or AI assistant may suggest terms or lemmas; successful replay is the condition for using them.
 This tooling must use current artifact identity and gate records, not create another cache whose success flag can bypass admission.
 
-**Restricted frontend.** Only after these APIs work, parse a small subset of the Vela examples into calls to proved combinators, retaining source locations and an explicit source-correspondence story.
+**Restricted frontend.** Design the eventual core under Q21a before extending syntax, but implement a frontend only after the requisite APIs and composition laws work. Parse its supported subset into proved construction with the [mechanical source package](#mechanically-produced-evidence), not merely source locations and a correspondence narrative.
 Keep target selection and guarantee requirements separate from ordinary buffer syntax, with explicit diagnostics when source arithmetic or effects exceed the profile.
 Refactor surface syntax against the same elaborated contracts before introducing new semantic constructs; an elaboration snapshot is a useful regression test, not a substitute for correspondence evidence.
 A syntax demo is cheap compared with checked elaboration, dependent inference, borrowing diagnostics, and proof preservation.
@@ -953,7 +1088,7 @@ The first experiment retains the existing theorem statements and compares setup,
 
 ### Experiments and Stop Conditions
 
-Q19a and Q19b book the bounded workflow and reuse trials; Q19c books the conditional library-feasibility pilot and its interface, specification and reuse checks. Q20 books the combined authoring and optimized-artifact comparison under the [language product contract](#language-product-contract). Its integration cells consume existing implementations and proofs; they do not price building missing backends or admission machinery. The remaining rows are research proposals, and the effort ranges below remain separate research-planning judgments. Promotion beyond those bounded cells requires the repository's normal milestone and review process.
+Q19a and Q19b book the bounded workflow and reuse trials; Q19c books the conditional library-feasibility pilot and its interface, specification and reuse checks. Q20 books the combined authoring and optimized-artifact comparison under the [language product contract](#language-product-contract). Its integration cells consume existing implementations and proofs; they do not price building missing backends or admission machinery. Q21a separately scopes the core, and Q21b the compiler comparison and bounded emission-lemma alternative. Their design and pricing acts produce no implemented feature or artifact theorem. The effort ranges below remain separate research-planning judgments; expansion requires normal milestone and review approval.
 **The lowering experiment is already booked and half landed, and its boundary remains explicit.**
 The plan's Q2 demonstrates one single-source lowering route on a wire parser; its host-only half, Q2a, landed with a boundary audit finding the checked relation stopping at the first of its four boundaries, and its device half, Q2b, is open.
 Q19c consumes the checked primitive and representation artifacts whose implementation Q2c assigns and tests generic source-level reuse; it does not charge again for Q2b's lowering or Q3b's target and fault evidence. Q3c authors the protected-sequence fault model that Q3b applies. If the rules do not exist, neither a completed work breakdown nor assumed laws opens Q19c.
@@ -975,13 +1110,28 @@ The selected reusable operations serve Q2b's copy-once parser destination and M7
 | Surface-language value | Implement only syntax already represented by successful library clients and compare proof-editing effort. | A new parser/typechecker becomes prerequisite to the useful component, or source meaning cannot be tied to the elaborated theorem. |
 | Optional external portability probe | In a separately scoped reuse project with an existing verified backend, instantiate the same bounded-buffer theorem on a non-CHERI target and report all changed proofs and weaker guarantees. | The generic proof needs target-specific rewrites, or a source-only port is reported as equivalent binary isolation. This is not a VerifiedOS deployment milestone. |
 
+Q21's acceptance contract extends these experiments to the eventual language and compiler. Q20 may consume an available mechanism under its existing scope, but these rows do not require it to build one. Each executable trial needs a separately priced owner before it opens; unsupported features remain untested rather than counted as rejected programs.
+
+| Design experiment | Evidence to commission | Rejection or blocking result |
+| --- | --- | --- |
+| Straight-line loans and cleanup | A composed client using mutation, branch-sensitive loans, reborrowing, loops and every declared exit, compared with the callback baseline | Ordinary supported code needs pervasive CPS/manual restoration, loses a resource, or accepts a forbidden escape |
+| Refinement tier | Fixed supported logic; obligation counts, replayable certificates, discharge/latency and repair measurements on held-out code | Unsound or unreconstructable facts, unstable routine checks, or hidden explicit-proof work outside the declared budget |
+| Typed authority and modalities | Local diagnostics and interpreted derivations combining phase, usage, capture and representation | One authority kind silently supplies another's guarantee, or erased values control runtime behavior |
+| Source binding and proof repair | Resolution/desugaring mutations, semantic and presentation-only edits, stable navigation and fresh correspondence/replay | A valid theorem about stale core code accepts changed source, or a repair weakens intent to restore a green status |
+| Optimization proposals | An accepted transformation and well-formed incorrect capability/provenance and leakage variants | Invalid proposals pass, correct proposals need unchecked assumptions, or validation cannot reach the chosen target |
+| Typed modular linkage | Separate generated and retained-language components, compatible contracts and deliberate ABI, callback, relocation and authority mismatches | Closed-program proofs hide a linked-context failure or linkage changes escape the final-byte theorem |
+| Source-to-binary leakage | Public-equivalent source runs and compositional observation proofs connected to the optimized image, with a secret-dependent variant | A source flag stands for the binary obligation, or ordinary functional preservation hides a new observation |
+| IR and capability-cost comparison | Equivalent endpoint and target, attributed capability operations/traffic, full port and maintenance cost, independent reviewer assessment | A route cannot reach its endpoint or budget; unavailable target data is presented as a performance result |
+| Emission-rule closure and route agreement | Frozen emission rules applied to the independent client, residual general-logic costs, and disagreements adjudicated against the same Sail meaning | Every client expands the rules, arbitrary-context duties are dropped, or shared dependencies masquerade as route independence |
+| Waypoint necessity | A duty-by-duty substitute-evidence dossier for every proposed amendment | Deleting Clight, a named compiler or the program logic deletes a guarantee or merely moves its unpriced work |
+
 For executable contract checks, use the repository's [oracle, mutation, and QuickChick instruments](../tools/README.md) where applicable; keep negative proof tests alongside positive replay.
 A release-quality component also needs a transitive assumption audit: no unresolved holes, no `Admitted`, no new unchecked axioms, and no unsafe proof-evaluation shortcut outside the accepted base.
 Assumptions about primitives, FFI, the memory model, and platform behavior are named rather than erased from the report.
 
-The lowest-hanging fruit is the shared specification/representation library with narrow target interfaces and a live proof workflow.
-The initial value comes from reuse within the CHERI instance; broad portability remains a hypothesis until another instance is actually proved.
-A restricted surface parser is a later usability project.
+The immediate implementation opportunity is the live proof workflow on existing clients; the shared specification/representation library follows its checked foundation.
+Core and route design can proceed alongside that work, without claiming that their implementation is cheap or that they unblock the library by declaration.
+Initial library value comes from reuse within the CHERI instance; broad portability remains a hypothesis until another instance is actually proved. A restricted surface parser follows a reviewed core and successful library clients.
 A general quantitative dependent typechecker, a Rust-equivalent ecosystem, and a verified optimizing CHERI compiler are substantial separate undertakings, not features obtained by adding notation to Rocq.
 
 ## Effort and Expected Return
@@ -1020,11 +1170,11 @@ If that foundation is unavailable, the pilot reports the blocking obligation rat
 | Reviewed restricted frontend | 9-18 person-months, including its syntax prototype | Working library and a fixed small source semantics. Checked elaboration/correspondence for that subset, useful diagnostics, negative tests, reproducible builds; reuse the existing backend and runtime discipline. |
 | Native integration of one library family | 2-6 person-months | Starts only once the required CHERI compilation, source-correspondence and final-artifact checking routes work, and none of them does today: the device half of the lowering route is open in the plan and gated on its backend. Connect representations and obligations, bind exact bytes, and measure resources. The starting point is a condition on the row and not a description of the present tree. |
 | Optional second-target bounded-buffer probe outside VerifiedOS | 1-3 person-months | Working generic library and a second backend with already proved compatible primitive/logic rules. Instantiate one family and audit proof reuse and missing guarantees. Source-level experiment only; excludes backend porting, compiler construction, and equivalent isolation. |
-| General graded dependent systems-language implementation | 4-10 person-years for a limited usable research tool | Language design, elaboration, resource analysis, layout, one backend, core libraries, and editor support. Does not include a Rust-sized ecosystem or a fully verified end-to-end compiler. High uncertainty. |
+| General dependent systems-language implementation | 4-10 person-years for a limited usable research tool | Coarse comparison band for language design, elaboration, resource analysis, layout, one backend, libraries and editor support. Not a costed implementation of the proposed combined authority calculus; excludes a Rust-sized ecosystem and fully verified end-to-end compiler. |
 | New verified optimizing CHERI compiler route | 10-30 or more person-years | A fixed source/target subset and substantial reuse of verified compiler infrastructure. Include representation, erasure/lowering, optimization preservation, ABI/link integration, and the required security-property transport. Excludes hardware proofs and a full general-language ecosystem; feasibility may require narrowing the scope. |
 
 The final two rows are order-of-magnitude research budgets, not confidence intervals or estimates of the repository's existing compiler work.
-They explain why a general language or fresh compiler is not low-hanging fruit.
+They cannot decide between adapting CHERI-C/Clight and a direct bounded route. Q21 supplies a separate design and pricing decision for that comparison and the unified core; no capture/dependency metatheory, general borrow inference, refinement engine, typed linker or alternative backend is hidden inside the small library, syntax or integration bands. A finite emission alphabet might reduce a bounded route's cost, but that saving remains unmeasured until its residual guarantees and maintenance are included.
 There is no responsible architecture-independent estimate for a complete new target port without its ISA, memory/concurrency model, ABI, compiler evidence, and required security profile.
 The optional probe budget assumes those source-level foundations already exist; it is not a budget for adding an arbitrary processor.
 An existing target-parametric verified compiler can offer reusable passes and simulation structure, but target lowering, calling convention, linking, and security preservation still need separate evidence.
@@ -1086,36 +1236,25 @@ For deployment, the stronger VerifiedOS profile remains mandatory even if the sa
 
 ## Decision
 
-Adopt **target-parametric, Rocq-native proof-carrying components** as the unit of experimentation, with a rich specification world and a tightly represented executable world.
-Prove one concrete CHERI instance first. Hide its architecture from ordinary component contracts while retaining its exact representation, compilation, and security obligations in the instance and artifact evidence.
-Use Idris 2 for state-indexed APIs and erasure, Verus for erased ownership evidence and proof ergonomics, Creusot/Prusti for borrow-end contracts, RefinedRust for foundational ownership, and Live Verification/Rupicola for construction and proof reuse.
-Compare DeepSEA and Sepref before authoring representation generators or refinement combinators, and the Rocq memory-model-parametric symbolic-execution work and Morello-Cerise before specifying the capability instance's laws. Use the verified Dafny/CakeML subset and the Bedrock2/Kami example to assess the strength of a composed result, with their source and machine boundaries explicit.
-Read AddressC and SuSLik before inventing an imperative proof surface or certifying builder; compare Velvet/Loom/LeetProof for integrated interaction and specification testing. Reuse Perennial's relevant recovery reasoning within the journal work already selected, and use CFML/Sisyphus and FP2 as focused maintenance and resource-design references rather than new deployment routes.
-Use Granule, Gerty, and GraD to distinguish what a resource annotation means and what theorem justifies it, not as ready-made CHERI compilation paths.
-Use the [compositional core](#a-compositional-core) to connect those ideas: dependent values and packages, stable snapshots, spatial resource transformations, explicit effects and bidirectional elaboration. Select one surface for each job; source event accounting stays an ordinary proved contract until a broader grading mechanism demonstrates a need. The [elaboration and modality research](#type-theory-and-elaboration-reuse) informs that choice without adding another acceptance logic.
-Keep F*/Pulse and Lean's program-verification tooling as active comparisons, and CakeML/Pancake as references for honest end-to-end compiler claims.
+Preserve the assurance strategy and redesign the language core. Keep **target-parametric, Rocq-native proof-carrying components** as the bounded Q19 experiment, with one CHERI instance, independent contracts, assumption audits and missing-law tests. Start with diagnostics and selective reuse on existing proofs; open the component pilot only after its concrete foundation is checked. Q20 still judges source usability and exact optimized-byte promotion separately, at unchanged contract strength.
 
-Prioritize the small proof and evidence diagnostics, which are the one deliverable here whose stated starting point already holds, and hold the bounded-component pilot behind the semantics it abstracts rather than in front of it.
-Take scoped restoration and the existing descriptor and protocol clients when they demonstrate reuse.
-Test generic theorem dependencies, missing-law rejection, required-profile enforcement, and selective invalidation as part of that pilot rather than building a universal target layer first.
-Add a fixed-domain resource library only for a named obligation that existing combinators do not already handle well.
-Defer general grading, a new language server, and a frontend until measured authoring problems justify them; a fresh optimizing compiler is not part of this library proposal.
-This ordering can deliver useful source proofs without waiting for a universal language, while leaving native admission dependent on the existing compiler and artifact work.
-Keep syntax, automation, and editor iteration above explicit semantic interfaces, and reserve any non-CHERI portability experiment for a separately scoped reuse project.
+Pursue the authority-oriented dependent core as Q21a's design decision, not as an elaboration of the pilot notation by accretion. Prefer inferred straight-line loan restoration, distinct interpreted authority kinds, staged effects, a bounded refinement tier, uniform dependent data and mechanically checked source binding. Typed holes and semantic dependency tracking belong to the product contract, not a later cosmetic editor layer. The research comparisons identify mechanisms to reuse; their combined soundness, usability and maintenance remain to be demonstrated.
 
-The desired golden artifact is achievable in principle as a binary proved against an independently reviewed model. Q20 tests one authoring surface and promotes its exact optimized output only when the existing evidence chain is available and the comparison succeeds.
-This strategy's immediate contribution is to make that proof path easier to author and reuse, without claiming that a new language has already closed the project's compiler, source-correspondence, timing, or hardware obligations.
-The reusable result is a framework for producing such artifacts under explicit target interpretations, not one binary, memory model, or security promise that applies to every architecture.
+Use Q21b to compare the incumbent route with direct capability-aware lowering and the bounded emission-lemma alternative. Compare full obligations and costs before selecting an intermediate. Preserve the pinned Sail endpoint, primitive surface, verified-C/Rust duties, typed linkage, robust preservation and final-artifact evidence. Any change to the decoder's Clight waypoint or another named duty requires its own evidence-backed amendment; neither an elegant IR nor a blocked incumbent supplies that evidence.
+
+The principal risk is compositional: dependent indices, mutation, captures, control-flow joins and erasure can each work separately while their combination fails. Other risks are displaced compiler proof work, loss of inherited optimization, persistent general-logic requirements, common-mode specification/frontend errors and inadequate reviewer capacity. Each has a falsifying experiment above. General handlers, async/cancellation, concurrent interior mutation, universal grades without independent useful analyses, kernel equality changes and external target portability remain deferred. A fresh frontend or backend implementation needs explicit scope and price before it begins.
+
+The intended result is one authoring surface whose optimized output is the software golden artifact, with an independently reviewed contract and unchanged proof authority. Source-level success is useful but cannot establish production qualification, Rust-equivalent performance or the hardware theorem. No route wins by weakening those endpoints.
 
 No upstream code is incorporated by this proposal.
 Any implementation milestone that incorporates a dependency first reads that upstream's actual license and records the chosen artifact and its terms under the repository's [third-party discipline](../THIRD-PARTY.md).
 
 ## Expected Developer Experience
 
-The intended experience is to write a component and the promises it must keep together, receive useful explanations when a change breaks a promise, and ship the optimized executable that those promises cover. Most callers would use ordinary records, collections and operations; specialists would build the deeper proofs into reusable libraries. There would be less need to keep a prototype and a separately rewritten production implementation synchronized for the supported components.
+The intended experience is to write a component and its promises together, use ordinary straight-line mutation and error propagation, and receive local explanations of missing authority or unproved behavior. Routine refinements are inferred within a declared fragment; difficult obligations become contextual typed holes, then lemmas or explicit proofs. Specialists build deeper results into reusable APIs. The supported component has no separately maintained fast implementation: its checked optimized output is what ships.
 
 Productivity should benefit most from repeated work: parsers, bounded buffers, protocol steps and changes to already verified libraries. The first examples pay the cost of specifying behavior and building the reusable proofs. Difficult algorithms and concurrency can still need substantial expert work. A familiar syntax alone cannot supply C#'s ecosystem or make arbitrary verification automatic.
 
-Maintenance can improve because contracts describe what callers may rely on, and the build detects when an implementation change breaks that agreement. Internal changes can reuse client proofs when their public promises stay the same. Incorrect shared contracts remain a common failure source, so independent examples and review remain part of the workflow.
+Maintenance can improve because contracts describe what callers rely on. Stable source and goal identities preserve navigation during refactoring, while semantic dependency tracking invalidates changed obligations. Repair suggestions must replay against the reviewed contract. Incorrect shared contracts remain a common failure source, so independent examples and review remain part of the workflow.
 
 Performance can approach carefully written native systems code where the compiler can erase proofs, specialize abstractions and use efficient in-place representations. Proof checking happens during development and admission; intended erased proofs need no runtime execution. Runtime checks, representation costs and security mechanisms still cost what the measured binary says they cost. Rust-equivalent throughput and predictable resource bounds are separate results to demonstrate, and neither is established by this proposal today.
