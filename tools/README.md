@@ -310,15 +310,47 @@ defect, `check.py` reports a capability format that disagrees with itself, and
 `run.py selftest` copies a mutated tree into the template every sandbox links
 against. The run says so on its first line.
 
+## Worktree isolation during fan-out
+
+**Every subagent in a fan-out performs all repository work inside its own dedicated
+Git worktree.** This includes implementation, document work, read-only scouting,
+review, repair and any nested subagents. Each agent gets its own checkout even when
+several agents work on the same item. The integration checkout belongs to the
+integrator; subagents return their changes and evidence for integration there.
+
+Before dispatch, the parent creates each worktree serially under
+`.Codex/worktrees/<lane>` on a fresh branch from the intended input revision. Inspect
+`git worktree list` before choosing names, use
+`git worktree add -b <fresh-branch> .Codex/worktrees/<lane> <base>`, and prove the base
+with `git merge-base --is-ancestor <base> <fresh-branch>`. Follow
+[the worktree lifecycle rules](../AGENTS.md#before-standing-up-a-worktree) when
+retiring a lane. If a worktree cannot be created, keep that subagent undispatched
+until it can be isolated. A reviewer receives the revision under review in its own
+worktree, and a parent assigning nested work provisions a separate worktree for
+each child before it starts.
+
+Every brief names the absolute worktree path, branch, base revision, owned files,
+focused checks and integrator. The agent verifies its checkout with
+`git -C <worktree> rev-parse --show-toplevel` before starting. All repository reads,
+edits, checks, staging and commits target that checkout: set the shell's working
+directory on every call, use `git -C <worktree>`, and use absolute paths rooted in
+that worktree for file tools and scripted writes. A previous `Set-Location` is not
+a guarantee about the next tool call's directory. Build and log outputs use that
+worktree's own lane; coordinate any shared mutable toolchain state separately.
+Report an accidental write outside the lane to the integrator, who resolves its
+ownership before integration.
+
 ## Check scheduling during fan-out
 
 **One integrator schedules validation for each stable integration batch.** A batch
 is the set of lane outputs being accepted together on one settled tree. Each brief
-names the lane's owned files, focused checks and deferred integration checks. Read-only
-scouts inspect sources without running gates. Workers check a coherent change when
-the result can guide their next edit; they do not run the complete wave after every
-file, tool call or handoff. In a shared checkout, the integrator combines overlapping
-check requests and reserves a quiet tree for their readers.
+names the lane's dedicated worktree, owned files, focused checks and deferred
+integration checks, following [worktree isolation](#worktree-isolation-during-fan-out).
+Read-only scouts inspect sources in their own worktrees without running gates.
+Workers check a coherent change when the result can guide their next edit; they
+do not run the complete wave after every file, tool call or handoff. In the
+integration checkout, the integrator combines overlapping check requests and
+reserves a quiet tree for their readers.
 
 | Changed surface | Feedback during lane work |
 | --- | --- |
