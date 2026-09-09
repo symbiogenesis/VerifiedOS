@@ -484,12 +484,67 @@ No new on-device solving, grade interpretation, or open-term reduction is introd
 This design supports rapid tooling iteration without requiring compatibility with a released language: this is a proposal, not a frozen public API.
 The aim is to localize the proof consequences of a change, not prohibit necessary changes to the semantic interface.
 
+## A Compositional Core
+
+Elegance here means that a small set of rules explains the examples together, that familiar code has a predictable meaning, and that a rejected combination has a local explanation. The proposed foundation is universe-stratified dependent values in CIC, explicitly sequenced computations over the existing program semantics, and ownership interpreted in the existing separation logic. This is a design contract for the pilot, not a claim that the full combination has a proved metatheory. The [composition acceptance cases](#composition-acceptance-cases) determine which combinations a prototype may claim.
+
+**Dependent functions and pairs supply the structure.** A dependent function expresses an operation whose result is indexed by its input; an existential dependent pair packages a value discovered at runtime with the index and evidence needed to use it. Records, tagged unions and exhaustive matching provide the everyday presentation. Library authors may use full inductive families and equality proofs; ordinary clients usually see named types and inferred indices. A parsed packet's length is a real integer paired with erased evidence, not a proof that conjures a runtime value.
+
+**Types depend on stable values.** Indices may use immutable pure values, stable resource identities and justified logical snapshots. They cannot depend directly on a mutable location's changing contents. A borrow keeps its shape index fixed while mutation changes the spatial predicate describing its contents; a resize or protocol transition consumes an owner and returns a differently indexed owner. `old(x.Model)` names a snapshot justified at entry, while `x.Model` in a postcondition names the exit observation. Neither authorizes reading the owner while its permission is lent out. A dependent match refines the branch's indices and resource context together; a runtime choice requires a retained discriminant.
+
+**Erasure and ownership answer different questions.** Ordinary values have runtime representations. `ghost` bindings hold duplicable mathematical descriptions and pure facts; `tracked` bindings expose resource evidence governed by the program logic. Both proof modes are erased, but tracked permission cannot be copied into the duplicable context. Owning a proposition-valued Rocq field alone provides no such discipline: the generated separation-logic derivation must enforce it. A proof may justify a runtime branch using a real value, but ghost data cannot supply that branch's condition, an unspecialized layout or a runtime array length. No global proof-irrelevance, uniqueness-of-identity-proofs or extensionality axiom is introduced for convenient syntax.
+
+**Ownership composes at every exit.** Moves transfer ownership, `in` creates a shared loan, and `ref` creates an exclusive loan; permission applies to the represented storage, not merely a descriptor record. A scoped operation restores its parent resource on every supported exit. Success and error branches return compatible ownership or a tagged result that describes their different states. `Result` propagation is ordinary exhaustive branching and pays the same restoration obligations; it cannot discard an owner. Protocol resources require a proved terminal or disposal operation, so affine weakening is not an implicit license to abandon them. The initial bounded callbacks return normally with a value, including an error value; nonlocal returns, resumable handlers and cancellation across their scopes require separate rules.
+
+**Effects bound behavior and never grant authority.** One `effects` clause lists an upper bound on externally visible reads, writes, calls and allocation, including transitive callees, property getters and closure captures. A write permission is still required even when `writes(target)` appears. Local bounds may be inferred; public APIs expose closed bounds or explicitly bound effect parameters, never unconstrained residual variables. Sequential and branch footprints compose by union, and writing includes the footprint's permitted reads. Exact event counts instead add in sequence and must agree across alternatives, or become a proved upper bound. `allocates(none)` excludes dynamic heap/arena allocation and hidden boxing; automatic stack frames and known closure environments still need their own size accounting. Local mutable variables do not make a function externally stateful.
+
+**A callable has a calling mode, an effect bound and a contract.** Shared-call, exclusive-call and consuming-call interfaces correspond to borrowing or consuming its environment; purity alone does not select one. The first `MapInto` borrows a total shared-call function with immutable captures. Its invocation count does not permit duplicating the closure or calling a consuming closure repeatedly. Later mutable callbacks need a state-transition contract across invocations. Capturing a loan extends its lifetime to the closure's uses; captures cannot overlap an exclusive output loan or escape their owner. An event-count annotation says nothing about the number of machine calls left after inlining.
+
+**Inference is bidirectional and equality is disciplined.** Check definitions and lambdas against declared interfaces; synthesize routine local types, indices, effects and loans where they have a determined answer. Unsolved dependent equations become source-located proof obligations or a request for an annotation. Kernel conversion decides definitional equality; a further mathematical equality requires a checked transport, which automation may supply without adding solver answers to conversion. A resource timeout remains unresolved rather than unequal. In executable expressions, equality uses a selected decidable operation with a correctness law; mathematical equality in a contract does not make arbitrary propositions executable decisions. Inferred proofs may differ after a harmless refactor, but the selected operation, contract and relevant elaborated meaning must remain the same.
+
+**Abstraction has one resolution rule.** Value records and tagged unions have nominal public names; interfaces use explicit implementations and coherent selection. Public generic parameters and their law-bearing instances are fixed at the module boundary. The initial surface admits no overlapping implicit instances, effectful implicit conversions, mutable-reference covariance or representation-changing structural casts. Fully qualifying a name disambiguates it; an unrelated import must not silently change the selected operation. Derived equality, optics or protocol boilerplate use the same module system and generate visible laws. Definitional equality does not acquire those laws merely because a derivation generates them.
+
+Runtime expressions evaluate left to right, by value, with short-circuit Boolean operators and explicit control flow. Contracts and total pure definitions have their own checked mathematical interpretation. Bounded executable functions establish termination through structural recursion or a decreasing measure; service loops use a separate progress contract and cannot run during type conversion. Query expressions and convenience properties earn inclusion through a documented lowering with the same ownership, effects and representation obligations. These choices leave everyday declarations and blocks familiar while keeping their semantic consequences explicit.
+
+### Type Theory and Elaboration Reuse
+
+The relevant research supplies complementary rules and implementation techniques. It does not establish that stacking all the source calculi produces a sound or usable language. Q20 selects one presentation and tests the interactions it actually supports; a new translator or program semantics retains the register's admission conditions.
+
+| Source | Contribution and disposition |
+| --- | --- |
+| Dunfield and Krishnaswami, [Bidirectional Typing](https://research.cs.queensu.ca/home/jana/papers/bidir-survey/), 2021; Slattery and Sterling, [Bidirectional Elaborators à la Carte](https://arxiv.org/html/2607.09564v2), July 2026 | Use declared interfaces to bound inference, and make elaboration stable under core equality and substitution. The newer paper supplies compositional elaboration laws, but its mechanized implementation, universes, holes, implicit arguments and typeclasses remain future work. It is a design reference, not a Rocq package or a reason to import its extensional metalanguage as axioms. |
+| Ahman, Ghani and Plotkin, [Dependent Types and Fibred Computational Effects](https://danel.ahman.ee/papers/fossacs16.pdf), 2016; [dependent call-by-push-value analysis](https://arxiv.org/abs/1603.04298) | Separate stable values from computations, packaging runtime-discovered indices in dependent results. Use this discipline for parsers and state transitions; introducing a separate authoritative CBPV semantics is unnecessary for the library pilot. The papers' richer models do not automatically validate unrestricted dependence on mutable state. |
+| [Modal Effect Types](https://arxiv.org/abs/2407.11816), OOPSLA 2025; [Rows and Capabilities as Modal Effects](https://arxiv.org/html/2507.10301v2), POPL 2026 | Compare concise higher-order effect inference and translations between row-based and capability-based presentations before inventing duplicate effect mechanisms. Language effect capabilities are not CHERI hardware authority. The [METL artifact](https://github.com/thwfhk/met-oopsla25-artifact) provides parsing, bidirectional checking and interpretation, but explicitly lacks METL-to-MET elaboration, effect variables and low-level compilation. General modal effects remain beyond the initial footprint summaries. |
+| [Soundly Handling Linearity](https://arxiv.org/abs/2307.09383), POPL 2024; [Affect](https://iris-project.org/pdfs/2025-popl-affect.pdf), POPL 2025 | Continuations that discard or duplicate their captured context interact with ownership. Affect provides an affine type/effect system with Iris-based semantic soundness mechanized in Rocq. Read its resource rules before a future handler extension; its language and runtime are not the selected CHERI instance. General handlers and async suspension stay outside the initial loan discipline. |
+| [A Mixed Linear and Graded Logic](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.CSL.2025.32), CSL 2025; [Same Coeffect, Different Base](https://arxiv.org/abs/2606.28042), 2026 preprint | Modal decomposition and translations between graded-base and linear-base presentations help identify when two annotations encode the same information. Keep a simple ownership surface plus separately interpreted resource contracts; these results do not supply the full dependent, mutable frontend or authorize a generic on-device grade interpreter. |
+| [Autosubst](https://github.com/rocq-community/autosubst) and [Autosubst OCaml](https://github.com/uds-psl/autosubst-ocaml) | If a separately scoped frontend needs binding syntax, inspect generated substitution operations and proofs before hand-authoring them. Autosubst advertises Rocq 9.0+ support. The OCaml generator avoids functional extensionality in its generated lemmas, but its [published package](https://rocq-prover.org/p/rocq-autosubst-ocaml/1.1%2B9.0) excludes the current Rocq 9.1.1 switch and lacks modular syntax. The older [Haskell generator](https://github.com/uds-psl/autosubst2) imports functional extensionality. Qualify the chosen output and tuple; the current combinator library needs no new AST dependency. |
+
+The existing [Equations](https://github.com/rocq-prover/equations) and [Rocq-Elpi](https://github.com/LPCIC/coq-elpi) qualifications cover dependent definitions, checked derivations, quotations and environment interaction. The [Equations indexed-types tutorial](https://rocq-prover.github.io/platform-docs/equations/tutorial_indexed.html) distinguishes constructive uniqueness-of-identity-proofs for decidable indices from a global axiom, and warns that axioms can obstruct computation. Q19b therefore checks that the selected indexed definitions actually compute and their equation lemmas replay, as well as auditing their assumptions. Elpi's higher-order abstract syntax can support a narrow elaboration task; MetaRocq retains its quotation/metatheory role. No package choice by itself supplies source correspondence or linear resource interpretation. Each incorporation still reads the chosen artifact's actual licence and dependency notices.
+
+### Composition Acceptance Cases
+
+Q20a chooses cases appropriate to its bounded clients and records unsupported interactions; Q20b exercises their elaborated terms through the existing proof gates. A source sketch is not an executed test. Acceptance needs a positive client combining the supported mechanisms and well-formed negative neighbors, so the absence of a parser or an unsupported feature is not counted as a successful safety rejection. Wider metatheory and a general frontend require their own scope and evidence.
+
+| Interaction | Positive evidence | Rejection or explicit unsupported result |
+| --- | --- | --- |
+| Dependent indices and erasure | Parse a runtime length, unpack its witness and use it in a bounded loop | Branch on a ghost-only length, erase the result tag needed for matching, or use a proof as runtime data |
+| Mutation and dependency | Update contents under a fixed shape; consume and return an owner when the shape changes | Retain an old length refinement after resize or use an unjustified current snapshot |
+| Loans and error results | Return success or error from a scoped callback and restore the parent in both cases | Escape a loan in either result branch or propagate an error while losing the owner's resource |
+| Closures, effects and counts | Borrow a total repeatable callback with accounted captures and prove its invocation count | Call a consuming closure twice, conceal a captured write/allocation, or alias its captured loan with the mutable output |
+| Typestate and matching | Match a result whose variants carry the respective owners and prove each branch | Claim initialization on a failed path, duplicate a protocol token or read an uninitialized payload |
+| Inference and abstraction | Rename locals, qualify a name and add an unrelated import while retaining the same resolved contract | Silently select another instance, coercion, effect interpretation or numeric representation |
+| Dependent matching and automation | Execute a bounded indexed function and replay its equation and assumption checks | Obtain convenience by adding a global UIP axiom, unresolved obligation or stuck executable definition |
+
 ## An Ideal Surface
 
 Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name, or existing implementation.
 Its surface borrows C#'s readable declarations and tool discoverability, Rust's ownership and representation control, and Idris's type-directed specification and proof construction.
 The examples use portable buffer contracts. A build selects a concrete semantic instance and required target profile separately; CHERI does not appear in an ordinary buffer function's signature.
 `byte` denotes an eight-bit value, while `usize` and represented lengths obey the selected target's explicit limits, never the build host's inferred word size.
+
+The examples share one grammar: type-first parameters, `let` for an inferred immutable local and `var` for an inferred mutable local, with typed literals such as `0usize` when representation needs stating. `ref` borrows exclusively, `in` borrows shared storage, and `owned` consumes a value supplied with `move`; call sites spell `ref`, `in` and `move` explicitly. These borrow spellings are familiar from C#, but their exclusive-storage interpretation is Vela's proposed rule. `Buffer<T, count, State>` owns storage; `Span<T, count>` is a nonowning permission-backed view, not a freely copyable authority token. `Span<T>` hides an existential length while retaining a runtime `Length` and its proof relationship. Regions live on borrow modifiers: `in<'input> Span<byte, count>`, with `<region 'input, ghost Nat count>` declaring the parameters when a returned view needs that relationship. Call-local regions may be inferred; none is inferred to outlive its owner.
+
+All shown bounded operations must terminate on their stated entry conditions, including every error result. Every public operation exposes its effects and contract; an implementation may infer them locally, but they become a reviewed signature. `Nat(index)` in a contract embeds the machine value into mathematical naturals. `proof { ... }` is the only assertion/lemma surface used here: failure leaves a proof obligation, never an implicit runtime assertion or an assumption. The normal failure mechanism is an explicit `Result` branch. These are proposed conventions for original, unimplemented pseudocode, not a claim that a parser or typechecker accepts these examples.
 
 ### A Small Example
 
@@ -499,15 +554,15 @@ The following is original, unimplemented pseudocode, not valid C#, Rust, Idris, 
 ```text
 module Buffers;
 
-public void Fill<ghost count: Nat>(mut target: Span<byte, count>, byte value)
+public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
 	effects writes(target), allocates(none)
 	ensures target.Model == Seq.Repeat(value, count)
 {
-	var index: usize = 0;
+	var index = 0usize;
 	while (index < target.Length)
-		invariant index <= target.Length
-		invariant target.Model.Take(index) == Seq.Repeat(value, index)
-		decreases target.Length - index
+		invariant Nat(index) <= count
+		invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
+		decreases count - Nat(index)
 	{
 		target[index] = value;
 		index = index + 1;
@@ -516,69 +571,64 @@ public void Fill<ghost count: Nat>(mut target: Span<byte, count>, byte value)
 ```
 
 The mutable borrow supplies exclusive access for the call and returns that access on exit; its representation invariant relates runtime length to `count` and the concrete memory to `Model`.
+The call is `Fill(ref target, value)`; the ghost count is inferred from the view, never used as the executable loop bound.
 The inferred frame states that memory outside the borrow is unchanged.
 The loop guard establishes bounds and increment safety using the instance's representable-length and index laws; the natural-valued variant establishes termination.
 `Take` and `Repeat` compute in specifications, not on the deployed target.
 Ordinary filling of initialized public data is the example: it does not establish secure secret erasure, device-memory semantics, or resistance to dead-store elimination.
 
 At a failed proof, the editor displays the local store, available ownership, arithmetic facts, and remaining postcondition.
-An optional block such as `proof { apply Seq.repeat_extend; }` invokes a checked lemma through proof-producing automation; it cannot assert a fact without evidence.
+An optional block such as `proof { Seq.RepeatExtend(); }` invokes a named lemma with arguments inferred from the proof context; its unresolved premises remain goals, and it cannot assert a fact without evidence.
 The same module/package system resolves executable definitions, specifications, lemmas, and source locations.
 
 A parser interface illustrates the more dependent case:
 
 ```text
-public Result<PacketView<'input>, ParseError> Parse(ReadSpan<'input, byte> input)
+public Result<PacketView<'input>, ParseError>
+	ParsePrefix<region 'input, ghost Nat count>(in<'input> Span<byte, count> input)
 	effects reads(input), allocates(none)
-	ensures result matches PacketFormat(input.Model);
+	ensures result.Model == PacketFormat.ParsePrefix(old(input.Model));
 ```
 
-Here `PacketFormat` is an independently authored executable format specification.
-A successful `PacketView` packages a measured payload length, a borrowed subslice tied to `'input`, and erased proofs of its bounds and format invariants.
-An error carries no valid packet view. Completeness, malformed-input rejection, and treatment of trailing bytes are explicit parts of the format contract, not implications of bounds safety.
+Here `PacketFormat.ParsePrefix` is the full success/error result model supplied by the independently reviewed format descriptor, not a second handwritten specification. The name exposes prefix parsing; its contract fixes consumed bytes and trailing-input policy. An exact-input parser would have a separately named `ParseExact` contract.
+A successful `PacketView` packages runtime consumed and payload lengths, a borrowed subslice tied to `'input`, and erased bounds and format evidence. The shared loan keeps the relevant input stable while any returned view is live; it is stronger than read-only access through one variable.
+An error carries no valid packet view. Matching the retained runtime result tag reveals the branch's witnesses and evidence; neither that tag nor the runtime lengths can be supplied solely by erased proofs.
 This interface is a candidate surface over the existing [descriptor-to-implementation route](spec.md#r-05-043), not a new handwritten parser specification.
 
 ### Borrowing With a Restoration Contract
 
-The following additional examples are original design sketches, not accepted syntax or checked programs.
-A container's mutable element accessor should state both its immediate result and the container state after the borrow ends:
+The first borrowing interface is scoped. A library rule lends an element to a callback, then reconstructs the whole container using the value the callback leaves there:
 
 ```text
-public mut byte<'loan> Element<ghost count: Nat>(
-	mut target: Span<'loan, byte, count>, usize index)
-	requires index < target.Length
-	ensures result.Value == old(target.Model)[index]
-	after_borrow target.Model == old(target.Model).Update(index, final(result.Value))
-	after_borrow target.Length == old(target.Length);
-
-public void SetFirst(mut target: Span<byte>, byte value)
+public void SetFirst<ghost Nat count>(ref Span<byte, count> target, byte value)
 	requires target.Length > 0
+	effects writes(target), allocates(none)
 	ensures target.Model == old(target.Model).Update(0, value)
 {
-	borrow mut selected = target.Element(0);
-	selected = value;
-	end borrow;
+	WithElement(ref target, 0, (scoped ref byte selected) => {
+		selected = value;
+	});
 }
 ```
 
-`old` captures the entry model; `final` is a specification of the value when the loan is returned, not a runtime prediction.
-The owner cannot inspect or independently mutate the borrowed storage while the exclusive loan is active.
-Lifetime checking prevents the reference escaping its owner, and a proved restoration rule recovers the updated whole-buffer predicate.
-The first library version should expose a scoped `with_element` combinator instead of implementing general returned borrows, nested reborrows, or prophecy inference.
-This restriction preserves the useful contract while making its proof substantially smaller.
+`WithElement` is the surface name for `Build.with_element`. Its rule introduces a fresh loan quantified inside the callback contract; the callback cannot place that loan in its result or a longer-lived capture. Its inferred contract and captured effects remain inspectable. The parent is suspended while the loan is active, so a conflicting capture of `target` is rejected. Given the callback's total contract, the library proves invocation exactly once, termination and restoration; a once-callable closure type alone proves none of those facts about its caller. The environment has a known stack or static representation and no hidden allocation; the callback's effects still contribute to its caller's summary.
+
+`old` captures the entry model. The callback may return a value such as `Result`, but every such return restores the parent before the outer caller propagates an error. A return that jumps out of the caller, exception unwinding or suspension is outside this initial combinator. General returned loans and borrow-end/prophecy contracts are a later extension of the same resource law; they do not introduce another initial borrow syntax.
 
 ### Indexed Protocols and Erased Permissions
 
 An initialization operation should return a different state, not invite callers to assert that uninitialized memory is readable:
 
 ```text
-public owned Buffer<byte, count, Initialized> Initialize<ghost count: Nat>(
-	owned storage: Buffer<byte, count, Uninitialized>, byte value)
+public owned Buffer<byte, count, Initialized> Initialize<ghost Nat count>(
+	owned Buffer<byte, count, Uninitialized> storage, byte value)
 	effects writes(storage), allocates(none)
 	ensures result.Model == Seq.Repeat(value, count);
 
-public owned Buffer<byte, count, Initialized> Prepare<ghost count: Nat>(
-	owned storage: Buffer<byte, count, Uninitialized>)
+public owned Buffer<byte, count, Initialized> Prepare<ghost Nat count>(
+	owned Buffer<byte, count, Uninitialized> storage)
+	effects writes(storage), allocates(none)
+	ensures result.Model == Seq.Repeat(0, count)
 {
 	return Initialize(move storage, 0);
 }
@@ -590,42 +640,45 @@ The generic invariant relates initialized storage to readable values; the instan
 Initializing byte storage is intentionally narrower than initializing arbitrary capability-bearing records.
 Every exit path must return or explicitly dispose of ownership according to a proved operation; an affine move rule alone does not guarantee completion of a resource protocol.
 
-Verus's distinction suggests a separate spelling for mathematical facts and permission evidence:
+Pure snapshots use type-first ghost declarations, for example `ghost Seq<byte> before = target.Model` where the current resource justifies that observation. A protocol exposes a different kind of erased evidence, with an explicit result branch for each resource state:
 
 ```text
-ghost before: Seq<byte> = target.Model;
-tracked access: WritePermit<target.Identity> = proof AcquireFromOwner(target);
-Store(target, index, value, mut access);
-proof ReturnToOwner(target, move access);
-assert target.Model == before.Update(index, value);
+public union PublishResult<ghost Identity id>
+{
+	Success(tracked PublishPermit<id, Published> permit);
+	Retry(PublishError error, tracked PublishPermit<id, Populated> permit);
+}
+
+public PublishResult<id> TryPublish<ghost Identity id>(
+	ref PublicationSlot<id> slot,
+	tracked PublishPermit<id, Populated> permit)
+	effects writes(slot), allocates(none)
+	ensures PublicationProtocol.Step(old(slot.Model), slot.Model, result.Model);
 ```
 
-Here `Store` has a checked contract and returns the updated permission through its mutable argument.
-`AcquireFromOwner` must consume or suspend the owner's existing permission; it cannot manufacture write authority from an address or identifier.
-The snapshot is duplicable, the write permission is not, and neither is emitted as runtime data.
-This does not make a hardware capability erasable: in the CHERI instance, the capability used for the actual store remains in the generated code.
-The library can initially hide these explicit permission steps inside the scoped borrowing combinator.
+`PublicationSlot` supplies runtime storage; `PublishPermit` is a module-protected protocol resource tied to its stable identity. The caller writes `TryPublish(ref slot, move permit)` and matches the result. The retained runtime tag chooses a branch, whose erased evidence records the state it establishes. The protocol's explicit exit obligation returns a token on both paths; this is stronger than permission non-duplication and is not obtained from an affine logic's weakening rule. `Retry` requires restoration of the populated state; an operation that can partially publish needs a distinct recovery state and result branch.
+
+Snapshots can be copied; permission evidence cannot be duplicated or manufactured from an identifier. Hardware capabilities remain runtime values. This sequential example claims no concurrency, eventual publication, crash recovery or device ordering; a concrete publication operation must state and prove its actual effects and transition. The lower-level split/restore permission mechanism stays inside the [resource-law explanation](#concrete-package-shape), so ordinary clients cannot inspect a parent whose permission is suspended.
 
 ### Optional Grades With Explicit Meaning
 
 A higher-order operation can combine a functional specification with a use count:
 
 ```text
-public void MapInto<ghost count: Nat>(
-	ReadSpan<byte, count> input,
-	mut output: Span<byte, count>,
-	uses(count) transform: PureFn<byte, byte>)
+public void MapInto<F, ghost Nat count>(
+	in Span<byte, count> input,
+	ref Span<byte, count> output,
+	in F transform)
+	where F : PureFn<byte, byte>
 	requires Disjoint(input, output)
-	effects reads(input), writes(output), allocates(none)
-	ensures output.Model == input.Model.Map(transform.Model);
+	effects reads(input, transform), writes(output), allocates(none)
+	ensures output.Model == old(input.Model).Map(transform.Model)
+	ensures CallCount(trace, transform) == count;
 ```
 
-`uses(count)` is a proposed source-level callback-invocation contract on every completed execution, with termination required for this bounded operation.
-It is not a promise that optimized assembly contains that many calls, nor a claim that every graded calculus interprets function-variable usage as exactly this trace count.
-A library proof must connect the chosen accounting to the operation's semantics.
-The contents contract rules out permutation or repetition of the wrong element, which a count alone cannot do.
-Effects of captured state must be accounted for; `PureFn` cannot hide device access, allocation, or secret-dependent external calls.
-For a runtime-discovered length, the descriptor supplies the loop bound; the erased index only proves its relationship to the contract.
+The count is an ordinary postcondition over the library's proved observer of the source semantic trace. `trace` is an erased contract binder, and `transform` identifies this invocation role rather than a forgeable machine address; `CallCount` does not inspect runtime function-pointer equality. Exact counts use `==`, upper bounds use `<=`. Neither counts surviving machine calls after optimization. This avoids giving a parameter's use grade an unrelated second meaning as an execution trace count.
+
+`PureFn` is a named library interface for a total shared-call function with no externally observable effects beyond reading its immutable environment. This bounded-library interface also excludes dynamic allocation and external/device effects through all transitive callees; ordinary observational purity alone would not exclude temporary allocation. It combines calling mode, effect and functional laws; generic `F` supplies a concrete specialization and does not imply boxing or dynamic dispatch. The `in` loan retains its captures' lifetime, and `reads(transform)` accounts for their footprint. A consuming closure, hidden mutable capture or a captured shared loan overlapping `output` fails the contract. The contents postcondition supplies elementwise meaning and the source trace supplies invocation count; neither alone proves the other. The represented length drives execution, while the erased count justifies its relation to the specification.
 
 The ideal extension permits a library to supply an algebra, its laws, and a proved interpretation, for example `CallBudget`, not just register a solver plugin that declares programs safe.
 Keep erasure decisions fixed at specialization/ABI boundaries: a generic grade must not ambiguously decide whether an argument exists in a register.
@@ -638,14 +691,14 @@ An IFC checker must track control dependence as well as data dependence; a publi
 | Area | Proposed behavior |
 | --- | --- |
 | Everyday data | Value records, tagged unions, exhaustive patterns, generics, traits/interfaces, local inference, immutable bindings by default. No implicit object allocation. |
-| Ownership | Move-only resource owners, scoped mutable/shared borrows, explicit region parameters, and typestate backed by representation predicates. Copying requires an appropriate duplicability rule. |
+| Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans, explicit escaping regions and typestate transitions; scoped callbacks are the initial borrowing interface. Record copying cannot duplicate permission. |
 | Numeric behavior | Distinguish mathematical specification integers from fixed-width runtime integers. Overflow is proved absent or represented by explicit checked/wrapping operations under the platform's existing rules. |
-| Dependent contracts | Lengths, initialization states, protocol states, and abstract contents can index types. Unresolved equalities become visible proof goals rather than silent coercions. |
+| Dependent contracts | Stable lengths, states, identities and justified snapshots index types; changing contents use spatial predicates. Runtime-discovered indices use dependent packages. Non-definitional equalities need checked transport. |
 | Effects and authority | Reads, writes, allocation, device access, and permitted calls are explicit and compositional. FFI and assembly require contracts over the actual operation, not an unchecked `extern` promise. |
-| Error handling | Exhaustive `Result`/`Option` patterns and explicit failure paths. No hidden exception unwinding or ambient service access. |
+| Error handling | Exhaustive `Result`/`Option` patterns preserve resource states on all branches; scoped restoration precedes propagation. No hidden unwinding, abandonment of protocol obligations or ambient service access. |
 | Code generation | Static target/module instantiation and ahead-of-time specialization with explicit layout and ABI. Closures need a known environment representation; generic specialization is checked for code-size growth. |
 | Target requirements | Select semantic instances and required guarantee theorems separately from ordinary source syntax. Reject unsupported requirements; never silently downgrade the contract. |
-| Proof interaction | Type-directed holes, inline goals, calculational steps, lemma search, reproducible automation, and one diagnostic that distinguishes disproved, unresolved, timed out, and unsupported. |
+| Proof interaction | Bidirectional checking, type-directed holes, inline `proof` blocks, calculational steps, lemma search and reproducible automation; distinguish disproved, unresolved, timed out and unsupported. |
 | Encapsulation | Clients use abstract contracts; representation proofs stay with the defining module. Changing layout invalidates its proof dependencies without requiring clients to inspect the heap. |
 
 The C# contribution is **ergonomics**, not the CLR: namespaces, precise completion, useful diagnostics, readable generic APIs, and direct navigation between code and proof.
@@ -786,8 +839,8 @@ Module Components (Backend : COMPONENT_BACKEND).
 		implementation : Backend.Program;
 		representation : Backend.Representation;
 		functional : Backend.Refines implementation representation contract;
-		terminates : Backend.TerminatesUnder implementation contract.entry;
-		effects : Backend.RespectsEffects implementation contract.effects
+		terminates : Backend.TerminatesUnder implementation representation contract.entry;
+		effects : Backend.RespectsEffects implementation representation contract.entry contract.effects
 	}.
 End Components.
 ```
@@ -798,7 +851,7 @@ An abstract signature is a conditional proof interface, not permission to admit 
 Pure algorithm contracts live outside this module; each backend connects their input/output models to its contract and representation judgments.
 The program type, representations, logic judgments, and law proofs belong to one coherent instance; they cannot be selected independently from incompatible source semantics or memory models.
 The terminating bounded-component interface is intentional; a reactive service needs a different progress contract.
-The representation is shared between the entry condition, refinement theorem, and exit condition, not chosen independently to make a theorem vacuous.
+The representation is shared between the entry condition, refinement theorem, termination theorem, effects theorem and exit condition, not chosen independently to make a theorem vacuous. Termination covers success and error returns under that same entry interpretation; a bounded component cannot use an effect summary to hide divergence or abort.
 Accepted assumptions are inspected transitively from the proof environment, not trusted because a record contains an empty list called `assumptions`.
 The package initially stores the selected imperative term and its theorem; it does not pretend that a source-level `Component` already contains an admitted binary.
 
@@ -870,7 +923,7 @@ The [current spec](spec.md#r-05-018a) selects bounded qualification, not blanket
 | [Rocq LSP](https://github.com/rocq-community/rocq-lsp) and [Pytanque](https://github.com/LLM4Rocq/pytanque) | Q19a: first interaction trial | Incremental source state and Python access to goals, premises and commands through Petanque. Qualify a Rocq-compatible revision and WSL invocation; editor recovery can provisionally admit goals, so only the batch gate accepts a proof. |
 | [Alectryon](https://github.com/cpitclaudel/alectryon) | Q19a: rendered-review comparison | Annotated source with actual goals and messages, usable without changing the documentation format. Its Rocq 9 path uses VsRocq; the Rocq LSP driver is not assumed stable. Qualify the backend separately and bind rendered output to its source/environment. |
 | Selective Rocq stdlib, [stdpp](https://gitlab.mpi-sws.org/iris/stdpp) and [coqutil](https://github.com/mit-plv/coqutil) | Q19b: reuse before new helpers | Lists, finite maps/sets, word and arithmetic lemmas. stdpp describes an axiom-free foundation; the acceptance question is still the actual client term's transitive assumptions. Audit changed hints, notation and obligation behavior; do not upgrade the installed stdpp merely to match latest upstream. |
-| [Equations](https://github.com/mattam82/Coq-Equations) and [Rocq-Elpi Derive](https://github.com/LPCIC/coq-elpi/tree/master/apps/derive) | Q19b: dependent definitions and boilerplate | Checked dependent eliminators, equality/reflection, maps and lenses with laws where supported. Experimental derivations and unsupported dependent records need their own trial; generated field laws do not prove ownership or concrete representation. |
+| [Equations](https://github.com/rocq-prover/equations) and [Rocq-Elpi Derive](https://github.com/LPCIC/coq-elpi/tree/master/apps/derive) | Q19b: dependent definitions and boilerplate | Check concrete reduction, equation lemmas and actual assumptions, including whether index-specific equality proofs avoid global UIP. Generated field laws do not prove ownership or representation and do not extend conversion; see [the elaboration comparison](#type-theory-and-elaboration-reuse). |
 | [CoqHammer](https://coqhammer.github.io/) | Q19b: standalone `sauto` first | Try the tactics-only package before external ATP setup. Retain explicit replay scripts and lemma sets; dependent mode can introduce UIP-equivalent assumptions, and neither search nor reconstruction supplies induction automatically. |
 | [Iris/MoSeL](https://iris-project.org/mosel/) and [Diaframe](https://gitlab.mpi-sws.org/iris/diaframe) | Q19c: gated on CHERI primitive rules | Reuse BI proof contexts and symbolic-execution/abduction automation over the one admitted logic. Diaframe's language-independent core is useful; installing its HeapLang instance supplies no CHERI semantics. |
 | [Hierarchy Builder](https://github.com/math-comp/hierarchy-builder) | Q19c: only if concrete reuse needs a hierarchy | Lawful mixins, structures and instances elaborate to ordinary Rocq machinery. First prove the small interface's laws; do not invent a universal target hierarchy in anticipation of clients. |
@@ -910,6 +963,7 @@ Q19c consumes Q2b's usable primitive rules and tests generic source-level reuse;
 | Proof reuse | Change a client bound within its declared limits; separately change representation and reprove instance laws while replaying unchanged generic theorems. Record manual proof edits. | Each client needs its own byte semantics or repeated low-level proof script. A shorter notation without less proof maintenance is not enough. |
 | Profile enforcement | Require an isolation or observation guarantee absent from a test profile and confirm rejection; bind supported guarantees to their actual theorems. | A feature flag or static ownership alone is accepted as proof of adversarial-context isolation. |
 | Tooling refactor | Change syntax or proof search while preserving meaning; measure rediscovery stability separately from replay and refresh source correspondence. Change a semantic law and confirm dependent results become invalid. | A changed source subject or law inherits cached success, or routine equivalent edits make search and diagnostic costs exceed the declared usability budget. |
+| Feature composition | Combine the supported index, borrow, effect, callback, error and proof mechanisms in a client, with the selected [negative neighbors](#composition-acceptance-cases). | Features pass in isolation but lose resources, hide effects, use erased runtime data or change meaning when combined. An unsupported construct or malformed test does not count as a safety rejection. |
 | Format integration | Use an existing Narcissus-style descriptor and account for successful parsing, malformed input, and consumed bytes. | Safety proves while interpretation, rejection policy, or encoder/decoder agreement remains unspecified. |
 | Native integration | Bind actual source, compiler inputs, link layout, final bytes, Sail version, and replayable evidence; reject a changed byte or stale certificate. | A source theorem is presented as the binary theorem, or a non-CHERI upstream backend is treated as the deployed target. |
 | Performance and resources | Equivalent target/compiler settings, functional cross-checks, code and stack measurements, and no undeclared runtime support. | Performance relies on unproved representation changes, hidden allocation, or omitted failure/overflow behavior. |
@@ -1034,6 +1088,7 @@ Use Idris 2 for state-indexed APIs and erasure, Verus for erased ownership evide
 Compare DeepSEA and Sepref before authoring representation generators or refinement combinators, and the Rocq memory-model-parametric symbolic-execution work and Morello-Cerise before specifying the capability instance's laws. Use the verified Dafny/CakeML subset and the Bedrock2/Kami example to assess the strength of a composed result, with their source and machine boundaries explicit.
 Read AddressC and SuSLik before inventing an imperative proof surface or certifying builder; compare Velvet/Loom/LeetProof for integrated interaction and specification testing. Reuse Perennial's relevant recovery reasoning within the journal work already selected, and use CFML/Sisyphus and FP2 as focused maintenance and resource-design references rather than new deployment routes.
 Use Granule, Gerty, and GraD to distinguish what a resource annotation means and what theorem justifies it, not as ready-made CHERI compilation paths.
+Use the [compositional core](#a-compositional-core) to connect those ideas: dependent values and packages, stable snapshots, spatial resource transformations, explicit effects and bidirectional elaboration. Select one surface for each job; source event accounting stays an ordinary proved contract until a broader grading mechanism demonstrates a need. The [elaboration and modality research](#type-theory-and-elaboration-reuse) informs that choice without adding another acceptance logic.
 Keep F*/Pulse and Lean's program-verification tooling as active comparisons, and CakeML/Pancake as references for honest end-to-end compiler claims.
 
 Prioritize the small proof and evidence diagnostics, which are the one deliverable here whose stated starting point already holds, and hold the bounded-component pilot behind the semantics it abstracts rather than in front of it.
