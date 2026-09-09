@@ -43,6 +43,8 @@ structural property was written about. Generation does not depend on the choice.
 
 import argparse
 import subprocess
+from collections.abc import Callable
+from pathlib import Path
 
 from vos import cli, env, freezemodel, gallina
 from vos.corpus import find_root
@@ -139,9 +141,21 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 def cmd_vectors(args: argparse.Namespace) -> int:
     """The enumerative half: the admission algebra's own answers, as text."""
+    return _with_workspace(args, _vectors)
+
+
+def _with_workspace(args: argparse.Namespace,
+                    run: Callable[[argparse.Namespace, env.Environment, Path, Path], int]
+                    ) -> int:
+    """Hold shared Gallina sources and outputs through staging, compilation and reporting."""
     e = env.load()
     root = find_root()
     work = gallina.work_dir(e.lane_root)
+    with env.hold_lock(work, "a Gallina oracle run"):
+        return run(args, e, root, work)
+
+
+def _vectors(args: argparse.Namespace, e: env.Environment, root: Path, work: Path) -> int:
     out: list[str] = []
     lines = gallina.emit(root, work, out)
     if lines is None:
@@ -165,9 +179,11 @@ def cmd_properties(args: argparse.Namespace) -> int:
     Refused rather than skipped: a run that reported `ok` having tested nothing is the
     vacuous pass every floor in this repository exists to catch.
     """
-    del args
-    e = env.load()
-    root = find_root()
+    return _with_workspace(args, _properties)
+
+
+def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: Path) -> int:
+    del args, e
     switch = next((s for s in (gallina.QUICKCHICK_SWITCH, gallina.ORACLE_SWITCH)
                    if installed(s) and gallina.prover(s) is not None), None)
     if switch is None:
@@ -180,7 +196,6 @@ def cmd_properties(args: argparse.Namespace) -> int:
         print(f"FAIL the {switch} switch holds {PACKAGE} and no prover")
         return 1
 
-    work = gallina.work_dir(e.lane_root)
     gallina.stage(root, work)
     failures = gallina.compile_proofs(found, work) + gallina.compile_support(found, work)
     if failures:
@@ -222,9 +237,10 @@ def cmd_freeze(args: argparse.Namespace) -> int:
     or a declared family either side states nothing in: each is a finding and exit 1,
     never a comparison quietly made against less.
     """
-    e = env.load()
-    root = find_root()
-    work = gallina.work_dir(e.lane_root)
+    return _with_workspace(args, _freeze)
+
+
+def _freeze(args: argparse.Namespace, e: env.Environment, root: Path, work: Path) -> int:
 
     ours = freezemodel.vector_lines()
     fixed, said = freezemodel.anchors(root)
@@ -295,4 +311,3 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     return cli.dispatch(__doc__, COMMANDS, argv, _flags, prog="run.py quickchick")
-

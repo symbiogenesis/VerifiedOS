@@ -242,6 +242,13 @@ def cmd_sail(args: argparse.Namespace) -> int:
         return 1
 
     work = e.lane_root / WORK / f"sail-{spec.name}"
+    with env.hold_lock(work, "a Sail mutation run"):
+        return _sail_run(args, e, root, spec, rel, work)
+
+
+def _sail_run(args: argparse.Namespace, e: env.Environment, root: Path,
+              spec: oracle_spec.Spec, rel: str, work: Path) -> int:
+    """One population with its staged sources and journal held for the whole run."""
     tree = work / "tree"
     stage_sail(root, spec, tree)
     original = read_source(root / rel)
@@ -475,6 +482,15 @@ def cmd_coq(args: argparse.Namespace) -> int:
 
     name = "quickchick" if args.quickchick else "coq"
     work = e.lane_root / WORK / name
+    with env.hold_lock(work, "a Gallina mutation run"):
+        return _coq_run(args, e, root, rel, found, work)
+
+
+def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
+             found: gallina.Prover, work: Path) -> int:
+    """One population; the caller holds its workspace through journal completion."""
+    name = work.name
+    switch = found.switch
     out: list[str] = []
     harness_name = gallina.RANDOMIZED if args.quickchick else gallina.ENUMERATIVE
     original = read_source(root / rel)
@@ -729,4 +745,3 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     return cli.dispatch(__doc__, COMMANDS, argv, _flags, prog="run.py seed")
-

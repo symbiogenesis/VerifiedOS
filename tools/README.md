@@ -297,8 +297,8 @@ two repeating a reading and deciding only that their row is live.
 `seed`'s oracles are separate subcommands because they are three prices, not three
 kinds: a Gallina mutant costs a prover run, a Sail mutant costs a compile of the spec's
 own handful of model files, and a `$[test]` mutant costs a re-emission and a recompile
-of the model's one large translation unit. **`run.py seed properties` is the only loop here
-that writes into the checkout**, `model/` being where cmake is pointed; it refuses to
+of the model's one large translation unit. **`run.py seed properties` temporarily replaces live model sources**,
+`model/` being where cmake is pointed; it refuses to
 start over an edit, the write is byte-for-byte reversible, the restore is verified
 before the next mutant is written, and the lane's build tree is rebuilt from the
 restored source before the run reports. **Nothing else may read the checkout while it
@@ -423,6 +423,11 @@ The document parser supports top-level CommonMark fences using backticks or tild
 with matching delimiter characters and sufficient closing length. Unsupported container
 and deeply indented fence forms are refused with a file and line, so an example cannot
 silently become a requirement. Ordinary prose, tables and links remain Markdown.
+
+`seed sail`, `seed coq` and QuickChick hold their oracle workspace through staging,
+execution, journaling and output publication. Independent oracle workspaces can run
+concurrently. `seed properties` mutates the checkout and still requires exclusive access
+against every reader of that checkout.
 
 ## The conventions
 

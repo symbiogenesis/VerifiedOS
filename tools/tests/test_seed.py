@@ -77,10 +77,93 @@ def _seed_list_refuses_an_unmutable_kind() -> None:
     ensure("two lanes" in out, f"the refusal said {out!r}")
 
 
+_LOCK_PROBE = """
+import argparse
+import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+sys.path.insert(0, sys.argv[1])
+from vos import env, gallina
+from vos.cli import quickchick, seed
+
+root = Path(sys.argv[1]).parent
+with tempfile.TemporaryDirectory(prefix="vos-lock-") as td:
+    lane = Path(td)
+    e = env.Environment(root, root / "model", lane, lane, "", 1, 4096, 1, 1)
+    prover = gallina.Prover("test-switch", ("unused-prover",))
+    args = argparse.Namespace(spec="capformat", file=None, quickchick=False)
+    cases = [(seed, "cmd_sail", "_sail_run", lane / "seed" / "sail-capformat", args)]
+    for randomized in (False, True):
+        args = argparse.Namespace(file="proofs/CyclicExecutive.v", quickchick=randomized)
+        work = lane / "seed" / ("quickchick" if randomized else "coq")
+        cases.append((seed, "cmd_coq", "_coq_run", work, args))
+    for name in ("vectors", "properties", "freeze"):
+        cases.append((quickchick, "cmd_" + name, "_" + name,
+                      lane / gallina.WORK, argparse.Namespace(show=0)))
+
+    with patch.object(seed, "lane_env", return_value=e), \\
+         patch.object(env, "load", return_value=e), \\
+         patch.object(gallina, "prover", return_value=prover):
+        for module, command, worker, work, args in cases:
+            work.mkdir(parents=True, exist_ok=True)
+            marker = work / "live-source"
+            marker.write_text("live mutant", encoding="utf-8")
+            journal = work.with_suffix(".journal")
+            journal.write_text("run in progress", encoding="utf-8")
+            def run_while_held(*unused):
+                try:
+                    with env.hold_lock(work, "contender"):
+                        raise AssertionError("worker entered without its workspace held")
+                except SystemExit:
+                    return 23
+            with patch.object(module, worker, side_effect=run_while_held) as called:
+                with env.hold_lock(work, "first run"):
+                    try:
+                        getattr(module, command)(args)
+                    except SystemExit as refusal:
+                        if "already holds" not in str(refusal):
+                            raise
+                    else:
+                        raise AssertionError(command + " admitted a competing run")
+                if called.called:
+                    raise AssertionError(command + " entered its worker under contention")
+                if marker.read_text(encoding="utf-8") != "live mutant" or \\
+                   journal.read_text(encoding="utf-8") != "run in progress":
+                    raise AssertionError(command + " changed the active run's evidence")
+                if getattr(module, command)(args) != 23:
+                    raise AssertionError(command + " lost its worker's exit status")
+            with env.hold_lock(work, "next run"):
+                pass
+            with patch.object(module, worker, side_effect=RuntimeError("worker failed")):
+                try:
+                    getattr(module, command)(args)
+                except RuntimeError:
+                    pass
+                else:
+                    raise AssertionError(command + " swallowed a worker failure")
+            with env.hold_lock(work, "after failure"):
+                pass
+print("all workspace holders refuse contention and release after success or failure")
+"""
+
+
+def _mutation_workspaces_are_held_for_the_whole_run() -> None:
+    """Exercise real guest file locks with compilation stubbed in a private process."""
+    done = subprocess.run([sys.executable, "-c", _LOCK_PROBE, str(TOOLS)],
+                          capture_output=True, encoding="utf-8", errors="replace",
+                          check=False, timeout=60)
+    ensure(done.returncode == 0,
+           f"workspace contention or release failed: {done.stdout}\n{done.stderr}")
+
+
 def cases() -> list[Case]:
     return [
         Case("a source round trips byte for byte", _a_source_round_trips_byte_for_byte),
         Case("a length change counts as movement", _moved_counts_a_length_change),
+        Case("mutation workspaces are held for the whole run",
+             _mutation_workspaces_are_held_for_the_whole_run, lane="guest"),
         Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),
         Case("oracle emit produces a marked harness", _oracle_emit_runs, lane="host"),
         Case("seed list runs over a live source",
