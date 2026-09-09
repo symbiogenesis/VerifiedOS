@@ -40,7 +40,7 @@ def _one(text: str, pattern: str, label: str) -> str:
     matches = list(re.finditer(pattern, text, re.DOTALL | re.MULTILINE))
     if len(matches) != 1:
         raise CauseError(f"{label}: expected one readable definition, found {len(matches)}")
-    return matches[0].group(1)
+    return str(matches[0].group(1))
 
 
 def _named(text: str, kind: str, name: str) -> None:
@@ -127,7 +127,7 @@ def render(causes: str, exceptions: str, types: str, xlen: str, config: str,
         raise CauseError("Sail CapExCode table has unsupported syntax")
     table = table_match.group(1)
     rows = _rows(table, r"(CapEx_\w+)\s*=>\s*0b([01]+)", "Sail CapExCode")
-    codes = dict(rows)
+    codes = {row[0]: row[1] for row in rows}
     if {row[0] for row in enum} != set(codes):
         raise CauseError("Sail CapExCode does not cover exactly the CapEx enumeration")
     if any(len(bits) != code_width for bits in codes.values()):
