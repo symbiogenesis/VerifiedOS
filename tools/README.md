@@ -34,7 +34,7 @@ path. It was seventeen executables, and using them meant knowing which file answ
 which question and which of the two lanes it ran in; both of those are now the tool's
 to know. `python tools/run.py` with no command runs the host gate wave, which is what
 has to be green before anything lands, and `run.py <command> --help` is that command's
-own help. The wave and `run.py test` also run in CI, in
+own help. CI uses one read-only invocation, `run.py --check --tests`, in
 [.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
 runners at every push and pull request to `main`, over a clone with no submodule
 checked out; the guest lane's loops run only by hand, on a machine that holds the
@@ -59,11 +59,12 @@ caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | The three gates below together, one verdict over them. `--fix` sends the repair in first, alone; `--tests` adds the fourth. This is what a bare `run.py` runs. |
+| `gate` | host | Synchronizes agent instructions, then runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. A bare `run.py` selects this workflow. |
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
+| `sync-instructions` | host | Synchronizes root AGENTS.md and CLAUDE.md from either side. `--check` verifies equality without writing; `--from AGENTS.md` or `--from CLAUDE.md` explicitly selects a source when edits conflict. |
 | `coread` | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
 | `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
 | `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
@@ -319,44 +320,19 @@ one artifact here with no proof, no model, and no reader but their author.
 checkers because one cannot do the whole job; what a type cannot decide, the behavior, is
 [run.py test](vos/cli/test.py)'s to hold.
 
-Three of those four decide about the tree as it stands, and they contend for nothing:
-all three only read the checkout, and the two small ones fit inside the slack of the
-large one. So [a bare `run.py`](run.py) runs them as one command and one exit code, each
-member's own report printed whole under its own heading in the order the tool declares
-rather than the order the three finished in. What the wave buys in wall time is that the
-two small members fit inside the selftest's slack rather than adding their own, and
-**no figure is quoted for it here**: a median is a property of the checker it was taken
-at, the rule count and the mutant population both move on every rule landed, and the
-only timings in this repository with a revision beside them are the ones
-[the plan](../docs/implementation-checklist.md)'s I8 recorded at its own gate. The saving is the smaller half of the point
-and the single verdict is the larger.
+A bare `run.py` first synchronizes the root instruction files, then runs `check`,
+`selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
+and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
+is the same complete validation without any writes and is the CI invocation.
 
-**The wave's cost is the selftest's, multiplied**, and what multiplies it is a host row
-of the generated table: a sandbox runs the checker whole, and every host row's generator
-runs with it, so a row's price is its generator's own runtime times the sandbox count and
-a generator that takes a fraction of a second costs that fraction about a hundred times
-over. The relation is what is worth stating, because it prices a row before anyone adds
-one and a wall-clock figure for the wave does not: the first host row's generator runs in
-0.15 s and, measured warm on this twelve-core host when it was added, took the wave from
-35.6 s to 52 s, which is that product. The second row's generator is the SoC address map's
-and runs in 3.95 ms, measured in-process over fifty runs, so the relation prices it under
-half a second and no wave measurement here can see it: five runs of the wave itself,
-`python tools/run.py`, averaged 46.5 s on this host between a fastest of 43.1 s and a
-slowest of 48.9 s, so its own run-to-run spread is an order of magnitude above the row's
-whole price and swallows it. Which instrument the spread is taken over is the load-bearing
-half of that sentence and not the number: `tools/check.py` alone runs warm in about 2 s
-here, so a spread quoted off the checker would be a figure about the thing the sandbox
-count multiplies rather than about the multiplied wave. **A host row is priced by its
-generator and confirmed by the wave only where the two are the same size.** What the price buys is K-88 deciding
-byte identity outright rather than against the last commit. `--fix` is the one exception to the wave
-and a correctness one, the repair running alone and to completion before the rest,
-because the selftest opens by copying the working tree and a document rewritten
-mid-copy seeds a torn sandbox that reports as a baseline failure about nothing.
-[run.py test](vos/cli/test.py) is a member only when `--tests` asks for it, and for two
-reasons: it decides about the tools rather than about this tree, so a document edit has
-no reason to pay for it, and one of its own cases launches the wave as a subprocess to
-hold its verdict, which a default that ran the tests would make a recursion rather than
-a case.
+`--fix` synchronizes instructions and repairs derived artifacts before starting
+the readers. The checker runs again afterward, so a repaired finding does not leave
+a stale failure as the final verdict. A sync conflict or crashed repair stops before the validation wave.
+
+The selftest copies the working tree into its sandboxes, so mutations finish before
+it starts. Each sandbox runs the generated-artifact checks too: a generator's cost
+is multiplied by the mutant population. Keep generators small and measure them
+before adding work to every gate run.
 
 | Checker | Pin | What it decides |
 | --- | --- | --- |
@@ -459,7 +435,6 @@ silently become a requirement. Ordinary prose, tables and links remain Markdown.
 execution, journaling and output publication. Independent oracle workspaces can run
 concurrently. `seed properties` mutates the checkout and still requires exclusive access
 against every reader of that checkout.
-
 Proof compilation uses bounded workers within dependency waves, preserves report order,
 and does not compile a dependent against a failed prerequisite's stale output.
 The final `rocqchk` pass uses one shared environment and the pinned tool's default
@@ -471,6 +446,24 @@ option.
 the finite consistency pilot. It uses the memory plan's candidate domains and existing
 predicates, with other islands fixed. Its `sat`, `unsat` and `unknown` results concern
 that declared grid, not arbitrary placements or all natural-language requirements.
+
+## Synchronizing agent instructions
+
+A normal `python tools/run.py` synchronizes the root instruction files before any
+readers start. The same operation is available as `python tools/run.py sync-instructions`.
+It copies a one-sided edit and merges independent edits against their last agreed
+text. An ignored checkpoint in `out/` preserves that baseline between edits before a
+commit; it is tied to the current HEAD. Without a usable checkpoint, the tool uses
+identical committed copies. Equal files are not rewritten; one missing file is restored from
+its companion. Overlapping changes, unsafe paths and a missing common baseline are
+reported without guessing which file wins.
+
+For an intentional conflict resolution, use `sync-instructions --from AGENTS.md` or
+`sync-instructions --from CLAUDE.md`, or reconcile both files by hand. `run.py --check`
+performs the full read-only gate; CI adds `--tests` to that invocation. K-110 also checks
+equality inside `check.py`. `run.py --fix` synchronizes first, repairs derived artifacts
+next, then runs fresh checks in parallel. The tool runs on Windows and in WSL and
+installs no hooks.
 
 ## The conventions
 

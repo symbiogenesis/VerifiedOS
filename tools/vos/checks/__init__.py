@@ -102,6 +102,7 @@ from . import (  # noqa: E402
     generated,
     glyphs,
     headers,
+    instructions,
     keccak,
     ledger,
     links,
@@ -141,6 +142,7 @@ GROUPS = [
     marks,
     pins,
     headers,
+    instructions,
     floors,
     meta,
 ]

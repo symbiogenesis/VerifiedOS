@@ -4,6 +4,8 @@
 
 ## The map
 
+**AGENTS.md and CLAUDE.md carry identical rules.** A normal `python tools/run.py` synchronizes edits from either file before starting its readers. It merges independent edits from their last agreed text and refuses conflicts. Resolve a conflict with `python tools/run.py sync-instructions --from AGENTS.md` or `--from CLAUDE.md`, or reconcile the text by hand. K-110 checks equality; `run.py --check` runs without changing either file. See [the tool guide](tools/README.md#synchronizing-agent-instructions).
+
 | Artifact | What it is |
 | --- | --- |
 | [docs/spec.md](docs/spec.md) | The design, and the rationale for the register |
@@ -55,7 +57,7 @@
 
 ## Running the tools
 
-The three host gates run in CI as well as by hand: [.github/workflows/host-gates.yml](.github/workflows/host-gates.yml) runs `python tools/run.py` and `python tools/run.py test` on an Ubuntu runner at every push and pull request to `main`, over a clone with no submodule checked out, which is the tree the checker reads. The guest lane, everything `run.py` re-launches inside WSL for Sail, Rocq and Verilator, runs only by hand, before anything lands. A green run in CI is a witness that the host gates passed on that commit and never a substitute for the guest evidence a completion note quotes.
+The three host gates run in CI as well as by hand: [.github/workflows/host-gates.yml](.github/workflows/host-gates.yml) runs `python tools/run.py --check --tests` on Windows and Ubuntu runners at every push and pull request to `main`, over a clone with no submodule checked out, which is the tree the checker reads. The guest lane, everything `run.py` re-launches inside WSL for Sail, Rocq and Verilator, runs only by hand, before anything lands. A green run in CI is a witness that the host gates passed on that commit and never a substitute for the guest evidence a completion note quotes.
 
 **There is one entry point, [tools/run.py](tools/run.py), and a command is a name rather than a path.** `run.py help` lists every command and the lane it runs in; `run.py <command> --help` is that command's own help. A command that needs the toolchain is re-launched inside WSL by `run.py` itself, so there is no `wsl -u root -e python3` to spell and no wrong lane to be in.
 
@@ -84,7 +86,7 @@ $ python tools/run.py quickchick vectors
 $ python tools/run.py proofs
 ```
 
-A bare `run.py` is the three host gates as one run and one exit code, and they share it because all three only read the checkout; under `--fix` the repair runs alone and first, the selftest copying the working tree as it starts, and `--tests` adds the tools' own tests to the wave. `tools/check.py` stays a path of its own because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite it for what it decides. The host spells the interpreter `python` and the guest spells it `python3`; neither spelling is portable, and there is no `-d` on the `wsl` invocation because `Ubuntu` is WSL's default distribution. `run.py model build` logs to a file and writes `ALL_DONE` as its last line, so a caller waits on that marker rather than on a sleep, and `run.py evidence` is the six-command exit-evidence sweep as one run with the block of figures a completion note quotes. [tools/README.md](tools/README.md) states why, and the conventions a new tool keeps.
+A bare `run.py` synchronizes AGENTS.md and CLAUDE.md before running the three host gates in parallel with one exit code. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave, and `--tests` adds the tools' own tests. Mutations finish before the selftest copies the working tree. `tools/check.py` stays a path of its own because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite it for what it decides. The host spells the interpreter `python` and the guest spells it `python3`; neither spelling is portable, and there is no `-d` on the `wsl` invocation because `Ubuntu` is WSL's default distribution. `run.py model build` logs to a file and writes `ALL_DONE` as its last line, so a caller waits on that marker rather than on a sleep, and `run.py evidence` is the six-command exit-evidence sweep as one run with the block of figures a completion note quotes. [tools/README.md](tools/README.md) states why, and the conventions a new tool keeps.
 
 **Adding a rule to the checker is three edits**: the check in its [tools/vos/checks/](tools/vos/checks/) module, its row in [tools/check-rules.md](tools/check-rules.md), and its mutant in [tools/run.py selftest](tools/vos/cli/selftest.py). The tools fail on any one of the three being forgotten.
 

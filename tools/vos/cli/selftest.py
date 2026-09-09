@@ -1730,6 +1730,8 @@ CASES: list[Case] = [
      _literal(SEAM_WITNESSES, "   SeamWitnesses.v\n",
               f"   SeamWitnesses.v\n\n   {DERIVED_BEGIN}\n")),
     ("K-109", "a generated proof header changing its owner's fingerprint", _k109),
+    ("K-110", "an agent instruction edited without synchronizing its companion",
+     _literal("CLAUDE.md", "# Working rules", "# Changed working rules")),
     # A discharge annotation above a `Definition`, which is the one of this rule's four
     # refusals that renders perfectly and reads as correct: the annotation parses, its id
     # is live, and what it claims is that a *term* answers an obligation. The other three
@@ -1911,8 +1913,13 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     code, out, _ = first.check()
     if code != 0:
         print("FAIL: the unmutated sandbox does not pass, so no case can decide anything:")
+        showing = False
         for line in out:
             if line.lstrip().startswith("FAIL"):
+                showing = True
+            elif not line.startswith("       "):
+                showing = False
+            if showing:
                 print(f"  {line}")
         return 1
     print("ok: the unmutated sandbox passes, so every finding below is the mutant")

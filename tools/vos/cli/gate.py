@@ -1,42 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Run every gate this repository keeps on the host, as one command and one verdict.
+"""Synchronize instructions, then validate the checkout with one host-gate verdict.
 
-There are three, and each decides about a different artifact:
+The default synchronizes AGENTS.md and CLAUDE.md before any reader starts. `--check`
+is read-only and leaves disagreement for K-110. `--fix` synchronizes, repairs derived
+facts alone, then runs a fresh read-only checker alongside the selftest and typecheck.
+Repair findings describe the old tree; only the final wave decides the repaired tree.
+A failed sync or a repair without a verdict stops before that wave.
 
-    check      the documents   every derived fact against the artifact that owns it
-    selftest   the checker     every rule it carries, against its own mutant
-    typecheck  the Python      every expression and every signature, under two pins
-
-Asked for by hand, three commands are three chances to remember two. This is the
-one command that removes that: one launch, one exit code, and each member's own
-report printed whole under its own heading, in the order declared here rather than
-the order the three finished in. It is what `run.py` does when it is asked for
-nothing else, and what [the push workflow](../../../.github/workflows/host-gates.yml)
-runs at every push and pull request to `main`.
-
-**They run together because they contend for nothing.** All three only read the
-checkout, and the two small ones fit inside the slack of the large one. **No figure
-is quoted for that here**, on the ground [the tools' README](../../README.md) states
-and the findings register carries: a median is a property of the checker it was taken
-at, the rule count and the mutant population both move on every rule landed, and this
-host does not reproduce a wave figure within a factor of two. The saving is the
-smaller half of why this exists. The one verdict is the other half, and the larger.
-
-**`--fix` is the exception to the wave, and a correctness one.** `check --fix`
-rewrites the documents whose arithmetic moved, and the selftest opens by copying
-the working tree into the template every sandbox links against, so a repair landing
-mid-copy would seed the sandboxes a half-written tree. That reports as a baseline
-that does not pass, which is a red run about nothing at all. So the repair runs
-alone and to completion, and the other two follow it.
-
-**The tools' own tests are a member only when asked for.** `--tests` adds them,
-and they are not in the default wave for two reasons. They decide about the tools
-rather than about this tree, so a document edit has no reason to pay for them. And
-one of them launches this wave as a subprocess to hold its verdict, which a default
-that ran the tests would make a recursion rather than a case.
-
-Exit 0 when every member exits 0, 1 otherwise. It may be run from anywhere: the
-repository root is found from this file, never from the working directory.
+Independent gates run concurrently and report in declaration order. `--tests` adds the
+tools' behavioral tests; those stay optional to keep document checks small and avoid
+recursive test launches. Exit 0 means every final gate passed, 1 otherwise.
 """
 
 import argparse
@@ -47,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from vos import corpus as corpus_mod
+from vos.cli import sync_instructions
 from vos.report import Reporter
 
 HEADING = "=== gate: every host gate over this tree, in one run ==="
@@ -103,23 +77,13 @@ REPAIRS = "check"
 
 
 def _plan(fix: bool, tests: bool) -> list[list[Launch]]:
-    """The launch plan: one list per wave, waves in order, a wave's members together.
-
-    Without `--fix` that is one wave, because no member writes anything any other
-    member reads. With it the repair goes in a wave of its own ahead of the rest,
-    for the reason this module's docstring states: the selftest copies the working
-    tree, and a document rewritten while it is being copied seeds a torn sandbox.
-
-    Every member appears exactly once either way. An empty wave is dropped rather
-    than launched, so a table that ever loses its repairing member still plans.
-    """
+    """An optional isolated repair, then every read-only gate, including a fresh check."""
     members = [*MEMBERS, *([TESTS] if tests else [])]
     if not fix:
         return [members]
     repair = [Launch(m.tool, (*m.args, "--fix"), m.decides)
               for m in members if m.tool == REPAIRS]
-    rest = [m for m in members if m.tool != REPAIRS]
-    return [wave for wave in (repair, rest) if wave]
+    return [repair, members]
 
 
 def _launch(root: Path, member: Launch) -> Result:
@@ -150,6 +114,13 @@ def _launch(root: Path, member: Launch) -> Result:
     return Result(member, done.returncode, (done.stdout + done.stderr).splitlines())
 
 
+def _show(rep: Reporter, result: Result) -> None:
+    """Keep a process's diagnostic output even when a later check supersedes it."""
+    rep.line(f"--- {result.launch.name}: {result.launch.decides} ---")
+    rep.out.extend(result.out)
+    rep.line()
+
+
 def _verdict(rep: Reporter, results: list[Result]) -> None:
     """Every member's own report under its own heading, then the line over them all.
 
@@ -159,9 +130,7 @@ def _verdict(rep: Reporter, results: list[Result]) -> None:
     between a tree with a finding in it and a tool that did not run.
     """
     for result in results:
-        rep.line(f"--- {result.launch.name}: {result.launch.decides} ---")
-        rep.out.extend(result.out)
-        rep.line()
+        _show(rep, result)
 
     rep.report("gate", "gate(s) that did not come back clean:",
                [f"{r.launch.name}: reported, above"
@@ -171,23 +140,32 @@ def _verdict(rep: Reporter, results: list[Result]) -> None:
                f"all {len(results)} host gate(s) green")
 
 
-def run(root: Path, fix: bool = False, tests: bool = False) -> Reporter:
-    """One whole run, as data, on the convention `check.py` set: the caller decides
-    what to do with the verdict rather than parsing what was printed.
-
-    A wave's members are separate processes over one tree and none reads another's
-    result, so they run concurrently and are collected in the order they were
-    declared, which is what makes the report read the same however the three
-    finished."""
+def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False) -> Reporter:
+    """Complete mutations before readers, then decide only the final validation wave."""
+    if fix and check:
+        raise ValueError("--fix and --check are mutually exclusive")
     rep = Reporter()
     rep.line(HEADING)
+    if not check:
+        try:
+            rep.line(sync_instructions.sync(root))
+        except (sync_instructions.SyncError, OSError, subprocess.SubprocessError) as err:
+            rep.report("gate", "instruction synchronization failed:", [str(err)])
+            return rep
 
-    results: list[Result] = []
-    for wave in _plan(fix, tests):
-        with ThreadPoolExecutor(max_workers=len(wave)) as pool:
-            running = [pool.submit(_launch, root, member) for member in wave]
-        results += [one.result() for one in running]
+    plan = _plan(fix, tests)
+    if fix:
+        repair = _launch(root, plan[0][0])
+        _show(rep, repair)
+        if repair.code not in (0, 1):
+            rep.report("gate", "repair did not complete:",
+                       [f"{repair.launch.name}: exited {repair.code} without reaching a verdict"])
+            return rep
+        rep.line("repair pass complete; the fresh validation below decides the repaired tree")
 
+    wave = plan[-1]
+    with ThreadPoolExecutor(max_workers=len(wave)) as pool:
+        results = list(pool.map(lambda member: _launch(root, member), wave))
     _verdict(rep, results)
     return rep
 
@@ -196,8 +174,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="run.py gate",
         description="Run the host's gates together and answer with one verdict.")
-    parser.add_argument("--fix", action="store_true",
-                        help="pass --fix to check, which then runs alone, first")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--fix", action="store_true",
+                      help="synchronize instructions, repair derived facts, then validate again")
+    mode.add_argument("--check", action="store_true",
+                      help="validate without synchronizing instructions or repairing files")
     parser.add_argument("--tests", action="store_true",
                         help="add the tools' own behavioral tests to the wave")
     args = parser.parse_args(argv)
@@ -206,9 +187,12 @@ def main(argv: list[str] | None = None) -> int:
     # Printed rather than accumulated, which the report itself is not: the longest
     # member is most of a minute and this is the only line that can say what is
     # being waited for while it runs.
-    print(f"running {sum(len(w) for w in plan)} gate(s): "
-          + ", ".join(m.name for wave in plan for m in wave), flush=True)
+    preflight = ("" if args.check else "synchronizing instructions; ")
+    if args.fix:
+        preflight += "repairing derived facts; "
+    print(preflight + f"running {len(plan[-1])} host gate(s): "
+          + ", ".join(m.name for m in plan[-1]), flush=True)
 
-    report = run(corpus_mod.find_root(), fix=args.fix, tests=args.tests)
+    report = run(corpus_mod.find_root(), fix=args.fix, tests=args.tests, check=args.check)
     print("\n".join(report.out))
     return 1 if report.findings else 0

@@ -104,6 +104,8 @@ COMMANDS: tuple[Command, ...] = (
             "the tools' own Python, under two pinned checkers"),
     Command("test", "vos.cli.test",
             "the tools' own behavioral tests"),
+    Command("sync-instructions", "vos.cli.sync_instructions",
+            "synchronize AGENTS.md and CLAUDE.md from either side"),
     Command("coread", "vos.cli.coread",
             "a register entry against the prose it cites, and the reading recorded"),
     Command("view", "vos.cli.view",

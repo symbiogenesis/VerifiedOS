@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """The one way into this repository's tools.
 
-    python tools/run.py                      every host gate, one verdict
-    python tools/run.py --fix                and rewrite what is arithmetic first
+    python tools/run.py                      sync instructions, then every host gate
+    python tools/run.py --fix                also repair derived artifacts, then validate
+    python tools/run.py --check --tests      complete read-only CI validation
     python tools/run.py check                one gate alone, after a document edit
     python tools/run.py coread --show R-15-073c
     python tools/run.py model build          dispatched into WSL from here

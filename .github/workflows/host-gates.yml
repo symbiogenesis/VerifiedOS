@@ -2,8 +2,8 @@
 #
 # The host gate wave, run on a clone at every push and pull request to main.
 #
-# `python tools/run.py` is the three host gates (check, selftest, typecheck) as one
-# run and one exit code, and `python tools/run.py test` is the tools' own tests. All
+# `python tools/run.py --check --tests` runs the three host gates and the tools'
+# behavioral tests together, without changing tracked files. All
 # of it is pure Python over the checkout, so it runs on Windows and Linux with no
 # toolchain: what needs Sail, Rocq or Verilator is the guest lane, which run.py
 # re-launches inside WSL on a developer's machine and which nothing here reaches. A
@@ -89,8 +89,5 @@ jobs:
       - name: Install jsonschema
         run: uv pip install --system jsonschema
 
-      - name: Host gate wave
-        run: python tools/run.py
-
-      - name: Tools' own tests
-        run: python tools/run.py test
+      - name: Host gates and behavioral tests, read-only
+        run: python tools/run.py --check --tests

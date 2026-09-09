@@ -5,6 +5,7 @@
 # index: the checker stays green and the selftest's baseline goes red, which
 # stops every mutant from deciding anything. Ignored here rather than refused as
 # a tree, so that anything else unruled landing under `.claude/` is still loud.
+.Codex/worktrees/
 .claude/worktrees/
 
 # The generated reading view tools/read-view.py rebuilds on demand: a derived
