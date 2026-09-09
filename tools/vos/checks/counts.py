@@ -37,8 +37,8 @@ import json
 import re
 from typing import TYPE_CHECKING
 
+from vos import coread, dialectgen, differential, figures
 from vos import corpus as corpus_mod
-from vos import dialectgen, differential, figures
 from vos.checks.counts_capformat import cap_format
 from vos.checks.counts_configs import (
     aperture_placements,
@@ -198,7 +198,7 @@ CLAIMS = [
     (REGISTER, "admission-tests", "words", r"(?<=carries )[\w-]+(?= recorded dispositions)"),
     (REGISTER, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part admission test)"),
     (REGISTER, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part test)"),
-    (SPEC, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?=: \(1\))"),
+    (SPEC, "admission-tests", "words", r"(?<=satisfies all )[\w-]+(?= parts)"),
     (SPEC, "admission-tests", "words", r"(?<=The )[\w-]+(?=-part test governs)"),
     (SPEC, "admission-tests", "words", r"(?<=passes all )[\w-]+(?= admission tests)"),
     (SPEC, "admission-tests", "words", r"(?<=the )[\w-]+(?=-part mechanism test)"),
@@ -212,7 +212,7 @@ CLAIMS = [
     # the assurance tiers, owned by the specification's own tier table
     (REGISTER, "assurance-tiers", "words", r"(?<=There are exactly )[\w-]+(?= assurance tiers)"),
 
-    # the required-but-untrusted build artifacts, owned by the spec line's own markers
+    # the required-but-untrusted build artifacts, owned by their prose span's markers
     (REGISTER, "build-prereqs", "words", r"[\w-]+(?= artifacts are hard prerequisites)"),
     (REGISTER, "build-prereqs", "words", r"(?<=list has )[\w-]+(?= entries rather than five)"),
     (SPEC, "build-prereqs", "words", r"(?<=All )[\w-]+(?= are untrusted evidence-producing)"),
@@ -416,16 +416,16 @@ def _spec_lines(ctx: Context, lead: str, pattern: re.Pattern[str],
     return n
 
 
-def _anchor_line_marks(ctx: Context, ident: str) -> int:
-    """The enumeration markers on the one spec line declaring a bookmark."""
-    doc = ctx.corpus.get(SPEC)
-    if doc is None:
+def _anchor_span_marks(ctx: Context, ident: str) -> int:
+    """Count a bookmark's enumeration, including continuation lines it owns.
+
+    Use the co-read ownership rule so a wrapped or bulleted list has the same
+    extent for its count and its review. A missing bookmark still returns zero,
+    which the owned-count guard refuses to treat as an empty enumeration.
+    """
+    if SPEC not in ctx.corpus:
         return 0
-    needle = f'<a id="{ident}">'
-    for i, line in enumerate(doc.lines):
-        if needle in line and not doc.fenced[i]:
-            return len(ENUM_MARK_RE.findall(line))
-    return 0
+    return len(ENUM_MARK_RE.findall(coread.spans(ctx.corpus).get(ident, "")))
 
 
 def _corpus_members(ctx: Context) -> int:
@@ -512,7 +512,7 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "admission-tests": len(ENUM_MARK_RE.findall(reg.body.get("R-15-010", ""))),
         "tcb-items": _spec_lines(ctx, ". ", TCB_ITEM_RE, until="## 6. "),
         "assurance-tiers": _spec_lines(ctx, "| **Tier", TIER_ROW_RE),
-        "build-prereqs": _anchor_line_marks(ctx, "r-06-024"),
+        "build-prereqs": _anchor_span_marks(ctx, "r-06-024"),
         "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
         "iris-theories": _enumeration(IRIS_THEORIES_RE, reg.body.get("R-13-017", "")),
         "corpus-members": _corpus_members(ctx),

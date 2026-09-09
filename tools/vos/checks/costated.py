@@ -64,7 +64,7 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     ("the legacy radio generations' absence", [
         ("R-15-129", "5G and 6G only"),
         ("R-15-129", "cannot be received at all"),
-        (SPEC, "2G/3G/4G are absent from the silicon"),
+        (SPEC, "The silicon omits 2G/3G/4G"),
     ]),
     ("the foreign-computer exception count", [
         ("R-12-045", "the one tolerated foreign computer"),
@@ -77,14 +77,15 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     ("the sealed-cutoff device trio", [
         ("R-15-145", "the microphone, the radios, and the wired data port"),
         ("R-15-150", "The microphone, radio, and USB-data cutoffs"),
-        (SPEC, "the microphone, the radios, and the USB data lanes"),
+        (SPEC, "The microphone, radios and USB data lanes"),
     ]),
     # the two heads state one relationship: the register's line-3 banner and the
     # banner spec.md opens with; editing either names the other for a joint revisit
     ("the precedence relationship, stated at both documents' heads", [
         (REGISTER, "This register, not the prose, is the artifact"),
-        (SPEC, "where the two disagree the register wins (R-05-152)"),
-        (SPEC, "which rule K-61 reports and `tools/run.py coread` records"),
+        (SPEC, "takes precedence if the two disagree (R-05-152)"),
+        (SPEC, "rule K-61 reports the affected pairs and `tools/run.py coread` "
+               "records the review"),
     ]),
     ("the admission rule's non-duplication clause, cited by ordinal", [
         ("R-05-132", "(2) duplicates no existing grade or label axis"),

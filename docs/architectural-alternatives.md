@@ -8,12 +8,9 @@
 It exists so the living document carries the reasoning behind what was *not* adopted.
 
 **How a ground is read here.**
-A **derived** ground restates a commitment [the register](requirements-register.md) already carries and applies it to the candidate.
-The five-part §15 admission test is the standing case: R-15-010a names the commitment each of its parts restates, so a rejection reading *fails admission test N* settles the case against a commitment already taken, and a reader who disputes the rejection disputes that commitment rather than the entry citing it.
-Two further grounds have the same shape and are marked where they are used: the instruction set of record chosen by whose semantics is already mechanized (R-05-019), and a candidate rejected for breaking *one base ISA, one kernel binary* (R-15-111).
-A derived ground is sound and it is not evidence, and saying which it is costs nothing while leaving it unsaid lets a rejection read as an independent finding it never was.
-A **non-deciding** observation is a different thing and is kept for a different reason: it is what a reader notices first and would otherwise supply as a reason of their own, so it stands in the entry that carries it, marked as deciding nothing, beside the ground that decides.
-Both are §17's discipline for residuals applied to grounds: booked with its owner and scope rather than absorbed.
+A **derived** ground applies an existing commitment in [the register](requirements-register.md) to a candidate. For example, *fails admission test N* identifies the commitment behind part N of the §15 test (R-15-010a). It establishes that the candidate conflicts with the commitment; it supplies no independent evidence for choosing that commitment.
+The same applies when a candidate lacks the mechanized semantics required by R-05-019 or breaks *one base ISA, one kernel binary* (R-15-111). Those grounds are marked where used, so a reviewer can distinguish an application of policy from evidence supporting the policy.
+A **non-deciding** observation provides context but does not justify the disposition. Entries label it separately from their deciding grounds. Both labels make the basis and scope of a decision explicit, as §17 does for residuals.
 
 ## Belt / Mill-class architecture: deferred to a hypothetical gen-2, on one ground
 
@@ -34,12 +31,10 @@ The in-order scalar cores pay a large IPC tax for the no-speculation guarantee (
 A Mill-style machine recovers wide ILP through exposed, statically-scheduled parallelism plus **metadata speculation**: NaR ("Not a Result") poison values let loads be hoisted and only fault when consumed, giving speculative *scheduling* benefit with **no microarchitectural rollback and therefore no transient-execution class**: the same security posture at higher ILP.
 Counterweights: (1) even ignoring verification *effort*, a belt gen-2 means rebuilding the entire substrate this spec depends on: RISC-V Sail model, CHERI-CompCert backend, Islaris, Cerise, RVV; none of which transfers; "ignore verification effort" does not make the ecosystem exist.
 (2) If leaving RISC-V anyway, the belt may not be the most spec-coherent target: **EDGE / block-atomic execution** (TRIPS/EDGE lineage) issues dataflow blocks that **commit atomically as a unit**: instruction-level transactionality, a direct downward extension of G4 and §11 all the way into the pipeline.
-A belt is a clever operand-lifetime trick; block-atomic execution *rhymes* with the rest of the architecture.
-**That rhyme decides nothing**, and it is kept rather than deleted because it is the thing a reader notices first about the pairing and would otherwise take for the reason.
-What decides the preference is the block commit's transactionality: G4 is *stateless, atomic, transactional, rollback-friendly* (R-01-004), and a block committing as a unit is that shape one layer further down, which makes the ground a derived one and not evidence for G4.
+The preference for block-atomic execution follows G4's commitment to stateless, atomic, transactional, rollback-friendly behavior (R-01-004): committing a block as a unit applies that commitment within the pipeline. This is a derived ground for the preference, with no independent evidence for G4.
 EDGE is even less mature than Mill, so it is a research program, not a spec.
 
-**Disposition:** gen-2 candidate iff ILP-without-speculation becomes the binding constraint and a formal/toolchain ecosystem can be built around the target; **block-atomic (EDGE) is the preferred "abandon the register file" direction** over the belt for this design, on the transactional-coherence ground G4 (R-01-004) already carries and not on the rhyme beside it.
+**Disposition:** gen-2 candidate iff ILP-without-speculation becomes the binding constraint and a formal/toolchain ecosystem can be built around the target; **block-atomic (EDGE) is preferred over the belt** for this design because it extends G4's transactional commitment (R-01-004) into the pipeline.
 Both remain non-normative.
 
 ---
@@ -86,24 +81,21 @@ This count is the **substrate-cost disqualifier**, and it is stated here once: e
 The bespoke-binary requirement thus re-imports precisely the microarchitecture-in-the-binary coupling RISC-V's abstract ISA was chosen to delete.
 
 **What the disqualifier is worth, priced at the maturity the substrate actually has.**
-The count is a forfeit of **start-froms** and not of a finished ecosystem, and stating it the second way would overstate it in the one direction this document is least placed to check.
-The substrate is a program rather than a product, and it is uneven in a way the noun phrase "the CHERI-CompCert backend" hides.
+The cost is losing **existing starting artifacts**, whose maturity varies widely. The CHERI-CompCert backend, for example, is still part of a development program.
 CompCert itself is a released and maintained compiler that has carried DO-178C certification credit on an aircraft program; the CHERI backend beside it is a prototype its own upstream calls unverified and unintegrated, whose correctness files sit outside the build, whose admits sit inside it, and most of whose instruction arms print a placeholder where an instruction belongs, all of which [the implementation plan](implementation-checklist.md)'s compiler milestone measures on this toolchain rather than infers from a README.
 The CHERI-TAL soundness metatheorem is a crown jewel with no author, and the foundational typed-assembly line it would build on is dormant rather than live, its standing soundness results long settled and its recent descendants applied rather than foundational.
 The RVY standardization line is a draft in its own words and is not ratified, which [the version matrix](cheri-version-matrix.md) reads at a date rather than assumes.
 What *is* built is the half this document leans on hardest and names least: a vendored Sail model that runs, its capability-semantics oracle, an emulator generated from both, published Iris-over-Sail developments (Cerise, Islaris, Katamaran) whose contracts stand over capability machines adjacent to this profile rather than over it, and RVV as an ordinary ratified extension.
 
 **The direction of the count survives the repricing; its size does not.**
-A distinct instruction set forfeits a program several artifacts in rather than a finished toolchain, and it forfeits it into a start-from set that is empty: for EPIC, for OISC and TTA, for a language ISA, for an object-addressed machine, and for a ternary word there is no partial backend to finish, no capability memory model to re-home, no universal contract to instantiate from an adjacent machine, and no vendored model to curate.
-A half-built start-from is worth less than its noun phrase suggests and more than nothing, and nothing is what these alternatives offer, so the honest form of the count is not *you would lose a mature ecosystem* but *you would restart a program already underway, against upstreams that are themselves readings with a date on them*.
-Every entry below pays it in that form, and the *deader ecosystem* comparisons that follow are between two unfinished things rather than between a finished one and an idea.
+A distinct instruction set would restart work already supported by these artifacts. For EPIC, OISC and TTA, a language ISA, an object-addressed machine, or a ternary word, there is no corresponding partial backend to finish, capability memory model to adapt, universal contract to instantiate from an adjacent machine, or vendored model to curate.
+The loss is therefore the progress already made and the reusable starting points, not a completed verified toolchain. Every comparison below uses that scope: both sides are unfinished, and claims about their available artifacts depend on dated upstream readings.
 Upstream status above was read from each project's own repository, release page, or specification build on 2026-08-23, and R-18-001a is what makes re-taking that reading an obligation rather than a courtesy; no measurement above is restated here, each belonging to the plan item or the matrix that took it.
 
 **Where EPIC ranks among the "abandon RISC-V for ILP" targets.**
-The belt entry already ordered EDGE ≻ belt on transactional-coherence grounds, block-atomic commit being G4 (R-01-004) one layer further down; the rhyme that entry also notes decides nothing there.
+The belt entry orders EDGE ≻ belt because block-atomic commit applies G4's transactional commitment (R-01-004) within the pipeline.
 EPIC ranks **below both**: its one edge over Mill and TRIPS is that it *shipped*, but it shipped and *died*, so the ecosystem advantage is negative; and its ILP recipe leans on ALAT and RSE, which fail the admission test where the belt's spiller and EDGE's block commit do not.
-It also *rhymes* with nothing in the architecture, which is an observation and not a third ground: the two above are what rank it.
-A belt is a clever operand-lifetime trick and EDGE a transactional pipeline; EPIC is a compiler-scheduling bet whose hardware crutches this spec forbids.
+The ranking rests on those two grounds: available starting artifacts and the admission failures of EPIC's ILP mechanisms.
 
 **Disposition:** rejected as a base direction: EPIC abandons the RISC-V substrate as fully as the belt (into a post-mortem ecosystem), *inverts* the hoped-for simplification (the in-order IPC tax is the price of forbidding speculation, not a removable engine; VLIW only adds verified surface), and mandates bespoke, microarchitecture-coupled binaries that fork both the ecosystem and the proof base.
 **Two non-redundant atoms are distilled and kept inside RISC-V:** (1) **NaR/NaT deferred-fault poison loads**: separable from both belt and bundle, admissible as a *small* extension, the genuine "ILP without speculation" lever, logged here as the sharper form of the belt entry's metadata-speculation argument and the first candidate should that constraint bind; and (2) **wider in-order superscalar + verified static scheduling on plain RV64**: already licensed by §15's in-order C-class, whose issue width is a searched parameter rather than a fixed promise (R-15-108, R-15-108a), and ideally served by the bespoke compiler: the answer to the in-order IPC tax, strictly *before* any ISA fork.

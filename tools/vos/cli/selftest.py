@@ -979,6 +979,12 @@ CASES: list[Case] = [
     ("K-24", "an asserted count the artifact no longer gives",
      _renumber(CROWN, r"\d+(?= coarse targets)", 0, "99")),
 
+    ("K-24", "a multiline prerequisite list loses one enumeration marker",
+     _literal(SPEC, "- (3) A **WCET cost-annotation pass", "- A **WCET cost-annotation pass")),
+
+    ("K-24", "the admission-test lead-in states the wrong count",
+     _literal(SPEC, "satisfies all five parts", "satisfies all six parts")),
+
     ("K-25", "an inventory status spelled outside the three declared classes",
      _first_match(
          CROWN,

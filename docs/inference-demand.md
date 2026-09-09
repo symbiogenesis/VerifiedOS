@@ -22,7 +22,7 @@ Not measured here, each with the reason:
 - **The rest of the simultaneous workload.** R-18-004a's other seven members share the aggregate bandwidth and the two capacities; only the inference member is measured, and the budget says so where the aggregate is compared.
 - **Concurrency above one session.** One session, batch size one, which is the low-batch case [the critique](critique.md) names as the one that streams the weight set each token.
 - **A mixture-of-experts model.** R-12-085's expert-count and top-k terms are unmeasured; R-15-171 admits such a model only with every expert resident and top-k fixed, which makes its demand the dense arithmetic below over the resident expert set, and no MoE weight was loaded.
-- **The acceptability threshold.** The comparator is recorded and the threshold that makes a configuration quality-acceptable is Q1's, owned by the product-gate contract at `docs/product-gate-contract.md` as its inference-quality `PG-` predicate over this same comparator; quality-acceptable is Q1's to decide, and nothing here declares a configuration acceptable. That contract is named rather than linked here because Q1 is the item that creates it.
+- **The acceptability threshold.** This report records the comparator but does not declare a configuration quality-acceptable. The [product-gate contract](product-gate-contract.md#2-the-limits), authored under Q1, defines the inference-quality limit PL-9 and its proposed parameters DP-4 and DP-5. Those parameters require the product owner's ratification before they bind a candidate.
 
 ## 2. The instrument
 

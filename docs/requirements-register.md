@@ -6,7 +6,7 @@
 
 ## How to read this
 
-Each entry is one atomic obligation, individually reviewable, with an acceptance criterion that decides it without reference to the prose. Per [§5](spec.md#atomic-restatement-rule), *a normative claim that cannot be restated as an atomic, testable requirement is a spec defect, not prose to be admired*; claims that resisted restatement are booked in [Extraction defects](#extraction-defects) rather than dropped or paraphrased into something the spec does not say.
+Each entry states one atomic obligation with an acceptance criterion a reviewer can evaluate without consulting the prose. Under [§5's atomic-restatement rule](spec.md#atomic-restatement-rule), a normative claim that cannot be made atomic and testable is a specification defect. [Extraction defects](#extraction-defects) records those claims without dropping them or changing their meaning.
 
 ```
 **R-ss-nnn** MUST: the obligation, stated so that a reviewer can agree or disagree with it alone
@@ -16,15 +16,15 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-… (the crown-jewel specs it constrains); the prose rationale is the bookmark #r-ss-nnn its id derives
 ```
 
-**Every entry carries a criterion, and where it carries more than one they are conjunctive.** An obligation stated with nothing to decide it is the defect §5's atomic-restatement rule names, so an entry with no `· Accept:` line is a finding rather than an entry awaiting one. A disposition argued against named alternatives needs a line per facet (why the alternative fails, what the choice buys, which admission tests it clears), and every one of them decides: the entry is met when all of them hold, and one failing fails it, so none is the deciding bullet and none is commentary. Criterion lines come first, and the template above fixes the order of the rest; `tools/check.py` holds both, because a criterion placed below a conferral or a trace reads as something other than part of the criterion.
+**Every entry needs an acceptance criterion; multiple criteria must all hold.** An entry without a `· Accept:` line is a finding. A choice among named alternatives needs a criterion for each relevant facet: why an alternative fails, what the choice provides, and which admission tests it meets. Every criterion contributes to the decision; none is commentary. Criterion lines come first, followed by the remaining lines in the template's order. `tools/check.py` checks both requirements.
 
-**What an entry carries is its own ground, and the test on a clause is that it decides rather than that it is short.** The longest entries here are long because their criterion enumerates: a sorting rule against the roster it sorts (R-04-010a), a parameter set against the parameters in it (R-15-108), a disposition against the alternatives it is taken over (R-15-007q). A clause that decides nothing is a finding at any length, and the repair for one is to delete it or to make it decide. It is never to move it into the prose, which would reverse the relation the register stands in: a *derived view* states no obligation of its own and is defective, never authoritative, where it disagrees with this register (R-15-001a), while it is the register the gate audits and the prose that is commentary rather than the thing reviewed (R-05-152). An entry owing its ground to that commentary would cost its criterion the property this section opens with, deciding without reference to the prose. What [spec.md](spec.md) carries instead is what no criterion needs in order to decide: the worked derivation behind a figure, the alternatives weighed and not taken, and the development of an argument the entry states in one clause.
+**Keep everything needed to decide an obligation in its entry.** Some criteria need substantial detail: R-04-010a applies a classification rule to a roster, R-15-108 covers a parameter set, and R-15-007q evaluates alternatives. Length alone is no defect. A clause that contributes nothing to the decision must be deleted or made testable; moving it to the prose does not repair it. The register is what the gate audits (R-05-152), and derived views cannot add obligations or override it (R-15-001a). [spec.md](spec.md) supplies explanatory material, such as worked derivations and extended arguments, that a reviewer does not need to decide the criterion.
 
-**Two of those lines confer membership in a set another entry collects, because a collected set that certifies its own totality by inspection silently stops being the set** (the failure R-17-016 forecloses). Conferral is what forecloses it: membership asserted by each entry that has it, gathered in one place, checked in both directions rather than by roll-call. `· Fail-closed:` confers membership in the §17 fail-closed seam register (R-17-030r) and `· RoT-fresh:` in the §10 freshness enumeration (R-10-013a), so a conferral no register collects and a register member no entry confers are both findings. That closes the register's disagreement with the requirements, not completeness: *fails closed* and *needs freshness* are judgments no tool decides. Against that residue `tools/check.py` over-approximates each vocabulary and requires every entry it catches to be conferred or dispositioned, making the totality claim an agenda regenerated on every run rather than a reading nobody repeats.
+**Entries declare their own membership in the fail-closed and freshness sets.** A `· Fail-closed:` line adds its entry to the §17 fail-closed seam register (R-17-030r); a `· RoT-fresh:` line adds it to the §10 freshness enumeration (R-10-013a). The checker compares each collected set with those declarations in both directions: an uncollected declaration or an undeclared member is a finding (R-17-016). This detects disagreement, but cannot establish that every relevant entry declares membership. Deciding whether an obligation fails closed or needs freshness still requires judgment. To prompt that review, `tools/check.py` scans for related vocabulary and requires each match either to declare membership or to explain why it does not belong.
 
-**Traces are derived, not written.** A trace names the crown-jewel specs its requirement constrains and cites the prose at `#r-<id>`, the bookmark that requirement's own number gives: the prose line each entry was extracted from carries that `<a id="r-ss-nnn">`, so editing the prose moves the target with the text and no entry hand-carries a reference at all. A trace is written out only where it departs from the derived form, by citing a second occurrence (suffix `-2`), another requirement's bookmark, or a note after the citation, and one that does displays the section its bookmark sits in. A line number would be a derived fact restated with nothing checking it; a derived bookmark is neither restated nor able to go stale. `tools/check.py` holds what a symbolic reference can still violate silently, and reports a trace that spells out what its id already derives (R-05-151a).
+**Prose references are derived from requirement IDs.** Each trace names the crown-jewel specs its requirement constrains. Its prose reference defaults to the corresponding `<a id="r-ss-nnn">` bookmark, which stays with the text when it moves. Write an explicit prose citation only for a departure from that default: a second occurrence (suffix `-2`), another requirement's bookmark, or a note after the citation. An explicit citation also names the section containing its bookmark. `tools/check.py` checks these references and reports redundant citations that merely repeat the default (R-05-151a).
 
-**Derived facts are computed, not copied.** A line number is only the commonest case: any count, table, or list some other artifact already determines is a derived fact, and restating it by hand discharges itself silently in the wrong direction. Nothing of that kind is maintained here by care. `tools/check.py` recomputes every figure the documents assert (the coverage totals below, the per-section table, the crown-jewel status ratio, the absence count) from the artifact that owns it, reports drift, and rewrites the assertions under `--fix`; it holds the same discipline for the membership the derived views carry and the bookmarks the traces cite, those being one defect at three granularities. Where one entry needs a set another entry states, it **cites that entry rather than repeating it** (R-06-009 cites R-05-029's type-level obligations, R-13-012 the tier subset of the same list, R-17-046 R-06-011's axiom inventory), so a set stated in two places cannot come to disagree, the failure R-05-028 and R-17-016 each foreclose.
+**Derived facts are computed, not copied.** A count, table, list or line number determined by another artifact must have a tool that keeps it consistent with that source. `tools/check.py` recomputes the asserted coverage totals, per-section table, crown-jewel status ratio and absence count, reports drift, and repairs them under `--fix`. It also checks membership in derived views and the bookmarks cited by traces. When an entry needs a set defined elsewhere, it **cites the defining entry**: R-06-009 cites R-05-029's type-level obligations, R-13-012 cites the tier subset of that list, and R-17-046 cites R-06-011's axiom inventory. Keeping one definition prevents the disagreement R-05-028 and R-17-016 prohibit.
 
 **Modality.** `MUST`: obligation on the built system or its process. `MUST NOT`: prohibition; the acceptance criterion is an emptiness or absence check. `IS`: a definition or classification the rest of the register quantifies over; reviewable for correctness, not for compliance.
 
@@ -284,8 +284,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 
 ### 5.2 One prover
 
-**R-05-011** IS: Exactly one proof checker exists in the trust base: the Coq (CIC) kernel.
-· Accept: the trust-base inventory names one checker; no admitted artifact's acceptance depends on any other checker.
+**R-05-011** IS: The trust base uses one proof logic, Coq's Calculus of Inductive Constructions (CIC). Additional checking programs require a soundness theorem in that logic, as R-05-011c specifies.
+· Accept: every load-bearing proof is checked in CIC or by a checker whose soundness is proved in CIC; no admitted artifact depends on an independently trusted second logic. The admission checkers are the pair R-06-008 names.
 · Trace: CJ-T
 
 **R-05-011a** IS: The ground of R-05-011 is composition, not a defect ranking among proof kernels. T is one linked development whose seam lemmas each state a conclusion in the next premise's vocabulary and whose meta-lemma owes coverage over their union (R-05-160, R-05-161), so a constituent discharged in a second logic joins that union only across a semantics bridge, which no artifact supplies for any pair this design would need and which would itself be the largest unproved object in the tower. The reliability reading is not the claim and would not survive being made, kernel defects being ordinary everywhere in the field: Rocq's own critical-bug list runs to some eighty entries at roughly one a year with a handful open, Isabelle's to about one a decade, and Lean's kernel admitted an axiom-free proof of falsity in July 2026, each read on 2026-08-23 under R-18-001a.
@@ -2371,7 +2371,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Trace: CJ-CERISE, CJ-CRYPTO-SPEC
 
 **R-10-037a** MUST: The R-10-037 prohibition binds checkpoints and capability-bearing state, and the R-08-037a consent-record store is neither: it is no checkpoint region and holds no capability, tag, lease, or decision in force, and is read only by the powerbox as a witness that a consent act occurred.
-· Accept: the two are distinguishable by inspection, a checkpoint restoring execution state and a record restoring nothing and licensing one attenuation the powerbox could perform anyway; the exclusion is recorded here rather than surviving as an absence R-10-013i would find.
+· Accept: the two are distinguishable by inspection: a checkpoint restores declared durable regions after ordinary initialization (R-10-036), while a consent record restores no state and licenses one attenuation the powerbox could perform anyway. The exclusion is explicit so R-10-013i can audit it.
 · Trace: CJ-CERISE, CJ-NI
 
 **R-10-036a** MUST: The platform's own state is durable state under R-10-036's rule: an object in the content-addressed store is bytes named by their hash, carries no schema version, and is read by every generation alike, while the store's key schema (the typed keys of the system-integrity instance, R-10-005) and the durable regions are bound to the generation that wrote them, so a generation whose schema differs from its predecessor's carries a checked migration or ships whole, and never reads its predecessor's schema as its own.
@@ -3549,8 +3549,8 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: each of the five parts names the commitment it restates, and a citation of the test by ordinal claims that commitment and nothing further, which is where a reader disputing a disposition takes the dispute. A part this entry maps to no commitment, and a feature admitted on the test while the commitment one of its parts restates is unmet, are each review-gate findings.
 · Trace: CJ-SAIL
 
-**R-15-011** MUST NOT: Bare self-exclusion from the constant-time list is not a pass for test (2): the exclusion is itself the proof obligation, and a feature neither constant-time nor provably secret-unreachable is inadmissible.
-· Accept: every off-list feature has a discharged flow-discipline obligation, not a declaration.
+**R-15-011** MUST NOT: Excluding a feature from the constant-time list does not discharge test (2). Its proof obligation must be met through one of the discharge forms R-15-010 enumerates.
+· Accept: every off-list feature has a discharged proof of secret-unreachability or confinement to the owning island's static NoC and memory partition, as R-15-010 requires; a declaration of exclusion alone fails.
 · Trace: CJ-LEAK, CJ-NI
 
 **R-15-012** IS: Speculation fails tests (1)–(3); SMT fails (3) by construction; dynamic branch prediction fails (3); `Zalrsc` fails (3) and (1).
@@ -5254,7 +5254,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the record's schema is a Narcissus descriptor.
 · Trace: CJ-FORMAT
 
-**R-16-014** IS: Because the machine is deterministic, that trace re-runs bit-exact off-device on the same semantics the silicon is proven to refine, so verbosity moves off the device rather than streaming from it at runtime.
+**R-16-014** IS: The crash trace supports off-device replay over the Sail semantics used for RTL refinement (R-18-010), with exactness scoped by R-16-019. Verbose introspection therefore runs off-device. Hardware agreement remains subject to R-01-002b's tier requirement and R-01-003's fabrication residual.
 · Accept: off-device introspection is unbounded and carries no on-device confidentiality cost.
 · Trace: CJ-SAIL, CJ-RTL-SAIL
 
@@ -5270,12 +5270,12 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: writing DRBG seeds or draws verbatim would place live key material into an artifact designed to leave the device.
 · Trace: CJ-CRYPTO-SPEC, CJ-NI
 
-**R-16-018** IS: Substitution is sound because the crypto is constant-time, not because the values are unimportant: every secret-touching binary is CT-verified, so its control flow and memory-access sequence are secret-independent by construction and a substituted draw reproduces the same instruction sequence, addresses, capability operations, and fault.
+**R-16-018** IS: Substituting secret entropy preserves the instruction sequence, addresses, and capability operations within the CT-verified scope, because those observations are secret-independent. Fault reproduction has the same scope; faults that depend on a particular draw are subject to R-16-020 and R-16-022.
 · Accept: the soundness of this clause is exactly as broad as the CT obligation's scope.
 · Trace: CJ-CT-SOUND
 
-**R-16-019** IS: The bit-exact claim is precise rather than weakened: replay is exact in control flow, capability operations, schedule, and fault reproduction everywhere, and exact in *values* everywhere outside the secret-entropy cone.
-· Accept: the two scopes are stated separately.
+**R-16-019** IS: Replay is exact in control flow, capability operations, schedule, and fault reproduction within R-16-018's scope, and exact in values outside the secret-entropy cone. Draw-dependent faults remain subject to R-16-020 and R-16-022.
+· Accept: the observation and value scopes are stated separately, with the draw-dependent exception explicit.
 · Trace: CJ-CT-SOUND
 
 **R-16-020** MUST: Where a fault turns on one specific draw, the commitment lets a candidate value be checked rather than guessed, and unsealing the actual draw is a powerbox-mediated declassification gated behind the RoT lifecycle debug state.
@@ -5286,7 +5286,7 @@ Each entry is one atomic obligation, individually reviewable, with an acceptance
 · Accept: the gate is the same one debug and trace receive (R-15-078).
 · Trace: CJ-NI
 
-**R-16-022** IS: A crash record leaving the device carries the sealed trace against the reproducible base image's signed root, not a secret payload, so the fault reproduces for anyone without disclosing user data, at the cost, booked in §17, that a draw-dependent fault is not reproducible from the exported record alone.
+**R-16-022** IS: A crash record leaving the device carries the sealed trace against the reproducible base image's signed root without a secret payload. It supports fault reproduction within R-16-019's scope without disclosing user data. A draw-dependent fault cannot be reproduced from the exported record alone; this limit is recorded in §17.
 · Accept: the two-class entropy record is what keeps this true.
 · Trace: CJ-NI
 

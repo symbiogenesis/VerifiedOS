@@ -59,7 +59,7 @@ The split runs through COSMIC: the **compositor** is required userland, the **sh
 
 ## Roster: the elective applications
 
-These are stageable behind the userland above, in the order **Sequencing** (below) sets out; §18 already fixes one point in it, deferring the browser. What §18's product floor adds is a bound from below rather than a sequence: the floor names capabilities and never targets, so nothing on this roster becomes normative and nothing here is a way to meet a floor clause, while a release meeting no clause of it is a release the floor fails whatever this roster has reached.
+These applications can be staged after the required userland, in the order given under **Sequencing** below. Section 18 explicitly defers the browser beyond the first release. Its product floor requires capabilities rather than particular applications, so this roster remains non-normative: progress on a named port satisfies the floor only if the resulting release supplies the required capability.
 
 - **COSMIC Desktop**, the shell, with its `cosmic-comp` compositor promoted to the reference §12 display server (compositor: Tier-1; shell applets: Tier-2).
 - **Zed**, the reference editor, a software-rendered Tier-2 app: its GPU-first framework and its C parsing runtime are both bounded re-targets, it carries no language-support commitment, and it is the reference client of the editor-agent protocol the next entry uses.
@@ -110,14 +110,14 @@ The single address space (no MMU, §7) already helps pointer-chasing on its own.
 Nothing here is specific to this design, and a conventional chip benefits from the same rewrite, so this moves work onto fast paths both machines share rather than closing distance against one.
 Its **marginal return** is nonetheless higher here, for the same reason the memory plan's locality objective (R-08-012a) pays: there is no cache to rescue a bad access pattern, and source structure is all that plan has to work with.
 That is why it is porting discipline rather than a recovery lever ([architectural-alternatives.md](architectural-alternatives.md), the recovery gate): it changes no mechanism, no schedule, and no theorem, so there is nothing for the spec to land.
-The toolchain's side of the same ground is landed, and the boundary between them is what a conformance obligation can reach: what an author does to its own data structures binds nobody, while what the mandatory backends must emit binds both compilers, so the vectorizer's cost model (an off-list indexed or strided access priced at its worst-case bound, layout preferred to a gather), mask predication over scalarization where a condition varies element to element, and vector-register residency for dependent scalar-float chains are duties in §18 rather than advice here.
-The one piece of advice that follows from those duties is worth stating in this document's own currency: a structure-of-arrays layout is not merely friendlier to the vectorizer here, it is the difference between a vector access the schedule prices at what it costs and one it prices at every element hitting a single bank.
+Section 18 makes the corresponding backend behavior mandatory for both compilers: the vectorizer prices off-list indexed or strided accesses at their worst-case bound and prefers layout changes to gathers; element-varying conditions within vectorizable regions use mask predication; and dependent scalar-float chains retain values in vector registers. These are toolchain duties, while an application's choice of data structures remains authoring guidance.
+For a port, the practical consequence is to prefer structure-of-arrays layouts that reach the admitted vector fast paths. An off-list access is charged as if every element hits a single bank, even when a particular run is faster.
 
 ---
 
 ## The dependency closure is the unit of work
 
-A name on the roster is the top of a graph, not the graph.
+A roster entry names an application, but the port includes its full dependency graph.
 `#![forbid(unsafe_code)]` is a property of one crate, while the admitted artifact is the whole linked image and the Tier-2 certificate (§13) is a derivation over everything in it, so the unit that must be audited, re-targeted, and admitted is the target's entire dependency closure.
 For the GUI entries that is hundreds of crates, and the honest cost of a port is stated over the closure rather than over the name.
 
@@ -175,8 +175,8 @@ The largest work is not the renderer: it is shedding smithay's Linux backend lay
 
 ### Zed: the reference editor
 
-Zed Industries' Rust editor rides the GPUI framework, which is GPU-first (Metal, `blade`, Direct3D) over a platform `unsafe` layer; it drives syntax with tree-sitter, whose parsing runtime is C, spawns language servers as subprocesses, and ships networked collaboration.
-The first three read as blockers and are not: two are bounded re-targets, and the third is scoped out rather than solved.
+Zed Industries' Rust editor uses the GPU-first GPUI framework (Metal, `blade`, Direct3D) over a platform `unsafe` layer. It uses tree-sitter's C parsing runtime, starts language servers as subprocesses, and supports networked collaboration.
+The port replaces the renderer backend and parsing runtime. Language-server support is separate, later work.
 
 **The renderer is the smallest of the three GUI re-targets, not the largest.**
 GPUI is not a general graphics-API consumer but a specialized 2D scene renderer over a small fixed primitive set (rounded quads with borders and gradients, drop shadows, monochrome glyph sprites from an atlas, polychrome image sprites, underlines, filled paths, platform surfaces) drawn by on the order of a dozen hand-written shaders.
@@ -198,14 +198,14 @@ That is the mechanism, not a roster commitment: a language server is admissible 
 Language support is therefore later work, taken only where it is near-free, meaning a server already written in admissible safe Rust and a grammar needing no external scanner.
 The editor is useful before any of it, and nothing else on the roster waits on it.
 
-**The agentic half is a protocol rather than a feature, which is what makes this target the reference client.**
+**Zed supplies the reference client for the editor-agent protocol.**
 Zed authored the editor-agent protocol the field is converging on: JSON-RPC, the agent running as a subprocess of the editor, the editor advertising filesystem and terminal capabilities that **default to disabled**, and every sensitive tool call returning through a permission request whose options are one-time or remembered.
 Adopting Zed therefore brings a safe-Rust implementation of the *client* side, and the re-target is obstacle 3 rather than new design: the subprocess and its pipe become a capability-delegated compartment reached over a ring, exactly as the language-server path above does.
 What is not a port is the seam underneath it, because the protocol's default-disabled capabilities and its one-time-or-remembered permission options are the shape the powerbox already has, with its own temporal scopes (§8): the platform *enforces* what the protocol can only *request*.
 The agent itself is not part of this port and is not part of any editor, having its own compartment (below).
 
 **An editor is not an integrated development environment here, because nothing on the device compiles.**
-Compilation and proving are off-device build steps (§5, §13) and nothing JITs (§14), so there is no on-device toolchain for an editor to drive: building, certifying, and admitting happen elsewhere, and the results arrive as signed generations (§11) or admitted images (§13).
+Compilation and proving are off-device build steps (§5, §13), and nothing JITs (§14). Build and certification run off-device; the resulting signed generation is checked for admission on the device and installed through the generation-update path (§11, §13).
 That is a property of the platform rather than of this target, and it bounds what any editor on this roster can mean.
 Collaboration rides the §12 network stack; file and clipboard access is powerbox-mediated (§14).
 
@@ -222,12 +222,12 @@ The protocol decouples them, so binding an agent into one application would forf
 The protocol ships a Rust crate for the wire, and Rust agent implementations exist upstream, while the two most widely used coding agents are Node programs: this platform hosts no JavaScript runtime for native tooling, the pure interpreter of §14 being for web content inside the browser, and §13 admits only certified native code.
 So the agent is a re-target of a Rust agent plus that crate, not a lift of the popular ones.
 
-**Three obstacles clear and one is the whole port.**
-Obstacle 1 clears if the closure is safe Rust; obstacle 2 clears because the agent draws nothing, rendering through whichever client hosts it; obstacle 4 clears twice over, since the agent generates no code and could not compile what it wrote in any case.
+**The main porting work is replacing ambient authority with explicit capabilities.**
+Obstacle 1 clears if the closure is safe Rust; obstacle 2 clears because the agent renders through its client. Obstacle 4 requires no on-device code generator: the agent may edit source, but compilation remains off-device.
 Obstacle 3 is the work: the protocol's subprocess-over-stdio transport becomes a ring, its *create a terminal and run this command* becomes a capability-delegated compartment under the supervision tree rather than a shell, and its absolute paths resolve inside the manifest-backed private namespace (§14) rather than a filesystem the agent may roam.
 The wire is attacker-facing, since what crosses it is derived from content the agent read, so it is a §5 Narcissus obligation like any other (closure disposition 4 applies to the agent itself, not merely to its dependencies).
 
-**The tool calls are the powerbox, and that is the point.**
+**The powerbox mediates every tool call that needs authority.**
 Each call is a request for authority the compartment does not hold, answered by a live consent on the trusted path or by a standing grant, so a compromised or induced agent is bounded by what it was granted rather than by what its user could have done.
 The honest limits are booked rather than claimed away: confinement bounds what an agent may hold, never what it may be induced to ask for, and an agent exercises the consent path far faster than hand-driven use does (§17).
 
@@ -428,9 +428,9 @@ Nothing here promises dates, and nothing here is a design cut: a later stage is 
 
 ## Deterministic simulation testing: catching what the certificate does not prove
 
-The Tier-2 admission floor (§13) certifies *memory safety*, CHERI enforcing spatial bounds at runtime while the certificate discharges the temporal-safety, CFI, and no-runtime-codegen residual, and says nothing about *behavioral* correctness: gitoxide's delta resolution and merge, Servo's pure-interpreter event loop, `cosmic-comp`'s surface-to-input mediation, and Zed's language-server orchestration are all memory-safe-by-certificate yet logic-correct-by-nothing.
-That un-proven behavioral space, the bugs no one thinks to write a test for, is where a **deterministic simulation testing** harness earns its keep in continuous integration, and the [golden-model implementation plan](implementation-checklist.md) already supplies the one artifact such a harness is otherwise hardest to build: a **deterministic, full-system substrate**.
-The Sail C-backend emulator is that substrate by construction, the CertiCoq→Wasm host-side reference is a second one for fast iteration, and the plan already leans on **differential testing against the Sail golden model** as its bring-up oracle, simulation testing is that same move made systematic: fault-injecting, coverage-guided, and replay-exact.
+The Tier-2 admission floor (§13) certifies *memory safety*, not full behavioral correctness. CHERI enforces spatial bounds at runtime, while the certificate covers temporal safety, CFI, and the absence of runtime code generation. Those guarantees do not establish that gitoxide merges correctly, Servo's interpreter event loop implements the intended behavior, or Zed orchestrates language servers correctly. The Tier-1 compositor has additional information-flow obligations for surface-to-input mediation (§12, §13).
+A **deterministic simulation testing** harness exercises behavior beyond these proofs in continuous integration. The [golden-model implementation plan](implementation-checklist.md) supplies its essential substrate: a **deterministic full-system model**.
+The Sail C-backend emulator provides that substrate, and the CertiCoq→Wasm host-side reference provides a second model for fast iteration. The plan already uses **differential testing against the Sail golden model** for bring-up; simulation testing extends it with fault injection, coverage guidance, and exact replay.
 Four properties of the machine make it unusually amenable:
 
 1. **The nondeterminism is designed out, not suppressed.**
@@ -444,5 +444,5 @@ Four properties of the machine make it unusually amenable:
    The same workload runs on both golden models, CertiCoq→Wasm host-side ⋈ purecap-on-Sail, and any divergence between them is itself a defect; the safe-Rust targets additionally take source-level `cargo-fuzz` and property testing *before* re-target, upstream of the substrate entirely.
 
 **Discipline:** this is a bring-up gate and a defense-in-depth net, never an axiom.
-Simulation testing is *unsound*, it exhibits bugs, it does not prove their absence, so it occupies exactly the slot the specification reserves for mature-but-unsound tooling (Binsec/Rel for constant-time, riscv-formal BMC for refinement, aiT for WCET): path-bounded evidence that gates a pull request and accelerates the un-proven behavioral space, but that never enters the trust base and never stands in for a §13 obligation.
-Its one structural advantage over that tooling is that the substrate it runs on is not an approximation of the target, the **RTL ⊑ Sail** refinement proves the silicon refines the very model the tests execute on, closing the "does the simulator match production?" gap that black-box simulation testing must always leave open.
+Simulation testing can exhibit bugs but cannot prove their absence. Like the bounded checks used for Binsec/Rel constant-time analysis, riscv-formal refinement, and aiT WCET analysis, it supplies path-bounded evidence for pull-request gates and behavioral debugging. It never enters the trust base or replaces a §13 proof obligation.
+The intended **RTL ⊑ Sail** refinement relates the implemented RTL to the model used by the tests, within the scope established by the release's evidence tier (§1, §18). Simulation results do not establish that refinement, and agreement between fabricated silicon and the RTL remains a separate residual risk (§17).

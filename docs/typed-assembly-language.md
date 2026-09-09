@@ -2,7 +2,7 @@
 
 > **What this is.**
 > This document specifies the typed machine-code language, and its admission check, by which [VerifiedOS](spec.md) admits binaries.
-> It stands as a project of its own because it depends on nothing but a machine semantics and a type theory: no kernel, no storage stack, no authority model, and no hardware beyond the target's instruction semantics.
+> Its requirements are independent of the operating system: they depend on the target's machine semantics and the language's type theory, not on a particular kernel, storage stack, or authority model.
 >
 > **Normative for the language; not a derived view.**
 > The [frozen instruction-set profile](isa-profile.md), the [absence contract](absence-contract.md), the [crown-jewel inventory](crown-jewels.md), and the [coverage matrix](coverage-matrix.md) are derived views of [requirements-register.md](requirements-register.md) and state no obligation of their own.
@@ -14,13 +14,12 @@
 > Appendices A to D are not: they record where the design comes from, what it cites, the artifact landscape on a stated date, and the order in which the normative content must be settled.
 > A reference of the form §n names a section *of this document*; references to other documents are links.
 >
-> **The name is provisional and the instantiation keeps its own.**
+> **The name is provisional.**
 > *Typed Assembly Language* is descriptive rather than chosen.
-> The VerifiedOS corpus continues to call the CHERI-RISC-V instantiation *CHERI-TAL*; this factoring changes no name.
+> The VerifiedOS corpus calls the CHERI-RISC-V instantiation *CHERI-TAL*.
 >
-> **Nothing here is built.**
-> The type system, checker, and soundness proof have not been written. Factoring this specification out relocates that work; it does not reduce it.
-> What it buys is a reviewable artifact whose correctness rests on no operating-system claim, at an implementation cost multiple consumers could share.
+> **Implementation status.**
+> The type system, checker, and soundness proof remain unbuilt. This standalone specification makes them independently reviewable and allows multiple consumers to share the implementation cost; it does not reduce the work required.
 
 ---
 
@@ -216,13 +215,13 @@ The literature usually treats these two as proof obligations rather than as type
 
 ### 4.6 The hard cases are named in advance
 
-The menu is not a routine consequence of having finite attribute domains.
-Temporal safety over a real allocator, data-race freedom under a weak memory model, cost over a genuinely unstructured control-flow graph, and constant-time preserved down to native code are the four places where the soundness argument is hard, independently of how small the checker is.
-A profile or an instantiation that presents any of them as a small case of move II has mislabeled its own difficulty, and the schedule that follows will be wrong in the same proportion.
+Finite attribute domains keep checking bounded; they do not make every soundness proof easy.
+The difficult cases are temporal safety over a real allocator, data-race freedom under a weak memory model, cost over an unstructured control-flow graph, and constant time preserved to native code.
+A small move-II checker therefore does not imply a small implementation or proof effort.
 
-The constant-time facet has one further edge, named here so that no rule is read as supplying it.
-The grammar carries no declassification form: no rule lowers `sec` to `pub`, so a verdict computed from a secret, a MAC verify's accept or reject being the standing case, is `sec` under TAL-054 and may reach no branch.
-Such a verdict crosses to `pub` at exactly one place: a rule-table form the profile declares as a verdict-producing primitive, whose result label the table fixes at `pub` and whose right to that label is consumer premise C3 of the ledger (§6.2), discharged by the consumer's cryptographic argument and not by this language.
+The constant-time facet also needs an explicit boundary for public verification results.
+The grammar has no declassification form: no rule lowers `sec` to `pub`. An ordinary comparison over a secret, such as a MAC tag, therefore produces a `sec` verdict under TAL-054 and cannot control a branch.
+A profile may instead declare a verdict-producing primitive whose rule-table result is `pub`. Consumer premise C3 of the ledger (§6.2) justifies that label through the consumer's cryptographic argument; the language itself supplies no such justification.
 For `cheri-rv64` that form is the masked datapath's verify operation (R-05-004a); an ordinary compare over a secret tag stays `sec` and rejects at the branch that reads it.
 
 ---
@@ -536,8 +535,8 @@ The initialization flag rides the capability-type former over the slots the cons
 The representation and provenance rules add no former and no grade: they are the five deletions of move III, four of them absences the checker confirms by inspecting a derivation it already reads.
 The three riders on values that are not capabilities add no axis either.
 *Use-once* is the linear grade the context-splitting side condition already runs.
-*Must-erase* is a grade of its own, `era`, on the one grade axis: it denies weakening as relevance does, but where a relevance-graded value is consumed by any use, an `era` value is consumed only by an erasing operation the rule table marks, every other use rebinding it with the grade intact and every copy carrying the grade, so a secret that is spilled and then dropped is a type error at the drop; it is decided by the same context-splitting side condition and rides `verdict.relevance`'s route.
-A *dimension* is the phantom parameter of the integer former (§8.2), a name the certificate declares and defines nothing by, inhabited by no term, decided by absence (2)'s syntactic type equality, and erased before code generation.
+*Must-erase* uses the `era` grade on that same axis. Like relevance, it denies weakening, but only a rule-table erasing operation consumes an `era` value. Every other use rebinds the value with its grade intact, and every copy retains the grade. Spilling a secret and then dropping it is therefore a type error at the drop. The same context-splitting side condition checks this discipline through the `verdict.relevance` route.
+A *dimension* is a phantom parameter of the integer former (§8.2). The certificate declares its name but no definition or inhabitant; the checker compares it by syntactic type equality under absence (2), and code generation erases it.
 
 ### 7.4 What the vocabulary contains
 
@@ -1018,15 +1017,15 @@ This is §5.2's route table seen from the other end: when the environment does n
 ## 15. Status
 
 All three parts remain unbuilt: the type system, the checker, and the soundness proof.
-The general type-soundness discipline is established and inherited rather than gambled on; this instantiation is not, and the risk is precisely located: being first to instantiate the discipline over an ISA-scale semantics rather than an idealized machine.
+The general type-soundness discipline is established; this instantiation over an ISA-scale semantics remains to be proved.
 
-Factoring the language out of the operating-system specification changes exactly three things:
+Keeping the language specification separate from the operating system has three consequences:
 
-1. **The review surface improves.** The language can be reviewed, and its soundness proof read, by someone who has no opinion about capability operating systems.
-2. **The cost becomes shareable.** A second consumer at a different profile pays for its own machine-dependent cases and shares the core.
-3. **A version seam stands where an in-document freeze would otherwise sit.** A theory frozen inside one document is frozen by that document's amendment process; a theory frozen in a dependency is frozen by a pin, and a consumer that fails to re-review on a version bump has silently widened its own axiom set.
+1. **Independent review.** Reviewers can assess the language and its soundness proof without assessing the operating-system design.
+2. **Shared implementation cost.** Consumers share the core and pay separately for their profiles' machine-dependent cases.
+3. **Explicit version control.** A consumer pins the language version and must re-review it before adopting a new one. Skipping that review would silently widen the consumer's assumptions.
 
-None reduces the work, and the factoring does not change the first consumer's schedule.
+These benefits do not reduce the proof and implementation work or shorten the first consumer's schedule.
 
 ---
 

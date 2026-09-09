@@ -1,25 +1,25 @@
 # The Typed IDL Profile
 
 > **What this is.**
-> This document is the one typed interface-definition profile R-12-010 fixes: the type constructors every server protocol and capability manifest of the register's §12 is stated in, the wire-format mapping those types are carried by, the obligations each definition declares, and the subset a generated Coq interface skeleton is stated over.
-> Its §4 is the artifact row 3 of [the crown-jewel inventory](crown-jewels.md) names, `CJ-IDL`, conferred by R-12-013.
+> This document defines the typed interface profile required by R-12-010. It specifies the constructors used by server protocols and capability manifests in the register's §12, their wire encoding, the obligations attached to each definition, and the contents of generated Coq interface skeletons.
+> Its §4 defines the wire-format mapping designated `CJ-IDL` by R-12-013 and listed in row 3 of [the crown-jewel inventory](crown-jewels.md).
 >
 > **Normative for the profile; not a derived view.**
 > [The frozen instruction-set profile](isa-profile.md), [the absence contract](absence-contract.md), [the crown-jewel inventory](crown-jewels.md), and [the coverage matrix](coverage-matrix.md) are derived views of [requirements-register.md](requirements-register.md) and state no obligation of their own.
-> This document states obligations of its own, as numbered requirements carrying acceptance criteria, in the shape [the typed assembly language](typed-assembly-language.md) already uses one artifact over.
+> This document states its own numbered requirements and acceptance criteria, following the form used by [the typed assembly language](typed-assembly-language.md).
 > Where this document and the register disagree about a VerifiedOS obligation, **the register governs and this document is defective**; where they disagree about the profile's own language, this document governs.
-> It decides nothing the register decides. Where the register is silent on a question the profile cannot avoid answering, the answer is a **declared parameter** collected in §8 with its ground and what would change it, rather than a sentence buried in §2 or §4.
+> Where the register leaves a necessary profile choice open, §8 records it as a **declared parameter**, with its rationale and the conditions that would change it.
 >
 > **Normative form.**
 > Every obligation is a numbered requirement of the form `**IDL-nnn** MUST | MUST NOT | IS:` carrying one `· Accept:` line and one `· Trace:` line. Prose around them is rationale and binds nothing. Identifiers are permanent: a retired requirement is struck in place and its identifier is never reused.
 >
 > **Section references.** A bare `§n` in this document names a section **of this document**. Where a sentence names the register's section or the specification's, it says so. That is [the differential corpus](differential-corpus.md)'s device and it is needed here because §12 of the register, §12 of the specification, and this document's own sections meet on the same page.
 >
-> **The wire-format mapping is the crown jewel, and its row is not flipped here.**
-> §4 is the mapping R-12-013 confers crown-jewel status on. Flipping row 3's status is an edit to [the crown-jewel inventory](crown-jewels.md), which is an act R-05-150's review gate reads; this document reports the row as ready and does not take it.
+> **The crown-jewel inventory records the mapping's review status.**
+> §4 defines the mapping R-12-013 designates as a crown jewel. Changing row 3's status requires an edit to [the crown-jewel inventory](crown-jewels.md) under R-05-150's review gate. This document presents the mapping as ready for that review; it does not change the inventory's status.
 >
 > **What is built against this profile, and what is not.**
-> One interface declaration exists, [the ring reference](../interfaces/ring-reference.json), and one generator compiles it to the §4.3.6 interface artifact, [RingContract.v](../proofs/RingContract.v). No marshalling code, no verified parser, no systems-language binding, and no admission checker exists in this repository, so most of what §4 and §6 oblige is a specification those artifacts are written against rather than a file, and stating it relocates that work rather than reducing it.
+> One interface declaration exists, [the ring reference](../interfaces/ring-reference.json), and one generator compiles it to the §4.3.6 interface artifact, [RingContract.v](../proofs/RingContract.v). Marshalling code, verified parsers, systems-language bindings, and an admission checker remain to be built. Sections 4 and 6 specify their obligations.
 
 ---
 
@@ -47,7 +47,7 @@ Both instruments are permissive, non-reciprocal, and carry no field-of-use restr
 
 **FIDL's wire model is declined on a different ground, because its discipline transfers and its artifact does not.** A FIDL message is bytes plus out-of-band handles over a Zircon channel, which is structurally what the register's §12 data plane is, so the exemplar reaches where the Canonical ABI does not: bounded schema formers, handles beside the bytes, and a decoder hardened at a trust boundary are the disciplines §2, §4 and §3.3 carry. What does not transfer is the encoder and the decoder themselves, which are unverified C++, where marshalling here is a Narcissus copy-once verified parser generated from the type source (R-05-042, R-05-046, IDL-022). Forking that encoding would fork the one part this design replaces.
 
-**Where `CJ-IDL` confers is this document's reading of that asymmetry rather than R-12-013's ground.** That entry confers crown-jewel status on the wire-format mapping and states no reason for it. The reading is that the layer that is a fork has an upstream to be read against, and the layer that must be authored is the one the review gate must read.
+**The wire mapping needs review as an authored specification.** The type vocabulary can be compared with its WIT source, while the wire mapping has no upstream encoding to check against. This explains the review burden in this profile; R-12-013 itself designates the mapping as `CJ-IDL` without giving that rationale.
 
 ### 1.3 What the freeze is, as an act
 
@@ -59,7 +59,7 @@ Both instruments are permissive, non-reciprocal, and carry no field-of-use restr
 · Accept: no row of §2 cites an upstream edition as its ground; every row cites a requirement of the register or a parameter of §8.
 · Trace: §2, §8
 
-**The version is this document's own and nothing in the register pins it.** R-05-135a pins [the typed assembly language](typed-assembly-language.md) by name and R-05-135b makes a version bump a review-gate event carrying a fresh reading; R-12-010 pins no artifact at all. So the amendment discipline IDL-003 declares of this document binds this document and nothing else until a register act names it. Nothing this document can state repairs that, a pin being a register act.
+**The profile declares its own version; the register does not pin it.** R-05-135a names [the typed assembly language](typed-assembly-language.md), and R-05-135b requires review of its version changes. R-12-010 names no profile artifact. IDL-003 therefore governs amendments to this document, but binding a particular profile version at register level requires an amendment to the register.
 
 ---
 
@@ -119,7 +119,7 @@ Every obligation below attaches **at a type's or an operation's definition** rat
 · Accept: no type definition is admitted without both labels; the IDL-to-Coq generator emits the matching flow predicates and a cross-domain server's Tier-1 proof carries flow theorems against them (R-12-011).
 · Trace: §3.1, §6
 
-**The lattice has an owner and no enumeration.** R-07-025 fixes the confidentiality-label lattice at build time together with the composed topology, R-08-024 makes the fixed graph fix the lattice and the set of declassification points, and R-07-026 forbids either sanctioned runtime authority transfer from adding a label to that graph. So a label is a composition-time attribute of the composition rather than a datum a peer supplies, and R-12-011's silence is narrower than it looks. What no entry states is the lattice's **membership**: no label set, no order, and no join, and the security policy model that would enumerate one is row 2 of the crown-jewel inventory, `CJ-NI`, reading `not authored`. This profile therefore declares the **place** the labels sit and states the obligations over an arbitrary lattice, and it invents no label set (§8).
+**Composition fixes the label lattice, whose members remain unspecified.** R-07-025 fixes the confidentiality-label lattice with the topology at build time; R-08-024 also fixes the declassification points, and R-07-026 forbids runtime authority transfers from adding labels. Labels are therefore composition attributes, not values a peer may supply. The register does not specify the label set, order, or join. The security policy model that would supply them is `CJ-NI`, row 2 of the crown-jewel inventory, whose status is `not authored`. This profile specifies where labels are declared and states its obligations over an arbitrary lattice (§8).
 
 **IDL-009** MUST NOT: No label of this profile is carried on the wire. A label is a property of the declaration and of the generated typing.
 · Accept: no row of §4 encodes a label; a label is fixed by the composition R-07-025 and R-08-024 make the lattice's owner, so a field carrying one would have no peer entitled to set it, and the labeling is what defines secret-labeled material for IDL-borne material and is one source of the label rather than the definition of the population (R-12-011). Declining the field is a decision this document takes rather than a sentence of R-12-011 read out (§8).
@@ -454,7 +454,7 @@ Three things the register already fixes position this section, and it cites them
 · Accept: the suite generates each interface world's tests from the artifact's own constants, and no interface world declaring rings is admitted before its campaign runs.
 · Trace: §6.3, §3.6
 
-**What the subset's boundary is, is undecided by the register**, and §6.2 decides it. That is the largest single act this document takes: R-12-010's criterion requires a Tier-1 proof to be stated against *the matching skeleton* and R-18-037 requires conformance among four generated artifacts, and no entry says what a skeleton contains. The decision is recorded in §8 rather than presented as a reading.
+**Section 6.2 defines the skeleton's contents because the register leaves them unspecified.** R-12-010 requires a Tier-1 proof against *the matching skeleton*, and R-18-037 requires conformance among four generated artifacts, but neither defines that skeleton. Section 8 records its contents as this profile's own decision.
 
 ---
 

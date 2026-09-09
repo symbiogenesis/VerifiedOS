@@ -184,6 +184,62 @@ def _counts_overflow_is_a_finding() -> None:
                f"{_findings_under(ctx, 'K-24')!r}")
 
 
+_PREREQ_REGISTER = (
+    "# Register\n\n## §6\n\n"
+    "**R-06-024** MUST: Four artifacts are hard prerequisites.\n"
+    "· Accept: the list has four entries rather than five.\n· Trace: t\n")
+_PREREQ_SPEC = (
+    "# Specification\n\n## 6. Trusted Computing Base\n\n1. One TCB member.\n"
+    'Prerequisites: <a id="r-06-024"></a><a id="r-06-025"></a>\n\n'
+    "- (1) Verified compiler.\n- (2) Certifying compiler.\n"
+    "- (3) Cost annotations.\n- (4) Constant-time verification.\n\n"
+    '<a id="r-06-026"></a>\nAn unrelated enumeration: (1), (2).\n'
+    "All four are untrusted evidence-producing machinery.\n")
+
+
+def _counts_prereqs(spec: str, fix: bool = False) -> Context:
+    with sandbox_tree({counts.REGISTER: _PREREQ_REGISTER,
+                       counts.SPEC: spec}) as root:
+        ctx = _context(root, fix=fix)
+        ctx.shared.update(cj_confer=[], fc_seams=[], fc_confer=[], rf_confer=[],
+                          dispositions=0, rot_cases=0)
+        counts.run(ctx)
+        return ctx
+
+
+def _counts_multiline_prerequisites_keep_their_owner() -> None:
+    ctx = _counts_prereqs(_PREREQ_SPEC)
+    ensure(ctx.q["build-prereqs"] == 4,
+           "the whole bookmarked list counts, and the next bookmark's markers do not")
+    ensure(ctx.q["tcb-items"] == 1,
+           "the prerequisite bullets must not become extra TCB members")
+    found = _findings_under(ctx, "K-24")
+    ensure(not any("build-prereqs" in f for f in found),
+           f"all three prerequisite claims agree with the multiline owner: {found!r}")
+
+
+def _counts_removed_prerequisite_is_a_finding() -> None:
+    ctx = _counts_prereqs(_PREREQ_SPEC.replace("- (3) Cost annotations.\n", ""))
+    found = _findings_under(ctx, "K-24")
+    ensure(ctx.q["build-prereqs"] == 3
+           and any("build-prereqs asserted as 'Four', the artifact gives 'three'" in f
+                   for f in found),
+           f"removing a member invalidates the declared count: {found!r}")
+
+
+def _counts_unreadable_prerequisite_owner_is_not_repaired() -> None:
+    for spec in (_PREREQ_SPEC.replace('id="r-06-024"', 'id="other-owner"'),
+                 _PREREQ_SPEC.replace("(1)", "one").replace("(2)", "two")
+                 .replace("(3)", "three").replace("(4)", "four")):
+        ctx = _counts_prereqs(spec, fix=True)
+        found = _findings_under(ctx, "K-24")
+        ensure(ctx.q["build-prereqs"] == 0
+               and any(f.startswith("build-prereqs's owner no longer states") for f in found),
+               f"a missing bookmark or unreadable enumeration is a finding: {found!r}")
+        ensure(counts.REGISTER not in ctx.fixed and counts.SPEC not in ctx.fixed,
+               f"unresolved claims must not be repaired to zero: {ctx.fixed!r}")
+
+
 # K-67's fixture pin sites: the constants as typecheck.py spells them, the four
 # README sites the rule holds against them, and the workflow's two install lines,
 # which are the copy a hosted runner resolves rather than one a reader opens.
@@ -307,6 +363,12 @@ def cases() -> list[Case]:
         Case("bindings-truncated-row-is-a-finding",
              _bindings_truncated_row_is_a_finding),
         Case("counts-overflow-is-a-finding", _counts_overflow_is_a_finding),
+        Case("counts-multiline-prerequisites-keep-their-owner",
+             _counts_multiline_prerequisites_keep_their_owner),
+        Case("counts-removed-prerequisite-is-a-finding",
+             _counts_removed_prerequisite_is_a_finding),
+        Case("counts-unreadable-prerequisite-owner-is-not-repaired",
+             _counts_unreadable_prerequisite_owner_is_not_repaired),
         Case("k67-agreement-is-ok", _k67_agreement_is_ok),
         Case("k67-disagreement-names-both-figures",
              _k67_disagreement_names_both_figures),

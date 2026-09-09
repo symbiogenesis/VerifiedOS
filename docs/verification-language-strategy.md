@@ -24,16 +24,16 @@ The local hypothesis is that executable specifications and proof-producing const
 The discriminating experiment is a bounded buffer operation: prove its contract using only the declared interface laws, instantiate those laws over the selected CHERI-aware program semantics, and show that changing the store or its bound breaks the proof.
 A library that only proves a second hand-transcribed model, without relating the implementation to it, fails that experiment.
 
-The hypothesis carries a precondition this repository does not currently meet, and it belongs in the recommendation rather than in a caveat further down.
-Removing *repeated* specification-to-implementation work presupposes enough authored specifications for there to be a repetition, and [the crown-jewel inventory](crown-jewels.md) books all but a handful of its rows as not authored while [the critique](critique.md) reads exactly that as the project's binding constraint.
-The library's value therefore lands on the second and third client rather than the first, and while that constraint holds the cheaper move is to author specifications and let the repetition appear before building the thing that removes it.
+The proposed library needs enough concrete specifications to demonstrate recurring work that it can remove.
+Most specifications in [the crown-jewel inventory](crown-jewels.md) remain unauthored, which [the critique](critique.md) identifies as the project's binding constraint.
+The immediate priority is therefore to author those specifications and identify repeated work in later clients before generalizing it into a library.
 
 That constraint applies to the proposed imperative abstraction, not to all proof tooling. [CopyRingService.v](../proofs/CopyRingService.v) already supplies a concrete Q19b comparison through its Boolean and arithmetic helpers and invariant proofs, and Q19a uses those same source obligations for diagnostics. Qualification can improve existing statement-level proof work while the machine connection remains open; such savings establish no theorem about an executed service.
 
 The register already separates the two halves this proposal needs: [semantic anchors are frozen and exhaustively enumerated](spec.md#r-05-019), while [a verified compiler is proof transport between two existing anchors rather than an anchor, and is admitted freely](spec.md#r-05-021).
-The generic library and its construction combinators are transport in that sense, which is what makes them cheap to admit.
-A surface language's elaborator is not: it is a translator, and [a new semantics, program logic or translator is admitted only on three conditions](spec.md#r-05-020), Coq-native or mechanically bridged, non-duplicating of an existing anchor, and retiring an interim it replaces.
-This proposal meets the first two and names no interim for the third, so the frontend has a gate to clear that the library does not, and nothing below should be read as having cleared it.
+The generic library and its construction combinators provide transport between the existing anchors.
+A new surface-language elaborator must satisfy [the admission conditions for a translator](spec.md#r-05-020): it must be Coq-native or mechanically bridged, must not duplicate an existing anchor, and must retire an interim it replaces.
+This proposal is designed around the first two conditions but names no interim for the third. The frontend therefore has an unresolved admission obligation beyond the library's proof work.
 The VerifiedOS instance adds definitions and theorems over those anchors, not a parallel operational semantics or a non-CHERI deployment path.
 Other projects could supply different proved instances without changing the generic library or acquiring VerifiedOS's security claims by implication.
 Its first usable result can be a verified source-level component; an admitted optimized binary remains a later result dependent on the existing compiler and artifact-verification work.
@@ -744,15 +744,14 @@ Reviewed executable Gallina contract + generic component theorem
 ```
 
 These arrows are obligations, not claims that the route is implemented end to end.
-**The weakest arrow is named rather than left to be discovered, and the plan already owns it.**
-Q2b chooses the device path and closes the relation to the Sail model, and the plan's own reading of that fork is that the Clight intermediate R-05-043 names is emitted by neither exit the route currently has, so the route is a second front end until that bridge exists.
-Nothing in this document shortens that item, and a library built above the bridge does not build the bridge.
+**The missing lowering connection belongs to Q2b.**
+Q2b must choose the device path and prove its relation to the Sail model. Neither existing exit emits the Clight intermediate required by R-05-043, so both still need that connection.
+Building a library above this boundary supplies none of the missing lowering proof and does not shorten Q2b.
 Another project's backend replaces the target-specific portion, not the independently reviewed contract; it must prove its own transport and artifact claims.
 Within VerifiedOS, all machine-level connections still use the same pinned Sail term and the reviewed source anchors.
 For a Rust-origin component, the existing Radium/source-correspondence route replaces the Gallina-to-C construction portion; no new source language displaces contained Rust by this proposal.
 TCB components retain the required verified-C path.
-That a component's source language is free at the admission boundary is the register's position and not this document's: [admission never gates on the source language or producer identity of a binary](spec.md#r-05-008), which is what makes a new surface language a question about proof-authoring cost rather than about admission.
-It is also what leaves [source correspondence](spec.md#r-05-026) as the binding obligation instead, a proof about the wrong source subject being one the kernel accepts and that entry rejects.
+The register makes [admission independent of source language and producer identity](spec.md#r-05-008). A new authoring surface must still satisfy [source correspondence](spec.md#r-05-026): a valid proof about the wrong source does not meet the obligation.
 
 For a contract `Contract`, implementation `Program`, final bytes `Binary`, and pinned machine semantics `Sail`, the central functional goal has the shape
 
