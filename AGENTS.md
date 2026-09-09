@@ -1,5 +1,7 @@
 # Working rules
 
+Read [README.md](./README.md) first for the project's purpose, design goals, and current status.
+
 *An index, not a second copy. Each rule below is stated in one clause and linked to the artifact that owns it; where the two disagree, the artifact wins. What is here is what bites **before** the file that states it is open.*
 
 ## The map
