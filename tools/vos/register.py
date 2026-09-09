@@ -53,8 +53,9 @@ def read_register(corpus: Corpus) -> Register:
     section = subsec = current = entry = None
     saw_tail = False
 
-    for line in corpus.by_name[REGISTER].lines:
-        if not line:
+    document = corpus.by_name[REGISTER]
+    for i, line in enumerate(document.lines):
+        if not line or document.fenced[i]:
             continue
         lead = line[0]
 

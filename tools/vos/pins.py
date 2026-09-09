@@ -30,7 +30,7 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-from .corpus import FENCE_RE
+from .corpus import fence_lines
 
 RECORD = "THIRD-PARTY.md"
 
@@ -146,7 +146,7 @@ def read_record(text: str) -> Record:
     head: list[str] | None = None
     columns: dict[str, int] = {}
     rows: list[Pin] = []
-    fenced = False
+    fenced = fence_lines(lines)
     # the 1-based line the heading itself sits on, so a row's number is the file's
     base = text.count("\n", 0, found.start()) + 1
 
@@ -157,10 +157,7 @@ def read_record(text: str) -> Record:
         # corpus's and comes from there; the walk is here because this parse is
         # handed a text rather than a Document, which is what lets a fixture
         # exercise it without standing up a corpus.
-        if "```" in line and FENCE_RE.match(line):
-            fenced = not fenced
-            continue
-        if fenced:
+        if fenced[i]:
             continue
         if line.startswith("## "):
             break                       # the next section: this table is over

@@ -20,6 +20,7 @@ from pathlib import Path
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos.corpus import HEADING_RE, Document, slug
+from vos.register import REGISTER, read_register
 
 
 def _doc(text: str, name: str = "docs/x.md") -> Document:
@@ -49,12 +50,46 @@ def _fence_toggles() -> None:
 
 
 def _fence_indented_marker_toggles() -> None:
-    # FENCE_RE admits leading whitespace, so an indented ``` toggles exactly as a
-    # flush one does; an indented code block's markers therefore pair, and a
-    # change here would silently re-fence every document that carries one
-    doc = _doc("a\n    ```\nb\n```\nc\n")
+    doc = _doc("a\n   ```\nb\n ```\nc\n")
     ensure(doc.fenced == [False, True, True, True, False],
-           f"an indented ``` marker must toggle: {doc.fenced!r}")
+           f"up to three spaces may indent a fence: {doc.fenced!r}")
+
+
+def _fence_delimiter_semantics() -> None:
+    samples = [
+        ("````md\n```\n# hidden\n`````\n# visible\n",
+         [True, True, True, True, False]),
+        ("~~~md\n```\n# hidden\n~~~~\n# visible\n",
+         [True, True, True, True, False]),
+        ("```\n```info\n# hidden\n``` \t\n# visible\n",
+         [True, True, True, True, False]),
+        ("```invalid`info\n# visible\n", [False, False]),
+    ]
+    for text, expected in samples:
+        actual = _doc(text).fenced
+        ensure(actual == expected, f"fences in {text!r}: {actual}, wanted {expected}")
+
+
+def _unsupported_fences_fail_closed() -> None:
+    for opening in ("    ```", "\t```", "> ```", "- ~~~", "1. ```"):
+        try:
+            _doc(opening + "\n# example\n")
+        except RuntimeError as exc:
+            ensure("docs/x.md: line 1: unsupported" in str(exc),
+                   f"unsupported syntax must identify the document and line: {exc}")
+            continue
+        raise AssertionError(f"unsupported container fence was read as prose: {opening!r}")
+
+
+def _fenced_register_entries_are_examples() -> None:
+    text = ("## §1. Goals\n~~~\n**R-01-001** MUST: example\n"
+            "· Accept: example\n· Trace: CJ-T\n~~~\n"
+            "**R-01-002** MUST: real\n· Accept: real\n· Trace: CJ-T\n")
+    doc = _doc(text, REGISTER)
+    corpus = corpus_mod.Corpus(Path(), [doc], {}, [REGISTER])
+    register = read_register(corpus)
+    ensure(register.ids == ["R-01-002"], f"example counted as an obligation: {register.ids}")
+    ensure(register.per_section == {"1": 1}, "fenced obligations cannot inflate coverage")
 
 
 def _fence_unclosed_runs_to_eof() -> None:
@@ -229,6 +264,9 @@ def cases() -> list[Case]:
     return [
         Case("fence-toggles", _fence_toggles),
         Case("fence-indented-marker-toggles", _fence_indented_marker_toggles),
+        Case("fence-delimiter-semantics", _fence_delimiter_semantics),
+        Case("unsupported-fences-fail-closed", _unsupported_fences_fail_closed),
+        Case("fenced-register-entries-are-examples", _fenced_register_entries_are_examples),
         Case("fence-unclosed-runs-to-eof", _fence_unclosed_runs_to_eof),
         Case("slug-shape", _slug_shape),
         Case("targets-and-numbered", _targets_and_numbered),

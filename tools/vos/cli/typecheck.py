@@ -234,6 +234,11 @@ def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
 
     findings = parse(done.stdout + done.stderr if with_stderr else done.stdout)
 
+    if done.returncode == 1 and not findings:
+        rep.report(name, "checker error(s):",
+                   [f"{name} exited 1 but no diagnostic was recognized: "
+                    f"{(done.stdout + done.stderr).strip()[:400] or '(no output)'}"])
+        return
     if done.returncode not in (0, 1):
         rep.report(name, "checker error(s):",
                    [f"{name} exited {done.returncode}: "
@@ -301,4 +306,3 @@ def main(argv: list[str] | None = None) -> int:
     report = run(corpus_mod.find_root())
     print("\n".join(report.out))
     return 1 if report.findings else 0
-

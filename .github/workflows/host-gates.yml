@@ -4,7 +4,7 @@
 #
 # `python tools/run.py` is the three host gates (check, selftest, typecheck) as one
 # run and one exit code, and `python tools/run.py test` is the tools' own tests. All
-# of it is pure Python over the checkout, so it runs on a stock Ubuntu runner with no
+# of it is pure Python over the checkout, so it runs on Windows and Linux with no
 # toolchain: what needs Sail, Rocq or Verilator is the guest lane, which run.py
 # re-launches inside WSL on a developer's machine and which nothing here reaches. A
 # green run here is a witness that the host gates passed on this commit, never a
@@ -38,12 +38,9 @@
 # on the runner reads and writes the corpus's encoding, which is what run.py
 # reconfigures on its own streams and cannot reach in a member's.
 #
-# What the test step witnesses is narrower than its name: tools/vos/cli/test.py
-# reads the lane off sys.platform and the toolchain off opam, so on this runner the
-# cases marked host are skipped, the cases marked toolchain are skipped too, there
-# being no Sail switch here to drive, and the lane-neutral cases run beside the guest
-# slice, whose one case holds provision --check to answering the same twice over an
-# unmoved tree.
+# The matrix exercises the Windows host cases and the Linux guest cases, with the
+# lane-neutral cases on both. Toolchain cases remain skipped on these runners,
+# neither of which holds the Sail switch.
 
 name: host-gates
 
@@ -61,7 +58,11 @@ env:
 
 jobs:
   host-gates:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - name: Check out the tree, gitlinks and no submodule

@@ -361,7 +361,7 @@ def _jobs(cpus: int, mem_mb: int) -> int:
             raise SystemExit(f"VOS_JOBS={raw!r} is not a positive count of jobs")
         return jobs
     jobs = cpus + 2
-    if mem_mb > 2048:
+    if mem_mb > 0:
         jobs = min(jobs, max(1, (mem_mb - 2048) // 512))
     return jobs
 

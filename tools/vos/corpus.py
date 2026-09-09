@@ -31,7 +31,9 @@ from vos import env
 # about twenty milliseconds to under three, and a run performs several of them.
 #
 # [^\S\r\n] is \s minus the line breaks, which on a single line is the same class.
-FENCE_RE = re.compile(r"[^\S\r\n]*```")
+FENCE_RE = re.compile(r" {0,3}(`{3,}|~{3,})([^\r\n]*)$")
+_CONTAINER_FENCE_RE = re.compile(
+    r"[ \t]*(?:(?:>[ \t]*|(?:[-+*]|[0-9]{1,9}[.)])[ \t]+)[ \t]*)*(`{3,}|~{3,})")
 ANCHOR_RE = re.compile(r'<a id="([^"]+)"')
 HEADING_RE = re.compile(r"#{1,6}[ \t]+([^\r\n]+)")
 NUMBERED_RE = re.compile(r"^§?(\d+(?:\.\d+)*)[.:) ]")
@@ -39,6 +41,38 @@ NUMBERED_RE = re.compile(r"^§?(\d+(?:\.\d+)*)[.:) ]")
 _TAG_RE = re.compile(r"<[^>]+>")
 _PUNCT_RE = re.compile(r"[^\w\s-]")
 _SPACE_RE = re.compile(r"\s+")
+
+
+def fence_lines(lines: list[str]) -> list[bool]:
+    """Mark top-level CommonMark fenced blocks, including their delimiters.
+
+    A closer uses the opening character, at least its length, and whitespace only
+    after it. Four spaces introduce indented code, not a top-level fence. Backtick
+    info strings cannot contain backticks. An unclosed block extends to EOF.
+    Container and deeply indented fence forms are refused: interpreting them needs
+    a block parser, and treating an unsupported form as prose would count examples
+    as declarations. The corpus uses top-level fences, with at most three spaces.
+    """
+    fenced = [False] * len(lines)
+    character = ""
+    width = 0
+    for i, line in enumerate(lines):
+        if "```" not in line and "~~~" not in line:
+            fenced[i] = bool(character)
+            continue
+        marker = FENCE_RE.fullmatch(line.removesuffix("\r"))
+        if character:
+            fenced[i] = True
+            if (marker and marker[1][0] == character and len(marker[1]) >= width
+                    and not marker[2].strip(" \t")):
+                character = ""
+        elif marker and not (marker[1][0] == "`" and "`" in marker[2]):
+            fenced[i] = True
+            character, width = marker[1][0], len(marker[1])
+        elif marker is None and _CONTAINER_FENCE_RE.match(line):
+            raise ValueError(f"line {i + 1}: unsupported container or indented fence; "
+                             "use a top-level fence with at most three leading spaces")
+    return fenced
 
 
 def slug(heading: str) -> str:
@@ -97,6 +131,11 @@ def _read(path: Path, name: str) -> Document:
         # which tracked document is not the UTF-8 the corpus requires
         raise RuntimeError(f"{name} is not valid UTF-8: {exc}") from exc
 
+    return from_text(raw, name)
+
+
+def from_text(raw: str, name: str) -> Document:
+    """Parse bytes already decoded by an owner, including an in-memory repair."""
     # one split hands back every segment with its terminator's length implied, so
     # the offsets accumulate without touching the text again
     parts = raw.split("\n")
@@ -111,21 +150,10 @@ def _read(path: Path, name: str) -> Document:
     body = parts[:-1] if parts and parts[-1] == "" else parts
     lines = [p.removesuffix("\r") for p in body]
 
-    # every fence marker toggles, so the odd-even pairs span the displayed lines,
-    # markers included; an unclosed fence displays to the end of the file. The markers
-    # are the lines the fence pattern matches, so a walk names them by index and no
-    # offset has to be resolved back to a line.
-    last = len(lines) - 1
-    marks = [i for i, line in enumerate(lines)
-             if "```" in line and FENCE_RE.match(line)]
-
-    fenced = [False] * len(lines)
-    for k in range(0, len(marks), 2):
-        a = marks[k]
-        b = min(marks[k + 1] if k + 1 < len(marks) else last, last)
-        # a fence is a span of lines, so marking one is a span write
-        fenced[a:b + 1] = [True] * (b - a + 1)
-
+    try:
+        fenced = fence_lines(lines)
+    except ValueError as exc:
+        raise RuntimeError(f"{name}: {exc}") from exc
     return Document(name=name, raw=raw, lines=lines, starts=starts, fenced=fenced)
 
 

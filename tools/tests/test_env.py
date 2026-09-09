@@ -96,7 +96,10 @@ def _jobs_arithmetic() -> None:
     ensure(env._jobs(12, 4096) == 4, "under a 4 GB cap the guard binds: (4096-2048)//512")
     ensure(env._jobs(4, 0) == 6, "with no memory figure the guard cannot bind")
     ensure(env._jobs(1, 2560) == 1, "the guard floors at one job, never zero")
-    ensure(env._jobs(2, 2048) == 4, "at exactly 2048 MB the guard does not engage")
+    ensure(env._jobs(12, 2048) == 1, "at the reserve the guard permits only one job")
+    ensure(env._jobs(12, 1024) == 1, "below the reserve the guard must stay engaged")
+    counts = [env._jobs(12, memory) for memory in (1, 1024, 2048, 2049, 2560, 4096)]
+    ensure(counts == sorted(counts), "less available memory must never admit more jobs")
 
 
 def _jobs_env_reads() -> None:

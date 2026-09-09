@@ -44,6 +44,7 @@ import re
 from dataclasses import dataclass, field
 
 from vos import figures
+from vos.corpus import fence_lines
 
 REGISTER = "docs/findings-register.md"
 PLAN = "docs/implementation-checklist.md"
@@ -56,7 +57,6 @@ LOG = "docs/completion-log.md"
 TYPES = ("owed-act", "upstream-defect", "method", "measurement")
 DISPOSITIONS = ("open", "closed", "standing")
 
-_FENCE_RE = re.compile(r"[^\S\r\n]*```")
 
 # An entry head, and the three property lines under it. The head's id is three digits
 # with an optional letter, which is what makes the register's fenced `F-nnn` template
@@ -148,14 +148,8 @@ def _unfenced(text: str) -> list[str]:
     finding sends a reader to the line the register writes.
     """
     lines = text.split("\n")
-    inside = False
-    for i, line in enumerate(lines):
-        marker = "```" in line and _FENCE_RE.match(line) is not None
-        if marker or inside:
-            lines[i] = ""
-        if marker:
-            inside = not inside
-    return lines
+    return ["" if fenced else line
+            for line, fenced in zip(lines, fence_lines(lines), strict=True)]
 
 
 def _head(label: str) -> str:

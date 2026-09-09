@@ -35,8 +35,8 @@ which question and which of the two lanes it ran in; both of those are now the t
 to know. `python tools/run.py` with no command runs the host gate wave, which is what
 has to be green before anything lands, and `run.py <command> --help` is that command's
 own help. The wave and `run.py test` also run in CI, in
-[.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on an Ubuntu
-runner at every push and pull request to `main`, over a clone with no submodule
+[.github/workflows/host-gates.yml](../.github/workflows/host-gates.yml), on Windows and Ubuntu
+runners at every push and pull request to `main`, over a clone with no submodule
 checked out; the guest lane's loops run only by hand, on a machine that holds the
 toolchain. CI green is a witness that the host gates passed on that commit and never a
 substitute for the guest lane's evidence.
@@ -416,6 +416,13 @@ unsound without the cast and the cast redundant with it, each naming `redundant-
 one in [tests/test_mutate.py](tests/test_mutate.py) naming `invalid-argument-type`; no
 import suppression exists here, which leaves every unresolved
 import an error without a carve-out to audit.
+
+## Current evidence and generated documentation
+
+The document parser supports top-level CommonMark fences using backticks or tildes,
+with matching delimiter characters and sufficient closing length. Unsupported container
+and deeply indented fence forms are refused with a file and line, so an example cannot
+silently become a requirement. Ordinary prose, tables and links remain Markdown.
 
 ## The conventions
 

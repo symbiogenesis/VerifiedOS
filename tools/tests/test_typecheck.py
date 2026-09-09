@@ -222,6 +222,18 @@ def _ordinary_finding_exit() -> None:
            f"exit 1's findings must be summarized, got {rep.out!r}")
 
 
+def _failed_check_requires_a_diagnostic() -> None:
+    """Neither missing output nor a changed output dialect can clear a failed checker."""
+    for output in ("", "echo a diagnostic in an unfamiliar format\r\n"):
+        body = _checker_stub_body(1, finding=False).replace(
+            "exit /b 1", output + "exit /b 1")
+        rep = _run_stub_checker(body, _STUB_PIN)
+        ensure(rep.findings > 0 and not any(line.startswith("ok ") for line in rep.out),
+               f"an unparsed failing check reported success: {rep.out!r}")
+        ensure("no diagnostic was recognized" in "\n".join(rep.out),
+               f"the refusal must explain the missing diagnostic: {rep.out!r}")
+
+
 def _pin_gate_refusals() -> None:
     # A drifted version and an absent tool are each one worded finding, and neither
     # lets the check run at all.
@@ -254,5 +266,7 @@ def cases() -> list[Case]:
         Case("crash-reported-beside-findings", _crash_reported_beside_findings, lane="host"),
         Case("crash-with-nothing-parsed", _crash_with_nothing_parsed, lane="host"),
         Case("ordinary-finding-exit", _ordinary_finding_exit, lane="host"),
+        Case("failed-check-requires-a-diagnostic",
+             _failed_check_requires_a_diagnostic, lane="host"),
         Case("pin-gate-refusals", _pin_gate_refusals, lane="host"),
     ]
